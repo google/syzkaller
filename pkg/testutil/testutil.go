@@ -90,3 +90,12 @@ func randValue(t *testing.T, rnd *rand.Rand, typ reflect.Type) reflect.Value {
 	}
 	return v
 }
+
+type Writer struct {
+	testing.TB
+}
+
+func (w *Writer) Write(data []byte) (int, error) {
+	w.TB.Logf("%s", data)
+	return len(data), nil
+}

@@ -24,14 +24,16 @@ type Output struct {
 }
 
 type Function struct {
-	Name     string   `json:"name,omitempty"`
-	File     string   `json:"file,omitempty"`
-	IsStatic bool     `json:"is_static,omitempty"`
-	LOC      int      `json:"loc,omitempty"`
-	Calls    []string `json:"calls,omitempty"`
+	Name     string        `json:"name,omitempty"`
+	File     string        `json:"file,omitempty"`
+	IsStatic bool          `json:"is_static,omitempty"`
+	LOC      int           `json:"loc,omitempty"`
+	Calls    []string      `json:"calls,omitempty"`
+	Facts    []*TypingFact `json:"facts,omitempty"`
 
 	callers int
 	calls   []*Function
+	facts   map[string]*typingNode
 }
 
 type Define struct {
@@ -53,6 +55,8 @@ type Syscall struct {
 	Func       string   `json:"func,omitempty"`
 	Args       []*Field `json:"args,omitempty"`
 	SourceFile string   `json:"source_file,omitempty"`
+
+	returnType string
 }
 
 // FileOps describes one file_operations variable.
@@ -156,6 +160,41 @@ type BufferType struct {
 	MaxSize         int  `json:"max_size,omitempty"`
 	IsString        bool `json:"is_string,omitempty"`
 	IsNonTerminated bool `json:"is_non_terminated,omitempty"`
+}
+
+type TypingFact struct {
+	Src *TypingEntity `json:"src,omitempty"`
+	Dst *TypingEntity `json:"dst,omitempty"`
+}
+
+type TypingEntity struct {
+	Return     *EntityReturn     `json:"return,omitempty"`
+	Argument   *EntityArgument   `json:"argument,omitempty"`
+	Field      *EntityField      `json:"field,omitempty"`
+	Local      *EntityLocal      `json:"local,omitempty"`
+	GlobalAddr *EntityGlobalAddr `json:"global_addr,omitempty"`
+}
+
+type EntityReturn struct {
+	Func string `json:"func,omitempty"`
+}
+
+type EntityArgument struct {
+	Func string `json:"func,omitempty"`
+	Arg  int    `json:"arg"`
+}
+
+type EntityField struct {
+	Struct string `json:"struct"`
+	Field  string `json:"field"`
+}
+
+type EntityLocal struct {
+	Name string `json:"name"`
+}
+
+type EntityGlobalAddr struct {
+	Name string
 }
 
 func (out *Output) Merge(other *Output) {

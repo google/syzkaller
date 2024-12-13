@@ -117,7 +117,7 @@ private:
   std::string getDeclName(const Expr* Expr);
   const ValueDecl* getValueDecl(const Expr* Expr);
   std::string getDeclFileID(const Decl* Decl);
-  std::string policyName(const ValueDecl* Decl);
+  std::string getUniqueDeclName(const NamedDecl* Decl);
   std::vector<std::pair<int, std::string>> extractDesignatedInitConsts(const VarDecl& ArrayDecl);
   FieldType genType(QualType Typ, const std::string& BackupName = "");
   std::unordered_map<std::string, unsigned> structFieldIndexes(const RecordDecl* Decl);
@@ -129,6 +129,12 @@ private:
   std::optional<QualType> getSizeofType(const Expr* E);
   int sizeofType(const Type* T);
   std::vector<IoctlCmd> extractIoctlCommands(const std::string& Ioctl);
+  std::optional<TypingEntity> getTypingEntity(const std::string& CurrentFunc,
+                                              std::unordered_map<const VarDecl*, int>& LocalVars,
+                                              std::unordered_map<std::string, int>& LocalSeq, const Expr* E);
+  std::optional<TypingEntity> getDeclTypingEntity(const std::string& CurrentFunc,
+                                                  std::unordered_map<const VarDecl*, int>& LocalVars,
+                                                  std::unordered_map<std::string, int>& LocalSeq, const Decl* Decl);
 };
 
 // PPCallbacksTracker records all macro definitions (name/value/source location).
@@ -473,7 +479,7 @@ void Extractor::matchNetlinkPolicy() {
     std::unique_ptr<FieldType> Elem;
     if (AttrKind == "NLA_NESTED" || AttrKind == "NLA_NESTED_ARRAY") {
       if (const auto* NestedDecl = getValueDecl(AttrInit->getInit(2)))
-        NestedPolicy = policyName(NestedDecl);
+        NestedPolicy = getUniqueDeclName(NestedDecl);
     } else {
       MaxSize = evaluate<int>(LenExpr);
       if (auto SizeofType = getSizeofType(LenExpr))
@@ -488,7 +494,7 @@ void Extractor::matchNetlinkPolicy() {
     });
   }
   Output.emit(NetlinkPolicy{
-      .Name = policyName(PolicyArray),
+      .Name = getUniqueDeclName(PolicyArray),
       .Attrs = std::move(Attrs),
   });
 }
@@ -499,7 +505,7 @@ void Extractor::matchNetlinkFamily() {
   const std::string& FamilyName = llvm::dyn_cast<StringLiteral>(FamilyInit->getInit(Fields["name"]))->getString().str();
   std::string DefaultPolicy;
   if (const auto* PolicyDecl = FamilyInit->getInit(Fields["policy"])->getAsBuiltinConstantDeclRef(*Context))
-    DefaultPolicy = policyName(PolicyDecl);
+    DefaultPolicy = getUniqueDeclName(PolicyDecl);
   std::vector<NetlinkOp> Ops;
   for (const auto& OpsName : {"ops", "small_ops", "split_ops"}) {
     const auto* OpsDecl =
@@ -521,7 +527,7 @@ void Extractor::matchNetlinkFamily() {
       std::string Policy;
       if (OpsFields.count("policy") != 0) {
         if (const auto* PolicyDecl = OpInit->getInit(OpsFields["policy"])->getAsBuiltinConstantDeclRef(*Context))
-          Policy = policyName(PolicyDecl);
+          Policy = getUniqueDeclName(PolicyDecl);
       }
       if (Policy.empty())
         Policy = DefaultPolicy;
@@ -550,40 +556,183 @@ void Extractor::matchNetlinkFamily() {
   });
 }
 
-std::string Extractor::policyName(const ValueDecl* Decl) { return Decl->getNameAsString() + "_" + getDeclFileID(Decl); }
+std::string Extractor::getUniqueDeclName(const NamedDecl* Decl) {
+  return Decl->getNameAsString() + "_" + getDeclFileID(Decl);
+}
+
+const Expr* removeCasts(const Expr* E) {
+  for (;;) {
+    if (auto* P = dyn_cast<ParenExpr>(E))
+      E = P->getSubExpr();
+    else if (auto* C = dyn_cast<CastExpr>(E))
+      E = C->getSubExpr();
+    else
+      break;
+  }
+  return E;
+}
+
+bool isInterestingCall(const CallExpr* Call) {
+  auto* CalleeDecl = Call->getDirectCallee();
+  // We don't handle indirect calls yet.
+  if (!CalleeDecl)
+    return false;
+  // Builtins are not interesting and won't have a body.
+  if (CalleeDecl->getBuiltinID() != Builtin::ID::NotBuiltin)
+    return false;
+  const std::string& Callee = CalleeDecl->getNameAsString();
+  // There are too many of these and they should only be called at runtime in broken builds.
+  if (Callee.rfind("__compiletime_assert", 0) == 0 || Callee == "____wrong_branch_error" ||
+      Callee == "__bad_size_call_parameter")
+    return false;
+  return true;
+}
 
 void Extractor::matchFunctionDef() {
   const auto* Func = getResult<FunctionDecl>("function");
+  const std::string& CurrentFunc = Func->getNameAsString();
   const auto Range = Func->getSourceRange();
   const std::string& SourceFile =
       std::filesystem::relative(SourceManager->getFilename(SourceManager->getExpansionLoc(Range.getBegin())).str());
   const int LOC = std::max<int>(0, SourceManager->getExpansionLineNumber(Range.getEnd()) -
                                        SourceManager->getExpansionLineNumber(Range.getBegin()) - 1);
+  std::vector<TypingFact> Facts;
   std::vector<std::string> Callees;
   std::unordered_set<std::string> CalleesDedup;
+  std::unordered_map<const VarDecl*, int> LocalVars;
+  std::unordered_map<std::string, int> LocalSeq;
   const auto& Calls = findAllMatches<CallExpr>(Func->getBody(), stmt(forEachDescendant(callExpr().bind("res"))));
   for (auto* Call : Calls) {
-    if (auto* CalleeDecl = Call->getDirectCallee()) {
-      // Builtins are not interesting and won't have a body.
-      if (CalleeDecl->getBuiltinID() != Builtin::ID::NotBuiltin)
-        continue;
-      const std::string& Callee = CalleeDecl->getNameAsString();
-      // There are too many of these and they should only be called at runtime in broken builds.
-      if (Callee.rfind("__compiletime_assert", 0) == 0 || Callee == "____wrong_branch_error" ||
-          Callee == "__bad_size_call_parameter")
-        continue;
-      if (!CalleesDedup.insert(Callee).second)
-        continue;
-      Callees.push_back(Callee);
+    if (!isInterestingCall(Call))
+      continue;
+    const std::string& Callee = Call->getDirectCallee()->getNameAsString();
+    for (unsigned AI = 0; AI < Call->getNumArgs(); AI++) {
+      if (auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, Call->getArg(AI))) {
+        Facts.push_back({std::move(*Src), EntityArgument{
+                                              .Func = Callee,
+                                              .Arg = AI,
+                                          }});
+      }
+    }
+    if (!CalleesDedup.insert(Callee).second)
+      continue;
+    Callees.push_back(Callee);
+  }
+  const auto& Assignments = findAllMatches<BinaryOperator>(
+      Func->getBody(), stmt(forEachDescendant(binaryOperator(isAssignmentOperator()).bind("res"))));
+  for (auto* A : Assignments) {
+    auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, A->getRHS());
+    auto Dst = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, A->getLHS());
+    if (Src && Dst)
+      Facts.push_back({std::move(*Src), std::move(*Dst)});
+  }
+  const auto& VarDecls = findAllMatches<VarDecl>(
+      Func->getBody(), stmt(forEachDescendant(varDecl(hasAutomaticStorageDuration()).bind("res"))));
+  for (auto* D : VarDecls) {
+    auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, D->getInit());
+    auto Dst = getDeclTypingEntity(CurrentFunc, LocalVars, LocalSeq, D);
+    if (Src && Dst)
+      Facts.push_back({std::move(*Src), std::move(*Dst)});
+  }
+  const auto& Returns = findAllMatches<ReturnStmt>(Func->getBody(), stmt(forEachDescendant(returnStmt().bind("res"))));
+  for (auto* Ret : Returns) {
+    if (auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, Ret->getRetValue())) {
+      Facts.push_back({std::move(*Src), EntityReturn{
+                                            .Func = CurrentFunc,
+                                        }});
     }
   }
   Output.emit(Function{
-      .Name = Func->getNameAsString(),
+      .Name = CurrentFunc,
       .File = SourceFile,
       .IsStatic = Func->isStatic(),
       .LOC = LOC,
       .Calls = std::move(Callees),
+      .Facts = std::move(Facts),
   });
+}
+
+std::optional<TypingEntity> Extractor::getTypingEntity(const std::string& CurrentFunc,
+                                                       std::unordered_map<const VarDecl*, int>& LocalVars,
+                                                       std::unordered_map<std::string, int>& LocalSeq, const Expr* E) {
+  if (!E)
+    return {};
+  E = removeCasts(E);
+  if (auto* DeclRef = dyn_cast<DeclRefExpr>(E)) {
+    return getDeclTypingEntity(CurrentFunc, LocalVars, LocalSeq, DeclRef->getDecl());
+  } else if (auto* Member = dyn_cast<MemberExpr>(E)) {
+    const Type* StructType =
+        Member->getBase()->getType().IgnoreParens().getUnqualifiedType().getDesugaredType(*Context).getTypePtr();
+    if (auto* T = dyn_cast<PointerType>(StructType))
+      StructType = T->getPointeeType().IgnoreParens().getUnqualifiedType().getDesugaredType(*Context).getTypePtr();
+    auto* StructDecl = dyn_cast<RecordType>(StructType)->getDecl();
+    std::string StructName = StructDecl->getNameAsString();
+    if (StructName.empty()) {
+      // The struct may be anonymous, but we need some name.
+      // Ideally we generate the same name we generate in struct definitions, then it will be possible
+      // to match them between each other. However, it does not seem to be easy. We can use DeclContext::getParent
+      // to get declaration of the enclosing struct, but we will also need to figure out the field index
+      // and handle all corner cases. For now we just use the following quick hack: hash declaration file:line.
+      // Note: the hash must be stable across different machines (for test golden files), so we take just
+      // the last part of the file name.
+      const std::string& SourceFile =
+          std::filesystem::path(
+              SourceManager->getFilename(SourceManager->getExpansionLoc(StructDecl->getBeginLoc())).str())
+              .filename()
+              .string();
+      int Line = SourceManager->getExpansionLineNumber(StructDecl->getBeginLoc());
+      StructName = std::to_string(std::hash<std::string>()(SourceFile) + std::hash<int>()(Line));
+    }
+    return EntityField{
+        .Struct = StructName,
+        .Field = Member->getMemberDecl()->getNameAsString(),
+    };
+  } else if (auto* Unary = dyn_cast<UnaryOperator>(E)) {
+    if (Unary->getOpcode() == UnaryOperatorKind::UO_AddrOf) {
+      if (auto* DeclRef = dyn_cast<DeclRefExpr>(removeCasts(Unary->getSubExpr()))) {
+        if (auto* Var = dyn_cast<VarDecl>(DeclRef->getDecl())) {
+          if (Var->hasGlobalStorage()) {
+            return EntityGlobalAddr{
+                .Name = getUniqueDeclName(Var),
+            };
+          }
+        }
+      }
+    }
+  } else if (auto* Call = dyn_cast<CallExpr>(E)) {
+    if (isInterestingCall(Call)) {
+      return EntityReturn{
+          .Func = Call->getDirectCallee()->getNameAsString(),
+      };
+    }
+  }
+  return {};
+}
+
+std::optional<TypingEntity> Extractor::getDeclTypingEntity(const std::string& CurrentFunc,
+                                                           std::unordered_map<const VarDecl*, int>& LocalVars,
+                                                           std::unordered_map<std::string, int>& LocalSeq,
+                                                           const Decl* Decl) {
+  if (auto* Parm = dyn_cast<ParmVarDecl>(Decl)) {
+    return EntityArgument{
+        .Func = CurrentFunc,
+        .Arg = Parm->getFunctionScopeIndex(),
+    };
+  } else if (auto* Var = dyn_cast<VarDecl>(Decl)) {
+    if (Var->hasLocalStorage()) {
+      std::string VarName = Var->getNameAsString();
+      // Theoretically there can be several local vars with the same name.
+      // Give them unique suffixes if that's the case.
+      if (LocalVars.count(Var) == 0)
+        LocalVars[Var] = LocalSeq[VarName]++;
+      if (int Seq = LocalVars[Var])
+        VarName += std::to_string(Seq);
+      return EntityLocal{
+          .Name = VarName,
+      };
+    }
+  }
+  return {};
 }
 
 void Extractor::matchSyscall() {
@@ -626,7 +775,7 @@ void Extractor::matchFileOps() {
     return;
   }
   const auto* Var = getResult<VarDecl>("var");
-  std::string VarName = Var->getNameAsString() + "_" + getDeclFileID(Var);
+  std::string VarName = getUniqueDeclName(Var);
   int NameSeq = FileOpsDedup[VarName]++;
   if (NameSeq)
     VarName += std::to_string(NameSeq);

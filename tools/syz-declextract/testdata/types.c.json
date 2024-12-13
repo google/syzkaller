@@ -4,6 +4,111 @@
 			"name": "__do_sys_types_syscall",
 			"file": "types.c",
 			"loc": 2
+		},
+		{
+			"name": "anon_flow",
+			"file": "types.c",
+			"loc": 8,
+			"facts": [
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126316",
+							"field": "x"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126318",
+							"field": "y"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126319",
+							"field": "w"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126309",
+							"field": "f"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126322",
+							"field": "a"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126323",
+							"field": "a"
+						}
+					}
+				},
+				{
+					"src": {
+						"argument": {
+							"func": "anon_flow",
+							"arg": 0
+						}
+					},
+					"dst": {
+						"field": {
+							"struct": "11253655576479126324",
+							"field": "b"
+						}
+					}
+				}
+			]
 		}
 	],
 	"defines": [

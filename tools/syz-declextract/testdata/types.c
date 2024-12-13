@@ -53,3 +53,14 @@ SYSCALL_DEFINE1(types_syscall, struct anon_struct* p, struct empty_struct* y,
 	struct bitfields* b, int pid, fd_t f, struct various* v) {
 	return 0;
 }
+
+void  anon_flow(int x) {
+	struct anon_struct s;
+	s.a.x = x;
+	s.y = x;
+	s.w = x;
+	s.foo.f = x;
+	s.array[1].a = x;
+	s.ptr->a = x;
+	s.ptr_array[1]->b = x;
+}

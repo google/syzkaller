@@ -4,6 +4,11 @@ meta automatic
 
 type auto_todo int8
 
+type auto_union[INFERRED, RAW] [
+	inferred	INFERRED
+	raw		RAW
+]
+
 include <vdso/bits.h>
 include <linux/types.h>
 include <net/netlink.h>
@@ -175,8 +180,8 @@ landlock_rule_type$auto = LANDLOCK_RULE_PATH_BENEATH, LANDLOCK_RULE_NET_PORT
 
 _llseek$auto(fd fd, offset_high intptr, offset_low intptr, result ptr[inout, int64], whence int32)
 _newselect$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tvp ptr[inout, __kernel_old_timeval$auto])
-accept$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32])
-accept4$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32], flags int32)
+accept$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32]) fd
+accept4$auto(fd fd, upeer_sockaddr ptr[inout, sockaddr], upeer_addrlen ptr[inout, int32], flags int32) fd
 access$auto(filename ptr[in, filename], mode int32)
 acct$auto(name ptr[in, string])
 add_key$auto(_type ptr[in, string], _description ptr[in, string], _payload ptr[in, array[auto_todo]], plen intptr, ringid int32)
@@ -185,7 +190,7 @@ alarm$auto(seconds int32)
 arch_prctl$auto(option int32, arg2 intptr)
 arm_sync_file_range$auto(fd fd, flags int32, offset intptr, nbytes intptr)
 bind$auto(fd fd, umyaddr ptr[inout, sockaddr], addrlen int32)
-bpf$auto(cmd int32, uattr ptr[inout, bpf_attr$auto], size int32)
+bpf$auto(cmd int32, uattr ptr[inout, bpf_attr$auto], size int32) fd
 brk$auto(brk intptr)
 cachestat$auto(fd fd, cstat_range ptr[inout, cachestat_range$auto], cstat ptr[inout, cachestat$auto], flags int32)
 capget$auto(header ptr[inout, __user_cap_header_struct$auto], dataptr ptr[inout, __user_cap_data_struct$auto])
@@ -205,25 +210,25 @@ clock_nanosleep$auto(which_clock int32, flags int32, rqtp ptr[in, __kernel_times
 clock_nanosleep_time64$auto(which_clock int32, flags int32, rqtp ptr[in, __kernel_timespec$auto], rmtp ptr[inout, __kernel_timespec$auto])
 clock_settime$auto(which_clock int32, tp ptr[in, __kernel_timespec$auto])
 clock_settime64$auto(which_clock int32, tp ptr[in, __kernel_timespec$auto])
-clone$auto(clone_flags intptr, newsp intptr, parent_tidptr ptr[inout, int32], child_tidptr ptr[inout, int32], tls intptr)
-clone3$auto(uargs ptr[inout, clone_args$auto], size intptr)
+clone$auto(clone_flags intptr, newsp intptr, parent_tidptr ptr[inout, int32], child_tidptr ptr[inout, int32], tls intptr) pid
+clone3$auto(uargs ptr[inout, clone_args$auto], size intptr) pid
 close$auto(fd fd)
 close_range$auto(fd fd, max_fd fd, flags int32)
 connect$auto(fd fd, uservaddr ptr[inout, sockaddr], addrlen int32)
 copy_file_range$auto(fd_in fd, off_in ptr[inout, int64], fd_out fd, off_out ptr[inout, int64], len intptr, flags int32)
-creat$auto(pathname ptr[in, filename], mode int16)
+creat$auto(pathname ptr[in, filename], mode int16) fd
 delete_module$auto(name_user ptr[in, string], flags int32)
-dup$auto(fildes fd)
+dup$auto(fildes fd) fd
 dup2$auto(oldfd fd, newfd fd)
 dup3$auto(oldfd fd, newfd fd, flags int32)
-epoll_create$auto(size int32)
-epoll_create1$auto(flags int32)
+epoll_create$auto(size int32) fd
+epoll_create1$auto(flags int32) fd
 epoll_ctl$auto(epfd fd, op int32, fd fd, event ptr[inout, epoll_event$auto])
 epoll_pwait$auto(epfd fd, events ptr[inout, epoll_event$auto], maxevents int32, timeout int32, sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
 epoll_pwait2$auto(epfd fd, events ptr[inout, epoll_event$auto], maxevents int32, timeout ptr[in, __kernel_timespec$auto], sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
 epoll_wait$auto(epfd fd, events ptr[inout, epoll_event$auto], maxevents int32, timeout int32)
-eventfd$auto(count int32)
-eventfd2$auto(count int32, flags int32)
+eventfd$auto(count int32) fd
+eventfd2$auto(count int32, flags int32) fd
 execve$auto(filename ptr[in, filename], argv ptr[in, ptr[in, string]], envp ptr[in, ptr[in, string]])
 execveat$auto(fd fd, filename ptr[in, filename], argv ptr[in, ptr[in, string]], envp ptr[in, ptr[in, string]], flags int32)
 exit$auto(error_code int32)
@@ -233,7 +238,7 @@ faccessat2$auto(dfd fd_dir, filename ptr[in, filename], mode int32, flags int32)
 fadvise64$auto(fd fd, offset intptr, len intptr, advice int32)
 fadvise64_64$auto(fd fd, offset_low int32, offset_high int32, len_low int32, len_high int32, advice int32)
 fallocate$auto(fd fd, mode int32, offset intptr, len intptr)
-fanotify_init$auto(flags int32, event_f_flags int32)
+fanotify_init$auto(flags int32, event_f_flags int32) fd
 fanotify_mark$auto(fanotify_fd fd, flags int32, mask intptr, dfd fd_dir, pathname ptr[in, filename])
 fchdir$auto(fd fd)
 fchmod$auto(fd fd, mode int16)
@@ -242,18 +247,18 @@ fchmodat2$auto(dfd fd_dir, filename ptr[in, filename], mode int16, flags int32)
 fchown$auto(fd fd, user uid, group gid)
 fchown32$auto(fd fd, user uid, group gid)
 fchownat$auto(dfd fd_dir, filename ptr[in, filename], user uid, group gid, flag int32)
-fcntl$auto(fd fd, cmd int32, arg intptr)
+fcntl$auto(fd fd, cmd int32, arg pid) fd
 fdatasync$auto(fd fd)
 fgetxattr$auto(fd fd, name ptr[in, string], value ptr[inout, array[auto_todo]], size intptr)
 finit_module$auto(fd fd, uargs ptr[in, string], flags int32)
 flistxattr$auto(fd fd, list ptr[inout, string], size intptr)
 flock$auto(fd fd, cmd int32)
 fremovexattr$auto(fd fd, name ptr[in, string])
-fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
+fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
 fsetxattr$auto(fd fd, name ptr[in, string], value ptr[in, array[auto_todo]], size intptr, flags int32)
-fsmount$auto(fs_fd fd, flags int32, attr_flags int32)
-fsopen$auto(_fs_name ptr[in, string], flags int32)
-fspick$auto(dfd fd_dir, path ptr[in, filename], flags int32)
+fsmount$auto(fs_fd fd, flags int32, attr_flags int32) fd
+fsopen$auto(_fs_name ptr[in, string], flags int32) fd
+fspick$auto(dfd fd_dir, path ptr[in, filename], flags int32) fd
 fstat$auto(fd fd, statbuf ptr[inout, stat$auto])
 fstatfs$auto(fd fd, buf ptr[inout, statfs$auto])
 fstatfs64$auto(fd fd, sz intptr, buf ptr[inout, statfs64$auto])
@@ -278,8 +283,8 @@ getgroups$auto(gidsetsize int32, grouplist ptr[inout, int32])
 getgroups32$auto(gidsetsize int32, grouplist ptr[inout, int32])
 getitimer$auto(which int32, value ptr[inout, __kernel_old_itimerval$auto])
 getpeername$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
-getpgid$auto(pid pid)
-getpriority$auto(which int32, who int32)
+getpgid$auto(pid pid) pid
+getpriority$auto(which int32, who uid)
 getrandom$auto(ubuf ptr[inout, string], len intptr, flags int32)
 getresgid$auto(rgidp ptr[inout, int32], egidp ptr[inout, int32], sgidp ptr[inout, int32])
 getresgid32$auto(rgidp ptr[inout, int32], egidp ptr[inout, int32], sgidp ptr[inout, int32])
@@ -287,15 +292,15 @@ getresuid$auto(ruidp ptr[inout, int32], euidp ptr[inout, int32], suidp ptr[inout
 getresuid32$auto(ruidp ptr[inout, int32], euidp ptr[inout, int32], suidp ptr[inout, int32])
 getrlimit$auto(_resource int32, rlim ptr[inout, rlimit$auto])
 getrusage$auto(who int32, ru ptr[inout, rusage$auto])
-getsid$auto(pid pid)
+getsid$auto(pid pid) pid
 getsockname$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
-getsockopt$auto(fd fd, level int32, optname int32, optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto(fd fd, level int32, optname int32, optval ptr[inout, string], optlen ptr[inout, int32]) fd
 gettimeofday$auto(tv ptr[inout, __kernel_old_timeval$auto], tz ptr[inout, timezone$auto])
 getxattr$auto(pathname ptr[in, filename], name ptr[in, string], value ptr[inout, array[auto_todo]], size intptr)
 getxattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, name ptr[in, string], uargs ptr[inout, xattr_args$auto], usize intptr)
 init_module$auto(umod ptr[inout, array[auto_todo]], len intptr, uargs ptr[in, string])
 inotify_add_watch$auto(fd fd, pathname ptr[in, filename], mask int32)
-inotify_init1$auto(flags int32)
+inotify_init1$auto(flags int32) fd
 inotify_rm_watch$auto(fd fd, wd int32)
 io_cancel$auto(ctx_id intptr, iocb ptr[inout, iocb$auto], result ptr[inout, io_event$auto])
 io_destroy$auto(ctx intptr)
@@ -306,18 +311,18 @@ io_setup$auto(nr_events int32, ctxp ptr[inout, intptr])
 io_submit$auto(ctx_id intptr, nr intptr, iocbpp ptr[inout, ptr[inout, iocb$auto]])
 io_uring_enter$auto(fd fd, to_submit int32, min_complete int32, flags int32, argp ptr[in, array[auto_todo]], argsz intptr)
 io_uring_register$auto(fd fd, opcode int32, arg ptr[inout, array[auto_todo]], nr_args int32)
-io_uring_setup$auto(entries int32, params ptr[inout, io_uring_params$auto])
-ioctl$auto(fd fd, cmd int32, arg intptr)
+io_uring_setup$auto(entries int32, params ptr[inout, io_uring_params$auto]) fd
+ioctl$auto(fd fd, cmd int32, arg fd)
 ioperm$auto(from intptr, num intptr, turn_on int32)
 iopl$auto(level int32)
-ioprio_get$auto(which int32, who int32)
-ioprio_set$auto(which int32, who int32, ioprio int32)
-kcmp$auto(pid1 int32, pid2 int32, type int32, idx1 intptr, idx2 intptr)
+ioprio_get$auto(which int32, who uid)
+ioprio_set$auto(which int32, who uid, ioprio int32)
+kcmp$auto(pid1 pid, pid2 pid, type int32, idx1 fd, idx2 fd)
 kexec_load$auto(entry intptr, nr_segments intptr, segments ptr[inout, kexec_segment$auto], flags intptr)
-keyctl$auto(option int32, arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto(option int32, arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
 kill$auto(pid pid, sig int32)
 landlock_add_rule$auto(ruleset_fd fd, rule_type flags[landlock_rule_type$auto], rule_attr ptr[in, array[auto_todo]], flags int32)
-landlock_create_ruleset$auto(attr ptr[in, landlock_ruleset_attr$auto], size intptr, flags int32)
+landlock_create_ruleset$auto(attr ptr[in, landlock_ruleset_attr$auto], size intptr, flags int32) fd
 landlock_restrict_self$auto(ruleset_fd fd, flags int32)
 lchown$auto(filename ptr[in, filename], user uid, group gid)
 lchown32$auto(filename ptr[in, filename], user uid, group gid)
@@ -340,8 +345,8 @@ madvise$auto(start intptr, len_in intptr, behavior int32)
 map_shadow_stack$auto(addr intptr, size intptr, flags int32)
 mbind$auto(start intptr, len intptr, mode intptr, nmask ptr[in, intptr], maxnode intptr, flags int32)
 membarrier$auto(cmd int32, flags int32, cpu_id int32)
-memfd_create$auto(uname ptr[in, string], flags int32)
-memfd_secret$auto(flags int32)
+memfd_create$auto(uname ptr[in, string], flags int32) fd
+memfd_secret$auto(flags int32) fd
 migrate_pages$auto(pid pid, maxnode intptr, old_nodes ptr[in, intptr], new_nodes ptr[in, intptr])
 mincore$auto(start intptr, len intptr, vec ptr[inout, string])
 mkdir$auto(pathname ptr[in, filename], mode int16)
@@ -351,21 +356,21 @@ mknodat$auto(dfd fd_dir, filename ptr[in, filename], mode int16, dev int32)
 mlock$auto(start intptr, len intptr)
 mlock2$auto(start intptr, len intptr, flags int32)
 mlockall$auto(flags int32)
-mmap$auto(addr intptr, len intptr, prot intptr, flags intptr, fd intptr, off intptr)
-mmap2$auto(addr intptr, len intptr, prot intptr, flags intptr, fd intptr, pgoff intptr)
+mmap$auto(addr intptr, len intptr, prot intptr, flags intptr, fd fd, off intptr)
+mmap2$auto(addr intptr, len intptr, prot intptr, flags intptr, fd fd, pgoff intptr)
 modify_ldt$auto(func int32, ptr ptr[inout, array[auto_todo]], bytecount intptr)
 mount$auto(dev_name ptr[inout, devname], dir_name ptr[inout, filename], type ptr[inout, string], flags intptr, data ptr[inout, array[auto_todo]])
 mount_setattr$auto(dfd fd_dir, path ptr[in, filename], flags int32, uattr ptr[inout, mount_attr$auto], usize intptr)
 move_mount$auto(from_dfd fd_dir, from_pathname ptr[in, filename], to_dfd fd_dir, to_pathname ptr[in, filename], flags int32)
 move_pages$auto(pid pid, nr_pages intptr, pages ptr[inout, ptr[in, array[auto_todo]]], nodes ptr[in, int32], status ptr[inout, int32], flags int32)
 mprotect$auto(start intptr, len intptr, prot intptr)
-mq_getsetattr$auto(mqdes int32, u_mqstat ptr[in, mq_attr$auto], u_omqstat ptr[inout, mq_attr$auto])
-mq_notify$auto(mqdes int32, u_notification ptr[in, sigevent$auto])
-mq_open$auto(u_name ptr[in, string], oflag int32, mode int16, u_attr ptr[inout, mq_attr$auto])
-mq_timedreceive$auto(mqdes int32, u_msg_ptr ptr[inout, string], msg_len intptr, u_msg_prio ptr[inout, int32], u_abs_timeout ptr[in, __kernel_timespec$auto])
-mq_timedreceive_time64$auto(mqdes int32, u_msg_ptr ptr[inout, string], msg_len intptr, u_msg_prio ptr[inout, int32], u_abs_timeout ptr[in, __kernel_timespec$auto])
-mq_timedsend$auto(mqdes int32, u_msg_ptr ptr[in, string], msg_len intptr, msg_prio int32, u_abs_timeout ptr[in, __kernel_timespec$auto])
-mq_timedsend_time64$auto(mqdes int32, u_msg_ptr ptr[in, string], msg_len intptr, msg_prio int32, u_abs_timeout ptr[in, __kernel_timespec$auto])
+mq_getsetattr$auto(mqdes fd, u_mqstat ptr[in, mq_attr$auto], u_omqstat ptr[inout, mq_attr$auto])
+mq_notify$auto(mqdes fd, u_notification ptr[in, sigevent$auto])
+mq_open$auto(u_name ptr[in, string], oflag int32, mode int16, u_attr ptr[inout, mq_attr$auto]) fd
+mq_timedreceive$auto(mqdes fd, u_msg_ptr ptr[inout, string], msg_len intptr, u_msg_prio ptr[inout, int32], u_abs_timeout ptr[in, __kernel_timespec$auto])
+mq_timedreceive_time64$auto(mqdes fd, u_msg_ptr ptr[inout, string], msg_len intptr, u_msg_prio ptr[inout, int32], u_abs_timeout ptr[in, __kernel_timespec$auto])
+mq_timedsend$auto(mqdes fd, u_msg_ptr ptr[in, string], msg_len intptr, msg_prio int32, u_abs_timeout ptr[in, __kernel_timespec$auto])
+mq_timedsend_time64$auto(mqdes fd, u_msg_ptr ptr[in, string], msg_len intptr, msg_prio int32, u_abs_timeout ptr[in, __kernel_timespec$auto])
 mq_unlink$auto(u_name ptr[in, string])
 mremap$auto(addr intptr, old_len intptr, new_len intptr, flags intptr, new_addr intptr)
 mseal$auto(start intptr, len intptr, flags intptr)
@@ -385,18 +390,18 @@ oldlstat$auto(filename ptr[in, filename], statbuf ptr[inout, __old_kernel_stat$a
 oldolduname$auto(name ptr[inout, oldold_utsname$auto])
 oldstat$auto(filename ptr[in, filename], statbuf ptr[inout, __old_kernel_stat$auto])
 olduname$auto(name ptr[inout, old_utsname$auto])
-open$auto(filename ptr[in, filename], flags int32, mode int16)
-open_by_handle_at$auto(mountdirfd fd, handle ptr[inout, file_handle$auto], flags int32)
-open_tree$auto(dfd fd_dir, filename ptr[in, filename], flags int32)
-openat$auto(dfd fd_dir, filename ptr[in, filename], flags int32, mode int16)
-openat2$auto(dfd fd_dir, filename ptr[in, filename], how ptr[inout, open_how$auto], usize intptr)
-perf_event_open$auto(attr_uptr ptr[inout, perf_event_attr$auto], pid pid, cpu int32, group_fd fd, flags intptr)
+open$auto(filename ptr[in, filename], flags int32, mode int16) fd
+open_by_handle_at$auto(mountdirfd fd, handle ptr[inout, file_handle$auto], flags int32) fd
+open_tree$auto(dfd fd_dir, filename ptr[in, filename], flags int32) fd
+openat$auto(dfd fd_dir, filename ptr[in, filename], flags int32, mode int16) fd
+openat2$auto(dfd fd_dir, filename ptr[in, filename], how ptr[inout, open_how$auto], usize intptr) fd
+perf_event_open$auto(attr_uptr ptr[inout, perf_event_attr$auto], pid pid, cpu int32, group_fd fd, flags intptr) fd
 personality$auto(personality int32)
-pidfd_getfd$auto(pidfd fd, fd fd, flags int32)
-pidfd_open$auto(pid pid, flags int32)
+pidfd_getfd$auto(pidfd fd, fd fd, flags int32) fd
+pidfd_open$auto(pid pid, flags int32) fd
 pidfd_send_signal$auto(pidfd fd, sig int32, info ptr[inout, siginfo$auto], flags int32)
-pipe$auto(fildes ptr[inout, fd])
-pipe2$auto(fildes ptr[inout, fd], flags int32)
+pipe$auto(fildes ptr[inout, fd]) fd
+pipe2$auto(fildes ptr[inout, fd], flags int32) fd
 pivot_root$auto(new_root ptr[in, string], put_old ptr[in, string])
 pkey_alloc$auto(flags intptr, init_val intptr)
 pkey_free$auto(pkey int32)
@@ -404,29 +409,29 @@ pkey_mprotect$auto(start intptr, len intptr, prot intptr, pkey int32)
 poll$auto(ufds ptr[inout, pollfd$auto], nfds int32, timeout_msecs int32)
 ppoll$auto(ufds ptr[inout, pollfd$auto], nfds int32, tsp ptr[inout, __kernel_timespec$auto], sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
 ppoll_time64$auto(ufds ptr[inout, pollfd$auto], nfds int32, tsp ptr[inout, __kernel_timespec$auto], sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
-prctl$auto(option int32, arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto(option int32, arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
 pread64$auto(fd fd, buf ptr[inout, string], count intptr, pos intptr)
-preadv$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr)
-preadv2$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr, flags int32)
+preadv$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr)
+preadv2$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr, flags int32)
 prlimit64$auto(pid pid, _resource int32, new_rlim ptr[in, rlimit64$auto], old_rlim ptr[inout, rlimit64$auto])
-process_madvise$auto(pidfd fd, vec ptr[in, iovec$auto], vlen intptr, behavior int32, flags int32)
-process_mrelease$auto(pidfd fd, flags int32)
+process_madvise$auto(pidfd fd_pidfd, vec ptr[in, iovec$auto], vlen intptr, behavior int32, flags int32)
+process_mrelease$auto(pidfd fd_pidfd, flags int32)
 process_vm_readv$auto(pid pid, lvec ptr[in, iovec$auto], liovcnt intptr, rvec ptr[in, iovec$auto], riovcnt intptr, flags intptr)
 process_vm_writev$auto(pid pid, lvec ptr[in, iovec$auto], liovcnt intptr, rvec ptr[in, iovec$auto], riovcnt intptr, flags intptr)
 pselect6$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tsp ptr[inout, __kernel_timespec$auto], sig ptr[inout, array[auto_todo]])
 pselect6_time64$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tsp ptr[inout, __kernel_timespec$auto], sig ptr[inout, array[auto_todo]])
-ptrace$auto(request intptr, pid intptr, addr intptr, data intptr)
+ptrace$auto(request intptr, pid pid, addr intptr, data intptr)
 pwrite64$auto(fd fd, buf ptr[in, string], count intptr, pos intptr)
-pwritev$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr)
-pwritev2$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr, flags int32)
-quotactl$auto(cmd int32, special ptr[in, string], id int32, addr ptr[inout, array[auto_todo]])
-quotactl_fd$auto(fd fd, cmd int32, id int32, addr ptr[inout, array[auto_todo]])
+pwritev$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr)
+pwritev2$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr, pos_l intptr, pos_h intptr, flags int32)
+quotactl$auto(cmd int32, special ptr[in, string], id gid, addr ptr[inout, array[auto_todo]])
+quotactl_fd$auto(fd fd, cmd int32, id gid, addr ptr[inout, array[auto_todo]])
 read$auto(fd fd, buf ptr[inout, string], count intptr)
 readahead$auto(fd fd, offset intptr, count intptr)
 readdir$auto(fd fd, dirent ptr[inout, old_linux_dirent$auto], count int32)
 readlink$auto(path ptr[in, filename], buf ptr[inout, string], bufsiz int32)
 readlinkat$auto(dfd fd_dir, pathname ptr[in, filename], buf ptr[inout, string], bufsiz int32)
-readv$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr)
+readv$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr)
 recv$auto(fd fd, ubuf ptr[inout, array[auto_todo]], size intptr, flags int32)
 recvfrom$auto(fd fd, ubuf ptr[inout, array[auto_todo]], size intptr, flags int32, addr ptr[inout, sockaddr], addr_len ptr[inout, int32])
 recvmmsg$auto(fd fd, mmsg ptr[inout, mmsghdr$auto], vlen int32, flags int32, timeout ptr[inout, __kernel_timespec$auto])
@@ -461,9 +466,9 @@ sched_setaffinity$auto(pid pid, len int32, user_mask_ptr ptr[inout, intptr])
 sched_setattr$auto(pid pid, uattr ptr[inout, sched_attr$auto], flags int32)
 sched_setparam$auto(pid pid, param ptr[inout, sched_param$auto])
 sched_setscheduler$auto(pid pid, policy int32, param ptr[inout, sched_param$auto])
-seccomp$auto(op int32, flags int32, uargs ptr[inout, array[auto_todo]])
+seccomp$auto(op int32, flags int32, uargs ptr[inout, array[auto_todo]]) fd
 select$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tvp ptr[inout, __kernel_old_timeval$auto])
-semctl$auto(semid int32, semnum int32, cmd int32, arg intptr)
+semctl$auto(semid int32, semnum int32, cmd int32, arg intptr) pid
 semget$auto(key int32, nsems int32, semflg int32)
 semop$auto(semid int32, tsops ptr[inout, sembuf$auto], nsops int32)
 semtimedop$auto(semid int32, tsops ptr[inout, sembuf$auto], nsops int32, timeout ptr[in, __kernel_timespec$auto])
@@ -478,12 +483,12 @@ set_mempolicy$auto(mode int32, nmask ptr[in, intptr], maxnode intptr)
 set_mempolicy_home_node$auto(start intptr, len intptr, home_node intptr, flags intptr)
 set_robust_list$auto(head ptr[inout, robust_list_head$auto], len intptr)
 set_thread_area$auto(u_info ptr[inout, user_desc$auto])
-set_tid_address$auto(tidptr ptr[inout, int32])
+set_tid_address$auto(tidptr ptr[inout, int32]) pid
 setdomainname$auto(name ptr[inout, string], len int32)
-setfsgid$auto(gid gid)
-setfsgid32$auto(gid gid)
-setfsuid$auto(uid uid)
-setfsuid32$auto(uid uid)
+setfsgid$auto(gid gid) gid
+setfsgid32$auto(gid gid) gid
+setfsuid$auto(uid uid) uid
+setfsuid32$auto(uid uid) uid
 setgid$auto(gid gid)
 setgid32$auto(gid gid)
 setgroups$auto(gidsetsize int32, grouplist ptr[inout, int32])
@@ -492,7 +497,7 @@ sethostname$auto(name ptr[inout, string], len int32)
 setitimer$auto(which int32, value ptr[inout, __kernel_old_itimerval$auto], ovalue ptr[inout, __kernel_old_itimerval$auto])
 setns$auto(fd fd, flags int32)
 setpgid$auto(pid pid, pgid pid)
-setpriority$auto(which int32, who int32, niceval int32)
+setpriority$auto(which int32, who uid, niceval int32)
 setregid$auto(rgid gid, egid gid)
 setregid32$auto(rgid gid, egid gid)
 setresgid$auto(rgid gid, egid gid, sgid gid)
@@ -515,14 +520,14 @@ shmget$auto(key int32, size intptr, shmflg int32)
 shutdown$auto(fd fd, how int32)
 sigaltstack$auto(uss ptr[in, sigaltstack$auto], uoss ptr[inout, sigaltstack$auto])
 signal$auto(sig int32, handler ptr[inout, ptr[in, auto_todo]])
-signalfd$auto(ufd fd, user_mask ptr[inout, sigset_t$auto], sizemask intptr)
-signalfd4$auto(ufd fd, user_mask ptr[inout, sigset_t$auto], sizemask intptr, flags int32)
+signalfd$auto(ufd fd, user_mask ptr[inout, sigset_t$auto], sizemask intptr) fd
+signalfd4$auto(ufd fd, user_mask ptr[inout, sigset_t$auto], sizemask intptr, flags int32) fd
 sigpending$auto(uset ptr[inout, intptr])
 sigprocmask$auto(how int32, nset ptr[inout, intptr], oset ptr[inout, intptr])
 sigsuspend$auto(unused1 const[0], unused2 const[0], mask intptr)
-socket$auto(family int32, type int32, protocol int32)
-socketcall$auto(call int32, args ptr[inout, intptr])
-socketpair$auto(family int32, type int32, protocol int32, usockvec ptr[inout, int32])
+socket$auto(family int32, type int32, protocol int32) fd
+socketcall$auto(call int32, args ptr[inout, intptr]) fd
+socketpair$auto(family int32, type int32, protocol int32, usockvec ptr[inout, int32]) fd
 splice$auto(fd_in fd, off_in ptr[inout, int64], fd_out fd, off_out ptr[inout, int64], len intptr, flags int32)
 ssetmask$auto(newmask int32)
 stat$auto(filename ptr[in, filename], statbuf ptr[inout, stat$auto])
@@ -551,7 +556,7 @@ timer_gettime$auto(timer_id int32, setting ptr[inout, __kernel_itimerspec$auto])
 timer_gettime64$auto(timer_id int32, setting ptr[inout, __kernel_itimerspec$auto])
 timer_settime$auto(timer_id int32, flags int32, new_setting ptr[in, __kernel_itimerspec$auto], old_setting ptr[inout, __kernel_itimerspec$auto])
 timer_settime64$auto(timer_id int32, flags int32, new_setting ptr[in, __kernel_itimerspec$auto], old_setting ptr[inout, __kernel_itimerspec$auto])
-timerfd_create$auto(clockid int32, flags int32)
+timerfd_create$auto(clockid int32, flags int32) fd
 timerfd_gettime$auto(ufd fd, otmr ptr[inout, __kernel_itimerspec$auto])
 timerfd_gettime64$auto(ufd fd, otmr ptr[inout, __kernel_itimerspec$auto])
 timerfd_settime$auto(ufd fd, flags int32, utmr ptr[in, __kernel_itimerspec$auto], otmr ptr[inout, __kernel_itimerspec$auto])
@@ -568,18 +573,18 @@ uname$auto(name ptr[inout, new_utsname$auto])
 unlink$auto(pathname ptr[in, filename])
 unlinkat$auto(dfd fd_dir, pathname ptr[in, filename], flag int32)
 unshare$auto(unshare_flags intptr)
-userfaultfd$auto(flags int32)
+userfaultfd$auto(flags int32) fd
 ustat$auto(dev int32, ubuf ptr[inout, ustat$auto])
 utime$auto(filename ptr[inout, filename], times ptr[inout, utimbuf$auto])
 utimensat$auto(dfd fd_dir, filename ptr[in, filename], utimes ptr[inout, __kernel_timespec$auto], flags int32)
 utimensat_time64$auto(dfd fd_dir, filename ptr[in, filename], utimes ptr[inout, __kernel_timespec$auto], flags int32)
 utimes$auto(filename ptr[inout, filename], utimes ptr[inout, __kernel_old_timeval$auto])
 vmsplice$auto(fd fd, uiov ptr[in, iovec$auto], nr_segs intptr, flags int32)
-wait4$auto(upid int32, stat_addr ptr[inout, int32], options int32, ru ptr[inout, rusage$auto])
-waitid$auto(which int32, upid int32, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto])
-waitpid$auto(pid pid, stat_addr ptr[inout, int32], options int32)
+wait4$auto(upid pid, stat_addr ptr[inout, int32], options int32, ru ptr[inout, rusage$auto]) pid
+waitid$auto(which int32, upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
+waitpid$auto(pid pid, stat_addr ptr[inout, int32], options int32) pid
 write$auto(fd fd, buf ptr[in, string], count intptr)
-writev$auto(fd intptr, vec ptr[in, iovec$auto], vlen intptr)
+writev$auto(fd fd, vec ptr[in, iovec$auto], vlen intptr)
 
 resource fd__ctl_fops_dm_ioctl[fd]
 openat$auto__ctl_fops_dm_ioctl(fd const[AT_FDCWD], file ptr[in, string["/dev/mapper/control"]], flags flags[open_flags], mode const[0]) fd__ctl_fops_dm_ioctl
@@ -5340,7 +5345,7 @@ btrfs_ioctl_feature_flags$auto {
 }
 
 btrfs_ioctl_vol_args$auto {
-	fd	int64
+	fd	auto_union[fd, int64]
 	name	array[int8, 4088]
 }
 
@@ -5721,7 +5726,7 @@ mmsghdr$auto {
 
 mnt_id_req$auto {
 	size		int32
-	spare		int32
+	spare		auto_union[fd, int32]
 	mnt_id		int64
 	param		int64
 	mnt_ns_id	int64
@@ -5774,7 +5779,7 @@ mount_attr$auto {
 	attr_set	int64
 	attr_clr	int64
 	propagation	int64
-	userns_fd	int64
+	userns_fd	auto_union[fd, int64]
 }
 
 mq_attr$auto {
@@ -5802,8 +5807,8 @@ msqid_ds$auto {
 	msg_cbytes	int16
 	msg_qnum	int16
 	msg_qbytes	int16
-	msg_lspid	int32
-	msg_lrpid	int32
+	msg_lspid	auto_union[pid, int32]
+	msg_lrpid	auto_union[pid, int32]
 }
 
 new_utsname$auto {
@@ -6138,8 +6143,8 @@ shmid_ds$auto {
 	shm_atime	intptr
 	shm_dtime	intptr
 	shm_ctime	intptr
-	shm_cpid	int32
-	shm_lpid	int32
+	shm_cpid	auto_union[pid, int32]
+	shm_lpid	auto_union[pid, int32]
 	shm_nattch	int16
 	shm_unused	const[0, int16]
 	shm_unused2	ptr[inout, array[auto_todo]]
@@ -6161,7 +6166,7 @@ sigaltstack$auto {
 
 sigevent$auto {
 	sigev_value	sigval$auto
-	sigev_signo	int32
+	sigev_signo	auto_union[fd, int32]
 	sigev_notify	int32
 	_sigev_un	sigevent__sigev_un$auto
 }
@@ -6222,12 +6227,12 @@ snd_ctl_card_info$auto {
 }
 
 snd_ctl_elem_id$auto {
-	numid		int32
+	numid		auto_union[pid, int32]
 	iface		int32
 	device		int32
 	subdevice	int32
 	name		array[int8, 44]
-	index		int32
+	index		auto_union[pid, int32]
 }
 
 snd_ctl_elem_info$auto {
@@ -6235,7 +6240,7 @@ snd_ctl_elem_info$auto {
 	type		int32
 	access		int32
 	count		int32
-	owner		int32
+	owner		auto_union[pid, int32]
 	value		snd_ctl_elem_info_value$auto
 	reserved	array[int8, 64]
 }
@@ -6271,7 +6276,7 @@ snd_ctl_elem_list$auto {
 	offset		int32
 	space		int32
 	used		int32
-	count		int32
+	count		auto_union[pid, int32]
 	pids		ptr[inout, snd_ctl_elem_id$auto]
 	reserved	array[int8, 50]
 }
@@ -6363,7 +6368,7 @@ sock_filter$auto {
 	code	int16
 	jt	int8
 	jf	int8
-	k	int32
+	k	auto_union[fd, int32]
 }
 
 sock_fprog$auto {
@@ -6494,7 +6499,7 @@ statx_timestamp$auto {
 sw_sync_create_fence_data$auto {
 	value	int32
 	name	array[int8, 32]
-	fence	int32
+	fence	auto_union[fd, int32]
 }
 
 sw_sync_get_deadline$auto {

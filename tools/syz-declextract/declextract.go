@@ -47,10 +47,11 @@ func main() {
 		return probe(cfg, *flagConfig)
 	}
 	if err := run(filepath.FromSlash("sys/linux/auto.txt"), loadProbeInfo, &clangtool.Config{
-		ToolBin:   *flagBinary,
-		KernelSrc: cfg.KernelSrc,
-		KernelObj: cfg.KernelObj,
-		CacheFile: filepath.Join(cfg.Workdir, "declextract.cache"),
+		ToolBin:    *flagBinary,
+		KernelSrc:  cfg.KernelSrc,
+		KernelObj:  cfg.KernelObj,
+		CacheFile:  filepath.Join(cfg.Workdir, "declextract.cache"),
+		DebugTrace: os.Stderr,
 	}); err != nil {
 		tool.Fail(err)
 	}
@@ -61,7 +62,7 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *c
 	if err != nil {
 		return err
 	}
-	descriptions, interfaces, err := declextract.Run(out, probeInfo, syscallRename)
+	descriptions, interfaces, err := declextract.Run(out, probeInfo, syscallRename, cfg.DebugTrace)
 	if err != nil {
 		return err
 	}

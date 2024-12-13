@@ -27,6 +27,11 @@ meta automatic
 
 type auto_todo int8
 
+type auto_union[INFERRED, RAW] [
+	inferred	INFERRED
+	raw		RAW
+]
+
 `
 
 func (ctx *context) fmt(msg string, args ...any) {
@@ -53,7 +58,7 @@ func (ctx *context) serializeSyscalls() {
 		for i, arg := range call.Args {
 			ctx.fmt("%v%v %v", comma(i), arg.Name, arg.syzType)
 		}
-		ctx.fmt(")\n")
+		ctx.fmt(") %v\n", call.returnType)
 	}
 	ctx.fmt("\n")
 }

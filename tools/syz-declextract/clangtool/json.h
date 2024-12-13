@@ -53,6 +53,7 @@ private:
 };
 
 inline void print(JSONPrinter& Printer, int V) { printf("%d", V); }
+inline void print(JSONPrinter& Printer, unsigned V) { printf("%u", V); }
 inline void print(JSONPrinter& Printer, int64_t V) { printf("%ld", V); }
 inline void print(JSONPrinter& Printer, bool V) { printf("%s", V ? "true" : "false"); }
 inline void print(JSONPrinter& Printer, const char* V) { printf("\"%s\"", V ? V : ""); }

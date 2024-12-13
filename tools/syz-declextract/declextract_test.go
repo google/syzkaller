@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 var (
@@ -132,10 +133,11 @@ func testEachFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, fil
 				t.Fatal(err)
 			}
 			cfg := &clangtool.Config{
-				ToolBin:   *flagBin,
-				KernelSrc: testdata,
-				KernelObj: buildDir,
-				CacheFile: filepath.Join(buildDir, filepath.Base(file)+".json"),
+				ToolBin:    *flagBin,
+				KernelSrc:  testdata,
+				KernelObj:  buildDir,
+				CacheFile:  filepath.Join(buildDir, filepath.Base(file)+".json"),
+				DebugTrace: &testutil.Writer{TB: t},
 			}
 			fn(t, cfg, file)
 		})
