@@ -172,7 +172,10 @@ func (out *Output) SortAndDedup() {
 
 // SetSoureFile attaches the source file to the entities that need it.
 // The clang tool could do it, but it looks easier to do it here.
-func (out *Output) SetSourceFile(file string) {
+func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
+	for i, inc := range out.Includes {
+		out.Includes[i] = updatePath(inc)
+	}
 	for _, call := range out.Syscalls {
 		call.SourceFile = file
 	}

@@ -123,12 +123,12 @@ func unmarshal(data []byte) (*declextract.Output, error) {
 func fixupFileNames(cfg *Config, out *declextract.Output, file string) {
 	// All includes in the tool output are relative to the build dir.
 	// Make them relative to the source dir.
-	for i, inc := range out.Includes {
-		if file, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, inc)); err == nil {
-			out.Includes[i] = file
+	out.SetSourceFile(file, func(filename string) string {
+		if res, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, filename)); err == nil {
+			return res
 		}
-	}
-	out.SetSourceFile(file)
+		return filename
+	})
 }
 
 type compileCommand struct {
