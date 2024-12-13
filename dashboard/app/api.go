@@ -74,8 +74,8 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
-type APIHandler func(c context.Context, r *http.Request, payload []byte) (interface{}, error)
-type APINamespaceHandler func(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error)
+type APIHandler func(c context.Context, r *http.Request, payload io.Reader) (interface{}, error)
+type APINamespaceHandler func(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error)
 
 const (
 	maxReproPerBug   = 10
@@ -143,23 +143,19 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
-	var payload []byte
+	var payloadReader io.Reader
 	if str := r.PostFormValue("payload"); str != "" {
 		gr, err := gzip.NewReader(strings.NewReader(str))
 		if err != nil {
 			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
 		}
-		payload, err = io.ReadAll(gr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
-		}
-		if err := gr.Close(); err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
-		}
+		payloadReader = gr
+		// Ignore Close() error because we may not read all data.
+		defer gr.Close()
 	}
 	handler := apiHandlers[method]
 	if handler != nil {
-		return handler(c, r, payload)
+		return handler(c, r, payloadReader)
 	}
 	nsHandler := apiNamespaceHandlers[method]
 	if nsHandler == nil {
@@ -168,21 +164,21 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	if ns == "" {
 		return nil, fmt.Errorf("method %q must be called within a namespace", method)
 	}
-	return nsHandler(c, ns, r, payload)
+	return nsHandler(c, ns, r, payloadReader)
 }
 
-func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiLogError(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LogEntry)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	log.Errorf(c, "%v: %v", req.Name, req.Text)
 	return nil, nil
 }
 
-func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BuilderPollReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
@@ -229,7 +225,7 @@ func reportEmail(c context.Context, ns string) string {
 	return ""
 }
 
-func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiCommitPoll(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(c, ns),
 	}
@@ -295,9 +291,9 @@ func pollBackportCommits(c context.Context, ns string, count int) ([]string, err
 	return backportTitles, nil
 }
 
-func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiUploadCommits(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CommitPollResultReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	// This adds fixing commits to bugs.
@@ -400,13 +396,13 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 	return changed, nil
 }
 
-func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiJobPoll(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.JobPollResp{}, err
 	}
 	req := new(dashapi.JobPollReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	if len(req.Managers) == 0 {
@@ -416,9 +412,9 @@ func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}
 }
 
 // nolint: dupl
-func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiJobDone(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	err := doneJob(c, req)
@@ -426,18 +422,18 @@ func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}
 }
 
 // nolint: dupl
-func apiJobReset(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiJobReset(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.JobResetReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	err := resetJobs(c, req)
 	return nil, err
 }
 
-func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiUploadBuild(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.Build)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
@@ -706,9 +702,9 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	return managers, nil
 }
 
-func apiReportBuildError(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportBuildError(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BuildErrorReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
@@ -740,13 +736,13 @@ const (
 	suppressedReportTitle = "suppressed report"
 )
 
-func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportCrash(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.ReportCrashResp{}, err
 	}
 	req := new(dashapi.Crash)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	build, err := loadBuild(c, ns, req.BuildID)
@@ -1050,9 +1046,9 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	log.Infof(c, "deleted %v crashes for bug %q", deleted, bug.Title)
 }
 
-func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CrashID)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted, req.Suppressed)
@@ -1122,9 +1118,9 @@ func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) err
 	return nil
 }
 
-func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiNeedRepro(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CrashID)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	if req.Corrupted {
@@ -1174,9 +1170,9 @@ func normalizeCrashTitle(title string) string {
 	return strings.TrimSpace(limitLength(title, maxTextLen))
 }
 
-func apiManagerStats(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiManagerStats(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.ManagerStatsReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	now := timeNow(c)
@@ -1211,7 +1207,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 	return nil, err
 }
 
-func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiBugList(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		KeysOnly().
@@ -1226,9 +1222,9 @@ func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (
 	return resp, nil
 }
 
-func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiUpdateReport(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.UpdateReportReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug := new(Bug)
@@ -1256,9 +1252,9 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []by
 	return nil, runInTransaction(c, tx, nil)
 }
 
-func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiLoadBug(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LoadBugReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug := new(Bug)
@@ -1272,9 +1268,9 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 	return loadBugReport(c, bug)
 }
 
-func apiLoadFullBug(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiLoadFullBug(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LoadFullBugReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	bug, bugKey, err := findBugByReportingID(c, req.BugID)
@@ -1302,9 +1298,9 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	return createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 }
 
-func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.AddBuildAssetsReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	assets := []Asset{}
@@ -1347,7 +1343,7 @@ func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string)
 	}, nil
 }
 
-func apiNeededAssetsList(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiNeededAssetsList(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	return queryNeededAssets(c)
 }
 
@@ -1728,9 +1724,9 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func apiSaveDiscussion(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiSaveDiscussion(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.SaveDiscussionReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	d := req.Discussion
@@ -1771,9 +1767,9 @@ func recordEmergencyStop(c context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
-func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LogToReproReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	build, err := loadBuild(c, ns, req.BuildID)
@@ -1895,9 +1891,9 @@ func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
 	return log, err
 }
 
-func apiSaveCoverage(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiSaveCoverage(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.SaveCoverageReq)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	coverage := req.Coverage
