@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -18,12 +19,12 @@ import (
 // The external system is meant to poll for new bugs with apiReportingPoll,
 // and report back bug status updates with apiReportingUpdate.
 
-func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportingPollBugs(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollBugsResponse{}, err
 	}
 	req := new(dashapi.PollBugsRequest)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	reports := reportingPollBugs(c, req.Type)
@@ -38,12 +39,12 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (i
 	return resp, nil
 }
 
-func apiReportingPollNotifications(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportingPollNotifications(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollNotificationsResponse{}, err
 	}
 	req := new(dashapi.PollNotificationsRequest)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	notifs := reportingPollNotifications(c, req.Type)
@@ -53,12 +54,12 @@ func apiReportingPollNotifications(c context.Context, r *http.Request, payload [
 	return resp, nil
 }
 
-func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportingPollClosed(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollClosedResponse{}, err
 	}
 	req := new(dashapi.PollClosedRequest)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	ids, err := reportingPollClosed(c, req.IDs)
@@ -71,9 +72,9 @@ func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) 
 	return resp, nil
 }
 
-func apiReportingUpdate(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiReportingUpdate(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BugUpdate)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	if req.JobID != "" {
@@ -96,9 +97,9 @@ func apiReportingUpdate(c context.Context, r *http.Request, payload []byte) (int
 	}, nil
 }
 
-func apiNewTestJob(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+func apiNewTestJob(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.TestPatchRequest)
-	if err := json.Unmarshal(payload, req); err != nil {
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
 	resp := &dashapi.TestPatchReply{}
