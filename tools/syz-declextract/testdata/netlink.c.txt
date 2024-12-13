@@ -2,7 +2,7 @@
 
 meta automatic
 
-type auto_todo intptr
+type auto_todo int8
 
 include <vdso/bits.h>
 include <linux/types.h>

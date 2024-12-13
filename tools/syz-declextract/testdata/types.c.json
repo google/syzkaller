@@ -79,7 +79,7 @@
 						"ptr": {
 							"elem": {
 								"int": {
-									"byte_size": 8,
+									"byte_size": 1,
 									"name": "TODO",
 									"base": "long"
 								}

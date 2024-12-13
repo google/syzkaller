@@ -298,8 +298,7 @@ inline void print(JSONPrinter& Printer, const NetlinkPolicy& V) {
 // This type is used when we can't figure out the right type, but need some type to use.
 inline FieldType TodoType() {
   return IntType{
-      // TODO: use size 1, then arrays will be lowered to buffers.
-      .ByteSize = 8,
+      .ByteSize = 1,
       .Name = "TODO",
       .Base = "long",
   };
