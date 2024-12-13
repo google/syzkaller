@@ -1033,13 +1033,10 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 		if err != nil {
 			return err
 		}
-		data, err := json.Marshal(req)
-		if err != nil {
-			return fmt.Errorf("failed to marshal request: %w", err)
-		}
 		gz := gzip.NewWriter(w)
-		if _, err := gz.Write(data); err != nil {
-			return err
+		encoder := json.NewEncoder(gz)
+		if err := encoder.Encode(req); err != nil {
+			return fmt.Errorf("failed to marshal request: %w", err)
 		}
 		if err := gz.Close(); err != nil {
 			return err
