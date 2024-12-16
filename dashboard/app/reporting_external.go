@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"google.golang.org/appengine/v2/log"
@@ -19,7 +18,7 @@ import (
 // The external system is meant to poll for new bugs with apiReportingPoll,
 // and report back bug status updates with apiReportingUpdate.
 
-func apiReportingPollBugs(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportingPollBugs(c context.Context, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollBugsResponse{}, err
 	}
@@ -39,7 +38,8 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload io.Reader)
 	return resp, nil
 }
 
-func apiReportingPollNotifications(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportingPollNotifications(c context.Context, payload io.Reader,
+) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollNotificationsResponse{}, err
 	}
@@ -54,7 +54,7 @@ func apiReportingPollNotifications(c context.Context, r *http.Request, payload i
 	return resp, nil
 }
 
-func apiReportingPollClosed(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportingPollClosed(c context.Context, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollClosedResponse{}, err
 	}
@@ -72,7 +72,7 @@ func apiReportingPollClosed(c context.Context, r *http.Request, payload io.Reade
 	return resp, nil
 }
 
-func apiReportingUpdate(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportingUpdate(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BugUpdate)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -97,7 +97,7 @@ func apiReportingUpdate(c context.Context, r *http.Request, payload io.Reader) (
 	}, nil
 }
 
-func apiNewTestJob(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiNewTestJob(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.TestPatchRequest)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)

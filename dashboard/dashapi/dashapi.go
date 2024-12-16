@@ -8,6 +8,7 @@ package dashapi
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/gcs"
 )
 
 type Dashboard struct {
@@ -706,12 +708,29 @@ type SaveCoverageReq struct {
 
 // SaveCoverage returns amount of records created in db.
 func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) (int, error) {
-	resp := new(int)
-	if err := dash.Query("save_coverage", req, resp); err != nil {
-		return 0, err
-	} else {
-		return *resp, err
+	uploadURL := new(string)
+	if err := dash.Query("create_upload_url", req, uploadURL); err != nil {
+		return 0, fmt.Errorf("create_upload_url: %w", err)
 	}
+
+	gcsClient, err := gcs.NewClient(context.Background())
+	if err != nil {
+		return 0, fmt.Errorf("gcs.NewClient: %w", err)
+	}
+	w, err := gcsClient.FileWriter(*uploadURL)
+	if err != nil {
+		return 0, fmt.Errorf("gcsClient.FileWriter: %w", err)
+	}
+	defer w.Close()
+	if err := json.NewEncoder(gzip.NewWriter(w)).Encode(req); err != nil {
+		return 0, fmt.Errorf("json.NewEncoder(gzip.NewWriter(w)).Encode: %w", err)
+	}
+
+	rowsWritten := new(int)
+	if err := dash.Query("save_coverage", *uploadURL, rowsWritten); err != nil {
+		return 0, fmt.Errorf("save_coverage: %w", err)
+	}
+	return *rowsWritten, nil
 }
 
 type TestPatchRequest struct {

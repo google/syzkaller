@@ -65,6 +65,10 @@ type GlobalConfig struct {
 	DiscussionEmails []DiscussionEmailConfig
 	// Incoming request throttling.
 	Throttle ThrottleConfig
+	// UploadBucket allows to transfer >32MB of data. 32MB is an AppEngine transfer limitation.
+	// This bucket is used by the dashboard API handlers.
+	// Configure bucket items auto deletion. Uploaded data will not be deleted by dashboard.
+	UploadBucket string
 }
 
 // Per-namespace config.
