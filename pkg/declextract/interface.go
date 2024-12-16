@@ -53,7 +53,7 @@ func (ctx *context) processFunctions() {
 		ctx.funcs[fn.File+fn.Name] = fn
 		// Strictly speaking there may be several different static functions in different headers,
 		// but we ignore such possibility for now.
-		if !fn.IsStatic || strings.HasSuffix(fn.File, "*.h") {
+		if !fn.IsStatic || strings.HasSuffix(fn.File, ".h") {
 			ctx.funcs[fn.Name] = fn
 		}
 	}
@@ -77,7 +77,7 @@ func (ctx *context) processFunctions() {
 func (ctx *context) reachableLOC(name, file string) int {
 	fn := ctx.findFunc(name, file)
 	if fn == nil {
-		ctx.warn("can't find function %v in called in %v", name, file)
+		ctx.warn("can't find function %v called in %v", name, file)
 		return 0
 	}
 	reachable := make(map[*Function]bool)
