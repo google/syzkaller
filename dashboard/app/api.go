@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -27,9 +28,11 @@ import (
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/uuid"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -53,29 +56,27 @@ var apiHandlers = map[string]APIHandler{
 	"needed_assets":         apiNeededAssetsList,
 	"load_full_bug":         apiLoadFullBug,
 	"save_discussion":       apiSaveDiscussion,
-	"save_coverage":         apiSaveCoverage,
-}
-
-var apiNamespaceHandlers = map[string]APINamespaceHandler{
-	"upload_build":        apiUploadBuild,
-	"builder_poll":        apiBuilderPoll,
-	"report_build_error":  apiReportBuildError,
-	"report_crash":        apiReportCrash,
-	"report_failed_repro": apiReportFailedRepro,
-	"need_repro":          apiNeedRepro,
-	"manager_stats":       apiManagerStats,
-	"commit_poll":         apiCommitPoll,
-	"upload_commits":      apiUploadCommits,
-	"bug_list":            apiBugList,
-	"load_bug":            apiLoadBug,
-	"update_report":       apiUpdateReport,
-	"add_build_assets":    apiAddBuildAssets,
-	"log_to_repro":        apiLogToReproduce,
+	"create_upload_url":     apiCreateUploadURL,
+	"save_coverage":         gcsPayloadHandler(apiSaveCoverage),
+	"upload_build":          nsHandler(apiUploadBuild),
+	"builder_poll":          nsHandler(apiBuilderPoll),
+	"report_build_error":    nsHandler(apiReportBuildError),
+	"report_crash":          nsHandler(apiReportCrash),
+	"report_failed_repro":   nsHandler(apiReportFailedRepro),
+	"need_repro":            nsHandler(apiNeedRepro),
+	"manager_stats":         nsHandler(apiManagerStats),
+	"commit_poll":           nsHandler(apiCommitPoll),
+	"upload_commits":        nsHandler(apiUploadCommits),
+	"bug_list":              nsHandler(apiBugList),
+	"load_bug":              nsHandler(apiLoadBug),
+	"update_report":         nsHandler(apiUpdateReport),
+	"add_build_assets":      nsHandler(apiAddBuildAssets),
+	"log_to_repro":          nsHandler(apiLogToReproduce),
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
-type APIHandler func(c context.Context, r *http.Request, payload io.Reader) (interface{}, error)
-type APINamespaceHandler func(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error)
+type APIHandler func(c context.Context, payload io.Reader) (interface{}, error)
+type APINamespaceHandler func(c context.Context, ns string, payload io.Reader) (interface{}, error)
 
 const (
 	maxReproPerBug   = 10
@@ -123,7 +124,7 @@ func handleJSON(fn JSONHandler) http.Handler {
 	})
 }
 
-func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error) {
+func handleAPI(c context.Context, r *http.Request) (interface{}, error) {
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
@@ -151,21 +152,62 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 		// Ignore Close() error because we may not read all data.
 		defer gr.Close()
 	}
-	handler := apiHandlers[method]
-	if handler != nil {
-		return handler(c, r, payloadReader)
-	}
-	nsHandler := apiNamespaceHandlers[method]
-	if nsHandler == nil {
+	handler, exists := apiHandlers[method]
+	if !exists {
 		return nil, fmt.Errorf("unknown api method %q", method)
 	}
-	if ns == "" {
-		return nil, fmt.Errorf("method %q must be called within a namespace", method)
+	reply, err := handler(contextWithNamespace(c, ns), payloadReader)
+	if err != nil {
+		err = fmt.Errorf("method '%s' ns '%s' err: %w", method, ns, err)
 	}
-	return nsHandler(c, ns, r, payloadReader)
+	return reply, err
 }
 
-func apiLogError(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+var contextKeyNamespace = "context namespace available for any APIHandler"
+
+func contextWithNamespace(c context.Context, ns string) context.Context {
+	return context.WithValue(c, &contextKeyNamespace, ns)
+}
+
+func contextNamespace(c context.Context) string {
+	return c.Value(&contextKeyNamespace).(string)
+}
+
+func gcsPayloadHandler(handler APIHandler) APIHandler {
+	return func(c context.Context, payload io.Reader) (interface{}, error) {
+		p, err := io.ReadAll(payload)
+		if err != nil {
+			return nil, fmt.Errorf("io.ReadAll: %w", err)
+		}
+		payloadURL := string(p)
+		clientGCS, err := gcs.NewClient(c)
+		if err != nil {
+			return nil, fmt.Errorf("gcs.NewClient: %w", err)
+		}
+		defer clientGCS.Close()
+		gcsFile, err := clientGCS.Read(payloadURL)
+		if err != nil {
+			return nil, fmt.Errorf("clientGCS.Read: %w", err)
+		}
+		gcsPayloadReader, err := gcsFile.Reader()
+		if err != nil {
+			return nil, fmt.Errorf("gcsFile.Reader: %w", err)
+		}
+		return handler(c, gcsPayloadReader)
+	}
+}
+
+func nsHandler(handler APINamespaceHandler) APIHandler {
+	return func(c context.Context, payload io.Reader) (interface{}, error) {
+		ns := contextNamespace(c)
+		if ns == "" {
+			return nil, fmt.Errorf("must be called within a namespace")
+		}
+		return handler(c, ns, payload)
+	}
+}
+
+func apiLogError(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LogEntry)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -174,7 +216,7 @@ func apiLogError(c context.Context, r *http.Request, payload io.Reader) (interfa
 	return nil, nil
 }
 
-func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiBuilderPoll(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BuilderPollReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -223,7 +265,7 @@ func reportEmail(c context.Context, ns string) string {
 	return ""
 }
 
-func apiCommitPoll(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiCommitPoll(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	resp := &dashapi.CommitPollResp{
 		ReportEmail: reportEmail(c, ns),
 	}
@@ -289,7 +331,7 @@ func pollBackportCommits(c context.Context, ns string, count int) ([]string, err
 	return backportTitles, nil
 }
 
-func apiUploadCommits(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiUploadCommits(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CommitPollResultReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -394,7 +436,7 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 	return changed, nil
 }
 
-func apiJobPoll(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiJobPoll(c context.Context, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.JobPollResp{}, err
@@ -410,7 +452,7 @@ func apiJobPoll(c context.Context, r *http.Request, payload io.Reader) (interfac
 }
 
 // nolint: dupl
-func apiJobDone(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiJobDone(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -420,7 +462,7 @@ func apiJobDone(c context.Context, r *http.Request, payload io.Reader) (interfac
 }
 
 // nolint: dupl
-func apiJobReset(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiJobReset(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.JobResetReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -429,7 +471,7 @@ func apiJobReset(c context.Context, r *http.Request, payload io.Reader) (interfa
 	return nil, err
 }
 
-func apiUploadBuild(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiUploadBuild(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.Build)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -700,7 +742,7 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	return managers, nil
 }
 
-func apiReportBuildError(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportBuildError(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.BuildErrorReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -734,7 +776,7 @@ const (
 	suppressedReportTitle = "suppressed report"
 )
 
-func apiReportCrash(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportCrash(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.ReportCrashResp{}, err
@@ -1044,7 +1086,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	log.Infof(c, "deleted %v crashes for bug %q", deleted, bug.Title)
 }
 
-func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiReportFailedRepro(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CrashID)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1116,7 +1158,7 @@ func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) err
 	return nil
 }
 
-func apiNeedRepro(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiNeedRepro(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.CrashID)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1168,7 +1210,7 @@ func normalizeCrashTitle(title string) string {
 	return strings.TrimSpace(limitLength(title, maxTextLen))
 }
 
-func apiManagerStats(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiManagerStats(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.ManagerStatsReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1205,22 +1247,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload io.R
 	return nil, err
 }
 
-func apiBugList(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
-	keys, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		KeysOnly().
-		GetAll(c, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %w", err)
-	}
-	resp := &dashapi.BugListResp{}
-	for _, key := range keys {
-		resp.List = append(resp.List, key.StringID())
-	}
-	return resp, nil
-}
-
-func apiUpdateReport(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiUpdateReport(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.UpdateReportReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1250,7 +1277,22 @@ func apiUpdateReport(c context.Context, ns string, r *http.Request, payload io.R
 	return nil, runInTransaction(c, tx, nil)
 }
 
-func apiLoadBug(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiBugList(c context.Context, ns string, payload io.Reader) (interface{}, error) {
+	keys, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		KeysOnly().
+		GetAll(c, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bugs: %w", err)
+	}
+	resp := &dashapi.BugListResp{}
+	for _, key := range keys {
+		resp.List = append(resp.List, key.StringID())
+	}
+	return resp, nil
+}
+
+func apiLoadBug(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LoadBugReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1266,7 +1308,7 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload io.Reader
 	return loadBugReport(c, bug)
 }
 
-func apiLoadFullBug(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiLoadFullBug(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LoadFullBugReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1296,7 +1338,7 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	return createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 }
 
-func apiAddBuildAssets(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiAddBuildAssets(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.AddBuildAssetsReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1341,7 +1383,7 @@ func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string)
 	}, nil
 }
 
-func apiNeededAssetsList(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiNeededAssetsList(c context.Context, payload io.Reader) (interface{}, error) {
 	return queryNeededAssets(c)
 }
 
@@ -1722,7 +1764,7 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func apiSaveDiscussion(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiSaveDiscussion(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.SaveDiscussionReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1765,7 +1807,7 @@ func recordEmergencyStop(c context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
-func apiLogToReproduce(c context.Context, ns string, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiLogToReproduce(c context.Context, ns string, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.LogToReproReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
@@ -1889,7 +1931,14 @@ func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
 	return log, err
 }
 
-func apiSaveCoverage(c context.Context, r *http.Request, payload io.Reader) (interface{}, error) {
+func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, error) {
+	bucket := getConfig(c).UploadBucket
+	if bucket == "" {
+		return nil, errors.New("not configured")
+	}
+	return fmt.Printf("%s/%s.upload", bucket, uuid.New().String())
+}
+func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) {
 	req := new(dashapi.SaveCoverageReq)
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)

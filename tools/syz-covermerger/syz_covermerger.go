@@ -109,7 +109,7 @@ func main() {
 func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) (int, error) {
 	dash, err := dashapi.New(clientName, dashboard, "")
 	if err != nil {
-		log.Fatalf("failed dashapi.New(): %v", err)
+		return 0, fmt.Errorf("dashapi.New: %w", err)
 	}
 	return dash.SaveCoverage(&dashapi.SaveCoverageReq{
 		Coverage: d,
