@@ -540,10 +540,11 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 	}
 
 	params := cover.HandlerParams{
-		Progs:  progs,
-		Filter: coverFilter,
-		Debug:  r.FormValue("debug") != "",
-		Force:  r.FormValue("force") != "",
+		Progs:   progs,
+		Filter:  coverFilter,
+		Debug:   r.FormValue("debug") != "",
+		Force:   r.FormValue("force") != "",
+		CountPC: r.FormValue("count") != "",
 	}
 
 	type handlerFuncType func(w io.Writer, params cover.HandlerParams) error

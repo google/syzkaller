@@ -25,10 +25,11 @@ import (
 )
 
 type HandlerParams struct {
-	Progs  []Prog
-	Filter map[uint64]struct{}
-	Debug  bool
-	Force  bool
+	Progs   []Prog
+	Filter  map[uint64]struct{}
+	Debug   bool
+	Force   bool
+	CountPC bool
 }
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, params HandlerParams) error {
@@ -181,6 +182,14 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	countPCs := make(map[uint64]uint32)
+	if params.CountPC {
+		for _, prog := range progs {
+			for _, pc := range prog.PCs {
+				countPCs[pc]++
+			}
+		}
+	}
 	pcs := uniquePCs(progs)
 	if err := rg.symbolizePCs(pcs); err != nil {
 		return err
@@ -198,7 +207,11 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) er
 	}
 
 	buf := bufio.NewWriter(w)
-	fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine\n")
+	if params.CountPC {
+		fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine,PCCount\n")
+	} else {
+		fmt.Fprintf(buf, "PC,Module,Offset,Filename,Inline,StartLine,EndLine\n")
+	}
 	var output []string
 	for _, pc := range pcs {
 		for _, frame := range resFrames[pc] {
@@ -206,8 +219,13 @@ func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) er
 			if frame.Module.Name == "" {
 				offset = frame.PC
 			}
-			output = append(output, fmt.Sprintf("0x%x,%v,0x%x,%v,%v,%v,%v\n",
-				frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine))
+			if params.CountPC {
+				output = append(output, fmt.Sprintf("0x%x,%v,0x%x,%v,%v,%v,%v,%v\n",
+					frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine, countPCs[pc]))
+			} else {
+				output = append(output, fmt.Sprintf("0x%x,%v,0x%x,%v,%v,%v,%v\n",
+					frame.PC, frame.Module.Name, offset, frame.Name, frame.Inline, frame.StartLine, frame.EndLine))
+			}
 		}
 	}
 	for _, line := range output {
@@ -273,17 +291,16 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
 	var pcs []uint64
+	countPCs := make(map[uint64]uint32)
 	if len(progs) == 1 && rg.rawCoverEnabled {
 		pcs = append([]uint64{}, progs[0].PCs...)
 	} else {
-		uniquePCs := make(map[uint64]bool)
 		for _, prog := range progs {
 			for _, pc := range prog.PCs {
-				if uniquePCs[pc] {
-					continue
+				if _, ok := countPCs[pc]; !ok {
+					pcs = append(pcs, pc)
 				}
-				uniquePCs[pc] = true
-				pcs = append(pcs, pc)
+				countPCs[pc]++
 			}
 		}
 		sort.Slice(pcs, func(i, j int) bool {
@@ -293,7 +310,11 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 
 	buf := bufio.NewWriter(w)
 	for _, pc := range pcs {
-		fmt.Fprintf(buf, "0x%x\n", pc)
+		if params.CountPC {
+			fmt.Fprintf(buf, "0x%x,%d\n", pc, countPCs[pc])
+		} else {
+			fmt.Fprintf(buf, "0x%x\n", pc)
+		}
 	}
 	buf.Flush()
 	return nil
