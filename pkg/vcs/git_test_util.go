@@ -24,7 +24,7 @@ type TestRepo struct {
 	Dir     string
 	name    string
 	Commits map[string]map[string]*Commit
-	repo    *git
+	repo    *gitRepo
 }
 
 func (repo *TestRepo) Git(args ...string) {
@@ -50,7 +50,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
+		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
 	}
 	repo.Git("init")
 	repo.Git("config", "--add", "user.email", userEmail)
@@ -124,7 +124,7 @@ func CloneTestRepo(t *testing.T, baseDir, name string, originRepo *TestRepo) *Te
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
+		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
 	}
 	repo.Git("clone", originRepo.Dir, repo.Dir)
 	return repo
