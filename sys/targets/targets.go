@@ -302,7 +302,6 @@ var List = map[string]map[string]*Target{
 			VMArch:           ARM64,
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
