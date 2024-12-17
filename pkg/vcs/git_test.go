@@ -412,7 +412,7 @@ func TestGitCustomRefs(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash)
@@ -433,7 +433,7 @@ func TestGitRemoteTags(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Ensure all tags were fetched.
 	commit, err := local.CheckoutCommit(remoteRepoDir, "sub_branch")
@@ -456,7 +456,7 @@ func TestGitFetchShortHash(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash[:12])

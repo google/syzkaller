@@ -16,7 +16,7 @@ import (
 // rather than fuchsia.git.
 type fuchsia struct {
 	dir  string
-	repo *git
+	repo *gitRepo
 }
 
 func newFuchsia(dir string, opts []RepoOpt) *fuchsia {
@@ -26,7 +26,7 @@ func newFuchsia(dir string, opts []RepoOpt) *fuchsia {
 	opts = append(opts, OptPrecious)
 	return &fuchsia{
 		dir:  dir,
-		repo: newGit(dir, nil, opts),
+		repo: newGitRepo(dir, nil, opts),
 	}
 }
 

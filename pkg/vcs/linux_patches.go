@@ -20,7 +20,7 @@ type BackportCommit struct {
 }
 
 // linuxFixBackports() cherry-picks the commits necessary to compile/run older Linux kernel releases.
-func linuxFixBackports(repo *git, extraCommits ...BackportCommit) error {
+func linuxFixBackports(repo *gitRepo, extraCommits ...BackportCommit) error {
 	return applyFixBackports(repo,
 		append(
 			append([]BackportCommit{}, pickLinuxCommits...),
@@ -29,7 +29,7 @@ func linuxFixBackports(repo *git, extraCommits ...BackportCommit) error {
 	)
 }
 
-func applyFixBackports(repo *git, commits []BackportCommit) error {
+func applyFixBackports(repo *gitRepo, commits []BackportCommit) error {
 	for _, info := range commits {
 		if info.GuiltyHash != "" {
 			contains, err := repo.Contains(info.GuiltyHash)
@@ -49,7 +49,7 @@ func applyFixBackports(repo *git, commits []BackportCommit) error {
 			// The fix is already present.
 			continue
 		}
-		_, err = repo.git("cherry-pick", "--no-commit", info.FixHash)
+		_, err = repo.Run("cherry-pick", "--no-commit", info.FixHash)
 		if err != nil {
 			return err
 		}
