@@ -63,7 +63,7 @@ type Repo interface {
 	Contains(commit string) (bool, error)
 
 	// ListCommitHashes lists all commit hashes reachable from baseCommit.
-	ListCommitHashes(baseCommit string) ([]string, error)
+	ListCommitHashes(baseCommit string, from time.Time) ([]string, error)
 
 	// Object returns the contents of a git repository object at the particular moment in history.
 	Object(name, commit string) ([]byte, error)
