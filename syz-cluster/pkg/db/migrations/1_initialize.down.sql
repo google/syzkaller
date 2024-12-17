@@ -1,0 +1,10 @@
+BEGIN TRANSACTION;
+
+DROP TABLE Series;
+DROP TABLE Patches;
+DROP TABLE Sessions;
+DROP TABLE SessionTests;
+DROP TABLE Builds;
+DROP TABLE Findings;
+
+COMMIT;

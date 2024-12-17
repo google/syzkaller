@@ -1,0 +1,25 @@
+{{define "content"}}
+    <table class="table">
+      <thead class="thead-light">
+        <tr>
+          <th scope="col">Published</th>
+          <th scope="col">Title</th>
+          <th scope="col">Version</th>
+          <th scope="col">Author</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .List}}
+        <tr>
+          <td>{{.Series.PublishedAt.Format "2006-01-02 15:04 MST"}}</td>
+          <td><a href="/series/{{.Series.ID}}">{{.Series.Title}}</a></td>
+          <td>{{.Series.Version}}</td>
+          <td>{{.Series.AuthorEmail}}</td>
+          <td>{{if .Session}}{{if .Session.FinishedAt.IsNull}}in progress{{else}}finished{{end}}{{else}}waiting{{end}} </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+{{end}}
+    
