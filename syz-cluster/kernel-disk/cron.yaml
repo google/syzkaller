@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kernel-repo-update
+spec:
+  schedule: "0 */6 * * *" # Update every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: git-repo
+              persistentVolumeClaim:
+                claimName: base-kernel-repo-pv-claim 
+          containers:
+            - name: git-updater-debug-job
+              image: alpine/git:latest
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: git-repo 
+                  mountPath: /repo.git
+              resources:
+                requests:
+                  cpu: 4
+                  memory: 8G
+                limits:
+                  cpu: 8
+                  memory: 16G
+              command: # TODO: request the trees via the controller's API.
+                - "/bin/sh"
+                - "-c"
+                - |
+                  cd /repo.git
+                  if [ ! -d "refs" ]; then
+                    git init --bare
+                  fi
+                  if ! git config --get remote.torvalds.url > /dev/null; then
+                    git remote add torvalds git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+                  fi
+                  git fetch torvalds --tags
+                  git tag -f torvalds-head torvalds/master
