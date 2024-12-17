@@ -1,0 +1,42 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resources:
+  - ../../controller
+  - ../../dashboard
+  - ../../series-tracker
+  - ../../kernel-disk
+  - global-config.yaml
+  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
+  - workflow-roles.yaml
+  - fake-gcs.yaml
+  - workflow-artifacts.yaml
+  - blobs-pvc-dev.yaml
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    patch: |-
+      - op: replace
+        path: /data
+        value:
+          config: |
+            executor:
+              env:
+                - name: STORAGE_EMULATOR_HOST
+                  value: http://fake-gcs-server.default.svc.cluster.local:4443
+
+images:
+  - name: controller-image
+    newName: controller-image-local:latest
+  - name: web-dashboard-image
+    newName: web-dashboard-local:latest
+  - name: series-tracker-image
+    newName: series-tracker-local:latest

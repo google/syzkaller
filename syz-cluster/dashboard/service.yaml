@@ -1,0 +1,15 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-dashboard-service
+spec:
+  selector:
+    app: web-dashboard
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8081
+  type: LoadBalancer
