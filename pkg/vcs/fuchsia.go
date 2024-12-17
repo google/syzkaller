@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -105,8 +106,8 @@ func (ctx *fuchsia) Contains(commit string) (bool, error) {
 	return ctx.repo.Contains(commit)
 }
 
-func (ctx *fuchsia) ListCommitHashes(base string) ([]string, error) {
-	return ctx.repo.ListCommitHashes(base)
+func (ctx *fuchsia) ListCommitHashes(baseCommit string, from time.Time) ([]string, error) {
+	return ctx.repo.ListCommitHashes(baseCommit, from)
 }
 
 func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {

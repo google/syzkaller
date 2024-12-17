@@ -381,10 +381,17 @@ func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 	return results, missing, nil
 }
 
-func (git *git) ListCommitHashes(baseCommit string) ([]string, error) {
-	output, err := git.git("log", "--pretty=format:%h", baseCommit)
+func (git *git) ListCommitHashes(baseCommit string, from time.Time) ([]string, error) {
+	args := []string{"log", "--pretty=format:%h"}
+	if !from.IsZero() {
+		args = append(args, "--since", from.Format(time.RFC3339))
+	}
+	output, err := git.git(append(args, baseCommit)...)
 	if err != nil {
 		return nil, err
+	}
+	if len(output) == 0 {
+		return nil, nil
 	}
 	return strings.Split(string(output), "\n"), nil
 }
