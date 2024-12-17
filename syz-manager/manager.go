@@ -688,7 +688,10 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
 
 	if mgr.mode.FailOnCrashes {
-		mgr.saveJSON("report.json", crash.Report)
+		path := filepath.Join(mgr.cfg.Workdir, "report.json")
+		if err := osutil.WriteJSON(path, crash.Report); err != nil {
+			log.Fatal(err)
+		}
 		log.Fatalf("kernel crashed in smoke testing mode, exiting")
 	}
 
@@ -740,16 +743,6 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		go mgr.emailCrash(crash)
 	}
 	return mgr.NeedRepro(crash)
-}
-
-func (mgr *Manager) saveJSON(filename string, object any) {
-	data, err := json.MarshalIndent(object, "", "\t")
-	if err != nil {
-		log.Fatalf("failed to serialize json data: %v", err)
-	}
-	if err := osutil.WriteFile(filepath.Join(mgr.cfg.Workdir, filename), data); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
@@ -1197,7 +1190,10 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature, enabledSyscalls map
 			if err != nil {
 				log.Fatalf("interface probing failed: %v", err)
 			}
-			mgr.saveJSON("interfaces.json", res)
+			path := filepath.Join(mgr.cfg.Workdir, "interfaces.json")
+			if err := osutil.WriteJSON(path, res); err != nil {
+				log.Fatal(err)
+			}
 			mgr.exit("interface probe")
 		}()
 		return exec

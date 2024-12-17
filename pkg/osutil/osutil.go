@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -277,6 +278,14 @@ func MkdirAll(dir string) error {
 
 func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
+}
+
+func WriteJSON[T any](filename string, obj T) error {
+	jsonData, err := json.MarshalIndent(obj, "", "\t")
+	if err != nil {
+		return fmt.Errorf("failed to marshal: %w", err)
+	}
+	return WriteFile(filename, jsonData)
 }
 
 func WriteGzipStream(filename string, reader io.Reader) error {
