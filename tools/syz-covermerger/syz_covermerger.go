@@ -83,7 +83,8 @@ func main() {
 		panic(errMerge)
 	}
 
-	coverage, _, _ := mergeResultsToCoverage(mergeResult)
+	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
+	printCoverage(totalInstrumentedLines, totalCoveredLines)
 	managers := maps.Keys(coverage)
 	sort.Strings(managers)
 	fmt.Printf("merged signals for the following managers: %v\n", managers)
@@ -102,8 +103,6 @@ func main() {
 			fmt.Printf("created %d DB rows\n", rowsCreated)
 		}
 	}
-	printOnlyTotal := *flagToDashAPI != ""
-	printMergeResult(mergeResult, printOnlyTotal)
 }
 
 func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) (int, error) {
@@ -116,25 +115,13 @@ func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) (int,
 	})
 }
 
-func printMergeResult(mergeResult map[string]*covermerger.MergeResult, totalOnly bool) {
-	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
-	if !totalOnly {
-		keys := maps.Keys(coverage[allManagers])
-		sort.Strings(keys)
-		for _, fileName := range keys {
-			printCoverage(fileName, coverage[allManagers][fileName].Instrumented, coverage[allManagers][fileName].Covered)
-		}
-	}
-	printCoverage("total", totalInstrumentedLines, totalCoveredLines)
-}
-
-func printCoverage(target string, instrumented, covered int64) {
+func printCoverage(instrumented, covered int64) {
 	coverage := 0.0
 	if instrumented != 0 {
 		coverage = float64(covered) / float64(instrumented)
 	}
-	fmt.Printf("%s,%d,%d,%.2f%%\n",
-		target, instrumented, covered, coverage*100)
+	fmt.Printf("total instrumented(%d), covered(%d), %.2f%%\n",
+		instrumented, covered, coverage*100)
 }
 
 const allManagers = "*"
