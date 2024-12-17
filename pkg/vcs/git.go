@@ -23,24 +23,24 @@ import (
 )
 
 type git struct {
-	dir      string
-	ignoreCC map[string]bool
-	precious bool
-	sandbox  bool
+	*GitWrapper
 }
 
 func newGit(dir string, ignoreCC map[string]bool, opts []RepoOpt) *git {
 	git := &git{
-		dir:      dir,
-		ignoreCC: ignoreCC,
-		sandbox:  true,
+		GitWrapper: &GitWrapper{
+			Dir:      dir,
+			Sandbox:  true,
+			Env:      filterEnv(),
+			ignoreCC: ignoreCC,
+		},
 	}
 	for _, opt := range opts {
 		switch opt {
 		case OptPrecious:
-			git.precious = true
+			git.Precious = true
 		case OptDontSandbox:
-			git.sandbox = false
+			git.Sandbox = false
 		}
 	}
 	return git
@@ -67,8 +67,8 @@ func filterEnv() []string {
 }
 
 func (git *git) Poll(repo, branch string) (*Commit, error) {
-	git.reset()
-	origin, err := git.git("remote", "get-url", "origin")
+	git.Reset()
+	origin, err := git.Git("remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
 		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
 		if err := git.clone(repo, branch); err != nil {
@@ -78,22 +78,22 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 	// Use origin/branch for the case the branch was force-pushed,
 	// in such case branch is not the same is origin/branch and we will
 	// stuck with the local version forever (git checkout won't fail).
-	if _, err := git.git("checkout", "origin/"+branch); err != nil {
+	if _, err := git.Git("checkout", "origin/"+branch); err != nil {
 		// No such branch (e.g. branch in config has changed), re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := git.git("fetch", "--force"); err != nil {
+	if _, err := git.Git("fetch", "--force"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := git.git("checkout", "origin/"+branch); err != nil {
+	if _, err := git.Git("checkout", "origin/"+branch); err != nil {
 		return nil, err
 	}
-	if _, err := git.git("submodule", "update", "--init"); err != nil {
+	if _, err := git.Git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.Commit(HEAD)
@@ -108,17 +108,17 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	// remote when initializing.
 	// This sets "origin" to be the current remote.
 	// Ignore errors as we can double add or remove the same remote and that will fail.
-	git.git("remote", "rm", "origin")
-	git.git("remote", "add", "origin", repo)
-	git.git("remote", "add", repoHash, repo)
-	_, err := git.git("fetch", "--force", repoHash, branch)
+	git.Git("remote", "rm", "origin")
+	git.Git("remote", "add", "origin", repo)
+	git.Git("remote", "add", repoHash, repo)
+	_, err := git.Git("fetch", "--force", repoHash, branch)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := git.git("checkout", "FETCH_HEAD", "--force"); err != nil {
+	if _, err := git.Git("checkout", "FETCH_HEAD", "--force"); err != nil {
 		return nil, err
 	}
-	if _, err := git.git("submodule", "update", "--init"); err != nil {
+	if _, err := git.Git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	// If the branch checkout had to be "forced" the directory may
@@ -143,13 +143,13 @@ func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
 func (git *git) fetchRemote(repo, commit string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
-	git.git("remote", "add", repoHash, repo)
+	git.Git("remote", "add", repoHash, repo)
 	fetchArgs := []string{"fetch", "--force", "--tags", repoHash}
 	if commit != "" && gitFullHashRe.MatchString(commit) {
 		// This trick only works with full commit hashes.
 		fetchArgs = append(fetchArgs, commit)
 	}
-	_, err := git.git(fetchArgs...)
+	_, err := git.Git(fetchArgs...)
 	if err != nil {
 		var verbose *osutil.VerboseError
 		if errors.As(err, &verbose) &&
@@ -159,57 +159,44 @@ func (git *git) fetchRemote(repo, commit string) error {
 			// Try to fetch more, but this time prune tags, it should help.
 			// The --prune-tags option will remove all tags that are not present
 			// in this remote repo, so don't do it always. Only when necessary.
-			_, err = git.git("fetch", "--force", "--tags", "--prune", "--prune-tags", repoHash)
+			_, err = git.Git("fetch", "--force", "--tags", "--prune", "--prune-tags", repoHash)
 		}
 	}
 	return err
 }
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
-	if !git.precious {
-		git.git("reset", "--hard")
-		git.git("clean", "-fdx")
+	if !git.Precious {
+		git.Git("reset", "--hard")
+		git.Git("clean", "-fdx")
 	}
-	if _, err := git.git("checkout", commit); err != nil {
+	if _, err := git.Git("checkout", commit); err != nil {
 		return nil, err
 	}
-	if _, err := git.git("submodule", "update", "--init"); err != nil {
+	if _, err := git.Git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.Commit(HEAD)
 }
 
 func (git *git) clone(repo, branch string) error {
-	if git.precious {
+	if git.Precious {
 		return fmt.Errorf("won't reinit precious repo")
 	}
 	if err := git.initRepo(nil); err != nil {
 		return err
 	}
-	if _, err := git.git("remote", "add", "origin", repo); err != nil {
+	if _, err := git.Git("remote", "add", "origin", repo); err != nil {
 		return err
 	}
-	if _, err := git.git("fetch", "origin", branch); err != nil {
+	if _, err := git.Git("fetch", "origin", branch); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (git *git) reset() error {
-	// This function tries to reset git repo state to a known clean state.
-	if git.precious {
-		return nil
-	}
-	git.git("reset", "--hard", "--recurse-submodules")
-	git.git("clean", "-xfdf")
-	git.git("submodule", "foreach", "--recursive", "git", "clean", "-xfdf")
-	git.git("bisect", "reset")
-	_, err := git.git("reset", "--hard", "--recurse-submodules")
-	return err
-}
-
 func (git *git) repair() error {
-	if err := git.reset(); err != nil {
+	if err := git.Reset(); err != nil {
 		return git.initRepo(err)
 	}
 	return nil
@@ -217,50 +204,28 @@ func (git *git) repair() error {
 
 func (git *git) initRepo(reason error) error {
 	if reason != nil {
-		log.Logf(1, "git: initializing repo at %v: %v", git.dir, reason)
+		log.Logf(1, "git: initializing repo at %v: %v", git.Dir, reason)
 	}
-	if err := os.RemoveAll(git.dir); err != nil {
+	if err := os.RemoveAll(git.Dir); err != nil {
 		return fmt.Errorf("failed to remove repo dir: %w", err)
 	}
-	if err := osutil.MkdirAll(git.dir); err != nil {
+	if err := osutil.MkdirAll(git.Dir); err != nil {
 		return fmt.Errorf("failed to create repo dir: %w", err)
 	}
-	if git.sandbox {
-		if err := osutil.SandboxChown(git.dir); err != nil {
+	if git.Sandbox {
+		if err := osutil.SandboxChown(git.Dir); err != nil {
 			return err
 		}
 	}
-	if _, err := git.git("init"); err != nil {
+	if _, err := git.Git("init"); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (git *git) Contains(commit string) (bool, error) {
-	_, err := git.git("merge-base", "--is-ancestor", commit, HEAD)
+	_, err := git.Git("merge-base", "--is-ancestor", commit, HEAD)
 	return err == nil, nil
-}
-
-func (git *git) Commit(com string) (*Commit, error) {
-	const patchSeparator = "---===syzkaller-patch-separator===---"
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b"+patchSeparator,
-		"-n", "1", "-p", "-U0", com)
-	if err != nil {
-		return nil, err
-	}
-	pos := bytes.Index(output, []byte(patchSeparator))
-	if pos == -1 {
-		return nil, fmt.Errorf("git log output does not contain patch separator")
-	}
-	commit, err := gitParseCommit(output[:pos], nil, nil, git.ignoreCC)
-	if err != nil {
-		return nil, err
-	}
-	commit.Patch = output[pos+len(patchSeparator):]
-	for len(commit.Patch) != 0 && commit.Patch[0] == '\n' {
-		commit.Patch = commit.Patch[1:]
-	}
-	return commit, nil
 }
 
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
@@ -386,7 +351,7 @@ func (git *git) ListCommitHashes(baseCommit string, from time.Time) ([]string, e
 	if !from.IsZero() {
 		args = append(args, "--since", from.Format(time.RFC3339))
 	}
-	output, err := git.git(append(args, baseCommit)...)
+	output, err := git.Git(append(args, baseCommit)...)
 	if err != nil {
 		return nil, err
 	}
@@ -404,76 +369,6 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, 
 	grep := user + "+.*" + domain
 	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
-}
-
-func (git *git) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
-	const commitSeparator = "---===syzkaller-commit-separator===---"
-	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b%n" + commitSeparator}
-	if fixedStrings {
-		args = append(args, "--fixed-strings")
-	}
-	for _, grep := range greps {
-		args = append(args, "--grep", grep)
-	}
-	args = append(args, base)
-	cmd := exec.Command("git", args...)
-	cmd.Dir = git.dir
-	cmd.Env = filterEnv()
-	if git.sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
-			return nil, err
-		}
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	defer cmd.Wait()
-	defer cmd.Process.Kill()
-	var (
-		s           = bufio.NewScanner(stdout)
-		buf         = new(bytes.Buffer)
-		separator   = []byte(commitSeparator)
-		commits     []*Commit
-		userBytes   []byte
-		domainBytes []byte
-	)
-	if user != "" {
-		userBytes = []byte(user + "+")
-		domainBytes = []byte(domain)
-	}
-	for s.Scan() {
-		ln := s.Bytes()
-		if !bytes.Equal(ln, separator) {
-			buf.Write(ln)
-			buf.WriteByte('\n')
-			continue
-		}
-		com, err := gitParseCommit(buf.Bytes(), userBytes, domainBytes, git.ignoreCC)
-		if err != nil {
-			return nil, err
-		}
-		if user == "" || len(com.Tags) != 0 {
-			commits = append(commits, com)
-		}
-		buf.Reset()
-	}
-	return commits, s.Err()
-}
-
-func (git *git) git(args ...string) ([]byte, error) {
-	cmd := osutil.Command("git", args...)
-	cmd.Dir = git.dir
-	cmd.Env = filterEnv()
-	if git.sandbox {
-		if err := osutil.Sandbox(cmd, true, false); err != nil {
-			return nil, err
-		}
-	}
-	return osutil.Run(3*time.Hour, cmd)
 }
 
 func splitEmail(email string) (user, domain string, err error) {
@@ -495,16 +390,16 @@ func splitEmail(email string) (user, domain string, err error) {
 
 func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
 	error)) ([]*Commit, error) {
-	git.reset()
+	git.Reset()
 	firstBad, err := git.Commit(bad)
 	if err != nil {
 		return nil, err
 	}
-	output, err := git.git("bisect", "start", bad, good)
+	output, err := git.Git("bisect", "start", bad, good)
 	if err != nil {
 		return nil, err
 	}
-	defer git.reset()
+	defer git.Reset()
 	dt.Log("# git bisect start %v %v\n%s", bad, good, output)
 	current, err := git.Commit(HEAD)
 	if err != nil {
@@ -518,14 +413,14 @@ func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func()
 	for {
 		res, err := pred()
 		// Linux EnvForCommit may cherry-pick some fixes, reset these before the next step.
-		git.git("reset", "--hard")
+		git.Git("reset", "--hard")
 		if err != nil {
 			return nil, err
 		}
 		if res == BisectBad {
 			firstBad = current
 		}
-		output, err = git.git("bisect", bisectTerms[res])
+		output, err = git.Git("bisect", bisectTerms[res])
 		dt.Log("# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
 		if err != nil {
 			if bytes.Contains(output, []byte("There are only 'skip'ped commits left to test")) {
@@ -584,7 +479,7 @@ func (git *git) ReleaseTag(commit string) (string, error) {
 func (git *git) previousReleaseTags(commit string, self, onlyTop, includeRC bool) ([]string, error) {
 	var tags []string
 	if self {
-		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
+		output, err := git.Git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
 		if err != nil {
 			return nil, err
 		}
@@ -593,7 +488,7 @@ func (git *git) previousReleaseTags(commit string, self, onlyTop, includeRC bool
 			return tags, nil
 		}
 	}
-	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	output, err := git.Git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
 	if err != nil {
 		return nil, err
 	}
@@ -618,11 +513,11 @@ func (git *git) IsRelease(commit string) (bool, error) {
 }
 
 func (git *git) Object(name, commit string) ([]byte, error) {
-	return git.git("show", fmt.Sprintf("%s:%s", commit, name))
+	return git.Git("show", fmt.Sprintf("%s:%s", commit, name))
 }
 
 func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) {
-	output, err := git.git("merge-base", firstCommit, secondCommit)
+	output, err := git.Git("merge-base", firstCommit, secondCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -642,7 +537,7 @@ func (git *git) MergeBases(firstCommit, secondCommit string) ([]*Commit, error) 
 // If object doesn't exist its exit status is 1 (not documented).
 // Otherwise, the exit status is 128 (not documented).
 func (git *git) CommitExists(commit string) (bool, error) {
-	_, err := git.git("cat-file", "-e", commit)
+	_, err := git.Git("cat-file", "-e", commit)
 	var vErr *osutil.VerboseError
 	if errors.As(err, &vErr) && vErr.ExitCode == 1 {
 		return false, nil
@@ -655,8 +550,8 @@ func (git *git) CommitExists(commit string) (bool, error) {
 
 func (git *git) PushCommit(repo, commit string) error {
 	tagName := "tag-" + commit // assign tag to guarantee remote persistence
-	git.git("tag", tagName)    // ignore errors on re-tagging
-	if _, err := git.git("push", repo, "tag", tagName); err != nil {
+	git.Git("tag", tagName)    // ignore errors on re-tagging
+	if _, err := git.Git("push", repo, "tag", tagName); err != nil {
 		return fmt.Errorf("git push %s tag %s: %w", repo, tagName, err)
 	}
 	return nil
@@ -671,4 +566,145 @@ func ParseGitDiff(patch []byte) []string {
 		files = append(files, match[1])
 	}
 	return files
+}
+
+type GitWrapper struct {
+	Dir      string
+	Precious bool
+	Sandbox  bool
+	Env      []string
+	ignoreCC map[string]bool
+}
+
+func (gw GitWrapper) Git(args ...string) ([]byte, error) {
+	cmd, err := gw.gitCommand(args...)
+	if err != nil {
+		return nil, err
+	}
+	return osutil.Run(3*time.Hour, cmd)
+}
+
+func (gw GitWrapper) gitCommand(args ...string) (*exec.Cmd, error) {
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = gw.Dir
+	cmd.Env = gw.Env
+	if gw.Sandbox {
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return nil, err
+		}
+	}
+	return cmd, nil
+}
+
+// Apply invokes git apply for a series of git patches.
+// It is different from Patch() in that it normally handles raw patch emails.
+func (gw GitWrapper) Apply(patch []byte) error {
+	cmd, err := gw.gitCommand("apply", "-")
+	if err != nil {
+		return err
+	}
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	go func() {
+		stdin.Write(patch)
+		stdin.Close()
+	}()
+	_, err = osutil.Run(3*time.Hour, cmd)
+	return err
+}
+
+// Reset resets the git repo to a known clean state.
+func (gw GitWrapper) Reset() error {
+	if gw.Precious {
+		return nil
+	}
+	gw.Git("reset", "--hard", "--recurse-submodules")
+	gw.Git("clean", "-xfdf")
+	gw.Git("submodule", "foreach", "--recursive", "git", "clean", "-xfdf")
+	gw.Git("bisect", "reset")
+	_, err := gw.Git("reset", "--hard", "--recurse-submodules")
+	return err
+}
+
+// Commit extracts the information about the particular git commit.
+func (gw *GitWrapper) Commit(hash string) (*Commit, error) {
+	const patchSeparator = "---===syzkaller-patch-separator===---"
+	output, err := gw.Git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b"+patchSeparator,
+		"-n", "1", "-p", "-U0", hash)
+	if err != nil {
+		return nil, err
+	}
+	pos := bytes.Index(output, []byte(patchSeparator))
+	if pos == -1 {
+		return nil, fmt.Errorf("git log output does not contain patch separator")
+	}
+	commit, err := gitParseCommit(output[:pos], nil, nil, gw.ignoreCC)
+	if err != nil {
+		return nil, err
+	}
+	commit.Patch = output[pos+len(patchSeparator):]
+	for len(commit.Patch) != 0 && commit.Patch[0] == '\n' {
+		commit.Patch = commit.Patch[1:]
+	}
+	return commit, nil
+}
+
+func (gw *GitWrapper) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
+	const commitSeparator = "---===syzkaller-commit-separator===---"
+	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b%n" + commitSeparator}
+	if fixedStrings {
+		args = append(args, "--fixed-strings")
+	}
+	for _, grep := range greps {
+		args = append(args, "--grep", grep)
+	}
+	args = append(args, base)
+	cmd := exec.Command("git", args...)
+	cmd.Dir = gw.Dir
+	cmd.Env = filterEnv()
+	if gw.Sandbox {
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return nil, err
+		}
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	defer cmd.Wait()
+	defer cmd.Process.Kill()
+	var (
+		s           = bufio.NewScanner(stdout)
+		buf         = new(bytes.Buffer)
+		separator   = []byte(commitSeparator)
+		commits     []*Commit
+		userBytes   []byte
+		domainBytes []byte
+	)
+	if user != "" {
+		userBytes = []byte(user + "+")
+		domainBytes = []byte(domain)
+	}
+	for s.Scan() {
+		ln := s.Bytes()
+		if !bytes.Equal(ln, separator) {
+			buf.Write(ln)
+			buf.WriteByte('\n')
+			continue
+		}
+		com, err := gitParseCommit(buf.Bytes(), userBytes, domainBytes, gw.ignoreCC)
+		if err != nil {
+			return nil, err
+		}
+		if user == "" || len(com.Tags) != 0 {
+			commits = append(commits, com)
+		}
+		buf.Reset()
+	}
+	return commits, s.Err()
 }
