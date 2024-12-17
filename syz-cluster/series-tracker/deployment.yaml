@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: series-tracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: series-tracker
+  template:
+    metadata:
+      labels:
+        app: series-tracker
+    spec:
+      containers:
+      - name: series-tracker-image
+        image: series-tracker-image
+        envFrom:
+          - configMapRef:
+              name: global-config
+        volumeMounts:
+        - name: series-tracker-repo-disk
+          mountPath: /git-repo
+        - name: blobs-storage-disk
+          mountPath: /blob-storage
+      volumes:
+      - name: series-tracker-repo-disk
+        persistentVolumeClaim:
+          claimName: series-tracker-repo-disk-claim
+      - name: blobs-storage-disk
+        persistentVolumeClaim:
+          claimName: blob-storage-disk-claim

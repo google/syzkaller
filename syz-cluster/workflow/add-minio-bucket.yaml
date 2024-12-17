@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: create-minio-bucket
+spec:
+  entrypoint: create-bucket
+  templates:
+  - name: create-bucket
+    container:
+      image: minio/mc:latest
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          mc config host add myminio http://minio:9000 $ACCESS_KEY $SECRET_KEY
+          mc mb myminio/my-bucket
+      env:
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: my-minio-cred
+              key: accesskey
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: my-minio-cred
+              key: secretkey

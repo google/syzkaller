@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-dashboard
+  template:
+    metadata:
+      labels:
+        app: web-dashboard
+    spec:
+      containers:
+      - name: web-dashboard-image
+        image: web-dashboard-image
+        envFrom:
+          - configMapRef:
+              name: global-config
+        ports:
+        - containerPort: 8081
+        volumeMounts:
+        - name: blobs-storage-disk
+          mountPath: /blob-storage
+      volumes:
+      - name: blobs-storage-disk
+        persistentVolumeClaim:
+          claimName: blob-storage-disk-claim
