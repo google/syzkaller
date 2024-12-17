@@ -233,7 +233,7 @@ func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
 	if blame {
 		args += " --git-blame"
 	}
-	output, err := osutil.RunCmd(time.Minute, ctx.git.dir, "bash", "-c", args)
+	output, err := osutil.RunCmd(time.Minute, ctx.git.Dir, "bash", "-c", args)
 	if err != nil {
 		return nil
 	}
@@ -290,7 +290,7 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, ty
 		dt.Log("# configuration already minimized\n")
 		return original, nil
 	}
-	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
+	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.Dir, "Kconfig"))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBadKconfig, err)
 	}
