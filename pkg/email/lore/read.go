@@ -5,6 +5,7 @@ package lore
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -16,7 +17,7 @@ type EmailReader struct {
 // ReadArchive queries the parsed messages from a single LKML message archive.
 func ReadArchive(dir string, messages chan<- *EmailReader) error {
 	repo := vcs.NewLKMLRepo(dir)
-	commits, err := repo.ListCommitHashes("HEAD")
+	commits, err := repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		return fmt.Errorf("failed to get recent commits: %w", err)
 	}
