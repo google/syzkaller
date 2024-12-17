@@ -23,7 +23,7 @@ import (
 )
 
 type linux struct {
-	*git
+	*gitRepo
 	vmType string
 }
 
@@ -38,13 +38,13 @@ func newLinux(dir string, opts []RepoOpt, vmType string) *linux {
 	}
 
 	return &linux{
-		git:    newGit(dir, ignoreCC, opts),
-		vmType: vmType,
+		gitRepo: newGitRepo(dir, ignoreCC, opts),
+		vmType:  vmType,
 	}
 }
 
 func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, error) {
-	tags, err := ctx.git.previousReleaseTags(commit, false, false, false)
+	tags, err := ctx.gitRepo.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (ctx *linux) EnvForCommit(
 		Compiler:     compiler,
 		KernelConfig: cf.Serialize(),
 	}
-	err = linuxFixBackports(ctx.git, backports...)
+	err = linuxFixBackports(ctx.gitRepo, backports...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cherry pick fixes: %w", err)
 	}
@@ -196,7 +196,7 @@ func (ctx *linux) PrepareBisect() error {
 	if ctx.vmType != targets.GVisor {
 		// Some linux repos we fuzz don't import the upstream release git tags. We need tags
 		// to decide which compiler versions to use. Let's fetch upstream for its tags.
-		err := ctx.git.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git", "")
+		err := ctx.gitRepo.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git", "")
 		if err != nil {
 			return fmt.Errorf("fetching upstream linux failed: %w", err)
 		}
@@ -206,7 +206,7 @@ func (ctx *linux) PrepareBisect() error {
 
 func (ctx *linux) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
 	error)) ([]*Commit, error) {
-	commits, err := ctx.git.Bisect(bad, good, dt, pred)
+	commits, err := ctx.gitRepo.Bisect(bad, good, dt, pred)
 	if len(commits) == 1 {
 		ctx.addMaintainers(commits[0])
 	}
@@ -233,7 +233,7 @@ func (ctx *linux) getMaintainers(hash string, blame bool) Recipients {
 	if blame {
 		args += " --git-blame"
 	}
-	output, err := osutil.RunCmd(time.Minute, ctx.git.dir, "bash", "-c", args)
+	output, err := osutil.RunCmd(time.Minute, ctx.gitRepo.Dir, "bash", "-c", args)
 	if err != nil {
 		return nil
 	}
@@ -290,7 +290,7 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, ty
 		dt.Log("# configuration already minimized\n")
 		return original, nil
 	}
-	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
+	kconf, err := kconfig.Parse(target, filepath.Join(ctx.gitRepo.Dir, "Kconfig"))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBadKconfig, err)
 	}
