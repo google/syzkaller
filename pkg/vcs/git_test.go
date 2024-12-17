@@ -248,7 +248,7 @@ func TestCommitHashes(t *testing.T) {
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	got, err := repo.repo.ListCommitHashes("HEAD")
+	got, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestCommitHashes(t *testing.T) {
 
 	// Now change HEAD.
 	repo.Git("checkout", "branch-a")
-	got, err = repo.repo.ListCommitHashes("HEAD")
+	got, err = repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ func TestObject(t *testing.T) {
 	repo.Git("add", "object.txt")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 
-	commits, err := repo.repo.ListCommitHashes("HEAD")
+	commits, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
