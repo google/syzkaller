@@ -14,6 +14,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 	"google.golang.org/api/iterator"
@@ -185,7 +186,7 @@ where
 
 func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem string, timePeriods []coveragedb.TimePeriod,
 ) ([]*fileCoverageWithDetails, error) {
-	client, err := coveragedb.NewClient(ctx, projectID)
+	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
 	}

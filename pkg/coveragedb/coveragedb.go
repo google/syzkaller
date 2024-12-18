@@ -4,9 +4,9 @@
 package coveragedb
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +15,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/uuid"
@@ -49,11 +50,6 @@ type HistoryRecord struct {
 	TotalRows int64
 }
 
-func NewClient(ctx context.Context, projectID string) (*spanner.Client, error) {
-	database := "projects/" + projectID + "/instances/syzbot/databases/coverage"
-	return spanner.NewClient(ctx, database)
-}
-
 type Coverage struct {
 	Instrumented      int64
 	Covered           int64
@@ -76,27 +72,26 @@ type MergedCoverageRecord struct {
 	FileData *Coverage
 }
 
-func SaveMergeResult(ctx context.Context, projectID string, descr *HistoryRecord, jsonl io.Reader,
+func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, descr *HistoryRecord, dec *json.Decoder,
 	sss []*subsystem.Subsystem) (int, error) {
-	client, err := NewClient(ctx, projectID)
-	if err != nil {
-		return 0, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
-	}
-	defer client.Close()
 	var rowsCreated int
-
 	ssMatcher := subsystem.MakePathMatcher(sss)
 	ssCache := make(map[string][]string)
 
 	session := uuid.New().String()
 	mutations := []*spanner.Mutation{}
 
-	jsonlScanner := bufio.NewScanner(jsonl)
-
-	for jsonlScanner.Scan() {
-		var mcr MergedCoverageRecord
-		if err := json.Unmarshal([]byte(jsonlScanner.Text()), &mcr); err != nil {
-			return rowsCreated, fmt.Errorf("json.Unmarshal(MergedCoverageRecord): %w", err)
+	var mcr MergedCoverageRecord
+	for {
+		err := dec.Decode(&mcr)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return rowsCreated, fmt.Errorf("dec.Decode(MergedCoverageRecord): %w", err)
+		}
+		if mcr.FileData == nil {
+			return rowsCreated, errors.New("field MergedCoverageRecord.FileData can't be nil")
 		}
 		mutations = append(mutations, fileRecordMutation(session, &mcr))
 		subsystems := fileSubsystems(mcr.FilePath, ssMatcher, ssCache)
@@ -105,8 +100,8 @@ func SaveMergeResult(ctx context.Context, projectID string, descr *HistoryRecord
 		// This includes both explicit mutations of the fields (6 fields * 1k records = 6k mutations)
 		//   and implicit index mutations.
 		// We keep the number of records low enough for the number of explicit mutations * 10 does not exceed the limit.
-		if len(mutations) > 1000 {
-			if _, err = client.Apply(ctx, mutations); err != nil {
+		if len(mutations) >= 1000 {
+			if _, err := client.Apply(ctx, mutations); err != nil {
 				return rowsCreated, fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 			}
 			rowsCreated += len(mutations)
@@ -115,9 +110,10 @@ func SaveMergeResult(ctx context.Context, projectID string, descr *HistoryRecord
 	}
 
 	mutations = append(mutations, historyMutation(session, descr))
-	if _, err = client.Apply(ctx, mutations); err != nil {
+	if _, err := client.Apply(ctx, mutations); err != nil {
 		return rowsCreated, fmt.Errorf("failed to spanner.Apply(inserts): %s", err.Error())
 	}
+	rowsCreated += len(mutations)
 	return rowsCreated, nil
 }
 
@@ -150,7 +146,7 @@ where
 func ReadLinesHitCount(ctx context.Context, ns, commit, file string, tp TimePeriod,
 ) (map[int]int, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, err := NewClient(ctx, projectID)
+	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient: %w", err)
 	}
@@ -236,7 +232,7 @@ func fileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache m
 }
 
 func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []int64, error) {
-	client, err := NewClient(ctx, projectID)
+	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
 	}
@@ -292,7 +288,7 @@ func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []in
 // Returns the number of orphaned file entries successfully deleted.
 func DeleteGarbage(ctx context.Context) (int64, error) {
 	batchSize := 10_000
-	client, err := NewClient(ctx, os.Getenv("GOOGLE_CLOUD_PROJECT"))
+	client, err := spannerclient.NewClient(ctx, os.Getenv("GOOGLE_CLOUD_PROJECT"))
 	if err != nil {
 		return 0, fmt.Errorf("coveragedb.NewClient: %w", err)
 	}
@@ -339,7 +335,7 @@ func DeleteGarbage(ctx context.Context) (int64, error) {
 	return totalDeleted.Load(), nil
 }
 
-func goSpannerDelete(ctx context.Context, batch []spanner.Key, eg *errgroup.Group, client *spanner.Client,
+func goSpannerDelete(ctx context.Context, batch []spanner.Key, eg *errgroup.Group, client spannerclient.SpannerClient,
 	totalDeleted *atomic.Int64) {
 	ks := spanner.KeySetFromKeys(batch...)
 	ksSize := len(batch)

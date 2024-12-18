@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/gcs"
@@ -1944,15 +1945,21 @@ func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, erro
 // Second+ records are coveragedb.MergedCoverageRecord.
 func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) {
 	descr := new(coveragedb.HistoryRecord)
-	if err := json.NewDecoder(payload).Decode(descr); err != nil {
-		return 0, fmt.Errorf("json.NewDecoder(dashapi.MergedCoverageDescription).Decode: %w", err)
+	jsonDec := json.NewDecoder(payload)
+	if err := jsonDec.Decode(descr); err != nil {
+		return 0, fmt.Errorf("json.NewDecoder(coveragedb.HistoryRecord).Decode: %w", err)
 	}
 	var sss []*subsystem.Subsystem
 	if service := getNsConfig(c, descr.Namespace).Subsystems.Service; service != nil {
 		sss = service.List()
 		log.Infof(c, "found %d subsystems for %s namespace", len(sss), descr.Namespace)
 	}
-	rowsCreated, err := coveragedb.SaveMergeResult(c, appengine.AppID(context.Background()), descr, payload, sss)
+	client, err := spannerclient.NewClient(c, appengine.AppID(context.Background()))
+	if err != nil {
+		return 0, fmt.Errorf("coveragedb.NewClient() failed: %s", err.Error())
+	}
+	defer client.Close()
+	rowsCreated, err := coveragedb.SaveMergeResult(c, client, descr, jsonDec, sss)
 	if err != nil {
 		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
 			descr.Namespace, descr.DateTo.String(), err)

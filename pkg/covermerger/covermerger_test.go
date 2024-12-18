@@ -4,18 +4,76 @@
 package covermerger
 
 import (
+	"compress/gzip"
+	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"cloud.google.com/go/civil"
+	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"golang.org/x/sync/errgroup"
 )
+
+var testsPath = "testdata/integration"
+var defaultTestWorkdir = testsPath + "/all/test-workdir-covermerger"
+
+func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
+	rc, wc := io.Pipe()
+	eg := errgroup.Group{}
+	eg.Go(func() error {
+		defer wc.Close()
+		totalInstrumented, totalCovered, err := MergeCSVWriteJSONL(
+			testConfig(
+				"git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+				"fe46a7dd189e25604716c03576d05ac8a5209743",
+				testsPath+"/aesni-intel_glue/test-workdir-covermerger"),
+			&coveragedb.HistoryRecord{
+				DateTo: civil.DateOf(time.Now()),
+			},
+			strings.NewReader(readFileOrFail(t, testsPath+"/aesni-intel_glue/bqTable.txt")),
+			wc)
+		assert.Equal(t, 48, totalInstrumented)
+		assert.Equal(t, 45, totalCovered)
+		return err
+	})
+	eg.Go(func() error {
+		defer rc.Close()
+		gzrc, err := gzip.NewReader(rc)
+		assert.NoError(t, err)
+		defer gzrc.Close()
+
+		spannerMock := mocks.NewSpannerClient(t)
+		spannerMock.
+			On("Apply", mock.Anything, mock.MatchedBy(func(ms []*spanner.Mutation) bool {
+				// 1 file * (5 managers + 1 manager total) x 2 (to update files and subsystems) + 1 merge_history
+				return len(ms) == 13
+			})).
+			Return(time.Now(), nil).
+			Once()
+
+		decoder := json.NewDecoder(gzrc)
+		decoder.DisallowUnknownFields()
+
+		descr := new(coveragedb.HistoryRecord)
+		assert.NoError(t, decoder.Decode(descr))
+
+		_, err = coveragedb.SaveMergeResult(context.Background(), spannerMock, descr, decoder, nil)
+		return err
+	})
+	assert.NoError(t, eg.Wait())
+}
 
 // nolint: lll
 func TestAggregateStreamData(t *testing.T) {
-	testsPath := "testdata/integration"
 	type Test struct {
 		name              string
 		workdir           string
@@ -36,7 +94,7 @@ func TestAggregateStreamData(t *testing.T) {
 		},
 		{
 			name:    "code deleted",
-			workdir: testsPath + "/all/test-workdir-covermerger",
+			workdir: defaultTestWorkdir,
 			bqTable: `timestamp,version,fuzzing_minutes,arch,build_id,manager,kernel_repo,kernel_branch,kernel_commit,file_path,func_name,sl,sc,el,ec,hit_count,inline,pc
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_code.c,func1,2,0,2,-1,1,true,1`,
 			simpleAggregation: `{
@@ -53,7 +111,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_code.c,func1,2,
 		},
 		{
 			name:    "file deleted",
-			workdir: testsPath + "/all/test-workdir-covermerger",
+			workdir: defaultTestWorkdir,
 			bqTable: `timestamp,version,fuzzing_minutes,arch,build_id,manager,kernel_repo,kernel_branch,kernel_commit,file_path,func_name,sl,sc,el,ec,hit_count,inline,pc
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_file.c,func1,2,0,2,-1,1,true,1`,
 			simpleAggregation: `{
@@ -68,7 +126,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,delete_file.c,func1,2,
 		},
 		{
 			name:    "covered line changed",
-			workdir: testsPath + "/all/test-workdir-covermerger",
+			workdir: defaultTestWorkdir,
 			bqTable: `timestamp,version,fuzzing_minutes,arch,build_id,manager,kernel_repo,kernel_branch,kernel_commit,file_path,func_name,sl,sc,el,ec,hit_count,inline,pc
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,2,0,2,-1,1,true,1
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,3,0,3,-1,1,true,1`,
@@ -99,7 +157,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,3,
 		},
 		{
 			name:    "add line",
-			workdir: testsPath + "/all/test-workdir-covermerger",
+			workdir: defaultTestWorkdir,
 			bqTable: `timestamp,version,fuzzing_minutes,arch,build_id,manager,kernel_repo,kernel_branch,kernel_commit,file_path,func_name,sl,sc,el,ec,hit_count,inline,pc
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,add_line.c,func1,2,0,2,-1,1,true,1`,
 			simpleAggregation: `{
@@ -129,7 +187,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,add_line.c,func1,2,0,2
 		},
 		{
 			name:    "instrumented lines w/o coverage are reported",
-			workdir: testsPath + "/all/test-workdir-covermerger",
+			workdir: defaultTestWorkdir,
 			bqTable: `timestamp,version,fuzzing_minutes,arch,build_id,manager,kernel_repo,kernel_branch,kernel_commit,file_path,func_name,sl,sc,el,ec,hit_count,inline,pc
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,not_changed.c,func1,3,0,3,-1,0,true,1
 samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,0,4,-1,0,true,1`,
@@ -172,34 +230,27 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ch := make(chan *FileMergeResult)
-			aggregation := make(map[string]*MergeResult)
+			mergeResultsCh := make(chan *FileMergeResult)
+			doneCh := make(chan bool)
 			go func() {
-				for fmr := range ch {
+				aggregation := make(map[string]*MergeResult)
+				for fmr := range mergeResultsCh {
 					aggregation[fmr.FilePath] = fmr.MergeResult
 				}
+				if !test.checkDetails {
+					ignoreLineDetailsInTest(aggregation)
+				}
+				var expectedAggregation map[string]*MergeResult
+				assert.NoError(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
+				assert.Equal(t, expectedAggregation, aggregation)
+				doneCh <- true
 			}()
-			err := MergeCSVData(
-				&Config{
-					Jobs:          2,
-					skipRepoClone: true,
-					Base: RepoCommit{
-						Repo:   test.baseRepo,
-						Commit: test.baseCommit,
-					},
-					FileVersProvider: &fileVersProviderMock{Workdir: test.workdir},
-				},
+			assert.NoError(t, MergeCSVData(
+				testConfig(test.baseRepo, test.baseCommit, test.workdir),
 				strings.NewReader(test.bqTable),
-				ch,
-			)
-
-			assert.Nil(t, err)
-			var expectedAggregation map[string]*MergeResult
-			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
-			if !test.checkDetails {
-				ignoreLineDetailsInTest(aggregation)
-			}
-			assert.Equal(t, expectedAggregation, aggregation)
+				mergeResultsCh))
+			close(mergeResultsCh)
+			<-doneCh
 		})
 	}
 }
@@ -232,4 +283,16 @@ func readFileOrFail(t *testing.T, path string) string {
 	content, err := os.ReadFile(absPath)
 	assert.Nil(t, err)
 	return string(content)
+}
+
+func testConfig(repo, commit, workdir string) *Config {
+	return &Config{
+		Jobs:          2,
+		skipRepoClone: true,
+		Base: RepoCommit{
+			Repo:   repo,
+			Commit: commit,
+		},
+		FileVersProvider: &fileVersProviderMock{Workdir: workdir},
+	}
 }

@@ -4,14 +4,11 @@
 package main
 
 import (
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"runtime"
-	"slices"
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -20,8 +17,6 @@ import (
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/log"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
-	"golang.org/x/exp/maps"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -109,57 +104,28 @@ func do() error {
 			return fmt.Errorf("gcsClient.FileWriter: %w", err)
 		}
 	}
-	eg := errgroup.Group{}
-	mergeResults := make(chan *covermerger.FileMergeResult)
-	eg.Go(func() error {
-		defer close(mergeResults)
-		if err := covermerger.MergeCSVData(config, csvReader, mergeResults); err != nil {
-			return fmt.Errorf("covermerger.MergeCSVData: %w", err)
-		}
-		return nil
-	})
-	var totalInstrumentedLines, totalCoveredLines int
-	eg.Go(func() error {
-		encoder := json.NewEncoder(gzip.NewWriter(wc))
-		if encoder != nil {
-			if err := encoder.Encode(&coveragedb.HistoryRecord{
-				Namespace: *flagNamespace,
-				Repo:      *flagRepo,
-				Commit:    *flagCommit,
-				Duration:  *flagDuration,
-				DateTo:    dateTo,
-				TotalRows: *flagTotalRows,
-			}); err != nil {
-				return fmt.Errorf("encoder.Encode(MergedCoverageDescription): %w", err)
-			}
-		}
-		for fileMergeResult := range mergeResults {
-			dashCoverageRecords := mergedCoverageRecords(fileMergeResult)
-			if encoder != nil {
-				for _, record := range dashCoverageRecords {
-					if err := encoder.Encode(record); err != nil {
-						return fmt.Errorf("encoder.Encode(MergedCoverageRecord): %w", err)
-					}
-				}
-			}
-			for _, hitCount := range fileMergeResult.HitCounts {
-				totalInstrumentedLines++
-				if hitCount > 0 {
-					totalCoveredLines++
-				}
-			}
-		}
-		if err := wc.Close(); err != nil {
-			return fmt.Errorf("wc.Close: %w", err)
-		}
-		return nil
-	})
-	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("eg.Wait: %w", err)
+	totalInstrumentedLines, totalCoveredLines, err := covermerger.MergeCSVWriteJSONL(
+		config,
+		&coveragedb.HistoryRecord{
+			Namespace: *flagNamespace,
+			Repo:      *flagRepo,
+			Commit:    *flagCommit,
+			Duration:  *flagDuration,
+			DateTo:    dateTo,
+			TotalRows: *flagTotalRows,
+		},
+		csvReader,
+		wc)
+	if err != nil {
+		return fmt.Errorf("covermerger.MergeCSVWriteJSONL: %w", err)
+	}
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("wc.Close: %w", err)
 	}
 
 	printCoverage(totalInstrumentedLines, totalCoveredLines)
 	if *flagToDashAPI != "" {
+		// Merging may take hours. It is better to create new connection instead of reuse.
 		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
 		if err != nil {
 			return fmt.Errorf("dashapi.New: %w", err)
@@ -180,42 +146,4 @@ func printCoverage(instrumented, covered int) {
 	}
 	fmt.Printf("total instrumented(%d), covered(%d), %.2f%%\n",
 		instrumented, covered, coverage*100)
-}
-
-const allManagers = "*"
-
-func mergedCoverageRecords(fmr *covermerger.FileMergeResult,
-) []*coveragedb.MergedCoverageRecord {
-	if !fmr.FileExists {
-		return nil
-	}
-	lines := maps.Keys(fmr.HitCounts)
-	slices.Sort(lines)
-	mgrStat := make(map[string]*coveragedb.Coverage)
-	mgrStat[allManagers] = &coveragedb.Coverage{}
-
-	for _, line := range lines {
-		mgrStat[allManagers].AddLineHitCount(line, fmr.HitCounts[line])
-		managerHitCounts := map[string]int{}
-		for _, lineDetail := range fmr.LineDetails[line] {
-			manager := lineDetail.Manager
-			managerHitCounts[manager] += lineDetail.HitCount
-		}
-		for manager, managerHitCount := range managerHitCounts {
-			if _, ok := mgrStat[manager]; !ok {
-				mgrStat[manager] = &coveragedb.Coverage{}
-			}
-			mgrStat[manager].AddLineHitCount(line, managerHitCount)
-		}
-	}
-
-	res := []*coveragedb.MergedCoverageRecord{}
-	for managerName, managerCoverage := range mgrStat {
-		res = append(res, &coveragedb.MergedCoverageRecord{
-			Manager:  managerName,
-			FilePath: fmr.FilePath,
-			FileData: managerCoverage,
-		})
-	}
-	return res
 }
