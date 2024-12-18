@@ -237,6 +237,7 @@ generate:
 generate_go: format_cpp
 	$(GO) generate ./executor ./pkg/ifuzz ./pkg/build ./pkg/rpcserver
 	$(GO) generate ./vm/proxyapp
+	$(GO) generate ./pkg/coveragedb
 
 generate_rpc:
 	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --go --gen-onefile --go-namespace flatrpc pkg/flatrpc/flatrpc.fbs
