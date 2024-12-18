@@ -8,7 +8,6 @@ package dashapi
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,10 +17,7 @@ import (
 	"reflect"
 	"time"
 
-	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/gcs"
 )
 
 type Dashboard struct {
@@ -692,42 +688,18 @@ func (dash *Dashboard) SaveDiscussion(req *SaveDiscussionReq) error {
 	return dash.Query("save_discussion", req, nil)
 }
 
-type MergedCoverage struct {
-	Namespace string
-	Repo      string
-	Commit    string
-	Duration  int64
-	DateTo    civil.Date
-	TotalRows int64
-	FileData  coveragedb.ManagersCoverage
-}
-
-type SaveCoverageReq struct {
-	Coverage *MergedCoverage
+func (dash *Dashboard) CreateUploadURL() (string, error) {
+	uploadURL := new(string)
+	if err := dash.Query("create_upload_url", nil, uploadURL); err != nil {
+		return "", fmt.Errorf("create_upload_url: %w", err)
+	}
+	return *uploadURL, nil
 }
 
 // SaveCoverage returns amount of records created in db.
-func (dash *Dashboard) SaveCoverage(req *SaveCoverageReq) (int, error) {
-	uploadURL := new(string)
-	if err := dash.Query("create_upload_url", req, uploadURL); err != nil {
-		return 0, fmt.Errorf("create_upload_url: %w", err)
-	}
-
-	gcsClient, err := gcs.NewClient(context.Background())
-	if err != nil {
-		return 0, fmt.Errorf("gcs.NewClient: %w", err)
-	}
-	w, err := gcsClient.FileWriter(*uploadURL)
-	if err != nil {
-		return 0, fmt.Errorf("gcsClient.FileWriter: %w", err)
-	}
-	defer w.Close()
-	if err := json.NewEncoder(gzip.NewWriter(w)).Encode(req); err != nil {
-		return 0, fmt.Errorf("json.NewEncoder(gzip.NewWriter(w)).Encode: %w", err)
-	}
-
+func (dash *Dashboard) SaveCoverage(gcpURL string) (int, error) {
 	rowsWritten := new(int)
-	if err := dash.Query("save_coverage", *uploadURL, rowsWritten); err != nil {
+	if err := dash.Query("save_coverage", gcpURL, rowsWritten); err != nil {
 		return 0, fmt.Errorf("save_coverage: %w", err)
 	}
 	return *rowsWritten, nil

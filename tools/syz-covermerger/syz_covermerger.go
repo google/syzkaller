@@ -4,20 +4,24 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"runtime"
 	"slices"
-	"sort"
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/log"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -47,6 +51,12 @@ func makeProvider() covermerger.FileVersProvider {
 }
 
 func main() {
+	if err := do(); err != nil {
+		log.Fatalf("failed to saveCoverage: %v", err.Error())
+	}
+}
+
+func do() error {
 	flag.Parse()
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
@@ -78,44 +88,92 @@ func main() {
 	if errReader != nil {
 		panic(fmt.Sprintf("failed to dbReader.Reader: %v", errReader.Error()))
 	}
-	mergeResult, errMerge := covermerger.MergeCSVData(config, csvReader)
-	if errMerge != nil {
-		panic(errMerge)
+	var wc io.WriteCloser
+	var url string
+	if *flagToDashAPI != "" {
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		if err != nil {
+			return fmt.Errorf("dashapi.New: %w", err)
+		}
+		url, err = dash.CreateUploadURL()
+		if err != nil {
+			return fmt.Errorf("dash.CreateUploadURL: %w", err)
+		}
+		gcsClient, err := gcs.NewClient(context.Background())
+		if err != nil {
+			return fmt.Errorf("gcs.NewClient: %w", err)
+		}
+		defer gcsClient.Close()
+		wc, err = gcsClient.FileWriter(url)
+		if err != nil {
+			return fmt.Errorf("gcsClient.FileWriter: %w", err)
+		}
+	}
+	eg := errgroup.Group{}
+	mergeResults := make(chan *covermerger.FileMergeResult)
+	eg.Go(func() error {
+		defer close(mergeResults)
+		if err := covermerger.MergeCSVData(config, csvReader, mergeResults); err != nil {
+			return fmt.Errorf("covermerger.MergeCSVData: %w", err)
+		}
+		return nil
+	})
+	var totalInstrumentedLines, totalCoveredLines int
+	eg.Go(func() error {
+		encoder := json.NewEncoder(gzip.NewWriter(wc))
+		if encoder != nil {
+			if err := encoder.Encode(&coveragedb.HistoryRecord{
+				Namespace: *flagNamespace,
+				Repo:      *flagRepo,
+				Commit:    *flagCommit,
+				Duration:  *flagDuration,
+				DateTo:    dateTo,
+				TotalRows: *flagTotalRows,
+			}); err != nil {
+				return fmt.Errorf("encoder.Encode(MergedCoverageDescription): %w", err)
+			}
+		}
+		for fileMergeResult := range mergeResults {
+			dashCoverageRecords := mergedCoverageRecords(fileMergeResult)
+			if encoder != nil {
+				for _, record := range dashCoverageRecords {
+					if err := encoder.Encode(record); err != nil {
+						return fmt.Errorf("encoder.Encode(MergedCoverageRecord): %w", err)
+					}
+				}
+			}
+			for _, hitCount := range fileMergeResult.HitCounts {
+				totalInstrumentedLines++
+				if hitCount > 0 {
+					totalCoveredLines++
+				}
+			}
+		}
+		if err := wc.Close(); err != nil {
+			return fmt.Errorf("wc.Close: %w", err)
+		}
+		return nil
+	})
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("eg.Wait: %w", err)
 	}
 
-	coverage, totalInstrumentedLines, totalCoveredLines := mergeResultsToCoverage(mergeResult)
 	printCoverage(totalInstrumentedLines, totalCoveredLines)
-	managers := maps.Keys(coverage)
-	sort.Strings(managers)
-	fmt.Printf("merged signals for the following managers: %v\n", managers)
 	if *flagToDashAPI != "" {
-		if rowsCreated, err := saveCoverage(*flagToDashAPI, *flagDashboardClientName, &dashapi.MergedCoverage{
-			Namespace: *flagNamespace,
-			Repo:      *flagRepo,
-			Commit:    *flagCommit,
-			Duration:  *flagDuration,
-			DateTo:    dateTo,
-			TotalRows: *flagTotalRows,
-			FileData:  coverage,
-		}); err != nil {
-			log.Fatalf("failed to saveCoverage: %v", err)
+		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
+		if err != nil {
+			return fmt.Errorf("dashapi.New: %w", err)
+		}
+		if rowsCreated, err := dash.SaveCoverage(url); err != nil {
+			return fmt.Errorf("dash.SaveCoverage: %w", err)
 		} else {
 			fmt.Printf("created %d DB rows\n", rowsCreated)
 		}
 	}
+	return nil
 }
 
-func saveCoverage(dashboard, clientName string, d *dashapi.MergedCoverage) (int, error) {
-	dash, err := dashapi.New(clientName, dashboard, "")
-	if err != nil {
-		return 0, fmt.Errorf("dashapi.New: %w", err)
-	}
-	return dash.SaveCoverage(&dashapi.SaveCoverageReq{
-		Coverage: d,
-	})
-}
-
-func printCoverage(instrumented, covered int64) {
+func printCoverage(instrumented, covered int) {
 	coverage := 0.0
 	if instrumented != 0 {
 		coverage = float64(covered) / float64(instrumented)
@@ -126,42 +184,38 @@ func printCoverage(instrumented, covered int64) {
 
 const allManagers = "*"
 
-// Returns per manager merge result, total instrumented and total covered lines.
-func mergeResultsToCoverage(mergedCoverage map[string]*covermerger.MergeResult,
-) (coveragedb.ManagersCoverage, int64, int64) {
-	res := make(coveragedb.ManagersCoverage)
-	res[allManagers] = make(coveragedb.ManagerCoverage)
-	var totalInstrumented, totalCovered int64
-	for fileName, lineStat := range mergedCoverage {
-		if !lineStat.FileExists {
-			continue
-		}
-		if _, ok := res[allManagers][fileName]; !ok {
-			res[allManagers][fileName] = &coveragedb.Coverage{}
-		}
-
-		lines := maps.Keys(lineStat.HitCounts)
-		slices.Sort(lines)
-
-		for _, line := range lines {
-			res[allManagers][fileName].AddLineHitCount(line, lineStat.HitCounts[line])
-			managerHitCounts := map[string]int{}
-			for _, lineDetail := range lineStat.LineDetails[line] {
-				manager := lineDetail.Manager
-				managerHitCounts[manager] += lineDetail.HitCount
-			}
-			for manager, managerHitCount := range managerHitCounts {
-				if _, ok := res[manager]; !ok {
-					res[manager] = make(coveragedb.ManagerCoverage)
-				}
-				if _, ok := res[manager][fileName]; !ok {
-					res[manager][fileName] = &coveragedb.Coverage{}
-				}
-				res[manager][fileName].AddLineHitCount(line, managerHitCount)
-			}
-		}
-		totalInstrumented += res[allManagers][fileName].Instrumented
-		totalCovered += res[allManagers][fileName].Covered
+func mergedCoverageRecords(fmr *covermerger.FileMergeResult,
+) []*coveragedb.MergedCoverageRecord {
+	if !fmr.FileExists {
+		return nil
 	}
-	return res, totalInstrumented, totalCovered
+	lines := maps.Keys(fmr.HitCounts)
+	slices.Sort(lines)
+	mgrStat := make(map[string]*coveragedb.Coverage)
+	mgrStat[allManagers] = &coveragedb.Coverage{}
+
+	for _, line := range lines {
+		mgrStat[allManagers].AddLineHitCount(line, fmr.HitCounts[line])
+		managerHitCounts := map[string]int{}
+		for _, lineDetail := range fmr.LineDetails[line] {
+			manager := lineDetail.Manager
+			managerHitCounts[manager] += lineDetail.HitCount
+		}
+		for manager, managerHitCount := range managerHitCounts {
+			if _, ok := mgrStat[manager]; !ok {
+				mgrStat[manager] = &coveragedb.Coverage{}
+			}
+			mgrStat[manager].AddLineHitCount(line, managerHitCount)
+		}
+	}
+
+	res := []*coveragedb.MergedCoverageRecord{}
+	for managerName, managerCoverage := range mgrStat {
+		res = append(res, &coveragedb.MergedCoverageRecord{
+			Manager:  managerName,
+			FilePath: fmr.FilePath,
+			FileData: managerCoverage,
+		})
+	}
+	return res
 }
