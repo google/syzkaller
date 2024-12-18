@@ -1938,37 +1938,27 @@ func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, erro
 	}
 	return fmt.Printf("%s/%s.upload", bucket, uuid.New().String())
 }
+
+// apiSaveCoverage reads jsonl data from payload and stores it to coveragedb.
+// First payload jsonl line is a coveragedb.HistoryRecord (w/o session and time).
+// Second+ records are coveragedb.MergedCoverageRecord.
 func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) {
-	req := new(dashapi.SaveCoverageReq)
-	if err := json.NewDecoder(payload).Decode(req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
+	descr := new(coveragedb.HistoryRecord)
+	if err := json.NewDecoder(payload).Decode(descr); err != nil {
+		return 0, fmt.Errorf("json.NewDecoder(dashapi.MergedCoverageDescription).Decode: %w", err)
 	}
-	coverage := req.Coverage
 	var sss []*subsystem.Subsystem
-	if service := getNsConfig(c, coverage.Namespace).Subsystems.Service; service != nil {
+	if service := getNsConfig(c, descr.Namespace).Subsystems.Service; service != nil {
 		sss = service.List()
-		log.Infof(c, "found %d subsystems for %s namespace", len(sss), coverage.Namespace)
+		log.Infof(c, "found %d subsystems for %s namespace", len(sss), descr.Namespace)
 	}
-	rowsCreated, err := coveragedb.SaveMergeResult(
-		context.Background(),
-		appengine.AppID(context.Background()),
-		coverage.FileData,
-		&coveragedb.HistoryRecord{
-			Namespace: coverage.Namespace,
-			Repo:      coverage.Repo,
-			Commit:    coverage.Commit,
-			Duration:  coverage.Duration,
-			DateTo:    coverage.DateTo,
-		},
-		coverage.TotalRows,
-		sss,
-	)
+	rowsCreated, err := coveragedb.SaveMergeResult(c, appengine.AppID(context.Background()), descr, payload, sss)
 	if err != nil {
 		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
-			coverage.Namespace, coverage.DateTo.String(), err)
+			descr.Namespace, descr.DateTo.String(), err)
 	} else {
 		log.Infof(c, "updated coverage for ns %s, date %s to %d rows",
-			coverage.Namespace, coverage.DateTo.String(), coverage.TotalRows)
+			descr.Namespace, descr.DateTo.String(), descr.TotalRows)
 	}
 	return &rowsCreated, err
 }

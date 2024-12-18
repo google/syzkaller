@@ -172,7 +172,14 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			aggregation, err := MergeCSVData(
+			ch := make(chan *FileMergeResult)
+			aggregation := make(map[string]*MergeResult)
+			go func() {
+				for fmr := range ch {
+					aggregation[fmr.FilePath] = fmr.MergeResult
+				}
+			}()
+			err := MergeCSVData(
 				&Config{
 					Jobs:          2,
 					skipRepoClone: true,
@@ -183,10 +190,11 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 					FileVersProvider: &fileVersProviderMock{Workdir: test.workdir},
 				},
 				strings.NewReader(test.bqTable),
+				ch,
 			)
 
 			assert.Nil(t, err)
-			var expectedAggregation FilesMergeResults
+			var expectedAggregation map[string]*MergeResult
 			assert.Nil(t, json.Unmarshal([]byte(test.simpleAggregation), &expectedAggregation))
 			if !test.checkDetails {
 				ignoreLineDetailsInTest(aggregation)
@@ -196,7 +204,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 	}
 }
 
-func ignoreLineDetailsInTest(results FilesMergeResults) {
+func ignoreLineDetailsInTest(results map[string]*MergeResult) {
 	for _, mr := range results {
 		mr.LineDetails = nil
 	}

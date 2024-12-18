@@ -78,14 +78,24 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 		return nil, fmt.Errorf("failed to dbReader.Reader: %w", err)
 	}
 
-	mergeResult, err := covermerger.MergeCSVData(config, csvReader)
-	if err != nil {
+	ch := make(chan *covermerger.FileMergeResult, 1)
+	if err := covermerger.MergeCSVData(config, csvReader, ch); err != nil {
 		return nil, fmt.Errorf("error merging coverage: %w", err)
 	}
-	if _, exist := mergeResult[filePath]; !exist {
+
+	var mr *covermerger.MergeResult
+	select {
+	case fmr := <-ch:
+		if fmr != nil {
+			mr = fmr.MergeResult
+		}
+	default:
+	}
+
+	if mr != nil {
 		return nil, fmt.Errorf("no merge result for file %s", filePath)
 	}
-	return mergeResult[filePath], nil
+	return mr, nil
 }
 
 func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {
