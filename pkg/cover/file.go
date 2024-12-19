@@ -79,7 +79,7 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 	}
 
 	ch := make(chan *covermerger.FileMergeResult, 1)
-	if err := covermerger.MergeCSVData(config, csvReader, ch); err != nil {
+	if err := covermerger.MergeCSVData(c, config, csvReader, ch); err != nil {
 		return nil, fmt.Errorf("error merging coverage: %w", err)
 	}
 
