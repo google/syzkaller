@@ -1937,7 +1937,7 @@ func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, erro
 	if bucket == "" {
 		return nil, errors.New("not configured")
 	}
-	return fmt.Printf("%s/%s.upload", bucket, uuid.New().String())
+	return fmt.Sprintf("%s/%s.upload", bucket, uuid.New().String()), nil
 }
 
 // apiSaveCoverage reads jsonl data from payload and stores it to coveragedb.
