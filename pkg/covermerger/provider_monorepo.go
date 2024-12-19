@@ -94,7 +94,6 @@ func (mr *monoRepo) cloneCommits(repoCommits []RepoCommit) {
 			log.Logf(0, "can't check CommitExists: %s", err.Error())
 		}
 		if commitExistsInRepo {
-			log.Logf(0, "commit %s exists in local repo, no need to clone", repoCommit.Commit)
 			mr.repoCommits[repoCommit] = struct{}{}
 			continue
 		}
