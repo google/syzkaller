@@ -1,0 +1,125 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: series-workflow
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: series-id
+        value: "some-series-id"
+      - name: session-id
+        value: "some-session-id"
+  templates:
+    - name: main
+      failFast: true # TODO: it's wrong that it affects the whole file. We only want to abort the process-fuzz loop.
+      parallelism: 1
+      steps:
+        - - name: run-triage
+            templateRef:
+              name: triage-step-template
+              template: triage-step
+        - - name: abort-on-skip
+            template: exit-workflow
+            when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip') == true}}"
+        - - name: iterate-fuzz
+            template: process-fuzz
+            arguments:
+              parameters:
+                - name: element
+                  value: "{{item}}"
+            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
+    - name: process-fuzz
+      inputs:
+        parameters:
+          - name: element
+      steps:
+        - - name: save-base-req
+            template: extract-request
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{= jsonpath(inputs.parameters.element, '$.base')}}"
+        - - name: base-build
+            templateRef:
+              name: build-step-template
+              template: build-step
+            arguments:
+              artifacts:
+                - name: request
+                  from: "{{steps.save-base-req.outputs.artifacts.request}}"
+        - - name: abort-on-fail
+            template: exit-workflow
+            when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
+        - - name: save-patched-req
+            template: extract-request
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.patched')}}"
+        - - name: patched-build
+            templateRef:
+              name: build-step-template
+              template: build-step
+            arguments:
+              artifacts:
+                - name: request
+                  from: "{{steps.save-patched-req.outputs.artifacts.request}}"
+        - - name: do-submit-test
+            template: submit-test
+            arguments:
+              parameters:
+                - name: test-name
+                  value: "Build test"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: result
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == true ? 'passed' : 'failed'}}"
+        - - name: stop-iterate-fuzz
+            template: exit-workflow
+            arguments:
+              parameters:
+                - name: code
+                  value: 0
+            when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success')}} == true"
+    - name: extract-request
+      inputs:
+        parameters:
+          - name: data
+      outputs:
+        artifacts:
+          - name: request
+            path: /tmp/request.json
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo '{{inputs.parameters.data}}' > /tmp/request.json"]
+    - name: submit-test
+      inputs:
+        parameters:
+          - name: test-name
+          - name: base-build-id
+          - name: patched-build-id
+          - name: result
+      container:
+        image: submit-test-local:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/submit-test"]
+        args: [
+          "--session", "{{workflow.parameters.session-id}}",
+          "--test", "{{inputs.parameters.test-name}}",
+          "--base-build", "{{inputs.parameters.base-build-id}}",
+          "--patched-build", "{{inputs.parameters.patched-build-id}}",
+          "--result", "{{inputs.parameters.result}}"
+        ]
+    - name: exit-workflow
+      inputs:
+        parameters:
+          - name: code
+            value: 1
+      container:
+        image: alpine:latest
+        command: ['/bin/sh', '-c']
+        args: ["exit {{inputs.parameters.code}}"]

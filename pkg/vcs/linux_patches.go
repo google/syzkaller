@@ -49,7 +49,7 @@ func applyFixBackports(repo *git, commits []BackportCommit) error {
 			// The fix is already present.
 			continue
 		}
-		_, err = repo.git("cherry-pick", "--no-commit", info.FixHash)
+		_, err = repo.Git("cherry-pick", "--no-commit", info.FixHash)
 		if err != nil {
 			return err
 		}

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      labels:
+        app: controller
+    spec:
+      containers:
+      - name: controller-image
+        image: controller-image # The actual image name is set in overalys.
+        envFrom:
+          - configMapRef:
+              name: global-config
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: blobs-storage-disk
+          mountPath: /blob-storage
+      volumes:
+      - name: blobs-storage-disk
+        persistentVolumeClaim:
+          claimName: blob-storage-disk-claim
