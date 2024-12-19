@@ -51,6 +51,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/repro.syz", handlerWrapper(handleTextX(textReproSyz)))
 	http.Handle("/x/repro.c", handlerWrapper(handleTextX(textReproC)))
 	http.Handle("/x/repro.log", handlerWrapper(handleTextX(textReproLog)))
+	http.Handle("/x/fsck.log", handlerWrapper(handleTextX(textFsckLog)))
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
@@ -1579,6 +1580,8 @@ func textFilename(tag string) string {
 		return "minfo.txt"
 	case textReproLog:
 		return "repro.log"
+	case textFsckLog:
+		return "fsck.log"
 	default:
 		panic(fmt.Sprintf("unknown tag %v", tag))
 	}
