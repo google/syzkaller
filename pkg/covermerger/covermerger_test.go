@@ -246,6 +246,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 				doneCh <- true
 			}()
 			assert.NoError(t, MergeCSVData(
+				context.Background(),
 				testConfig(test.baseRepo, test.baseCommit, test.workdir),
 				strings.NewReader(test.bqTable),
 				mergeResultsCh))
