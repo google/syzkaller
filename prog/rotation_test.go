@@ -59,7 +59,7 @@ func TestRotationCoverage(t *testing.T) {
 	calls := make(map[*Syscall]bool)
 	counters := make(map[string]int)
 	for _, call := range target.Syscalls {
-		if call.Attrs.Disabled {
+		if call.Attrs.Disabled || call.Attrs.Automatic {
 			continue
 		}
 		calls[call] = true
