@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -32,6 +33,7 @@ var (
 	flagDashboardClientName = flag.String("dashboard-client-name", "coverage-merger", "[optional]")
 	flagSrcProvider         = flag.String("provider", "git-clone", "[optional] git-clone or web-git")
 	flagFilePathPrefix      = flag.String("file-path-prefix", "", "[optional] kernel file path prefix")
+	flagToGCS               = flag.String("to-gcs", "", "[optional] gcs destination to save jsonl to")
 )
 
 func makeProvider() covermerger.FileVersProvider {
@@ -84,7 +86,7 @@ func do() error {
 		panic(fmt.Sprintf("failed to dbReader.Reader: %v", errReader.Error()))
 	}
 	var wc io.WriteCloser
-	var url string
+	url := *flagToGCS
 	if *flagToDashAPI != "" {
 		dash, err := dashapi.New(*flagDashboardClientName, *flagToDashAPI, "")
 		if err != nil {
@@ -94,12 +96,14 @@ func do() error {
 		if err != nil {
 			return fmt.Errorf("dash.CreateUploadURL: %w", err)
 		}
+	}
+	if url != "" {
 		gcsClient, err := gcs.NewClient(context.Background())
 		if err != nil {
 			return fmt.Errorf("gcs.NewClient: %w", err)
 		}
 		defer gcsClient.Close()
-		wc, err = gcsClient.FileWriter(url)
+		wc, err = gcsClient.FileWriter(strings.TrimPrefix(url, "gs://"))
 		if err != nil {
 			return fmt.Errorf("gcsClient.FileWriter: %w", err)
 		}
