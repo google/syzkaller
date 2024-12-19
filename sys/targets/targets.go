@@ -302,7 +302,6 @@ var List = map[string]map[string]*Target{
 			VMArch:           ARM64,
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -715,12 +714,21 @@ func initTarget(target *Target, OS, arch string) {
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
-	if OS == Linux && arch == runtime.GOARCH {
-		// Don't use cross-compiler for native compilation, there are cases when this does not work:
-		// https://github.com/google/syzkaller/pull/619
-		// https://github.com/google/syzkaller/issues/387
-		// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
-		target.Triple = ""
+	if OS == Linux {
+		if cc := os.Getenv("SYZ_CC_" + OS + "_" + arch); cc != "" {
+			target.CCompiler = cc
+		}
+		if cxx := os.Getenv("SYZ_CXX_" + OS + "_" + arch); cxx != "" {
+			target.CxxCompiler = cxx
+		}
+
+		if arch == runtime.GOARCH {
+			// Don't use cross-compiler for native compilation, there are cases when this does not work:
+			// https://github.com/google/syzkaller/pull/619
+			// https://github.com/google/syzkaller/issues/387
+			// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
+			target.Triple = ""
+		}
 	}
 	if target.CCompiler == "" {
 		target.setCompiler(useClang)
@@ -900,7 +908,7 @@ func (target *Target) lazyInit() {
 	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
 	if (target.OS != runtime.GOOS || !runningOnCI) && getSourceDir(target) == "" {
 		for _, comp := range []string{target.CCompiler, target.CxxCompiler} {
-			if _, err := exec.LookPath(comp); err != nil {
+			if _, err := exec.LookPath(strings.Fields(comp)[0]); err != nil {
 				target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", comp, err)
 				return
 			}
