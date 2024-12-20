@@ -176,17 +176,17 @@ func contextNamespace(c context.Context) string {
 
 func gcsPayloadHandler(handler APIHandler) APIHandler {
 	return func(c context.Context, payload io.Reader) (interface{}, error) {
-		p, err := io.ReadAll(payload)
-		if err != nil {
-			return nil, fmt.Errorf("io.ReadAll: %w", err)
+		var gcsURL string
+		if err := json.NewDecoder(payload).Decode(&gcsURL); err != nil {
+			return nil, fmt.Errorf("json.NewDecoder(payload).Decode(&gcsURL): %w", err)
 		}
-		payloadURL := string(p)
+		gcsURL = strings.TrimPrefix(gcsURL, "gs://")
 		clientGCS, err := gcs.NewClient(c)
 		if err != nil {
 			return nil, fmt.Errorf("gcs.NewClient: %w", err)
 		}
 		defer clientGCS.Close()
-		gcsFile, err := clientGCS.Read(payloadURL)
+		gcsFile, err := clientGCS.Read(gcsURL)
 		if err != nil {
 			return nil, fmt.Errorf("clientGCS.Read: %w", err)
 		}
