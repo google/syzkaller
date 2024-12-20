@@ -174,6 +174,8 @@ func contextNamespace(c context.Context) string {
 	return c.Value(&contextKeyNamespace).(string)
 }
 
+// gcsPayloadHandler json.Decode the gcsURL from payload and stream pointed content.
+// This function streams ungzipped content in order to be aligned with other wrappers/handlers.
 func gcsPayloadHandler(handler APIHandler) APIHandler {
 	return func(c context.Context, payload io.Reader) (interface{}, error) {
 		var gcsURL string
@@ -194,7 +196,15 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 		if err != nil {
 			return nil, fmt.Errorf("gcsFile.Reader: %w", err)
 		}
-		return handler(c, gcsPayloadReader)
+		gz, err := gzip.NewReader(gcsPayloadReader)
+		if err != nil {
+			return nil, fmt.Errorf("gzip.NewReader: %w", err)
+		}
+		// Close() generates error in case of the corrupted data.
+		// In order to check the data checksum all the data should be read.
+		// We don't guarantee all the data will be read - let's ignore.
+		defer gz.Close()
+		return handler(c, gz)
 	}
 }
 
