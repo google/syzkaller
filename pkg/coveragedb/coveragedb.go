@@ -81,8 +81,8 @@ func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, de
 	session := uuid.New().String()
 	mutations := []*spanner.Mutation{}
 
-	var mcr MergedCoverageRecord
 	for {
+		var mcr MergedCoverageRecord
 		err := dec.Decode(&mcr)
 		if err == io.EOF {
 			break
