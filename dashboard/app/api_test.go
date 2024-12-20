@@ -302,3 +302,18 @@ func TestUpdateReportingPriority(t *testing.T) {
 	// "0-3", "4-5" have the same priority (repro revoked as no repro).
 	assert.Equal(t, len(slices.Compact(prios)), len(prios)-4)
 }
+
+func TestCreateUploadURL(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := *getConfig(c)
+		newConfig.UploadBucket = "blobstorage"
+		return contextWithConfig(c, &newConfig)
+	}
+
+	url, err := c.client.CreateUploadURL()
+	assert.NoError(t, err)
+	assert.Regexp(t, "blobstorage/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.upload", url)
+}
