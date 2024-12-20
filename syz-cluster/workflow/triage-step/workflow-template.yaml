@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: triage-step-template
+spec:
+  templates:
+    - name: triage-step
+      initContainers:
+        - name: setup-overlays
+          image: bitnami/git:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              mkdir /data/overlayfs /data/.git
+              mount -t tmpfs -o size=128M tmpfs /data/overlayfs
+              mkdir /data/overlayfs/upper /data/overlayfs/work
+              mount -t overlay overlay -o lowerdir=/kernel-repo,upperdir=/data/overlayfs/upper,workdir=/data/overlayfs/work /data/.git
+              chmod 0777 /data/.git
+              git --git-dir=/data/.git --work-tree=/workdir checkout v3.0
+              chmod -R 0777 /data/.git/logs
+              chmod -R 0777 /workdir
+          volumeMounts:
+            - name: shared-git-repo
+              mountPath: /data
+              mountPropagation: Bidirectional
+            - name: base-kernel-repo
+              mountPath: /kernel-repo
+              readOnly: true
+            - name: workdir
+              mountPath: /workdir
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+      container:
+          image: triage-step-local
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/triage-step", "--series", "{{workflow.parameters.series-id}}", "--repository", "/workdir", "--verdict", "/output/result.json"]
+          env:
+            - name: GIT_DIR
+              value: "/data/.git"
+            - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+              value: "1"
+            - name: GIT_WORK_TREE
+              value: "/workdir"
+            - name: HOME # Otherwise it's failing with "warning: unable to access '/root/.config/git/attributes': Permission denied.".
+              value: "/home/syzkaller"
+          volumeMounts:
+            - name: shared-git-repo
+              mountPath: /data
+            - name: base-kernel-repo
+              mountPath: /kernel-repo
+              readOnly: true
+            - name: workdir
+              mountPath: /workdir
+            - name: output
+              mountPath: /output
+      volumes:
+        - name: base-kernel-repo
+          persistentVolumeClaim:
+            claimName: base-kernel-repo-pv-claim
+        - name: shared-git-repo
+          emptyDir:
+            medium: Memory
+        - name: workdir
+          emptyDir: {}
+        - name: output
+          emptyDir: {}
+      outputs:
+        parameters:
+          - name: result
+            valueFrom:
+              path: /output/result.json

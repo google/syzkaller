@@ -1,0 +1,75 @@
+{{define "content"}}
+    <div class="container">
+        <h2>Patch Series</h2>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr>
+                    <th>Subject</th>
+                    <td><a href="{{.Link}}">{{.Title}}</a></td>
+                </tr>
+                <tr>
+                    <th>Author</th>
+                    <td>{{.AuthorEmail}}</td>
+                </tr>
+                <tr>
+                    <th>Date</th>
+                    <td>{{.PublishedAt}}</td>
+                </tr>
+                <tr>
+                    <th>Version</th>
+                    <td>{{.Version}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Patches ({{.TotalPatches}})</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Content</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{$data := .}} 
+                {{range .Patches}}
+                <tr>
+                    <td><a href="{{.Link}}">{{.Title}}</a></td>
+                    <td><a href="/patches/{{.ID}}">[Body]</a></td>
+                </tr>
+                {{end}}
+           </tbody>
+        </table>
+        {{range .Sessions}}
+        <h3>Session {{.CreatedAt.Format "2006-01-02"}}</h3>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr>
+                    <th><i>ID (for dev)</i></th>
+                    <td>{{.ID}}</a></td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Base</th>
+                    <th>Patched</th>
+                    <th>Verdict</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{range .Tests}}
+                <tr>
+                    <td>{{.TestName}}</td>
+                    <th>{{.BaseBuildID}}</th>
+                    <th>{{.PatchedBuildID}}</th>
+                    <th>{{.Result}}</th>
+                </tr>
+            {{end}}
+            </tbody>
+        </table>
+        {{end}}
+    </div>
+{{end}}

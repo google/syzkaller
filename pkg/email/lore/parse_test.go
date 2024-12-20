@@ -4,6 +4,7 @@
 package lore
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestThreadsCollection(t *testing.T) {
@@ -239,6 +241,72 @@ Bug report`,
 
 	if len(threads) > len(expected) {
 		t.Fatalf("expected %d threads, got %d", len(expected), len(threads))
+	}
+}
+
+func TestParsePatchSubject(t *testing.T) {
+	tests := []struct {
+		subj string
+		ret  Patch
+	}{
+		{
+			subj: `[PATCH] abcd`,
+			ret:  PatchSubject{Title: "abcd"},
+		},
+		{
+			subj: `[PATCH 00/20] abcd`,
+			ret:  PatchSubject{Title: "abcd", Seq: value[int](0), Total: value[int](20)},
+		},
+		{
+			subj: `[PATCH 5/6] abcd`,
+			ret:  PatchSubject{Title: "abcd", Seq: value[int](5), Total: value[int](6)},
+		},
+		{
+			subj: `[PATCH RFC v3 0/4] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"RFC"},
+				Version: value[int](3),
+				Seq:     value[int](0),
+				Total:   value[int](4),
+			},
+		},
+		{
+			subj: `[RFC PATCH] abcd`,
+			ret:  PatchSubject{Title: "abcd", Tags: []string{"RFC"}},
+		},
+		{
+			subj: `[PATCH net-next v2 00/21] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"net-next"},
+				Version: value[int](2),
+				Seq:     value[int](0),
+				Total:   value[int](21),
+			},
+		},
+		{
+			subj: `[PATCH v2 RESEND] abcd`,
+			ret:  PatchSubject{Title: "abcd", Version: value[int](2), Tags: []string{"RESEND"}},
+		},
+		{
+			subj: `[PATCH RFC net-next v3 05/21] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"RFC", "net-next"},
+				Version: value[int](3),
+				Seq:     value[int](5),
+				Total:   value[int](21),
+			},
+		},
+	}
+	for id, test := range tests {
+		test := test
+		t.Run(fmt.Sprint(id), func(t *testing.T) {
+			ret, ok := parsePatchSubject(test.subj)
+			assert.True(t, ok)
+			assert.Equal(t, test.ret, ret)
+		})
 	}
 }
 

@@ -1,0 +1,26 @@
+FROM golang:1.23-bullseye
+
+RUN apt-get update && \
+    apt-get install -y git
+
+RUN useradd --create-home syzkaller
+
+WORKDIR /build
+
+# Prepare the dependencies.
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+# Copy the source files.
+COPY pkg/ pkg/
+COPY prog/ prog/
+COPY sys/ sys/
+COPY vm/ vm/
+COPY dashboard/dashapi/ dashboard/dashapi/
+COPY syz-cluster/pkg/ syz-cluster/pkg/
+COPY syz-cluster/controller/ syz-cluster/controller/
+COPY syz-cluster/workflow/ syz-cluster/workflow/
+
+ENTRYPOINT ["go", "test"]
+CMD [ "-v", "./syz-cluster/..."]
