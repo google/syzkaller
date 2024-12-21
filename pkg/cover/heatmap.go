@@ -155,7 +155,10 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 	return &res
 }
 
-func filesCoverageWithDetailsStmt(ns, subsystem string, timePeriod coveragedb.TimePeriod) spanner.Statement {
+func filesCoverageWithDetailsStmt(ns, subsystem, manager string, timePeriod coveragedb.TimePeriod) spanner.Statement {
+	if manager == "" {
+		manager = "*"
+	}
 	stmt := spanner.Statement{
 		SQL: `
 select
@@ -170,22 +173,23 @@ from merge_history
   join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
-  merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager='*'`,
+  merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=$4`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,
+			"p4": manager,
 		},
 	}
 	if subsystem != "" {
-		stmt.SQL += " and $4=ANY(subsystems)"
-		stmt.Params["p4"] = subsystem
+		stmt.SQL += " and $5=ANY(subsystems)"
+		stmt.Params["p5"] = subsystem
 	}
 	return stmt
 }
 
-func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem string, timePeriods []coveragedb.TimePeriod,
-) ([]*fileCoverageWithDetails, error) {
+func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem, manager string,
+	timePeriods []coveragedb.TimePeriod) ([]*fileCoverageWithDetails, error) {
 	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
@@ -194,7 +198,7 @@ func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem stri
 
 	res := []*fileCoverageWithDetails{}
 	for _, timePeriod := range timePeriods {
-		stmt := filesCoverageWithDetailsStmt(ns, subsystem, timePeriod)
+		stmt := filesCoverageWithDetailsStmt(ns, subsystem, manager, timePeriod)
 		iter := client.Single().Query(ctx, stmt)
 		defer iter.Stop()
 		for {
@@ -239,9 +243,9 @@ func stylesBodyJSTemplate(templData *templateHeatmap,
 		template.HTML(js.Bytes()), nil
 }
 
-func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, periods []coveragedb.TimePeriod,
-) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, periods)
+func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem, manager string,
+	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error) {
+	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, manager, periods)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
@@ -249,9 +253,9 @@ func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string, 
 	return stylesBodyJSTemplate(templData)
 }
 
-func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem string,
+func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem, manager string,
 	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error) {
-	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, periods)
+	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, manager, periods)
 	if err != nil {
 		panic(err)
 	}
