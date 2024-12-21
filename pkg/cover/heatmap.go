@@ -188,8 +188,8 @@ where
 	return stmt
 }
 
-func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem, manager string,
-	timePeriods []coveragedb.TimePeriod) ([]*fileCoverageWithDetails, error) {
+func filesCoverageWithDetails(ctx context.Context, projectID string, scope *SelectScope,
+) ([]*fileCoverageWithDetails, error) {
 	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
@@ -197,8 +197,8 @@ func filesCoverageWithDetails(ctx context.Context, projectID, ns, subsystem, man
 	defer client.Close()
 
 	res := []*fileCoverageWithDetails{}
-	for _, timePeriod := range timePeriods {
-		stmt := filesCoverageWithDetailsStmt(ns, subsystem, manager, timePeriod)
+	for _, timePeriod := range scope.Periods {
+		stmt := filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Manager, timePeriod)
 		iter := client.Single().Query(ctx, stmt)
 		defer iter.Stop()
 		for {
@@ -243,9 +243,16 @@ func stylesBodyJSTemplate(templData *templateHeatmap,
 		template.HTML(js.Bytes()), nil
 }
 
-func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem, manager string,
-	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error) {
-	covAndDates, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, manager, periods)
+type SelectScope struct {
+	Ns        string
+	Subsystem string
+	Manager   string
+	Periods   []coveragedb.TimePeriod
+}
+
+func DoHeatMapStyleBodyJS(ctx context.Context, projectID string, scope *SelectScope,
+) (template.CSS, template.HTML, template.HTML, error) {
+	covAndDates, err := filesCoverageWithDetails(ctx, projectID, scope)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
@@ -253,9 +260,9 @@ func DoHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem, manager
 	return stylesBodyJSTemplate(templData)
 }
 
-func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID, ns, subsystem, manager string,
-	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error) {
-	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, ns, subsystem, manager, periods)
+func DoSubsystemsHeatMapStyleBodyJS(ctx context.Context, projectID string, scope *SelectScope,
+) (template.CSS, template.HTML, template.HTML, error) {
+	covWithDetails, err := filesCoverageWithDetails(ctx, projectID, scope)
 	if err != nil {
 		panic(err)
 	}
