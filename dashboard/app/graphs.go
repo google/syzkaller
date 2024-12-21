@@ -194,7 +194,7 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem string, periods []coveragedb.TimePeriod,
+type funcStyleBodyJS func(ctx context.Context, projectID string, scope *cover.SelectScope,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -211,6 +211,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return err
 	}
 	ss := r.FormValue("subsystem")
+	manager := r.FormValue("manager")
 
 	periodType := r.FormValue("period")
 	if periodType == "" {
@@ -236,7 +237,13 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	}
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, periods); err != nil {
+	if style, body, js, err = f(c, "syzkaller",
+		&cover.SelectScope{
+			Ns:        hdr.Namespace,
+			Subsystem: ss,
+			Manager:   manager,
+			Periods:   periods,
+		}); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
