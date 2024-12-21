@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -70,6 +71,105 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		return err
 	})
 	assert.NoError(t, eg.Wait())
+}
+
+func TestMergerdCoverageRecords(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       *FileMergeResult
+		wantRecords []*coveragedb.MergedCoverageRecord
+	}{
+		{
+			name: "file doesn't exist",
+			input: &FileMergeResult{
+				FilePath: "deleted.c",
+				MergeResult: &MergeResult{
+					FileExists: false,
+				},
+			},
+			wantRecords: nil,
+		},
+		{
+			name: "two managers merge",
+			input: &FileMergeResult{
+				FilePath: "file.c",
+				MergeResult: &MergeResult{
+					FileExists: true,
+					HitCounts: map[int]int{
+						1: 5,
+						2: 7,
+					},
+					LineDetails: map[int][]*FileRecord{
+						1: {
+							{
+								FilePath: "file.c",
+								RepoCommit: RepoCommit{
+									Repo:   "repo1",
+									Commit: "commit1",
+								},
+								StartLine: 10,
+								HitCount:  5,
+								Manager:   "manager1",
+							},
+						},
+						2: {
+							{
+								FilePath: "file.c",
+								RepoCommit: RepoCommit{
+									Repo:   "repo2",
+									Commit: "commit2",
+								},
+								StartLine: 20,
+								HitCount:  7,
+								Manager:   "manager2",
+							},
+						},
+					},
+				},
+			},
+			wantRecords: []*coveragedb.MergedCoverageRecord{
+				{
+					Manager:  "*",
+					FilePath: "file.c",
+					FileData: &coveragedb.Coverage{
+						Instrumented:      2,
+						Covered:           2,
+						LinesInstrumented: []int64{1, 2},
+						HitCounts:         []int64{5, 7},
+					},
+				},
+				{
+					Manager:  "manager1",
+					FilePath: "file.c",
+					FileData: &coveragedb.Coverage{
+						Instrumented:      1,
+						Covered:           1,
+						LinesInstrumented: []int64{1},
+						HitCounts:         []int64{5},
+					},
+				},
+				{
+					Manager:  "manager2",
+					FilePath: "file.c",
+					FileData: &coveragedb.Coverage{
+						Instrumented:      1,
+						Covered:           1,
+						LinesInstrumented: []int64{2},
+						HitCounts:         []int64{7},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotRecords := mergedCoverageRecords(test.input)
+			sort.Slice(gotRecords, func(i, j int) bool {
+				return gotRecords[i].Manager < gotRecords[j].Manager
+			})
+			assert.Equal(t, test.wantRecords, gotRecords, "records are not equal")
+		})
+	}
 }
 
 // nolint: lll
