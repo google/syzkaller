@@ -12,19 +12,19 @@ import (
 )
 
 type testos struct {
-	*git
+	*gitRepo
 }
 
 var _ ConfigMinimizer = new(testos)
 
 func newTestos(dir string, opts []RepoOpt) *testos {
 	return &testos{
-		git: newGit(dir, nil, opts),
+		gitRepo: newGitRepo(dir, nil, opts),
 	}
 }
 
 func (ctx *testos) PreviousReleaseTags(commit, compilerType string) ([]string, error) {
-	return ctx.git.previousReleaseTags(commit, false, false, false)
+	return ctx.gitRepo.previousReleaseTags(commit, false, false, false)
 }
 
 func (ctx *testos) EnvForCommit(

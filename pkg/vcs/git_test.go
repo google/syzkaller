@@ -248,7 +248,7 @@ func TestCommitHashes(t *testing.T) {
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	got, err := repo.repo.ListCommitHashes("HEAD")
+	got, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestCommitHashes(t *testing.T) {
 
 	// Now change HEAD.
 	repo.Git("checkout", "branch-a")
-	got, err = repo.repo.ListCommitHashes("HEAD")
+	got, err = repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ func TestObject(t *testing.T) {
 	repo.Git("add", "object.txt")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 
-	commits, err := repo.repo.ListCommitHashes("HEAD")
+	commits, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +412,7 @@ func TestGitCustomRefs(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash)
@@ -433,7 +433,7 @@ func TestGitRemoteTags(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Ensure all tags were fetched.
 	commit, err := local.CheckoutCommit(remoteRepoDir, "sub_branch")
@@ -456,7 +456,7 @@ func TestGitFetchShortHash(t *testing.T) {
 
 	// Create a local repo.
 	localRepoDir := t.TempDir()
-	local := newGit(localRepoDir, nil, nil)
+	local := newGitRepo(localRepoDir, nil, nil)
 
 	// Fetch the commit from the custom ref.
 	_, err := local.CheckoutCommit(remoteRepoDir, refCommit.Hash[:12])

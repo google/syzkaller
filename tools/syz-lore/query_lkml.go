@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -14,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -106,7 +107,7 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 		tool.Failf("failed to read directory: %v", err)
 	}
 	threads := runtime.NumCPU()
-	messages := make(chan *lore.EmailReader, threads*2)
+	messages := make(chan lore.EmailReader, threads*2)
 	wg := sync.WaitGroup{}
 	g, _ := errgroup.WithContext(context.Background())
 
@@ -120,7 +121,15 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 		wg.Add(1)
 		g.Go(func() error {
 			defer wg.Done()
-			return lore.ReadArchive(path, messages)
+			repo := vcs.NewLKMLRepo(path)
+			list, err := lore.ReadArchive(repo, time.Time{})
+			if err != nil {
+				return err
+			}
+			for _, reader := range list {
+				messages <- reader
+			}
+			return nil
 		})
 	}
 
@@ -130,18 +139,10 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 	for i := 0; i < threads; i++ {
 		g.Go(func() error {
 			for rawMsg := range messages {
-				body, err := rawMsg.Extract()
+				msg, err := rawMsg.Parse(emails, domains)
 				if err != nil {
 					continue
 				}
-				msg, err := email.Parse(bytes.NewReader(body), emails, nil, domains)
-				if err != nil {
-					continue
-				}
-				// Keep memory consumption low.
-				msg.Body = ""
-				msg.Patch = ""
-
 				mu.Lock()
 				repoEmails = append(repoEmails, msg)
 				mu.Unlock()
