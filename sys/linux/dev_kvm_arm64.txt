@@ -207,4 +207,5 @@ syzos_api_call [
 	memwrite	syzos_api[6, syzos_api_memwrite]
 	its_setup	syzos_api[7, syzos_api_its_setup]
 	its_send_cmd	syzos_api[8, syzos_api_its_send_cmd]
+	wfi_wfe		syzos_api[9, int64[0:1]]
 ] [varlen]
