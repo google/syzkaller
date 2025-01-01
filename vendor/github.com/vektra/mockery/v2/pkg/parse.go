@@ -49,6 +49,7 @@ func ParserDisableFuncMocks(disable bool) func(*Parser) {
 		p.disableFuncMocks = disable
 	}
 }
+
 func NewParser(buildTags []string, opts ...func(*Parser)) *Parser {
 	var conf packages.Config
 	conf.Mode = packages.NeedTypes |
@@ -92,6 +93,9 @@ func (p *Parser) ParsePackages(ctx context.Context, packageNames []string) error
 		return err
 	}
 	for _, pkg := range packages {
+		if len(pkg.GoFiles) == 0 {
+			continue
+		}
 		for _, err := range pkg.Errors {
 			log.Err(err).Msg("encountered error when loading package")
 		}
@@ -234,7 +238,8 @@ func (p *Parser) packageInterfaces(
 	pkg *types.Package,
 	fileName string,
 	declaredInterfaces []string,
-	ifaces []*Interface) []*Interface {
+	ifaces []*Interface,
+) []*Interface {
 	scope := pkg.Scope()
 	for _, name := range declaredInterfaces {
 		obj := scope.Lookup(name)
@@ -353,6 +358,7 @@ func (nv *NodeVisitor) DeclaredInterfaces() []string {
 func (nv *NodeVisitor) add(ctx context.Context, n *ast.TypeSpec) {
 	log := zerolog.Ctx(ctx)
 	log.Debug().
+		Str("node-name", n.Name.Name).
 		Str("node-type", fmt.Sprintf("%T", n.Type)).
 		Msg("found node with acceptable type for mocking")
 	nv.declaredInterfaces = append(nv.declaredInterfaces, n.Name.Name)
@@ -374,10 +380,10 @@ func (nv *NodeVisitor) Visit(node ast.Node) ast.Visitor {
 				break
 			}
 			nv.add(nv.ctx, n)
-		case *ast.InterfaceType, *ast.IndexExpr:
+		case *ast.InterfaceType, *ast.IndexExpr, *ast.IndexListExpr, *ast.SelectorExpr, *ast.Ident:
 			nv.add(nv.ctx, n)
 		default:
-			log.Debug().Msg("Found node with unacceptable type for mocking. Rejecting.")
+			log.Debug().Msg("found node with unacceptable type for mocking. Rejecting.")
 		}
 	}
 	return nv
