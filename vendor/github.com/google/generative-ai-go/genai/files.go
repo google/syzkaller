@@ -39,7 +39,7 @@ type UploadFileOptions struct {
 	// [http.DetectContentType].
 	// The supported MIME types are documented on [this page].
 	//
-	// [this page]: https://ai.google.dev/gemini-api/docs/prompting_with_media?lang=go#supported_file_formats
+	// [this page]: https://ai.google.dev/gemini-api/docs/document-processing?lang=go#technical-details
 	MIMEType string
 }
 

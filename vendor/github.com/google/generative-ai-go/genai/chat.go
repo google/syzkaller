@@ -70,8 +70,20 @@ func (cs *ChatSession) addToHistory(cands []*Candidate) bool {
 			return false
 		}
 		c.Role = roleModel
-		cs.History = append(cs.History, c)
+		cs.History = append(cs.History, copySanitizedModelContent(c))
 		return true
 	}
 	return false
+}
+
+// copySanitizedModelContent creates a (shallow) copy of c with role set to
+// model and empty text parts removed.
+func copySanitizedModelContent(c *Content) *Content {
+	newc := &Content{Role: roleModel}
+	for _, part := range c.Parts {
+		if t, ok := part.(Text); !ok || len(string(t)) > 0 {
+			newc.Parts = append(newc.Parts, part)
+		}
+	}
+	return newc
 }
