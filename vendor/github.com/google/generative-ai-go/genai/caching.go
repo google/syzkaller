@@ -99,7 +99,7 @@ type CachedContentToUpdate struct {
 // All other fields of the argument CachedContent are ignored.
 func (c *Client) UpdateCachedContent(ctx context.Context, cc *CachedContent, ccu *CachedContentToUpdate) (*CachedContent, error) {
 	if ccu == nil || ccu.Expiration == nil {
-		return nil, errors.New("cloud.google.com/go/vertexai/genai.UpdateCachedContent: no update specified")
+		return nil, errors.New("genai.UpdateCachedContent: no update specified")
 	}
 	cc2 := &CachedContent{
 		Name:       cc.Name,
