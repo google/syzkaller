@@ -4,11 +4,16 @@
 package db
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"regexp"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -116,8 +121,14 @@ func RunMigrations(ctx context.Context, uri string) error {
 }
 
 func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
-	// For now let's create a transient spanner DB.
-	// We could also spawn a custom spanner emulator per each test.
+	// If the environment contains the emulator binary, start it.
+	if bin := os.Getenv("SPANNER_EMULATOR_BIN"); bin != "" {
+		host := spannerTestWrapper(t, bin)
+		os.Setenv("SPANNER_EMULATOR_HOST", host)
+	} else if os.Getenv("CI") != "" {
+		// We do want to always run these tests on CI.
+		t.Fatalf("CI is set, but SPANNER_EMULATOR_BIN is empty")
+	}
 	if os.Getenv("SPANNER_EMULATOR_HOST") == "" {
 		t.Skip("SPANNER_EMULATOR_HOST must be set")
 		return nil, nil
@@ -152,6 +163,66 @@ func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
 		t.Fatal(err)
 	}
 	return client, ctx
+}
+
+var setupSpannerOnce sync.Once
+var spannerHost string
+
+func spannerTestWrapper(t *testing.T, bin string) string {
+	setupSpannerOnce.Do(func() {
+		t.Logf("this could be the first test requiring a Spanner emulator, starting %s", bin)
+		cmd, host, err := runSpanner(bin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		spannerHost = host
+		t.Cleanup(func() {
+			cmd.Process.Kill()
+			cmd.Wait()
+		})
+	})
+	return spannerHost
+}
+
+var portRe = regexp.MustCompile(`Server address: ([\w:]+)`)
+
+func runSpanner(bin string) (*exec.Cmd, string, error) {
+	cmd := exec.Command(bin, "--override_max_databases_per_instance=1000",
+		"--grpc_port=0", "--http_port=0")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, "", err
+	}
+	cmd.Stderr = cmd.Stdout
+	if err := cmd.Start(); err != nil {
+		return nil, "", err
+	}
+	scanner := bufio.NewScanner(stdout)
+	started, host := false, ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "Cloud Spanner Emulator running") {
+			started = true
+		} else if parts := portRe.FindStringSubmatch(line); parts != nil {
+			host = parts[1]
+		}
+		if started && host != "" {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return cmd, "", err
+	}
+	// The program may block if we don't read out all the remaining output.
+	go io.Copy(io.Discard, stdout)
+
+	if !started {
+		return cmd, "", fmt.Errorf("the emulator did not print that it started")
+	}
+	if host == "" {
+		return cmd, "", fmt.Errorf("did not detect the host")
+	}
+	return cmd, host, nil
 }
 
 func readOne[T any](iter *spanner.RowIterator) (*T, error) {
