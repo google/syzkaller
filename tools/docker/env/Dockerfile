@@ -64,6 +64,14 @@ RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/c
 RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15 100
 RUN apt autoremove -y -q
 
+# Install the Spanner emulator.
+
+ARG SPANNER_EMULATOR_VERSION=1.5.28
+RUN mkdir /spanner
+RUN curl https://storage.googleapis.com/cloud-spanner-emulator/releases/${SPANNER_EMULATOR_VERSION}/cloud-spanner-emulator_linux_amd64-${SPANNER_EMULATOR_VERSION}.tar.gz | tar -C /spanner -xz
+RUN chmod u+x /spanner/gateway_main /spanner/emulator_main
+ENV SPANNER_EMULATOR_BIN=/spanner/gateway_main
+
 # Install OS toolchains from pre-built archives.
 # These archives were created with:
 # tar -cz --owner=0 --group=0 --mode=go=u -f netbsd-toolchain.tar.gz netbsd/tools netbsd/dest
