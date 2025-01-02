@@ -3,6 +3,19 @@
 
 # See /tools/docker/README.md for details.
 
+# Build Python2 in a separate container to facilitate caching.
+FROM debian:bookworm AS python2-builder
+
+RUN apt-get update --allow-releaseinfo-change
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+    wget gcc make openssl libffi-dev libgdbm-dev libsqlite3-dev libssl-dev zlib1g-dev ca-certificates
+RUN wget -O /tmp/Python-2.7.18.tgz 'https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz'
+RUN cd /tmp/ && tar -zxf Python-2.7.18.tgz
+RUN cd /tmp/Python-2.7.18 && ./configure --prefix=/python2/
+RUN cd /tmp/Python-2.7.18 && make -j4 && make altinstall
+
+# Now build syz-env.
+
 FROM debian:bookworm
 
 LABEL homepage="https://github.com/google/syzkaller"
@@ -90,12 +103,8 @@ RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar 
 ENV SOURCEDIR_FUCHSIA /syzkaller/fuchsia
 ENV SOURCEDIR_NETBSD /syzkaller/netbsd
 
-# Build Python 2.7 from source.
-RUN apt-get install -y -q libsqlite3-dev
-RUN wget -O /tmp/Python-2.7.18.tgz 'https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz'
-RUN cd /tmp/ && tar -zxf Python-2.7.18.tgz
-RUN cd /tmp/Python-2.7.18 && ./configure
-RUN cd /tmp/Python-2.7.18 && make -j2 && make altinstall
+# Install Python 2.7.
+COPY --from=python2-builder /python2/ /usr/local/
 RUN ln -s /usr/local/bin/python2.7 /usr/bin/python2
 
 # Install node to pass act jobs (https://github.com/nektos/act)
