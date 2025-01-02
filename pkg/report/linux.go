@@ -2079,11 +2079,10 @@ var linuxOopses = append([]*oops{
 			compile("INFO: NMI handler"),
 			compile("INFO: recovery required on readonly filesystem"),
 			compile("(handler|interrupt).*took too long"),
-			compile("_INFO::"),                                       // Android can print this during boot.
 			compile("INFO: sys_.* is not present in /proc/kallsyms"), // pkg/host output in debug mode
 			compile("INFO: no syscalls can create resource"),         // pkg/host output in debug mode
-			compile("CAM_INFO:"),                                     // Android prints this.
 			compile("rmt_storage:INFO:"),                             // Android prints this.
+			compile("_INFO:"),                                        // To filter out "INVALID BTF_INFO:NUM".
 		},
 		crash.UnknownType,
 	},
