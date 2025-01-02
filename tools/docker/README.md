@@ -16,7 +16,7 @@ docker run -it gcr.io/syzkaller/env
 
 To build and push a new version:
 ```
-docker build -t gcr.io/syzkaller/env tools/docker/env
+DOCKER_BUILDKIT=1 docker build -t gcr.io/syzkaller/env tools/docker/env
 gcloud auth login && gcloud auth configure-docker
 docker push gcr.io/syzkaller/env
 ```
