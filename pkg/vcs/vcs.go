@@ -204,11 +204,11 @@ func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	case targets.Fuchsia:
 		return newFuchsia(dir, opts), nil
 	case targets.OpenBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.NetBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.FreeBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.TestOS:
 		return newTestos(dir, opts), nil
 	}
@@ -216,12 +216,12 @@ func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 }
 
 func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
-	git := newGit(dir, nil, append(opts, OptDontSandbox))
+	git := newGitRepo(dir, nil, append(opts, OptDontSandbox))
 	return git
 }
 
 func NewLKMLRepo(dir string) Repo {
-	return newGit(dir, nil, []RepoOpt{OptDontSandbox})
+	return newGitRepo(dir, nil, []RepoOpt{OptDontSandbox})
 }
 
 func Patch(dir string, patch []byte) error {
