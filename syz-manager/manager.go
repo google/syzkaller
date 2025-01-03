@@ -242,6 +242,11 @@ func main() {
 }
 
 func RunManager(mode *Mode, cfg *mgrconfig.Config) {
+	// localhost is going to be used later, notify users
+	if _, err := net.LookupHost("localhost"); err != nil {
+		log.Fatalf("'localhost' is not resolving on this system, configure your DNS resolver")
+	}
+
 	var vmPool *vm.Pool
 	if !cfg.VMLess {
 		var err error
