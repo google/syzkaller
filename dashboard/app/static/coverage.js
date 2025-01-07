@@ -1,7 +1,8 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-initTogglers();
+$(document).ready(initTogglers());
+$(document).ready(initUpdateForm);
 
 // Initializes the file tree onClick collapse logic.
 function initTogglers(){
@@ -9,6 +10,14 @@ function initTogglers(){
     $(this).toggleClass("caret-down");
     $(this).closest("li").find(".nested").first().toggleClass("active");
   });
+}
+
+function initUpdateForm(){
+  var curUrlParams = new URLSearchParams(window.location.search);
+  $('#target-period').val(curUrlParams.get('period'));
+  $('#target-subsystem').val(curUrlParams.get('subsystem'));
+  $('#target-manager').val(curUrlParams.get('manager'));
+  $("#only-unique").prop("checked", curUrlParams.get('subsystem') == "1");
 }
 
 // This handler is called when user clicks on the coverage percentage.

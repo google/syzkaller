@@ -104,6 +104,44 @@
 {{ end }}
 
 {{ define "body" }}
+  <div style="display:inline-block">
+    <form method="get">
+      <div style="display:inline-block; vertical-align: top">
+        <label for="target-period">Periods:</label>
+        <br>
+        <label for="target-subsystem">Subsystem:</label>
+        <br>
+        <label for="target-manager">Manager:</label>
+        <br>
+        <label for="only-unique">Only unique:</label>
+      </div>
+      <div style="display:inline-block; vertical-align: top">
+        <select id="target-period" name="period">
+          <option value="month">Month</option>
+          <option value="day">Day</option>
+        </select>
+        <br>
+        <select id="target-subsystem" name="subsystem">
+          <option value="">*</option>
+          {{ range $ss := .Subsystems }}
+            <option value="{{ $ss }}">{{ $ss }}</option>
+          {{ end }}
+        </select>
+        <br>
+        <select id="target-manager" name="manager">
+          <option value="">*</option>
+          {{ range $manager := .Managers }}
+            <option value="{{ $manager }}">{{ $manager }}</option>
+          {{ end }}
+        </select>
+        <br>
+        <input type="checkbox" id="only-unique" name="unique-only" disabled>
+      </div>
+      <br>
+      <button id="updateButton">Update</button>
+    </form>
+  </div>
+  <hr>
   <div style="white-space: nowrap">
     <div style="display:inline-block">
       <ul id="collapsible-list">
