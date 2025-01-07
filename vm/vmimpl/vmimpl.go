@@ -14,8 +14,10 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -241,6 +243,19 @@ func UnusedTCPPort() int {
 			ln.Close()
 			return port
 		}
+
+		// Continue searching for a port only if we fail with EADDRINUSE or don't have permissions to use this port.
+		// Although we exclude ports <1024 in RandomPort(), it's still possible that we can face a restricted port.
+		var opErr *net.OpError
+		if errors.As(err, &opErr) && opErr.Op == "listen" {
+			var syscallErr *os.SyscallError
+			if errors.As(opErr.Err, &syscallErr) {
+				if errors.Is(syscallErr.Err, syscall.EADDRINUSE) || errors.Is(syscallErr.Err, syscall.EACCES) {
+					continue
+				}
+			}
+		}
+		log.Fatalf("error allocating port localhost:%d: %v", port, err)
 	}
 }
 
