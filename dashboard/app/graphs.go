@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -194,8 +195,8 @@ func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-type funcStyleBodyJS func(ctx context.Context, projectID, ns, subsystem, manager string,
-	periods []coveragedb.TimePeriod) (template.CSS, template.HTML, template.HTML, error)
+type funcStyleBodyJS func(ctx context.Context, projectID string, scope *cover.SelectScope, sss, managers []string,
+) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleHeatmap(c, w, r, cover.DoHeatMapStyleBodyJS)
@@ -235,9 +236,28 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
+	managers, err := CachedManagerList(c, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	ssService := getNsConfig(c, hdr.Namespace).Subsystems.Service
+	var subsystems []string
+	for _, ss := range ssService.List() {
+		subsystems = append(subsystems, ss.Name)
+	}
+	slices.Sort(managers)
+	slices.Sort(subsystems)
+
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, "syzkaller", hdr.Namespace, ss, manager, periods); err != nil {
+	if style, body, js, err = f(c, "syzkaller",
+		&cover.SelectScope{
+			Ns:        hdr.Namespace,
+			Subsystem: ss,
+			Manager:   manager,
+			Periods:   periods,
+		},
+		subsystems, managers); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
