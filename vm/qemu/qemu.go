@@ -191,7 +191,7 @@ var archConfigs = map[string]*archConfig{
 	},
 	"linux/riscv64": {
 		Qemu:                   "qemu-system-riscv64",
-		QemuArgs:               "-machine virt",
+		QemuArgs:               "-machine virt -cpu rv64,sv48=on",
 		NetDev:                 "virtio-net-pci",
 		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
