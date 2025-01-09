@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-$(document).ready(initTogglers());
+$(document).ready(initTogglers);
 $(document).ready(initUpdateForm);
 
 // Initializes the file tree onClick collapse logic.
@@ -15,6 +15,9 @@ function initTogglers(){
 function initUpdateForm(){
   var curUrlParams = new URLSearchParams(window.location.search);
   $('#target-period').val(curUrlParams.get('period'));
+  if (curUrlParams.get('period_count') != null) {
+    $('#target-period-count').val(curUrlParams.get('period_count'));
+  }
   $('#target-subsystem').val(curUrlParams.get('subsystem'));
   $('#target-manager').val(curUrlParams.get('manager'));
   $("#only-unique").prop("checked", curUrlParams.get('subsystem') == "1");

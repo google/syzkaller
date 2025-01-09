@@ -107,7 +107,9 @@
   <div style="display:inline-block">
     <form method="get">
       <div style="display:inline-block; vertical-align: top">
-        <label for="target-period">Periods:</label>
+        <label for="target-period">Period type:</label>
+        <br>
+        <label for="target-period-count">Period count:</label>
         <br>
         <label for="target-subsystem">Subsystem:</label>
         <br>
@@ -120,6 +122,8 @@
           <option value="month">Month</option>
           <option value="day">Day</option>
         </select>
+        <br>
+        <input id="target-period-count" name="period_count" type="number" min="1" max="12" value="4"/>
         <br>
         <select id="target-subsystem" name="subsystem">
           <option value="">*</option>
