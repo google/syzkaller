@@ -20,7 +20,7 @@ func makeFileLineCoverMerger(fvs fileVersions, base RepoCommit) FileCoverageMerg
 	}
 	a := &FileLineCoverMerger{
 		MergeResult: &MergeResult{
-			HitCounts:   make(map[int]int),
+			HitCounts:   make(map[int]int64),
 			FileExists:  true,
 			LineDetails: make(map[int][]*FileRecord),
 		},
@@ -49,7 +49,7 @@ func (a *FileLineCoverMerger) Add(record *FileRecord) {
 		return
 	}
 	if targetLine := a.matchers[record.RepoCommit].SameLinePos(record.StartLine); targetLine != -1 {
-		a.HitCounts[targetLine] += record.HitCount
+		a.HitCounts[targetLine] += int64(record.HitCount)
 		a.LineDetails[targetLine] = append(a.LineDetails[targetLine], record)
 	}
 }

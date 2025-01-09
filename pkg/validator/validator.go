@@ -48,12 +48,33 @@ func PanicIfNot(results ...Result) error {
 	return nil
 }
 
+var ErrValueNotAllowed = errors.New("value is not allowed")
+
+func Allowlisted(str string, allowlist []string, valueName ...string) Result {
+	for _, allowed := range allowlist {
+		if allowed == str {
+			return Result{
+				Ok: true,
+			}
+		}
+	}
+	if len(valueName) == 0 {
+		return Result{
+			Err: fmt.Errorf("value %s is not allowed", str),
+		}
+	}
+	return Result{
+		Err: fmt.Errorf("%s(%s) is not allowed", valueName[0], str),
+	}
+}
+
 var (
 	EmptyStr       = makeStrLenFunc("not empty", 0)
 	AlphaNumeric   = makeStrReFunc("not an alphanum", "^[a-zA-Z0-9]*$")
 	CommitHash     = makeCombinedStrFunc("not a hash", AlphaNumeric, makeStrLenFunc("len is not 40", 40))
 	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./_a-zA-Z0-9-]*$")
 	NamespaceName  = makeStrReFunc("not a namespace name", "^[a-zA-Z0-9_.-]{4,32}$")
+	ManagerName    = makeStrReFunc("not a manager name", "^ci[a-z0-9-]*$")
 	DashClientName = makeStrReFunc("not a dashboard client name", "^[a-zA-Z0-9_.-]{4,100}$")
 	DashClientKey  = makeStrReFunc("not a dashboard client key",
 		"^([a-zA-Z0-9]{16,128})|("+regexp.QuoteMeta(auth.OauthMagic)+".*)$")

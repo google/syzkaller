@@ -44,7 +44,7 @@ type RepoCommit struct {
 }
 
 type MergeResult struct {
-	HitCounts   map[int]int
+	HitCounts   map[int]int64
 	FileExists  bool
 	LineDetails map[int][]*FileRecord
 }
@@ -118,10 +118,10 @@ func mergedCoverageRecords(fmr *FileMergeResult) []*coveragedb.MergedCoverageRec
 
 	for _, line := range lines {
 		mgrStat[allManagers].AddLineHitCount(line, fmr.HitCounts[line])
-		managerHitCounts := map[string]int{}
+		managerHitCounts := map[string]int64{}
 		for _, lineDetail := range fmr.LineDetails[line] {
 			manager := lineDetail.Manager
-			managerHitCounts[manager] += lineDetail.HitCount
+			managerHitCounts[manager] += int64(lineDetail.HitCount)
 		}
 		for manager, managerHitCount := range managerHitCounts {
 			if _, ok := mgrStat[manager]; !ok {

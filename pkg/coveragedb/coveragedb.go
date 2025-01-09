@@ -57,10 +57,10 @@ type Coverage struct {
 	HitCounts         []int64
 }
 
-func (c *Coverage) AddLineHitCount(line, hitCount int) {
+func (c *Coverage) AddLineHitCount(line int, hitCount int64) {
 	c.Instrumented++
 	c.LinesInstrumented = append(c.LinesInstrumented, int64(line))
-	c.HitCounts = append(c.HitCounts, int64(hitCount))
+	c.HitCounts = append(c.HitCounts, hitCount)
 	if hitCount > 0 {
 		c.Covered++
 	}
@@ -122,7 +122,10 @@ type linesCoverage struct {
 	HitCounts         []int64
 }
 
-func linesCoverageStmt(ns, filepath, commit string, timePeriod TimePeriod) spanner.Statement {
+func linesCoverageStmt(ns, filepath, commit, manager string, timePeriod TimePeriod) spanner.Statement {
+	if manager == "" {
+		manager = "*"
+	}
 	return spanner.Statement{
 		SQL: `
 select
@@ -132,47 +135,43 @@ from merge_history
 	join files
 		on merge_history.session = files.session
 where
-	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5 and manager='*'`,
+	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5 and manager=$6`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,
 			"p4": filepath,
 			"p5": commit,
+			"p6": manager,
 		},
 	}
 }
 
-func ReadLinesHitCount(ctx context.Context, ns, commit, file string, tp TimePeriod,
-) (map[int]int, error) {
+func ReadLinesHitCount(ctx context.Context, ns, commit, file, manager string, tp TimePeriod,
+) ([]int64, []int64, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	client, err := spannerclient.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, fmt.Errorf("spanner.NewClient: %w", err)
+		return nil, nil, fmt.Errorf("spanner.NewClient: %w", err)
 	}
 	defer client.Close()
 
-	stmt := linesCoverageStmt(ns, file, commit, tp)
+	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
 	row, err := iter.Next()
 	if err == iterator.Done {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("iter.Next: %w", err)
+		return nil, nil, fmt.Errorf("iter.Next: %w", err)
 	}
 	var r linesCoverage
 	if err = row.ToStruct(&r); err != nil {
-		return nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
 	}
-
-	res := map[int]int{}
-	for i, instrLine := range r.LinesInstrumented {
-		res[int(instrLine)] = int(r.HitCounts[i])
-	}
-	return res, nil
+	return r.LinesInstrumented, r.HitCounts, nil
 }
 
 func historyMutation(session string, template *HistoryRecord) *spanner.Mutation {
