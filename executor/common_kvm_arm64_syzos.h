@@ -235,7 +235,7 @@ GUEST_CODE static noinline void guest_handle_smc(struct api_call_smccc* cmd)
 	    // they are ignored as per the calling convention.
 	    "smc #0\n"
 	    : // Ignore the outputs for now
-	    : [func_id] "r"((uint32)cmd->func_id),
+	    : [func_id] "r"((uint64)cmd->func_id),
 	      [arg1] "r"(cmd->params[0]), [arg2] "r"(cmd->params[1]),
 	      [arg3] "r"(cmd->params[2]), [arg4] "r"(cmd->params[3]),
 	      [arg5] "r"(cmd->params[4])
@@ -257,7 +257,7 @@ GUEST_CODE static noinline void guest_handle_hvc(struct api_call_smccc* cmd)
 	    // TODO(glider): nonzero immediate values are designated for use by hypervisor vendors.
 	    "hvc #0\n"
 	    : // Ignore the outputs for now
-	    : [func_id] "r"((uint32)cmd->func_id),
+	    : [func_id] "r"((uint64)cmd->func_id),
 	      [arg1] "r"(cmd->params[0]), [arg2] "r"(cmd->params[1]),
 	      [arg3] "r"(cmd->params[2]), [arg4] "r"(cmd->params[3]),
 	      [arg5] "r"(cmd->params[4])
@@ -488,7 +488,7 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 	gicr_wait_for_rwp(cpu);
 
 	// Enable the GIC system register (ICC_*) access.
-	uint32 icc_sre_el1 = 0;
+	uint64 icc_sre_el1 = 0;
 	asm volatile("mrs %0, " ICC_SRE_EL1
 		     :
 		     : "r"(icc_sre_el1));
@@ -498,7 +498,7 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 		     : "r"(icc_sre_el1));
 
 	// Set a default priority threshold.
-	uint32 value = ICC_PMR_DEF_PRIO;
+	uint64 value = ICC_PMR_DEF_PRIO;
 	asm volatile("msr " ICC_PMR_EL1 ", %0"
 		     :
 		     : "r"(value));
@@ -677,7 +677,7 @@ __attribute__((used))
 GUEST_CODE static void
 guest_irq_handler(struct ex_regs* regs)
 {
-	uint32 iar0, iar1, irq_num = 0;
+	uint64 iar0, iar1, irq_num = 0;
 	bool is_group0 = false;
 	// Acknowledge the interrupt by reading the IAR.
 	// Depending on the particular interrupt's Group (0 or 1), its number will appear in either ICC_IAR0_EL1, or ICC_IAR1_EL1.
