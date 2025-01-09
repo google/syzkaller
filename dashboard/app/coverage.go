@@ -14,11 +14,14 @@ import (
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/validator"
 )
 
-type funcStyleBodyJS func(ctx context.Context, projectID string, scope *cover.SelectScope, sss, managers []string,
+type funcStyleBodyJS func(
+	ctx context.Context, client spannerclient.SpannerClient,
+	scope *cover.SelectScope, onlyUnique bool, sss, managers []string,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -71,16 +74,24 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	slices.Sort(managers)
 	slices.Sort(subsystems)
 
+	onlyUnique := r.FormValue("unique-only") == "1"
+
+	spannerClient, err := spannerclient.NewClient(c, "syzkaller")
+	if err != nil {
+		return fmt.Errorf("spanner.NewClient: %s", err.Error())
+	}
+	defer spannerClient.Close()
+
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, "syzkaller",
+	if style, body, js, err = f(c, spannerClient,
 		&cover.SelectScope{
 			Ns:        hdr.Namespace,
 			Subsystem: ss,
 			Manager:   manager,
 			Periods:   periods,
 		},
-		subsystems, managers); err != nil {
+		onlyUnique, subsystems, managers); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
@@ -115,10 +126,14 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	periodType := r.FormValue("period")
 	targetCommit := r.FormValue("commit")
 	kernelFilePath := r.FormValue("filepath")
+	manager := r.FormValue("manager")
 	if err := validator.AnyError("input validation failed",
 		validator.TimePeriodType(periodType, "period"),
 		validator.CommitHash(targetCommit, "commit"),
 		validator.KernelFilePath(kernelFilePath, "filepath"),
+		validator.AnyOk(
+			validator.Allowlisted(manager, []string{"", "*"}, "manager"),
+			validator.ManagerName(manager, "manager")),
 	); err != nil {
 		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
 	}
@@ -130,10 +145,19 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
+	onlyUnique := r.FormValue("unique-only") == "1"
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
-	hitCounts, err := coveragedb.ReadLinesHitCount(c, hdr.Namespace, targetCommit, kernelFilePath, tp)
+	hitLines, hitCounts, err := coveragedb.ReadLinesHitCount(c, hdr.Namespace, targetCommit, manager, kernelFilePath, tp)
+	covMap := cover.MakeCovMap(hitLines, hitCounts)
 	if err != nil {
-		return fmt.Errorf("coveragedb.ReadLinesHitCount: %w", err)
+		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
+	}
+	if onlyUnique {
+		allHitLines, allHitCounts, err := coveragedb.ReadLinesHitCount(c, hdr.Namespace, targetCommit, manager, kernelFilePath, tp)
+		if err != nil {
+			return fmt.Errorf("coveragedb.ReadLinesHitCount(*): %w", err)
+		}
+		covMap = cover.UniqCoverage(cover.MakeCovMap(allHitLines, allHitCounts), covMap)
 	}
 
 	content, err := cover.RendFileCoverage(
@@ -141,7 +165,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		targetCommit,
 		kernelFilePath,
 		makeProxyURIProvider(nsConfig.Coverage.WebGitURI),
-		&covermerger.MergeResult{HitCounts: hitCounts},
+		&covermerger.MergeResult{HitCounts: covMap},
 		cover.DefaultHTMLRenderConfig())
 	if err != nil {
 		return fmt.Errorf("cover.RendFileCoverage: %w", err)

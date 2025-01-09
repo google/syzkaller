@@ -101,7 +101,7 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 func rendResult(content string, coverage *covermerger.MergeResult, renderConfig *CoverageRenderConfig) string {
 	if coverage == nil {
 		coverage = &covermerger.MergeResult{
-			HitCounts:   map[int]int{},
+			HitCounts:   map[int]int64{},
 			LineDetails: map[int][]*covermerger.FileRecord{},
 		}
 	}

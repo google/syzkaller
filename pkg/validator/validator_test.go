@@ -36,6 +36,16 @@ func TestIsNamespaceName(t *testing.T) {
 }
 
 // nolint: dupl
+func TestIsManagerName(t *testing.T) {
+	assert.True(t, validator.ManagerName("ci-upstream").Ok)
+	assert.False(t, validator.ManagerName("").Ok)
+
+	assert.Equal(t, "not a manager name", validator.ManagerName("*").Err.Error())
+	assert.Equal(t, "manager: not a manager name",
+		validator.ManagerName("*", "manager").Err.Error())
+}
+
+// nolint: dupl
 func TestIsDashboardClientName(t *testing.T) {
 	assert.True(t, validator.DashClientName("name").Ok)
 	assert.False(t, validator.DashClientName("").Ok)
@@ -85,4 +95,12 @@ func TestAnyOk(t *testing.T) {
 	assert.Equal(t, validator.ResultOk, validator.AnyOk(validator.ResultOk))
 	assert.Equal(t, badResult, validator.AnyOk(badResult))
 	assert.Equal(t, validator.ResultOk, validator.AnyOk(badResult, validator.ResultOk))
+}
+
+func TestAllowlisted(t *testing.T) {
+	assert.True(t, validator.Allowlisted("good", []string{"good", "also-good"}).Ok)
+	assert.False(t, validator.Allowlisted("bad", []string{"good", "also-good"}).Ok)
+	assert.Equal(t,
+		validator.Result{Ok: false, Err: errors.New("name(bad) is not allowed")},
+		validator.Allowlisted("bad", nil, "name"))
 }
