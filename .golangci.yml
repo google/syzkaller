@@ -44,7 +44,6 @@ linters:
     - gochecknoinits
     - godox
     - goimports
-    - gomnd
     - gomodguard
     - gosec
     - rowserrcheck
