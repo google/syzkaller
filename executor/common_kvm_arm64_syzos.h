@@ -28,6 +28,7 @@ typedef enum {
 	SYZOS_API_MEMWRITE,
 	SYZOS_API_ITS_SETUP,
 	SYZOS_API_ITS_SEND_CMD,
+	SYZOS_API_WFI_WFE,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -39,6 +40,11 @@ struct api_call_header {
 struct api_call_uexit {
 	struct api_call_header header;
 	uint64 exit_code;
+};
+
+struct api_call_1 {
+	struct api_call_header header;
+	uint64 arg;
 };
 
 struct api_call_2 {
@@ -96,6 +102,7 @@ static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
 static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 static void guest_handle_its_setup(struct api_call_3* cmd);
 static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
+static void guest_handle_wfi_wfe(struct api_call_1* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -155,6 +162,10 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_ITS_SEND_CMD: {
 			guest_handle_its_send_cmd((struct api_call_its_send_cmd*)cmd);
+			break;
+		}
+		case SYZOS_API_WFI_WFE: {
+			guest_handle_wfi_wfe((struct api_call_1*)cmd);
 			break;
 		}
 		}
@@ -583,6 +594,20 @@ GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_eve
 GUEST_CODE static noinline void guest_handle_its_setup(struct api_call_3* cmd)
 {
 	guest_prepare_its(cmd->args[0], cmd->args[1], cmd->args[2]);
+}
+
+GUEST_CODE static noinline void guest_handle_wfi_wfe(struct api_call_1* cmd)
+{
+	switch (cmd->arg) {
+	case 0: {
+		asm volatile("wfi");
+		break;
+	}
+	case 1: {
+		asm volatile("wfe");
+		break;
+	}
+	}
 }
 
 // Registers saved by one_irq_handler() and received by guest_irq_handler().
