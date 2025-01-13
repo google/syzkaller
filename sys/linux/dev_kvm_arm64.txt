@@ -100,6 +100,10 @@ syzos_api_code {
 	ret	const[0xd65f03c0, int32]
 } [packed]
 
+syzos_api_mrs {
+	arg_reg	flags[kvm_regs_arm64_sys, int64]
+}
+
 syzos_api_msr {
 	arg_reg		flags[kvm_regs_arm64_sys, int64]
 	arg_value	int64
@@ -207,4 +211,5 @@ syzos_api_call [
 	memwrite	syzos_api[6, syzos_api_memwrite]
 	its_setup	syzos_api[7, syzos_api_its_setup]
 	its_send_cmd	syzos_api[8, syzos_api_its_send_cmd]
+	mrs		syzos_api[9, syzos_api_mrs]
 ] [varlen]
