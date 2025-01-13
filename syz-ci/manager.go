@@ -591,8 +591,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
-	// Use designated ports not to collide with the ports of other managers.
-	mgrcfg.HTTP = fmt.Sprintf("localhost:%v", mgr.mgrcfg.testHTTPPort)
+	mgrcfg.HTTP = "" // Don't start the HTTP server.
 	// For GCE VMs, we need to bind to a real networking interface, so no localhost.
 	mgrcfg.RPC = fmt.Sprintf(":%v", mgr.mgrcfg.testRPCPort)
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")

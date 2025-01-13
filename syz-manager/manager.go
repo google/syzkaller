@@ -282,6 +282,7 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		mgr.cfg.Procs = 1
 	}
 	mgr.http = &manager.HTTPServer{
+		// Note that if cfg.HTTP == "", we don't start the server.
 		Cfg:        cfg,
 		StartTime:  time.Now(),
 		CrashStore: mgr.crashStore,
@@ -355,7 +356,9 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	mgr.http.TogglePause = mgr.pool.TogglePause
 
 	ctx := vm.ShutdownCtx()
-	go mgr.http.Serve()
+	if mgr.cfg.HTTP != "" {
+		go mgr.http.Serve()
+	}
 	go mgr.trackUsedFiles()
 	go mgr.processFuzzingResults(ctx)
 	mgr.pool.Loop(ctx)
@@ -1437,6 +1440,9 @@ func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 }
 
 func publicWebAddr(addr string) string {
+	if addr == "" {
+		return ""
+	}
 	_, port, err := net.SplitHostPort(addr)
 	if err == nil && port != "" {
 		if host, err := os.Hostname(); err == nil {

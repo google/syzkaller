@@ -87,18 +87,19 @@ func main() {
 		new:           new,
 		store:         store,
 		reproAttempts: map[string]int{},
-		http: &manager.HTTPServer{
+	}
+	if newCfg.HTTP != "" {
+		diffCtx.http = &manager.HTTPServer{
 			Cfg:       newCfg,
 			StartTime: time.Now(),
 			DiffStore: store,
-		},
+			Pools: map[string]*vm.Dispatcher{
+				new.name:  new.pool,
+				base.name: base.pool,
+			},
+		}
+		new.http = diffCtx.http
 	}
-	diffCtx.http.Pools = map[string]*vm.Dispatcher{
-		new.name:  new.pool,
-		base.name: base.pool,
-	}
-	new.http = diffCtx.http
-
 	diffCtx.Loop(ctx)
 }
 
@@ -116,7 +117,10 @@ type diffContext struct {
 
 func (dc *diffContext) Loop(ctx context.Context) {
 	reproLoop := manager.NewReproLoop(dc, dc.new.pool.Total()-dc.new.cfg.FuzzingVMs, false)
-	dc.http.ReproLoop = reproLoop
+	if dc.http != nil {
+		dc.http.ReproLoop = reproLoop
+		go dc.http.Serve()
+	}
 	go func() {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
@@ -128,10 +132,8 @@ func (dc *diffContext) Loop(ctx context.Context) {
 
 	go dc.base.Loop()
 	go dc.new.Loop()
-	go dc.http.Serve()
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
-
 	rareStat := time.NewTicker(5 * time.Minute)
 	for {
 		select {

@@ -68,6 +68,9 @@ type HTTPServer struct {
 }
 
 func (serv *HTTPServer) Serve() {
+	if serv.Cfg.HTTP == "" {
+		log.Fatalf("starting a disabled HTTP server")
+	}
 	if serv.Pool != nil {
 		serv.Pools = map[string]*vm.Dispatcher{"": serv.Pool}
 	}
