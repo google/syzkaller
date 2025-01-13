@@ -28,6 +28,7 @@ typedef enum {
 	SYZOS_API_MEMWRITE,
 	SYZOS_API_ITS_SETUP,
 	SYZOS_API_ITS_SEND_CMD,
+	SYZOS_API_MRS,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -39,6 +40,11 @@ struct api_call_header {
 struct api_call_uexit {
 	struct api_call_header header;
 	uint64 exit_code;
+};
+
+struct api_call_1 {
+	struct api_call_header header;
+	uint64 arg;
 };
 
 struct api_call_2 {
@@ -89,6 +95,7 @@ struct api_call_its_send_cmd {
 
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint32* insns, uint64 size);
+static void guest_handle_mrs(uint64 reg);
 static void guest_handle_msr(uint64 reg, uint64 val);
 static void guest_handle_smc(struct api_call_smccc* cmd);
 static void guest_handle_hvc(struct api_call_smccc* cmd);
@@ -126,6 +133,11 @@ guest_main(uint64 size, uint64 cpu)
 		case SYZOS_API_CODE: {
 			struct api_call_code* ccmd = (struct api_call_code*)cmd;
 			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
+			break;
+		}
+		case SYZOS_API_MRS: {
+			struct api_call_1* ccmd = (struct api_call_1*)cmd;
+			guest_handle_mrs(ccmd->arg);
 			break;
 		}
 		case SYZOS_API_MSR: {
@@ -180,6 +192,7 @@ GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 }
 
 #define MSR_REG_OPCODE 0xd5100000
+#define MRS_REG_OPCODE 0xd5300000
 
 // Generate an `MSR register, x0` instruction based on the register ID.
 // Luckily for us, the five operands, Op0, Op1, CRn, CRm, and Op2 are laid out sequentially in
@@ -189,6 +202,12 @@ GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 GUEST_CODE static uint32 reg_to_msr(uint64 reg)
 {
 	return MSR_REG_OPCODE | ((reg & 0xffff) << 5);
+}
+
+// Generate an `MRS register, x0` instruction based on the register ID.
+GUEST_CODE static uint32 reg_to_mrs(uint64 reg)
+{
+	return MRS_REG_OPCODE | ((reg & 0xffff) << 5);
 }
 
 // Host sets TPIDR_EL1 to contain the virtual CPU id.
@@ -202,6 +221,23 @@ GUEST_CODE static uint32 get_cpu_id()
 
 // Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
 #define MAX_CACHE_LINE_SIZE 256
+
+// Read the value from a system register using an MRS instruction.
+GUEST_CODE static noinline void
+guest_handle_mrs(uint64 reg)
+{
+	uint32 mrs = reg_to_mrs(reg);
+	uint32 cpu_id = get_cpu_id();
+	// Make sure CPUs use different cache lines for scratch code.
+	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
+	insn[0] = mrs;
+	insn[1] = 0xd65f03c0; // RET
+	// Make a call to the generated MSR instruction and clobber x0.
+	asm("blr %[pc]\n"
+	    :
+	    : [pc] "r"(insn)
+	    : "x0", "x30");
+}
 
 // Write value to a system register using an MSR instruction.
 // The word "MSR" here has nothing to do with the x86 MSR registers.
