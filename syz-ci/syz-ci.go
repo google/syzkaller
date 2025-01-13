@@ -225,8 +225,7 @@ type ManagerConfig struct {
 	managercfg       *mgrconfig.Config
 
 	// Auto-assigned ports used by test instances.
-	testHTTPPort int
-	testRPCPort  int
+	testRPCPort int
 }
 
 type ManagerJobs struct {
@@ -461,8 +460,6 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 		managercfg.RPC = fmt.Sprintf(":%v", cfg.RPCPort)
 		cfg.RPCPort++
 	}
-	mgr.testHTTPPort = cfg.ManagerPort
-	cfg.ManagerPort++
 	mgr.testRPCPort = cfg.RPCPort
 	cfg.RPCPort++
 	// Note: we don't change Compiler/Ccache because it may be just "gcc" referring

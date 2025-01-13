@@ -145,7 +145,6 @@ func Complete(cfg *Config) error {
 		cfg.TargetArch, "target",
 		cfg.Workdir, "workdir",
 		cfg.Syzkaller, "syzkaller",
-		cfg.HTTP, "http",
 		cfg.Type, "type",
 		cfg.SSHUser, "ssh_user",
 	); err != nil {
