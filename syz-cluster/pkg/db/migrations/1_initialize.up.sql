@@ -66,16 +66,15 @@ CREATE TABLE SessionTests (
     TestName STRING(256) NOT NULL,
 --    Parameters JSON, -- Test-dependent set of parameters.
     Result STRING(36) NOT NULL,
-    BaseBuildID STRING(36) NOT NULL,
-    PatchedBuildID STRING(36) NOT NULL,
+    BaseBuildID STRING(36),
+    PatchedBuildID STRING(36),
     CONSTRAINT FK_SessionResults FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
-    CONSTRAINT ResultEnum CHECK (Result IN ('passed', 'failed', 'error')),
+    CONSTRAINT ResultEnum CHECK (Result IN ('passed', 'failed', 'error', 'running')),
     CONSTRAINT FK_BaseBuild FOREIGN KEY (BaseBuildID) REFERENCES Builds (ID),
     CONSTRAINT FK_PatchedBuild FOREIGN KEY (PatchedBuildID) REFERENCES Builds (ID),
 ) PRIMARY KEY(SessionID, TestName);
 
 CREATE TABLE Findings (
-    ID STRING(36) NOT NULL, -- UUID
     SessionID STRING(36) NOT NULL,
     TestName STRING(256) NOT NULL,
     Title STRING(256) NOT NULL,
@@ -83,4 +82,4 @@ CREATE TABLE Findings (
     LogURI STRING(256) NOT NULL,
     CONSTRAINT FK_SessionCrashes FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
     CONSTRAINT FK_TestCrashes FOREIGN KEY (SessionID, TestName) REFERENCES SessionTests (SessionID, TestName),
-) PRIMARY KEY(ID)
+) PRIMARY KEY(SessionID, TestName, Title);

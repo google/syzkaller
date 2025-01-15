@@ -1,0 +1,65 @@
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package db
+
+import (
+	"context"
+	"errors"
+
+	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
+)
+
+type FindingRepository struct {
+	client *spanner.Client
+}
+
+func NewFindingRepository(client *spanner.Client) *FindingRepository {
+	return &FindingRepository{
+		client: client,
+	}
+}
+
+var ErrFindingExists = errors.New("the finding already exists")
+
+// Save either adds the finding to the database or returns ErrFindingExists.
+func (repo *FindingRepository) Save(ctx context.Context, finding *Finding) error {
+	_, err := repo.client.ReadWriteTransaction(ctx,
+		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+			stmt := spanner.Statement{
+				SQL: "SELECT * from `Findings` WHERE `SessionID`=@sessionID " +
+					"AND `TestName` = @testName AND `Title`=@title",
+				Params: map[string]interface{}{
+					"sessionID": finding.SessionID,
+					"testName":  finding.TestName,
+					"title":     finding.Title,
+				},
+			}
+			iter := txn.Query(ctx, stmt)
+			defer iter.Stop()
+			_, iterErr := iter.Next()
+			if iterErr == nil {
+				return ErrFindingExists
+			} else if iterErr != iterator.Done {
+				return iterErr
+			}
+			m, err := spanner.InsertStruct("Findings", finding)
+			if err != nil {
+				return err
+			}
+			return txn.BufferWrite([]*spanner.Mutation{m})
+		})
+	return err
+}
+
+// nolint: dupl
+func (repo *FindingRepository) ListForSession(ctx context.Context, session *Session) ([]*Finding, error) {
+	stmt := spanner.Statement{
+		SQL:    "SELECT * FROM `Findings` WHERE `SessionID` = @session ORDER BY `TestName`, `Title`",
+		Params: map[string]interface{}{"session": session.ID},
+	}
+	iter := repo.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	return readEntities[Finding](iter)
+}

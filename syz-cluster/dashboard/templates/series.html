@@ -74,10 +74,29 @@
             {{range .Tests}}
                 <tr>
                     <td>{{.TestName}}</td>
-                    <td>{{if .Base}}{{.Base.CommitHash}}{{end}}</td>
-                    <td>{{if .Patched}}{{.Patched.CommitHash}}{{end}}</td>
+                    <td>{{if .BaseBuild}}{{.BaseBuild.CommitHash}}{{end}}</td>
+                    <td>{{if .PatchedBuild}}{{.PatchedBuild.CommitHash}}[patched]{{end}}</td>
                     <th>{{.Result}}</th>
                 </tr>
+                {{if .Findings}}
+                <tr>
+                  <td colspan="4">
+                    <table class="table mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col">Title</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                      {{range . .Findings}}
+                      <tr>
+                        <td>{{.Title}}</td>
+                      </tr>
+                      {{end}}
+                      </tbody>
+                  </td>
+                </tr>
+                {{end}}
             {{end}}
             </tbody>
         </table>

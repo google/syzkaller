@@ -60,12 +60,33 @@ type Build struct {
 	BuildSuccess bool      `json:"build_success"`
 }
 
+const (
+	TestRunning string = "running"
+	TestPassed  string = "passed"
+	TestFailed  string = "failed" // TODO: drop it? only mark completion?
+	TestError   string = "error"
+)
+
 type TestResult struct {
 	SessionID      string `json:"session_id"`
 	BaseBuildID    string `json:"base_build_id"`
 	PatchedBuildID string `json:"patched_build_id"`
 	TestName       string `json:"test_name"`
 	Result         string `json:"result"`
+	Log            []byte `json:"log"`
+}
+
+type BootResult struct {
+	Success bool `json:"success"`
+}
+
+// Finding is a kernel crash, boot error, etc. found during a test.
+type Finding struct {
+	SessionID string `json:"session_id"`
+	TestName  string `json:"test_name"`
+	Title     string `json:"title"`
+	Report    []byte `json:"report"`
+	Log       []byte `json:"log"`
 }
 
 // For now, there's no reason to obtain these really via a real API call.
