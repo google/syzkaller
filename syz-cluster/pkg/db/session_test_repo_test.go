@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,15 +40,19 @@ func TestSessionTestRepository(t *testing.T) {
 		test := &SessionTest{
 			SessionID:      session.ID,
 			TestName:       fmt.Sprintf("test %d", i),
-			BaseBuildID:    build1.ID,
-			PatchedBuildID: build2.ID,
-			Result:         TestPassed,
+			BaseBuildID:    spanner.NullString{StringVal: build1.ID, Valid: true},
+			PatchedBuildID: spanner.NullString{StringVal: build2.ID, Valid: true},
+			Result:         api.TestPassed,
 		}
-		err = testsRepo.Insert(ctx, test)
+		err = testsRepo.InsertOrUpdate(ctx, test)
 		assert.NoError(t, err)
 	}
 
 	list, err := testsRepo.BySession(ctx, session.ID)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)
+	for _, test := range list {
+		assert.NotNil(t, test.BaseBuild)
+		assert.NotNil(t, test.PatchedBuild)
+	}
 }

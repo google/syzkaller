@@ -21,6 +21,7 @@ type DashboardHandler struct {
 	seriesRepo      *db.SeriesRepository
 	sessionRepo     *db.SessionRepository
 	sessionTestRepo *db.SessionTestRepository
+	findingRepo     *db.FindingRepository
 	blobStorage     blob.Storage
 	templates       map[string]*template.Template
 }
@@ -43,6 +44,7 @@ func NewHandler(env *app.AppEnvironment) (*DashboardHandler, error) {
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
 		sessionRepo:     db.NewSessionRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
+		findingRepo:     db.NewFindingRepository(env.Spanner),
 	}, nil
 }
 
@@ -67,9 +69,13 @@ func (h *DashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
+	type SessionTest struct {
+		*db.FullSessionTest
+		Findings []*db.Finding
+	}
 	type SessionData struct {
 		*db.Session
-		Tests []*db.FullSessionTest
+		Tests []SessionTest
 	}
 	type SeriesData struct {
 		*db.Series
@@ -97,21 +103,41 @@ func (h *DashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, session := range sessions {
-		tests, err := h.sessionTestRepo.BySession(ctx, session.ID)
+		rawTests, err := h.sessionTestRepo.BySession(ctx, session.ID)
 		if err != nil {
 			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 			return
 		}
-		data.Sessions = append(data.Sessions, SessionData{
+		findings, err := h.findingRepo.ListForSession(ctx, session)
+		if err != nil {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+			return
+		}
+		perName := groupFindings(findings)
+		sessionData := SessionData{
 			Session: session,
-			Tests:   tests,
-		})
+		}
+		for _, test := range rawTests {
+			sessionData.Tests = append(sessionData.Tests, SessionTest{
+				FullSessionTest: test,
+				Findings:        perName[test.TestName],
+			})
+		}
+		data.Sessions = append(data.Sessions, sessionData)
 	}
 
 	err = h.templates["series.html"].ExecuteTemplate(w, "base.html", data)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 	}
+}
+
+func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
+	ret := map[string][]*db.Finding{}
+	for _, finding := range findings {
+		ret[finding.TestName] = append(ret[finding.TestName], finding)
+	}
+	return ret
 }
 
 // nolint:dupl

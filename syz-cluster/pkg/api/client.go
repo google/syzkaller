@@ -64,6 +64,11 @@ func (client Client) UploadTestResult(ctx context.Context, req *TestResult) erro
 	return err
 }
 
+func (client Client) UploadFinding(ctx context.Context, req *Finding) error {
+	_, err := postJSON[Finding, any](ctx, client.baseURL+"/findings/upload", req)
+	return err
+}
+
 func getJSON[Resp any](url string) (*Resp, error) {
 	resp, err := http.Get(url)
 	if err != nil {

@@ -20,10 +20,10 @@ func NewSessionTestRepository(client *spanner.Client) *SessionTestRepository {
 	}
 }
 
-func (repo *SessionTestRepository) Insert(ctx context.Context, test *SessionTest) error {
+func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *SessionTest) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			// Check if the series already exists.
+			// Check if the test already exists.
 			stmt := spanner.Statement{
 				SQL: "SELECT * from `SessionTests` WHERE `SessionID`=@sessionID AND `TestName` = @testName",
 				Params: map[string]interface{}{
@@ -59,8 +59,8 @@ func (repo *SessionTestRepository) Insert(ctx context.Context, test *SessionTest
 
 type FullSessionTest struct {
 	*SessionTest
-	Base    *Build
-	Patched *Build
+	BaseBuild    *Build
+	PatchedBuild *Build
 }
 
 func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID string) ([]*FullSessionTest, error) {
@@ -80,11 +80,11 @@ func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID stri
 	for _, obj := range list {
 		full := &FullSessionTest{SessionTest: obj}
 		ret = append(ret, full)
-		if obj.BaseBuildID != "" {
-			needBuilds[obj.BaseBuildID] = append(needBuilds[obj.BaseBuildID], &full.Base)
+		if id := obj.BaseBuildID.String(); !obj.BaseBuildID.IsNull() {
+			needBuilds[id] = append(needBuilds[id], &full.BaseBuild)
 		}
-		if obj.PatchedBuildID != "" {
-			needBuilds[obj.PatchedBuildID] = append(needBuilds[obj.PatchedBuildID], &full.Patched)
+		if id := obj.PatchedBuildID.String(); !obj.PatchedBuildID.IsNull() {
+			needBuilds[id] = append(needBuilds[id], &full.PatchedBuild)
 		}
 	}
 	if len(needBuilds) > 0 {

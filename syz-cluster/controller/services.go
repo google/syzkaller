@@ -4,11 +4,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -126,4 +128,71 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 		resp.SeriesID = build.SeriesID.String()
 	}
 	return resp, nil
+}
+
+type SessionTestService struct {
+	testRepo *db.SessionTestRepository
+}
+
+func NewSessionTestService(env *app.AppEnvironment) *SessionTestService {
+	return &SessionTestService{
+		testRepo: db.NewSessionTestRepository(env.Spanner),
+	}
+}
+
+func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) error {
+	entity := &db.SessionTest{
+		SessionID: req.SessionID,
+		TestName:  req.TestName,
+		Result:    req.Result,
+	}
+	if req.BaseBuildID != "" {
+		entity.BaseBuildID = spanner.NullString{StringVal: req.BaseBuildID, Valid: true}
+	}
+	if req.PatchedBuildID != "" {
+		entity.PatchedBuildID = spanner.NullString{StringVal: req.PatchedBuildID, Valid: true}
+	}
+	return s.testRepo.InsertOrUpdate(context.Background(), entity)
+}
+
+type FindingService struct {
+	findingRepo *db.FindingRepository
+	blobStorage blob.Storage
+}
+
+func NewFindingService(env *app.AppEnvironment) *FindingService {
+	return &FindingService{
+		findingRepo: db.NewFindingRepository(env.Spanner),
+		blobStorage: env.BlobStorage,
+	}
+}
+
+func (s *FindingService) Save(ctx context.Context, req *api.Finding) error {
+	var reportURI, logURI string
+	var err error
+	if len(req.Log) > 0 {
+		logURI, err = s.blobStorage.Store(bytes.NewReader(req.Log))
+		if err != nil {
+			return fmt.Errorf("failed to save the log: %w", err)
+		}
+	}
+	if len(req.Report) > 0 {
+		reportURI, err = s.blobStorage.Store(bytes.NewReader(req.Report))
+		if err != nil {
+			return fmt.Errorf("failed to save the report: %w", err)
+		}
+	}
+	// TODO: if it's not actually addded, the blob records will be orphaned.
+	err = s.findingRepo.Save(ctx, &db.Finding{
+		SessionID: req.SessionID,
+		TestName:  req.TestName,
+		Title:     req.Title,
+		ReportURI: reportURI,
+		LogURI:    logURI,
+	})
+	if err == db.ErrFindingExists {
+		// It's ok, just ignore.
+		return nil
+	}
+	return err
 }

@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// nolint: dupl // The methods look similar, but extracting the common parts will only make the code worse.
 package main
 
 import (
@@ -12,20 +13,21 @@ import (
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"github.com/google/syzkaller/syz-cluster/pkg/db"
 )
 
 type ControllerAPI struct {
-	seriesService *SeriesService
-	buildService  *BuildService
-	testRepo      *db.SessionTestRepository
+	seriesService  *SeriesService
+	buildService   *BuildService
+	testService    *SessionTestService
+	findingService *FindingService
 }
 
 func NewControllerAPI(env *app.AppEnvironment) *ControllerAPI {
 	return &ControllerAPI{
-		seriesService: NewSeriesService(env),
-		buildService:  NewBuildService(env),
-		testRepo:      db.NewSessionTestRepository(env.Spanner),
+		seriesService:  NewSeriesService(env),
+		buildService:   NewBuildService(env),
+		testService:    NewSessionTestService(env),
+		findingService: NewFindingService(env),
 	}
 }
 
@@ -36,6 +38,7 @@ func (c ControllerAPI) Mux() *http.ServeMux {
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
+	mux.HandleFunc("/findings/upload", c.uploadFinding)
 	return mux
 }
 
@@ -85,15 +88,22 @@ func (c ControllerAPI) uploadTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// TODO: add parameters validation.
-	err := c.testRepo.Insert(context.Background(), &db.SessionTest{
-		SessionID:      req.SessionID,
-		BaseBuildID:    req.BaseBuildID,
-		PatchedBuildID: req.PatchedBuildID,
-		TestName:       req.TestName,
-		Result:         req.Result,
-	})
+	err := c.testService.Save(context.Background(), req)
 	if err != nil {
-		// TODO: sometimes it's not StatusInternalServerError.
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	reply[interface{}](w, nil)
+}
+
+func (c ControllerAPI) uploadFinding(w http.ResponseWriter, r *http.Request) {
+	req := parseBody[api.Finding](w, r)
+	if req == nil {
+		return
+	}
+	// TODO: add parameters validation.
+	err := c.findingService.Save(context.Background(), req)
+	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}

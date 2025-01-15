@@ -70,31 +70,18 @@ func (s *Session) SetFinishedAt(t time.Time) {
 	s.FinishedAt = spanner.NullTime{Time: t, Valid: true}
 }
 
-const (
-	StateSuccess    string = "success"
-	StateFailed     string = "failed"
-	StateInProgress string = "in_progress"
-)
-
-const (
-	TestPassed string = "passed"
-	TestFailed string = "failed"
-	TestError  string = "error"
-)
-
 type SessionTest struct {
-	SessionID      string `spanner:"SessionID"`
-	BaseBuildID    string `spanner:"BaseBuildID"`
-	PatchedBuildID string `spanner:"PatchedBuildID"`
-	TestName       string `spanner:"TestName"`
-	Result         string `spanner:"Result"`
+	SessionID      string             `spanner:"SessionID"`
+	BaseBuildID    spanner.NullString `spanner:"BaseBuildID"`
+	PatchedBuildID spanner.NullString `spanner:"PatchedBuildID"`
+	TestName       string             `spanner:"TestName"`
+	Result         string             `spanner:"Result"`
 }
 
 type Finding struct {
-	ID        string `spanner:"ID"`
 	SessionID string `spanner:"SessionID"`
 	TestName  string `spanner:"TestName"`
 	Title     string `spanner:"Title"`
 	ReportURI string `spanner:"ReportURI"`
-	LogURI    string `spanner:"ConsoleLogURI"`
+	LogURI    string `spanner:"LogURI"`
 }
