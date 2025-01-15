@@ -130,7 +130,7 @@ sudo cp /etc/resolv.conf ${MOUNT_DIR}/etc/resolv.conf
 sudo chroot ${MOUNT_DIR} sh -c "
 dnf install -y \
     systemd systemd-networkd systemd-resolved systemd-udev \
-    openssh-server passwd strace
+    openssh-server passwd strace openssh-clients
 
 systemctl enable systemd-networkd
 
@@ -143,10 +143,14 @@ DHCP=yes
 EOF
 
 rm /etc/resolv.conf
+chmod 644 /etc/systemd/network/ether.network
 
-sed -i -e 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' \
-     -e 's/#PermitEmptyPasswords no/PermitEmptyPasswords yes/' \
-     /etc/ssh/sshd_config
+cat << EOF > /etc/ssh/sshd_config
+PasswordAuthentication yes
+PermitRootLogin yes
+PermitEmptyPasswords yes
+Subsystem    sftp    /usr/libexec/openssh/sftp-server
+EOF
 
 passwd -d root
 "
