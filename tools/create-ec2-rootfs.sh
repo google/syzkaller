@@ -35,6 +35,7 @@ FORMAT="ext4"
 RESIZER="resize2fs"
 SIZE="1G"
 IMAGE="amazonlinux:2023"
+PLATFORM="linux/amd64"
 
 # Display help function
 display_help() {
@@ -43,6 +44,7 @@ display_help() {
     echo "   -f, --format               rootfs format (ext4 or xfs), default ext4"
     echo "   -h, --help                 Display help message"
     echo "   -n, --name                 rootfs name, default rootfs.ext4"
+    echo "   -p, --platform             linux platform type, default linux/amd64"
     echo "   -s, --size                 rootfs size, default 1G"
     echo
 }
@@ -77,6 +79,10 @@ while true; do
             NAME=$2
             shift 2
             ;;
+        -p | --platform)
+            PLATFORM=$2
+            shift 2
+            ;;
         -s | --size)
             SIZE=$2
             shift 2
@@ -103,20 +109,20 @@ if [ -f "${NAME}" ]; then
 fi
 
 truncate -s ${SIZE} ${NAME}
-mkfs.${FORMAT} ${NAME}
+yes | mkfs.${FORMAT} ${NAME}
 sudo mount -o loop ${NAME} ${MOUNT_DIR}
 
 REMOVE_IMAGE=false
-if [[ "$(sudo docker images -q ${IMAGE} 2>/dev/null)" == "" ]]; then
+if [[ "$(sudo docker images --platform ${PLATFORM} -q ${IMAGE} 2>/dev/null)" == "" ]]; then
     REMOVE_IMAGE=true
 fi
 
-CONTAINER=$(sudo docker create ${IMAGE})
+CONTAINER=$(sudo docker create --platform ${PLATFORM} ${IMAGE})
 sudo docker export ${CONTAINER} | sudo tar -xC ${MOUNT_DIR}
 sudo docker rm ${CONTAINER}
 
 if "${REMOVE_IMAGE}" ; then
-    sudo docker rmi ${IMAGE}
+    sudo docker rmi -f ${IMAGE}
 fi
 
 sudo cp /etc/resolv.conf ${MOUNT_DIR}/etc/resolv.conf
