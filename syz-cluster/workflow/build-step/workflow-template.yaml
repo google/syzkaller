@@ -9,6 +9,10 @@ spec:
   templates:
     - name: build-step
       inputs:
+        parameters:
+          - name: findings
+            value: "false"
+          - name: test-name
         artifacts:
           - name: request
             path: /tmp/request.json
@@ -44,7 +48,15 @@ spec:
       container:
         image: build-step-local
         imagePullPolicy: IfNotPresent
-        command: ["/bin/build-step", "--request", "/tmp/request.json", "--repository", "/workdir", "--output", "/output"]
+        command: ["/bin/build-step"]
+        args: [
+          "--request", "/tmp/request.json",
+          "--repository", "/workdir",
+          "--output", "/output",
+          "--session", "{{workflow.parameters.session-id}}",
+          "--test_name", "{{inputs.parameters.test-name}}",
+          "-findings={{inputs.parameters.findings}}"
+          ]
         env:
         - name: GIT_DIR
           value: "/data/.git"
