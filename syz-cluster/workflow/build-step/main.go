@@ -27,14 +27,19 @@ var (
 	flagRequest    = flag.String("request", "", "path to a build request description")
 	flagRepository = flag.String("repository", "", "path to a kernel checkout")
 	flagOutput     = flag.String("output", "", "path to save kernel build artifacts")
+	flagTestName   = flag.String("test_name", "", "test name")
+	flagSession    = flag.String("session", "", "session ID")
+	flagFindings   = flag.Bool("findings", false, "report build failures as findings")
 )
 
 func main() {
 	flag.Parse()
-	if *flagRequest == "" || *flagRepository == "" || *flagOutput == "" {
-		// TODO: abort the whole workflow, no sense to retry. Alert the error.
-		app.Fatalf("--series, --repository and --output must be set")
-	}
+	ensureFlags(*flagRequest, "--request",
+		*flagRepository, "--repository",
+		*flagOutput, "--output",
+		*flagSession, "--session",
+		*flagTestName, "--test_name")
+
 	req := readRequest()
 	ctx := context.Background()
 	client := app.DefaultClient()
@@ -58,6 +63,7 @@ func main() {
 	if commit != nil {
 		uploadReq.CommitDate = commit.CommitDate
 	}
+	var finding *api.Finding
 	if err != nil {
 		log.Printf("failed to checkout: %v", err)
 		uploadReq.Log = []byte(err.Error())
@@ -68,8 +74,19 @@ func main() {
 		} else {
 			log.Printf("failed to build: %v", err)
 			uploadReq.Log = []byte(err.Error())
+			finding = &api.Finding{
+				SessionID: *flagSession,
+				TestName:  *flagTestName,
+				Title:     "failed to build the kernel",
+				Log:       uploadReq.Log,
+			}
 		}
 	}
+	reportResults(ctx, client, req.SeriesID != "", uploadReq, finding)
+}
+
+func reportResults(ctx context.Context, client *api.Client, patched bool,
+	uploadReq *api.UploadBuildReq, finding *api.Finding) {
 	buildInfo, err := client.UploadBuild(ctx, uploadReq)
 	if err != nil {
 		app.Fatalf("failed to upload build: %v", err)
@@ -79,6 +96,29 @@ func main() {
 		BuildID: buildInfo.ID,
 		Success: uploadReq.BuildSuccess,
 	})
+	testResult := &api.TestResult{
+		SessionID: *flagSession,
+		TestName:  *flagTestName,
+		Result:    api.TestFailed,
+	}
+	if uploadReq.BuildSuccess {
+		testResult.Result = api.TestPassed
+	}
+	if patched {
+		testResult.PatchedBuildID = buildInfo.ID
+	} else {
+		testResult.BaseBuildID = buildInfo.ID
+	}
+	err = client.UploadTestResult(ctx, testResult)
+	if err != nil {
+		app.Fatalf("failed to report the test result: %v", err)
+	}
+	if *flagFindings && finding != nil {
+		err = client.UploadFinding(ctx, finding)
+		if err != nil {
+			app.Fatalf("failed to report the finding: %v", err)
+		}
+	}
 }
 
 func readRequest() *api.BuildRequest {
@@ -166,4 +206,12 @@ func buildKernel(req *api.BuildRequest) error {
 	//   `-- obj
 	//      `-- vmlinux
 	return nil
+}
+
+func ensureFlags(args ...string) {
+	for i := 0; i+1 < len(args); i += 2 {
+		if args[i] == "" {
+			app.Fatalf("%s must be set", args[i+1])
+		}
+	}
 }
