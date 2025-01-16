@@ -1,0 +1,42 @@
+#
+# requires: arch=arm64 -threaded
+#
+# This series of tests exercise the PMU registers that are exposed in the QEMU emulation mode.
+# They should not be used in the corpus when running on real HW.
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
+#
+# 0x603000000013df60 is PMEVTYPERn_EL0(0).
+# 0x603000000013df61 is PMEVTYPERn_EL0(1).
+# 0x603000000013df62 is PMEVTYPERn_EL0(2).
+# 0x603000000013df63 is PMEVTYPERn_EL0(3).
+# 0x603000000013df64 is PMEVTYPERn_EL0(4).
+# 0x603000000013df65 is PMEVTYPERn_EL0(5).
+# 0x603000000013df7f is PMCCFILTR_EL0.
+# Writes to these registers will trigger kvm_handle_sys_reg in arch/arm64/kvm/sys_regs.c
+# This is done to illustrate that PMU is accessible.
+# 0x8 corresponds to the KVM_ARM_VCPU_PMU_V3 feature bit and is required to enable PMU.
+#
+r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@msr={AUTO, AUTO, {0x603000000013df60, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df61, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df62, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df63, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df64, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df65, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013df7f, 0x8000}}, ], AUTO}, &AUTO=[@featur1={0x1, 0x8}], 0x1)
+#
+# Call ioctl(KVM_SET_DEVICE_ATTR) with group=KVM_ARM_VCPU_PMU_V3_CTRL and attr=KVM_ARM_VCPU_PMU_V3_INIT,
+# as per https://www.kernel.org/doc/Documentation/virt/kvm/devices/vcpu.rst.
+#
+ioctl$KVM_SET_DEVICE_ATTR_vcpu(r3, AUTO, &AUTO=@attr_pmu_init)
+
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+#
+# Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0xffffffffffffffff)
+syz_kvm_assert_reg(r3, 0x603000000013df60, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df61, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df62, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df63, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df64, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df65, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013df7f, 0x8000)
