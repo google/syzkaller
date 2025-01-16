@@ -17,7 +17,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 )
 
-type DashboardHandler struct {
+type dashboardHandler struct {
 	seriesRepo      *db.SeriesRepository
 	sessionRepo     *db.SessionRepository
 	sessionTestRepo *db.SessionTestRepository
@@ -29,7 +29,7 @@ type DashboardHandler struct {
 //go:embed templates/*
 var templates embed.FS
 
-func NewHandler(env *app.AppEnvironment) (*DashboardHandler, error) {
+func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 	perFile := map[string]*template.Template{}
 	var err error
 	for _, name := range []string{"index.html", "series.html"} {
@@ -38,7 +38,7 @@ func NewHandler(env *app.AppEnvironment) (*DashboardHandler, error) {
 			return nil, err
 		}
 	}
-	return &DashboardHandler{
+	return &dashboardHandler{
 		templates:       perFile,
 		blobStorage:     env.BlobStorage,
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
@@ -48,7 +48,7 @@ func NewHandler(env *app.AppEnvironment) (*DashboardHandler, error) {
 	}, nil
 }
 
-func (h *DashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
 	type MainPageData struct {
 		// It's probably not the best idea to expose db entities here,
 		// but so far redefining the entity would just duplicate the code.
@@ -68,7 +68,7 @@ func (h *DashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *DashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
 	type SessionTest struct {
 		*db.FullSessionTest
 		Findings []*db.Finding
@@ -141,7 +141,7 @@ func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
 }
 
 // nolint:dupl
-func (h *DashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	session, err := h.sessionRepo.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
@@ -156,7 +156,7 @@ func (h *DashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
 }
 
 // nolint:dupl
-func (h *DashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	patch, err := h.seriesRepo.PatchByID(ctx, r.PathValue("id"))
 	if err != nil {
@@ -170,7 +170,7 @@ func (h *DashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 	h.streamBlob(w, patch.BodyURI)
 }
 
-func (h *DashboardHandler) streamBlob(w http.ResponseWriter, uri string) {
+func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) {
 	if uri == "" {
 		return
 	}
