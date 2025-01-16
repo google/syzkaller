@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		app.Fatalf("failed to set up environment: %v", err)
 	}
-	handler, err := NewHandler(env)
+	handler, err := newHandler(env)
 	if err != nil {
 		app.Fatalf("failed to set up handler: %v", err)
 	}
