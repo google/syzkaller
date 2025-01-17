@@ -62,13 +62,10 @@ struct BufferType {
   bool IsNonTerminated = false;
 };
 
-struct Include {
-  std::string Filename;
-};
-
-struct Define {
+struct ConstInfo {
   std::string Name;
-  std::string Value;
+  std::string Filename;
+  int64_t Value;
 };
 
 struct Field {
@@ -201,9 +198,10 @@ struct NetlinkPolicy {
   std::vector<NetlinkAttr> Attrs;
 };
 
-inline void print(JSONPrinter& Printer, const Define& V) {
+inline void print(JSONPrinter& Printer, const ConstInfo& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
+  Printer.Field("filename", V.Filename);
   Printer.Field("value", V.Value, true);
 }
 
@@ -412,13 +410,8 @@ inline FieldType TodoType() {
 
 class Output {
 public:
-  void emit(Include&& Inc) {
-    if (IncludesDedup.insert(Inc.Filename).second)
-      Includes.push_back(Inc.Filename);
-  }
-
   void emit(Function&& V) { Functions.push_back(std::move(V)); }
-  void emit(Define&& V) { Defines.push_back(std::move(V)); }
+  void emit(ConstInfo&& V) { Consts.push_back(std::move(V)); }
   void emit(Struct&& V) { Structs.push_back(std::move(V)); }
   void emit(Enum&& V) { Enums.push_back(std::move(V)); }
   void emit(Syscall&& V) { Syscalls.push_back(std::move(V)); }
@@ -430,8 +423,7 @@ public:
   void print() const {
     JSONPrinter Printer;
     Printer.Field("functions", Functions);
-    Printer.Field("includes", Includes);
-    Printer.Field("defines", Defines);
+    Printer.Field("consts", Consts);
     Printer.Field("enums", Enums);
     Printer.Field("structs", Structs);
     Printer.Field("syscalls", Syscalls);
@@ -443,9 +435,7 @@ public:
 
 private:
   std::vector<Function> Functions;
-  std::vector<std::string> Includes;
-  std::unordered_set<std::string> IncludesDedup;
-  std::vector<Define> Defines;
+  std::vector<ConstInfo> Consts;
   std::vector<Enum> Enums;
   std::vector<Struct> Structs;
   std::vector<Syscall> Syscalls;

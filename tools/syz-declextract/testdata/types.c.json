@@ -111,18 +111,21 @@
 			]
 		}
 	],
-	"defines": [
+	"consts": [
 		{
 			"name": "a",
-			"value": "0"
+			"filename": "types.c",
+			"value": 0
 		},
 		{
 			"name": "b",
-			"value": "1"
+			"filename": "types.c",
+			"value": 1
 		},
 		{
 			"name": "c",
-			"value": "2"
+			"filename": "types.c",
+			"value": 2
 		}
 	],
 	"enums": [

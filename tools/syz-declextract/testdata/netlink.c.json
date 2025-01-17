@@ -37,25 +37,71 @@
 			"is_static": true
 		}
 	],
-	"includes": [
-		"include/uapi/netlink_family.h"
-	],
-	"defines": [
+	"consts": [
 		{
 			"name": "NETLINK_BAR_CMD_FOO",
-			"value": "0"
+			"filename": "netlink.c",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_ATTR1",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_ATTR2",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 1
+		},
+		{
+			"name": "NETLINK_FOO_ATTR3",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 4
+		},
+		{
+			"name": "NETLINK_FOO_ATTR4",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 5
+		},
+		{
+			"name": "NETLINK_FOO_ATTR5",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 6
+		},
+		{
+			"name": "NETLINK_FOO_ATTR6",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 7
+		},
+		{
+			"name": "NETLINK_FOO_ATTR7",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 8
+		},
+		{
+			"name": "NETLINK_FOO_CMD_BAR",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 1
+		},
+		{
+			"name": "NETLINK_FOO_CMD_FOO",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 0
 		},
 		{
 			"name": "NETLINK_FOO_NESTED_ATTR1",
-			"value": "0"
+			"filename": "netlink.c",
+			"value": 0
 		},
 		{
 			"name": "NETLINK_FOO_NESTED_ATTR2",
-			"value": "1"
+			"filename": "netlink.c",
+			"value": 1
 		},
 		{
 			"name": "NETLINK_NOPOLICY_CMD",
-			"value": "0"
+			"filename": "netlink.c",
+			"value": 0
 		}
 	],
 	"structs": [

@@ -47,8 +47,32 @@
 			"is_static": true
 		}
 	],
-	"includes": [
-		"include/uapi/file_operations.h"
+	"consts": [
+		{
+			"name": "FOO_IOCTL1",
+			"filename": "include/uapi/file_operations.h",
+			"value": 25345
+		},
+		{
+			"name": "FOO_IOCTL2",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2147771138
+		},
+		{
+			"name": "FOO_IOCTL3",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2148033283
+		},
+		{
+			"name": "FOO_IOCTL4",
+			"filename": "include/uapi/file_operations.h",
+			"value": 1074291460
+		},
+		{
+			"name": "FOO_IOCTL5",
+			"filename": "include/uapi/file_operations.h",
+			"value": 3221775109
+		}
 	],
 	"structs": [
 		{

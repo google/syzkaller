@@ -29,8 +29,27 @@
 			"file": "io_uring.c"
 		}
 	],
-	"includes": [
-		"include/uapi/io_uring.h"
+	"consts": [
+		{
+			"name": "IORING_OP_NOP",
+			"filename": "include/uapi/io_uring.h",
+			"value": 0
+		},
+		{
+			"name": "IORING_OP_NOT_SUPPORTED",
+			"filename": "include/uapi/io_uring.h",
+			"value": 3
+		},
+		{
+			"name": "IORING_OP_READV",
+			"filename": "include/uapi/io_uring.h",
+			"value": 1
+		},
+		{
+			"name": "IORING_OP_WRITEV",
+			"filename": "include/uapi/io_uring.h",
+			"value": 2
+		}
 	],
 	"iouring_ops": [
 		{

@@ -29,7 +29,7 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 	}
 	ctx.processFunctions()
 	ctx.processTypingFacts()
-	ctx.processIncludes()
+	ctx.processConsts()
 	ctx.processEnums()
 	ctx.processStructs()
 	ctx.processSyscalls()
@@ -47,11 +47,18 @@ type context struct {
 	structs       map[string]*Struct
 	funcs         map[string]*Function
 	facts         map[string]*typingNode
+	includes      []string
+	defines       []define
 	uniqualizer   map[string]int
 	interfaces    []*Interface
 	descriptions  *bytes.Buffer
 	debugTrace    io.Writer
 	errs          []error
+}
+
+type define struct {
+	Name  string
+	Value string
 }
 
 func (ctx *context) error(msg string, args ...any) {
@@ -68,14 +75,7 @@ func (ctx *context) trace(msg string, args ...any) {
 	}
 }
 
-func (ctx *context) processIncludes() {
-	// These additional includes must be at the top, because other kernel headers
-	// are broken and won't compile without these additional ones included first.
-	ctx.Includes = append([]string{
-		"vdso/bits.h",
-		"linux/types.h",
-		"net/netlink.h",
-	}, ctx.Includes...)
+func (ctx *context) processConsts() {
 	replaces := map[string]string{
 		// Arches may use some includes from asm-generic and some from arch/arm.
 		// If the arch used for extract used asm-generic for a header,
@@ -84,11 +84,40 @@ func (ctx *context) processIncludes() {
 		"include/uapi/asm-generic/ioctls.h":  "asm/ioctls.h",
 		"include/uapi/asm-generic/sockios.h": "asm/sockios.h",
 	}
-	for i, inc := range ctx.Includes {
-		if replace := replaces[inc]; replace != "" {
-			ctx.Includes[i] = replace
+	defineDedup := make(map[string]bool)
+	for _, ci := range ctx.Consts {
+		if strings.Contains(ci.Filename, "/uapi/") && !strings.Contains(ci.Filename, "arch/x86/") &&
+			strings.HasSuffix(ci.Filename, ".h") {
+			filename := ci.Filename
+			if replace := replaces[filename]; replace != "" {
+				filename = replace
+			}
+			ctx.includes = append(ctx.includes, filename)
+			continue
 		}
+		// Remove duplicate defines (even with different values). Unfortunately we get few of these.
+		// There are some syscall numbers (presumably for 32/64 bits), and some macros that
+		// are defined in different files to different values (e.g. WMI_DATA_BE_SVC).
+		// Ideally we somehow rename defines (chosing one random value is never correct).
+		// But for now this helps to prevent compilation errors.
+		if defineDedup[ci.Name] {
+			continue
+		}
+		defineDedup[ci.Name] = true
+		ctx.defines = append(ctx.defines, define{
+			Name:  ci.Name,
+			Value: fmt.Sprint(ci.Value),
+		})
 	}
+	ctx.includes = sortAndDedupSlice(ctx.includes)
+	ctx.defines = sortAndDedupSlice(ctx.defines)
+	// These additional includes must be at the top, because other kernel headers
+	// are broken and won't compile without these additional ones included first.
+	ctx.includes = append([]string{
+		"vdso/bits.h",
+		"linux/types.h",
+		"net/netlink.h",
+	}, ctx.includes...)
 }
 
 func (ctx *context) processEnums() {
