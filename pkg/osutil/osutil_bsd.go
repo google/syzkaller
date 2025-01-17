@@ -8,7 +8,12 @@ package osutil
 import (
 	"os"
 	"os/exec"
+	"time"
 )
+
+func creationTime(fi os.FileInfo) time.Time {
+	return time.Time{}
+}
 
 func RemoveAll(dir string) error {
 	return os.RemoveAll(dir)

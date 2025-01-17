@@ -17,6 +17,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func creationTime(fi os.FileInfo) time.Time {
+	st := fi.Sys().(*syscall.Stat_t)
+	return time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec)) // nolint: unconvert
+}
+
 // RemoveAll is similar to os.RemoveAll, but can handle more cases.
 func RemoveAll(dir string) error {
 	files, _ := os.ReadDir(dir)

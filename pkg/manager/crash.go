@@ -211,6 +211,7 @@ type CrashInfo struct {
 type BugInfo struct {
 	ID            string
 	Title         string
+	FirstTime     time.Time
 	LastTime      time.Time
 	HasRepro      bool
 	HasCRepro     bool
@@ -232,6 +233,7 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		return nil, err
 	}
 	ret.Title = strings.TrimSpace(string(desc))
+	ret.FirstTime = osutil.CreationTime(stat)
 	ret.LastTime = stat.ModTime()
 	files, err := osutil.ListDir(dir)
 	if err != nil {
