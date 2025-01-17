@@ -111,12 +111,13 @@ type NetlinkAttr struct {
 }
 
 type Struct struct {
-	Name     string   `json:"name,omitempty"`
-	ByteSize int      `json:"byte_size,omitempty"`
-	IsUnion  bool     `json:"is_union,omitempty"`
-	IsPacked bool     `json:"is_packed,omitempty"`
-	Align    int      `json:"align,omitempty"`
-	Fields   []*Field `json:"fields,omitempty"`
+	Name      string   `json:"name,omitempty"`
+	ByteSize  int      `json:"byte_size,omitempty"`
+	Align     int      `json:"align,omitempty"`
+	IsUnion   bool     `json:"is_union,omitempty"`
+	IsPacked  bool     `json:"is_packed,omitempty"`
+	AlignAttr int      `json:"align_attr,omitempty"`
+	Fields    []*Field `json:"fields,omitempty"`
 }
 
 type Enum struct {
@@ -150,9 +151,11 @@ type PtrType struct {
 }
 
 type ArrayType struct {
-	Elem    *Type `json:"elem,omitempty"`
-	MinSize int   `json:"min_size,omitempty"`
-	MaxSize int   `json:"max_size,omitempty"`
+	Elem        *Type `json:"elem,omitempty"`
+	MinSize     int   `json:"min_size,omitempty"`
+	MaxSize     int   `json:"max_size,omitempty"`
+	Align       int   `json:"align,omitempty"`
+	IsConstSize bool  `json:"is_const_size,omitempty"`
 }
 
 type BufferType struct {

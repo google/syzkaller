@@ -53,6 +53,8 @@ struct ArrType {
   FieldType Elem;
   int MinSize = 0;
   int MaxSize = 0;
+  int Align = 0;
+  bool IsConstSize = false;
 };
 
 struct BufferType {
@@ -79,9 +81,10 @@ struct Field {
 struct Struct {
   std::string Name;
   int ByteSize = 0;
+  int Align = 0;
   bool IsUnion = false;
   bool IsPacked = false;
-  int Align = 0;
+  int AlignAttr = 0;
   std::vector<Field> Fields;
 };
 
@@ -217,10 +220,11 @@ inline void print(JSONPrinter& Printer, const Field& V) {
 inline void print(JSONPrinter& Printer, const Struct& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
+  Printer.Field("align", V.Align);
   Printer.Field("byte_size", V.ByteSize);
   Printer.Field("is_union", V.IsUnion);
   Printer.Field("is_packed", V.IsPacked);
-  Printer.Field("align", V.Align);
+  Printer.Field("align_attr", V.AlignAttr);
   Printer.Field("fields", V.Fields, true);
 }
 
@@ -265,7 +269,9 @@ inline void print(JSONPrinter& Printer, const ArrType& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("elem", V.Elem);
   Printer.Field("min_size", V.MinSize);
-  Printer.Field("max_size", V.MaxSize, true);
+  Printer.Field("max_size", V.MaxSize);
+  Printer.Field("align", V.Align);
+  Printer.Field("is_const_size", V.IsConstSize, true);
 }
 
 inline void print(JSONPrinter& Printer, const BufferType& V) {

@@ -108,6 +108,7 @@
 		{
 			"name": "netlink_foo_struct1",
 			"byte_size": 12,
+			"align": 4,
 			"fields": [
 				{
 					"name": "a",
@@ -147,6 +148,7 @@
 		{
 			"name": "netlink_foo_struct2",
 			"byte_size": 24,
+			"align": 8,
 			"fields": [
 				{
 					"name": "a",

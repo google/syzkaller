@@ -32,6 +32,10 @@ type auto_union[INFERRED, RAW] [
 	raw		RAW
 ]
 
+type auto_aligner[N] {
+	void	void
+} [align[N]]
+
 `
 
 func (ctx *context) fmt(msg string, args ...any) {
@@ -76,6 +80,10 @@ func (ctx *context) serializeEnums() {
 
 func (ctx *context) serializeStructs() {
 	for _, str := range ctx.Structs {
+		// Empty structs are not supported, but we also shouldn't emit references to them.
+		if str.ByteSize == 0 {
+			continue
+		}
 		delims := "{}"
 		if str.IsUnion {
 			delims = "[]"
@@ -89,8 +97,8 @@ func (ctx *context) serializeStructs() {
 		if str.IsPacked {
 			attrs = append(attrs, "packed")
 		}
-		if str.Align != 0 {
-			attrs = append(attrs, fmt.Sprintf("align[%v]", str.Align))
+		if str.AlignAttr != 0 {
+			attrs = append(attrs, fmt.Sprintf("align[%v]", str.AlignAttr))
 		}
 		if len(attrs) != 0 {
 			ctx.fmt(" [%v]", strings.Join(attrs, ", "))

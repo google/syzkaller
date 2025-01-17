@@ -4,13 +4,42 @@ meta automatic
 
 type auto_todo int8
 
+type auto_aligner[N] {
+	void	void
+} [align[N]]
+
 bitfield_enum$auto = a, b, c
 
-types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, void], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto])
+align_syscall$auto(a1 ptr[inout, align1$auto], a2 ptr[inout, align2$auto], a3 ptr[inout, align3$auto], a4 ptr[inout, align4$auto])
+types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, auto_aligner[1]], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto])
+
+align1$auto {
+	f1	int8
+	aligner	auto_aligner[8]
+	f2	int8
+}
+
+align2$auto {
+	f1	int8
+	aligner	auto_aligner[1]
+	f2	int8
+}
+
+align3$auto {
+	f1	int8
+	aligner	auto_aligner[8]
+	f2	int8
+}
+
+align4$auto {
+	f1	int8
+	aligner	auto_aligner[8]
+	f2	int8
+}
 
 anon_struct$auto {
 	a		anon_struct_a$auto
-	b		void
+	b		auto_aligner[1]
 	anon_struct_2	anon_struct_2$auto
 	anon_struct_3	anon_struct_3$auto
 	foo		anon_t$auto
@@ -68,13 +97,9 @@ packed_t$auto {
 	y	int32
 } [packed, align[32]]
 
-recursive$auto {
-	various	various$auto
-}
-
 various$auto {
 	recursive	ptr[inout, various$auto, opt]
-	next		ptr[inout, recursive$auto, opt]
+	next		ptr[inout, auto_aligner[1], opt]
 	packed		packed_t$auto
 }
 
