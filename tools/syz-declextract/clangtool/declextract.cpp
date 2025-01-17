@@ -12,6 +12,7 @@
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/PrettyPrinter.h"
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/Stmt.h"
 #include "clang/AST/Type.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -32,8 +33,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <stack>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -48,6 +51,13 @@ struct MacroDef {
   SourceRange SourceRange; // soruce range of the value
 };
 using MacroMap = std::unordered_map<std::string, MacroDef>;
+
+struct MacroDesc {
+  std::string Name;
+  std::string Value;
+  SourceRange SourceRange;
+  int64_t IntValue;
+};
 
 class Extractor : public MatchFinder, public tooling::SourceFileCallbacks {
 public:
@@ -80,6 +90,7 @@ public:
   void print() const { Output.print(); }
 
 private:
+  friend struct FunctionAnalyzer;
   using MatchFunc = void (Extractor::*)();
   // Thunk that redirects MatchCallback::run method to one of the methods of the Extractor class.
   struct MatchCallbackThunk : MatchFinder::MatchCallback {
@@ -129,13 +140,9 @@ private:
   std::optional<QualType> getSizeofType(const Expr* E);
   int sizeofType(const Type* T);
   int alignofType(const Type* T);
-  std::vector<IoctlCmd> extractIoctlCommands(const std::string& Ioctl);
-  std::optional<TypingEntity> getTypingEntity(const std::string& CurrentFunc,
-                                              std::unordered_map<const VarDecl*, int>& LocalVars,
-                                              std::unordered_map<std::string, int>& LocalSeq, const Expr* E);
-  std::optional<TypingEntity> getDeclTypingEntity(const std::string& CurrentFunc,
-                                                  std::unordered_map<const VarDecl*, int>& LocalVars,
-                                                  std::unordered_map<std::string, int>& LocalSeq, const Decl* Decl);
+  void extractIoctl(const Expr* Cmd, const MacroDesc& Macro);
+  int getStmtLOC(const Stmt* S);
+  std::optional<MacroDesc> isMacroRef(const Expr* E);
 };
 
 // PPCallbacksTracker records all macro definitions (name/value/source location).
@@ -341,6 +348,29 @@ std::string Extractor::getDeclFileID(const Decl* Decl) {
           .string();
   std::replace(file.begin(), file.end(), '-', '_');
   return file;
+}
+
+int Extractor::getStmtLOC(const Stmt* S) {
+  return std::max<int>(0, SourceManager->getExpansionLineNumber(S->getSourceRange().getEnd()) -
+                              SourceManager->getExpansionLineNumber(S->getSourceRange().getBegin()) - 1);
+}
+
+std::optional<MacroDesc> Extractor::isMacroRef(const Expr* E) {
+  if (!E)
+    return {};
+  auto Range = Lexer::getAsCharRange(E->getSourceRange(), *SourceManager, Context->getLangOpts());
+  const std::string& Str = Lexer::getSourceText(Range, *SourceManager, Context->getLangOpts()).str();
+  auto MacroDef = Macros.find(Str);
+  if (MacroDef == Macros.end())
+    return {};
+  int64_t Val = evaluate(E);
+  emitConst(Str, Val, MacroDef->second.SourceRange.getBegin());
+  return MacroDesc{
+      .Name = Str,
+      .Value = MacroDef->second.Value,
+      .SourceRange = MacroDef->second.SourceRange,
+      .IntValue = Val,
+  };
 }
 
 template <typename Node> void matchHelper(MatchFinder& Finder, ASTContext* Context, const Node* Expr) {
@@ -587,78 +617,179 @@ bool isInterestingCall(const CallExpr* Call) {
   return true;
 }
 
-void Extractor::matchFunctionDef() {
-  const auto* Func = getResult<FunctionDecl>("function");
-  const std::string& CurrentFunc = Func->getNameAsString();
-  const auto Range = Func->getSourceRange();
-  const std::string& SourceFile =
-      std::filesystem::relative(SourceManager->getFilename(SourceManager->getExpansionLoc(Range.getBegin())).str());
-  const int LOC = std::max<int>(0, SourceManager->getExpansionLineNumber(Range.getEnd()) -
-                                       SourceManager->getExpansionLineNumber(Range.getBegin()) - 1);
-  std::vector<TypingFact> Facts;
-  std::vector<std::string> Callees;
-  std::unordered_set<std::string> CalleesDedup;
-  std::unordered_map<const VarDecl*, int> LocalVars;
-  std::unordered_map<std::string, int> LocalSeq;
-  const auto& Calls = findAllMatches<CallExpr>(Func->getBody(), stmt(forEachDescendant(callExpr().bind("res"))));
-  for (auto* Call : Calls) {
-    if (!isInterestingCall(Call))
-      continue;
-    const std::string& Callee = Call->getDirectCallee()->getNameAsString();
-    for (unsigned AI = 0; AI < Call->getNumArgs(); AI++) {
-      if (auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, Call->getArg(AI))) {
-        Facts.push_back({std::move(*Src), EntityArgument{
-                                              .Func = Callee,
-                                              .Arg = AI,
-                                          }});
+struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
+  FunctionAnalyzer(Extractor* Extractor, const FunctionDecl* Func)
+      : Extractor(Extractor), CurrentFunc(Func->getNameAsString()), Context(Extractor->Context),
+        SourceManager(Extractor->SourceManager) {
+    // The global function scope.
+    Scopes.push_back(FunctionScope{.Arg = -1, .LOC = Extractor->getStmtLOC(Func->getBody())});
+    Current = &Scopes[0];
+    TraverseStmt(Func->getBody());
+  }
+
+  bool VisitBinaryOperator(const BinaryOperator* B) {
+    if (B->isAssignmentOp())
+      noteFact(getTypingEntity(B->getRHS()), getTypingEntity(B->getLHS()));
+    return true;
+  }
+
+  bool VisitVarDecl(const VarDecl* D) {
+    if (D->getStorageDuration() == SD_Automatic)
+      noteFact(getTypingEntity(D->getInit()), getDeclTypingEntity(D));
+    return true;
+  }
+
+  bool VisitReturnStmt(const ReturnStmt* Ret) {
+    noteFact(getTypingEntity(Ret->getRetValue()), EntityReturn{.Func = CurrentFunc});
+    return true;
+  }
+
+  bool VisitCallExpr(const CallExpr* Call) {
+    if (isInterestingCall(Call)) {
+      const std::string& Callee = Call->getDirectCallee()->getNameAsString();
+      Current->Calls.push_back(Callee);
+      for (unsigned AI = 0; AI < Call->getNumArgs(); AI++) {
+        noteFact(getTypingEntity(Call->getArg(AI)), EntityArgument{
+                                                        .Func = Callee,
+                                                        .Arg = AI,
+                                                    });
       }
     }
-    if (!CalleesDedup.insert(Callee).second)
-      continue;
-    Callees.push_back(Callee);
+    return true;
   }
-  const auto& Assignments = findAllMatches<BinaryOperator>(
-      Func->getBody(), stmt(forEachDescendant(binaryOperator(isAssignmentOperator()).bind("res"))));
-  for (auto* A : Assignments) {
-    auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, A->getRHS());
-    auto Dst = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, A->getLHS());
-    if (Src && Dst)
-      Facts.push_back({std::move(*Src), std::move(*Dst)});
-  }
-  const auto& VarDecls = findAllMatches<VarDecl>(
-      Func->getBody(), stmt(forEachDescendant(varDecl(hasAutomaticStorageDuration()).bind("res"))));
-  for (auto* D : VarDecls) {
-    auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, D->getInit());
-    auto Dst = getDeclTypingEntity(CurrentFunc, LocalVars, LocalSeq, D);
-    if (Src && Dst)
-      Facts.push_back({std::move(*Src), std::move(*Dst)});
-  }
-  const auto& Returns = findAllMatches<ReturnStmt>(Func->getBody(), stmt(forEachDescendant(returnStmt().bind("res"))));
-  for (auto* Ret : Returns) {
-    if (auto Src = getTypingEntity(CurrentFunc, LocalVars, LocalSeq, Ret->getRetValue())) {
-      Facts.push_back({std::move(*Src), EntityReturn{
-                                            .Func = CurrentFunc,
-                                        }});
+
+  bool VisitSwitchStmt(const SwitchStmt* S) {
+    // We are only interested in switches on the function arguments
+    // with cases that mention defines from uapi headers.
+    // This covers ioctl/fcntl/prctl/ptrace/etc.
+    bool IsInteresting = false;
+    auto Param = getTypingEntity(S->getCond());
+    if (Current == &Scopes[0] && Param && Param->Argument) {
+      for (auto* C = S->getSwitchCaseList(); C; C = C->getNextSwitchCase()) {
+        auto* Case = dyn_cast<CaseStmt>(C);
+        if (!Case)
+          continue;
+        auto LMacro = Extractor->isMacroRef(Case->getLHS());
+        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        if (LMacro || RMacro) {
+          IsInteresting = true;
+          break;
+        }
+      }
     }
+
+    int Begin = SourceManager->getExpansionLineNumber(S->getBeginLoc());
+    int End = SourceManager->getExpansionLineNumber(S->getEndLoc());
+    if (IsInteresting)
+      Scopes[0].LOC = std::max<int>(0, Scopes[0].LOC - (End - Begin));
+    SwitchStack.push({S, IsInteresting, IsInteresting ? static_cast<int>(Param->Argument->Arg) : -1, End});
+    return true;
   }
+
+  bool VisitSwitchCase(const SwitchCase* C) {
+    if (!SwitchStack.top().IsInteresting)
+      return true;
+    // If there are several cases with the same "body", we want to create new scope
+    // only for the first one:
+    //   case FOO:
+    //   case BAR:
+    //     ... some code ...
+    if (!C->getNextSwitchCase() || C->getNextSwitchCase()->getSubStmt() != C) {
+      int Line = SourceManager->getExpansionLineNumber(C->getBeginLoc());
+      if (Current != &Scopes[0])
+        Current->LOC = Line - Current->LOC;
+      Scopes.push_back(FunctionScope{
+          .Arg = SwitchStack.top().Arg,
+          .LOC = Line,
+      });
+      Current = &Scopes.back();
+    }
+    // Otherwise it's a default case, for which we don't add any values.
+    if (auto* Case = dyn_cast<CaseStmt>(C)) {
+      int64_t LVal = Extractor->evaluate(Case->getLHS());
+      auto LMacro = Extractor->isMacroRef(Case->getLHS());
+      if (LMacro) {
+        Current->Values.push_back(LMacro->Name);
+        Extractor->extractIoctl(Case->getLHS(), *LMacro);
+      } else {
+        Current->Values.push_back(std::to_string(LVal));
+      }
+      if (Case->caseStmtIsGNURange()) {
+        // GNU range is:
+        //   case FOO ... BAR:
+        // Add all values in the range.
+        int64_t RVal = Extractor->evaluate(Case->getRHS());
+        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        for (int64_t V = LVal + 1; V <= RVal - (RMacro ? 1 : 0); V++)
+          Current->Values.push_back(std::to_string(V));
+        if (RMacro)
+          Current->Values.push_back(RMacro->Name);
+      }
+    }
+    return true;
+  }
+
+  bool dataTraverseStmtPost(const Stmt* S) {
+    if (SwitchStack.empty())
+      return true;
+    auto Top = SwitchStack.top();
+    if (Top.S != S)
+      return true;
+    if (Top.IsInteresting) {
+      Current->LOC = Top.EndLine - Current->LOC;
+      Current = &Scopes[0];
+    }
+    SwitchStack.pop();
+    return true;
+  }
+
+  void noteFact(std::optional<TypingEntity>&& Src, std::optional<TypingEntity>&& Dst) {
+    if (Src && Dst)
+      Current->Facts.push_back({std::move(*Src), std::move(*Dst)});
+  }
+
+  std::optional<TypingEntity> getTypingEntity(const Expr* E);
+  std::optional<TypingEntity> getDeclTypingEntity(const Decl* Decl);
+
+  struct SwitchDesc {
+    const SwitchStmt* S;
+    bool IsInteresting;
+    int Arg;
+    int EndLine;
+  };
+
+  Extractor* Extractor;
+  std::string CurrentFunc;
+  ASTContext* Context;
+  SourceManager* SourceManager;
+  std::vector<FunctionScope> Scopes;
+  FunctionScope* Current = nullptr;
+  std::unordered_map<const VarDecl*, int> LocalVars;
+  std::unordered_map<std::string, int> LocalSeq;
+  std::stack<SwitchDesc> SwitchStack;
+};
+
+void Extractor::matchFunctionDef() {
+  const auto* Func = getResult<FunctionDecl>("function");
+  if (!Func->getBody())
+    return;
+  const std::string& SourceFile = std::filesystem::relative(
+      SourceManager->getFilename(SourceManager->getExpansionLoc(Func->getSourceRange().getBegin())).str());
+  FunctionAnalyzer Analyzer(this, Func);
   Output.emit(Function{
-      .Name = CurrentFunc,
+      .Name = Func->getNameAsString(),
       .File = SourceFile,
       .IsStatic = Func->isStatic(),
-      .LOC = LOC,
-      .Calls = std::move(Callees),
-      .Facts = std::move(Facts),
+      .Scopes = std::move(Analyzer.Scopes),
   });
 }
 
-std::optional<TypingEntity> Extractor::getTypingEntity(const std::string& CurrentFunc,
-                                                       std::unordered_map<const VarDecl*, int>& LocalVars,
-                                                       std::unordered_map<std::string, int>& LocalSeq, const Expr* E) {
+std::optional<TypingEntity> FunctionAnalyzer::getTypingEntity(const Expr* E) {
   if (!E)
     return {};
   E = removeCasts(E);
   if (auto* DeclRef = dyn_cast<DeclRefExpr>(E)) {
-    return getDeclTypingEntity(CurrentFunc, LocalVars, LocalSeq, DeclRef->getDecl());
+    return getDeclTypingEntity(DeclRef->getDecl());
   } else if (auto* Member = dyn_cast<MemberExpr>(E)) {
     const Type* StructType =
         Member->getBase()->getType().IgnoreParens().getUnqualifiedType().getDesugaredType(*Context).getTypePtr();
@@ -692,7 +823,7 @@ std::optional<TypingEntity> Extractor::getTypingEntity(const std::string& Curren
         if (auto* Var = dyn_cast<VarDecl>(DeclRef->getDecl())) {
           if (Var->hasGlobalStorage()) {
             return EntityGlobalAddr{
-                .Name = getUniqueDeclName(Var),
+                .Name = Extractor->getUniqueDeclName(Var),
             };
           }
         }
@@ -708,10 +839,7 @@ std::optional<TypingEntity> Extractor::getTypingEntity(const std::string& Curren
   return {};
 }
 
-std::optional<TypingEntity> Extractor::getDeclTypingEntity(const std::string& CurrentFunc,
-                                                           std::unordered_map<const VarDecl*, int>& LocalVars,
-                                                           std::unordered_map<std::string, int>& LocalSeq,
-                                                           const Decl* Decl) {
+std::optional<TypingEntity> FunctionAnalyzer::getDeclTypingEntity(const Decl* Decl) {
   if (auto* Parm = dyn_cast<ParmVarDecl>(Decl)) {
     return EntityArgument{
         .Func = CurrentFunc,
@@ -790,7 +918,6 @@ void Extractor::matchFileOps() {
   std::string Mmap = getDeclName(Fops->getInit(Fields["mmap"]));
   if (Mmap.empty())
     Mmap = getDeclName(Fops->getInit(Fields["get_unmapped_area"]));
-  auto Cmds = extractIoctlCommands(Ioctl);
   Output.emit(FileOps{
       .Name = VarName,
       .Open = std::move(Open),
@@ -798,47 +925,32 @@ void Extractor::matchFileOps() {
       .Write = std::move(Write),
       .Mmap = std::move(Mmap),
       .Ioctl = std::move(Ioctl),
-      .IoctlCmds = std::move(Cmds),
   });
 }
 
-std::vector<IoctlCmd> Extractor::extractIoctlCommands(const std::string& Ioctl) {
-  if (Ioctl.empty())
-    return {};
-  // If we see the ioctl function definition, match cases of switches (very best-effort for now).
-  const auto& Cases = findAllMatches<CaseStmt>(
-      Context, functionDecl(hasName(Ioctl), forEachDescendant(switchStmt(forEachSwitchCase(caseStmt().bind("res"))))));
-  std::vector<IoctlCmd> Results;
-  for (auto* Case : Cases) {
-    const auto* Cmd = Case->getLHS();
-    auto Range = Lexer::getAsCharRange(Cmd->getSourceRange(), *SourceManager, Context->getLangOpts());
-    std::string CmdStr = Lexer::getSourceText(Range, *SourceManager, Context->getLangOpts()).str();
-    auto MacroDef = Macros.find(CmdStr);
-    if (MacroDef == Macros.end())
-      continue;
-    int64_t CmdVal = evaluate(Cmd);
-    emitConst(CmdStr, CmdVal, MacroDef->second.SourceRange.getBegin());
-    FieldType CmdType;
-    const auto Dir = _IOC_DIR(CmdVal);
-    if (Dir == _IOC_NONE) {
-      CmdType = IntType{.ByteSize = 1, .IsConst = true};
-    } else if (std::optional<QualType> Arg = getSizeofType(Cmd)) {
-      CmdType = PtrType{
-          .Elem = genType(*Arg),
-          .IsConst = Dir == _IOC_READ,
-      };
-    } else {
-      CmdType = PtrType{
-          .Elem = BufferType{},
-          .IsConst = Dir == _IOC_READ,
-      };
-    }
-    Results.push_back(IoctlCmd{
-        .Name = CmdStr,
-        .Type = std::move(CmdType),
-    });
+void Extractor::extractIoctl(const Expr* Cmd, const MacroDesc& Macro) {
+  // This is old style ioctl defined directly via a number.
+  // We can't infer anything about it.
+  if (Macro.Value.find("_IO") != 0)
+    return;
+  FieldType Type;
+  auto Dir = _IOC_DIR(Macro.IntValue);
+  if (Dir == _IOC_NONE) {
+    Type = IntType{.ByteSize = 1, .IsConst = true};
+  } else if (std::optional<QualType> Arg = getSizeofType(Cmd)) {
+    Type = PtrType{
+        .Elem = genType(*Arg),
+        .IsConst = Dir == _IOC_READ,
+    };
+  } else {
+    // It is an ioctl, but we failed to get the arg type.
+    // Let the Go part figure out a good arg type.
+    return;
   }
-  return Results;
+  Output.emit(Ioctl{
+      .Name = Macro.Name,
+      .Type = std::move(Type),
+  });
 }
 
 int main(int argc, const char** argv) {

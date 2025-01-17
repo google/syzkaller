@@ -94,6 +94,8 @@ const maxTraversalDepth = 18
 
 type typingNode struct {
 	id    string
+	fn    *Function
+	arg   int
 	flows [2]map[*typingNode]bool
 }
 
@@ -104,14 +106,16 @@ const (
 
 func (ctx *context) processTypingFacts() {
 	for _, fn := range ctx.Functions {
-		for _, fact := range fn.Facts {
-			src := ctx.canonicalNode(fn, fact.Src)
-			dst := ctx.canonicalNode(fn, fact.Dst)
-			if src == nil || dst == nil {
-				continue
+		for _, scope := range fn.Scopes {
+			for _, fact := range scope.Facts {
+				src := ctx.canonicalNode(fn, fact.Src)
+				dst := ctx.canonicalNode(fn, fact.Dst)
+				if src == nil || dst == nil {
+					continue
+				}
+				src.flows[flowTo][dst] = true
+				dst.flows[flowFrom][src] = true
 			}
-			src.flows[flowTo][dst] = true
-			dst.flows[flowFrom][src] = true
 		}
 	}
 }
@@ -142,8 +146,14 @@ func (ctx *context) canonicalNode(fn *Function, ent *TypingEntity) *typingNode {
 	if n != nil {
 		return n
 	}
+	arg := -1
+	if ent.Argument != nil {
+		arg = ent.Argument.Arg
+	}
 	n = &typingNode{
-		id: fullID,
+		id:  fullID,
+		fn:  fn,
+		arg: arg,
 	}
 	for i := range n.flows {
 		n.flows[i] = make(map[*typingNode]bool)
@@ -265,4 +275,47 @@ func flowString(path []*typingNode, flowType int) string {
 		fmt.Fprintf(w, " %v %v", dir, e.id)
 	}
 	return w.String()
+}
+
+func (ctx *context) inferCommandVariants(name, file string, arg int) []string {
+	ctx.trace("inferring %v:arg%v variants", name, arg)
+	fn := ctx.findFunc(name, file)
+	if fn == nil {
+		return nil
+	}
+	var variants []string
+	n := fn.facts[fmt.Sprintf("arg%v", arg)]
+	if n == nil {
+		ctx.collectCommandVariants(fn, arg, &variants)
+	} else {
+		visited := make(map[*typingNode]bool)
+		ctx.walkCommandVariants(n, &variants, visited, 0)
+	}
+	return sortAndDedupSlice(variants)
+}
+
+func (ctx *context) collectCommandVariants(fn *Function, arg int, variants *[]string) {
+	var values []string
+	for _, scope := range fn.Scopes {
+		if scope.Arg == arg {
+			values = append(values, scope.Values...)
+		}
+	}
+	if len(values) != 0 {
+		ctx.trace("  function %v:arg%v implements: %v", fn.Name, arg, values)
+		*variants = append(*variants, values...)
+	}
+}
+
+func (ctx *context) walkCommandVariants(n *typingNode, variants *[]string, visited map[*typingNode]bool, depth int) {
+	if visited[n] || depth >= 10 {
+		return
+	}
+	visited[n] = true
+	if n.arg >= 0 {
+		ctx.collectCommandVariants(n.fn, n.arg, variants)
+	}
+	for e := range n.flows[flowTo] {
+		ctx.walkCommandVariants(e, variants, visited, depth+1)
+	}
 }

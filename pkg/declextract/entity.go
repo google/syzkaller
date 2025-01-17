@@ -17,22 +17,34 @@ type Output struct {
 	Structs         []*Struct        `json:"structs,omitempty"`
 	Syscalls        []*Syscall       `json:"syscalls,omitempty"`
 	FileOps         []*FileOps       `json:"file_ops,omitempty"`
+	Ioctls          []*Ioctl         `json:"ioctls,omitempty"`
 	IouringOps      []*IouringOp     `json:"iouring_ops,omitempty"`
 	NetlinkFamilies []*NetlinkFamily `json:"netlink_families,omitempty"`
 	NetlinkPolicies []*NetlinkPolicy `json:"netlink_policies,omitempty"`
 }
 
 type Function struct {
-	Name     string        `json:"name,omitempty"`
-	File     string        `json:"file,omitempty"`
-	IsStatic bool          `json:"is_static,omitempty"`
-	LOC      int           `json:"loc,omitempty"`
-	Calls    []string      `json:"calls,omitempty"`
-	Facts    []*TypingFact `json:"facts,omitempty"`
+	Name     string `json:"name,omitempty"`
+	File     string `json:"file,omitempty"`
+	IsStatic bool   `json:"is_static,omitempty"`
+	// Information about function scopes. There is a global scope (with Arg=-1),
+	// and scope for each switch case on the function argument.
+	Scopes []*FunctionScope `json:"scopes,omitempty"`
 
 	callers int
 	calls   []*Function
 	facts   map[string]*typingNode
+}
+
+type FunctionScope struct {
+	// The function argument index that is switched on (-1 for the global scope).
+	Arg int `json:"arg"`
+	// The set of case values for this scope.
+	// It's empt for the global scope for the default case scope.
+	Values []string      `json:"values,omitempty"`
+	LOC    int           `json:"loc,omitempty"`
+	Calls  []string      `json:"calls,omitempty"`
+	Facts  []*TypingFact `json:"facts,omitempty"`
 }
 
 type ConstInfo struct {
@@ -63,16 +75,15 @@ type Syscall struct {
 type FileOps struct {
 	Name string `json:"name,omitempty"`
 	// Names of callback functions.
-	Open       string      `json:"open,omitempty"`
-	Read       string      `json:"read,omitempty"`
-	Write      string      `json:"write,omitempty"`
-	Mmap       string      `json:"mmap,omitempty"`
-	Ioctl      string      `json:"ioctl,omitempty"`
-	IoctlCmds  []*IoctlCmd `json:"ioctl_cmds,omitempty"`
-	SourceFile string      `json:"source_file,omitempty"`
+	Open       string `json:"open,omitempty"`
+	Read       string `json:"read,omitempty"`
+	Write      string `json:"write,omitempty"`
+	Mmap       string `json:"mmap,omitempty"`
+	Ioctl      string `json:"ioctl,omitempty"`
+	SourceFile string `json:"source_file,omitempty"`
 }
 
-type IoctlCmd struct {
+type Ioctl struct {
 	// Literal name of the command (e.g. KCOV_REMOTE_ENABLE).
 	Name string `json:"name,omitempty"`
 	Type *Type  `json:"type,omitempty"`
@@ -207,6 +218,7 @@ func (out *Output) Merge(other *Output) {
 	out.Structs = append(out.Structs, other.Structs...)
 	out.Syscalls = append(out.Syscalls, other.Syscalls...)
 	out.FileOps = append(out.FileOps, other.FileOps...)
+	out.Ioctls = append(out.Ioctls, other.Ioctls...)
 	out.IouringOps = append(out.IouringOps, other.IouringOps...)
 	out.NetlinkFamilies = append(out.NetlinkFamilies, other.NetlinkFamilies...)
 	out.NetlinkPolicies = append(out.NetlinkPolicies, other.NetlinkPolicies...)
@@ -219,6 +231,7 @@ func (out *Output) SortAndDedup() {
 	out.Structs = sortAndDedupSlice(out.Structs)
 	out.Syscalls = sortAndDedupSlice(out.Syscalls)
 	out.FileOps = sortAndDedupSlice(out.FileOps)
+	out.Ioctls = sortAndDedupSlice(out.Ioctls)
 	out.IouringOps = sortAndDedupSlice(out.IouringOps)
 	out.NetlinkFamilies = sortAndDedupSlice(out.NetlinkFamilies)
 	out.NetlinkPolicies = sortAndDedupSlice(out.NetlinkPolicies)

@@ -93,7 +93,7 @@ struct Enum {
   std::vector<std::string> Values;
 };
 
-struct IoctlCmd {
+struct Ioctl {
   std::string Name;
   FieldType Type;
 };
@@ -105,7 +105,6 @@ struct FileOps {
   std::string Write;
   std::string Mmap;
   std::string Ioctl;
-  std::vector<IoctlCmd> IoctlCmds;
 };
 
 struct EntityReturn {
@@ -157,13 +156,19 @@ struct TypingFact {
   TypingEntity Dst;
 };
 
+struct FunctionScope {
+  int Arg = 0;
+  int LOC = 0;
+  std::vector<std::string> Values;
+  std::vector<std::string> Calls;
+  std::vector<TypingFact> Facts;
+};
+
 struct Function {
   std::string Name;
   std::string File;
   bool IsStatic = false;
-  int LOC = 0;
-  std::vector<std::string> Calls;
-  std::vector<TypingFact> Facts;
+  std::vector<FunctionScope> Scopes;
 };
 
 struct Syscall {
@@ -282,7 +287,7 @@ inline void print(JSONPrinter& Printer, const BufferType& V) {
   Printer.Field("is_non_terminated", V.IsNonTerminated, true);
 }
 
-inline void print(JSONPrinter& Printer, const IoctlCmd& V) {
+inline void print(JSONPrinter& Printer, const Ioctl& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
   Printer.Field("type", V.Type, true);
@@ -295,8 +300,7 @@ inline void print(JSONPrinter& Printer, const FileOps& V) {
   Printer.Field("read", V.Read);
   Printer.Field("write", V.Write);
   Printer.Field("mmap", V.Mmap);
-  Printer.Field("ioctl", V.Ioctl);
-  Printer.Field("ioctl_cmds", V.IoctlCmds, true);
+  Printer.Field("ioctl", V.Ioctl, true);
 }
 
 inline void print(JSONPrinter& Printer, const EntityReturn& V) {
@@ -354,14 +358,21 @@ inline void print(JSONPrinter& Printer, const TypingFact& V) {
   Printer.Field("dst", V.Dst, true);
 }
 
+inline void print(JSONPrinter& Printer, const FunctionScope& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("arg", V.Arg);
+  Printer.Field("values", V.Values);
+  Printer.Field("loc", V.LOC);
+  Printer.Field("calls", V.Calls);
+  Printer.Field("facts", V.Facts, true);
+}
+
 inline void print(JSONPrinter& Printer, const Function& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
   Printer.Field("file", V.File);
   Printer.Field("is_static", V.IsStatic);
-  Printer.Field("loc", V.LOC);
-  Printer.Field("calls", V.Calls);
-  Printer.Field("facts", V.Facts, true);
+  Printer.Field("scopes", V.Scopes, true);
 }
 
 inline void print(JSONPrinter& Printer, const Syscall& V) {
@@ -422,6 +433,7 @@ public:
   void emit(Enum&& V) { Enums.push_back(std::move(V)); }
   void emit(Syscall&& V) { Syscalls.push_back(std::move(V)); }
   void emit(FileOps&& V) { FileOps.push_back(std::move(V)); }
+  void emit(Ioctl&& V) { Ioctls.push_back(std::move(V)); }
   void emit(IouringOp&& V) { IouringOps.push_back(std::move(V)); }
   void emit(NetlinkFamily&& V) { NetlinkFamilies.push_back(std::move(V)); }
   void emit(NetlinkPolicy&& V) { NetlinkPolicies.push_back(std::move(V)); }
@@ -434,6 +446,7 @@ public:
     Printer.Field("structs", Structs);
     Printer.Field("syscalls", Syscalls);
     Printer.Field("file_ops", FileOps);
+    Printer.Field("ioctls", Ioctls);
     Printer.Field("iouring_ops", IouringOps);
     Printer.Field("netlink_families", NetlinkFamilies);
     Printer.Field("netlink_policies", NetlinkPolicies, true);
@@ -446,6 +459,7 @@ private:
   std::vector<Struct> Structs;
   std::vector<Syscall> Syscalls;
   std::vector<FileOps> FileOps;
+  std::vector<Ioctl> Ioctls;
   std::vector<IouringOp> IouringOps;
   std::vector<NetlinkFamily> NetlinkFamilies;
   std::vector<NetlinkPolicy> NetlinkPolicies;

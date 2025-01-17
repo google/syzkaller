@@ -8,6 +8,10 @@
 #define FOO_IOCTL3		_IOR('c', 3, struct foo_ioctl_arg)
 #define FOO_IOCTL4		_IOW('c', 4, struct foo_ioctl_arg)
 #define FOO_IOCTL5		_IOWR('c', 5, struct foo_ioctl_arg)
+#define FOO_IOCTL6		_IO('c', 6)
+#define FOO_IOCTL7		_IO('c', 7)
+#define FOO_IOCTL8		_IO('c', 8)
+#define FOO_IOCTL9		_IO('c', 9)
 
 struct foo_ioctl_arg {
 	int a, b;

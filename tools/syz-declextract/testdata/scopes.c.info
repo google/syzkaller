@@ -1,0 +1,1 @@
+SYSCALL	scopes0	func:__do_sys_scopes0	loc:20	access:unknown	manual_desc:false	auto_desc:true	file:scopes.c	subsystem:kernel
