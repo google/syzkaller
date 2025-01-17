@@ -351,6 +351,12 @@ func Abs(path string) string {
 	return filepath.Clean(path)
 }
 
+// CreationTime returns file creation time.
+// May return zero time, if not known.
+func CreationTime(fi os.FileInfo) time.Time {
+	return creationTime(fi)
+}
+
 // MonotonicNano returns monotonic time in nanoseconds from some unspecified point in time.
 // Useful mostly to measure time intervals.
 // This function should be used inside of tested VMs b/c time.Now may reject to use monotonic time

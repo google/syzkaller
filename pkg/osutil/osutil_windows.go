@@ -8,7 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 )
+
+func creationTime(fi os.FileInfo) time.Time {
+	return time.Time{}
+}
 
 func HandleInterrupts(shutdown chan struct{}) {
 }

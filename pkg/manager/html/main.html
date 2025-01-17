@@ -24,6 +24,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tr>
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
+		<th><a onclick="return sortTable(this, 'First Time', textSort, true)" href="#">First Time</a></th>
 		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
 		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
 	</tr>
@@ -31,6 +32,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tr>
 		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
 		<td class="stat {{if not $c.Active}}inactive{{end}}">{{$c.Count}}</td>
+		<td class="time {{if not $c.New}}inactive{{end}}">{{formatTime $c.FirstTime}}</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
 		<td>
 			{{if $c.Triaged}}
