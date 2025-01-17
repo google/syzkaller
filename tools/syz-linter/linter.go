@@ -15,8 +15,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"regexp"
@@ -71,6 +73,8 @@ func run(p *analysis.Pass) (interface{}, error) {
 				pass.checkLogErrorFormat(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
+			case *ast.IfStmt:
+				pass.checkIfStmt(n)
 			}
 			return true
 		})
@@ -339,4 +343,42 @@ func (pass *Pass) checkVarDecl(n *ast.GenDecl) {
 		pass.report(n, "Don't use both var, type and value in variable declarations\n"+
 			"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"")
 	}
+}
+
+func (pass *Pass) checkIfStmt(n *ast.IfStmt) {
+	cond, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || len(n.Body.List) != 1 {
+		return
+	}
+	assign, ok := n.Body.List[0].(*ast.AssignStmt)
+	if !ok || assign.Tok != token.ASSIGN || len(assign.Lhs) != 1 {
+		return
+	}
+	isMin := true
+	switch cond.Op {
+	case token.GTR, token.GEQ:
+	case token.LSS, token.LEQ:
+		isMin = false
+	default:
+		return
+	}
+	x := pass.nodeString(cond.X)
+	y := pass.nodeString(cond.Y)
+	lhs := pass.nodeString(assign.Lhs[0])
+	rhs := pass.nodeString(assign.Rhs[0])
+	switch {
+	case x == lhs && y == rhs:
+	case x == rhs && y == lhs:
+		isMin = !isMin
+	default:
+		return
+	}
+	fn := map[bool]string{true: "min", false: "max"}[isMin]
+	pass.report(n, "Use %v function instead", fn)
+}
+
+func (pass *Pass) nodeString(n ast.Node) string {
+	w := new(bytes.Buffer)
+	printer.Fprint(w, pass.Fset, n)
+	return w.String()
 }

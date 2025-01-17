@@ -123,3 +123,16 @@ func varDecls() {
 	var d int = 0 // want "Don't use both var, type and value in variable declarations"
 	_, _, _, _ = a, b, c, d
 }
+
+func minmax() {
+	x, y := 0, 0
+	if x < y + 1 {		// want "Use max function instead"
+		x = y + 1
+	}
+	if x >= y {		// want "Use max function instead"
+		y = x
+	}
+	if x > 10 {		// want "Use min function instead"
+		x = 10
+	}
+}
