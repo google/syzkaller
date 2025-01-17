@@ -1991,9 +1991,7 @@ func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
-	if bug.ReproLevel < dup.ReproLevel {
-		bug.ReproLevel = dup.ReproLevel
-	}
+	bug.ReproLevel = max(bug.ReproLevel, dup.ReproLevel)
 	updateBugBadness(c, bug)
 }
 

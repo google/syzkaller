@@ -61,10 +61,7 @@ func (t *tty) Read(buf []byte) (int, error) {
 		return 0, io.EOF
 	}
 	n, err := syscall.Read(t.fd, buf)
-	if n < 0 {
-		n = 0
-	}
-	return n, err
+	return max(n, 0), err
 }
 
 func (t *tty) Close() error {

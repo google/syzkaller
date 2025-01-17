@@ -257,10 +257,7 @@ func splitChunk[T any](chunk []T, parts int) [][]T {
 	}
 	var ret [][]T
 	for i := 0; i < len(chunk); i += chunkSize {
-		end := i + chunkSize
-		if end > len(chunk) {
-			end = len(chunk)
-		}
+		end := min(i+chunkSize, len(chunk))
 		ret = append(ret, chunk[i:end])
 	}
 	return ret

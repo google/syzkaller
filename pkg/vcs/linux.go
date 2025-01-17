@@ -109,9 +109,7 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	if v1 < 0 {
 		return 0
 	}
-	if v3 < 0 {
-		v3 = 0
-	}
+	v3 = max(v3, 0)
 	if rc >= 0 {
 		if !includeRC {
 			return 0

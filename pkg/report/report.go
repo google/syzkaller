@@ -219,11 +219,9 @@ func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
 	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
 		rep.SkipPos = rep.StartPos + pos
 	}
-	if rep.EndPos < rep.SkipPos {
-		// This generally should not happen.
-		// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
-		rep.EndPos = rep.SkipPos
-	}
+	// This generally should not happen.
+	// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
+	rep.EndPos = max(rep.EndPos, rep.SkipPos)
 	return rep
 }
 

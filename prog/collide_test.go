@@ -182,10 +182,8 @@ dup(r2)
 		},
 	}
 	_, rs, iters := initTest(t)
-	if iters > 100 {
-		// Let's save resources -- we don't need that many for these small tests.
-		iters = 100
-	}
+	// Let's save resources -- we don't need that many for these small tests.
+	iters = min(iters, 100)
 	r := rand.New(rs)
 	for _, test := range tests {
 		target, err := GetTarget(test.os, test.arch)

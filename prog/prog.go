@@ -272,9 +272,7 @@ func (arg *GroupArg) Size() uint64 {
 					offset += typ.AlignAttr - offset%typ.AlignAttr
 				}
 			}
-			if size < offset {
-				size = offset
-			}
+			size = max(size, offset)
 		}
 		return size
 	case *ArrayType:

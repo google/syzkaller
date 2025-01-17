@@ -208,10 +208,7 @@ replacerLoop:
 func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	bytes := make([]byte, 8)
 	data := arg.Data()
-	size := len(data)
-	if size > maxDataLength {
-		size = maxDataLength
-	}
+	size := min(len(data), maxDataLength)
 	for i := 0; i < size; i++ {
 		original := make([]byte, 8)
 		copy(original, data[i:])
@@ -307,10 +304,7 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64, image bool) []uint6
 			mutant = v & ((1 << size) - 1)
 		} else {
 			width = -iwidth
-			size = uint64(width) * 8
-			if size > bitsize {
-				size = bitsize
-			}
+			size = min(uint64(width)*8, bitsize)
 			if v&(1<<(size-1)) == 0 {
 				continue
 			}

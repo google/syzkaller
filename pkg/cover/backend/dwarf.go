@@ -405,21 +405,14 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
 	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]Frame, error) {
-	procs := runtime.GOMAXPROCS(0) / 2
-	if need := len(pcs) / 1000; procs > need {
-		procs = need
-	}
+	procs := min(runtime.GOMAXPROCS(0)/2, len(pcs)/1000)
 	const (
 		minProcs = 1
 		maxProcs = 4
 	)
 	// addr2line on a beefy vmlinux takes up to 1.6GB of RAM, so don't create too many of them.
-	if procs > maxProcs {
-		procs = maxProcs
-	}
-	if procs < minProcs {
-		procs = minProcs
-	}
+	procs = min(procs, maxProcs)
+	procs = max(procs, minProcs)
 	type symbolizerResult struct {
 		frames []symbolizer.Frame
 		err    error
@@ -449,10 +442,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 		}()
 	}
 	for i := 0; i < len(pcs); {
-		end := i + 100
-		if end > len(pcs) {
-			end = len(pcs)
-		}
+		end := min(i+100, len(pcs))
 		pcchan <- pcs[i:end]
 		i = end
 	}

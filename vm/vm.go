@@ -445,9 +445,7 @@ func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
 		}
 		mon.matchPos--
 	}
-	if mon.matchPos < 0 {
-		mon.matchPos = 0
-	}
+	mon.matchPos = max(mon.matchPos, 0)
 	return nil, false
 }
 
@@ -510,14 +508,8 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 			Type:       typ,
 		}
 	}
-	start := rep.StartPos - mon.beforeContext
-	if start < 0 {
-		start = 0
-	}
-	end := rep.EndPos + afterContext
-	if end > len(rep.Output) {
-		end = len(rep.Output)
-	}
+	start := max(rep.StartPos-mon.beforeContext, 0)
+	end := min(rep.EndPos+afterContext, len(rep.Output))
 	rep.Output = rep.Output[start:end]
 	rep.StartPos -= start
 	rep.EndPos -= start

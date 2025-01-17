@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"sort"
 )
 
@@ -61,12 +62,7 @@ func (target *Target) calcStaticPriorities() [][]int32 {
 	}
 	// The value assigned for self-priority (call wrt itself) have to be high, but not too high.
 	for c0, pp := range prios {
-		var max int32
-		for _, p := range pp {
-			if p > max {
-				max = p
-			}
-		}
+		max := slices.Max(pp)
 		if max == 0 {
 			pp[c0] = 1
 		} else {

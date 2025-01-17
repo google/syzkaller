@@ -131,10 +131,7 @@ func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
 		return nil
 	}
 	for len(keys) != 0 {
-		batch := 100
-		if batch > len(keys) {
-			batch = len(keys)
-		}
+		batch := min(len(keys), 100)
 		if err := db.DeleteMulti(c, keys[:batch]); err != nil {
 			return err
 		}
@@ -383,10 +380,7 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 
 func updateBatch[T any](c context.Context, keys []*db.Key, transform func(key *db.Key, item *T)) error {
 	for len(keys) != 0 {
-		batchSize := 20
-		if batchSize > len(keys) {
-			batchSize = len(keys)
-		}
+		batchSize := min(len(keys), 20)
 		batchKeys := keys[:batchSize]
 		keys = keys[batchSize:]
 

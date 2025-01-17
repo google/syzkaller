@@ -1007,9 +1007,7 @@ func init() {
 		case *prog.UnionType:
 			typ1.Fields = fields
 			for _, f := range fields {
-				if a := f.Type.Alignment(); typ1.TypeAlign < a {
-					typ1.TypeAlign = a
-				}
+				typ1.TypeAlign = max(typ1.TypeAlign, f.Type.Alignment())
 			}
 		case *prog.StructType:
 			typ1.Fields = fields
@@ -1028,10 +1026,7 @@ func init() {
 				typ1.TypeAlign = 1
 			} else {
 				for _, f := range fields {
-					a := f.Type.Alignment()
-					if typ1.TypeAlign < a {
-						typ1.TypeAlign = a
-					}
+					typ1.TypeAlign = max(typ1.TypeAlign, f.Type.Alignment())
 				}
 			}
 		}

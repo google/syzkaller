@@ -102,10 +102,7 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 func getAllMulti[T any](c context.Context, keys []*db.Key, objects []*T) (*db.Key, error) {
 	const step = 1000
 	for from := 0; from < len(keys); from += step {
-		to := from + step
-		if to > len(keys) {
-			to = len(keys)
-		}
+		to := min(from+step, len(keys))
 		err := db.GetMulti(c, keys[from:to], objects[from:to])
 		if err == nil {
 			continue

@@ -151,15 +151,9 @@ func (va *vmaAlloc) alloc(r *randGen, size uint64) uint64 {
 	} else {
 		page = va.used[r.rand(len(va.used))]
 		if size > 1 && r.bin() {
-			off := r.rand(int(size))
-			if off > page {
-				off = page
-			}
-			page -= off
+			page -= min(r.rand(int(size)), page)
 		}
-		if page+size > va.numPages {
-			page = va.numPages - size
-		}
+		page = min(page, va.numPages-size)
 	}
 	if page >= va.numPages || size > va.numPages || page+size > va.numPages {
 		panic(fmt.Sprintf("vmaAlloc: bad page=%v size=%v numPages=%v", page, size, va.numPages))

@@ -105,18 +105,10 @@ func DupCallCollide(origProg *Prog, rand *rand.Rand) (*Prog, error) {
 		// For 1-call programs the behavior is similar to DoubleExecCollide.
 		return nil, fmt.Errorf("the prog is too small for the transformation")
 	}
-	// By default let's duplicate 1/3 calls in the original program.
-	insert := len(origProg.Calls) / 3
-	if insert == 0 {
-		// .. but always at least one.
-		insert = 1
-	}
-	if insert > maxAsyncPerProg {
-		insert = maxAsyncPerProg
-	}
-	if insert+len(origProg.Calls) > MaxCalls {
-		insert = MaxCalls - len(origProg.Calls)
-	}
+	// By default let's duplicate 1/3 calls in the original program (but at least one).
+	insert := max(len(origProg.Calls)/3, 1)
+	insert = min(insert, maxAsyncPerProg)
+	insert = min(insert, MaxCalls-len(origProg.Calls))
 	if insert == 0 {
 		return nil, fmt.Errorf("no calls could be duplicated")
 	}

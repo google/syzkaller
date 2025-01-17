@@ -273,9 +273,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 		return nil, fmt.Errorf("failed to create VM pool: %w", err)
 	}
 	defer vmPool.Close()
-	if n := vmPool.Count(); numVMs > n {
-		numVMs = n
-	}
+	numVMs = min(numVMs, vmPool.Count())
 	res := make(chan EnvTestResult, numVMs)
 	for i := 0; i < numVMs; i++ {
 		inst := &inst{

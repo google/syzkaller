@@ -138,9 +138,7 @@ func (n *Struct) serialize(w io.Writer) {
 	maxTabs := 0
 	for _, f := range n.Fields {
 		tabs := (len(f.Name.Name) + tabWidth) / tabWidth
-		if maxTabs < tabs {
-			maxTabs = tabs
-		}
+		maxTabs = max(maxTabs, tabs)
 	}
 	for _, f := range n.Fields {
 		if f.NewBlock {

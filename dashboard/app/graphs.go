@@ -295,13 +295,8 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	m := make(map[int]*BugStats)
 	maxWeek := 0
 	bugStatsFor := func(t time.Time) *BugStats {
-		week := int(now.Sub(t) / (30 * 24 * time.Hour))
-		if week < 0 {
-			week = 0
-		}
-		if maxWeek < week {
-			maxWeek = week
-		}
+		week := max(0, int(now.Sub(t)/(30*24*time.Hour)))
+		maxWeek = max(maxWeek, week)
 		bs := m[week]
 		if bs == nil {
 			bs = new(BugStats)
@@ -564,22 +559,19 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 	// comparable across different managers.
 	if len(selMetrics) > 1 {
 		for metricIndex := range selMetrics {
-			max := float32(1)
+			maxVal := float32(1)
 			for col := range graph.Columns {
 				for mgrIndex := range selManagers {
 					item := graph.Columns[col].Vals[mgrIndex*len(selMetrics)+metricIndex]
 					if item.IsNull {
 						continue
 					}
-					val := item.Val
-					if max < val {
-						max = val
-					}
+					maxVal = max(maxVal, item.Val)
 				}
 			}
 			for col := range graph.Columns {
 				for mgrIndex := range selManagers {
-					graph.Columns[col].Vals[mgrIndex*len(selMetrics)+metricIndex].Val /= max * 100
+					graph.Columns[col].Vals[mgrIndex*len(selMetrics)+metricIndex].Val /= maxVal * 100
 				}
 			}
 		}

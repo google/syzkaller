@@ -293,9 +293,7 @@ func (dec *execDecoder) commitCall() {
 		dec.numVars = dec.call.Index + 1
 	}
 	for _, copyout := range dec.call.Copyout {
-		if dec.numVars < copyout.Index+1 {
-			dec.numVars = copyout.Index + 1
-		}
+		dec.numVars = max(dec.numVars, copyout.Index+1)
 	}
 	dec.calls = append(dec.calls, dec.call)
 	dec.call = ExecCall{}
