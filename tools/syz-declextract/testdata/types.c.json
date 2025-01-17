@@ -758,7 +758,17 @@
 		},
 		{
 			"name": "recursive",
-			"align": 1
+			"byte_size": 64,
+			"align": 32,
+			"fields": [
+				{
+					"name": "various",
+					"counted_by": -1,
+					"type": {
+						"struct": "various"
+					}
+				}
+			]
 		},
 		{
 			"name": "various",

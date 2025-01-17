@@ -97,9 +97,13 @@ packed_t$auto {
 	y	int32
 } [packed, align[32]]
 
+recursive$auto {
+	various	various$auto
+}
+
 various$auto {
 	recursive	ptr[inout, various$auto, opt]
-	next		ptr[inout, auto_aligner[1], opt]
+	next		ptr[inout, recursive$auto, opt]
 	packed		packed_t$auto
 }
 
