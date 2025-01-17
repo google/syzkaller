@@ -12,166 +12,65 @@ type auto_union[INFERRED, RAW] [
 include <vdso/bits.h>
 include <linux/types.h>
 include <net/netlink.h>
-include <arch/x86/include/uapi/asm/msr.h>
-include <arch/x86/include/uapi/asm/sgx.h>
 include <asm/ioctls.h>
-include <asm/sockios.h>
 include <include/uapi/asm-generic/termbits-common.h>
 include <include/uapi/linux/android/binderfs.h>
 include <include/uapi/linux/batman_adv.h>
 include <include/uapi/linux/btrfs.h>
-include <include/uapi/linux/caif/if_caif.h>
-include <include/uapi/linux/can/gw.h>
-include <include/uapi/linux/can/netlink.h>
-include <include/uapi/linux/can/vxcan.h>
-include <include/uapi/linux/cdrom.h>
 include <include/uapi/linux/cec.h>
 include <include/uapi/linux/cgroupstats.h>
 include <include/uapi/linux/cifs/cifs_netlink.h>
 include <include/uapi/linux/comedi.h>
-include <include/uapi/linux/counter.h>
-include <include/uapi/linux/cryptouser.h>
-include <include/uapi/linux/dcbnl.h>
-include <include/uapi/linux/devlink.h>
-include <include/uapi/linux/dma-buf.h>
 include <include/uapi/linux/dma-heap.h>
 include <include/uapi/linux/ethtool_netlink.h>
-include <include/uapi/linux/eventpoll.h>
-include <include/uapi/linux/exfat.h>
-include <include/uapi/linux/fib_rules.h>
-include <include/uapi/linux/fou.h>
 include <include/uapi/linux/fs.h>
 include <include/uapi/linux/fuse.h>
 include <include/uapi/linux/genetlink.h>
 include <include/uapi/linux/gtp.h>
 include <include/uapi/linux/handshake.h>
-include <include/uapi/linux/hiddev.h>
-include <include/uapi/linux/hidraw.h>
 include <include/uapi/linux/hsr_netlink.h>
 include <include/uapi/linux/i2c-dev.h>
-include <include/uapi/linux/if_addr.h>
-include <include/uapi/linux/if_addrlabel.h>
-include <include/uapi/linux/if_bridge.h>
-include <include/uapi/linux/if_link.h>
 include <include/uapi/linux/if_macsec.h>
-include <include/uapi/linux/if_team.h>
 include <include/uapi/linux/if_tun.h>
-include <include/uapi/linux/if_tunnel.h>
-include <include/uapi/linux/iio/buffer.h>
 include <include/uapi/linux/ila.h>
-include <include/uapi/linux/inotify.h>
-include <include/uapi/linux/io_uring.h>
 include <include/uapi/linux/ioam6_genl.h>
 include <include/uapi/linux/ip_vs.h>
-include <include/uapi/linux/joystick.h>
-include <include/uapi/linux/kcov.h>
 include <include/uapi/linux/kvm.h>
 include <include/uapi/linux/l2tp.h>
 include <include/uapi/linux/landlock.h>
 include <include/uapi/linux/loop.h>
-include <include/uapi/linux/lp.h>
-include <include/uapi/linux/lwtunnel.h>
-include <include/uapi/linux/media.h>
-include <include/uapi/linux/mei.h>
-include <include/uapi/linux/mpls_iptunnel.h>
-include <include/uapi/linux/mptcp_pm.h>
-include <include/uapi/linux/msdos_fs.h>
 include <include/uapi/linux/nbd-netlink.h>
 include <include/uapi/linux/ncsi.h>
-include <include/uapi/linux/neighbour.h>
 include <include/uapi/linux/net_dropmon.h>
-include <include/uapi/linux/net_namespace.h>
 include <include/uapi/linux/net_shaper.h>
-include <include/uapi/linux/netconf.h>
 include <include/uapi/linux/netdev.h>
-include <include/uapi/linux/netfilter/ipset/ip_set.h>
-include <include/uapi/linux/netfilter/nf_tables.h>
-include <include/uapi/linux/netfilter/nf_tables_compat.h>
-include <include/uapi/linux/netfilter/nfnetlink.h>
-include <include/uapi/linux/netfilter/nfnetlink_acct.h>
-include <include/uapi/linux/netfilter/nfnetlink_conntrack.h>
-include <include/uapi/linux/netfilter/nfnetlink_cthelper.h>
-include <include/uapi/linux/netfilter/nfnetlink_cttimeout.h>
-include <include/uapi/linux/netfilter/nfnetlink_log.h>
-include <include/uapi/linux/netfilter/nfnetlink_osf.h>
-include <include/uapi/linux/netfilter/nfnetlink_queue.h>
-include <include/uapi/linux/nexthop.h>
 include <include/uapi/linux/nfc.h>
 include <include/uapi/linux/nfsd_netlink.h>
 include <include/uapi/linux/nl80211.h>
 include <include/uapi/linux/nsfs.h>
 include <include/uapi/linux/nvram.h>
 include <include/uapi/linux/openvswitch.h>
-include <include/uapi/linux/pidfd.h>
-include <include/uapi/linux/pkt_cls.h>
-include <include/uapi/linux/pkt_sched.h>
 include <include/uapi/linux/ppp-ioctl.h>
 include <include/uapi/linux/ppp_defs.h>
-include <include/uapi/linux/pps.h>
 include <include/uapi/linux/psample.h>
 include <include/uapi/linux/random.h>
 include <include/uapi/linux/rfkill.h>
-include <include/uapi/linux/rpl_iptunnel.h>
 include <include/uapi/linux/rtc.h>
-include <include/uapi/linux/rtnetlink.h>
-include <include/uapi/linux/seccomp.h>
 include <include/uapi/linux/seg6_genl.h>
-include <include/uapi/linux/seg6_iptunnel.h>
-include <include/uapi/linux/seg6_local.h>
 include <include/uapi/linux/smc.h>
 include <include/uapi/linux/sockios.h>
 include <include/uapi/linux/soundcard.h>
 include <include/uapi/linux/suspend_ioctls.h>
-include <include/uapi/linux/sync_file.h>
 include <include/uapi/linux/taskstats.h>
-include <include/uapi/linux/tc_act/tc_bpf.h>
-include <include/uapi/linux/tc_act/tc_connmark.h>
-include <include/uapi/linux/tc_act/tc_csum.h>
-include <include/uapi/linux/tc_act/tc_ct.h>
-include <include/uapi/linux/tc_act/tc_ctinfo.h>
-include <include/uapi/linux/tc_act/tc_defact.h>
-include <include/uapi/linux/tc_act/tc_gact.h>
-include <include/uapi/linux/tc_act/tc_gate.h>
-include <include/uapi/linux/tc_act/tc_ife.h>
-include <include/uapi/linux/tc_act/tc_mirred.h>
-include <include/uapi/linux/tc_act/tc_mpls.h>
-include <include/uapi/linux/tc_act/tc_nat.h>
-include <include/uapi/linux/tc_act/tc_pedit.h>
-include <include/uapi/linux/tc_act/tc_sample.h>
-include <include/uapi/linux/tc_act/tc_skbedit.h>
-include <include/uapi/linux/tc_act/tc_skbmod.h>
-include <include/uapi/linux/tc_act/tc_tunnel_key.h>
-include <include/uapi/linux/tc_act/tc_vlan.h>
-include <include/uapi/linux/tc_ematch/tc_em_ipt.h>
-include <include/uapi/linux/tc_ematch/tc_em_meta.h>
 include <include/uapi/linux/tcp_metrics.h>
-include <include/uapi/linux/tee.h>
 include <include/uapi/linux/thermal.h>
-include <include/uapi/linux/timerfd.h>
 include <include/uapi/linux/tipc_netlink.h>
-include <include/uapi/linux/udf_fs_i.h>
 include <include/uapi/linux/udmabuf.h>
-include <include/uapi/linux/usb/cdc-wdm.h>
-include <include/uapi/linux/usb/functionfs.h>
-include <include/uapi/linux/usb/g_hid.h>
-include <include/uapi/linux/usb/g_printer.h>
-include <include/uapi/linux/usb/gadgetfs.h>
 include <include/uapi/linux/usb/raw_gadget.h>
-include <include/uapi/linux/usb/tmc.h>
-include <include/uapi/linux/userfaultfd.h>
 include <include/uapi/linux/vdpa.h>
-include <include/uapi/linux/vduse.h>
-include <include/uapi/linux/veth.h>
-include <include/uapi/linux/vfio.h>
 include <include/uapi/linux/vhost.h>
-include <include/uapi/linux/watch_queue.h>
-include <include/uapi/linux/watchdog.h>
 include <include/uapi/linux/wireguard.h>
-include <include/uapi/linux/wwan.h>
-include <include/uapi/linux/xfrm.h>
 include <include/uapi/mtd/ubi-user.h>
-include <include/uapi/rdma/rdma_netlink.h>
-include <include/uapi/rdma/rdma_user_ioctl.h>
 include <include/uapi/sound/asound.h>
 
 NPmode$auto = NPMODE_PASS, NPMODE_DROP, NPMODE_ERROR, NPMODE_QUEUE
@@ -6797,16 +6696,7 @@ define IEEE802154_SET_MACPARAMS	35
 define IEEE802154_START_REQ	13
 define IMADDTIMER	2147764544
 define IMDELTIMER	2147764545
-define IOCNR_GET_BUS_ADDRESS	5
-define IOCNR_GET_DEVICE_ID	1
-define IOCNR_GET_PROTOCOLS	2
-define IOCNR_GET_VID_PID	6
-define IOCNR_HP_SET_CHANNEL	4
-define IOCNR_SET_PROTOCOL	3
-define IOCNR_SOFT_RESET	7
 define IOCTL_CONFIG_SYS_RESOURCE_PARAMETERS	1074356480
-define IOCTL_GET_DRV_VERSION	2
-define IOCTL_GET_HARD_VERSION	1
 define IOCTL_GET_NUM_DEVICES	1074028804
 define IOCTL_START_ACCEL_DEV	1074356482
 define IOCTL_STATUS_ACCEL_DEV	1074028803
@@ -6828,9 +6718,6 @@ define IOCTL_VMCI_QUEUEPAIR_SETVA	1956
 define IOCTL_VMCI_SET_NOTIFY	1995
 define IOCTL_VMCI_VERSION	1951
 define IOCTL_VMCI_VERSION2	1959
-define IOW_GETINFO	2150154243
-define IOW_READ	1074315266
-define IOW_WRITE	1074315265
 define MAC802154_HWSIM_ATTR_RADIO_EDGE	2
 define MAC802154_HWSIM_ATTR_RADIO_EDGES	3
 define MAC802154_HWSIM_ATTR_RADIO_ID	1
@@ -6840,8 +6727,6 @@ define MAC802154_HWSIM_CMD_GET_RADIO	1
 define MAC802154_HWSIM_CMD_NEW_EDGE	8
 define MAC802154_HWSIM_CMD_NEW_RADIO	3
 define MAC802154_HWSIM_CMD_SET_EDGE	6
-define MAC802154_HWSIM_EDGE_ATTR_ENDPOINT_ID	1
-define MAC802154_HWSIM_EDGE_ATTR_LQI	2
 define MON_IOCG_STATS	2148045315
 define MON_IOCH_MFLUSH	37384
 define MON_IOCQ_RING_SIZE	37381
@@ -6875,8 +6760,6 @@ define NL802154_ATTR_PID	28
 define NL802154_ATTR_SCAN_CHANNELS	33
 define NL802154_ATTR_SCAN_DONE_REASON	37
 define NL802154_ATTR_SCAN_DURATION	36
-define NL802154_ATTR_SCAN_MEAN_PRF	35
-define NL802154_ATTR_SCAN_PREAMBLE_CODES	34
 define NL802154_ATTR_SCAN_TYPE	31
 define NL802154_ATTR_SEC_DEVICE	46
 define NL802154_ATTR_SEC_DEVKEY	47
@@ -6931,32 +6814,6 @@ define NL802154_CMD_SET_TX_POWER	12
 define NL802154_CMD_SET_WPAN_PHY_NETNS	20
 define NL802154_CMD_STOP_BEACONS	39
 define NL802154_CMD_TRIGGER_SCAN	35
-define NL802154_DEVKEY_ATTR_EXTENDED_ADDR	2
-define NL802154_DEVKEY_ATTR_FRAME_COUNTER	1
-define NL802154_DEVKEY_ATTR_ID	3
-define NL802154_DEV_ADDR_ATTR_EXTENDED	4
-define NL802154_DEV_ADDR_ATTR_MODE	2
-define NL802154_DEV_ADDR_ATTR_PAN_ID	1
-define NL802154_DEV_ADDR_ATTR_SHORT	3
-define NL802154_DEV_ATTR_EXTENDED_ADDR	4
-define NL802154_DEV_ATTR_FRAME_COUNTER	1
-define NL802154_DEV_ATTR_KEY_MODE	6
-define NL802154_DEV_ATTR_PAN_ID	2
-define NL802154_DEV_ATTR_SECLEVEL_EXEMPT	5
-define NL802154_DEV_ATTR_SHORT_ADDR	3
-define NL802154_KEY_ATTR_BYTES	4
-define NL802154_KEY_ATTR_ID	1
-define NL802154_KEY_ATTR_USAGE_CMDS	3
-define NL802154_KEY_ATTR_USAGE_FRAMES	2
-define NL802154_KEY_ID_ATTR_IMPLICIT	3
-define NL802154_KEY_ID_ATTR_INDEX	2
-define NL802154_KEY_ID_ATTR_MODE	1
-define NL802154_KEY_ID_ATTR_SOURCE_EXTENDED	5
-define NL802154_KEY_ID_ATTR_SOURCE_SHORT	4
-define NL802154_SECLEVEL_ATTR_CMD_FRAME	3
-define NL802154_SECLEVEL_ATTR_DEV_OVERRIDE	4
-define NL802154_SECLEVEL_ATTR_FRAME	2
-define NL802154_SECLEVEL_ATTR_LEVELS	1
 define NLBL_CALIPSO_A_DOI	1
 define NLBL_CALIPSO_A_MTYPE	2
 define NLBL_CALIPSO_C_ADD	1
@@ -7008,12 +6865,9 @@ define NLBL_UNLABEL_C_STATICLIST	5
 define NLBL_UNLABEL_C_STATICLISTDEF	8
 define NLBL_UNLABEL_C_STATICREMOVE	4
 define NLBL_UNLABEL_C_STATICREMOVEDEF	7
-define QCA_WLAN_VENDOR_ATTR_MAX	8
-define ROCCATIOCGREPSIZE	2147764465
 define SCSI_IOCTL_GET_BUS_NUMBER	21382
 define SCSI_IOCTL_GET_IDLUN	21378
 define SCSI_IOCTL_SEND_COMMAND	1
-define SECCOMP_IOCTL_NOTIF_ID_VALID_WRONG_DIR	2148016386
 define SG_EMULATED_HOST	8707
 define SG_GET_COMMAND_Q	8816
 define SG_GET_RESERVED_SIZE	8818
@@ -7023,11 +6877,10 @@ define SG_IO	8837
 define SG_SET_COMMAND_Q	8817
 define SG_SET_RESERVED_SIZE	8821
 define SG_SET_TIMEOUT	8705
-define SISUSB_COMMAND	3222074173
-define SISUSB_GET_CONFIG	2152002367
-define SISUSB_GET_CONFIG_SIZE	2147808062
 define SNDRV_RAWMIDI_IOCTL_STATUS32	3223607072
 define SNDRV_RAWMIDI_IOCTL_STATUS64	3224917792
 define SW_SYNC_GET_DEADLINE	3222296322
 define SW_SYNC_IOC_CREATE_FENCE	3223869184
 define SW_SYNC_IOC_INC	1074026241
+define X86_IOC_RDMSR_REGS	3223348128
+define X86_IOC_WRMSR_REGS	3223348129

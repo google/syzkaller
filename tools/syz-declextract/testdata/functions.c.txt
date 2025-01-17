@@ -4,8 +4,4 @@ meta automatic
 
 type auto_todo int8
 
-include <vdso/bits.h>
-include <linux/types.h>
-include <net/netlink.h>
-
 functions$auto(x fd) fd

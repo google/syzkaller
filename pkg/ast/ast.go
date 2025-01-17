@@ -71,7 +71,7 @@ type Include struct {
 }
 
 func (n *Include) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokInclude], ""
+	return n.Pos, tok2str[tokInclude], n.File.Value
 }
 
 type Incdir struct {

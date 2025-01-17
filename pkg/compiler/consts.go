@@ -23,6 +23,7 @@ type ConstInfo struct {
 type Const struct {
 	Name string
 	Pos  ast.Pos
+	Used bool // otherwise only defined
 }
 
 func ExtractConsts(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) map[string]*ConstInfo {
@@ -86,7 +87,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 				comp.error(pos, "redefining builtin const %v", name)
 			}
 			info.defines[name] = v
-			comp.addConst(ctx, pos, name)
+			ctx.addConst(pos, name, false)
 		case *ast.Call:
 			if comp.target.HasCallNumber(n.CallName) {
 				comp.addConst(ctx, pos, comp.target.SyscallPrefix+n.CallName)
@@ -178,10 +179,10 @@ func (comp *compiler) addConst(ctx *constContext, pos ast.Pos, name string) {
 	if _, isFlag := comp.intFlags[name]; isFlag {
 		return
 	}
-	ctx.addConst(pos, name)
+	ctx.addConst(pos, name, true)
 	for _, instantions := range ctx.instantionStack {
 		for _, pos1 := range instantions {
-			ctx.addConst(pos1, name)
+			ctx.addConst(pos1, name, true)
 		}
 	}
 }
@@ -193,11 +194,15 @@ type constInfo struct {
 	incdirArray  []string
 }
 
-func (ctx *constContext) addConst(pos ast.Pos, name string) {
+func (ctx *constContext) addConst(pos ast.Pos, name string, used bool) {
 	info := ctx.getConstInfo(pos)
+	if c := info.consts[name]; c != nil && c.Used {
+		used = true
+	}
 	info.consts[name] = &Const{
 		Pos:  pos,
 		Name: name,
+		Used: used,
 	}
 }
 

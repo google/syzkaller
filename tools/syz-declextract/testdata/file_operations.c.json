@@ -45,6 +45,12 @@
 			"name": "proc_write",
 			"file": "file_operations.c",
 			"is_static": true
+		},
+		{
+			"name": "unused_ioctl",
+			"file": "file_operations.c",
+			"is_static": true,
+			"loc": 4
 		}
 	],
 	"consts": [
@@ -72,6 +78,16 @@
 			"name": "FOO_IOCTL5",
 			"filename": "include/uapi/file_operations.h",
 			"value": 3221775109
+		},
+		{
+			"name": "UNUSED_IOCTL1",
+			"filename": "include/uapi/unused_ioctl.h",
+			"value": 25345
+		},
+		{
+			"name": "UNUSED_IOCTL2",
+			"filename": "file_operations.c",
+			"value": 25346
 		}
 	],
 	"structs": [
@@ -184,6 +200,31 @@
 			"open": "proc_open",
 			"mmap": "proc_open",
 			"ioctl": "proc_ioctl",
+			"source_file": "file_operations.c"
+		},
+		{
+			"name": "unused_file_operations",
+			"ioctl": "unused_ioctl",
+			"ioctl_cmds": [
+				{
+					"name": "UNUSED_IOCTL2",
+					"type": {
+						"int": {
+							"byte_size": 1,
+							"is_const": true
+						}
+					}
+				},
+				{
+					"name": "UNUSED_IOCTL1",
+					"type": {
+						"int": {
+							"byte_size": 1,
+							"is_const": true
+						}
+					}
+				}
+			],
 			"source_file": "file_operations.c"
 		}
 	]

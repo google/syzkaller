@@ -16,7 +16,7 @@ import (
 )
 
 func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string, trace io.Writer) (
-	[]byte, []*Interface, error) {
+	[]byte, []*Interface, map[string]string, error) {
 	ctx := &context{
 		Output:        out,
 		probe:         probe,
@@ -29,7 +29,7 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 	}
 	ctx.processFunctions()
 	ctx.processTypingFacts()
-	ctx.processConsts()
+	includeUse := ctx.processConsts()
 	ctx.processEnums()
 	ctx.processStructs()
 	ctx.processSyscalls()
@@ -37,7 +37,7 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 
 	ctx.serialize()
 	ctx.finishInterfaces()
-	return ctx.descriptions.Bytes(), ctx.interfaces, errors.Join(ctx.errs...)
+	return ctx.descriptions.Bytes(), ctx.interfaces, includeUse, errors.Join(ctx.errs...)
 }
 
 type context struct {
@@ -75,7 +75,7 @@ func (ctx *context) trace(msg string, args ...any) {
 	}
 }
 
-func (ctx *context) processConsts() {
+func (ctx *context) processConsts() map[string]string {
 	replaces := map[string]string{
 		// Arches may use some includes from asm-generic and some from arch/arm.
 		// If the arch used for extract used asm-generic for a header,
@@ -85,6 +85,7 @@ func (ctx *context) processConsts() {
 		"include/uapi/asm-generic/sockios.h": "asm/sockios.h",
 	}
 	defineDedup := make(map[string]bool)
+	includeUse := make(map[string]string)
 	for _, ci := range ctx.Consts {
 		if strings.Contains(ci.Filename, "/uapi/") && !strings.Contains(ci.Filename, "arch/x86/") &&
 			strings.HasSuffix(ci.Filename, ".h") {
@@ -93,6 +94,7 @@ func (ctx *context) processConsts() {
 				filename = replace
 			}
 			ctx.includes = append(ctx.includes, filename)
+			includeUse[ci.Name] = filename
 			continue
 		}
 		// Remove duplicate defines (even with different values). Unfortunately we get few of these.
@@ -118,6 +120,11 @@ func (ctx *context) processConsts() {
 		"linux/types.h",
 		"net/netlink.h",
 	}, ctx.includes...)
+	// Also pretend they are used.
+	includeUse["__NR_read"] = "vdso/bits.h"
+	includeUse["__NR_write"] = "linux/types.h"
+	includeUse["__NR_close"] = "net/netlink.h"
+	return includeUse
 }
 
 func (ctx *context) processEnums() {

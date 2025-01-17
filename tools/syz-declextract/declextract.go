@@ -62,7 +62,7 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *c
 	if err != nil {
 		return err
 	}
-	descriptions, interfaces, err := declextract.Run(out, probeInfo, syscallRename, cfg.DebugTrace)
+	descriptions, interfaces, includeUse, err := declextract.Run(out, probeInfo, syscallRename, cfg.DebugTrace)
 	if err != nil {
 		return err
 	}
@@ -94,6 +94,20 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *c
 	if err := osutil.WriteFile(autoFile+".info", serialize(interfaces)); err != nil {
 		return err
 	}
+	removeUnused(desc, "", unusedNodes)
+	// Second pass to remove unused defines/includes. This needs to be done after removing
+	// other garbage b/c they may be used by other garbage.
+	unusedConsts, err := compiler.CollectUnusedConsts(desc.Clone(), target, includeUse, eh)
+	if err != nil {
+		return fmt.Errorf("failed to typecheck descriptions: %w\n%s", err, errors.Bytes())
+	}
+	removeUnused(desc, autoFile, unusedConsts)
+	// We need re-parse them again b/c new lines are fixed up during parsing.
+	formatted := ast.Format(ast.Parse(ast.Format(desc), autoFile, nil))
+	return osutil.WriteFile(autoFile, formatted)
+}
+
+func removeUnused(desc *ast.Description, autoFile string, unusedNodes []ast.Node) {
 	unused := make(map[string]bool)
 	for _, n := range unusedNodes {
 		_, typ, name := n.Info()
@@ -101,11 +115,8 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *c
 	}
 	desc.Nodes = slices.DeleteFunc(desc.Nodes, func(n ast.Node) bool {
 		pos, typ, name := n.Info()
-		return pos.File != autoFile || unused[typ+name]
+		return autoFile != "" && pos.File != autoFile || unused[typ+name]
 	})
-	// We need re-parse them again b/c new lines are fixed up during parsing.
-	formatted := ast.Format(ast.Parse(ast.Format(desc), autoFile, nil))
-	return osutil.WriteFile(autoFile, formatted)
 }
 
 func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Config) (
