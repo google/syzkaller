@@ -94,6 +94,7 @@
 		{
 			"name": "foo_ioctl_arg",
 			"byte_size": 8,
+			"align": 4,
 			"fields": [
 				{
 					"name": "a",

@@ -46,7 +46,8 @@ struct various {
 };
 
 struct recursive {
-	struct various various;
+	// This is not handled properly yet.
+	// struct various various;
 };
 
 SYSCALL_DEFINE1(types_syscall, struct anon_struct* p, struct empty_struct* y,
@@ -64,3 +65,35 @@ void  anon_flow(int x) {
 	s.ptr->a = x;
 	s.ptr_array[1]->b = x;
 }
+
+struct aligned_empty_struct {} __attribute__((aligned(8)));
+struct large_struct { long foo[10]; };
+
+struct align1 {
+	char f1;
+	long aligner[0];
+	char f2;
+};
+
+struct align2 {
+	char f1;
+	struct empty_struct aligner;
+	char f2;
+};
+
+struct align3 {
+	char f1;
+	struct aligned_empty_struct aligner;
+	char f2;
+};
+
+struct align4 {
+	char f1;
+	struct large_struct aligner[0];
+	char f2;
+};
+
+SYSCALL_DEFINE1(align_syscall, struct align1* a1, struct align2* a2, struct align3* a3, struct align4* a4) {
+	return 0;
+}
+

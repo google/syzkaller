@@ -68,7 +68,8 @@ func TestDeclextract(t *testing.T) {
 			return probeInfo, nil
 		}
 		autoFile := filepath.Join(cfg.KernelObj, filepath.Base(file)+".txt")
-		if err := run(autoFile, loadProbeInfo, cfg); err != nil {
+		res, err := run(autoFile, loadProbeInfo, cfg)
+		if err != nil {
 			if *flagUpdate {
 				osutil.CopyFile(autoFile, file+".txt")
 				osutil.CopyFile(autoFile+".info", file+".info")
@@ -93,9 +94,22 @@ func TestDeclextract(t *testing.T) {
 				consts[c.Name] = uint64(i + 1)
 			}
 		}
-		res := compiler.Compile(full, consts, target, eh)
-		if res == nil {
+		desc := compiler.Compile(full, consts, target, eh)
+		if desc == nil {
 			t.Fatalf("failed to compile full descriptions:\n%s", errors)
+		}
+
+		// Check that generated structs have the same size/align as they had in C.
+		// We assume size/align do not depend on const values (which we fabricated).
+		for _, typ := range desc.Types {
+			info := res.StructInfo[typ.Name()]
+			if info == nil {
+				continue
+			}
+			if typ.Size() != uint64(info.Size) || typ.Alignment() != uint64(info.Align) {
+				t.Errorf("incorrect generated type %v: size %v/%v align %v/%v",
+					typ.Name(), typ.Size(), info.Size, typ.Alignment(), info.Align)
+			}
 		}
 
 		// TODO: Ensure that none of the syscalls will be disabled by TransitivelyEnabledCalls.

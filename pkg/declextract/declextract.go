@@ -9,14 +9,25 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 )
 
+type Result struct {
+	Descriptions []byte
+	Interfaces   []*Interface
+	IncludeUse   map[string]string
+	StructInfo   map[string]*StructInfo
+}
+
+type StructInfo struct {
+	Size  int
+	Align int
+}
+
 func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string, trace io.Writer) (
-	[]byte, []*Interface, map[string]string, error) {
+	*Result, error) {
 	ctx := &context{
 		Output:        out,
 		probe:         probe,
@@ -31,13 +42,21 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 	ctx.processTypingFacts()
 	includeUse := ctx.processConsts()
 	ctx.processEnums()
-	ctx.processStructs()
+	structInfo := ctx.processStructs()
 	ctx.processSyscalls()
 	ctx.processIouring()
 
 	ctx.serialize()
 	ctx.finishInterfaces()
-	return ctx.descriptions.Bytes(), ctx.interfaces, includeUse, errors.Join(ctx.errs...)
+	if len(ctx.errs) != 0 {
+		return nil, errors.Join(ctx.errs...)
+	}
+	return &Result{
+		Descriptions: ctx.descriptions.Bytes(),
+		Interfaces:   ctx.interfaces,
+		IncludeUse:   includeUse,
+		StructInfo:   structInfo,
+	}, nil
 }
 
 type context struct {
@@ -173,14 +192,16 @@ func (ctx *context) processIouring() {
 	}
 }
 
-func (ctx *context) processStructs() {
+func (ctx *context) processStructs() map[string]*StructInfo {
+	structInfo := make(map[string]*StructInfo)
 	for _, str := range ctx.Structs {
 		str.Name += autoSuffix
 		ctx.structs[str.Name] = str
+		structInfo[str.Name] = &StructInfo{
+			Size:  str.ByteSize,
+			Align: str.Align,
+		}
 	}
-	ctx.Structs = slices.DeleteFunc(ctx.Structs, func(str *Struct) bool {
-		return str.ByteSize == 0 // Empty structs are not supported.
-	})
 	for _, str := range ctx.Structs {
 		ctx.processFields(str.Fields, str.Name, true)
 		name := strings.TrimSuffix(str.Name, autoSuffix)
@@ -189,6 +210,7 @@ func (ctx *context) processStructs() {
 			refineFieldType(f, typ, true)
 		}
 	}
+	return structInfo
 }
 
 func (ctx *context) processFields(fields []*Field, parent string, needBase bool) {
@@ -386,8 +408,17 @@ func (ctx *context) fieldTypeArray(f *Field, parent string) string {
 		Type: t.Elem,
 	}
 	elemType := ctx.fieldType(elem, nil, parent, true)
-	if t.MinSize == 1 && t.MaxSize == 1 {
-		return elemType
+	if t.IsConstSize {
+		switch t.MaxSize {
+		case 0:
+			// Empty arrays may still affect parent struct layout, if the element type
+			// has alignment >1. We don't support arrays of size 0, so emit a special
+			// aligning type instead.
+			return fmt.Sprintf("auto_aligner[%v]", t.Align)
+		case 1:
+			// Array of size 1 is not really an array, just use the element type itself.
+			return elemType
+		}
 	}
 	bounds := ctx.bounds(f.Name, t.MinSize, t.MaxSize)
 	return fmt.Sprintf("array[%v%v]", elemType, bounds)
@@ -442,9 +473,16 @@ func (ctx *context) fieldTypeStruct(f *Field) string {
 	case "__kernel_sockaddr_storage":
 		return "sockaddr_storage"
 	}
-	f.Type.Struct += autoSuffix
-	if ctx.structs[f.Type.Struct].ByteSize == 0 {
-		return voidType
+	// We can get here several times for the same struct.
+	if !strings.HasSuffix(f.Type.Struct, autoSuffix) {
+		f.Type.Struct += autoSuffix
+	}
+	str := ctx.structs[f.Type.Struct]
+	if str == nil {
+		panic(fmt.Sprintf("can't find struct %v", f.Type.Struct))
+	}
+	if str.ByteSize == 0 {
+		return fmt.Sprintf("auto_aligner[%v]", str.Align)
 	}
 	return f.Type.Struct
 }

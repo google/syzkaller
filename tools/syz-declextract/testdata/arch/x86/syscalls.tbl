@@ -4,4 +4,5 @@
 1	64	open			sys_open
 2	64	chmod			sys_chmod
 3	64	types_syscall		sys_types_syscall
-4	64	functions		sys_functions
+4	64	align_syscall		sys_align_syscall
+5	64	functions		sys_functions

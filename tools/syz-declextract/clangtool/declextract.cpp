@@ -128,6 +128,7 @@ private:
   const T* findFirstMatch(const Node* Expr, const Condition& Cond);
   std::optional<QualType> getSizeofType(const Expr* E);
   int sizeofType(const Type* T);
+  int alignofType(const Type* T);
   std::vector<IoctlCmd> extractIoctlCommands(const std::string& Ioctl);
   std::optional<TypingEntity> getTypingEntity(const std::string& CurrentFunc,
                                               std::unordered_map<const VarDecl*, int>& LocalVars,
@@ -206,11 +207,15 @@ FieldType Extractor::genType(QualType QT, const std::string& BackupName) {
     return extractRecord(QT, Typ, BackupName);
   }
   if (auto* Typ = llvm::dyn_cast<ConstantArrayType>(T)) {
+    // TODO: the size may be a macro that is different for each arch, e.g.:
+    //   long foo[FOOSIZE/sizeof(long)];
     int Size = Typ->getSize().getZExtValue();
     return ArrType{
         .Elem = genType(Typ->getElementType(), BackupName),
         .MinSize = Size,
         .MaxSize = Size,
+        .Align = alignofType(Typ),
+        .IsConstSize = true,
     };
   }
   if (auto* Typ = llvm::dyn_cast<PointerType>(T)) {
@@ -275,12 +280,12 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
         .Type = std::move(FieldType),
     });
   }
-  int Align = 0;
+  int AlignAttr = 0;
   bool Packed = false;
   if (Decl->isStruct() && Decl->hasAttrs()) {
     for (const auto& A : Decl->getAttrs()) {
       if (auto* Attr = llvm::dyn_cast<AlignedAttr>(A))
-        Align = Attr->getAlignment(*Context) / 8;
+        AlignAttr = Attr->getAlignment(*Context) / 8;
       else if (llvm::isa<PackedAttr>(A))
         Packed = true;
     }
@@ -288,9 +293,10 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
   Output.emit(Struct{
       .Name = Name,
       .ByteSize = sizeofType(Typ),
+      .Align = alignofType(Typ),
       .IsUnion = Decl->isUnion(),
       .IsPacked = Packed,
-      .Align = Align,
+      .AlignAttr = AlignAttr,
       .Fields = std::move(Fields),
   });
   return Name;
@@ -445,6 +451,7 @@ std::vector<std::pair<int, std::string>> Extractor::extractDesignatedInitConsts(
 }
 
 int Extractor::sizeofType(const Type* T) { return static_cast<int>(Context->getTypeInfo(T).Width) / 8; }
+int Extractor::alignofType(const Type* T) { return static_cast<int>(Context->getTypeInfo(T).Align) / 8; }
 
 template <typename T> T Extractor::evaluate(const Expr* E) {
   Expr::EvalResult Res;
