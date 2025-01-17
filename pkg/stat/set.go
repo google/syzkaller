@@ -233,9 +233,7 @@ func (s *set) New(name, desc string, opts ...any) *Val {
 				lines: make(map[string]*line),
 			}
 		}
-		if s.graphs[v.graph].level < v.level {
-			s.graphs[v.graph].level = v.level
-		}
+		s.graphs[v.graph].level = max(s.graphs[v.graph].level, v.level)
 		s.graphs[v.graph].stacked = stacked
 	}
 	return v
@@ -345,9 +343,7 @@ func (s *set) tick() {
 				*pv += float64(val-v.prev) / float64(s.historyScale)
 				v.prev = val
 			} else {
-				if *pv < float64(val) {
-					*pv = float64(val)
-				}
+				*pv = max(*pv, float64(val))
 			}
 		}
 	}

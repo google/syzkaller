@@ -47,11 +47,7 @@ func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
 func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs rand.Source, iters int)) {
 	t.Parallel()
 	targets := AllTargets()
-	iters := testutil.IterCount()
-	iters /= len(targets)
-	if iters < 3 {
-		iters = 3
-	}
+	iters := max(testutil.IterCount()/len(targets), 3)
 	rs0 := testutil.RandSource(t)
 	for _, target := range targets {
 		target := target

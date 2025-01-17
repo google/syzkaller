@@ -160,10 +160,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 		start := 0
 		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
 		for _, cov := range cover {
-			end := cov.End - 1
-			if end > len(ln) {
-				end = len(ln)
-			}
+			end := min(cov.End-1, len(ln))
 			if end == start {
 				continue
 			}
@@ -661,10 +658,7 @@ func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 		start := 0
 		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
 		for _, cov := range cover {
-			end := cov.End - 1
-			if end > len(ln) {
-				end = len(ln)
-			}
+			end := min(cov.End-1, len(ln))
 			if end == start {
 				continue
 			}
@@ -708,9 +702,7 @@ func perLineCoverage(covered, uncovered []backend.Range) map[int][]lineCoverChun
 
 func mergeRange(lines map[int][]lineCoverChunk, r backend.Range, covered bool) {
 	// Don't panic on broken debug info, it is frequently broken.
-	if r.EndLine < r.StartLine {
-		r.EndLine = r.StartLine
-	}
+	r.EndLine = max(r.EndLine, r.StartLine)
 	if r.EndLine == r.StartLine && r.EndCol <= r.StartCol {
 		r.EndCol = backend.LineEnd
 	}
@@ -750,10 +742,7 @@ func mergeLine(chunks []lineCoverChunk, start, end int, covered bool) []lineCove
 			if chunkStart < start {
 				res = append(res, lineCoverChunk{start, chunk.Covered, chunk.Uncovered})
 			}
-			mid := end
-			if mid > chunk.End {
-				mid = chunk.End
-			}
+			mid := min(end, chunk.End)
 			res = append(res, lineCoverChunk{mid, chunk.Covered || covered, chunk.Uncovered || !covered})
 			if chunk.End > end {
 				res = append(res, lineCoverChunk{chunk.End, chunk.Covered, chunk.Uncovered})

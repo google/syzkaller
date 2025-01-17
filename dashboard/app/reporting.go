@@ -366,20 +366,16 @@ func (bug *Bug) obsoletePeriod(c context.Context) time.Duration {
 		days = days * 3
 		period = time.Hour * time.Duration(24*days)
 	}
-	min, max := config.Obsoleting.MinPeriod, config.Obsoleting.MaxPeriod
+	minVal, maxVal := config.Obsoleting.MinPeriod, config.Obsoleting.MaxPeriod
 	if config.Obsoleting.NonFinalMinPeriod != 0 &&
 		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() {
-		min, max = config.Obsoleting.NonFinalMinPeriod, config.Obsoleting.NonFinalMaxPeriod
+		minVal, maxVal = config.Obsoleting.NonFinalMinPeriod, config.Obsoleting.NonFinalMaxPeriod
 	}
 	if mgr := bug.managerConfig(c); mgr != nil && mgr.ObsoletingMinPeriod != 0 {
-		min, max = mgr.ObsoletingMinPeriod, mgr.ObsoletingMaxPeriod
+		minVal, maxVal = mgr.ObsoletingMinPeriod, mgr.ObsoletingMaxPeriod
 	}
-	if period < min {
-		period = min
-	}
-	if period > max {
-		period = max
-	}
+	period = max(period, minVal)
+	period = min(period, maxVal)
 	return period
 }
 
@@ -1042,9 +1038,7 @@ func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpd
 		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
 		bugReporting.CC = strings.Join(merged, "|")
 	}
-	if bugReporting.ReproLevel < cmd.ReproLevel {
-		bugReporting.ReproLevel = cmd.ReproLevel
-	}
+	bugReporting.ReproLevel = max(bugReporting.ReproLevel, cmd.ReproLevel)
 	if bug.Status != BugStatusDup {
 		bug.DupOf = ""
 	}

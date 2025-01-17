@@ -94,10 +94,7 @@ func (hm *GenericHeatmap) debugPrint(t *testing.T, data []byte, regions []region
 	// Print data.
 	t.Logf("data: len = %d", len(data))
 	for j := 0; j < len(data); j += granularity {
-		end := j + granularity
-		if end > len(data) {
-			end = len(data)
-		}
+		end := min(j+granularity, len(data))
 		t.Logf("%8d: %x", j*granularity, data[j:end])
 	}
 	t.Log("\n")

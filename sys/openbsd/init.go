@@ -196,12 +196,8 @@ func (arch *arch) neutralizeRlimit(c *prog.Call) {
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case *prog.ConstArg:
-			if v.Val < rlimitMin {
-				v.Val = rlimitMin
-			}
-			if v.Val > rlimitMax {
-				v.Val = rlimitMax
-			}
+			v.Val = max(v.Val, rlimitMin)
+			v.Val = min(v.Val, rlimitMax)
 		}
 	}
 }

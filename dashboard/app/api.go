@@ -906,12 +906,8 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.NumRepro++
 			bug.LastReproTime = now
 		}
-		if bug.ReproLevel < reproLevel {
-			bug.ReproLevel = reproLevel
-		}
-		if bug.HeadReproLevel < reproLevel {
-			bug.HeadReproLevel = reproLevel
-		}
+		bug.ReproLevel = max(bug.ReproLevel, reproLevel)
+		bug.HeadReproLevel = max(bug.HeadReproLevel, reproLevel)
 		if len(req.Report) != 0 {
 			bug.HasReport = true
 		}
@@ -1231,28 +1227,16 @@ func apiManagerStats(c context.Context, ns string, payload io.Reader) (interface
 		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime
-		if cur := int64(req.Corpus); cur > stats.MaxCorpus {
-			stats.MaxCorpus = cur
-		}
-		if cur := int64(req.PCs); cur > stats.MaxPCs {
-			stats.MaxPCs = cur
-		}
-		if cur := int64(req.Cover); cur > stats.MaxCover {
-			stats.MaxCover = cur
-		}
-		if cur := int64(req.CrashTypes); cur > stats.CrashTypes {
-			stats.CrashTypes = cur
-		}
+		stats.MaxCorpus = max(stats.MaxCorpus, int64(req.Corpus))
+		stats.MaxPCs = max(stats.MaxPCs, int64(req.PCs))
+		stats.MaxCover = max(stats.MaxCover, int64(req.Cover))
+		stats.CrashTypes = max(stats.CrashTypes, int64(req.CrashTypes))
 		stats.TotalFuzzingTime += req.FuzzingTime
 		stats.TotalCrashes += int64(req.Crashes)
 		stats.SuppressedCrashes += int64(req.SuppressedCrashes)
 		stats.TotalExecs += int64(req.Execs)
-		if cur := int64(req.TriagedCoverage); cur > stats.TriagedCoverage {
-			stats.TriagedCoverage = cur
-		}
-		if cur := int64(req.TriagedPCs); cur > stats.TriagedPCs {
-			stats.TriagedPCs = cur
-		}
+		stats.TriagedCoverage = max(stats.TriagedCoverage, int64(req.TriagedCoverage))
+		stats.TriagedPCs = max(stats.TriagedPCs, int64(req.TriagedPCs))
 		return nil
 	})
 	return nil, err

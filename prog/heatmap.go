@@ -44,10 +44,7 @@ func (hm *GenericHeatmap) NumMutations() int {
 	// + up to 4 mutations at random so that even small images can get more than one.
 	n += hm.r.Intn(5)
 	// But don't do too many as it will most likely corrupt the image.
-	if max := 10; n > max {
-		n = max
-	}
-	return n
+	return min(n, 10)
 }
 
 func (hm *GenericHeatmap) ChooseLocation() int {

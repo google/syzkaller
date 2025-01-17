@@ -323,11 +323,7 @@ func (r *randGen) randFilenameLength() int {
 		off = -off
 	}
 	lens := r.target.SpecialFileLenghts
-	res := lens[r.Intn(len(lens))] + off
-	if res < 0 {
-		res = 0
-	}
-	return res
+	return max(lens[r.Intn(len(lens))]+off, 0)
 }
 
 func (r *randGen) randFromMap(m map[string]bool) string {

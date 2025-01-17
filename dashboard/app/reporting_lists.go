@@ -289,9 +289,7 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 	if takeNoRepro+len(withRepro) < config.BugsInReport {
 		takeNoRepro = config.BugsInReport - len(withRepro)
 	}
-	if takeNoRepro > len(noRepro) {
-		takeNoRepro = len(noRepro)
-	}
+	takeNoRepro = min(takeNoRepro, len(noRepro))
 	sort.Slice(noRepro, func(i, j int) bool {
 		return noRepro[i].NumCrashes > noRepro[j].NumCrashes
 	})

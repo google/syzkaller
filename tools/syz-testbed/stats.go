@@ -217,10 +217,7 @@ func (group RunResultGroup) minResultLength() int {
 	results := group.SyzManagerResults()
 	ret := len(results[0].StatRecords)
 	for _, result := range results {
-		currLen := len(result.StatRecords)
-		if currLen < ret {
-			ret = currLen
-		}
+		ret = min(ret, len(result.StatRecords))
 	}
 	return ret
 }

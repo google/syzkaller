@@ -134,9 +134,7 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 				continue
 			}
 		}
-		if maxSeq < rec.Seq {
-			maxSeq = rec.Seq
-		}
+		maxSeq = max(maxSeq, rec.Seq)
 	}
 	if err := db.Flush(); err != nil {
 		return nil, 0, fmt.Errorf("failed to flush corpus database: %w", err)
@@ -157,16 +155,12 @@ func (st *State) createManager(name string) (*Manager, error) {
 		ownRepros:     make(map[string]bool),
 	}
 	mgr.corpusSeq = loadSeqFile(mgr.corpusSeqFile)
-	if st.corpusSeq < mgr.corpusSeq {
-		st.corpusSeq = mgr.corpusSeq
-	}
+	st.corpusSeq = max(st.corpusSeq, mgr.corpusSeq)
 	mgr.reproSeq = loadSeqFile(mgr.reproSeqFile)
 	if mgr.reproSeq == 0 {
 		mgr.reproSeq = st.reproSeq
 	}
-	if st.reproSeq < mgr.reproSeq {
-		st.reproSeq = mgr.reproSeq
-	}
+	st.reproSeq = max(st.reproSeq, mgr.reproSeq)
 	domainData, _ := os.ReadFile(mgr.domainFile)
 	mgr.Domain = string(domainData)
 	corpus, _, err := loadDB(mgr.corpusFile, name, false)

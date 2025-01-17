@@ -928,9 +928,7 @@ func (env *env) postTestResult(res *testResult) {
 		// Let's be conservative and only decrease our reproduction likelihood estimate.
 		// As the estimate of each test() can also be flaky, only partially update the result.
 		avg := (env.reproChance + res.badRatio) / 2.0
-		if env.reproChance > avg {
-			env.reproChance = avg
-		}
+		env.reproChance = min(env.reproChance, avg)
 	}
 }
 
@@ -1086,7 +1084,7 @@ func pickReleaseTags(all []string) []string {
 	}
 	var ret []string
 	// Take 2 latest sub releases.
-	takeSubReleases := minInts(2, len(subReleases))
+	takeSubReleases := min(2, len(subReleases))
 	ret = append(ret, subReleases[:takeSubReleases]...)
 	// If there are a lot of sub releases, also take the middle one.
 	if len(subReleases) > 5 {
@@ -1103,16 +1101,6 @@ func pickReleaseTags(all []string) []string {
 		}
 		if i%step == 0 || i == len(releases)-1 {
 			ret = append(ret, releases[i])
-		}
-	}
-	return ret
-}
-
-func minInts(vals ...int) int {
-	ret := vals[0]
-	for i := 1; i < len(vals); i++ {
-		if vals[i] < ret {
-			ret = vals[i]
 		}
 	}
 	return ret

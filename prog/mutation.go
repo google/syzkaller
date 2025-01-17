@@ -60,9 +60,7 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	}
 	totalWeight := opts.weight()
 	r := newRand(p.Target, rs)
-	if ncalls < len(p.Calls) {
-		ncalls = len(p.Calls)
-	}
+	ncalls = max(ncalls, len(p.Calls))
 	ctx := &mutator{
 		p:        p,
 		r:        r,
@@ -454,12 +452,8 @@ func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
 	for oldSize := arg.Size(); oldSize == arg.Size(); {
 		arg.size += uint64(r.Intn(33)) - 16
 		// Cast to int64 to prevent underflows.
-		if int64(arg.size) < int64(minLen) {
-			arg.size = minLen
-		}
-		if arg.size > maxLen {
-			arg.size = maxLen
-		}
+		arg.size = uint64(max(int64(arg.size), int64(minLen)))
+		arg.size = min(arg.size, maxLen)
 	}
 }
 
@@ -780,10 +774,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		if len(data) == 0 || uint64(len(data)) >= maxLen {
 			return data, false
 		}
-		n := r.Intn(16) + 1
-		if r := int(maxLen) - len(data); n > r {
-			n = r
-		}
+		n := min(r.Intn(16)+1, int(maxLen)-len(data))
 		pos := r.Intn(len(data))
 		for i := 0; i < n; i++ {
 			data = append(data, 0)
@@ -802,10 +793,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		if len(data) == 0 {
 			return data, false
 		}
-		n := r.Intn(16) + 1
-		if n > len(data) {
-			n = len(data)
-		}
+		n := min(r.Intn(16)+1, len(data))
 		pos := 0
 		if n < len(data) {
 			pos = r.Intn(len(data) - n)
@@ -825,10 +813,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 			return data, false
 		}
 		const max = 256
-		n := max - r.biasedRand(max, 10)
-		if r := int(maxLen) - len(data); n > r {
-			n = r
-		}
+		n := min(max-r.biasedRand(max, 10), int(maxLen)-len(data))
 		for i := 0; i < n; i++ {
 			data = append(data, byte(r.rand(256)))
 		}
