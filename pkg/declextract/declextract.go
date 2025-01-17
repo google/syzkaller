@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifaceprobe"
@@ -165,22 +166,41 @@ func (ctx *context) processSyscalls() {
 			typ := ctx.inferArgType(call.Func, call.SourceFile, i)
 			refineFieldType(arg, typ, false)
 		}
-		fn := strings.TrimPrefix(call.Func, "__do_sys_")
-		for _, name := range ctx.syscallRename[fn] {
-			ctx.noteInterface(&Interface{
-				Type:             IfaceSyscall,
-				Name:             name,
-				IdentifyingConst: "__NR_" + name,
-				Files:            []string{call.SourceFile},
-				Func:             call.Func,
-				AutoDescriptions: true,
-			})
-			newCall := *call
-			newCall.Func = name + autoSuffix
-			syscalls = append(syscalls, &newCall)
+		ctx.emitSyscall(&syscalls, call, "")
+		for i := range call.Args {
+			cmds := ctx.inferCommandVariants(call.Func, call.SourceFile, i)
+			for _, cmd := range cmds {
+				variant := *call
+				variant.Args = slices.Clone(call.Args)
+				newArg := *variant.Args[i]
+				newArg.syzType = fmt.Sprintf("const[%v]", cmd)
+				variant.Args[i] = &newArg
+				suffix := cmd
+				if call.Func == "__do_sys_ioctl" {
+					suffix = ctx.uniqualize("ioctl cmd", cmd)
+				}
+				ctx.emitSyscall(&syscalls, &variant, "_"+suffix)
+			}
 		}
 	}
 	ctx.Syscalls = sortAndDedupSlice(syscalls)
+}
+
+func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall, suffix string) {
+	fn := strings.TrimPrefix(call.Func, "__do_sys_")
+	for _, name := range ctx.syscallRename[fn] {
+		ctx.noteInterface(&Interface{
+			Type:             IfaceSyscall,
+			Name:             name,
+			IdentifyingConst: "__NR_" + name,
+			Files:            []string{call.SourceFile},
+			Func:             call.Func,
+			AutoDescriptions: true,
+		})
+		newCall := *call
+		newCall.Func = name + autoSuffix + suffix
+		*syscalls = append(*syscalls, &newCall)
+	}
 }
 
 func (ctx *context) processIouring() {
