@@ -3,256 +3,317 @@
 		{
 			"name": "__do_sys_functions",
 			"file": "functions.c",
-			"loc": 2,
-			"calls": [
-				"__fget_light",
-				"func_baz"
-			],
-			"facts": [
+			"scopes": [
 				{
-					"src": {
-						"argument": {
-							"func": "__do_sys_functions",
-							"arg": 0
+					"arg": -1,
+					"loc": 2,
+					"calls": [
+						"__fget_light",
+						"func_baz"
+					],
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "__do_sys_functions",
+									"arg": 0
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "__fget_light",
+									"arg": 0
+								}
+							}
+						},
+						{
+							"src": {
+								"return": {
+									"func": "func_baz"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "__do_sys_functions"
+								}
+							}
 						}
-					},
-					"dst": {
-						"argument": {
-							"func": "__fget_light",
-							"arg": 0
-						}
-					}
-				},
-				{
-					"src": {
-						"return": {
-							"func": "func_baz"
-						}
-					},
-					"dst": {
-						"return": {
-							"func": "__do_sys_functions"
-						}
-					}
+					]
 				}
 			]
 		},
 		{
 			"name": "__fget_light",
-			"file": "functions.c"
+			"file": "functions.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "alloc_fd",
 			"file": "functions.c",
-			"loc": 1
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
 		},
 		{
 			"name": "atomic_load32",
 			"file": "include/types.h",
 			"is_static": true,
-			"loc": 1
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
 		},
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
-			"loc": 1
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
 		},
 		{
 			"name": "from_kuid",
 			"file": "functions.c",
-			"loc": 1
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
 		},
 		{
 			"name": "func_bar",
 			"file": "functions.c",
 			"is_static": true,
-			"loc": 1,
-			"calls": [
-				"func_foo"
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1,
+					"calls": [
+						"func_foo"
+					]
+				}
 			]
 		},
 		{
 			"name": "func_baz",
 			"file": "functions.c",
-			"loc": 8,
-			"calls": [
-				"func_foo",
-				"func_bar",
-				"from_kuid",
-				"alloc_fd"
-			],
-			"facts": [
+			"scopes": [
 				{
-					"src": {
-						"return": {
-							"func": "from_kuid"
+					"arg": -1,
+					"loc": 8,
+					"calls": [
+						"func_foo",
+						"func_bar",
+						"func_bar",
+						"from_kuid",
+						"alloc_fd"
+					],
+					"facts": [
+						{
+							"src": {
+								"return": {
+									"func": "from_kuid"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "func_baz"
+								}
+							}
+						},
+						{
+							"src": {
+								"return": {
+									"func": "alloc_fd"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "func_baz"
+								}
+							}
 						}
-					},
-					"dst": {
-						"return": {
-							"func": "func_baz"
-						}
-					}
-				},
-				{
-					"src": {
-						"return": {
-							"func": "alloc_fd"
-						}
-					},
-					"dst": {
-						"return": {
-							"func": "func_baz"
-						}
-					}
+					]
 				}
 			]
 		},
 		{
 			"name": "func_foo",
 			"file": "functions.c",
-			"is_static": true
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "func_qux",
 			"file": "functions.c",
-			"loc": 2,
-			"calls": [
-				"alloc_fd"
-			],
-			"facts": [
+			"scopes": [
 				{
-					"src": {
-						"return": {
-							"func": "alloc_fd"
+					"arg": -1,
+					"loc": 2,
+					"calls": [
+						"alloc_fd"
+					],
+					"facts": [
+						{
+							"src": {
+								"return": {
+									"func": "alloc_fd"
+								}
+							},
+							"dst": {
+								"local": {
+									"name": "fd"
+								}
+							}
+						},
+						{
+							"src": {
+								"local": {
+									"name": "fd"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "func_qux"
+								}
+							}
 						}
-					},
-					"dst": {
-						"local": {
-							"name": "fd"
-						}
-					}
-				},
-				{
-					"src": {
-						"local": {
-							"name": "fd"
-						}
-					},
-					"dst": {
-						"return": {
-							"func": "func_qux"
-						}
-					}
+					]
 				}
 			]
 		},
 		{
 			"name": "typing",
 			"file": "functions.c",
-			"loc": 5,
-			"calls": [
-				"typing1"
-			],
-			"facts": [
+			"scopes": [
 				{
-					"src": {
-						"argument": {
-							"func": "typing",
-							"arg": 1
+					"arg": -1,
+					"loc": 5,
+					"calls": [
+						"typing1"
+					],
+					"facts": [
+						{
+							"src": {
+								"field": {
+									"struct": "Typed",
+									"field": "b"
+								}
+							},
+							"dst": {
+								"field": {
+									"struct": "Typed",
+									"field": "a"
+								}
+							}
+						},
+						{
+							"src": {
+								"return": {
+									"func": "typing1"
+								}
+							},
+							"dst": {
+								"local": {
+									"name": "l"
+								}
+							}
+						},
+						{
+							"src": {
+								"argument": {
+									"func": "typing",
+									"arg": 1
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "typing1",
+									"arg": 0
+								}
+							}
+						},
+						{
+							"src": {
+								"field": {
+									"struct": "Typed",
+									"field": "a"
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "typing1",
+									"arg": 1
+								}
+							}
+						},
+						{
+							"src": {
+								"local": {
+									"name": "l"
+								}
+							},
+							"dst": {
+								"field": {
+									"struct": "Typed",
+									"field": "c"
+								}
+							}
+						},
+						{
+							"src": {
+								"local": {
+									"name": "l"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "typing"
+								}
+							}
 						}
-					},
-					"dst": {
-						"argument": {
-							"func": "typing1",
-							"arg": 0
-						}
-					}
-				},
-				{
-					"src": {
-						"field": {
-							"struct": "Typed",
-							"field": "a"
-						}
-					},
-					"dst": {
-						"argument": {
-							"func": "typing1",
-							"arg": 1
-						}
-					}
-				},
-				{
-					"src": {
-						"field": {
-							"struct": "Typed",
-							"field": "b"
-						}
-					},
-					"dst": {
-						"field": {
-							"struct": "Typed",
-							"field": "a"
-						}
-					}
-				},
-				{
-					"src": {
-						"local": {
-							"name": "l"
-						}
-					},
-					"dst": {
-						"field": {
-							"struct": "Typed",
-							"field": "c"
-						}
-					}
-				},
-				{
-					"src": {
-						"return": {
-							"func": "typing1"
-						}
-					},
-					"dst": {
-						"local": {
-							"name": "l"
-						}
-					}
-				},
-				{
-					"src": {
-						"local": {
-							"name": "l"
-						}
-					},
-					"dst": {
-						"return": {
-							"func": "typing"
-						}
-					}
+					]
 				}
 			]
 		},
 		{
 			"name": "typing1",
 			"file": "functions.c",
-			"loc": 1,
-			"facts": [
+			"scopes": [
 				{
-					"src": {
-						"argument": {
-							"func": "typing1",
-							"arg": 0
+					"arg": -1,
+					"loc": 1,
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "typing1",
+									"arg": 0
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "typing1"
+								}
+							}
 						}
-					},
-					"dst": {
-						"return": {
-							"func": "typing1"
-						}
-					}
+					]
 				}
 			]
 		}

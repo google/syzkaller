@@ -34,6 +34,7 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 		syscallRename: syscallRename,
 		structs:       make(map[string]*Struct),
 		funcs:         make(map[string]*Function),
+		ioctls:        make(map[string]*Type),
 		facts:         make(map[string]*typingNode),
 		uniqualizer:   make(map[string]int),
 		debugTrace:    trace,
@@ -65,6 +66,7 @@ type context struct {
 	syscallRename map[string][]string // syscall function -> syscall names
 	structs       map[string]*Struct
 	funcs         map[string]*Function
+	ioctls        map[string]*Type
 	facts         map[string]*typingNode
 	includes      []string
 	defines       []define
@@ -137,11 +139,13 @@ func (ctx *context) processConsts() map[string]string {
 	ctx.includes = append([]string{
 		"vdso/bits.h",
 		"linux/types.h",
+		"linux/usbdevice_fs.h", // to fix broken include/uapi/linux/usbdevice_fs.h
 		"net/netlink.h",
 	}, ctx.includes...)
 	// Also pretend they are used.
 	includeUse["__NR_read"] = "vdso/bits.h"
 	includeUse["__NR_write"] = "linux/types.h"
+	includeUse["__NR_openat"] = "linux/usbdevice_fs.h"
 	includeUse["__NR_close"] = "net/netlink.h"
 	return includeUse
 }

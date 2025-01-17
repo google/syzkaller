@@ -2,31 +2,66 @@
 	"functions": [
 		{
 			"name": "io_eopnotsupp_prep",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_nop",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_nop_prep",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_read",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_readv_prep",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_write",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		},
 		{
 			"name": "io_writev_prep",
-			"file": "io_uring.c"
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
 		}
 	],
 	"consts": [

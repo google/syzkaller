@@ -10,7 +10,15 @@ static void foo_read() {}
 static void foo_write() {}
 static void foo_mmap() {}
 
-static void foo_ioctl(unsigned int cmd) {
+static void foo_ioctl2(unsigned int cmd, unsigned long arg) {
+	switch (cmd) {
+	case FOO_IOCTL6:
+	case FOO_IOCTL7:
+	default:
+	}
+}
+
+static void foo_ioctl(void* file, unsigned int cmd, unsigned long arg) {
 	switch (cmd) {
 	case FOO_IOCTL1:
 	case FOO_IOCTL2:
@@ -18,6 +26,7 @@ static void foo_ioctl(unsigned int cmd) {
 	case FOO_IOCTL4:
 	case FOO_IOCTL5:
 	}
+	foo_ioctl2(cmd, arg);
 }
 
 const struct file_operations foo = {
@@ -31,7 +40,7 @@ const struct file_operations foo = {
 static void proc_open() {}
 static void proc_read() {}
 static void proc_write() {}
-static void proc_ioctl(unsigned int cmd) {}
+static void proc_ioctl(void* file, unsigned int cmd, unsigned long arg) {}
 
 const struct file_operations proc_ops[] = {
 	{
@@ -47,7 +56,7 @@ const struct file_operations proc_ops[] = {
 
 #define UNUSED_IOCTL2		_IO('c', 2)
 
-static void unused_ioctl(unsigned int cmd) {
+static void unused_ioctl(void* file, unsigned int cmd, unsigned long arg) {
 	switch (cmd) {
 	case UNUSED_IOCTL1:
 	case UNUSED_IOCTL2:

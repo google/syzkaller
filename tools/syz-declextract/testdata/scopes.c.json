@@ -1,0 +1,286 @@
+{
+	"functions": [
+		{
+			"name": "__do_sys_scopes0",
+			"file": "scopes.c",
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 4,
+					"calls": [
+						"__fget_light"
+					],
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "__do_sys_scopes0",
+									"arg": 2
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "__fget_light",
+									"arg": 0
+								}
+							}
+						},
+						{
+							"src": {
+								"local": {
+									"name": "tmp"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "__do_sys_scopes0"
+								}
+							}
+						}
+					]
+				},
+				{
+					"arg": 1,
+					"values": [
+						"FOO_IOCTL1"
+					],
+					"loc": 3,
+					"calls": [
+						"__fget_light"
+					],
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "__do_sys_scopes0",
+									"arg": 0
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "__fget_light",
+									"arg": 0
+								}
+							}
+						}
+					]
+				},
+				{
+					"arg": 1,
+					"values": [
+						"FOO_IOCTL2",
+						"FOO_IOCTL3"
+					],
+					"loc": 4,
+					"calls": [
+						"alloc_fd"
+					],
+					"facts": [
+						{
+							"src": {
+								"return": {
+									"func": "alloc_fd"
+								}
+							},
+							"dst": {
+								"local": {
+									"name": "tmp"
+								}
+							}
+						},
+						{
+							"src": {
+								"local": {
+									"name": "tmp"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "__do_sys_scopes0"
+								}
+							}
+						}
+					]
+				},
+				{
+					"arg": 1,
+					"values": [
+						"FOO_IOCTL4",
+						"1074291461",
+						"1074291462"
+					],
+					"loc": 3
+				},
+				{
+					"arg": 1,
+					"values": [
+						"100",
+						"101",
+						"102"
+					],
+					"loc": 3
+				},
+				{
+					"arg": 1,
+					"loc": 3,
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "__do_sys_scopes0",
+									"arg": 1
+								}
+							},
+							"dst": {
+								"local": {
+									"name": "tmp"
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"consts": [
+		{
+			"name": "FOO_IOCTL1",
+			"filename": "include/uapi/file_operations.h",
+			"value": 25345
+		},
+		{
+			"name": "FOO_IOCTL2",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2147771138
+		},
+		{
+			"name": "FOO_IOCTL3",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2148033283
+		},
+		{
+			"name": "FOO_IOCTL4",
+			"filename": "include/uapi/file_operations.h",
+			"value": 1074291460
+		}
+	],
+	"structs": [
+		{
+			"name": "foo_ioctl_arg",
+			"byte_size": 8,
+			"align": 4,
+			"fields": [
+				{
+					"name": "a",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "b",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			]
+		}
+	],
+	"syscalls": [
+		{
+			"func": "__do_sys_scopes0",
+			"args": [
+				{
+					"name": "x",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "cmd",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 8,
+							"name": "long",
+							"base": "long"
+						}
+					}
+				},
+				{
+					"name": "aux",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 8,
+							"name": "long",
+							"base": "long"
+						}
+					}
+				}
+			],
+			"source_file": "scopes.c"
+		}
+	],
+	"ioctls": [
+		{
+			"name": "FOO_IOCTL1",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL2",
+			"type": {
+				"ptr": {
+					"elem": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					},
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL3",
+			"type": {
+				"ptr": {
+					"elem": {
+						"struct": "foo_ioctl_arg"
+					},
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL4",
+			"type": {
+				"ptr": {
+					"elem": {
+						"struct": "foo_ioctl_arg"
+					}
+				}
+			}
+		}
+	]
+}

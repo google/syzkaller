@@ -7,6 +7,11 @@ struct file_operations {
 	void (*write)(void);
 	void (*read_iter)(void);
 	void (*write_iter)(void);
-	void (*unlocked_ioctl)(unsigned int);
+	void (*unlocked_ioctl)(void*, unsigned int, unsigned long);
 	void (*mmap)(void);
 };
+
+int alloc_fd();
+void __fget_light(int fd);
+int from_kuid();
+

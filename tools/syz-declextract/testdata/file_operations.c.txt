@@ -6,6 +6,7 @@ type auto_todo int8
 
 include <vdso/bits.h>
 include <linux/types.h>
+include <linux/usbdevice_fs.h>
 include <include/uapi/file_operations.h>
 
 resource fd_foo_file_operations[fd]
@@ -18,6 +19,8 @@ ioctl$auto_FOO_IOCTL2(fd fd_foo_file_operations, cmd const[FOO_IOCTL2], arg ptr[
 ioctl$auto_FOO_IOCTL3(fd fd_foo_file_operations, cmd const[FOO_IOCTL3], arg ptr[in, foo_ioctl_arg$auto])
 ioctl$auto_FOO_IOCTL4(fd fd_foo_file_operations, cmd const[FOO_IOCTL4], arg ptr[inout, foo_ioctl_arg$auto])
 ioctl$auto_FOO_IOCTL5(fd fd_foo_file_operations, cmd const[FOO_IOCTL5], arg ptr[inout, foo_ioctl_arg$auto])
+ioctl$auto_FOO_IOCTL6(fd fd_foo_file_operations, cmd const[FOO_IOCTL6], arg const[0])
+ioctl$auto_FOO_IOCTL7(fd fd_foo_file_operations, cmd const[FOO_IOCTL7], arg const[0])
 
 foo_ioctl_arg$auto {
 	a	int32

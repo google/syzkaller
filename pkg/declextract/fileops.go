@@ -12,6 +12,9 @@ import (
 // TODO: also emit interface entry for file_operations.
 
 func (ctx *context) serializeFileOps() {
+	for _, ioctl := range ctx.Ioctls {
+		ctx.ioctls[ioctl.Name] = ioctl.Type
+	}
 	fopsToFiles := ctx.mapFopsToFiles()
 	for _, fops := range ctx.FileOps {
 		files := fopsToFiles[fops]
@@ -52,22 +55,36 @@ func (ctx *context) createFops(fops *FileOps, files []string) {
 			" flags flags[mmap_flags], fd %v, offset fileoff)\n", suffix, fdt)
 	}
 	if fops.Ioctl != "" {
-		if len(fops.IoctlCmds) == 0 {
-			ctx.fmt("ioctl%v(fd %v, cmd intptr, arg ptr[in, array[int8]])\n", suffix, fdt)
-		} else {
-			for _, cmd := range sortAndDedupSlice(fops.IoctlCmds) {
-				name := ctx.uniqualize("ioctl cmd", cmd.Name)
-				f := &Field{
-					Name: strings.ToLower(cmd.Name),
-					Type: cmd.Type,
-				}
-				typ := ctx.fieldType(f, nil, "", false)
-				ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v)\n",
-					autoSuffix, name, fdt, cmd.Name, typ)
-			}
-		}
+		ctx.createIoctls(fops, suffix, fdt)
 	}
 	ctx.fmt("\n")
+}
+
+func (ctx *context) createIoctls(fops *FileOps, suffix, fdt string) {
+	const defaultArgType = "ptr[in, array[int8]]"
+	cmds := ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, 1)
+	if len(cmds) == 0 {
+		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile)
+		argType := ctx.inferArgType(fops.Ioctl, fops.SourceFile, 2)
+		if argType == "" {
+			argType = defaultArgType
+		}
+		ctx.fmt("ioctl%v(fd %v, cmd intptr, arg %v) %v\n", suffix, fdt, argType, retType)
+		return
+	}
+	for _, cmd := range cmds {
+		argType := defaultArgType
+		if typ := ctx.ioctls[cmd]; typ != nil {
+			f := &Field{
+				Name: strings.ToLower(cmd),
+				Type: typ,
+			}
+			argType = ctx.fieldType(f, nil, "", false)
+		}
+		name := ctx.uniqualize("ioctl cmd", cmd)
+		ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v)\n",
+			autoSuffix, name, fdt, cmd, argType)
+	}
 }
 
 // mapFopsToFiles maps file_operations to actual file names.
@@ -176,14 +193,14 @@ func (ctx *context) mapFileToFops(funcs map[string]bool, funcToFops map[string][
 	// An example of an excessive case is if we have 2 file_operations with just read+write,
 	// currently we emit generic read/write operations, so we would emit completly equal
 	// descriptions for both. Ioctl commands is the only non-generic descriptions we emit now,
-	// so if a file_operations has any commands, it won't be considered excessive.
+	// so if a file_operations has an ioctl handler, it won't be considered excessive.
 	// Note that if we generate specialized descriptions for read/write/mmap in future,
 	// then these won't be considered excessive as well.
 	excessive := make(map[*FileOps]bool)
 	for i := 0; i < len(best); i++ {
 		for j := i + 1; j < len(best); j++ {
 			a, b := best[i], best[j]
-			if (a.Ioctl == b.Ioctl || len(a.IoctlCmds)+len(b.IoctlCmds) == 0) &&
+			if (a.Ioctl == b.Ioctl) &&
 				(a.Read == "") == (b.Read == "") &&
 				(a.Write == "") == (b.Write == "") &&
 				(a.Mmap == "") == (b.Mmap == "") &&

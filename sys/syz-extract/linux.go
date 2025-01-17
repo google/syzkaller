@@ -140,6 +140,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
 		"-DKBUILD_MODFILE=\"-\"",
+		"-D__LINUX_ARM_ARCH__=7", // arm does not build w/o this
 		"-I" + sourceDir + "/arch/" + headerArch + "/include",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated",

@@ -59,15 +59,16 @@ func (ctx *context) processFunctions() {
 	}
 	nocallers := 0
 	for _, fn := range ctx.Functions {
-		for _, callee := range fn.Calls {
-			called := ctx.findFunc(callee, fn.File)
-			if called == nil || called == fn {
-				continue
+		for _, scope := range fn.Scopes {
+			for _, callee := range scope.Calls {
+				called := ctx.findFunc(callee, fn.File)
+				if called == nil || called == fn {
+					continue
+				}
+				fn.calls = append(fn.calls, called)
+				called.callers++
 			}
-			fn.calls = append(fn.calls, called)
-			called.callers++
 		}
-		fn.Calls = nil
 		if len(fn.calls) == 0 {
 			nocallers++
 		}
@@ -84,7 +85,9 @@ func (ctx *context) reachableLOC(name, file string) int {
 	ctx.collectRachable(fn, reachable)
 	loc := 0
 	for fn := range reachable {
-		loc += fn.LOC
+		for _, scope := range fn.Scopes {
+			loc += scope.LOC
+		}
 	}
 	return loc
 }
