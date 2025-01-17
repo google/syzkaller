@@ -264,9 +264,13 @@ func (comp *compiler) layoutArray(t *prog.ArrayType) {
 	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Elem.Varlen() {
 		t.TypeSize = t.RangeBegin * t.Elem.Size()
 	}
+	t.TypeAlign = t.Elem.Alignment()
 }
 
 func (comp *compiler) layoutUnion(t *prog.UnionType) {
+	for _, fld := range t.Fields {
+		t.TypeAlign = max(t.TypeAlign, fld.Alignment())
+	}
 	t.TypeSize = 0
 	structNode := comp.structs[t.TypeName]
 	if structNode == conditionalFieldWrapper {
@@ -303,6 +307,15 @@ func (comp *compiler) layoutStruct(t *prog.StructType) {
 	attrs := comp.parseIntAttrs(structAttrs, structNode, structNode.Attrs)
 	t.AlignAttr = attrs[attrAlign]
 	comp.layoutStructFields(t, varlen, attrs[attrPacked] != 0)
+	if align := attrs[attrAlign]; align != 0 {
+		t.TypeAlign = align
+	} else if attrs[attrPacked] != 0 {
+		t.TypeAlign = 1
+	} else {
+		for _, f := range t.Fields {
+			t.TypeAlign = max(t.TypeAlign, f.Alignment())
+		}
+	}
 	t.TypeSize = 0
 	if !varlen {
 		var size uint64

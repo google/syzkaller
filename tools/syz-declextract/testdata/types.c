@@ -46,8 +46,7 @@ struct various {
 };
 
 struct recursive {
-	// This is not handled properly yet.
-	// struct various various;
+	struct various various;
 };
 
 SYSCALL_DEFINE1(types_syscall, struct anon_struct* p, struct empty_struct* y,
