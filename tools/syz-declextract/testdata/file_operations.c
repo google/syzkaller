@@ -3,6 +3,7 @@
 
 #include "include/fs.h"
 #include "include/uapi/file_operations.h"
+#include "include/uapi/unused_ioctl.h"
 
 static void foo_open() {}
 static void foo_read() {}
@@ -42,4 +43,17 @@ const struct file_operations proc_ops[] = {
 		.open = proc_open,
 		.unlocked_ioctl = proc_ioctl,
 	},
+};
+
+#define UNUSED_IOCTL2		_IO('c', 2)
+
+static void unused_ioctl(unsigned int cmd) {
+	switch (cmd) {
+	case UNUSED_IOCTL1:
+	case UNUSED_IOCTL2:
+	}
+}
+
+const struct file_operations unused = {
+	.unlocked_ioctl = unused_ioctl,
 };

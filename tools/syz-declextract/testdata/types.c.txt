@@ -4,10 +4,6 @@ meta automatic
 
 type auto_todo int8
 
-include <vdso/bits.h>
-include <linux/types.h>
-include <net/netlink.h>
-
 bitfield_enum$auto = a, b, c
 
 types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, void], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto])

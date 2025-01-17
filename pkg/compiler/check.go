@@ -676,6 +676,44 @@ func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHa
 	return nodes, nil
 }
 
+// CollectUnusedConsts returns unused defines/includes. This is used only for auto-generated descriptions.
+func CollectUnusedConsts(desc *ast.Description, target *targets.Target, includeUse map[string]string,
+	eh ast.ErrorHandler) ([]ast.Node, error) {
+	comp := createCompiler(desc, target, eh)
+	comp.typecheck()
+	if comp.errors > 0 {
+		return nil, errors.New("typecheck failed")
+	}
+
+	var unused []ast.Node
+	for file, info := range comp.extractConsts() {
+		if !comp.fileMeta(ast.Pos{File: file}).Automatic {
+			continue
+		}
+		usedDefines := make(map[string]bool)
+		usedIncludes := make(map[string]bool)
+		for _, c := range info.Consts {
+			if c.Used {
+				usedDefines[c.Name] = true
+				usedIncludes[includeUse[c.Name]] = true
+			}
+		}
+		for _, decl := range comp.desc.Nodes {
+			switch n := decl.(type) {
+			case *ast.Define:
+				if n.Pos.File == file && !usedDefines[n.Name.Name] {
+					unused = append(unused, n)
+				}
+			case *ast.Include:
+				if n.Pos.File == file && !usedIncludes[n.File.Value] {
+					unused = append(unused, n)
+				}
+			}
+		}
+	}
+	return unused, nil
+}
+
 func (comp *compiler) collectUnused() []ast.Node {
 	var unused []ast.Node
 

@@ -4,9 +4,5 @@ meta automatic
 
 type auto_todo int8
 
-include <vdso/bits.h>
-include <linux/types.h>
-include <net/netlink.h>
-
 chmod$auto(filename ptr[in, filename], mode int32)
 open$auto(filename ptr[in, filename], flags int32, mode int32)
