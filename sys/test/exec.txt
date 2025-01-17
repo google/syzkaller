@@ -17,6 +17,7 @@ syz_inject_remote_cover(ptr ptr[in, array[int8]], size bytesize[ptr]) (prog_time
 
 compare_data [
 	align0		align0
+	align3		align3
 	bf0		syz_bf_struct0
 	bf1		syz_bf_struct1
 	bf2		syz_bf_struct2
@@ -100,6 +101,22 @@ align0 {
 	f2	int8
 	f3	int16
 	f4	int64
+}
+
+align1 {
+	f0	align2
+}
+
+align2 {
+	f0	ptr[in, align1, opt]
+}
+
+align3 {
+	f0	align2
+	f1	int8
+	f2	align1
+	f3	int8
+	f4	array[align1, 2]
 }
 
 syz_bf_struct4 {
