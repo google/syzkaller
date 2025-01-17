@@ -12,8 +12,7 @@ import (
 
 type Output struct {
 	Functions       []*Function      `json:"functions,omitempty"`
-	Includes        []string         `json:"includes,omitempty"`
-	Defines         []*Define        `json:"defines,omitempty"`
+	Consts          []*ConstInfo     `json:"consts,omitempty"`
 	Enums           []*Enum          `json:"enums,omitempty"`
 	Structs         []*Struct        `json:"structs,omitempty"`
 	Syscalls        []*Syscall       `json:"syscalls,omitempty"`
@@ -36,9 +35,10 @@ type Function struct {
 	facts   map[string]*typingNode
 }
 
-type Define struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
+type ConstInfo struct {
+	Name     string `json:"name"`
+	Filename string `json:"filename"`
+	Value    int64  `json:"value"`
 }
 
 type Field struct {
@@ -199,8 +199,7 @@ type EntityGlobalAddr struct {
 
 func (out *Output) Merge(other *Output) {
 	out.Functions = append(out.Functions, other.Functions...)
-	out.Includes = append(out.Includes, other.Includes...)
-	out.Defines = append(out.Defines, other.Defines...)
+	out.Consts = append(out.Consts, other.Consts...)
 	out.Enums = append(out.Enums, other.Enums...)
 	out.Structs = append(out.Structs, other.Structs...)
 	out.Syscalls = append(out.Syscalls, other.Syscalls...)
@@ -212,8 +211,7 @@ func (out *Output) Merge(other *Output) {
 
 func (out *Output) SortAndDedup() {
 	out.Functions = sortAndDedupSlice(out.Functions)
-	out.Includes = sortAndDedupSlice(out.Includes)
-	out.Defines = sortAndDedupSlice(out.Defines)
+	out.Consts = sortAndDedupSlice(out.Consts)
 	out.Enums = sortAndDedupSlice(out.Enums)
 	out.Structs = sortAndDedupSlice(out.Structs)
 	out.Syscalls = sortAndDedupSlice(out.Syscalls)
@@ -229,8 +227,8 @@ func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
 	for _, fn := range out.Functions {
 		fn.File = updatePath(fn.File)
 	}
-	for i, inc := range out.Includes {
-		out.Includes[i] = updatePath(inc)
+	for _, ci := range out.Consts {
+		ci.Filename = updatePath(ci.Filename)
 	}
 	for _, call := range out.Syscalls {
 		call.SourceFile = file

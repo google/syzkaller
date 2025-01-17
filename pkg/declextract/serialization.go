@@ -39,14 +39,14 @@ func (ctx *context) fmt(msg string, args ...any) {
 }
 
 func (ctx *context) serializeIncludes() {
-	for _, inc := range ctx.Includes {
+	for _, inc := range ctx.includes {
 		ctx.fmt("include <%s>\n", inc)
 	}
 	ctx.fmt("\n")
 }
 
 func (ctx *context) serializeDefines() {
-	for _, def := range ctx.Defines {
+	for _, def := range ctx.defines {
 		ctx.fmt("define %v %v\n", def.Name, def.Value)
 	}
 	ctx.fmt("\n")

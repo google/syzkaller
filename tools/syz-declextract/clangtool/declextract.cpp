@@ -113,7 +113,7 @@ private:
   template <typename T> const T* getResult(StringRef ID) const;
   FieldType extractRecord(QualType QT, const RecordType* Typ, const std::string& BackupName);
   std::string extractEnum(const EnumDecl* Decl);
-  void noteConstUse(const std::string& Name, int64_t Val, const SourceRange& Range);
+  void emitConst(const std::string& Name, int64_t Val, SourceLocation Loc);
   std::string getDeclName(const Expr* Expr);
   const ValueDecl* getValueDecl(const Expr* Expr);
   std::string getDeclFileID(const Decl* Decl);
@@ -304,7 +304,7 @@ std::string Extractor::extractEnum(const EnumDecl* Decl) {
   std::vector<std::string> Values;
   for (const auto* Enumerator : Decl->enumerators()) {
     const std::string& Name = Enumerator->getNameAsString();
-    noteConstUse(Name, Enumerator->getInitVal().getExtValue(), Decl->getSourceRange());
+    emitConst(Name, Enumerator->getInitVal().getExtValue(), Decl->getBeginLoc());
     Values.push_back(Name);
   }
   Output.emit(Enum{
@@ -314,19 +314,11 @@ std::string Extractor::extractEnum(const EnumDecl* Decl) {
   return Name;
 }
 
-void Extractor::noteConstUse(const std::string& Name, int64_t Val, const SourceRange& Range) {
-  const std::string& Filename = std::filesystem::relative(SourceManager->getFilename(Range.getBegin()).str());
-  // Include only uapi headers. Some ioctl commands defined in internal headers, or even in .c files.
-  // They have high chances of breaking compilation during const extract.
-  // If it's not defined in uapi, emit define with concrete value.
-  // Note: the value may be wrong for other arches.
-  if (Filename.find("/uapi/") != std::string::npos && Filename.back() == 'h') {
-    Output.emit(Include{Filename});
-    return;
-  }
-  Output.emit(Define{
+void Extractor::emitConst(const std::string& Name, int64_t Val, SourceLocation Loc) {
+  Output.emit(ConstInfo{
       .Name = Name,
-      .Value = std::to_string(Val),
+      .Filename = std::filesystem::relative(SourceManager->getFilename(Loc).str()),
+      .Value = Val,
   });
 }
 
@@ -445,8 +437,8 @@ std::vector<std::pair<int, std::string>> Extractor::extractDesignatedInitConsts(
   for (auto* Match : Matches) {
     const int64_t Val = *Match->getAPValueResult().getInt().getRawData();
     const auto& Name = Match->getEnumConstantDecl()->getNameAsString();
-    const auto& SR = Match->getEnumConstantDecl()->getSourceRange();
-    noteConstUse(Name, Val, SR);
+    const auto& Loc = Match->getEnumConstantDecl()->getBeginLoc();
+    emitConst(Name, Val, Loc);
     Inits.emplace_back(Val, Name);
   }
   return Inits;
@@ -523,7 +515,7 @@ void Extractor::matchNetlinkFamily() {
       if (!CmdInit)
         continue;
       const std::string& OpName = CmdInit->getNameAsString();
-      noteConstUse(OpName, CmdInit->getInitVal().getExtValue(), CmdInit->getSourceRange());
+      emitConst(OpName, CmdInit->getInitVal().getExtValue(), CmdInit->getBeginLoc());
       std::string Policy;
       if (OpsFields.count("policy") != 0) {
         if (const auto* PolicyDecl = OpInit->getInit(OpsFields["policy"])->getAsBuiltinConstantDeclRef(*Context))
@@ -818,7 +810,7 @@ std::vector<IoctlCmd> Extractor::extractIoctlCommands(const std::string& Ioctl) 
     if (MacroDef == Macros.end())
       continue;
     int64_t CmdVal = evaluate(Cmd);
-    noteConstUse(CmdStr, CmdVal, MacroDef->second.SourceRange);
+    emitConst(CmdStr, CmdVal, MacroDef->second.SourceRange.getBegin());
     FieldType CmdType;
     const auto Dir = _IOC_DIR(CmdVal);
     if (Dir == _IOC_NONE) {
