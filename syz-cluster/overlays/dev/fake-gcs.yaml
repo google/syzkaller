@@ -26,7 +26,11 @@ spec:
       - name: fake-gcs-server
         imagePullPolicy: IfNotPresent
         image: fsouza/fake-gcs-server
-        args: ["-scheme", "http", "-public-host", "fake-gcs-server.default.svc.cluster.local"]
+        args: [
+          "-scheme", "http",
+          "-public-host", "fake-gcs-server.default.svc.cluster.local",
+          "-external-url", "http://fake-gcs-server.default.svc.cluster.local:4443"
+        ]
         ports:
         - containerPort: 4443
         volumeMounts:
