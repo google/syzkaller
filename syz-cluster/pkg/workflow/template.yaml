@@ -120,6 +120,23 @@ spec:
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
                   value: "Boot test: Base"
+          - name: boot-test-patched
+            templateRef:
+              name: boot-step-template
+              template: boot-step
+            arguments:
+              artifacts:
+                - name: kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: report-findings
+                  value: "true"
+                - name: test-name
+                  value: "Boot test: Patched"
         - - name: break-if-base-boot-failed
             template: exit-workflow
             arguments:
@@ -127,6 +144,13 @@ spec:
                 - name: code
                   value: 0
             when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
+        - - name: break-if-patched-boot-failed
+            template: exit-workflow
+            arguments:
+              parameters:
+                - name: code
+                  value: 0
+            when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
     - name: extract-request
       inputs:
         parameters:

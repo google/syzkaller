@@ -18,6 +18,8 @@ spec:
             value: ""
           - name: test-name
             value: ""
+          - name: report-findings
+            value: "false"
         artifacts:
           - name: kernel
             path: /kernel
@@ -31,8 +33,16 @@ spec:
           "--session", "{{workflow.parameters.session-id}}",
           "--test_name", "{{inputs.parameters.test-name}}",
           "--base_build", "{{inputs.parameters.base-build-id}}",
-          "--patched_build", "{{inputs.parameters.patched-build-id}}"
+          "--patched_build", "{{inputs.parameters.patched-build-id}}",
+          "-findings={{inputs.parameters.report-findings}}"
           ]
+        resources:
+          requests:
+            cpu: 6
+            memory: 12G
+          limits:
+            cpu: 8
+            memory: 24G
         volumeMounts:
         - name: workdir
           mountPath: /workdir
