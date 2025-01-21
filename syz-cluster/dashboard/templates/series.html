@@ -1,4 +1,3 @@
-
 {{define "content"}}
     <div class="container">
         <h2>Patch Series</h2>
@@ -82,18 +81,14 @@
                 <tr>
                   <td colspan="4">
                     <table class="table mb-0">
-                      <thead>
-                        <tr>
-                          <th scope="col">Title</th>
-                        </tr>
-                      </thead>
                       <tbody>
-                      {{range . .Findings}}
+                      {{range .Findings}}
                       <tr>
                         <td>{{.Title}}</td>
                       </tr>
                       {{end}}
                       </tbody>
+                    </table>
                   </td>
                 </tr>
                 {{end}}

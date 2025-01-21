@@ -7,9 +7,19 @@ metadata:
   namespace: default
   name: argo-workflow-role
 rules:
-- apiGroups: ["argoproj.io"]
-  resources: ["workflows"]
-  verbs: ["list", "create", "delete"]
+- apiGroups:
+    - argoproj.io
+  resources:
+    - workflowartifactgctasks
+    - workflows
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
 
 ---
 

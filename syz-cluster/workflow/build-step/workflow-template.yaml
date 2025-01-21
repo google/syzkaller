@@ -96,3 +96,6 @@ spec:
           - name: result
             valueFrom:
               path: /output/result.json
+        artifacts:
+          - name: kernel
+            path: /output

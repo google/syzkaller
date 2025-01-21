@@ -11,6 +11,10 @@ spec:
     parameters:
       - name: session-id
         value: "some-session-id"
+# TODO: there seems to be no way to pass env variables into the GC workflow.
+# Set ARGO_ARTIFACT_GC_ENABLED=0 for the local setup?
+#  artifactGC:
+#    strategy: OnWorkflowCompletion
   templates:
     - name: main
       # Don't schedule new steps if any of the previous steps failed.
@@ -53,7 +57,7 @@ spec:
               failed: true
         - - name: break-if-succeeded
             template: exit-workflow
-            when: "{{steps['run-process-fuzz'].status}} == Succeeded"
+            when: "{{=steps['run-process-fuzz'].status == Succeeded}}"
     - name: process-fuzz
       inputs:
         parameters:
@@ -64,7 +68,7 @@ spec:
             arguments:
               parameters:
                 - name: data
-                  value: "{{= jsonpath(inputs.parameters.element, '$.base')}}"
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base')}}"
         - - name: base-build
             templateRef:
               name: build-step-template
@@ -100,7 +104,29 @@ spec:
                   from: "{{steps.save-patched-req.outputs.artifacts.request}}"
         - - name: continue-if-patched-build-failed
             template: exit-workflow
-            when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success')}} == false"
+            when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
+        - - name: boot-test-base
+            templateRef:
+              name: boot-step-template
+              template: boot-step
+            arguments:
+              artifacts:
+                - name: kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: test-name
+                  value: "Boot test: Base"
+        - - name: break-if-base-boot-failed
+            template: exit-workflow
+            arguments:
+              parameters:
+                - name: code
+                  value: 0
+            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
     - name: extract-request
       inputs:
         parameters:
