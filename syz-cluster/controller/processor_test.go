@@ -142,9 +142,10 @@ func newMockedWorkflows() *mockedWorkflows {
 func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor, context.Context) {
 	client, ctx := db.NewTransientDB(t)
 	return &SeriesProcessor{
-		seriesRepo:     db.NewSeriesRepository(client),
-		sessionRepo:    db.NewSessionRepository(client),
-		workflows:      workflows,
-		dbPollInterval: time.Second / 10,
+		seriesRepo:      db.NewSeriesRepository(client),
+		sessionRepo:     db.NewSessionRepository(client),
+		workflows:       workflows,
+		dbPollInterval:  time.Second / 10,
+		parallelWorkers: 2,
 	}, ctx
 }

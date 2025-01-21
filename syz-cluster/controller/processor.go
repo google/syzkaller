@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -19,11 +21,12 @@ import (
 )
 
 type SeriesProcessor struct {
-	blobStorage    blob.Storage
-	seriesRepo     *db.SeriesRepository
-	sessionRepo    *db.SessionRepository
-	workflows      workflow.Service
-	dbPollInterval time.Duration
+	blobStorage     blob.Storage
+	seriesRepo      *db.SeriesRepository
+	sessionRepo     *db.SessionRepository
+	workflows       workflow.Service
+	dbPollInterval  time.Duration
+	parallelWorkers int
 }
 
 func NewSeriesProcessor(env *app.AppEnvironment) *SeriesProcessor {
@@ -31,18 +34,23 @@ func NewSeriesProcessor(env *app.AppEnvironment) *SeriesProcessor {
 	if err != nil {
 		app.Fatalf("failed to initialize workflows: %v", err)
 	}
+	parallelWorkers := 1
+	if val := os.Getenv("PARALLEL_WORKERS"); val != "" {
+		var err error
+		parallelWorkers, err = strconv.Atoi(val)
+		if err != nil || parallelWorkers < 1 {
+			app.Fatalf("invalid PARALLEL_WORKERS value")
+		}
+	}
 	return &SeriesProcessor{
-		blobStorage:    env.BlobStorage,
-		seriesRepo:     db.NewSeriesRepository(env.Spanner),
-		sessionRepo:    db.NewSessionRepository(env.Spanner),
-		dbPollInterval: time.Minute,
-		workflows:      workflows,
+		blobStorage:     env.BlobStorage,
+		seriesRepo:      db.NewSeriesRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
+		dbPollInterval:  time.Minute,
+		workflows:       workflows,
+		parallelWorkers: parallelWorkers,
 	}
 }
-
-// Do not run more than this number of sessions in parallel.
-// TODO: it'd be different for dev and prod, make it configurable.
-const parallelWorkers = 1
 
 func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 	var wg sync.WaitGroup
@@ -107,7 +115,7 @@ func (sp *SeriesProcessor) seriesRunner(ctx context.Context, ch <-chan *db.Sessi
 	var eg errgroup.Group
 	defer eg.Wait()
 
-	eg.SetLimit(parallelWorkers)
+	eg.SetLimit(sp.parallelWorkers)
 	for {
 		var session *db.Session
 		select {
