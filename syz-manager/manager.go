@@ -922,14 +922,16 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 		if !ok {
 			panic("unknown extracted prog asset")
 		}
-		asset, err := mgr.assetStorage.UploadCrashAsset(r, name, dashTyp, nil)
+		r2 := &bytes.Buffer{}
+		r1 := io.TeeReader(r, r2)
+		asset, err := mgr.assetStorage.UploadCrashAsset(r1, name, dashTyp, nil)
 		if err != nil {
 			log.Logf(1, "processing of the asset %v (%v) failed: %v", name, typ, err)
 			return
 		}
 		// Report file systems that fail fsck with a separate tag.
 		if mgr.cfg.RunFsck && dashTyp == dashapi.MountInRepro && c.Meta.Attrs.Fsck != "" {
-			logs, isClean, err := image.Fsck(r, c.Meta.Attrs.Fsck)
+			logs, isClean, err := image.Fsck(r2, c.Meta.Attrs.Fsck)
 			if err != nil {
 				log.Logf(1, "fsck of the asset %v failed: %v", name, err)
 			} else {
