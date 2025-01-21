@@ -9,3 +9,4 @@ data:
   SPANNER_EMULATOR_HOST: "cloud-spanner-emulator:9010"
   SPANNER_DATABASE_URI: "projects/my-project/instances/my-instance/databases/db"
   LOCAL_BLOB_STORAGE_PATH: "/blob-storage"
+  PARALLEL_WORKERS: "1" # Process only one series at a time.
