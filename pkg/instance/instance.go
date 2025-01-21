@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -536,4 +537,42 @@ func (s *Semaphore) Signal() {
 		panic(fmt.Sprintf("semaphore capacity (%d) is exceeded (%d)", cap(s.ch), av))
 	}
 	s.ch <- struct{}{}
+}
+
+// RunSmokeTest executes syz-manager in the smoke test mode and returns two values:
+// The crash report, if the testing failed.
+// An error if there was a problem not related to testing the kernel.
+func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
+	if !vm.AllowsOvercommit(cfg.Type) {
+		return nil, nil // No support for creating machines out of thin air.
+	}
+	osutil.MkdirAll(cfg.Workdir)
+	configFile := filepath.Join(cfg.Workdir, "manager.cfg")
+	if err := config.SaveFile(configFile, cfg); err != nil {
+		return nil, err
+	}
+	timeout := 30 * time.Minute * cfg.Timeouts.Scale
+	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
+	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
+	if retErr == nil {
+		return nil, nil
+	}
+	// If there was a kernel bug, report it to dashboard.
+	// Otherwise just save the output in a temp file and log an error, unclear what else we can do.
+	reportData, err := os.ReadFile(filepath.Join(cfg.Workdir, "report.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			rep := &report.Report{
+				Title:  "SYZFATAL: image testing failed w/o kernel bug",
+				Output: output,
+			}
+			return rep, nil
+		}
+		return nil, err
+	}
+	rep := new(report.Report)
+	if err := json.Unmarshal(reportData, rep); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal smoke test report: %w", err)
+	}
+	return rep, nil
 }
