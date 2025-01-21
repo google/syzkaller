@@ -24,6 +24,7 @@ var (
 	flagBaseBuild    = flag.String("base_build", "", "base build ID")
 	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
 	flagOutput       = flag.String("output", "", "where to store the result")
+	flagFindings     = flag.Bool("findings", false, "report failur as findings")
 )
 
 func main() {
@@ -79,9 +80,13 @@ func runTest(ctx context.Context, client *api.Client) (bool, error) {
 	rep, err := instance.RunSmokeTest(cfg)
 	if err != nil {
 		return false, err
+	} else if rep == nil {
+		return true, nil
 	}
-	if rep != nil {
-		log.Printf("uploading the finding %q", rep.Title)
+
+	log.Printf("found: %q", rep.Title)
+	if *flagFindings {
+		log.Printf("reporting the finding")
 		findingErr := client.UploadFinding(ctx, &api.Finding{
 			SessionID: *flagSession,
 			TestName:  *flagTestName,
@@ -92,7 +97,6 @@ func runTest(ctx context.Context, client *api.Client) (bool, error) {
 		if findingErr != nil {
 			return false, fmt.Errorf("failed to report the finding: %w", findingErr)
 		}
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
