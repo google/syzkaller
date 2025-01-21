@@ -37,6 +37,10 @@ build-build-step-dev:
 	eval $$(minikube docker-env);\
 	docker build -t build-step-local -f ./workflow/build-step/Dockerfile ../
 
+build-boot-step-dev:
+	eval $$(minikube docker-env);\
+	docker build -t boot-step-local -f ./workflow/boot-step/Dockerfile ../
+
 build-go-tests-dev:
 	eval $$(minikube docker-env);\
 	docker build -t go-tests-local -f Dockerfile.go-tests ../
