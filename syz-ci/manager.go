@@ -36,7 +36,6 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm"
 )
 
 // This is especially slightly longer than syzkaller rebuild period.
@@ -482,68 +481,30 @@ func (mgr *Manager) restartManager() {
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
+	testSem.Wait()
+	defer testSem.Signal()
+
 	log.Logf(0, "%v: testing image...", mgr.name)
 	mgrcfg, err := mgr.createTestConfig(imageDir, info)
 	if err != nil {
 		return fmt.Errorf("failed to create manager config: %w", err)
 	}
-	if !vm.AllowsOvercommit(mgrcfg.Type) {
-		return nil // No support for creating machines out of thin air.
-	}
-	osutil.MkdirAll(mgrcfg.Workdir)
-	configFile := filepath.Join(mgrcfg.Workdir, "manager.cfg")
-	if err := config.SaveFile(configFile, mgrcfg); err != nil {
+	rep, err := instance.RunSmokeTest(mgrcfg)
+	if err != nil {
+		mgr.Errorf("%s", err)
 		return err
-	}
-
-	testSem.Wait()
-	defer testSem.Signal()
-
-	timeout := 30 * time.Minute * mgrcfg.Timeouts.Scale
-	bin := filepath.Join(mgrcfg.Syzkaller, "bin", "syz-manager")
-	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
-	if retErr == nil {
+	} else if rep == nil {
 		return nil
 	}
-
-	var verboseErr *osutil.VerboseError
-	if errors.As(retErr, &verboseErr) {
-		// Caller will log the error, so don't include full output.
-		retErr = errors.New(verboseErr.Title)
+	rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
+	// There are usually no duplicates for boot errors, so we reset AltTitles.
+	// But if we pass them, we would need to add the same prefix as for Title
+	// in order to avoid duping boot bugs with non-boot bugs.
+	rep.AltTitles = nil
+	if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+		mgr.Errorf("failed to report image error: %v", err)
 	}
-	// If there was a kernel bug, report it to dashboard.
-	// Otherwise just save the output in a temp file and log an error, unclear what else we can do.
-	reportData, err := os.ReadFile(filepath.Join(mgrcfg.Workdir, "report.json"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			mgr.Errorf("image testing failed w/o kernel bug")
-			tmp, err := os.CreateTemp(mgr.workDir, "smoke-test-error")
-			if err != nil {
-				mgr.Errorf("failed to create smoke test error file: %v", err)
-			} else {
-				tmp.Write(output)
-				tmp.Close()
-			}
-		} else {
-			mgr.Errorf("failed to read smoke test report: %v", err)
-		}
-	} else {
-		rep := new(report.Report)
-		if err := json.Unmarshal(reportData, rep); err != nil {
-			mgr.Errorf("failed to unmarshal smoke test report: %v", err)
-		} else {
-			rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
-			retErr = errors.New(rep.Title)
-			// There are usually no duplicates for boot errors, so we reset AltTitles.
-			// But if we pass them, we would need to add the same prefix as for Title
-			// in order to avoid duping boot bugs with non-boot bugs.
-			rep.AltTitles = nil
-			if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-				mgr.Errorf("failed to report image error: %v", err)
-			}
-		}
-	}
-	return retErr
+	return fmt.Errorf("%s", rep.Title)
 }
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
