@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -156,6 +157,7 @@ func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) erro
 		SessionID: req.SessionID,
 		TestName:  req.TestName,
 		Result:    req.Result,
+		UpdatedAt: time.Now(),
 	}
 	if req.BaseBuildID != "" {
 		entity.BaseBuildID = spanner.NullString{StringVal: req.BaseBuildID, Valid: true}

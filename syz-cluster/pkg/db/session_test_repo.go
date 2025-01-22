@@ -66,7 +66,7 @@ type FullSessionTest struct {
 func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID string) ([]*FullSessionTest, error) {
 	stmt := spanner.Statement{
 		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
-			" ORDER BY `TestName`",
+			" ORDER BY `UpdatedAt`",
 		Params: map[string]interface{}{"session": sessionID},
 	}
 	iter := repo.client.Single().Query(ctx, stmt)
