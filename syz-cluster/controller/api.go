@@ -5,7 +5,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,8 +44,7 @@ func (c ControllerAPI) Mux() *http.ServeMux {
 }
 
 func (c ControllerAPI) getSessionSeries(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	resp, err := c.seriesService.GetSessionSeries(ctx, r.PathValue("session_id"))
+	resp, err := c.seriesService.GetSessionSeries(r.Context(), r.PathValue("session_id"))
 	if err == ErrSeriesNotFound || err == ErrSessionNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
@@ -62,8 +60,7 @@ func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	ctx := context.Background()
-	err := c.seriesService.SkipSession(ctx, r.PathValue("session_id"), req)
+	err := c.seriesService.SkipSession(r.Context(), r.PathValue("session_id"), req)
 	if errors.Is(err, ErrSessionNotFound) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
@@ -75,8 +72,7 @@ func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c ControllerAPI) getSeries(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	resp, err := c.seriesService.GetSeries(ctx, r.PathValue("series_id"))
+	resp, err := c.seriesService.GetSeries(r.Context(), r.PathValue("series_id"))
 	if err == ErrSeriesNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
@@ -92,7 +88,7 @@ func (c ControllerAPI) uploadBuild(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	resp, err := c.buildService.Upload(context.Background(), req)
+	resp, err := c.buildService.Upload(r.Context(), req)
 	if err != nil {
 		// TODO: sometimes it's not StatusInternalServerError.
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
@@ -107,7 +103,7 @@ func (c ControllerAPI) uploadTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// TODO: add parameters validation.
-	err := c.testService.Save(context.Background(), req)
+	err := c.testService.Save(r.Context(), req)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
@@ -121,7 +117,7 @@ func (c ControllerAPI) uploadFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// TODO: add parameters validation.
-	err := c.findingService.Save(context.Background(), req)
+	err := c.findingService.Save(r.Context(), req)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
@@ -134,7 +130,7 @@ func (c ControllerAPI) getLastBuild(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	resp, err := c.buildService.LastBuild(context.Background(), req)
+	resp, err := c.buildService.LastBuild(r.Context(), req)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return

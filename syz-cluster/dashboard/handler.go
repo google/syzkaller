@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -56,7 +55,7 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
 	}
 	var data MainPageData
 	var err error
-	data.List, err = h.seriesRepo.ListLatest(context.Background(), time.Time{}, 0)
+	data.List, err = h.seriesRepo.ListLatest(r.Context(), time.Time{}, 0)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to query the list: %v", err), http.StatusInternalServerError)
 		return
@@ -85,7 +84,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	var data SeriesData
 	var err error
-	ctx := context.Background()
+	ctx := r.Context()
 	data.Series, err = h.seriesRepo.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
@@ -142,8 +141,7 @@ func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
 
 // nolint:dupl
 func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	session, err := h.sessionRepo.GetByID(ctx, r.PathValue("id"))
+	session, err := h.sessionRepo.GetByID(r.Context(), r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
@@ -157,8 +155,7 @@ func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
 
 // nolint:dupl
 func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	patch, err := h.seriesRepo.PatchByID(ctx, r.PathValue("id"))
+	patch, err := h.seriesRepo.PatchByID(r.Context(), r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
