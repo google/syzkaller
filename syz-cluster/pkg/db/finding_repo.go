@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 )
 
@@ -25,8 +26,12 @@ var ErrFindingExists = errors.New("the finding already exists")
 
 // Save either adds the finding to the database or returns ErrFindingExists.
 func (repo *FindingRepository) Save(ctx context.Context, finding *Finding) error {
+	if finding.ID == "" {
+		finding.ID = uuid.New().String()
+	}
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+			// Check if there is still no such finding.
 			stmt := spanner.Statement{
 				SQL: "SELECT * from `Findings` WHERE `SessionID`=@sessionID " +
 					"AND `TestName` = @testName AND `Title`=@title",
