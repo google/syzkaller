@@ -436,7 +436,10 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		resErr = errors.New(msg.Error)
 	} else if msg.Hanged {
 		status = queue.Hanged
-		runner.lastExec.Hanged(int(msg.Id), int(msg.Proc), req.Prog.Serialize(), osutil.MonotonicNano())
+		if req.Type == flatrpc.RequestTypeProgram {
+			// We only track the latest executed programs.
+			runner.lastExec.Hanged(int(msg.Id), int(msg.Proc), req.Prog.Serialize(), osutil.MonotonicNano())
+		}
 		runner.hanged[msg.Id] = true
 	}
 	req.Done(&queue.Result{
