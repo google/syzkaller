@@ -79,6 +79,7 @@ type SessionTest struct {
 	SessionID      string             `spanner:"SessionID"`
 	BaseBuildID    spanner.NullString `spanner:"BaseBuildID"`
 	PatchedBuildID spanner.NullString `spanner:"PatchedBuildID"`
+	UpdatedAt      time.Time          `spanner:"UpdatedAt"`
 	TestName       string             `spanner:"TestName"`
 	Result         string             `spanner:"Result"`
 }

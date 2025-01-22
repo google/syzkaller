@@ -65,7 +65,7 @@ ALTER TABLE Series ADD CONSTRAINT FK_SeriesLatestSession FOREIGN KEY (LatestSess
 CREATE TABLE SessionTests (
     SessionID STRING(36) NOT NULL, -- UUID
     TestName STRING(256) NOT NULL,
---    Parameters JSON, -- Test-dependent set of parameters.
+    UpdatedAt TIMESTAMP NOT NULL,
     Result STRING(36) NOT NULL,
     BaseBuildID STRING(36),
     PatchedBuildID STRING(36),
