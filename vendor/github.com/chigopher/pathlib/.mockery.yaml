@@ -1,4 +1,0 @@
-quiet: False
-all: True
-inpackage: True
-testonly: True
