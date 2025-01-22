@@ -289,7 +289,6 @@ ifdef CI
 endif
 
 lint:
-	# This should install the command from our vendor dir.
 	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run $(LINT-FLAGS) ./...
@@ -428,7 +427,7 @@ check_commits:
 	./tools/check-commits.sh
 
 check_links:
-	python ./tools/check_links.py $$(pwd) $$(find . -name '*.md' | grep -v "./vendor/")
+	python ./tools/check_links.py $$(pwd) $$(find . -name '*.md')
 
 check_html:
 	./tools/check-html.sh
