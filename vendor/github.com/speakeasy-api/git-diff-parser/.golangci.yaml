@@ -1,8 +1,0 @@
-run:
-  go: "1.19"
-linters-settings:
-  tagliatelle:
-    case:
-      use-field-name: true
-      rules:
-        json: snake
