@@ -16,7 +16,19 @@
           <td><a href="/series/{{.Series.ID}}">{{.Series.Title}}</a></td>
           <td>{{.Series.Version}}</td>
           <td>{{.Series.AuthorEmail}}</td>
-          <td>{{if .Session}}{{if .Session.FinishedAt.IsNull}}in progress{{else}}finished{{end}}{{else}}waiting{{end}} </td>
+          <td>
+            {{if .Session}}
+              {{if .Session.FinishedAt.IsNull}}
+                in progress
+              {{else if .Session.SkipReason.IsNull}}
+                finished
+              {{else}}
+                skipped
+              {{end}}
+            {{else}}
+              waiting
+            {{end}}
+          </td>
         </tr>
         {{end}}
       </tbody>

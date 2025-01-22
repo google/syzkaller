@@ -49,9 +49,15 @@
                     <td>{{.ID}}</a></td>
                 </tr>
                 <tr>
-                    <th><i>Status</i></th>
-                    <td>{{if .FinishedAt.IsNull}}in progress{{else}}finshed{{end}}</a></td>
+                    <th>Status</th>
+                    <td>{{if .FinishedAt.IsNull}}in progress{{else}}finished{{end}}</a></td>
                 </tr>
+                {{if not .SkipReason.IsNull}}
+                <tr>
+                    <th>Skipped</th>
+                    <td>{{.SkipReason.StringVal}}</td>
+                </tr>
+                {{end}}
                 {{if .LogURI}}
                 <tr>
                     <th><i>Execution Log</i></th>

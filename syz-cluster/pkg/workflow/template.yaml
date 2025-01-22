@@ -26,9 +26,9 @@ spec:
             templateRef:
               name: triage-step-template
               template: triage-step
-        - - name: abort-on-skip
+        - - name: abort-on-skip-outcome
             template: exit-workflow
-            when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip') == true}}"
+            when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip') != nil}}"
         - - name: iterate-fuzz
             template: process-fuzz-wrapper
             arguments:
@@ -57,7 +57,7 @@ spec:
               failed: true
         - - name: break-if-succeeded
             template: exit-workflow
-            when: "{{=steps['run-process-fuzz'].status == Succeeded}}"
+            when: "{{steps['run-process-fuzz'].status}} == Succeeded"
     - name: process-fuzz
       inputs:
         parameters:

@@ -43,6 +43,17 @@ func (s *SeriesService) GetSessionSeries(ctx context.Context, sessionID string) 
 	return s.GetSeries(ctx, session.SeriesID)
 }
 
+func (s *SeriesService) SkipSession(ctx context.Context, sessionID string, skip *api.SkipRequest) error {
+	err := s.sessionRepo.Update(ctx, sessionID, func(session *db.Session) error {
+		session.SetSkipReason(skip.Reason)
+		return nil
+	})
+	if errors.Is(err, db.ErrEntityNotFound) {
+		return ErrSessionNotFound
+	}
+	return err
+}
+
 var ErrSeriesNotFound = errors.New("series not found")
 
 func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Series, error) {

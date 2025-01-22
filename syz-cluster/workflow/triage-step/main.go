@@ -31,9 +31,16 @@ func main() {
 	if err != nil {
 		app.Fatalf("failed to initialize the repository: %v", err)
 	}
-	verdict, err := getVerdict(*flagSession, client, repo)
+	ctx := context.Background()
+	verdict, err := getVerdict(ctx, client, repo)
 	if err != nil {
 		app.Fatalf("failed to get the verdict: %v", err)
+	}
+	if verdict.Skip != nil {
+		err := client.SkipSession(context.Background(), *flagSession, verdict.Skip)
+		if err != nil {
+			app.Fatalf("failed to upload the skip reason: %v", err)
+		}
 	}
 	if *flagVerdict != "" {
 		osutil.WriteJSON(*flagVerdict, verdict)
@@ -44,9 +51,8 @@ func main() {
 	// 2. What if controller does not reply? Let Argo just restart the step.
 }
 
-func getVerdict(sessionID string, client *api.Client, ops triage.TreeOps) (*api.TriageResult, error) {
-	ctx := context.Background()
-	series, err := client.GetSessionSeries(ctx, sessionID)
+func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*api.TriageResult, error) {
+	series, err := client.GetSessionSeries(ctx, *flagSession)
 	if err != nil {
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
@@ -54,7 +60,9 @@ func getVerdict(sessionID string, client *api.Client, ops triage.TreeOps) (*api.
 	tree := triage.SelectTree(series, client.GetTrees())
 	if tree == nil {
 		return &api.TriageResult{
-			Skip: true,
+			Skip: &api.SkipRequest{
+				Reason: "no suitable kernel tree found",
+			},
 		}, nil
 	}
 	arch := "amd64"
@@ -75,7 +83,9 @@ func getVerdict(sessionID string, client *api.Client, ops triage.TreeOps) (*api.
 	}
 	if len(commits) == 0 {
 		return &api.TriageResult{
-			Skip: true,
+			Skip: &api.SkipRequest{
+				Reason: "no suitable commits found",
+			},
 		}, nil
 	}
 	ret := &api.TriageResult{}
