@@ -14,9 +14,13 @@ type Series struct {
 
 type TriageResult struct {
 	// If true, ignore the patch series completely.
-	Skip bool `json:"skip"`
+	Skip *SkipRequest `json:"skip"`
 	// Fuzzing configurations to try.
 	Fuzz []*FuzzConfig `json:"fuzz"`
+}
+
+type SkipRequest struct {
+	Reason string `json:"reason"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.

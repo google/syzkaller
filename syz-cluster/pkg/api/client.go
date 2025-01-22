@@ -31,6 +31,11 @@ func (client Client) GetSeries(_ context.Context, seriesID string) (*Series, err
 	return getJSON[Series](client.baseURL + "/series/" + seriesID)
 }
 
+func (client Client) SkipSession(ctx context.Context, sessionID string, req *SkipRequest) error {
+	_, err := postJSON[SkipRequest, any](ctx, client.baseURL+"/sessions/"+sessionID+"/skip", req)
+	return err
+}
+
 func (client Client) GetTrees() []*Tree {
 	return defaultTrees
 }

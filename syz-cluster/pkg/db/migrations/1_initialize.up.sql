@@ -53,6 +53,7 @@ CREATE TABLE Sessions (
     SeriesID STRING(36) NOT NULL,
     CreatedAt TIMESTAMP NOT NULL,
     FinishedAt TIMESTAMP,
+    SkipReason STRING(1024),
     LogURI STRING(512) NOT NULL,
     -- TODO: moderation/reporting.
     CONSTRAINT FK_SeriesSessions FOREIGN KEY (SeriesID) REFERENCES Series (ID),

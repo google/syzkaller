@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -272,6 +273,8 @@ func (g *genericEntityOps[EntityType, KeyType]) GetByID(ctx context.Context, key
 	return readOne[EntityType](iter)
 }
 
+var ErrEntityNotFound = errors.New("entity not found")
+
 func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key KeyType,
 	cb func(*EntityType) error) error {
 	_, err := g.client.ReadWriteTransaction(ctx,
@@ -285,6 +288,9 @@ func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key 
 			iter.Stop()
 			if err != nil {
 				return err
+			}
+			if entity == nil {
+				return ErrEntityNotFound
 			}
 			err = cb(entity)
 			if err != nil {

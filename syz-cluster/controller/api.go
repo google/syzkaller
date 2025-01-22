@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,6 +35,7 @@ func NewControllerAPI(env *app.AppEnvironment) *ControllerAPI {
 func (c ControllerAPI) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
+	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
@@ -53,6 +55,23 @@ func (c ControllerAPI) getSessionSeries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	reply(w, resp)
+}
+
+func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
+	req := parseBody[api.SkipRequest](w, r)
+	if req == nil {
+		return
+	}
+	ctx := context.Background()
+	err := c.seriesService.SkipSession(ctx, r.PathValue("session_id"), req)
+	if errors.Is(err, ErrSessionNotFound) {
+		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	reply[interface{}](w, nil)
 }
 
 func (c ControllerAPI) getSeries(w http.ResponseWriter, r *http.Request) {
