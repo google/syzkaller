@@ -85,6 +85,7 @@ type SessionTest struct {
 }
 
 type Finding struct {
+	ID        string `spanner:"ID"`
 	SessionID string `spanner:"SessionID"`
 	TestName  string `spanner:"TestName"`
 	Title     string `spanner:"Title"`
