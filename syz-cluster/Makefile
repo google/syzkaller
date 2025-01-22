@@ -45,7 +45,7 @@ build-go-tests-dev:
 	eval $$(minikube docker-env);\
 	docker build -t go-tests-local -f Dockerfile.go-tests ../
 
-build-workflow-dev: build-triage-step-dev build-build-step-dev
+build-workflow-dev: build-triage-step-dev build-build-step-dev build-boot-step-dev
 
 all-containers: build-controller-dev build-series-tracker-dev build-db-mgmt-dev build-web-dashboard-dev build-workflow-dev
 
