@@ -3953,6 +3953,16 @@ static void sandbox_common_mount_tmpfs(void)
 		fail("mount(smackfs) failed");
 	if (mount("/proc/sys/fs/binfmt_misc", "./syz-tmp/newroot/proc/sys/fs/binfmt_misc", NULL, bind_mount_flags, NULL) && errno != ENOENT)
 		fail("mount(binfmt_misc) failed");
+
+	// If user wants to supply custom inputs, those can be placed to /syz-inputs
+	// That folder will be mounted to fuzzer sandbox
+	// https://groups.google.com/g/syzkaller/c/U-DISFjKLzg
+	if (mkdir("./syz-tmp/newroot/syz-inputs", 0700))
+		fail("mkdir(/syz-inputs) failed");
+
+	if (mount("/syz-inputs", "./syz-tmp/newroot/syz-inputs", NULL, bind_mount_flags | MS_RDONLY, NULL) && errno != ENOENT)
+		fail("mount(syz-inputs) failed");
+
 #if SYZ_EXECUTOR || SYZ_CGROUPS
 	initialize_cgroups();
 #endif
