@@ -24,7 +24,7 @@ type anyTypes struct {
 
 func (target *Target) initAnyTypes() {
 	var anyPtrs *UnionType
-	for _, typ := range target.types {
+	for _, typ := range target.Types {
 		if typ.Name() == "ANYPTRS" {
 			anyPtrs = typ.(*UnionType)
 			break

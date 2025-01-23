@@ -7,7 +7,7 @@ package proggen
 
 import (
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys/linux/gen" // pull in the target
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 

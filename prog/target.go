@@ -30,6 +30,7 @@ type Target struct {
 	Resources []*ResourceDesc
 	Consts    []ConstValue
 	Flags     []FlagDesc
+	Types     []Type
 
 	// MakeDataMmap creates calls that mmaps target data memory range.
 	MakeDataMmap func() []*Call
@@ -70,8 +71,8 @@ type Target struct {
 	FlagsMap   map[string][]string
 
 	init        sync.Once
+	fillArch    func(target *Target)
 	initArch    func(target *Target)
-	types       []Type
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]ResourceCtor
@@ -86,20 +87,17 @@ const maxSpecialPointers = 16
 
 var targets = make(map[string]*Target)
 
-func RegisterTarget(target *Target, types []Type, initArch func(target *Target)) {
+func RegisterTarget(target *Target, fill, init func(target *Target)) {
 	key := target.OS + "/" + target.Arch
 	if targets[key] != nil {
 		panic(fmt.Sprintf("duplicate target %v", key))
 	}
-	target.initArch = initArch
-	target.types = types
+	target.fillArch = fill
+	target.initArch = init
 	targets[key] = target
 }
 
 func GetTarget(OS, arch string) (*Target, error) {
-	if OS == "android" {
-		OS = "linux"
-	}
 	key := OS + "/" + arch
 	target := targets[key]
 	if target == nil {
@@ -132,6 +130,7 @@ func AllTargets() []*Target {
 func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
+	target.fillArch(target)
 	target.initTarget()
 	target.initUselessHints()
 	target.initRelatedFields()
@@ -155,7 +154,7 @@ func (target *Target) lazyInit() {
 		}
 	}
 	// These are used only during lazyInit.
-	target.types = nil
+	target.Types = nil
 }
 
 func (target *Target) initTarget() {
@@ -165,7 +164,7 @@ func (target *Target) initTarget() {
 		target.ConstMap[c.Name] = c.Value
 	}
 
-	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.types)
+	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Types)
 	target.initAnyTypes()
 
 	target.SyscallMap = make(map[string]*Syscall)

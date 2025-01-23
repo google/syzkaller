@@ -14,7 +14,7 @@ import (
 	. "github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys/linux/gen"
+	_ "github.com/google/syzkaller/sys"
 )
 
 func TestCompress(t *testing.T) {
