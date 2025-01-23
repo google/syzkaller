@@ -5,6 +5,7 @@ package manager
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -67,9 +68,9 @@ type HTTPServer struct {
 	paused     bool
 }
 
-func (serv *HTTPServer) Serve() {
+func (serv *HTTPServer) Serve(ctx context.Context) error {
 	if serv.Cfg.HTTP == "" {
-		log.Fatalf("starting a disabled HTTP server")
+		return fmt.Errorf("starting a disabled HTTP server")
 	}
 	if serv.Pool != nil {
 		serv.Pools = map[string]*vm.Dispatcher{"": serv.Pool}
@@ -110,10 +111,19 @@ func (serv *HTTPServer) Serve() {
 	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
 	log.Logf(0, "serving http on http://%v", serv.Cfg.HTTP)
-	err := http.ListenAndServe(serv.Cfg.HTTP, nil)
-	if err != nil {
-		log.Fatalf("failed to listen on %v: %v", serv.Cfg.HTTP, err)
+	server := &http.Server{Addr: serv.Cfg.HTTP}
+	go func() {
+		// The http server package unfortunately does not natively take a context.Context.
+		// Let's emulate it via server.Shutdown()
+		<-ctx.Done()
+		server.Close()
+	}()
+
+	err := server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		return err
 	}
+	return nil
 }
 
 func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {

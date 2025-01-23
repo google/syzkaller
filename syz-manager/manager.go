@@ -357,7 +357,12 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 
 	ctx := vm.ShutdownCtx()
 	if mgr.cfg.HTTP != "" {
-		go mgr.http.Serve()
+		go func() {
+			err := mgr.http.Serve(ctx)
+			if err != nil {
+				log.Fatalf("failed to serve HTTP: %v", err)
+			}
+		}()
 	}
 	go mgr.trackUsedFiles()
 	go mgr.processFuzzingResults(ctx)
