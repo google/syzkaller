@@ -51,9 +51,9 @@ config:
  - PROFILING
  - PERF_EVENTS
  - SMP
- - KEXEC: [-riscv]
- - HIBERNATION: [-riscv, -s390]
- - HIBERNATION_SNAPSHOT_DEV: [v5.10, -riscv, -s390]
+ - KEXEC
+ - HIBERNATION: [-s390]
+ - HIBERNATION_SNAPSHOT_DEV: [v5.10, -s390]
  - PM_DEBUG: [-s390]
  - ACPI_DOCK: [-arm, -riscv, -s390]
  - ACPI_NFIT: [x86_64]
@@ -97,15 +97,15 @@ config:
  - BFQ_CGROUP_DEBUG
  - BINFMT_MISC
  - BINFMT_SCRIPT
- - MEMORY_HOTPLUG: [-arm, -riscv]
+ - MEMORY_HOTPLUG: [-arm]
  # Replaced in "mm: add build-time option for hotplug memory default online type".
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv, -linux-next]
- - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, -riscv, linux-next]
- - MEMORY_HOTREMOVE: [-arm, -riscv]
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -linux-next]
+ - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, linux-next]
+ - MEMORY_HOTREMOVE: [-arm]
  - ANON_VMA_NAME: [v5.17]
  - KSM
- - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
- - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -riscv]
+ - TRANSPARENT_HUGEPAGE: [-arm]
+ - TRANSPARENT_HUGEPAGE_MADVISE: [-arm]
  - FRONTSWAP: [-v6.6]
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
