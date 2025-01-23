@@ -95,7 +95,7 @@ func TestMergerdCoverageRecords(t *testing.T) {
 				FilePath: "file.c",
 				MergeResult: &MergeResult{
 					FileExists: true,
-					HitCounts: map[int]int{
+					HitCounts: map[int]int64{
 						1: 5,
 						2: 7,
 					},
@@ -367,8 +367,8 @@ type fileVersProviderMock struct {
 }
 
 func (m *fileVersProviderMock) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
-) (fileVersions, error) {
-	res := make(fileVersions)
+) (FileVersions, error) {
+	res := make(FileVersions)
 	for _, repoCommit := range repoCommits {
 		filePath := filepath.Join(m.Workdir, "repos", repoCommit.Commit, targetFilePath)
 		if bytes, err := os.ReadFile(filePath); err == nil {

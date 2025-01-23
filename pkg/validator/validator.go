@@ -74,7 +74,7 @@ var (
 	CommitHash     = makeCombinedStrFunc("not a hash", AlphaNumeric, makeStrLenFunc("len is not 40", 40))
 	KernelFilePath = makeStrReFunc("not a kernel file path", "^[./_a-zA-Z0-9-]*$")
 	NamespaceName  = makeStrReFunc("not a namespace name", "^[a-zA-Z0-9_.-]{4,32}$")
-	ManagerName    = makeStrReFunc("not a manager name", "^ci[a-z0-9-]*$")
+	ManagerName    = makeStrReFunc("not a manager name", "^[a-z0-9-]*$")
 	DashClientName = makeStrReFunc("not a dashboard client name", "^[a-zA-Z0-9_.-]{4,100}$")
 	DashClientKey  = makeStrReFunc("not a dashboard client key",
 		"^([a-zA-Z0-9]{16,128})|("+regexp.QuoteMeta(auth.OauthMagic)+".*)$")

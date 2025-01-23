@@ -28,6 +28,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"google.golang.org/appengine/v2/aetest"
@@ -223,6 +225,20 @@ func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 			return &ret
 		})
 		return contextWithConfig(c, newConfig)
+	}
+}
+
+func (c *Ctx) setCoverageMocks(ns string, dbClientMock spannerclient.SpannerClient,
+	fileProvMock covermerger.FileVersProvider) {
+	c.transformContext = func(ctx context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Coverage = &CoverageConfig{WebGitURI: "test-git"}
+			return &ret
+		})
+		ctxWithSpanner := SetCoverageDBClient(ctx, dbClientMock)
+		ctxWithSpannerAndFileProvider := setWebGit(ctxWithSpanner, fileProvMock)
+		return contextWithConfig(ctxWithSpannerAndFileProvider, newConfig)
 	}
 }
 

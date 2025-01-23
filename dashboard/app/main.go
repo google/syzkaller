@@ -65,13 +65,11 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
-		if nsConfig.Coverage != nil {
-			http.Handle("/"+ns+"/graph/coverage/file", handlerWrapper(handleFileCoverage))
-			http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
-			http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
-			if nsConfig.Subsystems.Service != nil {
-				http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap", handlerWrapper(handleSubsystemsCoverageHeatmap))
-			}
+		http.Handle("/"+ns+"/graph/coverage/file", handlerWrapper(handleFileCoverage))
+		http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
+		http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
+		if nsConfig.Subsystems.Service != nil {
+			http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap", handlerWrapper(handleSubsystemsCoverageHeatmap))
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))

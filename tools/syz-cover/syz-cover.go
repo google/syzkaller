@@ -38,6 +38,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -92,7 +93,7 @@ func toolFileCover() {
 		*flagRepo,
 		*flagCommit,
 		*flagForFile,
-		nil, // no proxy - get files directly from WebGits
+		covermerger.MakeWebGit(nil), // get files directly from WebGits
 		mr,
 		config,
 	)

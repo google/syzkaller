@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
@@ -24,14 +23,8 @@ type CoverageHistory struct {
 }
 
 // MergedCoverage uses dates, not time.
-func MergedCoverage(ctx context.Context, ns, periodType string) (*CoverageHistory, error) {
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, err := spannerclient.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
-	}
-	defer client.Close()
-
+func MergedCoverage(ctx context.Context, client spannerclient.SpannerClient, ns, periodType string,
+) (*CoverageHistory, error) {
 	minDays, maxDays, err := coveragedb.MinMaxDays(periodType)
 	if err != nil {
 		return nil, fmt.Errorf("coveragedb.MinMaxDays: %w", err)

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -74,6 +73,9 @@ type MergedCoverageRecord struct {
 
 func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, descr *HistoryRecord, dec *json.Decoder,
 	sss []*subsystem.Subsystem) (int, error) {
+	if client == nil {
+		return 0, fmt.Errorf("nil spannerclient")
+	}
 	var rowsCreated int
 	ssMatcher := subsystem.MakePathMatcher(sss)
 	ssCache := make(map[string][]string)
@@ -117,7 +119,7 @@ func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, de
 	return rowsCreated, nil
 }
 
-type linesCoverage struct {
+type LinesCoverage struct {
 	LinesInstrumented []int64
 	HitCounts         []int64
 }
@@ -147,15 +149,9 @@ where
 	}
 }
 
-func ReadLinesHitCount(ctx context.Context, ns, commit, file, manager string, tp TimePeriod,
+func ReadLinesHitCount(ctx context.Context, client spannerclient.SpannerClient,
+	ns, commit, file, manager string, tp TimePeriod,
 ) ([]int64, []int64, error) {
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, err := spannerclient.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("spanner.NewClient: %w", err)
-	}
-	defer client.Close()
-
 	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
@@ -167,9 +163,12 @@ func ReadLinesHitCount(ctx context.Context, ns, commit, file, manager string, tp
 	if err != nil {
 		return nil, nil, fmt.Errorf("iter.Next: %w", err)
 	}
-	var r linesCoverage
+	var r LinesCoverage
 	if err = row.ToStruct(&r); err != nil {
 		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+	}
+	if _, err := iter.Next(); err != iterator.Done {
+		return nil, nil, fmt.Errorf("more than 1 line is available")
 	}
 	return r.LinesInstrumented, r.HitCounts, nil
 }
@@ -230,13 +229,11 @@ func fileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache m
 	return sss
 }
 
-func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []int64, error) {
-	client, err := spannerclient.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("spanner.NewClient() failed: %s", err.Error())
+func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns string,
+) ([]TimePeriod, []int64, error) {
+	if client == nil {
+		return nil, nil, fmt.Errorf("nil spannerclient")
 	}
-	defer client.Close()
-
 	stmt := spanner.Statement{
 		SQL: `
 			select
@@ -285,13 +282,11 @@ func NsDataMerged(ctx context.Context, projectID, ns string) ([]TimePeriod, []in
 // Note that in case of an error during batch deletion, some files may be deleted but not counted in the total.
 //
 // Returns the number of orphaned file entries successfully deleted.
-func DeleteGarbage(ctx context.Context) (int64, error) {
+func DeleteGarbage(ctx context.Context, client spannerclient.SpannerClient) (int64, error) {
 	batchSize := 10_000
-	client, err := spannerclient.NewClient(ctx, os.Getenv("GOOGLE_CLOUD_PROJECT"))
-	if err != nil {
-		return 0, fmt.Errorf("coveragedb.NewClient: %w", err)
+	if client == nil {
+		return 0, fmt.Errorf("nil spannerclient")
 	}
-	defer client.Close()
 
 	iter := client.Single().Query(ctx, spanner.Statement{
 		SQL: `SELECT session, filepath
@@ -328,7 +323,7 @@ func DeleteGarbage(ctx context.Context) (int64, error) {
 		}
 	}
 	goSpannerDelete(ctx, batch, eg, client, &totalDeleted)
-	if err = eg.Wait(); err != nil {
+	if err := eg.Wait(); err != nil {
 		return 0, fmt.Errorf("spanner.Delete: %w", err)
 	}
 	return totalDeleted.Load(), nil
