@@ -14,12 +14,12 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
-func extractModifiedFiles(cfg *mgrconfig.Config, data []byte) {
+func PatchFocusAreas(cfg *mgrconfig.Config, gitPatch []byte) {
 	const maxAffectedByHeader = 50
 
 	names := map[string]bool{}
 	includedNames := map[string]bool{}
-	for _, file := range vcs.ParseGitDiff(data) {
+	for _, file := range vcs.ParseGitDiff(gitPatch) {
 		names[file] = true
 
 		if strings.HasSuffix(file, ".h") && cfg.KernelSrc != "" {

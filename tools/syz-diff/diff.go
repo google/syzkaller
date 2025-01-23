@@ -34,6 +34,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
 	"github.com/google/syzkaller/vm/dispatcher"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -55,9 +56,6 @@ func main() {
 		log.Fatalf("base config: %v", err)
 	}
 
-	ctx := vm.ShutdownCtx()
-	base := setup(ctx, "base", baseCfg)
-
 	newCfg, err := mgrconfig.LoadFile(*flagNewConfig)
 	if err != nil {
 		log.Fatalf("new config: %v", err)
@@ -68,10 +66,25 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		extractModifiedFiles(newCfg, data)
+		PatchFocusAreas(newCfg, data)
 	}
 
-	new := setup(ctx, "new", newCfg)
+	ctx := vm.ShutdownCtx()
+	err = RunDiffFuzzer(ctx, baseCfg, newCfg, *flagDebug)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, debug bool) error {
+	base, err := setup(ctx, "base", baseCfg, debug)
+	if err != nil {
+		return err
+	}
+	new, err := setup(ctx, "new", newCfg, debug)
+	if err != nil {
+		return err
+	}
 	go func() {
 		new.candidates <- manager.LoadSeeds(newCfg, true).Candidates
 	}()
@@ -101,6 +114,7 @@ func main() {
 		new.http = diffCtx.http
 	}
 	diffCtx.Loop(ctx)
+	return nil
 }
 
 type diffContext struct {
@@ -115,28 +129,35 @@ type diffContext struct {
 	reproAttempts map[string]int
 }
 
-func (dc *diffContext) Loop(ctx context.Context) {
+func (dc *diffContext) Loop(baseCtx context.Context) error {
+	g, ctx := errgroup.WithContext(baseCtx)
 	reproLoop := manager.NewReproLoop(dc, dc.new.pool.Total()-dc.new.cfg.FuzzingVMs, false)
 	if dc.http != nil {
 		dc.http.ReproLoop = reproLoop
-		go dc.http.Serve()
+		g.Go(func() error {
+			return dc.http.Serve(ctx)
+		})
 	}
-	go func() {
+	g.Go(func() error {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
 		// TODO: determine the exact moment of corpus triage.
 		time.Sleep(15 * time.Minute)
 		log.Logf(0, "starting bug reproductions")
 		reproLoop.Loop(ctx)
-	}()
+		return nil
+	})
 
-	go dc.base.Loop()
-	go dc.new.Loop()
+	g.Go(dc.base.Loop)
+	g.Go(dc.new.Loop)
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
 	rareStat := time.NewTicker(5 * time.Minute)
+loop:
 	for {
 		select {
+		case <-ctx.Done():
+			break loop
 		case <-rareStat.C:
 			vals := make(map[string]int)
 			for _, stat := range stat.Collect(stat.All) {
@@ -180,6 +201,7 @@ func (dc *diffContext) Loop(ctx context.Context) {
 			}
 		}
 	}
+	return g.Wait()
 }
 
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
@@ -238,6 +260,7 @@ func (dc *diffContext) ResizeReproPool(size int) {
 type kernelContext struct {
 	name       string
 	ctx        context.Context
+	debug      bool
 	cfg        *mgrconfig.Config
 	reporter   *report.Reporter
 	fuzzer     atomic.Pointer[fuzzer.Fuzzer]
@@ -256,11 +279,12 @@ type kernelContext struct {
 	duplicateInto queue.Executor
 }
 
-func setup(ctx context.Context, name string, cfg *mgrconfig.Config) *kernelContext {
+func setup(ctx context.Context, name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, error) {
 	osutil.MkdirAll(cfg.Workdir)
 
 	kernelCtx := &kernelContext{
 		name:            name,
+		debug:           debug,
 		ctx:             ctx,
 		cfg:             cfg,
 		crashes:         make(chan *report.Report, 128),
@@ -272,33 +296,34 @@ func setup(ctx context.Context, name string, cfg *mgrconfig.Config) *kernelConte
 	var err error
 	kernelCtx.reporter, err = report.NewReporter(cfg)
 	if err != nil {
-		log.Fatalf("failed to create reporter for %q: %v", name, err)
+		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
 	}
 
 	kernelCtx.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
 		Manager: kernelCtx,
 		Stats:   kernelCtx.servStats,
-		Debug:   *flagDebug,
+		Debug:   debug,
 	})
 	if err != nil {
-		log.Fatalf("failed to create rpc server for %q: %v", name, err)
+		return nil, fmt.Errorf("failed to create rpc server for %q: %w", name, err)
 	}
 
-	vmPool, err := vm.Create(cfg, *flagDebug)
+	vmPool, err := vm.Create(cfg, debug)
 	if err != nil {
-		log.Fatalf("failed to create vm.Pool for %q: %v", name, err)
+		return nil, fmt.Errorf("failed to create vm.Pool for %q: %w", name, err)
 	}
 
 	kernelCtx.pool = vm.NewDispatcher(vmPool, kernelCtx.fuzzerInstance)
-	return kernelCtx
+	return kernelCtx, nil
 }
 
-func (kc *kernelContext) Loop() {
+func (kc *kernelContext) Loop() error {
 	if err := kc.serv.Listen(); err != nil {
-		log.Fatalf("failed to start rpc server: %v", err)
+		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
 	kc.pool.Loop(kc.ctx)
+	return nil
 }
 
 func (kc *kernelContext) MaxSignal() signal.Signal {
@@ -325,7 +350,7 @@ func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*
 	} else {
 		source = kc.source
 	}
-	opts := fuzzer.DefaultExecOpts(kc.cfg, features, *flagDebug)
+	opts := fuzzer.DefaultExecOpts(kc.cfg, features, kc.debug)
 	return queue.DefaultOpts(source, opts)
 }
 
