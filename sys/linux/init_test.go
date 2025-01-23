@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys/linux/gen"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 

@@ -24,8 +24,8 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
-	_ "github.com/google/syzkaller/sys/test/gen" // pull in the test target
 	"github.com/stretchr/testify/assert"
 )
 

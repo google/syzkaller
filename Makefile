@@ -74,13 +74,12 @@ GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
 GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X 'github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)'"
+ifneq ("$(GOTAGS)", "")
+	GOFLAGS += " -tags=$(GOTAGS)"
+endif
 
 GOHOSTFLAGS ?= $(GOFLAGS)
 GOTARGETFLAGS ?= $(GOFLAGS)
-ifneq ("$(GOTAGS)", "")
-	GOHOSTFLAGS += "-tags=$(GOTAGS)"
-endif
-GOTARGETFLAGS += "-tags=syz_target syz_os_$(TARGETOS) syz_arch_$(TARGETVMARCH) $(GOTAGS)"
 
 ifeq ("$(TARGETOS)", "test")
 	TARGETGOOS := $(HOSTOS)
@@ -149,7 +148,6 @@ descriptions:
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
 	bin/syz-sysgen
-	$(GO) fmt ./sys/... >/dev/null
 	touch .descriptions
 
 manager: descriptions
