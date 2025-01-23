@@ -31,72 +31,25 @@ type Seeds struct {
 	Candidates []fuzzer.Candidate
 }
 
-func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
+func LoadSeeds(cfg *mgrconfig.Config, immutable bool) (Seeds, error) {
 	var info Seeds
 	var err error
 	info.CorpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"), !immutable)
 	if err != nil {
 		if info.CorpusDB == nil {
-			log.Fatalf("failed to open corpus database: %v", err)
+			return Seeds{}, fmt.Errorf("failed to open corpus database: %w", err)
 		}
 		log.Errorf("read %v inputs from corpus and got error: %v", len(info.CorpusDB.Records), err)
 	}
 	info.Fresh = len(info.CorpusDB.Records) == 0
 	corpusFlags := versionToFlags(info.CorpusDB.Version)
-	type Input struct {
-		IsSeed bool
-		Key    string
-		Path   string
-		Data   []byte
-		Prog   *prog.Prog
-		Err    error
-	}
-	procs := runtime.GOMAXPROCS(0)
-	inputs := make(chan *Input, procs)
-	outputs := make(chan *Input, procs)
-	var wg sync.WaitGroup
-	wg.Add(procs)
-	for p := 0; p < procs; p++ {
-		go func() {
-			defer wg.Done()
-			for inp := range inputs {
-				inp.Prog, inp.Err = ParseSeed(cfg.Target, inp.Data)
-				outputs <- inp
-			}
-		}()
-	}
+	outputs := make(chan *input, 32)
+	chErr := make(chan error, 1)
 	go func() {
-		wg.Wait()
+		chErr <- readInputs(cfg, info.CorpusDB, outputs)
 		close(outputs)
 	}()
-	go func() {
-		for key, rec := range info.CorpusDB.Records {
-			inputs <- &Input{
-				Key:  key,
-				Data: rec.Val,
-			}
-		}
-		seedPath := filepath.Join("sys", cfg.TargetOS, "test")
-		seedDir := filepath.Join(cfg.Syzkaller, seedPath)
-		if osutil.IsExist(seedDir) {
-			seeds, err := os.ReadDir(seedDir)
-			if err != nil {
-				log.Fatalf("failed to read seeds dir: %v", err)
-			}
-			for _, seed := range seeds {
-				data, err := os.ReadFile(filepath.Join(seedDir, seed.Name()))
-				if err != nil {
-					log.Fatalf("failed to read seed %v: %v", seed.Name(), err)
-				}
-				inputs <- &Input{
-					IsSeed: true,
-					Path:   filepath.Join(seedPath, seed.Name()),
-					Data:   data,
-				}
-			}
-		}
-		close(inputs)
-	}()
+
 	brokenSeeds := 0
 	skippedSeeds := 0
 	var brokenCorpus []string
@@ -130,6 +83,9 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 			Flags: flags,
 		})
 	}
+	if err := <-chErr; err != nil {
+		return Seeds{}, err
+	}
 	if len(brokenCorpus)+brokenSeeds != 0 {
 		log.Logf(0, "broken programs in the corpus: %v, broken seeds: %v", len(brokenCorpus), brokenSeeds)
 	}
@@ -142,14 +98,69 @@ func LoadSeeds(cfg *mgrconfig.Config, immutable bool) Seeds {
 			info.CorpusDB.Delete(sig)
 		}
 		if err := info.CorpusDB.Flush(); err != nil {
-			log.Fatalf("failed to save corpus database: %v", err)
+			return Seeds{}, fmt.Errorf("failed to save corpus database: %w", err)
 		}
 	}
 	// Switch database to the mode when it does not keep records in memory.
 	// We don't need them anymore and they consume lots of memory.
 	info.CorpusDB.DiscardData()
 	info.Candidates = candidates
-	return info
+	return info, nil
+}
+
+type input struct {
+	IsSeed bool
+	Key    string
+	Path   string
+	Data   []byte
+	Prog   *prog.Prog
+	Err    error
+}
+
+func readInputs(cfg *mgrconfig.Config, db *db.DB, output chan *input) error {
+	procs := runtime.GOMAXPROCS(0)
+	inputs := make(chan *input, procs)
+	var wg sync.WaitGroup
+	wg.Add(procs)
+
+	defer wg.Wait()
+	defer close(inputs)
+	for p := 0; p < procs; p++ {
+		go func() {
+			defer wg.Done()
+			for inp := range inputs {
+				inp.Prog, inp.Err = ParseSeed(cfg.Target, inp.Data)
+				output <- inp
+			}
+		}()
+	}
+
+	for key, rec := range db.Records {
+		inputs <- &input{
+			Key:  key,
+			Data: rec.Val,
+		}
+	}
+	seedPath := filepath.Join("sys", cfg.TargetOS, "test")
+	seedDir := filepath.Join(cfg.Syzkaller, seedPath)
+	if osutil.IsExist(seedDir) {
+		seeds, err := os.ReadDir(seedDir)
+		if err != nil {
+			return fmt.Errorf("failed to read seeds dir: %w", err)
+		}
+		for _, seed := range seeds {
+			data, err := os.ReadFile(filepath.Join(seedDir, seed.Name()))
+			if err != nil {
+				return fmt.Errorf("failed to read seed %v: %w", seed.Name(), err)
+			}
+			inputs <- &input{
+				IsSeed: true,
+				Path:   filepath.Join(seedPath, seed.Name()),
+				Data:   data,
+			}
+		}
+	}
+	return nil
 }
 
 const CurrentDBVersion = 5

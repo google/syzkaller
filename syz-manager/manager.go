@@ -546,7 +546,10 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 }
 
 func (mgr *Manager) preloadCorpus() {
-	info := manager.LoadSeeds(mgr.cfg, false)
+	info, err := manager.LoadSeeds(mgr.cfg, false)
+	if err != nil {
+		log.Fatalf("failed to load corpus: %v", err)
+	}
 	mgr.fresh = info.Fresh
 	mgr.corpusDB = info.CorpusDB
 	mgr.corpusPreload <- info.Candidates
