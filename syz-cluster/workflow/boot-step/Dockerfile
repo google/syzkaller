@@ -8,7 +8,7 @@ WORKDIR /build
 # First query the modules to facilitate caching.
 COPY go.mod go.sum ./
 RUN go mod download
-COPY --exclude=vendor --exclude=syz-cluster . .
+COPY --exclude=syz-cluster . .
 RUN make TARGETARCH=amd64
 
 FROM golang:1.23-alpine AS boot-step-builder
