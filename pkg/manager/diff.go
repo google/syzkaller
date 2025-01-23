@@ -45,9 +45,15 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, debug
 	if err != nil {
 		return err
 	}
-	go func() {
-		new.candidates <- LoadSeeds(newCfg, true).Candidates
-	}()
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		info, err := LoadSeeds(newCfg, true)
+		if err != nil {
+			return err
+		}
+		new.candidates <- info.Candidates
+		return nil
+	})
 
 	stream := queue.NewRandomQueue(4096, rand.New(rand.NewSource(time.Now().UnixNano())))
 	base.source = stream
@@ -73,8 +79,10 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, debug
 		}
 		new.http = diffCtx.http
 	}
-	diffCtx.Loop(ctx)
-	return nil
+	eg.Go(func() error {
+		return diffCtx.Loop(ctx)
+	})
+	return eg.Wait()
 }
 
 type diffContext struct {
@@ -343,7 +351,15 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 		kc.http.Corpus.Store(corpusObj)
 	}
 
-	filtered := FilterCandidates(<-kc.candidates, syscalls, false).Candidates
+	var candidates []fuzzer.Candidate
+	select {
+	case candidates = <-kc.candidates:
+	case <-kc.ctx.Done():
+		// The loop will be aborted later.
+		break
+	}
+
+	filtered := FilterCandidates(candidates, syscalls, false).Candidates
 	log.Logf(0, "%s: adding %d seeds", kc.name, len(filtered))
 	fuzzerObj.AddCandidates(filtered)
 
