@@ -65,7 +65,7 @@ func TestFilesCoverageWithDetails(t *testing.T) {
 			client: func() spannerclient.SpannerClient {
 				return fullCoverageDBFixture(
 					t,
-					[]*fileCoverageWithLineInfo{
+					[]*FileCoverageWithLineInfo{
 						{
 							fileCoverageWithDetails: fileCoverageWithDetails{
 								Filepath:     "file1",
@@ -98,7 +98,7 @@ func TestFilesCoverageWithDetails(t *testing.T) {
 			client: func() spannerclient.SpannerClient {
 				return fullCoverageDBFixture(
 					t,
-					[]*fileCoverageWithLineInfo{
+					[]*FileCoverageWithLineInfo{
 						{
 							fileCoverageWithDetails: fileCoverageWithDetails{
 								Filepath:     "file1",
@@ -109,7 +109,7 @@ func TestFilesCoverageWithDetails(t *testing.T) {
 							HitCounts:         []int64{1, 1, 1},
 						},
 					},
-					[]*fileCoverageWithLineInfo{
+					[]*FileCoverageWithLineInfo{
 						{
 							fileCoverageWithDetails: fileCoverageWithDetails{
 								Filepath:     "file1",
@@ -141,7 +141,7 @@ func TestFilesCoverageWithDetails(t *testing.T) {
 			client: func() spannerclient.SpannerClient {
 				return fullCoverageDBFixture(
 					t,
-					[]*fileCoverageWithLineInfo{
+					[]*FileCoverageWithLineInfo{
 						{
 							fileCoverageWithDetails: fileCoverageWithDetails{
 								Filepath:     "file1",
@@ -152,7 +152,7 @@ func TestFilesCoverageWithDetails(t *testing.T) {
 							HitCounts:         []int64{3, 4, 5, 6, 7},
 						},
 					},
-					[]*fileCoverageWithLineInfo{
+					[]*FileCoverageWithLineInfo{
 						{
 							fileCoverageWithDetails: fileCoverageWithDetails{
 								Filepath:     "file1",
@@ -212,7 +212,7 @@ func emptyCoverageDBFixture(t *testing.T, times int) spannerclient.SpannerClient
 }
 
 func fullCoverageDBFixture(
-	t *testing.T, full, partial []*fileCoverageWithLineInfo,
+	t *testing.T, full, partial []*FileCoverageWithLineInfo,
 ) spannerclient.SpannerClient {
 	mPartialTran := mocks.NewReadOnlyTransaction(t)
 	mPartialTran.On("Query", mock.Anything, mock.Anything).
@@ -230,7 +230,7 @@ func fullCoverageDBFixture(
 	return m
 }
 
-func newRowIteratorMock(t *testing.T, events []*fileCoverageWithLineInfo,
+func newRowIteratorMock(t *testing.T, events []*FileCoverageWithLineInfo,
 ) *mocks.RowIterator {
 	m := mocks.NewRowIterator(t)
 	m.On("Stop").Once().Return()
@@ -238,7 +238,7 @@ func newRowIteratorMock(t *testing.T, events []*fileCoverageWithLineInfo,
 		mRow := mocks.NewRow(t)
 		mRow.On("ToStruct", mock.Anything).
 			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*fileCoverageWithLineInfo)
+				arg := args.Get(0).(*FileCoverageWithLineInfo)
 				*arg = *item
 			}).
 			Return(nil).Once()

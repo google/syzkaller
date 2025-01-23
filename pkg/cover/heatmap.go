@@ -116,13 +116,13 @@ type fileCoverageWithDetails struct {
 	Subsystems   []string
 }
 
-type fileCoverageWithLineInfo struct {
+type FileCoverageWithLineInfo struct {
 	fileCoverageWithDetails
 	LinesInstrumented []int64
 	HitCounts         []int64
 }
 
-func (fc *fileCoverageWithLineInfo) CovMap() map[int]int64 {
+func (fc *FileCoverageWithLineInfo) CovMap() map[int]int64 {
 	return MakeCovMap(fc.LinesInstrumented, fc.HitCounts)
 }
 
@@ -223,12 +223,12 @@ func readCoverage(iterManager spannerclient.RowIterator) ([]*fileCoverageWithDet
 func readCoverageUniq(full, mgr spannerclient.RowIterator,
 ) ([]*fileCoverageWithDetails, error) {
 	eg, ctx := errgroup.WithContext(context.Background())
-	fullCh := make(chan *fileCoverageWithLineInfo)
+	fullCh := make(chan *FileCoverageWithLineInfo)
 	eg.Go(func() error {
 		defer close(fullCh)
 		return readIterToChan(ctx, full, fullCh)
 	})
-	partCh := make(chan *fileCoverageWithLineInfo)
+	partCh := make(chan *FileCoverageWithLineInfo)
 	eg.Go(func() error {
 		defer close(partCh)
 		return readIterToChan(ctx, mgr, partCh)
@@ -309,7 +309,7 @@ func UniqCoverage(fullCov, partCov map[int]int64) map[int]int64 {
 	return res
 }
 
-func readIterToChan[K fileCoverageWithLineInfo | fileCoverageWithDetails](
+func readIterToChan[K FileCoverageWithLineInfo | fileCoverageWithDetails](
 	ctx context.Context, iter spannerclient.RowIterator, ch chan<- *K) error {
 	for {
 		row, err := iter.Next()

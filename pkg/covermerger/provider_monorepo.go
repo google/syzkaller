@@ -3,6 +3,8 @@
 
 package covermerger
 
+//go:generate ../../tools/mockery.sh --name FileVersProvider -r
+
 import (
 	"fmt"
 	"path/filepath"
@@ -15,7 +17,7 @@ import (
 
 type FileVersProvider interface {
 	GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
-	) (fileVersions, error)
+	) (FileVersions, error)
 }
 
 type monoRepo struct {
@@ -24,10 +26,10 @@ type monoRepo struct {
 	repo        vcs.Repo
 }
 
-type fileVersions map[RepoCommit]string
+type FileVersions map[RepoCommit]string
 
 func (mr *monoRepo) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
-) (fileVersions, error) {
+) (FileVersions, error) {
 	mr.mu.RLock()
 	if !mr.allRepoCommitsPresent(repoCommits) {
 		mr.mu.RUnlock()
@@ -35,7 +37,7 @@ func (mr *monoRepo) GetFileVersions(targetFilePath string, repoCommits ...RepoCo
 		mr.mu.RLock()
 	}
 	defer mr.mu.RUnlock()
-	res := make(fileVersions)
+	res := make(FileVersions)
 	for _, repoCommit := range repoCommits {
 		fileBytes, err := mr.repo.Object(targetFilePath, repoCommit.Commit)
 		// It is ok if some file doesn't exist. It means we have repo FS diff.

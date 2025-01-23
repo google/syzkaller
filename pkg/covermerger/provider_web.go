@@ -18,8 +18,8 @@ type webGit struct {
 }
 
 func (mr *webGit) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
-) (fileVersions, error) {
-	res := make(fileVersions)
+) (FileVersions, error) {
+	res := make(FileVersions)
 	for _, repoCommit := range repoCommits {
 		fileBytes, err := mr.loadFile(targetFilePath, repoCommit.Repo, repoCommit.Commit)
 		// It is ok if some file doesn't exist. It means we have repo FS diff.

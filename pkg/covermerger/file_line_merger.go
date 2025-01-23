@@ -5,7 +5,7 @@ package covermerger
 
 import "github.com/google/syzkaller/pkg/log"
 
-func makeFileLineCoverMerger(fvs fileVersions, base RepoCommit) FileCoverageMerger {
+func makeFileLineCoverMerger(fvs FileVersions, base RepoCommit) FileCoverageMerger {
 	baseFile := ""
 	baseFileExists := false
 	for repoCommit, fv := range fvs {

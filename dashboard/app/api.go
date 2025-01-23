@@ -26,7 +26,6 @@ import (
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/gcs"
@@ -105,6 +104,7 @@ var maxCrashes = func() int {
 func handleJSON(fn JSONHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
+		c = SetCoverageDBClient(c, coverageDBClient)
 		reply, err := fn(c, r)
 		if err != nil {
 			status := logErrorPrepareStatus(c, err)
@@ -1948,12 +1948,7 @@ func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) 
 		sss = service.List()
 		log.Infof(c, "found %d subsystems for %s namespace", len(sss), descr.Namespace)
 	}
-	client, err := spannerclient.NewClient(c, appengine.AppID(context.Background()))
-	if err != nil {
-		return 0, fmt.Errorf("coveragedb.NewClient() failed: %s", err.Error())
-	}
-	defer client.Close()
-	rowsCreated, err := coveragedb.SaveMergeResult(c, client, descr, jsonDec, sss)
+	rowsCreated, err := coveragedb.SaveMergeResult(c, GetCoverageDBClient(c), descr, jsonDec, sss)
 	if err != nil {
 		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
 			descr.Namespace, descr.DateTo.String(), err)
