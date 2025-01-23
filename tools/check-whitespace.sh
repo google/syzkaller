@@ -7,7 +7,7 @@ FAILED=""
 RE="[[:space:]]$"
 LAST_EMPTY=""
 for F in $(find . -name "*.sh" -o -name "*.S" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.md" | \
-		egrep -v "/vendor/|/gen/"); do
+		egrep -v "/gen/"); do
 	((FILES+=1))
 	L=0
 	while IFS= read -r LINE; do

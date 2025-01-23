@@ -4,7 +4,7 @@
 
 FAILED=""
 FILES=0
-for F in $(find . -perm -u=x -type f | egrep -v "/vendor/|/gen/|/.git"); do
+for F in $(find . -perm -u=x -type f | egrep -v "/gen/|/.git"); do
 	((FILES+=1))
 	if head -n 1 "$F" | egrep -q '^#!/' && head -n 1 "$F" | egrep -v -q -e '^#!/bin/sh$' -e '^#!/usr/bin/env '; then
 		echo "$F: Non-portable shebang line. Please use /usr/bin/env to locate the interpreter."
