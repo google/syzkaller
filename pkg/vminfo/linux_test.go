@@ -21,7 +21,7 @@ import (
 
 func TestLinuxSyscalls(t *testing.T) {
 	cfg := testConfig(t, targets.Linux, targets.AMD64)
-	checker := New(context.Background(), cfg)
+	checker := New(cfg)
 	filesystems := []string{
 		// Without sysfs, the checks would also disable mount().
 		"", "sysfs", "ext4", "binder", "",
@@ -40,7 +40,7 @@ func TestLinuxSyscalls(t *testing.T) {
 	}
 	stop := make(chan struct{})
 	go createSuccessfulResults(checker, stop)
-	enabled, disabled, features, err := checker.Run(files, allFeatures())
+	enabled, disabled, features, err := checker.Run(context.Background(), files, allFeatures())
 	close(stop)
 	if err != nil {
 		t.Fatal(err)

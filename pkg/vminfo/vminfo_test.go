@@ -56,10 +56,10 @@ func TestSyscalls(t *testing.T) {
 			t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
 				t.Parallel()
 				cfg := testConfig(t, target.OS, target.Arch)
-				checker := New(context.Background(), cfg)
+				checker := New(cfg)
 				stop := make(chan struct{})
 				go createSuccessfulResults(checker, stop)
-				enabled, disabled, _, err := checker.Run(nil, allFeatures())
+				enabled, disabled, _, err := checker.Run(context.Background(), nil, allFeatures())
 				close(stop)
 				if err != nil {
 					t.Fatal(err)
@@ -126,7 +126,7 @@ func createSuccessfulResults(source queue.Source, stop chan struct{}) {
 
 func hostChecker(t *testing.T) (*Checker, []*flatrpc.FileInfo) {
 	cfg := testConfig(t, runtime.GOOS, runtime.GOARCH)
-	checker := New(context.Background(), cfg)
+	checker := New(cfg)
 	files := readFiles(checker.RequiredFiles())
 	return checker, files
 }

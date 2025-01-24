@@ -153,7 +153,7 @@ func New(cfg *RemoteConfig) (Server, error) {
 	if !cfg.Experimental.RemoteCover {
 		features &= ^flatrpc.FeatureExtraCoverage
 	}
-	return newImpl(context.Background(), &Config{
+	return newImpl(&Config{
 		Config: vminfo.Config{
 			Target:     cfg.Target,
 			VMType:     cfg.Type,
@@ -180,11 +180,11 @@ func New(cfg *RemoteConfig) (Server, error) {
 	}, cfg.Manager), nil
 }
 
-func newImpl(ctx context.Context, cfg *Config, mgr Manager) *server {
+func newImpl(cfg *Config, mgr Manager) *server {
 	// Note that we use VMArch, rather than Arch. We need the kernel address ranges and bitness.
 	sysTarget := targets.Get(cfg.Target.OS, cfg.VMArch)
 	cfg.Procs = min(cfg.Procs, prog.MaxPids)
-	checker := vminfo.New(ctx, &cfg.Config)
+	checker := vminfo.New(&cfg.Config)
 	baseSource := queue.DynamicSource(checker)
 	return &server{
 		cfg:        cfg,
@@ -372,7 +372,9 @@ func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 }
 
 func (serv *server) runCheck(info *flatrpc.InfoRequest) error {
-	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(info.Files, info.Features)
+	// TODO: take context as a parameter.
+	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(context.Background(),
+		info.Files, info.Features)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	// Note: need to print disbled syscalls before failing due to an error.
 	// This helps to debug "all system calls are disabled".
