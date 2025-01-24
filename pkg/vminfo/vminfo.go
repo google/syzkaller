@@ -69,7 +69,7 @@ func New(ctx context.Context, cfg *Config) *Checker {
 	executor := queue.Plain()
 	return &Checker{
 		checker:      impl,
-		source:       queue.Deduplicate(ctx, executor),
+		source:       queue.Deduplicate(executor),
 		checkContext: newCheckContext(ctx, cfg, impl, executor),
 	}
 }
