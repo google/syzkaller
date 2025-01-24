@@ -305,9 +305,10 @@ func (kc *kernelContext) BugFrames() (leaks, races []string) {
 	return nil, nil
 }
 
-func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+func (kc *kernelContext) MachineChecked(features flatrpc.Feature,
+	syscalls map[*prog.Syscall]bool) (queue.Source, error) {
 	if len(syscalls) == 0 {
-		log.Fatalf("all system calls are disabled")
+		return nil, fmt.Errorf("all system calls are disabled")
 	}
 	log.Logf(0, "%s: machine check complete", kc.name)
 	kc.features = features
@@ -319,7 +320,7 @@ func (kc *kernelContext) MachineChecked(features flatrpc.Feature, syscalls map[*
 		source = kc.source
 	}
 	opts := fuzzer.DefaultExecOpts(kc.cfg, features, kc.debug)
-	return queue.DefaultOpts(source, opts)
+	return queue.DefaultOpts(source, opts), nil
 }
 
 func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
@@ -383,11 +384,11 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	return fuzzerObj
 }
 
-func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
+func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
 	kc.reportGenerator.Init(modules)
 	filters, err := PrepareCoverageFilters(kc.reportGenerator, kc.cfg, false)
 	if err != nil {
-		log.Fatalf("failed to init coverage filter: %v", err)
+		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
 	kc.coverFilters = filters
 	log.Logf(0, "cover filter size: %d", len(filters.ExecutorFilter))
@@ -402,7 +403,7 @@ func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) []uint64
 	for pc := range filters.ExecutorFilter {
 		pcs = append(pcs, pc)
 	}
-	return pcs
+	return pcs, nil
 }
 
 func (kc *kernelContext) fuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {

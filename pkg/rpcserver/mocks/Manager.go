@@ -53,7 +53,7 @@ func (_m *Manager) BugFrames() ([]string, []string) {
 }
 
 // CoverageFilter provides a mock function with given fields: modules
-func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
+func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
 	ret := _m.Called(modules)
 
 	if len(ret) == 0 {
@@ -61,6 +61,10 @@ func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 	}
 
 	var r0 []uint64
+	var r1 error
+	if rf, ok := ret.Get(0).(func([]*vminfo.KernelModule) ([]uint64, error)); ok {
+		return rf(modules)
+	}
 	if rf, ok := ret.Get(0).(func([]*vminfo.KernelModule) []uint64); ok {
 		r0 = rf(modules)
 	} else {
@@ -69,11 +73,17 @@ func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) []uint64 {
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func([]*vminfo.KernelModule) error); ok {
+		r1 = rf(modules)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MachineChecked provides a mock function with given fields: features, syscalls
-func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
+func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {
 	ret := _m.Called(features, syscalls)
 
 	if len(ret) == 0 {
@@ -81,6 +91,10 @@ func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.S
 	}
 
 	var r0 queue.Source
+	var r1 error
+	if rf, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) (queue.Source, error)); ok {
+		return rf(features, syscalls)
+	}
 	if rf, ok := ret.Get(0).(func(flatrpc.Feature, map[*prog.Syscall]bool) queue.Source); ok {
 		r0 = rf(features, syscalls)
 	} else {
@@ -89,7 +103,13 @@ func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.S
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(flatrpc.Feature, map[*prog.Syscall]bool) error); ok {
+		r1 = rf(features, syscalls)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MaxSignal provides a mock function with given fields:
