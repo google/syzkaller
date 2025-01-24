@@ -77,12 +77,14 @@ type handshakeConfig struct {
 }
 
 type handshakeResult struct {
+	Files         []*flatrpc.FileInfo
+	Features      []*flatrpc.FeatureInfo
 	CovFilter     []uint64
 	MachineInfo   []byte
 	Canonicalizer *cover.CanonicalizerInstance
 }
 
-func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error {
+func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (handshakeResult, error) {
 	if runner.updInfo != nil {
 		runner.updInfo(func(info *dispatcher.Info) {
 			info.Status = "handshake"
@@ -104,21 +106,21 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 		Features:         cfg.Features,
 	}
 	if err := flatrpc.Send(conn, connectReply); err != nil {
-		return err
+		return handshakeResult{}, err
 	}
 	infoReq, err := flatrpc.Recv[*flatrpc.InfoRequestRaw](conn)
 	if err != nil {
-		return err
+		return handshakeResult{}, err
 	}
 	ret, err := cfg.Callback(infoReq)
 	if err != nil {
-		return err
+		return handshakeResult{}, err
 	}
 	infoReply := &flatrpc.InfoReply{
 		CoverFilter: ret.CovFilter,
 	}
 	if err := flatrpc.Send(conn, infoReply); err != nil {
-		return err
+		return handshakeResult{}, err
 	}
 	runner.mu.Lock()
 	runner.conn = conn
@@ -132,7 +134,7 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) error 
 			info.DetailedStatus = runner.QueryStatus
 		})
 	}
-	return nil
+	return ret, nil
 }
 
 func (runner *Runner) ConnectionLoop() error {

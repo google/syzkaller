@@ -4,10 +4,12 @@
 package rpcserver
 
 import (
+	"context"
 	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -212,7 +214,11 @@ func TestHandleConn(t *testing.T) {
 			serv.CreateInstance(1, injectExec, nil)
 
 			go flatrpc.Send(clientConn, tt.req)
-			serv.handleConn(serverConn)
+			var eg errgroup.Group
+			serv.handleConn(context.Background(), &eg, serverConn)
+			if err := eg.Wait(); err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
