@@ -254,16 +254,16 @@ func newRowIteratorMock(t *testing.T, events []*FileCoverageWithLineInfo,
 
 func TestFilesCoverageToTemplateData(t *testing.T) {
 	tests := []struct {
-		name  string
-		input []*fileCoverageWithDetails
-		want  *templateHeatmap
+		name      string
+		input     []*fileCoverageWithDetails
+		hideEmpty bool
+		want      *templateHeatmap
 	}{
 		{
 			name:  "empty input",
 			input: []*fileCoverageWithDetails{},
 			want: &templateHeatmap{
 				Root: &templateHeatmapRow{
-					Items: []*templateHeatmapRow{},
 					IsDir: true,
 				},
 			},
@@ -283,7 +283,6 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 				Root: &templateHeatmapRow{
 					Items: []*templateHeatmapRow{
 						{
-							Items:               []*templateHeatmapRow{},
 							Name:                "file1",
 							Coverage:            []int64{100},
 							IsDir:               false,
@@ -332,7 +331,6 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 						{
 							Items: []*templateHeatmapRow{
 								{
-									Items:               []*templateHeatmapRow{},
 									Name:                "file1",
 									Coverage:            []int64{100, 0},
 									IsDir:               false,
@@ -347,7 +345,6 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"/graph/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
 								},
 								{
-									Items:               []*templateHeatmapRow{},
 									Name:                "file2",
 									Coverage:            []int64{0, 0},
 									IsDir:               false,
@@ -385,10 +382,32 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 				Periods: []string{"2024-07-01(1)", "2024-07-02(1)"},
 			},
 		},
+		{
+			name:      "hide empty",
+			hideEmpty: true,
+			input: []*fileCoverageWithDetails{
+				{
+					Filepath:     "file1",
+					Instrumented: 1,
+					Covered:      0,
+					TimePeriod:   makeTimePeriod(t, civil.Date{Year: 2024, Month: time.July, Day: 1}, coveragedb.DayPeriod),
+					Commit:       "commit1",
+				},
+			},
+			want: &templateHeatmap{
+				Root: &templateHeatmapRow{
+					Coverage:            []int64{0},
+					IsDir:               true,
+					LastDayInstrumented: 1,
+					Tooltips:            []string{"Instrumented:\t1 blocks\nCovered:\t0 blocks"},
+				},
+				Periods: []string{"2024-07-01(1)"},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := filesCoverageToTemplateData(test.input)
+			got := filesCoverageToTemplateData(test.input, test.hideEmpty)
 			assert.EqualExportedValues(t, test.want, got)
 		})
 	}
