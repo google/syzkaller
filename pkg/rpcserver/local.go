@@ -48,7 +48,7 @@ func RunLocal(cfg *LocalConfig) error {
 		cfg:       cfg,
 		setupDone: make(chan bool),
 	}
-	serv := newImpl(cfg.Context, &cfg.Config, ctx)
+	serv := newImpl(&cfg.Config, ctx)
 	if err := serv.Listen(); err != nil {
 		return err
 	}
