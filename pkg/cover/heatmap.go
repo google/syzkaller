@@ -71,8 +71,19 @@ func (thm *templateHeatmapRow) addParts(depth int, pathLeft []string, filePath s
 	thm.builder[nextElement].addParts(depth+1, pathLeft[1:], filePath, instrumented, covered, timePeriod)
 }
 
-func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
-	thm.Items = maps.Values(thm.builder)
+func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, skipEmpty bool) {
+	for _, item := range thm.builder {
+		if !skipEmpty {
+			thm.Items = append(thm.Items, item)
+			continue
+		}
+		for _, hitCount := range item.covered {
+			if hitCount > 0 {
+				thm.Items = append(thm.Items, item)
+				break
+			}
+		}
+	}
 	sort.Slice(thm.Items, func(i, j int) bool {
 		if thm.Items[i].IsDir != thm.Items[j].IsDir {
 			return thm.Items[i].IsDir
@@ -102,7 +113,7 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
 		thm.LastDayInstrumented = thm.instrumented[lastDate]
 	}
 	for _, item := range thm.builder {
-		item.prepareDataFor(pageColumns)
+		item.prepareDataFor(pageColumns, skipEmpty)
 	}
 }
 
@@ -131,7 +142,7 @@ type pageColumnTarget struct {
 	Commit     string
 }
 
-func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatmap {
+func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails, hideEmpty bool) *templateHeatmap {
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
 			IsDir:        true,
@@ -164,7 +175,7 @@ func filesCoverageToTemplateData(fCov []*fileCoverageWithDetails) *templateHeatm
 		res.Periods = append(res.Periods, fmt.Sprintf("%s(%d)", tp.DateTo.String(), tp.Days))
 	}
 
-	res.Root.prepareDataFor(targetDateAndCommits)
+	res.Root.prepareDataFor(targetDateAndCommits, hideEmpty)
 	return &res
 }
 
@@ -403,7 +414,7 @@ func DoHeatMapStyleBodyJS(
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to filesCoverageWithDetails: %w", err)
 	}
-	templData := filesCoverageToTemplateData(covAndDates)
+	templData := filesCoverageToTemplateData(covAndDates, onlyUnique)
 	templData.Subsystems = sss
 	templData.Managers = managers
 	return stylesBodyJSTemplate(templData)
@@ -430,7 +441,7 @@ func DoSubsystemsHeatMapStyleBodyJS(
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}
 	}
-	templData := filesCoverageToTemplateData(ssCovAndDates)
+	templData := filesCoverageToTemplateData(ssCovAndDates, onlyUnique)
 	templData.Managers = managers
 	return stylesBodyJSTemplate(templData)
 }
