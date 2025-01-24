@@ -422,7 +422,6 @@ func (ds *DynamicSourceCtl) Next() *Request {
 // Deduplicator() keeps track of the previously run requests to avoid re-running them.
 type Deduplicator struct {
 	mu     sync.Mutex
-	ctx    context.Context
 	source Source
 	mm     map[hash.Sig]*duplicateState
 }
@@ -432,9 +431,8 @@ type duplicateState struct {
 	queued []*Request // duplicate requests waiting for the result.
 }
 
-func Deduplicate(ctx context.Context, source Source) Source {
+func Deduplicate(source Source) Source {
 	return &Deduplicator{
-		ctx:    ctx,
 		source: source,
 		mm:     map[hash.Sig]*duplicateState{},
 	}
