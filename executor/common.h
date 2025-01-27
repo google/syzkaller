@@ -696,17 +696,21 @@ static void loop(void)
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
 			// and kill it after ~1s of inactivity.
+			// (Globs are an exception: they can be slow, so we allow up to ~120s)
 			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
 			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
+			uint64 glob_timeout_ms = program_timeout_ms * 120;
+
 			uint64 now = current_time_ms();
 			uint32 now_executed = output_data->completed.load(std::memory_order_relaxed);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
 			}
+
 			// TODO: adjust timeout for progs with syz_usb_connect call.
 			// If the max program timeout is exceeded, kill unconditionally.
-			if (now - start > program_timeout_ms)
+			if ((now - start > program_timeout_ms && request_type != rpc::RequestType::Glob) || (now - start > glob_timeout_ms && request_type == rpc::RequestType::Glob))
 				goto kill_test;
 			// If the request type is not a normal test program (currently, glob expansion request),
 			// then wait for the full timeout (these requests don't update number of completed calls
