@@ -22,22 +22,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type FilesRecord struct {
-	Session           string
-	FilePath          string
-	Instrumented      int64
-	Covered           int64
-	LinesInstrumented []int64
-	HitCounts         []int64
-	Manager           string // "*" means "collected from all managers"
-}
-
-type FileSubsystems struct {
-	Namespace  string
-	FilePath   string
-	Subsystems []string
-}
-
 type HistoryRecord struct {
 	Session   string
 	Time      time.Time
@@ -47,22 +31,6 @@ type HistoryRecord struct {
 	Duration  int64
 	DateTo    civil.Date
 	TotalRows int64
-}
-
-type Coverage struct {
-	Instrumented      int64
-	Covered           int64
-	LinesInstrumented []int64
-	HitCounts         []int64
-}
-
-func (c *Coverage) AddLineHitCount(line int, hitCount int64) {
-	c.Instrumented++
-	c.LinesInstrumented = append(c.LinesInstrumented, int64(line))
-	c.HitCounts = append(c.HitCounts, hitCount)
-	if hitCount > 0 {
-		c.Covered++
-	}
 }
 
 type MergedCoverageRecord struct {
@@ -84,6 +52,45 @@ type JSONLWrapper struct {
 	FL  *FuncLines
 }
 
+type Coverage struct {
+	Instrumented      int64
+	Covered           int64
+	LinesInstrumented []int64
+	HitCounts         []int64
+}
+
+func (c *Coverage) AddLineHitCount(line int, hitCount int64) {
+	c.Instrumented++
+	c.LinesInstrumented = append(c.LinesInstrumented, int64(line))
+	c.HitCounts = append(c.HitCounts, hitCount)
+	if hitCount > 0 {
+		c.Covered++
+	}
+}
+
+type filesRecord struct {
+	Session           string
+	FilePath          string
+	Instrumented      int64
+	Covered           int64
+	LinesInstrumented []int64
+	HitCounts         []int64
+	Manager           string // "*" means "collected from all managers"
+}
+
+type functionsRecord struct {
+	Session  string
+	FilePath string
+	FuncName string
+	Lines    []int64
+}
+
+type fileSubsystems struct {
+	Namespace  string
+	FilePath   string
+	Subsystems []string
+}
+
 func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, descr *HistoryRecord, dec *json.Decoder,
 	sss []*subsystem.Subsystem) (int, error) {
 	if client == nil {
@@ -94,23 +101,26 @@ func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, de
 	ssCache := make(map[string][]string)
 
 	session := uuid.New().String()
-	mutations := []*spanner.Mutation{}
+	var mutations []*spanner.Mutation
 
 	for {
-		var mcr MergedCoverageRecord
-		err := dec.Decode(&mcr)
+		var wr JSONLWrapper
+		err := dec.Decode(&wr)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return rowsCreated, fmt.Errorf("dec.Decode(MergedCoverageRecord): %w", err)
 		}
-		if mcr.FileData == nil {
-			return rowsCreated, errors.New("field MergedCoverageRecord.FileData can't be nil")
+		if mcr := wr.MCR; mcr != nil {
+			mutations = append(mutations, fileRecordMutation(session, mcr))
+			subsystems := getFileSubsystems(mcr.FilePath, ssMatcher, ssCache)
+			mutations = append(mutations, fileSubsystemsMutation(descr.Namespace, mcr.FilePath, subsystems))
+		} else if fl := wr.FL; fl != nil {
+			mutations = append(mutations, fileFunctionsMutation(session, fl))
+		} else {
+			return rowsCreated, errors.New("JSONLWrapper can't be empty")
 		}
-		mutations = append(mutations, fileRecordMutation(session, &mcr))
-		subsystems := fileSubsystems(mcr.FilePath, ssMatcher, ssCache)
-		mutations = append(mutations, fileSubsystemsMutation(descr.Namespace, mcr.FilePath, subsystems))
 		// There is a limit on the number of mutations per transaction (80k) imposed by the DB.
 		// This includes both explicit mutations of the fields (6 fields * 1k records = 6k mutations)
 		//   and implicit index mutations.
@@ -203,8 +213,21 @@ func historyMutation(session string, template *HistoryRecord) *spanner.Mutation 
 	return historyInsert
 }
 
+func fileFunctionsMutation(session string, fl *FuncLines) *spanner.Mutation {
+	insert, err := spanner.InsertOrUpdateStruct("functions", &functionsRecord{
+		Session:  session,
+		FilePath: fl.FilePath,
+		FuncName: fl.FuncName,
+		Lines:    fl.Lines,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to fileFunctionsMutation: %v", err))
+	}
+	return insert
+}
+
 func fileRecordMutation(session string, mcr *MergedCoverageRecord) *spanner.Mutation {
-	insert, err := spanner.InsertOrUpdateStruct("files", &FilesRecord{
+	insert, err := spanner.InsertOrUpdateStruct("files", &filesRecord{
 		Session:           session,
 		FilePath:          mcr.FilePath,
 		Instrumented:      mcr.FileData.Instrumented,
@@ -220,7 +243,7 @@ func fileRecordMutation(session string, mcr *MergedCoverageRecord) *spanner.Muta
 }
 
 func fileSubsystemsMutation(ns, filePath string, subsystems []string) *spanner.Mutation {
-	insert, err := spanner.InsertOrUpdateStruct("file_subsystems", &FileSubsystems{
+	insert, err := spanner.InsertOrUpdateStruct("file_subsystems", &fileSubsystems{
 		Namespace:  ns,
 		FilePath:   filePath,
 		Subsystems: subsystems,
@@ -231,7 +254,7 @@ func fileSubsystemsMutation(ns, filePath string, subsystems []string) *spanner.M
 	return insert
 }
 
-func fileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache map[string][]string) []string {
+func getFileSubsystems(filePath string, ssMatcher *subsystem.PathMatcher, ssCache map[string][]string) []string {
 	sss, cached := ssCache[filePath]
 	if !cached {
 		for _, match := range ssMatcher.Match(filePath) {

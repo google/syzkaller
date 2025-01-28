@@ -55,8 +55,8 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		spannerMock := mocks.NewSpannerClient(t)
 		spannerMock.
 			On("Apply", mock.Anything, mock.MatchedBy(func(ms []*spanner.Mutation) bool {
-				// 1 file * (5 managers + 1 manager total) x 2 (to update files and subsystems) + 1 merge_history
-				return len(ms) == 13
+				// 1 file * (5 managers + 1 manager total) x 2 (to update files and subsystems) + 1 merge_history + 18 functions
+				return len(ms) == 13+18
 			})).
 			Return(time.Now(), nil).
 			Once()

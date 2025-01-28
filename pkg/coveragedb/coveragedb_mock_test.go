@@ -45,9 +45,10 @@ func TestSaveMergeResult(t *testing.T) {
 			jsonl:   strings.NewReader(`{a}`),
 			wantErr: true,
 		},
+		// nolint: dupl
 		{
-			name:     "1 record, Ok",
-			jsonl:    strings.NewReader(`{"FileData":{}}`),
+			name:     "1 MCR record, Ok",
+			jsonl:    strings.NewReader(`{"MCR":{"FileData":{}}}`),
 			descr:    &HistoryRecord{},
 			wantRows: 3, // 1 in files, 1 in file_subsystems and 1 in merge_history
 			mockTune: func(t *testing.T, m *mocks.SpannerClient) {
@@ -57,10 +58,23 @@ func TestSaveMergeResult(t *testing.T) {
 					Once()
 			},
 		},
+		// nolint: dupl
+		{
+			name:     "1 FC record, Ok",
+			jsonl:    strings.NewReader(`{"FL":{}}`),
+			descr:    &HistoryRecord{},
+			wantRows: 2, // 1 in functions and 1 in merge_history
+			mockTune: func(t *testing.T, m *mocks.SpannerClient) {
+				m.
+					On("Apply", mock.Anything, mock.Anything).
+					Return(time.Now(), nil).
+					Once()
+			},
+		},
 		{
 			name: "2 records, Ok",
-			jsonl: strings.NewReader(`	{"FileData":{}}
-																		{"FileData":{}}`),
+			jsonl: strings.NewReader(`	{"MCR":{"FileData":{}}}
+																		{"MCR":{"FileData":{}}}`),
 			descr:    &HistoryRecord{},
 			wantRows: 5,
 			mockTune: func(t *testing.T, m *mocks.SpannerClient) {
@@ -77,7 +91,7 @@ func TestSaveMergeResult(t *testing.T) {
 		},
 		{
 			name:     "2k records, Ok",
-			jsonl:    strings.NewReader(strings.Repeat("{\"FileData\":{}}\n", 2000)),
+			jsonl:    strings.NewReader(strings.Repeat("{\"MCR\":{\"FileData\":{}}}\n", 2000)),
 			descr:    &HistoryRecord{},
 			wantRows: 4001,
 			mockTune: func(t *testing.T, m *mocks.SpannerClient) {
