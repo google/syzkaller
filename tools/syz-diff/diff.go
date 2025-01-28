@@ -47,7 +47,9 @@ func main() {
 	}
 
 	ctx := vm.ShutdownCtx()
-	err = manager.RunDiffFuzzer(ctx, baseCfg, newCfg, *flagDebug)
+	err = manager.RunDiffFuzzer(ctx, baseCfg, newCfg, manager.DiffFuzzerConfig{
+		Debug: *flagDebug,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

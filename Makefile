@@ -150,6 +150,9 @@ descriptions:
 	bin/syz-sysgen
 	touch .descriptions
 
+go-flags:
+	@echo "${GOHOSTFLAGS}"
+
 manager: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
