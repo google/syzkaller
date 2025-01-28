@@ -22,9 +22,9 @@ import (
 
 const (
 	KeyKernelRepo   = "kernel_repo"
-	KeyKernelBranch = "kernel_branch"
 	KeyKernelCommit = "kernel_commit"
 	KeyFilePath     = "file_path"
+	KeyFuncName     = "func_name"
 	KeyStartLine    = "sl"
 	KeyHitCount     = "hit_count"
 	KeyManager      = "manager"
@@ -32,6 +32,7 @@ const (
 
 type FileRecord struct {
 	FilePath string
+	FuncName string
 	RepoCommit
 	StartLine int
 	HitCount  int
@@ -82,10 +83,15 @@ func MergeCSVWriteJSONL(config *Config, descr *coveragedb.HistoryRecord, csvRead
 			}
 		}
 		for fileMergeResult := range mergeResults {
-			dashCoverageRecords := mergedCoverageRecords(fileMergeResult)
+			dashCoverageRecords, dashFuncLines := mergedCoverageRecords(fileMergeResult)
 			if encoder != nil {
+				for _, record := range dashFuncLines {
+					if err := encoder.Encode(coveragedb.JSONLWrapper{FL: record}); err != nil {
+						return fmt.Errorf("encoder.Encode(FuncLines): %w", err)
+					}
+				}
 				for _, record := range dashCoverageRecords {
-					if err := encoder.Encode(record); err != nil {
+					if err := encoder.Encode(coveragedb.JSONLWrapper{MCR: record}); err != nil {
 						return fmt.Errorf("encoder.Encode(MergedCoverageRecord): %w", err)
 					}
 				}
@@ -107,21 +113,33 @@ func MergeCSVWriteJSONL(config *Config, descr *coveragedb.HistoryRecord, csvRead
 
 const allManagers = "*"
 
-func mergedCoverageRecords(fmr *FileMergeResult) []*coveragedb.MergedCoverageRecord {
+func mergedCoverageRecords(fmr *FileMergeResult) ([]*coveragedb.MergedCoverageRecord, []*coveragedb.FuncLines) {
 	if !fmr.FileExists {
-		return nil
+		return nil, nil
 	}
 	lines := maps.Keys(fmr.HitCounts)
 	slices.Sort(lines)
 	mgrStat := make(map[string]*coveragedb.Coverage)
 	mgrStat[allManagers] = &coveragedb.Coverage{}
 
+	funcLines := map[string]*coveragedb.FuncLines{}
 	for _, line := range lines {
 		mgrStat[allManagers].AddLineHitCount(line, fmr.HitCounts[line])
 		managerHitCounts := map[string]int64{}
+		var srcFuncs []string
 		for _, lineDetail := range fmr.LineDetails[line] {
+			srcFuncs = append(srcFuncs, lineDetail.FuncName)
 			manager := lineDetail.Manager
 			managerHitCounts[manager] += int64(lineDetail.HitCount)
+		}
+		if funcName := bestFuncName(srcFuncs); funcName != "" {
+			if _, ok := funcLines[funcName]; !ok {
+				funcLines[funcName] = &coveragedb.FuncLines{
+					FilePath: fmr.FilePath,
+					FuncName: funcName,
+				}
+			}
+			funcLines[funcName].Lines = append(funcLines[funcName].Lines, int64(line))
 		}
 		for manager, managerHitCount := range managerHitCounts {
 			if _, ok := mgrStat[manager]; !ok {
@@ -139,7 +157,27 @@ func mergedCoverageRecords(fmr *FileMergeResult) []*coveragedb.MergedCoverageRec
 			FileData: managerCoverage,
 		})
 	}
-	return res
+	return res, maps.Values(funcLines)
+}
+
+// bestFuncName selects the most frequent function from the list of candidates.
+// If a function was renamed during the collection period, we have to pick one name to display the coverage.
+//
+// The better alternative is to get the function name from the C code. But it looks more complex for now.
+func bestFuncName(names []string) string {
+	stat := map[string]int{}
+	for _, name := range names {
+		stat[name]++
+	}
+	bestName := ""
+	bestCount := 0
+	for name, count := range stat {
+		if name != "" && count > bestCount {
+			bestName = name
+			bestCount = count
+		}
+	}
+	return bestName
 }
 
 func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
@@ -172,6 +210,8 @@ func makeRecord(fields, schema []string) (*FileRecord, error) {
 		switch key {
 		case KeyFilePath:
 			record.FilePath = val
+		case KeyFuncName:
+			record.FuncName = val
 		case KeyKernelRepo:
 			record.Repo = val
 		case KeyKernelCommit:
