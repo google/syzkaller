@@ -14,12 +14,12 @@ create_table=$( echo -n '
 CREATE TABLE
   files (
     "session" text,
+    "manager" text,
     "filepath" text,
     "instrumented" bigint,
     "covered" bigint,
     "linesinstrumented" bigint[],
     "hitcounts" bigint[],
-    "manager" text,
   PRIMARY KEY
     (session, manager, filepath) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
