@@ -36,12 +36,23 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, debug bool) error {
-	base, err := setup(ctx, "base", baseCfg, debug)
+type DiffFuzzerConfig struct {
+	Debug       bool
+	PatchedOnly chan *UniqueBug
+}
+
+type UniqueBug struct {
+	// The report from the patched kernel.
+	Report *report.Report
+	Repro  *repro.Result
+}
+
+func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg DiffFuzzerConfig) error {
+	base, err := setup(ctx, "base", baseCfg, cfg.Debug)
 	if err != nil {
 		return err
 	}
-	new, err := setup(ctx, "new", newCfg, debug)
+	new, err := setup(ctx, "new", newCfg, cfg.Debug)
 	if err != nil {
 		return err
 	}
@@ -66,6 +77,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, debug
 		new:           new,
 		store:         store,
 		reproAttempts: map[string]int{},
+		patchedOnly:   cfg.PatchedOnly,
 	}
 	if newCfg.HTTP != "" {
 		diffCtx.http = &HTTPServer{
@@ -89,9 +101,10 @@ type diffContext struct {
 	store *DiffFuzzerStore
 	http  *HTTPServer
 
-	doneRepro chan *ReproResult
-	base      *kernelContext
-	new       *kernelContext
+	doneRepro   chan *ReproResult
+	base        *kernelContext
+	new         *kernelContext
+	patchedOnly chan *UniqueBug
 
 	mu            sync.Mutex
 	reproAttempts map[string]int
@@ -141,12 +154,18 @@ loop:
 			log.Logf(1, "base crash: %v", rep.Title)
 			dc.store.BaseCrashed(rep.Title, rep.Report)
 		case ret := <-runner.done:
-			if ret.crashTitle == "" {
-				dc.store.BaseNotCrashed(ret.originalTitle)
-				log.Logf(0, "patched-only: %s", ret.originalTitle)
+			if ret.crashReport == nil {
+				dc.store.BaseNotCrashed(ret.origReport.Title)
+				if dc.patchedOnly != nil {
+					dc.patchedOnly <- &UniqueBug{
+						Report: ret.origReport,
+						Repro:  ret.repro,
+					}
+				}
+				log.Logf(0, "patched-only: %s", ret.origReport.Title)
 			} else {
-				dc.store.BaseCrashed(ret.originalTitle, ret.report)
-				log.Logf(0, "crashes both: %s / %s", ret.originalTitle, ret.crashTitle)
+				dc.store.BaseCrashed(ret.origReport.Title, ret.origReport.Report)
+				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
 			if ret.Repro != nil && ret.Repro.Report != nil {
@@ -467,9 +486,9 @@ type reproRunner struct {
 }
 
 type reproRunnerResult struct {
-	originalTitle string
-	crashTitle    string
-	report        []byte
+	origReport  *report.Report
+	crashReport *report.Report
+	repro       *repro.Result
 }
 
 func (rr *reproRunner) Run(r *repro.Result) {
@@ -481,7 +500,7 @@ func (rr *reproRunner) Run(r *repro.Result) {
 		rr.kernel.pool.ReserveForRun(min(cnt, pool.Total()))
 	}()
 
-	ret := reproRunnerResult{originalTitle: r.Report.Title}
+	ret := reproRunnerResult{origReport: r.Report, repro: r}
 
 	var result *instance.RunResult
 	var err error
@@ -506,9 +525,9 @@ func (rr *reproRunner) Run(r *repro.Result) {
 			})
 		})
 		crashed := result != nil && result.Report != nil
-		log.Logf(1, "attempt #%d to run %q on base: crashed=%v", i, ret.originalTitle, crashed)
+		log.Logf(1, "attempt #%d to run %q on base: crashed=%v", i, ret.origReport.Title, crashed)
 		if crashed {
-			ret.crashTitle = result.Report.Title
+			ret.crashReport = result.Report
 			break
 		}
 	}

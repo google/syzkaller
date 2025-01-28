@@ -18,7 +18,6 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY pkg/ pkg/
-# TODO: get rid of the prog/ dependency?
 COPY prog/ prog/
 COPY vm/ vm/
 COPY executor/ executor/
@@ -28,7 +27,7 @@ COPY --from=syzkaller-builder /build/sys/ sys/
 COPY syz-cluster/workflow/boot-step/*.go syz-cluster/workflow/boot-step/
 COPY syz-cluster/pkg/ syz-cluster/pkg/
 
-RUN go build -o /build/boot-step-bin /build/syz-cluster/workflow/boot-step
+RUN go build -o /bin/boot-step /build/syz-cluster/workflow/boot-step
 
 FROM debian:bookworm
 
@@ -39,7 +38,7 @@ RUN apt-get update && \
 RUN useradd --create-home syzkaller
 
 COPY --from=syzkaller-builder /build/bin/ /syzkaller/bin/
-COPY --from=boot-step-builder /build/boot-step-bin /bin/boot-step
+COPY --from=boot-step-builder /bin/boot-step /bin/boot-step
 COPY syz-cluster/workflow/configs/ /configs/
 
-ENTRYPOINT ["/bin/boot-tracker"]
+ENTRYPOINT ["/bin/boot-step"]
