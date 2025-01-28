@@ -120,6 +120,9 @@ func (sp *SeriesProcessor) seriesRunner(ctx context.Context, ch <-chan *db.Sessi
 		var session *db.Session
 		select {
 		case session = <-ch:
+			if session == nil {
+				return
+			}
 		case <-ctx.Done():
 			return
 		}
