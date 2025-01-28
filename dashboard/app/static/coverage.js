@@ -13,6 +13,15 @@ function initTogglers(){
 }
 
 function initUpdateForm(){
+  $('#target-manager').change(function() {
+    if ($(this).val() === '') { // selected "*"
+      $("#unique-only").prop("checked", false);
+      $('#unique-only').prop('disabled', true);
+    } else {
+      $('#unique-only').prop('disabled', false);
+    }
+  });
+
   var curUrlParams = new URLSearchParams(window.location.search);
   $('#target-period').val(curUrlParams.get('period'));
   if (curUrlParams.get('period_count') != null) {
@@ -21,6 +30,7 @@ function initUpdateForm(){
   $('#target-subsystem').val(curUrlParams.get('subsystem'));
   $('#target-manager').val(curUrlParams.get('manager'));
   $("#unique-only").prop("checked", curUrlParams.get('unique-only') == "1");
+  $('#unique-only').prop('disabled', $('#target-manager').val() == '');
 }
 
 // This handler is called when user clicks on the coverage percentage.
