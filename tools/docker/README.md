@@ -10,6 +10,9 @@ These images are available as `gcr.io/syzkaller/{env,old-env}`, respectively.
 
 To download and run locally:
 ```
+sudo apt install google-cloud-cli
+gcloud auth login
+gcloud auth configure-docker
 docker pull gcr.io/syzkaller/env
 docker run -it gcr.io/syzkaller/env
 ```

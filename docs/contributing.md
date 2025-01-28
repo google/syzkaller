@@ -135,20 +135,10 @@ Or you may run the shell inside of the container with just `syz-env` and look ar
 To update `syz-env` container to the latest version do:
 
 ``` bash
+sudo apt install google-cloud-cli
+gcloud auth login
+gcloud auth configure-docker
 docker pull gcr.io/syzkaller/env
-```
-
-If you do not have access to the `gcr.io` registry, there is also a mirror in `docker.pkg.github.com` registry.
-In order to use it, you need to
-[authenticate Docker](https://docs.github.com/en/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages)
-with your Github account with:
-```
-docker login https://docker.pkg.github.com
-```
-and then pull the image and retag it to the name expected by `syz-env`:
-```
-docker pull docker.pkg.github.com/google/syzkaller/env
-docker tag docker.pkg.github.com/google/syzkaller/env gcr.io/syzkaller/env
 ```
 
 You can also build the container from the respective `Dockerfile` by setting the `SYZ_ENV_BUILD` environment variable, i.e.:
