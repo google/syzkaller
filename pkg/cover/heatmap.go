@@ -212,13 +212,13 @@ where
 	return stmt
 }
 
-func readCoverage(iterManager spannerclient.RowIterator) ([]*fileCoverageWithDetails, error) {
+func readCoverage(ctx context.Context, iterManager spannerclient.RowIterator) ([]*fileCoverageWithDetails, error) {
 	res := []*fileCoverageWithDetails{}
 	ch := make(chan *fileCoverageWithDetails)
 	var err error
 	go func() {
 		defer close(ch)
-		err = readIterToChan(context.Background(), iterManager, ch)
+		err = readIterToChan(ctx, iterManager, ch)
 	}()
 	for fc := range ch {
 		res = append(res, fc)
@@ -231,18 +231,18 @@ func readCoverage(iterManager spannerclient.RowIterator) ([]*fileCoverageWithDet
 
 // Unique coverage from specific manager is more expensive to get.
 // We get unique coverage comparing manager and total coverage on the AppEngine side.
-func readCoverageUniq(full, mgr spannerclient.RowIterator,
+func readCoverageUniq(ctx context.Context, full, mgr spannerclient.RowIterator,
 ) ([]*fileCoverageWithDetails, error) {
-	eg, ctx := errgroup.WithContext(context.Background())
+	eg, egCtx := errgroup.WithContext(ctx)
 	fullCh := make(chan *FileCoverageWithLineInfo)
 	eg.Go(func() error {
 		defer close(fullCh)
-		return readIterToChan(ctx, full, fullCh)
+		return readIterToChan(egCtx, full, fullCh)
 	})
 	partCh := make(chan *FileCoverageWithLineInfo)
 	eg.Go(func() error {
 		defer close(partCh)
-		return readIterToChan(ctx, mgr, partCh)
+		return readIterToChan(egCtx, mgr, partCh)
 	})
 	res := []*fileCoverageWithDetails{}
 	eg.Go(func() error {
@@ -346,33 +346,60 @@ func readIterToChan[K FileCoverageWithLineInfo | fileCoverageWithDetails](
 func filesCoverageWithDetails(
 	ctx context.Context, client spannerclient.SpannerClient, scope *SelectScope, onlyUnique bool,
 ) ([]*fileCoverageWithDetails, error) {
-	var res []*fileCoverageWithDetails
-	for _, timePeriod := range scope.Periods {
-		needLinesDetails := onlyUnique
-		iterManager := client.Single().Query(ctx,
-			filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Manager, timePeriod, needLinesDetails))
-		defer iterManager.Stop()
+	resCh := make(chan *fileCoverageWithDetails)
+	var egErr error
+	go func() {
+		defer close(resCh)
+		eg, egCtx := errgroup.WithContext(ctx)
+		for _, timePeriod := range scope.Periods {
+			eg.Go(func() error {
+				needLinesDetails := onlyUnique
+				iterManager := client.Single().Query(egCtx,
+					filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Manager, timePeriod, needLinesDetails))
+				defer iterManager.Stop()
 
-		var err error
-		var periodRes []*fileCoverageWithDetails
-		if onlyUnique {
-			iterAll := client.Single().Query(ctx,
-				filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, "", timePeriod, needLinesDetails))
-			defer iterAll.Stop()
-			periodRes, err = readCoverageUniq(iterAll, iterManager)
-			if err != nil {
-				return nil, fmt.Errorf("uniqueFilesCoverageWithDetails: %w", err)
-			}
-		} else {
-			periodRes, err = readCoverage(iterManager)
-			if err != nil {
-				return nil, fmt.Errorf("readCoverage: %w", err)
-			}
+				var err error
+				var periodRes []*fileCoverageWithDetails
+				if onlyUnique {
+					iterAll := client.Single().Query(egCtx,
+						filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, "", timePeriod, needLinesDetails))
+					defer iterAll.Stop()
+					periodRes, err = readCoverageUniq(egCtx, iterAll, iterManager)
+					if err != nil {
+						return fmt.Errorf("uniqueFilesCoverageWithDetails: %w", err)
+					}
+				} else {
+					periodRes, err = readCoverage(egCtx, iterManager)
+					if err != nil {
+						return fmt.Errorf("readCoverage: %w", err)
+					}
+				}
+				for _, r := range periodRes {
+					r.TimePeriod = timePeriod
+					resCh <- r
+				}
+				return nil
+			})
 		}
-		for _, r := range periodRes {
-			r.TimePeriod = timePeriod
+		egErr = eg.Wait()
+	}()
+
+	var res []*fileCoverageWithDetails
+	done := false
+	for !done {
+		select {
+		case fcwd := <-resCh:
+			if fcwd == nil {
+				done = true
+				break
+			}
+			res = append(res, fcwd)
+		case <-ctx.Done():
+			return nil, fmt.Errorf("external context terminated")
 		}
-		res = append(res, periodRes...)
+	}
+	if egErr != nil {
+		return nil, egErr
 	}
 	return res, nil
 }
