@@ -71,6 +71,19 @@ type MergedCoverageRecord struct {
 	FileData *Coverage
 }
 
+// FuncLines represents the 'functions' table records.
+// It could be used to maps 'hitcounts' from 'files' table to the function names.
+type FuncLines struct {
+	FilePath string
+	FuncName string
+	Lines    []int64 // List of lines we know belong to this function name according to the addr2line output.
+}
+
+type JSONLWrapper struct {
+	MCR *MergedCoverageRecord
+	FL  *FuncLines
+}
+
 func SaveMergeResult(ctx context.Context, client spannerclient.SpannerClient, descr *HistoryRecord, dec *json.Decoder,
 	sss []*subsystem.Subsystem) (int, error) {
 	if client == nil {

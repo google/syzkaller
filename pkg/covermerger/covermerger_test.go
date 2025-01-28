@@ -163,11 +163,12 @@ func TestMergerdCoverageRecords(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotRecords := mergedCoverageRecords(test.input)
+			gotRecords, gotFuncs := mergedCoverageRecords(test.input)
 			sort.Slice(gotRecords, func(i, j int) bool {
 				return gotRecords[i].Manager < gotRecords[j].Manager
 			})
 			assert.Equal(t, test.wantRecords, gotRecords, "records are not equal")
+			assert.Equal(t, 0, len(gotFuncs), "no functions expected")
 		})
 	}
 }
@@ -241,6 +242,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,change_line.c,func1,3,
 			[
 				{
 					"FilePath":"change_line.c",
+					"FuncName":"func1",
 					"Repo":"git://repo",
 					"Commit":"commit1",
 					"StartLine":3,
@@ -271,6 +273,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit1,add_line.c,func1,2,0,2
 			[
 				{
 					"FilePath":"add_line.c",
+					"FuncName":"func1",
 					"Repo":"git://repo",
 					"Commit":"commit1",
 					"StartLine":2,
@@ -302,6 +305,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 			[
 				{
 					"FilePath":"not_changed.c",
+					"FuncName":"func1",
 					"Repo":"git://repo",
 					"Commit":"commit1",
 					"StartLine":3,
@@ -313,6 +317,7 @@ samp_time,1,360,arch,b1,ci-mock,git://repo,master,commit2,not_changed.c,func1,4,
 			[
 				{
 					"FilePath":"not_changed.c",
+					"FuncName":"func1",
 					"Repo":"git://repo",
 					"Commit":"commit2",
 					"StartLine":4,
@@ -395,5 +400,34 @@ func testConfig(repo, commit, workdir string) *Config {
 			Commit: commit,
 		},
 		FileVersProvider: &fileVersProviderMock{Workdir: workdir},
+	}
+}
+
+func TestCheckedFuncName(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []string
+		want  string
+	}{
+		{
+			name: "empty input",
+			want: "",
+		},
+		{
+			name:  "single func",
+			input: []string{"func1", "func1"},
+			want:  "func1",
+		},
+		{
+			name:  "multi names",
+			input: []string{"", "", "", "func2", "func2", "func1", "func"},
+			want:  "func2",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := bestFuncName(test.input)
+			assert.Equal(t, test.want, got)
+		})
 	}
 }
