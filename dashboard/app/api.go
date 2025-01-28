@@ -1936,7 +1936,7 @@ func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, erro
 
 // apiSaveCoverage reads jsonl data from payload and stores it to coveragedb.
 // First payload jsonl line is a coveragedb.HistoryRecord (w/o session and time).
-// Second+ records are coveragedb.MergedCoverageRecord.
+// Second+ records are coveragedb.JSONLWrapper.
 func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) {
 	descr := new(coveragedb.HistoryRecord)
 	jsonDec := json.NewDecoder(payload)
