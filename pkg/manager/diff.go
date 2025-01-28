@@ -110,7 +110,11 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
 		// TODO: determine the exact moment of corpus triage.
-		time.Sleep(15 * time.Minute)
+		select {
+		case <-time.After(15 * time.Minute):
+		case <-ctx.Done():
+			return nil
+		}
 		log.Logf(0, "starting bug reproductions")
 		reproLoop.Loop(ctx)
 		return nil
