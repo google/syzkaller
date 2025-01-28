@@ -25,6 +25,22 @@ CREATE TABLE
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
+echo "drop table 'functions' if exists"
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+--ddl="DROP TABLE IF EXISTS functions"
+echo "create table 'functions'"
+create_table=$( echo -n '
+CREATE TABLE
+  functions (
+    "session" text,
+    "filepath" text,
+    "function" text,
+    "lines" bigint[],
+  PRIMARY KEY
+    (session, filepath, function) );')
+gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
+ --ddl="$create_table"
+
 echo "drop table 'merge_history' if exists"
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
 --ddl="DROP TABLE IF EXISTS merge_history"
