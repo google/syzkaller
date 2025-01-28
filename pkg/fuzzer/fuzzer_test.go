@@ -159,9 +159,11 @@ func (f *testFuzzer) run() {
 	f.crashes = make(map[string]int)
 	ctx, done := context.WithCancel(context.Background())
 	f.done = done
+	var output bytes.Buffer
 	cfg := &rpcserver.LocalConfig{
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
+				Debug:    true,
 				Target:   f.target,
 				Features: flatrpc.FeatureSandboxNone,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
@@ -169,15 +171,17 @@ func (f *testFuzzer) run() {
 			Procs:    4,
 			Slowdown: 1,
 		},
-		Executor: f.executor,
-		Dir:      f.t.TempDir(),
-		Context:  ctx,
+		Executor:     f.executor,
+		Dir:          f.t.TempDir(),
+		Context:      ctx,
+		OutputWriter: &output,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 		cfg.Cover = true
 		return f
 	}
 	if err := rpcserver.RunLocal(cfg); err != nil {
+		f.t.Logf("executor output:\n%s", output.String())
 		f.t.Fatal(err)
 	}
 	assert.Equal(f.t, len(f.expectedCrashes), len(f.crashes), "not all expected crashes were found")

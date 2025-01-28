@@ -6,6 +6,7 @@ package rpcserver
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -27,9 +28,11 @@ type LocalConfig struct {
 	// Handle ctrl+C and exit.
 	HandleInterrupts bool
 	// Run executor under gdb.
-	GDB         bool
-	MaxSignal   []uint64
-	CoverFilter []uint64
+	GDB bool
+	// Can be used to intercept stdout/stderr output.
+	OutputWriter io.Writer
+	MaxSignal    []uint64
+	CoverFilter  []uint64
 	// RunLocal exits when the context is cancelled.
 	Context        context.Context
 	MachineChecked func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
@@ -75,7 +78,10 @@ func RunLocal(cfg *LocalConfig) error {
 	}
 	cmd := exec.Command(bin, args...)
 	cmd.Dir = cfg.Dir
-	if cfg.Debug || cfg.GDB {
+	if cfg.OutputWriter != nil {
+		cmd.Stdout = cfg.OutputWriter
+		cmd.Stderr = cfg.OutputWriter
+	} else if cfg.Debug || cfg.GDB {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
