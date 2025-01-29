@@ -34,10 +34,10 @@ CREATE TABLE
   functions (
     "session" text,
     "filepath" text,
-    "function" text,
+    "funcname" text,
     "lines" bigint[],
   PRIMARY KEY
-    (session, filepath, function) );')
+    (session, filepath, funcname) );')
 gcloud spanner databases ddl update $db --instance=syzbot --project=syzkaller \
  --ddl="$create_table"
 
