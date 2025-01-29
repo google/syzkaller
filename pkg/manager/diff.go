@@ -512,14 +512,54 @@ func (rr *reproRunner) Run(r *repro.Result) {
 	rr.done <- ret
 }
 
-func PatchFocusAreas(cfg *mgrconfig.Config, gitPatch []byte) {
+func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
+	direct, transitive := affectedFiles(cfg, gitPatches)
+	if len(direct) > 0 {
+		sort.Strings(direct)
+		log.Logf(0, "adding directly modified files to focus_order: %q", direct)
+		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
+			mgrconfig.FocusArea{
+				Name: "modified",
+				Filter: mgrconfig.CovFilterCfg{
+					Files: direct,
+				},
+				Weight: 3.0,
+			})
+	}
+
+	if len(transitive) > 0 {
+		sort.Strings(transitive)
+		log.Logf(0, "adding transitively affected to focus_order: %q", transitive)
+		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
+			mgrconfig.FocusArea{
+				Name: "included",
+				Filter: mgrconfig.CovFilterCfg{
+					Files: transitive,
+				},
+				Weight: 2.0,
+			})
+	}
+
+	// Still fuzz the rest of the kernel.
+	if len(cfg.Experimental.FocusAreas) > 0 {
+		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
+			mgrconfig.FocusArea{
+				Weight: 1.0,
+			})
+	}
+}
+
+func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transitive []string) {
 	const maxAffectedByHeader = 50
 
-	names := map[string]bool{}
-	includedNames := map[string]bool{}
-	for _, file := range vcs.ParseGitDiff(gitPatch) {
-		names[file] = true
-
+	directMap := make(map[string]struct{})
+	transitiveMap := make(map[string]struct{})
+	var allFiles []string
+	for _, patch := range gitPatches {
+		allFiles = append(allFiles, vcs.ParseGitDiff(patch)...)
+	}
+	for _, file := range allFiles {
+		directMap[file] = struct{}{}
 		if strings.HasSuffix(file, ".h") && cfg.KernelSrc != "" {
 			// Ideally, we should combine this with the recompilation process - then we know
 			// exactly which files were affected by the patch.
@@ -540,53 +580,18 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatch []byte) {
 				if name == "" {
 					continue
 				}
-				includedNames[name] = true
+				transitiveMap[name] = struct{}{}
 			}
 		}
 	}
-
-	var namesList, includedList []string
-	for name := range names {
-		namesList = append(namesList, name)
+	for name := range directMap {
+		direct = append(direct, name)
 	}
-	for name := range includedNames {
-		if names[name] {
+	for name := range transitiveMap {
+		if _, ok := directMap[name]; ok {
 			continue
 		}
-		includedList = append(includedList, name)
+		transitive = append(transitive, name)
 	}
-
-	if len(namesList) > 0 {
-		sort.Strings(namesList)
-		log.Logf(0, "adding the following modified files to focus_order: %q", namesList)
-		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
-			mgrconfig.FocusArea{
-				Name: "modified",
-				Filter: mgrconfig.CovFilterCfg{
-					Files: namesList,
-				},
-				Weight: 3.0,
-			})
-	}
-
-	if len(includedList) > 0 {
-		sort.Strings(includedList)
-		log.Logf(0, "adding the following included files to focus_order: %q", includedList)
-		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
-			mgrconfig.FocusArea{
-				Name: "included",
-				Filter: mgrconfig.CovFilterCfg{
-					Files: includedList,
-				},
-				Weight: 2.0,
-			})
-	}
-
-	// Still fuzz the rest of the kernel.
-	if len(cfg.Experimental.FocusAreas) > 0 {
-		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
-			mgrconfig.FocusArea{
-				Weight: 1.0,
-			})
-	}
+	return
 }
