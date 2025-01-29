@@ -50,7 +50,7 @@ func GetCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
 
 type funcStyleBodyJS func(
 	ctx context.Context, client spannerclient.SpannerClient,
-	scope *cover.SelectScope, onlyUnique bool, sss, managers []string,
+	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string,
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -112,7 +112,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	var style template.CSS
 	var body, js template.HTML
 	if style, body, js, err = f(c, GetCoverageDBClient(c),
-		&cover.SelectScope{
+		&coveragedb.SelectScope{
 			Ns:        hdr.Namespace,
 			Subsystem: ss,
 			Manager:   manager,
@@ -180,7 +180,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	hitLines, hitCounts, err := coveragedb.ReadLinesHitCount(
 		c, client, hdr.Namespace, targetCommit, kernelFilePath, manager, tp)
-	covMap := cover.MakeCovMap(hitLines, hitCounts)
+	covMap := coveragedb.MakeCovMap(hitLines, hitCounts)
 	if err != nil {
 		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
 	}
@@ -192,7 +192,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return fmt.Errorf("coveragedb.ReadLinesHitCount(*): %w", err)
 		}
-		covMap = cover.UniqCoverage(cover.MakeCovMap(allHitLines, allHitCounts), covMap)
+		covMap = coveragedb.UniqCoverage(coveragedb.MakeCovMap(allHitLines, allHitCounts), covMap)
 	}
 
 	webGit := getWebGit(c) // Get mock if available.
