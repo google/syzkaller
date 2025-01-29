@@ -26,7 +26,8 @@ config:
  - NUMA_EMU: [x86_64]
  - NUMA_BALANCING: [-arm]
  - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
- - ADDRESS_MASKING: [x86_64, v6.4]
+ # Starting from v6.13, depends on !CPU_MITIGATIONS.
+ - ADDRESS_MASKING: [x86_64, v6.4, -v6.12]
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
  - X86_X2APIC: [x86_64, -kmsan]
@@ -70,8 +71,8 @@ config:
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
  - KVM_PROVE_MMU: [x86_64, v6.6]
- - KVM_SW_PROTECTED_VM: [x86_64, linux-next]
- - KVM_HYPERV: [x86_64, linux-next]
+ - KVM_SW_PROTECTED_VM: [x86_64, v6.8]
+ - KVM_HYPERV: [x86_64, v6.8]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
@@ -97,7 +98,9 @@ config:
  - BINFMT_MISC
  - BINFMT_SCRIPT
  - MEMORY_HOTPLUG: [-arm, -riscv]
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
+ # Replaced in "mm: add build-time option for hotplug memory default online type".
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv, -linux-next]
+ - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, -riscv, linux-next]
  - MEMORY_HOTREMOVE: [-arm, -riscv]
  - ANON_VMA_NAME: [v5.17]
  - KSM
@@ -286,7 +289,7 @@ config:
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
  - DRM_PANEL_EDP: [v5.16, -s390]
  - DRM_DP_AUX_CHARDEV: [x86_64, -v6.10]
- - DRM_DISPLAY_DP_AUX_BUS: [linux-next]
+ - DRM_DISPLAY_DP_AUX_BUS: [v6.10, -s390]
  - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
  - DRM_DEBUG_MM
  - DRM_I915: [x86_64]
@@ -443,7 +446,8 @@ config:
  - VDPA_SIM: [v6.0, -riscv]
  - VDPA_SIM_NET: [v6.0, -riscv]
  - VDPA_SIM_BLOCK: [v6.0, -riscv]
- - VDPA_USER: [v6.0]
+ # Starting from v6.12, VDPA_USER depends on ARCH_HAS_DMA_OPS, which we don't have.
+ - VDPA_USER: [v6.0, -v6.12]
  - VP_VDPA: [v5.13]
  - VHOST_NET
  - VHOST_VSOCK
@@ -461,11 +465,11 @@ config:
  - INTEL_IOMMU: [x86_64]
  # IOMMUFD must be enabled in order to keep VFIO_CONTAINER disabled.
  - IOMMUFD: [v6.2]
- - IOMMUFD_TEST: [linux-next]
+ - IOMMUFD_TEST: [v6.2]
  # Generally we should not enable this since we don't run any boot unit tests.
  # The only reason to enable it is IOMMUFD_TEST, which really shouldn't
  # depend on RUNTIME_TESTING_MENU since it only adds debug checks.
- - RUNTIME_TESTING_MENU: [linux-next]
+ - RUNTIME_TESTING_MENU: [v6.9]
  - ANDROID_BINDER_IPC
  # Create binder device per test process for isolation.
  # Earlier we defined here 32 devices and syzkaller allocated one per test process.

@@ -14,10 +14,12 @@ config:
  - CRYPTO_OFB: [-v5.8]
  - CRYPTO_CTS
  - CRYPTO_XTS
- - CRYPTO_KEYWRAP
+ # Removed in "crypto: keywrap - remove unused keywrap algorithm".
+ - CRYPTO_KEYWRAP: [-linux-next]
  - CRYPTO_ADIANTUM
  - CRYPTO_XCBC
- - CRYPTO_VMAC
+ # Removed in "crypto: vmac - remove unused VMAC algorithm".
+ - CRYPTO_VMAC: [-linux-next]
  - CRYPTO_BLAKE2S: [v5.6, -v5.15]
  - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan]
  - CRYPTO_BLAKE2S_ARM: [v6.1, arm]
@@ -83,9 +85,11 @@ config:
  - CRYPTO_AEGIS128_AESNI_SSE2: [x86_64, -kmsan]
  - CRYPTO_NHPOLY1305_SSE2: [x86_64, -kmsan]
  - CRYPTO_NHPOLY1305_AVX2: [x86_64, -kmsan]
- - CRYPTO_CRC32C_INTEL: [x86_64, -kmsan]
- - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan]
- - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan]
+ # These two were removed in "x86/crc32: expose CRC32 functions through lib".
+ - CRYPTO_CRC32C_INTEL: [x86_64, -kmsan, -linux-next]
+ - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan, -linux-next]
+ # Removed in "x86/crc-t10dif: expose CRC-T10DIF function through lib".
+ - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan, -linux-next]
  - CRYPTO_SHA1_SSSE3: [x86_64, -kmsan]
  - CRYPTO_SHA256_SSSE3: [x86_64, -kmsan]
  - CRYPTO_SHA512_SSSE3: [x86_64, -kmsan]
@@ -127,7 +131,8 @@ config:
  - CRYPTO_SM4_ARM64_CE_BLK: [arm64, v6.1]
  - CRYPTO_SM4_ARM64_NEON_BLK: [arm64, v6.1]
  - CRYPTO_GHASH_ARM64_CE: [arm64]
- - CRYPTO_CRCT10DIF_ARM64_CE: [arm64]
+ # Removed in "arm64/crc-t10dif: expose CRC-T10DIF function through lib".
+ - CRYPTO_CRCT10DIF_ARM64_CE: [arm64, -linux-next]
  - CRYPTO_AES_ARM64: [arm64]
  - CRYPTO_AES_ARM64_CE: [arm64]
  - CRYPTO_AES_ARM64_CE_CCM: [arm64]
