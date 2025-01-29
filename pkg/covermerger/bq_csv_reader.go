@@ -71,7 +71,7 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit st
 					TIMESTAMP_TRUNC(timestamp, DAY) <= "%s" AND
 					version = 1 AND
 					starts_with(file_path, "%s") %s
-				GROUP BY file_path, manager, kernel_commit, kernel_repo, kernel_branch, sl
+				GROUP BY file_path, func_name, manager, kernel_commit, kernel_repo, kernel_branch, sl
 				ORDER BY file_path, manager
 			);
 	`, gsURI, ns, from.String(), to.String(), filePath, selectCommit))
