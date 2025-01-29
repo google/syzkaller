@@ -65,11 +65,14 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/graph/found-bugs", handlerWrapper(handleFoundBugsGraph))
-		http.Handle("/"+ns+"/graph/coverage/file", handlerWrapper(handleFileCoverage))
 		http.Handle("/"+ns+"/graph/coverage", handlerWrapper(handleCoverageGraph))
-		http.Handle("/"+ns+"/graph/coverage_heatmap", handlerWrapper(handleCoverageHeatmap))
+		http.Handle("/"+ns+"/coverage/file", handlerWrapper(handleFileCoverage))
+		http.Handle("/"+ns+"/coverage", handlerWrapper(handleCoverageHeatmap))
+		http.Handle("/"+ns+"/graph/coverage_heatmap", handleMovedPermanently("/"+ns+"/coverage"))
 		if nsConfig.Subsystems.Service != nil {
-			http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap", handlerWrapper(handleSubsystemsCoverageHeatmap))
+			http.Handle("/"+ns+"/graph/coverage_subsystems_heatmap",
+				handleMovedPermanently("/"+ns+"/coverage/subsystems"))
+			http.Handle("/"+ns+"/coverage/subsystems", handlerWrapper(handleSubsystemsCoverageHeatmap))
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
@@ -83,6 +86,12 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
+}
+
+func handleMovedPermanently(dest string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, dest, http.StatusMovedPermanently)
+	}
 }
 
 type uiMainPage struct {

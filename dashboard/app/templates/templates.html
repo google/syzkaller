@@ -106,11 +106,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<div class="dropdown-content">
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage" $.Namespace)}}_selected{{end}}"
 						href="/{{$.Namespace}}/graph/coverage?period=quarter">Total</a>
-					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_heatmap" $.Namespace)}}_selected{{end}}"
-						href="/{{$.Namespace}}/graph/coverage_heatmap?period=month">Repo&nbsp;Heatmap</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/coverage" $.Namespace)}}_selected{{end}}"
+						href="/{{$.Namespace}}/coverage?period=month">Repo&nbsp;Heatmap</a>
 					{{if .ShowSubsystems}}
-						<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/coverage_subsystems_heatmap" $.Namespace)}}_selected{{end}}"
-							href="/{{$.Namespace}}/graph/coverage_subsystems_heatmap?period=month">Subsystems&nbsp;Heatmap</a>
+						<a class="navigation_tab{{if eq .URLPath (printf "/%v/coverage/subsystems" $.Namespace)}}_selected{{end}}"
+							href="/{{$.Namespace}}/coverage/subsystems?period=month">Subsystems&nbsp;Heatmap</a>
 					{{end}}
 				</div>
 			</div>

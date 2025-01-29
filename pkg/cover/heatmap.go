@@ -101,7 +101,7 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, sk
 			thm.instrumented[tp], thm.covered[tp]))
 		if !thm.IsDir {
 			thm.FileCoverageLink = append(thm.FileCoverageLink,
-				fmt.Sprintf("/graph/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
+				fmt.Sprintf("/coverage/file?dateto=%s&period=%s&commit=%s&filepath=%s",
 					tp.DateTo.String(),
 					tp.Type,
 					pageColumn.Commit,
