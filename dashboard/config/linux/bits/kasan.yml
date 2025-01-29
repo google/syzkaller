@@ -17,7 +17,7 @@ config:
  # This also needs page_owner=on in cmdline.
  - PAGE_OWNER
  # Allow to catch more use after free cases.
- - SLUB_RCU_DEBUG: [linux-next]
+ - SLUB_RCU_DEBUG: [v6.12]
 
  - UBSAN: [v5.8]
  - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv, -v6.9]

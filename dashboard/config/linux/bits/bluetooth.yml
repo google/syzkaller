@@ -9,7 +9,7 @@ config:
  - BT_BNEP
  - BT_BNEP_MC_FILTER
  - BT_BNEP_PROTO_FILTER
- - BT_CMTP
+ - BT_CMTP: [-v6.12]
  - BT_HIDP
  - BT_LE
  - BT_HS: [-v6.9]

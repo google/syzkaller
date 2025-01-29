@@ -3,4 +3,4 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next-history.git
- tag: next-20240828
+ tag: next-20250128

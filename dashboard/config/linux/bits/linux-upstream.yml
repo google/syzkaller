@@ -3,4 +3,4 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
- tag: v6.11-rc5
+ tag: v6.13
