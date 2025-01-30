@@ -4,9 +4,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
@@ -169,4 +175,118 @@ func GetJSONDescrFor(page interface{}) ([]byte, error) {
 		return nil, ErrClientNotFound
 	}
 	return json.MarshalIndent(res, "", "\t")
+}
+
+type coveredBlock struct {
+	FromLine int `json:"from_line"`
+	FromCol  int `json:"from_column"`
+	ToLine   int `json:"to_line"`
+	ToCol    int `json:"to_column"`
+}
+
+type functionCoverage struct {
+	FuncName     string          `json:"func_name"`
+	Instrumented int             `json:"total_blocks"`
+	Blocks       []*coveredBlock `json:"covered_blocks"`
+}
+
+type fileCoverage struct {
+	Repo      string              `json:"repo"`
+	Commit    string              `json:"commit"`
+	FilePath  string              `json:"file_path"`
+	Functions []*functionCoverage `json:"functions"`
+}
+
+func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) error {
+	// By default, return the previous month coverage. It guarantees the good numbers.
+	//
+	// The alternative is to return the current month.
+	// The numbers will jump every day, on the 1st date may drop down.
+	tps, err := coveragedb.GenNPeriodsTill(1, civil.DateOf(time.Now()).AddDays(-31), "month")
+	if err != nil {
+		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
+	}
+	defaultTimePeriod := tps[0]
+	covDBClient := GetCoverageDBClient(ctx)
+	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, defaultTimePeriod)
+	if err != nil {
+		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)
+	}
+	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient, ns, defaultTimePeriod)
+	if err := writeFileCoverage(ctx, w, repo, ff, covCh); err != nil {
+		return fmt.Errorf("populateFileCoverage: %w", err)
+	}
+	if err := <-errCh; err != nil {
+		return fmt.Errorf("coveragedb.FilesCoverageStream: %w", err)
+	}
+	return nil
+}
+
+func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *coveragedb.FunctionFinder,
+	covCh <-chan *coveragedb.FileCoverageWithLineInfo) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("\t\t", "\t")
+	for {
+		select {
+		case fileCov := <-covCh:
+			if fileCov == nil {
+				return nil
+			}
+			funcsCov, err := genFuncsCov(fileCov, ff)
+			if err != nil {
+				return fmt.Errorf("genFuncsCov: %w", err)
+			}
+			if err := enc.Encode(&fileCoverage{
+				Repo:      repo,
+				Commit:    fileCov.Commit,
+				FilePath:  fileCov.Filepath,
+				Functions: funcsCov,
+			}); err != nil {
+				return fmt.Errorf("enc.Encode: %w", err)
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.FunctionFinder,
+) ([]*functionCoverage, error) {
+	nameToLines := map[string][]int{}
+	funcInstrumented := map[string]int{}
+	for i, hitCount := range fc.HitCounts {
+		lineNum := int(fc.LinesInstrumented[i])
+		funcName, err := ff.FileLineToFuncName(fc.Filepath, lineNum)
+		if err != nil {
+			return nil, fmt.Errorf("ff.FileLineToFuncName: %w", err)
+		}
+		funcInstrumented[funcName]++
+		if hitCount == 0 {
+			continue
+		}
+		nameToLines[funcName] = append(nameToLines[funcName], lineNum)
+	}
+
+	var res []*functionCoverage
+	for funcName, lines := range nameToLines {
+		res = append(res, &functionCoverage{
+			FuncName:     funcName,
+			Instrumented: funcInstrumented[funcName],
+			Blocks:       linesToBlocks(lines),
+		})
+	}
+	return res, nil
+}
+
+func linesToBlocks(lines []int) []*coveredBlock {
+	var res []*coveredBlock
+	for _, lineNum := range lines {
+		res = append(res, &coveredBlock{
+			FromLine: lineNum,
+			FromCol:  0,
+			ToLine:   lineNum,
+			ToCol:    -1,
+		})
+	}
+	return res
 }
