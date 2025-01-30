@@ -101,10 +101,16 @@ func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelMod
 	return modules, info.Bytes(), nil
 }
 
+var ErrAborted = errors.New("aborted through the context")
+
 func (checker *Checker) Run(ctx context.Context, files []*flatrpc.FileInfo, featureInfos []*flatrpc.FeatureInfo) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, Features, error) {
 	cc := newCheckContext(ctx, checker.cfg, checker.checker, checker.executor)
-	return cc.do(files, featureInfos)
+	enabled, disabled, features, err := cc.do(files, featureInfos)
+	if ctx.Err() != nil {
+		return nil, nil, nil, ErrAborted
+	}
+	return enabled, disabled, features, err
 }
 
 // Implementation of the queue.Source interface.

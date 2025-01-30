@@ -115,7 +115,10 @@ func (ctx *checkContext) do(fileInfos []*flatrpc.FileInfo, featureInfos []*flatr
 	globs := make(map[string][]string)
 	for _, req := range globReqs {
 		res := req.Wait(ctx.ctx)
-		if res.Status != queue.Success {
+		if res.Err == queue.ErrRequestAborted {
+			// Don't return an error on context cancellation.
+			return nil, nil, nil, nil
+		} else if res.Status != queue.Success {
 			return nil, nil, nil, fmt.Errorf("failed to execute glob: %w (%v)\n%s\n%s",
 				res.Err, res.Status, req.GlobPattern, res.Output)
 		}
