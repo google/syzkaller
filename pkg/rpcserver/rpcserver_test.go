@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -217,9 +216,8 @@ func TestHandleConn(t *testing.T) {
 			serv.CreateInstance(1, injectExec, nil)
 
 			go flatrpc.Send(clientConn, tt.req)
-			var eg errgroup.Group
-			serv.handleConn(context.Background(), &eg, serverConn)
-			if err := eg.Wait(); err != nil {
+			err = serv.handleConn(context.Background(), serverConn)
+			if err != nil {
 				t.Fatal(err)
 			}
 		})
