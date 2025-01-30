@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -99,12 +100,14 @@ func (r *Request) Done(res *Result) {
 	close(r.done)
 }
 
+var errContextAborted = errors.New("context closed while waiting the result")
+
 // Wait() blocks until we have the result.
 func (r *Request) Wait(ctx context.Context) *Result {
 	r.initChannel()
 	select {
 	case <-ctx.Done():
-		return &Result{Status: ExecFailure}
+		return &Result{Status: ExecFailure, Err: errContextAborted}
 	case <-r.done:
 		return r.result
 	}
@@ -537,6 +540,8 @@ func (rq *RandomQueue) Next() *Request {
 	return item
 }
 
+var errEvictedFromQueue = errors.New("evicted from the random queue")
+
 func (rq *RandomQueue) Submit(req *Request) {
 	rq.mu.Lock()
 	defer rq.mu.Unlock()
@@ -545,7 +550,10 @@ func (rq *RandomQueue) Submit(req *Request) {
 	} else {
 		pos := rq.rnd.Intn(rq.maxSize + 1)
 		if pos < len(rq.queue) {
-			rq.queue[pos].Done(&Result{Status: ExecFailure})
+			rq.queue[pos].Done(&Result{
+				Status: ExecFailure,
+				Err:    errEvictedFromQueue,
+			})
 			rq.queue[pos] = req
 		}
 	}
