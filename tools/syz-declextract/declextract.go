@@ -323,8 +323,8 @@ func parseTblFile(data []byte, arch string, syscalls map[string][]tblSyscall) {
 func findTblFiles(sourceDir string) (map[string][]string, error) {
 	files := make(map[string][]string)
 	for _, arch := range targets.List[target.OS] {
-		err := filepath.Walk(filepath.Join(sourceDir, "arch", arch.KernelHeaderArch),
-			func(file string, info fs.FileInfo, err error) error {
+		err := filepath.WalkDir(filepath.Join(sourceDir, "arch", arch.KernelHeaderArch),
+			func(file string, d fs.DirEntry, err error) error {
 				if err == nil && strings.HasSuffix(file, ".tbl") {
 					files[file] = append(files[file], arch.VMArch)
 				}

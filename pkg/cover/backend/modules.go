@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"debug/elf"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strings"
 
@@ -72,7 +72,7 @@ func discoverModulesLinux(dirs []string) ([]*vminfo.KernelModule, error) {
 func locateModules(dirs []string) (map[string]string, error) {
 	paths := make(map[string]string)
 	for _, dir := range dirs {
-		err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || filepath.Ext(path) != ".ko" {
 				return err
 			}
