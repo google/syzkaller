@@ -300,7 +300,10 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 			// but so far we don't have a better handling than counting this.
 			// This error is observed a lot on the seeded syz_mount_image calls.
 			runner.stats.statExecBufferTooSmall.Add(1)
-			req.Done(&queue.Result{Status: queue.ExecFailure})
+			req.Done(&queue.Result{
+				Status: queue.ExecFailure,
+				Err:    fmt.Errorf("program serialization failed: %w", err),
+			})
 			return nil
 		}
 		data = progData

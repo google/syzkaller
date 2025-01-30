@@ -104,7 +104,10 @@ func (mgr *Manager) snapshotRun(inst *vm.Instance, builder *flatbuffers.Builder,
 	progData, err := req.Prog.SerializeForExec()
 	if err != nil {
 		queue.StatExecBufferTooSmall.Add(1)
-		return &queue.Result{Status: queue.ExecFailure}, nil, nil
+		return &queue.Result{
+			Status: queue.ExecFailure,
+			Err:    fmt.Errorf("program serialization failed: %w", err),
+		}, nil, nil
 	}
 	msg := flatrpc.SnapshotRequestT{
 		ExecFlags: req.ExecOpts.ExecFlags,
