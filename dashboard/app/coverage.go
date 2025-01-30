@@ -54,6 +54,18 @@ type funcStyleBodyJS func(
 ) (template.CSS, template.HTML, template.HTML, error)
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if r.FormValue("json") == "1" {
+		hdr, err := commonHeader(c, r, w, "")
+		if err != nil {
+			return err
+		}
+		ns := hdr.Namespace
+		repo, _ := getNsConfig(c, ns).mainRepoBranch()
+		// Gzip is the only way to send this data. It is too big.
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Type", "application/json")
+		return writeExtAPICoverageFor(c, w, ns, repo)
+	}
 	return handleHeatmap(c, w, r, cover.DoHeatMapStyleBodyJS)
 }
 

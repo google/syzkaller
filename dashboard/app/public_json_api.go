@@ -4,9 +4,16 @@
 package main
 
 import (
+	"compress/gzip"
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
@@ -169,4 +176,142 @@ func GetJSONDescrFor(page interface{}) ([]byte, error) {
 		return nil, ErrClientNotFound
 	}
 	return json.MarshalIndent(res, "", "\t")
+}
+
+type coveredBlock struct {
+	FromLine int `json:"from_line"`
+	FromCol  int `json:"from_column"`
+	ToLine   int `json:"to_line"`
+	ToCol    int `json:"to_column"`
+}
+
+type functionCoverage struct {
+	FuncName     string          `json:"func_name"`
+	Instrumented int             `json:"total_blocks"`
+	Blocks       []*coveredBlock `json:"covered_blocks"`
+}
+
+type fileCoverage struct {
+	FilePath  string              `json:"file_path"`
+	Functions []*functionCoverage `json:"functions"`
+}
+
+func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) error {
+	// By default, return the previous month coverage. It guarantees the good numbers.
+	//
+	// The alternative is to return the current month.
+	// The numbers will jump every day, on the 1st date may drop down.
+	tps, err := coveragedb.GenNPeriodsTill(1, civil.DateOf(time.Now()).AddDays(-31), "month")
+	if err != nil {
+		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
+	}
+	defaultTimePeriod := tps[0]
+	covDBClient := GetCoverageDBClient(ctx)
+	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, defaultTimePeriod)
+	if err != nil {
+		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)
+	}
+	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient, ns, defaultTimePeriod)
+
+	gzw := gzip.NewWriter(w)
+	defer gzw.Close()
+
+	jsonHeader := "{\n\t\"files\": [\n"
+	if _, err := gzw.Write([]byte(jsonHeader)); err != nil {
+		return fmt.Errorf("w.Write(header): %w", err)
+	}
+
+	enc := json.NewEncoder(gzw)
+	enc.SetIndent("\t\t", "\t")
+
+	commit := ""
+	funcWriterErrCh := make(chan error, 1)
+	func() {
+		defer close(funcWriterErrCh)
+		for {
+			select {
+			case fileCov := <-covCh:
+				if fileCov == nil {
+					return
+				}
+				if commit == "" {
+					commit = fileCov.Commit
+				}
+				funcsCov, err := genFuncsCov(fileCov, ff)
+				if err != nil {
+					funcWriterErrCh <- fmt.Errorf("genFuncsCov: %w", err)
+					return
+				}
+				gzw.Write([]byte("\t\t"))
+				if err := enc.Encode(&fileCoverage{
+					FilePath:  fileCov.Filepath,
+					Functions: funcsCov,
+				}); err != nil {
+					funcWriterErrCh <- fmt.Errorf("enc.Encode: %w", err)
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("coveragedb.FilesCoverageStream: %w", err)
+		}
+		// Happy path.
+	case err := <-funcWriterErrCh:
+		return err
+	case <-ctx.Done():
+		return nil
+	}
+
+	jsonFooter := fmt.Sprintf("\t],\n\tRepo: \"%s\",\n\tCommit: \"%s\"\n}", repo, commit)
+	if _, err := gzw.Write([]byte(jsonFooter)); err != nil {
+		return fmt.Errorf("w.Write(jsonFooter): %w", err)
+	}
+	return nil
+}
+
+func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.FunctionFinder,
+) ([]*functionCoverage, error) {
+	nameToLines := map[string][]int{}
+	funcInstrumented := map[string]int{}
+	for i, hitCount := range fc.HitCounts {
+		lineNum := int(fc.LinesInstrumented[i])
+		funcName, err := ff.FileLineToFuncName(fc.Filepath, lineNum)
+		if err != nil {
+			return nil, fmt.Errorf("ff.FileLineToFuncName: %w", err)
+		}
+		funcInstrumented[funcName]++
+		if hitCount == 0 {
+			continue
+		}
+		nameToLines[funcName] = append(nameToLines[funcName], lineNum)
+	}
+
+	var res []*functionCoverage
+	for funcName, lines := range nameToLines {
+		res = append(res, &functionCoverage{
+			FuncName:     funcName,
+			Instrumented: funcInstrumented[funcName],
+			Blocks:       linesToBlocks(lines),
+		})
+	}
+	return res, nil
+}
+
+func linesToBlocks(lines []int) []*coveredBlock {
+	var res []*coveredBlock
+	for _, lineNum := range lines {
+		res = append(res, &coveredBlock{
+			FromLine: lineNum,
+			FromCol:  0,
+			ToLine:   lineNum,
+			ToCol:    -1,
+		})
+	}
+	return res
 }

@@ -40,14 +40,6 @@ type MergedCoverageRecord struct {
 	FileData *Coverage
 }
 
-// FuncLines represents the 'functions' table records.
-// It could be used to maps 'hitcounts' from 'files' table to the function names.
-type FuncLines struct {
-	FilePath string
-	FuncName string
-	Lines    []int64 // List of lines we know belong to this function name according to the addr2line output.
-}
-
 type JSONLWrapper struct {
 	MCR *MergedCoverageRecord
 	FL  *FuncLines
@@ -413,6 +405,25 @@ type SelectScope struct {
 	Subsystem string
 	Manager   string
 	Periods   []TimePeriod
+}
+
+// FilesCoverageStream streams information about all the line coverage.
+// It is expensive and better to be used for time insensitive operations.
+func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient, ns string, timePeriod TimePeriod,
+) (<-chan *FileCoverageWithLineInfo, <-chan error) {
+	iter := client.Single().Query(ctx,
+		filesCoverageWithDetailsStmt(ns, "", "", timePeriod, true))
+	resCh := make(chan *FileCoverageWithLineInfo)
+	errCh := make(chan error)
+	go func() {
+		defer iter.Stop()
+		defer close(resCh)
+		defer close(errCh)
+		if err := readIterToChan(context.Background(), iter, resCh); err != nil {
+			errCh <- err
+		}
+	}()
+	return resCh, errCh
 }
 
 // FilesCoverageWithDetails fetches the data directly from DB. No caching.
