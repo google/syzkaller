@@ -100,14 +100,14 @@ func (r *Request) Done(res *Result) {
 	close(r.done)
 }
 
-var errContextAborted = errors.New("context closed while waiting the result")
+var ErrRequestAborted = errors.New("context closed while waiting the result")
 
 // Wait() blocks until we have the result.
 func (r *Request) Wait(ctx context.Context) *Result {
 	r.initChannel()
 	select {
 	case <-ctx.Done():
-		return &Result{Status: ExecFailure, Err: errContextAborted}
+		return &Result{Status: ExecFailure, Err: ErrRequestAborted}
 	case <-r.done:
 		return r.result
 	}
