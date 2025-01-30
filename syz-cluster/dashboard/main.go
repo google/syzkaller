@@ -29,6 +29,7 @@ func main() {
 	http.HandleFunc("/sessions/{id}/log", handler.sessionLog)
 	http.HandleFunc("/series/{id}", handler.seriesInfo)
 	http.HandleFunc("/patches/{id}", handler.patchContent)
+	http.HandleFunc("/findings/{id}/{key}", handler.findingInfo)
 	http.HandleFunc("/", handler.seriesList)
 
 	staticFiles, err := fs.Sub(staticFs, "static")

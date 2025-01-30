@@ -14,11 +14,17 @@ import (
 
 type FindingRepository struct {
 	client *spanner.Client
+	*genericEntityOps[Finding, string]
 }
 
 func NewFindingRepository(client *spanner.Client) *FindingRepository {
 	return &FindingRepository{
 		client: client,
+		genericEntityOps: &genericEntityOps[Finding, string]{
+			client:   client,
+			keyField: "ID",
+			table:    "Findings",
+		},
 	}
 }
 

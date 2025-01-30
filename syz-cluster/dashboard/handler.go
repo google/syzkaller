@@ -167,6 +167,26 @@ func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 	h.streamBlob(w, patch.BodyURI)
 }
 
+func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) {
+	finding, err := h.findingRepo.GetByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	if finding == nil {
+		http.Error(w, "no such finding exists in the DB", http.StatusNotFound)
+		return
+	}
+	switch r.PathValue("key") {
+	case "report":
+		h.streamBlob(w, finding.ReportURI)
+	case "log":
+		h.streamBlob(w, finding.LogURI)
+	default:
+		http.Error(w, "unknown key value", http.StatusBadRequest)
+	}
+}
+
 func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) {
 	if uri == "" {
 		return

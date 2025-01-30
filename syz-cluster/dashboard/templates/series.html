@@ -126,7 +126,14 @@
                       <tbody>
                       {{range .Findings}}
                       <tr>
-                        <td>{{.Title}}</td>
+                        <td>
+                          {{if .ReportURI}}
+                            <a href="/findings/{{.ID}}/report" class="modal-link-raw">{{.Title}}</a>
+                          {{else}}
+                            {{.Title}}
+                          {{end}}
+                        </td>
+                        <td><a href="/findings/{{.ID}}/log" class="modal-link-raw">[Log]</a></td>
                       </tr>
                       {{end}}
                       </tbody>
