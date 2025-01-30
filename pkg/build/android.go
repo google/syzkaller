@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -125,8 +126,8 @@ func (a android) build(params Params) (ImageDetails, error) {
 }
 
 func copyModuleFiles(srcDir, dstDir string) error {
-	err := filepath.Walk(srcDir,
-		func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(srcDir,
+		func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("error walking out dir: %w", err)
 			}
@@ -136,7 +137,7 @@ func copyModuleFiles(srcDir, dstDir string) error {
 			}
 
 			if filepath.Ext(path) == ".ko" {
-				if err := osutil.CopyFile(path, filepath.Join(dstDir, info.Name())); err != nil {
+				if err := osutil.CopyFile(path, filepath.Join(dstDir, d.Name())); err != nil {
 					return fmt.Errorf("error copying file: %w", err)
 				}
 			}

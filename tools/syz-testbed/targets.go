@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"math/rand"
 	"os"
@@ -41,11 +42,11 @@ var targetConstructors = map[string]func(cfg *TestbedConfig) TestbedTarget{
 		inputFiles := []string{}
 		reproConfig := cfg.ReproConfig
 		if reproConfig.InputLogs != "" {
-			err := filepath.Walk(reproConfig.InputLogs, func(path string, info os.FileInfo, err error) error {
+			err := filepath.WalkDir(reproConfig.InputLogs, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
-				if !info.IsDir() {
+				if !d.IsDir() {
 					inputFiles = append(inputFiles, path)
 				}
 				return nil
