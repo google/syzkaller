@@ -30,6 +30,14 @@ jobs:
           path: gopath/src/github.com/google/syzkaller
           # This is needed for tools/check-commits.sh
           fetch-depth: 100
+      - id: get-date
+        run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: update cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-${{ steps.get-date.outputs.date }}
       # Run make presubmit_aux.
       - name: run
         env:
@@ -53,17 +61,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
-
-      - id: get-date
-        run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
-        shell: bash
-      - name: test build cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: /root/.cache
-          key: ${{ runner.os }}-go-test-build-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
-          restore-keys: ${{ runner.os }}-go-test-build- #read the freshest available after miss
-
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
@@ -90,6 +92,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
@@ -118,6 +125,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
@@ -138,15 +150,11 @@ jobs:
           path: gopath/src/github.com/google/syzkaller
 
       # https://github.com/golang/go/issues/61608 to cache -race results.
-      - id: get-date
-        run: echo "date=$(/bin/date -u "+%Y%m%d+%T")" >> $GITHUB_OUTPUT
-        shell: bash
-      - name: test race cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: /root/.cache
-          key: ${{ runner.os }}-go-test-race-${{ steps.get-date.outputs.date }} #always miss and upload fresh item
-          restore-keys: ${{ runner.os }}-go-test-race- #read the freshest available after miss
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
 
       - name: run
         run: |
@@ -165,6 +173,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
@@ -175,6 +188,7 @@ jobs:
     container: gcr.io/syzkaller/old-env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
+      GOMODCACHE: /syzkaller/.cache/gomod
       CI: true
       TERM: dumb
     steps:
@@ -182,6 +196,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
@@ -193,6 +212,7 @@ jobs:
       options: --privileged
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
+      GOMODCACHE: /syzkaller/.cache/gomod
       CI: true
       TERM: dumb
       GITHUB_ACTIONS: true
@@ -201,6 +221,11 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
