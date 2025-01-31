@@ -82,6 +82,7 @@ type SessionTest struct {
 	UpdatedAt      time.Time          `spanner:"UpdatedAt"`
 	TestName       string             `spanner:"TestName"`
 	Result         string             `spanner:"Result"`
+	LogURI         string             `spanner:"LogURI"`
 }
 
 type Finding struct {

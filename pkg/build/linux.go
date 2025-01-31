@@ -177,7 +177,8 @@ func runMake(params Params, extraArgs ...string) error {
 		"KERNELVERSION=syzkaller",
 		"LOCALVERSION=-syzkaller",
 	)
-	_, err := osutil.Run(time.Hour, cmd)
+	output, err := osutil.Run(time.Hour, cmd)
+	params.Tracer.Log("Build log:\n%s", output)
 	return err
 }
 

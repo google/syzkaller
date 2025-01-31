@@ -102,7 +102,7 @@ func (c ControllerAPI) uploadTest(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	// TODO: add parameters validation.
+	// TODO: add parameters validation (and also of the Log size).
 	err := c.testService.Save(r.Context(), req)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)

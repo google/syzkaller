@@ -187,6 +187,18 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *dashboardHandler) sessionTestLog(w http.ResponseWriter, r *http.Request) {
+	test, err := h.sessionTestRepo.Get(r.Context(), r.PathValue("id"), r.FormValue("name"))
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	} else if test == nil {
+		http.Error(w, "there's no such test", http.StatusNotFound)
+		return
+	}
+	h.streamBlob(w, test.LogURI)
+}
+
 func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) {
 	if uri == "" {
 		return

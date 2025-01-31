@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -59,7 +60,15 @@ func main() {
 			SeriesID:   req.SeriesID,
 		},
 	}
-	commit, err := checkoutKernel(req, series)
+
+	output := new(bytes.Buffer)
+	tracer := &debugtracer.GenericTracer{
+		WithTime:    false,
+		TraceWriter: output,
+		OutDir:      "",
+	}
+
+	commit, err := checkoutKernel(tracer, req, series)
 	if commit != nil {
 		uploadReq.CommitDate = commit.CommitDate
 	}
@@ -68,10 +77,11 @@ func main() {
 		log.Printf("failed to checkout: %v", err)
 		uploadReq.Log = []byte(err.Error())
 	} else {
-		err := buildKernel(req)
+		err := buildKernel(tracer, req)
 		if err == nil {
 			uploadReq.BuildSuccess = true
 		} else {
+			log.Printf("%s", output.Bytes())
 			log.Printf("failed to build: %v", err)
 			uploadReq.Log = []byte(err.Error())
 			finding = &api.Finding{
@@ -82,11 +92,12 @@ func main() {
 			}
 		}
 	}
-	reportResults(ctx, client, req.SeriesID != "", uploadReq, finding)
+	reportResults(ctx, client, req.SeriesID != "",
+		uploadReq, finding, output.Bytes())
 }
 
 func reportResults(ctx context.Context, client *api.Client, patched bool,
-	uploadReq *api.UploadBuildReq, finding *api.Finding) {
+	uploadReq *api.UploadBuildReq, finding *api.Finding, output []byte) {
 	buildInfo, err := client.UploadBuild(ctx, uploadReq)
 	if err != nil {
 		app.Fatalf("failed to upload build: %v", err)
@@ -100,6 +111,7 @@ func reportResults(ctx context.Context, client *api.Client, patched bool,
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
 		Result:    api.TestFailed,
+		Log:       output,
 	}
 	if uploadReq.BuildSuccess {
 		testResult.Result = api.TestPassed
@@ -136,8 +148,8 @@ func readRequest() *api.BuildRequest {
 	return &req
 }
 
-func checkoutKernel(req *api.BuildRequest, series *api.Series) (*vcs.Commit, error) {
-	log.Printf("checking out %q", req.CommitHash)
+func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, series *api.Series) (*vcs.Commit, error) {
+	tracer.Log("checking out %q", req.CommitHash)
 	ops, err := triage.NewGitTreeOps(*flagRepository, true)
 	if err != nil {
 		return nil, err
@@ -151,13 +163,13 @@ func checkoutKernel(req *api.BuildRequest, series *api.Series) (*vcs.Commit, err
 		patches = series.Patches
 	}
 	if len(patches) > 0 {
-		log.Printf("applying %d patches", len(patches))
+		tracer.Log("applying %d patches", len(patches))
 	}
 	err = ops.ApplySeries(req.CommitHash, patches)
 	return commit, err
 }
 
-func buildKernel(req *api.BuildRequest) error {
+func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) error {
 	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
 	if err != nil {
 		return fmt.Errorf("failed to read the kernel config: %w", err)
@@ -176,28 +188,25 @@ func buildKernel(req *api.BuildRequest) error {
 		Linker:       "ld.lld",
 		UserspaceDir: "/disk-images/buildroot_amd64_2024.09", // See the Dockerfile.
 		Config:       kernelConfig,
-		Tracer: &debugtracer.GenericTracer{
-			TraceWriter: os.Stdout,
-			OutDir:      "",
-		},
+		Tracer:       tracer,
 	}
-	log.Printf("started build: %q", req)
+	tracer.Log("started build: %q", req)
 	info, err := build.Image(params)
-	log.Printf("compiler: %q", info.CompilerID)
+	tracer.Log("compiler: %q", info.CompilerID)
 	if err != nil {
 		var kernelError *build.KernelError
 		var verboseError *osutil.VerboseError
 		switch {
 		case errors.As(err, &kernelError):
-			log.Printf("kernel error: %q / %s", kernelError.Report, kernelError.Output)
+			tracer.Log("kernel error: %q / %s", kernelError.Report, kernelError.Output)
 		case errors.As(err, &verboseError):
-			log.Printf("verbose error: %q / %s", verboseError.Title, verboseError.Output)
+			tracer.Log("verbose error: %q / %s", verboseError.Title, verboseError.Output)
 		default:
-			log.Printf("other error: %v", err)
+			tracer.Log("other error: %v", err)
 		}
 		return err
 	}
-	log.Printf("build finished successfully")
+	tracer.Log("build finished successfully")
 	// TODO: capture build logs and the compiler identity.
 	// Note: Output directory has the following structure:
 	//   |-- image
