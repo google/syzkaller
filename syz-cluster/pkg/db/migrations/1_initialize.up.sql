@@ -69,6 +69,7 @@ CREATE TABLE SessionTests (
     Result STRING(36) NOT NULL,
     BaseBuildID STRING(36),
     PatchedBuildID STRING(36),
+    LogURI STRING(256) NOT NULL,
     CONSTRAINT FK_SessionResults FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
     CONSTRAINT ResultEnum CHECK (Result IN ('passed', 'failed', 'error', 'running')),
     CONSTRAINT FK_BaseBuild FOREIGN KEY (BaseBuildID) REFERENCES Builds (ID),

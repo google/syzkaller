@@ -27,6 +27,7 @@ func main() {
 		app.Fatalf("failed to set up handler: %v", err)
 	}
 	http.HandleFunc("/sessions/{id}/log", handler.sessionLog)
+	http.HandleFunc("/sessions/{id}/test_logs", handler.sessionTestLog)
 	http.HandleFunc("/series/{id}", handler.seriesInfo)
 	http.HandleFunc("/patches/{id}", handler.patchContent)
 	http.HandleFunc("/findings/{id}/{key}", handler.findingInfo)

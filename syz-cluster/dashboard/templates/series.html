@@ -117,7 +117,12 @@
                     <td>{{.TestName}}</td>
                     <td>{{if .BaseBuild}}{{.BaseBuild.CommitHash}}{{end}}</td>
                     <td>{{if .PatchedBuild}}{{.PatchedBuild.CommitHash}}[patched]{{end}}</td>
-                    <th>{{.Result}}</th>
+                    <th>
+                        {{.Result}}
+                        {{if .LogURI}}
+                            <a href="/sessions/{{.SessionID}}/test_logs?name={{.TestName}}" class="modal-link-raw">[Log]</a>
+                        {{end}}
+                    </th>
                 </tr>
                 {{if .Findings}}
                 <tr>

@@ -67,6 +67,7 @@ func TestAPISaveFinding(t *testing.T) {
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
 		Result:      api.TestRunning,
+		Log:         []byte("some log"),
 	})
 	assert.NoError(t, err)
 
