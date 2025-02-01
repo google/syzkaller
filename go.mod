@@ -1,6 +1,7 @@
 module github.com/google/syzkaller
 
 go 1.22.1
+toolchain go1.23.5
 
 require (
 	cloud.google.com/go v0.116.0
@@ -28,7 +29,7 @@ require (
 	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
-	github.com/vektra/mockery/v2 v2.45.1
+	github.com/vektra/mockery/v2 v2.52.1
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/oauth2 v0.25.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
@@ -214,7 +215,7 @@ require (
 	github.com/raeperd/recvcheck v0.1.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
-	github.com/rs/zerolog v1.29.0 // indirect
+	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/ryancurrah/gomodguard v1.3.5 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
