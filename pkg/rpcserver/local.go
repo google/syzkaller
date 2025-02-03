@@ -31,20 +31,15 @@ type LocalConfig struct {
 	// Run executor under gdb.
 	GDB bool
 	// Can be used to intercept stdout/stderr output.
-	OutputWriter io.Writer
-	MaxSignal    []uint64
-	CoverFilter  []uint64
-	// RunLocal exits when the context is cancelled.
-	Context        context.Context
+	OutputWriter   io.Writer
+	MaxSignal      []uint64
+	CoverFilter    []uint64
 	MachineChecked func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source
 }
 
-func RunLocal(cfg *LocalConfig) error {
+func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 	if cfg.VMArch == "" {
 		cfg.VMArch = cfg.Target.Arch
-	}
-	if cfg.Context == nil {
-		cfg.Context = context.Background()
 	}
 	cfg.UseCoverEdges = true
 	cfg.FilterSignal = true
@@ -65,62 +60,33 @@ func RunLocal(cfg *LocalConfig) error {
 	// for the race detector b/c it does not understand the synchronization via TCP socket connect/accept.
 	close(localCtx.setupDone)
 
-	cancelCtx, cancel := context.WithCancel(cfg.Context)
-	eg, ctx := errgroup.WithContext(cancelCtx)
-
-	const id = 0
-	connErr := serv.CreateInstance(id, nil, nil)
-	defer serv.ShutdownInstance(id, true)
-
-	bin := cfg.Executor
-	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(serv.Port())}
-	if cfg.GDB {
-		bin = "gdb"
-		args = append([]string{
-			"--return-child-result",
-			"--ex=handle SIGPIPE nostop",
-			"--args",
-			cfg.Executor,
-		}, args...)
-	}
-	cmd := exec.CommandContext(ctx, bin, args...)
-	cmd.Dir = cfg.Dir
-	if cfg.OutputWriter != nil {
-		cmd.Stdout = cfg.OutputWriter
-		cmd.Stderr = cfg.OutputWriter
-	} else if cfg.Debug || cfg.GDB {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
-	if cfg.GDB {
-		cmd.Stdin = os.Stdin
-	}
-	eg.Go(func() error {
-		return serv.Serve(ctx)
-	})
-	eg.Go(func() error {
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("failed to start executor: %w", err)
-		}
-		err := cmd.Wait()
-		// Note that we ignore the error if we killed the process by closing the context.
-		if err == nil || ctx.Err() != nil {
-			return nil
-		}
-		return fmt.Errorf("executor process exited: %w", err)
-	})
-
-	shutdown := make(chan struct{})
 	if cfg.HandleInterrupts {
-		osutil.HandleInterrupts(shutdown)
+		ctx = cancelOnInterrupts(ctx)
 	}
-	select {
-	case <-ctx.Done():
-	case <-shutdown:
-	case <-connErr:
-	}
-	cancel()
+	// groupCtx will be cancelled once any goroutine returns an error.
+	eg, groupCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return localCtx.RunInstance(groupCtx, 0)
+	})
+	eg.Go(func() error {
+		return serv.Serve(groupCtx)
+	})
 	return eg.Wait()
+}
+
+func cancelOnInterrupts(ctx context.Context) context.Context {
+	ret, cancel := context.WithCancel(ctx)
+	shutdown := make(chan struct{})
+	osutil.HandleInterrupts(shutdown)
+	go func() {
+		select {
+		case <-ctx.Done():
+			// Prevent goroutine leakage.
+		case <-shutdown:
+			cancel()
+		}
+	}()
+	return ret
 }
 
 type local struct {
@@ -145,4 +111,55 @@ func (ctx *local) MaxSignal() signal.Signal {
 
 func (ctx *local) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
 	return ctx.cfg.CoverFilter, nil
+}
+
+func (ctx *local) RunInstance(baseCtx context.Context, id int) error {
+	connErr := ctx.serv.CreateInstance(id, nil, nil)
+	defer ctx.serv.ShutdownInstance(id, true)
+
+	cfg := ctx.cfg
+	bin := cfg.Executor
+	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(ctx.serv.Port())}
+	if cfg.GDB {
+		bin = "gdb"
+		args = append([]string{
+			"--return-child-result",
+			"--ex=handle SIGPIPE nostop",
+			"--args",
+			cfg.Executor,
+		}, args...)
+	}
+	cmd := exec.CommandContext(baseCtx, bin, args...)
+	cmd.Dir = cfg.Dir
+	if cfg.OutputWriter != nil {
+		cmd.Stdout = cfg.OutputWriter
+		cmd.Stderr = cfg.OutputWriter
+	} else if cfg.Debug || cfg.GDB {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if cfg.GDB {
+		cmd.Stdin = os.Stdin
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start executor: %w", err)
+	}
+	var retErr error
+	select {
+	case <-baseCtx.Done():
+	case err := <-connErr:
+		if err != nil {
+			retErr = fmt.Errorf("connection error: %w", err)
+		}
+		cmd.Process.Kill()
+	}
+	err := cmd.Wait()
+	if retErr == nil {
+		retErr = fmt.Errorf("executor process exited: %w", err)
+	}
+	// Note that we ignore the error if we killed the process because of the context.
+	if baseCtx.Err() == nil {
+		return retErr
+	}
+	return nil
 }

@@ -173,14 +173,13 @@ func (f *testFuzzer) run() {
 		},
 		Executor:     f.executor,
 		Dir:          f.t.TempDir(),
-		Context:      ctx,
 		OutputWriter: &output,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
 		cfg.Cover = true
 		return f
 	}
-	if err := rpcserver.RunLocal(cfg); err != nil {
+	if err := rpcserver.RunLocal(ctx, cfg); err != nil {
 		f.t.Logf("executor output:\n%s", output.String())
 		f.t.Fatal(err)
 	}

@@ -502,7 +502,6 @@ func startRPCServer(t *testing.T, target *prog.Target, executor string,
 		},
 		Executor:    executor,
 		Dir:         dir,
-		Context:     ctx,
 		GDB:         *flagGDB,
 		MaxSignal:   extra.maxSignal,
 		CoverFilter: extra.coverFilter,
@@ -515,7 +514,7 @@ func startRPCServer(t *testing.T, target *prog.Target, executor string,
 	}
 	errc := make(chan error)
 	go func() {
-		err := rpcserver.RunLocal(cfg)
+		err := rpcserver.RunLocal(ctx, cfg)
 		done()
 		errc <- err
 	}()
