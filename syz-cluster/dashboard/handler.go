@@ -5,9 +5,11 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -47,7 +49,31 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 	}, nil
 }
 
-func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
+//go:embed static
+var staticFs embed.FS
+
+func (h *dashboardHandler) Mux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/sessions/{id}/log", errToStatus(h.sessionLog))
+	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
+	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
+	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
+	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
+	mux.HandleFunc("/", errToStatus(h.seriesList))
+	staticFiles, err := fs.Sub(staticFs, "static")
+	if err != nil {
+		app.Fatalf("failed to parse templates: %v", err)
+	}
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFiles))))
+	return mux
+}
+
+var (
+	errNotFound   = errors.New("not found error")
+	errBadRequest = errors.New("bad request")
+)
+
+func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) error {
 	type MainPageData struct {
 		// It's probably not the best idea to expose db entities here,
 		// but so far redefining the entity would just duplicate the code.
@@ -57,17 +83,12 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) {
 	var err error
 	data.List, err = h.seriesRepo.ListLatest(r.Context(), time.Time{}, 0)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to query the list: %v", err), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to query the list: %w", err)
 	}
-	err = h.templates["index.html"].ExecuteTemplate(w, "base.html", data)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
+	return h.templates["index.html"].ExecuteTemplate(w, "base.html", data)
 }
 
-func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) error {
 	type SessionTest struct {
 		*db.FullSessionTest
 		Findings []*db.Finding
@@ -87,30 +108,27 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	data.Series, err = h.seriesRepo.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
+	} else if data.Series == nil {
+		return fmt.Errorf("%w: series", errNotFound)
 	}
 	data.Patches, err = h.seriesRepo.ListPatches(ctx, data.Series)
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
 	}
 	data.TotalPatches = len(data.Patches)
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
 	}
 	for _, session := range sessions {
 		rawTests, err := h.sessionTestRepo.BySession(ctx, session.ID)
 		if err != nil {
-			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-			return
+			return err
 		}
 		findings, err := h.findingRepo.ListForSession(ctx, session)
 		if err != nil {
-			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-			return
+			return err
 		}
 		perName := groupFindings(findings)
 		sessionData := SessionData{
@@ -124,11 +142,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) {
 		}
 		data.Sessions = append(data.Sessions, sessionData)
 	}
-
-	err = h.templates["series.html"].ExecuteTemplate(w, "base.html", data)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-	}
+	return h.templates["series.html"].ExecuteTemplate(w, "base.html", data)
 }
 
 func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
@@ -140,78 +154,76 @@ func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
 }
 
 // nolint:dupl
-func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) error {
 	session, err := h.sessionRepo.GetByID(r.Context(), r.PathValue("id"))
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
+	} else if session == nil {
+		return fmt.Errorf("%w: session", errNotFound)
 	}
-	if session == nil {
-		http.Error(w, "no such session exists in the DB", http.StatusNotFound)
-		return
-	}
-	h.streamBlob(w, session.LogURI)
+	return h.streamBlob(w, session.LogURI)
 }
 
 // nolint:dupl
-func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) error {
 	patch, err := h.seriesRepo.PatchByID(r.Context(), r.PathValue("id"))
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
+	} else if patch == nil {
+		return fmt.Errorf("%w: patch", errNotFound)
 	}
-	if patch == nil {
-		http.Error(w, "no such patch exists in the DB", http.StatusNotFound)
-		return
-	}
-	h.streamBlob(w, patch.BodyURI)
+	return h.streamBlob(w, patch.BodyURI)
 }
 
-func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) error {
 	finding, err := h.findingRepo.GetByID(r.Context(), r.PathValue("id"))
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
-	if finding == nil {
-		http.Error(w, "no such finding exists in the DB", http.StatusNotFound)
-		return
+		return err
+	} else if finding == nil {
+		return fmt.Errorf("%w: finding", errNotFound)
 	}
 	switch r.PathValue("key") {
 	case "report":
-		h.streamBlob(w, finding.ReportURI)
+		return h.streamBlob(w, finding.ReportURI)
 	case "log":
-		h.streamBlob(w, finding.LogURI)
+		return h.streamBlob(w, finding.LogURI)
 	default:
-		http.Error(w, "unknown key value", http.StatusBadRequest)
+		return fmt.Errorf("%w: unknown key value", errBadRequest)
 	}
 }
 
-func (h *dashboardHandler) sessionTestLog(w http.ResponseWriter, r *http.Request) {
+func (h *dashboardHandler) sessionTestLog(w http.ResponseWriter, r *http.Request) error {
 	test, err := h.sessionTestRepo.Get(r.Context(), r.PathValue("id"), r.FormValue("name"))
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
 	} else if test == nil {
-		http.Error(w, "there's no such test", http.StatusNotFound)
-		return
+		return fmt.Errorf("%w: test log", errNotFound)
 	}
-	h.streamBlob(w, test.LogURI)
+	return h.streamBlob(w, test.LogURI)
 }
 
-func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) {
+func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {
 	if uri == "" {
-		return
+		return nil
 	}
 	reader, err := h.blobStorage.Read(uri)
 	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+		return err
 	}
 	defer reader.Close()
 	_, err = io.Copy(w, reader)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
+	return err
+}
+
+func errToStatus(f func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := f(w, r)
+		if errors.Is(err, errNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if errors.Is(err, errBadRequest) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
