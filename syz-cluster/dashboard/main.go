@@ -5,16 +5,11 @@ package main
 
 import (
 	"context"
-	"embed"
-	"io/fs"
 	"log"
 	"net/http"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
-
-//go:embed static
-var staticFs embed.FS
 
 func main() {
 	ctx := context.Background()
@@ -26,19 +21,6 @@ func main() {
 	if err != nil {
 		app.Fatalf("failed to set up handler: %v", err)
 	}
-	http.HandleFunc("/sessions/{id}/log", handler.sessionLog)
-	http.HandleFunc("/sessions/{id}/test_logs", handler.sessionTestLog)
-	http.HandleFunc("/series/{id}", handler.seriesInfo)
-	http.HandleFunc("/patches/{id}", handler.patchContent)
-	http.HandleFunc("/findings/{id}/{key}", handler.findingInfo)
-	http.HandleFunc("/", handler.seriesList)
-
-	staticFiles, err := fs.Sub(staticFs, "static")
-	if err != nil {
-		app.Fatalf("failed to parse templates: %v", err)
-	}
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFiles))))
-
 	log.Printf("listening at port 8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Fatal(http.ListenAndServe(":8081", handler.Mux()))
 }
