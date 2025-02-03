@@ -6,6 +6,7 @@ WORKDIR /build
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
+COPY pkg/gcs/ pkg/gcs/
 
 # Build the tool.
 COPY syz-cluster/db-mgmt/*.go syz-cluster/db-mgmt/

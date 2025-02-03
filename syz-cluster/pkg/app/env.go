@@ -25,7 +25,7 @@ func Environment(ctx context.Context) (*AppEnvironment, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up a Spanner client: %w", err)
 	}
-	storage, err := DefaultStorage()
+	storage, err := DefaultStorage(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up the blob storage: %w", err)
 	}
@@ -60,18 +60,13 @@ func DefaultSpanner(ctx context.Context) (*spanner.Client, error) {
 	return spanner.NewClient(ctx, uri.Full)
 }
 
-func DefaultStorage() (blob.Storage, error) {
-	// LOCAL_BLOB_STORAGE_PATH is set in the dev environment.
-	path := os.Getenv("LOCAL_BLOB_STORAGE_PATH")
-	if path == "" {
-		// TODO: implement GCS support.
-		return nil, fmt.Errorf("empty LOCAL_BLOB_STORAGE_PATH")
+func DefaultStorage(ctx context.Context) (blob.Storage, error) {
+	// BLOB_STORAGE_GCS_BUCKET is the only supported option.
+	bucket := os.Getenv("BLOB_STORAGE_GCS_BUCKET")
+	if bucket == "" {
+		return nil, fmt.Errorf("empty BLOB0_STORAGE_GCS_BUCKET")
 	}
-	err := os.MkdirAll(path, 0666)
-	if err != nil {
-		return nil, err
-	}
-	return blob.NewLocalStorage(path), nil
+	return blob.NewGCSClient(ctx, bucket)
 }
 
 func DefaultClient() *api.Client {

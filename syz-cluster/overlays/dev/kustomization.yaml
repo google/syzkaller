@@ -11,7 +11,6 @@ resources:
   - workflow-roles.yaml
   - fake-gcs.yaml
   - workflow-artifacts.yaml
-  - blobs-pvc-dev.yaml
 
 patches:
   - target:
