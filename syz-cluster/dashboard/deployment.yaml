@@ -23,10 +23,3 @@ spec:
               name: global-config
         ports:
         - containerPort: 8081
-        volumeMounts:
-        - name: blobs-storage-disk
-          mountPath: /blob-storage
-      volumes:
-      - name: blobs-storage-disk
-        persistentVolumeClaim:
-          claimName: blob-storage-disk-claim

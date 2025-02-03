@@ -18,7 +18,7 @@ spec:
       initContainers:
       - name: create-test-bucket
         image: busybox
-        command: ["sh", "-c", "mkdir -p /data/test-bucket"]
+        command: ["sh", "-c", "mkdir -p /data/test-bucket /data/blobs"]
         volumeMounts:
         - name: data-volume
           mountPath: /data

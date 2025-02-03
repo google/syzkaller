@@ -9,7 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 // Storage is not assumed to be used for partciularly large objects (e.g. GB of size),
@@ -23,6 +24,8 @@ type Storage interface {
 
 var _ Storage = (*LocalStorage)(nil)
 
+// LocalStorage keeps objets in the specified local directory.
+// It's intended to be used only for unit tests.
 type LocalStorage struct {
 	baseFolder string
 }
@@ -34,7 +37,7 @@ func NewLocalStorage(baseFolder string) *LocalStorage {
 const localStoragePrefix = "local://"
 
 func (ls *LocalStorage) Store(source io.Reader) (string, error) {
-	name := fmt.Sprint(time.Now().UnixNano())
+	name := uuid.New().String()
 	err := ls.writeFile(name, source)
 	if err != nil {
 		return "", err

@@ -24,12 +24,7 @@ spec:
         volumeMounts:
         - name: series-tracker-repo-disk
           mountPath: /git-repo
-        - name: blobs-storage-disk
-          mountPath: /blob-storage
       volumes:
       - name: series-tracker-repo-disk
         persistentVolumeClaim:
           claimName: series-tracker-repo-disk-claim
-      - name: blobs-storage-disk
-        persistentVolumeClaim:
-          claimName: blob-storage-disk-claim
