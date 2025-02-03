@@ -38,6 +38,23 @@ type LocalConfig struct {
 }
 
 func RunLocal(ctx context.Context, cfg *LocalConfig) error {
+	localCtx, ctx, err := setupLocal(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer localCtx.serv.Close()
+	// groupCtx will be cancelled once any goroutine returns an error.
+	eg, groupCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return localCtx.RunInstance(groupCtx, 0)
+	})
+	eg.Go(func() error {
+		return localCtx.serv.Serve(groupCtx)
+	})
+	return eg.Wait()
+}
+
+func setupLocal(ctx context.Context, cfg *LocalConfig) (*local, context.Context, error) {
 	if cfg.VMArch == "" {
 		cfg.VMArch = cfg.Target.Arch
 	}
@@ -52,9 +69,8 @@ func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 	}
 	serv := newImpl(&cfg.Config, localCtx)
 	if err := serv.Listen(); err != nil {
-		return err
+		return nil, nil, err
 	}
-	defer serv.Close()
 	localCtx.serv = serv
 	// setupDone synchronizes assignment to ctx.serv and read of ctx.serv in MachineChecked
 	// for the race detector b/c it does not understand the synchronization via TCP socket connect/accept.
@@ -63,15 +79,7 @@ func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 	if cfg.HandleInterrupts {
 		ctx = cancelOnInterrupts(ctx)
 	}
-	// groupCtx will be cancelled once any goroutine returns an error.
-	eg, groupCtx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		return localCtx.RunInstance(groupCtx, 0)
-	})
-	eg.Go(func() error {
-		return serv.Serve(groupCtx)
-	})
-	return eg.Wait()
+	return localCtx, ctx, nil
 }
 
 func cancelOnInterrupts(ctx context.Context) context.Context {
@@ -111,6 +119,10 @@ func (ctx *local) MaxSignal() signal.Signal {
 
 func (ctx *local) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
 	return ctx.cfg.CoverFilter, nil
+}
+
+func (ctx *local) Serve(context context.Context) error {
+	return ctx.serv.Serve(context)
 }
 
 func (ctx *local) RunInstance(baseCtx context.Context, id int) error {

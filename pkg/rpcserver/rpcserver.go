@@ -51,6 +51,9 @@ type Config struct {
 	Slowdown      int
 	pcBase        uint64
 	localModules  []*vminfo.KernelModule
+
+	// RPCServer closes the channel once the machine check has begun. Used for fault injection during testing.
+	machineCheckStarted chan struct{}
 }
 
 type RemoteConfig struct {
@@ -413,6 +416,9 @@ func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 }
 
 func (serv *server) runCheck(ctx context.Context, info *handshakeResult) error {
+	if serv.cfg.machineCheckStarted != nil {
+		close(serv.cfg.machineCheckStarted)
+	}
 	enabledCalls, disabledCalls, features, checkErr := serv.checker.Run(ctx, info.Files, info.Features)
 	enabledCalls, transitivelyDisabled := serv.target.TransitivelyEnabledCalls(enabledCalls)
 	// Note: need to print disbled syscalls before failing due to an error.
