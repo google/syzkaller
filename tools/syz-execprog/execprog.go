@@ -181,10 +181,9 @@ func main() {
 		Executor:         *flagExecutor,
 		HandleInterrupts: true,
 		GDB:              *flagGDB,
-		Context:          rpcCtx,
 		MachineChecked:   ctx.machineChecked,
 	}
-	if err := rpcserver.RunLocal(cfg); err != nil {
+	if err := rpcserver.RunLocal(rpcCtx, cfg); err != nil {
 		tool.Fail(err)
 	}
 }
