@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -21,14 +22,12 @@ func NewClient(url string) *Client {
 	return &Client{baseURL: strings.TrimRight(url, "/")}
 }
 
-func (client Client) GetSessionSeries(_ context.Context, sessionID string) (*Series, error) {
-	// TODO: add support for the context.
-	return getJSON[Series](client.baseURL + "/sessions/" + sessionID + "/series")
+func (client Client) GetSessionSeries(ctx context.Context, sessionID string) (*Series, error) {
+	return getJSON[Series](ctx, client.baseURL+"/sessions/"+sessionID+"/series")
 }
 
-func (client Client) GetSeries(_ context.Context, seriesID string) (*Series, error) {
-	// TODO: add support for the context.
-	return getJSON[Series](client.baseURL + "/series/" + seriesID)
+func (client Client) GetSeries(ctx context.Context, seriesID string) (*Series, error) {
+	return getJSON[Series](ctx, client.baseURL+"/series/"+seriesID)
 }
 
 func (client Client) SkipSession(ctx context.Context, sessionID string, req *SkipRequest) error {
@@ -74,21 +73,12 @@ func (client Client) UploadFinding(ctx context.Context, req *Finding) error {
 	return err
 }
 
-func getJSON[Resp any](url string) (*Resp, error) {
-	resp, err := http.Get(url)
+func getJSON[Resp any](ctx context.Context, url string) (*Resp, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	if err := ensure200(resp); err != nil {
-		return nil, err
-	}
-	var data Resp
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return nil, err
-	}
-	return &data, nil
+	return finishRequest[Resp](httpReq)
 }
 
 func postJSON[Req any, Resp any](ctx context.Context, url string, req *Req) (*Resp, error) {
@@ -101,7 +91,16 @@ func postJSON[Req any, Resp any](ctx context.Context, url string, req *Req) (*Re
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(httpReq)
+	return finishRequest[Resp](httpReq)
+}
+
+const requestTimeout = time.Minute
+
+func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {
+	client := &http.Client{
+		Timeout: requestTimeout,
+	}
+	resp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
