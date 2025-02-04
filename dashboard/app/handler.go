@@ -5,11 +5,13 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -339,3 +341,43 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 }
 
 var templates = html.CreateGlob("*.html")
+
+type gzipResponseWriterCloser struct {
+	w          *gzip.Writer
+	buf        *bytes.Buffer
+}
+
+func (g *gzipResponseWriterCloser) Write(p []byte) (n int, err error) {
+	return g.w.Write(p)
+}
+
+func (g *gzipResponseWriterCloser) Close() {
+	if g.w != nil {
+		g.w.Close()
+	}
+}
+
+func (g *gzipResponseWriterCloser) writeResult(w http.ResponseWriter, writeUngzipped bool) (int, error) {
+	g.w.Close()
+	g.w = nil
+	if !writeUngzipped {
+		w.Header().Set("Content-Encoding", "gzip")
+		return w.Write(g.buf.Bytes())
+	}
+	r, err := gzip.NewReader(g.buf)
+	if err != nil {
+		return 0, fmt.Errorf("gzip.NewReader: %w", err)
+	}
+	defer r.Close()
+	var bytesWritten int64
+	bytesWritten, err = io.Copy(w, r)
+	return int(bytesWritten), err
+}
+
+func newGzipResponseWriterCloser() *gzipResponseWriterCloser {
+	buf := &bytes.Buffer{}
+	return &gzipResponseWriterCloser{
+		w:   gzip.NewWriter(buf),
+		buf: buf,
+	}
+}
