@@ -484,6 +484,14 @@ static void parse_handshake(const handshake_req& req);
 #include "syscalls.h"
 
 #if GOOS_linux
+#define MAP_FIXED_EXCLUSIVE MAP_FIXED_NOREPLACE
+#elif GOOS_freebsd
+#define MAP_FIXED_EXCLUSIVE (MAP_FIXED | MAP_EXCL)
+#else
+#define MAP_FIXED_EXCLUSIVE MAP_FIXED // The check is not supported.
+#endif
+
+#if GOOS_linux
 #include "executor_linux.h"
 #elif GOOS_fuchsia
 #include "executor_fuchsia.h"

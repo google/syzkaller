@@ -27,7 +27,7 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 #endif
 
-	int flags = MAP_ANON | MAP_PRIVATE | MAP_FIXED;
+	int flags = MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE;
 #if GOOS_freebsd
 	// Fail closed if the chosen data offset conflicts with an existing mapping.
 	flags |= MAP_EXCL;

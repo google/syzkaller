@@ -22,7 +22,7 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	if (getppid() == 1)
 		exitf("the parent process was killed");
 #endif
-	void* got = mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	void* got = mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
 	if (data != got)
 		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
 	is_kernel_64_bit = sizeof(unsigned long) == 8;
