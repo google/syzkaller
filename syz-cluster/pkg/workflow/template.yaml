@@ -7,6 +7,13 @@ metadata:
   generateName: series-workflow
 spec:
   entrypoint: main
+  podGC:
+    # Keep pods for 12 hours after completion.
+    strategy: OnPodCompletion
+    deleteDelayDuration: 12h
+  ttlStrategy:
+    # Keep finihed workflows for 12 hours after completion.
+    secondsAfterCompletion: 43200
   arguments:
     parameters:
       - name: session-id

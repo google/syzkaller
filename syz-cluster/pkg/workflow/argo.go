@@ -111,5 +111,5 @@ func (w *ArgoService) generateLog(nodes v1alpha1.Nodes) []byte {
 }
 
 func (w *ArgoService) PollPeriod() time.Duration {
-	return time.Minute
+	return 30 * time.Second
 }
