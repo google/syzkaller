@@ -111,16 +111,16 @@ func handleJSON(fn JSONHandler) http.Handler {
 			http.Error(w, err.Error(), status)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		wJS := w.(io.Writer)
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			w.Header().Set("Content-Encoding", "gzip")
-			gw := gzip.NewWriter(w)
-			defer gw.Close()
-			wJS = gw
-		}
+
+		wJS := newGzipResponseWriterCloser(w)
+		defer wJS.Close()
 		if err := json.NewEncoder(wJS).Encode(reply); err != nil {
 			log.Errorf(c, "failed to encode reply: %v", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := wJS.writeResult(r); err != nil {
+			log.Errorf(c, "wJS.writeResult: %s", err.Error())
 		}
 	})
 }

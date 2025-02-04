@@ -5,11 +5,13 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -43,37 +45,45 @@ func handleContext(fn contextHandler) http.Handler {
 			}
 			defer backpressureRobots(c, r)()
 		}
-		if err := fn(c, w, r); err != nil {
-			hdr := commonHeaderRaw(c, r)
-			data := &struct {
-				Header  *uiHeader
-				Error   string
-				TraceID string
-			}{
-				Header:  hdr,
-				Error:   err.Error(),
-				TraceID: strings.Join(r.Header["X-Cloud-Trace-Context"], " "),
-			}
-			if err == ErrAccess {
-				if hdr.LoginLink != "" {
-					http.Redirect(w, r, hdr.LoginLink, http.StatusTemporaryRedirect)
-					return
-				}
-				http.Error(w, "403 Forbidden", http.StatusForbidden)
-				return
-			}
-			var redir *ErrRedirect
-			if errors.As(err, &redir) {
-				http.Redirect(w, r, redir.Error(), http.StatusFound)
-				return
-			}
 
-			status := logErrorPrepareStatus(c, err)
-			w.WriteHeader(status)
-			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
-				combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
-				http.Error(w, combinedError, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		gzw := newGzipResponseWriterCloser(w)
+		defer gzw.Close()
+		err := fn(c, gzw, r)
+		if err == nil {
+			if err = gzw.writeResult(r); err == nil {
+				return
 			}
+		}
+		hdr := commonHeaderRaw(c, r)
+		data := &struct {
+			Header  *uiHeader
+			Error   string
+			TraceID string
+		}{
+			Header:  hdr,
+			Error:   err.Error(),
+			TraceID: strings.Join(r.Header["X-Cloud-Trace-Context"], " "),
+		}
+		if err == ErrAccess {
+			if hdr.LoginLink != "" {
+				http.Redirect(w, r, hdr.LoginLink, http.StatusTemporaryRedirect)
+				return
+			}
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		var redir *ErrRedirect
+		if errors.As(err, &redir) {
+			http.Redirect(w, r, redir.Error(), http.StatusFound)
+			return
+		}
+
+		status := logErrorPrepareStatus(c, err)
+		w.WriteHeader(status)
+		if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
+			combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
+			http.Error(w, combinedError, http.StatusInternalServerError)
 		}
 	})
 }
@@ -339,3 +349,64 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 }
 
 var templates = html.CreateGlob("*.html")
+
+// gzipResponseWriterCloser accumulates the gzipped result.
+// In case of error during the handler processing, we'll drop this gzipped data.
+// It allows to call http.Error in the middle of the response generation.
+//
+// For 200 Ok responses we return the compressed data or decompress it depending on the client Accept-Encoding header.
+type gzipResponseWriterCloser struct {
+	w                 *gzip.Writer
+	plainResponseSize int
+	buf               *bytes.Buffer
+	rw                http.ResponseWriter
+}
+
+func (g *gzipResponseWriterCloser) Write(p []byte) (n int, err error) {
+	g.plainResponseSize += len(p)
+	return g.w.Write(p)
+}
+
+func (g *gzipResponseWriterCloser) Close() {
+	if g.w != nil {
+		g.w.Close()
+	}
+}
+
+func (g *gzipResponseWriterCloser) Header() http.Header {
+	return g.rw.Header()
+}
+
+func (g *gzipResponseWriterCloser) WriteHeader(statusCode int) {
+	g.rw.WriteHeader(statusCode)
+}
+
+func (g *gzipResponseWriterCloser) writeResult(r *http.Request) error {
+	g.w.Close()
+	g.w = nil
+	clientSupportsGzip := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+	if clientSupportsGzip {
+		g.rw.Header().Set("Content-Encoding", "gzip")
+		_, err := g.rw.Write(g.buf.Bytes())
+		return err
+	}
+	if g.plainResponseSize > 31<<20 { // 32MB is the AppEngine hard limit for the response size.
+		return fmt.Errorf("len(response) > 31M, try to request gzipped: %w", ErrClientBadRequest)
+	}
+	gzr, err := gzip.NewReader(g.buf)
+	if err != nil {
+		return fmt.Errorf("gzip.NewReader: %w", err)
+	}
+	defer gzr.Close()
+	_, err = io.Copy(g.rw, gzr)
+	return err
+}
+
+func newGzipResponseWriterCloser(w http.ResponseWriter) *gzipResponseWriterCloser {
+	buf := &bytes.Buffer{}
+	return &gzipResponseWriterCloser{
+		w:   gzip.NewWriter(buf),
+		buf: buf,
+		rw:  w,
+	}
+}
