@@ -294,8 +294,15 @@ func (kc *kernelContext) Loop() error {
 	if err := kc.serv.Listen(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
-	kc.pool.Loop(kc.ctx)
-	return nil
+	eg, ctx := errgroup.WithContext(kc.ctx)
+	eg.Go(func() error {
+		return kc.serv.Serve(ctx)
+	})
+	eg.Go(func() error {
+		kc.pool.Loop(ctx)
+		return nil
+	})
+	return eg.Wait()
 }
 
 func (kc *kernelContext) MaxSignal() signal.Signal {
