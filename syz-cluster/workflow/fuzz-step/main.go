@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"path/filepath"
@@ -48,14 +49,17 @@ func main() {
 	if !prog.GitRevisionKnown() {
 		log.Fatalf("the binary is built without the git revision information")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), d)
-	defer cancel()
+	ctx := context.Background()
 	if err := reportStatus(ctx, client, api.TestRunning); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
 	}
-	err = run(ctx, client)
+	// We want to only cancel the run() operation in order to be able to also report
+	// the final test result back.
+	runCtx, cancel := context.WithTimeout(context.Background(), d)
+	defer cancel()
+	err = run(runCtx, client)
 	status := api.TestPassed // TODO: what about TestFailed?
-	if err != nil {
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		app.Errorf("the step failed: %v", err)
 		status = api.TestError
 	}
