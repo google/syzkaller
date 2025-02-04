@@ -40,7 +40,19 @@ spec:
       container:
           image: triage-step-local
           imagePullPolicy: IfNotPresent
-          command: ["/bin/triage-step", "--session", "{{workflow.parameters.session-id}}", "--repository", "/workdir", "--verdict", "/output/result.json"]
+          command: ["/bin/triage-step"]
+          args: [
+            "--session", "{{workflow.parameters.session-id}}",
+            "--repository", "/workdir",
+            "--verdict", "/output/result.json"
+            ]
+          resources:
+            requests:
+              cpu: 1
+              memory: 8G
+            limits:
+              cpu: 4
+              memory: 16G
           env:
             - name: GIT_DIR
               value: "/data/.git"

@@ -33,15 +33,15 @@ spec:
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
           "--time", "2h",
           "--workdir", "/workdir",
-          "--vv", "1",
+          "--vv", "1"
           ]
         resources:
           requests:
-            cpu: 16
-            memory: 24G
-          limits:
             cpu: 24
-            memory: 32G
+            memory: 64G
+          limits:
+            cpu: 32
+            memory: 64G
         volumeMounts:
         - name: workdir
           mountPath: /workdir
