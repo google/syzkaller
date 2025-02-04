@@ -57,6 +57,13 @@ spec:
           "--test_name", "{{inputs.parameters.test-name}}",
           "-findings={{inputs.parameters.findings}}"
           ]
+        resources:
+          requests:
+            cpu: 8
+            memory: 32G
+          limits:
+            cpu: 32
+            memory: 96G
         env:
         - name: GIT_DIR
           value: "/data/.git"

@@ -23,3 +23,10 @@ spec:
               name: global-config
         ports:
         - containerPort: 8080
+        resources:
+          requests:
+            cpu: 2
+            memory: 8G
+          limits:
+            cpu: 4
+            memory: 16G
