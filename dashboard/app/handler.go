@@ -45,37 +45,52 @@ func handleContext(fn contextHandler) http.Handler {
 			}
 			defer backpressureRobots(c, r)()
 		}
-		if err := fn(c, w, r); err != nil {
-			hdr := commonHeaderRaw(c, r)
-			data := &struct {
-				Header  *uiHeader
-				Error   string
-				TraceID string
-			}{
-				Header:  hdr,
-				Error:   err.Error(),
-				TraceID: strings.Join(r.Header["X-Cloud-Trace-Context"], " "),
-			}
-			if err == ErrAccess {
-				if hdr.LoginLink != "" {
-					http.Redirect(w, r, hdr.LoginLink, http.StatusTemporaryRedirect)
-					return
-				}
-				http.Error(w, "403 Forbidden", http.StatusForbidden)
-				return
-			}
-			var redir *ErrRedirect
-			if errors.As(err, &redir) {
-				http.Redirect(w, r, redir.Error(), http.StatusFound)
-				return
-			}
 
-			status := logErrorPrepareStatus(c, err)
-			w.WriteHeader(status)
-			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
-				combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
-				http.Error(w, combinedError, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		gzw := newGzipResponseWriterCloser(w)
+		defer gzw.Close()
+		err := fn(c, gzw, r)
+		if err == nil {
+			ungzip := !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+			if _, err := gzw.writeResult(w, ungzip); err != nil {
+				// We have the content to return but can't do it for some reason.
+				// With high probability http.Error will not work here.
+				errStr := "gzw.writeResult: " + err.Error()
+				http.Error(w, errStr, http.StatusInternalServerError)
+				log.Errorf(r.Context(), "%s", errStr)
 			}
+			return
+		}
+		// Err != nil.
+		hdr := commonHeaderRaw(c, r)
+		data := &struct {
+			Header  *uiHeader
+			Error   string
+			TraceID string
+		}{
+			Header:  hdr,
+			Error:   err.Error(),
+			TraceID: strings.Join(r.Header["X-Cloud-Trace-Context"], " "),
+		}
+		if err == ErrAccess {
+			if hdr.LoginLink != "" {
+				http.Redirect(w, r, hdr.LoginLink, http.StatusTemporaryRedirect)
+				return
+			}
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		var redir *ErrRedirect
+		if errors.As(err, &redir) {
+			http.Redirect(w, r, redir.Error(), http.StatusFound)
+			return
+		}
+
+		status := logErrorPrepareStatus(c, err)
+		w.WriteHeader(status)
+		if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
+			combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
+			http.Error(w, combinedError, http.StatusInternalServerError)
 		}
 	})
 }
@@ -343,8 +358,9 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 var templates = html.CreateGlob("*.html")
 
 type gzipResponseWriterCloser struct {
-	w          *gzip.Writer
-	buf        *bytes.Buffer
+	w   *gzip.Writer
+	buf *bytes.Buffer
+	rw  http.ResponseWriter
 }
 
 func (g *gzipResponseWriterCloser) Write(p []byte) (n int, err error) {
@@ -355,6 +371,14 @@ func (g *gzipResponseWriterCloser) Close() {
 	if g.w != nil {
 		g.w.Close()
 	}
+}
+
+func (g *gzipResponseWriterCloser) Header() http.Header {
+	return g.rw.Header()
+}
+
+func (g *gzipResponseWriterCloser) WriteHeader(statusCode int) {
+	g.rw.WriteHeader(statusCode)
 }
 
 func (g *gzipResponseWriterCloser) writeResult(w http.ResponseWriter, writeUngzipped bool) (int, error) {
@@ -374,10 +398,11 @@ func (g *gzipResponseWriterCloser) writeResult(w http.ResponseWriter, writeUngzi
 	return int(bytesWritten), err
 }
 
-func newGzipResponseWriterCloser() *gzipResponseWriterCloser {
+func newGzipResponseWriterCloser(w http.ResponseWriter) *gzipResponseWriterCloser {
 	buf := &bytes.Buffer{}
 	return &gzipResponseWriterCloser{
 		w:   gzip.NewWriter(buf),
 		buf: buf,
+		rw:  w,
 	}
 }

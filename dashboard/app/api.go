@@ -112,7 +112,7 @@ func handleJSON(fn JSONHandler) http.Handler {
 			return
 		}
 
-		wJS := newGzipResponseWriterCloser()
+		wJS := newGzipResponseWriterCloser(w)
 		defer wJS.Close()
 		if err := json.NewEncoder(wJS).Encode(reply); err != nil {
 			log.Errorf(c, "failed to encode reply: %v", err)

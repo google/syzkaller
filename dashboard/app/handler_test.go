@@ -5,6 +5,7 @@ package main
 
 import (
 	"compress/gzip"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -12,10 +13,10 @@ import (
 )
 
 func TestGzipResponseWriterCloser_no_compression(t *testing.T) {
-	gz := newGzipResponseWriterCloser()
+	res := httptest.NewRecorder()
+	gz := newGzipResponseWriterCloser(res)
 	gz.Write([]byte("test"))
 
-	res := httptest.NewRecorder()
 	bytesWritten, err := gz.writeResult(res, true)
 	assert.NoError(t, err)
 	assert.Equal(t, 4, bytesWritten)
@@ -24,10 +25,10 @@ func TestGzipResponseWriterCloser_no_compression(t *testing.T) {
 }
 
 func TestGzipResponseWriterCloser_with_compression(t *testing.T) {
-	gz := newGzipResponseWriterCloser()
+	res := httptest.NewRecorder()
+	gz := newGzipResponseWriterCloser(res)
 	gz.Write([]byte("test"))
 
-	res := httptest.NewRecorder()
 	bytesWritten, err := gz.writeResult(res, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "gzip", res.Header().Get("Content-Encoding"))
@@ -38,4 +39,26 @@ func TestGzipResponseWriterCloser_with_compression(t *testing.T) {
 	n, _ := gr.Read(gotBytes)
 	gotBytes = gotBytes[:n]
 	assert.Equal(t, "test", string(gotBytes))
+}
+
+func TestGzipResponseWriterCloser_headers(t *testing.T) {
+	res := httptest.NewRecorder()
+	gz := newGzipResponseWriterCloser(res)
+
+	gz.Header().Add("key", "val1")
+	gz.Header().Add("key", "val2")
+	_, err := gz.writeResult(res, true)
+	assert.NoError(t, err)
+	assert.Equal(t, http.Header{
+		"Key": []string{"val1", "val2"},
+	}, res.Header())
+}
+
+func TestGzipResponseWriterCloser_status(t *testing.T) {
+	res := httptest.NewRecorder()
+	gz := newGzipResponseWriterCloser(res)
+
+	gz.WriteHeader(333)
+	gz.writeResult(res, true)
+	assert.Equal(t, 333, res.Code)
 }
