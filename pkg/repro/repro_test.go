@@ -41,23 +41,23 @@ func TestBisect(t *testing.T) {
 		numTotal := rd.Intn(300)
 		numGuilty := 0
 		for i := 0; i < numTotal; i++ {
-			var prog prog.LogEntry
+			var program prog.LogEntry
 			if rd.Intn(30) == 0 {
-				prog.Proc = 42
+				program.Proc = 42
 				numGuilty++
 			}
-			progs = append(progs, &prog)
+			progs = append(progs, &program)
 		}
 		if numGuilty == 0 {
-			var prog prog.LogEntry
-			prog.Proc = 42
-			progs = append(progs, &prog)
+			var program prog.LogEntry
+			program.Proc = 42
+			progs = append(progs, &program)
 			numGuilty++
 		}
 		progs, _ = ctx.bisectProgs(progs, func(p []*prog.LogEntry) (bool, error) {
 			guilty := 0
-			for _, prog := range p {
-				if prog.Proc == 42 {
+			for _, program := range p {
+				if program.Proc == 42 {
 					guilty++
 				}
 			}
@@ -70,8 +70,8 @@ func TestBisect(t *testing.T) {
 		if len(progs) != numGuilty {
 			t.Fatalf("bisect test failed: wrong number of guilty progs: got: %v, want: %v", len(progs), numGuilty)
 		}
-		for _, prog := range progs {
-			if prog.Proc != 42 {
+		for _, program := range progs {
+			if program.Proc != 42 {
 				t.Fatalf("bisect test failed: wrong program is guilty: progs: %v", progs)
 			}
 		}

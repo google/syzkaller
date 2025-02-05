@@ -66,7 +66,7 @@ type reproContext struct {
 
 // execInterface describes the interfaces needed by pkg/repro.
 type execInterface interface {
-	// Run() will either run a C repro or a syz repro depending on params.
+	// Run will either run a C repro or a syz repro depending on params.
 	Run(ctx context.Context, params instance.ExecParams, logf instance.ExecutorLogger) (*instance.RunResult, error)
 }
 
@@ -76,7 +76,7 @@ type Environment struct {
 	Reporter *report.Reporter
 	Pool     *vm.Dispatcher
 	// The Fast repro mode restricts the repro log bisection,
-	// it skips multiple simpifications and C repro generation.
+	// it skips multiple simplifications and C repro generation.
 	Fast bool
 }
 
@@ -508,7 +508,7 @@ func (ctx *reproContext) simplifyProg(res *Result) (*Result, error) {
 	// Do further simplifications.
 	for _, simplify := range progSimplifies {
 		opts := res.Opts
-		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
+		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
 			continue
 		}
 		ret, err := ctx.testProg(res.Prog, res.Duration, opts, true)
@@ -561,7 +561,7 @@ func (ctx *reproContext) simplifyC(res *Result) (*Result, error) {
 
 	for _, simplify := range cSimplifies {
 		opts := res.Opts
-		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
+		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
 			continue
 		}
 		ret, err := ctx.testCProg(res.Prog, res.Duration, opts, true)
@@ -576,18 +576,18 @@ func (ctx *reproContext) simplifyC(res *Result) (*Result, error) {
 	return res, nil
 }
 
-func checkOpts(opts *csource.Options, timeouts targets.Timeouts, timeout time.Duration) bool {
+func checkOpts(opts *csource.Options, timeout time.Duration) bool {
 	if !opts.Repeat && timeout >= time.Minute {
 		// If we have a non-repeating C reproducer with timeout > vm.NoOutputTimeout and it hangs
 		// (the reproducer itself does not terminate on its own, note: it does not have builtin timeout),
 		// then we will falsely detect "not output from test machine" kernel bug.
 		// We could fix it by adding a builtin timeout to such reproducers (like we have in all other cases).
-		// However, then it will exit within few seconds and we will finish the test without actually waiting
+		// However, then it will exit within few seconds, and we will finish the test without actually waiting
 		// for full vm.NoOutputTimeout, which breaks the whole reason of using vm.NoOutputTimeout in the first
 		// place. So we would need something more elaborate: let the program exist after few seconds, but
 		// continue waiting for kernel hang errors for minutes, but at the same time somehow ignore "no output"
 		// error because it will be false in this case.
-		// Instead we simply prohibit !Repeat with long timeouts.
+		// Instead, we simply prohibit !Repeat with long timeouts.
 		// It makes sense on its own to some degree: if we are chasing an elusive bug, repeating the test
 		// will increase chances of reproducing it and can make the reproducer less flaky.
 		// Syz repros does not have this problem because they always have internal timeout, however
