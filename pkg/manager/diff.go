@@ -62,7 +62,10 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 		if err != nil {
 			return err
 		}
-		new.candidates <- info.Candidates
+		select {
+		case new.candidates <- info.Candidates:
+		case <-ctx.Done():
+		}
 		return nil
 	})
 
@@ -175,7 +178,10 @@ loop:
 				}
 				log.Logf(1, "found repro for %q (orig title: %q), took %.2f minutes",
 					ret.Repro.Report.Title, origTitle, ret.Stats.TotalTime.Minutes())
-				go runner.Run(ret.Repro)
+				g.Go(func() error {
+					runner.Run(ctx, ret.Repro)
+					return nil
+				})
 			} else {
 				origTitle := ret.Crash.Report.Title
 				log.Logf(1, "failed repro for %q, err=%s", origTitle, ret.Err)
@@ -491,7 +497,7 @@ type reproRunnerResult struct {
 	repro       *repro.Result
 }
 
-func (rr *reproRunner) Run(r *repro.Result) {
+func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 	pool := rr.kernel.pool
 	cnt := int(rr.running.Add(1))
 	pool.ReserveForRun(min(cnt, pool.Total()))
@@ -535,7 +541,10 @@ func (rr *reproRunner) Run(r *repro.Result) {
 		log.Errorf("failed to run repro: %v", err)
 		return
 	}
-	rr.done <- ret
+	select {
+	case rr.done <- ret:
+	case <-ctx.Done():
+	}
 }
 
 func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
