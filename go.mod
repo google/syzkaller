@@ -1,6 +1,6 @@
 module github.com/google/syzkaller
 
-go 1.23.6
+go 1.23
 
 require (
 	cloud.google.com/go v0.116.0
