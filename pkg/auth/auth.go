@@ -73,9 +73,16 @@ type jwtClaims struct {
 }
 
 func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
-	resp, err := http.PostForm(auth.url, url.Values{"id_token": {tokenValue}})
+	var resp *http.Response
+	var err error
+	for i := 0; i < 3; i++ {
+		resp, err = http.PostForm(auth.url, url.Values{"id_token": {tokenValue}})
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
-		return nil, fmt.Errorf("http.PostForm: %w", err)
+		return nil, fmt.Errorf("http.PostForm failed 3 times: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
