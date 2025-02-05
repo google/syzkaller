@@ -7,14 +7,13 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/batch/apiv1/batchpb"
-	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 )
 
 const exportTimeoutSeconds = 60 * 60 * 6
 
 func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
-	ctx := appengine.NewContext(r)
+	ctx := r.Context()
 	for ns, nsConfig := range getConfig(ctx).Namespaces {
 		if nsConfig.ReproExportPath == "" {
 			continue
