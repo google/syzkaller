@@ -30,6 +30,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 RUN DEBIAN_FRONTEND=noninteractive apt-get clean autoclean
 RUN DEBIAN_FRONTEND=noninteractive rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
+# Since go 1.21 the toolchain required by go.mod is automatically downloaded.
+# There is no need to version up golang here after go.mod changes.
 RUN curl https://dl.google.com/go/go1.22.7.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
