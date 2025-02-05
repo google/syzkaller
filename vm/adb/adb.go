@@ -33,8 +33,9 @@ func init() {
 }
 
 type Device struct {
-	Serial  string `json:"serial"`  // device serial to connect
-	Console string `json:"console"` // console device name (e.g. "/dev/pts/0")
+	Serial     string   `json:"serial"`      // device serial to connect
+	Console    string   `json:"console"`     // console device name (e.g. "/dev/pts/0")
+	ConsoleCmd []string `json:"console_cmd"` // command to obtain device console log
 }
 
 type Config struct {
@@ -60,13 +61,14 @@ type Pool struct {
 }
 
 type instance struct {
-	cfg      *Config
-	adbBin   string
-	device   string
-	console  string
-	closed   chan bool
-	debug    bool
-	timeouts targets.Timeouts
+	cfg        *Config
+	adbBin     string
+	device     string
+	console    string
+	consoleCmd []string
+	closed     chan bool
+	debug      bool
+	timeouts   targets.Timeouts
 }
 
 var (
@@ -132,13 +134,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	inst := &instance{
-		cfg:      pool.cfg,
-		adbBin:   pool.cfg.Adb,
-		device:   device.Serial,
-		console:  device.Console,
-		closed:   make(chan bool),
-		debug:    pool.env.Debug,
-		timeouts: pool.env.Timeouts,
+		cfg:        pool.cfg,
+		adbBin:     pool.cfg.Adb,
+		device:     device.Serial,
+		console:    device.Console,
+		consoleCmd: device.ConsoleCmd,
+		closed:     make(chan bool),
+		debug:      pool.env.Debug,
+		timeouts:   pool.env.Timeouts,
 	}
 	closeInst := inst
 	defer func() {
@@ -149,10 +152,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	if inst.console == "" {
-		inst.console = findConsole(inst.adbBin, inst.device)
+	if len(inst.consoleCmd) > 0 {
+		log.Logf(0, "associating adb device %v with console cmd `%v`", inst.device, inst.consoleCmd)
+	} else {
+		if inst.console == "" {
+			inst.console = findConsole(inst.adbBin, inst.device)
+		}
+		log.Logf(0, "associating adb device %v with console %v", inst.device, inst.console)
 	}
-	log.Logf(0, "associating adb device %v with console %v", inst.device, inst.console)
 	if pool.cfg.BatteryCheck {
 		if err := inst.checkBatteryLevel(); err != nil {
 			return nil, err
@@ -517,7 +524,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	var tty io.ReadCloser
 	var err error
 
-	if ok, ip := isRemoteCuttlefish(inst.device); ok {
+	if len(inst.consoleCmd) > 0 {
+		tty, err = vmimpl.OpenConsoleByCmd(inst.consoleCmd[0], inst.consoleCmd[1:])
+	} else if ok, ip := isRemoteCuttlefish(inst.device); ok {
 		tty, err = vmimpl.OpenRemoteKernelLog(ip, inst.console)
 	} else if inst.console == "adb" {
 		tty, err = vmimpl.OpenAdbConsole(inst.adbBin, inst.device)
