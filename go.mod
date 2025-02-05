@@ -1,6 +1,6 @@
 module github.com/google/syzkaller
 
-go 1.22.1
+go 1.23.6
 
 require (
 	cloud.google.com/go v0.116.0
@@ -15,7 +15,7 @@ require (
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.5.13
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
-	github.com/golang-migrate/migrate/v4 v4.18.1
+	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/golangci/golangci-lint v1.62.2
 	github.com/google/flatbuffers v25.1.24+incompatible
 	github.com/google/generative-ai-go v0.19.0
@@ -41,8 +41,8 @@ require (
 	google.golang.org/grpc v1.66.2
 	google.golang.org/protobuf v1.36.4
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.31.4
-	k8s.io/client-go v0.31.4
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -214,7 +214,7 @@ require (
 	github.com/raeperd/recvcheck v0.1.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
-	github.com/rs/zerolog v1.29.0 // indirect
+	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/ryancurrah/gomodguard v1.3.5 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
@@ -283,7 +283,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	honnef.co/go/tools v0.5.1 // indirect
-	k8s.io/api v0.31.4 // indirect
+	k8s.io/api v0.32.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
@@ -292,10 +292,3 @@ require (
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 )
-
-// v4.4.2 causes "unknown field IgnoredFields in struct literal of type merge.Updater".
-replace sigs.k8s.io/structured-merge-diff/v4 v4.4.2 => sigs.k8s.io/structured-merge-diff/v4 v4.4.1
-
-// The newer versions require Go 1.23.
-// See https://github.com/kubernetes-sigs/json/issues/22#issuecomment-2411500423.
-replace sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 => sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
