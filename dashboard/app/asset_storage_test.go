@@ -346,6 +346,14 @@ func TestCrashAssetLifetime(t *testing.T) {
 		{
 			Type:        dashapi.MountInRepro,
 			DownloadURL: "http://google.com/disk_image2",
+			FsckLog:     []byte("good log"),
+			FsIsClean:   true,
+		},
+		{
+			Type:        dashapi.MountInRepro,
+			DownloadURL: "http://google.com/disk_image3",
+			FsckLog:     []byte("bad log"),
+			FsIsClean:   false,
 		},
 	}
 	c.client2.ReportCrash(crash)
@@ -354,7 +362,7 @@ func TestCrashAssetLifetime(t *testing.T) {
 	msg := c.pollEmailBug()
 	sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	c.expectOK(err)
-	_, dbCrash, dbBuild := c.loadBug(extBugID)
+	bug, dbCrash, dbBuild := c.loadBug(extBugID)
 	crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	c.expectEQ(sender, fromAddr(c.ctx))
@@ -362,6 +370,9 @@ func TestCrashAssetLifetime(t *testing.T) {
 	c.expectEQ(msg.To, []string{to})
 	c.expectEQ(msg.Subject, crash.Title)
 	c.expectEQ(len(msg.Attachments), 0)
+
+	bugReport, err := c.client2.LoadBug(bug.key(c.ctx).StringID())
+	c.expectOK(err)
 	c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following issue on:
@@ -379,6 +390,9 @@ Unfortunately, I don't have any reproducer for this issue yet.
 Downloadable assets:
 mounted in repro #1: http://google.com/disk_image
 mounted in repro #2: http://google.com/disk_image2
+  fsck result: OK (log: %[4]v)
+mounted in repro #3: http://google.com/disk_image3
+  fsck result: failed (log: %[5]v)
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -405,17 +419,21 @@ If the report is a duplicate of another one, reply with:
 
 If you want to undo deduplication, reply with:
 #syz undup`,
-		extBugID, crashLogLink, kernelConfigLink))
+		extBugID, crashLogLink, kernelConfigLink,
+		bugReport.Assets[1].FsckLogURL,
+		bugReport.Assets[2].FsckLogURL,
+	))
 	c.checkURLContents(crashLogLink, crash.Log)
 	c.checkURLContents(kernelConfigLink, build.KernelConfig)
 
-	// We query the needed assets. We need all 2.
+	// We query the needed assets. We need all 3.
 	needed, err := c.client2.NeededAssetsList()
 	c.expectOK(err)
 	sort.Strings(needed.DownloadURLs)
 	allDownloadURLs := []string{
 		"http://google.com/disk_image",
 		"http://google.com/disk_image2",
+		"http://google.com/disk_image3",
 	}
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 

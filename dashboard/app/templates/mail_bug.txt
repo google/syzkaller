@@ -19,6 +19,9 @@ Unfortunately, I don't have any reproducer for this issue yet.
 {{end}}{{if .Assets}}
 Downloadable assets:
 {{range $i, $asset := .Assets}}{{$asset.Title}}: {{$asset.DownloadURL}}
+{{- if $asset.FsckLogURL}}
+  fsck result: {{if $asset.FsIsClean}}OK{{else}}failed{{end}} (log: {{$asset.FsckLogURL}})
+{{- end}}
 {{end}}{{end}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}The issue was bisected to:
 
