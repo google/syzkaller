@@ -419,8 +419,8 @@ func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient
 		defer iter.Stop()
 		defer close(resCh)
 		defer close(errCh)
-		if err := readIterToChan(context.Background(), iter, resCh); err != nil {
-			errCh <- err
+		if err := readIterToChan(ctx, iter, resCh); err != nil {
+			errCh <- fmt.Errorf("readIterToChan: %w", err)
 		}
 	}()
 	return resCh, errCh
@@ -449,7 +449,7 @@ func FilesCoverageWithDetails(
 				return nil, fmt.Errorf("uniqueFilesCoverageWithDetails: %w", err)
 			}
 		} else {
-			periodRes, err = readCoverage(iterManager)
+			periodRes, err = readCoverage(ctx, iterManager)
 			if err != nil {
 				return nil, fmt.Errorf("readCoverage: %w", err)
 			}
@@ -495,13 +495,13 @@ where
 	return stmt
 }
 
-func readCoverage(iterManager spannerclient.RowIterator) ([]*FileCoverageWithDetails, error) {
+func readCoverage(ctx context.Context, iterManager spannerclient.RowIterator) ([]*FileCoverageWithDetails, error) {
 	res := []*FileCoverageWithDetails{}
 	ch := make(chan *FileCoverageWithDetails)
 	var err error
 	go func() {
 		defer close(ch)
-		err = readIterToChan(context.Background(), iterManager, ch)
+		err = readIterToChan(ctx, iterManager, ch)
 	}()
 	for fc := range ch {
 		res = append(res, fc)
