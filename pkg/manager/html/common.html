@@ -21,10 +21,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						<input type="hidden" name="url" value="{{.CurrentURL}}" />
 						<button type="submit" name="toggle" value="expert" class="action_button{{if .ExpertMode}}_selected{{end}}" title="Toggle expert mode">
 							🧠
-						</input>
+						</button>
 						<button type="submit" name="toggle" value="pause" class="action_button{{if .Paused}}_selected{{end}}" title="Pause/unpause fuzzing">
 							{{if .Paused}}▶️{{else}}⏸️{{end}}
-						</input>
+						</button>
 					</form>
 				</td>
 				<td class="search">
