@@ -6,7 +6,6 @@
 package osutil
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"time"
@@ -25,14 +24,6 @@ func RemoveAll(dir string) error {
 
 func SystemMemorySize() uint64 {
 	return 0
-}
-
-func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
-	return nil, nil, fmt.Errorf("CreateMemMappedFile is not implemented")
-}
-
-func CloseMemMappedFile(f *os.File, mem []byte) error {
-	return fmt.Errorf("CloseMemMappedFile is not implemented")
 }
 
 func ProcessExitStatus(ps *os.ProcessState) int {

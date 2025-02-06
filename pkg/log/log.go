@@ -99,15 +99,6 @@ func Fatalf(msg string, args ...interface{}) {
 	golog.Fatal(message("FATAL", msg, args...))
 }
 
-// SyzFatalf-reported errors are parsed by syzkaller as if they were kernel bugs.
-func SyzFatalf(msg string, args ...interface{}) {
-	golog.Fatalf("SYZFATAL: "+msg, args...)
-}
-
-func SyzFatal(err error) {
-	SyzFatalf("%v", err)
-}
-
 func message(severity, msg string, args ...interface{}) string {
 	var sb strings.Builder
 	if severity != "" {

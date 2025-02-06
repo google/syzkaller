@@ -40,16 +40,3 @@ func (sig *Sig) Truncate64() int64 {
 	}
 	return v
 }
-
-func FromString(str string) (Sig, error) {
-	bin, err := hex.DecodeString(str)
-	if err != nil {
-		return Sig{}, fmt.Errorf("failed to decode sig '%v': %w", str, err)
-	}
-	if len(bin) != len(Sig{}) {
-		return Sig{}, fmt.Errorf("failed to decode sig '%v': bad len", str)
-	}
-	var sig Sig
-	copy(sig[:], bin[:])
-	return sig, err
-}

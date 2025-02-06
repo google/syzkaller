@@ -30,11 +30,6 @@ var globSearchPath = func() string {
 	return "templates/"
 }()
 
-// SetGlobSearchPath overrides the default path where syzkaller looks for templates.
-func SetGlobSearchPath(path string) {
-	globSearchPath = path
-}
-
 func CreateGlob(glob string) *template.Template {
 	if strings.Contains(glob, string(filepath.Separator)) {
 		panic("glob can't be a path, the files mask is expected")

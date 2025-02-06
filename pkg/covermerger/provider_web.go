@@ -76,12 +76,3 @@ func MakeWebGit(funcProxy FuncProxyURI) FileVersProvider {
 		funcProxy: funcProxy,
 	}
 }
-
-func GetFileVersion(filePath, repo, commit string) (string, error) {
-	repoCommit := RepoCommit{repo, commit}
-	files, err := MakeWebGit(nil).GetFileVersions(filePath, repoCommit)
-	if err != nil {
-		return "", fmt.Errorf("failed to GetFileVersions: %w", err)
-	}
-	return files[repoCommit], nil
-}

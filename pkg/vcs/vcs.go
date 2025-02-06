@@ -362,10 +362,6 @@ func CommitLink(url, hash string) string {
 	return link(url, hash, "", 0, 0)
 }
 
-func TreeLink(url, hash string) string {
-	return link(url, hash, "", 0, 1)
-}
-
 func LogLink(url, hash string) string {
 	return link(url, hash, "", 0, 2)
 }
