@@ -5,7 +5,6 @@ package db
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
@@ -22,8 +21,8 @@ func TestFindingRepo(t *testing.T) {
 	err := seriesRepo.Insert(ctx, series, nil)
 	assert.NoError(t, err)
 
-	session := &Session{CreatedAt: time.Now()}
-	err = sessionRepo.Insert(ctx, series, session)
+	session := &Session{SeriesID: series.ID}
+	err = sessionRepo.Insert(ctx, session)
 	assert.NoError(t, err)
 
 	// Add test steps.

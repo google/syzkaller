@@ -6,7 +6,6 @@ package db
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -24,8 +23,8 @@ func TestSessionTestRepository(t *testing.T) {
 	err := seriesRepo.Insert(ctx, series, nil)
 	assert.NoError(t, err)
 
-	session := &Session{CreatedAt: time.Now()}
-	err = sessionRepo.Insert(ctx, series, session)
+	session := &Session{SeriesID: series.ID}
+	err = sessionRepo.Insert(ctx, session)
 	assert.NoError(t, err)
 
 	build1 := &Build{TreeName: "mainline", Arch: "amd64", CommitHash: "abcd", Status: "success"}

@@ -73,6 +73,8 @@ var (
 	errBadRequest = errors.New("bad request")
 )
 
+// TODO: export a common method to get Series' status.
+
 func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) error {
 	type MainPageData struct {
 		// It's probably not the best idea to expose db entities here,
@@ -108,27 +110,27 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 	ctx := r.Context()
 	data.Series, err = h.seriesRepo.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query series: %w", err)
 	} else if data.Series == nil {
 		return fmt.Errorf("%w: series", errNotFound)
 	}
 	data.Patches, err = h.seriesRepo.ListPatches(ctx, data.Series)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query patches: %w", err)
 	}
 	data.TotalPatches = len(data.Patches)
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query sessions: %w", err)
 	}
 	for _, session := range sessions {
 		rawTests, err := h.sessionTestRepo.BySession(ctx, session.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to query session tests: %w", err)
 		}
 		findings, err := h.findingRepo.ListForSession(ctx, session)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to query session findings: %w", err)
 		}
 		perName := groupFindings(findings)
 		sessionData := SessionData{

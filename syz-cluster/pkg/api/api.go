@@ -5,13 +5,6 @@ package api
 
 import "time"
 
-type Series struct {
-	ID          string
-	PublishedAt time.Time
-	Cc          []string
-	Patches     [][]byte
-}
-
 type TriageResult struct {
 	// If true, ignore the patch series completely.
 	Skip *SkipRequest `json:"skip"`
@@ -91,6 +84,38 @@ type Finding struct {
 	Title     string `json:"title"`
 	Report    []byte `json:"report"`
 	Log       []byte `json:"log"`
+}
+
+type Series struct {
+	ID          string        `json:"id"` // Only included in the reply.
+	ExtID       string        `json:"ext_id"`
+	Title       string        `json:"title"`
+	AuthorEmail string        `json:"author_email"`
+	Cc          []string      `json:"cc"`
+	Version     int           `json:"version"`
+	Link        string        `json:"link"`
+	PublishedAt time.Time     `json:"published_at"`
+	Patches     []SeriesPatch `json:"patches"`
+}
+
+func (s *Series) PatchBodies() [][]byte {
+	var ret [][]byte
+	for _, patch := range s.Patches {
+		ret = append(ret, patch.Body)
+	}
+	return ret
+}
+
+type SeriesPatch struct {
+	Seq   int    `json:"seq"`
+	Title string `json:"title"`
+	Link  string `json:"link"`
+	Body  []byte `json:"body"`
+}
+
+type NewSession struct {
+	ExtID string   `json:"ext_id"`
+	Tags  []string `json:"tags"`
 }
 
 // For now, there's no reason to obtain these really via a real API call.

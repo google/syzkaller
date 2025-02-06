@@ -18,7 +18,9 @@
           <td>{{.Series.AuthorEmail}}</td>
           <td>
             {{if .Session}}
-              {{if .Session.FinishedAt.IsNull}}
+              {{if .Session.StartedAt.IsNull}}
+                waiting
+              {{else if .Session.FinishedAt.IsNull}}
                 in progress
               {{else if .Session.SkipReason.IsNull}}
                 finished
@@ -26,7 +28,7 @@
                 skipped
               {{end}}
             {{else}}
-              waiting
+              -
             {{end}}
           </td>
         </tr>

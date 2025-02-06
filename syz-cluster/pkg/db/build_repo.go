@@ -30,15 +30,7 @@ func (repo *BuildRepository) Insert(ctx context.Context, build *Build) error {
 	if build.ID == "" {
 		build.ID = uuid.New().String()
 	}
-	_, err := repo.client.ReadWriteTransaction(ctx,
-		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			m, err := spanner.InsertStruct("Builds", build)
-			if err != nil {
-				return err
-			}
-			return txn.BufferWrite([]*spanner.Mutation{m})
-		})
-	return err
+	return repo.genericEntityOps.Insert(ctx, build)
 }
 
 func (repo *BuildRepository) LastBuiltTree(ctx context.Context, arch, tree, config string) (*Build, error) {

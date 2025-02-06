@@ -304,3 +304,15 @@ func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key 
 		})
 	return err
 }
+
+func (g *genericEntityOps[EntityType, KeyType]) Insert(ctx context.Context, obj *EntityType) error {
+	_, err := g.client.ReadWriteTransaction(ctx,
+		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+			insert, err := spanner.InsertStruct(g.table, obj)
+			if err != nil {
+				return err
+			}
+			return txn.BufferWrite([]*spanner.Mutation{insert})
+		})
+	return err
+}

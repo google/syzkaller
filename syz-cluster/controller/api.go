@@ -35,11 +35,13 @@ func (c ControllerAPI) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
+	mux.HandleFunc("/sessions/upload", c.uploadSession)
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
+	mux.HandleFunc("/series/upload", c.uploadSeries)
 	return mux
 }
 
@@ -136,6 +138,32 @@ func (c ControllerAPI) getLastBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply[*api.Build](w, resp)
+}
+
+func (c ControllerAPI) uploadSeries(w http.ResponseWriter, r *http.Request) {
+	req := parseBody[api.Series](w, r)
+	if req == nil {
+		return
+	}
+	resp, err := c.seriesService.UploadSeries(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	reply[*api.UploadSeriesResp](w, resp)
+}
+
+func (c ControllerAPI) uploadSession(w http.ResponseWriter, r *http.Request) {
+	req := parseBody[api.NewSession](w, r)
+	if req == nil {
+		return
+	}
+	resp, err := c.seriesService.UploadSession(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	reply[*api.UploadSessionResp](w, resp)
 }
 
 func reply[T any](w http.ResponseWriter, resp T) {

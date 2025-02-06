@@ -83,7 +83,7 @@ func run(baseCtx context.Context, client *api.Client) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configs: %w", err)
 	}
-	manager.PatchFocusAreas(patched, series.Patches)
+	manager.PatchFocusAreas(patched, series.PatchBodies())
 
 	eg, ctx := errgroup.WithContext(baseCtx)
 	bugs := make(chan *manager.UniqueBug)

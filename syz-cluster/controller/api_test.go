@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,17 +20,18 @@ func TestAPIGetSeries(t *testing.T) {
 	server := httptest.NewServer(apiServer.Mux())
 	defer server.Close()
 
-	series := addTestSeries(t, db.NewSeriesRepository(env.Spanner), env.BlobStorage)
-	session := addTestSession(t, db.NewSessionRepository(env.Spanner), series)
-
 	client := api.NewClient(server.URL)
-	ret, err := client.GetSessionSeries(ctx, session.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, testSeriesReply, ret)
+	seriesID, sessionID := uploadSeries(t, ctx, client, testSeries)
 
-	ret, err = client.GetSeries(ctx, series.ID)
+	ret, err := client.GetSessionSeries(ctx, sessionID)
 	assert.NoError(t, err)
-	assert.Equal(t, testSeriesReply, ret)
+	ret.ID = ""
+	assert.Equal(t, testSeries, ret)
+
+	ret, err = client.GetSeries(ctx, seriesID)
+	assert.NoError(t, err)
+	ret.ID = ""
+	assert.Equal(t, testSeries, ret)
 }
 
 func TestAPISuccessfulBuild(t *testing.T) {
@@ -57,13 +57,12 @@ func TestAPISaveFinding(t *testing.T) {
 	server := httptest.NewServer(apiServer.Mux())
 	defer server.Close()
 
-	series := addTestSeries(t, db.NewSeriesRepository(env.Spanner), env.BlobStorage)
-	session := addTestSession(t, db.NewSessionRepository(env.Spanner), series)
-
 	client := api.NewClient(server.URL)
+
+	_, sessionID := uploadSeries(t, ctx, client, testSeries)
 	_, buildResp := uploadTestBuild(t, client)
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   session.ID,
+		SessionID:   sessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
 		Result:      api.TestRunning,
@@ -73,7 +72,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("not existing test", func(t *testing.T) {
 		err = client.UploadFinding(ctx, &api.Finding{
-			SessionID: session.ID,
+			SessionID: sessionID,
 			TestName:  "unknown test",
 		})
 		assert.Error(t, err)
@@ -81,7 +80,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("must succeed", func(t *testing.T) {
 		finding := &api.Finding{
-			SessionID: session.ID,
+			SessionID: sessionID,
 			TestName:  "test",
 			Report:    []byte("report"),
 			Log:       []byte("log"),
@@ -109,4 +108,34 @@ func uploadTestBuild(t *testing.T, client *api.Client) (*api.Build, *api.UploadB
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ret.ID)
 	return buildInfo, ret
+}
+
+// Returns a (session ID, series ID) tuple.
+func uploadSeries(t *testing.T, ctx context.Context, client *api.Client, series *api.Series) (string, string) {
+	retSeries, err := client.UploadSeries(ctx, series)
+	assert.NoError(t, err)
+	retSession, err := client.UploadSession(ctx, &api.NewSession{
+		ExtID: series.ExtID,
+	})
+	assert.NoError(t, err)
+	return retSeries.ID, retSession.ID
+}
+
+var testSeries = &api.Series{
+	ExtID:       "ext-id",
+	AuthorEmail: "some@email.com",
+	Title:       "test series name",
+	Version:     2,
+	PublishedAt: time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
+	Cc:          []string{"email"},
+	Patches: []api.SeriesPatch{
+		{
+			Seq:  1,
+			Body: []byte("first content"),
+		},
+		{
+			Seq:  2,
+			Body: []byte("second content"),
+		},
+	},
 }

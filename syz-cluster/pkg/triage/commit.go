@@ -55,7 +55,7 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	var ret []string
 	for _, hash := range hashes {
 		log.Printf("considering %q", hash)
-		err := cs.ops.ApplySeries(hash, series.Patches)
+		err := cs.ops.ApplySeries(hash, series.PatchBodies())
 		if err == nil {
 			log.Printf("series can be applied to %q", hash)
 			ret = append(ret, hash)

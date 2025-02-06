@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -16,9 +15,8 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"github.com/google/syzkaller/syz-cluster/pkg/blob"
-	"github.com/google/syzkaller/syz-cluster/pkg/db"
 )
 
 var flagVerbose = flag.Bool("verbose", false, "enable verbose output")
@@ -29,15 +27,10 @@ var archivesToQuery = []string{"linux-wireless", "netfilter-devel"}
 func main() {
 	flag.Parse()
 	ctx := context.Background()
-	env, err := app.Environment(ctx)
-	if err != nil {
-		app.Fatalf("failed to set up environment: %v", err)
-	}
 	manifest := NewManifestSource(`https://lore.kernel.org`)
 	fetcher := &SeriesFetcher{
 		gitRepoFolder: `/git-repo`, // Set in deployment.yaml.
-		seriesRepo:    db.NewSeriesRepository(env.Spanner),
-		blobStorage:   env.BlobStorage,
+		client:        app.DefaultClient(),
 		manifest:      manifest,
 	}
 	go manifest.Loop(ctx)
@@ -50,8 +43,7 @@ func main() {
 		nextFrom = time.Now().Add(-time.Minute * 15)
 		err := fetcher.Update(ctx, oldFrom)
 		if err != nil {
-			// TODO: make sure these are alerted.
-			log.Print(err)
+			app.Errorf("fetching failed: %v", err)
 		}
 		time.Sleep(15 * time.Minute)
 	}
@@ -59,8 +51,7 @@ func main() {
 
 type SeriesFetcher struct {
 	gitRepoFolder string
-	seriesRepo    *db.SeriesRepository
-	blobStorage   blob.Storage
+	client        *api.Client
 	manifest      *ManifestSource
 }
 
@@ -122,7 +113,7 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 		}
 		err := sf.handleSeries(ctx, series, idToReader)
 		if err != nil {
-			return err
+			app.Errorf("failed to save the series: %v", err)
 		}
 	}
 	return nil
@@ -141,40 +132,39 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		// https://lore.kernel.org/all/20770915-nolibc-run-user-v1-1-3caec61726dc@weissschuh.net/raw.
 		date = time.Now()
 	}
-	err := sf.seriesRepo.Insert(ctx, &db.Series{
-		ExtID: series.MessageID,
-		// TODO: set AuthorName?
+	apiSeries := &api.Series{
+		ExtID:       series.MessageID,
 		AuthorEmail: first.Author,
+		// TODO: set Cc.
 		Title:       series.Subject,
-		Version:     int64(series.Version),
+		Version:     series.Version,
 		Link:        "https://lore.kernel.org/all/" + series.MessageID,
 		PublishedAt: date,
-		// TODO: set Cc.
-	}, func() ([]*db.Patch, error) {
-		var ret []*db.Patch
-		for _, patch := range series.Patches {
-			body, err := idToReader[patch.MessageID].Read()
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract %q: %w", patch.MessageID, err)
-			}
-			// In case of errors, we will waste some space, but let's ignore it for simplicity.
-			// Patches are not super big.
-			uri, err := sf.blobStorage.Store(bytes.NewReader(body))
-			if err != nil {
-				return nil, fmt.Errorf("failed to upload patch body: %w", err)
-			}
-			ret = append(ret, &db.Patch{
-				Seq:     int64(patch.Seq),
-				Title:   patch.Subject,
-				Link:    "https://lore.kernel.org/all/" + patch.MessageID,
-				BodyURI: uri,
-			})
+	}
+	for _, patch := range series.Patches {
+		body, err := idToReader[patch.MessageID].Read()
+		if err != nil {
+			return fmt.Errorf("failed to extract %q: %w", patch.MessageID, err)
 		}
-		return ret, nil
-	})
-	if err == db.ErrSeriesExists {
+		apiSeries.Patches = append(apiSeries.Patches, api.SeriesPatch{
+			Seq:   patch.Seq,
+			Title: patch.Subject,
+			Link:  "https://lore.kernel.org/all/" + patch.MessageID,
+			Body:  body,
+		})
+	}
+	ret, err := sf.client.UploadSeries(ctx, apiSeries)
+	if err != nil {
+		return fmt.Errorf("failed to save series: %w", err)
+	} else if !ret.Saved {
 		log.Printf("series %s already exists in the DB", series.MessageID)
 		return nil
+	}
+	_, err = sf.client.UploadSession(ctx, &api.NewSession{
+		ExtID: series.MessageID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to request a fuzzing session: %w", err)
 	}
 	log.Printf("series %s saved to the DB", series.MessageID)
 	return nil
