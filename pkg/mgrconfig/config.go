@@ -206,6 +206,7 @@ type Config struct {
 	// Note: you may need to install 3rd-party dependencies for this to work.
 	// fsck commands that can be run by syz-manager are specified in mount
 	// syscall descriptions - typically in sys/linux/filesystem.txt.
+	// Enabled by default.
 	RunFsck bool `json:"run_fsck"`
 
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.

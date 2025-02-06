@@ -106,6 +106,7 @@ type Manager struct {
 	benchFile *os.File
 
 	assetStorage *asset.Storage
+	fsckChecker  image.FsckChecker
 
 	reproLoop *manager.ReproLoop
 
@@ -944,10 +945,11 @@ func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
 			return
 		}
 		// Report file systems that fail fsck with a separate tag.
-		if mgr.cfg.RunFsck && dashTyp == dashapi.MountInRepro && c.Meta.Attrs.Fsck != "" {
+		if mgr.cfg.RunFsck && dashTyp == dashapi.MountInRepro &&
+			c.Meta.Attrs.Fsck != "" && mgr.fsckChecker.Exists(c.Meta.Attrs.Fsck) {
 			logs, isClean, err := image.Fsck(r2, c.Meta.Attrs.Fsck)
 			if err != nil {
-				log.Logf(1, "fsck of the asset %v failed: %v", name, err)
+				log.Errorf("fsck of the asset %v failed: %v", name, err)
 			} else {
 				asset.FsckLog = logs
 				asset.FsIsClean = isClean

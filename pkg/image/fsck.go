@@ -11,7 +11,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -58,4 +60,28 @@ func Fsck(r io.Reader, fsckCmd string) ([]byte, bool, error) {
 
 	prefix := fsckCmd + " exited with status code " + strconv.Itoa(exitCode) + "\n"
 	return append([]byte(prefix), output...), exitCode == 0, nil
+}
+
+type FsckChecker struct {
+	mu     sync.Mutex
+	exists map[string]bool
+}
+
+func (fc *FsckChecker) Exists(cmd string) bool {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	bin := strings.Fields(cmd)[0]
+	if ret, ok := fc.exists[bin]; ok {
+		return ret
+	}
+	if fc.exists == nil {
+		fc.exists = map[string]bool{}
+	}
+	_, err := exec.LookPath(bin)
+	found := err == nil
+	if !found {
+		log.Logf(0, "%s not found, images won't be checked", bin)
+	}
+	fc.exists[bin] = found
+	return found
 }
