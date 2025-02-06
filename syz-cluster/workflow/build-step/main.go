@@ -160,7 +160,7 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 	}
 	var patches [][]byte
 	if series != nil {
-		patches = series.Patches
+		patches = series.PatchBodies()
 	}
 	if len(patches) > 0 {
 		tracer.Log("applying %d patches", len(patches))

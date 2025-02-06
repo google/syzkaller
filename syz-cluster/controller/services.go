@@ -55,7 +55,66 @@ func (s *SeriesService) SkipSession(ctx context.Context, sessionID string, skip 
 	return err
 }
 
+func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*api.UploadSeriesResp, error) {
+	seriesObj := &db.Series{
+		ExtID:       series.ExtID,
+		AuthorEmail: series.AuthorEmail,
+		Title:       series.Title,
+		Version:     int64(series.Version),
+		Link:        series.Link,
+		PublishedAt: series.PublishedAt,
+		Cc:          series.Cc,
+	}
+	err := s.seriesRepo.Insert(ctx, seriesObj, func() ([]*db.Patch, error) {
+		var ret []*db.Patch
+		for _, patch := range series.Patches {
+			// In case of errors, we will waste some space, but let's ignore it for simplicity.
+			// Patches are not super big.
+			uri, err := s.blobStorage.Store(bytes.NewReader(patch.Body))
+			if err != nil {
+				return nil, fmt.Errorf("failed to upload patch body: %w", err)
+			}
+			ret = append(ret, &db.Patch{
+				Seq:     int64(patch.Seq),
+				Title:   patch.Title,
+				Link:    patch.Link,
+				BodyURI: uri,
+			})
+		}
+		return ret, nil
+	})
+	if err != nil {
+		if errors.Is(err, db.ErrSeriesExists) {
+			return &api.UploadSeriesResp{Saved: false}, nil
+		}
+		return nil, err
+	}
+	return &api.UploadSeriesResp{
+		ID:    seriesObj.ID,
+		Saved: true,
+	}, nil
+}
+
 var ErrSeriesNotFound = errors.New("series not found")
+
+func (s *SeriesService) UploadSession(ctx context.Context, req *api.NewSession) (*api.UploadSessionResp, error) {
+	series, err := s.seriesRepo.GetByExtID(ctx, req.ExtID)
+	if err != nil {
+		return nil, err
+	} else if series == nil {
+		return nil, ErrSeriesNotFound
+	}
+	session := &db.Session{
+		SeriesID:  series.ID,
+		Tags:      req.Tags,
+		CreatedAt: time.Now(),
+	}
+	err = s.sessionRepo.Insert(ctx, session)
+	if err != nil {
+		return nil, err
+	}
+	return &api.UploadSessionResp{ID: session.ID}, nil
+}
 
 func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Series, error) {
 	series, err := s.seriesRepo.GetByID(ctx, seriesID)
@@ -70,6 +129,10 @@ func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Se
 	}
 	ret := &api.Series{
 		ID:          series.ID,
+		ExtID:       series.ExtID,
+		Title:       series.Title,
+		AuthorEmail: series.AuthorEmail,
+		Version:     int(series.Version),
 		Cc:          series.Cc,
 		PublishedAt: series.PublishedAt,
 	}
@@ -82,7 +145,12 @@ func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Se
 		if err != nil {
 			return nil, fmt.Errorf("failed to read patch %q: %w", patch.ID, err)
 		}
-		ret.Patches = append(ret.Patches, body)
+		ret.Patches = append(ret.Patches, api.SeriesPatch{
+			Seq:   int(patch.Seq),
+			Title: patch.Title,
+			Link:  patch.Link,
+			Body:  body,
+		})
 	}
 	return ret, nil
 }

@@ -6,10 +6,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/workflow"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +21,7 @@ import (
 // It's a bit too long for a unit test, but it captures the whole main scenario of operation.
 func TestProcessor(t *testing.T) {
 	workflows := newMockedWorkflows()
-	processor, ctx := prepareProcessorTest(t, workflows)
+	processor, client, ctx := prepareProcessorTest(t, workflows)
 
 	// Start the loop.
 	var wg sync.WaitGroup
@@ -30,17 +33,16 @@ func TestProcessor(t *testing.T) {
 	}()
 
 	// Add some series.
-	var allSeries []*db.Series
+	var allSeries []*api.Series
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("series-%d", i)
-		allSeries = append(allSeries, &db.Series{
+		allSeries = append(allSeries, &api.Series{
 			ExtID: id,
 			Title: id,
 		})
 	}
 	for _, series := range allSeries[0:5] {
-		err := processor.seriesRepo.Insert(ctx, series, nil)
-		assert.NoError(t, err)
+		uploadSeries(t, ctx, client, series)
 	}
 
 	// Let some workflows finish.
@@ -64,8 +66,7 @@ func TestProcessor(t *testing.T) {
 
 	// Add some more series.
 	for _, series := range allSeries[5:10] {
-		err := processor.seriesRepo.Insert(ctx, series, nil)
-		assert.NoError(t, err)
+		uploadSeries(t, ctx, client, series)
 	}
 
 	// Finish all of them.
@@ -139,13 +140,17 @@ func newMockedWorkflows() *mockedWorkflows {
 	return &obj
 }
 
-func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor, context.Context) {
-	client, ctx := db.NewTransientDB(t)
+func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor,
+	*api.Client, context.Context) {
+	env, ctx := app.TestEnvironment(t)
+	apiServer := NewControllerAPI(env)
+	server := httptest.NewServer(apiServer.Mux())
+	t.Cleanup(server.Close)
 	return &SeriesProcessor{
-		seriesRepo:      db.NewSeriesRepository(client),
-		sessionRepo:     db.NewSessionRepository(client),
+		seriesRepo:      db.NewSeriesRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
 		workflows:       workflows,
 		dbPollInterval:  time.Second / 10,
 		parallelWorkers: 2,
-	}, ctx
+	}, api.NewClient(server.URL), ctx
 }

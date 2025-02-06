@@ -10,14 +10,15 @@ import (
 )
 
 type Series struct {
-	ID              string             `spanner:"ID"`
-	ExtID           string             `spanner:"ExtID"`
-	AuthorName      string             `spanner:"AuthorName"`
-	AuthorEmail     string             `spanner:"AuthorEmail"`
-	Title           string             `spanner:"Title"`
-	Link            string             `spanner:"Link"`
-	Version         int64              `spanner:"Version"`
-	PublishedAt     time.Time          `spanner:"PublishedAt"`
+	ID          string    `spanner:"ID"`
+	ExtID       string    `spanner:"ExtID"`
+	AuthorName  string    `spanner:"AuthorName"`
+	AuthorEmail string    `spanner:"AuthorEmail"`
+	Title       string    `spanner:"Title"`
+	Link        string    `spanner:"Link"`
+	Version     int64     `spanner:"Version"`
+	PublishedAt time.Time `spanner:"PublishedAt"`
+	// TODO: we could ger rid of the field by using slightly more complicated SQL queries.
 	LatestSessionID spanner.NullString `spanner:"LatestSessionID"`
 	Cc              []string           `spanner:"Cc"`
 }
@@ -62,9 +63,17 @@ type Session struct {
 	ID         string             `spanner:"ID"`
 	SeriesID   string             `spanner:"SeriesID"`
 	CreatedAt  time.Time          `spanner:"CreatedAt"`
+	StartedAt  spanner.NullTime   `spanner:"StartedAt"`
 	FinishedAt spanner.NullTime   `spanner:"FinishedAt"`
 	SkipReason spanner.NullString `spanner:"SkipReason"`
 	LogURI     string             `spanner:"LogURI"`
+	Tags       []string           `spanner:"Tags"`
+	// TODO: to accept more specific fuzzing assignment,
+	// add Triager, BaseRepo, BaseCommit, Config fields.
+}
+
+func (s *Session) SetStartedAt(t time.Time) {
+	s.StartedAt = spanner.NullTime{Time: t, Valid: true}
 }
 
 func (s *Session) SetFinishedAt(t time.Time) {

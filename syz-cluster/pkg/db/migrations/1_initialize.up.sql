@@ -52,10 +52,11 @@ CREATE TABLE Sessions (
     ID STRING(36) NOT NULL, -- UUID
     SeriesID STRING(36) NOT NULL,
     CreatedAt TIMESTAMP NOT NULL,
+    StartedAt TIMESTAMP,
     FinishedAt TIMESTAMP,
     SkipReason STRING(1024),
     LogURI STRING(512) NOT NULL,
-    -- TODO: moderation/reporting.
+    Tags ARRAY<STRING(256)>,
     CONSTRAINT FK_SeriesSessions FOREIGN KEY (SeriesID) REFERENCES Series (ID),
 ) PRIMARY KEY(ID);
 

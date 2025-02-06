@@ -82,11 +82,19 @@
             <tbody>
                 <tr>
                     <th><i>ID (for dev)</i></th>
-                    <td>{{.ID}}</a></td>
+                    <td>{{.ID}}</td>
                 </tr>
                 <tr>
                     <th>Status</th>
-                    <td>{{if .FinishedAt.IsNull}}in progress{{else}}finished{{end}}</a></td>
+                    <td>
+                      {{if .StartedAt.IsNull}}
+                          waiting
+                      {{else if .FinishedAt.IsNull}}
+                          in progress
+                      {{else}}
+                          finished
+                      {{end}}
+                    </td>
                 </tr>
                 {{if not .SkipReason.IsNull}}
                 <tr>

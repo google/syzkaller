@@ -33,6 +33,7 @@ func NewSeriesRepository(client *spanner.Client) *SeriesRepository {
 }
 
 // TODO: move to SeriesPatchesRepository?
+// nolint:dupl
 func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM Patches WHERE ID=@id",
@@ -41,6 +42,17 @@ func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch,
 	iter := repo.client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 	return readOne[Patch](iter)
+}
+
+// nolint:dupl
+func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Series, error) {
+	stmt := spanner.Statement{
+		SQL:    "SELECT * FROM Series WHERE ExtID=@extID",
+		Params: map[string]interface{}{"extID": extID},
+	}
+	iter := repo.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	return readOne[Series](iter)
 }
 
 var ErrSeriesExists = errors.New("the series already exists")
@@ -177,20 +189,6 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context,
 		}
 	}
 	return ret, nil
-}
-
-func (repo *SeriesRepository) ListWithoutSession(ctx context.Context, limit int) ([]*Series, error) {
-	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM Series WHERE `LatestSessionID` IS NULL ORDER BY `PublishedAt`",
-		Params: map[string]interface{}{},
-	}
-	if limit > 0 {
-		stmt.SQL += " LIMIT @limit"
-		stmt.Params["limit"] = limit
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readEntities[Series](iter)
 }
 
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.

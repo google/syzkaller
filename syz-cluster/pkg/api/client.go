@@ -73,6 +73,23 @@ func (client Client) UploadFinding(ctx context.Context, req *Finding) error {
 	return err
 }
 
+type UploadSeriesResp struct {
+	ID    string `json:"id"`
+	Saved bool   `json:"saved"`
+}
+
+func (client Client) UploadSeries(ctx context.Context, req *Series) (*UploadSeriesResp, error) {
+	return postJSON[Series, UploadSeriesResp](ctx, client.baseURL+"/series/upload", req)
+}
+
+type UploadSessionResp struct {
+	ID string `json:"id"`
+}
+
+func (client Client) UploadSession(ctx context.Context, req *NewSession) (*UploadSessionResp, error) {
+	return postJSON[NewSession, UploadSessionResp](ctx, client.baseURL+"/sessions/upload", req)
+}
+
 func getJSON[Resp any](ctx context.Context, url string) (*Resp, error) {
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
