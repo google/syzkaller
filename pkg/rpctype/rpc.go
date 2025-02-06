@@ -76,10 +76,6 @@ func (cli *RPCClient) Call(method string, args, reply interface{}) error {
 	return cli.c.Call(method, args, reply)
 }
 
-func (cli *RPCClient) AsyncCall(method string, args interface{}) {
-	cli.c.Go(method, args, nil, nil)
-}
-
 func (cli *RPCClient) Close() {
 	cli.c.Close()
 }

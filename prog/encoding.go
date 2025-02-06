@@ -1185,10 +1185,6 @@ func (p *parser) Err() error {
 	return p.e
 }
 
-func (p *parser) Str() string {
-	return p.s
-}
-
 func (p *parser) EOF() bool {
 	return p.i == len(p.s)
 }

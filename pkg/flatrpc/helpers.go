@@ -100,19 +100,6 @@ func SandboxToFlags(sandbox string) (ExecEnv, error) {
 	}
 }
 
-func FlagsToSandbox(flags ExecEnv) string {
-	if flags&ExecEnvSandboxNone != 0 {
-		return "none"
-	} else if flags&ExecEnvSandboxSetuid != 0 {
-		return "setuid"
-	} else if flags&ExecEnvSandboxNamespace != 0 {
-		return "namespace"
-	} else if flags&ExecEnvSandboxAndroid != 0 {
-		return "android"
-	}
-	panic("no sandbox flags present")
-}
-
 func (hdr *SnapshotHeaderT) UpdateState(state SnapshotState) {
 	atomic.StoreUint64((*uint64)(unsafe.Pointer(&hdr.State)), uint64(state))
 }

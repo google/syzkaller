@@ -110,22 +110,3 @@ func CreateTestRepo(t *testing.T, baseDir, name string) *TestRepo {
 	repo.CommitFileChange("master", "1")
 	return repo
 }
-
-func CloneTestRepo(t *testing.T, baseDir, name string, originRepo *TestRepo) *TestRepo {
-	dir := filepath.Join(baseDir, name)
-	if err := osutil.MkdirAll(dir); err != nil {
-		t.Fatal(err)
-	}
-	ignoreCC := map[string]bool{
-		"stable@vger.kernel.org": true,
-	}
-	repo := &TestRepo{
-		t:       t,
-		Dir:     dir,
-		name:    filepath.Base(dir),
-		Commits: make(map[string]map[string]*Commit),
-		repo:    newGitRepo(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
-	}
-	repo.Git("clone", originRepo.Dir, repo.Dir)
-	return repo
-}

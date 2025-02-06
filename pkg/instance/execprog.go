@@ -206,7 +206,3 @@ func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) 
 	}
 	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts, params.ExitConditions)
 }
-
-func (inst *ExecProgInstance) Close() {
-	inst.VMInstance.Close()
-}
