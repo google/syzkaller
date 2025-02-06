@@ -225,7 +225,7 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) e
 func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *coveragedb.FunctionFinder,
 	covCh <-chan *coveragedb.FileCoverageWithLineInfo) error {
 	enc := json.NewEncoder(w)
-	enc.SetIndent("\t\t", "\t")
+	enc.SetIndent("", "\t")
 	for {
 		select {
 		case fileCov := <-covCh:
