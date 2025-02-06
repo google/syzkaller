@@ -535,9 +535,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						{{optlink $job.CrashLogLink "log"}}
 					{{end}}
 					{{ if $job.InvalidatedBy }}
-						</br>marked invalid by {{$job.InvalidatedBy}}
+						<br>marked invalid by {{$job.InvalidatedBy}}
 					{{end}}
-					{{if and $.PerBug (or .InvalidateJobLink .RestartJobLink)}}<br/>{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
+					{{if and $.PerBug (or .InvalidateJobLink .RestartJobLink)}}<br>{{optlink .RestartJobLink "🔄 retry this bisection"}}&nbsp;&nbsp;{{optlink .InvalidateJobLink "❌ mark as invalid"}}{{end}}
 				</td>
 			</tr>
 		{{end}}

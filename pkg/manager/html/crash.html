@@ -23,7 +23,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 		<td><a href="/file?name={{$c.Log}}">log</a></td>
 		<td>
 			{{if $c.Report}}
-				<a href="/file?name={{$c.Report}}">report</a></td>
+				<a href="/file?name={{$c.Report}}">report</a>
 			{{end}}
 		</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.Time}}</td>
