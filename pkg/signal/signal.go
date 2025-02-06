@@ -27,27 +27,6 @@ func (s Signal) Copy() Signal {
 	return c
 }
 
-func (s *Signal) Split(n int) Signal {
-	if n >= s.Len() {
-		ret := *s
-		*s = nil
-		return ret
-	}
-	c := make(Signal, n)
-	for e, p := range *s {
-		delete(*s, e)
-		c[e] = p
-		n--
-		if n == 0 {
-			break
-		}
-	}
-	if len(*s) == 0 {
-		*s = nil
-	}
-	return c
-}
-
 func FromRaw(raw []uint64, prio uint8) Signal {
 	if len(raw) == 0 {
 		return nil
@@ -126,53 +105,6 @@ func (s *Signal) Merge(s1 Signal) {
 			s0[e] = p1
 		}
 	}
-}
-
-func (s *Signal) Subtract(s1 Signal) {
-	s0 := *s
-	if s0 == nil {
-		return
-	}
-	for e, p1 := range s1 {
-		if p, ok := s0[e]; ok && p == p1 {
-			delete(s0, e)
-		}
-	}
-}
-
-// FilterRaw returns a subset of original raw elements that either are not present in ignore,
-// or coincides with the one in alwaysTake.
-func FilterRaw(raw []uint64, ignore, alwaysTake Signal) []uint64 {
-	var ret []uint64
-	for _, e := range raw {
-		if _, ok := alwaysTake[elemType(e)]; ok {
-			ret = append(ret, e)
-		} else if _, ok := ignore[elemType(e)]; !ok {
-			ret = append(ret, e)
-		}
-	}
-	return ret
-}
-
-// DiffFromRaw returns a subset of the raw elements that is not present in Signal.
-func (s Signal) DiffFromRaw(raw []uint64) []uint64 {
-	var ret []uint64
-	for _, e := range raw {
-		if _, ok := s[elemType(e)]; !ok {
-			ret = append(ret, e)
-		}
-	}
-	return ret
-}
-
-// HasNew returns true if raw has any new signal that is not present in Signal.
-func (s Signal) HasNew(raw []uint64) bool {
-	for _, e := range raw {
-		if _, ok := s[elemType(e)]; !ok {
-			return true
-		}
-	}
-	return false
 }
 
 func (s Signal) ToRaw() []uint64 {
