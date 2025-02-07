@@ -42,9 +42,9 @@ func (cov *Cover) MergeDiff(raw []uint64) []uint64 {
 	return raw[:n]
 }
 
-func (cov Cover) Serialize() []uint64 {
-	res := make([]uint64, 0, len(cov))
-	for pc := range cov {
+func (cov *Cover) Serialize() []uint64 {
+	res := make([]uint64, 0, len(*cov))
+	for pc := range *cov {
 		res = append(res, pc)
 	}
 	return res

@@ -129,7 +129,7 @@ func (bo BinaryExpression) ForEachValue(cb func(*Value)) {
 	bo.Right.ForEachValue(cb)
 }
 
-func (bo *BinaryExpression) Clone() Expression {
+func (bo BinaryExpression) Clone() Expression {
 	return &BinaryExpression{
 		Operator: bo.Operator,
 		Left:     bo.Left.Clone(),
@@ -144,7 +144,7 @@ type Value struct {
 	Path []string
 }
 
-func (v Value) GoString() string {
+func (v *Value) GoString() string {
 	return fmt.Sprintf("&prog.Value{%#v,%#v}", v.Value, v.Path)
 }
 

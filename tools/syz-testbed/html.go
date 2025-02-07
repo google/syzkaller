@@ -145,7 +145,7 @@ const (
 	HTMLReproDurationTable = "repro_duration"
 )
 
-type uiTableGenerator = func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error)
+type uiTableGenerator = func(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error)
 
 type uiTableType struct {
 	Key       string
@@ -171,12 +171,12 @@ type uiMainPage struct {
 func (ctx *TestbedContext) getTableTypes() []uiTableType {
 	allTypeList := []uiTableType{
 		{HTMLStatsTable, "Statistics", ctx.httpMainStatsTable},
-		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable, true)},
-		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable, false)},
-		{HTMLReprosTable, "Repros", ctx.genSimpleTableController((StatView).GenerateReproSuccessTable, true)},
-		{HTMLCReprosTable, "C Repros", ctx.genSimpleTableController((StatView).GenerateCReproSuccessTable, true)},
-		{HTMLReproAttemptsTable, "All Repros", ctx.genSimpleTableController((StatView).GenerateReproAttemptsTable, false)},
-		{HTMLReproDurationTable, "Duration", ctx.genSimpleTableController((StatView).GenerateReproDurationTable, true)},
+		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((*StatView).GenerateBugTable, true)},
+		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((*StatView).GenerateBugCountsTable, false)},
+		{HTMLReprosTable, "Repros", ctx.genSimpleTableController((*StatView).GenerateReproSuccessTable, true)},
+		{HTMLCReprosTable, "C Repros", ctx.genSimpleTableController((*StatView).GenerateCReproSuccessTable, true)},
+		{HTMLReproAttemptsTable, "All Repros", ctx.genSimpleTableController((*StatView).GenerateReproAttemptsTable, false)},
+		{HTMLReproDurationTable, "Duration", ctx.genSimpleTableController((*StatView).GenerateReproDurationTable, true)},
 	}
 	typeList := []uiTableType{}
 	for _, t := range allTypeList {
@@ -187,9 +187,9 @@ func (ctx *TestbedContext) getTableTypes() []uiTableType {
 	return typeList
 }
 
-func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (*Table, error),
+func (ctx *TestbedContext) genSimpleTableController(method func(view *StatView) (*Table, error),
 	hasFooter bool) uiTableGenerator {
-	return func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
+	return func(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
 		table, err := method(view)
 		if err != nil {
 			return nil, fmt.Errorf("table generation failed: %w", err)
@@ -201,7 +201,7 @@ func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (
 	}
 }
 
-func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
+func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
 	alignBy := r.FormValue("align")
 	table, err := view.AlignedStatsTable(alignBy)
 	if err != nil {
@@ -276,7 +276,7 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 		v.Set("table", t.Key)
 		return "/?" + v.Encode()
 	}
-	uiView.ActiveTable, err = tableType.Generator(uiView.GenTableURL(tableType)+"&", *activeView, r)
+	uiView.ActiveTable, err = tableType.Generator(uiView.GenTableURL(tableType)+"&", activeView, r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return

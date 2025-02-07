@@ -61,7 +61,7 @@ const (
 	prefixOpcode = uint32(1) << prefixShift
 )
 
-func (insn Insn) isPrefixed() bool {
+func (insn *Insn) isPrefixed() bool {
 	return insn.Opcode&prefixMask == prefixOpcode
 }
 
@@ -119,7 +119,7 @@ func encodeBits(n uint, ff []InsnBits) uint32 {
 	return ret
 }
 
-func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
+func (insn *Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	if insn.Pseudo {
 		return insn.generator(cfg, r)
 	}
@@ -132,7 +132,7 @@ func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	return ret
 }
 
-func (insn Insn) encodeOpcode(cfg *iset.Config, r *rand.Rand, opcode, mask uint32, f []InsnField) []byte {
+func (insn *Insn) encodeOpcode(cfg *iset.Config, r *rand.Rand, opcode, mask uint32, f []InsnField) []byte {
 	ret := make([]byte, 0)
 	insn32 := opcode
 	if len(cfg.MemRegions) != 0 {
@@ -179,7 +179,7 @@ func (insn *Insn) Info() (string, iset.Mode, bool, bool) {
 	return insn.Name, insn.mode(), insn.Pseudo, insn.Priv
 }
 
-func (insn Insn) mode() iset.Mode {
+func (insn *Insn) mode() iset.Mode {
 	return (1 << iset.ModeLong64) | (1 << iset.ModeProt32)
 }
 

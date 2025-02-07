@@ -48,8 +48,8 @@ func TestCorpusOperation(t *testing.T) {
 	}
 
 	// Verify the total signal.
-	assert.Equal(t, corpus.StatSignal.Val(), 5)
-	assert.Equal(t, corpus.StatProgs.Val(), 2)
+	assert.Equal(t, 5, corpus.StatSignal.Val())
+	assert.Equal(t, 2, corpus.StatProgs.Val())
 
 	corpus.Minimize(true)
 }

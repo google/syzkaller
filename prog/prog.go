@@ -91,7 +91,7 @@ type ArgCommon struct {
 	dir Dir
 }
 
-func (arg ArgCommon) Type() Type {
+func (arg *ArgCommon) Type() Type {
 	if arg.ref == 0 {
 		panic("broken type ref")
 	}

@@ -9,7 +9,8 @@ type (
 	prioType int8
 )
 
-type Signal map[elemType]prioType
+// Signal was hard to refactor when we enabled recvcheck.
+type Signal map[elemType]prioType // nolint: recvcheck
 
 func (s Signal) Len() int {
 	return len(s)
@@ -36,23 +37,6 @@ func FromRaw(raw []uint64, prio uint8) Signal {
 		s[elemType(e)] = prioType(prio)
 	}
 	return s
-}
-
-func (s Signal) Diff(s1 Signal) Signal {
-	if s1.Empty() {
-		return nil
-	}
-	var res Signal
-	for e, p1 := range s1 {
-		if p, ok := s[e]; ok && p >= p1 {
-			continue
-		}
-		if res == nil {
-			res = make(Signal)
-		}
-		res[e] = p1
-	}
-	return res
 }
 
 func (s Signal) DiffRaw(raw []uint64, prio uint8) Signal {
