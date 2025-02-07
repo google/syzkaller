@@ -4,11 +4,18 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/mocks"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestJSONAPIIntegration(t *testing.T) {
@@ -249,4 +256,79 @@ func TestPublicJSONAPI(t *testing.T) {
 	config, err := cli.Text(bug.Crashes[0].KernelConfigLink)
 	c.expectOK(err)
 	c.expectEQ(config, []byte("config1"))
+}
+
+func TestWriteExtAPICoverageFor(t *testing.T) {
+	ctx := SetCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+		[]*coveragedb.FuncLines{
+			{
+				FilePath: "/file",
+				FuncName: "func_name",
+				Lines:    []int64{1, 2, 3},
+			},
+		},
+		[]*coveragedb.FileCoverageWithLineInfo{
+			{
+				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
+					Filepath: "/file",
+				},
+				LinesInstrumented: []int64{1, 2, 3},
+				HitCounts:         []int64{10, 20, 30},
+			},
+		},
+	))
+
+	var buf bytes.Buffer
+	err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo")
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+	"repo": "test-repo",
+	"commit": "",
+	"file_path": "/file",
+	"functions": [
+		{
+			"func_name": "func_name",
+			"total_blocks": 3,
+			"covered_blocks": [
+				{
+					"from_line": 1,
+					"from_column": 0,
+					"to_line": 1,
+					"to_column": -1
+				},
+				{
+					"from_line": 2,
+					"from_column": 0,
+					"to_line": 2,
+					"to_column": -1
+				},
+				{
+					"from_line": 3,
+					"from_column": 0,
+					"to_line": 3,
+					"to_column": -1
+				}
+			]
+		}
+	]
+}
+`, buf.String())
+}
+
+func fileFuncLinesDBFixture(t *testing.T, funcLines []*coveragedb.FuncLines,
+	fileCovWithLineInfo []*coveragedb.FileCoverageWithLineInfo) spannerclient.SpannerClient {
+	mPartialTran := mocks.NewReadOnlyTransaction(t)
+	mPartialTran.On("Query", mock.Anything, mock.Anything).
+		Return(newRowIteratorMock(t, funcLines)).Once()
+
+	mFullTran := mocks.NewReadOnlyTransaction(t)
+	mFullTran.On("Query", mock.Anything, mock.Anything).
+		Return(newRowIteratorMock(t, fileCovWithLineInfo)).Once()
+
+	m := mocks.NewSpannerClient(t)
+	m.On("Single").
+		Return(mPartialTran).Once()
+	m.On("Single").
+		Return(mFullTran).Once()
+	return m
 }

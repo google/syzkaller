@@ -148,7 +148,7 @@ func multiManagerCovDBFixture(t *testing.T) spannerclient.SpannerClient {
 	return m
 }
 
-func newRowIteratorMock(t *testing.T, cov []*coveragedb.LinesCoverage,
+func newRowIteratorMock[K any](t *testing.T, cov []*K,
 ) *mocks.RowIterator {
 	m := mocks.NewRowIterator(t)
 	m.On("Stop").Once().Return()
@@ -156,7 +156,7 @@ func newRowIteratorMock(t *testing.T, cov []*coveragedb.LinesCoverage,
 		mRow := mocks.NewRow(t)
 		mRow.On("ToStruct", mock.Anything).
 			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*coveragedb.LinesCoverage)
+				arg := args.Get(0).(*K)
 				*arg = *item
 			}).
 			Return(nil).Once()
