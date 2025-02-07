@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-func (bo *BinaryExpression) Evaluate(finder ArgFinder) (uint64, bool) {
+func (bo BinaryExpression) Evaluate(finder ArgFinder) (uint64, bool) {
 	left, ok := bo.Left.Evaluate(finder)
 	if !ok {
 		return 0, false

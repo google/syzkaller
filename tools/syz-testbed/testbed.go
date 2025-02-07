@@ -193,7 +193,7 @@ func (ctx *TestbedContext) SaveStats() error {
 	}
 	for _, view := range views {
 		dir := filepath.Join(ctx.Config.Workdir, "stats_"+view.Name)
-		err := ctx.Target.SaveStatView(view, dir)
+		err := ctx.Target.SaveStatView(&view, dir)
 		if err != nil {
 			return err
 		}

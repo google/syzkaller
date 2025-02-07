@@ -134,7 +134,7 @@ func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
 
 // For each checkout, take the union of sets of bugs found by each instance.
 // Then output these unions as a single table.
-func (view StatView) GenerateBugTable() (*Table, error) {
+func (view *StatView) GenerateBugTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
@@ -153,7 +153,7 @@ func (view StatView) GenerateBugTable() (*Table, error) {
 	return table, nil
 }
 
-func (view StatView) GenerateBugCountsTable() (*Table, error) {
+func (view *StatView) GenerateBugCountsTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
@@ -242,11 +242,11 @@ func (group RunResultGroup) groupLastRecord() map[string]*sample.Sample {
 	return groupSamples(records)
 }
 
-func (view StatView) StatsTable() (*Table, error) {
+func (view *StatView) StatsTable() (*Table, error) {
 	return view.AlignedStatsTable("uptime")
 }
 
-func (view StatView) AlignedStatsTable(field string) (*Table, error) {
+func (view *StatView) AlignedStatsTable(field string) (*Table, error) {
 	// We assume that the stats values are nonnegative.
 	table := NewTable("Property")
 	if field == "" {
@@ -300,7 +300,7 @@ func (view StatView) AlignedStatsTable(field string) (*Table, error) {
 	return table, nil
 }
 
-func (view StatView) InstanceStatsTable() (*Table, error) {
+func (view *StatView) InstanceStatsTable() (*Table, error) {
 	newView := StatView{}
 	for _, group := range view.Groups {
 		for i, result := range group.Results {
@@ -314,7 +314,7 @@ func (view StatView) InstanceStatsTable() (*Table, error) {
 }
 
 // How often we find a repro to each crash log.
-func (view StatView) GenerateReproSuccessTable() (*Table, error) {
+func (view *StatView) GenerateReproSuccessTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
@@ -337,7 +337,7 @@ func (view StatView) GenerateReproSuccessTable() (*Table, error) {
 }
 
 // What share of found repros also have a C repro.
-func (view StatView) GenerateCReproSuccessTable() (*Table, error) {
+func (view *StatView) GenerateCReproSuccessTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
@@ -363,7 +363,7 @@ func (view StatView) GenerateCReproSuccessTable() (*Table, error) {
 }
 
 // What share of found repros also have a C repro.
-func (view StatView) GenerateReproDurationTable() (*Table, error) {
+func (view *StatView) GenerateReproDurationTable() (*Table, error) {
 	table := NewTable("Bug")
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
@@ -389,7 +389,7 @@ func (view StatView) GenerateReproDurationTable() (*Table, error) {
 }
 
 // List all repro attempts.
-func (view StatView) GenerateReproAttemptsTable() (*Table, error) {
+func (view *StatView) GenerateReproAttemptsTable() (*Table, error) {
 	table := NewTable("Result #", "Bug", "Checkout", "Repro found", "C repro found", "Repro title", "Duration")
 	for gid, group := range view.Groups {
 		for rid, result := range group.SyzReproResults() {
@@ -408,7 +408,7 @@ func (view StatView) GenerateReproAttemptsTable() (*Table, error) {
 }
 
 // Average bench files of several instances into a single bench file.
-func (group *RunResultGroup) SaveAvgBenchFile(fileName string) error {
+func (group RunResultGroup) SaveAvgBenchFile(fileName string) error {
 	f, err := os.Create(fileName)
 	if err != nil {
 		return err

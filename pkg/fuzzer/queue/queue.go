@@ -16,7 +16,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 )
@@ -31,11 +30,6 @@ type Request struct {
 	Prog        *prog.Prog // for RequestTypeProgram
 	BinaryFile  string     // for RequestTypeBinary
 	GlobPattern string     // for 	RequestTypeGlob
-
-	// If specified, the resulting signal for call SignalFilterCall
-	// will include subset of it even if it's not new.
-	SignalFilter     signal.Signal
-	SignalFilterCall int
 
 	// Return all signal for these calls instead of new signal.
 	ReturnAllSignal []int
@@ -122,9 +116,6 @@ func (r *Request) Validate() error {
 	collectSignal := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal > 0
 	if len(r.ReturnAllSignal) != 0 && !collectSignal {
 		return fmt.Errorf("ReturnAllSignal is set, but FlagCollectSignal is not")
-	}
-	if r.SignalFilter != nil && !collectSignal {
-		return fmt.Errorf("SignalFilter must be used with FlagCollectSignal")
 	}
 	collectComps := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps > 0
 	collectCover := r.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectCover > 0
