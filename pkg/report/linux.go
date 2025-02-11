@@ -1335,6 +1335,10 @@ var linuxStackParams = &stackParams{
 		"drop_nlink",
 		"^get_taint$",
 		"^put_device$",
+		"lock_timer_base",
+		"__timer_delete_sync",
+		"sk_stop_timer_sync",
+		"__mod_timer",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
