@@ -1,0 +1,301 @@
+TITLE: KASAN: slab-use-after-free Read in mptcp_pm_del_add_timer
+ALT: bad-access in mptcp_pm_del_add_timer
+FRAME: mptcp_pm_del_add_timer
+TYPE: KASAN
+
+[  366.491414][    C0] ==================================================================
+[  366.493841][    C0] BUG: KASAN: slab-use-after-free in lock_timer_base+0x1d9/0x220
+[  366.496192][    C0] Read of size 4 at addr ffff88804c251150 by task kworker/0:4/5994
+[  366.499406][    C0] 
+[  366.500718][    C0] CPU: 0 UID: 0 PID: 5994 Comm: kworker/0:4 Not tainted 6.13.0-rc5-syzkaller-00004-gccb98ccef0e5 #0
+[  366.503926][    C0] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+[  366.507144][    C0] Workqueue: events mptcp_worker
+[  366.508666][    C0] Call Trace:
+[  366.509672][    C0]  <IRQ>
+[  366.510557][    C0]  dump_stack_lvl+0x116/0x1f0
+[  366.511982][    C0]  print_report+0xc3/0x620
+[  366.513334][    C0]  ? __virt_addr_valid+0x5e/0x590
+[  366.514857][    C0]  ? __phys_addr+0xc6/0x150
+[  366.516247][    C0]  kasan_report+0xd9/0x110
+[  366.517624][    C0]  ? lock_timer_base+0x1d9/0x220
+[  366.519118][    C0]  ? lock_timer_base+0x1d9/0x220
+[  366.520622][    C0]  lock_timer_base+0x1d9/0x220
+[  366.522072][    C0]  __try_to_del_timer_sync+0x8d/0x170
+[  366.523702][    C0]  ? __pfx___try_to_del_timer_sync+0x10/0x10
+[  366.525476][    C0]  ? __timer_delete_sync+0x174/0x1b0
+[  366.527089][    C0]  __timer_delete_sync+0xf4/0x1b0
+[  366.528625][    C0]  sk_stop_timer_sync+0x1b/0x80
+[  366.530095][    C0]  mptcp_pm_del_add_timer+0x1ae/0x320
+[  366.531732][    C0]  mptcp_incoming_options+0x1f4d/0x26a0
+[  366.533412][    C0]  ? __pfx_mptcp_incoming_options+0x10/0x10
+[  366.535183][    C0]  ? tcp_parse_options+0x1f0/0x1380
+[  366.536945][    C0]  tcp_data_queue+0x187e/0x4d80
+[  366.538436][    C0]  ? tcp_urg+0x110/0xb80
+[  366.539729][    C0]  ? __pfx_tcp_data_queue+0x10/0x10
+SYZFAIL: failed to recv rpc
+fd=3 want=4 recv=0 n=0 (errno 9: Bad file descriptor)
+[  366.541296][    C0]  ? tcp_send_dupack+0x7f0/0x810
+[  366.542995][    C0]  ? read_tsc+0x9/0x20
+[  366.544238][    C0]  ? ktime_get+0x1ac/0x300
+[  366.545590][    C0]  tcp_rcv_established+0x7df/0x20d0
+[  366.547163][    C0]  ? __pfx_tcp_rcv_established+0x10/0x10
+[  366.548859][    C0]  ? do_raw_spin_lock+0x12d/0x2c0
+[  366.550379][    C0]  ? __pfx_ipv4_dst_check+0x10/0x10
+[  366.552070][    C0]  tcp_v4_do_rcv+0x5ca/0xa90
+[  366.553464][    C0]  tcp_v4_rcv+0x33b4/0x43a0
+[  366.554862][    C0]  ? __pfx_tcp_v4_rcv+0x10/0x10
+[  366.556363][    C0]  ? __pfx_raw_local_deliver+0x10/0x10
+[  366.557985][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.559444][    C0]  ? __pfx_tcp_v4_rcv+0x10/0x10
+[  366.560924][    C0]  ip_protocol_deliver_rcu+0xba/0x4c0
+[  366.562542][    C0]  ip_local_deliver_finish+0x316/0x570
+[  366.564184][    C0]  ip_local_deliver+0x18e/0x1f0
+[  366.565653][    C0]  ? __pfx_ip_local_deliver+0x10/0x10
+[  366.567272][    C0]  ip_rcv+0x2c3/0x5d0
+[  366.568497][    C0]  ? __pfx_ip_rcv+0x10/0x10
+[  366.569867][    C0]  __netif_receive_skb_one_core+0x199/0x1e0
+[  366.571652][    C0]  ? __pfx___netif_receive_skb_one_core+0x10/0x10
+[  366.573549][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.574990][    C0]  ? process_backlog+0x3f1/0x15f0
+[  366.576533][    C0]  ? process_backlog+0x3f1/0x15f0
+[  366.578053][    C0]  __netif_receive_skb+0x1d/0x160
+[  366.579582][    C0]  process_backlog+0x443/0x15f0
+[  366.581063][    C0]  __napi_poll.constprop.0+0xb7/0x550
+[  366.582689][    C0]  net_rx_action+0xa94/0x1010
+[  366.584128][    C0]  ? __pfx_net_rx_action+0x10/0x10
+[  366.585672][    C0]  ? __pfx_mark_lock+0x10/0x10
+[  366.587126][    C0]  ? trace_rcu_utilization+0x106/0x170
+[  366.588856][    C0]  ? kvm_sched_clock_read+0x11/0x20
+[  366.590525][    C0]  ? sched_clock+0x38/0x60
+[  366.591880][    C0]  ? sched_clock_cpu+0x6d/0x4d0
+[  366.593336][    C0]  ? mark_held_locks+0x9f/0xe0
+[  366.594778][    C0]  handle_softirqs+0x213/0x8f0
+[  366.596233][    C0]  ? __pfx_handle_softirqs+0x10/0x10
+[  366.597822][    C0]  ? __mptcp_pm_send_ack+0x1d3/0x1f0
+[  366.599367][    C0]  do_softirq+0xb2/0xf0
+[  366.600632][    C0]  </IRQ>
+[  366.601520][    C0]  <TASK>
+[  366.602413][    C0]  __local_bh_enable_ip+0x100/0x120
+[  366.603999][    C0]  __mptcp_pm_send_ack+0x1d3/0x1f0
+[  366.605548][    C0]  mptcp_pm_nl_addr_send_ack+0x422/0x4b0
+[  366.607365][    C0]  ? __pfx_mptcp_pm_nl_addr_send_ack+0x10/0x10
+[  366.609229][    C0]  ? mptcp_pm_nl_work+0xa7/0x4f0
+[  366.610797][    C0]  mptcp_pm_nl_work+0x29e/0x4f0
+[  366.612544][    C0]  mptcp_worker+0x15a/0x1240
+[  366.614210][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.616073][    C0]  ? __pfx_mptcp_worker+0x10/0x10
+[  366.617599][    C0]  ? process_one_work+0x8bb/0x1b30
+[  366.619125][    C0]  ? lock_acquire+0x2f/0xb0
+[  366.620504][    C0]  ? process_one_work+0x8bb/0x1b30
+[  366.622030][    C0]  process_one_work+0x958/0x1b30
+[  366.623515][    C0]  ? __pfx_lock_acquire.part.0+0x10/0x10
+[  366.625229][    C0]  ? __pfx_process_one_work+0x10/0x10
+[  366.626848][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.628303][    C0]  ? assign_work+0x1a0/0x250
+[  366.629694][    C0]  worker_thread+0x6c8/0xf00
+[  366.631098][    C0]  ? __kthread_parkme+0x148/0x220
+[  366.632648][    C0]  ? __pfx_worker_thread+0x10/0x10
+[  366.634199][    C0]  kthread+0x2c1/0x3a0
+[  366.635434][    C0]  ? _raw_spin_unlock_irq+0x23/0x50
+[  366.637017][    C0]  ? __pfx_kthread+0x10/0x10
+[  366.638421][    C0]  ret_from_fork+0x45/0x80
+[  366.639778][    C0]  ? __pfx_kthread+0x10/0x10
+[  366.641174][    C0]  ret_from_fork_asm+0x1a/0x30
+[  366.642620][    C0]  </TASK>
+[  366.643737][    C0] 
+[  366.644461][    C0] Allocated by task 14842:
+[  366.645801][    C0]  kasan_save_stack+0x33/0x60
+[  366.647222][    C0]  kasan_save_track+0x14/0x30
+[  366.648642][    C0]  __kasan_kmalloc+0xaa/0xb0
+[  366.650023][    C0]  mptcp_pm_alloc_anno_list+0x1cb/0x520
+[  366.651683][    C0]  mptcp_pm_create_subflow_or_signal_addr+0x6c5/0x23a0
+[  366.653754][    C0]  mptcp_pm_nl_add_addr_doit+0x68b/0xc80
+[  366.655429][    C0]  genl_family_rcv_msg_doit+0x202/0x2f0
+[  366.657142][    C0]  genl_rcv_msg+0x565/0x800
+[  366.658692][    C0]  netlink_rcv_skb+0x165/0x410
+[  366.660153][    C0]  genl_rcv+0x28/0x40
+[  366.661361][    C0]  netlink_unicast+0x53c/0x7f0
+[  366.662798][    C0]  netlink_sendmsg+0x8b8/0xd70
+[  366.664534][    C0]  ____sys_sendmsg+0x9ae/0xb40
+[  366.666331][    C0]  ___sys_sendmsg+0x135/0x1e0
+[  366.667941][    C0]  __sys_sendmsg+0x16e/0x220
+[  366.669402][    C0]  __do_fast_syscall_32+0x73/0x120
+[  366.671050][    C0]  do_fast_syscall_32+0x32/0x80
+[  366.672570][    C0]  entry_SYSENTER_compat_after_hwframe+0x84/0x8e
+[  366.674752][    C0] 
+[  366.675481][    C0] Freed by task 14842:
+[  366.676740][    C0]  kasan_save_stack+0x33/0x60
+[  366.678148][    C0]  kasan_save_track+0x14/0x30
+[  366.679559][    C0]  kasan_save_free_info+0x3b/0x60
+[  366.681080][    C0]  __kasan_slab_free+0x51/0x70
+[  366.682520][    C0]  kfree+0x14f/0x4b0
+[  366.683723][    C0]  mptcp_pm_nl_flush_addrs_doit+0x526/0xeb0
+[  366.685485][    C0]  genl_family_rcv_msg_doit+0x202/0x2f0
+[  366.687138][    C0]  genl_rcv_msg+0x565/0x800
+[  366.688512][    C0]  netlink_rcv_skb+0x165/0x410
+[  366.689948][    C0]  genl_rcv+0x28/0x40
+[  366.691155][    C0]  netlink_unicast+0x53c/0x7f0
+[  366.692658][    C0]  netlink_sendmsg+0x8b8/0xd70
+[  366.694192][    C0]  ____sys_sendmsg+0x9ae/0xb40
+[  366.695647][    C0]  ___sys_sendmsg+0x135/0x1e0
+[  366.697097][    C0]  __sys_sendmsg+0x16e/0x220
+[  366.698805][    C0]  __do_fast_syscall_32+0x73/0x120
+[  366.700485][    C0]  do_fast_syscall_32+0x32/0x80
+[  366.702366][    C0]  entry_SYSENTER_compat_after_hwframe+0x84/0x8e
+[  366.704363][    C0] 
+[  366.705339][    C0] The buggy address belongs to the object at ffff88804c251100
+[  366.705339][    C0]  which belongs to the cache kmalloc-192 of size 192
+[  366.710481][    C0] The buggy address is located 80 bytes inside of
+[  366.710481][    C0]  freed 192-byte region [ffff88804c251100, ffff88804c2511c0)
+[  366.715110][    C0] 
+[  366.715935][    C0] The buggy address belongs to the physical page:
+[  366.718332][    C0] page: refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x4c251
+[  366.721038][    C0] flags: 0x4fff00000000000(node=1|zone=1|lastcpupid=0x7ff)
+[  366.723221][    C0] page_type: f5(slab)
+[  366.724448][    C0] raw: 04fff00000000000 ffff88801ac423c0 dead000000000100 dead000000000122
+[  366.727027][    C0] raw: 0000000000000000 0000000080100010 00000001f5000000 0000000000000000
+[  366.729638][    C0] page dumped because: kasan: bad access detected
+[  366.731570][    C0] page_owner tracks the page as allocated
+[  366.733286][    C0] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x52820(GFP_ATOMIC|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP), pid 12746, tgid 12746 (syz-executor), ts 293886128856, free_ts 293881630196
+[  366.739050][    C0]  post_alloc_hook+0x2d1/0x350
+[  366.740492][    C0]  get_page_from_freelist+0xfce/0x2f80
+[  366.742115][    C0]  __alloc_pages_noprof+0x223/0x25b0
+[  366.743711][    C0]  alloc_pages_mpol_noprof+0x2c9/0x610
+[  366.745354][    C0]  new_slab+0x2c9/0x410
+[  366.746622][    C0]  ___slab_alloc+0xce2/0x1650
+[  366.748049][    C0]  __slab_alloc.constprop.0+0x56/0xb0
+[  366.749653][    C0]  __kmalloc_cache_noprof+0xf6/0x420
+[  366.751240][    C0]  addr_event.part.0+0x7b/0x4f0
+[  366.752704][    C0]  inet6addr_event+0x165/0x1e0
+[  366.754315][    C0]  notifier_call_chain+0xb7/0x410
+[  366.755839][    C0]  atomic_notifier_call_chain+0x71/0x1c0
+[  366.757527][    C0]  ipv6_add_addr+0x13a2/0x2010
+[  366.758963][    C0]  addrconf_add_linklocal+0x2a6/0x620
+[  366.760582][    C0]  addrconf_addr_gen+0x37b/0x3d0
+[  366.762108][    C0]  addrconf_init_auto_addrs+0x446/0x820
+[  366.763760][    C0] page last free pid 11901 tgid 11901 stack trace:
+[  366.765697][    C0]  free_unref_page+0x661/0x1080
+[  366.767179][    C0]  vfree+0x174/0x950
+[  366.768378][    C0]  xt_compat_flush_offsets+0x8f/0x160
+[  366.769987][    C0]  translate_compat_table+0x128d/0x18e0
+[  366.771966][    C0]  compat_do_replace+0x35d/0x500
+[  366.773458][    C0]  do_ip6t_set_ctl+0x686/0xc20
+[  366.774905][    C0]  nf_setsockopt+0x8a/0xf0
+[  366.776274][    C0]  ipv6_setsockopt+0x135/0x170
+[  366.777697][    C0]  tcp_setsockopt+0xa4/0x100
+[  366.779092][    C0]  do_sock_setsockopt+0x222/0x480
+[  366.780611][    C0]  __sys_setsockopt+0x1a0/0x230
+[  366.782076][    C0]  __do_compat_sys_socketcall+0x51c/0x700
+[  366.783845][    C0]  __do_fast_syscall_32+0x73/0x120
+[  366.785380][    C0]  do_fast_syscall_32+0x32/0x80
+[  366.786860][    C0]  entry_SYSENTER_compat_after_hwframe+0x84/0x8e
+[  366.788775][    C0] 
+[  366.789505][    C0] Memory state around the buggy address:
+[  366.791181][    C0]  ffff88804c251000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  366.793842][    C0]  ffff88804c251080: 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc fc
+[  366.796255][    C0] >ffff88804c251100: fa fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  366.798638][    C0]                                                  ^
+[  366.800630][    C0]  ffff88804c251180: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[  366.803012][    C0]  ffff88804c251200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  366.805405][    C0] ==================================================================
+[  366.807871][    C0] Kernel panic - not syncing: KASAN: panic_on_warn set ...
+[  366.810020][    C0] CPU: 0 UID: 0 PID: 5994 Comm: kworker/0:4 Not tainted 6.13.0-rc5-syzkaller-00004-gccb98ccef0e5 #0
+[  366.813398][    C0] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+[  366.816669][    C0] Workqueue: events mptcp_worker
+[  366.818170][    C0] Call Trace:
+[  366.819242][    C0]  <IRQ>
+[  366.820130][    C0]  dump_stack_lvl+0x3d/0x1f0
+[  366.821529][    C0]  panic+0x71d/0x800
+[  366.823027][    C0]  ? __pfx_panic+0x10/0x10
+[  366.824657][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.826540][    C0]  ? __pfx_lock_release+0x10/0x10
+[  366.828446][    C0]  ? check_panic_on_warn+0x1f/0xb0
+[  366.830433][    C0]  check_panic_on_warn+0xab/0xb0
+[  366.832276][    C0]  end_report+0x117/0x180
+[  366.833907][    C0]  kasan_report+0xe9/0x110
+[  366.835659][    C0]  ? lock_timer_base+0x1d9/0x220
+[  366.837289][    C0]  ? lock_timer_base+0x1d9/0x220
+[  366.838821][    C0]  lock_timer_base+0x1d9/0x220
+[  366.840325][    C0]  __try_to_del_timer_sync+0x8d/0x170
+[  366.842020][    C0]  ? __pfx___try_to_del_timer_sync+0x10/0x10
+[  366.844039][    C0]  ? __timer_delete_sync+0x174/0x1b0
+[  366.846112][    C0]  __timer_delete_sync+0xf4/0x1b0
+[  366.848118][    C0]  sk_stop_timer_sync+0x1b/0x80
+[  366.850042][    C0]  mptcp_pm_del_add_timer+0x1ae/0x320
+[  366.852029][    C0]  mptcp_incoming_options+0x1f4d/0x26a0
+[  366.853981][    C0]  ? __pfx_mptcp_incoming_options+0x10/0x10
+[  366.855634][    C0]  ? tcp_parse_options+0x1f0/0x1380
+[  366.857150][    C0]  tcp_data_queue+0x187e/0x4d80
+[  366.858997][    C0]  ? tcp_urg+0x110/0xb80
+[  366.860622][    C0]  ? __pfx_tcp_data_queue+0x10/0x10
+[  366.862418][    C0]  ? tcp_send_dupack+0x7f0/0x810
+[  366.863976][    C0]  ? read_tsc+0x9/0x20
+[  366.865199][    C0]  ? ktime_get+0x1ac/0x300
+[  366.866557][    C0]  tcp_rcv_established+0x7df/0x20d0
+[  366.868134][    C0]  ? __pfx_tcp_rcv_established+0x10/0x10
+[  366.869988][    C0]  ? do_raw_spin_lock+0x12d/0x2c0
+[  366.871503][    C0]  ? __pfx_ipv4_dst_check+0x10/0x10
+[  366.872948][    C0]  tcp_v4_do_rcv+0x5ca/0xa90
+[  366.874291][    C0]  tcp_v4_rcv+0x33b4/0x43a0
+[  366.875668][    C0]  ? __pfx_tcp_v4_rcv+0x10/0x10
+[  366.877084][    C0]  ? __pfx_raw_local_deliver+0x10/0x10
+[  366.878713][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.880168][    C0]  ? __pfx_tcp_v4_rcv+0x10/0x10
+[  366.881651][    C0]  ip_protocol_deliver_rcu+0xba/0x4c0
+[  366.883384][    C0]  ip_local_deliver_finish+0x316/0x570
+[  366.885030][    C0]  ip_local_deliver+0x18e/0x1f0
+[  366.886504][    C0]  ? __pfx_ip_local_deliver+0x10/0x10
+[  366.888123][    C0]  ip_rcv+0x2c3/0x5d0
+[  366.889330][    C0]  ? __pfx_ip_rcv+0x10/0x10
+[  366.890716][    C0]  __netif_receive_skb_one_core+0x199/0x1e0
+[  366.892515][    C0]  ? __pfx___netif_receive_skb_one_core+0x10/0x10
+[  366.894429][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.895886][    C0]  ? process_backlog+0x3f1/0x15f0
+[  366.897414][    C0]  ? process_backlog+0x3f1/0x15f0
+[  366.898936][    C0]  __netif_receive_skb+0x1d/0x160
+[  366.900449][    C0]  process_backlog+0x443/0x15f0
+[  366.901925][    C0]  __napi_poll.constprop.0+0xb7/0x550
+[  366.903583][    C0]  net_rx_action+0xa94/0x1010
+[  366.905394][    C0]  ? __pfx_net_rx_action+0x10/0x10
+[  366.907437][    C0]  ? __pfx_mark_lock+0x10/0x10
+[  366.908973][    C0]  ? trace_rcu_utilization+0x106/0x170
+[  366.910614][    C0]  ? kvm_sched_clock_read+0x11/0x20
+[  366.912183][    C0]  ? sched_clock+0x38/0x60
+[  366.913526][    C0]  ? sched_clock_cpu+0x6d/0x4d0
+[  366.914985][    C0]  ? mark_held_locks+0x9f/0xe0
+[  366.916456][    C0]  handle_softirqs+0x213/0x8f0
+[  366.917890][    C0]  ? __pfx_handle_softirqs+0x10/0x10
+[  366.919474][    C0]  ? __mptcp_pm_send_ack+0x1d3/0x1f0
+[  366.921060][    C0]  do_softirq+0xb2/0xf0
+[  366.922350][    C0]  </IRQ>
+[  366.923336][    C0]  <TASK>
+[  366.924454][    C0]  __local_bh_enable_ip+0x100/0x120
+[  366.926093][    C0]  __mptcp_pm_send_ack+0x1d3/0x1f0
+[  366.927635][    C0]  mptcp_pm_nl_addr_send_ack+0x422/0x4b0
+[  366.929488][    C0]  ? __pfx_mptcp_pm_nl_addr_send_ack+0x10/0x10
+[  366.931328][    C0]  ? mptcp_pm_nl_work+0xa7/0x4f0
+[  366.932830][    C0]  mptcp_pm_nl_work+0x29e/0x4f0
+[  366.934286][    C0]  mptcp_worker+0x15a/0x1240
+[  366.935676][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.937139][    C0]  ? __pfx_mptcp_worker+0x10/0x10
+[  366.938643][    C0]  ? process_one_work+0x8bb/0x1b30
+[  366.940186][    C0]  ? lock_acquire+0x2f/0xb0
+[  366.941545][    C0]  ? process_one_work+0x8bb/0x1b30
+[  366.943414][    C0]  process_one_work+0x958/0x1b30
+[  366.944961][    C0]  ? __pfx_lock_acquire.part.0+0x10/0x10
+[  366.946664][    C0]  ? __pfx_process_one_work+0x10/0x10
+[  366.948450][    C0]  ? rcu_is_watching+0x12/0xc0
+[  366.950345][    C0]  ? assign_work+0x1a0/0x250
+[  366.952156][    C0]  worker_thread+0x6c8/0xf00
+[  366.953595][    C0]  ? __kthread_parkme+0x148/0x220
+[  366.955097][    C0]  ? __pfx_worker_thread+0x10/0x10
+[  366.956648][    C0]  kthread+0x2c1/0x3a0
+[  366.957868][    C0]  ? _raw_spin_unlock_irq+0x23/0x50
+[  366.959429][    C0]  ? __pfx_kthread+0x10/0x10
+[  366.960829][    C0]  ret_from_fork+0x45/0x80
+[  366.962162][    C0]  ? __pfx_kthread+0x10/0x10
+[  366.963546][    C0]  ret_from_fork_asm+0x1a/0x30
+[  366.964992][    C0]  </TASK>
+[  368.026109][    C0] Shutting down cpus with NMI
+[  368.028176][    C0] Kernel Offset: disabled
+[  368.029480][    C0] Rebooting in 86400 seconds..
