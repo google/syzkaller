@@ -371,7 +371,7 @@ type fileVersProviderMock struct {
 	Workdir string
 }
 
-func (m *fileVersProviderMock) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
+func (m *fileVersProviderMock) GetFileVersions(ctx context.Context, targetFilePath string, repoCommits ...RepoCommit,
 ) (FileVersions, error) {
 	res := make(FileVersions)
 	for _, repoCommit := range repoCommits {

@@ -90,6 +90,7 @@ func toolFileCover() {
 	}
 
 	details, err := cover.RendFileCoverage(
+		context.Background(),
 		*flagRepo,
 		*flagCommit,
 		*flagForFile,

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -77,8 +78,8 @@ func TestFileCoverage(t *testing.T) {
 
 func staticFileProvider(t *testing.T) covermerger.FileVersProvider {
 	m := mergermocks.NewFileVersProvider(t)
-	m.On("GetFileVersions", mock.Anything, mock.Anything).
-		Return(func(targetFilePath string, repoCommits ...covermerger.RepoCommit,
+	m.On("GetFileVersions", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, targetFilePath string, repoCommits ...covermerger.RepoCommit,
 		) covermerger.FileVersions {
 			res := covermerger.FileVersions{}
 			for _, rc := range repoCommits {

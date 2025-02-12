@@ -4,11 +4,15 @@
 package covermerger
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/iam/v2"
 )
 
 type FuncProxyURI func(filePath, commit string) string
@@ -17,11 +21,11 @@ type webGit struct {
 	funcProxy FuncProxyURI
 }
 
-func (mr *webGit) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
+func (mr *webGit) GetFileVersions(ctx context.Context, targetFilePath string, repoCommits ...RepoCommit,
 ) (FileVersions, error) {
 	res := make(FileVersions)
 	for _, repoCommit := range repoCommits {
-		fileBytes, err := mr.loadFile(targetFilePath, repoCommit.Repo, repoCommit.Commit)
+		fileBytes, err := mr.loadFile(ctx, targetFilePath, repoCommit.Repo, repoCommit.Commit)
 		// It is ok if some file doesn't exist. It means we have repo FS diff.
 		if err == errFileNotFound {
 			continue
@@ -36,7 +40,7 @@ func (mr *webGit) GetFileVersions(targetFilePath string, repoCommits ...RepoComm
 
 var errFileNotFound = errors.New("file not found")
 
-func (mr *webGit) loadFile(filePath, repo, commit string) ([]byte, error) {
+func (mr *webGit) loadFile(ctx context.Context, filePath, repo, commit string) ([]byte, error) {
 	var uri string
 	if mr.funcProxy != nil {
 		uri = mr.funcProxy(filePath, commit)
@@ -48,13 +52,13 @@ func (mr *webGit) loadFile(filePath, repo, commit string) ([]byte, error) {
 	}
 	u, err := url.Parse(uri)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %v: %w", uri, err)
+		return nil, fmt.Errorf("url.Parse(%v): %w", uri, err)
 	}
 	u.Scheme = "https"
 	uri = u.String()
-	res, err := http.Get(uri)
+	res, err := httpAuthGet(ctx, uri)
 	if err != nil {
-		return nil, fmt.Errorf("failed to http.Get: %w", err)
+		return nil, fmt.Errorf("httpAuthGet: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -66,7 +70,7 @@ func (mr *webGit) loadFile(filePath, repo, commit string) ([]byte, error) {
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to io.ReadAll from body: %w", err)
+		return nil, fmt.Errorf("io.ReadAll(res.Body): %w", err)
 	}
 	return body, nil
 }
@@ -75,4 +79,21 @@ func MakeWebGit(funcProxy FuncProxyURI) FileVersProvider {
 	return &webGit{
 		funcProxy: funcProxy,
 	}
+}
+
+func httpAuthGet(ctx context.Context, url string) (resp *http.Response, err error) {
+	tokenSource, err := google.DefaultTokenSource(ctx, iam.CloudPlatformScope)
+	if err != nil {
+		return nil, fmt.Errorf("google.DefaultTokenSource: %w", err)
+	}
+	token, err := tokenSource.Token()
+	if err != nil {
+		return nil, fmt.Errorf("tokenSource.Token: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("http.NewRequest: %w", err)
+	}
+	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
+	return http.DefaultClient.Do(req)
 }

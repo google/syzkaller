@@ -180,7 +180,7 @@ func bestFuncName(names []string) string {
 	return bestName
 }
 
-func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
+func batchFileData(ctx context.Context, c *Config, targetFilePath string, records []*FileRecord) (*MergeResult, error) {
 	log.Logf(1, "processing %d records for %s", len(records), targetFilePath)
 	repoCommitsMap := make(map[RepoCommit]bool)
 	for _, record := range records {
@@ -188,7 +188,7 @@ func batchFileData(c *Config, targetFilePath string, records []*FileRecord) (*Me
 	}
 	repoCommitsMap[c.Base] = true
 	repoCommits := maps.Keys(repoCommitsMap)
-	fvs, err := c.FileVersProvider.GetFileVersions(targetFilePath, repoCommits...)
+	fvs, err := c.FileVersProvider.GetFileVersions(ctx, targetFilePath, repoCommits...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to getFileVersions: %w", err)
 	}
@@ -323,7 +323,7 @@ func mergeChanData(c context.Context, cfg *Config, recordChan <-chan *FileRecord
 	for i := 0; i < cfg.Jobs; i++ {
 		g.Go(func() error {
 			for frecord := range frecordChan {
-				mr, err := batchFileData(cfg, frecord.fileName, frecord.records)
+				mr, err := batchFileData(c, cfg, frecord.fileName, frecord.records)
 				if err != nil {
 					return fmt.Errorf("failed to batchFileData(%s): %w", frecord.fileName, err)
 				}

@@ -3,6 +3,8 @@
 package mocks
 
 import (
+	context "context"
+
 	covermerger "github.com/google/syzkaller/pkg/covermerger"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -12,14 +14,14 @@ type FileVersProvider struct {
 	mock.Mock
 }
 
-// GetFileVersions provides a mock function with given fields: targetFilePath, repoCommits
-func (_m *FileVersProvider) GetFileVersions(targetFilePath string, repoCommits ...covermerger.RepoCommit) (covermerger.FileVersions, error) {
+// GetFileVersions provides a mock function with given fields: ctx, targetFilePath, repoCommits
+func (_m *FileVersProvider) GetFileVersions(ctx context.Context, targetFilePath string, repoCommits ...covermerger.RepoCommit) (covermerger.FileVersions, error) {
 	_va := make([]interface{}, len(repoCommits))
 	for _i := range repoCommits {
 		_va[_i] = repoCommits[_i]
 	}
 	var _ca []interface{}
-	_ca = append(_ca, targetFilePath)
+	_ca = append(_ca, ctx, targetFilePath)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
@@ -29,19 +31,19 @@ func (_m *FileVersProvider) GetFileVersions(targetFilePath string, repoCommits .
 
 	var r0 covermerger.FileVersions
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, ...covermerger.RepoCommit) (covermerger.FileVersions, error)); ok {
-		return rf(targetFilePath, repoCommits...)
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...covermerger.RepoCommit) (covermerger.FileVersions, error)); ok {
+		return rf(ctx, targetFilePath, repoCommits...)
 	}
-	if rf, ok := ret.Get(0).(func(string, ...covermerger.RepoCommit) covermerger.FileVersions); ok {
-		r0 = rf(targetFilePath, repoCommits...)
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...covermerger.RepoCommit) covermerger.FileVersions); ok {
+		r0 = rf(ctx, targetFilePath, repoCommits...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(covermerger.FileVersions)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, ...covermerger.RepoCommit) error); ok {
-		r1 = rf(targetFilePath, repoCommits...)
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...covermerger.RepoCommit) error); ok {
+		r1 = rf(ctx, targetFilePath, repoCommits...)
 	} else {
 		r1 = ret.Error(1)
 	}

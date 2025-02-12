@@ -6,6 +6,7 @@ package covermerger
 //go:generate ../../tools/mockery.sh --name FileVersProvider -r
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -16,7 +17,7 @@ import (
 )
 
 type FileVersProvider interface {
-	GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
+	GetFileVersions(ctx context.Context, targetFilePath string, repoCommits ...RepoCommit,
 	) (FileVersions, error)
 }
 
@@ -28,7 +29,7 @@ type monoRepo struct {
 
 type FileVersions map[RepoCommit]string
 
-func (mr *monoRepo) GetFileVersions(targetFilePath string, repoCommits ...RepoCommit,
+func (mr *monoRepo) GetFileVersions(ctx context.Context, targetFilePath string, repoCommits ...RepoCommit,
 ) (FileVersions, error) {
 	mr.mu.RLock()
 	if !mr.allRepoCommitsPresent(repoCommits) {

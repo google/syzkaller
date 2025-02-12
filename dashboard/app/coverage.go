@@ -211,6 +211,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 
 	content, err := cover.RendFileCoverage(
+		c,
 		mainNsRepo,
 		targetCommit,
 		kernelFilePath,
