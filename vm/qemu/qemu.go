@@ -353,6 +353,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		if i < 1000 && strings.Contains(err.Error(), "Device or resource busy") {
 			continue
 		}
+		if i < 1000 && strings.Contains(err.Error(), "Address already in use") {
+			continue
+		}
 		return nil, err
 	}
 }
