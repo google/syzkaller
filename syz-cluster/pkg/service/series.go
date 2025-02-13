@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -105,11 +104,7 @@ func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Se
 		PublishedAt: series.PublishedAt,
 	}
 	for _, patch := range patches {
-		reader, err := s.blobStorage.Read(patch.BodyURI)
-		var body []byte
-		if err == nil {
-			body, err = io.ReadAll(reader)
-		}
+		body, err := blob.ReadAllBytes(s.blobStorage, patch.BodyURI)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read patch %q: %w", patch.ID, err)
 		}

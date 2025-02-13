@@ -73,3 +73,15 @@ func (ls *LocalStorage) writeFile(name string, source io.Reader) error {
 	}
 	return nil
 }
+
+func ReadAllBytes(storage Storage, uri string) ([]byte, error) {
+	if uri == "" {
+		return nil, nil
+	}
+	reader, err := storage.Read(uri)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return io.ReadAll(reader)
+}
