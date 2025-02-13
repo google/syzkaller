@@ -91,7 +91,7 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget, sk
 		var dateCoverage int64
 		tp := pageColumn.TimePeriod
 		if thm.instrumented[tp] != 0 {
-			dateCoverage = 100 * thm.covered[tp] / thm.instrumented[tp]
+			dateCoverage = percent(thm.covered[tp], thm.instrumented[tp])
 		}
 		thm.Coverage = append(thm.Coverage, dateCoverage)
 		thm.Tooltips = append(thm.Tooltips, fmt.Sprintf("Instrumented:\t%d blocks\nCovered:\t%d blocks",
