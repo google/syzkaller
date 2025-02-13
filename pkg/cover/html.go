@@ -813,12 +813,12 @@ func processDir(dir *templateDir) {
 	}
 }
 
-func percent(covered, total int) int {
+func percent[T int | int64](covered, total T) T {
 	f := math.Ceil(float64(covered) / float64(total) * 100)
 	if f == 100 && covered < total {
 		f = 99
 	}
-	return int(f)
+	return T(f)
 }
 
 func parseFile(fn string) ([][]byte, error) {
