@@ -1,14 +1,13 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// nolint: dupl // The methods look similar, but extracting the common parts will only make the code worse.
+// Package controller provides the server part of the *api.Client interface.
+// nolint: dupl
 package controller
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -57,7 +56,7 @@ func (c APIServer) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply(w, resp)
+	api.ReplyJSON(w, resp)
 }
 
 func (c APIServer) skipSession(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +72,7 @@ func (c APIServer) skipSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[interface{}](w, nil)
+	api.ReplyJSON[interface{}](w, nil)
 }
 
 func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +84,7 @@ func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply(w, resp)
+	api.ReplyJSON(w, resp)
 }
 
 func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +98,7 @@ func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply(w, resp)
+	api.ReplyJSON(w, resp)
 }
 
 func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
@@ -113,11 +112,11 @@ func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[interface{}](w, nil)
+	api.ReplyJSON[interface{}](w, nil)
 }
 
 func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.Finding](w, r)
+	req := api.ParseJSON[api.NewFinding](w, r)
 	if req == nil {
 		return
 	}
@@ -127,7 +126,7 @@ func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[interface{}](w, nil)
+	api.ReplyJSON[interface{}](w, nil)
 }
 
 func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +139,7 @@ func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[*api.Build](w, resp)
+	api.ReplyJSON[*api.Build](w, resp)
 }
 
 func (c APIServer) uploadSeries(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +152,7 @@ func (c APIServer) uploadSeries(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[*api.UploadSeriesResp](w, resp)
+	api.ReplyJSON[*api.UploadSeriesResp](w, resp)
 }
 
 func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
@@ -166,33 +165,5 @@ func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	reply[*api.UploadSessionResp](w, resp)
-}
-
-func reply[T any](w http.ResponseWriter, resp T) {
-	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		http.Error(w, "failed to serialize the response", http.StatusInternalServerError)
-		return
-	}
-}
-
-func parseBody[T any](w http.ResponseWriter, r *http.Request) *T {
-	if r.Method != http.MethodPost {
-		http.Error(w, "must be called via POST", http.StatusMethodNotAllowed)
-		return nil
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "failed to read body", http.StatusBadRequest)
-		return nil
-	}
-	var data T
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
-		return nil
-	}
-	return &data
+	api.ReplyJSON[*api.UploadSessionResp](w, resp)
 }

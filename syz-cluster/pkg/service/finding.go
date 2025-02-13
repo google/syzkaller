@@ -26,7 +26,7 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 	}
 }
 
-func (s *FindingService) Save(ctx context.Context, req *api.Finding) error {
+func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 	var reportURI, logURI string
 	var err error
 	if len(req.Log) > 0 {
@@ -54,4 +54,24 @@ func (s *FindingService) Save(ctx context.Context, req *api.Finding) error {
 		return nil
 	}
 	return err
+}
+
+func (s *FindingService) List(ctx context.Context, sessionID string) ([]*api.Finding, error) {
+	list, err := s.findingRepo.ListForSession(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the list: %w", err)
+	}
+	var ret []*api.Finding
+	for _, item := range list {
+		finding := &api.Finding{
+			Title:  item.Title,
+			LogURL: "TODO", // TODO: where to take it from?
+		}
+		finding.Report, err = blob.ReadAllBytes(s.blobStorage, item.ReportURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read the report: %w", err)
+		}
+		ret = append(ret, finding)
+	}
+	return ret, nil
 }

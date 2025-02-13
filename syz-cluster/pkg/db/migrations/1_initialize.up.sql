@@ -61,6 +61,7 @@ CREATE TABLE Sessions (
 ) PRIMARY KEY(ID);
 
 ALTER TABLE Series ADD CONSTRAINT FK_SeriesLatestSession FOREIGN KEY (LatestSessionID) REFERENCES Sessions (ID);
+CREATE INDEX SessionsByFinishedAt ON Sessions (FinishedAt);
 
 -- Individual tests/steps completed within a session.
 CREATE TABLE SessionTests (
@@ -94,3 +95,16 @@ CREATE TABLE Findings (
 ) PRIMARY KEY (ID);
 
 CREATE UNIQUE INDEX NoDupFindings ON Findings(SessionID, TestName, Title);
+
+-- Session's bug reports.
+CREATE TABLE SessionReports (
+    ID STRING(36) NOT NULL, -- UUID??
+    SessionID STRING(36) NOT NULL, -- UUID
+    ReportedAt TIMESTAMP,
+    Moderation BOOL,
+    Link STRING(256),
+    CONSTRAINT FK_SessionReports FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
+) PRIMARY KEY(ID);
+
+CREATE UNIQUE INDEX NoDupSessionReports ON SessionReports(SessionID, Moderation);
+CREATE INDEX SessionReportsByStatus ON SessionReports (Moderation, ReportedAt);

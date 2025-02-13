@@ -91,7 +91,6 @@ type NextSession struct {
 
 func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSession,
 	limit int) ([]*Session, *NextSession, error) {
-	// Here we assume that once the session is started, it never appears again.
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL",
 		Params: map[string]interface{}{},
@@ -102,13 +101,8 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSessio
 		stmt.Params["id"] = from.id
 	}
 	stmt.SQL += " ORDER BY `CreatedAt`, `ID`"
-	if limit > 0 {
-		stmt.SQL += " LIMIT @limit"
-		stmt.Params["limit"] = limit
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	list, err := readEntities[Session](iter)
+	addLimit(&stmt, limit)
+	list, err := repo.readEntities(ctx, stmt)
 
 	var next *NextSession
 	if err == nil && len(list) > 0 {
@@ -124,11 +118,30 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSessio
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.
 // nolint:dupl
 func (repo *SessionRepository) ListForSeries(ctx context.Context, series *Series) ([]*Session, error) {
-	stmt := spanner.Statement{
+	return repo.readEntities(ctx, spanner.Statement{
 		SQL:    "SELECT * FROM `Sessions` WHERE `SeriesID` = @series ORDER BY CreatedAt DESC",
 		Params: map[string]interface{}{"series": series.ID},
+	})
+}
+
+// MissingReportList lists the session objects that are missing any SessionReport objects,
+// but do have Findings.
+// Once the conditions for creating a SessionRepor object become more complex, it will
+// likely be not enough to have this simple method, but for now it should be fine.
+func (repo *SessionRepository) MissingReportList(ctx context.Context, from time.Time, limit int) ([]*Session, error) {
+	stmt := spanner.Statement{
+		SQL: "SELECT * FROM Sessions WHERE FinishedAt IS NOT NULL " +
+			" AND NOT EXISTS (" +
+			"SELECT 1 FROM SessionReports WHERE SessionReports.SessionID = Sessions.ID" +
+			") AND EXISTS (" +
+			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID)",
+		Params: map[string]interface{}{},
 	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readEntities[Session](iter)
+	if !from.IsZero() {
+		stmt.SQL += " AND `FinishedAt` > @from"
+		stmt.Params["from"] = from
+	}
+	stmt.SQL += " ORDER BY `FinishedAt`"
+	addLimit(&stmt, limit)
+	return repo.readEntities(ctx, stmt)
 }

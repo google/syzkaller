@@ -257,6 +257,13 @@ func readEntities[T any](iter *spanner.RowIterator) ([]*T, error) {
 	return ret, nil
 }
 
+func addLimit(stmt *spanner.Statement, limit int) {
+	if limit > 0 {
+		stmt.SQL += " LIMIT @limit"
+		stmt.Params["limit"] = limit
+	}
+}
+
 type genericEntityOps[EntityType, KeyType any] struct {
 	client   *spanner.Client
 	keyField string
@@ -315,4 +322,11 @@ func (g *genericEntityOps[EntityType, KeyType]) Insert(ctx context.Context, obj 
 			return txn.BufferWrite([]*spanner.Mutation{insert})
 		})
 	return err
+}
+
+func (g *genericEntityOps[EntityType, KeyType]) readEntities(ctx context.Context, stmt spanner.Statement) (
+	[]*EntityType, error) {
+	iter := g.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	return readEntities[EntityType](iter)
 }

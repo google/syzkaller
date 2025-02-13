@@ -128,7 +128,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		if err != nil {
 			return fmt.Errorf("failed to query session tests: %w", err)
 		}
-		findings, err := h.findingRepo.ListForSession(ctx, session)
+		findings, err := h.findingRepo.ListForSession(ctx, session.ID)
 		if err != nil {
 			return fmt.Errorf("failed to query session findings: %w", err)
 		}

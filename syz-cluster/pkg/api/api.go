@@ -77,8 +77,8 @@ type BootResult struct {
 	Success bool `json:"success"`
 }
 
-// Finding is a kernel crash, boot error, etc. found during a test.
-type Finding struct {
+// NewFinding is a kernel crash, boot error, etc. found during a test.
+type NewFinding struct {
 	SessionID string `json:"session_id"`
 	TestName  string `json:"test_name"`
 	Title     string `json:"title"`
@@ -116,6 +116,21 @@ type SeriesPatch struct {
 type NewSession struct {
 	ExtID string   `json:"ext_id"`
 	Tags  []string `json:"tags"`
+}
+
+type SessionReport struct {
+	ID         string `json:"id"`
+	Moderation bool   `json:"moderation"`
+	// TODO: add some session info?
+	Series   *Series    `json:"series"`
+	Findings []*Finding `json:"findings"`
+	Link     string     `json:"link"` // URL to the web dashboard.
+}
+
+type Finding struct {
+	Title  string `json:"title"`
+	Report []byte `json:"report"`
+	LogURL string `json:"log_url"`
 }
 
 // For now, there's no reason to obtain these really via a real API call.

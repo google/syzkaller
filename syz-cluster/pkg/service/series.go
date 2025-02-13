@@ -32,13 +32,23 @@ func NewSeriesService(env *app.AppEnvironment) *SeriesService {
 }
 
 func (s *SeriesService) GetSessionSeries(ctx context.Context, sessionID string) (*api.Series, error) {
+	return s.getSessionSeries(ctx, sessionID, true)
+}
+
+func (s *SeriesService) GetSessionSeriesShort(ctx context.Context,
+	sessionID string) (*api.Series, error) {
+	return s.getSessionSeries(ctx, sessionID, false)
+}
+
+func (s *SeriesService) getSessionSeries(ctx context.Context, sessionID string,
+	includePatches bool) (*api.Series, error) {
 	session, err := s.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch the session: %w", err)
 	} else if session == nil {
 		return nil, fmt.Errorf("%w: %q", ErrSessionNotFound, sessionID)
 	}
-	return s.GetSeries(ctx, session.SeriesID)
+	return s.getSeries(ctx, session.SeriesID, includePatches)
 }
 
 func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*api.UploadSeriesResp, error) {
@@ -84,6 +94,11 @@ func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*
 var ErrSeriesNotFound = errors.New("series not found")
 
 func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Series, error) {
+	return s.getSeries(ctx, seriesID, true)
+}
+
+func (s *SeriesService) getSeries(ctx context.Context,
+	seriesID string, includeBody bool) (*api.Series, error) {
 	series, err := s.seriesRepo.GetByID(ctx, seriesID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch the series: %w", err)
@@ -104,9 +119,12 @@ func (s *SeriesService) GetSeries(ctx context.Context, seriesID string) (*api.Se
 		PublishedAt: series.PublishedAt,
 	}
 	for _, patch := range patches {
-		body, err := blob.ReadAllBytes(s.blobStorage, patch.BodyURI)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read patch %q: %w", patch.ID, err)
+		var body []byte
+		if includeBody {
+			body, err = blob.ReadAllBytes(s.blobStorage, patch.BodyURI)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read patch %q: %w", patch.ID, err)
+			}
 		}
 		ret.Patches = append(ret.Patches, api.SeriesPatch{
 			Seq:   int(patch.Seq),

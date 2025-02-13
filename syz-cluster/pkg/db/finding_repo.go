@@ -65,10 +65,10 @@ func (repo *FindingRepository) Save(ctx context.Context, finding *Finding) error
 }
 
 // nolint: dupl
-func (repo *FindingRepository) ListForSession(ctx context.Context, session *Session) ([]*Finding, error) {
+func (repo *FindingRepository) ListForSession(ctx context.Context, sessionID string) ([]*Finding, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Findings` WHERE `SessionID` = @session ORDER BY `TestName`, `Title`",
-		Params: map[string]interface{}{"session": session.ID},
+		Params: map[string]interface{}{"session": sessionID},
 	}
 	iter := repo.client.Single().Query(ctx, stmt)
 	defer iter.Stop()

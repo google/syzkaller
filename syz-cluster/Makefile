@@ -22,6 +22,10 @@ build-web-dashboard-dev:
 deploy-web-dashboard-dev: build-web-dashboard-dev
 	@kubectl rollout restart deployment web-dashboard
 
+build-reporter-dev:
+	eval $$(minikube docker-env);\
+	docker build -t reporter-image-local -f ./reporter/Dockerfile ../
+
 install-dev-config:
 	minikube kubectl -- apply -f ./overlays/dev/global-config.yaml
 
@@ -51,7 +55,7 @@ build-go-tests-dev:
 
 build-workflow-dev: build-triage-step-dev build-build-step-dev build-boot-step-dev build-fuzz-step-dev
 
-all-containers: build-controller-dev build-series-tracker-dev build-db-mgmt-dev build-web-dashboard-dev build-workflow-dev
+all-containers: build-controller-dev build-series-tracker-dev build-db-mgmt-dev build-web-dashboard-dev build-reporter-dev build-workflow-dev
 
 run-go-tests-dev: build-go-tests-dev
 	./run-local.sh go-tests

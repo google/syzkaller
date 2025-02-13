@@ -182,7 +182,7 @@ func reportStatus(ctx context.Context, client *api.Client, status string) error 
 }
 
 func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueBug) error {
-	finding := &api.Finding{
+	finding := &api.NewFinding{
 		SessionID: *flagSession,
 		TestName:  testName,
 		Title:     bug.Report.Title,

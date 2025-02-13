@@ -87,7 +87,7 @@ func runTest(ctx context.Context, client *api.Client) (bool, error) {
 	log.Printf("found: %q", rep.Title)
 	if *flagFindings {
 		log.Printf("reporting the finding")
-		findingErr := client.UploadFinding(ctx, &api.Finding{
+		findingErr := client.UploadFinding(ctx, &api.NewFinding{
 			SessionID: *flagSession,
 			TestName:  *flagTestName,
 			Title:     rep.Title,
