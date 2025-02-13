@@ -13,21 +13,24 @@ import (
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
 type ControllerAPI struct {
-	seriesService  *SeriesService
-	buildService   *BuildService
-	testService    *SessionTestService
-	findingService *FindingService
+	seriesService  *service.SeriesService
+	sessionService *service.SessionService
+	buildService   *service.BuildService
+	testService    *service.SessionTestService
+	findingService *service.FindingService
 }
 
 func NewControllerAPI(env *app.AppEnvironment) *ControllerAPI {
 	return &ControllerAPI{
-		seriesService:  NewSeriesService(env),
-		buildService:   NewBuildService(env),
-		testService:    NewSessionTestService(env),
-		findingService: NewFindingService(env),
+		seriesService:  service.NewSeriesService(env),
+		sessionService: service.NewSessionService(env),
+		buildService:   service.NewBuildService(env),
+		testService:    service.NewSessionTestService(env),
+		findingService: service.NewFindingService(env),
 	}
 }
 
@@ -47,7 +50,7 @@ func (c ControllerAPI) Mux() *http.ServeMux {
 
 func (c ControllerAPI) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSessionSeries(r.Context(), r.PathValue("session_id"))
-	if err == ErrSeriesNotFound || err == ErrSessionNotFound {
+	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -62,8 +65,8 @@ func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	err := c.seriesService.SkipSession(r.Context(), r.PathValue("session_id"), req)
-	if errors.Is(err, ErrSessionNotFound) {
+	err := c.sessionService.SkipSession(r.Context(), r.PathValue("session_id"), req)
+	if errors.Is(err, service.ErrSessionNotFound) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -75,7 +78,7 @@ func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
 
 func (c ControllerAPI) getSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSeries(r.Context(), r.PathValue("series_id"))
-	if err == ErrSeriesNotFound {
+	if errors.Is(err, service.ErrSeriesNotFound) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -158,7 +161,7 @@ func (c ControllerAPI) uploadSession(w http.ResponseWriter, r *http.Request) {
 	if req == nil {
 		return
 	}
-	resp, err := c.seriesService.UploadSession(r.Context(), req)
+	resp, err := c.sessionService.UploadSession(r.Context(), req)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
