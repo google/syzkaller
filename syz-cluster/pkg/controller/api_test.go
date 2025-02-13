@@ -57,7 +57,7 @@ func TestAPISaveFinding(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("not existing test", func(t *testing.T) {
-		err = client.UploadFinding(ctx, &api.Finding{
+		err = client.UploadFinding(ctx, &api.NewFinding{
 			SessionID: sessionID,
 			TestName:  "unknown test",
 		})
@@ -65,7 +65,7 @@ func TestAPISaveFinding(t *testing.T) {
 	})
 
 	t.Run("must succeed", func(t *testing.T) {
-		finding := &api.Finding{
+		finding := &api.NewFinding{
 			SessionID: sessionID,
 			TestName:  "test",
 			Report:    []byte("report"),

@@ -64,7 +64,7 @@ func TestFindingRepo(t *testing.T) {
 		assert.ErrorIs(t, err, ErrFindingExists)
 	}
 
-	list, err := findingRepo.ListForSession(ctx, session)
+	list, err := findingRepo.ListForSession(ctx, session.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, toInsert, list)
 }

@@ -1,0 +1,32 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporter
+  template:
+    metadata:
+      labels:
+        app: reporter
+    spec:
+      containers:
+      - name: reporter-image
+        image: reporter-image # The actual image name is set in overalys.
+        envFrom:
+          - configMapRef:
+              name: global-config
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 2
+            memory: 8G
+          limits:
+            cpu: 4
+            memory: 16G

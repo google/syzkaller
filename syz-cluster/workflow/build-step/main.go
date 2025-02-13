@@ -72,7 +72,7 @@ func main() {
 	if commit != nil {
 		uploadReq.CommitDate = commit.CommitDate
 	}
-	var finding *api.Finding
+	var finding *api.NewFinding
 	if err != nil {
 		log.Printf("failed to checkout: %v", err)
 		uploadReq.Log = []byte(err.Error())
@@ -84,7 +84,7 @@ func main() {
 			log.Printf("%s", output.Bytes())
 			log.Printf("failed to build: %v", err)
 			uploadReq.Log = []byte(err.Error())
-			finding = &api.Finding{
+			finding = &api.NewFinding{
 				SessionID: *flagSession,
 				TestName:  *flagTestName,
 				Title:     "failed to build the kernel",
@@ -97,7 +97,7 @@ func main() {
 }
 
 func reportResults(ctx context.Context, client *api.Client, patched bool,
-	uploadReq *api.UploadBuildReq, finding *api.Finding, output []byte) {
+	uploadReq *api.UploadBuildReq, finding *api.NewFinding, output []byte) {
 	buildInfo, err := client.UploadBuild(ctx, uploadReq)
 	if err != nil {
 		app.Fatalf("failed to upload build: %v", err)

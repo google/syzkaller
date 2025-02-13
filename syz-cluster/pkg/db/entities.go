@@ -102,3 +102,15 @@ type Finding struct {
 	ReportURI string `spanner:"ReportURI"`
 	LogURI    string `spanner:"LogURI"`
 }
+
+type SessionReport struct {
+	ID         string           `spanner:"ID"`
+	SessionID  string           `spanner:"SessionID"`
+	ReportedAt spanner.NullTime `spanner:"ReportedAt"`
+	Moderation bool             `spanner:"Moderation"`
+	Link       string           `spanner:"Link"`
+}
+
+func (s *SessionReport) SetReportedAt(t time.Time) {
+	s.ReportedAt = spanner.NullTime{Time: t, Valid: true}
+}
