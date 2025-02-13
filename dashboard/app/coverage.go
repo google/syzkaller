@@ -146,7 +146,10 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 
 func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
 	return func(filePath, commit string) string {
-		return fmt.Sprintf("%s/%s/%s", url, commit, filePath)
+		// Parameter format=TEXT is ignored by git servers but is processed by gerrit servers.
+		// Gerrit returns base64 encoded data.
+		// Git return the plain text data.
+		return fmt.Sprintf("%s/%s/%s?format=TEXT", url, commit, filePath)
 	}
 }
 
