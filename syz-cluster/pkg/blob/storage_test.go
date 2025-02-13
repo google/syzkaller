@@ -6,7 +6,6 @@ package blob
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,10 +21,7 @@ func TestLocalStorage(t *testing.T) {
 		uris = append(uris, uri)
 	}
 	for i, uri := range uris {
-		reader, err := storage.Read(uri)
-		assert.NoError(t, err)
-		readBytes, err := io.ReadAll(reader)
-		reader.Close()
+		readBytes, err := ReadAllBytes(storage, uri)
 		assert.NoError(t, err)
 		assert.EqualValues(t, fmt.Sprintf("object #%d", i), readBytes)
 	}
