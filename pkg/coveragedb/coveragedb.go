@@ -416,9 +416,9 @@ func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient
 	resCh := make(chan *FileCoverageWithLineInfo)
 	errCh := make(chan error)
 	go func() {
-		defer iter.Stop()
-		defer close(resCh)
 		defer close(errCh)
+		defer close(resCh)
+		defer iter.Stop()
 		if err := readIterToChan(ctx, iter, resCh); err != nil {
 			errCh <- fmt.Errorf("readIterToChan: %w", err)
 		}
