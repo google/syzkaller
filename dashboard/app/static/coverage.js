@@ -39,9 +39,9 @@ function initUpdateForm(){
 // "#file-details-prev" and "#file-details-curr" are the corresponding <div>s used to show per-file details.
 function onShowFileContent(url) {
   var curUrlParams = new URLSearchParams(window.location.search);
-  url += '&subsystem=' + curUrlParams.get('subsystem')
-  url += '&manager=' + curUrlParams.get('manager')
-  url += '&unique-only=' + curUrlParams.get('unique-only')
+  url += '&subsystem=' + (curUrlParams.get('subsystem') || "")
+  url += '&manager=' + (curUrlParams.get('manager') || "")
+  url += '&unique-only=' + (curUrlParams.get('unique-only') || "")
 
   $.get(url, function(response) {
     $("#file-content-prev").html($("#file-content-curr").html());
