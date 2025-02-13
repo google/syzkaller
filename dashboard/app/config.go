@@ -165,6 +165,7 @@ type CoverageConfig struct {
 	DashboardClientName string
 
 	// WebGitURI specifies where can we get the kernel file source code directly from AppEngine.
+	// It may be the Git or Gerrit compatible repo.
 	WebGitURI string
 }
 
