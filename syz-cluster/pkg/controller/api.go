@@ -2,7 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // nolint: dupl // The methods look similar, but extracting the common parts will only make the code worse.
-package main
+package controller
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
-type ControllerAPI struct {
+type APIServer struct {
 	seriesService  *service.SeriesService
 	sessionService *service.SessionService
 	buildService   *service.BuildService
@@ -24,8 +24,8 @@ type ControllerAPI struct {
 	findingService *service.FindingService
 }
 
-func NewControllerAPI(env *app.AppEnvironment) *ControllerAPI {
-	return &ControllerAPI{
+func NewAPIServer(env *app.AppEnvironment) *APIServer {
+	return &APIServer{
 		seriesService:  service.NewSeriesService(env),
 		sessionService: service.NewSessionService(env),
 		buildService:   service.NewBuildService(env),
@@ -34,7 +34,7 @@ func NewControllerAPI(env *app.AppEnvironment) *ControllerAPI {
 	}
 }
 
-func (c ControllerAPI) Mux() *http.ServeMux {
+func (c APIServer) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
@@ -48,7 +48,7 @@ func (c ControllerAPI) Mux() *http.ServeMux {
 	return mux
 }
 
-func (c ControllerAPI) getSessionSeries(w http.ResponseWriter, r *http.Request) {
+func (c APIServer) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSessionSeries(r.Context(), r.PathValue("session_id"))
 	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
@@ -60,8 +60,8 @@ func (c ControllerAPI) getSessionSeries(w http.ResponseWriter, r *http.Request) 
 	reply(w, resp)
 }
 
-func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.SkipRequest](w, r)
+func (c APIServer) skipSession(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.SkipRequest](w, r)
 	if req == nil {
 		return
 	}
@@ -76,7 +76,7 @@ func (c ControllerAPI) skipSession(w http.ResponseWriter, r *http.Request) {
 	reply[interface{}](w, nil)
 }
 
-func (c ControllerAPI) getSeries(w http.ResponseWriter, r *http.Request) {
+func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSeries(r.Context(), r.PathValue("series_id"))
 	if errors.Is(err, service.ErrSeriesNotFound) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
@@ -88,8 +88,8 @@ func (c ControllerAPI) getSeries(w http.ResponseWriter, r *http.Request) {
 	reply(w, resp)
 }
 
-func (c ControllerAPI) uploadBuild(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.UploadBuildReq](w, r)
+func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.UploadBuildReq](w, r)
 	if req == nil {
 		return
 	}
@@ -102,8 +102,8 @@ func (c ControllerAPI) uploadBuild(w http.ResponseWriter, r *http.Request) {
 	reply(w, resp)
 }
 
-func (c ControllerAPI) uploadTest(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.TestResult](w, r)
+func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.TestResult](w, r)
 	if req == nil {
 		return
 	}
@@ -116,8 +116,8 @@ func (c ControllerAPI) uploadTest(w http.ResponseWriter, r *http.Request) {
 	reply[interface{}](w, nil)
 }
 
-func (c ControllerAPI) uploadFinding(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.Finding](w, r)
+func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.Finding](w, r)
 	if req == nil {
 		return
 	}
@@ -130,8 +130,8 @@ func (c ControllerAPI) uploadFinding(w http.ResponseWriter, r *http.Request) {
 	reply[interface{}](w, nil)
 }
 
-func (c ControllerAPI) getLastBuild(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.LastBuildReq](w, r)
+func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.LastBuildReq](w, r)
 	if req == nil {
 		return
 	}
@@ -143,8 +143,8 @@ func (c ControllerAPI) getLastBuild(w http.ResponseWriter, r *http.Request) {
 	reply[*api.Build](w, resp)
 }
 
-func (c ControllerAPI) uploadSeries(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.Series](w, r)
+func (c APIServer) uploadSeries(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.Series](w, r)
 	if req == nil {
 		return
 	}
@@ -156,8 +156,8 @@ func (c ControllerAPI) uploadSeries(w http.ResponseWriter, r *http.Request) {
 	reply[*api.UploadSeriesResp](w, resp)
 }
 
-func (c ControllerAPI) uploadSession(w http.ResponseWriter, r *http.Request) {
-	req := parseBody[api.NewSession](w, r)
+func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.NewSession](w, r)
 	if req == nil {
 		return
 	}
