@@ -6,13 +6,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/controller"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/workflow"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestProcessor(t *testing.T) {
 		})
 	}
 	for _, series := range allSeries[0:5] {
-		uploadSeries(t, ctx, client, series)
+		controller.UploadTestSeries(t, ctx, client, series)
 	}
 
 	// Let some workflows finish.
@@ -66,7 +66,7 @@ func TestProcessor(t *testing.T) {
 
 	// Add some more series.
 	for _, series := range allSeries[5:10] {
-		uploadSeries(t, ctx, client, series)
+		controller.UploadTestSeries(t, ctx, client, series)
 	}
 
 	// Finish all of them.
@@ -143,14 +143,12 @@ func newMockedWorkflows() *mockedWorkflows {
 func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProcessor,
 	*api.Client, context.Context) {
 	env, ctx := app.TestEnvironment(t)
-	apiServer := NewControllerAPI(env)
-	server := httptest.NewServer(apiServer.Mux())
-	t.Cleanup(server.Close)
+	client := controller.TestServer(t, env)
 	return &SeriesProcessor{
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
 		sessionRepo:     db.NewSessionRepository(env.Spanner),
 		workflows:       workflows,
 		dbPollInterval:  time.Second / 10,
 		parallelWorkers: 2,
-	}, api.NewClient(server.URL), ctx
+	}, client, ctx
 }

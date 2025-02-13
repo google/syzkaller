@@ -1,11 +1,9 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package controller
 
 import (
-	"context"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -16,12 +14,8 @@ import (
 
 func TestAPIGetSeries(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
-	apiServer := NewControllerAPI(env)
-	server := httptest.NewServer(apiServer.Mux())
-	defer server.Close()
-
-	client := api.NewClient(server.URL)
-	seriesID, sessionID := uploadSeries(t, ctx, client, testSeries)
+	client := TestServer(t, env)
+	seriesID, sessionID := UploadTestSeries(t, ctx, client, testSeries)
 
 	ret, err := client.GetSessionSeries(ctx, sessionID)
 	assert.NoError(t, err)
@@ -36,31 +30,23 @@ func TestAPIGetSeries(t *testing.T) {
 
 func TestAPISuccessfulBuild(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
-	apiServer := NewControllerAPI(env)
-	server := httptest.NewServer(apiServer.Mux())
-	defer server.Close()
-
-	client := api.NewClient(server.URL)
-	buildInfo, _ := uploadTestBuild(t, client)
+	client := TestServer(t, env)
+	UploadTestBuild(t, ctx, client, testBuild)
 	info, err := client.LastSuccessfulBuild(ctx, &api.LastBuildReq{
-		Arch:       buildInfo.Arch,
-		TreeName:   buildInfo.TreeName,
-		ConfigName: buildInfo.ConfigName,
+		Arch:       testBuild.Arch,
+		TreeName:   testBuild.TreeName,
+		ConfigName: testBuild.ConfigName,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, buildInfo, info)
+	assert.Equal(t, testBuild, info)
 }
 
 func TestAPISaveFinding(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
-	apiServer := NewControllerAPI(env)
-	server := httptest.NewServer(apiServer.Mux())
-	defer server.Close()
+	client := TestServer(t, env)
 
-	client := api.NewClient(server.URL)
-
-	_, sessionID := uploadSeries(t, ctx, client, testSeries)
-	_, buildResp := uploadTestBuild(t, client)
+	_, sessionID := UploadTestSeries(t, ctx, client, testSeries)
+	buildResp := UploadTestBuild(t, ctx, client, testBuild)
 	err := client.UploadTestResult(ctx, &api.TestResult{
 		SessionID:   sessionID,
 		BaseBuildID: buildResp.ID,
@@ -93,34 +79,6 @@ func TestAPISaveFinding(t *testing.T) {
 	})
 }
 
-func uploadTestBuild(t *testing.T, client *api.Client) (*api.Build, *api.UploadBuildResp) {
-	buildInfo := &api.Build{
-		Arch:         "amd64",
-		TreeName:     "mainline",
-		ConfigName:   "config",
-		CommitHash:   "abcd",
-		CommitDate:   time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
-		BuildSuccess: true,
-	}
-	ret, err := client.UploadBuild(context.Background(), &api.UploadBuildReq{
-		Build: *buildInfo,
-	})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, ret.ID)
-	return buildInfo, ret
-}
-
-// Returns a (session ID, series ID) tuple.
-func uploadSeries(t *testing.T, ctx context.Context, client *api.Client, series *api.Series) (string, string) {
-	retSeries, err := client.UploadSeries(ctx, series)
-	assert.NoError(t, err)
-	retSession, err := client.UploadSession(ctx, &api.NewSession{
-		ExtID: series.ExtID,
-	})
-	assert.NoError(t, err)
-	return retSeries.ID, retSession.ID
-}
-
 var testSeries = &api.Series{
 	ExtID:       "ext-id",
 	AuthorEmail: "some@email.com",
@@ -138,4 +96,13 @@ var testSeries = &api.Series{
 			Body: []byte("second content"),
 		},
 	},
+}
+
+var testBuild = &api.Build{
+	Arch:         "amd64",
+	TreeName:     "mainline",
+	ConfigName:   "config",
+	CommitHash:   "abcd",
+	CommitDate:   time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
+	BuildSuccess: true,
 }

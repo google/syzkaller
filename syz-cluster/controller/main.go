@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/controller"
 )
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 		err := sp.Loop(ctx)
 		app.Fatalf("processor loop failed: %v", err)
 	}()
-	api := NewControllerAPI(env)
+	api := controller.NewAPIServer(env)
 	log.Printf("listening on port 8080")
 	app.Fatalf("listen failed: %v", http.ListenAndServe(":8080", api.Mux()))
 }

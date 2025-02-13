@@ -26,7 +26,7 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 	}
 }
 
-func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
+func (s *FindingService) Save(ctx context.Context, req *api.Finding) error {
 	var reportURI, logURI string
 	var err error
 	if len(req.Log) > 0 {
