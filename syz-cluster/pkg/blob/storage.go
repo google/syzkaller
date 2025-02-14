@@ -37,7 +37,7 @@ func NewLocalStorage(baseFolder string) *LocalStorage {
 const localStoragePrefix = "local://"
 
 func (ls *LocalStorage) Store(source io.Reader) (string, error) {
-	name := uuid.New().String()
+	name := uuid.NewString()
 	err := ls.writeFile(name, source)
 	if err != nil {
 		return "", err

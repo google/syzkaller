@@ -30,7 +30,7 @@ func NewGCSClient(ctx context.Context, bucket string) (Storage, error) {
 }
 
 func (gcs *gcsDriver) Store(source io.Reader) (string, error) {
-	object := uuid.New().String()
+	object := uuid.NewString()
 	err := gcs.writeObject(object, source)
 	if err != nil {
 		return "", err

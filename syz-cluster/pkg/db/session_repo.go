@@ -71,7 +71,7 @@ func (repo *SessionRepository) Start(ctx context.Context, sessionID string) erro
 
 func (repo *SessionRepository) Insert(ctx context.Context, session *Session) error {
 	if session.ID == "" {
-		session.ID = uuid.New().String()
+		session.ID = uuid.NewString()
 	}
 	return repo.genericEntityOps.Insert(ctx, session)
 }

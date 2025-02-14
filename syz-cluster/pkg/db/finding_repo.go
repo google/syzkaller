@@ -33,7 +33,7 @@ var ErrFindingExists = errors.New("the finding already exists")
 // Save either adds the finding to the database or returns ErrFindingExists.
 func (repo *FindingRepository) Save(ctx context.Context, finding *Finding) error {
 	if finding.ID == "" {
-		finding.ID = uuid.New().String()
+		finding.ID = uuid.NewString()
 	}
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
