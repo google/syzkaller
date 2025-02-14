@@ -35,15 +35,15 @@ func NewAPIServer(env *app.AppEnvironment) *APIServer {
 
 func (c APIServer) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
-	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
-	mux.HandleFunc("/sessions/upload", c.uploadSession)
-	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
-	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
 	mux.HandleFunc("/series/upload", c.uploadSeries)
+	mux.HandleFunc("/series/{series_id}", c.getSeries)
+	mux.HandleFunc("/sessions/upload", c.uploadSession)
+	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
+	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
+	mux.HandleFunc("/tests/upload", c.uploadTest)
 	return mux
 }
 
