@@ -136,7 +136,8 @@ type Finding struct {
 // For now, there's no reason to obtain these really via a real API call.
 var defaultTrees = []*Tree{
 	{
-		Name:       `torvalds`,
+		Name: `torvalds`,
+		// TODO: consider https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.
 		URL:        `git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git`,
 		Branch:     `master`,
 		Priority:   0,
