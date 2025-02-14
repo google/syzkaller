@@ -548,18 +548,18 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 		if totalFuncs[m] != 0 {
 			percentCoveredFunc[m] = 100.0 * float64(coveredFuncs[m]) / float64(totalFuncs[m])
 		}
-		lines := fmt.Sprintf("%v / %v / %.2f%%", coveredLines[m], totalLines[m], percentLines[m])
-		pcsInFiles := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFile[m], totalPCsInFile[m], percentPCsInFile[m])
-		funcs := fmt.Sprintf("%v / %v / %.2f%%", coveredFuncs[m], totalFuncs[m], percentCoveredFunc[m])
-		pcsInFuncs := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs[m], pcsInFuncs[m], percentPCsInFunc[m])
-		covedFuncs := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs[m], pcsInCoveredFuncs[m], percentInCoveredFunc[m])
 		d[m] = map[string]string{
-			"name":              m,
-			"lines":             lines,
-			"PCsInFiles":        pcsInFiles,
-			"Funcs":             funcs,
-			"PCsInFuncs":        pcsInFuncs,
-			"PCsInCoveredFuncs": covedFuncs,
+			"name": m,
+			"lines": fmt.Sprintf("%v / %v / %.2f%%",
+				coveredLines[m], totalLines[m], percentLines[m]),
+			"PCsInFiles": fmt.Sprintf("%v / %v / %.2f%%",
+				coveredPCsInFile[m], totalPCsInFile[m], percentPCsInFile[m]),
+			"Funcs": fmt.Sprintf("%v / %v / %.2f%%",
+				coveredFuncs[m], totalFuncs[m], percentCoveredFunc[m]),
+			"PCsInFuncs": fmt.Sprintf("%v / %v / %.2f%%",
+				coveredPCsInFuncs[m], pcsInFuncs[m], percentPCsInFunc[m]),
+			"PCsInCoveredFuncs": fmt.Sprintf("%v / %v / %.2f%%",
+				coveredPCsInFuncs[m], pcsInCoveredFuncs[m], percentInCoveredFunc[m]),
 		}
 	}
 
