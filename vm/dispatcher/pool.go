@@ -101,7 +101,6 @@ func (p *Pool[T]) Loop(ctx context.Context) {
 	var wg sync.WaitGroup
 	wg.Add(len(p.instances))
 	for _, inst := range p.instances {
-		inst := inst
 		go func() {
 			for ctx.Err() == nil {
 				p.runInstance(ctx, inst)

@@ -241,7 +241,6 @@ nextSandbox:
 			"arch=" + ctx.Target.Arch: true,
 		}
 		for _, threaded := range []bool{false, true} {
-			name := name
 			if threaded {
 				name += "/thr"
 			}
@@ -259,7 +258,6 @@ nextSandbox:
 					if times != 1 {
 						break
 					}
-					name := name
 					if cov {
 						name += "/cover"
 					}
@@ -277,7 +275,6 @@ nextSandbox:
 					// and copy the binary to the target system.
 					continue
 				}
-				name := name
 				properties["C"] = true
 				properties["executor"] = false
 				name += " C"

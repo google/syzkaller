@@ -370,7 +370,6 @@ func testCover(t *testing.T, target *prog.Target) {
 	}
 	executor := csource.BuildExecutor(t, target, "../../")
 	for i, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			t.Parallel()
 			source := queue.Plain()

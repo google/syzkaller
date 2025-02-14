@@ -166,7 +166,6 @@ func TestCompareResults(t *testing.T) {
 		}}
 
 	for _, test := range tests {
-		test := test // TODO: remove for gover >= 1.22
 		t.Run(test.name, func(t *testing.T) {
 			target := prog.InitTargetTest(t, "test", "64")
 			prog, err := target.Deserialize([]byte(p), prog.Strict)

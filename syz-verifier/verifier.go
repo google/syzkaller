@@ -177,7 +177,6 @@ func (vrf *Verifier) Run(prog *prog.Prog, env EnvDescr) (result []*ExecResult, e
 	wg := sync.WaitGroup{}
 	wg.Add(totalKernels)
 	for i := 0; i < totalKernels; i++ {
-		i := i
 		q := vrf.kernelEnvTasks[i][env]
 
 		go func() {

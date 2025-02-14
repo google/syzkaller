@@ -295,7 +295,6 @@ func main() {
 	var wg sync.WaitGroup
 	if *flagManagers {
 		for _, mgr := range managers {
-			mgr := mgr
 			wg.Add(1)
 			go func() {
 				defer wg.Done()

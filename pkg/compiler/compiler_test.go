@@ -23,7 +23,6 @@ var flagUpdate = flag.Bool("update", false, "reformat all.txt")
 
 func TestCompileAll(t *testing.T) {
 	for os, arches := range targets.List {
-		os, arches := os, arches
 		t.Run(os, func(t *testing.T) {
 			t.Parallel()
 			eh := func(pos ast.Pos, msg string) {
@@ -35,7 +34,6 @@ func TestCompileAll(t *testing.T) {
 				t.Fatalf("parsing failed")
 			}
 			for arch, target := range arches {
-				arch, target := arch, target
 				t.Run(arch, func(t *testing.T) {
 					t.Parallel()
 					errors := new(bytes.Buffer)
@@ -68,7 +66,6 @@ func TestData(t *testing.T) {
 	// Because of this we have one file per phase.
 	for _, name := range []string{"errors.txt", "errors2.txt", "errors3.txt", "warnings.txt", "all.txt"} {
 		for _, arch := range []string{targets.TestArch32, targets.TestArch64} {
-			name, arch := name, arch
 			t.Run(fmt.Sprintf("%v/%v", name, arch), func(t *testing.T) {
 				t.Parallel()
 				target := targets.List[targets.TestOS][arch]

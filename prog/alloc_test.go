@@ -62,7 +62,6 @@ func TestMemAlloc(t *testing.T) {
 		},
 	}
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			ma := newMemAlloc(16 << 20)
 			for i, op := range test {

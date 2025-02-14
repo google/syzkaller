@@ -732,7 +732,6 @@ func TestBisectionResults(t *testing.T) {
 	repoCache := make(chan string, len(bisectionTests))
 	t.Run("group", func(tt *testing.T) {
 		for _, test := range bisectionTests {
-			test := test
 			tt.Run(test.name, func(t *testing.T) {
 				t.Parallel()
 				checkTest(t, test)
@@ -889,7 +888,6 @@ func TestBisectVerdict(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			sum := test.good + test.bad + test.infra + test.skip
 			assert.Equal(t, test.total, sum)
@@ -1008,7 +1006,6 @@ func TestMostFrequentReport(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			rep, types, other := mostFrequentReports(test.reports)
 			assert.ElementsMatch(t, types, test.types)
@@ -1066,7 +1063,6 @@ func TestPickReleaseTags(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			ret := pickReleaseTags(append([]string{}, test.tags...))
 			assert.Equal(t, test.ret, ret)

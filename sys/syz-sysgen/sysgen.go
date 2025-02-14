@@ -139,7 +139,6 @@ func main() {
 		wg.Add(len(jobs))
 
 		for _, job := range jobs {
-			job := job
 			go func() {
 				defer wg.Done()
 				processJob(job, descriptions, constFile)

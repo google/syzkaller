@@ -136,7 +136,6 @@ func TestMutateArgument(t *testing.T) {
 
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			t.Parallel()
 			rs, ct, p, goal, err := buildTestContext(test, target)
@@ -410,7 +409,6 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 	}
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			t.Parallel()
 			rs, ct, p, goal, err := buildTestContext(test, target)

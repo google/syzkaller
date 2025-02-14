@@ -190,7 +190,6 @@ func TestSetStress(t *testing.T) {
 	}
 	for p := 0; p < 2; p++ {
 		for _, opt := range []any{Link(""), NoGraph, Rate{}, Distribution{}} {
-			opt := opt
 			go func() {
 				v := set.New(fmt.Sprintf("v%v", seq.Add(1)), "desc", opt)
 				for p1 := 0; p1 < 2; p1++ {

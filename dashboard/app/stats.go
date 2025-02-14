@@ -84,7 +84,6 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 	}
 	buildLoader := &dependencyLoader[Build]{}
 	for _, input := range inputs {
-		input := input
 		if input.reportedCrash == nil {
 			continue
 		}

@@ -27,7 +27,6 @@ func TestRotationResourceless(t *testing.T) {
 func TestRotationRandom(t *testing.T) {
 	target, rs, _ := initTest(t)
 	for _, ncalls := range []int{10, 100, 1000, 1e9} {
-		ncalls := ncalls
 		rnd := rand.New(rand.NewSource(rs.Int63()))
 		t.Run(fmt.Sprint(ncalls), func(t *testing.T) {
 			t.Parallel()

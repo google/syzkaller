@@ -77,7 +77,6 @@ func TestCommitSelector(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewCommitSelector(test.ops)
 			commits, err := selector.Select(test.series, testTree, test.last)

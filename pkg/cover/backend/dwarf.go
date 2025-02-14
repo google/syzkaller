@@ -161,8 +161,6 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	}
 	binC := make(chan binResult, len(modules))
 	for _, module := range modules {
-		// check https://go.dev/blog/loopvar-preview for loopvar bug
-		module := module
 		go func() {
 			info := &symbolInfo{
 				tracePC:     make(map[uint64]bool),

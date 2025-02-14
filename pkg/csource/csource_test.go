@@ -38,7 +38,6 @@ func TestGenerate(t *testing.T) {
 	t.Parallel()
 	checked := make(map[string]bool)
 	for _, target := range prog.AllTargets() {
-		target := target
 		sysTarget := targets.Get(target.OS, target.Arch)
 		if runtime.GOOS != sysTarget.BuildOS {
 			continue
@@ -114,7 +113,6 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 			// compilation time from 1.94s to 104.73s and memory consumption from 136MB to 8116MB.
 			continue
 		}
-		opts := opts
 		t.Run(fmt.Sprintf("%v", opti), func(t *testing.T) {
 			t.Parallel()
 			testOne(t, p, opts)

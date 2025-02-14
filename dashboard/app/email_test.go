@@ -473,7 +473,6 @@ func TestEmailDup(t *testing.T) {
 
 func TestEmailDup2(t *testing.T) {
 	for i := 0; i < 4; i++ {
-		i := i
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			c := NewCtx(t)
 			defer c.Close()
