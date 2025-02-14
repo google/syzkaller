@@ -86,6 +86,7 @@ func (serv *HTTPServer) Serve(ctx context.Context) error {
 	handle("/corpus", serv.httpCorpus)
 	handle("/corpus.db", serv.httpDownloadCorpus)
 	handle("/cover", serv.httpCover)
+	handle("/coverprogs", serv.httpPrograms)
 	handle("/debuginput", serv.httpDebugInput)
 	handle("/file", serv.httpFile)
 	handle("/filecover", serv.httpFileCover)
@@ -444,6 +445,7 @@ const (
 	DoRawCover
 	DoFilterPCs
 	DoCoverJSONL
+	DoCoverPrograms
 )
 
 func (serv *HTTPServer) httpCover(w http.ResponseWriter, r *http.Request) {
@@ -456,6 +458,18 @@ func (serv *HTTPServer) httpCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serv.httpCoverCover(w, r, DoHTML)
+}
+
+func (serv *HTTPServer) httpPrograms(w http.ResponseWriter, r *http.Request) {
+	if !serv.Cfg.Cover {
+		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
+		return
+	}
+	if r.FormValue("jsonl") != "1" {
+		http.Error(w, "only ?jsonl=1 param is supported", http.StatusBadRequest)
+		return
+	}
+	serv.httpCoverCover(w, r, DoCoverPrograms)
 }
 
 func (serv *HTTPServer) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
@@ -577,6 +591,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		DoRawCover:       {rg.DoRawCover, ctTextPlain},
 		DoFilterPCs:      {rg.DoFilterPCs, ctTextPlain},
 		DoCoverJSONL:     {rg.DoCoverJSONL, ctApplicationJSON},
+		DoCoverPrograms:  {rg.DoCoverPrograms, ctApplicationJSON},
 	}
 
 	if ct := flagToFunc[funcFlag].contentType; ct != "" {
