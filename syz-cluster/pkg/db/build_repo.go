@@ -28,7 +28,7 @@ func NewBuildRepository(client *spanner.Client) *BuildRepository {
 
 func (repo *BuildRepository) Insert(ctx context.Context, build *Build) error {
 	if build.ID == "" {
-		build.ID = uuid.New().String()
+		build.ID = uuid.NewString()
 	}
 	return repo.genericEntityOps.Insert(ctx, build)
 }

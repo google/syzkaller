@@ -28,7 +28,7 @@ func NewReportRepository(client *spanner.Client) *ReportRepository {
 
 func (repo *ReportRepository) Insert(ctx context.Context, rep *SessionReport) error {
 	if rep.ID == "" {
-		rep.ID = uuid.New().String()
+		rep.ID = uuid.NewString()
 	}
 	return repo.genericEntityOps.Insert(ctx, rep)
 }

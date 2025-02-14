@@ -72,7 +72,7 @@ func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
 		patches, patchesErr = queryPatches()
 	}
 	if series.ID == "" {
-		series.ID = uuid.New().String()
+		series.ID = uuid.NewString()
 	}
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
@@ -103,7 +103,7 @@ func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
 			}
 			stmts = append(stmts, seriesStmt)
 			for _, patch := range patches {
-				patch.ID = uuid.New().String()
+				patch.ID = uuid.NewString()
 				patch.SeriesID = series.ID
 				stmt, err := spanner.InsertStruct("Patches", patch)
 				if err != nil {
