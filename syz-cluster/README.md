@@ -2,8 +2,12 @@
 
 1. Install and start minikube: https://minikube.sigs.k8s.io/docs/start/
 ```
-$ minikube start
+$ minikube start --cni=cilium
 ```
+
+`--cni=cilium` enables the use of a more advanced Network plugin that supports
+the emulation of network policies.
+
 2. Add a Spanner Add-on: https://minikube.sigs.k8s.io/docs/handbook/addons/cloud-spanner/
 ```
 $ minikube addons enable cloud-spanner
@@ -14,10 +18,14 @@ $ make all-containers
 ```
 4. Deploy the cluster:
 ```
+$ make restart-spanner
 $ kubectl create namespace argo
 $ minikube kubectl -- kubectl apply -k ./overlays/dev/
 $ argo template create workflow/*/workflow-template.yaml
-$ make restart-spanner
+```
+5. (Optional) Pre-fetch the kernel git repository:
+```
+kubectl create job --from=cronjob/kernel-repo-update kernel-repo-update-manual
 ```
 
 ## Developmental tips
