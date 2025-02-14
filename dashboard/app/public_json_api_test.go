@@ -271,6 +271,7 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 			{
 				FileCoverageWithDetails: coveragedb.FileCoverageWithDetails{
 					Filepath: "/file",
+					Commit:   "test-commit",
 				},
 				LinesInstrumented: []int64{1, 2, 3},
 				HitCounts:         []int64{10, 20, 30},
@@ -283,7 +284,7 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `{
 	"repo": "test-repo",
-	"commit": "",
+	"commit": "test-commit",
 	"file_path": "/file",
 	"functions": [
 		{
