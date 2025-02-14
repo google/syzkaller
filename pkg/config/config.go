@@ -36,13 +36,9 @@ func LoadData(data []byte, cfg interface{}) error {
 }
 
 func SaveFile(filename string, cfg interface{}) error {
-	data, err := SaveData(cfg)
+	data, err := json.MarshalIndent(cfg, "", "\t")
 	if err != nil {
 		return err
 	}
 	return osutil.WriteFile(filename, data)
-}
-
-func SaveData(cfg interface{}) ([]byte, error) {
-	return json.MarshalIndent(cfg, "", "\t")
 }
