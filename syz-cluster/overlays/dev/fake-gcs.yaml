@@ -52,3 +52,32 @@ spec:
     port: 4443
     targetPort: 4443
   type: LoadBalancer
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fake-gcs-server-access
+spec:
+  podSelector:
+    matchLabels:
+      app: fake-gcs-server
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: controller
+    - podSelector:
+        matchLabels:
+          app: reporter
+    - podSelector:
+        matchLabels:
+          app: web-dashboard
+    - podSelector:
+        matchLabels:
+          tier: workflow
+    - podSelector:
+        matchLabels:
+          app: workflow-controller

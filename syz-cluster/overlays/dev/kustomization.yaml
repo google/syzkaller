@@ -7,11 +7,13 @@ resources:
   - ../../series-tracker
   - ../../kernel-disk
   - ../../reporter
+  - ../common
   - global-config.yaml
   - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
   - workflow-roles.yaml
   - fake-gcs.yaml
   - workflow-artifacts.yaml
+  - network-policy-spanner.yaml
 
 patches:
   - target:
@@ -27,8 +29,7 @@ patches:
       - op: replace
         path: /data
         value:
-          config: |
-            executor:
+          executor: |
               env:
                 - name: STORAGE_EMULATOR_HOST
                   value: http://fake-gcs-server.default.svc.cluster.local:4443
