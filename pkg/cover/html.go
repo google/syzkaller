@@ -32,7 +32,7 @@ type HandlerParams struct {
 }
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ type lineCoverExport struct {
 }
 
 func (rg *ReportGenerator) DoLineJSON(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 }
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	progs := fixUpPCs(params.Progs, params.Filter)
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	progs := fixUpPCs(params.Progs, params.Filter)
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 }
 
 func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	progs := fixUpPCs(params.Progs, params.Filter)
 	var pcs []uint64
 	if len(progs) == 1 && rg.rawCoverEnabled {
 		pcs = append([]uint64{}, progs[0].PCs...)
@@ -286,7 +286,7 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 }
 
 func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params HandlerParams) error {
-	progs := fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	progs := fixUpPCs(params.Progs, params.Filter)
 	var pcs []uint64
 	uniquePCs := make(map[uint64]bool)
 	for _, prog := range progs {
@@ -391,7 +391,7 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 }
 
 func (rg *ReportGenerator) DoFileCover(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -491,7 +491,7 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 }
 
 func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -567,7 +567,7 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 }
 
 func (rg *ReportGenerator) DoModuleCover(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	data, err := rg.convertToStats(progs)
 	if err != nil {
 		return err
@@ -587,7 +587,7 @@ var csvHeader = []string{
 }
 
 func (rg *ReportGenerator) DoFuncCover(w io.Writer, params HandlerParams) error {
-	var progs = fixUpPCs(rg.target.Arch, params.Progs, params.Filter)
+	var progs = fixUpPCs(params.Progs, params.Filter)
 	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
 	if err != nil {
 		return err
@@ -618,7 +618,7 @@ func (rg *ReportGenerator) DoFuncCover(w io.Writer, params HandlerParams) error 
 	return writer.WriteAll(data)
 }
 
-func fixUpPCs(target string, progs []Prog, coverFilter map[uint64]struct{}) []Prog {
+func fixUpPCs(progs []Prog, coverFilter map[uint64]struct{}) []Prog {
 	if coverFilter != nil {
 		for i, prog := range progs {
 			var nPCs []uint64
