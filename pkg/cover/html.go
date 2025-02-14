@@ -226,10 +226,10 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
 		return err
 	}
-	progPCs := make(map[uint64]int)
+	pcProgCount := make(map[uint64]int)
 	for _, prog := range progs {
 		for _, pc := range prog.PCs {
-			progPCs[pc]++
+			pcProgCount[pc]++
 		}
 	}
 	encoder := json.NewEncoder(w)
@@ -245,7 +245,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 			StartCol:  frame.Range.StartCol,
 			EndLine:   frame.Range.EndLine,
 			EndCol:    endCol,
-			HitCount:  progPCs[frame.PC],
+			HitCount:  pcProgCount[frame.PC],
 			Inline:    frame.Inline,
 			PC:        frame.PC,
 		}
