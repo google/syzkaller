@@ -10,6 +10,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            app: kernel-repo-update
         spec:
           restartPolicy: Never
           volumes:

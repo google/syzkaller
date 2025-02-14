@@ -14,6 +14,9 @@ spec:
   ttlStrategy:
     # Keep finihed workflows for 12 hours after completion.
     secondsAfterCompletion: 43200
+  podMetadata:
+    labels:
+      tier: workflow
   arguments:
     parameters:
       - name: session-id

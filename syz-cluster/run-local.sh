@@ -21,4 +21,5 @@ kubectl run run-local --image="$name-local" \
   --env="SPANNER_DATABASE_URI=projects/my-project/instances/my-instance/databases/db" \
   --env="LOCAL_BLOB_STORAGE_PATH=/tmp/blobs/" \
   --rm \
+  --labels="app=db-mgmt" \
   --attach -- "$@"
