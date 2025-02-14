@@ -4,7 +4,9 @@
 package subsystem
 
 import (
+	"maps"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -48,7 +50,7 @@ func (p *PathMatcher) register(item *Subsystem) {
 }
 
 func (p *PathMatcher) Match(path string) []*Subsystem {
-	ret := []*Subsystem{}
+	ret := map[*Subsystem]struct{}{}
 	for _, m := range p.matches {
 		if m.exclude != nil && m.exclude.MatchString(path) {
 			continue
@@ -56,9 +58,9 @@ func (p *PathMatcher) Match(path string) []*Subsystem {
 		if m.include != nil && !m.include.MatchString(path) {
 			continue
 		}
-		ret = append(ret, m.object)
+		ret[m.object] = struct{}{}
 	}
-	return ret
+	return slices.Collect(maps.Keys(ret))
 }
 
 func buildMatch(rule PathRule, item *Subsystem) *match {
