@@ -132,7 +132,6 @@ func testEachFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, fil
 		t.Fatal("found no source files")
 	}
 	for _, file := range files {
-		file := file
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			t.Parallel()
 			buildDir := t.TempDir()

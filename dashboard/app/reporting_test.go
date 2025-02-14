@@ -1213,7 +1213,6 @@ func TestObsoletePeriod(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			ret := test.bug.obsoletePeriod(c)
 			assert.Equal(t, test.period, ret)

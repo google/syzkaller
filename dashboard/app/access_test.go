@@ -421,7 +421,6 @@ func TestAccess(t *testing.T) {
 				// In the short mode, only test that there's no public access to non-public URLs.
 				continue
 			}
-			ent := ent
 			t.Run(fmt.Sprintf("level%d_%d", requestLevel, i), func(t *testing.T) {
 				reply := checkPage(t, requestLevel, ent.level, ent.url)
 				checkReferences(t, ent.url, requestLevel, reply)

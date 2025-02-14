@@ -301,7 +301,6 @@ func TestParsePatchSubject(t *testing.T) {
 		},
 	}
 	for id, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(id), func(t *testing.T) {
 			ret, ok := parsePatchSubject(test.subj)
 			assert.True(t, ok)

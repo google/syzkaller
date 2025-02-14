@@ -152,7 +152,6 @@ func (job *triageJob) run(fuzzer *Fuzzer) {
 	}
 	var wg sync.WaitGroup
 	for call, info := range job.calls {
-		call, info := call, info
 		wg.Add(1)
 		go func() {
 			job.handleCall(call, info)

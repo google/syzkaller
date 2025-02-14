@@ -430,7 +430,6 @@ func TestParseLinuxOpcodes(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		test := test // Capturing the value.
 		t.Run(fmt.Sprintf("%s/%v", test.arch, idx), func(t *testing.T) {
 			t.Parallel()
 			_, linuxReporter := prepareLinuxReporter(t, test.arch)

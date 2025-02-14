@@ -112,7 +112,6 @@ func TestBisectRandomSlice(t *testing.T) {
 
 func BenchmarkSplits(b *testing.B) {
 	for _, guilty := range []int{1, 2, 3, 4} {
-		guilty := guilty
 		b.Run(fmt.Sprintf("%d_guilty", guilty), func(b *testing.B) {
 			var sum int
 			for i := 0; i < b.N; i++ {

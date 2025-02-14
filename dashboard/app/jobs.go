@@ -1855,7 +1855,6 @@ func (j *bugJob) loadBuild(c context.Context) error {
 func fullBackportInfo(c context.Context, list []*backportInfo) error {
 	crashLoader := &dependencyLoader[Crash]{}
 	for _, info := range list {
-		info := info
 		if info.job.CrashID == 0 {
 			continue
 		}
@@ -1869,7 +1868,6 @@ func fullBackportInfo(c context.Context, list []*backportInfo) error {
 	}
 	buildLoader := &dependencyLoader[Build]{}
 	for _, info := range list {
-		info := info
 		if info.crash == nil {
 			continue
 		}

@@ -51,7 +51,6 @@ func exportNamespace() error {
 	iBugChan := make(chan int)
 	g, _ := errgroup.WithContext(context.Background())
 	for i := 0; i < *flagParallel; i++ {
-		i := i
 		g.Go(func() error {
 			for iBug := range iBugChan {
 				bug, err := cli.Bug(bugs[iBug].Link)

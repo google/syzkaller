@@ -148,7 +148,6 @@ func TestReportGenerator(t *testing.T) {
 					t.Skip("skipping the test due to broken cross-compiler:\n" + target.BrokenCompiler)
 				}
 				for _, test := range tests {
-					test := test
 					t.Run(test.Name, func(t *testing.T) {
 						if test.Supports != nil && !test.Supports(target) {
 							t.Skip("unsupported target")

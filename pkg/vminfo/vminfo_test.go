@@ -49,7 +49,6 @@ func TestSyscalls(t *testing.T) {
 	t.Parallel()
 	for _, arches := range targets.List {
 		for _, target := range arches {
-			target := target
 			if target.OS == targets.Linux {
 				continue // linux has own TestLinuxSyscalls test
 			}

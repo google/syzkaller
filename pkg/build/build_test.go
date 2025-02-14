@@ -17,7 +17,6 @@ import (
 func TestCompilerIdentity(t *testing.T) {
 	t.Parallel()
 	for _, compiler := range []string{"gcc", "clang", "bazel"} {
-		compiler := compiler
 		t.Run(compiler, func(t *testing.T) {
 			t.Parallel()
 			if _, err := exec.LookPath(compiler); err != nil {
@@ -42,7 +41,6 @@ func TestCompilerIdentity(t *testing.T) {
 
 func TestExtractCauseInner(t *testing.T) {
 	for i, test := range rootCauseTests {
-		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			reason, file := extractCauseInner([]byte(test.e), test.src)
 			if test.reason != string(reason) {

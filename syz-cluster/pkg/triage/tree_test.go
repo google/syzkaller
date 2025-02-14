@@ -51,7 +51,6 @@ func TestSelectTree(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.testName, func(t *testing.T) {
 			ret := SelectTree(test.series, trees)
 			assert.NotNil(t, ret)

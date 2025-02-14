@@ -71,7 +71,6 @@ CONFIG_DEBUG_ATOMIC_SLEEP=y
 CONFIG_PROVE_LOCKING=y
 `
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			conf, err := kconfig.ParseConfigData([]byte(base), "base")
 			if err != nil {
