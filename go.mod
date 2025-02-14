@@ -20,6 +20,7 @@ require (
 	github.com/google/flatbuffers v25.1.24+incompatible
 	github.com/google/generative-ai-go v0.19.0
 	github.com/google/go-cmp v0.6.0
+	github.com/google/keep-sorted v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465
@@ -72,6 +73,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.0 // indirect
+	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/alecthomas/go-check-sumtype v0.3.1 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.5 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect

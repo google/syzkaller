@@ -261,6 +261,8 @@ format: format_go format_cpp format_sys
 
 format_go:
 	$(GO) fmt ./...
+	$(HOSTGO) install github.com/google/keep-sorted
+	find . -name "*.go" -exec bin/keep-sorted {} \;
 
 format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h \
