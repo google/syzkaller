@@ -39,7 +39,7 @@ require (
 	google.golang.org/appengine/v2 v2.0.5
 	google.golang.org/genproto v0.0.0-20250122153221-138b5a5a4fd4
 	google.golang.org/grpc v1.70.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v0.32.1
