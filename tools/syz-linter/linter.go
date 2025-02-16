@@ -75,6 +75,8 @@ func run(p *analysis.Pass) (interface{}, error) {
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
 				pass.checkIfStmt(n)
+			case *ast.AssignStmt:
+				pass.checkAssignStmt(n)
 			}
 			return true
 		})
@@ -381,4 +383,26 @@ func (pass *Pass) nodeString(n ast.Node) string {
 	w := new(bytes.Buffer)
 	printer.Fprint(w, pass.Fset, n)
 	return w.String()
+}
+
+// checkAssignStmt warns about loop variables duplication attempts.
+// Before go122 loop variables were per-loop, not per-iter.
+func (pass *Pass) checkAssignStmt(n *ast.AssignStmt) {
+	if len(n.Lhs) != len(n.Rhs) {
+		return
+	}
+	for i, lhs := range n.Lhs {
+		lIdent, ok := lhs.(*ast.Ident)
+		if !ok {
+			return
+		}
+		rIdent, ok := n.Rhs[i].(*ast.Ident)
+		if !ok {
+			return
+		}
+		if lIdent.Name != rIdent.Name {
+			return
+		}
+	}
+	pass.report(n, "Don't duplicate loop variables. They are per-iter (not per-loop) since go122.")
 }
