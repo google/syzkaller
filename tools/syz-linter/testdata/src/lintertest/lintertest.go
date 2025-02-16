@@ -136,3 +136,11 @@ func minmax() {
 		x = 10
 	}
 }
+
+func loopvar() {
+	s := []int{1, 2, 3}
+	for i, v := range s {
+		i, v := i, v // want "Don't duplicate loop variables.*"
+		_, _ = i, v
+	}
+}
