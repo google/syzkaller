@@ -8,6 +8,7 @@ resources:
   - ../../kernel-disk
   - ../../reporter
   - ../common
+  - ../../workflow
   - global-config.yaml
   - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
   - workflow-roles.yaml

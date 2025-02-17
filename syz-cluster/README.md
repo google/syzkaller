@@ -20,8 +20,7 @@ $ make all-containers
 ```
 $ make restart-spanner
 $ kubectl create namespace argo
-$ minikube kubectl -- kubectl apply -k ./overlays/dev/
-$ argo template create workflow/*/workflow-template.yaml
+$ kubectl apply -k ./overlays/dev/
 ```
 5. (Optional) Pre-fetch the kernel git repository:
 ```
