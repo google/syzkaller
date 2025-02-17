@@ -95,4 +95,10 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `f4e61f0c9add3b00bd5f2df3c814d688849b8707`,
 		FixTitle:   `x86/kvm: Fix broken irq restoration in kvm_wait`,
 	},
+	{
+		// Fixes `error: implicit declaration of function 'acpi_mps_check'`.
+		GuiltyHash: `342f43af70dbc74f8629381998f92c060e1763a2`,
+		FixHash:    `ea7b4244b3656ca33b19a950f092b5bbc718b40c`,
+		FixTitle:   `x86/setup: Explicitly include acpi.h`,
+	},
 }
