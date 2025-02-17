@@ -76,33 +76,30 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		return nil, fmt.Errorf("failed to query the last build: %w", err)
 	}
 	selector := triage.NewCommitSelector(ops)
-	commits, err := selector.Select(series, tree, lastBuild)
+	commit, err := selector.Select(series, tree, lastBuild)
 	if err != nil {
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to run the commit selector: %w", err)
-	}
-	if len(commits) == 0 {
+	} else if commit == "" {
 		return &api.TriageResult{
 			Skip: &api.SkipRequest{
 				Reason: "no suitable commits found",
 			},
 		}, nil
 	}
-	ret := &api.TriageResult{}
-	for _, commit := range commits {
-		base := api.BuildRequest{
-			TreeName:   tree.Name,
-			ConfigName: tree.ConfigName,
-			CommitHash: commit,
-			Arch:       arch,
-		}
-		patched := base
-		patched.SeriesID = series.ID
-		ret.Fuzz = append(ret.Fuzz, &api.FuzzConfig{
-			Base:    base,
-			Patched: patched,
-			Config:  "all",
-		})
+	base := api.BuildRequest{
+		TreeName:   tree.Name,
+		ConfigName: tree.ConfigName,
+		CommitHash: commit,
+		Arch:       arch,
 	}
+	ret := &api.TriageResult{
+		Fuzz: &api.FuzzConfig{
+			Base:    base,
+			Patched: base,
+			Config:  "all",
+		},
+	}
+	ret.Fuzz.Patched.SeriesID = series.ID
 	return ret, nil
 }

@@ -6,10 +6,10 @@ package api
 import "time"
 
 type TriageResult struct {
-	// If true, ignore the patch series completely.
+	// If set, ignore the patch series completely.
 	Skip *SkipRequest `json:"skip"`
-	// Fuzzing configurations to try.
-	Fuzz []*FuzzConfig `json:"fuzz"`
+	// Fuzzing configuration to try (NULL if nothing).
+	Fuzz *FuzzConfig `json:"fuzz"`
 }
 
 type SkipRequest struct {
@@ -133,12 +133,11 @@ type Finding struct {
 	LogURL string `json:"log_url"`
 }
 
-// For now, there's no reason to obtain these really via a real API call.
+// For now, there's no reason to obtain these via a real API call.
 var defaultTrees = []*Tree{
 	{
-		Name: `torvalds`,
-		// TODO: consider https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.
-		URL:        `git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git`,
+		Name:       `torvalds`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
 		Branch:     `master`,
 		Priority:   0,
 		EmailLists: []string{},

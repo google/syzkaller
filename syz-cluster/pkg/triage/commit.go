@@ -28,40 +28,45 @@ func NewCommitSelector(ops TreeOps) *CommitSelector {
 	return &CommitSelector{ops: ops}
 }
 
-// Returns the commit hashes to try.
-func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *api.Build) ([]string, error) {
+// Select returns the best matching commit hash.
+func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *api.Build) (string, error) {
 	head, err := cs.ops.HeadCommit(tree)
 	if err != nil || head == nil {
-		return nil, err
+		return "", err
 	}
 	log.Printf("current HEAD: %q (%v)", head.Hash, head.Date)
 	// If the series is already too old, it may be incompatible even if it applies cleanly.
-	const seriesLagsBehind = time.Hour * 24 * 10
+	const seriesLagsBehind = time.Hour * 24 * 7
 	if diff := head.CommitDate.Sub(series.PublishedAt); series.PublishedAt.Before(head.CommitDate) &&
 		diff > seriesLagsBehind {
-		log.Printf("the series is too old: %v", diff)
-		return nil, nil
+		log.Printf("the series is too old: %v before the HEAD", diff)
+		return "", nil
 	}
-	hashes := []string{head.Hash}
+
+	// Algorithm:
+	// 1. If the last successful build is sufficiently new, prefer it over the last master.
+	// We should it be renewing it regularly, so the commit should be quite up to date.
+	// 2. If the last build is too old / the series does not apply, give a chance to the
+	// current HEAD.
+
+	var hashes []string
 	if lastBuild != nil {
-		// Let's use the same criteria for the last built commit.
-		// If it's too old already, it's better not to use it.
+		// Check if the commit is still good enough.
 		if diff := head.CommitDate.Sub(lastBuild.CommitDate); diff > seriesLagsBehind {
 			log.Printf("the last successful build is already too old: %v, skipping", diff)
 		} else {
 			hashes = append(hashes, lastBuild.CommitHash)
 		}
 	}
-	var ret []string
-	for _, hash := range hashes {
+	for _, hash := range append(hashes, head.Hash) {
 		log.Printf("considering %q", hash)
 		err := cs.ops.ApplySeries(hash, series.PatchBodies())
 		if err == nil {
 			log.Printf("series can be applied to %q", hash)
-			ret = append(ret, hash)
+			return hash, nil
 		} else {
 			log.Printf("failed to apply to %q: %v", hash, err)
 		}
 	}
-	return ret, nil
+	return "", nil
 }

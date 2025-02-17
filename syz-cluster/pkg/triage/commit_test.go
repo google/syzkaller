@@ -16,53 +16,53 @@ import (
 func TestCommitSelector(t *testing.T) {
 	allApply := map[string]bool{"head": true, "build": true}
 	tests := []struct {
-		name    string
-		ops     TreeOps
-		series  *api.Series
-		last    *api.Build
-		commits []string
+		name   string
+		ops    TreeOps
+		series *api.Series
+		last   *api.Build
+		commit string
 	}{
 		{
-			name:    "fresh series, no last build",
-			series:  &api.Series{PublishedAt: date("2020-Jan-15")},
-			ops:     newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
-			commits: []string{"head"},
+			name:   "fresh series, no last build",
+			series: &api.Series{PublishedAt: date("2020-Jan-15")},
+			ops:    newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
+			commit: "head",
 		},
 		{
-			name:    "fresh series with a fresh last build",
-			series:  &api.Series{PublishedAt: date("2020-Jan-15")},
-			ops:     newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
-			last:    &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-06")},
-			commits: []string{"head", "build"},
+			name:   "fresh series with a fresh last build",
+			series: &api.Series{PublishedAt: date("2020-Jan-15")},
+			ops:    newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
+			last:   &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-06")},
+			commit: "build",
 		},
 		{
-			name:    "fresh series with a too old last build",
-			series:  &api.Series{PublishedAt: date("2020-Jan-15")},
-			ops:     newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
-			last:    &api.Build{CommitHash: "build", CommitDate: date("2019-Dec-20")},
-			commits: []string{"head"},
+			name:   "fresh series with a too old last build",
+			series: &api.Series{PublishedAt: date("2020-Jan-15")},
+			ops:    newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-10")}, allApply),
+			last:   &api.Build{CommitHash: "build", CommitDate: date("2019-Dec-20")},
+			commit: "head",
 		},
 		{
-			name:    "slightly old series",
-			series:  &api.Series{PublishedAt: date("2020-Jan-15")},
-			ops:     newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-20")}, allApply),
-			commits: []string{"head"},
+			name:   "slightly old series, no last build",
+			series: &api.Series{PublishedAt: date("2020-Jan-15")},
+			ops:    newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-20")}, allApply),
+			commit: "head",
 		},
 		{
-			name:    "a too old series",
-			series:  &api.Series{PublishedAt: date("2020-Jan-15")},
-			ops:     newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Feb-15")}, allApply),
-			commits: nil,
+			name:   "a too old series",
+			series: &api.Series{PublishedAt: date("2020-Jan-15")},
+			ops:    newTestGitOps(&vcs.Commit{Hash: "head", CommitDate: date("2020-Feb-15")}, allApply),
+			commit: "",
 		},
 		{
-			name:   "doesn't apply to the older build",
+			name:   "doesn't apply to the known build",
 			series: &api.Series{PublishedAt: date("2020-Jan-15")},
 			ops: newTestGitOps(
 				&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-13")},
 				map[string]bool{"head": true, "build": false},
 			),
-			last:    &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-10")},
-			commits: []string{"head"},
+			last:   &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-10")},
+			commit: "head",
 		},
 		{
 			name:   "doesn't apply anywhere",
@@ -71,17 +71,17 @@ func TestCommitSelector(t *testing.T) {
 				&vcs.Commit{Hash: "head", CommitDate: date("2020-Jan-13")},
 				nil,
 			),
-			last:    &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-10")},
-			commits: nil,
+			last:   &api.Build{CommitHash: "build", CommitDate: date("2020-Jan-10")},
+			commit: "",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewCommitSelector(test.ops)
-			commits, err := selector.Select(test.series, testTree, test.last)
+			commit, err := selector.Select(test.series, testTree, test.last)
 			assert.NoError(t, err)
-			assert.Equal(t, test.commits, commits)
+			assert.Equal(t, test.commit, commit)
 		})
 	}
 }
