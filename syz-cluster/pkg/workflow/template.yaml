@@ -39,35 +39,14 @@ spec:
         - - name: abort-on-skip-outcome
             template: exit-workflow
             when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip') != nil}}"
-        - - name: iterate-fuzz
-            template: process-fuzz-wrapper
-            arguments:
-              parameters:
-                - name: element
-                  value: "{{item}}"
-            # Because of parallelism=1, the steps will be scheduled one after another.
-            # Because of failFast=True, the Failed status acts as the "break" operation.
-            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
-            # Ignoge the (fake) Failed status to still keep the overall workflow status a Success.
-            continueOn:
-              failed: true
-    # The wrapper inverts the process-fuzz status in order to let iterate-fuzz iterate until a success.
-    - name: process-fuzz-wrapper
-      inputs:
-        parameters:
-          - name: element
-      steps:
         - - name: run-process-fuzz
             template: process-fuzz
             arguments:
               parameters:
                 - name: element
-                  value: "{{inputs.parameters.element}}"
+                  value: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
             continueOn:
               failed: true
-        - - name: break-if-succeeded
-            template: exit-workflow
-            when: "{{steps['run-process-fuzz'].status}} == Succeeded"
     - name: process-fuzz
       inputs:
         parameters:
@@ -90,7 +69,7 @@ spec:
               artifacts:
                 - name: request
                   from: "{{steps.save-base-req.outputs.artifacts.request}}"
-        - - name: continue-if-base-build-failed
+        - - name: abort-if-base-build-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: save-patched-req
@@ -112,7 +91,7 @@ spec:
               artifacts:
                 - name: request
                   from: "{{steps.save-patched-req.outputs.artifacts.request}}"
-        - - name: continue-if-patched-build-failed
+        - - name: abort-if-patched-build-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: boot-test-base
