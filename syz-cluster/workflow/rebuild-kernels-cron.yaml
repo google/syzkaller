@@ -1,0 +1,93 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Do smoke builds of all kernel repositories that might be used as base kernels.
+# The kernels will be rebuilt only if there are newer commits available, so
+# it's okay to invoke this workflow often.
+# TODO: once we switch to some build service, ensure that these are cached.
+
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: rebuild-kernels-cron
+spec:
+  # Twice each day.
+  schedule: "30 */12 * * *"
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: main
+    podMetadata:
+      labels:
+        tier: workflow
+    templates:
+    - name: main
+      parallelism: 1
+      steps:
+        - - name: query-trees
+            template: query-trees-template
+        - - name: iterate-trees
+            template: process-tree
+            arguments:
+              parameters:
+                - name: tree
+                  value: "{{item}}"
+            withParam: "{{=jsonpath(steps['query-trees'].outputs.result, '$.trees')}}"
+            continueOn:
+              failed: true
+    - name: query-trees-template
+      http:
+        url: "http://controller-service:8080/trees"
+        method: "GET"
+    - name: process-tree
+      inputs:
+        parameters:
+          - name: tree
+      steps:
+        - - name: convert-json
+            template: convert-to-request
+            arguments:
+              parameters:
+                - name: tree
+                  value: "{{inputs.parameters.tree}}"
+        - - name: run-build
+            templateRef:
+              name: build-step-template
+              template: build-step
+            arguments:
+              parameters:
+                - name: smoke-build
+                  value: "true"
+              artifacts:
+                - name: request
+                  from: "{{steps.convert-json.outputs.artifacts.request}}"
+    - name: convert-to-request
+      inputs:
+        parameters:
+          - name: tree
+      outputs:
+        artifacts:
+          - name: request
+            path: /output/request.json
+      volumes:
+      - name: output-volume
+        emptyDir: {}
+      script:
+        image: python:3.9
+        command: [python]
+        volumeMounts:
+          - name: output-volume
+            mountPath: /output
+        source: |
+          import json
+          import sys
+
+          input = {{inputs.parameters.tree}}
+          output = {
+            "arch": "amd64", # TODO: consider others as well.
+            "tree_name": input["name"],
+            "commit_hash": input["branch"],
+            "config_name": input["config_name"]
+          }
+          with open('/output/request.json', 'w') as f:
+            json.dump(output, f)

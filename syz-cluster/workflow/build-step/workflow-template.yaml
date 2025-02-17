@@ -13,6 +13,12 @@ spec:
           - name: findings
             value: "false"
           - name: test-name
+            value: ""
+          - name: smoke-build
+            value: "false"
+          # For some reason, "{{=workflow.parameters.session-id ?? ''}}" didn't work here.
+          - name: session-id
+            value: ""
         artifacts:
           - name: request
             path: /tmp/request.json
@@ -53,9 +59,10 @@ spec:
           "--request", "/tmp/request.json",
           "--repository", "/workdir",
           "--output", "/output",
-          "--session", "{{workflow.parameters.session-id}}",
+          "--session", "{{inputs.parameters.session-id}}",
           "--test_name", "{{inputs.parameters.test-name}}",
-          "-findings={{inputs.parameters.findings}}"
+          "-findings={{inputs.parameters.findings}}",
+          "-smoke_build={{inputs.parameters.smoke-build}}"
           ]
         resources:
           requests:
@@ -103,6 +110,8 @@ spec:
           - name: result
             valueFrom:
               path: /output/result.json
+              default: ""
         artifacts:
           - name: kernel
             path: /output
+            optional: true

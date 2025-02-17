@@ -133,8 +133,8 @@ type Finding struct {
 	LogURL string `json:"log_url"`
 }
 
-// For now, there's no reason to obtain these via a real API call.
-var defaultTrees = []*Tree{
+// Let them stay here until we find a better place.
+var DefaultTrees = []*Tree{
 	{
 		Name:       `torvalds`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,

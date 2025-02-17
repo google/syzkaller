@@ -34,17 +34,25 @@ func (client Client) SkipSession(ctx context.Context, sessionID string, req *Ski
 	return err
 }
 
-func (client Client) GetTrees() []*Tree {
-	return defaultTrees
+type TreesResp struct {
+	Trees []*Tree `json:"trees"`
+}
+
+func (client Client) GetTrees(ctx context.Context) (*TreesResp, error) {
+	return getJSON[TreesResp](ctx, client.baseURL+"/trees")
 }
 
 type LastBuildReq struct {
 	Arch       string
 	ConfigName string
 	TreeName   string
+	Commit     string
+	Status     string
 }
 
-func (client Client) LastSuccessfulBuild(ctx context.Context, req *LastBuildReq) (*Build, error) {
+const BuildSuccess = "success"
+
+func (client Client) LastBuild(ctx context.Context, req *LastBuildReq) (*Build, error) {
 	return postJSON[LastBuildReq, Build](ctx, client.baseURL+"/builds/last", req)
 }
 

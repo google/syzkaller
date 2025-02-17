@@ -10,7 +10,6 @@ rules:
 - apiGroups:
     - argoproj.io
   resources:
-    - workflowartifactgctasks
     - workflows
   verbs:
     - get
@@ -20,7 +19,22 @@ rules:
     - update
     - patch
     - delete
-
+    - status
+- apiGroups:
+    - argoproj.io
+  resources:
+    - workflowtasksets
+    - workflowartifactgctasks
+  verbs:
+    - list
+    - watch
+- apiGroups:
+  - argoproj.io
+  resources:
+    - workflowtasksets/status
+    - workflowartifactgctasks/status
+  verbs:
+    - patch
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
@@ -67,3 +81,13 @@ subjects:
 - kind: ServiceAccount
   name: default
   namespace: default
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: default
+  name: default.service-account-token
+type: kubernetes.io/service-account-token

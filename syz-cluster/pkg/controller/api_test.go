@@ -32,10 +32,11 @@ func TestAPISuccessfulBuild(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)
 	UploadTestBuild(t, ctx, client, testBuild)
-	info, err := client.LastSuccessfulBuild(ctx, &api.LastBuildReq{
+	info, err := client.LastBuild(ctx, &api.LastBuildReq{
 		Arch:       testBuild.Arch,
 		TreeName:   testBuild.TreeName,
 		ConfigName: testBuild.ConfigName,
+		Status:     api.BuildSuccess,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, testBuild, info)

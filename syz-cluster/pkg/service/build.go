@@ -48,7 +48,13 @@ func (s *BuildService) Upload(ctx context.Context, req *api.UploadBuildReq) (*ap
 }
 
 func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*api.Build, error) {
-	build, err := s.buildRepo.LastBuiltTree(ctx, req.Arch, req.TreeName, req.ConfigName)
+	build, err := s.buildRepo.LastBuiltTree(ctx, &db.LastBuildParams{
+		Arch:       req.Arch,
+		TreeName:   req.TreeName,
+		ConfigName: req.ConfigName,
+		Commit:     req.Commit,
+		Status:     req.Status,
+	})
 	if build == nil || err != nil {
 		return nil, err
 	}
@@ -58,7 +64,7 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 		ConfigName:   build.ConfigName,
 		CommitHash:   build.CommitHash,
 		CommitDate:   build.CommitDate,
-		BuildSuccess: true,
+		BuildSuccess: build.Status == db.BuildSuccess,
 	}
 	if !build.SeriesID.IsNull() {
 		resp.SeriesID = build.SeriesID.String()
