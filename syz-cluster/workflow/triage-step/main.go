@@ -57,7 +57,11 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
-	tree := triage.SelectTree(series, client.GetTrees())
+	trees, err := client.GetTrees(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trees: %w", err)
+	}
+	tree := triage.SelectTree(series, trees.Trees)
 	if tree == nil {
 		return &api.TriageResult{
 			Skip: &api.SkipRequest{
@@ -66,10 +70,11 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		}, nil
 	}
 	arch := "amd64"
-	lastBuild, err := client.LastSuccessfulBuild(ctx, &api.LastBuildReq{
+	lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
 		Arch:       arch,
 		ConfigName: tree.ConfigName,
 		TreeName:   tree.Name,
+		Status:     api.BuildSuccess,
 	})
 	if err != nil {
 		// TODO: the workflow step must be retried.

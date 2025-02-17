@@ -14,7 +14,13 @@ func TestLastSuccessfulBuild(t *testing.T) {
 	client, ctx := NewTransientDB(t)
 	repo := NewBuildRepository(client)
 
-	build, err := repo.LastBuiltTree(ctx, "amd64", "mainline", "kasan")
+	params := &LastBuildParams{
+		Arch:       "amd64",
+		TreeName:   "mainline",
+		ConfigName: "kasan",
+		Status:     BuildSuccess,
+	}
+	build, err := repo.LastBuiltTree(ctx, params)
 	assert.NoError(t, err)
 	assert.Nil(t, build)
 
@@ -30,9 +36,16 @@ func TestLastSuccessfulBuild(t *testing.T) {
 	assert.NoError(t, err)
 
 	// It should not be queried.
-	build, err = repo.LastBuiltTree(ctx, "amd64", "mainline", "kasan")
+	build, err = repo.LastBuiltTree(ctx, params)
 	assert.NoError(t, err)
 	assert.Nil(t, build)
+
+	// .. but if don't specify the status, it should be there.
+	build, err = repo.LastBuiltTree(ctx, &LastBuildParams{
+		TreeName: "mainline",
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, build)
 
 	// Insert the correct one.
 	err = repo.Insert(ctx, &Build{
@@ -46,15 +59,16 @@ func TestLastSuccessfulBuild(t *testing.T) {
 	assert.NoError(t, err)
 
 	// It should be in the output.
-	build, err = repo.LastBuiltTree(ctx, "amd64", "mainline", "kasan")
+	build, err = repo.LastBuiltTree(ctx, params)
 	assert.NoError(t, err)
 	assert.Equal(t, "good", build.CommitHash)
 
 	// But not for different arguments.
-	build, err = repo.LastBuiltTree(ctx, "arm64", "mainline", "kasan")
-	assert.NoError(t, err)
-	assert.Nil(t, build)
-	build, err = repo.LastBuiltTree(ctx, "amd64", "mainline", "kmsan")
+	build, err = repo.LastBuiltTree(ctx, &LastBuildParams{
+		Arch:       "arm64",
+		TreeName:   "mainline",
+		ConfigName: "kasan",
+	})
 	assert.NoError(t, err)
 	assert.Nil(t, build)
 }

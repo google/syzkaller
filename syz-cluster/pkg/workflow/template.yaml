@@ -66,6 +66,8 @@ spec:
               parameters:
                 - name: test-name
                   value: "Build Base"
+                - name: session-id
+                  value: "{{workflow.parameters.session-id}}"
               artifacts:
                 - name: request
                   from: "{{steps.save-base-req.outputs.artifacts.request}}"
@@ -88,6 +90,8 @@ spec:
                   value: "Build Patched"
                 - name: findings
                   value: "true"
+                - name: session-id
+                  value: "{{workflow.parameters.session-id}}"
               artifacts:
                 - name: request
                   from: "{{steps.save-patched-req.outputs.artifacts.request}}"

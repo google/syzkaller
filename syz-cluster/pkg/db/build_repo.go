@@ -33,18 +33,40 @@ func (repo *BuildRepository) Insert(ctx context.Context, build *Build) error {
 	return repo.genericEntityOps.Insert(ctx, build)
 }
 
-func (repo *BuildRepository) LastBuiltTree(ctx context.Context, arch, tree, config string) (*Build, error) {
+type LastBuildParams struct {
+	Arch       string
+	TreeName   string
+	ConfigName string
+	Status     string
+	Commit     string
+}
+
+func (repo *BuildRepository) LastBuiltTree(ctx context.Context, params *LastBuildParams) (*Build, error) {
 	stmt := spanner.Statement{
-		SQL: "SELECT * FROM `Builds` WHERE `TreeName` = @tree" +
-			" AND `Arch` = @arch AND `ConfigName` = @config" +
-			" AND `SeriesID` IS NULL AND `Status` = 'success'" +
-			" ORDER BY `CommitDate` DESC LIMIT 1",
-		Params: map[string]interface{}{
-			"tree":   tree,
-			"arch":   arch,
-			"config": config,
-		},
+		SQL:    "SELECT * FROM `Builds` WHERE 1=1",
+		Params: map[string]interface{}{},
 	}
+	if params.Arch != "" {
+		stmt.SQL += " AND `Arch` = @arch"
+		stmt.Params["arch"] = params.Arch
+	}
+	if params.TreeName != "" {
+		stmt.SQL += " AND `TreeName` = @tree"
+		stmt.Params["tree"] = params.TreeName
+	}
+	if params.ConfigName != "" {
+		stmt.SQL += " AND `ConfigName` = @config"
+		stmt.Params["config"] = params.ConfigName
+	}
+	if params.Status != "" {
+		stmt.SQL += " AND `Status` = @status"
+		stmt.Params["status"] = params.Status
+	}
+	if params.Commit != "" {
+		stmt.SQL += " AND `CommitHash` = @commit"
+		stmt.Params["commit"] = params.Commit
+	}
+	stmt.SQL += " ORDER BY `CommitDate` DESC LIMIT 1"
 	iter := repo.client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 	return readOne[Build](iter)

@@ -44,6 +44,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
+	mux.HandleFunc("/trees", c.getTrees)
 	return mux
 }
 
@@ -166,4 +167,10 @@ func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[*api.UploadSessionResp](w, resp)
+}
+
+func (c APIServer) getTrees(w http.ResponseWriter, r *http.Request) {
+	api.ReplyJSON(w, &api.TreesResp{
+		Trees: api.DefaultTrees,
+	})
 }

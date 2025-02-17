@@ -31,15 +31,20 @@ var (
 	flagTestName   = flag.String("test_name", "", "test name")
 	flagSession    = flag.String("session", "", "session ID")
 	flagFindings   = flag.Bool("findings", false, "report build failures as findings")
+	flagSmokeBuild = flag.Bool("smoke_build", false, "build only if new, don't report findings")
 )
 
 func main() {
 	flag.Parse()
 	ensureFlags(*flagRequest, "--request",
 		*flagRepository, "--repository",
-		*flagOutput, "--output",
-		*flagSession, "--session",
-		*flagTestName, "--test_name")
+		*flagOutput, "--output")
+	if !*flagSmokeBuild {
+		ensureFlags(
+			*flagTestName, "--test_name",
+			*flagSession, "--session",
+		)
+	}
 
 	req := readRequest()
 	ctx := context.Background()
@@ -55,22 +60,31 @@ func main() {
 	}
 	uploadReq := &api.UploadBuildReq{
 		Build: api.Build{
+			Arch:       req.Arch,
+			ConfigName: req.ConfigName,
 			TreeName:   req.TreeName,
-			CommitHash: req.CommitHash,
 			SeriesID:   req.SeriesID,
 		},
 	}
-
 	output := new(bytes.Buffer)
 	tracer := &debugtracer.GenericTracer{
 		WithTime:    false,
 		TraceWriter: output,
 		OutDir:      "",
 	}
-
 	commit, err := checkoutKernel(tracer, req, series)
 	if commit != nil {
+		uploadReq.CommitHash = commit.Hash
 		uploadReq.CommitDate = commit.CommitDate
+	}
+	if *flagSmokeBuild {
+		skip, err := alreadyBuilt(ctx, client, uploadReq)
+		if err != nil {
+			app.Fatalf("failed to query known builds: %v", err)
+		} else if skip {
+			log.Printf("%s already built, skipping", uploadReq.CommitHash)
+			return
+		}
 	}
 	var finding *api.NewFinding
 	if err != nil {
@@ -107,6 +121,9 @@ func reportResults(ctx context.Context, client *api.Client, patched bool,
 		BuildID: buildInfo.ID,
 		Success: uploadReq.BuildSuccess,
 	})
+	if *flagSmokeBuild {
+		return
+	}
 	testResult := &api.TestResult{
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
@@ -131,6 +148,20 @@ func reportResults(ctx context.Context, client *api.Client, patched bool,
 			app.Fatalf("failed to report the finding: %v", err)
 		}
 	}
+}
+
+func alreadyBuilt(ctx context.Context, client *api.Client,
+	req *api.UploadBuildReq) (bool, error) {
+	build, err := client.LastBuild(ctx, &api.LastBuildReq{
+		Arch:       req.Build.Arch,
+		ConfigName: req.Build.ConfigName,
+		TreeName:   req.Build.TreeName,
+		Commit:     req.CommitHash,
+	})
+	if err != nil {
+		return false, err
+	}
+	return build != nil, nil
 }
 
 func readRequest() *api.BuildRequest {
