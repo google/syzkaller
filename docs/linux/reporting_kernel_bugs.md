@@ -52,61 +52,71 @@ If you can't figure out the right fix, but have some understanding of the bug, p
 
 ## Reporting security bugs
 
-If you believe that a found bug poses potential security threat, consider following the instructions below.
-Note, that these instructions are a work-in-progress and based on my current understanding of the disclosure process.
-This instruction is now being discussed [here](http://seclists.org/oss-sec/2017/q3/242).
+If you believe that a found bug a poses a potential security threat, consider the following instructions below.
+The initial version of these guidelines was discussed [here](http://seclists.org/oss-sec/2017/q3/242).
 
-If you don't want to deal with this complex disclosure process you can either:
+The two main mailing lists for reporting Linux kernel security issues are listed below with guidelines.
+Please read them carefully before sending anything to these lists.
 
-1. Report the bug privately to `security@kernel.org`. In this case it should be fixed in the upstream kernel, but there are no guarantees that the fix will be propagated to stable or distro kernels. The maximum embargo on this list is 7 days.
-2. Report the bug privately to a vendor such as Red Hat (`secalert@redhat.com`) or SUSE (`security@suse.com`). They should fix the bug, assign a CVE, and notify other vendors. The maximum embargo on these lists is 5 weeks.
-3. Report the bug publicly to `oss-security@lists.openwall.com`.
+1. `security@kernel.org` - https://docs.kernel.org/process/security-bugs.html.
 
-If you want to deal with the disclosure yourself, read below.
+    The security team wants to develop a fix along with the reporter and affected subsystem(s) maintainers and release the fix ASAP.
 
-The three main mailing lists for reporting and disclosing Linux kernel security issues are `security@kernel.org`, `linux-distros@vs.openwall.org` and `oss-security@lists.openwall.com`.
-The links for the guidelines for these lists are below, please read them carefully before sending anything to these lists.
+2. `cve@kernel.org` - https://www.kernel.org/doc/html/latest/process/cve.html.
 
-1. `security@kernel.org` - https://www.kernel.org/doc/html/latest/admin-guide/security-bugs.html
-2. `linux-distros@vs.openwall.org` - http://oss-security.openwall.org/wiki/mailing-lists/distros
-3. `oss-security@lists.openwall.com` - http://oss-security.openwall.org/wiki/mailing-lists/oss-security
+    Official kernel.org CNA. CVE assignment team has its own procedure of manual voting whether the bug is CVE eligible.
 
-### Reporting minor security bugs
+### Vulnerability definition
 
-To report minor security bugs (such as local DOS or local info leak):
+From [cve.org](https://www.cve.org/resourcessupport/allresources/cnarules):
 
-1. Report the bug publicly to kernel developers as described above and wait until a fix is committed. Alternatively, you can develop and send a fix yourself.
-2. Request a CVE from MITRE through [the web form](https://cveform.mitre.org/). Describe the bug details and add a link to the fix (from `patchwork.kernel.org`, `git.kernel.org` or `github.com`) in the request.
-3. Once a CVE is assigned, send the bug details, the CVE number and a link to the fix to `oss-security@lists.openwall.com`.
+> A vulnerability is an instance of one or more weaknesses in a Product that can be exploited,
+> causing a negative impact to confidentiality, integrity, or availability; a set of conditions
+> or behaviors that allows the violation of an explicit or implicit security policy.
 
-### Reporting major security bugs
+According to [Greg Kroah-Hartman](https://youtu.be/KumwRn1BA6s?t=203), a kernel vulnerability is defined as:
+> * Any user-triggerable crash or reboot
+> * Memory UAF / leak / overflow (even 1 byte)
+> * Incorrect boundary checks
+> * Denial of service
+> * Logic errors & lots of other things*
 
-To report major security bugs (such as LPE, remote DOS, remote info leak or RCE):
+*Data corruption/loss, performance issues, bugs that are not externally triggered are not considered kernel vulnerabilities.
 
-1. Understand the bug and develop a patch with a fix if possible. Optionally develop a proof-of-concept exploit.
-2. Notify `security@kernel.org`:
-    * Describe vulnerability details, include the proposed patch and optionally the exploit.
-    * Ask for 7 days of embargo.
-    * Work on the patch together with the `security@kernel.org` members.
-3. Notify `linux-distros@vs.openwall.org`:
-    * Describe vulnerability details, include the proposed patch and optionally the exploit.
-    * Ask them to assign a CVE number.
-    * Ask for 7 days of embargo.
-4. Wait 7 days for linux distros to apply the patch.
-5. Ask `linux-distros@vs.openwall.org` to make the CVE description public and roll out the updated kernels.
-6. Send the fix upstream:
-    * Mention the CVE number in the commit message.
-    * Mention syzkaller in the commit message.
-7. Notify `oss-security@lists.openwall.com`:
-    * Describe vulnerability details, include a link to the committed patch.
-8. Wait 1-3 days for people to update their kernels.
-9. Optionally publish the exploit on `oss-security@lists.openwall.com`.
+### Linux kernel security bug reporting process
 
-A few notes:
+Following [kernel.org guidelines](https://docs.kernel.org/process/security-bugs.html),
+report security issues privately to `security@kernel.org` and only to the necessary maintainers of affected subsystem(s).
 
-* There should ideally be no delay between reports to `security@kernel.org` and `linux-distros@vs.openwall.org`.
-* When working on the patch together with the `security@kernel.org` members and upstream maintainers, keep the linux-distros aware of the progress.
-* There should ideally be no delay between CVE description publication, distros' updates, upstream commit and notification to `oss-security@lists.openwall.com`. All of these should be on the same day, at worst.
-* The moment the issue is made public (e.g. patch is submitted upstream, CVE description published, etc.) it must be reported to `oss-security@lists.openwall.com` right away.
+It is strictly [recommended](https://docs.kernel.org/process/security-bugs.html#coordination-with-other-groups) to **exclude** other parties,
+such as `linux-distros`, from the discussion until the fix is merged into the stable tree.
 
-A good example of an LPE announcement structure on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607), however the timeline doesn't look right there: public announcement should have occurred right after the patch was submitted to netdev.
+Note that `security@kernel.org` does not require CVE assignment; instructions for assigning a CVE are provided below.
+
+### CVE assignment
+
+kernel.org is now CNA (from [February 13, 2024](https://www.cve.org/Media/News/item/news/2024/02/13/kernel-org-Added-as-CNA)),
+therefore they have reserved CVE IDs for the kernel vulnerability bugs classified as CVE.
+
+CVE assignments (sometimes rejections) are publicly announced in the public list, see [linux-cve-announce](https://lore.kernel.org/linux-cve-announce) on which you can [subscribe](https://subspace.kernel.org/subscribing.html).
+
+CVEs are typically assigned after the fact, with a delay of 1-2 weeks.
+
+> Note: No hardware CVEs are issued by the Linux community (SPECTRE-like CVEs come from other sources) (c) Greg K-H.
+
+For example, bugs in drivers that relate to the Linux kernel may be treated as CVEs.
+However, hardware bugs in components like CPUs, NICs, and other chips that affect multiple operating systems (e.g., Linux kernel, Windows, macOS)
+and are not caused by Linux kernel code should be handled by the hardware vendor.
+
+Averaging 55 CVEs per week (2024 Q3):
+> The CVE assignment team is very thorough and assigns CVE numbers to any bugfix that they identify.
+> This explains the seemingly large number of CVEs that are issued by the Linux kernel team.
+
+Kernel CVE assignment process is explained [here](https://www.kernel.org/doc/html/latest/process/cve.html), quoting the important paragraph:
+> If the CVE assignment team misses a specific fix that any user feels should have a CVE assigned to it,
+> please email them at <cve@kernel.org> and the team there will work with you on it.
+> Note that no potential security issues should be sent to this alias,
+> it is ONLY for assignment of CVEs for fixes that are already in released kernel trees.
+> If you feel you have found an unfixed security issue, please follow the [normal Linux kernel security bug reporting process](https://docs.kernel.org/process/security-bugs.html).
+
+An example of a kernel-assigned CVE: [CVE-2024-50078](https://lore.kernel.org/linux-cve-announce/2024102936-CVE-2024-50078-cfe9@gregkh/T/#u).
