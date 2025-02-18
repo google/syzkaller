@@ -1,0 +1,43 @@
+{
+  "id": "abcd",
+  "base_repo": "git://repo",
+  "base_commit": "abcd0123",
+  "series": {
+    "title": "Series title",
+    "version": 2,
+    "link": "http://link/to/series",
+    "patches": [
+      {
+	"title": "first patch"
+      },
+      {
+	"title": "second patch"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "title": "WARNING in abcd",
+      "report": "Report Line A\nReport Line B\nReport Line C",
+      "c_repro": "http://link/to/c/repro",
+      "syz_repro": "http://link/to/syz/repro",
+      "build": {
+	"arch": "amd64",
+	"config_link": "http://link/to/config/1",
+	"compiler": "clang"
+      }
+    },
+    {
+      "title": "KASAN: use-after-free Write in abcd",
+      "report": "Report Line D\nReport Line E\nReport Line F",
+      "syz_repro": "http://link/to/syz/repro2",
+      "build": {
+	"arch": "arm64",
+	"config_link": "http://link/to/config/2",
+	"compiler": "clang"
+      }
+    }
+  ],
+  "cc": ["a@a.com", "b@b.com"],
+  "link": "http://some/link/to/report"
+}

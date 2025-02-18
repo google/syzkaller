@@ -80,12 +80,12 @@ func TestAPIReportFlow(t *testing.T) {
 		Findings: []*api.Finding{
 			{
 				Title:  "finding 0",
-				Report: []byte("report 0"),
+				Report: "report 0",
 				LogURL: "TODO", // TODO
 			},
 			{
 				Title:  "finding 1",
-				Report: []byte("report 1"),
+				Report: "report 1",
 				LogURL: "TODO", // TODO
 			},
 		},
