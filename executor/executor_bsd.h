@@ -120,6 +120,8 @@ static void cover_mmap(cover_t* cov)
 
 static void cover_protect(cover_t* cov)
 {
+	if (cov->data == NULL)
+		fail("cover_protect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	long page_size = sysconf(_SC_PAGESIZE);
@@ -139,6 +141,8 @@ static void cover_protect(cover_t* cov)
 
 static void cover_unprotect(cover_t* cov)
 {
+	if (cov->data == NULL)
+		fail("cover_unprotect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
