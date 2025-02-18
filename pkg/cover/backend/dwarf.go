@@ -243,7 +243,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
-		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error) {
+		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
 			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
 		},
 		CallbackPoints:  allCoverPoints[0],
@@ -402,7 +402,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 }
 
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
-	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]Frame, error) {
+	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]*Frame, error) {
 	procs := min(runtime.GOMAXPROCS(0)/2, len(pcs)/1000)
 	const (
 		minProcs = 1
@@ -446,7 +446,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 	}
 	close(pcchan)
 	var err0 error
-	var frames []Frame
+	var frames []*Frame
 	for p := 0; p < procs; p++ {
 		res := <-symbolizerC
 		if res.err != nil {
@@ -458,7 +458,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 			if mod.Name != "" {
 				pc = frame.PC + mod.Addr
 			}
-			frames = append(frames, Frame{
+			frames = append(frames, &Frame{
 				Module:   mod,
 				PC:       pc,
 				Name:     interner.Do(name),
@@ -481,10 +481,10 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 }
 
 func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
-	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error) {
-	var frames []Frame
+	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
+	var frames []*Frame
 	type frameResult struct {
-		frames []Frame
+		frames []*Frame
 		err    error
 	}
 	frameC := make(chan frameResult, len(pcs))
