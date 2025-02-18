@@ -4,12 +4,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"maps"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"sort"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -141,10 +146,17 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		Link:        "https://lore.kernel.org/all/" + series.MessageID,
 		PublishedAt: date,
 	}
-	for _, patch := range series.Patches {
-		body, err := idToReader[patch.MessageID].Read()
+	sp := seriesProcessor{}
+	for i, patch := range series.Patches {
+		raw, err := idToReader[patch.MessageID].Read()
 		if err != nil {
 			return fmt.Errorf("failed to extract %q: %w", patch.MessageID, err)
+		}
+		body, err := sp.Process(raw)
+		if err != nil {
+			// Fall back to the raw message.
+			body = raw
+			log.Printf("failed to parse %d: %v", i, err)
 		}
 		apiSeries.Patches = append(apiSeries.Patches, api.SeriesPatch{
 			Seq:   patch.Seq,
@@ -153,6 +165,7 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 			Body:  body,
 		})
 	}
+	apiSeries.Cc = sp.Emails()
 	ret, err := sf.client.UploadSeries(ctx, apiSeries)
 	if err != nil {
 		return fmt.Errorf("failed to save series: %w", err)
@@ -168,6 +181,27 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 	}
 	log.Printf("series %s saved to the DB", series.MessageID)
 	return nil
+}
+
+type seriesProcessor map[string]struct{}
+
+var errFailedToParse = errors.New("failed to parse the email")
+
+func (sp seriesProcessor) Process(raw []byte) ([]byte, error) {
+	msg, err := email.Parse(bytes.NewReader(raw), nil, nil, nil)
+	if err != nil {
+		return raw, fmt.Errorf("%w: %w", errFailedToParse, err)
+	}
+	for _, email := range msg.Cc {
+		sp[email] = struct{}{}
+	}
+	return []byte(msg.Body), nil
+}
+
+func (sp seriesProcessor) Emails() []string {
+	list := slices.Collect(maps.Keys(sp))
+	sort.Strings(list)
+	return list
 }
 
 func logSeries(series *lore.Series) {
