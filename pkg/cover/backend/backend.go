@@ -14,8 +14,8 @@ import (
 type Impl struct {
 	Units           []*CompileUnit
 	Symbols         []*Symbol
-	Frames          []Frame
-	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64) ([]Frame, error)
+	Frames          []*Frame
+	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error)
 	CallbackPoints  []uint64
 	PreciseCoverage bool
 }

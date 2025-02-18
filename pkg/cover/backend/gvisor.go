@@ -54,7 +54,7 @@ func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules
 	return impl, nil
 }
 
-func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
+func gvisorSymbolize(bin, srcDir string) ([]*Frame, error) {
 	cmd := osutil.Command(bin, "symbolize", "-all")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -66,7 +66,7 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 	}
 	defer cmd.Wait()
 	defer cmd.Process.Kill()
-	var frames []Frame
+	var frames []*Frame
 	s := bufio.NewScanner(stdout)
 	for s.Scan() {
 		frame, err := gvisorParseLine(s)
@@ -93,27 +93,27 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 	return frames, nil
 }
 
-func gvisorParseLine(s *bufio.Scanner) (Frame, error) {
+func gvisorParseLine(s *bufio.Scanner) (*Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
-		return Frame{}, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %q, but no line info", pc)
 	}
 	if !s.Scan() {
-		return Frame{}, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %q, but no line info", pc)
 	}
 	match := gvisorLineRe.FindStringSubmatch(s.Text())
 	if match == nil {
-		return Frame{}, fmt.Errorf("failed to parse line: %q", s.Text())
+		return nil, fmt.Errorf("failed to parse line: %q", s.Text())
 	}
 	var ints [4]int
 	for i := range ints {
 		x, err := strconv.ParseUint(match[i+3], 0, 32)
 		if err != nil {
-			return Frame{}, fmt.Errorf("failed to parse number %q: %w", match[i+3], err)
+			return nil, fmt.Errorf("failed to parse number %q: %w", match[i+3], err)
 		}
 		ints[i] = int(x)
 	}
-	frame := Frame{
+	frame := &Frame{
 		PC:   pc,
 		Name: match[2],
 		Range: Range{
