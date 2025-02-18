@@ -108,7 +108,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (file
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := fileByFrame(files, &frame)
+		f := fileByFrame(files, frame)
 		ln := f.lines[frame.StartLine]
 		coveredBy := pcToProgs[frame.PC]
 		if len(coveredBy) == 0 {
