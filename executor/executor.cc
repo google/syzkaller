@@ -521,11 +521,13 @@ public:
 		if (used_)
 			fail("recursion in CoverAccessScope");
 		used_ = true;
-		cover_unprotect(cov_);
+		if (flag_coverage)
+			cover_unprotect(cov_);
 	}
 	~CoverAccessScope()
 	{
-		cover_protect(cov_);
+		if (flag_coverage)
+			cover_protect(cov_);
 		used_ = false;
 	}
 
