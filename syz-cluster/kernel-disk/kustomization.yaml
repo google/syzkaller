@@ -3,4 +3,4 @@
 
 resources:
   - pvc.yaml
-  - cron.yaml
+  - fetch-kernels-cron.yaml

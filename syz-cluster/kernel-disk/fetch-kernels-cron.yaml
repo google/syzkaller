@@ -1,0 +1,74 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: fetch-kernels-cron
+spec:
+  # Twice each day.
+  schedule: "0 */12 * * *"
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: main
+    podMetadata:
+      labels:
+        tier: workflow
+    templates:
+    - name: main
+      parallelism: 1
+      steps:
+        - - name: query-trees
+            template: query-trees-template
+        - - name: iterate-trees
+            template: process-tree
+            arguments:
+              parameters:
+                - name: tree
+                  value: "{{item}}"
+            withParam: "{{=jsonpath(steps['query-trees'].outputs.result, '$.trees')}}"
+            continueOn:
+              failed: true
+    - name: query-trees-template
+      http:
+        url: "http://controller-service:8080/trees"
+        method: "GET"
+    - name: process-tree
+      inputs:
+        parameters:
+          - name: tree
+      volumes:
+        - name: git-repo
+          persistentVolumeClaim:
+            claimName: base-kernel-repo-pv-claim
+      container:
+        image: alpine/git:latest
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: git-repo
+            mountPath: /repo.git
+        resources:
+          requests:
+            cpu: 4
+            memory: 8G
+          limits:
+            cpu: 8
+            memory: 16G
+        command:
+          - "/bin/sh"
+          - "-c"
+          - |
+            cd /repo.git
+            if [ ! -d "refs" ]; then
+              git init --bare
+            fi
+            NAME="{{=jsonpath(inputs.parameters.tree, '$.name')}}"
+            REPO="{{=jsonpath(inputs.parameters.tree, '$.URL')}}"
+            BRANCH="{{=jsonpath(inputs.parameters.tree, '$.branch')}}"
+            echo "${NAME}: ${REPO}/${BRANCH}"
+            if ! git config --get remote.${NAME}.url > /dev/null; then
+              git remote add ${NAME} ${REPO}
+            fi
+            git fetch ${NAME} ${BRANCH} --tags
+            git tag -f ${NAME}-head ${NAME}/${BRANCH}
