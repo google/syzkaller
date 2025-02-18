@@ -67,10 +67,11 @@ func (s *FindingService) List(ctx context.Context, sessionID string) ([]*api.Fin
 			Title:  item.Title,
 			LogURL: "TODO", // TODO: where to take it from?
 		}
-		finding.Report, err = blob.ReadAllBytes(s.blobStorage, item.ReportURI)
+		bytes, err := blob.ReadAllBytes(s.blobStorage, item.ReportURI)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read the report: %w", err)
 		}
+		finding.Report = string(bytes)
 		ret = append(ret, finding)
 	}
 	return ret, nil

@@ -119,18 +119,29 @@ type NewSession struct {
 }
 
 type SessionReport struct {
-	ID         string `json:"id"`
-	Moderation bool   `json:"moderation"`
-	// TODO: add some session info?
-	Series   *Series    `json:"series"`
-	Findings []*Finding `json:"findings"`
-	Link     string     `json:"link"` // URL to the web dashboard.
+	ID         string     `json:"id"`
+	Cc         []string   `json:"cc"`
+	Moderation bool       `json:"moderation"`
+	BaseRepo   string     `json:"base_repo"`
+	BaseCommit string     `json:"base_commit"`
+	Series     *Series    `json:"series"`
+	Findings   []*Finding `json:"findings"`
+	Link       string     `json:"link"` // URL to the web dashboard.
 }
 
 type Finding struct {
-	Title  string `json:"title"`
-	Report []byte `json:"report"`
-	LogURL string `json:"log_url"`
+	Title        string    `json:"title"`
+	Report       string    `json:"report"`
+	LogURL       string    `json:"log_url"`
+	Build        BuildInfo `json:"build"`
+	LinkCRepro   string    `json:"c_repro"`
+	LinkSyzRepro string    `json:"syz_repro"`
+}
+
+type BuildInfo struct {
+	Arch       string `json:"arch"`
+	Compiler   string `json:"compiler"`
+	ConfigLink string `json:"config_link"`
 }
 
 // Let them stay here until we find a better place.
