@@ -73,7 +73,7 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->alloc != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	uintptr_t mmap_ptr = 0;
 	if (ksancov_map(cov->fd, &mmap_ptr, &cov->mmap_alloc_size))
@@ -84,8 +84,10 @@ static void cover_mmap(cover_t* cov)
 	if (cov->mmap_alloc_size > kCoverSize)
 		fail("mmap allocation size larger than anticipated");
 
-	cov->data = (char*)mmap_ptr;
-	cov->data_end = cov->data + cov->mmap_alloc_size;
+	cov->alloc = mmap_ptr;
+	cov->trace_size = cov->mmap_alloc_size;
+	cov->trace = (char*)cov->alloc;
+	cov->trace_end = cov->trace + cov->trace_size;
 }
 
 static void cover_protect(cover_t* cov)
@@ -110,14 +112,15 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
-	ksancov_reset((struct ksancov_header*)cov->data);
-	ksancov_start((struct ksancov_header*)cov->data);
+	ksancov_reset((struct ksancov_header*)cov->trace);
+	ksancov_start((struct ksancov_header*)cov->trace);
 }
 
 static void cover_collect(cover_t* cov)
 {
-	struct ksancov_trace* trace = (struct ksancov_trace*)cov->data;
+	struct ksancov_trace* trace = (struct ksancov_trace*)cov->trace;
 	cov->size = ksancov_trace_head(trace);
-	cov->data_offset = ((int64_t) & (trace->pcs)) - ((int64_t)(cov->data));
+	cov->trace_offset = 0;
+	cov->trace_skip = ((int64_t) & (trace->pcs)) - ((int64_t)(cov->trace));
 	cov->pc_offset = trace->offset;
 }

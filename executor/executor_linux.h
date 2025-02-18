@@ -130,7 +130,7 @@ static void cover_unprotect(cover_t* cov)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->alloc != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	if (cov->mmap_alloc_size == 0)
 		fail("cover_t structure is corrupted");
@@ -140,14 +140,18 @@ static void cover_mmap(cover_t* cov)
 	if (mapped == MAP_FAILED)
 		exitf("failed to preallocate kcov buffer");
 	// Now map the kcov buffer to the file, overwriting the existing mapping above.
-	cov->data = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
-	if (cov->data == MAP_FAILED)
+	cov->alloc = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
+				 PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
+	if (cov->alloc == MAP_FAILED)
 		exitf("cover mmap failed");
-	if (pkeys_enabled && pkey_mprotect(cov->data, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+	if (pkeys_enabled && pkey_mprotect(cov->alloc, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
 		exitf("failed to pkey_mprotect kcov buffer");
-	cov->data_end = cov->data + cov->mmap_alloc_size;
-	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->trace_offset = 0;
+	cov->trace = (char*)cov->alloc;
+	// TODO(glider): trace size and may be different from mmap_alloc_size in the future.
+	cov->trace_size = cov->mmap_alloc_size;
+	cov->trace_end = cov->trace + cov->mmap_alloc_size;
+	cov->trace_skip = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
 }
 
@@ -185,7 +189,7 @@ static void cover_reset(cover_t* cov)
 		cov = &current_thread->cov;
 	}
 	cover_unprotect(cov);
-	*(uint64*)cov->data = 0;
+	*(uint64*)cov->trace = 0;
 	cover_protect(cov);
 	cov->overflow = false;
 }
@@ -193,8 +197,8 @@ static void cover_reset(cover_t* cov)
 template <typename cover_data_t>
 static void cover_collect_impl(cover_t* cov)
 {
-	cov->size = *(cover_data_t*)cov->data;
-	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
+	cov->size = *(cover_data_t*)cov->trace;
+	cov->overflow = (cov->trace + (cov->size + 2) * sizeof(cover_data_t)) > cov->trace_end;
 }
 
 static void cover_collect(cover_t* cov)
@@ -285,8 +289,8 @@ static const char* setup_delay_kcov()
 	cov.fd = kCoverFd;
 	cover_open(&cov, false);
 	cover_mmap(&cov);
-	char* first = cov.data;
-	cov.data = nullptr;
+	char* first = (char*)cov.alloc;
+	cov.alloc = nullptr;
 	cover_mmap(&cov);
 	// If delayed kcov mmap is not supported by the kernel,
 	// accesses to the second mapping will crash.
@@ -298,7 +302,8 @@ static const char* setup_delay_kcov()
 			fail("clock_gettime failed");
 		error = "kernel commit b3d7fe86fbd0 is not present";
 	} else {
-		munmap(cov.data - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
+		void* region = (void*)((char*)cov.alloc - SYZ_PAGE_SIZE);
+		munmap(region, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
 	}
 	munmap(first - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
 	close(cov.fd);
