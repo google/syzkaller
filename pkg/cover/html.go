@@ -445,8 +445,27 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 		var percentCoveredFunc float64
 
 		for _, path := range subsystem.Paths {
+			if strings.HasPrefix(path, "-") {
+				continue
+			}
+			var excludes []string
+			for _, exclude := range subsystem.Paths {
+				if strings.HasPrefix(exclude, "-") && strings.HasPrefix(exclude[1:], path) {
+					excludes = append(excludes, exclude[1:])
+				}
+			}
 			for _, data := range datas {
 				if !strings.HasPrefix(data.Name, path) {
+					continue
+				}
+				excluded := false
+				for _, exclude := range excludes {
+					if strings.HasPrefix(data.Name, exclude) {
+						excluded = true
+						break
+					}
+				}
+				if excluded {
 					continue
 				}
 				coveredLines += data.CoveredLines
