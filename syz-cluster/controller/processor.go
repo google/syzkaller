@@ -140,19 +140,20 @@ func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Sessio
 		case <-ctx.Done():
 			return
 		}
-		status, log, err := sp.workflows.Status(session.ID)
+		status, workflowLog, err := sp.workflows.Status(session.ID)
 		if err != nil {
 			app.Errorf("failed to query workflow %q status: %v", session.ID, err)
 			continue
 		}
-		if log != nil {
-			err := sp.updateSessionLog(ctx, session, log)
+		if workflowLog != nil {
+			err := sp.updateSessionLog(ctx, session, workflowLog)
 			if err != nil {
 				app.Errorf("failed to update session log: %v", err)
 			}
 		}
 		switch status {
 		case workflow.StatusNotFound:
+			log.Printf("scheduling a workflow for %q", session.ID)
 			if err := sp.sessionRepo.Start(ctx, session.ID); err != nil {
 				app.Errorf("failed to mark session started: %v", err)
 				break
@@ -162,6 +163,7 @@ func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Sessio
 				app.Errorf("failed to start a workflow: %v", err)
 			}
 		case workflow.StatusFinished, workflow.StatusFailed:
+			log.Printf("workflow for %q completed, mark the session finished", session.ID)
 			// TODO: StatusFailed needs a different handling.
 			err := sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
 				session.SetFinishedAt(time.Now())
