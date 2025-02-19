@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -178,7 +180,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
 		return err
 	}
 
@@ -215,6 +217,24 @@ type CoverageInfo struct {
 	PC        uint64 `json:"pc"`
 }
 
+func makeCoverageInfo(frame *backend.Frame) *CoverageInfo {
+	endCol := frame.Range.EndCol
+	if endCol == backend.LineEnd {
+		endCol = -1
+	}
+	return &CoverageInfo{
+		FilePath:  frame.Name,
+		FuncName:  frame.FuncName,
+		StartLine: frame.Range.StartLine,
+		StartCol:  frame.Range.StartCol,
+		EndLine:   frame.Range.EndLine,
+		EndCol:    endCol,
+		HitCount:  1, // We know it is at least 1.
+		Inline:    frame.Inline,
+		PC:        frame.PC,
+	}
+}
+
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
 func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error {
 	if rg.CallbackPoints != nil {
@@ -223,7 +243,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 		}
 	}
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
 		return err
 	}
 	pcProgCount := make(map[uint64]int)
@@ -234,23 +254,57 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 	}
 	encoder := json.NewEncoder(w)
 	for _, frame := range rg.Frames {
-		endCol := frame.Range.EndCol
-		if endCol == backend.LineEnd {
-			endCol = -1
-		}
-		covInfo := &CoverageInfo{
-			FilePath:  frame.Name,
-			FuncName:  frame.FuncName,
-			StartLine: frame.Range.StartLine,
-			StartCol:  frame.Range.StartCol,
-			EndLine:   frame.Range.EndLine,
-			EndCol:    endCol,
-			HitCount:  pcProgCount[frame.PC],
-			Inline:    frame.Inline,
-			PC:        frame.PC,
-		}
+		covInfo := makeCoverageInfo(frame)
+		covInfo.HitCount = pcProgCount[frame.PC]
 		if err := encoder.Encode(covInfo); err != nil {
 			return fmt.Errorf("failed to json.Encode(): %w", err)
+		}
+	}
+	return nil
+}
+
+type ProgramCoverage struct {
+	Program      string
+	CoveredLines []*CoverageInfo
+}
+
+// DoCoverPrograms returns the corpus programs with the associated coverage.
+// The result is a jsonl stream.
+// Each record represents the single program and multiple CoverageInfo records.
+func (rg *ReportGenerator) DoCoverPrograms(w io.Writer, params HandlerParams) error {
+	if rg.CallbackPoints != nil {
+		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
+			return fmt.Errorf("failed to symbolize PCs(): %w", err)
+		}
+	}
+	pcToFrames := map[uint64][]*backend.Frame{}
+	for _, frame := range rg.Frames {
+		pcToFrames[frame.PC] = append(pcToFrames[frame.PC], frame)
+	}
+	encoder := json.NewEncoder(w)
+	for prog := range slices.Values(params.Progs) {
+		var covInfos []*CoverageInfo
+		for pc := range slices.Values(uniquePCs(prog)) {
+			for frame := range slices.Values(pcToFrames[pc]) {
+				covInfos = append(covInfos, makeCoverageInfo(frame))
+			}
+		}
+
+		progBase64 := bytes.Buffer{}
+		base64Enc := base64.NewEncoder(base64.StdEncoding, &progBase64)
+		if _, err := base64Enc.Write([]byte(prog.Data)); err != nil {
+			return fmt.Errorf("base64Enc.Write: %w", err)
+		}
+		base64Enc.Close()
+
+		if err := encoder.Encode(struct {
+			ProgBase64 string
+			Coverage   []*CoverageInfo
+		}{
+			ProgBase64: progBase64.String(),
+			Coverage:   covInfos,
+		}); err != nil {
+			return fmt.Errorf("encoder.Encode: %w", err)
 		}
 	}
 	return nil
