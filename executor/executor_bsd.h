@@ -121,11 +121,12 @@ static void cover_mmap(cover_t* cov)
 static void cover_protect(cover_t* cov)
 {
 #if GOOS_freebsd
-	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	long page_size = sysconf(_SC_PAGESIZE);
-	if (page_size > 0)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
-			 PROT_READ);
+	if (cov->data) {
+		long page_size = sysconf(_SC_PAGESIZE);
+		if (page_size > 0)
+			mprotect(cov->data + page_size, cov->mmap_alloc_size - page_size,
+				 PROT_READ);
+	}
 #elif GOOS_openbsd
 	int mib[2], page_size;
 	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
@@ -140,8 +141,10 @@ static void cover_protect(cover_t* cov)
 static void cover_unprotect(cover_t* cov)
 {
 #if GOOS_freebsd
-	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	if (cov->data) {
+		size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
+		mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	}
 #elif GOOS_openbsd
 	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
 	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
