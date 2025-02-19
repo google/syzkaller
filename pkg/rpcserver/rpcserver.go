@@ -419,7 +419,7 @@ func (serv *server) connectionLoop(baseCtx context.Context, runner *Runner) erro
 
 func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 	if target.Arch != a.Arch {
-		return fmt.Errorf("mismatching manager/executor arches: %v vs %v", target.Arch, a.Arch)
+		return fmt.Errorf("mismatching manager/executor arches: %v vs %v (full request: `%#v`)", target.Arch, a.Arch, a)
 	}
 	if prog.GitRevision != a.GitRevision {
 		return fmt.Errorf("mismatching manager/executor git revisions: %v vs %v",
