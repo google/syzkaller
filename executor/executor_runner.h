@@ -629,9 +629,24 @@ private:
 			failmsg("bad restarting", "restarting=%d", restarting_);
 	}
 
+	// Implementation must match that in pkg/rpcserver/rpcserver.go.
+	uint64 HashAuthCookie(uint64 cookie)
+	{
+		const uint64_t prime1 = 73856093;
+		const uint64_t prime2 = 83492791;
+
+		return (cookie * prime1) ^ prime2;
+	}
+
 	int Handshake()
 	{
+		// Handshake stage 0: get a cookie from the manager.
+		rpc::ConnectHelloRawT conn_hello;
+		conn_.Recv(conn_hello);
+
+		// Handshake stage 1: share basic information about the client.
 		rpc::ConnectRequestRawT conn_req;
+		conn_req.cookie = HashAuthCookie(conn_hello.cookie);
 		conn_req.id = vm_index_;
 		conn_req.arch = GOARCH;
 		conn_req.git_revision = GIT_REVISION;
@@ -656,6 +671,7 @@ private:
 		if (conn_reply.cover)
 			max_signal_.emplace();
 
+		// Handshake stage 2: share information requested by the manager.
 		rpc::InfoRequestRawT info_req;
 		info_req.files = ReadFiles(conn_reply.files);
 

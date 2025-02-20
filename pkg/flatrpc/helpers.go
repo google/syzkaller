@@ -18,6 +18,7 @@ const AllFeatures = ^Feature(0)
 // Flatbuffers compiler adds T suffix to object API types, which are actual structs representing types.
 // This leads to non-idiomatic Go code, e.g. we would have to use []FileInfoT in Go code.
 // So we use Raw suffix for all flatbuffers tables and rename object API types here to idiomatic names.
+type ConnectHello = ConnectHelloRawT
 type ConnectRequest = ConnectRequestRawT
 type ConnectReply = ConnectReplyRawT
 type InfoRequest = InfoRequestRawT

@@ -15,6 +15,10 @@ static_assert(FLATBUFFERS_VERSION_MAJOR == 2 &&
 
 namespace rpc {
 
+struct ConnectHelloRaw;
+struct ConnectHelloRawBuilder;
+struct ConnectHelloRawT;
+
 struct ConnectRequestRaw;
 struct ConnectRequestRawBuilder;
 struct ConnectRequestRawT;
@@ -846,8 +850,61 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) ComparisonRaw FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(ComparisonRaw, 32);
 
+struct ConnectHelloRawT : public flatbuffers::NativeTable {
+  typedef ConnectHelloRaw TableType;
+  uint64_t cookie = 0;
+};
+
+struct ConnectHelloRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ConnectHelloRawT NativeTableType;
+  typedef ConnectHelloRawBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COOKIE = 4
+  };
+  uint64_t cookie() const {
+    return GetField<uint64_t>(VT_COOKIE, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_COOKIE, 8) &&
+           verifier.EndTable();
+  }
+  ConnectHelloRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ConnectHelloRawT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ConnectHelloRaw> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct ConnectHelloRawBuilder {
+  typedef ConnectHelloRaw Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_cookie(uint64_t cookie) {
+    fbb_.AddElement<uint64_t>(ConnectHelloRaw::VT_COOKIE, cookie, 0);
+  }
+  explicit ConnectHelloRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<ConnectHelloRaw> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ConnectHelloRaw>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ConnectHelloRaw> CreateConnectHelloRaw(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t cookie = 0) {
+  ConnectHelloRawBuilder builder_(_fbb);
+  builder_.add_cookie(cookie);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<ConnectHelloRaw> CreateConnectHelloRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct ConnectRequestRawT : public flatbuffers::NativeTable {
   typedef ConnectRequestRaw TableType;
+  uint64_t cookie = 0;
   int64_t id = 0;
   std::string arch{};
   std::string git_revision{};
@@ -858,11 +915,15 @@ struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConnectRequestRawT NativeTableType;
   typedef ConnectRequestRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_ID = 4,
-    VT_ARCH = 6,
-    VT_GIT_REVISION = 8,
-    VT_SYZ_REVISION = 10
+    VT_COOKIE = 4,
+    VT_ID = 6,
+    VT_ARCH = 8,
+    VT_GIT_REVISION = 10,
+    VT_SYZ_REVISION = 12
   };
+  uint64_t cookie() const {
+    return GetField<uint64_t>(VT_COOKIE, 0);
+  }
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
   }
@@ -877,6 +938,7 @@ struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<uint64_t>(verifier, VT_COOKIE, 8) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyOffset(verifier, VT_ARCH) &&
            verifier.VerifyString(arch()) &&
@@ -895,6 +957,9 @@ struct ConnectRequestRawBuilder {
   typedef ConnectRequestRaw Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_cookie(uint64_t cookie) {
+    fbb_.AddElement<uint64_t>(ConnectRequestRaw::VT_COOKIE, cookie, 0);
+  }
   void add_id(int64_t id) {
     fbb_.AddElement<int64_t>(ConnectRequestRaw::VT_ID, id, 0);
   }
@@ -920,12 +985,14 @@ struct ConnectRequestRawBuilder {
 
 inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t cookie = 0,
     int64_t id = 0,
     flatbuffers::Offset<flatbuffers::String> arch = 0,
     flatbuffers::Offset<flatbuffers::String> git_revision = 0,
     flatbuffers::Offset<flatbuffers::String> syz_revision = 0) {
   ConnectRequestRawBuilder builder_(_fbb);
   builder_.add_id(id);
+  builder_.add_cookie(cookie);
   builder_.add_syz_revision(syz_revision);
   builder_.add_git_revision(git_revision);
   builder_.add_arch(arch);
@@ -934,6 +1001,7 @@ inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(
 
 inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    uint64_t cookie = 0,
     int64_t id = 0,
     const char *arch = nullptr,
     const char *git_revision = nullptr,
@@ -943,6 +1011,7 @@ inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRawDirect(
   auto syz_revision__ = syz_revision ? _fbb.CreateString(syz_revision) : 0;
   return rpc::CreateConnectRequestRaw(
       _fbb,
+      cookie,
       id,
       arch__,
       git_revision__,
@@ -2896,6 +2965,32 @@ inline flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequestDirect(
 
 flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+inline ConnectHelloRawT *ConnectHelloRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<ConnectHelloRawT>(new ConnectHelloRawT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void ConnectHelloRaw::UnPackTo(ConnectHelloRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = cookie(); _o->cookie = _e; }
+}
+
+inline flatbuffers::Offset<ConnectHelloRaw> ConnectHelloRaw::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateConnectHelloRaw(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<ConnectHelloRaw> CreateConnectHelloRaw(flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectHelloRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _cookie = _o->cookie;
+  return rpc::CreateConnectHelloRaw(
+      _fbb,
+      _cookie);
+}
+
 inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<ConnectRequestRawT>(new ConnectRequestRawT());
   UnPackTo(_o.get(), _resolver);
@@ -2905,6 +3000,7 @@ inline ConnectRequestRawT *ConnectRequestRaw::UnPack(const flatbuffers::resolver
 inline void ConnectRequestRaw::UnPackTo(ConnectRequestRawT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = cookie(); _o->cookie = _e; }
   { auto _e = id(); _o->id = _e; }
   { auto _e = arch(); if (_e) _o->arch = _e->str(); }
   { auto _e = git_revision(); if (_e) _o->git_revision = _e->str(); }
@@ -2919,12 +3015,14 @@ inline flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffer
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectRequestRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _cookie = _o->cookie;
   auto _id = _o->id;
   auto _arch = _o->arch.empty() ? 0 : _fbb.CreateString(_o->arch);
   auto _git_revision = _o->git_revision.empty() ? 0 : _fbb.CreateString(_o->git_revision);
   auto _syz_revision = _o->syz_revision.empty() ? 0 : _fbb.CreateString(_o->syz_revision);
   return rpc::CreateConnectRequestRaw(
       _fbb,
+      _cookie,
       _id,
       _arch,
       _git_revision,
