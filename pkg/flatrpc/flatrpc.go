@@ -485,7 +485,83 @@ func (v SnapshotState) String() string {
 	return "SnapshotState(" + strconv.FormatInt(int64(v), 10) + ")"
 }
 
+type ConnectHelloRawT struct {
+	Cookie uint64 `json:"cookie"`
+}
+
+func (t *ConnectHelloRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t == nil {
+		return 0
+	}
+	ConnectHelloRawStart(builder)
+	ConnectHelloRawAddCookie(builder, t.Cookie)
+	return ConnectHelloRawEnd(builder)
+}
+
+func (rcv *ConnectHelloRaw) UnPackTo(t *ConnectHelloRawT) {
+	t.Cookie = rcv.Cookie()
+}
+
+func (rcv *ConnectHelloRaw) UnPack() *ConnectHelloRawT {
+	if rcv == nil {
+		return nil
+	}
+	t := &ConnectHelloRawT{}
+	rcv.UnPackTo(t)
+	return t
+}
+
+type ConnectHelloRaw struct {
+	_tab flatbuffers.Table
+}
+
+func GetRootAsConnectHelloRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectHelloRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &ConnectHelloRaw{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsConnectHelloRaw(buf []byte, offset flatbuffers.UOffsetT) *ConnectHelloRaw {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &ConnectHelloRaw{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
+func (rcv *ConnectHelloRaw) Init(buf []byte, i flatbuffers.UOffsetT) {
+	rcv._tab.Bytes = buf
+	rcv._tab.Pos = i
+}
+
+func (rcv *ConnectHelloRaw) Table() flatbuffers.Table {
+	return rcv._tab
+}
+
+func (rcv *ConnectHelloRaw) Cookie() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConnectHelloRaw) MutateCookie(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(4, n)
+}
+
+func ConnectHelloRawStart(builder *flatbuffers.Builder) {
+	builder.StartObject(1)
+}
+func ConnectHelloRawAddCookie(builder *flatbuffers.Builder, cookie uint64) {
+	builder.PrependUint64Slot(0, cookie, 0)
+}
+func ConnectHelloRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
+}
+
 type ConnectRequestRawT struct {
+	Cookie      uint64 `json:"cookie"`
 	Id          int64  `json:"id"`
 	Arch        string `json:"arch"`
 	GitRevision string `json:"git_revision"`
@@ -500,6 +576,7 @@ func (t *ConnectRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOff
 	gitRevisionOffset := builder.CreateString(t.GitRevision)
 	syzRevisionOffset := builder.CreateString(t.SyzRevision)
 	ConnectRequestRawStart(builder)
+	ConnectRequestRawAddCookie(builder, t.Cookie)
 	ConnectRequestRawAddId(builder, t.Id)
 	ConnectRequestRawAddArch(builder, archOffset)
 	ConnectRequestRawAddGitRevision(builder, gitRevisionOffset)
@@ -508,6 +585,7 @@ func (t *ConnectRequestRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOff
 }
 
 func (rcv *ConnectRequestRaw) UnPackTo(t *ConnectRequestRawT) {
+	t.Cookie = rcv.Cookie()
 	t.Id = rcv.Id()
 	t.Arch = string(rcv.Arch())
 	t.GitRevision = string(rcv.GitRevision())
@@ -550,8 +628,20 @@ func (rcv *ConnectRequestRaw) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *ConnectRequestRaw) Id() int64 {
+func (rcv *ConnectRequestRaw) Cookie() uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConnectRequestRaw) MutateCookie(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(4, n)
+}
+
+func (rcv *ConnectRequestRaw) Id() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
@@ -559,18 +649,10 @@ func (rcv *ConnectRequestRaw) Id() int64 {
 }
 
 func (rcv *ConnectRequestRaw) MutateId(n int64) bool {
-	return rcv._tab.MutateInt64Slot(4, n)
+	return rcv._tab.MutateInt64Slot(6, n)
 }
 
 func (rcv *ConnectRequestRaw) Arch() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
-func (rcv *ConnectRequestRaw) GitRevision() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -578,7 +660,7 @@ func (rcv *ConnectRequestRaw) GitRevision() []byte {
 	return nil
 }
 
-func (rcv *ConnectRequestRaw) SyzRevision() []byte {
+func (rcv *ConnectRequestRaw) GitRevision() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -586,20 +668,31 @@ func (rcv *ConnectRequestRaw) SyzRevision() []byte {
 	return nil
 }
 
+func (rcv *ConnectRequestRaw) SyzRevision() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func ConnectRequestRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(5)
+}
+func ConnectRequestRawAddCookie(builder *flatbuffers.Builder, cookie uint64) {
+	builder.PrependUint64Slot(0, cookie, 0)
 }
 func ConnectRequestRawAddId(builder *flatbuffers.Builder, id int64) {
-	builder.PrependInt64Slot(0, id, 0)
+	builder.PrependInt64Slot(1, id, 0)
 }
 func ConnectRequestRawAddArch(builder *flatbuffers.Builder, arch flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(arch), 0)
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(arch), 0)
 }
 func ConnectRequestRawAddGitRevision(builder *flatbuffers.Builder, gitRevision flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(gitRevision), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(gitRevision), 0)
 }
 func ConnectRequestRawAddSyzRevision(builder *flatbuffers.Builder, syzRevision flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(syzRevision), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(syzRevision), 0)
 }
 func ConnectRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

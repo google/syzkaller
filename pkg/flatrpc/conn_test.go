@@ -20,7 +20,11 @@ import (
 )
 
 func TestConn(t *testing.T) {
+	connectHello := &ConnectHello{
+		Cookie: 1,
+	}
 	connectReq := &ConnectRequest{
+		Cookie:      73856093,
 		Id:          1,
 		Arch:        "arch",
 		GitRevision: "rev1",
@@ -52,6 +56,9 @@ func TestConn(t *testing.T) {
 	go func() {
 		done <- serv.Serve(context.Background(),
 			func(_ context.Context, c *Conn) error {
+				if err := Send(c, connectHello); err != nil {
+					return err
+				}
 				connectReqGot, err := Recv[*ConnectRequestRaw](c)
 				if err != nil {
 					return err
@@ -79,6 +86,12 @@ func TestConn(t *testing.T) {
 	c := dial(t, serv.Addr.String())
 	defer c.Close()
 
+	connectHelloGot, err := Recv[*ConnectHelloRaw](c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, connectHello, connectHelloGot)
+
 	if err := Send(c, connectReq); err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +115,11 @@ func TestConn(t *testing.T) {
 }
 
 func BenchmarkConn(b *testing.B) {
+	connectHello := &ConnectHello{
+		Cookie: 1,
+	}
 	connectReq := &ConnectRequest{
+		Cookie:      73856093,
 		Id:          1,
 		Arch:        "arch",
 		GitRevision: "rev1",
@@ -125,7 +142,11 @@ func BenchmarkConn(b *testing.B) {
 		done <- serv.Serve(context.Background(),
 			func(_ context.Context, c *Conn) error {
 				for i := 0; i < b.N; i++ {
-					_, err := Recv[*ConnectRequestRaw](c)
+					if err := Send(c, connectHello); err != nil {
+						return err
+					}
+
+					_, err = Recv[*ConnectRequestRaw](c)
 					if err != nil {
 						return err
 					}
@@ -143,10 +164,14 @@ func BenchmarkConn(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		_, err := Recv[*ConnectHelloRaw](c)
+		if err != nil {
+			b.Fatal(err)
+		}
 		if err := Send(c, connectReq); err != nil {
 			b.Fatal(err)
 		}
-		_, err := Recv[*ConnectReplyRaw](c)
+		_, err = Recv[*ConnectReplyRaw](c)
 		if err != nil {
 			b.Fatal(err)
 		}

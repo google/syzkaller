@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/url"
 	"slices"
 	"sort"
@@ -232,13 +233,17 @@ func (serv *server) Listen() error {
 	return nil
 }
 
+// Used for errors incompatible with further RPCServer operation.
+var errFatal = errors.New("aborting RPC server")
+
 func (serv *server) Serve(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return serv.serv.Serve(ctx, func(ctx context.Context, conn *flatrpc.Conn) error {
 			err := serv.handleConn(ctx, conn)
-			if err != nil {
-				log.Logf(0, "serv.handleConn returend %v", err)
+			if err != nil && !errors.Is(err, errFatal) {
+				log.Logf(2, "%v", err)
+				return nil
 			}
 			return err
 		})
@@ -261,24 +266,49 @@ func (serv *server) Port() int {
 	return serv.serv.Addr.Port
 }
 
+// Must be simple enough to not require adding dependencies to the executor.
+func authHash(value uint64) uint64 {
+	prime1 := uint64(73856093)
+	prime2 := uint64(83492791)
+	hashValue := (value * prime1) ^ prime2
+
+	return hashValue
+}
+
 func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
+	// Use a random cookie, because we do not want the fuzzer to accidentally guess it and DDoS multiple managers.
+	helloCookie := rand.Uint64()
+	expectCookie := authHash(helloCookie)
+	connectHello := &flatrpc.ConnectHello{
+		Cookie: helloCookie,
+	}
+
+	if err := flatrpc.Send(conn, connectHello); err != nil {
+		// The other side is not an executor.
+		return fmt.Errorf("failed to establish connection with a remote runner")
+	}
+
 	connectReq, err := flatrpc.Recv[*flatrpc.ConnectRequestRaw](conn)
 	if err != nil {
-		log.Logf(1, "%s", err)
-		return nil
+		return err
 	}
 	id := int(connectReq.Id)
+
+	if connectReq.Cookie != expectCookie {
+		return fmt.Errorf("client failed to respond with a valid cookie: %v (expected %v)", connectReq.Cookie, expectCookie)
+	}
+
+	// From now on, assume that the client is well-behaving.
 	log.Logf(1, "runner %v connected", id)
 
 	if serv.cfg.VMLess {
-		// There is no VM loop, so minic what it would do.
+		// There is no VM loop, so mimic what it would do.
 		serv.CreateInstance(id, nil, nil)
 		defer func() {
 			serv.StopFuzzing(id)
 			serv.ShutdownInstance(id, true)
 		}()
 	} else if err := checkRevisions(connectReq, serv.cfg.Target); err != nil {
-		// This is a fatal error.
 		return err
 	}
 	serv.StatVMRestarts.Add(1)
@@ -287,17 +317,11 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	runner := serv.runners[id]
 	serv.mu.Unlock()
 	if runner == nil {
-		log.Logf(2, "unknown VM %v tries to connect", id)
-		return nil
+		return fmt.Errorf("unknown VM %v tries to connect", id)
 	}
 
 	err = serv.handleRunnerConn(ctx, runner, conn)
 	log.Logf(2, "runner %v: %v", id, err)
-
-	if err != nil && errors.Is(err, errFatal) {
-		log.Logf(0, "%v", err)
-		return err
-	}
 
 	runner.resultCh <- err
 	return nil
@@ -336,9 +360,6 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 	}
 	return serv.connectionLoop(ctx, runner)
 }
-
-// Used for errors incompatible with further RPCServer operation.
-var errFatal = errors.New("aborting RPC server")
 
 func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
 	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
@@ -419,15 +440,16 @@ func (serv *server) connectionLoop(baseCtx context.Context, runner *Runner) erro
 
 func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
 	if target.Arch != a.Arch {
-		return fmt.Errorf("mismatching manager/executor arches: %v vs %v (full request: `%#v`)", target.Arch, a.Arch, a)
+		return fmt.Errorf("%w: mismatching manager/executor arches: %v vs %v (full request: `%#v`)",
+			errFatal, target.Arch, a.Arch, a)
 	}
 	if prog.GitRevision != a.GitRevision {
-		return fmt.Errorf("mismatching manager/executor git revisions: %v vs %v",
-			prog.GitRevision, a.GitRevision)
+		return fmt.Errorf("%w: mismatching manager/executor git revisions: %v vs %v",
+			errFatal, prog.GitRevision, a.GitRevision)
 	}
 	if target.Revision != a.SyzRevision {
-		return fmt.Errorf("mismatching manager/executor system call descriptions: %v vs %v",
-			target.Revision, a.SyzRevision)
+		return fmt.Errorf("%w: mismatching manager/executor system call descriptions: %v vs %v",
+			errFatal, target.Revision, a.SyzRevision)
 	}
 	return nil
 }
