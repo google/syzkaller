@@ -2,27 +2,13 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 resources:
-  - ../../controller
-  - ../../dashboard
-  - ../../series-tracker
-  - ../../kernel-disk
-  - ../../reporter
   - ../common
-  - ../../workflow
   - global-config.yaml
-  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
-  - workflow-roles.yaml
   - fake-gcs.yaml
-  - workflow-artifacts.yaml
   - network-policy-spanner.yaml
+  - workflow-artifacts.yaml
 
 patches:
-  - target:
-      kind: Deployment
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/imagePullPolicy
-        value: IfNotPresent
   - target:
       kind: ConfigMap
       name: workflow-controller-configmap

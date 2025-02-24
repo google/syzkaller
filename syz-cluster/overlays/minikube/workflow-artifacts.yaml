@@ -10,4 +10,4 @@ metadata:
 data:
   gcs-repo: |
     gcs:
-      bucket: test-bucket
+      bucket: workflow-artifacts
