@@ -64,4 +64,4 @@ restart-spanner: build-db-mgmt
 	./run-local.sh db-mgmt migrate
 
 k8s-config-dev:
-	@kubectl kustomize ./overlays/dev/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
+	@kubectl kustomize ./overlays/minikube/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
