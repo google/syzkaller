@@ -537,8 +537,12 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 		var percentCoveredFunc float64
 
 		for _, path := range subsystem.Paths {
+			if strings.HasPrefix(path, "-") {
+				continue
+			}
+			excludes := buildExcludePaths(path, subsystem.Paths)
 			for _, data := range datas {
-				if !strings.HasPrefix(data.Name, path) {
+				if !strings.HasPrefix(data.Name, path) || isExcluded(data.Name, excludes) {
 					continue
 				}
 				coveredLines += data.CoveredLines
@@ -580,6 +584,25 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 	}
 
 	return d
+}
+
+func buildExcludePaths(prefix string, paths []string) []string {
+	var excludes []string
+	for _, path := range paths {
+		if strings.HasPrefix(path, "-") && strings.HasPrefix(path[1:], prefix) {
+			excludes = append(excludes, path[1:])
+		}
+	}
+	return excludes
+}
+
+func isExcluded(path string, excludes []string) bool {
+	for _, exclude := range excludes {
+		if strings.HasPrefix(path, exclude) {
+			return true
+		}
+	}
+	return false
 }
 
 func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
