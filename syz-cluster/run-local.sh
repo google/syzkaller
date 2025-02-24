@@ -14,7 +14,7 @@ alias kubectl="minikube kubectl --"
 # Clean up in case the run comand was prematurely aborted.
 # TODO: find out how to rely on envs from overlays/dev/global-config.yaml.
 kubectl delete pod run-local >/dev/null 2>&1 || true
-kubectl run run-local --image="$name-local" \
+kubectl run run-local --image="local/$name" \
   --image-pull-policy=Never \
   --restart=Never \
   --env="SPANNER_EMULATOR_HOST=cloud-spanner-emulator:9010" \

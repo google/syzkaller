@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: controller-image
-        image: controller-image # The actual image name is set in overalys.
+        image: ${IMAGE_PREFIX}controller:${IMAGE_TAG}
         envFrom:
           - configMapRef:
               name: global-config

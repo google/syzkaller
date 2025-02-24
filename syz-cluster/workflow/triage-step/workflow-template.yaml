@@ -38,7 +38,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
       container:
-          image: triage-step-local
+          image: ${IMAGE_PREFIX}triage-step:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           command: ["/bin/triage-step"]
           args: [

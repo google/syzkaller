@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: web-dashboard-image
-        image: web-dashboard-image
+        image: ${IMAGE_PREFIX}web-dashboard:${IMAGE_TAG}
         envFrom:
           - configMapRef:
               name: global-config

@@ -1,66 +1,67 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-build-controller-dev:
-	eval $$(minikube docker-env);\
-	docker build -t controller-image-local -f ./controller/Dockerfile ../
+IMAGE_TAG ?= latest
+IMAGE_PREFIX ?= local/
+SHELL := /bin/bash
 
-build-series-tracker-dev:
-	eval $$(minikube docker-env);\
-	docker build -t series-tracker-local -f ./series-tracker/Dockerfile ../
+define build_image_rules =
+  image_name_$(2) := $(IMAGE_PREFIX)$(2):$(IMAGE_TAG)
+  dockerfile_$(2) := $(1)/Dockerfile
 
-deploy-series-tracker-dev: build-series-tracker-dev
+  build-$(2):
+	  @echo "Building $$(image_name_$(2)) (Dockerfile: $$(dockerfile_$(2)))"
+	  DOCKER_BUILDKIT=1 docker build -t $$(image_name_$(2)) -f $$(dockerfile_$(2)) ../
+
+  push-$(2): build-$(2)
+	  @echo "Pushing $$(image_name_$(2))"
+	  docker push $$(image_name_$(2))
+
+endef
+
+$(eval $(call build_image_rules,./controller,controller))
+$(eval $(call build_image_rules,./dashboard,web-dashboard))
+$(eval $(call build_image_rules,./reporter,reporter))
+$(eval $(call build_image_rules,./series-tracker,series-tracker))
+$(eval $(call build_image_rules,./db-mgmt,db-mgmt))
+$(eval $(call build_image_rules,./workflow/triage-step,triage-step))
+$(eval $(call build_image_rules,./workflow/build-step,build-step))
+$(eval $(call build_image_rules,./workflow/fuzz-step,fuzz-step))
+$(eval $(call build_image_rules,./workflow/boot-step,boot-step))
+
+IMAGES := controller web-dashboard reporter series-tracker db-mgmt triage-step build-step boot-step fuzz-step
+BUILD_TARGETS := $(addprefix build-, $(IMAGES))
+PUSH_TARGETS := $(addprefix push-, $(IMAGES))
+
+.PHONY: build-all push-all deploy-series-tracker run-series-tracker install-dev-config build-go-tests-dev run-go-tests-dev restart-spanner kustomize-dev
+
+build-all: $(BUILD_TARGETS)
+
+push-all: $(PUSH_TARGETS)
+
+deploy-series-tracker: build-series-tracker
 	@kubectl rollout restart deployment series-tracker
 
-run-series-tracker-dev: build-series-tracker-dev
+run-series-tracker: build-series-tracker
 	./run-local.sh series-tracker
 
-build-web-dashboard-dev:
-	eval $$(minikube docker-env);\
-	docker build -t web-dashboard-local -f ./dashboard/Dockerfile ../
-
-deploy-web-dashboard-dev: build-web-dashboard-dev
+deploy-web-dashboard: build-web-dashboard
 	@kubectl rollout restart deployment web-dashboard
-
-build-reporter-dev:
-	eval $$(minikube docker-env);\
-	docker build -t reporter-image-local -f ./reporter/Dockerfile ../
 
 install-dev-config:
 	minikube kubectl -- apply -f ./overlays/dev/global-config.yaml
-
-build-db-mgmt-dev:
-	eval $$(minikube docker-env);\
-	docker build -t db-mgmt-local -f ./db-mgmt/Dockerfile ../
-
-build-triage-step-dev:
-	eval $$(minikube docker-env);\
-	docker build -t triage-step-local -f ./workflow/triage-step/Dockerfile ../
-
-build-build-step-dev:
-	eval $$(minikube docker-env);\
-	docker build -t build-step-local -f ./workflow/build-step/Dockerfile ../
-
-build-boot-step-dev:
-	eval $$(minikube docker-env);\
-	docker build -t boot-step-local -f ./workflow/boot-step/Dockerfile ../
-
-build-fuzz-step-dev:
-	eval $$(minikube docker-env);\
-	docker build -t fuzz-step-local -f ./workflow/fuzz-step/Dockerfile ../
 
 build-go-tests-dev:
 	eval $$(minikube docker-env);\
 	docker build -t go-tests-local -f Dockerfile.go-tests ../
 
-build-workflow-dev: build-triage-step-dev build-build-step-dev build-boot-step-dev build-fuzz-step-dev
-
-all-containers: build-controller-dev build-series-tracker-dev build-db-mgmt-dev build-web-dashboard-dev build-reporter-dev build-workflow-dev
-
 run-go-tests-dev: build-go-tests-dev
 	./run-local.sh go-tests
 
-restart-spanner: build-db-mgmt-dev
+restart-spanner: build-db-mgmt
 	minikube addons disable cloud-spanner;
 	minikube addons enable cloud-spanner;
 	./run-local.sh db-mgmt migrate
+
+k8s-config-dev:
+	@kubectl kustomize ./overlays/dev/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
