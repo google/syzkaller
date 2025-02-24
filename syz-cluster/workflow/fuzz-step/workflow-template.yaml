@@ -23,7 +23,7 @@ spec:
             path: /patched
       timeout: 4h
       container:
-        image: fuzz-step-local
+        image: ${IMAGE_PREFIX}fuzz-step:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
         command: ["/bin/fuzz-step"]
         args: [

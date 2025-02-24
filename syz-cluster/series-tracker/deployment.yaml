@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: series-tracker-image
-        image: series-tracker-image
+        image: ${IMAGE_PREFIX}series-tracker:${IMAGE_TAG}
         envFrom:
           - configMapRef:
               name: global-config

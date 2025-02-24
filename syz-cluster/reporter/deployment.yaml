@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: reporter-image
-        image: reporter-image # The actual image name is set in overalys.
+        image: ${IMAGE_PREFIX}reporter:${IMAGE_TAG}
         envFrom:
           - configMapRef:
               name: global-config

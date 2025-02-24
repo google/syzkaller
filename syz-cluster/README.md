@@ -14,13 +14,14 @@ $ minikube addons enable cloud-spanner
 ```
 3. Build all docker containers (might take a while):
 ```
-$ make all-containers
+$ eval $(minikube docker-env)
+$ make build-all
 ```
 4. Deploy the cluster:
 ```
 $ make restart-spanner
 $ kubectl create namespace argo
-$ kubectl apply -k ./overlays/dev/
+$ make k8s-config-dev | kubectl apply -f -
 ```
 5. (Optional) Pre-fetch the kernel git repository:
 ```

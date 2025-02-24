@@ -52,7 +52,7 @@ spec:
           capabilities:
             add: ["SYS_ADMIN"]
       container:
-        image: build-step-local
+        image: ${IMAGE_PREFIX}build-step:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
         command: ["/bin/build-step"]
         args: [

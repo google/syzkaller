@@ -24,7 +24,7 @@ spec:
           - name: kernel
             path: /base
       container:
-        image: boot-step-local
+        image: ${IMAGE_PREFIX}boot-step:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
         command: ["/bin/boot-step"]
         args: [

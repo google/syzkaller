@@ -34,11 +34,3 @@ patches:
               env:
                 - name: STORAGE_EMULATOR_HOST
                   value: http://fake-gcs-server.default.svc.cluster.local:4443
-
-images:
-  - name: controller-image
-    newName: controller-image-local:latest
-  - name: web-dashboard-image
-    newName: web-dashboard-local:latest
-  - name: series-tracker-image
-    newName: series-tracker-local:latest
