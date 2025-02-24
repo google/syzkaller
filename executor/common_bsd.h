@@ -387,6 +387,7 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
 
+#include <errno.h>
 #include <sys/resource.h>
 #include <unistd.h>
 
