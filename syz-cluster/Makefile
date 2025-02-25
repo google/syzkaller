@@ -65,3 +65,10 @@ restart-spanner: build-db-mgmt
 
 k8s-config-dev:
 	@kubectl kustomize ./overlays/minikube/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
+
+migrate-job.yaml:
+	@if [ -z "${SPANNER_DATABASE_URI}" ]; then \
+                echo "Error: SPANNER_DATABASE_URI must be defined."; \
+                exit 1; \
+        fi
+	@cat db-mgmt/migrate-job.yaml | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
