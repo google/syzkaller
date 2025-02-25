@@ -15,6 +15,7 @@ spec:
       labels:
         app: web-dashboard
     spec:
+      serviceAccountName: gke-service-ksa
       containers:
       - name: web-dashboard-image
         image: ${IMAGE_PREFIX}web-dashboard:${IMAGE_TAG}
