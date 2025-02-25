@@ -15,6 +15,7 @@ spec:
       labels:
         app: reporter
     spec:
+      serviceAccountName: gke-service-ksa
       containers:
       - name: reporter-image
         image: ${IMAGE_PREFIX}reporter:${IMAGE_TAG}

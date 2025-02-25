@@ -15,6 +15,7 @@ spec:
       labels:
         app: controller
     spec:
+      serviceAccountName: gke-service-ksa
       containers:
       - name: controller-image
         image: ${IMAGE_PREFIX}controller:${IMAGE_TAG}
