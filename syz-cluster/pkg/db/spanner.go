@@ -115,7 +115,10 @@ func RunMigrations(ctx context.Context, uri string) error {
 		return err
 	}
 	m, err := migrate.NewWithInstance("iofs", sourceDriver, "spanner", dbDriver)
-	if err != nil {
+	if err == migrate.ErrNoChange {
+		// This is not a problem.
+		return nil
+	} else if err != nil {
 		return err
 	}
 	return m.Up()
