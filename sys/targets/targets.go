@@ -357,6 +357,12 @@ var List = map[string]map[string]*Target{
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
 			},
+			KernelAddresses: KernelAddresses{
+				// On amd64 the kernel and KLDs are loaded into the top
+				// 2GB of the kernel address space.
+				TextStart: 0xffffffff80000000,
+				TextEnd:   0xffffffffffffffff,
+			},
 		},
 		ARM64: {
 			PtrSize:   8,
