@@ -25,7 +25,7 @@ $ make k8s-config-dev | kubectl apply -f -
 ```
 5. (Optional) Pre-fetch the kernel git repository:
 ```
-kubectl create job --from=cronjob/kernel-repo-update kernel-repo-update-manual
+$ argo submit --from cronwf/fetch-kernels-cron
 ```
 
 ## Developmental tips
