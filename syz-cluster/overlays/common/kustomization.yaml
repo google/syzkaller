@@ -2,13 +2,13 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 resources:
+  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
   - ../../controller
   - ../../dashboard
   - ../../series-tracker
   - ../../kernel-disk
   - ../../reporter
   - ../../workflow
-  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
   - network-deny-all.yaml
   - network-policy-controller.yaml
   - network-policy-git-access.yaml
