@@ -15,6 +15,7 @@ spec:
     podMetadata:
       labels:
         tier: workflow
+    serviceAccountName: argo-executor-ksa
     templates:
     - name: main
       parallelism: 1
