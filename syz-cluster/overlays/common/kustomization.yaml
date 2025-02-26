@@ -15,9 +15,22 @@ resources:
   - workflow-roles.yaml
 
 patches:
+  - patch-argo-controller.yaml
+
+
+patches:
   - target:
       kind: Deployment
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/imagePullPolicy
         value: IfNotPresent
+  - target:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    patch: |-
+      - op: replace
+        path: /data
+        value:
+          workflowDefaults:
+            serviceAccountName: argo-executor-ksa
