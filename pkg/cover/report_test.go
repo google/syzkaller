@@ -175,9 +175,9 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	if test.Result != "" {
 		t.Fatalf("got no error, but expected %q", test.Result)
 	}
-	checkCSVReport(t, reps.csv)
-	checkJSONLReport(t, reps.jsonl, sampleCoverJSON)
-	checkJSONLReport(t, reps.jsonlPrograms, sampleJSONLlProgs)
+	checkCSVReport(t, reps.csv.Bytes())
+	checkJSONLReport(t, reps.jsonl.Bytes(), sampleCoverJSON)
+	checkJSONLReport(t, reps.jsonlPrograms.Bytes(), sampleJSONLlProgs)
 }
 
 const kcovCode = `
@@ -292,9 +292,9 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 }
 
 type reports struct {
-	csv           []byte
-	jsonl         []byte
-	jsonlPrograms []byte
+	csv           *bytes.Buffer
+	jsonl         *bytes.Buffer
+	jsonlPrograms *bytes.Buffer
 }
 
 func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports, error) {
@@ -387,29 +387,17 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 	if err := rg.DoHTML(new(bytes.Buffer), params); err != nil {
 		return nil, err
 	}
-	if err := rg.DoSubsystemCover(new(bytes.Buffer), params); err != nil {
-		return nil, err
+	assert.NoError(t, rg.DoSubsystemCover(new(bytes.Buffer), params))
+	assert.NoError(t, rg.DoFileCover(new(bytes.Buffer), params))
+	res := &reports{
+		csv:           new(bytes.Buffer),
+		jsonl:         new(bytes.Buffer),
+		jsonlPrograms: new(bytes.Buffer),
 	}
-	csv := new(bytes.Buffer)
-	if err := rg.DoFuncCover(csv, params); err != nil {
-		return nil, err
-	}
-	if err := rg.DoFileCover(new(bytes.Buffer), params); err != nil {
-		return nil, err
-	}
-	jsonl := new(bytes.Buffer)
-	if err := rg.DoCoverJSONL(jsonl, params); err != nil {
-		return nil, err
-	}
-	jsonlProgs := new(bytes.Buffer)
-	if err := rg.DoCoverPrograms(jsonlProgs, params); err != nil {
-		return nil, err
-	}
-	return &reports{
-		csv:           csv.Bytes(),
-		jsonl:         jsonl.Bytes(),
-		jsonlPrograms: jsonlProgs.Bytes(),
-	}, nil
+	assert.NoError(t, rg.DoFuncCover(res.csv, params))
+	assert.NoError(t, rg.DoCoverJSONL(res.jsonl, params))
+	assert.NoError(t, rg.DoCoverPrograms(res.jsonlPrograms, params))
+	return res, nil
 }
 
 func checkCSVReport(t *testing.T, CSVReport []byte) {
