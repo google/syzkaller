@@ -44,7 +44,7 @@ metadata:
   namespace: default
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: gke-service-ksa
   namespace: default
 roleRef:
   kind: Role
@@ -79,7 +79,7 @@ roleRef:
   name: executor
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: gke-service-ksa
   namespace: default
 
 ---
