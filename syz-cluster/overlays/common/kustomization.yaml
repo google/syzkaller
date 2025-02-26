@@ -17,7 +17,6 @@ resources:
 patches:
   - patch-argo-controller.yaml
 
-
 patches:
   - target:
       kind: Deployment
