@@ -250,8 +250,10 @@ func (fuzzer *Fuzzer) handleCallInfo(req *queue.Request, info *flatrpc.CallInfo,
 	stat := &fuzzer.Syscalls[syscallIdx]
 	if req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectComps != 0 {
 		stat.CompsOverflows.Add(1)
+		fuzzer.statCompsOverflows.Add(1)
 	} else {
 		stat.CoverOverflows.Add(1)
+		fuzzer.statCoverOverflows.Add(1)
 	}
 }
 

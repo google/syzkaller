@@ -33,6 +33,8 @@ type Stats struct {
 	statExecHint            *stat.Val
 	statExecSeed            *stat.Val
 	statExecCollide         *stat.Val
+	statCoverOverflows      *stat.Val
+	statCompsOverflows      *stat.Val
 }
 
 type SyscallStats struct {
@@ -80,5 +82,9 @@ func newStats(target *prog.Target) Stats {
 			stat.Rate{}, stat.StackedGraph("exec")),
 		statExecCollide: stat.New("exec collide", "Executions of programs in collide mode",
 			stat.Rate{}, stat.StackedGraph("exec")),
+		statCoverOverflows: stat.New("cover overflows", "Number of times the coverage buffer overflowed",
+			stat.Rate{}, stat.NoGraph),
+		statCompsOverflows: stat.New("comps overflows", "Number of times the comparisons buffer overflowed",
+			stat.Rate{}, stat.NoGraph),
 	}
 }
