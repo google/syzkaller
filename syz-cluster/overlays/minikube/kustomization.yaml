@@ -9,15 +9,5 @@ resources:
   - network-policy-spanner.yaml
   - workflow-artifacts.yaml
 
-patches:
-  - target:
-      kind: ConfigMap
-      name: workflow-controller-configmap
-    patch: |-
-      - op: replace
-        path: /data
-        value:
-          executor: |
-              env:
-                - name: STORAGE_EMULATOR_HOST
-                  value: http://fake-gcs-server.default.svc.cluster.local:4443
+patchesStrategicMerge:
+  - patch-workflow-controller-configmap.yaml

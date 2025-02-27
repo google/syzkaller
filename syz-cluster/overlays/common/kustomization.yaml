@@ -14,8 +14,9 @@ resources:
   - network-policy-git-access.yaml
   - workflow-roles.yaml
 
-patches:
+patchesStrategicMerge:
   - patch-argo-controller.yaml
+  - patch-workflow-controller-configmap.yaml
 
 patches:
   - target:
@@ -24,12 +25,3 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/imagePullPolicy
         value: IfNotPresent
-  - target:
-      kind: ConfigMap
-      name: workflow-controller-configmap
-    patch: |-
-      - op: replace
-        path: /data
-        value:
-          workflowDefaults:
-            serviceAccountName: argo-executor-ksa
