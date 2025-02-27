@@ -175,8 +175,9 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	if test.Result != "" {
 		t.Fatalf("got no error, but expected %q", test.Result)
 	}
-	checkCSVReport(t, reps.csv)
-	checkJSONLReport(t, reps.jsonl)
+	checkCSVReport(t, reps.csv.Bytes())
+	checkJSONLReport(t, reps.jsonl.Bytes(), sampleCoverJSON)
+	checkJSONLReport(t, reps.jsonlPrograms.Bytes(), sampleJSONLlProgs)
 }
 
 const kcovCode = `
@@ -291,9 +292,9 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 }
 
 type reports struct {
-	html  []byte
-	csv   []byte
-	jsonl []byte
+	csv           *bytes.Buffer
+	jsonl         *bytes.Buffer
+	jsonlPrograms *bytes.Buffer
 }
 
 func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports, error) {
@@ -380,36 +381,23 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		}
 		progs = append(progs, Prog{Data: "main", PCs: pcs})
 	}
-	html := new(bytes.Buffer)
 	params := HandlerParams{
 		Progs: progs,
 	}
-	if err := rg.DoHTML(html, params); err != nil {
+	if err := rg.DoHTML(new(bytes.Buffer), params); err != nil {
 		return nil, err
 	}
-	htmlTable := new(bytes.Buffer)
-	if err := rg.DoSubsystemCover(htmlTable, params); err != nil {
-		return nil, err
+	assert.NoError(t, rg.DoSubsystemCover(new(bytes.Buffer), params))
+	assert.NoError(t, rg.DoFileCover(new(bytes.Buffer), params))
+	res := &reports{
+		csv:           new(bytes.Buffer),
+		jsonl:         new(bytes.Buffer),
+		jsonlPrograms: new(bytes.Buffer),
 	}
-	_ = htmlTable
-	csv := new(bytes.Buffer)
-	if err := rg.DoFuncCover(csv, params); err != nil {
-		return nil, err
-	}
-	csvFiles := new(bytes.Buffer)
-	if err := rg.DoFileCover(csvFiles, params); err != nil {
-		return nil, err
-	}
-	_ = csvFiles
-	jsonl := new(bytes.Buffer)
-	if err := rg.DoCoverJSONL(jsonl, params); err != nil {
-		return nil, err
-	}
-	return &reports{
-		html:  html.Bytes(),
-		csv:   csv.Bytes(),
-		jsonl: jsonl.Bytes(),
-	}, nil
+	assert.NoError(t, rg.DoFuncCover(res.csv, params))
+	assert.NoError(t, rg.DoCoverJSONL(res.jsonl, params))
+	assert.NoError(t, rg.DoCoverPrograms(res.jsonlPrograms, params))
+	return res, nil
 }
 
 func checkCSVReport(t *testing.T, CSVReport []byte) {
@@ -438,15 +426,37 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 }
 
 // nolint:lll
-func checkJSONLReport(t *testing.T, r []byte) {
+func checkJSONLReport(t *testing.T, gotBytes, wantBytes []byte) {
 	compacted := new(bytes.Buffer)
-	if err := json.Compact(compacted, sampleCoverJSON); err != nil {
+	if err := json.Compact(compacted, wantBytes); err != nil {
 		t.Errorf("failed to prepare compacted json: %v", err)
 	}
 	compacted.Write([]byte("\n"))
 
 	// PC is hard to predict here. Let's fix it.
 	actualString := regexp.MustCompile(`"pc":[0-9]*`).ReplaceAllString(
-		string(r), `"pc":12345`)
+		string(gotBytes), `"pc":12345`)
 	assert.Equal(t, compacted.String(), actualString)
 }
+
+var sampleJSONLlProgs = []byte(`{
+	"prog_base_64": "bWFpbg==",
+	"coverage": [
+		{
+			"file_path": "main.c",
+			"functions": [
+				{
+					"func_name": "main",
+					"covered_blocks": [
+						{
+							"from_line": 1,
+							"from_column": 0,
+							"to_line": 1,
+							"to_column": -1
+						}
+					]
+				}
+			]
+		}
+	]
+}`)

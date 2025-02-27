@@ -81,7 +81,7 @@ type line struct {
 type fileMap map[string]*file
 
 func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (fileMap, error) {
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
 		return nil, err
 	}
 	files := make(fileMap)
@@ -108,7 +108,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (file
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := fileByFrame(files, &frame)
+		f := fileByFrame(files, frame)
 		ln := f.lines[frame.StartLine]
 		coveredBy := pcToProgs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -187,7 +187,7 @@ func coverageCallbackMismatch(debug bool, numPCs int, unmatchedPCs map[uint64]bo
 		len(unmatchedPCs), numPCs, debugStr)
 }
 
-func uniquePCs(progs []Prog) []uint64 {
+func uniquePCs(progs ...Prog) []uint64 {
 	PCs := make(map[uint64]bool)
 	for _, p := range progs {
 		for _, pc := range p.PCs {

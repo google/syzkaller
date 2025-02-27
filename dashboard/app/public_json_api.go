@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
@@ -177,26 +178,6 @@ func GetJSONDescrFor(page interface{}) ([]byte, error) {
 	return json.MarshalIndent(res, "", "\t")
 }
 
-type coveredBlock struct {
-	FromLine int `json:"from_line"`
-	FromCol  int `json:"from_column"`
-	ToLine   int `json:"to_line"`
-	ToCol    int `json:"to_column"`
-}
-
-type functionCoverage struct {
-	FuncName     string          `json:"func_name"`
-	Instrumented int             `json:"total_blocks"`
-	Blocks       []*coveredBlock `json:"covered_blocks"`
-}
-
-type fileCoverage struct {
-	Repo      string              `json:"repo"`
-	Commit    string              `json:"commit"`
-	FilePath  string              `json:"file_path"`
-	Functions []*functionCoverage `json:"functions"`
-}
-
 func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) error {
 	// By default, return the previous month coverage. It guarantees the good numbers.
 	//
@@ -236,7 +217,7 @@ func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *covera
 			if err != nil {
 				return fmt.Errorf("genFuncsCov: %w", err)
 			}
-			if err := enc.Encode(&fileCoverage{
+			if err := enc.Encode(&cover.FileCoverage{
 				Repo:      repo,
 				Commit:    fileCov.Commit,
 				FilePath:  fileCov.Filepath,
@@ -251,7 +232,7 @@ func writeFileCoverage(ctx context.Context, w io.Writer, repo string, ff *covera
 }
 
 func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.FunctionFinder,
-) ([]*functionCoverage, error) {
+) ([]*cover.FunctionCoverage, error) {
 	nameToLines := map[string][]int{}
 	funcInstrumented := map[string]int{}
 	for i, hitCount := range fc.HitCounts {
@@ -267,9 +248,9 @@ func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.Functio
 		nameToLines[funcName] = append(nameToLines[funcName], lineNum)
 	}
 
-	var res []*functionCoverage
+	var res []*cover.FunctionCoverage
 	for funcName, lines := range nameToLines {
-		res = append(res, &functionCoverage{
+		res = append(res, &cover.FunctionCoverage{
 			FuncName:     funcName,
 			Instrumented: funcInstrumented[funcName],
 			Blocks:       linesToBlocks(lines),
@@ -278,10 +259,10 @@ func genFuncsCov(fc *coveragedb.FileCoverageWithLineInfo, ff *coveragedb.Functio
 	return res, nil
 }
 
-func linesToBlocks(lines []int) []*coveredBlock {
-	var res []*coveredBlock
+func linesToBlocks(lines []int) []*cover.CoveredBlock {
+	var res []*cover.CoveredBlock
 	for _, lineNum := range lines {
-		res = append(res, &coveredBlock{
+		res = append(res, &cover.CoveredBlock{
 			FromLine: lineNum,
 			FromCol:  0,
 			ToLine:   lineNum,

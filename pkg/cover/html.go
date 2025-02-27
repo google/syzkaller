@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -178,7 +180,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
 		return err
 	}
 
@@ -223,7 +225,7 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 		}
 	}
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
 		return err
 	}
 	pcProgCount := make(map[uint64]int)
@@ -251,6 +253,105 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 		}
 		if err := encoder.Encode(covInfo); err != nil {
 			return fmt.Errorf("failed to json.Encode(): %w", err)
+		}
+	}
+	return nil
+}
+
+type CoveredBlock struct {
+	FromLine int `json:"from_line"`
+	FromCol  int `json:"from_column"`
+	ToLine   int `json:"to_line"`
+	ToCol    int `json:"to_column"`
+}
+
+type FunctionCoverage struct {
+	FuncName     string          `json:"func_name"`
+	Instrumented int             `json:"total_blocks,omitempty"`
+	Blocks       []*CoveredBlock `json:"covered_blocks"`
+}
+
+type FileCoverage struct {
+	Repo      string              `json:"repo,omitempty"`
+	Commit    string              `json:"commit,omitempty"`
+	FilePath  string              `json:"file_path"`
+	Functions []*FunctionCoverage `json:"functions"`
+}
+
+type ProgramCoverage struct {
+	Repo         string          `json:"repo,omitempty"`
+	Commit       string          `json:"commit,omitempty"`
+	Program      string          `json:"prog_base_64"`
+	CoveredFiles []*FileCoverage `json:"coverage"`
+}
+
+// DoCoverPrograms returns the corpus programs with the associated coverage.
+// The result is a jsonl stream.
+// Each line is a single ProgramCoverage record.
+func (rg *ReportGenerator) DoCoverPrograms(w io.Writer, params HandlerParams) error {
+	if rg.CallbackPoints != nil {
+		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
+			return fmt.Errorf("failed to symbolize PCs(): %w", err)
+		}
+	}
+	pcToFrames := map[uint64][]*backend.Frame{}
+	for _, frame := range rg.Frames {
+		pcToFrames[frame.PC] = append(pcToFrames[frame.PC], frame)
+	}
+	encoder := json.NewEncoder(w)
+	for prog := range slices.Values(params.Progs) {
+		fileFuncFrames := map[string]map[string][]*backend.Frame{}
+		for pc := range slices.Values(uniquePCs(prog)) {
+			for frame := range slices.Values(pcToFrames[pc]) {
+				if fileFuncFrames[frame.Name] == nil {
+					fileFuncFrames[frame.Name] = map[string][]*backend.Frame{}
+				}
+				frames := fileFuncFrames[frame.Name][frame.FuncName]
+				frames = append(frames, frame)
+				fileFuncFrames[frame.Name][frame.FuncName] = frames
+			}
+		}
+
+		var progCoverage []*FileCoverage
+		for filePath, functions := range fileFuncFrames {
+			var expFuncs []*FunctionCoverage
+			for funcName, frames := range functions {
+				var expCoveredBlocks []*CoveredBlock
+				for _, frame := range frames {
+					endCol := frame.EndCol
+					if endCol == backend.LineEnd {
+						endCol = -1
+					}
+					expCoveredBlocks = append(expCoveredBlocks, &CoveredBlock{
+						FromCol:  frame.StartCol,
+						FromLine: frame.StartLine,
+						ToCol:    endCol,
+						ToLine:   frame.EndLine,
+					})
+				}
+				expFuncs = append(expFuncs, &FunctionCoverage{
+					FuncName: funcName,
+					Blocks:   expCoveredBlocks,
+				})
+			}
+			progCoverage = append(progCoverage, &FileCoverage{
+				FilePath:  filePath,
+				Functions: expFuncs,
+			})
+		}
+
+		progBase64 := bytes.Buffer{}
+		base64Enc := base64.NewEncoder(base64.StdEncoding, &progBase64)
+		if _, err := base64Enc.Write([]byte(prog.Data)); err != nil {
+			return fmt.Errorf("base64Enc.Write: %w", err)
+		}
+		base64Enc.Close()
+
+		if err := encoder.Encode(&ProgramCoverage{
+			Program:      progBase64.String(),
+			CoveredFiles: progCoverage,
+		}); err != nil {
+			return fmt.Errorf("encoder.Encode: %w", err)
 		}
 	}
 	return nil
