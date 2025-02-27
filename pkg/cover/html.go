@@ -279,6 +279,8 @@ type FileCoverage struct {
 }
 
 type ProgramCoverage struct {
+	Repo         string          `json:"repo,omitempty"`
+	Commit       string          `json:"commit,omitempty"`
 	Program      string          `json:"prog_base_64"`
 	CoveredFiles []*FileCoverage `json:"coverage"`
 }
