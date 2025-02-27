@@ -107,6 +107,8 @@ type Config struct {
 	// Path to upload coverage reports from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
 	CoverUploadPath string `json:"cover_upload_path"`
+	// Path to upload managers syz programs and their coverage in jsonl (optional).
+	CoverProgramsPath string `json:"cover_programs_path"`
 	// Path to upload json coverage reports from managers (optional).
 	CoverPipelinePath string `json:"cover_pipeline_path"`
 	// Path to upload corpus.db from managers (optional).

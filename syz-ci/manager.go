@@ -216,6 +216,11 @@ loop:
 			if err := mgr.uploadCoverReport(); err != nil {
 				mgr.Errorf("failed to upload cover report: %v", err)
 			}
+			if err := mgr.uploadProgramsWithCoverage(); err != nil {
+				mgr.Errorf("failed to upload programs with coverage: %v", err)
+			}
+			// Function uploadCoverStat also forces manager to drop the coverage structures to reduce memory usage.
+			// Should be the last request touching the coverage data.
 			if err := mgr.uploadCoverStat(fuzzingMinutesBeforeCover); err != nil {
 				mgr.Errorf("failed to upload coverage stat: %v", err)
 			}
@@ -875,8 +880,9 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
-func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
-	if !mgr.managercfg.Cover || mgr.cfg.CoverPipelinePath == "" {
+func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time,
+	f func(io.Writer, *json.Decoder) error) error {
+	if !mgr.managercfg.Cover || gcsDest == "" {
 		return nil
 	}
 
@@ -889,44 +895,25 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	}
 	defer buildSem.Signal()
 
-	// Coverage report generation consumes and caches lots of memory.
-	// In the syz-ci context report generation won't be used after this point,
-	// so tell manager to flush report generator.
-	resp, err := mgr.httpGET("/cover?jsonl=1&flush=1")
+	resp, err := mgr.httpGET(mgrSrc)
 	if err != nil {
-		return fmt.Errorf("failed to httpGet /cover?jsonl=1 report: %w", err)
+		return fmt.Errorf("failed to httpGet %s: %w", mgrSrc, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		sb := new(strings.Builder)
 		io.Copy(sb, resp.Body)
-		return fmt.Errorf("failed to GET /cover?jsonl=1, httpStatus %d: %s",
-			resp.StatusCode, sb.String())
+		return fmt.Errorf("failed to GET %s, httpStatus %d: %s",
+			mgrSrc, resp.StatusCode, sb.String())
 	}
 
-	curTime := time.Now()
 	pr, pw := io.Pipe()
 	defer pr.Close()
 	go func() {
 		decoder := json.NewDecoder(resp.Body)
 		for decoder.More() {
-			var covInfo cover.CoverageInfo
-			if err := decoder.Decode(&covInfo); err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to decode CoverageInfo: %w", err))
-				return
-			}
-			if err := cover.WriteCIJSONLine(pw, covInfo, cover.CIDetails{
-				Version:        1,
-				Timestamp:      curTime.Format(time.RFC3339Nano),
-				FuzzingMinutes: fuzzingMinutes,
-				Arch:           mgr.lastBuild.Arch,
-				BuildID:        mgr.lastBuild.ID,
-				Manager:        mgr.name,
-				KernelRepo:     mgr.lastBuild.KernelRepo,
-				KernelBranch:   mgr.lastBuild.KernelBranch,
-				KernelCommit:   mgr.lastBuild.KernelCommit,
-			}); err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to write CIJSONLine: %w", err))
+			if err := f(pw, decoder); err != nil {
+				pw.CloseWithError(fmt.Errorf("callback: %w", err))
 				return
 			}
 		}
@@ -938,6 +925,60 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 		curTime.Hour(), curTime.Minute())
 	if err := mgr.uploadFile(mgr.cfg.CoverPipelinePath, fileName, pr, false); err != nil {
 		return fmt.Errorf("failed to uploadFileGCS(): %w", err)
+	}
+	return nil
+}
+
+func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
+	// Coverage report generation consumes and caches lots of memory.
+	// In the syz-ci context report generation won't be used after this point,
+	// so tell manager to flush report generator.
+	curTime := time.Now()
+	if err := mgr.uploadCoverJSONLToGCS("/cover?jsonl=1&flush=1",
+		mgr.cfg.CoverPipelinePath,
+		curTime,
+		func(w io.Writer, dec *json.Decoder) error {
+			var covInfo cover.CoverageInfo
+			if err := dec.Decode(&covInfo); err != nil {
+				return fmt.Errorf("failed to decode CoverageInfo: %w", err)
+			}
+			if err := cover.WriteCIJSONLine(w, covInfo, cover.CIDetails{
+				Version:        1,
+				Timestamp:      curTime.Format(time.RFC3339Nano),
+				FuzzingMinutes: fuzzingMinutes,
+				Arch:           mgr.lastBuild.Arch,
+				BuildID:        mgr.lastBuild.ID,
+				Manager:        mgr.name,
+				KernelRepo:     mgr.lastBuild.KernelRepo,
+				KernelBranch:   mgr.lastBuild.KernelBranch,
+				KernelCommit:   mgr.lastBuild.KernelCommit,
+			}); err != nil {
+				return fmt.Errorf("failed to write CIJSONLine: %w", err)
+			}
+			return nil
+		}); err != nil {
+		return fmt.Errorf("mgr.uploadCoverJSONLToGCS: %w", err)
+	}
+	return nil
+}
+
+func (mgr *Manager) uploadProgramsWithCoverage() error {
+	if err := mgr.uploadCoverJSONLToGCS("/coverprogs?jsonl=1",
+		mgr.cfg.CoverProgramsPath,
+		time.Now(),
+		func(w io.Writer, dec *json.Decoder) error {
+			var programCoverage cover.ProgramCoverage
+			if err := dec.Decode(&programCoverage); err != nil {
+				return fmt.Errorf("cover.ProgramCoverage: %w", err)
+			}
+			programCoverage.Repo = mgr.lastBuild.KernelRepo
+			programCoverage.Commit = mgr.lastBuild.KernelCommit
+			if err := cover.WriteJSLine(w, &programCoverage); err != nil {
+				return fmt.Errorf("cover.WriteJSLine: %w", err)
+			}
+			return nil
+		}); err != nil {
+		return fmt.Errorf("mgr.uploadCoverJSONLToGCS: %w", err)
 	}
 	return nil
 }
