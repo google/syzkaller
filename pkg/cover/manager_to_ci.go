@@ -27,24 +27,24 @@ type dbCoverageRecord struct {
 	CoverageInfo
 }
 
-func writeJSLine(w io.Writer, covInfo dbCoverageRecord) error {
-	bs, err := json.Marshal(covInfo)
+func WriteJSLine[T any](w io.Writer, obj *T) error {
+	bs, err := json.Marshal(obj)
 	if err != nil {
-		return fmt.Errorf("failed to marshal covInfo: %w", err)
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 	bs = append(bs, '\n')
 	if _, err = w.Write(bs); err != nil {
-		return fmt.Errorf("failed to write js data: %w", err)
+		return fmt.Errorf("w.Write: %w", err)
 	}
 	return nil
 }
 
 func WriteCIJSONLine(w io.Writer, managerCover CoverageInfo, ciDetails CIDetails) error {
-	dbLine := dbCoverageRecord{
+	dbLine := &dbCoverageRecord{
 		CIDetails:    ciDetails,
 		CoverageInfo: managerCover,
 	}
-	if err := writeJSLine(w, dbLine); err != nil {
+	if err := WriteJSLine(w, dbLine); err != nil {
 		return fmt.Errorf("failed to serialize func line: %w", err)
 	}
 	return nil
