@@ -134,7 +134,7 @@ func (ctx *fuchsia) shortenReport(report []byte) []byte {
 }
 
 func (ctx *fuchsia) symbolize(output []byte) []byte {
-	symb := symbolizer.Make(ctx.config.target)
+	symb := symbolizer.Make(ctx.config.target, ctx.obj)
 	defer symb.Close()
 	out := new(bytes.Buffer)
 
@@ -182,7 +182,7 @@ func (ctx *fuchsia) processPC(out *bytes.Buffer, symb symbolizer.Symbolizer,
 	if call {
 		pc--
 	}
-	frames, err := symb.Symbolize(ctx.obj, pc)
+	frames, err := symb.Symbolize(pc)
 	if err != nil || len(frames) == 0 {
 		return false
 	}

@@ -68,7 +68,8 @@ type fileDesc struct {
 }
 
 func (pr *prober) run() (*Info, error) {
-	symb := symbolizer.Make(pr.cfg.SysTarget)
+	kernelObj := filepath.Join(pr.cfg.KernelObj, pr.cfg.SysTarget.KernelObject)
+	symb := symbolizer.Make(pr.cfg.SysTarget, kernelObj)
 	defer symb.Close()
 
 	for _, glob := range globList() {
@@ -82,7 +83,6 @@ func (pr *prober) run() (*Info, error) {
 
 	info := &Info{}
 	pcIndexes := make(map[uint64]int)
-	kernelObj := filepath.Join(pr.cfg.KernelObj, pr.cfg.SysTarget.KernelObject)
 	sourceBase := filepath.Clean(pr.cfg.KernelSrc) + string(filepath.Separator)
 	i := 0
 	for desc := range pr.done {
@@ -104,7 +104,7 @@ func (pr *prober) run() (*Info, error) {
 				pcIndex, ok := pcIndexes[pc]
 				if !ok {
 					pcIndex = -1
-					frames, err := symb.Symbolize(kernelObj, pc)
+					frames, err := symb.Symbolize(pc)
 					if err != nil {
 						return nil, err
 					}

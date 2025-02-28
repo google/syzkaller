@@ -407,10 +407,11 @@ func (ctx *linux) Symbolize(rep *Report) error {
 }
 
 func (ctx *linux) symbolize(rep *Report) error {
-	symb := symbolizer.Make(ctx.config.target)
-	defer symb.Close()
+	symbs := symbolizer.MakeMultiBin(ctx.config.target)
+	defer symbs.Close()
+
 	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
-		return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
+		return ctx.symbolizerCache.Symbolize(symbs, bin, pc)
 	}
 	var symbolized []byte
 	prefix := rep.reportPrefixLen

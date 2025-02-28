@@ -18,9 +18,10 @@ import (
 )
 
 type addr2Liner struct {
+	binPath  string
 	target   *targets.Target
-	subprocs map[string]*subprocess
-	interner Interner
+	subproc  *subprocess
+	interner *Interner
 }
 
 type subprocess struct {
@@ -31,26 +32,24 @@ type subprocess struct {
 	scanner *bufio.Scanner
 }
 
-func (s *addr2Liner) Symbolize(bin string, pcs ...uint64) ([]Frame, error) {
-	sub, err := s.getSubprocess(bin)
+func (s *addr2Liner) Symbolize(pcs ...uint64) ([]Frame, error) {
+	sub, err := s.getSubprocess(s.binPath)
 	if err != nil {
 		return nil, err
 	}
-	return symbolize(&s.interner, sub.input, sub.scanner, pcs)
+	return symbolize(s.interner, sub.input, sub.scanner, pcs)
 }
 
 func (s *addr2Liner) Close() {
-	for _, sub := range s.subprocs {
-		sub.stdin.Close()
-		sub.stdout.Close()
-		sub.cmd.Process.Kill()
-		sub.cmd.Wait()
-	}
+	s.subproc.stdin.Close()
+	s.subproc.stdout.Close()
+	s.subproc.cmd.Process.Kill()
+	s.subproc.cmd.Wait()
 }
 
 func (s *addr2Liner) getSubprocess(bin string) (*subprocess, error) {
-	if sub := s.subprocs[bin]; sub != nil {
-		return sub, nil
+	if s.subproc != nil {
+		return s.subproc, nil
 	}
 	addr2line, err := s.target.Addr2Line()
 	if err != nil {
@@ -71,18 +70,14 @@ func (s *addr2Liner) getSubprocess(bin string) (*subprocess, error) {
 		stdout.Close()
 		return nil, err
 	}
-	sub := &subprocess{
+	s.subproc = &subprocess{
 		cmd:     cmd,
 		stdin:   stdin,
 		stdout:  stdout,
 		input:   bufio.NewWriter(stdin),
 		scanner: bufio.NewScanner(stdout),
 	}
-	if s.subprocs == nil {
-		s.subprocs = make(map[string]*subprocess)
-	}
-	s.subprocs[bin] = sub
-	return sub, nil
+	return s.subproc, nil
 }
 
 func symbolize(interner *Interner, input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Frame, error) {
