@@ -51,9 +51,9 @@ type Config struct {
 	KernelBuildSrc string `json:"kernel_build_src,omitempty"`
 	// Is the kernel built separately from the modules? (Specific to Android builds)
 	AndroidSplitBuild bool `json:"android_split_build"`
-	// Kernel subsystem with paths to each subsystem
+	// Kernel subsystem with paths to each subsystem, paths starting with "-" will be excluded
 	//	"kernel_subsystem": [
-	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
+	//		{ "name": "sound", "path": ["sound", "techpack/audio", "-techpack/audio/dsp"]},
 	//		{ "name": "mydriver": "path": ["mydriver_path"]}
 	//	]
 	KernelSubsystem []Subsystem `json:"kernel_subsystem,omitempty"`
