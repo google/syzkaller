@@ -28,8 +28,7 @@ func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (report
 	if cfg.kernelObj != "" {
 		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symb := symbolizer.NewSymbolizer(cfg.target)
-		symbols, err = symb.ReadTextSymbols(kernelObject)
+		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +52,7 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb := symbolizer.NewSymbolizer(ctx.config.target)
+	symb := symbolizer.Make(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
 	prefix := rep.reportPrefixLen
@@ -70,7 +69,7 @@ func (ctx *bsd) Symbolize(rep *Report) error {
 	return nil
 }
 
-func (ctx *bsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
+func (ctx *bsd) symbolizeLine(symbFunc func(string, ...uint64) ([]symbolizer.Frame, error),
 	line []byte) []byte {
 	var match []int
 	// Check whether the line corresponds to the any of the parts that require symbolization.
