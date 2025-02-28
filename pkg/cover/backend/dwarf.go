@@ -49,7 +49,7 @@ type Arch struct {
 	callTarget    func(arch *Arch, insn []byte, pc uint64) uint64
 }
 
-var arches = map[string]Arch{
+var arches = map[string]*Arch{
 	targets.AMD64: {
 		scanSize:      1,
 		callLen:       5,
@@ -535,9 +535,9 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 	}
 
 	i := 0
+	arch := arches[target.Arch]
 	for {
-		arch := arches[target.Arch]
-		callTarget, pc := nextCallTarget(&arch, info.textAddr, data, &i)
+		callTarget, pc := nextCallTarget(arch, info.textAddr, data, &i)
 		if callTarget == 0 {
 			break
 		}

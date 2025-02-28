@@ -146,8 +146,7 @@ func TestNextCallTargetARM64(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		arch := arches["arm64"]
-		test.Arch = &arch
+		test.Arch = arches["arm64"]
 		test.Text = test.ExpPC
 		runNextCallTarget(t, test)
 	}
@@ -171,8 +170,7 @@ func TestNextCallTargetAMD64(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		arch := arches["amd64"]
-		test.Arch = &arch
+		test.Arch = arches["amd64"]
 		runNextCallTarget(t, test)
 	}
 }
