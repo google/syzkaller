@@ -357,8 +357,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 		} else if target.OS == runtime.GOOS && (target.Arch == runtime.GOARCH || target.VMArch == runtime.GOARCH) {
 			t.Fatal(err)
 		} else {
-			symb := symbolizer.NewSymbolizer(target)
-			text, err := symb.ReadTextSymbols(bin)
+			text, err := symbolizer.ReadTextSymbols(bin)
 			if err != nil {
 				t.Fatal(err)
 			}

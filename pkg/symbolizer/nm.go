@@ -15,12 +15,12 @@ type Symbol struct {
 }
 
 // ReadTextSymbols returns list of text symbols in the binary bin.
-func (s *Symbolizer) ReadTextSymbols(bin string) (map[string][]Symbol, error) {
+func ReadTextSymbols(bin string) (map[string][]Symbol, error) {
 	return read(bin, true)
 }
 
 // ReadRodataSymbols returns list of rodata symbols in the binary bin.
-func (s *Symbolizer) ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
+func ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
 	return read(bin, false)
 }
 

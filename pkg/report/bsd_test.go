@@ -24,37 +24,39 @@ func testSymbolizeLine(t *testing.T, ctor fn, tests []symbolizeLineTest) {
 			{Addr: 0x81237520, Size: 0x173},
 		},
 	}
-	symb := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
-		if bin != "bsd.gdb" {
-			return nil, fmt.Errorf("unknown pc 0x%x", pc)
-		}
+	symb := func(bin string, pcs ...uint64) ([]symbolizer.Frame, error) {
+		var res []symbolizer.Frame
+		for _, pc := range pcs {
+			if bin != "bsd.gdb" {
+				return nil, fmt.Errorf("unknown pc 0x%x", pc)
+			}
 
-		switch pc & 0xffffffff {
-		case 0x8150894f:
-			return []symbolizer.Frame{
-				{
+			switch pc & 0xffffffff {
+			case 0x8150894f:
+				res = append(res, symbolizer.Frame{
 					Func: "closef",
 					File: "/bsd/src/kern_descrip.c",
 					Line: 1241,
-				},
-			}, nil
-		case 0x81237542:
-			return []symbolizer.Frame{
-				{
-					Func:   "sleep_finish_timeout",
-					File:   "/bsd/src/kern_synch.c",
-					Line:   336,
-					Inline: true,
-				},
-				{
-					Func: "sleep_finish_all",
-					File: "/bsd/src/kern_synch.c",
-					Line: 157,
-				},
-			}, nil
-		default:
-			return nil, fmt.Errorf("unknown pc 0x%x", pc)
+				})
+			case 0x81237542:
+				res = append(res,
+					symbolizer.Frame{
+						Func:   "sleep_finish_timeout",
+						File:   "/bsd/src/kern_synch.c",
+						Line:   336,
+						Inline: true,
+					},
+					symbolizer.Frame{
+						Func: "sleep_finish_all",
+						File: "/bsd/src/kern_synch.c",
+						Line: 157,
+					},
+				)
+			default:
+				return nil, fmt.Errorf("unknown pc 0x%x", pc)
+			}
 		}
+		return res, nil
 	}
 	reporter, _, err := ctor(&config{
 		kernelSrc:      "/bsd/src2",
