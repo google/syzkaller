@@ -42,8 +42,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 	if cfg.kernelObj != "" {
 		vmlinux = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symb := symbolizer.NewSymbolizer(cfg.target)
-		symbols[""], err = symb.ReadTextSymbols(vmlinux)
+		symbols[""], err = symbolizer.ReadTextSymbols(vmlinux)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -51,7 +50,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 			if mod.Name == "" {
 				continue
 			}
-			ss, err := symb.ReadTextSymbols(mod.Path)
+			ss, err := symbolizer.ReadTextSymbols(mod.Path)
 			if err != nil {
 				continue
 			}
@@ -408,7 +407,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 }
 
 func (ctx *linux) symbolize(rep *Report) error {
-	symb := symbolizer.NewSymbolizer(ctx.config.target)
+	symb := symbolizer.Make(ctx.config.target)
 	defer symb.Close()
 	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
 		return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)

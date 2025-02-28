@@ -110,7 +110,7 @@ func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 		warnings = append(warnings, warnings2...)
 	}
 	if netlink {
-		warnings3, err := checkNetlink(OS, arch, obj, structTypes, locs)
+		warnings3, err := checkNetlink(arch, obj, structTypes, locs)
 		if err != nil {
 			return nil, err
 		}
@@ -372,7 +372,7 @@ func parseDescriptions(OS, arch string) ([]prog.Type, map[string]*ast.Struct, []
 // Then read in the symbol data, which is an array of nla_policy structs.
 // These structs allow to easily figure out type/size of attributes.
 // Finally we compare our descriptions with the kernel policy description.
-func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
+func checkNetlink(arch, obj string, structTypes []prog.Type,
 	locs map[string]*ast.Struct) ([]Warn, error) {
 	if arch != targets.AMD64 {
 		// Netlink policies are arch-independent (?),
@@ -388,8 +388,7 @@ func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
 	if rodata == nil {
 		return nil, fmt.Errorf("object file %v does not contain .rodata section", obj)
 	}
-	symb := symbolizer.NewSymbolizer(targets.Get(OS, arch))
-	symbols, err := symb.ReadRodataSymbols(obj)
+	symbols, err := symbolizer.ReadRodataSymbols(obj)
 	if err != nil {
 		return nil, err
 	}

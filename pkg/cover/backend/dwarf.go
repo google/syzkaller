@@ -419,7 +419,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 	pcchan := make(chan []uint64, procs)
 	for p := 0; p < procs; p++ {
 		go func() {
-			symb := symbolizer.NewSymbolizer(target)
+			symb := symbolizer.Make(target)
 			defer symb.Close()
 			var res symbolizerResult
 			for pcs := range pcchan {
@@ -430,7 +430,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 						pcs[i] = pc - mod.Addr
 					}
 				}
-				frames, err := symb.SymbolizeArray(mod.Path, pcs)
+				frames, err := symb.Symbolize(mod.Path, pcs...)
 				if err != nil {
 					res.err = fmt.Errorf("failed to symbolize: %w", err)
 				}

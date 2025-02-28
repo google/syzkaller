@@ -134,7 +134,7 @@ func (ctx *fuchsia) shortenReport(report []byte) []byte {
 }
 
 func (ctx *fuchsia) symbolize(output []byte) []byte {
-	symb := symbolizer.NewSymbolizer(ctx.config.target)
+	symb := symbolizer.Make(ctx.config.target)
 	defer symb.Close()
 	out := new(bytes.Buffer)
 
@@ -167,7 +167,7 @@ func (ctx *fuchsia) symbolize(output []byte) []byte {
 	return out.Bytes()
 }
 
-func (ctx *fuchsia) processPC(out *bytes.Buffer, symb *symbolizer.Symbolizer,
+func (ctx *fuchsia) processPC(out *bytes.Buffer, symb symbolizer.Symbolizer,
 	line []byte, match []int, call bool) bool {
 	prefix := line[match[0]:match[1]]
 	pcStart := match[2] - match[0]
