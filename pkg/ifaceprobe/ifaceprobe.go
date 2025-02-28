@@ -68,7 +68,7 @@ type fileDesc struct {
 }
 
 func (pr *prober) run() (*Info, error) {
-	symb := symbolizer.NewSymbolizer(pr.cfg.SysTarget)
+	symb := symbolizer.Make(pr.cfg.SysTarget)
 	defer symb.Close()
 
 	for _, glob := range globList() {

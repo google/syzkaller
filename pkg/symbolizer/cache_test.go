@@ -13,14 +13,18 @@ import (
 
 func TestCache(t *testing.T) {
 	called := make(map[cacheKey]bool)
-	inner := func(bin string, pc uint64) ([]Frame, error) {
-		key := cacheKey{bin, pc}
-		assert.False(t, called[key])
-		called[key] = true
-		if bin == "error" {
-			return nil, fmt.Errorf("error %v", pc)
+	inner := func(bin string, pcs ...uint64) ([]Frame, error) {
+		var res []Frame
+		for _, pc := range pcs {
+			key := cacheKey{bin, pc}
+			assert.False(t, called[key])
+			called[key] = true
+			if bin == "error" {
+				return nil, fmt.Errorf("error %v", pc)
+			}
+			res = append(res, Frame{PC: pc, Func: bin + "_func"})
 		}
-		return []Frame{{PC: pc, Func: bin + "_func"}}, nil
+		return res, nil
 	}
 	var cache Cache
 	check := func(bin string, pc uint64, frames []Frame, err error) {

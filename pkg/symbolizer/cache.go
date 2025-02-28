@@ -24,7 +24,7 @@ type cacheVal struct {
 	err    error
 }
 
-func (c *Cache) Symbolize(inner func(string, uint64) ([]Frame, error), bin string, pc uint64) ([]Frame, error) {
+func (c *Cache) Symbolize(inner func(string, ...uint64) ([]Frame, error), bin string, pc uint64) ([]Frame, error) {
 	key := cacheKey{bin, pc}
 	c.mu.RLock()
 	val, ok := c.cache[key]
