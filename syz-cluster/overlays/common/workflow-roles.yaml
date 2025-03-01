@@ -51,30 +51,6 @@ rules:
 
 ---
 
-# Some more permissions that are necessary for the argo-controller process.
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: argo-controller-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - watch
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-
----
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -90,7 +66,7 @@ subjects:
   namespace: default
 - kind: ServiceAccount
   name: argo-controller-ksa
-  namespace: default
+  namespace: argo
 - kind: ServiceAccount
   name: gke-service-ksa
   namespace: default
@@ -117,14 +93,14 @@ subjects:
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: argo-workflowtasks-controller-binding
+  name: argo-cluster-role-to-controller-binding
   namespace: argo
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: argo-controller-role
+  kind: ClusterRole
+  name: argo-cluster-role
 subjects:
 - kind: ServiceAccount
   name: argo-controller-ksa

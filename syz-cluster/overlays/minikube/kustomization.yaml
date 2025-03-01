@@ -3,6 +3,7 @@
 
 resources:
   - service-accounts.yaml
+  - kernel-disk-pvc.yaml
   - ../common
   - global-config.yaml
   - fake-gcs.yaml
