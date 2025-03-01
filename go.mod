@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/profiler v0.4.1
 	cloud.google.com/go/pubsub v1.47.0
-	cloud.google.com/go/secretmanager v1.14.3
+	cloud.google.com/go/secretmanager v1.14.5
 	cloud.google.com/go/spanner v1.73.0
 	cloud.google.com/go/storage v1.50.0
 	github.com/VividCortex/gohistogram v1.0.0
@@ -292,7 +292,7 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250127172529-29210b9bc287 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250207221924-e9438ea467c6 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
