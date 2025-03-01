@@ -1,0 +1,29 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/filestore-csi-driver
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: filestore-custom
+provisioner: filestore.csi.storage.gke.io
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  tier: standard
+  network: gke-network
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: base-kernel-repo-pv-claim
+spec:
+  storageClassName: "filestore-custom"
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti # This is the minimum
