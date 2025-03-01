@@ -19,7 +19,7 @@ require (
 	github.com/golangci/golangci-lint v1.63.4
 	github.com/google/flatbuffers v25.1.24+incompatible
 	github.com/google/generative-ai-go v0.19.0
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/keep-sorted v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
