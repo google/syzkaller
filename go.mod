@@ -17,7 +17,7 @@ require (
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/golangci/golangci-lint v1.63.4
-	github.com/google/flatbuffers v25.1.24+incompatible
+	github.com/google/flatbuffers v25.2.10+incompatible
 	github.com/google/generative-ai-go v0.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/keep-sorted v0.6.0
