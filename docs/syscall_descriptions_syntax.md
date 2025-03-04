@@ -1,4 +1,5 @@
 # Syscall description language
+
 aka `syzlang` (`[siːzˈlæŋg]`)
 
 Pseudo-formal grammar of syscall description:
@@ -290,6 +291,7 @@ arguments as well. Underlying types are currently restricted to integer types,
 `ptr`, `ptr64`, `const`, `flags` and `proc` types.
 
 There are some builtin type aliases:
+
 ```
 type bool8	int8[0:1]
 type bool16	int16[0:1]
@@ -307,6 +309,7 @@ type buffer[DIR] ptr[DIR, array[int8]]
 ## Type Templates
 
 Type templates can be declared as follows:
+
 ```
 type buffer[DIR] ptr[DIR, array[int8]]
 type fileoff[BASE] BASE
@@ -318,11 +321,13 @@ type nlattr[TYPE, PAYLOAD] {
 ```
 
 and later used as follows:
+
 ```
 syscall(a buffer[in], b fileoff[int64], c ptr[in, nlattr[FOO, int32]])
 ```
 
 There is builtin type template `optional` defined as:
+
 ```
 type optional[T] [
 	val	T
@@ -453,23 +458,24 @@ In this example, the `packet` structure will include the field `integer` only
 if `header.haveInteger == 1`. In memory, `packet` will have the following
 layout:
 
-| header_files.magic = 0xabcd | header_files.haveInteger = 0x1 | integer | body |
-| - | - | - | - |
-
+| header.magic = 0xabcd | header.haveInteger = 0x1 | integer | body |
+| --------------------- | ------------------------ | ------- | ---- |
 
 That corresponds to e.g. the following program:
+
 ```
 some_call(&AUTO={{AUTO, 0x1}, @value=0xabcd, []})
 ```
 
 If `header.haveInteger` is not `1`, syzkaller will just pretend that the field
 `integer` does not exist.
+
 ```
 some_call(&AUTO={{AUTO, 0x0}, @void, []})
 ```
 
-| header_files.magic = 0xabcd | header_files.haveInteger = 0x0 | body |
-| - | - | - |
+| header.magic = 0xabcd | header.haveInteger = 0x0 | body |
+| --------------------- | ------------------------ | ---- |
 
 Every conditional field is assumed to be of variable length and so is the struct
 to which this field belongs.
@@ -478,6 +484,7 @@ When a variable length field appears in the middle of a structure, the structure
 must be marked with `[packed].`
 
 Conditions on bitfields are prohibited:
+
 ```
 struct {
   f0 int
@@ -486,6 +493,7 @@ struct {
 ```
 
 But you may reference bitfields in your conditions:
+
 ```
 struct {
   f0 int:1
@@ -516,6 +524,7 @@ some_call(a ptr[in, struct])
 In this case, the union option will be selected depending on the value of the
 `type` field. For example, if `type` is `0x1`, then it can be either `int` or
 `default`:
+
 ```
 some_call(&AUTO={0x1, @int=0x123})
 some_call(&AUTO={0x1, @default=0x123})
@@ -524,6 +533,7 @@ some_call(&AUTO={0x1, @default=0x123})
 If `type` is `0x2`, it can be either `arr` or `default`.
 
 If `type` is neither `0x1` nor `0x2`, syzkaller may only select `default`:
+
 ```
 some_call(&AUTO={0x0, @default=0xabcd})
 ```
@@ -542,7 +552,6 @@ alternatives [
 
 During prog mutation and generation syzkaller will select a random union field
 whose condition is satisfied.
-
 
 ### Expression syntax
 
@@ -587,6 +596,7 @@ struct {
 ```
 
 You may also reference constants in expressions:
+
 ```
 struct {
   f0 int
@@ -602,12 +612,14 @@ Description files can also contain `meta` directives that specify meta-informati
 ```
 meta noextract
 ```
+
 Tells `make extract` to not extract constants for this file.
 Though, `syz-extract` can still be invoked manually on this file.
 
 ```
 meta arches["arch1", "arch2"]
 ```
+
 Restricts this file only to the given set of architectures.
 `make extract` and `make generate` will not use it on other architectures.
 
