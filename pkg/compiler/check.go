@@ -649,7 +649,11 @@ func (comp *compiler) checkPathField(target, t *ast.Type, field *ast.Field) bool
 }
 
 func (comp *compiler) checkExprLastField(target *ast.Type, field *ast.Field) {
-	_, desc := comp.derefPointers(field.Type)
+	typ, desc := comp.derefPointers(field.Type)
+	if desc == typeResource {
+		r := comp.resources[typ.Ident]
+		desc = comp.getTypeDesc(r.Base)
+	}
 	if desc != typeInt && desc != typeFlags && desc != typeConst {
 		comp.error(target.Pos, "%v does not refer to a constant, an integer, or a flag", field.Name.Name)
 	}
