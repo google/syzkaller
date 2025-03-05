@@ -5,6 +5,7 @@ resources:
   - ../common
   - global-config.yaml
   - kernel-disk-pvc.yaml
+  - workflow-artifacts.yaml
 
 # Unlike the minikube environment, GKE Terraform scripts will
 # pre-create the service accounts.

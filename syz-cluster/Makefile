@@ -64,12 +64,12 @@ restart-spanner: build-db-mgmt
 	./run-local.sh db-mgmt migrate
 
 
-SUBSTITUTE_VARS := '$$IMAGE_PREFIX $$IMAGE_TAG $$SPANNER_DATABASE_URI $$BLOB_STORAGE_GCS_BUCKET'
+SUBSTITUTE_VARS := '$$IMAGE_PREFIX $$IMAGE_TAG $$SPANNER_DATABASE_URI $$BLOB_STORAGE_GCS_BUCKET $$WORKFLOW_ARTIFACTS_BUCKET'
 
 k8s-config-dev:
 	@kubectl kustomize ./overlays/minikube/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst ${SUBSTITUTE_VARS}
 
-k8s-config-gke: ensure-spanner-database-uri-env ensure-blob-storage-env
+k8s-config-gke: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
 	@kubectl kustomize ./overlays/gke/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst ${SUBSTITUTE_VARS}
 
 migrate-job.yaml: ensure-spanner-database-uri-env
@@ -84,5 +84,11 @@ ensure-spanner-database-uri-env:
 ensure-blob-storage-env:
 	@if [ -z "${BLOB_STORAGE_GCS_BUCKET}" ]; then \
                 echo "Error: BLOB_STORAGE_GCS_BUCKET must be defined."; \
+                exit 1; \
+        fi
+
+ensure-workflow-artifacts-bucket:
+	@if [ -z "${WORKFLOW_ARTIFACTS_BUCKET}" ]; then \
+                echo "Error: WORKFLOW_ARTIFACTS_BUCKET must be defined."; \
                 exit 1; \
         fi
