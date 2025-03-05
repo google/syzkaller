@@ -21,7 +21,7 @@ patches:
             - key: "workload"
               operator: "Equal"
               value: "nested-vm"
-              effect: "NO_SCHEDULE"
+              effect: "NoSchedule"
   - target:
       kind: WorkflowTemplate
       name: fuzz-step-template
@@ -32,4 +32,4 @@ patches:
             - key: "workload"
               operator: "Equal"
               value: "nested-vm"
-              effect: "NO_SCHEDULE"
+              effect: "NoSchedule"
