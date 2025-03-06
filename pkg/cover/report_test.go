@@ -460,3 +460,46 @@ var sampleJSONLlProgs = []byte(`{
 		}
 	]
 }`)
+
+func makeFileStat(name string) fileStats {
+	return fileStats{
+		Name:                       name,
+		CoveredLines:               1,
+		TotalLines:                 8,
+		CoveredPCs:                 1,
+		TotalPCs:                   4,
+		TotalFunctions:             2,
+		CoveredFunctions:           1,
+		CoveredPCsInFunctions:      1,
+		TotalPCsInCoveredFunctions: 2,
+		TotalPCsInFunctions:        2,
+	}
+}
+
+func TestCoverByFilePrefixes(t *testing.T) {
+	datas := []fileStats{
+		makeFileStat("a"),
+		makeFileStat("a/1"),
+		makeFileStat("a/2"),
+		makeFileStat("a/2/A"),
+		makeFileStat("a/3"),
+	}
+	subsystems := []mgrconfig.Subsystem{
+		{
+			Name: "test",
+			Paths: []string{
+				"a",
+				"-a/2",
+			},
+		},
+	}
+	d := groupCoverByFilePrefixes(datas, subsystems)
+	assert.Equal(t, d["test"], map[string]string{
+		"name":              "test",
+		"lines":             "3 / 24 / 12.50%",
+		"PCsInFiles":        "3 / 12 / 25.00%",
+		"Funcs":             "3 / 6 / 50.00%",
+		"PCsInFuncs":        "3 / 6 / 50.00%",
+		"PCsInCoveredFuncs": "3 / 6 / 50.00%",
+	})
+}
