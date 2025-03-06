@@ -1,0 +1,168 @@
+include <linux/ip.h>
+include <linux/ipv6.h>
+include <linux/route.h>
+include <uapi/linux/if_arp.h>
+include <uapi/linux/netfilter_ipv6/ip6_tables.h>
+include <uapi/linux/wireless.h>
+include <uapi/linux/in.h>
+
+sync_id {
+	ProcessId	int32
+	TreeId		int32
+} [packed]
+
+_union_smb_req_id [
+	sync_id		sync_id
+	async_id	int64
+]
+
+negotiate_message {
+	Signature			array[int8, 8]
+#  NtLmNegotiate = 1
+	MessageType			int32
+	NegotiateFlags			int32
+# MBZ unless SMB3.02 or later
+	DomainName_Length		len[DomainString, int16]
+	DomainName_MaximumLength	len[DomainString, int16]
+	DomainName_Offset		offsetof[DomainString, int32]
+# RFC 1001 and ASCII
+	WorkstationName_Length		len[Workstationname_Buffer, int16]
+	WorkstationName_MaximumLength	len[Workstationname_Buffer, int16]
+	WorkstationName_Offset		offsetof[Workstationname_Buffer, int32]
+
+# struct security_buffer for version info not present since we
+# do not set the version is present flag
+	DomainString			string
+
+# followed by WorkstationString
+	Workstationname_Buffer		string
+} [packed]
+
+_smb2_hdr_pre {
+	ProtocolId	const[0xfe534d42, int32be]
+	StructureSize	const[0x40, int16]
+	CreditCharge	int16
+	Status		int32
+} [packed]
+
+_smb2_hdr_post {
+	CreditRequest	int16
+	Flags		int32
+	NextCommand	int32
+	MessageId	int64
+	Id		_union_smb_req_id
+	SessionId	int64
+	Signature	array[int8, 16]
+} [packed]
+
+#_smb3_hdr_pre {
+#	ProtocolId	const[0xfe534d42, int32be]
+#	StructureSize	const[0x40, int16]
+#	CreditCharge	int16
+#	ChannelSequence	int16
+#	Reserved	int16
+#} [packed]
+
+#_smb3_hdr_post {
+#	CreditRequest	int16
+#	Flags		int32
+#	NextCommand	int32
+#	MessageId	int64
+#	Id		_union_smb_req_id
+#	SessionId	int64
+#	Signature	array[int8, 16]
+#} [packed]
+
+smb2_negotiate_req {
+	_hdr_pre		_smb2_hdr_pre
+	Command			const[0x0, int16]
+	_hdr_post		_smb2_hdr_post
+	StructureSize		const[36, int16]
+	DialectCount		len[Dialects, int16]
+	SecurityMode		int16
+	Reserved		int16
+	Capabilities		int32
+	ClientGUID		array[int8, 16]
+
+# In SMB3.02 and earlier next three were MBZ le64 ClientStartTime
+	NegotiateContextOffset	int32
+	NegotiateContextCount	int16
+	Reserved2		int16
+	Dialects		buffer[in]
+} [packed]
+
+smb2_sess_setup_req {
+	_hdr_pre		_smb2_hdr_pre
+	Command			const[0x1, int16]
+	_hdr_post		_smb2_hdr_post
+	StructureSize		const[25, int16]
+	Flags			int8
+	SecurityMode		int8
+	Capabilities		int32
+	Channel			int32
+	SecurityBufferOffset	offsetof[Buffer, int16]
+	SecurityBufferLength	len[Buffer, int16]
+	PreviousSessionId	int64
+
+# variable length GSS security buffer
+	Buffer			negotiate_message
+} [packed]
+
+smb2_echo_req {
+	_hdr_pre	_smb2_hdr_pre
+	Command		const[0xd, int16]
+	_hdr_post	_smb2_hdr_post
+	StructureSize2	const[4, int16]
+	Reserved	int16
+} [packed]
+
+smbd_buffer_descriptor_v1 {
+	offset			int64
+	token			int32
+	length			int32
+# followed by Smbd_Buffer
+	smb2_read_req_buffer	string
+} [packed]
+
+smb2_read_req {
+	_hdr_pre		_smb2_hdr_pre
+	Command			const[0x8, int16]
+	_hdr_post		_smb2_hdr_post
+# Must be 49
+	StructureSize		const[49, int16]
+# offset from start of SMB2 header to place read
+	Padding			int8
+# MBZ unless SMB3.02 or later
+	Flags			int8
+	Length			int32
+	Offset			int64
+	PersistentFileId	int64
+	VolatileFileId		int64
+	MinimumCount		int32
+# MBZ except for SMB3 or later
+	Channel			int32
+	RemainingBytes		int32
+	ReadChannelInfoOffset	offsetof[Buffer, int16]
+	ReadChannelInfoLength	len[Buffer, int16]
+	Buffer			smbd_buffer_descriptor_v1
+} [packed]
+
+_union_smb2_req [
+	smb2_negotiate_req	smb2_negotiate_req
+	smb2_sess_setup_req	smb2_sess_setup_req
+	smb2_echo_req		smb2_echo_req
+	smb2_read_req		smb2_read_req
+] [varlen]
+
+smb2_req {
+	req_base	_union_smb2_req
+	req_andx1	optional[_union_smb2_req]
+	req_andx2	optional[_union_smb2_req]
+} [packed]
+
+smb2_req_pdu {
+	_pdu_size	len[req, int32be]
+	req		smb2_req
+} [packed]
+
+syz_ksmbd_send_req(req_packet ptr[in, smb2_req_pdu], req_len len[req_packet], res_packet buffer[out], res_len len[res_packet])
