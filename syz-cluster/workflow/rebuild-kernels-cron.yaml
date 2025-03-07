@@ -87,7 +87,7 @@ spec:
             "arch": "amd64", # TODO: consider others as well.
             "tree_name": input["name"],
             "commit_hash": input["branch"],
-            "config_name": input["config_name"]
+            "config_name": input["kernel_config"]
           }
           with open('/output/request.json', 'w') as f:
             json.dump(output, f)
