@@ -144,6 +144,8 @@ spec:
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: corpus-url
+                  value: "{{=jsonpath(inputs.parameters.element, '$.corpus_url')}}"
               artifacts:
                 - name: base-kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"

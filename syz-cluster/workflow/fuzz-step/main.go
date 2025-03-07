@@ -9,6 +9,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -30,6 +33,7 @@ var (
 	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
 	flagTime         = flag.String("time", "1h", "how long to fuzz")
 	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
+	flagCorpusURL    = flag.String("corpus_url", "", "an URL to download corpus from")
 )
 
 const testName = "Fuzzing"
@@ -39,8 +43,6 @@ func main() {
 	if *flagConfig == "" || *flagSession == "" || *flagTime == "" {
 		app.Fatalf("--config, --session and --time must be set")
 	}
-	// TODO: download the corpus from somewhere. Should that be a mgrconfig option?
-
 	client := app.DefaultClient()
 	d, err := time.ParseDuration(*flagTime)
 	if err != nil {
@@ -85,6 +87,15 @@ func run(baseCtx context.Context, client *api.Client) error {
 	}
 	manager.PatchFocusAreas(patched, series.PatchBodies())
 
+	if *flagCorpusURL != "" {
+		err := downloadCorpus(baseCtx, patched.Workdir, *flagCorpusURL)
+		if err != nil {
+			return fmt.Errorf("failed to download the corpus: %w", err)
+		} else {
+			log.Logf(0, "downloaded the corpus from %s", *flagCorpusURL)
+		}
+	}
+
 	eg, ctx := errgroup.WithContext(baseCtx)
 	bugs := make(chan *manager.UniqueBug)
 	eg.Go(func() error {
@@ -126,6 +137,28 @@ func run(baseCtx context.Context, client *api.Client) error {
 		}
 	})
 	return eg.Wait()
+}
+
+func downloadCorpus(ctx context.Context, workdir, url string) error {
+	out, err := os.Create(filepath.Join(workdir, "corpus.db"))
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status is not 200: %s", resp.Status)
+	}
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
 
 // To reduce duplication, patched configs are stored as a delta to their corresponding base.cfg version.
