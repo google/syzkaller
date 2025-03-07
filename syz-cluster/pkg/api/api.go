@@ -18,19 +18,21 @@ type SkipRequest struct {
 
 // The data layout faclitates the simplicity of the workflow definition.
 type FuzzConfig struct {
-	Base    BuildRequest `json:"base"`
-	Patched BuildRequest `json:"patched"`
-	Config  string       `json:"config"` // Refers to workflow/configs/{}.
+	Base      BuildRequest `json:"base"`
+	Patched   BuildRequest `json:"patched"`
+	Config    string       `json:"config"` // Refers to workflow/configs/{}.
+	CorpusURL string       `json:"corpus_url"`
 }
 
 // The triage step of the workflow will request these from controller.
 type Tree struct {
-	Name       string   `json:"name"` // Primary key.
-	URL        string   `json:"URL"`
-	Branch     string   `json:"branch"`
-	EmailLists []string `json:"email_lists"`
-	Priority   int64    `json:"priority"` // Higher numbers mean higher priority.
-	ConfigName string   `json:"config_name"`
+	Name         string   `json:"name"` // Primary key.
+	URL          string   `json:"URL"`
+	Branch       string   `json:"branch"`
+	EmailLists   []string `json:"email_lists"`
+	Priority     int64    `json:"priority"` // Higher numbers mean higher priority.
+	KernelConfig string   `json:"kernel_config"`
+	FuzzConfig   string   `json:"fuzz_config"`
 }
 
 type BuildRequest struct {
@@ -147,11 +149,35 @@ type BuildInfo struct {
 // Let them stay here until we find a better place.
 var DefaultTrees = []*Tree{
 	{
-		Name:       `torvalds`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
-		Branch:     `master`,
-		Priority:   0,
-		EmailLists: []string{},
-		ConfigName: `upstream-apparmor-kasan.config`,
+		Name:         `torvalds`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
+		Branch:       `master`,
+		Priority:     0,
+		EmailLists:   []string{},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `all`,
+	},
+	{
+		Name:         `netdev`,
+		URL:          `git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net.git`,
+		Branch:       `main`,
+		Priority:     1,
+		EmailLists:   []string{`netdev@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `net`,
 	},
 }
+
+// TODO: find a better place for it.
+func (tree *Tree) CorpusURL() string {
+	if url, ok := fuzzToCorpus[tree.FuzzConfig]; ok {
+		return url
+	}
+	return corpusFallbackURL
+}
+
+var fuzzToCorpus = map[string]string{
+	`net`: `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`,
+}
+
+const corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
