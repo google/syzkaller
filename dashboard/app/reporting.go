@@ -570,18 +570,17 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		Manager:         crash.Manager,
 		Assets:          assetList,
 		ReportElements:  &dashapi.ReportElements{GuiltyFiles: crash.ReportElements.GuiltyFiles},
+		ReproIsRevoked:  crash.ReproIsRevoked,
 	}
-	if !crash.ReproIsRevoked {
-		rep.ReproCLink = externalLink(c, textReproC, crash.ReproC)
-		rep.ReproC, _, err = getText(c, textReproC, crash.ReproC)
-		if err != nil {
-			return nil, err
-		}
-		rep.ReproSyzLink = externalLink(c, textReproSyz, crash.ReproSyz)
-		rep.ReproSyz, err = loadReproSyz(c, crash)
-		if err != nil {
-			return nil, err
-		}
+	rep.ReproCLink = externalLink(c, textReproC, crash.ReproC)
+	rep.ReproC, _, err = getText(c, textReproC, crash.ReproC)
+	if err != nil {
+		return nil, err
+	}
+	rep.ReproSyzLink = externalLink(c, textReproSyz, crash.ReproSyz)
+	rep.ReproSyz, err = loadReproSyz(c, crash)
+	if err != nil {
+		return nil, err
 	}
 	if bugReporting.CC != "" {
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)

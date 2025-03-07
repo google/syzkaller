@@ -1299,3 +1299,69 @@ func TestWaitForRepro(t *testing.T) {
 	client.ReportCrash(crash)
 	client.pollBug()
 }
+
+// The test mimics the failure described in #5829.
+func TestReportRevokedBisectCrash(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	build.KernelRepo = "git://git.com/git.git"
+	client.UploadBuild(build)
+
+	const crashTitle = "WARNING: abcd"
+
+	crashRepro := testCrashWithRepro(build, 1)
+	crashRepro.Title = crashTitle
+	client.ReportCrash(crashRepro)
+
+	// Do a bisection.
+	pollResp := client.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *testBuild(2),
+		Log:   []byte("bisect log"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:   "111111111111111111111111",
+				Title:  "kernel: break build",
+				Author: "hacker@kernel.org",
+				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	client.expectOK(client.JobDone(done))
+	report := client.pollBug()
+
+	// Revoke the reproducer.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		TestPatches: true,
+	})
+	c.expectEQ(resp.Type, dashapi.JobTestPatch)
+	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+		ID: resp.ID,
+	}))
+
+	// Move to the next reporting stage.
+	c.advanceTime(time.Hour)
+	client.updateBug(report.ID, dashapi.BugStatusUpstream, "")
+	report = client.pollBug()
+	client.expectNE(report.ReproCLink, "")
+	client.expectEQ(report.ReproIsRevoked, true)
+
+	// And now report a new reproducer.
+	c.advanceTime(time.Hour)
+	build2 := testBuild(1)
+	client.UploadBuild(build2)
+	crashRepro2 := testCrashWithRepro(build2, 2)
+	crashRepro2.Title = crashTitle
+	client.ReportCrash(crashRepro2)
+
+	// There should be no new report.
+	// We already reported that the bug has a reproducer.
+	client.pollBugs(0)
+}
