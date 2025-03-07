@@ -11,3 +11,4 @@ data:
   STORAGE_EMULATOR_HOST: "http://fake-gcs-server.default.svc.cluster.local:4443"
   BLOB_STORAGE_GCS_BUCKET: "blobs" # Initialized in fake-gcs.yaml
   PARALLEL_WORKERS: "1" # Process only one series at a time.
+  LORE_ARCHIVES_TO_POLL: "linux-wireless" # Whatever, it's just for debugging.
