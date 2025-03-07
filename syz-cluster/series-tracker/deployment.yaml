@@ -18,6 +18,9 @@ spec:
       containers:
       - name: series-tracker-image
         image: ${IMAGE_PREFIX}series-tracker:${IMAGE_TAG}
+        args:
+          - "-archives"
+          - "$(LORE_ARCHIVES_TO_POLL)"
         envFrom:
           - configMapRef:
               name: global-config

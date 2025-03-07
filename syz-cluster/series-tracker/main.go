@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -24,10 +25,11 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
 
-var flagVerbose = flag.Bool("verbose", false, "enable verbose output")
-
-// TODO: add more.
-var archivesToQuery = []string{"linux-wireless", "netfilter-devel"}
+var (
+	flagArchives = flag.String("archives", "",
+		"a comma-separated list of the archives to poll")
+	flagVerbose = flag.Bool("verbose", false, "enable verbose output")
+)
 
 func main() {
 	flag.Parse()
@@ -37,6 +39,7 @@ func main() {
 		gitRepoFolder: `/git-repo`, // Set in deployment.yaml.
 		client:        app.DefaultClient(),
 		manifest:      manifest,
+		archives:      archivesToPoll(),
 	}
 	go manifest.Loop(ctx)
 
@@ -54,10 +57,26 @@ func main() {
 	}
 }
 
+func archivesToPoll() []string {
+	var ret []string
+	for _, part := range strings.Split(*flagArchives, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			app.Fatalf("an empty name in the --archives argument")
+		}
+		ret = append(ret, part)
+	}
+	if len(ret) == 0 {
+		app.Fatalf("--archives must not be empty")
+	}
+	return ret
+}
+
 type SeriesFetcher struct {
 	gitRepoFolder string
 	client        *api.Client
 	manifest      *ManifestSource
+	archives      []string
 }
 
 func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
@@ -68,7 +87,7 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 		return fmt.Errorf("failed to query the manifest data")
 	}
 	var list []lore.EmailReader
-	for _, name := range archivesToQuery {
+	for _, name := range sf.archives {
 		info, ok := manifest[name]
 		if !ok {
 			return fmt.Errorf("manifest has no info for %q", name)
