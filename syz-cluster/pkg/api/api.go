@@ -18,9 +18,10 @@ type SkipRequest struct {
 
 // The data layout faclitates the simplicity of the workflow definition.
 type FuzzConfig struct {
-	Base    BuildRequest `json:"base"`
-	Patched BuildRequest `json:"patched"`
-	Config  string       `json:"config"` // Refers to workflow/configs/{}.
+	Base      BuildRequest `json:"base"`
+	Patched   BuildRequest `json:"patched"`
+	Config    string       `json:"config"` // Refers to workflow/configs/{}.
+	CorpusURL string       `json:"corpus_url"`
 }
 
 // The triage step of the workflow will request these from controller.
@@ -166,3 +167,17 @@ var DefaultTrees = []*Tree{
 		FuzzConfig:   `net`,
 	},
 }
+
+// TODO: find a better place for it.
+func (tree *Tree) CorpusURL() string {
+	if url, ok := fuzzToCorpus[tree.FuzzConfig]; ok {
+		return url
+	}
+	return corpusFallbackURL
+}
+
+var fuzzToCorpus = map[string]string{
+	`net`: `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`,
+}
+
+const corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`

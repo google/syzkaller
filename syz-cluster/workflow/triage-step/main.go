@@ -100,9 +100,10 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 	}
 	ret := &api.TriageResult{
 		Fuzz: &api.FuzzConfig{
-			Base:    base,
-			Patched: base,
-			Config:  tree.FuzzConfig,
+			Base:      base,
+			Patched:   base,
+			Config:    tree.FuzzConfig,
+			CorpusURL: tree.CorpusURL(),
 		},
 	}
 	ret.Fuzz.Patched.SeriesID = series.ID
