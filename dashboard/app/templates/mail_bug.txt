@@ -11,8 +11,8 @@ git tree:       {{.KernelRepoAlias}}
 {{end}}dashboard link: {{.Link}}
 {{if .CompilerID}}compiler:       {{.CompilerID}}
 {{end}}{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
-{{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
-{{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
+{{end}}{{if .ReproSyzLink}}syz repro:      {{if .ReproIsRevoked}}[OBSOLETE] {{end}}{{.ReproSyzLink}}
+{{end}}{{if .ReproCLink}}C reproducer:   {{if .ReproIsRevoked}}[OBSOLETE] {{end}}{{.ReproCLink}}
 {{end}}{{if and .Moderation .Maintainers}}CC:             {{.Maintainers}}
 {{end}}{{if and (not .NoRepro) (not .ReproCLink) (not .ReproSyzLink)}}
 Unfortunately, I don't have any reproducer for this issue yet.

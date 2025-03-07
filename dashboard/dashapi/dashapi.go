@@ -459,6 +459,7 @@ type BugReport struct {
 	ReproCLink        string
 	ReproSyz          []byte
 	ReproSyzLink      string
+	ReproIsRevoked    bool
 	ReproOpts         []byte
 	MachineInfo       []byte
 	MachineInfoLink   string
