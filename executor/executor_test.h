@@ -36,7 +36,7 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 
 extern "C" notrace void __sanitizer_cov_trace_pc(void)
 {
-	if (current_thread == nullptr || current_thread->cov.data == nullptr || current_thread->cov.collect_comps)
+	if (current_thread == nullptr || current_thread->cov.trace == nullptr || current_thread->cov.collect_comps)
 		return;
 	uint64 pc = (uint64)__builtin_return_address(0);
 	// Convert to what is_kernel_pc will accept as valid coverage;
@@ -45,16 +45,16 @@ extern "C" notrace void __sanitizer_cov_trace_pc(void)
 	// because it must not be instrumented which is hard to achieve for all compiler
 	// if the code is in a separate function.
 	if (is_kernel_64_bit) {
-		uint64* start = (uint64*)current_thread->cov.data;
-		uint64* end = (uint64*)current_thread->cov.data_end;
+		uint64* start = (uint64*)current_thread->cov.trace;
+		uint64* end = (uint64*)current_thread->cov.trace_end;
 		uint64 pos = start[0];
 		if (start + pos + 1 < end) {
 			start[0] = pos + 1;
 			start[pos + 1] = pc;
 		}
 	} else {
-		uint32* start = (uint32*)current_thread->cov.data;
-		uint32* end = (uint32*)current_thread->cov.data_end;
+		uint32* start = (uint32*)current_thread->cov.trace;
+		uint32* end = (uint32*)current_thread->cov.trace_end;
 		uint32 pos = start[0];
 		if (start + pos + 1 < end) {
 			start[0] = pos + 1;
@@ -85,15 +85,15 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
-	*(uint64*)(cov->data) = 0;
+	*(uint64*)(cov->trace) = 0;
 }
 
 static void cover_collect(cover_t* cov)
 {
 	if (is_kernel_64_bit)
-		cov->size = *(uint64*)cov->data;
+		cov->size = *(uint64*)cov->trace;
 	else
-		cov->size = *(uint32*)cov->data;
+		cov->size = *(uint32*)cov->trace;
 }
 
 static void cover_protect(cover_t* cov)
@@ -102,16 +102,19 @@ static void cover_protect(cover_t* cov)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->alloc != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	if (cov->mmap_alloc_size == 0)
 		fail("cover_t structure is corrupted");
-	cov->data = (char*)mmap(NULL, cov->mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-	if (cov->data == MAP_FAILED)
+	cov->alloc = (char*)mmap(NULL, cov->mmap_alloc_size,
+				 PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	if (cov->alloc == MAP_FAILED)
 		exitf("cover mmap failed");
-	cov->data_end = cov->data + cov->mmap_alloc_size;
-	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->trace = (char*)cov->alloc;
+	cov->trace_size = cov->mmap_alloc_size;
+	cov->trace_end = cov->trace + cov->trace_size;
+	cov->trace_offset = 0;
+	cov->trace_skip = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	// We don't care about the specific PC values for now.
 	// Once we do, we might want to consider ASLR here.
 	cov->pc_offset = 0;
@@ -123,11 +126,11 @@ static void cover_unprotect(cover_t* cov)
 
 static long inject_cover(cover_t* cov, long a, long b)
 {
-	if (cov->data == nullptr)
+	if (cov->trace == nullptr)
 		return ENOENT;
-	uint32 size = std::min((uint32)b, cov->mmap_alloc_size);
-	memcpy(cov->data, (void*)a, size);
-	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
+	uint32 size = std::min((uint32)b, cov->trace_size);
+	memcpy(cov->trace, (void*)a, size);
+	memset(cov->trace + size, 0xcd, std::min<uint64>(100, cov->trace_size - size));
 	return 0;
 }
 
