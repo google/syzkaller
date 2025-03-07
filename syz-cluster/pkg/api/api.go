@@ -25,12 +25,13 @@ type FuzzConfig struct {
 
 // The triage step of the workflow will request these from controller.
 type Tree struct {
-	Name       string   `json:"name"` // Primary key.
-	URL        string   `json:"URL"`
-	Branch     string   `json:"branch"`
-	EmailLists []string `json:"email_lists"`
-	Priority   int64    `json:"priority"` // Higher numbers mean higher priority.
-	ConfigName string   `json:"config_name"`
+	Name         string   `json:"name"` // Primary key.
+	URL          string   `json:"URL"`
+	Branch       string   `json:"branch"`
+	EmailLists   []string `json:"email_lists"`
+	Priority     int64    `json:"priority"` // Higher numbers mean higher priority.
+	KernelConfig string   `json:"kernel_config"`
+	FuzzConfig   string   `json:"fuzz_config"`
 }
 
 type BuildRequest struct {
@@ -147,11 +148,21 @@ type BuildInfo struct {
 // Let them stay here until we find a better place.
 var DefaultTrees = []*Tree{
 	{
-		Name:       `torvalds`,
-		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
-		Branch:     `master`,
-		Priority:   0,
-		EmailLists: []string{},
-		ConfigName: `upstream-apparmor-kasan.config`,
+		Name:         `torvalds`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
+		Branch:       `master`,
+		Priority:     0,
+		EmailLists:   []string{},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `all`,
+	},
+	{
+		Name:         `netdev`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
+		Branch:       `main`,
+		Priority:     1,
+		EmailLists:   []string{`netdev@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `net`,
 	},
 }

@@ -72,7 +72,7 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 	arch := "amd64"
 	lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
 		Arch:       arch,
-		ConfigName: tree.ConfigName,
+		ConfigName: tree.KernelConfig,
 		TreeName:   tree.Name,
 		Status:     api.BuildSuccess,
 	})
@@ -94,7 +94,7 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 	}
 	base := api.BuildRequest{
 		TreeName:   tree.Name,
-		ConfigName: tree.ConfigName,
+		ConfigName: tree.KernelConfig,
 		CommitHash: commit,
 		Arch:       arch,
 	}
@@ -102,7 +102,7 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		Fuzz: &api.FuzzConfig{
 			Base:    base,
 			Patched: base,
-			Config:  "all",
+			Config:  tree.FuzzConfig,
 		},
 	}
 	ret.Fuzz.Patched.SeriesID = series.ID
