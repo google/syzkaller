@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
@@ -421,6 +422,82 @@ static void sandbox_common()
 }
 #endif //  SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
 
+#ifdef GOOS_freebsd
+
+#if SYZ_EXECUTOR || SYZ_WIFI
+
+#define WIFI_INITIAL_DEVICE_COUNT 2
+#define WIFI_IBSS_SSID \
+	{              \
+	    +0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x00}
+
+#define WTAPIOCTLCRT _IOW('W', 1, int)
+#define WTAPIOCTLDEL _IOW('W', 2, int)
+
+static int wtapfd = -1;
+
+static void initialize_wifi_devices(void)
+{
+	if (!flag_wifi)
+		return;
+
+	wtapfd = open("/dev/wtapctl", O_RDONLY);
+
+	if ((wtapfd < 0) && (errno == ENOENT)) {
+		execute_command(0, "kldload -q wtap");
+		wtapfd = open("/dev/wtapctl", O_RDONLY);
+	}
+
+	if (wtapfd == -1)
+		fail("wtap: can't open /dev/wtapctl");
+
+	const int kWtapFd = 200;
+	if (dup2(wtapfd, kWtapFd) < 0)
+		fail("dup2(wtapfd, kWtapFd) failed");
+	close(wtapfd);
+	wtapfd = kWtapFd;
+
+	uint8_t ssid[] = WIFI_IBSS_SSID;
+	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
+		if (ioctl(wtapfd, WTAPIOCTLCRT, &device_id) < 0)
+			failmsg("wtap: can't create wtap device", "id=%d\n", device_id);
+		execute_command(0, "ifconfig wlan%d create wlandev wtap%d wlanmode adhoc ssid %s", device_id, device_id, ssid);
+	}
+}
+
+static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile long a2)
+{
+	char wlan_id = (char)a0;
+	char* buf = (char*)a1;
+	int buf_len = (int)a2;
+
+	char interface[32] = "/dev/wlan0\0";
+	int wlanfd = -1;
+	int ret = -1;
+
+	interface[9] += wlan_id;
+
+	if (wtapfd < 0)
+		return -1;
+
+	wlanfd = open(interface, O_RDWR);
+
+	if ((wlanfd < 0)) {
+		failmsg("wtap: can't open wlan device", "interface=%s\n", interface);
+		return -1;
+	}
+
+	ret = write(wlanfd, buf, buf_len);
+
+	close(wlanfd);
+
+	return ret;
+}
+
+#endif // SYZ_EXECUTOR || SYZ_WIFI
+
+#endif // GOOS_freebsd
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 
 static void loop();
@@ -430,6 +507,11 @@ static int do_sandbox_none(void)
 	sandbox_common();
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun(procid);
+#endif
+#ifdef GOOS_freebsd
+#if SYZ_EXECUTOR || SYZ_WIFI
+	initialize_wifi_devices();
+#endif
 #endif
 	loop();
 	return 0;
