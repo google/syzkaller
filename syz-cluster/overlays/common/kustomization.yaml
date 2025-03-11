@@ -12,6 +12,7 @@ resources:
   - network-deny-all.yaml
   - network-policy-controller.yaml
   - network-policy-git-access.yaml
+  - network-policy-web-dashboard.yaml
   - workflow-roles.yaml
 
 patchesStrategicMerge:
