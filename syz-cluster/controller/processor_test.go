@@ -85,7 +85,7 @@ func awaitFinishedSessions(t *testing.T, seriesRepo *db.SeriesRepository, wantFi
 	for i := 0; i < int(deadline/interval); i++ {
 		time.Sleep(interval)
 
-		list, err := seriesRepo.ListLatest(context.Background(), time.Time{}, 0)
+		list, err := seriesRepo.ListLatest(context.Background(), db.SeriesFilter{}, time.Time{}, 0)
 		assert.NoError(t, err)
 		withFinishedSeries := 0
 		for _, item := range list {

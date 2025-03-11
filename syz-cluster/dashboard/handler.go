@@ -79,11 +79,16 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 	type MainPageData struct {
 		// It's probably not the best idea to expose db entities here,
 		// but so far redefining the entity would just duplicate the code.
-		List []*db.SeriesWithSession
+		List   []*db.SeriesWithSession
+		Filter db.SeriesFilter
 	}
-	var data MainPageData
+	data := MainPageData{
+		Filter: db.SeriesFilter{
+			Cc: r.FormValue("cc"),
+		},
+	}
 	var err error
-	data.List, err = h.seriesRepo.ListLatest(r.Context(), time.Time{}, 0)
+	data.List, err = h.seriesRepo.ListLatest(r.Context(), data.Filter, time.Time{}, 0)
 	if err != nil {
 		return fmt.Errorf("failed to query the list: %w", err)
 	}

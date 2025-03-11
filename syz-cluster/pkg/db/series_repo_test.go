@@ -58,16 +58,19 @@ func TestSeriesRepositoryList(t *testing.T) {
 			ExtID:       "series-3",
 			Title:       "Series 3",
 			PublishedAt: time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
+			Cc:          []string{"a"},
 		},
 		{
 			ExtID:       "series-1",
 			Title:       "Series 1",
 			PublishedAt: time.Date(2020, time.January, 1, 1, 0, 0, 0, time.UTC),
+			Cc:          []string{"a", "b"},
 		},
 		{
 			ExtID:       "series-2",
 			Title:       "Series 2",
 			PublishedAt: time.Date(2020, time.January, 1, 2, 0, 0, 0, time.UTC),
+			Cc:          []string{"c"},
 		},
 	} {
 		err := repo.Insert(ctx, series, func() ([]*Patch, error) { return nil, nil })
@@ -81,13 +84,13 @@ func TestSeriesRepositoryList(t *testing.T) {
 	})
 
 	t.Run("all", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, time.Time{}, 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Time{}, 0)
 		assert.NoError(t, err)
 		assert.Len(t, list, 3)
 	})
 
 	t.Run("with_limit", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, time.Time{}, 2)
+		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Time{}, 2)
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
 		assert.Equal(t, "Series 3", list[0].Series.Title)
@@ -96,11 +99,18 @@ func TestSeriesRepositoryList(t *testing.T) {
 
 	t.Run("with_from", func(t *testing.T) {
 		// Skips the latest series.
-		list, err := repo.ListLatest(ctx, time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC), 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC), 0)
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
 		assert.Equal(t, "Series 2", list[0].Series.Title)
 		assert.Equal(t, "Series 1", list[1].Series.Title)
+	})
+
+	t.Run("filter_by_cc", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx,
+			SeriesFilter{Cc: "a"}, time.Time{}, 0)
+		assert.NoError(t, err)
+		assert.Len(t, list, 2)
 	})
 }
 

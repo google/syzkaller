@@ -130,19 +130,27 @@ type SeriesWithSession struct {
 	Session *Session
 }
 
+type SeriesFilter struct {
+	Cc string
+}
+
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
-func (repo *SeriesRepository) ListLatest(ctx context.Context,
+func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilter,
 	maxPublishedAt time.Time, limit int) ([]*SeriesWithSession, error) {
 	ro := repo.client.ReadOnlyTransaction()
 	defer ro.Close()
 
 	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM Series",
+		SQL:    "SELECT * FROM Series WHERE 1=1",
 		Params: map[string]interface{}{},
 	}
 	if !maxPublishedAt.IsZero() {
-		stmt.SQL += " WHERE PublishedAt < @toTime"
+		stmt.SQL += " AND PublishedAt < @toTime"
 		stmt.Params["toTime"] = maxPublishedAt
+	}
+	if filter.Cc != "" {
+		stmt.SQL += " AND @cc IN UNNEST(Cc)"
+		stmt.Params["cc"] = filter.Cc
 	}
 	stmt.SQL += " ORDER BY PublishedAt DESC"
 	if limit > 0 {

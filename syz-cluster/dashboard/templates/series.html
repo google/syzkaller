@@ -55,6 +55,14 @@
                     <th>Version</th>
                     <td>{{.Version}}</td>
                 </tr>
+                <tr>
+                    <th>Cc</th>
+                    <td>
+                        {{range .Cc}}
+                            <a href="/?cc={{.}}">{{.}}</a>
+                        {{end}}
+                    </td>
+                </tr>
             </tbody>
         </table>
 
