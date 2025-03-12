@@ -101,4 +101,10 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `ea7b4244b3656ca33b19a950f092b5bbc718b40c`,
 		FixTitle:   `x86/setup: Explicitly include acpi.h`,
 	},
+	{
+		// Fixes `BUG: KASAN: slab-use-after-free in binder_add_device` at boot.
+		GuiltyHash: `12d909cac1e1c4147cc3417fee804ee12fc6b984`,
+		FixHash:    `e77aff5528a183462714f750e45add6cc71e276a`,
+		FixTitle:   `binderfs: fix use-after-free in binder_devices`,
+	},
 }
