@@ -475,7 +475,9 @@ config:
  # Earlier we defined here 32 devices and syzkaller allocated one per test process.
  # When binderfs is used, we don't need that many - 2 is enough.
  - ANDROID_BINDER_DEVICES: "binder0,binder1"
- - ANDROID_BINDERFS
+ # TODO: re-enable it once https://syzkaller.appspot.com/bug?extid=72b65b56208e052e606c
+ # is addressed.
+ - ANDROID_BINDERFS: [-v6.14, -linux-next]
  - COUNTER
  - VALIDATE_FS_PARSER
  - PSTORE
