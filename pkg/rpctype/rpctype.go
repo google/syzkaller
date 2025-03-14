@@ -12,6 +12,8 @@ type HubConnectArgs struct {
 	Key string
 	// Manager name, must start with Client.
 	Manager string
+	// Manager HTTP url.
+	HTTP string
 	// See pkg/mgrconfig.Config.HubDomain.
 	Domain string
 	// Manager has started with an empty corpus and requests whole hub corpus.
