@@ -1269,7 +1269,9 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 		if mgr.cfg.Cover && !mgr.cfg.Snapshot {
 			// Distribute new max signal over all instances.
 			newSignal := fuzzer.Cover.GrabSignalDelta()
-			log.Logf(3, "distributing %d new signal", len(newSignal))
+			if len(newSignal) != 0 {
+				log.Logf(3, "distributing %d new signal", len(newSignal))
+			}
 			if len(newSignal) != 0 {
 				mgr.serv.DistributeSignalDelta(newSignal)
 			}
