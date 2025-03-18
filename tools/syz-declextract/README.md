@@ -42,7 +42,7 @@ ninja syz-declextract
 
 ## Running on the whole kernel
 ```
-go run tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg
+go run ./tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg
 syz-env make extract SOURCEDIR=$KERNEL
 ```
 
