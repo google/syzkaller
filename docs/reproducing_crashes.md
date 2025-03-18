@@ -241,7 +241,7 @@ https://groups.google.com/d/msg/syzkaller/fHZ42YrQM-Y/Z4Xf-BbUDgAJ.
 
 This process is automated to some degree in the `syz-repro` utility. You need to
 give it your manager config and a crash report file. And you can refer to the
-[example config file](/pkg/mgrconfig/testdata/qemu.cfg).
+[example config file](/pkg/mgrconfig/testdata/qemu-example.cfg).
 ```
 ./syz-repro -config my.cfg crash-qemu-1-1455745459265726910
 ```
