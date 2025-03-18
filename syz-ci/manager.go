@@ -923,7 +923,7 @@ func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.T
 		mgr.mgrcfg.DashboardClient,
 		mgr.name, curTime.Format(time.DateOnly),
 		curTime.Hour(), curTime.Minute())
-	if err := mgr.uploadFile(mgr.cfg.CoverPipelinePath, fileName, pr, false); err != nil {
+	if err := mgr.uploadFile(gcsDest, fileName, pr, false); err != nil {
 		return fmt.Errorf("failed to uploadFileGCS(): %w", err)
 	}
 	return nil
