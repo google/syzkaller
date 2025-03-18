@@ -32,7 +32,7 @@ LLVM_BUILD=$PWD/syz
 mkdir $LLVM_BUILD && cd $LLVM_BUILD
 cmake -DLLVM_ENABLE_PROJECTS="clang" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=On \
 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -GNinja $LLVM/llvm
-make -j`nproc` syz-declextract
+ninja syz-declextract
 ```
 
 ## Running on a single source file
