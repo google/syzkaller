@@ -790,10 +790,11 @@ func (target *Target) defaultDataOffset() uint64 {
 		}
 
 		// An address from ASAN's 64-bit HighMem area.
-		// 0x400000000000 works both for arm64 and amd64. We don't run syzkaller tests on any other platform.
+		// 0x200000000000 works both for arm64 and amd64. We don't run syzkaller tests on any other platform.
 		// During real fuzzing, we don't build with ASAN, so the address should not matter much as long as
 		// it's far enough from the area allocated by malloc().
-		return 0x400000000000
+		// Another restriction is that on Starnix the available memory space ends at 0x400000000000.
+		return 0x200000000000
 	}
 	// From 32-bit HighMem area.
 	return 0x80000000
