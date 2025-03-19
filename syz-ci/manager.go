@@ -865,7 +865,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer resp.Body.Close()
 	if directUpload {
-		return mgr.uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body, true)
+		return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body, mgr.cfg.PublishGCS)
 	}
 	// Upload via the asset storage.
 	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
@@ -880,7 +880,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
-func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time,
+func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time, publish bool,
 	f func(io.Writer, *json.Decoder) error) error {
 	if !mgr.managercfg.Cover || gcsDest == "" {
 		return nil
@@ -923,7 +923,7 @@ func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.T
 		mgr.mgrcfg.DashboardClient,
 		mgr.name, curTime.Format(time.DateOnly),
 		curTime.Hour(), curTime.Minute())
-	if err := mgr.uploadFile(gcsDest, fileName, pr, false); err != nil {
+	if err := uploadFile(gcsDest, fileName, pr, publish); err != nil {
 		return fmt.Errorf("failed to uploadFileGCS(): %w", err)
 	}
 	return nil
@@ -937,6 +937,7 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	if err := mgr.uploadCoverJSONLToGCS("/cover?jsonl=1&flush=1",
 		mgr.cfg.CoverPipelinePath,
 		curTime,
+		false,
 		func(w io.Writer, dec *json.Decoder) error {
 			var covInfo cover.CoverageInfo
 			if err := dec.Decode(&covInfo); err != nil {
@@ -966,6 +967,7 @@ func (mgr *Manager) uploadProgramsWithCoverage() error {
 	if err := mgr.uploadCoverJSONLToGCS("/coverprogs?jsonl=1",
 		mgr.cfg.CoverProgramsPath,
 		time.Now(),
+		mgr.cfg.PublishGCS,
 		func(w io.Writer, dec *json.Decoder) error {
 			var programCoverage cover.ProgramCoverage
 			if err := dec.Decode(&programCoverage); err != nil {
@@ -992,7 +994,7 @@ func (mgr *Manager) uploadCorpus() error {
 		return err
 	}
 	defer f.Close()
-	return mgr.uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, true)
+	return uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, mgr.cfg.PublishGCS)
 }
 
 func (mgr *Manager) uploadBenchData() error {
@@ -1010,7 +1012,7 @@ func (mgr *Manager) uploadBenchData() error {
 		return fmt.Errorf("failed to open bench file: %w", err)
 	}
 	defer f.Close()
-	err = mgr.uploadFile(mgr.cfg.BenchUploadPath+"/"+mgr.name,
+	err = uploadFile(mgr.cfg.BenchUploadPath+"/"+mgr.name,
 		mgr.lastRestarted.Format("2006-01-02_15h.json"), f, false)
 	if err != nil {
 		return fmt.Errorf("failed to upload the bench file: %w", err)
@@ -1018,7 +1020,7 @@ func (mgr *Manager) uploadBenchData() error {
 	return nil
 }
 
-func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader, allowPublishing bool) error {
+func uploadFile(dstPath, name string, file io.Reader, publish bool) error {
 	URL, err := url.Parse(dstPath)
 	if err != nil {
 		return fmt.Errorf("failed to parse upload path: %w", err)
@@ -1030,31 +1032,7 @@ func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader, allowPublis
 		strings.HasPrefix(URLStr, "https://") {
 		return uploadFileHTTPPut(URLStr, file)
 	}
-	return uploadFileGCS(URLStr, file, allowPublishing && mgr.cfg.PublishGCS)
-}
-
-func uploadFileGCS(URL string, file io.Reader, publish bool) error {
-	URL = strings.TrimPrefix(URL, "gs://")
-	GCS, err := gcs.NewClient(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %w", err)
-	}
-	defer GCS.Close()
-	gcsWriter, err := GCS.FileWriter(URL)
-	if err != nil {
-		return fmt.Errorf("failed to create GCS writer: %w", err)
-	}
-	if _, err := io.Copy(gcsWriter, file); err != nil {
-		gcsWriter.Close()
-		return fmt.Errorf("failed to copy report: %w", err)
-	}
-	if err := gcsWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close gcs writer: %w", err)
-	}
-	if publish {
-		return GCS.Publish(URL)
-	}
-	return nil
+	return gcs.UploadFile(context.Background(), file, URLStr, publish)
 }
 
 func uploadFileHTTPPut(URL string, file io.Reader) error {

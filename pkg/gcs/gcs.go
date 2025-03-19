@@ -22,6 +22,30 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+func UploadFile(ctx context.Context, srcFile io.Reader, destURL string, publish bool) error {
+	destURL = strings.TrimPrefix(destURL, "gs://")
+	client, err := NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("func NewClient: %w", err)
+	}
+	defer client.Close()
+	gcsWriter, err := client.FileWriter(destURL)
+	if err != nil {
+		return fmt.Errorf("client.FileWriter: %w", err)
+	}
+	if _, err := io.Copy(gcsWriter, srcFile); err != nil {
+		gcsWriter.Close()
+		return fmt.Errorf("io.Copy: %w", err)
+	}
+	if err := gcsWriter.Close(); err != nil {
+		return fmt.Errorf("gcsWriter.Close: %w", err)
+	}
+	if publish {
+		return client.Publish(destURL)
+	}
+	return nil
+}
+
 type Client struct {
 	client *storage.Client
 	ctx    context.Context
