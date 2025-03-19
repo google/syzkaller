@@ -4,6 +4,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -880,7 +881,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
-func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time, publish bool,
+func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time, publish, compress bool,
 	f func(io.Writer, *json.Decoder) error) error {
 	if !mgr.managercfg.Cover || gcsDest == "" {
 		return nil
@@ -910,14 +911,22 @@ func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.T
 	pr, pw := io.Pipe()
 	defer pr.Close()
 	go func() {
+		var closeError error
+		defer func() { pw.CloseWithError(closeError) }()
+		var w io.Writer
+		w = pw
+		if compress {
+			gzw := gzip.NewWriter(pw)
+			defer gzw.Close()
+			w = gzw
+		}
 		decoder := json.NewDecoder(resp.Body)
 		for decoder.More() {
-			if err := f(pw, decoder); err != nil {
-				pw.CloseWithError(fmt.Errorf("callback: %w", err))
+			if err := f(w, decoder); err != nil {
+				closeError = fmt.Errorf("callback: %w", err)
 				return
 			}
 		}
-		pw.Close()
 	}()
 	fileName := fmt.Sprintf("%s/%s-%s-%d-%d.jsonl",
 		mgr.mgrcfg.DashboardClient,
@@ -937,6 +946,7 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	if err := mgr.uploadCoverJSONLToGCS("/cover?jsonl=1&flush=1",
 		mgr.cfg.CoverPipelinePath,
 		curTime,
+		false,
 		false,
 		func(w io.Writer, dec *json.Decoder) error {
 			var covInfo cover.CoverageInfo
@@ -968,6 +978,7 @@ func (mgr *Manager) uploadProgramsWithCoverage() error {
 		mgr.cfg.CoverProgramsPath,
 		time.Now(),
 		mgr.cfg.PublishGCS,
+		true,
 		func(w io.Writer, dec *json.Decoder) error {
 			var programCoverage cover.ProgramCoverage
 			if err := dec.Decode(&programCoverage); err != nil {
