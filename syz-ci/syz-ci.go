@@ -114,7 +114,7 @@ type Config struct {
 	// Path to upload corpus.db from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
 	CorpusUploadPath string `json:"corpus_upload_path"`
-	// Make files uploaded via CoverUploadPath and CorpusUploadPath public.
+	// Make files uploaded via CoverUploadPath, CorpusUploadPath and CoverProgramsPath public.
 	PublishGCS bool `json:"publish_gcs"`
 	// Path to upload bench data from instances (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
