@@ -139,6 +139,24 @@ func (_m *Client) ListObjects(path string) ([]*gcs.Object, error) {
 	return r0, r1
 }
 
+// Publish provides a mock function with given fields: path
+func (_m *Client) Publish(path string) error {
+	ret := _m.Called(path)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Publish")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(path)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Read provides a mock function with given fields: path
 func (_m *Client) Read(path string) (*gcs.File, error) {
 	ret := _m.Called(path)
@@ -167,24 +185,6 @@ func (_m *Client) Read(path string) (*gcs.File, error) {
 	}
 
 	return r0, r1
-}
-
-// publish provides a mock function with given fields: path
-func (_m *Client) publish(path string) error {
-	ret := _m.Called(path)
-
-	if len(ret) == 0 {
-		panic("no return value specified for publish")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(path)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // NewClient creates a new instance of Client. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
