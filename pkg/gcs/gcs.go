@@ -32,7 +32,7 @@ type Client interface {
 	FileExists(path string) (bool, error)
 	ListObjects(path string) ([]*Object, error)
 
-	publish(path string) error
+	Publish(path string) error
 }
 
 type UploadOptions struct {
@@ -63,7 +63,7 @@ func UploadFile(ctx context.Context, srcFile io.Reader, destURL string, opts Upl
 		return fmt.Errorf("gcsWriter.Close: %w", err)
 	}
 	if opts.Publish {
-		return gcsClient.publish(destURL)
+		return gcsClient.Publish(destURL)
 	}
 	return nil
 }
@@ -143,8 +143,8 @@ func (c *client) FileWriter(gcsFile, contentType, contentEncoding string) (io.Wr
 	return w, nil
 }
 
-// publish lets any user read gcsFile.
-func (c *client) publish(gcsFile string) error {
+// Publish lets any user read gcsFile.
+func (c *client) Publish(gcsFile string) error {
 	bucket, filename, err := split(gcsFile)
 	if err != nil {
 		return err
