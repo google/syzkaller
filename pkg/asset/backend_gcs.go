@@ -16,7 +16,7 @@ import (
 )
 
 type cloudStorageBackend struct {
-	client *gcs.Client
+	client gcs.Client
 	bucket string
 	tracer debugtracer.DebugTracer
 }

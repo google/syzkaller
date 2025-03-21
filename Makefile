@@ -240,6 +240,7 @@ generate_go: format_cpp
 	$(GO) generate ./vm/proxyapp
 	$(GO) generate ./pkg/coveragedb
 	$(GO) generate ./pkg/covermerger
+	$(GO) generate ./pkg/gcs
 
 generate_rpc:
 	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --go --gen-onefile --go-namespace flatrpc pkg/flatrpc/flatrpc.fbs
