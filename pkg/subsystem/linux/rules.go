@@ -100,6 +100,7 @@ var (
 			"iomap":  {"FILESYSTEMS [IOMAP]"},
 			"xfs":    {"XFS FILESYSTEM"},
 			"jffs2":  {"JOURNALLING FLASH FILE SYSTEM V2 (JFFS2)"},
+			"smc":    {"SHARED MEMORY COMMUNICATIONS (SMC) SOCKETS"}, // See #5838.
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
