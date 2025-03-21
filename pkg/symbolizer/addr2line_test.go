@@ -73,6 +73,21 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			0xffffffff82fdbe1b,
+			"0xffffffff82fdbe1b\n" +
+				"fbcon_invert_region\n" +
+				"drivers/video/console/fbcon.c:0\n",
+			[]Frame{
+				{
+					PC:     0xffffffff82fdbe1b,
+					Func:   "fbcon_invert_region",
+					File:   "drivers/video/console/fbcon.c",
+					Line:   -1,
+					Inline: false,
+				},
+			},
+		},
+		{
 			0x123124,
 			"0x0000000000123124\n" +
 				"??\n" +
