@@ -866,7 +866,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer resp.Body.Close()
 	if directUpload {
-		return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body, mgr.cfg.PublishGCS)
+		return uploadFile(context.Background(), mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body, mgr.cfg.PublishGCS)
 	}
 	// Upload via the asset storage.
 	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
@@ -881,8 +881,8 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
-func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.Time, publish, compress bool,
-	f func(io.Writer, *json.Decoder) error) error {
+func (mgr *Manager) uploadCoverJSONLToGCS(ctx context.Context, mgrSrc, gcsDest string, curTime time.Time,
+	publish, compress bool, f func(io.Writer, *json.Decoder) error) error {
 	if !mgr.managercfg.Cover || gcsDest == "" {
 		return nil
 	}
@@ -932,7 +932,7 @@ func (mgr *Manager) uploadCoverJSONLToGCS(mgrSrc, gcsDest string, curTime time.T
 		mgr.mgrcfg.DashboardClient,
 		mgr.name, curTime.Format(time.DateOnly),
 		curTime.Hour(), curTime.Minute())
-	if err := uploadFile(gcsDest, fileName, pr, publish); err != nil {
+	if err := uploadFile(ctx, gcsDest, fileName, pr, publish); err != nil {
 		return fmt.Errorf("failed to uploadFileGCS(): %w", err)
 	}
 	return nil
@@ -943,7 +943,8 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	// In the syz-ci context report generation won't be used after this point,
 	// so tell manager to flush report generator.
 	curTime := time.Now()
-	if err := mgr.uploadCoverJSONLToGCS("/cover?jsonl=1&flush=1",
+	if err := mgr.uploadCoverJSONLToGCS(context.Background(),
+		"/cover?jsonl=1&flush=1",
 		mgr.cfg.CoverPipelinePath,
 		curTime,
 		false,
@@ -974,7 +975,8 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 }
 
 func (mgr *Manager) uploadProgramsWithCoverage() error {
-	if err := mgr.uploadCoverJSONLToGCS("/coverprogs?jsonl=1",
+	if err := mgr.uploadCoverJSONLToGCS(context.Background(),
+		"/coverprogs?jsonl=1",
 		mgr.cfg.CoverProgramsPath,
 		time.Now(),
 		mgr.cfg.PublishGCS,
@@ -1005,7 +1007,7 @@ func (mgr *Manager) uploadCorpus() error {
 		return err
 	}
 	defer f.Close()
-	return uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, mgr.cfg.PublishGCS)
+	return uploadFile(context.Background(), mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, mgr.cfg.PublishGCS)
 }
 
 func (mgr *Manager) uploadBenchData() error {
@@ -1023,7 +1025,7 @@ func (mgr *Manager) uploadBenchData() error {
 		return fmt.Errorf("failed to open bench file: %w", err)
 	}
 	defer f.Close()
-	err = uploadFile(mgr.cfg.BenchUploadPath+"/"+mgr.name,
+	err = uploadFile(context.Background(), mgr.cfg.BenchUploadPath+"/"+mgr.name,
 		mgr.lastRestarted.Format("2006-01-02_15h.json"), f, false)
 	if err != nil {
 		return fmt.Errorf("failed to upload the bench file: %w", err)
@@ -1031,7 +1033,7 @@ func (mgr *Manager) uploadBenchData() error {
 	return nil
 }
 
-func uploadFile(dstPath, name string, file io.Reader, publish bool) error {
+func uploadFile(ctx context.Context, dstPath, name string, file io.Reader, publish bool) error {
 	URL, err := url.Parse(dstPath)
 	if err != nil {
 		return fmt.Errorf("failed to parse upload path: %w", err)
@@ -1043,7 +1045,7 @@ func uploadFile(dstPath, name string, file io.Reader, publish bool) error {
 		strings.HasPrefix(URLStr, "https://") {
 		return uploadFileHTTPPut(URLStr, file)
 	}
-	return gcs.UploadFile(context.Background(), file, URLStr, publish)
+	return gcs.UploadFile(ctx, file, URLStr, publish)
 }
 
 func uploadFileHTTPPut(URL string, file io.Reader) error {
