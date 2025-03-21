@@ -163,8 +163,11 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 		}
 		file := ln[:colon]
 		line, err := strconv.Atoi(ln[colon+1 : lineEnd])
-		if err != nil || fn == "" || fn == "??" || file == "" || file == "??" || line <= 0 {
+		if err != nil || fn == "" || fn == "??" || file == "" || file == "??" || line < 0 {
 			continue
+		}
+		if line == 0 {
+			line = -1
 		}
 		frames = append(frames, Frame{
 			PC:     pc,
