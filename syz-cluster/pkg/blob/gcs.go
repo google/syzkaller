@@ -15,7 +15,7 @@ import (
 
 type gcsDriver struct {
 	bucket string
-	client *gcs.Client
+	client gcs.Client
 }
 
 func NewGCSClient(ctx context.Context, bucket string) (Storage, error) {
