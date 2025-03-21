@@ -124,6 +124,7 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 		kernelObj:      cfg.KernelObj,
 		ignores:        ignores,
 		kernelModules:  localModules,
+		cleanRules:     cfg.CleanRules,
 	}
 	rep, suppressions, err := ctor(config)
 	if err != nil {
@@ -176,6 +177,7 @@ type config struct {
 	kernelObj      string
 	ignores        []*regexp.Regexp
 	kernelModules  []*vminfo.KernelModule
+	cleanRules     []string
 }
 
 type fn func(cfg *config) (reporterImpl, []string, error)
