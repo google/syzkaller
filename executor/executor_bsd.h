@@ -106,15 +106,18 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->alloc != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	void* mmap_ptr = mmap(NULL, cov->mmap_alloc_size, PROT_READ | PROT_WRITE,
 			      MAP_SHARED, cov->fd, 0);
 	if (mmap_ptr == MAP_FAILED)
 		fail("cover mmap failed");
-	cov->data = (char*)mmap_ptr;
-	cov->data_end = cov->data + cov->mmap_alloc_size;
-	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->alloc = mmap_ptr;
+	cov->trace = (char*)cov->alloc;
+	cov->trace_size = cov->mmap_alloc_size;
+	cov->trace_end = cov->trace + cov->trace_size;
+	cov->trace_offset = 0;
+	cov->trace_skip = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
 }
 
@@ -126,7 +129,7 @@ static void cover_protect(cover_t* cov)
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	long page_size = sysconf(_SC_PAGESIZE);
 	if (page_size > 0)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
+		mprotect(cov->alloc + page_size, mmap_alloc_size - page_size,
 			 PROT_READ);
 #elif GOOS_openbsd
 	int mib[2], page_size;
@@ -135,7 +138,7 @@ static void cover_protect(cover_t* cov)
 	mib[1] = HW_PAGESIZE;
 	size_t len = sizeof(page_size);
 	if (sysctl(mib, ARRAY_SIZE(mib), &page_size, &len, NULL, 0) != -1)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size, PROT_READ);
+		mprotect(cov->alloc + page_size, mmap_alloc_size - page_size, PROT_READ);
 #endif
 }
 
@@ -145,10 +148,10 @@ static void cover_unprotect(cover_t* cov)
 		fail("cover_unprotect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	mprotect(cov->alloc, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #elif GOOS_openbsd
 	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
-	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	mprotect(cov->alloc, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #endif
 }
 
@@ -175,12 +178,12 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
-	*(uint64*)cov->data = 0;
+	*(uint64*)cov->trace = 0;
 }
 
 static void cover_collect(cover_t* cov)
 {
-	cov->size = *(uint64*)cov->data;
+	cov->size = *(uint64*)cov->trace;
 }
 
 #if GOOS_netbsd
