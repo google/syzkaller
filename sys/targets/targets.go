@@ -782,7 +782,7 @@ func initTarget(target *Target, OS, arch string) {
 
 func (target *Target) defaultDataOffset() uint64 {
 	if target.PtrSize == 8 {
-		if target.VMArch == ARM64 {
+		if target.Arch == ARM64 {
 			// On ARM64, in many cases we can't use many enough bits of the address space.
 			// Let's use the old value for now. It's also problematic (see #5770), but it's
 			// lesser of the two evils.
