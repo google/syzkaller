@@ -103,7 +103,7 @@ func do() error {
 			return fmt.Errorf("gcs.NewClient: %w", err)
 		}
 		defer gcsClient.Close()
-		wc, err = gcsClient.FileWriter(strings.TrimPrefix(url, "gs://"))
+		wc, err = gcsClient.FileWriter(strings.TrimPrefix(url, "gs://"), "", "")
 		if err != nil {
 			return fmt.Errorf("gcsClient.FileWriter: %w", err)
 		}

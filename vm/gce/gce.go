@@ -504,7 +504,7 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		return fmt.Errorf("failed to stat image file: %w", err)
 	}
 
-	gcsWriter, err := GCS.FileWriter(gcsImage)
+	gcsWriter, err := GCS.FileWriter(gcsImage, "", "")
 	if err != nil {
 		return fmt.Errorf("failed to upload image: %w", err)
 	}

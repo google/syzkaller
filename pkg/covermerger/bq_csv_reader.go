@@ -90,7 +90,7 @@ func (r *bqCSVReader) InitNsRecords(ctx context.Context, ns, filePath, commit st
 }
 
 func (r *bqCSVReader) initGCSFileReaders(ctx context.Context, bucket, path string) error {
-	var gcsClient *gcs.Client
+	var gcsClient gcs.Client
 	var err error
 	if gcsClient, err = gcs.NewClient(ctx); err != nil {
 		return fmt.Errorf("err creating gcs client: %w", err)
