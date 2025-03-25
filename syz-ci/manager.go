@@ -1032,7 +1032,7 @@ func uploadFile(dstPath, name string, file io.Reader, publish bool) error {
 		strings.HasPrefix(URLStr, "https://") {
 		return uploadFileHTTPPut(URLStr, file)
 	}
-	return gcs.UploadFile(context.Background(), file, URLStr, publish)
+	return gcs.UploadFile(context.Background(), file, URLStr, gcs.UploadOptions{Publish: publish})
 }
 
 func uploadFileHTTPPut(URL string, file io.Reader) error {

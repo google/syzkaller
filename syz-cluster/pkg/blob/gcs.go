@@ -15,7 +15,7 @@ import (
 
 type gcsDriver struct {
 	bucket string
-	client *gcs.Client
+	client gcs.Client
 }
 
 func NewGCSClient(ctx context.Context, bucket string) (Storage, error) {
@@ -75,7 +75,7 @@ func (gcs *gcsDriver) objectURI(object string) string {
 }
 
 func (gcs *gcsDriver) writeObject(object string, source io.Reader) error {
-	w, err := gcs.client.FileWriterExt(fmt.Sprintf("%s/%s", gcs.bucket, object), "", "")
+	w, err := gcs.client.FileWriter(fmt.Sprintf("%s/%s", gcs.bucket, object), "", "")
 	if err != nil {
 		return err
 	}

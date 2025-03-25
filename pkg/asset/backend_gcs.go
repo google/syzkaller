@@ -16,7 +16,7 @@ import (
 )
 
 type cloudStorageBackend struct {
-	client *gcs.Client
+	client gcs.Client
 	bucket string
 	tracer debugtracer.DebugTracer
 }
@@ -69,7 +69,7 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 	if exists {
 		return nil, &FileExistsError{req.savePath}
 	}
-	w, err := csb.client.FileWriterExt(path, req.contentType, req.contentEncoding)
+	w, err := csb.client.FileWriter(path, req.contentType, req.contentEncoding)
 	csb.tracer.Log("gcs upload: obtained a writer for %s, error %s", path, err)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 }
 
 func (csb *cloudStorageBackend) downloadURL(path string, publicURL bool) (string, error) {
-	return csb.client.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
+	return gcs.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
 }
 
 var allowedDomainsRe = regexp.MustCompile(`^storage\.googleapis\.com|storage\.cloud\.google\.com$`)
