@@ -64,6 +64,8 @@ linters-settings:
     rules:
     - name: package-comments
       disabled: true
+    - name: argument-limit
+      arguments: [ 7 ]
   lll:
     line-length: 120
   gocyclo:
