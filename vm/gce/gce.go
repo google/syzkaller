@@ -70,15 +70,13 @@ type Pool struct {
 }
 
 type instance struct {
-	env            *vmimpl.Env
-	cfg            *Config
-	GCE            *gce.Context
-	debug          bool
-	name           string
-	ip             string
+	env   *vmimpl.Env
+	cfg   *Config
+	GCE   *gce.Context
+	debug bool
+	name  string
+	vmimpl.SSHOptions
 	gceKey         string // per-instance private ssh key associated with the instance
-	sshKey         string // ssh key
-	sshUser        string
 	closed         chan bool
 	consolew       io.WriteCloser
 	consoleReadCmd string // optional: command to read non-standard kernel console
@@ -217,21 +215,26 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	inst := &instance{
-		env:            pool.env,
-		cfg:            pool.cfg,
-		debug:          pool.env.Debug,
-		GCE:            pool.GCE,
-		name:           name,
-		ip:             ip,
-		gceKey:         gceKey,
-		sshKey:         sshKey,
-		sshUser:        sshUser,
+		env:   pool.env,
+		cfg:   pool.cfg,
+		debug: pool.env.Debug,
+		GCE:   pool.GCE,
+		name:  name,
+		SSHOptions: vmimpl.SSHOptions{
+			Addr: ip,
+			Port: 22,
+			Key:  sshKey,
+			User: sshUser,
+		},
+
+		gceKey: gceKey,
+
 		closed:         make(chan bool),
 		consoleReadCmd: pool.consoleReadCmd,
 		timeouts:       pool.env.Timeouts,
 	}
-	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.env.OS, 22, nil, false); err != nil {
+	if err := vmimpl.WaitForSSH(5*time.Minute, inst.SSHOptions,
+		pool.env.OS, nil, false, pool.env.Debug); err != nil {
 		output, outputErr := inst.getSerialPortOutput()
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
@@ -260,7 +263,8 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(true, inst.sshKey, 22, false), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
+	args := append(vmimpl.SCPArgs(true, inst.Key, inst.Port, false),
+		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
 	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
@@ -416,8 +420,8 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22, false), inst.sshUser+"@"+inst.ip)
-	if inst.env.OS == targets.Linux && inst.sshUser != "root" {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.Key, 22, false), inst.User+"@"+inst.Addr)
+	if inst.env.OS == targets.Linux && inst.User != "root" {
 		args = []string{"sudo", "bash", "-c", "'" + strings.Join(args, " ") + "'"}
 	}
 	return append(sshArgs, args...)

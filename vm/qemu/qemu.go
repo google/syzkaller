@@ -87,20 +87,18 @@ type Pool struct {
 }
 
 type instance struct {
-	index       int
-	cfg         *Config
-	target      *targets.Target
-	archConfig  *archConfig
-	version     string
-	args        []string
-	image       string
-	debug       bool
-	os          string
-	workdir     string
-	sshkey      string
-	sshuser     string
+	index      int
+	cfg        *Config
+	target     *targets.Target
+	archConfig *archConfig
+	version    string
+	args       []string
+	image      string
+	debug      bool
+	os         string
+	workdir    string
+	vmimpl.SSHOptions
 	timeouts    targets.Timeouts
-	port        int
 	monport     int
 	forwardPort int
 	mon         net.Conn
@@ -372,8 +370,12 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (*instance, e
 		os:         pool.env.OS,
 		timeouts:   pool.env.Timeouts,
 		workdir:    workdir,
-		sshkey:     sshkey,
-		sshuser:    sshuser,
+		SSHOptions: vmimpl.SSHOptions{
+			Addr: "localhost",
+			Port: vmimpl.UnusedTCPPort(),
+			Key:  sshkey,
+			User: sshuser,
+		},
 	}
 	if pool.env.Snapshot {
 		inst.snapshot = new(snapshot)
@@ -429,7 +431,6 @@ func (inst *instance) Close() error {
 }
 
 func (inst *instance) boot() error {
-	inst.port = vmimpl.UnusedTCPPort()
 	inst.monport = vmimpl.UnusedTCPPort()
 	args, err := inst.buildQemuArgs()
 	if err != nil {
@@ -479,8 +480,8 @@ func (inst *instance) boot() error {
 		}
 	}
 
-	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
-		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err, false); err != nil {
+	if err := vmimpl.WaitForSSH(10*time.Minute*inst.timeouts.Scale, inst.SSHOptions,
+		inst.os, inst.merger.Err, false, inst.debug); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -507,7 +508,7 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port),
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.Port),
 	)
 	if inst.image == "9p" {
 		args = append(args,
@@ -654,8 +655,8 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		inst.files[vmDst] = hostSrc
 	}
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port, false),
-		hostSrc, inst.sshuser+"@localhost:"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
+		hostSrc, inst.User+"@localhost:"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
@@ -674,7 +675,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort, false)
+	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.User, inst.Port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.target.HostFuzzer && bin == "syz-execprog" {
 		// Weird mode for Fuchsia.
@@ -683,7 +684,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		for i, arg := range args {
 			if strings.HasPrefix(arg, "-executor=") {
 				args[i] = "-executor=" + "/usr/bin/ssh " + strings.Join(sshArgs, " ") +
-					" " + inst.sshuser + "@localhost " + arg[len("-executor="):]
+					" " + inst.User + "@localhost " + arg[len("-executor="):]
 			}
 			if host := inst.files[arg]; host != "" {
 				args[i] = host
@@ -692,7 +693,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	} else {
 		args = []string{"ssh"}
 		args = append(args, sshArgs...)
-		args = append(args, inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
+		args = append(args, inst.User+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	}
 	if inst.debug {
 		log.Logf(0, "running command: %#v", args)
@@ -745,7 +746,7 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port, false), inst.sshuser+"@localhost")
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.User, inst.Port, false), inst.User+"@localhost")
 	return append(sshArgs, args...)
 }
 
