@@ -23,8 +23,14 @@ func SleepInterruptible(d time.Duration) bool {
 	}
 }
 
-func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int, stop chan error,
-	systemSSHCfg bool) error {
+type SSHOptions struct {
+	Addr string
+	Port int
+	User string
+	Key  string
+}
+
+func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan error, systemSSHCfg, debug bool) error {
 	pwd := "pwd"
 	if OS == targets.Windows {
 		pwd = "dir"
@@ -39,7 +45,7 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 		case <-Shutdown:
 			return fmt.Errorf("shutdown in progress")
 		}
-		args := append(SSHArgs(debug, sshKey, port, systemSSHCfg), sshUser+"@"+addr, pwd)
+		args := append(SSHArgs(debug, opts.Key, opts.Port, systemSSHCfg), opts.User+"@"+opts.Addr, pwd)
 		if debug {
 			log.Logf(0, "running ssh: %#v", args)
 		}

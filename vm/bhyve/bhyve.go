@@ -42,17 +42,14 @@ type Pool struct {
 }
 
 type instance struct {
+	vmimpl.SSHOptions
 	cfg         *Config
 	snapshot    string
 	tapdev      string
-	port        int
 	forwardPort int
 	image       string
 	debug       bool
 	os          string
-	sshkey      string
-	sshuser     string
-	sshhost     string
 	merger      *vmimpl.OutputMerger
 	vmName      string
 	bhyve       *exec.Cmd
@@ -87,12 +84,14 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
-		cfg:     pool.cfg,
-		debug:   pool.env.Debug,
-		os:      pool.env.OS,
-		sshkey:  pool.env.SSHKey,
-		sshuser: pool.env.SSHUser,
-		vmName:  fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index),
+		cfg:   pool.cfg,
+		debug: pool.env.Debug,
+		os:    pool.env.OS,
+		SSHOptions: vmimpl.SSHOptions{
+			Key:  pool.env.SSHKey,
+			User: pool.env.SSHUser,
+		},
+		vmName: fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index),
 	}
 
 	dataset := inst.cfg.Dataset
@@ -170,11 +169,11 @@ func (inst *instance) Boot() error {
 
 	netdev := ""
 	if inst.tapdev != "" {
-		inst.port = 22
+		inst.Port = 22
 		netdev = inst.tapdev
 	} else {
-		inst.port = vmimpl.UnusedTCPPort()
-		netdev = fmt.Sprintf("slirp,hostfwd=tcp:127.0.0.1:%v-:22", inst.port)
+		inst.Port = vmimpl.UnusedTCPPort()
+		netdev = fmt.Sprintf("slirp,hostfwd=tcp:127.0.0.1:%v-:22", inst.Port)
 	}
 
 	bhyveArgs := []string{
@@ -251,9 +250,9 @@ func (inst *instance) Boot() error {
 	select {
 	case ip := <-ipch:
 		if inst.tapdev != "" {
-			inst.sshhost = ip
+			inst.Addr = ip
 		} else {
-			inst.sshhost = "localhost"
+			inst.Addr = "localhost"
 		}
 	case <-inst.merger.Err:
 		bootOutputStop <- true
@@ -265,8 +264,8 @@ func (inst *instance) Boot() error {
 		return vmimpl.BootError{Title: "no IP found", Output: bootOutput}
 	}
 
-	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute, inst.sshhost,
-		inst.sshkey, inst.sshuser, inst.os, inst.port, nil, false); err != nil {
+	err = vmimpl.WaitForSSH(10*time.Minute, inst.SSHOptions, inst.os, nil, false, inst.debug)
+	if err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -313,8 +312,8 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port, false),
-		hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
+		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
@@ -335,11 +334,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	var sshargs []string
 	if inst.forwardPort != 0 {
-		sshargs = vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort, false)
+		sshargs = vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, false)
 	} else {
-		sshargs = vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port, false)
+		sshargs = vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false)
 	}
-	args := append(sshargs, inst.sshuser+"@"+inst.sshhost, command)
+	args := append(sshargs, inst.User+"@"+inst.Addr, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}
