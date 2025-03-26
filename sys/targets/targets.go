@@ -1004,7 +1004,8 @@ func (target *Target) lazyInit() {
 		cmd := exec.Command(comp, args...)
 		cmd.Stdin = strings.NewReader(prog)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			target.BrokenCompiler = string(out)
+			target.BrokenCompiler = fmt.Sprintf("error running command: '%s':\ngotoutput: %s",
+				comp+" "+strings.Join(args, " "), out)
 			return
 		}
 	}
