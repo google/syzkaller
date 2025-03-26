@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #if SYZ_EXECUTOR
-const int kExtraCoverSize = 1024 << 10;
+const int kExtraCoverSize = 8 << 10;
 struct cover_t;
 static void cover_reset(cover_t* cov);
 #endif
