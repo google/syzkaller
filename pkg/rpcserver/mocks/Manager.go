@@ -20,6 +20,14 @@ type Manager struct {
 	mock.Mock
 }
 
+type Manager_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *Manager) EXPECT() *Manager_Expecter {
+	return &Manager_Expecter{mock: &_m.Mock}
+}
+
 // BugFrames provides a mock function with no fields
 func (_m *Manager) BugFrames() ([]string, []string) {
 	ret := _m.Called()
@@ -52,6 +60,33 @@ func (_m *Manager) BugFrames() ([]string, []string) {
 	return r0, r1
 }
 
+// Manager_BugFrames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BugFrames'
+type Manager_BugFrames_Call struct {
+	*mock.Call
+}
+
+// BugFrames is a helper method to define mock.On call
+func (_e *Manager_Expecter) BugFrames() *Manager_BugFrames_Call {
+	return &Manager_BugFrames_Call{Call: _e.mock.On("BugFrames")}
+}
+
+func (_c *Manager_BugFrames_Call) Run(run func()) *Manager_BugFrames_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Manager_BugFrames_Call) Return(leaks []string, races []string) *Manager_BugFrames_Call {
+	_c.Call.Return(leaks, races)
+	return _c
+}
+
+func (_c *Manager_BugFrames_Call) RunAndReturn(run func() ([]string, []string)) *Manager_BugFrames_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CoverageFilter provides a mock function with given fields: modules
 func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
 	ret := _m.Called(modules)
@@ -80,6 +115,34 @@ func (_m *Manager) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, err
 	}
 
 	return r0, r1
+}
+
+// Manager_CoverageFilter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CoverageFilter'
+type Manager_CoverageFilter_Call struct {
+	*mock.Call
+}
+
+// CoverageFilter is a helper method to define mock.On call
+//   - modules []*vminfo.KernelModule
+func (_e *Manager_Expecter) CoverageFilter(modules interface{}) *Manager_CoverageFilter_Call {
+	return &Manager_CoverageFilter_Call{Call: _e.mock.On("CoverageFilter", modules)}
+}
+
+func (_c *Manager_CoverageFilter_Call) Run(run func(modules []*vminfo.KernelModule)) *Manager_CoverageFilter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].([]*vminfo.KernelModule))
+	})
+	return _c
+}
+
+func (_c *Manager_CoverageFilter_Call) Return(_a0 []uint64, _a1 error) *Manager_CoverageFilter_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Manager_CoverageFilter_Call) RunAndReturn(run func([]*vminfo.KernelModule) ([]uint64, error)) *Manager_CoverageFilter_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // MachineChecked provides a mock function with given fields: features, syscalls
@@ -112,6 +175,35 @@ func (_m *Manager) MachineChecked(features flatrpc.Feature, syscalls map[*prog.S
 	return r0, r1
 }
 
+// Manager_MachineChecked_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MachineChecked'
+type Manager_MachineChecked_Call struct {
+	*mock.Call
+}
+
+// MachineChecked is a helper method to define mock.On call
+//   - features flatrpc.Feature
+//   - syscalls map[*prog.Syscall]bool
+func (_e *Manager_Expecter) MachineChecked(features interface{}, syscalls interface{}) *Manager_MachineChecked_Call {
+	return &Manager_MachineChecked_Call{Call: _e.mock.On("MachineChecked", features, syscalls)}
+}
+
+func (_c *Manager_MachineChecked_Call) Run(run func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool)) *Manager_MachineChecked_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(flatrpc.Feature), args[1].(map[*prog.Syscall]bool))
+	})
+	return _c
+}
+
+func (_c *Manager_MachineChecked_Call) Return(_a0 queue.Source, _a1 error) *Manager_MachineChecked_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Manager_MachineChecked_Call) RunAndReturn(run func(flatrpc.Feature, map[*prog.Syscall]bool) (queue.Source, error)) *Manager_MachineChecked_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // MaxSignal provides a mock function with no fields
 func (_m *Manager) MaxSignal() signal.Signal {
 	ret := _m.Called()
@@ -130,6 +222,33 @@ func (_m *Manager) MaxSignal() signal.Signal {
 	}
 
 	return r0
+}
+
+// Manager_MaxSignal_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaxSignal'
+type Manager_MaxSignal_Call struct {
+	*mock.Call
+}
+
+// MaxSignal is a helper method to define mock.On call
+func (_e *Manager_Expecter) MaxSignal() *Manager_MaxSignal_Call {
+	return &Manager_MaxSignal_Call{Call: _e.mock.On("MaxSignal")}
+}
+
+func (_c *Manager_MaxSignal_Call) Run(run func()) *Manager_MaxSignal_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Manager_MaxSignal_Call) Return(_a0 signal.Signal) *Manager_MaxSignal_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Manager_MaxSignal_Call) RunAndReturn(run func() signal.Signal) *Manager_MaxSignal_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewManager creates a new instance of Manager. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
