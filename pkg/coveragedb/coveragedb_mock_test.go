@@ -18,11 +18,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-//go:generate ../../tools/mockery.sh --name SpannerClient -r
-//go:generate ../../tools/mockery.sh --name ReadOnlyTransaction -r
-//go:generate ../../tools/mockery.sh --name RowIterator -r
-//go:generate ../../tools/mockery.sh --name Row -r
-
 type spannerMockTune func(*testing.T, *mocks.SpannerClient)
 
 func TestSaveMergeResult(t *testing.T) {
