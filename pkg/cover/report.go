@@ -34,8 +34,7 @@ func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
 }
 
 func MakeReportGenerator(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*ReportGenerator, error) {
-	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelObj,
-		cfg.KernelSrc, cfg.KernelBuildSrc, cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
+	impl, err := backend.Make(cfg.SysTarget, cfg.Type, cfg.KernelDirs(), cfg.AndroidSplitBuild, cfg.ModuleObj, modules)
 	if err != nil {
 		return nil, err
 	}

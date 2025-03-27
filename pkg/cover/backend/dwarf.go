@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -27,9 +28,7 @@ import (
 
 type dwarfParams struct {
 	target                *targets.Target
-	objDir                string
-	srcDir                string
-	buildDir              string
+	kernelDirs            *mgrconfig.KernelDirs
 	splitBuildDelimiters  []string
 	moduleObj             []string
 	hostModules           []*vminfo.KernelModule
@@ -139,9 +138,7 @@ func processModule(params *dwarfParams, module *vminfo.KernelModule, info *symbo
 
 func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	target := params.target
-	objDir := params.objDir
-	srcDir := params.srcDir
-	buildDir := params.buildDir
+	kernelDirs := params.kernelDirs
 	splitBuildDelimiters := params.splitBuildDelimiters
 	modules := params.hostModules
 
@@ -231,7 +228,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = CleanPath(unit.Name, objDir, srcDir, buildDir, splitBuildDelimiters)
+		unit.Name, unit.Path = CleanPath(unit.Name, kernelDirs, splitBuildDelimiters)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -244,7 +241,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
-			return symbolize(target, &interner, objDir, srcDir, buildDir, splitBuildDelimiters, pcs)
+			return symbolize(target, &interner, kernelDirs, splitBuildDelimiters, pcs)
 		},
 		CallbackPoints:  allCoverPoints[0],
 		PreciseCoverage: preciseCoverage,
@@ -401,7 +398,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 	return ranges, units, nil
 }
 
-func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
 	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]*Frame, error) {
 	procs := min(runtime.GOMAXPROCS(0)/2, len(pcs)/1000)
 	const (
@@ -453,7 +450,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := CleanPath(frame.File, objDir, srcDir, buildDir, splitBuildDelimiters)
+			name, path := CleanPath(frame.File, kernelDirs, splitBuildDelimiters)
 			pc := frame.PC
 			if mod.Name != "" {
 				pc = frame.PC + mod.Addr
@@ -480,7 +477,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, objD
 	return frames, nil
 }
 
-func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, srcDir, buildDir string,
+func symbolize(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
 	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
 	var frames []*Frame
 	type frameResult struct {
@@ -490,7 +487,7 @@ func symbolize(target *targets.Target, interner *symbolizer.Interner, objDir, sr
 	frameC := make(chan frameResult, len(pcs))
 	for mod, pcs1 := range pcs {
 		go func(mod *vminfo.KernelModule, pcs []uint64) {
-			frames, err := symbolizeModule(target, interner, objDir, srcDir, buildDir, splitBuildDelimiters, mod, pcs)
+			frames, err := symbolizeModule(target, interner, kernelDirs, splitBuildDelimiters, mod, pcs)
 			frameC <- frameResult{frames: frames, err: err}
 		}(mod, pcs1)
 	}
@@ -585,27 +582,27 @@ func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(str
 	return "", ""
 }
 
-func CleanPath(path, objDir, srcDir, buildDir string, splitBuildDelimiters []string) (string, string) {
+func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters []string) (string, string) {
 	filename := ""
 
 	path = filepath.Clean(path)
-	aname, apath := cleanPathAndroid(path, srcDir, splitBuildDelimiters, osutil.IsExist)
+	aname, apath := cleanPathAndroid(path, kernelDirs.Src, splitBuildDelimiters, osutil.IsExist)
 	if aname != "" {
 		return aname, apath
 	}
 	absPath := osutil.Abs(path)
 	switch {
-	case strings.HasPrefix(absPath, objDir):
+	case strings.HasPrefix(absPath, kernelDirs.Obj):
 		// Assume the file was built there.
-		path = strings.TrimPrefix(absPath, objDir)
-		filename = filepath.Join(objDir, path)
-	case strings.HasPrefix(absPath, buildDir):
+		path = strings.TrimPrefix(absPath, kernelDirs.Obj)
+		filename = filepath.Join(kernelDirs.Obj, path)
+	case strings.HasPrefix(absPath, kernelDirs.BuildSrc):
 		// Assume the file was moved from buildDir to srcDir.
-		path = strings.TrimPrefix(absPath, buildDir)
-		filename = filepath.Join(srcDir, path)
+		path = strings.TrimPrefix(absPath, kernelDirs.BuildSrc)
+		filename = filepath.Join(kernelDirs.Src, path)
 	default:
 		// Assume this is relative path.
-		filename = filepath.Join(srcDir, path)
+		filename = filepath.Join(kernelDirs.Src, path)
 	}
 	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
 }

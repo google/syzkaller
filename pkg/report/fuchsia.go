@@ -50,8 +50,8 @@ func ctorFuchsia(cfg *config) (reporterImpl, []string, error) {
 		config: cfg,
 	}
 	ctx.ignores = append(ctx.ignores, fuchsiaIgnores...)
-	if ctx.kernelObj != "" {
-		ctx.obj = filepath.Join(ctx.kernelObj, ctx.target.KernelObject)
+	if ctx.kernelDirs.Obj != "" {
+		ctx.obj = filepath.Join(ctx.kernelDirs.Obj, ctx.target.KernelObject)
 	}
 	suppressions := []string{
 		"fatal exception: process /tmp/syz-executor", // OOM presumably

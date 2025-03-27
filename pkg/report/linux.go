@@ -39,8 +39,8 @@ type linux struct {
 func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 	symbols := make(map[string]map[string][]symbolizer.Symbol)
 	vmlinux := ""
-	if cfg.kernelObj != "" {
-		vmlinux = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
+	if cfg.kernelDirs.Obj != "" {
+		vmlinux = filepath.Join(cfg.kernelDirs.Obj, cfg.target.KernelObject)
 		var err error
 		symbols[""], err = symbolizer.ReadTextSymbols(vmlinux)
 		if err != nil {
@@ -487,7 +487,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	}
 	var symbolized []byte
 	for _, frame := range frames {
-		path, _ := backend.CleanPath(frame.File, ctx.kernelObj, ctx.kernelSrc, ctx.kernelBuildSrc, nil)
+		path, _ := backend.CleanPath(frame.File, &ctx.kernelDirs, nil)
 		info := fmt.Sprintf(" %v:%v", path, frame.Line)
 		modified := append([]byte{}, line...)
 		if buildID != "" {
@@ -808,10 +808,10 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 }
 
 func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
-	if ctx.kernelSrc == "" {
+	if ctx.kernelDirs.Src == "" {
 		return nil, nil
 	}
-	return GetLinuxMaintainers(ctx.kernelSrc, file)
+	return GetLinuxMaintainers(ctx.kernelDirs.Src, file)
 }
 
 func GetLinuxMaintainers(kernelSrc, file string) (vcs.Recipients, error) {

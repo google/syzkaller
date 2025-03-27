@@ -25,8 +25,8 @@ type bsd struct {
 func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (reporterImpl, error) {
 	var symbols map[string][]symbolizer.Symbol
 	kernelObject := ""
-	if cfg.kernelObj != "" {
-		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
+	if cfg.kernelDirs.Obj != "" {
+		kernelObject = filepath.Join(cfg.kernelDirs.Obj, cfg.target.KernelObject)
 		var err error
 		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
 		if err != nil {
@@ -106,7 +106,7 @@ func (ctx *bsd) symbolizeLine(symbFunc func(string, ...uint64) ([]symbolizer.Fra
 	// Go through each of the frames and add the corresponding file names and line numbers.
 	for _, frame := range frames {
 		file := frame.File
-		file = strings.TrimPrefix(file, ctx.kernelBuildSrc)
+		file = strings.TrimPrefix(file, ctx.kernelDirs.BuildSrc)
 		file = strings.TrimPrefix(file, "/")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)
