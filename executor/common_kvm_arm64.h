@@ -10,11 +10,6 @@
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_syzos_vm
 #include "common_kvm_arm64_syzos.h"
-
-#define KVM_MAX_VCPU 4
-#define KVM_PAGE_SIZE (4 << 10)
-#define KVM_GUEST_MEM_SIZE (1024 * KVM_PAGE_SIZE)
-
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
