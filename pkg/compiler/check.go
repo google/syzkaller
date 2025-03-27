@@ -872,6 +872,7 @@ func (comp *compiler) checkConstructors() {
 	}
 }
 
+// nolint:revive
 func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate bool,
 	ctors, inputs map[string]bool, checked map[structDir]bool, neverOutAt *ast.Pos) {
 	desc, args, base := comp.getArgsBase(t, isArg)

@@ -50,6 +50,7 @@ func RendFileCoverage(repo, forCommit, filePath string, fileProvider covermerger
 	return rendResult(files[repoCommit], mr, renderConfig), nil
 }
 
+// nolint:revive
 func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
 	proxy covermerger.FuncProxyURI, tp coveragedb.TimePeriod) (*covermerger.MergeResult, error) {
 	config := &covermerger.Config{
