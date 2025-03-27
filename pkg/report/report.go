@@ -117,13 +117,11 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 		return nil, err
 	}
 	config := &config{
-		target:         cfg.SysTarget,
-		vmType:         cfg.Type,
-		kernelSrc:      cfg.KernelSrc,
-		kernelBuildSrc: cfg.KernelBuildSrc,
-		kernelObj:      cfg.KernelObj,
-		ignores:        ignores,
-		kernelModules:  localModules,
+		target:        cfg.SysTarget,
+		vmType:        cfg.Type,
+		kernelDirs:    *cfg.KernelDirs(),
+		ignores:       ignores,
+		kernelModules: localModules,
 	}
 	rep, suppressions, err := ctor(config)
 	if err != nil {
@@ -169,13 +167,11 @@ var ctors = map[string]fn{
 }
 
 type config struct {
-	target         *targets.Target
-	vmType         string
-	kernelSrc      string
-	kernelBuildSrc string
-	kernelObj      string
-	ignores        []*regexp.Regexp
-	kernelModules  []*vminfo.KernelModule
+	target        *targets.Target
+	vmType        string
+	kernelDirs    mgrconfig.KernelDirs
+	ignores       []*regexp.Regexp
+	kernelModules []*vminfo.KernelModule
 }
 
 type fn func(cfg *config) (reporterImpl, []string, error)

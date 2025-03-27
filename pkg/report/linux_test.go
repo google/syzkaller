@@ -287,7 +287,9 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 	}
 
 	cfg := &config{
-		kernelObj:     "/linux",
+		kernelDirs: mgrconfig.KernelDirs{
+			Obj: "/linux",
+		},
 		kernelModules: modules,
 	}
 	ctx := &linux{

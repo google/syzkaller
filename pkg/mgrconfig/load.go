@@ -285,6 +285,20 @@ func (cfg *Config) CompleteKernelDirs() {
 	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
 }
 
+type KernelDirs struct {
+	Src      string
+	Obj      string
+	BuildSrc string
+}
+
+func (cfg *Config) KernelDirs() *KernelDirs {
+	return &KernelDirs{
+		Src:      cfg.KernelSrc,
+		Obj:      cfg.KernelObj,
+		BuildSrc: cfg.KernelBuildSrc,
+	}
+}
+
 func (cfg *Config) checkSSHParams() error {
 	if cfg.SSHKey == "" {
 		return nil

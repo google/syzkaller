@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
@@ -59,8 +60,10 @@ func testSymbolizeLine(t *testing.T, ctor fn, tests []symbolizeLineTest) {
 		return res, nil
 	}
 	reporter, _, err := ctor(&config{
-		kernelSrc:      "/bsd/src2",
-		kernelBuildSrc: "/bsd/src",
+		kernelDirs: mgrconfig.KernelDirs{
+			Src:      "/bsd/src2",
+			BuildSrc: "/bsd/src",
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
