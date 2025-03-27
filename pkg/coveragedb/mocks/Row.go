@@ -9,6 +9,14 @@ type Row struct {
 	mock.Mock
 }
 
+type Row_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *Row) EXPECT() *Row_Expecter {
+	return &Row_Expecter{mock: &_m.Mock}
+}
+
 // ToStruct provides a mock function with given fields: p
 func (_m *Row) ToStruct(p interface{}) error {
 	ret := _m.Called(p)
@@ -25,6 +33,34 @@ func (_m *Row) ToStruct(p interface{}) error {
 	}
 
 	return r0
+}
+
+// Row_ToStruct_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ToStruct'
+type Row_ToStruct_Call struct {
+	*mock.Call
+}
+
+// ToStruct is a helper method to define mock.On call
+//   - p interface{}
+func (_e *Row_Expecter) ToStruct(p interface{}) *Row_ToStruct_Call {
+	return &Row_ToStruct_Call{Call: _e.mock.On("ToStruct", p)}
+}
+
+func (_c *Row_ToStruct_Call) Run(run func(p interface{})) *Row_ToStruct_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(interface{}))
+	})
+	return _c
+}
+
+func (_c *Row_ToStruct_Call) Return(_a0 error) *Row_ToStruct_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Row_ToStruct_Call) RunAndReturn(run func(interface{}) error) *Row_ToStruct_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewRow creates a new instance of Row. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

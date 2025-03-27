@@ -16,6 +16,14 @@ type ReadOnlyTransaction struct {
 	mock.Mock
 }
 
+type ReadOnlyTransaction_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *ReadOnlyTransaction) EXPECT() *ReadOnlyTransaction_Expecter {
+	return &ReadOnlyTransaction_Expecter{mock: &_m.Mock}
+}
+
 // Query provides a mock function with given fields: ctx, statement
 func (_m *ReadOnlyTransaction) Query(ctx context.Context, statement spanner.Statement) spannerclient.RowIterator {
 	ret := _m.Called(ctx, statement)
@@ -34,6 +42,35 @@ func (_m *ReadOnlyTransaction) Query(ctx context.Context, statement spanner.Stat
 	}
 
 	return r0
+}
+
+// ReadOnlyTransaction_Query_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Query'
+type ReadOnlyTransaction_Query_Call struct {
+	*mock.Call
+}
+
+// Query is a helper method to define mock.On call
+//   - ctx context.Context
+//   - statement spanner.Statement
+func (_e *ReadOnlyTransaction_Expecter) Query(ctx interface{}, statement interface{}) *ReadOnlyTransaction_Query_Call {
+	return &ReadOnlyTransaction_Query_Call{Call: _e.mock.On("Query", ctx, statement)}
+}
+
+func (_c *ReadOnlyTransaction_Query_Call) Run(run func(ctx context.Context, statement spanner.Statement)) *ReadOnlyTransaction_Query_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(spanner.Statement))
+	})
+	return _c
+}
+
+func (_c *ReadOnlyTransaction_Query_Call) Return(_a0 spannerclient.RowIterator) *ReadOnlyTransaction_Query_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ReadOnlyTransaction_Query_Call) RunAndReturn(run func(context.Context, spanner.Statement) spannerclient.RowIterator) *ReadOnlyTransaction_Query_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewReadOnlyTransaction creates a new instance of ReadOnlyTransaction. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

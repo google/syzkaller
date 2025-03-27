@@ -18,6 +18,14 @@ type SpannerClient struct {
 	mock.Mock
 }
 
+type SpannerClient_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *SpannerClient) EXPECT() *SpannerClient_Expecter {
+	return &SpannerClient_Expecter{mock: &_m.Mock}
+}
+
 // Apply provides a mock function with given fields: ctx, ms, opts
 func (_m *SpannerClient) Apply(ctx context.Context, ms []*spanner.Mutation, opts ...spanner.ApplyOption) (time.Time, error) {
 	_va := make([]interface{}, len(opts))
@@ -53,9 +61,73 @@ func (_m *SpannerClient) Apply(ctx context.Context, ms []*spanner.Mutation, opts
 	return r0, r1
 }
 
+// SpannerClient_Apply_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Apply'
+type SpannerClient_Apply_Call struct {
+	*mock.Call
+}
+
+// Apply is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ms []*spanner.Mutation
+//   - opts ...spanner.ApplyOption
+func (_e *SpannerClient_Expecter) Apply(ctx interface{}, ms interface{}, opts ...interface{}) *SpannerClient_Apply_Call {
+	return &SpannerClient_Apply_Call{Call: _e.mock.On("Apply",
+		append([]interface{}{ctx, ms}, opts...)...)}
+}
+
+func (_c *SpannerClient_Apply_Call) Run(run func(ctx context.Context, ms []*spanner.Mutation, opts ...spanner.ApplyOption)) *SpannerClient_Apply_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]spanner.ApplyOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(spanner.ApplyOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].([]*spanner.Mutation), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *SpannerClient_Apply_Call) Return(commitTimestamp time.Time, err error) *SpannerClient_Apply_Call {
+	_c.Call.Return(commitTimestamp, err)
+	return _c
+}
+
+func (_c *SpannerClient_Apply_Call) RunAndReturn(run func(context.Context, []*spanner.Mutation, ...spanner.ApplyOption) (time.Time, error)) *SpannerClient_Apply_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Close provides a mock function with no fields
 func (_m *SpannerClient) Close() {
 	_m.Called()
+}
+
+// SpannerClient_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type SpannerClient_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+func (_e *SpannerClient_Expecter) Close() *SpannerClient_Close_Call {
+	return &SpannerClient_Close_Call{Call: _e.mock.On("Close")}
+}
+
+func (_c *SpannerClient_Close_Call) Run(run func()) *SpannerClient_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SpannerClient_Close_Call) Return() *SpannerClient_Close_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *SpannerClient_Close_Call) RunAndReturn(run func()) *SpannerClient_Close_Call {
+	_c.Run(run)
+	return _c
 }
 
 // Single provides a mock function with no fields
@@ -76,6 +148,33 @@ func (_m *SpannerClient) Single() spannerclient.ReadOnlyTransaction {
 	}
 
 	return r0
+}
+
+// SpannerClient_Single_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Single'
+type SpannerClient_Single_Call struct {
+	*mock.Call
+}
+
+// Single is a helper method to define mock.On call
+func (_e *SpannerClient_Expecter) Single() *SpannerClient_Single_Call {
+	return &SpannerClient_Single_Call{Call: _e.mock.On("Single")}
+}
+
+func (_c *SpannerClient_Single_Call) Run(run func()) *SpannerClient_Single_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SpannerClient_Single_Call) Return(_a0 spannerclient.ReadOnlyTransaction) *SpannerClient_Single_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *SpannerClient_Single_Call) RunAndReturn(run func() spannerclient.ReadOnlyTransaction) *SpannerClient_Single_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewSpannerClient creates a new instance of SpannerClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

@@ -13,6 +13,14 @@ type SubProcessCmd struct {
 	mock.Mock
 }
 
+type SubProcessCmd_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *SubProcessCmd) EXPECT() *SubProcessCmd_Expecter {
+	return &SubProcessCmd_Expecter{mock: &_m.Mock}
+}
+
 // Start provides a mock function with no fields
 func (_m *SubProcessCmd) Start() error {
 	ret := _m.Called()
@@ -29,6 +37,33 @@ func (_m *SubProcessCmd) Start() error {
 	}
 
 	return r0
+}
+
+// SubProcessCmd_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type SubProcessCmd_Start_Call struct {
+	*mock.Call
+}
+
+// Start is a helper method to define mock.On call
+func (_e *SubProcessCmd_Expecter) Start() *SubProcessCmd_Start_Call {
+	return &SubProcessCmd_Start_Call{Call: _e.mock.On("Start")}
+}
+
+func (_c *SubProcessCmd_Start_Call) Run(run func()) *SubProcessCmd_Start_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SubProcessCmd_Start_Call) Return(_a0 error) *SubProcessCmd_Start_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *SubProcessCmd_Start_Call) RunAndReturn(run func() error) *SubProcessCmd_Start_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // StderrPipe provides a mock function with no fields
@@ -61,6 +96,33 @@ func (_m *SubProcessCmd) StderrPipe() (io.ReadCloser, error) {
 	return r0, r1
 }
 
+// SubProcessCmd_StderrPipe_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StderrPipe'
+type SubProcessCmd_StderrPipe_Call struct {
+	*mock.Call
+}
+
+// StderrPipe is a helper method to define mock.On call
+func (_e *SubProcessCmd_Expecter) StderrPipe() *SubProcessCmd_StderrPipe_Call {
+	return &SubProcessCmd_StderrPipe_Call{Call: _e.mock.On("StderrPipe")}
+}
+
+func (_c *SubProcessCmd_StderrPipe_Call) Run(run func()) *SubProcessCmd_StderrPipe_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SubProcessCmd_StderrPipe_Call) Return(_a0 io.ReadCloser, _a1 error) *SubProcessCmd_StderrPipe_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *SubProcessCmd_StderrPipe_Call) RunAndReturn(run func() (io.ReadCloser, error)) *SubProcessCmd_StderrPipe_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // StdinPipe provides a mock function with no fields
 func (_m *SubProcessCmd) StdinPipe() (io.WriteCloser, error) {
 	ret := _m.Called()
@@ -89,6 +151,33 @@ func (_m *SubProcessCmd) StdinPipe() (io.WriteCloser, error) {
 	}
 
 	return r0, r1
+}
+
+// SubProcessCmd_StdinPipe_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StdinPipe'
+type SubProcessCmd_StdinPipe_Call struct {
+	*mock.Call
+}
+
+// StdinPipe is a helper method to define mock.On call
+func (_e *SubProcessCmd_Expecter) StdinPipe() *SubProcessCmd_StdinPipe_Call {
+	return &SubProcessCmd_StdinPipe_Call{Call: _e.mock.On("StdinPipe")}
+}
+
+func (_c *SubProcessCmd_StdinPipe_Call) Run(run func()) *SubProcessCmd_StdinPipe_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SubProcessCmd_StdinPipe_Call) Return(_a0 io.WriteCloser, _a1 error) *SubProcessCmd_StdinPipe_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *SubProcessCmd_StdinPipe_Call) RunAndReturn(run func() (io.WriteCloser, error)) *SubProcessCmd_StdinPipe_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // StdoutPipe provides a mock function with no fields
@@ -121,6 +210,33 @@ func (_m *SubProcessCmd) StdoutPipe() (io.ReadCloser, error) {
 	return r0, r1
 }
 
+// SubProcessCmd_StdoutPipe_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StdoutPipe'
+type SubProcessCmd_StdoutPipe_Call struct {
+	*mock.Call
+}
+
+// StdoutPipe is a helper method to define mock.On call
+func (_e *SubProcessCmd_Expecter) StdoutPipe() *SubProcessCmd_StdoutPipe_Call {
+	return &SubProcessCmd_StdoutPipe_Call{Call: _e.mock.On("StdoutPipe")}
+}
+
+func (_c *SubProcessCmd_StdoutPipe_Call) Run(run func()) *SubProcessCmd_StdoutPipe_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SubProcessCmd_StdoutPipe_Call) Return(_a0 io.ReadCloser, _a1 error) *SubProcessCmd_StdoutPipe_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *SubProcessCmd_StdoutPipe_Call) RunAndReturn(run func() (io.ReadCloser, error)) *SubProcessCmd_StdoutPipe_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Wait provides a mock function with no fields
 func (_m *SubProcessCmd) Wait() error {
 	ret := _m.Called()
@@ -137,6 +253,33 @@ func (_m *SubProcessCmd) Wait() error {
 	}
 
 	return r0
+}
+
+// SubProcessCmd_Wait_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Wait'
+type SubProcessCmd_Wait_Call struct {
+	*mock.Call
+}
+
+// Wait is a helper method to define mock.On call
+func (_e *SubProcessCmd_Expecter) Wait() *SubProcessCmd_Wait_Call {
+	return &SubProcessCmd_Wait_Call{Call: _e.mock.On("Wait")}
+}
+
+func (_c *SubProcessCmd_Wait_Call) Run(run func()) *SubProcessCmd_Wait_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SubProcessCmd_Wait_Call) Return(_a0 error) *SubProcessCmd_Wait_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *SubProcessCmd_Wait_Call) RunAndReturn(run func() error) *SubProcessCmd_Wait_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewSubProcessCmd creates a new instance of SubProcessCmd. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

@@ -12,6 +12,14 @@ type FileVersProvider struct {
 	mock.Mock
 }
 
+type FileVersProvider_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *FileVersProvider) EXPECT() *FileVersProvider_Expecter {
+	return &FileVersProvider_Expecter{mock: &_m.Mock}
+}
+
 // GetFileVersions provides a mock function with given fields: targetFilePath, repoCommits
 func (_m *FileVersProvider) GetFileVersions(targetFilePath string, repoCommits ...covermerger.RepoCommit) (covermerger.FileVersions, error) {
 	_va := make([]interface{}, len(repoCommits))
@@ -47,6 +55,42 @@ func (_m *FileVersProvider) GetFileVersions(targetFilePath string, repoCommits .
 	}
 
 	return r0, r1
+}
+
+// FileVersProvider_GetFileVersions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFileVersions'
+type FileVersProvider_GetFileVersions_Call struct {
+	*mock.Call
+}
+
+// GetFileVersions is a helper method to define mock.On call
+//   - targetFilePath string
+//   - repoCommits ...covermerger.RepoCommit
+func (_e *FileVersProvider_Expecter) GetFileVersions(targetFilePath interface{}, repoCommits ...interface{}) *FileVersProvider_GetFileVersions_Call {
+	return &FileVersProvider_GetFileVersions_Call{Call: _e.mock.On("GetFileVersions",
+		append([]interface{}{targetFilePath}, repoCommits...)...)}
+}
+
+func (_c *FileVersProvider_GetFileVersions_Call) Run(run func(targetFilePath string, repoCommits ...covermerger.RepoCommit)) *FileVersProvider_GetFileVersions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]covermerger.RepoCommit, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(covermerger.RepoCommit)
+			}
+		}
+		run(args[0].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *FileVersProvider_GetFileVersions_Call) Return(_a0 covermerger.FileVersions, _a1 error) *FileVersProvider_GetFileVersions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *FileVersProvider_GetFileVersions_Call) RunAndReturn(run func(string, ...covermerger.RepoCommit) (covermerger.FileVersions, error)) *FileVersProvider_GetFileVersions_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewFileVersProvider creates a new instance of FileVersProvider. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

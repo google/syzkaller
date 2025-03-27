@@ -12,6 +12,14 @@ type ProxyAppInterface struct {
 	mock.Mock
 }
 
+type ProxyAppInterface_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *ProxyAppInterface) EXPECT() *ProxyAppInterface_Expecter {
+	return &ProxyAppInterface_Expecter{mock: &_m.Mock}
+}
+
 // Close provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) Close(in proxyrpc.CloseParams, out *proxyrpc.CloseReply) error {
 	ret := _m.Called(in, out)
@@ -28,6 +36,35 @@ func (_m *ProxyAppInterface) Close(in proxyrpc.CloseParams, out *proxyrpc.CloseR
 	}
 
 	return r0
+}
+
+// ProxyAppInterface_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type ProxyAppInterface_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+//   - in proxyrpc.CloseParams
+//   - out *proxyrpc.CloseReply
+func (_e *ProxyAppInterface_Expecter) Close(in interface{}, out interface{}) *ProxyAppInterface_Close_Call {
+	return &ProxyAppInterface_Close_Call{Call: _e.mock.On("Close", in, out)}
+}
+
+func (_c *ProxyAppInterface_Close_Call) Run(run func(in proxyrpc.CloseParams, out *proxyrpc.CloseReply)) *ProxyAppInterface_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.CloseParams), args[1].(*proxyrpc.CloseReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_Close_Call) Return(_a0 error) *ProxyAppInterface_Close_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_Close_Call) RunAndReturn(run func(proxyrpc.CloseParams, *proxyrpc.CloseReply) error) *ProxyAppInterface_Close_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Copy provides a mock function with given fields: in, out
@@ -48,6 +85,35 @@ func (_m *ProxyAppInterface) Copy(in proxyrpc.CopyParams, out *proxyrpc.CopyResu
 	return r0
 }
 
+// ProxyAppInterface_Copy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Copy'
+type ProxyAppInterface_Copy_Call struct {
+	*mock.Call
+}
+
+// Copy is a helper method to define mock.On call
+//   - in proxyrpc.CopyParams
+//   - out *proxyrpc.CopyResult
+func (_e *ProxyAppInterface_Expecter) Copy(in interface{}, out interface{}) *ProxyAppInterface_Copy_Call {
+	return &ProxyAppInterface_Copy_Call{Call: _e.mock.On("Copy", in, out)}
+}
+
+func (_c *ProxyAppInterface_Copy_Call) Run(run func(in proxyrpc.CopyParams, out *proxyrpc.CopyResult)) *ProxyAppInterface_Copy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.CopyParams), args[1].(*proxyrpc.CopyResult))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_Copy_Call) Return(_a0 error) *ProxyAppInterface_Copy_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_Copy_Call) RunAndReturn(run func(proxyrpc.CopyParams, *proxyrpc.CopyResult) error) *ProxyAppInterface_Copy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateInstance provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) CreateInstance(in proxyrpc.CreateInstanceParams, out *proxyrpc.CreateInstanceResult) error {
 	ret := _m.Called(in, out)
@@ -64,6 +130,35 @@ func (_m *ProxyAppInterface) CreateInstance(in proxyrpc.CreateInstanceParams, ou
 	}
 
 	return r0
+}
+
+// ProxyAppInterface_CreateInstance_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInstance'
+type ProxyAppInterface_CreateInstance_Call struct {
+	*mock.Call
+}
+
+// CreateInstance is a helper method to define mock.On call
+//   - in proxyrpc.CreateInstanceParams
+//   - out *proxyrpc.CreateInstanceResult
+func (_e *ProxyAppInterface_Expecter) CreateInstance(in interface{}, out interface{}) *ProxyAppInterface_CreateInstance_Call {
+	return &ProxyAppInterface_CreateInstance_Call{Call: _e.mock.On("CreateInstance", in, out)}
+}
+
+func (_c *ProxyAppInterface_CreateInstance_Call) Run(run func(in proxyrpc.CreateInstanceParams, out *proxyrpc.CreateInstanceResult)) *ProxyAppInterface_CreateInstance_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.CreateInstanceParams), args[1].(*proxyrpc.CreateInstanceResult))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_CreateInstance_Call) Return(_a0 error) *ProxyAppInterface_CreateInstance_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_CreateInstance_Call) RunAndReturn(run func(proxyrpc.CreateInstanceParams, *proxyrpc.CreateInstanceResult) error) *ProxyAppInterface_CreateInstance_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // CreatePool provides a mock function with given fields: in, out
@@ -84,6 +179,35 @@ func (_m *ProxyAppInterface) CreatePool(in proxyrpc.CreatePoolParams, out *proxy
 	return r0
 }
 
+// ProxyAppInterface_CreatePool_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePool'
+type ProxyAppInterface_CreatePool_Call struct {
+	*mock.Call
+}
+
+// CreatePool is a helper method to define mock.On call
+//   - in proxyrpc.CreatePoolParams
+//   - out *proxyrpc.CreatePoolResult
+func (_e *ProxyAppInterface_Expecter) CreatePool(in interface{}, out interface{}) *ProxyAppInterface_CreatePool_Call {
+	return &ProxyAppInterface_CreatePool_Call{Call: _e.mock.On("CreatePool", in, out)}
+}
+
+func (_c *ProxyAppInterface_CreatePool_Call) Run(run func(in proxyrpc.CreatePoolParams, out *proxyrpc.CreatePoolResult)) *ProxyAppInterface_CreatePool_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.CreatePoolParams), args[1].(*proxyrpc.CreatePoolResult))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_CreatePool_Call) Return(_a0 error) *ProxyAppInterface_CreatePool_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_CreatePool_Call) RunAndReturn(run func(proxyrpc.CreatePoolParams, *proxyrpc.CreatePoolResult) error) *ProxyAppInterface_CreatePool_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Diagnose provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) Diagnose(in proxyrpc.DiagnoseParams, out *proxyrpc.DiagnoseReply) error {
 	ret := _m.Called(in, out)
@@ -100,6 +224,35 @@ func (_m *ProxyAppInterface) Diagnose(in proxyrpc.DiagnoseParams, out *proxyrpc.
 	}
 
 	return r0
+}
+
+// ProxyAppInterface_Diagnose_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Diagnose'
+type ProxyAppInterface_Diagnose_Call struct {
+	*mock.Call
+}
+
+// Diagnose is a helper method to define mock.On call
+//   - in proxyrpc.DiagnoseParams
+//   - out *proxyrpc.DiagnoseReply
+func (_e *ProxyAppInterface_Expecter) Diagnose(in interface{}, out interface{}) *ProxyAppInterface_Diagnose_Call {
+	return &ProxyAppInterface_Diagnose_Call{Call: _e.mock.On("Diagnose", in, out)}
+}
+
+func (_c *ProxyAppInterface_Diagnose_Call) Run(run func(in proxyrpc.DiagnoseParams, out *proxyrpc.DiagnoseReply)) *ProxyAppInterface_Diagnose_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.DiagnoseParams), args[1].(*proxyrpc.DiagnoseReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_Diagnose_Call) Return(_a0 error) *ProxyAppInterface_Diagnose_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_Diagnose_Call) RunAndReturn(run func(proxyrpc.DiagnoseParams, *proxyrpc.DiagnoseReply) error) *ProxyAppInterface_Diagnose_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Forward provides a mock function with given fields: in, out
@@ -120,6 +273,35 @@ func (_m *ProxyAppInterface) Forward(in proxyrpc.ForwardParams, out *proxyrpc.Fo
 	return r0
 }
 
+// ProxyAppInterface_Forward_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Forward'
+type ProxyAppInterface_Forward_Call struct {
+	*mock.Call
+}
+
+// Forward is a helper method to define mock.On call
+//   - in proxyrpc.ForwardParams
+//   - out *proxyrpc.ForwardResult
+func (_e *ProxyAppInterface_Expecter) Forward(in interface{}, out interface{}) *ProxyAppInterface_Forward_Call {
+	return &ProxyAppInterface_Forward_Call{Call: _e.mock.On("Forward", in, out)}
+}
+
+func (_c *ProxyAppInterface_Forward_Call) Run(run func(in proxyrpc.ForwardParams, out *proxyrpc.ForwardResult)) *ProxyAppInterface_Forward_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.ForwardParams), args[1].(*proxyrpc.ForwardResult))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_Forward_Call) Return(_a0 error) *ProxyAppInterface_Forward_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_Forward_Call) RunAndReturn(run func(proxyrpc.ForwardParams, *proxyrpc.ForwardResult) error) *ProxyAppInterface_Forward_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PoolLogs provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) PoolLogs(in proxyrpc.PoolLogsParam, out *proxyrpc.PoolLogsReply) error {
 	ret := _m.Called(in, out)
@@ -136,6 +318,35 @@ func (_m *ProxyAppInterface) PoolLogs(in proxyrpc.PoolLogsParam, out *proxyrpc.P
 	}
 
 	return r0
+}
+
+// ProxyAppInterface_PoolLogs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PoolLogs'
+type ProxyAppInterface_PoolLogs_Call struct {
+	*mock.Call
+}
+
+// PoolLogs is a helper method to define mock.On call
+//   - in proxyrpc.PoolLogsParam
+//   - out *proxyrpc.PoolLogsReply
+func (_e *ProxyAppInterface_Expecter) PoolLogs(in interface{}, out interface{}) *ProxyAppInterface_PoolLogs_Call {
+	return &ProxyAppInterface_PoolLogs_Call{Call: _e.mock.On("PoolLogs", in, out)}
+}
+
+func (_c *ProxyAppInterface_PoolLogs_Call) Run(run func(in proxyrpc.PoolLogsParam, out *proxyrpc.PoolLogsReply)) *ProxyAppInterface_PoolLogs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.PoolLogsParam), args[1].(*proxyrpc.PoolLogsReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_PoolLogs_Call) Return(_a0 error) *ProxyAppInterface_PoolLogs_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_PoolLogs_Call) RunAndReturn(run func(proxyrpc.PoolLogsParam, *proxyrpc.PoolLogsReply) error) *ProxyAppInterface_PoolLogs_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // RunReadProgress provides a mock function with given fields: in, out
@@ -156,6 +367,35 @@ func (_m *ProxyAppInterface) RunReadProgress(in proxyrpc.RunReadProgressParams, 
 	return r0
 }
 
+// ProxyAppInterface_RunReadProgress_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunReadProgress'
+type ProxyAppInterface_RunReadProgress_Call struct {
+	*mock.Call
+}
+
+// RunReadProgress is a helper method to define mock.On call
+//   - in proxyrpc.RunReadProgressParams
+//   - out *proxyrpc.RunReadProgressReply
+func (_e *ProxyAppInterface_Expecter) RunReadProgress(in interface{}, out interface{}) *ProxyAppInterface_RunReadProgress_Call {
+	return &ProxyAppInterface_RunReadProgress_Call{Call: _e.mock.On("RunReadProgress", in, out)}
+}
+
+func (_c *ProxyAppInterface_RunReadProgress_Call) Run(run func(in proxyrpc.RunReadProgressParams, out *proxyrpc.RunReadProgressReply)) *ProxyAppInterface_RunReadProgress_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.RunReadProgressParams), args[1].(*proxyrpc.RunReadProgressReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunReadProgress_Call) Return(_a0 error) *ProxyAppInterface_RunReadProgress_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunReadProgress_Call) RunAndReturn(run func(proxyrpc.RunReadProgressParams, *proxyrpc.RunReadProgressReply) error) *ProxyAppInterface_RunReadProgress_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RunStart provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) RunStart(in proxyrpc.RunStartParams, out *proxyrpc.RunStartReply) error {
 	ret := _m.Called(in, out)
@@ -174,6 +414,35 @@ func (_m *ProxyAppInterface) RunStart(in proxyrpc.RunStartParams, out *proxyrpc.
 	return r0
 }
 
+// ProxyAppInterface_RunStart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunStart'
+type ProxyAppInterface_RunStart_Call struct {
+	*mock.Call
+}
+
+// RunStart is a helper method to define mock.On call
+//   - in proxyrpc.RunStartParams
+//   - out *proxyrpc.RunStartReply
+func (_e *ProxyAppInterface_Expecter) RunStart(in interface{}, out interface{}) *ProxyAppInterface_RunStart_Call {
+	return &ProxyAppInterface_RunStart_Call{Call: _e.mock.On("RunStart", in, out)}
+}
+
+func (_c *ProxyAppInterface_RunStart_Call) Run(run func(in proxyrpc.RunStartParams, out *proxyrpc.RunStartReply)) *ProxyAppInterface_RunStart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.RunStartParams), args[1].(*proxyrpc.RunStartReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunStart_Call) Return(_a0 error) *ProxyAppInterface_RunStart_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunStart_Call) RunAndReturn(run func(proxyrpc.RunStartParams, *proxyrpc.RunStartReply) error) *ProxyAppInterface_RunStart_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RunStop provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) RunStop(in proxyrpc.RunStopParams, out *proxyrpc.RunStopReply) error {
 	ret := _m.Called(in, out)
@@ -190,6 +459,35 @@ func (_m *ProxyAppInterface) RunStop(in proxyrpc.RunStopParams, out *proxyrpc.Ru
 	}
 
 	return r0
+}
+
+// ProxyAppInterface_RunStop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunStop'
+type ProxyAppInterface_RunStop_Call struct {
+	*mock.Call
+}
+
+// RunStop is a helper method to define mock.On call
+//   - in proxyrpc.RunStopParams
+//   - out *proxyrpc.RunStopReply
+func (_e *ProxyAppInterface_Expecter) RunStop(in interface{}, out interface{}) *ProxyAppInterface_RunStop_Call {
+	return &ProxyAppInterface_RunStop_Call{Call: _e.mock.On("RunStop", in, out)}
+}
+
+func (_c *ProxyAppInterface_RunStop_Call) Run(run func(in proxyrpc.RunStopParams, out *proxyrpc.RunStopReply)) *ProxyAppInterface_RunStop_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(proxyrpc.RunStopParams), args[1].(*proxyrpc.RunStopReply))
+	})
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunStop_Call) Return(_a0 error) *ProxyAppInterface_RunStop_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ProxyAppInterface_RunStop_Call) RunAndReturn(run func(proxyrpc.RunStopParams, *proxyrpc.RunStopReply) error) *ProxyAppInterface_RunStop_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewProxyAppInterface creates a new instance of ProxyAppInterface. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
