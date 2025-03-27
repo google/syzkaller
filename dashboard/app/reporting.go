@@ -1052,6 +1052,7 @@ func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpd
 	return true, "", nil
 }
 
+// nolint:revive
 func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bug, dup *Bug,
 	bugReporting *BugReporting, final bool, stateEnt *ReportingStateEntry) (bool, string, error) {
 	switch cmd.Status {

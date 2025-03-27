@@ -22,6 +22,7 @@ func (target *Target) assignSizes(args []Arg, fields []Field, parents parentStac
 	}
 }
 
+// nolint:revive
 func (target *Target) assignArgSize(arg Arg, args []Arg, fields []Field, parents parentStack,
 	syscallArgs []Arg, syscallFields []Field, autos map[Arg]bool, overlayField int) {
 	if arg = InnerArg(arg); arg == nil {

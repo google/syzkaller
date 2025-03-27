@@ -464,6 +464,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 	return opts, nil
 }
 
+// nolint:revive
 func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
 	optionalFlags bool, slowdown int, progFile string) string {
 	repeatCount := 1
@@ -500,6 +501,7 @@ var MakeBin = func() string {
 	return "make"
 }()
 
+// nolint:revive
 func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, newEnv bool) string {
 	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%d -vm=%d "+
 		"-threaded=%t -new-env=%t", prog, fwdAddr, os, arch, poolIdx, vmIdx, threaded, newEnv)
