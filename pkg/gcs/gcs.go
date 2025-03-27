@@ -8,8 +8,6 @@
 // https://cloud.google.com/go/getting-started/using-cloud-storage
 // https://godoc.org/cloud.google.com/go/storage
 
-//go:generate ../../tools/mockery.sh --name Client -r
-
 package gcs
 
 import (

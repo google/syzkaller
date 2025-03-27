@@ -64,7 +64,6 @@ type RemoteConfig struct {
 	Debug   bool
 }
 
-//go:generate ../../tools/mockery.sh --name Manager --output ./mocks
 type Manager interface {
 	MaxSignal() signal.Signal
 	BugFrames() (leaks []string, races []string)
