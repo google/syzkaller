@@ -348,18 +348,25 @@ struct cover_t {
 	int fd;
 	uint32 size;
 	uint32 mmap_alloc_size;
-	char* data;
-	char* data_end;
+	// Memory buffer shared with kcov.
+	void* alloc;
+	// Buffer used by kcov for collecting PCs.
+	char* trace;
+	uint32 trace_size;
+	char* trace_end;
+	// Offset of `trace` from the beginning of `alloc`. Should only be accessed
+	// by OS-specific code.
+	intptr_t trace_offset;
 	// Currently collecting comparisons.
 	bool collect_comps;
-	// Note: On everything but darwin the first value in data is the count of
-	// recorded PCs, followed by the PCs. We therefore set data_offset to the
+	// Note: On everything but darwin the first value in trace is the count of
+	// recorded PCs, followed by the PCs. We therefore set trace_skip to the
 	// size of one PC.
-	// On darwin data points to an instance of the ksancov_trace struct. Here we
-	// set data_offset to the offset between data and the structs 'pcs' member,
+	// On darwin trace points to an instance of the ksancov_trace struct. Here we
+	// set trace_skip to the offset between trace and the structs 'pcs' member,
 	// which contains the PCs.
-	intptr_t data_offset;
-	// Note: On everything but darwin this is 0, as the PCs contained in data
+	intptr_t trace_skip;
+	// Note: On everything but darwin this is 0, as the PCs contained in trace
 	// are already correct. XNUs KSANCOV API, however, chose to always squeeze
 	// PCs into 32 bit. To make the recorded PC fit, KSANCOV substracts a fixed
 	// offset (VM_MIN_KERNEL_ADDRESS for AMD64) and then truncates the result to
@@ -1172,8 +1179,8 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	fbb.StartVector(0, sizeof(uint64));
-	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
-	if ((char*)(cover_data + cov->size) > cov->data_end)
+	cover_data_t* cover_data = (cover_data_t*)(cov->trace + cov->trace_skip);
+	if ((char*)(cover_data + cov->size) > cov->trace_end)
 		failmsg("too much cover", "cov=%u", cov->size);
 	uint32 nsig = 0;
 	cover_data_t prev_pc = 0;
@@ -1206,7 +1213,7 @@ template <typename cover_data_t>
 uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 {
 	uint32 cover_size = cov->size;
-	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
+	cover_data_t* cover_data = (cover_data_t*)(cov->trace + cov->trace_skip);
 	if (flag_dedup_cover) {
 		cover_data_t* end = cover_data + cover_size;
 		std::sort(cover_data, end);
@@ -1222,11 +1229,11 @@ uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 uint32 write_comparisons(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 {
 	// Collect only the comparisons
-	uint64 ncomps = *(uint64_t*)cov->data;
-	kcov_comparison_t* cov_start = (kcov_comparison_t*)(cov->data + sizeof(uint64));
-	if ((char*)(cov_start + ncomps) > cov->data_end)
+	uint64 ncomps = *(uint64_t*)cov->trace;
+	kcov_comparison_t* cov_start = (kcov_comparison_t*)(cov->trace + sizeof(uint64));
+	if ((char*)(cov_start + ncomps) > cov->trace_end)
 		failmsg("too many comparisons", "ncomps=%llu", ncomps);
-	cov->overflow = ((char*)(cov_start + ncomps + 1) > cov->data_end);
+	cov->overflow = ((char*)(cov_start + ncomps + 1) > cov->trace_end);
 	rpc::ComparisonRaw* start = (rpc::ComparisonRaw*)cov_start;
 	rpc::ComparisonRaw* end = start;
 	// We will convert kcov_comparison_t to ComparisonRaw inplace.
@@ -1458,7 +1465,7 @@ void thread_create(thread_t* th, int id, bool need_coverage)
 
 void thread_mmap_cover(thread_t* th)
 {
-	if (th->cov.data != NULL)
+	if (th->cov.alloc != NULL)
 		return;
 	cover_mmap(&th->cov);
 	cover_protect(&th->cov);
