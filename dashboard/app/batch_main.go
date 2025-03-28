@@ -63,7 +63,7 @@ func createScriptJob(ctx context.Context, projectID, jobNamePrefix, script strin
 			PolicyTemplate: &batchpb.AllocationPolicy_InstancePolicyOrTemplate_Policy{
 				Policy: &batchpb.AllocationPolicy_InstancePolicy{
 					ProvisioningModel: batchpb.AllocationPolicy_SPOT,
-					MachineType:       "c3-standard-4",
+					MachineType:       "c3-highcpu-8",
 				},
 			},
 		}},
