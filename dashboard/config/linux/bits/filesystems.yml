@@ -204,3 +204,6 @@ config:
 
  - FSCACHE
  - CACHEFILES
+
+ # TODO: it will appear in v6.15.
+ - DEBUG_VFS: [linux-next]
