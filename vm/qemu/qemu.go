@@ -675,7 +675,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.User, inst.Port, inst.forwardPort, false)
+	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.target.HostFuzzer && bin == "syz-execprog" {
 		// Weird mode for Fuchsia.
