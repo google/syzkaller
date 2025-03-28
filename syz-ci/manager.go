@@ -886,7 +886,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
-func (mgr *Manager) uploadCoverJSONLToGCS(gcsClient gcs.Client, mgrSrc, gcsDest string, curTime time.Time,
+func (mgr *Manager) uploadCoverJSONLToGCS(gcsClient gcs.Client, mgrSrc, gcsDest, nameSuffix string,
 	publish, compress bool, f func(io.Writer, *json.Decoder) error) error {
 	if !mgr.managercfg.Cover || gcsDest == "" {
 		return nil
@@ -934,10 +934,7 @@ func (mgr *Manager) uploadCoverJSONLToGCS(gcsClient gcs.Client, mgrSrc, gcsDest 
 	})
 	eg.Go(func() error {
 		defer pr.Close()
-		fileName := fmt.Sprintf("%s/%s-%s-%d-%d.jsonl",
-			mgr.mgrcfg.DashboardClient,
-			mgr.name, curTime.Format(time.DateOnly),
-			curTime.Hour(), curTime.Minute())
+		fileName := fmt.Sprintf("%s/%s%s.jsonl", mgr.mgrcfg.DashboardClient, mgr.name, nameSuffix)
 		if err := uploadFile(egCtx, gcsClient, gcsDest, fileName, pr, publish); err != nil {
 			return fmt.Errorf("uploadFile: %w", err)
 		}
@@ -954,7 +951,7 @@ func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
 	if err := mgr.uploadCoverJSONLToGCS(nil,
 		"/cover?jsonl=1&flush=1",
 		mgr.cfg.CoverPipelinePath,
-		curTime,
+		time.Now().Format("-2006-01-02-15-04"),
 		false,
 		false,
 		func(w io.Writer, dec *json.Decoder) error {
@@ -986,7 +983,7 @@ func (mgr *Manager) uploadProgramsWithCoverage() error {
 	if err := mgr.uploadCoverJSONLToGCS(nil,
 		"/coverprogs?jsonl=1",
 		mgr.cfg.CoverProgramsPath,
-		time.Now(),
+		"",
 		mgr.cfg.PublishGCS,
 		true,
 		func(w io.Writer, dec *json.Decoder) error {
