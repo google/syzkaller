@@ -13,7 +13,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/cover"
@@ -122,8 +121,8 @@ func TestUploadCoverJSONLToGCS(t *testing.T) {
 	tests := []struct {
 		name string
 
-		inputJSONL string
-		inputTime  time.Time
+		inputJSONL      string
+		inputNameSuffix string
 
 		inputCompress bool
 		inputPublish  bool
@@ -137,33 +136,37 @@ func TestUploadCoverJSONLToGCS(t *testing.T) {
 		{
 			name:               "upload single object",
 			inputJSONL:         "{}",
-			inputTime:          time.Time{},
-			wantGCSFileName:    "test-bucket/test-namespace/mgr-name-0001-01-01-0-0.jsonl",
+			wantGCSFileName:    "test-bucket/test-namespace/mgr-name.jsonl",
 			wantGCSFileContent: "{}\n",
 		},
 		{
 			name:               "upload single object, compress",
 			inputJSONL:         "{}",
-			inputTime:          time.Time{},
 			inputCompress:      true,
-			wantGCSFileName:    "test-bucket/test-namespace/mgr-name-0001-01-01-0-0.jsonl",
+			wantGCSFileName:    "test-bucket/test-namespace/mgr-name.jsonl",
 			wantGCSFileContent: "{}\n",
 			wantCompressed:     true,
 		},
 		{
 			name:               "upload single object, publish",
 			inputJSONL:         "{}",
-			inputTime:          time.Time{},
 			inputPublish:       true,
-			wantGCSFileName:    "test-bucket/test-namespace/mgr-name-0001-01-01-0-0.jsonl",
+			wantGCSFileName:    "test-bucket/test-namespace/mgr-name.jsonl",
 			wantGCSFileContent: "{}\n",
 			wantPublish:        true,
 		},
 		{
+			name:               "upload single object, unique name",
+			inputJSONL:         "{}",
+			inputNameSuffix:    "-suffix",
+			wantGCSFileName:    "test-bucket/test-namespace/mgr-name-suffix.jsonl",
+			wantGCSFileContent: "{}\n",
+		},
+
+		{
 			name:            "upload single object, error",
 			inputJSONL:      "{",
-			inputTime:       time.Time{},
-			wantGCSFileName: "test-bucket/test-namespace/mgr-name-0001-01-01-0-0.jsonl",
+			wantGCSFileName: "test-bucket/test-namespace/mgr-name.jsonl",
 			wantError:       "callback: cover.ProgramCoverage: unexpected EOF",
 		},
 	}
@@ -200,7 +203,8 @@ func TestUploadCoverJSONLToGCS(t *testing.T) {
 			err := mgr.uploadCoverJSONLToGCS(gcsMock,
 				"/teststream&jsonl=1",
 				"gs://test-bucket",
-				time.Time{}, test.inputPublish, test.inputCompress, func(w io.Writer, dec *json.Decoder) error {
+				test.inputNameSuffix,
+				test.inputPublish, test.inputCompress, func(w io.Writer, dec *json.Decoder) error {
 					var v any
 					if err := dec.Decode(&v); err != nil {
 						return fmt.Errorf("cover.ProgramCoverage: %w", err)
