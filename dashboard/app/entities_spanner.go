@@ -42,7 +42,7 @@ select
   cast(sum(covered) as INTEGER) as covered
 from merge_history join files
   on merge_history.session = files.session
-where namespace=$1 and duration>=$2 and duration<=$3
+where namespace=$1 and duration>=$2 and duration<=$3 and manager='*'
 group by dateto, duration`,
 		Params: map[string]interface{}{
 			"p1": ns,
