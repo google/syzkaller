@@ -99,7 +99,7 @@ config:
  - BINFMT_SCRIPT
  - MEMORY_HOTPLUG: [-arm]
  # Replaced in "mm: add build-time option for hotplug memory default online type".
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -linux-next]
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -v6.14]
  - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, linux-next]
  - MEMORY_HOTREMOVE: [-arm]
  - ANON_VMA_NAME: [v5.17]
@@ -580,8 +580,9 @@ config:
  - PKCS7_TEST_KEY
  - SIGNED_PE_FILE_VERIFICATION
  - SECONDARY_TRUSTED_KEYRING
- - CRC4
- - CRC7
+ # CRC4 and CRC7 can now only be selected.
+ - CRC4: [-linux-next]
+ - CRC7: [-linux-next]
  - SCHEDSTATS
  - RAW_DRIVER: [-v5.14]
  - THERMAL: [v5.8]

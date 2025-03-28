@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
- - SYSV_FS
+ - SYSV_FS: [-linux-next]
  - ZONEFS_FS: [v5.6]
  - ISO9660_FS
  - JOLIET
