@@ -42,6 +42,11 @@ type FileLineCoverMerger struct {
 }
 
 func (a *FileLineCoverMerger) Add(record *FileRecord) {
+	if record.StartLine < 0 {
+		// This record doesn't have information about line coverage.
+		// The best we sometimes have is the function name.
+		return
+	}
 	if a.matchers[record.RepoCommit] == nil {
 		if record.HitCount > 0 {
 			a.lostFrames[record.RepoCommit]++
