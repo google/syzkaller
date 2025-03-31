@@ -1,0 +1,40 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# x86(-64)-specific KVM syscall declarations.
+
+meta arches["386", "amd64"]
+
+include <linux/kvm.h>
+include <asm/kvm.h>
+
+# kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
+resource kvm_syz_vm$x86[int64]
+
+# Map the given memory into the VM and set up syzos there.
+syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
+
+# Create a VCPU inside a kvm_syz_vm VM.
+syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu
+
+kvm_text$x86 {
+        typ     const[0, intptr]
+        text    ptr[in, array[syzos_api_call$x86, 1:32]]
+        size    bytesize[text, int64]
+}
+
+syzos_api_code$x86 {
+        insns   text[x86_64]
+        ret     const[0xc3, int8]
+} [packed]
+
+type syzos_api$x86[NUM, PAYLOAD] {
+        call    const[NUM, int64]
+        size    bytesize[parent, int64]
+        payload PAYLOAD
+}
+
+syzos_api_call$x86 [
+        uexit           syzos_api$x86[0, intptr]
+        code            syzos_api$x86[1, syzos_api_code$x86]
+] [varlen]
