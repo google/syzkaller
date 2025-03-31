@@ -14,6 +14,7 @@
 #define KVM_SMI _IO(KVMIO, 0xb7)
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct tss16 {
 	uint16 prev;
 	uint16 sp0;
@@ -78,7 +79,9 @@ struct tss64 {
 	uint32 reserved3;
 	uint32 io_bitmap;
 } __attribute__((packed));
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
 	uint16 index = seg->selector >> 3;
@@ -95,7 +98,9 @@ static void fill_segment_descriptor_dword(uint64* dt, uint64* lt, struct kvm_seg
 	dt[index + 1] = 0;
 	lt[index + 1] = 0;
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
 {
 	char buf[sizeof(struct kvm_msrs) + 5 * sizeof(struct kvm_msr_entry)];
@@ -115,7 +120,9 @@ static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
 	entries[4].data = X86_ADDR_VAR_SYSRET;
 	ioctl(cpufd, KVM_SET_MSRS, msrs);
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t guest_mem)
 {
 	sregs->idt.base = guest_mem + X86_ADDR_VAR_IDT;
@@ -167,7 +174,9 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 		fill_segment_descriptor(idt, idt, &gate);
 	}
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t guest_mem)
 {
 	sregs->idt.base = guest_mem + X86_ADDR_VAR_IDT;
@@ -189,18 +198,24 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 		fill_segment_descriptor_dword(idt, idt, &gate);
 	}
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct kvm_text {
 	uintptr_t typ;
 	const void* text;
 	uintptr_t size;
 };
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 #define KVM_SETUP_PAGING (1 << 0)
 #define KVM_SETUP_PAE (1 << 1)
 #define KVM_SETUP_PROTECTED (1 << 2)
@@ -747,3 +762,20 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		return -1;
 	return 0;
 }
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
+static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
+{
+  // Placeholder.
+  return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+static long syz_kvm_add_vcpu(volatile long a0, volatile long a1)
+{
+  // Placeholder.
+  return 0;
+}
+#endif

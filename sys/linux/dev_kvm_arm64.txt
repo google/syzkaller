@@ -12,13 +12,13 @@ include <uapi/linux/psci.h>
 include <asm/kvm.h>
 
 # kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
-resource kvm_syz_vm[int64]
+resource kvm_syz_vm$arm64[int64]
 
 # Map the given memory into the VM and set up syzos there.
-syz_kvm_setup_syzos_vm(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm
+syz_kvm_setup_syzos_vm$arm64(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$arm64
 
 # Create a VCPU inside a kvm_syz_vm VM.
-syz_kvm_add_vcpu(vm kvm_syz_vm, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
+syz_kvm_add_vcpu$arm64(vm kvm_syz_vm$arm64, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
 
 kvm_num_irqs = 32, 64, 128, 256, 512
 
