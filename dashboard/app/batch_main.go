@@ -44,8 +44,8 @@ func createScriptJob(ctx context.Context, projectID, jobNamePrefix, script strin
 					},
 				}},
 				ComputeResource: &batchpb.ComputeResource{
-					// CpuMilli is milliseconds per cpu-second. This means the task requires 2 whole CPUs.
-					CpuMilli:  4000,
+					// CpuMilli is milliseconds per cpu-second. This means the task requires 8 whole CPUs.
+					CpuMilli:  8000,
 					MemoryMib: 12 * 1024,
 				},
 				MaxRunDuration: &durationpb.Duration{
