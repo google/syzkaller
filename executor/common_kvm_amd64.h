@@ -7,6 +7,7 @@
 // See Intel Software Developer’s Manual Volume 3: System Programming Guide
 // for details on what happens here.
 
+#include "common_kvm_amd64_syzos.h"
 #include "kvm.h"
 #include "kvm_amd64.S.h"
 
@@ -69,7 +70,9 @@ struct tss32 {
 	uint16 trace;
 	uint16 io_bitmap;
 } __attribute__((packed));
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 struct tss64 {
 	uint32 reserved0;
 	uint64 rsp[3];
@@ -79,9 +82,7 @@ struct tss64 {
 	uint32 reserved3;
 	uint32 io_bitmap;
 } __attribute__((packed));
-#endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
 	uint16 index = seg->selector >> 3;
@@ -200,7 +201,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 struct kvm_text {
 	uintptr_t typ;
 	const void* text;
@@ -213,6 +214,122 @@ struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
+#define PAGE_MASK GENMASK_ULL(51, 12)
+
+// We assume a 4-level page table, in the future we could add support for
+// n-level if needed.
+static void setup_pg_table(void* host_mem)
+{
+	uint64* pml4 = (uint64*)((uint64)host_mem + X86_ADDR_PML4);
+	uint64* pdp = (uint64*)((uint64)host_mem + X86_ADDR_PDP);
+	uint64* pd = (uint64*)((uint64)host_mem + X86_ADDR_PD);
+	uint64* pd_ioapic = (uint64*)((uint64)host_mem + X86_ADDR_PD_IOAPIC);
+
+	pml4[0] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PDP & PAGE_MASK);
+	pdp[0] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PD & PAGE_MASK);
+	pdp[3] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PD_IOAPIC & PAGE_MASK);
+
+	pd[0] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_PS;
+	pd_ioapic[502] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_PS;
+}
+
+// This only sets up a 64-bit VCPU.
+// TODO: Should add support for other modes.
+static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
+{
+	struct kvm_sregs sregs;
+	ioctl(cpufd, KVM_GET_SREGS, &sregs);
+
+	sregs.gdt.base = X86_ADDR_GDT;
+	sregs.gdt.limit = 256 * sizeof(uint64) - 1;
+	uint64* gdt = (uint64*)((uint64)host_mem + sregs.gdt.base);
+
+	struct kvm_segment seg_ldt;
+	memset(&seg_ldt, 0, sizeof(seg_ldt));
+	seg_ldt.selector = X86_SEL_LDT;
+	seg_ldt.type = 2;
+	seg_ldt.base = X86_ADDR_LDT;
+	seg_ldt.limit = 256 * sizeof(uint64) - 1;
+	seg_ldt.present = 1;
+	seg_ldt.dpl = 0;
+	seg_ldt.s = 0;
+	seg_ldt.g = 0;
+	seg_ldt.db = 1;
+	seg_ldt.l = 0;
+	sregs.ldt = seg_ldt;
+	uint64* ldt = (uint64*)((uint64)host_mem + sregs.ldt.base);
+
+	struct kvm_segment seg_cs64;
+	memset(&seg_cs64, 0, sizeof(seg_cs64));
+	seg_cs64.selector = X86_SEL_CS64;
+	seg_cs64.type = 11;
+	seg_cs64.base = 0;
+	seg_cs64.limit = 0xFFFFFFFFu;
+	seg_cs64.present = 1;
+	seg_cs64.s = 1;
+	seg_cs64.g = 1;
+	seg_cs64.l = 1;
+
+	sregs.cs = seg_cs64;
+
+	struct kvm_segment seg_ds64;
+	memset(&seg_ds64, 0, sizeof(struct kvm_segment));
+	seg_ds64.selector = X86_SEL_DS64;
+	seg_ds64.type = 3;
+	seg_ds64.limit = 0xFFFFFFFFu;
+	seg_ds64.present = 1;
+	seg_ds64.s = 1;
+	seg_ds64.g = 1;
+
+	sregs.ds = seg_ds64;
+	sregs.es = seg_ds64;
+
+	struct kvm_segment seg_tss64;
+	memset(&seg_tss64, 0, sizeof(seg_tss64));
+	seg_tss64.selector = X86_SEL_TSS64;
+	seg_tss64.base = X86_ADDR_VAR_TSS64;
+	seg_tss64.limit = 0x1ff;
+	seg_tss64.type = 9;
+	seg_tss64.present = 1;
+
+	struct tss64 tss64;
+	memset(&tss64, 0, sizeof(tss64));
+	tss64.rsp[0] = X86_ADDR_STACK0;
+	tss64.rsp[1] = X86_ADDR_STACK0;
+	tss64.rsp[2] = X86_ADDR_STACK0;
+	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
+	struct tss64* tss64_addr = (struct tss64*)((uint64)host_mem + seg_tss64.base);
+	memcpy(tss64_addr, &tss64, sizeof(tss64));
+
+	fill_segment_descriptor(gdt, ldt, &seg_ldt);
+	fill_segment_descriptor(gdt, ldt, &seg_cs64);
+	fill_segment_descriptor(gdt, ldt, &seg_ds64);
+	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64);
+
+	setup_pg_table(host_mem);
+
+	sregs.cr0 = X86_CR0_PE | X86_CR0_NE | X86_CR0_PG;
+	sregs.cr4 |= X86_CR4_PAE | X86_CR4_OSFXSR;
+	sregs.efer |= (X86_EFER_LME | X86_EFER_LMA | X86_EFER_NXE);
+	sregs.cr3 = X86_ADDR_PML4;
+
+	ioctl(cpufd, KVM_SET_SREGS, &sregs);
+}
+
+static void setup_cpuid(int cpufd)
+{
+	int kvmfd = open("/dev/kvm", O_RDWR);
+	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
+	memset(buf, 0, sizeof(buf));
+	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
+	cpuid->nent = 128;
+	ioctl(kvmfd, KVM_GET_SUPPORTED_CPUID, cpuid);
+	ioctl(cpufd, KVM_SET_CPUID2, cpuid);
+	close(kvmfd);
+}
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
@@ -764,18 +881,192 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
+{
+	struct kvm_regs regs;
+	memset(&regs, 0, sizeof(regs));
+
+	regs.rflags |= 2; // bit 1 is always set
+	// PC points to the relative offset of guest_main() within the guest code.
+	regs.rip = X86_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest);
+	regs.rsp = X86_ADDR_STACK0;
+	// Pass parameters to guest_main().
+	regs.rdi = text_size;
+	regs.rsi = cpu_id;
+	ioctl(cpufd, KVM_SET_REGS, &regs);
+}
+
+static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const void* text, size_t text_size, void* host_mem)
+{
+	if ((cpu_id < 0) || (cpu_id >= KVM_MAX_VCPU))
+		return;
+	if (!user_text_slot)
+		return;
+	if (text_size > KVM_PAGE_SIZE)
+		text_size = KVM_PAGE_SIZE;
+	void* target = (void*)((uint64)user_text_slot + (KVM_PAGE_SIZE * cpu_id));
+	memcpy(target, text, text_size);
+	setup_gdt_ldt_pg(cpufd, host_mem);
+	setup_cpuid(cpufd);
+	reset_cpu_regs(cpufd, cpu_id, text_size);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
+struct addr_size {
+	void* addr;
+	size_t size;
+};
+
+static struct addr_size alloc_guest_mem(struct addr_size* free, size_t size)
+{
+	struct addr_size ret = {.addr = NULL, .size = 0};
+
+	if (free->size < size)
+		return ret;
+	ret.addr = free->addr;
+	ret.size = size;
+	free->addr = (void*)((char*)free->addr + size);
+	free->size -= size;
+	return ret;
+}
+
+// Call KVM_SET_USER_MEMORY_REGION for the given pages.
+static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint64 guest_phys_addr, uint64 memory_size, uint64 userspace_addr)
+{
+	struct kvm_userspace_memory_region memreg;
+	memreg.slot = slot;
+	memreg.flags = flags;
+	memreg.guest_phys_addr = guest_phys_addr;
+	memreg.memory_size = memory_size;
+	memreg.userspace_addr = userspace_addr;
+	ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+}
+
+static void install_syzos_code(void* host_mem, size_t mem_size)
+{
+	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
+	if (size > mem_size)
+		fail("SyzOS size exceeds guest memory");
+	memcpy(host_mem, &__start_guest, size);
+}
+
+static void setup_vm(int vmfd, void* host_mem, void** text_slot)
+{
+	// Guest virtual memory layout (must be in sync with executor/kvm.h):
+	// 0x00000000 - AMD64 data structures (10 pages, see kvm.h)
+	// 0x00030000 - SMRAM (10 pages)
+	// 0x00040000 - unmapped region to trigger a page faults for uexits etc. (1 page)
+	// 0x00041000 - writable region with KVM_MEM_LOG_DIRTY_PAGES to fuzz dirty ring (2 pages)
+	// 0x00050000 - user code (4 pages)
+	// 0x00054000 - executor guest code (4 pages)
+	// 0000058000 - scratch memory for code generated at runtime (1 page)
+	// 0xfec00000 - IOAPIC (1 page)
+	struct addr_size allocator = {.addr = host_mem, .size = KVM_GUEST_MEM_SIZE};
+	int slot = 0; // Slot numbers do not matter, they just have to be different.
+
+	// This *needs* to be the first allocation to avoid passing pointers
+	// around for the gdt/ldt/page table setup.
+	struct addr_size next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_SMRAM, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, X86_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
+	if (text_slot)
+		*text_slot = next.addr;
+
+	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
+	install_syzos_code(host_text.addr, host_text.size);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
+
+	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_IOAPIC, next.size, (uintptr_t)next.addr);
+
+	// Map the remaining pages at an unused address.
+	next = alloc_guest_mem(&allocator, allocator.size);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_UNUSED, next.size, (uintptr_t)next.addr);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu
+struct kvm_syz_vm {
+	int vmfd;
+	int next_cpu_id;
+	void* user_text;
+	void* host_mem;
+};
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm
 static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 {
-  // Placeholder.
-  return 0;
+	const int vmfd = a0;
+	void* host_mem = (void*)a1;
+
+	void* user_text_slot = NULL;
+	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
+	host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
+	setup_vm(vmfd, host_mem, &user_text_slot);
+	ret->vmfd = vmfd;
+	ret->next_cpu_id = 0;
+	ret->user_text = user_text_slot;
+	ret->host_mem = host_mem;
+	return (long)ret;
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 static long syz_kvm_add_vcpu(volatile long a0, volatile long a1)
 {
-  // Placeholder.
-  return 0;
+	struct kvm_syz_vm* vm = (struct kvm_syz_vm*)a0;
+	struct kvm_text* utext = (struct kvm_text*)a1;
+	const void* text = utext->text;
+	size_t text_size = utext->size;
+
+	if (!vm) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (vm->next_cpu_id == KVM_MAX_VCPU) {
+		errno = ENOMEM;
+		return -1;
+	}
+	int cpu_id = vm->next_cpu_id;
+	int cpufd = ioctl(vm->vmfd, KVM_CREATE_VCPU, cpu_id);
+	if (cpufd == -1)
+		return -1;
+	// Only increment next_cpu_id if CPU creation succeeded.
+	vm->next_cpu_id++;
+	install_user_code(cpufd, vm->user_text, cpu_id, text, text_size, vm->host_mem);
+	return cpufd;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_uexit
+static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1)
+{
+	struct kvm_run* run = (struct kvm_run*)a0;
+	uint64 expect = a1;
+
+	if (!run || (run->exit_reason != KVM_EXIT_MMIO) || (run->mmio.phys_addr != X86_ADDR_UEXIT)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if ((((uint64*)(run->mmio.data))[0]) != expect) {
+		errno = EDOM;
+		return -1;
+	}
+	return 0;
 }
 #endif
