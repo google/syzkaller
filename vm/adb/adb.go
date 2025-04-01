@@ -156,7 +156,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		log.Logf(0, "associating adb device %v with console cmd `%v`", inst.device, inst.consoleCmd)
 	} else {
 		if inst.console == "" {
+			// More verbose log level is required, otherwise echo to /dev/kmsg won't show.
+			level, err := inst.adb("shell", "cat /proc/sys/kernel/printk")
+			if err != nil {
+				return nil, fmt.Errorf("failed to read /proc/sys/kernel/printk: %w", err)
+			}
+			inst.adb("shell", "echo 8 > /proc/sys/kernel/printk")
 			inst.console = findConsole(inst.adbBin, inst.device)
+			// Verbose kmsg slows down system, so disable it after findConsole.
+			inst.adb("shell", fmt.Sprintf("echo %v > /proc/sys/kernel/printk", string(level)))
 		}
 		log.Logf(0, "associating adb device %v with console %v", inst.device, inst.console)
 	}
