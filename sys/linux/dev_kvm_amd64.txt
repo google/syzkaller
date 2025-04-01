@@ -19,30 +19,33 @@ syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
 # Create a VCPU inside a kvm_syz_vm VM.
 syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu
 
+# Test assertions, will not be used by the fuzzer.
+syz_kvm_assert_syzos_uexit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
+
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
 syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt_x86, 0:2]], nopt len[opts])
 
 kvm_text$x86 {
-        typ     const[0, intptr]
-        text    ptr[in, array[syzos_api_call$x86, 1:32]]
-        size    bytesize[text, int64]
+	typ	const[0, intptr]
+	text	ptr[in, array[syzos_api_call$x86, 1:32]]
+	size	bytesize[text, int64]
 }
 
 syzos_api_code$x86 {
-        insns   text[x86_64]
-        ret     const[0xc3, int8]
+	insns	text[x86_64]
+	ret	const[0xc3, int8]
 } [packed]
 
 type syzos_api$x86[NUM, PAYLOAD] {
-        call    const[NUM, int64]
-        size    bytesize[parent, int64]
-        payload PAYLOAD
+	call	const[NUM, int64]
+	size	bytesize[parent, int64]
+	payload	PAYLOAD
 }
 
 syzos_api_call$x86 [
-        uexit           syzos_api$x86[0, intptr]
-        code            syzos_api$x86[1, syzos_api_code$x86]
+	uexit	syzos_api$x86[0, intptr]
+	code	syzos_api$x86[1, syzos_api_code$x86]
 ] [varlen]
 
 kvm_text_x86 [
@@ -532,5 +535,3 @@ kvm_memory_attributes {
 	attributes	flags[kvm_memory_attribute_flags, int64]
 	flags		const[0, int64]
 }
-
-

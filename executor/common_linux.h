@@ -3199,6 +3199,8 @@ error_clear_loop:
 
 #if GOARCH_amd64
 #include "common_kvm_amd64.h"
+#elif GOARCH_386
+#include "common_kvm_386.h"
 #elif GOARCH_arm64
 #include "common_kvm_arm64.h"
 #elif GOARCH_ppc64 || GOARCH_ppc64le

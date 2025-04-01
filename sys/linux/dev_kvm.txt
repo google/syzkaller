@@ -50,7 +50,6 @@ ioctl$KVM_CAP_HALT_POLL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_
 ioctl$KVM_CAP_DIRTY_LOG_RING(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING, flags[kvm_dirty_log_sizes, int64]]])
 ioctl$KVM_CAP_DIRTY_LOG_RING_ACQ_REL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DIRTY_LOG_RING_ACQ_REL, flags[kvm_dirty_log_sizes, int64]]])
 
-
 # TODO: need more precise handling for arguments below
 ioctl$KVM_CAP_PTP_KVM(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PTP_KVM, void]])
 
