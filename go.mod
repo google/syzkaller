@@ -13,7 +13,7 @@ require (
 	cloud.google.com/go/spanner v1.78.0
 	cloud.google.com/go/storage v1.50.0
 	github.com/VividCortex/gohistogram v1.0.0
-	github.com/argoproj/argo-workflows/v3 v3.5.13
+	github.com/argoproj/argo-workflows/v3 v3.6.5
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/golangci/golangci-lint v1.63.4
@@ -25,7 +25,7 @@ require (
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465
 	github.com/prometheus/client_golang v1.21.1
-	github.com/sergi/go-diff v1.3.1
+	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
@@ -130,7 +130,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/go-xmlfmt/xmlfmt v1.1.3 // indirect
 	github.com/gobwas/glob v0.2.4-0.20181002190808-e7a84e9525fe // indirect
-	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -176,7 +176,7 @@ require (
 	github.com/kisielk/errcheck v1.8.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
 	github.com/kyoh86/exportloopref v0.1.11 // indirect
