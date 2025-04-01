@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/log"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 var (
@@ -54,7 +55,7 @@ func main() {
 }
 
 func do() error {
-	flag.Parse()
+	defer tool.Init()()
 	config := &covermerger.Config{
 		Jobs:    runtime.NumCPU(),
 		Workdir: *flagWorkdir,
