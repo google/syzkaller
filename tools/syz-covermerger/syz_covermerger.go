@@ -124,10 +124,11 @@ func do() error {
 	if err != nil {
 		return fmt.Errorf("covermerger.MergeCSVWriteJSONL: %w", err)
 	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("wc.Close: %w", err)
+	if wc != nil {
+		if err := wc.Close(); err != nil {
+			return fmt.Errorf("wc.Close: %w", err)
+		}
 	}
-
 	printCoverage(totalInstrumentedLines, totalCoveredLines)
 	if *flagToDashAPI != "" {
 		// Merging may take hours. It is better to create new connection instead of reuse.
