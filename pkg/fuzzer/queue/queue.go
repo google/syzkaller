@@ -213,6 +213,7 @@ func (r *Result) GlobFiles() []string {
 
 type Status int
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type Status
 const (
 	Success     Status = iota
 	ExecFailure        // For e.g. serialization errors.
