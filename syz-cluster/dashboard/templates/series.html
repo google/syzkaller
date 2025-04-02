@@ -94,15 +94,7 @@
                 </tr>
                 <tr>
                     <th>Status</th>
-                    <td>
-                      {{if .StartedAt.IsNull}}
-                          waiting
-                      {{else if .FinishedAt.IsNull}}
-                          in progress
-                      {{else}}
-                          finished
-                      {{end}}
-                    </td>
+                    <td>{{.Status}}</td>
                 </tr>
                 {{if not .SkipReason.IsNull}}
                 <tr>

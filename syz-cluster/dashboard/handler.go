@@ -73,18 +73,29 @@ var (
 	errBadRequest = errors.New("bad request")
 )
 
-// TODO: export a common method to get Series' status.
+type statusOption struct {
+	Key   db.SessionStatus
+	Value string
+}
 
 func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) error {
 	type MainPageData struct {
 		// It's probably not the best idea to expose db entities here,
 		// but so far redefining the entity would just duplicate the code.
-		List   []*db.SeriesWithSession
-		Filter db.SeriesFilter
+		List     []*db.SeriesWithSession
+		Filter   db.SeriesFilter
+		Statuses []statusOption
 	}
 	data := MainPageData{
 		Filter: db.SeriesFilter{
-			Cc: r.FormValue("cc"),
+			Cc:     r.FormValue("cc"),
+			Status: db.SessionStatus(r.FormValue("status")),
+		},
+		Statuses: []statusOption{
+			{db.SessionStatusAny, "any"},
+			{db.SessionStatusWaiting, "waiting"},
+			{db.SessionStatusInProgress, "in progress"},
+			{db.SessionStatusFinished, "finished"},
 		},
 	}
 	var err error

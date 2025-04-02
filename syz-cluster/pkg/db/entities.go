@@ -72,6 +72,27 @@ type Session struct {
 	// add Triager, BaseRepo, BaseCommit, Config fields.
 }
 
+type SessionStatus string
+
+const (
+	SessionStatusWaiting    SessionStatus = "waiting"
+	SessionStatusInProgress SessionStatus = "in progress"
+	SessionStatusFinished   SessionStatus = "finished"
+	// To be used in filters.
+	SessionStatusAny SessionStatus = ""
+)
+
+// It could have been a calculated field in Spanner, but the Go library for Spanner currently
+// does not support read-only fields.
+func (s *Session) Status() SessionStatus {
+	if s.StartedAt.IsNull() {
+		return SessionStatusWaiting
+	} else if s.FinishedAt.IsNull() {
+		return SessionStatusInProgress
+	}
+	return SessionStatusFinished
+}
+
 func (s *Session) SetStartedAt(t time.Time) {
 	s.StartedAt = spanner.NullTime{Time: t, Valid: true}
 }

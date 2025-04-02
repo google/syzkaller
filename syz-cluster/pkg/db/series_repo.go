@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -131,7 +132,8 @@ type SeriesWithSession struct {
 }
 
 type SeriesFilter struct {
-	Cc string
+	Cc     string
+	Status SessionStatus
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -141,7 +143,7 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 	defer ro.Close()
 
 	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM Series WHERE 1=1",
+		SQL:    "SELECT Series.* FROM Series WHERE 1=1",
 		Params: map[string]interface{}{},
 	}
 	if !maxPublishedAt.IsZero() {
@@ -151,6 +153,23 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 	if filter.Cc != "" {
 		stmt.SQL += " AND @cc IN UNNEST(Cc)"
 		stmt.Params["cc"] = filter.Cc
+	}
+	if filter.Status != SessionStatusAny {
+		// It could have been an INNER JOIN in the main query, but let's favor the simpler code
+		// in this function.
+		// The optimizer should transform the query to a JOIN anyway.
+		stmt.SQL += " AND EXISTS(SELECT 1 FROM Sessions WHERE"
+		switch filter.Status {
+		case SessionStatusWaiting:
+			stmt.SQL += " Sessions.SeriesID = Series.ID AND Sessions.StartedAt IS NULL"
+		case SessionStatusInProgress:
+			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
+		case SessionStatusFinished:
+			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL"
+		default:
+			return nil, fmt.Errorf("unknown status value: %q", filter.Status)
+		}
+		stmt.SQL += ")"
 	}
 	stmt.SQL += " ORDER BY PublishedAt DESC"
 	if limit > 0 {

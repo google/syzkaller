@@ -1,5 +1,27 @@
 {{define "content"}}
-    {{if .Filter.Cc}}<div class="alert alert-dark"><b>Filter: Cc={{.Filter.Cc}}</b></div>{{end}}
+    <div class="mx-3">
+      <form>
+        <div class="row align-items-center">
+          <div class="col-auto col-sm-3">
+            <label for="inputCc">Cc'd</label>
+            <input type="text" name="cc" class="form-control mb-3" value="{{.Filter.Cc}}" id="inputCc">
+          </div>
+          <div class="col-auto col-sm-3">
+            <label for="inputStatus">Status</label>
+            <select id="inputStatus" class="form-control mb-3" name="status">
+              {{$filter := .Filter}}
+              {{range .Statuses}}
+                <option value="{{.Key}}" {{if eq .Key $filter.Status}} selected{{end}}>{{.Value}}</option>
+              {{end}}
+              </select>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
     <table class="table">
       <thead class="thead-light">
         <tr>
@@ -19,15 +41,7 @@
           <td>{{.Series.AuthorEmail}}</td>
           <td>
             {{if .Session}}
-              {{if .Session.StartedAt.IsNull}}
-                waiting
-              {{else if .Session.FinishedAt.IsNull}}
-                in progress
-              {{else if .Session.SkipReason.IsNull}}
-                finished
-              {{else}}
-                skipped
-              {{end}}
+              {{.Session.Status}}
             {{else}}
               -
             {{end}}
