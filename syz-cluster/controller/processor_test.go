@@ -52,7 +52,9 @@ func TestProcessor(t *testing.T) {
 
 	awaitFinishedSessions(t, processor.seriesRepo, 2)
 
-	// Restart the loop.
+	// Emulate the service restart by aborting the loop.
+	// This may break the execution in arbitrary places, which actually resembles the environment in which the code
+	// will actually work. The bugs it triggers may be difficult to reproduce though.
 	cancel()
 	wg.Wait()
 
