@@ -154,11 +154,16 @@ func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Sessio
 		switch status {
 		case workflow.StatusNotFound:
 			log.Printf("scheduling a workflow for %q", session.ID)
-			if err := sp.sessionRepo.Start(ctx, session.ID); err != nil {
+			err := sp.sessionRepo.Start(ctx, session.ID)
+			if err == db.ErrSessionAlreadyStarted {
+				// It may happen if the service was restarted right between the moment we updated the DB
+				// and actually started the workflow.
+				log.Printf("session %q was already marked as started, but there's no actual workflow", session.ID)
+			} else if err != nil {
 				app.Errorf("failed to mark session started: %v", err)
 				break
 			}
-			err := sp.workflows.Start(session.ID)
+			err = sp.workflows.Start(session.ID)
 			if err != nil {
 				app.Errorf("failed to start a workflow: %v", err)
 			}
