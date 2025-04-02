@@ -166,7 +166,7 @@ func (job *triageJob) handleCall(call int, info *triageCall) {
 		return
 	}
 
-	p := job.p.Clone()
+	p := job.p
 	if job.flags&ProgMinimized == 0 {
 		p, call = job.minimize(call, info)
 		if p == nil {
