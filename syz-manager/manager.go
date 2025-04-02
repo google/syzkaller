@@ -168,6 +168,9 @@ var (
 			if cfg.Sandbox != "none" {
 				return fmt.Errorf("sandbox \"%v\" is not supported (only \"none\")", cfg.Sandbox)
 			}
+			if !cfg.Cover {
+				return fmt.Errorf("coverage is required")
+			}
 			return nil
 		},
 	}
