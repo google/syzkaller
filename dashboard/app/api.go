@@ -188,13 +188,9 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 			return nil, fmt.Errorf("gcs.NewClient: %w", err)
 		}
 		defer clientGCS.Close()
-		gcsFile, err := clientGCS.Read(gcsURL)
+		gcsPayloadReader, err := clientGCS.FileReader(gcsURL)
 		if err != nil {
-			return nil, fmt.Errorf("clientGCS.Read: %w", err)
-		}
-		gcsPayloadReader, err := gcsFile.Reader()
-		if err != nil {
-			return nil, fmt.Errorf("gcsFile.Reader: %w", err)
+			return nil, fmt.Errorf("clientGCS.FileReader: %w", err)
 		}
 		gz, err := gzip.NewReader(gcsPayloadReader)
 		if err != nil {

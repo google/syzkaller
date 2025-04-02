@@ -51,11 +51,7 @@ func (gcs *gcsDriver) Read(uri string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	file, err := gcs.client.Read(fmt.Sprintf("%s/%s", gcs.bucket, object))
-	if err != nil {
-		return nil, err
-	}
-	return file.Reader()
+	return gcs.client.FileReader(fmt.Sprintf("%s/%s", gcs.bucket, object))
 }
 
 var gcsObjectRe = regexp.MustCompile(`^gcs://([\w-]+)/([\w-]+)$`)

@@ -24,7 +24,7 @@ import (
 
 type Client interface {
 	Close() error
-	Read(path string) (*File, error)
+	FileReader(path string) (io.ReadCloser, error)
 	FileWriter(path string, contentType string, contentEncoding string) (io.WriteCloser, error)
 	DeleteFile(path string) error
 	FileExists(path string) (bool, error)
@@ -71,17 +71,6 @@ type client struct {
 	ctx    context.Context
 }
 
-type File struct {
-	Updated time.Time
-
-	ctx    context.Context
-	handle *storage.ObjectHandle
-}
-
-func (file *File) Reader() (io.ReadCloser, error) {
-	return file.handle.NewReader(file.ctx)
-}
-
 func NewClient(ctx context.Context) (Client, error) {
 	storageClient, err := storage.NewClient(ctx)
 	if err != nil {
@@ -98,7 +87,7 @@ func (c *client) Close() error {
 	return c.client.Close()
 }
 
-func (c *client) Read(gcsFile string) (*File, error) {
+func (c *client) FileReader(gcsFile string) (io.ReadCloser, error) {
 	bucket, filename, err := split(gcsFile)
 	if err != nil {
 		return nil, err
@@ -116,12 +105,7 @@ func (c *client) Read(gcsFile string) (*File, error) {
 		GenerationMatch:     attrs.Generation,
 		MetagenerationMatch: attrs.Metageneration,
 	})
-	file := &File{
-		Updated: attrs.Updated,
-		ctx:     c.ctx,
-		handle:  handle,
-	}
-	return file, nil
+	return handle.NewReader(c.ctx)
 }
 
 func (c *client) FileWriter(gcsFile, contentType, contentEncoding string) (io.WriteCloser, error) {

@@ -100,12 +100,8 @@ func (r *bqCSVReader) initGCSFileReaders(ctx context.Context, bucket, path strin
 		return fmt.Errorf("err enumerating gcs files: %w", err)
 	}
 	for _, obj := range gcsFiles {
-		var file *gcs.File
-		if file, err = gcsClient.Read(bucket + "/" + obj.Path); err != nil {
-			return fmt.Errorf("failed to start reading %s: %w", obj.Path, err)
-		}
 		var readCloser io.ReadCloser
-		if readCloser, err = file.Reader(); err != nil {
+		if readCloser, err = gcsClient.FileReader(bucket + "/" + obj.Path); err != nil {
 			return fmt.Errorf("failed to get %s reader: %w", obj.Path, err)
 		}
 		r.closers = append(r.closers, readCloser)
