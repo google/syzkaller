@@ -170,6 +170,64 @@ func (_c *Client_FileExists_Call) RunAndReturn(run func(string) (bool, error)) *
 	return _c
 }
 
+// FileReader provides a mock function with given fields: path
+func (_m *Client) FileReader(path string) (io.ReadCloser, error) {
+	ret := _m.Called(path)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FileReader")
+	}
+
+	var r0 io.ReadCloser
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (io.ReadCloser, error)); ok {
+		return rf(path)
+	}
+	if rf, ok := ret.Get(0).(func(string) io.ReadCloser); ok {
+		r0 = rf(path)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(path)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_FileReader_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FileReader'
+type Client_FileReader_Call struct {
+	*mock.Call
+}
+
+// FileReader is a helper method to define mock.On call
+//   - path string
+func (_e *Client_Expecter) FileReader(path interface{}) *Client_FileReader_Call {
+	return &Client_FileReader_Call{Call: _e.mock.On("FileReader", path)}
+}
+
+func (_c *Client_FileReader_Call) Run(run func(path string)) *Client_FileReader_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *Client_FileReader_Call) Return(_a0 io.ReadCloser, _a1 error) *Client_FileReader_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_FileReader_Call) RunAndReturn(run func(string) (io.ReadCloser, error)) *Client_FileReader_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FileWriter provides a mock function with given fields: path, contentType, contentEncoding
 func (_m *Client) FileWriter(path string, contentType string, contentEncoding string) (io.WriteCloser, error) {
 	ret := _m.Called(path, contentType, contentEncoding)
@@ -330,64 +388,6 @@ func (_c *Client_Publish_Call) Return(_a0 error) *Client_Publish_Call {
 }
 
 func (_c *Client_Publish_Call) RunAndReturn(run func(string) error) *Client_Publish_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// Read provides a mock function with given fields: path
-func (_m *Client) Read(path string) (*gcs.File, error) {
-	ret := _m.Called(path)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Read")
-	}
-
-	var r0 *gcs.File
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (*gcs.File, error)); ok {
-		return rf(path)
-	}
-	if rf, ok := ret.Get(0).(func(string) *gcs.File); ok {
-		r0 = rf(path)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*gcs.File)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(path)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Client_Read_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Read'
-type Client_Read_Call struct {
-	*mock.Call
-}
-
-// Read is a helper method to define mock.On call
-//   - path string
-func (_e *Client_Expecter) Read(path interface{}) *Client_Read_Call {
-	return &Client_Read_Call{Call: _e.mock.On("Read", path)}
-}
-
-func (_c *Client_Read_Call) Run(run func(path string)) *Client_Read_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
-	})
-	return _c
-}
-
-func (_c *Client_Read_Call) Return(_a0 *gcs.File, _a1 error) *Client_Read_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *Client_Read_Call) RunAndReturn(run func(string) (*gcs.File, error)) *Client_Read_Call {
 	_c.Call.Return(run)
 	return _c
 }
