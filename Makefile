@@ -217,11 +217,6 @@ verifier: descriptions
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.
 extract: bin/syz-extract
-ifeq ($(TARGETOS),fuchsia)
-	$(MAKE) generate_fidl TARGETARCH=amd64
-	$(MAKE) generate_fidl TARGETARCH=arm64
-else
-endif
 	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) $(FILES)
 
 bin/syz-extract:
@@ -236,20 +231,13 @@ generate:
 	$(MAKE) format
 
 generate_go: format_cpp
-	$(GO) generate ./executor ./pkg/ifuzz/x86 ./pkg/ifuzz/arm64 ./pkg/build ./pkg/rpcserver
+	$(GO) generate ./...
 	$(GO) run github.com/vektra/mockery/v2@v2.52.1 --log-level="error"
 
 generate_rpc:
 	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --go --gen-onefile --go-namespace flatrpc pkg/flatrpc/flatrpc.fbs
 	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --cpp --scoped-enums pkg/flatrpc/flatrpc.fbs
 	$(GO) fmt ./pkg/flatrpc/flatrpc.go
-
-generate_fidl:
-ifeq ($(TARGETOS),fuchsia)
-	$(HOSTGO) generate ./sys/fuchsia
-	$(MAKE) format_sys
-else
-endif
 
 generate_trace2syz:
 	(cd tools/syz-trace2syz/parser; ragel -Z -G2 -o lex.go straceLex.rl)
