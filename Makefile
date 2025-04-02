@@ -236,7 +236,7 @@ generate:
 	$(MAKE) format
 
 generate_go: format_cpp
-	$(GO) generate ./executor ./pkg/ifuzz ./pkg/build ./pkg/rpcserver
+	$(GO) generate ./executor ./pkg/ifuzz/x86 ./pkg/ifuzz/arm64 ./pkg/build ./pkg/rpcserver
 	$(GO) run github.com/vektra/mockery/v2@v2.52.1 --log-level="error"
 
 generate_rpc:
