@@ -71,21 +71,17 @@ func do() error {
 		panic(fmt.Sprintf("failed to parse time_to: %s", err.Error()))
 	}
 	dateFrom = dateTo.AddDays(-int(*flagDuration))
-	dbReader := covermerger.MakeBQCSVReader()
-	if err = dbReader.InitNsRecords(context.Background(),
+	csvReader, err := covermerger.InitNsRecords(context.Background(),
 		*flagNamespace,
 		*flagFilePathPrefix,
 		"",
 		dateFrom,
 		dateTo,
-	); err != nil {
+	)
+	if err != nil {
 		panic(fmt.Sprintf("failed to dbReader.InitNsRecords: %v", err.Error()))
 	}
-	defer dbReader.Close()
-	csvReader, errReader := dbReader.Reader()
-	if errReader != nil {
-		panic(fmt.Sprintf("failed to dbReader.Reader: %v", errReader.Error()))
-	}
+	defer csvReader.Close()
 	var wc io.WriteCloser
 	url := *flagToGCS
 	if *flagToDashAPI != "" {

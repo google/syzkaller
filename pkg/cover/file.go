@@ -63,21 +63,11 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 	}
 
 	fromDate, toDate := tp.DatesFromTo()
-	dbReader := covermerger.MakeBQCSVReader()
-	if err := dbReader.InitNsRecords(c,
-		ns,
-		filePath,
-		sourceCommit,
-		fromDate,
-		toDate,
-	); err != nil {
-		return nil, fmt.Errorf("failed to dbReader.InitNsRecords: %w", err)
-	}
-	defer dbReader.Close()
-	csvReader, err := dbReader.Reader()
+	csvReader, err := covermerger.InitNsRecords(c, ns, filePath, sourceCommit, fromDate, toDate)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dbReader.Reader: %w", err)
+		return nil, fmt.Errorf("failed to covermerger.InitNsRecords: %w", err)
 	}
+	defer csvReader.Close()
 
 	ch := make(chan *covermerger.FileMergeResult, 1)
 	if err := covermerger.MergeCSVData(c, config, csvReader, ch); err != nil {
