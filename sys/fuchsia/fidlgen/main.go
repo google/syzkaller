@@ -91,7 +91,7 @@ func main() {
 			return pos.File == file
 		}))
 
-		if err := osutil.WriteFile(file, desc); err != nil {
+		if err := osutil.WriteFileAtomically(file, desc); err != nil {
 			tool.Fail(err)
 		}
 	}
