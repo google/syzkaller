@@ -37,6 +37,7 @@ func main() {
 	var (
 		flagConfig = flag.String("config", "", "manager config file")
 		flagBinary = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
+		flagArches = flag.String("arches", "", "comma-separated list of arches to extract (all if empty)")
 	)
 	defer tool.Init()()
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
@@ -46,7 +47,7 @@ func main() {
 	loadProbeInfo := func() (*ifaceprobe.Info, error) {
 		return probe(cfg, *flagConfig)
 	}
-	if _, err := run(filepath.FromSlash("sys/linux/auto.txt"), loadProbeInfo, &clangtool.Config{
+	if _, err := run(filepath.FromSlash("sys/linux/auto.txt"), loadProbeInfo, *flagArches, &clangtool.Config{
 		ToolBin:    *flagBinary,
 		KernelSrc:  cfg.KernelSrc,
 		KernelObj:  cfg.KernelObj,
@@ -57,9 +58,13 @@ func main() {
 	}
 }
 
-func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Config) (
+func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), archList string, cfg *clangtool.Config) (
 	*declextract.Result, error) {
-	out, probeInfo, syscallRename, err := prepare(loadProbeInfo, cfg)
+	arches, err := tool.ParseArchList(target.OS, archList)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arches flag: %w", err)
+	}
+	out, probeInfo, syscallRename, err := prepare(loadProbeInfo, arches, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +128,7 @@ func removeUnused(desc *ast.Description, autoFile string, unusedNodes []ast.Node
 	})
 }
 
-func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Config) (
+func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), arches []string, cfg *clangtool.Config) (
 	*declextract.Output, *ifaceprobe.Info, map[string][]string, error) {
 	var eg errgroup.Group
 	var out *declextract.Output
@@ -147,7 +152,7 @@ func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), cfg *clangtool.Conf
 	var syscallRename map[string][]string
 	eg.Go(func() error {
 		var err error
-		syscallRename, err = buildSyscallRenameMap(cfg.KernelSrc)
+		syscallRename, err = buildSyscallRenameMap(cfg.KernelSrc, arches)
 		if err != nil {
 			return fmt.Errorf("failed to build syscall rename map: %w", err)
 		}
@@ -234,7 +239,7 @@ func finishInterfaces(interfaces []*declextract.Interface, consts map[string]*co
 	}
 }
 
-func buildSyscallRenameMap(sourceDir string) (map[string][]string, error) {
+func buildSyscallRenameMap(sourceDir string, arches []string) (map[string][]string, error) {
 	// Some syscalls have different names and entry points and thus need to be renamed.
 	// e.g. SYSCALL_DEFINE1(setuid16, old_uid_t, uid) is referred to in the .tbl file with setuid.
 	// Parse *.tbl files that map functions defined with SYSCALL_DEFINE macros to actual syscall names.
@@ -244,7 +249,7 @@ func buildSyscallRenameMap(sourceDir string) (map[string][]string, error) {
 	// and then just order arches by name to have deterministic result.
 	// Note: some syscalls may have no record in the tables for the architectures we support.
 	syscalls := make(map[string][]tblSyscall)
-	tblFiles, err := findTblFiles(sourceDir)
+	tblFiles, err := findTblFiles(sourceDir, arches)
 	if err != nil {
 		return nil, err
 	}
@@ -320,9 +325,10 @@ func parseTblFile(data []byte, arch string, syscalls map[string][]tblSyscall) {
 	}
 }
 
-func findTblFiles(sourceDir string) (map[string][]string, error) {
+func findTblFiles(sourceDir string, arches []string) (map[string][]string, error) {
 	files := make(map[string][]string)
-	for _, arch := range targets.List[target.OS] {
+	for _, name := range arches {
+		arch := targets.List[target.OS][name]
 		err := filepath.WalkDir(filepath.Join(sourceDir, "arch", arch.KernelHeaderArch),
 			func(file string, d fs.DirEntry, err error) error {
 				if err == nil && strings.HasSuffix(file, ".tbl") {
