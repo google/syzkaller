@@ -1,7 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-//go:generate bash -c "go run gen/gen.go gen/json/arm64.json | gofmt > generated/insns.go"
+//go:generate go run gen/gen.go gen/json/arm64.json generated/insns.go
 
 // Package arm64 allows to generate and mutate arm64 machine code.
 package arm64

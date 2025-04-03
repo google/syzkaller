@@ -257,6 +257,19 @@ func WriteFile(filename string, data []byte) error {
 	return os.WriteFile(filename, data, DefaultFilePerm)
 }
 
+// WriteFileAtomically writes data to file filename without exposing and empty/partially-written file.
+// This is useful for writing generated source files. Exposing an empty file may break tools
+// that run on  source files in parallel.
+func WriteFileAtomically(filename string, data []byte) error {
+	// We can't use os.CreateTemp b/c it may be on a different mount,
+	// and Rename can't move across mounts.
+	tmpFile := filename + ".tmp"
+	if err := WriteFile(tmpFile, data); err != nil {
+		return err
+	}
+	return os.Rename(tmpFile, filename)
+}
+
 func WriteJSON[T any](filename string, obj T) error {
 	jsonData, err := json.MarshalIndent(obj, "", "\t")
 	if err != nil {
