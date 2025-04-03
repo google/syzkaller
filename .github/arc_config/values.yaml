@@ -197,7 +197,11 @@ template:
       command: ["/home/runner/run.sh"]
       resources:
         requests:
-          cpu: 31
+          cpu: 28
+          memory: 12G
+        limits:
+          cpu: 28
+          memory: 12G
 
 ## Optional controller service account that needs to have required Role and RoleBinding
 ## to operate this gha-runner-scale-set installation.

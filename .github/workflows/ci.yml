@@ -49,7 +49,7 @@ jobs:
           .github/workflows/run.sh make presubmit_aux
 
   build:
-    runs-on: ubuntu-24.04-8core
+    runs-on: arc-cunner-set
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
@@ -80,7 +80,7 @@ jobs:
           verbose: true
 
   dashboard:
-    runs-on: ubuntu-24.04-8core
+    runs-on: arc-cunner-set
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
@@ -136,7 +136,7 @@ jobs:
           .github/workflows/run.sh make ${{ matrix.target }}
 
   race:
-    runs-on: ubuntu-24.04-8core
+    runs-on: arc-cunner-set
     timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
     container: gcr.io/syzkaller/env:latest
     env:
@@ -162,7 +162,7 @@ jobs:
           .github/workflows/run.sh make presubmit_race
 
   race_dashboard:
-    runs-on: ubuntu-24.04-8core
+    runs-on: arc-runner-set
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
