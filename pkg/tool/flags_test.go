@@ -4,6 +4,7 @@
 package tool
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseFlags(t *testing.T) {
@@ -82,5 +84,42 @@ func TestCfgsFlagAlreadySet(t *testing.T) {
 	cfgs := &CfgsFlag{"a", "b", "c"}
 	if err := cfgs.Set("a, b, c"); err == nil {
 		t.Errorf("cfgs.Set got: nil, want: error")
+	}
+}
+
+func TestParseArchList(t *testing.T) {
+	type Test struct {
+		OS  string
+		In  string
+		Out []string
+		Err error
+	}
+	tests := []Test{
+		{
+			OS:  "foo",
+			Err: errors.New(`bad OS "foo"`),
+		},
+		{
+			OS:  "linux",
+			In:  "amd64,bar",
+			Err: errors.New(`bad arch "bar" for OS "linux" in arches flag`),
+		},
+		{
+			OS:  "linux",
+			In:  "",
+			Out: []string{"386", "amd64", "arm", "arm64", "mips64le", "ppc64le", "riscv64", "s390x"},
+		},
+		{
+			OS:  "linux",
+			In:  "ppc64le,386",
+			Out: []string{"386", "ppc64le"},
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			got, err := ParseArchList(test.OS, test.In)
+			assert.Equal(t, err, test.Err)
+			assert.Equal(t, got, test.Out)
+		})
 	}
 }
