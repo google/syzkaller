@@ -195,11 +195,19 @@ void Extractor::run(const MatchFinder::MatchResult& Result, MatchFunc Action) {
 
 template <typename T> const T* Extractor::getResult(StringRef ID) const { return Nodes->getNodeAs<T>(ID); }
 
+std::string TypeName(QualType QT) {
+  std::string Name = QT.getAsString();
+  auto Attr = Name.find(" __attribute__");
+  if (Attr != std::string::npos)
+    Name = Name.substr(0, Attr);
+  return Name;
+}
+
 // Top function that converts any clang type QT to our output type.
 FieldType Extractor::genType(QualType QT, const std::string& BackupName) {
   const Type* T = QT.IgnoreParens().getUnqualifiedType().getDesugaredType(*Context).getTypePtr();
   if (auto* Typ = llvm::dyn_cast<BuiltinType>(T)) {
-    return IntType{.ByteSize = sizeofType(T), .Name = QT.getAsString(), .Base = QualType(T, 0).getAsString()};
+    return IntType{.ByteSize = sizeofType(T), .Name = TypeName(QT), .Base = QualType(T, 0).getAsString()};
   }
   if (auto* Typ = llvm::dyn_cast<EnumType>(T)) {
     return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(Typ->getDecl())};

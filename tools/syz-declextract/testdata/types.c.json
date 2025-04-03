@@ -37,7 +37,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126316",
+									"struct": "11253655576479126317",
 									"field": "x"
 								}
 							}
@@ -51,7 +51,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126318",
+									"struct": "11253655576479126319",
 									"field": "y"
 								}
 							}
@@ -65,7 +65,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126319",
+									"struct": "11253655576479126320",
 									"field": "w"
 								}
 							}
@@ -79,22 +79,8 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126309",
+									"struct": "11253655576479126310",
 									"field": "f"
-								}
-							}
-						},
-						{
-							"src": {
-								"argument": {
-									"func": "anon_flow",
-									"arg": 0
-								}
-							},
-							"dst": {
-								"field": {
-									"struct": "11253655576479126322",
-									"field": "a"
 								}
 							}
 						},
@@ -122,11 +108,46 @@
 							"dst": {
 								"field": {
 									"struct": "11253655576479126324",
+									"field": "a"
+								}
+							}
+						},
+						{
+							"src": {
+								"argument": {
+									"func": "anon_flow",
+									"arg": 0
+								}
+							},
+							"dst": {
+								"field": {
+									"struct": "11253655576479126325",
 									"field": "b"
 								}
 							}
 						}
 					]
+				}
+			]
+		},
+		{
+			"name": "atomic_load32",
+			"file": "include/types.h",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		},
+		{
+			"name": "atomic_load64",
+			"file": "include/types.h",
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
 				}
 			]
 		}
@@ -938,6 +959,36 @@
 						"ptr": {
 							"elem": {
 								"struct": "various"
+							}
+						}
+					}
+				},
+				{
+					"name": "pi",
+					"counted_by": -1,
+					"type": {
+						"ptr": {
+							"elem": {
+								"int": {
+									"byte_size": 4,
+									"name": "int",
+									"base": "int"
+								}
+							}
+						}
+					}
+				},
+				{
+					"name": "pu",
+					"counted_by": -1,
+					"type": {
+						"ptr": {
+							"elem": {
+								"int": {
+									"byte_size": 4,
+									"name": "u32",
+									"base": "unsigned int"
+								}
 							}
 						}
 					}
