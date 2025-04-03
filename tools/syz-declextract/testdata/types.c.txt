@@ -11,7 +11,7 @@ type auto_aligner[N] {
 bitfield_enum$auto = a, b, c
 
 align_syscall$auto(a1 ptr[inout, align1$auto], a2 ptr[inout, align2$auto], a3 ptr[inout, align3$auto], a4 ptr[inout, align4$auto])
-types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, auto_aligner[1]], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto])
+types_syscall$auto(p ptr[inout, anon_struct$auto], y ptr[inout, auto_aligner[1]], b ptr[inout, bitfields$auto], pid pid, f int32, v ptr[inout, various$auto], pi ptr[inout, int32], pu ptr[inout, int32])
 
 align1$auto {
 	f1	int8

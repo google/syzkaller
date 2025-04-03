@@ -10,6 +10,8 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
+#define __user __attribute__((btf_type_tag("user")))
+
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 static inline u32 atomic_load32(u32* p) {
