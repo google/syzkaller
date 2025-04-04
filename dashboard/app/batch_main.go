@@ -46,7 +46,7 @@ func createScriptJob(ctx context.Context, projectID, jobNamePrefix, script strin
 				ComputeResource: &batchpb.ComputeResource{
 					// CpuMilli is milliseconds per cpu-second. This means the task requires 8 whole CPUs.
 					CpuMilli:  8000,
-					MemoryMib: 12 * 1024,
+					MemoryMib: 30 * 1024,
 				},
 				MaxRunDuration: &durationpb.Duration{
 					Seconds: timeout,
@@ -62,8 +62,14 @@ func createScriptJob(ctx context.Context, projectID, jobNamePrefix, script strin
 		Instances: []*batchpb.AllocationPolicy_InstancePolicyOrTemplate{{
 			PolicyTemplate: &batchpb.AllocationPolicy_InstancePolicyOrTemplate_Policy{
 				Policy: &batchpb.AllocationPolicy_InstancePolicy{
-					ProvisioningModel: batchpb.AllocationPolicy_SPOT,
-					MachineType:       "c3-highcpu-8",
+					// Spot machines may also be used here.
+					// The problem with spot machines is the high probability of preemption on long runs.
+					// Quarter long coverage merge costs 4 hours on 8 cores and we trigger it only once/week.
+					// TODO(tarasmadan): switch back to the spot machines in combination with higher retry count
+					ProvisioningModel: batchpb.AllocationPolicy_STANDARD,
+					// Quarter long aggregation OOMs on machine with 16 gigs and 8 cores.
+					// It is important to use machine with min 32 gigs for 8 cores.
+					MachineType: "e2-standard-8",
 				},
 			},
 			InstallOpsAgent: true,
