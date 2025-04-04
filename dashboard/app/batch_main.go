@@ -66,6 +66,7 @@ func createScriptJob(ctx context.Context, projectID, jobNamePrefix, script strin
 					MachineType:       "c3-highcpu-8",
 				},
 			},
+			InstallOpsAgent: true,
 		}},
 		ServiceAccount: sa,
 	}
