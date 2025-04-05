@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in ip6_mc_del1_src
 ALT: bad-access in ip6_mc_del1_src
+TYPE: KASAN
 
 [  312.699657][ T5007] BUG: KASAN: invalid-access in __list_add_valid+0x10/0x90
 [  312.701749][ T5007] Read at addr f6ff00001d527690 by task syz-executor.1/5007

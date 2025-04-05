@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in ucma_destroy_id
 ALT: bad-access in ucma_destroy_id
+TYPE: KASAN
 
 [  308.398169] ==================================================================
 [  308.405617] BUG: KASAN: use-after-free in __lock_acquire+0x37c2/0x4ec0

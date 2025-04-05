@@ -1,0 +1,102 @@
+TITLE: BUG: Bad page state in bpf_test_run_xdp_live
+EXECUTOR: proc=3, id=584
+
+[  360.589544][ T8978] BUG: Bad page state in process syz.3.584  pfn:7071f
+[  360.597807][ T8978] page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x7f467f1e8 pfn:0x7071f
+[  360.607825][ T8978] flags: 0xfff00000000000(node=0|zone=1|lastcpupid=0x7ff)
+[  360.615503][ T8978] raw: 00fff00000000000 dead000000000040 ffff888062a17000 0000000000000000
+[  360.624597][ T8978] raw: 00000007f467f1e8 0000000000000001 00000000ffffffff 0000000000000000
+[  360.633711][ T8978] page dumped because: page_pool leak
+[  360.639671][ T8978] page_owner tracks the page as allocated
+[  360.646064][ T8978] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x102820(GFP_ATOMIC|__GFP_NOWARN|__GFP_HARDWALL), pid 8978, tgid 8974 (syz.3.584), ts 360393802361, free_ts 357078876492
+[  360.665078][ T8978]  post_alloc_hook+0x1f3/0x230
+[  360.670446][ T8978]  get_page_from_freelist+0x2e4c/0x2f10
+SYZFAIL: failed to recv rpc
+fd=3 want=4 recv=0 n=0 (errno 9: Bad file descriptor)
+[  360.676464][ T8978]  __alloc_pages_noprof+0x256/0x6c0
+[  360.682165][ T8978]  alloc_pages_bulk_noprof+0x729/0xd40
+[  360.687981][ T8978]  __page_pool_alloc_pages_slow+0x138/0x690
+[  360.694427][ T8978]  page_pool_alloc_pages+0xcb/0x150
+[  360.700249][ T8978]  bpf_test_run_xdp_live+0x939/0x2110
+[  360.706140][ T8978]  bpf_prog_test_run_xdp+0x80e/0x11b0
+[  360.711890][ T8978]  bpf_prog_test_run+0x33a/0x3b0
+[  360.717211][ T8978]  __sys_bpf+0x48d/0x810
+[  360.721880][ T8978]  __x64_sys_bpf+0x7c/0x90
+[  360.726896][ T8978]  do_syscall_64+0xf3/0x230
+[  360.731978][ T8978]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  360.738203][ T8978] page last free pid 8932 tgid 8930 stack trace:
+[  360.744932][ T8978]  free_unref_page+0xd22/0xea0
+[  360.750056][ T8978]  vfree+0x186/0x2e0
+[  360.754447][ T8978]  bpf_check+0x7daa/0x19630
+[  360.759581][ T8978]  bpf_prog_load+0x1667/0x20f0
+[  360.764781][ T8978]  __sys_bpf+0x4ee/0x810
+[  360.769481][ T8978]  __x64_sys_bpf+0x7c/0x90
+[  360.774349][ T8978]  do_syscall_64+0xf3/0x230
+[  360.779190][ T8978]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  360.785680][ T8978] Modules linked in:
+[  360.790303][ T8978] CPU: 1 UID: 0 PID: 8978 Comm: syz.3.584 Not tainted 6.11.0-rc6-syzkaller-00183-gb831f83e40a2 #0
+[  360.800948][ T8978] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/06/2024
+[  360.811056][ T8978] Call Trace:
+[  360.814367][ T8978]  <TASK>
+[  360.817327][ T8978]  dump_stack_lvl+0x241/0x360
+[  360.822051][ T8978]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  360.827292][ T8978]  ? __pfx_print_modules+0x10/0x10
+[  360.832477][ T8978]  bad_page+0x18e/0x200
+[  360.836687][ T8978]  free_unref_page+0xe47/0xea0
+[  360.841504][ T8978]  ? compound_order+0x1a/0x60
+[  360.846238][ T8978]  skb_release_data+0x6b2/0x880
+[  360.851155][ T8978]  sk_skb_reason_drop+0x1a5/0x3d0
+[  360.856235][ T8978]  __netif_receive_skb_core+0x3edd/0x4570
+[  360.862030][ T8978]  ? trace_call_bpf+0x613/0x8a0
+[  360.866928][ T8978]  ? trace_call_bpf+0x613/0x8a0
+[  360.871832][ T8978]  ? __pfx___netif_receive_skb_core+0x10/0x10
+[  360.877954][ T8978]  ? __pfx_trace_call_bpf+0x10/0x10
+[  360.883200][ T8978]  ? __pfx_trace_call_bpf+0x10/0x10
+[  360.888548][ T8978]  ? mark_lock+0x9a/0x350
+[  360.892935][ T8978]  ? perf_trace_run_bpf_submit+0x10b/0x180
+[  360.898792][ T8978]  ? perf_trace_preemptirq_template+0x2d2/0x3f0
+[  360.905089][ T8978]  ? irqentry_enter+0x39/0x60
+[  360.909829][ T8978]  __netif_receive_skb_list_core+0x2b7/0x980
+[  360.916050][ T8978]  ? lockdep_hardirqs_on+0x99/0x150
+[  360.921285][ T8978]  ? __pfx___netif_receive_skb_list_core+0x10/0x10
+[  360.927908][ T8978]  ? netif_receive_skb_list_internal+0x970/0xe30
+[  360.934260][ T8978]  ? netif_receive_skb_list_internal+0x4e8/0xe30
+[  360.940714][ T8978]  netif_receive_skb_list_internal+0xa51/0xe30
+[  360.946925][ T8978]  ? netif_receive_skb_list_internal+0x4e8/0xe30
+[  360.953322][ T8978]  ? __pfx_netif_receive_skb_list_internal+0x10/0x10
+[  360.960049][ T8978]  ? __pfx_eth_type_trans+0x10/0x10
+[  360.965352][ T8978]  ? __phys_addr+0xba/0x170
+[  360.969866][ T8978]  ? build_skb_around+0x111/0x260
+[  360.974911][ T8978]  ? __xdp_build_skb_from_frame+0x338/0x650
+[  360.980856][ T8978]  netif_receive_skb_list+0x55/0x4b0
+[  360.986167][ T8978]  bpf_test_run_xdp_live+0x1af6/0x2110
+[  360.991638][ T8978]  ? bpf_dispatcher_change_prog+0xd8b/0xf10
+[  360.997569][ T8978]  ? bpf_test_run_xdp_live+0x5bf/0x2110
+[  361.003126][ T8978]  ? __pfx_bpf_test_run_xdp_live+0x10/0x10
+[  361.008944][ T8978]  ? synchronize_rcu+0x11b/0x360
+[  361.013919][ T8978]  ? __pfx_synchronize_rcu+0x10/0x10
+[  361.019246][ T8978]  ? __pfx_bpf_dispatcher_change_prog+0x10/0x10
+[  361.025607][ T8978]  ? __pfx_xdp_test_run_init_page+0x10/0x10
+[  361.031528][ T8978]  ? bpf_prog_test_run_xdp+0x746/0x11b0
+[  361.037260][ T8978]  ? bpf_prog_change_xdp+0x12/0x30
+[  361.042399][ T8978]  bpf_prog_test_run_xdp+0x80e/0x11b0
+[  361.047821][ T8978]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[  361.053692][ T8978]  ? __pfx_bpf_prog_test_run_xdp+0x10/0x10
+[  361.059702][ T8978]  bpf_prog_test_run+0x33a/0x3b0
+[  361.064663][ T8978]  __sys_bpf+0x48d/0x810
+[  361.068922][ T8978]  ? __pfx___sys_bpf+0x10/0x10
+[  361.073696][ T8978]  ? lockdep_hardirqs_on_prepare+0x43d/0x780
+[  361.079816][ T8978]  __x64_sys_bpf+0x7c/0x90
+[  361.084250][ T8978]  do_syscall_64+0xf3/0x230
+[  361.088855][ T8978]  ? clear_bhb_loop+0x35/0x90
+[  361.093554][ T8978]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  361.099477][ T8978] RIP: 0033:0x7f90d937def9
+[  361.103911][ T8978] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[  361.123535][ T8978] RSP: 002b:00007f90da180038 EFLAGS: 00000246 ORIG_RAX: 0000000000000141
+[  361.132052][ T8978] RAX: ffffffffffffffda RBX: 00007f90d9536058 RCX: 00007f90d937def9
+[  361.140056][ T8978] RDX: 0000000000000048 RSI: 0000000020000600 RDI: 000000000000000a
+[  361.148036][ T8978] RBP: 00007f90d93f0b76 R08: 0000000000000000 R09: 0000000000000000
+[  361.156015][ T8978] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  361.164079][ T8978] R13: 0000000000000000 R14: 00007f90d9536058 R15: 00007fff89b68ce8
+[  361.172081][ T8978]  </TASK>
+[  361.175540][ T8978] Disabling lock debugging due to kernel taint

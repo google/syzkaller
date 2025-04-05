@@ -1,4 +1,5 @@
 TITLE: possible deadlock in input_event
+TYPE: LOCKDEP
 
 
 [  414.269022][T17509] =====================================================

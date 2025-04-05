@@ -1,4 +1,5 @@
 # Syscall description language
+
 aka `syzlang` (`[siːzˈlæŋg]`)
 
 Pseudo-formal grammar of syscall description:
@@ -9,7 +10,7 @@ arg = argname type
 argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
-	   "string" | "strconst" | "filename" | "glob" | "len" |
+	   "string" | "filename" | "glob" | "len" |
 	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc" |
 	   "compressed_image"
 type-options = [type-opt ["," type-opt]]
@@ -27,8 +28,10 @@ rest of the type-options are type-specific:
 "const": integer constant, type-options:
 	value, underlying type (one of "intN", "intptr")
 "intN"/"intptr": an integer without a particular meaning, type-options:
-	optional range of values (e.g. "5:10", or "100:200"),
-	optionally followed by an alignment parameter
+	either an optional range of values (e.g. "5:10", or "100:200")
+	or a reference to flags description (see below),
+	or a single value
+	optionally followed by an alignment parameter if using a range
 "flags": a set of values, type-options:
 	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
@@ -48,7 +51,7 @@ rest of the type-options are type-specific:
 	(e.g. "/sys/" or "/sys/**/*"),
 	or include exclude glob too (e.g. "/sys/**/*:-/sys/power/state")
 "fmt": a string representation of an integer (not zero-terminated), type-options:
-	format (one of "dec", "hex", "oct") and the value (a resource, int, flags, const or proc)
+	format (one of "dec", "hex", "oct") and the value (a resource, int, flags or proc)
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
@@ -65,7 +68,8 @@ rest of the type-options are type-specific:
 	value range start, how many values per process, underlying type
 "compressed_image": zlib-compressed disk image
 	syscalls accepting compressed images must be marked with `no_generate`
-	and `no_minimize` call attributes.
+	and `no_minimize` call attributes. if the content of the decompressed image
+	can be checked by a `fsck`-like command, use the `fsck` syscall attribute
 "text": machine code of the specified type, type-options:
 	text type (x86_real, x86_16, x86_32, x86_64, arm64)
 "void": type with static size 0
@@ -99,6 +103,9 @@ Call attributes are:
 "breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
 "no_generate": do not try to generate this syscall, i.e. use only seed descriptions to produce it.
 "no_minimize": do not modify instances of this syscall when trying to minimize a crashing program.
+"fsck": the content of the compressed buffer argument for this syscall is a file system and the
+    string argument is a fsck-like command that will be called to verify the filesystem
+"remote_cover": wait longer to collect remote coverage for this call.
 ```
 
 ## Ints
@@ -109,6 +116,9 @@ Call attributes are:
 By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
 It's possible to specify a range of values for an integer in the format of `int32[0:100]` or `int32[0:4096, 512]` for a 512-aligned int.
+
+Integers can also take a reference to flags description or a value as its first type-option.
+In that case, the alignment parameter is not supported.
 
 To denote a bitfield of size N use `int64:N`.
 
@@ -121,6 +131,8 @@ example_struct {
 	f2	int32[0:100]		# random 4-byte integer with values from 0 to 100 inclusive
 	f3	int32[1:10, 2]		# random 4-byte integer with values {1, 3, 5, 7, 9}
 	f4	int64:20		# random 20-bit bitfield
+	f5	int8[10]		# const 1-byte integer with value 10
+	f6	int32[flagname]		# random 4-byte integer from the set of values referenced by flagname
 }
 ```
 
@@ -130,7 +142,7 @@ Structs are described as:
 
 ```
 structname "{" "\n"
-	(fieldname type ("(" fieldattribute* ")")? "\n")+
+	(fieldname type ("(" fieldattribute* ")")? (if[expression])? "\n")+
 "}" ("[" attribute* "]")?
 ```
 
@@ -144,6 +156,18 @@ foo {
 	field2	fd		(out)
 }
 ```
+
+You may specify conditions that determine whether a field will be included:
+
+```
+foo {
+	field0	int32
+	field1	int32 (if[value[field0] == 0x1])
+}
+```
+
+See [the corresponding section](syscall_descriptions_syntax.md#conditional-fields)
+for more details.
 
 `out_overlay` attribute allows to have separate input and output layouts for the struct.
 Fields before the `out_overlay` field are input, fields starting from `out_overlay` are output.
@@ -160,7 +184,6 @@ foo {
 }
 ```
 
-
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
 
@@ -174,9 +197,16 @@ Unions are described as:
 
 ```
 unionname "[" "\n"
-	(fieldname type "\n")+
+	(fieldname type (if[expression])? "\n")+
 "]" ("[" attribute* "]")?
 ```
+
+During fuzzing, syzkaller randomly picks one of the union options.
+
+You may also specify conditions that determine whether the corresponding
+option may or may not be selected, depending on values of other fields. See
+[the corresponding section](syscall_descriptions_syntax.md#conditional-fields)
+for more details.
 
 Unions can have attributes specified in square brackets after the union.
 Attributes are:
@@ -261,6 +291,7 @@ arguments as well. Underlying types are currently restricted to integer types,
 `ptr`, `ptr64`, `const`, `flags` and `proc` types.
 
 There are some builtin type aliases:
+
 ```
 type bool8	int8[0:1]
 type bool16	int16[0:1]
@@ -278,6 +309,7 @@ type buffer[DIR] ptr[DIR, array[int8]]
 ## Type Templates
 
 Type templates can be declared as follows:
+
 ```
 type buffer[DIR] ptr[DIR, array[int8]]
 type fileoff[BASE] BASE
@@ -289,11 +321,13 @@ type nlattr[TYPE, PAYLOAD] {
 ```
 
 and later used as follows:
+
 ```
 syscall(a buffer[in], b fileoff[int64], c ptr[in, nlattr[FOO, int32]])
 ```
 
 There is builtin type template `optional` defined as:
+
 ```
 type optional[T] [
 	val	T
@@ -393,8 +427,182 @@ foo(a const[10], b const[-10])
 foo(a const[0xabcd])
 foo(a int8['a':'z'])
 foo(a const[PATH_MAX])
+foo(a int32[PATH_MAX])
 foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
+```
+
+## Conditional fields
+
+### In structures
+
+In syzlang, it's possible to specify a condition for every struct field that
+determines whether the field should be included or omitted:
+
+```
+header_fields {
+  magic       const[0xabcd, int16]
+  haveInteger int8
+} [packed]
+
+packet {
+  header  header_fields
+  integer int64  (if[value[header:haveInteger] == 0x1])
+  body    array[int8]
+} [packed]
+
+some_call(a ptr[in, packet])
+```
+
+In this example, the `packet` structure will include the field `integer` only
+if `header.haveInteger == 1`. In memory, `packet` will have the following
+layout:
+
+| header.magic = 0xabcd | header.haveInteger = 0x1 | integer | body |
+| --------------------- | ------------------------ | ------- | ---- |
+
+That corresponds to e.g. the following program:
+
+```
+some_call(&AUTO={{AUTO, 0x1}, @value=0xabcd, []})
+```
+
+If `header.haveInteger` is not `1`, syzkaller will just pretend that the field
+`integer` does not exist.
+
+```
+some_call(&AUTO={{AUTO, 0x0}, @void, []})
+```
+
+| header.magic = 0xabcd | header.haveInteger = 0x0 | body |
+| --------------------- | ------------------------ | ---- |
+
+Every conditional field is assumed to be of variable length and so is the struct
+to which this field belongs.
+
+When a variable length field appears in the middle of a structure, the structure
+must be marked with `[packed].`
+
+Conditions on bitfields are prohibited:
+
+```
+struct {
+  f0 int
+  f1 int:3 (if[value[f0] == 0x1])  # It will not compile.
+}
+```
+
+But you may reference bitfields in your conditions:
+
+```
+struct {
+  f0 int:1
+  f1 int:7
+  f2 int   (if[value[f0] == value[f1]])
+} [packed]
+```
+
+### In unions
+
+Let's consider the following example.
+
+```
+struct {
+  type int
+  body alternatives
+}
+
+alternatives [
+  int     int64 (if[value[struct:type] == 0x1])
+  arr     array[int64, 5] (if[value[struct:type] == 0x2])
+  default int32
+] [varlen]
+
+some_call(a ptr[in, struct])
+```
+
+In this case, the union option will be selected depending on the value of the
+`type` field. For example, if `type` is `0x1`, then it can be either `int` or
+`default`:
+
+```
+some_call(&AUTO={0x1, @int=0x123})
+some_call(&AUTO={0x1, @default=0x123})
+```
+
+If `type` is `0x2`, it can be either `arr` or `default`.
+
+If `type` is neither `0x1` nor `0x2`, syzkaller may only select `default`:
+
+```
+some_call(&AUTO={0x0, @default=0xabcd})
+```
+
+To ensure that a union can always be constructed, the last union field **must always
+have no condition**.
+
+Thus, the following definition would fail to compile:
+
+```
+alternatives [
+  int int64 (if[value[struct:type] == 0x1])
+  arr array[int64, 5] (if[value[struct:type] == 0x1])
+] [varlen]
+```
+
+During prog mutation and generation syzkaller will select a random union field
+whose condition is satisfied.
+
+### Expression syntax
+
+Currently, only `==`, `!=`, `&` and `||` operators are supported. However, the
+functionality was designed in such a way that adding more operators is easy.
+Feel free to file a GitHub issue or write us an email in case it's needed.
+
+Expressions are evaluated as `int64` values. If the final result of an
+expression is not 0, it's assumed to be satisfied.
+
+If you want to reference a field's value, you can do it via
+`value[path:to:field]`, which is similar to the `len[]` argument.
+
+```
+sub_struct {
+  f0 int
+  # Reference a field in a parent struct.
+  f1 int (if[value[struct:f2]]) # Same as if[value[struct:f2] != 0].
+}
+
+struct {
+  f2 int
+  f3 sub_struct
+  f4 int (if[value[f2] == 0x2]) # Reference a sibling field.
+  f5 int (if[value[f3:f0] == 0x1]) # Reference a nested field.
+  f6 int (if[value[f3:f0] == 0x1 || value[f3:f0] == 0x2]) # Reference a nested field which either equals to 0x1 or 0x2.
+} [packed]
+
+call(a ptr[in, struct])
+```
+
+The referenced field must be of integer type and there must be no
+conditional fields in the path to it. For example, the following
+descriptions will not compile.
+
+```
+struct {
+  f0 int
+  f1 int (if[value[f0] == 0x1])
+  f2 int (if[value[f1] == 0x1])
+}
+```
+
+You may also reference constants in expressions:
+
+```
+struct {
+  f0 int
+  f1 int
+  f2 int (if[value[f0] & SOME_CONST == OTHER_CONST])
+}
 ```
 
 ## Meta
@@ -404,12 +612,14 @@ Description files can also contain `meta` directives that specify meta-informati
 ```
 meta noextract
 ```
+
 Tells `make extract` to not extract constants for this file.
 Though, `syz-extract` can still be invoked manually on this file.
 
 ```
 meta arches["arch1", "arch2"]
 ```
+
 Restricts this file only to the given set of architectures.
 `make extract` and `make generate` will not use it on other architectures.
 

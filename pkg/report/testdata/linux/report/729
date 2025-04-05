@@ -1,0 +1,64 @@
+TITLE: BUG: Bad page state in xdp_test_run_batch
+EXECUTOR: proc=2, id=1806
+
+[ 6943.176781][T18955] BUG: Bad page state in process syz.2.1806  pfn:ab652
+[ 6943.179593][T18955] page: refcount:0 mapcount:0 mapping:0000000000000000 index:0xff6000002b6529b0 pfn:0xab652
+[ 6943.182640][T18955] flags: 0xffe000000000000(node=0|zone=0|lastcpupid=0x7ff)
+[ 6943.184880][T18955] raw: 0ffe000000000000 dead000000000040 ff6000002b4ee000 0000000000000000
+[ 6943.186127][T18955] raw: ff6000002b6529b0 0000000000000001 00000000ffffffff 0000000000000000
+[ 6943.187334][T18955] page dumped because: page_pool leak
+[ 6943.188397][T18955] page_owner tracks the page as allocated
+[ 6943.189327][T18955] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x2820(GFP_ATOMIC|__GFP_NOWARN), pid 18955, tgid 18954 (syz.2.1806), ts 6942768126800, free_ts 6922500215400
+[ 6943.192178][T18955]  __set_page_owner+0xa2/0x70c
+[ 6943.194763][T18955]  post_alloc_hook+0xec/0x1e4
+[ 6943.196024][T18955]  get_page_from_freelist+0xdaa/0x295a
+[ 6943.197105][T18955]  __alloc_pages_noprof+0x1e2/0x1eb6
+[ 6943.198213][T18955]  alloc_pages_bulk_noprof+0x252/0x13d8
+[ 6943.199303][T18955]  __page_pool_alloc_pages_slow+0x18e/0xc50
+[ 6943.200438][T18955]  page_pool_alloc_netmem+0xc0/0x158
+[ 6943.202454][T18955]  page_pool_alloc_pages+0x20/0x62
+[ 6943.203536][T18955]  xdp_test_run_batch.constprop.0+0x362/0x1816
+[ 6943.204774][T18955]  bpf_test_run_xdp_live+0x2f6/0x49e
+[ 6943.205812][T18955]  bpf_prog_test_run_xdp+0x7f6/0x15a8
+[ 6943.206885][T18955]  __sys_bpf+0xd14/0x42cc
+[ 6943.207849][T18955]  __riscv_sys_bpf+0x6c/0x9e
+[ 6943.208816][T18955]  syscall_handler+0x94/0x118
+[ 6943.209765][T18955]  do_trap_ecall_u+0x1aa/0x216
+[ 6943.210830][T18955]  _new_vmalloc_restore_context_a0+0xc2/0xce
+[ 6943.212776][T18955] page last free pid 16342 tgid 16342 stack trace:
+[ 6943.213711][T18955]  __reset_page_owner+0x8c/0x400
+[ 6943.214879][T18955]  free_unref_page+0x592/0xf08
+[ 6943.215954][T18955]  __free_pages+0x13c/0x1bc
+[ 6943.216965][T18955]  vfree+0x1b6/0xc88
+[ 6943.217862][T18955]  delayed_vfree_work+0x58/0x7a
+[ 6943.218963][T18955]  process_one_work+0x956/0x1dae
+[ 6943.220158][T18955]  worker_thread+0x5be/0xdc6
+[ 6943.221845][T18955]  kthread+0x28c/0x3a6
+[ 6943.222912][T18955]  ret_from_fork+0xe/0x18
+[ 6943.224075][T18955] Modules linked in:
+[ 6943.226712][T18955] CPU: 0 UID: 0 PID: 18955 Comm: syz.2.1806 Not tainted 6.12.0-rc1-syzkaller-00012-g5f153a692bac #0
+[ 6943.228035][T18955] Hardware name: riscv-virtio,qemu (DT)
+[ 6943.228890][T18955] Call Trace:
+[ 6943.229574][T18955] [<ffffffff80010a14>] dump_backtrace+0x2e/0x3c
+[ 6943.230594][T18955] [<ffffffff85f7c3cc>] show_stack+0x34/0x40
+[ 6943.231591][T18955] [<ffffffff85fd797a>] dump_stack_lvl+0x122/0x196
+[ 6943.232579][T18955] [<ffffffff85fd7a0a>] dump_stack+0x1c/0x24
+[ 6943.233616][T18955] [<ffffffff808b0b06>] bad_page+0x268/0x2da
+[ 6943.234633][T18955] [<ffffffff808bcb18>] free_unref_page+0x78a/0xf08
+[ 6943.235655][T18955] [<ffffffff808be53a>] page_frag_free+0x21c/0x268
+[ 6943.236731][T18955] [<ffffffff84c97152>] skb_free_head+0x1ce/0x2ec
+[ 6943.237605][T18955] [<ffffffff84ca2952>] skb_release_data+0x6ec/0x86a
+[ 6943.238517][T18955] [<ffffffff84cac65c>] sk_skb_reason_drop+0x130/0x180
+[ 6943.239464][T18955] [<ffffffff84d1d4cc>] __netif_receive_skb_core.constprop.0+0x650/0x4374
+[ 6943.240513][T18955] [<ffffffff84d213ae>] __netif_receive_skb_list_core+0x1be/0x75e
+[ 6943.241604][T18955] [<ffffffff84d24b66>] netif_receive_skb_list_internal+0x64e/0xc36
+[ 6943.242741][T18955] [<ffffffff84d251ae>] netif_receive_skb_list+0x60/0x634
+[ 6943.243807][T18955] [<ffffffff850c688a>] xdp_test_run_batch.constprop.0+0x1244/0x1816
+[ 6943.244815][T18955] [<ffffffff850c7152>] bpf_test_run_xdp_live+0x2f6/0x49e
+[ 6943.245749][T18955] [<ffffffff850cb85c>] bpf_prog_test_run_xdp+0x7f6/0x15a8
+[ 6943.246761][T18955] [<ffffffff804ef2e2>] __sys_bpf+0xd14/0x42cc
+[ 6943.247633][T18955] [<ffffffff804f35f2>] __riscv_sys_bpf+0x6c/0x9e
+[ 6943.248528][T18955] [<ffffffff8000f2d4>] syscall_handler+0x94/0x118
+[ 6943.249469][T18955] [<ffffffff85fd9c4a>] do_trap_ecall_u+0x1aa/0x216
+[ 6943.250446][T18955] [<ffffffff85ffcac6>] _new_vmalloc_restore_context_a0+0xc2/0xce
+[ 6943.252764][T18955] Disabling lock debugging due to kernel taint

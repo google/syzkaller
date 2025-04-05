@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in ntfs_fill_super
+TYPE: LOCKDEP
 
 [ 1336.868665][ T9712] ================================
 [ 1336.869886][ T9712] WARNING: inconsistent lock state

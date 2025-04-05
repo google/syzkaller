@@ -5,17 +5,21 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/appengine/v2/user"
 )
 
 // TestAccessConfig checks that access level were properly assigned throughout the config.
 func TestAccessConfig(t *testing.T) {
+	config := getConfig(context.Background())
 	tests := []struct {
 		what  string
 		want  AccessLevel
@@ -39,11 +43,8 @@ func TestAccessConfig(t *testing.T) {
 }
 
 // TestAccess checks that all UIs respect access levels.
-// nolint: funlen
+// nolint: funlen, goconst
 func TestAccess(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -161,7 +162,7 @@ func TestAccess(t *testing.T) {
 		c.expectOK(err)
 		crash, _, err := findCrashForBug(c.ctx, bug)
 		c.expectOK(err)
-		bugID := bug.keyHash()
+		bugID := bug.keyHash(c.ctx)
 		entities = append(entities, []entity{
 			{
 				level: level,
@@ -223,6 +224,17 @@ func TestAccess(t *testing.T) {
 					strconv.FormatUint(uint64(crash.ReproSyz), 16)),
 			},
 			{
+				level: level,
+				ref:   fmt.Sprint(crash.ReproLog),
+				url:   fmt.Sprintf("/text?tag=ReproLog&id=%v", crash.ReproLog),
+			},
+			{
+				level: level,
+				ref:   fmt.Sprint(crash.ReproLog),
+				url: fmt.Sprintf("/text?tag=ReproLog&x=%v",
+					strconv.FormatUint(uint64(crash.ReproLog), 16)),
+			},
+			{
 				level: nsLevel,
 				ref:   fmt.Sprint(crash.MachineInfo),
 				url:   fmt.Sprintf("/text?tag=MachineInfo&id=%v", crash.MachineInfo),
@@ -241,7 +253,7 @@ func TestAccess(t *testing.T) {
 		build, err := loadBuild(c.ctx, ns, buildID)
 		c.expectOK(err)
 		entities = append(entities, entity{
-			level: config.Namespaces[ns].AccessLevel,
+			level: c.config().Namespaces[ns].AccessLevel,
 			ref:   build.ID,
 			url:   fmt.Sprintf("/text?tag=KernelConfig&id=%v", build.KernelConfig),
 		})
@@ -267,10 +279,10 @@ func TestAccess(t *testing.T) {
 	// duplicate/similar cross-references.
 	for _, ns := range []string{"access-admin", "access-user", "access-public"} {
 		clientName, clientKey := "", ""
-		for k, v := range config.Namespaces[ns].Clients {
+		for k, v := range c.config().Namespaces[ns].Clients {
 			clientName, clientKey = k, v
 		}
-		nsLevel := config.Namespaces[ns].AccessLevel
+		nsLevel := c.config().Namespaces[ns].AccessLevel
 		namespaceAccessPrefix := accessLevelPrefix(nsLevel)
 		client := c.makeClient(clientName, clientKey, true)
 		build := testBuild(1)
@@ -279,7 +291,7 @@ func TestAccess(t *testing.T) {
 		noteBuildAccessLevel(ns, build.ID)
 
 		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
-			accessLevel := config.Namespaces[ns].Reporting[reportingIdx].AccessLevel
+			accessLevel := c.config().Namespaces[ns].Reporting[reportingIdx].AccessLevel
 			accessPrefix := accessLevelPrefix(accessLevel)
 
 			crashInvalid := testCrashWithRepro(build, reportingIdx*10+0)
@@ -291,8 +303,8 @@ func TestAccess(t *testing.T) {
 			}
 			client.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
 			// Invalid bugs become visible up to the last reporting.
-			finalLevel := config.Namespaces[ns].
-				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
+			finalLevel := c.config().Namespaces[ns].
+				Reporting[len(c.config().Namespaces[ns].Reporting)-1].AccessLevel
 			noteBugAccessLevel(repInvalid.ID, finalLevel, nsLevel)
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)
@@ -323,6 +335,7 @@ func TestAccess(t *testing.T) {
 			crashOpen.Report = []byte(accessPrefix + "report")
 			crashOpen.ReproC = []byte(accessPrefix + "repro c")
 			crashOpen.ReproSyz = []byte(accessPrefix + "repro syz")
+			crashOpen.ReproLog = []byte(accessPrefix + "repro log")
 			crashOpen.MachineInfo = []byte(ns + "machine info")
 			client.ReportCrash(crashOpen)
 			repOpen := client.pollBug()
@@ -364,35 +377,35 @@ func TestAccess(t *testing.T) {
 
 	// checkReferences checks that page contents do not contain
 	// references to entities that must not be visible.
-	checkReferences := func(url string, requestLevel AccessLevel, reply []byte) {
+	checkReferences := func(t *testing.T, url string, requestLevel AccessLevel, reply []byte) {
 		for _, ent := range entities {
 			if requestLevel >= ent.level || ent.ref == "" {
 				continue
 			}
 			if bytes.Contains(reply, []byte(ent.ref)) {
-				t.Errorf("request %v at level %v contains ref %v at level %v:\n%s\n\n",
+				t.Errorf("request %v at level %v contains ref %v at level %v:\n%s",
 					url, requestLevel, ent.ref, ent.level, reply)
 			}
 		}
 	}
 
 	// checkPage checks that the page at url is accessible/not accessible as required.
-	checkPage := func(requestLevel, pageLevel AccessLevel, url string) []byte {
+	checkPage := func(t *testing.T, requestLevel, pageLevel AccessLevel, url string) []byte {
 		reply, err := c.AuthGET(requestLevel, url)
 		if requestLevel >= pageLevel {
-			c.expectOK(err)
+			assert.NoError(t, err)
 		} else if requestLevel == AccessPublic {
 			loginURL, err1 := user.LoginURL(c.ctx, url)
 			if err1 != nil {
 				t.Fatal(err1)
 			}
-			c.expectNE(err, nil)
-			httpErr, ok := err.(HTTPError)
-			c.expectTrue(ok)
-			c.expectEQ(httpErr.Code, http.StatusTemporaryRedirect)
-			c.expectEQ(httpErr.Headers["Location"], []string{loginURL})
+			assert.NotNil(t, err)
+			var httpErr *HTTPError
+			assert.True(t, errors.As(err, &httpErr))
+			assert.Equal(t, httpErr.Code, http.StatusTemporaryRedirect)
+			assert.Equal(t, httpErr.Headers["Location"], []string{loginURL})
 		} else {
-			c.expectForbidden(err)
+			expectFailureStatus(t, err, http.StatusForbidden)
 		}
 		return reply
 	}
@@ -400,12 +413,173 @@ func TestAccess(t *testing.T) {
 	// Finally, request all entities at all access levels and
 	// check that we see only what we need to see.
 	for requestLevel := AccessPublic; requestLevel < AccessAdmin; requestLevel++ {
-		for _, ent := range entities {
+		for i, ent := range entities {
 			if ent.url == "" {
 				continue
 			}
-			reply := checkPage(requestLevel, ent.level, ent.url)
-			checkReferences(ent.url, requestLevel, reply)
+			if testing.Short() && (requestLevel != AccessPublic || ent.level == AccessPublic) {
+				// In the short mode, only test that there's no public access to non-public URLs.
+				continue
+			}
+			t.Run(fmt.Sprintf("level%d_%d", requestLevel, i), func(t *testing.T) {
+				reply := checkPage(t, requestLevel, ent.level, ent.url)
+				checkReferences(t, ent.url, requestLevel, reply)
+			})
 		}
+	}
+}
+
+type UserAuthorizationLevel int
+
+const (
+	BadAuthDomain UserAuthorizationLevel = iota
+	Regular
+	Authenticated
+	AuthorizedAccessPublic
+	AuthorizedUser
+	AuthorizedAdmin
+)
+
+func makeUser(a UserAuthorizationLevel) *user.User {
+	u := &user.User{}
+	switch a {
+	case BadAuthDomain:
+		u.AuthDomain = "public.com"
+	case Regular:
+		u = nil
+	case Authenticated:
+		u.Email = "someuser@public.com"
+	case AuthorizedAccessPublic:
+		u.Email = "checked-email@public.com"
+	case AuthorizedUser:
+		u.Email = "customer@syzkaller.com"
+	case AuthorizedAdmin:
+		u.Email = "admin@syzkaller.com"
+		u.Admin = true
+	}
+	return u
+}
+
+func TestUserAccessLevel(t *testing.T) {
+	tests := []struct {
+		name                string
+		u                   *user.User
+		enforcedAccessLevel string
+		config              *GlobalConfig
+		wantAccessLevel     AccessLevel
+		wantIsAuthorized    bool
+	}{
+		{
+			name:            "wrong auth domain",
+			u:               makeUser(BadAuthDomain),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:            "regular not authenticated user",
+			u:               makeUser(Regular),
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:                "regular not authenticated user wants to be an admin",
+			u:                   makeUser(Regular),
+			enforcedAccessLevel: "admin",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+		},
+		{
+			name:                "regular not authenticated user wants to be a user",
+			u:                   makeUser(Regular),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+		},
+		{
+			name:            "authenticated, not authorized user",
+			u:               makeUser(Authenticated),
+			config:          testConfig,
+			wantAccessLevel: AccessPublic,
+		},
+		{
+			name:                "authenticated, not authorized user wants to be an admin",
+			u:                   makeUser(Authenticated),
+			enforcedAccessLevel: "admin",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+		},
+		{
+			name:                "authenticated, not authorized user wants to be a user",
+			u:                   makeUser(Authenticated),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+		},
+		{
+			name:             "authorized for AccessPublic user",
+			u:                makeUser(AuthorizedAccessPublic),
+			config:           testConfig,
+			wantAccessLevel:  AccessPublic,
+			wantIsAuthorized: true,
+		},
+		{
+			name:                "authorized for AccessPublic user wants to be an admin",
+			u:                   makeUser(AuthorizedAccessPublic),
+			enforcedAccessLevel: "admin",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
+		},
+		{
+			name:                "authorized for AccessPublic user wants to be a user",
+			u:                   makeUser(AuthorizedAccessPublic),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
+		},
+		{
+			name:             "authorized for AccessUser user",
+			u:                makeUser(AuthorizedUser),
+			config:           testConfig,
+			wantAccessLevel:  AccessUser,
+			wantIsAuthorized: true,
+		},
+		{
+			name:                "authorized for AccessUser user wants to be an admin",
+			u:                   makeUser(AuthorizedUser),
+			enforcedAccessLevel: "admin",
+			config:              testConfig,
+			wantAccessLevel:     AccessUser,
+			wantIsAuthorized:    true,
+		},
+		{
+			name:             "authorized admin wants AccessAdmin",
+			u:                makeUser(AuthorizedAdmin),
+			config:           testConfig,
+			wantAccessLevel:  AccessAdmin,
+			wantIsAuthorized: true,
+		},
+		{
+			name:                "authorized admin wants AccessPublic",
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "public",
+			config:              testConfig,
+			wantAccessLevel:     AccessPublic,
+			wantIsAuthorized:    true,
+		},
+		{
+			name:                "authorized admin wants AccessUser",
+			u:                   makeUser(AuthorizedAdmin),
+			enforcedAccessLevel: "user",
+			config:              testConfig,
+			wantAccessLevel:     AccessUser,
+			wantIsAuthorized:    true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			gotIsAuthorized, gotAccessLevel := userAccessLevel(test.u, test.enforcedAccessLevel, test.config)
+			assert.Equal(t, test.wantAccessLevel, gotAccessLevel)
+			assert.Equal(t, test.wantIsAuthorized, gotIsAuthorized)
+		})
 	}
 }

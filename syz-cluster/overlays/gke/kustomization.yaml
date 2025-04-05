@@ -1,0 +1,35 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resources:
+  - ../common
+  - global-config.yaml
+  - kernel-disk-pvc.yaml
+  - workflow-artifacts.yaml
+
+# Unlike the minikube environment, GKE Terraform scripts will
+# pre-create the service accounts.
+
+patches:
+  - target:
+      kind: WorkflowTemplate
+      name: boot-step-template
+    patch: |-
+      - op: replace
+        path: /spec/templates/0/tolerations
+        value:
+            - key: "workload"
+              operator: "Equal"
+              value: "nested-vm"
+              effect: "NoSchedule"
+  - target:
+      kind: WorkflowTemplate
+      name: fuzz-step-template
+    patch: |-
+      - op: replace
+        path: /spec/templates/0/tolerations
+        value:
+            - key: "workload"
+              operator: "Equal"
+              value: "nested-vm"
+              effect: "NoSchedule"

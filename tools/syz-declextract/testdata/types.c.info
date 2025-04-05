@@ -1,0 +1,2 @@
+SYSCALL	align_syscall	func:__do_sys_align_syscall	loc:1	access:unknown	manual_desc:false	auto_desc:true	file:types.c	subsystem:kernel
+SYSCALL	types_syscall	func:__do_sys_types_syscall	loc:1	access:unknown	manual_desc:false	auto_desc:true	file:types.c	subsystem:kernel

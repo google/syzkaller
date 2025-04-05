@@ -1,4 +1,5 @@
 TITLE: WARNING: still has locks held in prepare_bprm_creds
+TYPE: LOCKDEP
 
 [   40.588118] ====================================
 [   40.592858] WARNING: syz-executor286/6054 still has locks held!

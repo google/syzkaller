@@ -1,4 +1,5 @@
 TITLE: WARNING: lock held when returning to user space in fuse_lock_inode
+TYPE: LOCKDEP
 
 [  197.071637] ================================================
 [  197.073115] WARNING: lock held when returning to user space!

@@ -1,5 +1,5 @@
-# Note: 191-194 have the same root cause.
 TITLE: possible deadlock in perf_event_ctx_lock_nested
+TYPE: LOCKDEP
 
 [  189.031888] ======================================================
 [  189.038179] WARNING: possible circular locking dependency detected

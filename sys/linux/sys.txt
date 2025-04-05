@@ -45,6 +45,7 @@ include <linux/nfs.h>
 include <linux/syslog.h>
 include <linux/exportfs.h>
 include <linux/splice.h>
+include <linux/filelock.h>
 include <fs/overlayfs/overlayfs.h>
 include <uapi/linux/memfd.h>
 include <uapi/linux/module.h>
@@ -54,11 +55,12 @@ include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
 include <uapi/linux/seccomp.h>
+include <uapi/linux/wait.h>
 include <uapi/linux/watch_queue.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
-include <fs/cifs/cifsglob.h>
+include <fs/smb/client/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
 include <uapi/linux/prctl.h>
 include <asm/prctl.h>
@@ -91,17 +93,31 @@ type padto64[T] {
 type signalno int32[0:65]
 type signalnoptr intptr[0:65]
 
-syz_execute_func(text ptr[in, text[target]])
+# syz_execute_func caused multiple problems:
+# 1. First it lead to corpus explosion. The program used existing values in registers
+# to pollute output area. We tried to zero registers (though, not reliably).
+# 2. It lead to explosion again. The exact mechanics are unknown, here is one sample:
+# syz_execute_func(&(0x7f0000000440)="f2af91930f0124eda133fa20430fbafce842f66188d0d4
+#	430fc7f314c1ab5bf9e2f9660f3a0fae5e090000ba023c1fb63ac4817d73d74ec482310d46f44
+#	9f216c863fa438036a91bdbae95aaaa420f383c02c401405c6bfd49d768d768f833fefbab6464
+#	660f38323c8f26dbc1a1fe5ff6f6df0804f4c4efa59c0f01c4288ba6452e000054c4431d5cc100")
+# 3. The code can also execute syscalls (and it is know to), but it's not subject to
+# target.SanitizeCall. As the result it can do things that programs are not supposed to do.
+# 4. Besides linux, corpus explosion also happens on freebsd and is clearly attributable
+# to syz_execute_func based on corpus contents. Mechanics are also not known.
+# It also did not cause finding of any new bugs (at least not that I know of).
+# So it's disabled on all OSes until we figure out how to resolve all these problems.
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 # Exclude /sys/power/state as reported in https://lkml.org/lkml/2021/5/27/653
 openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*:-/sys/power/state"]], flags flags[open_flags], mode flags[open_mode]) fd
 
-open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd (automatic_helper)
 # Just so that we have something that creates fd_dir resources.
-open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
-openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
+openat$dir(fd const[AT_FDCWD], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir (automatic_helper)
 openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
-openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir
+openat2$dir(fd const[AT_FDCWD], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd_dir (automatic_helper)
 openat2(fd fd_dir[opt], file ptr[in, filename], how ptr[in, open_how], size bytesize[how]) fd
 creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
@@ -115,7 +131,11 @@ pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff)
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32)
 pwritev2(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32, flags flags[rwf_flags])
-lseek(fd fd, offset fileoff, whence flags[seek_whence])
+# lseek can return negative offsets when the file has FMODE_UNSIGNED_OFFSET flag:
+# https://elixir.bootlin.com/linux/v6.11-rc7/source/fs/read_write.c#L56
+# It's unclear how it's then even possible to distinguish error from valid offset, but it's not our problem.
+# We just have to ignore return values of lseek.
+lseek(fd fd, offset fileoff, whence flags[seek_whence]) (ignore_return)
 copy_file_range(fd_in fd, off_in ptr[inout, fileoff[int64], opt], fd_out fd, off_out ptr[inout, fileoff[int64], opt], len intptr, flags flags[copy_file_range_flags])
 
 rwf_flags = RWF_DSYNC, RWF_HIPRI, RWF_SYNC, RWF_NOWAIT, RWF_APPEND
@@ -134,6 +154,19 @@ vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flag
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[intptr], opt], count intptr)
 sendfile64(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count intptr)
 
+cachestat_range {
+	off	fileoff[int64]
+	len	int64
+}
+
+cachestat {
+	nr_cache		int64
+	nr_dirty		int64
+	nr_writeback		int64
+	nr_evicted		int64
+	nr_recently_evicted	int64
+}
+
 stat(file ptr[in, filename], statbuf ptr[out, stat])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
@@ -143,6 +176,7 @@ lstat64(file ptr[in, filename], statbuf ptr[out, stat64])
 fstat64(fd fd, statbuf ptr[out, stat64])
 fstatat64(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat64], flag flags[statx_flags])
 statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
+cachestat(fd fd, cstat_range ptr[in, cachestat_range], cstat ptr[out, cachestat], flags const[0])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset_t], size len[sigmask])
@@ -236,7 +270,7 @@ fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
 fcntl$setflags(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
 fcntl$setstatus(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
 fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
-fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
+fcntl$getown(fd fd, cmd const[F_GETOWN]) pid (automatic_helper)
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
 fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
@@ -335,9 +369,9 @@ futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
-syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
+syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid (automatic_helper)
 
-syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid
+syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid (automatic_helper)
 
 # We need these disabled definitions to simplify the presence and the NR checking.
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns, disabled)
@@ -361,17 +395,17 @@ resource pid[int32]: 0, -1
 resource uid[int32]: 0, -1, 0xee00, 0xee01
 resource gid[int32]: 0, -1, 0xee00, 0xee01
 
-getgid() gid
-getegid() gid
+getgid() gid (automatic_helper)
+getegid() gid (automatic_helper)
 setuid(uid uid)
 setgid(gid gid)
-getuid() uid
-geteuid() uid
+getuid() uid (automatic_helper)
+geteuid() uid (automatic_helper)
 setpgid(pid pid, pgid pid)
-getpgid(pid pid) pid
-getpgrp(pid pid) pid
-getpid() pid
-gettid() pid
+getpgid(pid pid) pid (automatic_helper)
+getpgrp(pid pid) pid (automatic_helper)
+getpid() pid (automatic_helper)
+gettid() pid (automatic_helper)
 setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
 setresuid(ruid uid, euid uid, suid uid)
@@ -428,9 +462,9 @@ sysfs$3(option const[3])
 statfs(path ptr[in, filename], buf buffer[out])
 fstatfs(fd fd, buf buffer[out])
 
-uselib(lib ptr[in, filename])
-init_module(mod ptr[in, string], len len[mod], args ptr[in, string])
-finit_module(fd fd, args ptr[in, string], flags flags[finit_module_flags])
+uselib(lib ptr_binfmt_file)
+init_module(mod ptr[in, binfmt_elf64], len len[mod], args ptr[in, string])
+finit_module(fd fd_binfmt, args ptr[in, string], flags flags[finit_module_flags])
 delete_module(name ptr[in, string], flags flags[delete_module_flags])
 kexec_load(entry intptr, nr_segments len[segments], segments ptr[in, array[kexec_segment]], flags flags[kexec_load_flags])
 syslog(cmd flags[syslog_cmd], buf ptr[out, array[int8], opt], len len[buf])
@@ -638,7 +672,10 @@ resource fd_pidfd[fd]
 openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 openat$thread_pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 pidfd_send_signal(fd fd_pidfd, sig signalno, info ptr[in, siginfo], flags const[0])
-pidfd_open(pid pid, flags const[0]) fd_pidfd
+
+# pidfd_open is dangerous, so we use syz_pidfd_open instead.
+pidfd_open(pid pid, flags const[0]) fd_pidfd (disabled)
+syz_pidfd_open(pid pid, flags const[0]) fd_pidfd
 pidfd_getfd(pidfd fd_pidfd, fd fd, flags const[0]) fd
 
 close_range(fd fd, max_fd fd, flags flags[close_range_flags])
@@ -1265,7 +1302,7 @@ open_how {
 # Not providing O_WRONLY means O_RDONLY.
 open_flags = O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-resolve_flags = RESOLVE_BENEATH, RESOLVE_IN_ROOT, RESOLVE_NO_MAGICLINKS, RESOLVE_NO_SYMLINKS, RESOLVE_NO_XDEV
+resolve_flags = RESOLVE_CACHED, RESOLVE_BENEATH, RESOLVE_IN_ROOT, RESOLVE_NO_MAGICLINKS, RESOLVE_NO_SYMLINKS, RESOLVE_NO_XDEV
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP, MADV_WIPEONFORK, MADV_KEEPONFORK, MADV_COLD, MADV_PAGEOUT, MADV_POPULATE_READ, MADV_POPULATE_WRITE, MADV_COLLAPSE
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
 move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
@@ -1291,7 +1328,7 @@ cap_version = _LINUX_CAPABILITY_VERSION_1, _LINUX_CAPABILITY_VERSION_2, _LINUX_C
 epoll_flags = EPOLL_CLOEXEC
 epoll_ev = POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLREMOVE, POLLRDHUP, POLLFREE, POLL_BUSY_LOOP
-mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH, S_ISUID, S_ISGID, S_ISVTX
+mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_ISUID, S_ISGID, S_ISVTX, open_mode
 at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH
 fallocate_mode = FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE, FALLOC_FL_COLLAPSE_RANGE, FALLOC_FL_ZERO_RANGE, FALLOC_FL_INSERT_RANGE, FALLOC_FL_UNSHARE_RANGE, FALLOC_FL_NO_HIDE_STALE
 linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
@@ -1300,7 +1337,7 @@ renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 statx_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH, AT_STATX_SYNC_TYPE, AT_STATX_SYNC_AS_STAT, AT_STATX_FORCE_SYNC, AT_STATX_DONT_SYNC
 statx_mask = STATX_TYPE, STATX_MODE, STATX_NLINK, STATX_UID, STATX_GID, STATX_ATIME, STATX_MTIME, STATX_CTIME, STATX_INO, STATX_SIZE, STATX_BLOCKS, STATX_BASIC_STATS, STATX_BTIME
-name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
+name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW, AT_HANDLE_FID
 mq_open_flags = O_WRONLY, O_RDWR, O_NONBLOCK, O_CREAT, O_EXCL, O_CREAT
 finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
@@ -1350,7 +1387,7 @@ fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO, CLONE_PIDFD, CLONE_NEWTIME
-clone3_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO, CLONE_PIDFD, CLONE_NEWTIME, CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP
+clone3_flags = CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP, clone_flags
 ptrace_peeksiginfo_flags = PTRACE_PEEKSIGINFO_SHARED
 close_range_flags = CLOSE_RANGE_UNSHARE
 

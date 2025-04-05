@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in corrupted
+TYPE: UBSAN
 CORRUPTED: Y
 
 [   50.583499] UBSAN: Undefined behaviour in kernel/time/hrtimer.c:310:16

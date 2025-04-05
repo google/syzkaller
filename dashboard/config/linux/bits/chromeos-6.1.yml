@@ -4,10 +4,10 @@
 kernel:
  repo: https://chromium.googlesource.com/chromiumos/third_party/kernel
  # HEAD of chromeos-6.1 branch.
- tag: 648e4589ec3e42719df5ce9f27240ff22c22361d
+ tag: ebea4d55ca782539782702c2e5e86033b9f86bd2
 
 shell:
- - CHROMEOS_KERNEL_FAMILY=chromeos chromeos/scripts/prepareconfig chromiumos-x86_64 ${BUILDDIR}/.config
+ - CHROMEOS_KERNEL_FAMILY=chromeos chromeos/scripts/prepareconfig chromiumos-x86_64-generic ${BUILDDIR}/.config
  - make olddefconfig
 
 config:

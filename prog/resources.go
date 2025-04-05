@@ -27,19 +27,19 @@ var (
 	}
 )
 
-func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Syscall {
-	var metas []*Syscall
+func (target *Target) calcResourceCtors(res *ResourceDesc, preciseOnly bool) []ResourceCtor {
+	var ret []ResourceCtor
 	for _, ctor := range res.Ctors {
-		if !precise || ctor.Precise {
-			metas = append(metas, target.Syscalls[ctor.Call])
+		if !preciseOnly || ctor.Precise {
+			ret = append(ret, ctor)
 		}
 	}
 	if res.Kind[0] == timespecRes.Name {
 		if c := target.SyscallMap["clock_gettime"]; c != nil {
-			metas = append(metas, c)
+			ret = append(ret, ResourceCtor{c, true})
 		}
 	}
-	return metas
+	return ret
 }
 
 func (target *Target) populateResourceCtors() {
@@ -56,22 +56,28 @@ func (target *Target) populateResourceCtors() {
 			case *UnionType:
 				ctx.Stop = true
 			case *ResourceType:
-				if ctx.Dir == DirIn || dedup[typ1.Desc] {
+				if ctx.Dir == DirIn || dedup[typ1.Desc] || meta.Attrs.Disabled {
 					break
 				}
 				dedup[typ1.Desc] = true
-				callsResources[meta.ID] = append(callsResources[meta.ID], typ1.Desc)
-				meta.outputResources = append(meta.outputResources, typ1.Desc)
+				meta.usesResources = append(meta.usesResources, typ1.Desc)
+				if !meta.Attrs.NoGenerate {
+					callsResources[meta.ID] = append(callsResources[meta.ID], typ1.Desc)
+					meta.createsResources = append(meta.createsResources, typ1.Desc)
+				}
 			}
 		})
 	}
 
 	if c := target.SyscallMap["clock_gettime"]; c != nil {
-		c.outputResources = append(c.outputResources, timespecRes)
+		c.usesResources = append(c.usesResources, timespecRes)
+		c.createsResources = append(c.createsResources, timespecRes)
+		callsResources[c.ID] = append(callsResources[c.ID], timespecRes)
 	}
 
 	for _, c := range target.Syscalls {
 		c.inputResources = target.getInputResources(c)
+		c.usesResources = append(c.usesResources, c.inputResources...)
 	}
 
 	// Populate resource ctors accounting for resource compatibility.
@@ -91,10 +97,10 @@ func (target *Target) populateResourceCtors() {
 				}
 			}
 			if preciseOk {
-				res.Ctors = append(res.Ctors, ResourceCtor{call, true})
+				res.Ctors = append(res.Ctors, ResourceCtor{target.Syscalls[call], true})
 			}
 			if impreciseOk {
-				res.Ctors = append(res.Ctors, ResourceCtor{call, false})
+				res.Ctors = append(res.Ctors, ResourceCtor{target.Syscalls[call], false})
 			}
 		}
 	}
@@ -151,7 +157,7 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 		}
 		switch typ1 := typ.(type) {
 		case *ResourceType:
-			if !typ1.IsOptional && !dedup[typ1.Desc] {
+			if !ctx.Optional && !dedup[typ1.Desc] {
 				dedup[typ1.Desc] = true
 				resources = append(resources, typ1.Desc)
 			}
@@ -181,7 +187,7 @@ func (target *Target) transitivelyEnabled(enabled map[*Syscall]bool) (map[*Sysca
 				}
 			}
 			supported[c] = true
-			for _, res := range c.outputResources {
+			for _, res := range c.createsResources {
 				for _, kind := range res.Kind {
 					canCreate[kind] = true
 				}
@@ -208,14 +214,15 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			}
 			if ctors[res.Name] == nil {
 				var names []string
-				for _, call := range target.calcResourceCtors(res, true) {
-					names = append(names, call.Name)
+				for _, ctor := range target.calcResourceCtors(res, true) {
+					names = append(names, ctor.Call.Name)
+				}
+				if len(names) > 5 {
+					names = append(names[:3], "...")
 				}
 				ctors[res.Name] = names
 			}
-			disabled[c] = fmt.Sprintf("no syscalls can create resource %v,"+
-				" enable some syscalls that can create it %v",
-				res.Name, ctors[res.Name])
+			disabled[c] = fmt.Sprintf("%v %v", res.Name, ctors[res.Name])
 			break
 		}
 	}

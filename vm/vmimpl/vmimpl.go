@@ -14,8 +14,10 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -58,7 +60,7 @@ type Instance interface {
 	Diagnose(rep *report.Report) (diagnosis []byte, wait bool)
 
 	// Close stops and destroys the VM.
-	Close()
+	io.Closer
 }
 
 // Infoer is an optional interface that can be implemented by Instance.
@@ -79,6 +81,7 @@ type Env struct {
 	SSHKey    string
 	SSHUser   string
 	Timeouts  targets.Timeouts
+	Snapshot  bool
 	Debug     bool
 	Config    []byte // json-serialized VM-type-specific config
 	KernelSrc string
@@ -93,12 +96,11 @@ type BootError struct {
 }
 
 func MakeBootError(err error, output []byte) error {
-	switch err1 := err.(type) {
-	case *osutil.VerboseError:
-		return BootError{err1.Title, append(err1.Output, output...)}
-	default:
-		return BootError{err.Error(), output}
+	var verboseError *osutil.VerboseError
+	if errors.As(err, &verboseError) {
+		return BootError{verboseError.Title, append(verboseError.Output, output...)}
 	}
+	return BootError{err.Error(), output}
 }
 
 func (err BootError) Error() string {
@@ -125,16 +127,19 @@ func (err InfraError) InfraError() (string, []byte) {
 }
 
 // Register registers a new VM type within the package.
-func Register(typ string, ctor ctorFunc, allowsOvercommit bool) {
-	Types[typ] = Type{
-		Ctor:       ctor,
-		Overcommit: allowsOvercommit,
-	}
+func Register(typ string, desc Type) {
+	Types[typ] = desc
 }
 
 type Type struct {
-	Ctor       ctorFunc
+	Ctor ctorFunc
+	// It's possible to create out-of-thin-air instances of this type.
+	// Out-of-thin-air instances are used by syz-ci for image testing, patch testing, bisection, etc.
 	Overcommit bool
+	// Instances of this type can be preempted and lost connection as the result.
+	// For preempted instances executor prints "SYZ-EXECUTOR: PREEMPTED" and then
+	// the host understands that the lost connection was expected and is not a bug.
+	Preemptible bool
 }
 
 type ctorFunc func(env *Env) (Pool, error)
@@ -147,8 +152,31 @@ var (
 	Types = make(map[string]Type)
 )
 
-func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout time.Duration,
-	stop, closed <-chan bool, debug bool) (<-chan []byte, <-chan error, error) {
+type CmdCloser struct {
+	*exec.Cmd
+}
+
+func (cc CmdCloser) Close() error {
+	cc.Process.Kill()
+	return cc.Wait()
+}
+
+var WaitForOutputTimeout = 10 * time.Second
+
+type MultiplexConfig struct {
+	Console     io.Closer
+	Stop        <-chan bool
+	Close       <-chan bool
+	Debug       bool
+	Scale       time.Duration
+	IgnoreError func(err error) bool
+}
+
+func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, config MultiplexConfig) (
+	<-chan []byte, <-chan error, error) {
+	if config.Scale <= 0 {
+		panic("slowdown must be set")
+	}
 	errc := make(chan error, 1)
 	signal := func(err error) {
 		select {
@@ -160,28 +188,40 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 		select {
 		case <-time.After(timeout):
 			signal(ErrTimeout)
-		case <-stop:
+		case <-config.Stop:
 			signal(ErrTimeout)
-		case <-closed:
-			if debug {
+		case <-config.Close:
+			if config.Debug {
 				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
 			cmd.Process.Kill()
-			console.Close()
-			merger.Wait()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
+			} else if config.IgnoreError != nil && config.IgnoreError(err) {
+				err = ErrTimeout
+			}
+			// Once the command has failed, we might want to let the full console
+			// output accumulate before we abort the console connection too.
+			if err != nil {
+				time.Sleep(WaitForOutputTimeout * config.Scale)
+			}
+			if config.Console != nil {
+				// Only wait for the merger if we're able to control the console stream.
+				config.Console.Close()
+				merger.Wait()
 			}
 			signal(err)
 			return
 		}
 		cmd.Process.Kill()
-		console.Close()
-		merger.Wait()
+		if config.Console != nil {
+			config.Console.Close()
+			merger.Wait()
+		}
 		cmd.Wait()
 	}()
 	return merger.Output, errc, nil
@@ -203,6 +243,19 @@ func UnusedTCPPort() int {
 			ln.Close()
 			return port
 		}
+
+		// Continue searching for a port only if we fail with EADDRINUSE or don't have permissions to use this port.
+		// Although we exclude ports <1024 in RandomPort(), it's still possible that we can face a restricted port.
+		var opErr *net.OpError
+		if errors.As(err, &opErr) && opErr.Op == "listen" {
+			var syscallErr *os.SyscallError
+			if errors.As(opErr.Err, &syscallErr) {
+				if errors.Is(syscallErr.Err, syscall.EADDRINUSE) || errors.Is(syscallErr.Err, syscall.EACCES) {
+					continue
+				}
+			}
+		}
+		log.Fatalf("error allocating port localhost:%d: %v", port, err)
 	}
 }
 

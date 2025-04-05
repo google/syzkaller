@@ -1,0 +1,348 @@
+{
+	"functions": [
+		{
+			"name": "atomic_load32",
+			"file": "include/types.h",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		},
+		{
+			"name": "atomic_load64",
+			"file": "include/types.h",
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		},
+		{
+			"name": "bar_cmd",
+			"file": "netlink.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "bar_doit",
+			"file": "netlink.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "bar_post_doit",
+			"file": "netlink.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "bar_pre_doit",
+			"file": "netlink.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "foo_cmd",
+			"file": "netlink.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		}
+	],
+	"consts": [
+		{
+			"name": "NETLINK_BAR_CMD_FOO",
+			"filename": "netlink.c",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_ATTR1",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_ATTR2",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 1
+		},
+		{
+			"name": "NETLINK_FOO_ATTR3",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 4
+		},
+		{
+			"name": "NETLINK_FOO_ATTR4",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 5
+		},
+		{
+			"name": "NETLINK_FOO_ATTR5",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 6
+		},
+		{
+			"name": "NETLINK_FOO_ATTR6",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 7
+		},
+		{
+			"name": "NETLINK_FOO_ATTR7",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 8
+		},
+		{
+			"name": "NETLINK_FOO_CMD_BAR",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 1
+		},
+		{
+			"name": "NETLINK_FOO_CMD_FOO",
+			"filename": "include/uapi/netlink_family.h",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_NESTED_ATTR1",
+			"filename": "netlink.c",
+			"value": 0
+		},
+		{
+			"name": "NETLINK_FOO_NESTED_ATTR2",
+			"filename": "netlink.c",
+			"value": 1
+		},
+		{
+			"name": "NETLINK_NOPOLICY_CMD",
+			"filename": "netlink.c",
+			"value": 0
+		}
+	],
+	"structs": [
+		{
+			"name": "netlink_foo_struct1",
+			"byte_size": 12,
+			"align": 4,
+			"fields": [
+				{
+					"name": "a",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "b",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "c",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "netlink_foo_struct2",
+			"byte_size": 24,
+			"align": 8,
+			"fields": [
+				{
+					"name": "a",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 8,
+							"name": "double",
+							"base": "double"
+						}
+					}
+				},
+				{
+					"name": "b",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 8,
+							"name": "double",
+							"base": "double"
+						}
+					}
+				},
+				{
+					"name": "c",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 8,
+							"name": "double",
+							"base": "double"
+						}
+					}
+				}
+			]
+		}
+	],
+	"netlink_families": [
+		{
+			"name": "BAR",
+			"ops": [
+				{
+					"name": "NETLINK_BAR_CMD_FOO",
+					"func": "NETLINK_BAR_CMD_FOO",
+					"access": "user",
+					"policy": "foo_genl_policy_netlink"
+				}
+			],
+			"source_file": "netlink.c"
+		},
+		{
+			"name": "NOOPS",
+			"source_file": "netlink.c"
+		},
+		{
+			"name": "foo family",
+			"ops": [
+				{
+					"name": "NETLINK_FOO_CMD_FOO",
+					"func": "foo_cmd",
+					"access": "admin",
+					"policy": "foo_genl_policy_netlink"
+				},
+				{
+					"name": "NETLINK_FOO_CMD_BAR",
+					"func": "bar_cmd",
+					"access": "ns_admin",
+					"policy": "foo_genl_policy_netlink"
+				},
+				{
+					"name": "NETLINK_FOO_CMD_BAR",
+					"func": "bar_cmd",
+					"access": "ns_admin",
+					"policy": "foo_dump_genl_policy_netlink"
+				}
+			],
+			"source_file": "netlink.c"
+		},
+		{
+			"name": "nopolicy",
+			"ops": [
+				{
+					"name": "NETLINK_NOPOLICY_CMD",
+					"func": "foo_cmd",
+					"access": "user"
+				}
+			],
+			"source_file": "netlink.c"
+		}
+	],
+	"netlink_policies": [
+		{
+			"name": "foo_dump_genl_policy_netlink",
+			"attrs": [
+				{
+					"name": "NETLINK_FOO_ATTR1",
+					"kind": "NLA_U32"
+				}
+			]
+		},
+		{
+			"name": "foo_genl_nested_policy_netlink",
+			"attrs": [
+				{
+					"name": "NETLINK_FOO_NESTED_ATTR1",
+					"kind": "NLA_U32"
+				},
+				{
+					"name": "NETLINK_FOO_NESTED_ATTR2",
+					"kind": "NLA_U32"
+				}
+			]
+		},
+		{
+			"name": "foo_genl_policy_netlink",
+			"attrs": [
+				{
+					"name": "NETLINK_FOO_ATTR1",
+					"kind": "NLA_U32"
+				},
+				{
+					"name": "NETLINK_FOO_ATTR2",
+					"kind": "NLA_STRING",
+					"max_size": 10
+				},
+				{
+					"name": "NETLINK_FOO_ATTR3",
+					"kind": "NLA_NESTED"
+				},
+				{
+					"name": "NETLINK_FOO_ATTR4",
+					"kind": "NLA_NESTED",
+					"nested_policy": "foo_genl_nested_policy_netlink"
+				},
+				{
+					"name": "NETLINK_FOO_ATTR5",
+					"max_size": 12,
+					"elem": {
+						"struct": "netlink_foo_struct1"
+					}
+				},
+				{
+					"name": "NETLINK_FOO_ATTR6",
+					"max_size": 240,
+					"elem": {
+						"struct": "netlink_foo_struct2"
+					}
+				},
+				{
+					"name": "NETLINK_FOO_ATTR7",
+					"max_size": 24,
+					"elem": {
+						"struct": "netlink_foo_struct2"
+					}
+				}
+			]
+		},
+		{
+			"name": "genl_policy_reject_all_netlink"
+		}
+	]
+}

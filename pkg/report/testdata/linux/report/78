@@ -1,4 +1,5 @@
 TITLE: BUG: spinlock bad magic in tcp_nuke_addr
+TYPE: LOCKDEP
 
 [   82.818367] BUG: spinlock bad magic on CPU#0, ^keyring*�vmnet/20513
 [   82.824830]  lock: 0xffff8800bb37e088, .magic: ffff8800, .owner: <none>/-1, .owner_cpu: 131071

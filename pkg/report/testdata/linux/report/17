@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in corrupted
 ALT: bad-access in corrupted
+TYPE: KASAN
 CORRUPTED: Y
 
 [  380.688570] BUG: KASAN: use-after-free in copy_from_iter+0xf30/0x15e0 at addr ffff880033f4b02a

@@ -4,16 +4,36 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
 )
+
+func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	encodedKey := r.FormValue("key")
+	if encodedKey == "" {
+		return fmt.Errorf("mandatory parameter key is missing")
+	}
+	jobKey, err := db.DecodeKey(encodedKey)
+	if err != nil {
+		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
+	}
+
+	err = invalidateBisection(c, jobKey, r.FormValue("restart") == "1")
+	if err != nil {
+		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
+	}
+
+	// Sending back to bug page after successful invalidation.
+	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
+	return nil
+}
 
 // dropNamespace drops all entities related to a single namespace.
 // Use with care. There is no undo.
@@ -103,7 +123,7 @@ func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns st
 		fmt.Fprintf(w, "ReportingState: %v\n", len(state.Entries)-len(newState.Entries))
 		return nil
 	}
-	return db.RunInTransaction(c, tx, nil)
+	return runInTransaction(c, tx, nil)
 }
 
 func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
@@ -111,10 +131,7 @@ func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
 		return nil
 	}
 	for len(keys) != 0 {
-		batch := 100
-		if batch > len(keys) {
-			batch = len(keys)
-		}
+		batch := min(len(keys), 100)
 		if err := db.DeleteMulti(c, keys[:batch]); err != nil {
 			return err
 		}
@@ -162,40 +179,9 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 		return nil
 	}
 	for idx, jobKey := range toReset {
-		tx := func(c context.Context) error {
-			// Reset the job.
-			job := new(Job)
-			if err := db.Get(c, jobKey, job); err != nil {
-				return fmt.Errorf("job %v: failed to get in tx: %v", idx, err)
-			}
-			job.LastStarted = time.Time{}
-			job.Finished = time.Time{}
-			job.Log = 0
-			job.Error = 0
-			job.CrashLog = 0
-			job.Flags = 0
-			if _, err := db.Put(c, jobKey, job); err != nil {
-				return fmt.Errorf("job %v: failed to put: %v", idx, err)
-			}
-			// Update the bug.
-			bug := new(Bug)
-			bugKey := jobKey.Parent()
-			if err := db.Get(c, bugKey, bug); err != nil {
-				return fmt.Errorf("job %v: failed to get bug: %v", idx, err)
-			}
-			if job.Type == JobBisectCause {
-				bug.BisectCause = BisectNot
-			} else if job.Type == JobBisectFix {
-				bug.BisectFix = BisectNot
-			}
-			if _, err := db.Put(c, bugKey, bug); err != nil {
-				return fmt.Errorf("job %v: failed to put the bug: %v", idx, err)
-			}
-			return nil
-		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
-			fmt.Fprintf(w, "update failed: %s", err)
-			return nil
+		err = invalidateBisection(c, jobKey, true)
+		if err != nil {
+			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
 		}
 	}
 
@@ -224,7 +210,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		return err
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
-	cfg := config.Namespaces[ns]
+	cfg := getNsConfig(c, ns)
 	var update []*db.Key
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {
@@ -232,8 +218,8 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		}
 		update = append(update, keys[i])
 	}
-	return updateBugBatch(c, update, func(bug *Bug) {
-		err := bug.updateReportings(cfg, timeNow(c))
+	return updateBatch(c, update, func(_ *db.Key, bug *Bug) {
+		err := bug.updateReportings(c, cfg, timeNow(c))
 		if err != nil {
 			panic(err)
 		}
@@ -257,13 +243,56 @@ func updateBugTitles(c context.Context, w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 	log.Warningf(c, "fetched %v bugs for update", len(keys))
-	return updateBugBatch(c, keys, func(bug *Bug) {
+	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {
 		if len(bug.MergedTitles) == 0 {
 			bug.MergedTitles = []string{bug.Title}
 		}
 		if len(bug.AltTitles) == 0 {
 			bug.AltTitles = []string{bug.Title}
 		}
+	})
+}
+
+// updateCrashPriorities regenerates priorities for crashes.
+// This has become necessary after the "dashboard: support per-Manager priority" commit.
+// For now, the method only considers the crashes referenced from bug origin.
+func updateCrashPriorities(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	bugsCount := 0
+	bugPerKey := map[string]*Bug{}
+	var crashKeys []*db.Key
+	if err := foreachBug(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).Filter("Namespace=", ns)
+	}, func(bug *Bug, key *db.Key) error {
+		bugsCount++
+		// There'll be duplicate crash IDs.
+		crashIDs := map[int64]struct{}{}
+		for _, item := range bug.TreeTests.List {
+			crashIDs[item.CrashID] = struct{}{}
+		}
+		for crashID := range crashIDs {
+			crashKeys = append(crashKeys, db.NewKey(c, "Crash", "", crashID, key))
+		}
+		bugPerKey[key.String()] = bug
+		return nil
+	}); err != nil {
+		return err
+	}
+	log.Warningf(c, "fetched %d bugs and %v crash keys to update", bugsCount, len(crashKeys))
+	return updateBatch(c, crashKeys, func(key *db.Key, crash *Crash) {
+		bugKey := key.Parent()
+		bug := bugPerKey[bugKey.String()]
+		build, err := loadBuild(c, ns, crash.BuildID)
+		if build == nil || err != nil {
+			panic(fmt.Sprintf("err: %s, build: %v", err, build))
+		}
+		crash.UpdateReportingPriority(c, build, bug)
 	})
 }
 
@@ -285,7 +314,7 @@ func setMissingBugFields(c context.Context, w http.ResponseWriter, r *http.Reque
 	}
 	log.Warningf(c, "fetched %v bugs for update", len(keys))
 	// Save everything unchanged.
-	return updateBugBatch(c, keys, func(bug *Bug) {})
+	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {})
 }
 
 // adminSendEmail can be used to send an arbitrary message from the bot.
@@ -317,7 +346,7 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 		actual := ReproLevelNone
 		reproCrashes, _, err := queryCrashesForBug(c, key, 2)
 		if err != nil {
-			return fmt.Errorf("failed to fetch crashes with repro: %v", err)
+			return fmt.Errorf("failed to fetch crashes with repro: %w", err)
 		}
 		for _, crash := range reproCrashes {
 			if crash.ReproIsRevoked {
@@ -332,16 +361,16 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 			}
 		}
 		if actual != bug.HeadReproLevel {
-			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash()), actual, bug.HeadReproLevel)
-			newLevels[bug.keyHash()] = actual
+			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash(c)), actual, bug.HeadReproLevel)
+			newLevels[bug.keyHash(c)] = actual
 			keys = append(keys, key)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	return updateBugBatch(c, keys, func(bug *Bug) {
-		newLevel, ok := newLevels[bug.keyHash()]
+	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {
+		newLevel, ok := newLevels[bug.keyHash(c)]
 		if !ok {
 			panic("fetched unknown bug")
 		}
@@ -349,27 +378,24 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
+func updateBatch[T any](c context.Context, keys []*db.Key, transform func(key *db.Key, item *T)) error {
 	for len(keys) != 0 {
-		batchSize := 20
-		if batchSize > len(keys) {
-			batchSize = len(keys)
-		}
+		batchSize := min(len(keys), 20)
 		batchKeys := keys[:batchSize]
 		keys = keys[batchSize:]
 
 		tx := func(c context.Context) error {
-			bugs := make([]*Bug, len(batchKeys))
-			if err := db.GetMulti(c, batchKeys, bugs); err != nil {
+			items := make([]*T, len(batchKeys))
+			if err := db.GetMulti(c, batchKeys, items); err != nil {
 				return err
 			}
-			for _, bug := range bugs {
-				transform(bug)
+			for i, item := range items {
+				transform(batchKeys[i], item)
 			}
-			_, err := db.PutMulti(c, batchKeys, bugs)
+			_, err := db.PutMulti(c, batchKeys, items)
 			return err
 		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+		if err := runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
 		log.Warningf(c, "updated %v bugs", len(batchKeys))
@@ -386,4 +412,5 @@ var (
 	_ = setMissingBugFields
 	_ = adminSendEmail
 	_ = updateHeadReproLevel
+	_ = updateCrashPriorities
 )

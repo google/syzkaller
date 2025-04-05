@@ -117,12 +117,12 @@ If you plan to run the syscall executor as root, ensure that root SSH logins are
 
 ### Running Under bhyve
 
-Some additional steps are required on the host in order to use bhyve.  First, ensure that the host system is at r346550 or later.  Second, since bhyve currently does not support disk image snapshots, ZFS must be used to provide equivalent functionality.  Create a ZFS data set and copy the VM image there.  The data set can also be used to store the syzkaller workdir.  For example, with a zpool named `data` mounted at `/data`, write:
+Some additional steps are required on the host in order to use bhyve.  First, since bhyve currently does not support disk image snapshots, ZFS must be used to provide equivalent functionality.  Create a ZFS data set and copy the VM image there.  The data set can also be used to store the syzkaller workdir.  For example, with a zpool named `data` mounted at `/data`, write:
 ```console
 # zfs create data/syzkaller
-# cp FreeBSD-13.0-CURRENT-amd64.raw /data/syzkaller
+# cp FreeBSD-13.3-CURRENT-amd64.raw /data/syzkaller
 ```
-Third, configure networking and DHCP for the VM instances:
+Third, configure bridged networking and DHCP for the VM instances.  This is no longer required on FreeBSD 14.1 and 15.0-CURRENT, as bhyve now supports libslirp-based user networking similar to the QEMU backend.
 
 ```console
 # ifconfig bridge create
@@ -190,9 +190,17 @@ For bhyve, we need to specify the VM image snapshot name and networking info (al
 	"type": "bhyve",
 	"vm": {
 		"count": 10,
-		"bridge": "bridge0",
 		"hostip": "169.254.0.1",
 		"dataset": "data/syzkaller"
+	}
+```
+If using bridged networking, the name of the bridge interface needs to be included in the "vm" block:
+```
+	"vm": {
+		"count": 10,
+		"hostip": "169.254.0.1",
+		"dataset": "data/syzkaller",
+        "bridge": "bridge0"
 	}
 ```
 

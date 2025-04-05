@@ -1,0 +1,24 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>VM Info:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
+		<th><a onclick="return sortTable(this, 'State', textSort)" href="#">State</a></th>
+		<th><a onclick="return sortTable(this, 'Since', timeSort)" href="#">Since</a></th>
+		<th><a onclick="return sortTable(this, 'Machine Info', timeSort)" href="#">Machine Info</a></th>
+		<th><a onclick="return sortTable(this, 'Status', timeSort)" href="#">Status</a></th>
+	</tr>
+	{{range $vm := $.VMs}}
+	<tr>
+		<td>{{$vm.Name}}</td>
+		<td>{{$vm.State}}</td>
+		<td>{{formatDuration $vm.Since}}</td>
+		<td>{{optlink $vm.MachineInfo "info"}}</td>
+		<td>{{optlink $vm.DetailedStatus "status"}}</td>
+	</tr>
+	{{end}}
+</table>

@@ -136,7 +136,6 @@ func TestMutateArgument(t *testing.T) {
 
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			t.Parallel()
 			rs, ct, p, goal, err := buildTestContext(test, target)
@@ -152,6 +151,7 @@ func TestMutateArgument(t *testing.T) {
 					ncalls: 2 * len(p.Calls),
 					ct:     ct,
 					corpus: nil,
+					opts:   DefaultMutateOpts,
 				}
 				ctx.mutateArg()
 				data1 := p1.Serialize()
@@ -179,6 +179,7 @@ func TestSizeMutateArg(t *testing.T) {
 				ncalls: 2 * len(p.Calls),
 				ct:     ct,
 				corpus: nil,
+				opts:   DefaultMutateOpts,
 			}
 			ctx.mutateArg()
 			ForeachArg(p.Calls[0], func(arg Arg, ctx *ArgCtx) {
@@ -189,7 +190,7 @@ func TestSizeMutateArg(t *testing.T) {
 				limit := uint64(1<<bits - 1)
 				val := arg.(*ConstArg).Val
 				if val > limit {
-					t.Fatalf("Invalid argument value: %d. (arg size: %d; max value: %d)", val, arg.Size(), limit)
+					t.Fatalf("invalid argument value: %d. (arg size: %d; max value: %d)", val, arg.Size(), limit)
 				}
 			})
 		}
@@ -205,7 +206,7 @@ func TestClone(t *testing.T) {
 		data := p.Serialize()
 		data1 := p1.Serialize()
 		if !bytes.Equal(data, data1) {
-			t.Fatalf("program changed after clone\noriginal:\n%s\n\nnew:\n%s\n", data, data1)
+			t.Fatalf("program changed after clone\noriginal:\n%s\n\nnew:\n%s", data, data1)
 		}
 	}
 }
@@ -224,7 +225,7 @@ func TestMutateRandom(t *testing.T) {
 				p1.Mutate(rs, 10, ct, nil, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
-					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s\n",
+					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s",
 						data0, data)
 				}
 				data1 := p1.Serialize()
@@ -232,7 +233,7 @@ func TestMutateRandom(t *testing.T) {
 					continue
 				}
 				if _, err := target.Deserialize(data1, NonStrict); err != nil {
-					t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
+					t.Fatalf("deserialize failed after mutate: %v\n%s", err, data1)
 				}
 				continue next
 			}
@@ -408,7 +409,6 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 	}
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			t.Parallel()
 			rs, ct, p, goal, err := buildTestContext(test, target)

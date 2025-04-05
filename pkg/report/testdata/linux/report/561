@@ -1,4 +1,5 @@
 TITLE: possible deadlock in cgroup_rstat_updated
+TYPE: LOCKDEP
 
 [  594.649298][ T5097] =====================================================
 [  594.649596][ T5097] WARNING: HARDIRQ-safe -> HARDIRQ-unsafe lock order detected

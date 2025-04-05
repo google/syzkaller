@@ -8,10 +8,13 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,15 +26,16 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
-	"google.golang.org/appengine/v2/user"
 )
 
 type Ctx struct {
@@ -49,7 +53,8 @@ type Ctx struct {
 var skipDevAppserverTests = func() bool {
 	_, err := exec.LookPath("dev_appserver.py")
 	// Don't silently skip tests on CI, we should have gcloud sdk installed there.
-	return err != nil && os.Getenv("SYZ_BIG_ENV") == ""
+	return err != nil && os.Getenv("SYZ_ENV") == "" ||
+		os.Getenv("SYZ_SKIP_DEV_APPSERVER_TESTS") != ""
 }()
 
 func NewCtx(t *testing.T) *Ctx {
@@ -80,8 +85,11 @@ func NewCtx(t *testing.T) *Ctx {
 	c.client2 = c.makeClient(client2, password2, true)
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	c.ctx = registerRequest(r, c).Context()
-
 	return c
+}
+
+func (c *Ctx) config() *GlobalConfig {
+	return getConfig(c.ctx)
 }
 
 func (c *Ctx) expectOK(err error) {
@@ -101,23 +109,19 @@ func (c *Ctx) expectFail(msg string, err error) {
 	}
 }
 
-func (c *Ctx) expectFailureStatus(err error, code int) {
-	c.t.Helper()
+func expectFailureStatus(t *testing.T, err error, code int) {
+	t.Helper()
 	if err == nil {
-		c.t.Fatalf("expected to fail as %d, but it does not", code)
+		t.Fatalf("expected to fail as %d, but it does not", code)
 	}
-	httpErr, ok := err.(HTTPError)
-	if !ok || httpErr.Code != code {
-		c.t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) || httpErr.Code != code {
+		t.Fatalf("expected to fail as %d, but it failed as %v", code, err)
 	}
-}
-
-func (c *Ctx) expectForbidden(err error) {
-	c.expectFailureStatus(err, http.StatusForbidden)
 }
 
 func (c *Ctx) expectBadReqest(err error) {
-	c.expectFailureStatus(err, http.StatusBadRequest)
+	expectFailureStatus(c.t, err, http.StatusBadRequest)
 }
 
 func (c *Ctx) expectEQ(got, want interface{}) {
@@ -201,6 +205,7 @@ func (c *Ctx) Close() {
 		}
 	}
 	unregisterContext(c)
+	validateGlobalConfig()
 }
 
 func (c *Ctx) advanceTime(d time.Duration) {
@@ -209,23 +214,87 @@ func (c *Ctx) advanceTime(d time.Duration) {
 
 func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithSubsystems(c, &customSubsystemList{
-			ns:       ns,
-			list:     list,
-			revision: rev,
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Subsystems.Revision = rev
+			if list == nil {
+				ret.Subsystems.Service = nil
+			} else {
+				ret.Subsystems.Service = subsystem.MustMakeService(list)
+			}
+			return &ret
 		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
-func (c *Ctx) setKernelRepos(list []KernelRepo) {
+func (c *Ctx) setCoverageMocks(ns string, dbClientMock spannerclient.SpannerClient,
+	fileProvMock covermerger.FileVersProvider) {
+	c.transformContext = func(ctx context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(ctx, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Coverage = &CoverageConfig{WebGitURI: "test-git"}
+			return &ret
+		})
+		ctxWithSpanner := SetCoverageDBClient(ctx, dbClientMock)
+		ctxWithSpannerAndFileProvider := setWebGit(ctxWithSpanner, fileProvMock)
+		return contextWithConfig(ctxWithSpannerAndFileProvider, newConfig)
+	}
+}
+
+func (c *Ctx) setKernelRepos(ns string, list []KernelRepo) {
 	c.transformContext = func(c context.Context) context.Context {
-		return contextWithRepos(c, list)
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Repos = list
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
 func (c *Ctx) setNoObsoletions() {
 	c.transformContext = func(c context.Context) context.Context {
 		return contextWithNoObsoletions(c)
+	}
+}
+
+func (c *Ctx) updateReporting(ns, name string, f func(Reporting) Reporting) {
+	c.transformContext = func(c context.Context) context.Context {
+		return contextWithConfig(c, replaceReporting(c, ns, name, f))
+	}
+}
+
+func (c *Ctx) decommissionManager(ns, oldManager, newManager string) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceManagerConfig(c, ns, oldManager, func(cfg ConfigManager) ConfigManager {
+			cfg.Decommissioned = true
+			cfg.DelegatedTo = newManager
+			return cfg
+		})
+		return contextWithConfig(c, newConfig)
+	}
+}
+
+func (c *Ctx) decommission(ns string) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.Decommissioned = true
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
+	}
+}
+
+func (c *Ctx) setWaitForRepro(ns string, d time.Duration) {
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+			ret := *cfg
+			ret.WaitForRepro = d
+			return &ret
+		})
+		return contextWithConfig(c, newConfig)
 	}
 }
 
@@ -236,7 +305,7 @@ func (c *Ctx) GET(url string) ([]byte, error) {
 
 // AuthGET sends HTTP GET request to the app with the specified authorization.
 func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
-	w, err := c.httpRequest("GET", url, "", access)
+	w, err := c.httpRequest("GET", url, "", "", access)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +314,17 @@ func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
 
 // POST sends admin-authorized HTTP POST requestd to the app.
 func (c *Ctx) POST(url, body string) ([]byte, error) {
-	w, err := c.httpRequest("POST", url, body, AccessAdmin)
+	w, err := c.httpRequest("POST", url, body, "", AccessAdmin)
+	if err != nil {
+		return nil, err
+	}
+	return w.Body.Bytes(), nil
+}
+
+// POST sends an admin-authorized HTTP POST form to the app.
+func (c *Ctx) POSTForm(url string, form url.Values) ([]byte, error) {
+	w, err := c.httpRequest("POST", url, form.Encode(),
+		"application/x-www-form-urlencoded", AccessAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +333,7 @@ func (c *Ctx) POST(url, body string) ([]byte, error) {
 
 // ContentType returns the response Content-Type header value.
 func (c *Ctx) ContentType(url string) (string, error) {
-	w, err := c.httpRequest("HEAD", url, "", AccessAdmin)
+	w, err := c.httpRequest("HEAD", url, "", "", AccessAdmin)
 	if err != nil {
 		return "", err
 	}
@@ -265,29 +344,29 @@ func (c *Ctx) ContentType(url string) (string, error) {
 	return values[0], nil
 }
 
-func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httptest.ResponseRecorder, error) {
+func (c *Ctx) httpRequest(method, url, body, contentType string,
+	access AccessLevel) (*httptest.ResponseRecorder, error) {
 	c.t.Logf("%v: %v", method, url)
 	r, err := c.inst.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		c.t.Fatal(err)
 	}
+	r.Header.Add("X-Appengine-User-IP", "127.0.0.1")
+	if contentType != "" {
+		r.Header.Add("Content-Type", contentType)
+	}
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
-	if access == AccessAdmin || access == AccessUser {
-		user := &user.User{
-			Email:      "user@syzkaller.com",
-			AuthDomain: "gmail.com",
-		}
-		if access == AccessAdmin {
-			user.Admin = true
-		}
-		aetest.Login(user, r)
+	if access == AccessAdmin {
+		aetest.Login(makeUser(AuthorizedAdmin), r)
+	} else if access == AccessUser {
+		aetest.Login(makeUser(AuthorizedUser), r)
 	}
 	w := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(w, r)
 	c.t.Logf("REPLY: %v", w.Code)
 	if w.Code != http.StatusOK {
-		return nil, HTTPError{w.Code, w.Body.String(), w.Result().Header}
+		return nil, &HTTPError{w.Code, w.Body.String(), w.Result().Header}
 	}
 	return w, nil
 }
@@ -298,7 +377,7 @@ type HTTPError struct {
 	Headers http.Header
 }
 
-func (err HTTPError) Error() string {
+func (err *HTTPError) Error() string {
 	return fmt.Sprintf("%v: %v", err.Code, err.Body)
 }
 
@@ -357,6 +436,24 @@ func (c *Ctx) loadManager(ns, name string) (*Manager, *Build) {
 	return mgr, build
 }
 
+func (c *Ctx) loadSingleBug() (*Bug, *db.Key) {
+	var bugs []*Bug
+	keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(bugs), 1)
+
+	return bugs[0], keys[0]
+}
+
+func (c *Ctx) loadSingleJob() (*Job, *db.Key) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").GetAll(c.ctx, &jobs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(jobs), 1)
+
+	return jobs[0], keys[0]
+}
+
 func (c *Ctx) checkURLContents(url string, want []byte) {
 	c.t.Helper()
 	got, err := c.AuthGET(AccessAdmin, url)
@@ -380,12 +477,18 @@ func (c *Ctx) pollEmailBug() *aemail.Message {
 
 func (c *Ctx) pollEmailExtID() string {
 	c.t.Helper()
+	_, extBugID := c.pollEmailAndExtID()
+	return extBugID
+}
+
+func (c *Ctx) pollEmailAndExtID() (string, string) {
+	c.t.Helper()
 	msg := c.pollEmailBug()
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	if err != nil {
 		c.t.Fatalf("failed to remove addr context: %v", err)
 	}
-	return extBugID
+	return msg.Sender, extBugID
 }
 
 func (c *Ctx) expectNoEmail() {
@@ -404,7 +507,30 @@ type apiClient struct {
 }
 
 func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
-	doer := func(r *http.Request) (*http.Response, error) {
+	logger := func(msg string, args ...interface{}) {
+		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
+	}
+	errorHandler := func(err error) {
+		if failOnErrors {
+			c.t.Fatalf("\n%v: %v", caller(2), err)
+		}
+	}
+	dash, err := dashapi.NewCustom(client, "", key, c.inst.NewRequest, c.httpDoer(), logger, errorHandler)
+	if err != nil {
+		panic(fmt.Sprintf("Impossible error: %v", err))
+	}
+	return &apiClient{
+		Ctx:       c,
+		Dashboard: dash,
+	}
+}
+
+func (c *Ctx) makeAPIClient() *api.Client {
+	return api.NewTestClient(c.inst.NewRequest, c.httpDoer())
+}
+
+func (c *Ctx) httpDoer() func(*http.Request) (*http.Response, error) {
+	return func(r *http.Request) (*http.Response, error) {
 		r = registerRequest(r, c)
 		r = r.WithContext(c.transformContext(r.Context()))
 		w := httptest.NewRecorder()
@@ -415,22 +541,6 @@ func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 			Body:       io.NopCloser(w.Result().Body),
 		}
 		return res, nil
-	}
-	logger := func(msg string, args ...interface{}) {
-		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
-	}
-	errorHandler := func(err error) {
-		if failOnErrors {
-			c.t.Fatalf("\n%v: %v", caller(2), err)
-		}
-	}
-	dash, err := dashapi.NewCustom(client, "", key, c.inst.NewRequest, doer, logger, errorHandler)
-	if err != nil {
-		panic(fmt.Sprintf("Impossible error: %v", err))
-	}
-	return &apiClient{
-		Ctx:       c,
-		Dashboard: dash,
 	}
 }
 
@@ -596,7 +706,7 @@ func registerRequest(r *http.Request, c *Ctx) *http.Request {
 	defer requestMu.Unlock()
 
 	requestNum++
-	newContext := context.WithValue(r.Context(), requestIDKey, requestNum)
+	newContext := context.WithValue(r.Context(), requestIDKey{}, requestNum)
 	newRequest := r.WithContext(newContext)
 	requestContexts = append(requestContexts, RequestMapping{requestNum, c})
 	return newRequest
@@ -628,12 +738,56 @@ func unregisterContext(c *Ctx) {
 	requestContexts = requestContexts[:n]
 }
 
-const requestIDKey = "test_request_id"
+type requestIDKey struct{}
 
 func getRequestID(c context.Context) int {
-	val, ok := c.Value(requestIDKey).(int)
+	val, ok := c.Value(requestIDKey{}).(int)
 	if !ok {
 		panic("the context did not come from a test")
 	}
 	return val
+}
+
+// Create a shallow copy of GlobalConfig with a replaced namespace config.
+func replaceNamespaceConfig(c context.Context, ns string, f func(*Config) *Config) *GlobalConfig {
+	ret := *getConfig(c)
+	newNsMap := map[string]*Config{}
+	for name, nsCfg := range ret.Namespaces {
+		if name == ns {
+			nsCfg = f(nsCfg)
+		}
+		newNsMap[name] = nsCfg
+	}
+	ret.Namespaces = newNsMap
+	return &ret
+}
+
+func replaceManagerConfig(c context.Context, ns, mgr string, f func(ConfigManager) ConfigManager) *GlobalConfig {
+	return replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+		ret := *cfg
+		newMgrMap := map[string]ConfigManager{}
+		for name, mgrCfg := range ret.Managers {
+			if name == mgr {
+				mgrCfg = f(mgrCfg)
+			}
+			newMgrMap[name] = mgrCfg
+		}
+		ret.Managers = newMgrMap
+		return &ret
+	})
+}
+
+func replaceReporting(c context.Context, ns, name string, f func(Reporting) Reporting) *GlobalConfig {
+	return replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
+		ret := *cfg
+		var newReporting []Reporting
+		for _, cfg := range ret.Reporting {
+			if cfg.Name == name {
+				cfg = f(cfg)
+			}
+			newReporting = append(newReporting, cfg)
+		}
+		ret.Reporting = newReporting
+		return &ret
+	})
 }

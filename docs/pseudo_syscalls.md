@@ -23,26 +23,9 @@ amount of code, possibility of extending syzlang to cover this case, etc).
 
 First, think about the scope of the pseudo-syscall and which systems and
 subsystems it will be related to. The executor includes a fixed set of C
-header files containing the code of the pseudo-syscalls. Check if the
-new one can fit in one of the existing files before creating a new
-one. These header files are defined in [gen.go](../pkg/csource/gen.go):
-
-    executorFilenames := []string{
-            "common_linux.h",
-            "common_akaros.h",
-            "common_bsd.h",
-            "common_fuchsia.h",
-            "common_windows.h",
-            "common_test.h",
-            "common_kvm_amd64.h",
-            "common_kvm_arm64.h",
-            "common_usb_linux.h",
-            "common_usb_netbsd.h",
-            "common_usb.h",
-            "android/android_seccomp.h",
-            "kvm.h",
-            "kvm_amd64.S.h",
-    }
+header files `executor/common*.h` containing the code of the pseudo-syscalls.
+Check if the new one can fit in one of the existing files before creating
+a new one.
 
 For instance, if our new pseudo-syscall is Linux-specific, then
 [common_linux.h](../executor/common_linux.h) would be the place to put it.
@@ -73,17 +56,10 @@ are violated (e.g. passing `NULL` to a `non-NULL` argument, or passing
 that.
 
 Now, to handle the pseudo-syscall properly we have to update the
-`isSupportedSyzkall` in
-[syscalls_linux.go](../pkg/host/syscalls_linux.go) and add a particular
+`linuxSyscallChecks` in
+[linux_syscalls.go](../pkg/vminfo/linux_syscalls.go) and add a particular
 case for this syscall, enabling it when necessary. If we want to enable
-it unconditionally we can simply make `isSupportedSyzkall` return `true,
-""` for it:
-
-    func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
-            switch c.CallName {
-            ...
-            case "syz_mycall":
-                    return true, ""
+it unconditionally we can simply use `alwaysSupported` for it.
 
 Finally, run `make generate`. Now you can use it in a syscall
 description file as if it was a regular system call:

@@ -1,0 +1,111 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+EXECUTOR: proc=0, id=104
+
+[  146.893110][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  146.894767][    C1] rcu: 	(detected by 1, t=10002 jiffies, g=4241, q=1639 ncpus=2)
+[  146.896637][    C1] rcu: All QSes seen, last rcu_preempt kthread activity 9998 (4294951926-4294941928), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  146.901144][    C1] rcu: rcu_preempt kthread starved for 9998 jiffies! g4241 f0x2 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[  146.903974][    C1] rcu: 	Unless rcu_preempt kthread gets sufficient CPU time, OOM is now expected behavior.
+[  146.906067][    C1] rcu: RCU grace-period kthread stack dump:
+[  146.907296][    C1] task:rcu_preempt     state:R  running task     stack:26920 pid:17    tgid:17    ppid:2      flags:0x00004000
+[  146.909742][    C1] Call Trace:
+[  146.910457][    C1]  <TASK>
+[  146.911086][    C1]  __schedule+0x1335/0x44b0
+[  146.912062][    C1]  ? __kasan_check_write+0x18/0x20
+[  146.913143][    C1]  ? __mod_timer+0xa6f/0x10a0
+[  146.914152][    C1]  ? __pfx___schedule+0x10/0x10
+[  146.915189][    C1]  ? __pfx___try_to_del_timer_sync+0x10/0x10
+[  146.916411][    C1]  schedule+0xc9/0x240
+[  146.917276][    C1]  schedule_timeout+0x1ad/0x3c0
+[  146.918355][    C1]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[  146.919731][    C1]  ? __pfx_schedule_timeout+0x10/0x10
+[  146.920945][    C1]  ? __pfx_process_timeout+0x10/0x10
+[  146.922114][    C1]  ? prepare_to_swait_event+0x310/0x330
+[  146.923320][    C1]  rcu_gp_fqs_loop+0x2da/0x1200
+[  146.924358][    C1]  ? __pfx_rcu_implicit_dynticks_qs+0x10/0x10
+[  146.925642][    C1]  ? __pfx_rcu_gp_fqs_loop+0x10/0x10
+[  146.926768][    C1]  ? finish_swait+0x17f/0x1c0
+[  146.927740][    C1]  rcu_gp_kthread+0xa4/0x3a0
+[  146.928717][    C1]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  146.929846][    C1]  ? __kasan_check_read+0x15/0x20
+[  146.930915][    C1]  ? __kthread_parkme+0x12f/0x180
+[  146.931993][    C1]  kthread+0x2d8/0x370
+[  146.932857][    C1]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  146.933965][    C1]  ? __pfx_kthread+0x10/0x10
+[  146.934956][    C1]  ret_from_fork+0x56/0x90
+[  146.935916][    C1]  ? __pfx_kthread+0x10/0x10
+[  146.936867][    C1]  ret_from_fork_asm+0x1a/0x30
+[  146.937875][    C1]  </TASK>
+[  146.938518][    C1] rcu: Stack dump where RCU GP kthread last ran:
+[  146.939867][    C1] Sending NMI from CPU 1 to CPUs 0:
+[  146.941062][    C0] NMI backtrace for cpu 0
+[  146.941087][    C0] CPU: 0 PID: 5599 Comm: syz.0.104 Not tainted 6.10.0-rc5-00257-g88d8f64b9f5f-dirty #20
+[  146.941108][    C0] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[  146.941122][    C0] RIP: 0010:rb_insert_color+0xa/0x5e0
+[  146.941157][    C0] Code: 5b 41 5c 41 5d 41 5e 41 5f 5d c3 cc cc cc cc cc 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 f3 0f 1e fa 55 48 89 e5 41 57 <41> 56 41 55 41 54 53 48 83 ec 38 48 89 75 a8 48 89 fb 49 bf 00 00
+[  146.941173][    C0] RSP: 0018:ffffc90006a87948 EFLAGS: 00000086
+[  146.941189][    C0] RAX: 1ffff1100598582d RBX: ffff8880167991b8 RCX: dffffc0000000000
+[  146.941202][    C0] RDX: ffffc90002521000 RSI: ffff88802cc2c160 RDI: ffff8880167991b8
+[  146.941216][    C0] RBP: ffffc90006a87950 R08: ffff8880167991cf R09: 0000000000000000
+[  146.941227][    C0] R10: ffff8880167991c0 R11: ffffed1002cf323a R12: ffff88802cc2c160
+[  146.941240][    C0] R13: ffff8880167991b8 R14: ffff88802cc2c658 R15: ffff88802cc2c101
+[  146.941253][    C0] FS:  00007f9e6a7746c0(0000) GS:ffff88802cc00000(0000) knlGS:0000000000000000
+[  146.941268][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  146.941280][    C0] CR2: 000000110c30ec34 CR3: 000000001f0a0000 CR4: 0000000000750ef0
+[  146.941294][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  146.941304][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  146.941314][    C0] PKRU: 55555554
+[  146.941321][    C0] Call Trace:
+[  146.941326][    C0]  <NMI>
+[  146.941333][    C0]  ? show_regs+0x5d/0x70
+[  146.941354][    C0]  ? nmi_cpu_backtrace+0x3b5/0x4c0
+[  146.941380][    C0]  ? __pfx_nmi_cpu_backtrace+0x10/0x10
+[  146.941407][    C0]  ? kvm_sched_clock_read+0x15/0x30
+[  146.941426][    C0]  ? nmi_cpu_backtrace_handler+0x10/0x20
+[  146.941452][    C0]  ? nmi_handle+0xae/0x3b0
+[  146.941474][    C0]  ? rb_insert_color+0xa/0x5e0
+[  146.941490][    C0]  ? default_do_nmi+0x68/0x170
+[  146.941515][    C0]  ? exc_nmi+0x12d/0x200
+[  146.941539][    C0]  ? end_repeat_nmi+0xf/0x53
+[  146.941565][    C0]  ? rb_insert_color+0xa/0x5e0
+[  146.941582][    C0]  ? rb_insert_color+0xa/0x5e0
+[  146.941598][    C0]  ? rb_insert_color+0xa/0x5e0
+[  146.941615][    C0]  </NMI>
+[  146.941620][    C0]  <TASK>
+[  146.941626][    C0]  timerqueue_add+0x24d/0x280
+[  146.941649][    C0]  enqueue_hrtimer+0x11c/0x300
+[  146.941667][    C0]  hrtimer_start_range_ns+0x9e9/0xbb0
+[  146.941695][    C0]  common_hrtimer_rearm+0x100/0x110
+[  146.941718][    C0]  posixtimer_rearm+0x19c/0x3f0
+[  146.941736][    C0]  ? __pfx_posixtimer_rearm+0x10/0x10
+[  146.941755][    C0]  ? __kasan_check_write+0x18/0x20
+[  146.941770][    C0]  ? recalc_sigpending+0x16d/0x1d0
+[  146.941808][    C0]  dequeue_signal+0x23f/0x5b0
+[  146.941833][    C0]  ? __kasan_check_write+0x18/0x20
+[  146.941847][    C0]  ? _raw_spin_lock_irq+0xaa/0x1b0
+[  146.941870][    C0]  ? __pfx_dequeue_signal+0x10/0x10
+[  146.941894][    C0]  ? __kasan_check_write+0x18/0x20
+[  146.941909][    C0]  ? uprobe_deny_signal+0x7b/0x230
+[  146.941925][    C0]  ? get_signal+0x157/0x1650
+[  146.941943][    C0]  get_signal+0x532/0x1650
+[  146.941964][    C0]  ? __pfx_get_signal+0x10/0x10
+[  146.941983][    C0]  arch_do_signal_or_restart+0x96/0x840
+[  146.941999][    C0]  ? __pfx_sched_clock_cpu+0x10/0x10
+[  146.942021][    C0]  ? __pfx_arch_do_signal_or_restart+0x10/0x10
+[  146.942039][    C0]  ? __pfx___do_sys_rt_sigreturn+0x10/0x10
+[  146.942058][    C0]  syscall_exit_to_user_mode+0x66/0x240
+[  146.942077][    C0]  do_syscall_64+0xf0/0x230
+[  146.942098][    C0]  ? clear_bhb_loop+0x25/0x80
+[  146.942120][    C0]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  146.942140][    C0] RIP: 0033:0x7f9e69847189
+[  146.942158][    C0] Code: bd 1e ff ff 48 83 c4 58 5b 5d 41 5c 41 5e c3 66 90 48 8b 44 24 18 48 8b 1c 24 48 8b 70 50 8b 78 08 48 8d 53 30 e8 f7 64 ff ff <48> 89 83 88 00 00 00 e9 82 fe ff ff 0f 1f 00 8b 7c 24 14 48 8d 74
+[  146.942174][    C0] RSP: 002b:00007f9e6a774080 EFLAGS: 00010206
+[  146.942188][    C0] RAX: 0000000020000000 RBX: 00007f9e69b03f60 RCX: 00007f9e699ea084
+[  146.942201][    C0] RDX: 0000000000000000 RSI: 0000000000b36000 RDI: 0000000020000000
+[  146.942211][    C0] RBP: 00007f9e699ea084 R08: ffffffffffffffff R09: 0000000000000000
+[  146.942223][    C0] R10: 0000000000008031 R11: 0000000000000246 R12: 0000000000000000
+[  146.942234][    C0] R13: 000000000000000b R14: 00007f9e69b03f60 R15: 00007ffedfe59038
+[  146.942248][    C0]  </TASK>

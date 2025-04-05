@@ -26,6 +26,7 @@ package csource
 import (
 	"bytes"
 	"fmt"
+	"math/bits"
 	"regexp"
 	"sort"
 	"strconv"
@@ -39,7 +40,7 @@ import (
 // Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
-		return nil, fmt.Errorf("csource: invalid opts: %v", err)
+		return nil, fmt.Errorf("csource: invalid opts: %w", err)
 	}
 	ctx := &context{
 		p:         p,
@@ -187,9 +188,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		if len(calls) > 0 && (hasVars || opts.Trace) {
 			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
-		if opts.Repro {
-			fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
-		}
+		fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
 		if opts.Trace {
 			fmt.Fprintf(buf, "\tfprintf(stderr, \"### start\\n\");\n")
 		}
@@ -238,12 +237,11 @@ func (ctx *context) generateSyscallDefines() string {
 }
 
 func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
-	exec := make([]byte, prog.ExecBufferSize)
-	progSize, err := p.SerializeForExec(exec)
+	exec, err := p.SerializeForExec()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to serialize program: %v", err)
+		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
 	}
-	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
+	decoded, err := ctx.target.DeserializeExec(exec, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -271,12 +269,10 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 		ctx.emitCall(w, call, ci, resCopyout || argCopyout, trace)
 
 		if call.Props.Rerun > 0 {
-			// TODO: remove this legacy C89-style definition once we figure out what to do with Akaros.
-			fmt.Fprintf(w, "\t{\n\tint i;\n")
-			fmt.Fprintf(w, "\tfor(i = 0; i < %v; i++) {\n", call.Props.Rerun)
+			fmt.Fprintf(w, "\tfor (int i = 0; i < %v; i++) {\n", call.Props.Rerun)
 			// Rerun invocations should not affect the result value.
 			ctx.emitCall(w, call, ci, false, false)
-			fmt.Fprintf(w, "\t\t}\n\t}\n")
+			fmt.Fprintf(w, "\t}\n")
 		}
 		// Copyout.
 		if resCopyout || argCopyout {
@@ -351,25 +347,27 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 		}
 		funcName = fmt.Sprintf("((intptr_t(*)(%v))CAST(%v))", args, callName)
 	}
-	for _, arg := range call.Args {
+	for i, arg := range call.Args {
 		switch arg := arg.(type) {
 		case prog.ExecArgConst:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
+			com := ctx.argComment(call.Meta.Args[i], arg)
 			suf := ctx.literalSuffix(arg, native)
-			argsStrs = append(argsStrs, handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
+			argsStrs = append(argsStrs, com+handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
+			com := ctx.argComment(call.Meta.Args[i], arg)
 			val := ctx.resultArgToStr(arg)
 			if native && ctx.target.PtrSize == 4 {
 				// syscall accepts args as ellipsis, resources are uint64
 				// and take 2 slots without the cast, which would be wrong.
 				val = "(intptr_t)" + val
 			}
-			argsStrs = append(argsStrs, val)
+			argsStrs = append(argsStrs, com+val)
 		default:
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
@@ -411,11 +409,11 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				panic("bitfield+string format")
 			}
 			htobe := ""
-			if ctx.target.LittleEndian && arg.Format == prog.FormatBigEndian {
+			if !ctx.target.BigEndian && arg.Format == prog.FormatBigEndian {
 				htobe = fmt.Sprintf("htobe%v", arg.Size*8)
 			}
 			bitfieldOffset := arg.BitfieldOffset
-			if !ctx.target.LittleEndian {
+			if ctx.target.BigEndian {
 				bitfieldOffset = arg.Size*8 - arg.BitfieldOffset - arg.BitfieldLength
 			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
@@ -497,6 +495,59 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	if copyoutMultiple {
 		fmt.Fprintf(w, "\t}\n")
 	}
+}
+
+func (ctx *context) factorizeAsFlags(value uint64, flags []string, attemptsLeft *int) ([]string, uint64) {
+	if len(flags) == 0 || value == 0 || *attemptsLeft == 0 {
+		return nil, value
+	}
+
+	*attemptsLeft -= 1
+	currentFlag := flags[0]
+	subset, remainder := ctx.factorizeAsFlags(value, flags[1:], attemptsLeft)
+
+	if flagMask, ok := ctx.p.Target.ConstMap[currentFlag]; ok && (value&flagMask == flagMask) {
+		subsetIfTaken, remainderIfTaken := ctx.factorizeAsFlags(value & ^flagMask, flags[1:], attemptsLeft)
+		subsetIfTaken = append(subsetIfTaken, currentFlag)
+
+		bits, bitsIfTaken := bits.OnesCount64(remainder), bits.OnesCount64(remainderIfTaken)
+		if (bitsIfTaken < bits) || (bits == bitsIfTaken && len(subsetIfTaken) < len(subset)) {
+			return subsetIfTaken, remainderIfTaken
+		}
+	}
+
+	return subset, remainder
+}
+
+func (ctx *context) prettyPrintValue(field prog.Field, arg prog.ExecArgConst) string {
+	mask := (uint64(1) << (arg.Size * 8)) - 1
+	v := arg.Value & mask
+
+	f := ctx.p.Target.FlagsMap[field.Type.Name()]
+	if len(f) == 0 {
+		return ""
+	}
+
+	maxFactorizationAttempts := 256
+	flags, remainder := ctx.factorizeAsFlags(v, f, &maxFactorizationAttempts)
+	if len(flags) == 0 {
+		return ""
+	}
+	if remainder != 0 {
+		flags = append(flags, fmt.Sprintf("0x%x", remainder))
+	}
+
+	return strings.Join(flags, "|")
+}
+
+func (ctx *context) argComment(field prog.Field, arg prog.ExecArg) string {
+	val := ""
+	constArg, isConstArg := arg.(prog.ExecArgConst)
+	if isConstArg {
+		val = ctx.prettyPrintValue(field, constArg)
+	}
+
+	return "/*" + field.Name + "=" + val + "*/"
 }
 
 func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {

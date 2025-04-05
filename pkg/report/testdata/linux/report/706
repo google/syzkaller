@@ -1,0 +1,7 @@
+
+Sep 23 02:31[   69.295771][ T2742] ALSA: seq fatal error: cannot create timer (-22)
+:17 syzkaller ke[   69.303665][ T2742] ALSA: seq fatal error: cannot create timer (-22)
+rn.err kernel: [[   69.311910][ T2742] ALSA: seq fatal error: cannot create timer (-22)
+   68.938106][ T[   69.319571][ T2742] ALSA: seq fatal error: cannot create timer (-22)
+2742] ALSA: seq [   69.327618][ T2742] ALSA: seq fatal error: cannot create timer (-22)
+fatal error: cannot create timer (-22)

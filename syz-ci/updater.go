@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -80,7 +81,6 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		mgrcfg := mgr.managercfg
 		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
 		targets[os+"/"+vmarch+"/"+arch] = true
-		syzFiles[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
 		syzFiles[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
 		if mgrcfg.SysTarget.ExecutorBin == "" {
 			syzFiles[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
@@ -193,6 +193,10 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
 		log.Fatal(err)
 	}
+	if *flagExitOnUpgrade {
+		log.Logf(0, "exiting, please restart syz-ci to run the new version")
+		os.Exit(0)
+	}
 	if err := syscall.Exec(upd.exe, os.Args, os.Environ()); err != nil {
 		log.Fatal(err)
 	}
@@ -217,6 +221,7 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 	return commit.Hash
 }
 
+// nolint: goconst // "GOPATH=" looks good here, ignore
 func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	// syzkaller testing may be slowed down by concurrent kernel builds too much
 	// and cause timeout failures, so we serialize it with other builds:
@@ -227,7 +232,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	if upd.descriptions != "" {
 		files, err := os.ReadDir(upd.descriptions)
 		if err != nil {
-			return fmt.Errorf("failed to read descriptions dir: %v", err)
+			return fmt.Errorf("failed to read descriptions dir: %w", err)
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
@@ -245,12 +250,6 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			if err := osutil.CopyFile(src, dst); err != nil {
 				return err
 			}
-		}
-		cmd := osutil.Command(instance.MakeBin, "generate")
-		cmd.Dir = upd.syzkallerDir
-		cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
-		if _, err := osutil.Run(time.Hour, cmd); err != nil {
-			return osutil.PrependContext("generate failed", err)
 		}
 	}
 	// This will also generate descriptions and should go before the 'go test' below.
@@ -286,10 +285,10 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
-		return fmt.Errorf("failed to write tag file: %v", err)
+		return fmt.Errorf("failed to write tag file: %w", err)
 	}
 	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, upd.syzFiles); err != nil {
-		return fmt.Errorf("failed to copy syzkaller: %v", err)
+		return fmt.Errorf("failed to copy syzkaller: %w", err)
 	}
 	return nil
 }
@@ -297,7 +296,8 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 	var title string
 	var output []byte
-	if verbose, ok := buildErr.(*osutil.VerboseError); ok {
+	var verbose *osutil.VerboseError
+	if errors.As(buildErr, &verbose) {
 		title = verbose.Title
 		output = verbose.Output
 	} else {
@@ -306,7 +306,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 	title = "syzkaller: " + title
 	for _, mgrcfg := range upd.cfg.Managers {
 		if upd.dashboardAddr == "" || mgrcfg.DashboardClient == "" {
-			log.Logf(0, "not uploading build error fr %v: no dashboard", mgrcfg.Name)
+			log.Logf(0, "not uploading build error for %v: no dashboard", mgrcfg.Name)
 			continue
 		}
 		dash, err := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)

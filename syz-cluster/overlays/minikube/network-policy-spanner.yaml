@@ -1,0 +1,27 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloud-spanner-access
+spec:
+  podSelector:
+    matchLabels:
+      app: cloud-spanner-emulator
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: db-mgmt
+    - podSelector:
+        matchLabels:
+          app: controller
+    - podSelector:
+        matchLabels:
+          app: web-dashboard
+    - podSelector:
+        matchLabels:
+          app: reporter

@@ -1,0 +1,9 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resources:
+  - rebuild-kernels-cron.yaml
+  - triage-step/workflow-template.yaml
+  - build-step/workflow-template.yaml
+  - boot-step/workflow-template.yaml
+  - fuzz-step/workflow-template.yaml

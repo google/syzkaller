@@ -6,14 +6,16 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -43,7 +45,7 @@ type Report struct {
 	// If two crashes have a non-empty intersection of Title/AltTitles, they are considered the same bug.
 	AltTitles []string
 	// Bug type (e.g. hang, memory leak, etc).
-	Type Type
+	Type crash.Type
 	// The indicative function name.
 	Frame string
 	// Report contains whole oops text.
@@ -65,47 +67,41 @@ type Report struct {
 	Recipients vcs.Recipients
 	// GuiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
 	GuiltyFile string
+	// Arbitrary information about the test VM, may be attached to the report by users of the package.
+	MachineInfo []byte
+	// If the crash happened in the context of the syz-executor process, Executor will hold more info.
+	Executor *ExecutorInfo
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized.
 	symbolized bool
 }
 
+type ExecutorInfo struct {
+	ProcID int // ID of the syz-executor proc mentioned in the crash report.
+	ExecID int // The program the syz-executor was executing.
+}
+
 func (r Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", r.Title, r.Report)
 }
 
-type Type int
-
-const (
-	Unknown Type = iota
-	Hang
-	MemoryLeak
-	DataRace
-	UnexpectedReboot
-)
-
-func (t Type) String() string {
-	switch t {
-	case Unknown:
-		return "UNKNOWN"
-	case Hang:
-		return "HANG"
-	case MemoryLeak:
-		return "LEAK"
-	case DataRace:
-		return "DATARACE"
-	case UnexpectedReboot:
-		return "REBOOT"
-	default:
-		panic("unknown report type")
-	}
-}
+// unspecifiedType can be used to cancel oops.reportType from oopsFormat.reportType.
+const unspecifiedType = crash.Type("UNSPECIFIED")
 
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
+	var localModules []*vminfo.KernelModule
+	if cfg.KernelObj != "" {
+		var err error
+		localModules, err = backend.DiscoverModules(cfg.SysTarget, cfg.KernelObj, cfg.ModuleObj)
+		if err != nil {
+			return nil, err
+		}
+		cfg.LocalModules = localModules
+	}
 	typ := cfg.TargetOS
-	if cfg.Type == "gvisor" || cfg.Type == "starnix" {
+	if cfg.Type == targets.GVisor || cfg.Type == targets.Starnix {
 		typ = cfg.Type
 	}
 	ctor := ctors[typ]
@@ -121,12 +117,11 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 		return nil, err
 	}
 	config := &config{
-		target:         cfg.SysTarget,
-		vmType:         cfg.Type,
-		kernelSrc:      cfg.KernelSrc,
-		kernelBuildSrc: cfg.KernelBuildSrc,
-		kernelObj:      cfg.KernelObj,
-		ignores:        ignores,
+		target:        cfg.SysTarget,
+		vmType:        cfg.Type,
+		kernelDirs:    *cfg.KernelDirs(),
+		ignores:       ignores,
+		kernelModules: localModules,
 	}
 	rep, suppressions, err := ctor(config)
 	if err != nil {
@@ -156,17 +151,13 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 }
 
 const (
-	unexpectedKernelReboot = "unexpected kernel reboot"
-	memoryLeakPrefix       = "memory leak in "
-	dataRacePrefix         = "KCSAN: data-race"
-	corruptedNoFrames      = "extracted no frames"
+	corruptedNoFrames = "extracted no frames"
 )
 
 var ctors = map[string]fn{
-	targets.Akaros:  ctorAkaros,
 	targets.Linux:   ctorLinux,
-	"starnix":       ctorFuchsia,
-	"gvisor":        ctorGvisor,
+	targets.Starnix: ctorFuchsia,
+	targets.GVisor:  ctorGvisor,
 	targets.FreeBSD: ctorFreebsd,
 	targets.Darwin:  ctorDarwin,
 	targets.NetBSD:  ctorNetbsd,
@@ -176,12 +167,11 @@ var ctors = map[string]fn{
 }
 
 type config struct {
-	target         *targets.Target
-	vmType         string
-	kernelSrc      string
-	kernelBuildSrc string
-	kernelObj      string
-	ignores        []*regexp.Regexp
+	target        *targets.Target
+	vmType        string
+	kernelDirs    mgrconfig.KernelDirs
+	ignores       []*regexp.Regexp
+	kernelModules []*vminfo.KernelModule
 }
 
 type fn func(cfg *config) (reporterImpl, []string, error)
@@ -191,7 +181,7 @@ func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	for i, str := range list {
 		re, err := regexp.Compile(str)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile %q: %v", str, err)
+			return nil, fmt.Errorf("failed to compile %q: %w", str, err)
 		}
 		compiled[i] = re
 	}
@@ -218,7 +208,6 @@ func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
 	if bytes.Contains(rep.Output, gceConsoleHangup) {
 		rep.Corrupted = true
 	}
-	rep.Type = extractReportType(rep)
 	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
 		rep.Frame = match[1]
 	}
@@ -226,11 +215,9 @@ func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
 	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
 		rep.SkipPos = rep.StartPos + pos
 	}
-	if rep.EndPos < rep.SkipPos {
-		// This generally should not happen.
-		// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
-		rep.EndPos = rep.SkipPos
-	}
+	// This generally should not happen.
+	// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
+	rep.EndPos = max(rep.EndPos, rep.SkipPos)
 	return rep
 }
 
@@ -250,6 +237,16 @@ func (reporter *Reporter) Symbolize(rep *Report) error {
 		rep.Suppressed = true
 	}
 	return nil
+}
+
+func setReportType(rep *Report, oops *oops, format oopsFormat) {
+	if format.reportType == unspecifiedType {
+		rep.Type = crash.UnknownType
+	} else if format.reportType != crash.UnknownType {
+		rep.Type = format.reportType
+	} else if oops.reportType != crash.UnknownType {
+		rep.Type = oops.reportType
+	}
 }
 
 func (reporter *Reporter) isInteresting(rep *Report) bool {
@@ -285,28 +282,6 @@ func (reporter *Reporter) ReportToGuiltyFile(title string, report []byte) string
 		return ""
 	}
 	return ii.extractGuiltyFileRaw(title, report)
-}
-
-func extractReportType(rep *Report) Type {
-	// Type/frame extraction logic should be integrated with oops types.
-	// But for now we do this more ad-hoc analysis here to at least isolate
-	// the rest of the code base from report parsing.
-	if rep.Title == unexpectedKernelReboot {
-		return UnexpectedReboot
-	}
-	if strings.HasPrefix(rep.Title, memoryLeakPrefix) {
-		return MemoryLeak
-	}
-	if strings.HasPrefix(rep.Title, dataRacePrefix) {
-		return DataRace
-	}
-	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
-		strings.HasPrefix(rep.Title, "INFO: task hung") ||
-		strings.HasPrefix(rep.Title, "BUG: soft lockup") ||
-		strings.HasPrefix(rep.Title, "INFO: task can't die") {
-		return Hang
-	}
-	return Unknown
 }
 
 func IsSuppressed(reporter *Reporter, output []byte) bool {
@@ -430,6 +405,8 @@ type oops struct {
 	header       []byte
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
+	// This reportType will be used if oopsFormat's reportType is empty.
+	reportType crash.Type
 }
 
 type oopsFormat struct {
@@ -450,6 +427,8 @@ type oopsFormat struct {
 	// present, but this format does not comply with that.
 	noStackTrace bool
 	corrupted    bool
+	// If not empty, report will have this type.
+	reportType crash.Type
 }
 
 type stackFmt struct {
@@ -621,9 +600,13 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]s
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
+func lines(text []byte) [][]byte {
+	return bytes.Split(text, []byte("\n"))
+}
+
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
 	parts []*regexp.Regexp, extractor frameExtractor) ([]string, bool) {
-	s := bufio.NewScanner(bytes.NewReader(output))
+	lines := lines(output)
 	var frames, results []string
 	ok := true
 	numStackTraces := 0
@@ -643,8 +626,9 @@ nextPart:
 		part := parts[partIdx]
 		if part == parseStackTrace {
 			numStackTraces++
-			for s.Scan() {
-				ln := s.Bytes()
+			var ln []byte
+			for len(lines) > 0 {
+				ln, lines = lines[0], lines[1:]
 				if matchesAny(ln, params.corruptedLines) {
 					ok = false
 					continue nextPart
@@ -671,8 +655,9 @@ nextPart:
 				frames = appendStackFrame(frames, match, params, skipRe)
 			}
 		} else {
-			for s.Scan() {
-				ln := s.Bytes()
+			var ln []byte
+			for len(lines) > 0 {
+				ln, lines = lines[0], lines[1:]
 				if matchesAny(ln, params.corruptedLines) {
 					ok = false
 					continue nextPart
@@ -734,12 +719,14 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, format := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
 	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
+	setReportType(rep, oops, format)
+
 	return rep
 }
 
@@ -775,6 +762,27 @@ func replace(where []byte, start, end int, what []byte) []byte {
 	return where
 }
 
+// Truncate leaves up to `begin` bytes at the beginning of log and
+// up to `end` bytes at the end of the log.
+func Truncate(log []byte, begin, end int) []byte {
+	if begin+end >= len(log) {
+		return log
+	}
+	var b bytes.Buffer
+	b.Write(log[:begin])
+	if begin > 0 {
+		b.WriteString("\n\n")
+	}
+	fmt.Fprintf(&b, "<<cut %d bytes out>>",
+		len(log)-begin-end,
+	)
+	if end > 0 {
+		b.WriteString("\n\n")
+	}
+	b.Write(log[len(log)-end:])
+	return b.Bytes()
+}
+
 var (
 	filenameRe    = regexp.MustCompile(`([a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h)):[0-9]+`)
 	reportFrameRe = regexp.MustCompile(`.* in ([a-zA-Z0-9_]+)`)
@@ -796,6 +804,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.SyzFailure,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -809,6 +818,7 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.SyzFailure,
 	},
 	{
 		[]byte("panic:"),
@@ -833,18 +843,22 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
+		crash.UnknownType,
 	},
-	{
-		[]byte("fatal error:"),
-		[]oopsFormat{
-			{
-				title:        compile("fatal error:(.*)"),
-				fmt:          "fatal error:%[1]v",
-				noStackTrace: true,
-			},
-		},
-		[]*regexp.Regexp{
-			compile("ALSA"),
+}
+
+var groupGoRuntimeErrors = oops{
+	[]byte("fatal error:"),
+	[]oopsFormat{
+		{
+			title:        compile("fatal error:"),
+			fmt:          "go runtime error",
+			noStackTrace: true,
 		},
 	},
+	[]*regexp.Regexp{
+		compile("ALSA"),
+		compile("fatal error: cannot create timer"),
+	},
+	crash.UnknownType,
 }

@@ -1418,8 +1418,8 @@ write$DESTROY_AH(fd fd_rdma, buf ptr[inout, destroy_ah_cmd], len len[buf])
 
 # mr
 write$REG_MR(fd fd_rdma, buf ptr[inout, reg_mr_cmd], len len[buf])
-write$DEREG_MR(fd fd_rdma, buf ptr[inout, rereg_mr_cmd], len len[buf])
-write$REREG_MR(fd fd_rdma, buf ptr[inout, dereg_mr_cmd], len len[buf])
+write$REREG_MR(fd fd_rdma, buf ptr[inout, rereg_mr_cmd], len len[buf])
+write$DEREG_MR(fd fd_rdma, buf ptr[inout, dereg_mr_cmd], len len[buf])
 
 # mw
 write$ALLOC_MW(fd fd_rdma, buf ptr[inout, alloc_mw_cmd], len len[buf])

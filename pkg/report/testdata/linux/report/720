@@ -1,0 +1,215 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+EXECUTOR: proc=2, id=737
+
+[  204.021600][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  204.023224][    C1] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P9294/1:b..l
+[  204.025087][    C1] rcu: 	(detected by 1, t=10002 jiffies, g=13073, q=1262 ncpus=2)
+[  204.026704][    C1] task:syz-executor    state:R  running task     stack:20832 pid:9294  tgid:9294  ppid:9284   flags:0x00004002
+[  204.030279][    C1] Call Trace:
+[  204.031560][    C1]  <TASK>
+[  204.032216][    C1]  __schedule+0x1335/0x44b0
+[  204.033238][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.034248][    C1]  ? _raw_spin_lock_irqsave+0xfd/0x220
+[  204.035104][    C1]  ? __pfx___schedule+0x10/0x10
+[  204.035894][    C1]  ? prb_read_valid+0xa8/0xf0
+[  204.036659][    C1]  ? __pfx_prb_read_valid+0x10/0x10
+[  204.037577][    C1]  ? preempt_schedule+0xe2/0xf0
+[  204.038603][    C1]  preempt_schedule_common+0x9c/0xe0
+[  204.039727][    C1]  preempt_schedule+0xe2/0xf0
+[  204.040758][    C1]  ? __pfx_preempt_schedule+0x10/0x10
+[  204.041911][    C1]  ? console_trylock+0x21c/0x2e0
+[  204.042759][    C1]  ? __pfx_console_trylock+0x10/0x10
+[  204.043649][    C1]  preempt_schedule_thunk+0x1a/0x30
+[  204.044526][    C1]  ? vprintk_emit+0x540/0x5e0
+[  204.045309][    C1]  vprintk_emit+0x545/0x5e0
+[  204.046099][    C1]  ? __pfx_vprintk_emit+0x10/0x10
+[  204.046900][    C1]  ? __pfx_snprintf+0x10/0x10
+[  204.047702][    C1]  ? __kasan_check_read+0x15/0x20
+[  204.048635][    C1]  ? read_word_at_a_time+0x12/0x20
+[  204.049461][    C1]  ? sized_strscpy+0x91/0x260
+[  204.050244][    C1]  dev_vprintk_emit+0x2cf/0x350
+[  204.051058][    C1]  ? __pfx_dev_vprintk_emit+0x10/0x10
+[  204.051948][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.052795][    C1]  ? _raw_spin_lock+0xa9/0x1b0
+[  204.053522][    C1]  dev_printk_emit+0xe1/0x130
+[  204.054354][    C1]  ? __local_bh_enable_ip+0x5c/0x90
+[  204.055335][    C1]  ? udp_lib_get_port+0x15df/0x1a70
+[  204.056254][    C1]  ? netlink_unicast+0x934/0xaf0
+[  204.057087][    C1]  ? __pfx_dev_printk_emit+0x10/0x10
+[  204.058004][    C1]  ? ip4_datagram_release_cb+0x937/0xe80
+[  204.059101][    C1]  __netdev_printk+0x3f1/0x4f0
+[  204.059958][    C1]  netdev_info+0x124/0x180
+[  204.060712][    C1]  ? __pfx_netdev_info+0x10/0x10
+[  204.061507][    C1]  ? _raw_spin_unlock_bh+0x54/0x60
+[  204.062333][    C1]  ? release_sock+0x17a/0x1f0
+[  204.063107][    C1]  ? __inet_bind+0x459/0xbd0
+[  204.063856][    C1]  nsim_udp_tunnel_set_port+0x2a8/0x460
+[  204.064715][    C1]  __udp_tunnel_nic_device_sync+0x9fc/0x1310
+[  204.065658][    C1]  ? __pfx___udp_tunnel_nic_device_sync+0x10/0x10
+[  204.066681][    C1]  __udp_tunnel_nic_add_port+0xabe/0xd30
+[  204.067610][    C1]  udp_tunnel_notify_add_rx_port+0x242/0x370
+[  204.068695][    C1]  ? __pfx_udp_tunnel_notify_add_rx_port+0x10/0x10
+[  204.069951][    C1]  geneve_sock_add+0x617/0xbb0
+[  204.070823][    C1]  ? __pfx_geneve_sock_add+0x10/0x10
+[  204.071830][    C1]  ? hsr_netdev_notify+0x210/0xab0
+[  204.072694][    C1]  ? ip6_route_dev_notify+0x9d/0x850
+[  204.073545][    C1]  ? ndisc_netdev_event+0x320/0x660
+[  204.074392][    C1]  ? __pfx_geneve_netdevice_event+0x10/0x10
+[  204.075385][    C1]  ? __pfx_ip6_route_dev_notify+0x10/0x10
+[  204.076369][    C1]  ? notifier_call_chain+0x327/0x340
+[  204.077283][    C1]  geneve_open+0xee/0x170
+[  204.078149][    C1]  __dev_open+0x2f8/0x470
+[  204.079082][    C1]  ? __pfx___dev_open+0x10/0x10
+[  204.080007][    C1]  ? _raw_spin_unlock_bh+0x54/0x60
+[  204.080859][    C1]  ? dev_set_rx_mode+0x24e/0x2e0
+[  204.081921][    C1]  ? __kasan_check_read+0x15/0x20
+[  204.082982][    C1]  __dev_change_flags+0x1f1/0x700
+[  204.083954][    C1]  ? __pfx___dev_change_flags+0x10/0x10
+[  204.084859][    C1]  ? debug_smp_processor_id+0x1b/0x30
+[  204.085771][    C1]  dev_change_flags+0x90/0x1b0
+[  204.086721][    C1]  do_setlink+0xd6e/0x4450
+[  204.087559][    C1]  ? __pfx_stack_trace_save+0x10/0x10
+[  204.088497][    C1]  ? stack_depot_save_flags+0x2b/0x740
+[  204.089402][    C1]  ? __pfx_do_setlink+0x10/0x10
+[  204.090219][    C1]  ? __nla_validate_parse+0x2629/0x2ff0
+[  204.091157][    C1]  ? netlink_unicast+0x934/0xaf0
+[  204.091988][    C1]  ? do_syscall_64+0xe3/0x230
+[  204.092786][    C1]  ? __pfx___nla_validate_parse+0x10/0x10
+[  204.093723][    C1]  ? kasan_save_alloc_info+0x3a/0x50
+[  204.094616][    C1]  rtnl_newlink+0x1890/0x21a0
+[  204.095413][    C1]  ? rtnl_newlink+0x501/0x21a0
+[  204.096205][    C1]  ? __pfx_rtnl_newlink+0x10/0x10
+[  204.097078][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.098079][    C1]  ? aa_get_newest_label+0x100/0x4f0
+[  204.098921][    C1]  ? kasan_save_track+0x3f/0x80
+[  204.099688][    C1]  ? kasan_save_free_info+0x44/0x50
+[  204.100510][    C1]  ? __kasan_slab_free+0x3b/0x60
+[  204.101359][    C1]  ? __pfx_aa_get_newest_label+0x10/0x10
+[  204.102306][    C1]  ? nlmon_xmit+0xbe/0x110
+[  204.103027][    C1]  ? __sock_sendmsg+0x23f/0x290
+[  204.103833][    C1]  ? __sys_sendto+0x486/0x630
+[  204.104579][    C1]  ? __x64_sys_sendto+0xe9/0x100
+[  204.105381][    C1]  ? __mutex_lock_slowpath+0xe/0x20
+[  204.106237][    C1]  ? __pfx_mutex_lock+0x10/0x10
+[  204.107094][    C1]  ? ns_capable+0x91/0xf0
+[  204.107888][    C1]  ? netlink_net_capable+0x129/0x160
+[  204.109024][    C1]  ? __pfx_rtnl_newlink+0x10/0x10
+[  204.110021][    C1]  rtnetlink_rcv_msg+0xa48/0xf30
+[  204.110886][    C1]  ? __pfx_rtnetlink_rcv_msg+0x10/0x10
+[  204.111741][    C1]  ? kfree_skbmem+0x14a/0x1c0
+[  204.112537][    C1]  ? __kasan_slab_free+0x4e/0x60
+[  204.113398][    C1]  ? kmem_cache_free+0x109/0x2f0
+[  204.114229][    C1]  ? kfree_skbmem+0x14a/0x1c0
+[  204.115106][    C1]  ? consume_skb+0xc2/0x2a0
+[  204.116053][    C1]  ? __kasan_check_read+0x15/0x20
+[  204.116969][    C1]  ? dev_hard_start_xmit+0x657/0x6c0
+[  204.117946][    C1]  ? __local_bh_enable_ip+0x5c/0x90
+[  204.119065][    C1]  ? __dev_queue_xmit+0x151c/0x3850
+[  204.120123][    C1]  ? __dev_queue_xmit+0x2cb/0x3850
+[  204.120937][    C1]  netlink_rcv_skb+0x1f4/0x440
+[  204.121837][    C1]  ? __pfx_rtnetlink_rcv_msg+0x10/0x10
+[  204.122933][    C1]  ? __pfx_netlink_rcv_skb+0x10/0x10
+[  204.123962][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.124770][    C1]  ? __netlink_deliver_tap+0x760/0x7a0
+[  204.125631][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.126577][    C1]  rtnetlink_rcv+0x20/0x30
+[  204.127273][    C1]  netlink_unicast+0x934/0xaf0
+[  204.128024][    C1]  ? __pfx_netlink_unicast+0x10/0x10
+[  204.128902][    C1]  ? __virt_addr_valid+0x279/0x340
+[  204.129825][    C1]  ? __phys_addr_symbol+0x33/0x80
+[  204.130704][    C1]  ? bpf_lsm_netlink_send+0xd/0x20
+[  204.131559][    C1]  ? security_netlink_send+0x85/0xb0
+[  204.132504][    C1]  netlink_sendmsg+0x879/0xc60
+[  204.133492][    C1]  ? __pfx_netlink_sendmsg+0x10/0x10
+[  204.134513][    C1]  ? aa_sock_msg_perm+0xbe/0x160
+[  204.135501][    C1]  ? apparmor_socket_sendmsg+0x2d/0x40
+[  204.136651][    C1]  ? security_socket_sendmsg+0x8c/0xb0
+[  204.137695][    C1]  ? __pfx_netlink_sendmsg+0x10/0x10
+[  204.138570][    C1]  __sock_sendmsg+0x23f/0x290
+[  204.139333][    C1]  __sys_sendto+0x486/0x630
+[  204.140056][    C1]  ? __pfx___sys_sendto+0x10/0x10
+[  204.141056][    C1]  __x64_sys_sendto+0xe9/0x100
+[  204.142034][    C1]  x64_sys_call+0x172b/0x2e60
+[  204.142918][    C1]  do_syscall_64+0xe3/0x230
+[  204.143625][    C1]  ? clear_bhb_loop+0x25/0x80
+[  204.144365][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  204.145278][    C1] RIP: 0033:0x7f5079f7892c
+[  204.145988][    C1] RSP: 002b:00007ffe15b4ecf0 EFLAGS: 00000293 ORIG_RAX: 000000000000002c
+[  204.147299][    C1] RAX: ffffffffffffffda RBX: 00007f507ac34620 RCX: 00007f5079f7892c
+[  204.148893][    C1] RDX: 000000000000002c RSI: 00007f507ac34670 RDI: 0000000000000003
+[  204.150255][    C1] RBP: 0000000000000000 R08: 00007ffe15b4ed44 R09: 000000000000000c
+[  204.151564][    C1] R10: 0000000000000000 R11: 0000000000000293 R12: 0000000000000003
+[  204.153019][    C1] R13: 0000000000000000 R14: 00007f507ac34670 R15: 0000000000000000
+[  204.154494][    C1]  </TASK>
+[  204.155048][    C1] rcu: rcu_preempt kthread starved for 10005 jiffies! g13073 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[  204.157285][    C1] rcu: 	Unless rcu_preempt kthread gets sufficient CPU time, OOM is now expected behavior.
+[  204.159270][    C1] rcu: RCU grace-period kthread stack dump:
+[  204.160437][    C1] task:rcu_preempt     state:R  running task     stack:27720 pid:17    tgid:17    ppid:2      flags:0x00004000
+[  204.162791][    C1] Call Trace:
+[  204.163443][    C1]  <TASK>
+[  204.164040][    C1]  __schedule+0x1335/0x44b0
+[  204.164938][    C1]  ? __kasan_check_write+0x18/0x20
+[  204.165990][    C1]  ? __mod_timer+0xa6f/0x10a0
+[  204.166958][    C1]  ? __pfx___schedule+0x10/0x10
+[  204.167987][    C1]  ? __pfx___try_to_del_timer_sync+0x10/0x10
+[  204.169175][    C1]  schedule+0xc9/0x240
+[  204.170028][    C1]  schedule_timeout+0x1ad/0x3c0
+[  204.171041][    C1]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[  204.172315][    C1]  ? __pfx_schedule_timeout+0x10/0x10
+[  204.173391][    C1]  ? __pfx_process_timeout+0x10/0x10
+[  204.174583][    C1]  ? prepare_to_swait_event+0x310/0x330
+[  204.175727][    C1]  rcu_gp_fqs_loop+0x2da/0x1200
+[  204.176702][    C1]  ? __pfx_rcu_implicit_dynticks_qs+0x10/0x10
+[  204.177631][    C1]  ? __pfx_rcu_gp_fqs_loop+0x10/0x10
+[  204.178586][    C1]  ? finish_swait+0x17f/0x1c0
+[  204.179563][    C1]  rcu_gp_kthread+0xa4/0x3a0
+[  204.180305][    C1]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  204.181222][    C1]  ? __kasan_check_read+0x15/0x20
+[  204.182266][    C1]  ? __kthread_parkme+0x12f/0x180
+[  204.183188][    C1]  kthread+0x2d8/0x370
+[  204.183840][    C1]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  204.184685][    C1]  ? __pfx_kthread+0x10/0x10
+[  204.185468][    C1]  ret_from_fork+0x56/0x90
+[  204.186310][    C1]  ? __pfx_kthread+0x10/0x10
+[  204.187187][    C1]  ret_from_fork_asm+0x1a/0x30
+[  204.188077][    C1]  </TASK>
+[  204.188695][    C1] rcu: Stack dump where RCU GP kthread last ran:
+[  204.189690][    C1] Sending NMI from CPU 1 to CPUs 0:
+[  204.190546][    C0] NMI backtrace for cpu 0
+[  204.190564][    C0] CPU: 0 PID: 9452 Comm: syz.2.737 Not tainted 6.10.0-rc5-00257-g88d8f64b9f5f-dirty #20
+[  204.190579][    C0] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[  204.190587][    C0] RIP: 0010:common_interrupt_return+0x1a/0xcc
+[  204.190616][    C0] Code: ac 04 00 00 66 2e 0f 1f 84 00 00 00 00 00 66 90 66 90 b9 48 00 00 00 65 48 8b 15 31 62 62 74 83 e2 fe 89 d0 48 c1 ea 20 0f 30 <eb> 35 cc cc cc 41 5f 41 5e 41 5d 41 5c 5d 5b 41 5b 41 5a 41 59 41
+[  204.190628][    C0] RSP: 0018:ffffc90001fbff58 EFLAGS: 00000046
+[  204.190639][    C0] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000048
+[  204.190647][    C0] RDX: 0000000000000000 RSI: 000000000003ffff RDI: 0000000000040000
+[  204.190654][    C0] RBP: 0000000000000000 R08: ffff8880144c9a47 R09: 1ffff11002899348
+[  204.190662][    C0] R10: dffffc0000000000 R11: ffffed1002899349 R12: 0000000000000000
+[  204.190671][    C0] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  204.190678][    C0] FS:  00007fcb36cc96c0(0000) GS:ffff88802cc00000(0000) knlGS:0000000000000000
+[  204.190688][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  204.190697][    C0] CR2: 00007f7941fbad58 CR3: 0000000020a86000 CR4: 0000000000752ef0
+[  204.190707][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  204.190714][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  204.190721][    C0] PKRU: 55555554
+[  204.190725][    C0] Call Trace:
+[  204.190729][    C0]  <NMI>
+[  204.190734][    C0]  ? show_regs+0x5d/0x70
+[  204.190748][    C0]  ? nmi_cpu_backtrace+0x3b5/0x4c0
+[  204.190768][    C0]  ? __pfx_nmi_cpu_backtrace+0x10/0x10
+[  204.190786][    C0]  ? kvm_sched_clock_read+0x15/0x30
+[  204.190800][    C0]  ? nmi_cpu_backtrace_handler+0x10/0x20
+[  204.190820][    C0]  ? nmi_handle+0xae/0x3b0
+[  204.190835][    C0]  ? common_interrupt_return+0x1a/0xcc
+[  204.190850][    C0]  ? default_do_nmi+0x68/0x170
+[  204.190868][    C0]  ? exc_nmi+0x12d/0x200
+[  204.190885][    C0]  ? end_repeat_nmi+0xf/0x53
+[  204.190902][    C0]  ? common_interrupt_return+0x1a/0xcc
+[  204.190918][    C0]  ? common_interrupt_return+0x1a/0xcc
+[  204.190934][    C0]  ? common_interrupt_return+0x1a/0xcc
+[  204.190950][    C0]  </NMI>
+[  204.190953][    C0]  <TASK>
+[  204.190959][    C0]  </TASK>

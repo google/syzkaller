@@ -1,11 +1,39 @@
 # Reporting Linux kernel bugs
 
-Before reporting a bug make sure nobody else already reported it. The easiest way to do this is to search through the [syzkaller mailing list](https://groups.google.com/forum/#!forum/syzkaller), [syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs) and [syzbot dashboard](https://syzkaller.appspot.com/upstream) for key frames present in the kernel stack traces.
+Before reporting a bug **make sure nobody else has already reported it**. The easiest way to do
+this is to search through the [syzkaller mailing list](https://groups.google.com/forum/#!forum/syzkaller),
+[syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs),
+[syzbot dashboard](https://syzkaller.appspot.com/upstream),
+and [kernel mailing lists](https://lore.kernel.org/) for key frames present in the kernel stack traces.
 
-Please report found bugs to the Linux kernel maintainers.
+**Do NOT report bugs on old kernel versions**.
+Old kernel generally means older than a week. Reports on old kernels are typically not considered as valid,
+and asked to be reproduced on a fresh kernel. Do not report bugs found on stable/LTS kernels.
+Bugs on stable/LTS kernels should be reproduced on a fresh upstream kernel, and reported as such.
+Or, if they are already fixed upstream, the fix commit should be
+[submitted to stable](https://www.kernel.org/doc/html/next/process/stable-kernel-rules.html).
+
+Please **report bugs to the Linux kernel maintainers**.
 To find out the list of maintainers responsible for a particular kernel subsystem, use the [get_maintainer.pl](https://github.com/torvalds/linux/blob/master/scripts/get_maintainer.pl) script: `./scripts/get_maintainer.pl -f guilty_file.c`. Please add `syzkaller@googlegroups.com` to the CC list.
-Make sure to mention the exact kernel branch and revision where the bug occurred.
-Many kernel mailing lists reject HTML formatted messages, so use the plain text mode when sending the report.
+
+**Minimal info** to include in the report:
+ - exact kernel branch and revision where the bug occurred
+ - exact kernel .config
+ - kernel OOPS message (BUG, KASAN report, etc), preferably with source files and line numbers
+ - reproducer, if known (see below)
+
+**Properly configure the kernel**.
+An improperly-configured kernel may lead to bad, and even false reports. There is no official way to get
+proper config for testing/fuzzing. You need to tune timeouts, enable debug info, enable lots of debug configs,
+disable some other debug configs, etc. You may use one of
+[syzbot configs](/dashboard/config/linux/upstream-apparmor-kasan.config), or check guidelines for
+[individual settings](/dashboard/config/linux/bits).
+
+Your email client should be configured in **plain text mode** when sending bug reports.
+Kernel mailing lists reject HTML formatted messages. For example, if you use GMail set "Plain text mode" option.
+
+**Do NOT mimic [syzbot](/docs/syzbot.md) reports**.
+For example, don't say "syzbot has found". However, you should mention that the bug is found with syzkaller.
 
 Think of what you report. Today, Linux maintainers are overwhelmed with bug reports, so increasing the incoming flow won't help to fix all the bugs.
 The more actionable your report is, the higher the chance that it will be addressed.
@@ -14,7 +42,7 @@ If there are stalls or hangs, only report them if they are frequent enough or ha
 
 Overall, bugs without reproducers are way less likely to be triaged and fixed.
 If the bug is reproducible, include the reproducer (C source if possible, otherwise a syzkaller program) and the `.config` you used for your kernel.
-If the reproducer is available only in the form of a syzkaller program, please link [the instructions on how to execute them](/docs/executing_syzkaller_programs.md) in your report.
+If the reproducer is available only in the form of a syzkaller program, please link [the instructions on how to execute them](/docs/reproducing_crashes.md#using-a-c-reproducer) in your report.
 Check that the reproducer works if you run it manually.
 Syzkaller tries to simplify the reproducer, but the result might not be ideal.
 You can try to simplify or annotate the reproducer manually, that greatly helps kernel developers to figure out why the bug occurs.

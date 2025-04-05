@@ -57,6 +57,8 @@ func FormatStr(v string, format StrFmt) string {
 		return fmt.Sprintf(`"%v"`, v)
 	case StrFmtHex:
 		return fmt.Sprintf("`%x`", v)
+	case StrFmtIdent:
+		return fmt.Sprintf("%v", v)
 	default:
 		panic(fmt.Sprintf("unknown str format %v", format))
 	}
@@ -136,9 +138,7 @@ func (n *Struct) serialize(w io.Writer) {
 	maxTabs := 0
 	for _, f := range n.Fields {
 		tabs := (len(f.Name.Name) + tabWidth) / tabWidth
-		if maxTabs < tabs {
-			maxTabs = tabs
-		}
+		maxTabs = max(maxTabs, tabs)
 	}
 	for _, f := range n.Fields {
 		if f.NewBlock {
@@ -192,6 +192,12 @@ func (n *Type) serialize(w io.Writer) {
 }
 
 func fmtType(t *Type) string {
+	var sb strings.Builder
+	fmtExpressionRec(&sb, t, -1)
+	return sb.String()
+}
+
+func fmtEndType(t *Type) string {
 	v := ""
 	switch {
 	case t.Ident != "":
@@ -243,6 +249,47 @@ func fmtInt(i *Int) string {
 	default:
 		return FormatInt(i.Value, i.ValueFmt)
 	}
+}
+
+func fmtExpressionRec(sb *strings.Builder, t *Type, parentPrio int) {
+	if t.Expression == nil {
+		sb.WriteString(fmtEndType(t))
+		return
+	}
+	be := t.Expression
+	myPrio := operatorPrio(be.Operator)
+	parentheses := myPrio < parentPrio
+	if parentheses {
+		sb.WriteByte('(')
+	}
+	fmtExpressionRec(sb, be.Left, myPrio)
+	sb.WriteByte(' ')
+	switch be.Operator {
+	case OperatorCompareEq:
+		sb.WriteString("==")
+	case OperatorCompareNeq:
+		sb.WriteString("!=")
+	case OperatorBinaryAnd:
+		sb.WriteString("&")
+	case OperatorOr:
+		sb.WriteString("||")
+	default:
+		panic(fmt.Sprintf("unknown operator %q", be.Operator))
+	}
+	sb.WriteByte(' ')
+	fmtExpressionRec(sb, be.Right, myPrio)
+	if parentheses {
+		sb.WriteByte(')')
+	}
+}
+
+func operatorPrio(op Operator) int {
+	for _, info := range binaryOperators {
+		if info.op == op {
+			return info.prio
+		}
+	}
+	panic(fmt.Sprintf("unknown operator %q", op))
 }
 
 func comma(i int, or string) string {

@@ -60,15 +60,20 @@ func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable,
 	for i, c := range p.Calls {
 		comps := make(CompMap)
 		for v := range extractValues(c) {
-			comps.AddComp(v, v+1)
-			comps.AddComp(v, v+10)
+			comps.Add(1, v, v+1, true)
+			comps.Add(1, v, v+10, true)
 		}
-		p.MutateWithHints(i, comps, func(p1 *Prog) {
+		// If unbounded, this code may take O(N^2) time to complete.
+		// Since large programs are not uncommon, let's limit the number of hint iterations.
+		limit := 100
+		p.MutateWithHints(i, comps, func(p1 *Prog) bool {
 			p = p1.Clone()
+			limit--
+			return limit > 0
 		})
 	}
-	for _, crash := range []bool{false, true} {
-		p, _ = Minimize(p, -1, crash, func(*Prog, int) bool {
+	for _, mode := range []MinimizeMode{MinimizeCorpus, MinimizeCrash} {
+		p, _ = Minimize(p, -1, mode, func(*Prog, int) bool {
 			return rs.Int63()%10 == 0
 		})
 	}
@@ -105,7 +110,7 @@ func TestEnabledCalls(t *testing.T) {
 		}
 		for _, c := range p.Calls {
 			if _, ok := enabledCalls[c.Meta.Name]; !ok {
-				t.Fatalf("program contains a syscall that is not enabled: %v\n", c.Meta.Name)
+				t.Fatalf("program contains a syscall that is not enabled: %v", c.Meta.Name)
 			}
 		}
 	}
@@ -229,7 +234,7 @@ func TestNoGenerate(t *testing.T) {
 		}
 		for _, c := range p.Calls {
 			if c.Meta.Attrs.NoGenerate {
-				t.Fatalf("program contains a no_generate syscall: %v\n", c.Meta.Name)
+				t.Fatalf("program contains a no_generate syscall: %v", c.Meta.Name)
 			}
 		}
 	}

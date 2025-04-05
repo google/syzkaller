@@ -1,5 +1,5 @@
-# Note: 191-194 have the same root cause.
 TITLE: possible deadlock in perf_event_release_kernel
+TYPE: LOCKDEP
 
 [   25.878418] ======================================================
 [   25.884700] WARNING: possible circular locking dependency detected

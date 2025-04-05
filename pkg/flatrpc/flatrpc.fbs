@@ -1,0 +1,311 @@
+// Copyright 2024 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+namespace rpc;
+
+// Various consts shared between Go and C++ code.
+enum Const : uint64 {
+	MaxInputSize		= 4198400,	// 4<<20 + 4<<10
+	MaxOutputSize		= 14680064,	// 14<<20
+	SnapshotShmemSize	= 33554432,	// Must be power-of-2 and >=MaxInputSize+MaxOutputSize
+	SnapshotDoorbellSize	= 4096,		// 4<<10
+}
+
+enum Feature : uint64 (bit_flags) {
+	Coverage,
+	Comparisons,
+	ExtraCoverage,
+	DelayKcovMmap,
+	SandboxNone,
+	SandboxSetuid,
+	SandboxNamespace,
+	SandboxAndroid,
+	Fault,
+	Leak,
+	NetInjection,
+	NetDevices,
+	KCSAN,
+	DevlinkPCI,
+	NicVF,
+	USBEmulation,
+	VhciInjection,
+	WifiEmulation,
+	LRWPANEmulation,	// 802.15.4 standard
+	BinFmtMisc,
+	Swap,
+}
+
+table ConnectHelloRaw {
+	cookie			:uint64;
+}
+ 
+table ConnectRequestRaw {
+	cookie			:uint64;
+	id			:int64;
+	arch			:string;
+	git_revision		:string;
+	syz_revision		:string;
+}
+
+table ConnectReplyRaw {
+	debug			:bool;
+	cover			:bool;
+	cover_edges		:bool;
+	kernel_64_bit		:bool;
+	procs			:int32;
+	slowdown		:int32;
+	syscall_timeout_ms	:int32;
+	program_timeout_ms	:int32;
+	leak_frames		:[string];
+	race_frames		:[string];
+	// Fuzzer sets up these features and returns results in InfoRequest.features.
+	features		:Feature;
+	// Fuzzer reads these files inside of the VM and returns contents in InfoRequest.files.
+	files			:[string];
+}
+
+table InfoRequestRaw {
+	error			:string;
+	features		:[FeatureInfoRaw];
+	files			:[FileInfoRaw];
+}
+
+table InfoReplyRaw {
+	cover_filter		:[uint64];
+}
+
+table FileInfoRaw {
+	name			:string;
+	exists			:bool;
+	error			:string;
+	data			:[uint8];
+}
+
+table GlobInfoRaw {
+	name			:string;
+	files			:[string];
+}
+
+table FeatureInfoRaw {
+	id			:Feature;
+	need_setup		:bool;
+	reason			:string;
+}
+
+// Messages sent from the host to the executor.
+union HostMessagesRaw {
+	ExecRequest		:ExecRequestRaw,
+	SignalUpdate		:SignalUpdateRaw,
+	CorpusTriaged		:CorpusTriagedRaw,
+	StateRequest		:StateRequestRaw,
+}
+
+table HostMessageRaw {
+	msg			:HostMessagesRaw;
+}
+
+// Messages sent from the executor to the host.
+union ExecutorMessagesRaw {
+	ExecResult		:ExecResultRaw,
+	Executing		:ExecutingMessageRaw,
+	State			:StateResultRaw,
+}
+
+table ExecutorMessageRaw {
+	msg			:ExecutorMessagesRaw;
+}
+
+enum RequestType : uint64 {
+	// Normal test program request (data contains serialized prog.Prog).
+	Program,
+	// Binary test program (data contains compiled executable binary).
+	Binary,
+	// Request for file glob expansion (data contains the glob pattern).
+	Glob,
+}
+
+enum RequestFlag : uint64 (bit_flags) {
+	// If set, collect program output and return in output field.
+	ReturnOutput,
+	// If set, don't fail on program failures, instead return the error in error field.
+	ReturnError,
+}
+
+// Note: New / changed flags should be added to parse_env_flags in executor.cc.
+enum ExecEnv : uint64 (bit_flags) {
+	Debug,			// debug output from executor
+	Signal,			// collect feedback signals (coverage)
+	ResetState,    		// fully reset executor state befor executing the test
+	SandboxNone,		// minimal sandboxing
+	SandboxSetuid,		// impersonate nobody user
+	SandboxNamespace,	// use namespaces for sandboxing
+	SandboxAndroid,		// use Android sandboxing for the untrusted_app domain
+	ExtraCover,		// collect extra coverage
+	EnableTun,		// setup and use /dev/tun for packet injection
+	EnableNetDev,		// setup more network devices for testing
+	EnableNetReset,		// reset network namespace between programs
+	EnableCgroups,		// setup cgroups for testing
+	EnableCloseFds,		// close fds after each program
+	EnableDevlinkPCI,	// setup devlink PCI device
+	EnableVhciInjection,	// setup and use /dev/vhci for hci packet injection
+	EnableWifi,		// setup and use mac80211_hwsim for wifi emulation
+	DelayKcovMmap,		// manage kcov memory in an optimized way
+	EnableNicVF,		// setup NIC VF device
+}
+
+enum ExecFlag : uint64 (bit_flags) {
+	CollectSignal,		// collect feedback signals
+	CollectCover,		// collect coverage
+	DedupCover,		// deduplicate coverage in executor
+	CollectComps,		// collect KCOV comparisons
+	Threaded,		// use multiple threads to mitigate blocked syscalls
+}
+
+struct ExecOptsRaw {
+	// Changing exec_flags between executions does not cause executor process restart.
+	// Changing env_flags/sandbox_arg does cause process restart.
+	env_flags		:ExecEnv;
+	exec_flags		:ExecFlag;
+	sandbox_arg		:int64;
+}
+
+// Request to execute a test program.
+table ExecRequestRaw {
+	id			:int64;
+	type			:RequestType;
+	// Bitmask of procs to avoid when executing this request, if possible.
+	avoid			:uint64;
+	data			:[uint8];
+	exec_opts		:ExecOptsRaw;
+	flags			:RequestFlag;
+	// Return all signal for these calls.
+	all_signal		:[int32];
+}
+
+table SignalUpdateRaw {
+	new_max			:[uint64];
+}
+
+// This message serves as a signal that the corpus was triaged and the fuzzer
+// can start activities that only make sense after corpus triage
+// (leak checking, restarting procs, etc).
+table CorpusTriagedRaw {
+}
+
+table StateRequestRaw {
+}
+
+// Notification from the executor that it started executing the program 'id'.
+// We want this request to be as small and as fast as possible b/c we need it
+// to reach the host (or at least leave the VM) before the VM crashes
+// executing this program.
+table ExecutingMessageRaw {
+	id			:int64;
+	proc_id			:int32;
+	try			:int32;
+	// How long proc waited to receive the request (ns).
+	wait_duration		:int64;
+}
+
+enum CallFlag : uint8 (bit_flags) {
+	Executed,		// was started at all
+	Finished,		// finished executing (rather than blocked forever)
+	Blocked,		// finished but blocked during execution
+	FaultInjected,		// fault was injected into this call
+	CoverageOverflow,	// coverage buffer has overflowed so we have truncated coverage
+}
+
+table CallInfoRaw {
+	flags			:CallFlag;
+	// Call errno (0 if the call was successful).
+	error			:int32;
+	// Feedback signal, filled if ExecFlag.CollectSignal is set.
+	signal			:[uint64];
+	// Code coverage, filled if ExecFlag.CollectCover is set.
+	// If ExecFlag.DedupCover is set, then duplicates are removed, otherwise it contains a trace.
+	cover			:[uint64];
+	// Comparison operands.
+	comps			:[ComparisonRaw];
+}
+
+struct ComparisonRaw {
+	pc			:uint64;
+	op1			:uint64;
+	op2			:uint64;
+	// If is_const is set, op2 was a source code const (could not come from the input),
+	// otherwise both operands were dynamic and could come from the input.
+	is_const		:bool;
+}
+
+table ProgInfoRaw {
+	calls			:[CallInfoRaw];
+	// Contains signal and cover collected from background threads.
+	// The raw version is exported by executor, and them merged into extra on the host.
+	extra_raw		:[CallInfoRaw];
+	extra			:CallInfoRaw;
+	// Total execution time of the program in nanoseconds.
+	elapsed			:uint64;
+	// Number of programs executed in the same process before this one.
+	freshness		:uint64;
+}
+
+// Result of executing a test program.
+table ExecResultRaw {
+	id			:int64;
+	proc			:int32;
+	output			:[uint8];
+	// The program has hanged and we were not able to properly join it.
+	// So in some sense it's still running (e.g. can trigger a delayed kernel hang report).
+	hanged			:bool;
+	error			:string;
+	info			:ProgInfoRaw;
+}
+
+table StateResultRaw {
+	data			:[uint8];
+}
+
+// SnapshotState is used for synchronization between host/target parts during snapshot execution.
+enum SnapshotState : uint64 {
+	// Initial 0 state.
+	Initial,
+	// Host wrote handshake request data and is ready to take snapshot.
+	Handshake,
+	// Target received handshake request and is ready to be snapshotted.
+	Ready,
+	// Host has taken snapshot.
+	Snapshotted,
+	// Host wrote request data and resumed the target from snapshot.
+	Execute,
+	// Target has finished executing a request and is ready to be reset.
+	Executed,
+	// Target has failed to execute a request.
+	Failed,
+}
+
+// SnapshotHeader is located at the beginning of the snapshot output shared memory region.
+table SnapshotHeader {
+	state			:SnapshotState;
+	// Offset and size of the output data after program execution.
+	output_offset		:uint32;
+	output_size		:uint32;
+}
+
+table SnapshotHandshake {
+	cover_edges		:bool;
+	kernel_64_bit		:bool;
+	slowdown		:int32;
+	syscall_timeout_ms	:int32;
+	program_timeout_ms	:int32;
+	features		:Feature;
+	env_flags		:ExecEnv;
+	sandbox_arg		:int64;
+}
+
+table SnapshotRequest {
+	exec_flags		:ExecFlag;
+	num_calls		:int32;
+	all_call_signal		:uint64;
+	all_extra_signal	:bool;
+	prog_data		:[uint8];
+}

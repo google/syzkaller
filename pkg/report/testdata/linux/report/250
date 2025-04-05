@@ -1,4 +1,5 @@
 TITLE: possible deadlock in blkdev_reread_part
+TYPE: LOCKDEP
 
 [  254.403407] ======================================================
 [  254.404314] WARNING: possible circular locking dependency detected

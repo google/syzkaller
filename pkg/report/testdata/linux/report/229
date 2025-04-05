@@ -1,4 +1,5 @@
 TITLE: WARNING: kmalloc bug in corrupted
+TYPE: WARNING
 CORRUPTED: Y
 
 [  212.560360] FAULT_INJECTION: forcing a failure.

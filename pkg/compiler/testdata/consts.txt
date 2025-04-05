@@ -29,6 +29,7 @@ foo$0(a templ0[CONST18])
 type templ1[C] {
 	f1	const[CONST19, int8]
 	f2	const[C, int8]
+	f3	int64 (if[value[f1] & CONST27 != 0])
 }
 foo$1(a ptr[in, templ1[CONST20]])
 

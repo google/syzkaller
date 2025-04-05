@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-free in xt_free_table_info
 ALT: invalid-free in xt_free_table_info
+TYPE: KASAN
 
 [  368.542732] ==================================================================
 [  368.550228] BUG: KASAN: invalid-free in kvfree+0x36/0x60

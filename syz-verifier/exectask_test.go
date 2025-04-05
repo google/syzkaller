@@ -1,6 +1,10 @@
 // Copyright 2022 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// TODO: switch syz-verifier to use syz-fuzzer.
+
+//go:build ignore
+
 package main
 
 import (
@@ -15,7 +19,7 @@ func TestExecTask_MakeDelete(t *testing.T) {
 	}
 	task := taskFactory.MakeExecTask(program)
 	if l := taskFactory.ExecTasksQueued(); l != 1 {
-		t.Errorf("expected map len is 0, current size is %v", l)
+		t.Errorf("expected map len is 1, current size is %v", l)
 	}
 	taskFactory.DeleteExecTask(task)
 	if l := taskFactory.ExecTasksQueued(); l != 0 {

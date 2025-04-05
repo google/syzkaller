@@ -1,0 +1,33 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<b>{{.Description}}</b>
+
+{{if .Triaged}}
+Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
+{{end}}
+
+<table class="list_table">
+	<tr>
+		<th>#</th>
+		<th>Log</th>
+		<th>Report</th>
+		<th>Time</th>
+		<th>Tag</th>
+	</tr>
+	{{range $c := $.Crashes}}
+	<tr>
+		<td>{{$c.Index}}</td>
+		<td><a href="/file?name={{$c.Log}}">log</a></td>
+		<td>
+			{{if $c.Report}}
+				<a href="/file?name={{$c.Report}}">report</a>
+			{{end}}
+		</td>
+		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.Time}}</td>
+		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatTagHash $c.Tag}}</td>
+	</tr>
+	{{end}}
+</table>

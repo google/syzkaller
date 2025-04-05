@@ -7,33 +7,38 @@ import (
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type testos struct {
-	*git
+	*gitRepo
 }
 
 var _ ConfigMinimizer = new(testos)
 
 func newTestos(dir string, opts []RepoOpt) *testos {
 	return &testos{
-		git: newGit(dir, nil, opts),
+		gitRepo: newGitRepo(dir, nil, opts),
 	}
 }
 
 func (ctx *testos) PreviousReleaseTags(commit, compilerType string) ([]string, error) {
-	return ctx.git.previousReleaseTags(commit, false, false, false)
+	return ctx.gitRepo.previousReleaseTags(commit, false, false, false)
 }
 
 func (ctx *testos) EnvForCommit(
 	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+	backports []BackportCommit,
 ) (*BisectEnv, error) {
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
 
-func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte,
+func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte, types []crash.Type,
 	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+	if len(baseline) == 0 {
+		return original, nil
+	}
 	if res, err := pred(baseline); err != nil {
 		return nil, err
 	} else if res == BisectBad {

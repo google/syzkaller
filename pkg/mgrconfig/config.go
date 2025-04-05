@@ -41,18 +41,19 @@ type Config struct {
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
 	// (used for report symbolization, coverage reports and in tree modules finding, optional).
 	KernelObj string `json:"kernel_obj"`
-	// Directories with out-of-free kernel module object files (optional).
+	// Directories with out-of-tree kernel module object files for coverage report generation (optional).
 	// KernelObj is also scanned for in-tree kernel modules and does not need to be duplicated here.
-	// Note: KASLR needs to be disabled and modules need to be pre-loaded at fixed addressses by init process.
 	// Note: the modules need to be unstripped and contain debug info.
 	ModuleObj []string `json:"module_obj,omitempty"`
 	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
 	KernelBuildSrc string `json:"kernel_build_src,omitempty"`
-	// Kernel subsystem with paths to each subsystem
+	// Is the kernel built separately from the modules? (Specific to Android builds)
+	AndroidSplitBuild bool `json:"android_split_build"`
+	// Kernel subsystem with paths to each subsystem, paths starting with "-" will be excluded
 	//	"kernel_subsystem": [
-	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
+	//		{ "name": "sound", "path": ["sound", "techpack/audio", "-techpack/audio/dsp"]},
 	//		{ "name": "mydriver": "path": ["mydriver_path"]}
 	//	]
 	KernelSubsystem []Subsystem `json:"kernel_subsystem,omitempty"`
@@ -95,9 +96,13 @@ type Config struct {
 	// Mailx is the only supported mailer. Please set it up prior to using this function.
 	EmailAddrs []string `json:"email_addrs,omitempty"`
 
-	DashboardClient string `json:"dashboard_client,omitempty"`
-	DashboardAddr   string `json:"dashboard_addr,omitempty"`
-	DashboardKey    string `json:"dashboard_key,omitempty"`
+	DashboardClient    string `json:"dashboard_client,omitempty"`
+	DashboardAddr      string `json:"dashboard_addr,omitempty"`
+	DashboardKey       string `json:"dashboard_key,omitempty"`
+	DashboardUserAgent string `json:"dashboard_user_agent,omitempty"`
+	// If set, only consult dashboard if it needs reproducers for crashes,
+	// but otherwise don't send any info to dashboard (default: false).
+	DashboardOnlyRepro bool `json:"dashboard_only_repro,omitempty"`
 
 	// Location of the syzkaller checkout, syz-manager will look
 	// for binaries in bin subdir (does not have to be syzkaller checkout as
@@ -130,19 +135,19 @@ type Config struct {
 	// This value is passed as an argument to executor and allows to adjust sandbox behavior
 	// via manager config. For example you can switch between system and user accounts based
 	// on this value.
-	SandboxArg int `json:"sandbox_arg"`
+	SandboxArg int64 `json:"sandbox_arg"`
+
+	// Enables snapshotting mode. In this mode VM is snapshotted and restarted from the snapshot
+	// before executing each test program. This provides better reproducibility and avoids global
+	// accumulated state. Currently only qemu VMs and Linux support this mode.
+	Snapshot bool `json:"snapshot"`
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
-	// Use coverage filter. Supported types of filter:
-	// "files": support specifying kernel source files, support regular expression.
-	// eg. "files": ["^net/core/tcp.c$", "^net/sctp/", "tcp"].
-	// "functions": support specifying kernel functions, support regular expression.
-	// eg. "functions": ["^foo$", "^bar", "baz"].
-	// "pcs": specify raw PC table files name.
-	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
-	// eg. "0xffffffff81000000:0x10\n"
-	CovFilter covFilterCfg `json:"cover_filter,omitempty"`
+
+	// CovFilter used to restrict the area of the kernel visible to syzkaller.
+	// DEPRECATED! Use the FocusAreas parameter instead.
+	CovFilter CovFilterCfg `json:"cover_filter,omitempty"`
 
 	// For each prog in the corpus, remember the raw array of PCs obtained from the kernel.
 	// It can be useful for debugging syzkaller descriptions and syzkaller itself.
@@ -153,7 +158,7 @@ type Config struct {
 	Reproduce bool `json:"reproduce"`
 
 	// The number of VMs that are reserved to only perform fuzzing and nothing else.
-	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhaused and
+	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhausted and
 	// the manager continues fuzzing no matter how many new bugs are encountered.
 	// By default the value is 0, i.e. all VMs can be used for all purposes.
 	FuzzingVMs int `json:"fuzzing_vms,omitempty"`
@@ -186,6 +191,23 @@ type Config struct {
 	// If set, for each reproducer syzkaller will run it once more under strace and save
 	// the output.
 	StraceBin string `json:"strace_bin"`
+	// If true, syzkaller will expect strace_bin to be part of the target
+	// image instead of copying it from the host (default: false).
+	StraceBinOnTarget bool `json:"strace_bin_on_target"`
+
+	// File in PATH to syz-execprog/executor on the target. If set,
+	// syzkaller will expect the execprog/executor binaries to be part of
+	// the target image instead of copying them from the host.
+	ExecprogBinOnTarget string `json:"execprog_bin_on_target"`
+	ExecutorBinOnTarget string `json:"executor_bin_on_target"`
+
+	// Whether to run fsck commands on file system images found in new crash
+	// reproducers. The fsck logs get reported as assets in the dashboard.
+	// Note: you may need to install 3rd-party dependencies for this to work.
+	// fsck commands that can be run by syz-manager are specified in mount
+	// syscall descriptions - typically in sys/linux/filesystem.txt.
+	// Enabled by default.
+	RunFsck bool `json:"run_fsck"`
 
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`
@@ -203,8 +225,56 @@ type Config struct {
 	// More details can be found in pkg/asset/config.go.
 	AssetStorage *asset.Config `json:"asset_storage"`
 
+	// Experimental options.
+	Experimental Experimental
+
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`
+}
+
+// These options are not guaranteed to be backward/forward compatible and
+// can be dropped at any moment.
+type Experimental struct {
+	// Don't let the VM state accumulate too much by restarting
+	// syz-executor before most prog executions.
+	ResetAccState bool `json:"reset_acc_state"`
+
+	// Use KCOV remote coverage feature (default: true).
+	RemoteCover bool `json:"remote_cover"`
+
+	// Hash adjacent PCs to form fuzzing feedback signal, otherwise use PCs as signal (default: true).
+	CoverEdges bool `json:"cover_edges"`
+
+	// Use automatically (auto) generated or manually (manual) written descriptions or any (any) (default: manual)
+	DescriptionsMode string `json:"descriptions_mode"`
+
+	// FocusAreas configures what attention syzkaller should pay to the specific areas of the kernel.
+	// The probability of selecting a program from an area is at least `Weight / sum of weights`.
+	// If FocusAreas is non-empty, by default all kernel code not covered by any filter will be ignored.
+	// To focus fuzzing on some areas, but to consider the rest of the code as well, add a record
+	// with an empty Filter, but non-empty weight.
+	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0"} ].
+	FocusAreas []FocusArea `json:"focus_areas,omitempty"`
+}
+
+type FocusArea struct {
+	// Name allows to display detailed statistics for every focus area.
+	Name string `json:"name"`
+
+	// A coverage filter.
+	// Supported filter types:
+	// "files": support specifying kernel source files, support regular expression.
+	// eg. "files": ["^net/core/tcp.c$", "^net/sctp/", "tcp"].
+	// "functions": support specifying kernel functions, support regular expression.
+	// eg. "functions": ["^foo$", "^bar", "baz"].
+	// "pcs": specify raw PC table files name.
+	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
+	// eg. "0xffffffff81000000:0x10\n"
+	// If empty, it's assumed to match the whole kernel.
+	Filter CovFilterCfg `json:"filter,omitempty"`
+
+	// Weight is a positive number that determines how much focus should be put on this area.
+	Weight float64 `json:"weight"`
 }
 
 type Subsystem struct {
@@ -212,7 +282,7 @@ type Subsystem struct {
 	Paths []string `json:"path"`
 }
 
-type covFilterCfg struct {
+type CovFilterCfg struct {
 	Files     []string `json:"files,omitempty"`
 	Functions []string `json:"functions,omitempty"`
 	RawPCs    []string `json:"pcs,omitempty"`

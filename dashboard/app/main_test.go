@@ -5,7 +5,11 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
@@ -253,7 +257,7 @@ func TestMultiLabelFilter(t *testing.T) {
 	defer c.Close()
 
 	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
-	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+	mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 
 	build1 := testBuild(1)
 	build1.Manager = "manager-name-123"
@@ -294,4 +298,190 @@ func TestMultiLabelFilter(t *testing.T) {
 	// Ensure we provide links that drop labels.
 	assert.NotContains(t, string(reply), "/access-public-email?label=subsystems:subsystemA\"")
 	assert.NotContains(t, string(reply), "/access-public-email?label=prop:low\"")
+}
+
+func TestAdminJobList(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client2
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "some bug title"
+	crash.GuiltyFiles = []string{"a.c"}
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproC = []byte("repro C")
+	client.ReportCrash(crash)
+	client.pollEmailBug()
+
+	c.advanceTime(24 * time.Hour)
+
+	pollResp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{BisectCause: true})
+	c.expectNE(pollResp.ID, "")
+
+	causeJobsLink := "/admin?job_type=1"
+	fixJobsLink := "/admin?job_type=2"
+	reply, err := c.AuthGET(AccessAdmin, "/admin")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), causeJobsLink)
+	assert.Contains(t, string(reply), fixJobsLink)
+
+	// Verify the bug is in the bisect cause jobs list.
+	reply, err = c.AuthGET(AccessAdmin, causeJobsLink)
+	c.expectOK(err)
+	assert.Contains(t, string(reply), crash.Title)
+
+	// Verify the bug is NOT in the fix jobs list.
+	reply, err = c.AuthGET(AccessAdmin, fixJobsLink)
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash.Title)
+}
+
+func TestSubsystemsPageRedirect(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Verify that the normal subsystem page works.
+	_, err := c.AuthGET(AccessAdmin, "/access-public-email/s/subsystemA")
+	c.expectOK(err)
+
+	// Verify that the old subsystem name points to the new one.
+	_, err = c.AuthGET(AccessAdmin, "/access-public-email/s/oldSubsystem")
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusMovedPermanently)
+	c.expectEQ(httpErr.Headers["Location"], []string{"/access-public-email/s/subsystemA"})
+}
+
+func TestNoThrottle(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	assert.True(t, c.config().Throttle.Empty())
+	for i := 0; i < 10; i++ {
+		c.advanceTime(time.Millisecond)
+		_, err := c.AuthGET(AccessPublic, "/access-public-email")
+		c.expectOK(err)
+	}
+}
+
+func TestThrottle(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := *getConfig(c)
+		newConfig.Throttle = ThrottleConfig{
+			Window: 10 * time.Second,
+			Limit:  10,
+		}
+		return contextWithConfig(c, &newConfig)
+	}
+
+	// Adhere to the limit.
+	for i := 0; i < 15; i++ {
+		c.advanceTime(time.Second)
+		_, err := c.AuthGET(AccessPublic, "/access-public-email")
+		c.expectOK(err)
+	}
+
+	// Break the limit.
+	c.advanceTime(time.Millisecond)
+	_, err := c.AuthGET(AccessPublic, "/access-public-email")
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusTooManyRequests)
+
+	// Still too frequent requests.
+	c.advanceTime(time.Millisecond)
+	_, err = c.AuthGET(AccessPublic, "/access-public-email")
+	c.expectTrue(err != nil)
+
+	// Wait a bit.
+	c.advanceTime(3 * time.Second)
+	_, err = c.AuthGET(AccessPublic, "/access-public-email")
+	c.expectOK(err)
+}
+
+func TestManagerPage(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	const firstManager = "manager-name"
+	const secondManager = "another-manager-name"
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	build1 := testBuild(1)
+	build1.Manager = firstManager
+	c.expectOK(client.UploadBuild(build1))
+
+	c.advanceTime(time.Hour)
+	build2 := testBuild(2)
+	build2.Manager = firstManager
+	buildErrorReq := &dashapi.BuildErrorReq{
+		Build: *build2,
+		Crash: dashapi.Crash{
+			Title:  "failed build 1",
+			Report: []byte("report\n"),
+			Log:    []byte("log\n"),
+		},
+	}
+	c.expectOK(client.ReportBuildError(buildErrorReq))
+	c.pollEmailBug()
+
+	c.advanceTime(time.Hour)
+	build3 := testBuild(3)
+	build3.Manager = firstManager
+	c.expectOK(client.UploadBuild(build3))
+
+	// And one more build from a different manager.
+	c.advanceTime(time.Hour)
+	build4 := testBuild(4)
+	build4.Manager = secondManager
+	c.expectOK(client.UploadBuild(build4))
+
+	// Query the first manager.
+	reply, err := c.AuthGET(AccessPublic, "/access-public-email/manager/"+firstManager)
+	c.expectOK(err)
+	assert.Contains(t, string(reply), "kernel_commit_title1")
+	assert.NotContains(t, string(reply), "kernel_commit_title2") // build error
+	assert.Contains(t, string(reply), "kernel_commit_title3")
+	assert.NotContains(t, string(reply), "kernel_commit_title4") // another manager
+
+	// Query the second manager.
+	reply, err = c.AuthGET(AccessPublic, "/access-public-email/manager/"+secondManager)
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), "kernel_commit_title1")
+	assert.NotContains(t, string(reply), "kernel_commit_title2")
+	assert.NotContains(t, string(reply), "kernel_commit_title3")
+	assert.Contains(t, string(reply), "kernel_commit_title4") // another manager
+
+	// Query unknown manager.
+	_, err = c.AuthGET(AccessPublic, "/access-public-email/manager/abcd")
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
+	c.expectEQ(httpErr.Code, http.StatusBadRequest)
+}
+
+func TestReproSubmitAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.makeClient(clientPublic, keyPublic, true)
+
+	build := testBuild(1)
+	build.Manager = "test-manager"
+	client.UploadBuild(build)
+
+	reply, err := c.AuthGET(AccessPublic, "/access-public/manager/test-manager")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), "Send a reproducer")
+
+	for _, access := range []AccessLevel{AccessUser, AccessAdmin} {
+		reply, err := c.AuthGET(access, "/access-public/manager/test-manager")
+		c.expectOK(err)
+		assert.Contains(t, string(reply), "Send a reproducer")
+	}
 }

@@ -7,7 +7,7 @@
 # Following branch: android13-5.15-lts
 kernel:
  repo: https://android.googlesource.com/kernel/common
- tag: 19c0ed55a470d
+ tag: 241da2ad56013
 
 shell:
  - make gki_defconfig

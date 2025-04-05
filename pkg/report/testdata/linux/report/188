@@ -1,5 +1,5 @@
-# Note: 185-188 have the same root cause.
 TITLE: possible deadlock in rtnl_lock
+TYPE: LOCKDEP
 
 [   82.159264] ======================================================
 [   82.165575] WARNING: possible circular locking dependency detected

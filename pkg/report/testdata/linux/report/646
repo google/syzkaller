@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in tty_release
 ALT: bad-access in tty_release
+TYPE: KASAN
 
 [  477.354012][T18348] ==================================================================
 [  477.362261][T18348] BUG: KASAN: use-after-free in __wake_up_common+0x255/0x4e0

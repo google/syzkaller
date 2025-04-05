@@ -1,4 +1,5 @@
 TITLE: possible deadlock in io_timeout_fn
+TYPE: LOCKDEP
 
 [ 1137.662954][ T6133] =====================================================
 [ 1137.669884][ T6133] WARNING: HARDIRQ-safe -> HARDIRQ-unsafe lock order detected

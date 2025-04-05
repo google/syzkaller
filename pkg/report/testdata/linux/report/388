@@ -1,4 +1,5 @@
 TITLE: WARNING in submit_rx_urb/usb_submit_urb
+TYPE: WARNING
 
 [   38.698988][   T12] ------------[ cut here ]------------
 [   38.709812][ T5638] usb 6-1: Direct firmware load for prism2_ru.fw failed with error -2

@@ -1,0 +1,8 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ # Change KASAN reporting to only panic on bad writes (still reports bad
+ # reads). Enabling multi-shot mode is required to not panic on the first
+ # report if panic_on_warn is on as well.
+ - CMDLINE: [kasan_panic_on_write, append, "kasan.fault=panic_on_write kasan_multi_shot"]

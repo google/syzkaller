@@ -1,0 +1,20 @@
+#
+# requires: arch=arm64
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+#
+# KVM_SET_DEVICE_ATTR: group=KVM_ARM_VM_SMCCC_CTRL, attr=KVM_ARM_VM_SMCCC_FILTER
+# Filter: base=0xef000000, nr_functions=0x1000, action=KVM_SMCCC_FILTER_FWD_TO_USER
+# (Per SMC Calling Convention, 0xef000000-0xef001000 is an SMC64 fast call reserved range)
+# 
+ioctl$KVM_SET_DEVICE_ATTR_vm(r1, AUTO, &AUTO=@attr_arm64={0x0, 0x0, 0x0, &AUTO={0xef000000, 0x1000, 0x2, ""}})
+
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+syz_kvm_setup_cpu$arm64(r1, r2, &(0x7f0000e8a000/0x18000)=nil, &AUTO=[{0x0, &AUTO=[@smc={AUTO, AUTO, {0xef000000, [0x0, 0x1, 0x2, 0x3, 0x4]}}, @hvc={AUTO, AUTO, {0xef000000, [0x0, 0x1, 0x2, 0x3, 0x4]}}], AUTO}], 0x1, 0x0, 0x0, 0x0)
+
+#
+# Run twice, because both SMC and HVC will exit.
+#
+ioctl$KVM_RUN(r2, AUTO, 0x0)
+ioctl$KVM_RUN(r2, AUTO, 0x0)

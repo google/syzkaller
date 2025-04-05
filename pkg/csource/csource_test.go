@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/google/syzkaller/executor"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -37,7 +38,6 @@ func TestGenerate(t *testing.T) {
 	t.Parallel()
 	checked := make(map[string]bool)
 	for _, target := range prog.AllTargets() {
-		target := target
 		sysTarget := targets.Get(target.OS, target.Arch)
 		if runtime.GOOS != sysTarget.BuildOS {
 			continue
@@ -90,7 +90,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 		opts = allOptionsSingle(target.OS)
 		opts = append(opts, ExecutorOpts)
 	} else {
-		minimized, _ := prog.Minimize(syzProg, -1, false, func(p *prog.Prog, call int) bool {
+		minimized, _ := prog.Minimize(syzProg, -1, prog.MinimizeCorpus, func(p *prog.Prog, call int) bool {
 			return len(p.Calls) == len(syzProg.Calls)
 		})
 		p.Calls = append(p.Calls, minimized.Calls...)
@@ -113,7 +113,6 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 			// compilation time from 1.94s to 104.73s and memory consumption from 136MB to 8116MB.
 			continue
 		}
-		opts := opts
 		t.Run(fmt.Sprintf("%v", opti), func(t *testing.T) {
 			t.Parallel()
 			testOne(t, p, opts)
@@ -139,7 +138,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {
 			t.Fatal()
 		}
-		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	bin, err := Build(p.Target, src)
@@ -147,7 +146,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {
 			t.Fatal()
 		}
-		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(bin)
@@ -163,7 +162,7 @@ func TestExecutorMacros(t *testing.T) {
 	expected["SYZ_HAVE_RESET_LOOP"] = true
 	expected["SYZ_HAVE_SETUP_TEST"] = true
 	expected["SYZ_TEST_COMMON_EXT_EXAMPLE"] = true
-	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(commonHeader, -1)
+	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(string(executor.CommonHeader), -1)
 	for _, macro := range macros {
 		if strings.HasPrefix(macro, "SYZ_HAVE_") {
 			continue
@@ -191,10 +190,10 @@ r0 = csource0(0x1)
 csource1(r0)
 `,
 			output: `
-res = syscall(SYS_csource0, 1);
+res = syscall(SYS_csource0, /*num=*/1);
 if (res != -1)
 	r[0] = res;
-syscall(SYS_csource1, r[0]);
+syscall(SYS_csource1, /*fd=*/r[0]);
 `,
 		},
 		{
@@ -207,21 +206,39 @@ csource6(&AUTO)
 `,
 			output: fmt.Sprintf(`
 NONFAILING(memcpy((void*)0x%x, "\x12\x34\x56\x78", 4));
-syscall(SYS_csource2, 0x%xul);
+syscall(SYS_csource2, /*buf=*/0x%xul);
 NONFAILING(memset((void*)0x%x, 0, 10));
-syscall(SYS_csource3, 0x%xul);
+syscall(SYS_csource3, /*buf=*/0x%xul);
 NONFAILING(memset((void*)0x%x, 48, 10));
-syscall(SYS_csource4, 0x%xul);
+syscall(SYS_csource4, /*buf=*/0x%xul);
 NONFAILING(memcpy((void*)0x%x, "0101010101", 10));
-syscall(SYS_csource5, 0x%xul);
+syscall(SYS_csource5, /*buf=*/0x%xul);
 NONFAILING(memcpy((void*)0x%x, "101010101010", 12));
-syscall(SYS_csource6, 0x%xul);
+syscall(SYS_csource6, /*buf=*/0x%xul);
 `,
 				target.DataOffset+0x40, target.DataOffset+0x40,
 				target.DataOffset+0x80, target.DataOffset+0x80,
 				target.DataOffset+0xc0, target.DataOffset+0xc0,
 				target.DataOffset+0x100, target.DataOffset+0x100,
 				target.DataOffset+0x140, target.DataOffset+0x140),
+		},
+		{
+			input: `
+csource7(0x0)
+csource7(0x1)
+csource7(0x2)
+csource7(0x3)
+csource7(0x4)
+csource7(0x5)
+`,
+			output: `
+syscall(SYS_csource7, /*flag=*/0ul);
+syscall(SYS_csource7, /*flag=BIT_0*/1ul);
+syscall(SYS_csource7, /*flag=BIT_1*/2ul);
+syscall(SYS_csource7, /*flag=BIT_0_AND_1*/3ul);
+syscall(SYS_csource7, /*flag=*/4ul);
+syscall(SYS_csource7, /*flag=BIT_0|0x4*/5ul);
+`,
 		},
 	}
 	for i, test := range tests {
@@ -231,6 +248,7 @@ syscall(SYS_csource6, 0x%xul);
 				t.Fatal(err)
 			}
 			ctx := &context{
+				p:         p,
 				target:    target,
 				sysTarget: targets.Get(target.OS, target.Arch),
 			}

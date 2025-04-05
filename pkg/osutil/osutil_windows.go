@@ -4,11 +4,15 @@
 package osutil
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 )
+
+func creationTime(fi os.FileInfo) time.Time {
+	return time.Time{}
+}
 
 func HandleInterrupts(shutdown chan struct{}) {
 }
@@ -22,14 +26,6 @@ func SystemMemorySize() uint64 {
 }
 
 func prolongPipe(r, w *os.File) {
-}
-
-func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
-	return nil, nil, fmt.Errorf("CreateMemMappedFile is not implemented")
-}
-
-func CloseMemMappedFile(f *os.File, mem []byte) error {
-	return fmt.Errorf("CloseMemMappedFile is not implemented")
 }
 
 func ProcessExitStatus(ps *os.ProcessState) int {

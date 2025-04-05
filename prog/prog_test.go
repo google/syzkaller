@@ -87,7 +87,7 @@ func testSerialize(t *testing.T, verbose bool) {
 			t.Fatalf("different number of calls")
 		}
 		if !bytes.Equal(data, data1) {
-			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s\n", data, data1)
+			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s", data, data1)
 		}
 	}
 }
@@ -137,6 +137,22 @@ func TestVmaType(t *testing.T) {
 		check(c.Args[0], c.Args[1], 1*pageSize, 1e5*pageSize)
 		check(c.Args[2], c.Args[3], 5*pageSize, 5*pageSize)
 		check(c.Args[4], c.Args[5], 7*pageSize, 9*pageSize)
+	}
+}
+
+func TestFsckAttr(t *testing.T) {
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	syscall := target.SyscallMap["test$fsck_attr"]
+	if syscall == nil {
+		t.Fatal("could not find test$fsck_attr in sys/test")
+	}
+
+	if syscall.Attrs.Fsck != "fsck.test -n" {
+		t.Fatalf("unexpected fsck command %s", syscall.Attrs.Fsck)
 	}
 }
 
@@ -195,7 +211,7 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 		testCrossArchProg(t, p, crossTargets)
 		p.Mutate(rs, 20, ct, nil, nil)
 		testCrossArchProg(t, p, crossTargets)
-		p, _ = Minimize(p, -1, false, func(*Prog, int) bool {
+		p, _ = Minimize(p, -1, MinimizeCorpus, func(*Prog, int) bool {
 			return rs.Int63()%2 == 0
 		})
 		testCrossArchProg(t, p, crossTargets)
@@ -294,12 +310,12 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  42,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{},
 			},
@@ -318,32 +334,32 @@ fallback$1(0x0)
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 2),
+					Signal: make([]uint64, 2),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 2),
+					Signal: make([]uint64, 2),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  2,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 			},
 		},
@@ -362,17 +378,17 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags: CallExecuted,
@@ -402,12 +418,12 @@ fallback$0()
 				{
 					Flags:  CallExecuted,
 					Errno:  0,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags:  CallExecuted,
 					Errno:  1,
-					Signal: make([]uint32, 1),
+					Signal: make([]uint64, 1),
 				},
 				{
 					Flags: CallExecuted,

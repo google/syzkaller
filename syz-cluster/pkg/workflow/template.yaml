@@ -1,0 +1,174 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: series-workflow
+spec:
+  entrypoint: main
+  podGC:
+    # Keep pods for 12 hours after completion.
+    strategy: OnPodCompletion
+    deleteDelayDuration: 12h
+  ttlStrategy:
+    # Keep finihed workflows for 12 hours after completion.
+    secondsAfterCompletion: 43200
+  podMetadata:
+    labels:
+      tier: workflow
+  arguments:
+    parameters:
+      - name: session-id
+        value: "some-session-id"
+# TODO: there seems to be no way to pass env variables into the GC workflow.
+# Set ARGO_ARTIFACT_GC_ENABLED=0 for the local setup?
+#  artifactGC:
+#    strategy: OnWorkflowCompletion
+  templates:
+    - name: main
+      # Don't schedule new steps if any of the previous steps failed.
+      failFast: true
+      # Note that failFast and parallelism only affect this template's steps.
+      parallelism: 1
+      steps:
+        - - name: run-triage
+            templateRef:
+              name: triage-step-template
+              template: triage-step
+        - - name: abort-on-skip-outcome
+            template: exit-workflow
+            when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip') != nil}}"
+        - - name: run-process-fuzz
+            template: process-fuzz
+            arguments:
+              parameters:
+                - name: element
+                  value: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
+            continueOn:
+              failed: true
+    - name: process-fuzz
+      inputs:
+        parameters:
+          - name: element
+      steps:
+        - - name: save-base-req
+            template: extract-request
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base')}}"
+        - - name: base-build
+            templateRef:
+              name: build-step-template
+              template: build-step
+            arguments:
+              parameters:
+                - name: test-name
+                  value: "Build Base"
+                - name: session-id
+                  value: "{{workflow.parameters.session-id}}"
+              artifacts:
+                - name: request
+                  from: "{{steps.save-base-req.outputs.artifacts.request}}"
+        - - name: abort-if-base-build-failed
+            template: exit-workflow
+            when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
+        - - name: save-patched-req
+            template: extract-request
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.patched')}}"
+        - - name: patched-build
+            templateRef:
+              name: build-step-template
+              template: build-step
+            arguments:
+              parameters:
+                - name: test-name
+                  value: "Build Patched"
+                - name: findings
+                  value: "true"
+                - name: session-id
+                  value: "{{workflow.parameters.session-id}}"
+              artifacts:
+                - name: request
+                  from: "{{steps.save-patched-req.outputs.artifacts.request}}"
+        - - name: abort-if-patched-build-failed
+            template: exit-workflow
+            when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
+        - - name: boot-test-base
+            templateRef:
+              name: boot-step-template
+              template: boot-step
+            arguments:
+              artifacts:
+                - name: kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: test-name
+                  value: "Boot test: Base"
+          - name: boot-test-patched
+            templateRef:
+              name: boot-step-template
+              template: boot-step
+            arguments:
+              artifacts:
+                - name: kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: report-findings
+                  value: "true"
+                - name: test-name
+                  value: "Boot test: Patched"
+        - - name: fuzz
+            templateRef:
+              name: fuzz-step-template
+              template: fuzz-step
+            # Proceed only if both boot tests succeeded.
+            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == true && jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == true}}"
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: corpus-url
+                  value: "{{=jsonpath(inputs.parameters.element, '$.corpus_url')}}"
+              artifacts:
+                - name: base-kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                - name: patched-kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+    - name: extract-request
+      inputs:
+        parameters:
+          - name: data
+      outputs:
+        artifacts:
+          - name: request
+            path: /tmp/request.json
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo '{{inputs.parameters.data}}' > /tmp/request.json"]
+    - name: exit-workflow
+      inputs:
+        parameters:
+          - name: code
+            value: 1
+      container:
+        image: alpine:latest
+        command: ['/bin/sh', '-c']
+        args: ["exit {{inputs.parameters.code}}"]

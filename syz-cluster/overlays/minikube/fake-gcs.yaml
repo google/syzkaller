@@ -1,0 +1,83 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-gcs-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fake-gcs-server
+  template:
+    metadata:
+      labels:
+        app: fake-gcs-server
+    spec:
+      initContainers:
+      - name: create-test-bucket
+        image: busybox
+        command: ["sh", "-c", "mkdir -p /data/workflow-artifacts /data/blobs"]
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      containers:
+      - name: fake-gcs-server
+        imagePullPolicy: IfNotPresent
+        image: fsouza/fake-gcs-server
+        args: [
+          "-scheme", "http",
+          "-public-host", "fake-gcs-server.default.svc.cluster.local",
+          "-external-url", "http://fake-gcs-server.default.svc.cluster.local:4443"
+        ]
+        ports:
+        - containerPort: 4443
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      volumes:
+      - name: data-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fake-gcs-server
+spec:
+  selector:
+    app: fake-gcs-server
+  ports:
+  - protocol: TCP
+    port: 4443
+    targetPort: 4443
+  type: LoadBalancer
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fake-gcs-server-access
+spec:
+  podSelector:
+    matchLabels:
+      app: fake-gcs-server
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: controller
+    - podSelector:
+        matchLabels:
+          app: reporter
+    - podSelector:
+        matchLabels:
+          app: web-dashboard
+    - podSelector:
+        matchLabels:
+          tier: workflow
+    - podSelector:
+        matchLabels:
+          app: workflow-controller

@@ -1,4 +1,5 @@
 TITLE: WARNING: locking bug in deactivate_slab
+TYPE: LOCKDEP
 
 [  669.483353][    C1] =============================
 [  669.483797][    C1] [ BUG: Invalid wait context ]

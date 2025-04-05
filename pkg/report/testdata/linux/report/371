@@ -1,5 +1,6 @@
 TITLE: KASAN: null-ptr-deref Read in zr364xx_vidioc_querycap
 ALT: bad-access in zr364xx_vidioc_querycap
+TYPE: KASAN
 
 [   62.911361] ==================================================================
 [   62.919256] BUG: KASAN: null-ptr-deref in read_word_at_a_time+0xe/0x20

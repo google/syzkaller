@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Write in bpf_prog_kallsyms_del
 ALT: bad-access in bpf_prog_kallsyms_del
+TYPE: KASAN
 
 [  284.023898] ==================================================================
 [  284.031579] BUG: KASAN: use-after-free in rb_erase+0x26d0/0x3710

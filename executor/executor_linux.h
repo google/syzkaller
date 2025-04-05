@@ -11,6 +11,14 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+static bool pkeys_enabled;
+
+// The coverage buffer can realistically overflow. In the non-snapshot mode we cannot afford
+// very large buffer b/c there are usually multiple procs, and each of them consumes
+// significant amount of memory. In snapshot mode we have only one proc, so we can have
+// larger coverage buffer.
+const int kSnapshotCoverSize = 1024 << 10;
+
 const unsigned long KCOV_TRACE_PC = 0;
 const unsigned long KCOV_TRACE_CMP = 1;
 
@@ -36,8 +44,6 @@ struct kcov_remote_arg {
 #define KCOV_SUBSYSTEM_MASK (0xffull << 56)
 #define KCOV_INSTANCE_MASK (0xffffffffull)
 
-static bool is_gvisor;
-
 static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 {
 	if (subsys & ~KCOV_SUBSYSTEM_MASK || inst & ~KCOV_INSTANCE_MASK)
@@ -45,28 +51,44 @@ static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 	return subsys | inst;
 }
 
-static bool detect_kernel_bitness();
-static bool detect_gvisor();
-
 static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	is_kernel_64_bit = detect_kernel_bitness();
-	is_gvisor = detect_gvisor();
 	// Surround the main data mapping with PROT_NONE pages to make virtual address layout more consistent
 	// across different configurations (static/non-static build) and C repros.
 	// One observed case before: executor had a mapping above the data mapping (output region),
 	// while C repros did not have that mapping above, as the result in one case VMA had next link,
 	// while in the other it didn't and it caused a bug to not reproduce with the C repro.
-	void* got = mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	void* got = mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
 	if (data - SYZ_PAGE_SIZE != got)
 		failmsg("mmap of left data PROT_NONE page failed", "want %p, got %p", data - SYZ_PAGE_SIZE, got);
-	got = mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	got = mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
 	if (data != got)
 		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
-	got = mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	got = mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
 	if (data + data_size != got)
 		failmsg("mmap of right data PROT_NONE page failed", "want %p, got %p", data + data_size, got);
+
+	// A SIGCHLD handler makes sleep in loop exit immediately return with EINTR with a child exits.
+	struct sigaction act = {};
+	act.sa_handler = [](int) {};
+	sigaction(SIGCHLD, &act, nullptr);
+
+	// Use the last available pkey so that C reproducers get the the same keys from pkey_alloc.
+	int pkeys[RESERVED_PKEY + 1];
+	int npkey = 0;
+	for (; npkey <= RESERVED_PKEY; npkey++) {
+		int pk = pkey_alloc(0, 0);
+		if (pk == -1)
+			break;
+		if (pk == RESERVED_PKEY) {
+			pkeys_enabled = true;
+			break;
+		}
+		pkeys[npkey] = pk;
+	}
+	while (npkey--)
+		pkey_free(pkeys[npkey]);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
@@ -85,21 +107,26 @@ static void cover_open(cover_t* cov, bool extra)
 		failmsg("filed to dup cover fd", "from=%d, to=%d", fd, cov->fd);
 	close(fd);
 	const int kcov_init_trace = is_kernel_64_bit ? KCOV_INIT_TRACE64 : KCOV_INIT_TRACE32;
-	const int cover_size = extra ? kExtraCoverSize : kCoverSize;
+	const int cover_size = extra ? kExtraCoverSize : flag_snapshot ? kSnapshotCoverSize
+								       : kCoverSize;
 	if (ioctl(cov->fd, kcov_init_trace, cover_size))
 		fail("cover init trace write failed");
 	cov->mmap_alloc_size = cover_size * (is_kernel_64_bit ? 8 : 4);
+	if (pkeys_enabled)
+		debug("pkey protection enabled\n");
 }
 
 static void cover_protect(cover_t* cov)
 {
+	if (pkeys_enabled && pkey_set(RESERVED_PKEY, PKEY_DISABLE_WRITE))
+		debug("pkey_set failed: %d\n", errno);
 }
 
-#if SYZ_EXECUTOR_USES_SHMEM
 static void cover_unprotect(cover_t* cov)
 {
+	if (pkeys_enabled && pkey_set(RESERVED_PKEY, 0))
+		debug("pkey_set failed: %d\n", errno);
 }
-#endif
 
 static void cover_mmap(cover_t* cov)
 {
@@ -107,10 +134,18 @@ static void cover_mmap(cover_t* cov)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	if (cov->mmap_alloc_size == 0)
 		fail("cover_t structure is corrupted");
-	cov->data = (char*)mmap(NULL, cov->mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_SHARED, cov->fd, 0);
+	// Allocate kcov buffer plus two guard pages surrounding it.
+	char* mapped = (char*)mmap(NULL, cov->mmap_alloc_size + 2 * SYZ_PAGE_SIZE,
+				   PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	if (mapped == MAP_FAILED)
+		exitf("failed to preallocate kcov buffer");
+	// Now map the kcov buffer to the file, overwriting the existing mapping above.
+	cov->data = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
+				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
 	if (cov->data == MAP_FAILED)
 		exitf("cover mmap failed");
+	if (pkeys_enabled && pkey_mprotect(cov->data, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+		exitf("failed to pkey_mprotect kcov buffer");
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
@@ -149,67 +184,25 @@ static void cover_reset(cover_t* cov)
 			fail("cover_reset: current_thread == 0");
 		cov = &current_thread->cov;
 	}
+	cover_unprotect(cov);
 	*(uint64*)cov->data = 0;
+	cover_protect(cov);
+	cov->overflow = false;
+}
+
+template <typename cover_data_t>
+static void cover_collect_impl(cover_t* cov)
+{
+	cov->size = *(cover_data_t*)cov->data;
+	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
 }
 
 static void cover_collect(cover_t* cov)
 {
 	if (is_kernel_64_bit)
-		cov->size = *(uint64*)cov->data;
+		cover_collect_impl<uint64>(cov);
 	else
-		cov->size = *(uint32*)cov->data;
-}
-
-#if SYZ_EXECUTOR_USES_SHMEM
-static bool use_cover_edges(uint32 pc)
-{
-	return true;
-}
-
-static bool use_cover_edges(uint64 pc)
-{
-#if defined(__i386__) || defined(__x86_64__)
-	if (is_gvisor)
-		return false; // gvisor coverage is not a trace, so producing edges won't work
-	// Text/modules range for x86_64.
-	if (pc < 0xffffffff80000000ull || pc >= 0xffffffffff000000ull) {
-		debug("got bad pc: 0x%llx\n", pc);
-		doexit(0);
-	}
-#endif
-	return true;
-}
-#endif
-
-static bool detect_kernel_bitness()
-{
-	if (sizeof(void*) == 8)
-		return true;
-	// It turns out to be surprisingly hard to understand if the kernel underneath is 64-bits.
-	// A common method is to look at uname.machine. But it is produced in some involved ways,
-	// and we will need to know about all strings it returns and in the end it can be overriden
-	// during build and lie (and there are known precedents of this).
-	// So instead we look at size of addresses in /proc/kallsyms.
-	bool wide = true;
-	int fd = open("/proc/kallsyms", O_RDONLY);
-	if (fd != -1) {
-		char buf[16];
-		if (read(fd, buf, sizeof(buf)) == sizeof(buf) &&
-		    (buf[8] == ' ' || buf[8] == '\t'))
-			wide = false;
-		close(fd);
-	}
-	debug("detected %d-bit kernel\n", wide ? 64 : 32);
-	return wide;
-}
-
-static bool detect_gvisor()
-{
-	char buf[64] = {};
-	// 3 stands for undeclared SYSLOG_ACTION_READ_ALL.
-	syscall(__NR_syslog, 3, buf, sizeof(buf) - 1);
-	// This is a first line of gvisor dmesg.
-	return strstr(buf, "Starting gVisor");
+		cover_collect_impl<uint32>(cov);
 }
 
 // One does not simply exit.
@@ -242,12 +235,86 @@ NORETURN void doexit_thread(int status)
 	}
 }
 
+#define SYZ_HAVE_KCSAN 1
+static void setup_kcsan_filter(const std::vector<std::string>& frames)
+{
+	if (frames.empty())
+		return;
+	int fd = open("/sys/kernel/debug/kcsan", O_WRONLY);
+	if (fd == -1)
+		fail("failed to open kcsan debugfs file");
+	for (const auto& frame : frames)
+		dprintf(fd, "!%s\n", frame.c_str());
+	close(fd);
+}
+
+static const char* setup_nicvf()
+{
+	// This feature has custom checking precedure rather than just rely on running
+	// a simple program with this feature enabled b/c find_vf_interface cannot be made
+	// failing. It searches for the nic in init namespace, but then the nic is moved
+	// to one of testing namespace, so if number of procs is more than the number of devices,
+	// then some of them won't fine a nic (the code is also racy, more than one proc
+	// can find the same device and then moving it will fail for all but one).
+	// So we have to make find_vf_interface non-failing in case of failures,
+	// which means we cannot use it for feature checking.
+	int fd = open("/sys/bus/pci/devices/0000:00:11.0/", O_RDONLY | O_NONBLOCK);
+	if (fd == -1)
+		return "PCI device 0000:00:11.0 is not available";
+	close(fd);
+	return NULL;
+}
+
+static const char* setup_devlink_pci()
+{
+	// See comment in setup_nicvf.
+	int fd = open("/sys/bus/pci/devices/0000:00:10.0/", O_RDONLY | O_NONBLOCK);
+	if (fd == -1)
+		return "PCI device 0000:00:10.0 is not available";
+	close(fd);
+	return NULL;
+}
+
+static const char* setup_delay_kcov()
+{
+	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
+	if (fd == -1)
+		return "open of /sys/kernel/debug/kcov failed";
+	close(fd);
+	cover_t cov = {};
+	cov.fd = kCoverFd;
+	cover_open(&cov, false);
+	cover_mmap(&cov);
+	char* first = cov.data;
+	cov.data = nullptr;
+	cover_mmap(&cov);
+	// If delayed kcov mmap is not supported by the kernel,
+	// accesses to the second mapping will crash.
+	// Use clock_gettime to check if it's mapped w/o crashing the process.
+	const char* error = NULL;
+	timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+		if (errno != EFAULT)
+			fail("clock_gettime failed");
+		error = "kernel commit b3d7fe86fbd0 is not present";
+	} else {
+		munmap(cov.data - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
+	}
+	munmap(first - SYZ_PAGE_SIZE, cov.mmap_alloc_size + 2 * SYZ_PAGE_SIZE);
+	close(cov.fd);
+	return error;
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
-    {"leak", setup_leak},
-    {"fault", setup_fault},
-    {"binfmt_misc", setup_binfmt_misc},
-    {"kcsan", setup_kcsan},
-    {"usb", setup_usb},
-    {"802154", setup_802154},
+    {rpc::Feature::DelayKcovMmap, setup_delay_kcov},
+    {rpc::Feature::Fault, setup_fault},
+    {rpc::Feature::Leak, setup_leak},
+    {rpc::Feature::KCSAN, setup_kcsan},
+    {rpc::Feature::USBEmulation, setup_usb},
+    {rpc::Feature::LRWPANEmulation, setup_802154},
+    {rpc::Feature::BinFmtMisc, setup_binfmt_misc},
+    {rpc::Feature::Swap, setup_swap},
+    {rpc::Feature::NicVF, setup_nicvf},
+    {rpc::Feature::DevlinkPCI, setup_devlink_pci},
 };

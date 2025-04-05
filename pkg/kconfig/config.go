@@ -107,7 +107,7 @@ func (cf *ConfigFile) Serialize() []byte {
 func ParseConfig(file string) (*ConfigFile, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open .config file %v: %v", file, err)
+		return nil, fmt.Errorf("failed to open .config file %v: %w", file, err)
 	}
 	return ParseConfigData(data, file)
 }
@@ -123,7 +123,7 @@ func ParseConfigData(data []byte, file string) (*ConfigFile, error) {
 	return cf, nil
 }
 
-func (cf *ConfigFile) clone() *ConfigFile {
+func (cf *ConfigFile) Clone() *ConfigFile {
 	cf1 := &ConfigFile{
 		Map:      make(map[string]*Config),
 		comments: cf.comments,

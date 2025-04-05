@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in icmp_send
 ALT: bad-access in icmp_send
+TYPE: KASAN
 
 [  237.893047] ==================================================================
 [  237.900729] BUG: KASAN: use-after-free in do_raw_spin_trylock+0x82/0x270

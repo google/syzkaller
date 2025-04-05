@@ -7,8 +7,8 @@ package instance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,11 +16,13 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
@@ -29,6 +31,7 @@ import (
 
 type Env interface {
 	BuildSyzkaller(string, string) (string, error)
+	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
@@ -41,6 +44,7 @@ type env struct {
 }
 
 type BuildKernelConfig struct {
+	MakeBin      string
 	CompilerBin  string
 	LinkerBin    string
 	CcacheBin    string
@@ -48,6 +52,7 @@ type BuildKernelConfig struct {
 	CmdlineFile  string
 	SysctlFile   string
 	KernelConfig []byte
+	BuildCPUs    int
 }
 
 func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
@@ -64,7 +69,7 @@ func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
 		return nil, fmt.Errorf("syzkaller path is empty")
 	}
 	if err := osutil.MkdirAll(cfg.Workdir); err != nil {
-		return nil, fmt.Errorf("failed to create tmp dir: %v", err)
+		return nil, fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	env := &env{
 		cfg:           cfg,
@@ -87,14 +92,14 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	}
 	repo := vcs.NewSyzkallerRepo(cfg.Syzkaller)
 	if _, err := repo.CheckoutCommit(repoURL, commit); err != nil {
-		return "", fmt.Errorf("failed to checkout syzkaller repo: %v", err)
+		return "", fmt.Errorf("failed to checkout syzkaller repo: %w", err)
 	}
 	// The following commit ("syz-fuzzer: support optional flags") adds support for optional flags
-	// in syz-fuzzer and syz-execprog. This is required to invoke older binaries with newer flags
+	// in syz-execprog. This is required to invoke older binaries with newer flags
 	// without failing due to unknown flags.
 	optionalFlags, err := repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
 	if err != nil {
-		return "", fmt.Errorf("optional flags check failed: %v", err)
+		return "", fmt.Errorf("optional flags check failed: %w", err)
 	}
 	env.optionalFlags = optionalFlags
 	cmd := osutil.Command(MakeBin, "target")
@@ -127,9 +132,28 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	buildLog := fmt.Sprintf("go env (err=%v)\n%s\ngit status (err=%v)\n%s\n\n%s",
 		goEnvErr, goEnvOut, gitStatusErr, gitStatusOut, buildOutput)
 	if buildErr != nil {
-		return buildLog, fmt.Errorf("syzkaller build failed: %v\n%s", buildErr, buildLog)
+		return buildLog, fmt.Errorf("syzkaller build failed: %w\n%s", buildErr, buildLog)
 	}
 	return buildLog, nil
+}
+
+func (env *env) buildParamsFromCfg(buildCfg *BuildKernelConfig) build.Params {
+	return build.Params{
+		TargetOS:     env.cfg.TargetOS,
+		TargetArch:   env.cfg.TargetVMArch,
+		VMType:       env.cfg.Type,
+		KernelDir:    env.cfg.KernelSrc,
+		OutputDir:    filepath.Join(env.cfg.Workdir, "image"),
+		Make:         buildCfg.MakeBin,
+		Compiler:     buildCfg.CompilerBin,
+		Linker:       buildCfg.LinkerBin,
+		Ccache:       buildCfg.CcacheBin,
+		UserspaceDir: buildCfg.UserspaceDir,
+		CmdlineFile:  buildCfg.CmdlineFile,
+		SysctlFile:   buildCfg.SysctlFile,
+		Config:       buildCfg.KernelConfig,
+		BuildCPUs:    buildCfg.BuildCPUs,
+	}
 }
 
 func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
@@ -138,33 +162,28 @@ func (env *env) BuildKernel(buildCfg *BuildKernelConfig) (
 		env.buildSem.Wait()
 		defer env.buildSem.Signal()
 	}
-	imageDir := filepath.Join(env.cfg.Workdir, "image")
-	params := build.Params{
-		TargetOS:     env.cfg.TargetOS,
-		TargetArch:   env.cfg.TargetVMArch,
-		VMType:       env.cfg.Type,
-		KernelDir:    env.cfg.KernelSrc,
-		OutputDir:    imageDir,
-		Compiler:     buildCfg.CompilerBin,
-		Linker:       buildCfg.LinkerBin,
-		Ccache:       buildCfg.CcacheBin,
-		UserspaceDir: buildCfg.UserspaceDir,
-		CmdlineFile:  buildCfg.CmdlineFile,
-		SysctlFile:   buildCfg.SysctlFile,
-		Config:       buildCfg.KernelConfig,
-	}
+	params := env.buildParamsFromCfg(buildCfg)
 	details, err := build.Image(params)
 	if err != nil {
 		return "", details, err
 	}
-	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
+	if err := SetConfigImage(env.cfg, params.OutputDir, true); err != nil {
 		return "", details, err
 	}
-	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
+	kernelConfigFile := filepath.Join(params.OutputDir, "kernel.config")
 	if !osutil.IsExist(kernelConfigFile) {
 		kernelConfigFile = ""
 	}
 	return kernelConfigFile, details, nil
+}
+
+func (env *env) CleanKernel(buildCfg *BuildKernelConfig) error {
+	if env.buildSem != nil {
+		env.buildSem.Wait()
+		defer env.buildSem.Signal()
+	}
+	params := env.buildParamsFromCfg(buildCfg)
+	return build.Clean(params)
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
@@ -175,7 +194,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	}
 	vmConfig := make(map[string]interface{})
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
-		return fmt.Errorf("failed to parse VM config: %v", err)
+		return fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	if cfg.Type == "qemu" || cfg.Type == "vmm" {
 		if kernel := filepath.Join(imageDir, "kernel"); osutil.IsExist(kernel) {
@@ -191,7 +210,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	}
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to serialize VM config: %v", err)
+		return fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 	cfg.VM = vmCfg
 	return nil
@@ -200,7 +219,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 	vmConfig := make(map[string]interface{})
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
-		return fmt.Errorf("failed to parse VM config: %v", err)
+		return fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	if vmConfig["count"] == nil || !vm.AllowsOvercommit(cfg.Type) {
 		return nil
@@ -208,9 +227,10 @@ func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 	vmConfig["count"] = n
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return fmt.Errorf("failed to serialize VM config: %v", err)
+		return fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 	cfg.VM = vmCfg
+	cfg.FuzzingVMs = min(cfg.FuzzingVMs, n)
 	return nil
 }
 
@@ -251,11 +271,10 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	}
 	vmPool, err := vm.Create(env.cfg, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create VM pool: %v", err)
+		return nil, fmt.Errorf("failed to create VM pool: %w", err)
 	}
-	if n := vmPool.Count(); numVMs > n {
-		numVMs = n
-	}
+	defer vmPool.Close()
+	numVMs = min(numVMs, vmPool.Count())
 	res := make(chan EnvTestResult, numVMs)
 	for i := 0; i < numVMs; i++ {
 		inst := &inst{
@@ -304,11 +323,12 @@ func (inst *inst) test() EnvTestResult {
 		ret := EnvTestResult{
 			Error: testErr,
 		}
-		if bootErr, ok := err.(vm.BootErrorer); ok {
+		var bootErr vm.BootErrorer
+		if errors.As(err, &bootErr) {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
-			if rep != nil && rep.Type == report.UnexpectedReboot {
+			if rep != nil && rep.Type == crash.UnexpectedReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
 				rep = inst.reporter.ParseFrom(testErr.Output, rep.SkipPos)
 			}
@@ -326,7 +346,8 @@ func (inst *inst) test() EnvTestResult {
 			testErr.Title = rep.Title
 		} else {
 			testErr.Infra = true
-			if infraErr, ok := err.(vm.InfraErrorer); ok {
+			var infraErr vm.InfraErrorer
+			if errors.As(err, &infraErr) {
 				// In case there's more info available.
 				testErr.Title, testErr.Output = infraErr.InfraError()
 			}
@@ -345,70 +366,43 @@ func (inst *inst) test() EnvTestResult {
 	return ret
 }
 
-// testInstance tests basic operation of the provided VM
-// (that we can copy binaries, run binaries, they can connect to host, run syzkaller programs, etc).
+// testInstance tests that the VM does not crash on a simple program.
 // TestError is returned if there is a problem with the kernel (e.g. crash).
 func (inst *inst) testInstance() error {
-	ln, err := net.Listen("tcp", ":")
+	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
+		OldFlagsCompatMode: !inst.optionalFlags,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to open listening socket: %v", err)
-	}
-	defer ln.Close()
-	acceptErr := make(chan error, 1)
-	go func() {
-		conn, err := ln.Accept()
-		if err == nil {
-			conn.Close()
-		}
-		acceptErr <- err
-	}()
-	fwdAddr, err := inst.vm.Forward(ln.Addr().(*net.TCPAddr).Port)
-	if err != nil {
-		return fmt.Errorf("failed to setup port forwarding: %v", err)
-	}
-
-	fuzzerBin, err := inst.vm.Copy(inst.cfg.FuzzerBin)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-	}
-
-	// If ExecutorBin is provided, it means that syz-executor is already in the image,
-	// so no need to copy it.
-	executorBin := inst.cfg.SysTarget.ExecutorBin
-	if executorBin == "" {
-		executorBin, err = inst.vm.Copy(inst.cfg.ExecutorBin)
-		if err != nil {
-			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-		}
-	}
-
-	cmd := OldFuzzerCmd(fuzzerBin, executorBin, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, inst.cfg.SandboxArg, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
-	outc, errc, err := inst.vm.Run(10*time.Minute*inst.cfg.Timeouts.Scale, nil, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to run binary in VM: %v", err)
-	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, vm.ExitNormal)
-	if rep != nil {
-		if err := inst.reporter.Symbolize(rep); err != nil {
-			// TODO(dvyukov): send such errors to dashboard.
-			log.Logf(0, "failed to symbolize report: %v", err)
-		}
-		return &TestError{
-			Title:  rep.Title,
-			Report: rep,
-		}
-	}
-	select {
-	case err := <-acceptErr:
 		return err
-	case <-time.After(10 * time.Second):
-		return fmt.Errorf("test machine failed to connect to host")
 	}
+	// Note: we create the test program on a newer syzkaller revision and pass it to the old execprog.
+	// We rely on the non-strict program parsing to parse it successfully.
+	testProg := inst.cfg.Target.DataMmapProg().Serialize()
+	// Use the same options as the target reproducer.
+	// E.g. if it does not use wifi, we won't test it, which reduces changes of unrelated kernel bugs.
+	// Note: we keep fault injection if it's enabled in the reproducer to test that fault injection works
+	// (does not produce some kernel oops when activated).
+	opts, err := inst.csourceOptions()
+	if err != nil {
+		return err
+	}
+	opts.Repeat = false
+	out, err := execProg.RunSyzProg(ExecParams{
+		SyzProg:        testProg,
+		Duration:       inst.cfg.Timeouts.NoOutputRunningTime,
+		Opts:           opts,
+		ExitConditions: vm.ExitNormal,
+	})
+	if err != nil {
+		return &TestError{Title: err.Error()}
+	}
+	if out.Report != nil {
+		return &TestError{Title: out.Report.Title, Report: out.Report}
+	}
+	return nil
 }
 
 func (inst *inst) testRepro() ([]byte, error) {
-	var err error
 	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
 		OldFlagsCompatMode: !inst.optionalFlags,
 	})
@@ -420,29 +414,26 @@ func (inst *inst) testRepro() ([]byte, error) {
 			return nil, err
 		}
 		if res != nil && res.Report != nil {
-			return res.RawOutput, &CrashError{Report: res.Report}
+			return res.Output, &CrashError{Report: res.Report}
 		}
-		return res.RawOutput, nil
+		return res.Output, nil
 	}
 	out := []byte{}
 	if len(inst.reproSyz) > 0 {
-		var opts csource.Options
-		opts, err = csource.DeserializeOptions(inst.reproOpts)
+		opts, err := inst.csourceOptions()
 		if err != nil {
 			return nil, err
 		}
-		// Combine repro options and default options in a way that increases chances to reproduce the crash.
-		// First, we always enable threaded/collide as it should be [almost] strictly better.
-		// Executor does not support empty sandbox, so we use none instead.
-		// Finally, always use repeat and multiple procs.
-		if opts.Sandbox == "" {
-			opts.Sandbox = "none"
+		out, err = transformError(execProg.RunSyzProg(ExecParams{
+			SyzProg:  inst.reproSyz,
+			Duration: inst.cfg.Timeouts.NoOutputRunningTime,
+			Opts:     opts,
+		}))
+		if err != nil {
+			return out, err
 		}
-		opts.Repeat, opts.Threaded = true, true
-		out, err = transformError(execProg.RunSyzProg(inst.reproSyz,
-			inst.cfg.Timeouts.NoOutputRunningTime, opts))
 	}
-	if err == nil && len(inst.reproC) > 0 {
+	if len(inst.reproC) > 0 {
 		// We should test for more than full "no output" timeout, but the problem is that C reproducers
 		// don't print anything, so we will get a false "no output" crash.
 		out, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
@@ -451,76 +442,33 @@ func (inst *inst) testRepro() ([]byte, error) {
 	return out, err
 }
 
-type OptionalFuzzerArgs struct {
-	Slowdown   int
-	RawCover   bool
-	SandboxArg int
+func (inst *inst) csourceOptions() (csource.Options, error) {
+	if len(inst.reproSyz) == 0 {
+		// If no syz repro is provided, the functionality is likely being used to test
+		// for the crashes that don't need a reproducer (e.g. kernel build/boot/test errors).
+		// Use the default options, that's the best we can do.
+		return csource.DefaultOpts(inst.cfg), nil
+	}
+	opts, err := csource.DeserializeOptions(inst.reproOpts)
+	if err != nil {
+		return opts, err
+	}
+	// Combine repro options and default options in a way that increases chances to reproduce the crash.
+	// First, we always enable threaded/collide as it should be [almost] strictly better.
+	// Executor does not support empty sandbox, so we use none instead.
+	// Finally, always use repeat and multiple procs.
+	if opts.Sandbox == "" {
+		opts.Sandbox = "none"
+	}
+	opts.Repeat, opts.Threaded = true, true
+	return opts, nil
 }
 
-type FuzzerCmdArgs struct {
-	Fuzzer    string
-	Executor  string
-	Name      string
-	OS        string
-	Arch      string
-	FwdAddr   string
-	Sandbox   string
-	Procs     int
-	Verbosity int
-	Cover     bool
-	Debug     bool
-	Test      bool
-	Runtest   bool
-	Optional  *OptionalFuzzerArgs
-}
-
-func FuzzerCmd(args *FuzzerCmdArgs) string {
-	osArg := ""
-	if targets.Get(args.OS, args.Arch).HostFuzzer {
-		// Only these OSes need the flag, because the rest assume host OS.
-		// But speciying OS for all OSes breaks patch testing on syzbot
-		// because old execprog does not have os flag.
-		osArg = " -os=" + args.OS
-	}
-	runtestArg := ""
-	if args.Runtest {
-		runtestArg = " -runtest"
-	}
-	verbosityArg := ""
-	if args.Verbosity != 0 {
-		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
-	}
-	optionalArg := ""
-	if args.Optional != nil {
-		flags := []tool.Flag{
-			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
-			{Name: "raw_cover", Value: fmt.Sprint(args.Optional.RawCover)},
-			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
-		}
-		optionalArg = " " + tool.OptionalFlags(flags)
-	}
-	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
-		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
-		args.Procs, args.Cover, args.Debug, args.Test, runtestArg, verbosityArg, optionalArg)
-}
-
-func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg, procs int,
-	cover, test, optionalFlags bool, slowdown int) string {
-	var optional *OptionalFuzzerArgs
-	if optionalFlags {
-		optional = &OptionalFuzzerArgs{Slowdown: slowdown, SandboxArg: sandboxArg}
-	}
-	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
-		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox,
-		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
-		Optional: optional})
-}
-
-func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,
-	procs, faultCall, faultNth int, optionalFlags bool, slowdown int, progFile string) string {
+// nolint:revive
+func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Options,
+	optionalFlags bool, slowdown int, progFile string) string {
 	repeatCount := 1
-	if repeat {
+	if opts.Repeat {
 		repeatCount = 0
 	}
 	osArg := ""
@@ -528,23 +476,21 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, r
 		osArg = " -os=" + OS
 	}
 	optionalArg := ""
-
-	if faultCall >= 0 {
+	if opts.Fault && opts.FaultCall >= 0 {
 		optionalArg = fmt.Sprintf(" -fault_call=%v -fault_nth=%v",
-			faultCall, faultNth)
+			opts.FaultCall, opts.FaultNth)
 	}
-
 	if optionalFlags {
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
-			{Name: "sandboxArg", Value: fmt.Sprint(sandboxArg)},
+			{Name: "sandboxArg", Value: fmt.Sprint(opts.SandboxArg)},
+			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
-
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
 		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
-		execprog, executor, arch, osArg, sandbox,
-		procs, repeatCount, threaded, collide,
+		execprog, executor, arch, osArg, opts.Sandbox,
+		opts.Procs, repeatCount, opts.Threaded, opts.Collide,
 		optionalArg, progFile)
 }
 
@@ -555,6 +501,7 @@ var MakeBin = func() string {
 	return "make"
 }()
 
+// nolint:revive
 func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, newEnv bool) string {
 	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%d -vm=%d "+
 		"-threaded=%t -new-env=%t", prog, fwdAddr, os, arch, poolIdx, vmIdx, threaded, newEnv)
@@ -592,4 +539,42 @@ func (s *Semaphore) Signal() {
 		panic(fmt.Sprintf("semaphore capacity (%d) is exceeded (%d)", cap(s.ch), av))
 	}
 	s.ch <- struct{}{}
+}
+
+// RunSmokeTest executes syz-manager in the smoke test mode and returns two values:
+// The crash report, if the testing failed.
+// An error if there was a problem not related to testing the kernel.
+func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
+	if !vm.AllowsOvercommit(cfg.Type) {
+		return nil, nil // No support for creating machines out of thin air.
+	}
+	osutil.MkdirAll(cfg.Workdir)
+	configFile := filepath.Join(cfg.Workdir, "manager.cfg")
+	if err := config.SaveFile(configFile, cfg); err != nil {
+		return nil, err
+	}
+	timeout := 30 * time.Minute * cfg.Timeouts.Scale
+	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
+	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
+	if retErr == nil {
+		return nil, nil
+	}
+	// If there was a kernel bug, report it to dashboard.
+	// Otherwise just save the output in a temp file and log an error, unclear what else we can do.
+	reportData, err := os.ReadFile(filepath.Join(cfg.Workdir, "report.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			rep := &report.Report{
+				Title:  "SYZFATAL: image testing failed w/o kernel bug",
+				Output: output,
+			}
+			return rep, nil
+		}
+		return nil, err
+	}
+	rep := new(report.Report)
+	if err := json.Unmarshal(reportData, rep); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal smoke test report: %w", err)
+	}
+	return rep, nil
 }

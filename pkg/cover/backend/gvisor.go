@@ -10,21 +10,23 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules []host.KernelModule) (*Impl, error) {
+func makeGvisor(target *targets.Target, kernelDirs *mgrconfig.KernelDirs, modules []*vminfo.KernelModule) (*Impl,
+	error) {
 	if len(modules) != 0 {
 		return nil, fmt.Errorf("gvisor coverage does not support modules")
 	}
-	bin := filepath.Join(objDir, target.KernelObject)
+	bin := filepath.Join(kernelDirs.Obj, target.KernelObject)
 	// pkg/build stores runsc as 'vmlinux' (we pretent to be linux), but a local build will have it as 'runsc'.
 	if !osutil.IsExist(bin) {
 		bin = filepath.Join(filepath.Dir(bin), "runsc")
 	}
-	frames, err := gvisorSymbolize(bin, srcDir)
+	frames, err := gvisorSymbolize(bin, kernelDirs.Src)
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +51,11 @@ func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules
 	impl := &Impl{
 		Units:  units,
 		Frames: frames,
-		RestorePC: func(pc uint32) uint64 {
-			return uint64(pc)
-		},
 	}
 	return impl, nil
 }
 
-func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
+func gvisorSymbolize(bin, srcDir string) ([]*Frame, error) {
 	cmd := osutil.Command(bin, "symbolize", "-all")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -68,7 +67,7 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 	}
 	defer cmd.Wait()
 	defer cmd.Process.Kill()
-	var frames []Frame
+	var frames []*Frame
 	s := bufio.NewScanner(stdout)
 	for s.Scan() {
 		frame, err := gvisorParseLine(s)
@@ -95,27 +94,27 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 	return frames, nil
 }
 
-func gvisorParseLine(s *bufio.Scanner) (Frame, error) {
+func gvisorParseLine(s *bufio.Scanner) (*Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
-		return Frame{}, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %q, but no line info", pc)
 	}
 	if !s.Scan() {
-		return Frame{}, fmt.Errorf("read pc %q, but no line info", pc)
+		return nil, fmt.Errorf("read pc %q, but no line info", pc)
 	}
 	match := gvisorLineRe.FindStringSubmatch(s.Text())
 	if match == nil {
-		return Frame{}, fmt.Errorf("failed to parse line: %q", s.Text())
+		return nil, fmt.Errorf("failed to parse line: %q", s.Text())
 	}
 	var ints [4]int
 	for i := range ints {
 		x, err := strconv.ParseUint(match[i+3], 0, 32)
 		if err != nil {
-			return Frame{}, fmt.Errorf("failed to parse number %q: %v", match[i+3], err)
+			return nil, fmt.Errorf("failed to parse number %q: %w", match[i+3], err)
 		}
 		ints[i] = int(x)
 	}
-	frame := Frame{
+	frame := &Frame{
 		PC:   pc,
 		Name: match[2],
 		Range: Range{

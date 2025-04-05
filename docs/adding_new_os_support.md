@@ -44,7 +44,7 @@ Adding the new kernel name with already existing supported kernels to the file `
 
 ## Editing `vm/qemu`
 
-Adding the new kernel name with already existing supported kernels to the file `qemo.go` which is located under `vm/qemu`.
+Adding the new kernel name with already existing supported kernels to the file `qemu.go` which is located under `vm/qemu`.
 
 ## Syzkaller description & pseudo-syscalls
 

@@ -18,8 +18,10 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -33,7 +35,7 @@ type ParseTest struct {
 	Log        []byte
 	Title      string
 	AltTitles  []string
-	Type       Type
+	Type       crash.Type
 	Frame      string
 	StartLine  string
 	EndLine    string
@@ -41,6 +43,49 @@ type ParseTest struct {
 	Suppressed bool
 	HasReport  bool
 	Report     []byte
+	Executor   string
+	// Only used in report parsing:
+	corruptedReason string
+}
+
+func (test *ParseTest) Equal(other *ParseTest) bool {
+	if test.Title != other.Title ||
+		test.Corrupted != other.Corrupted ||
+		test.Suppressed != other.Suppressed ||
+		test.Type != other.Type {
+		return false
+	}
+	if !reflect.DeepEqual(test.AltTitles, other.AltTitles) {
+		return false
+	}
+	if test.Frame != "" && test.Frame != other.Frame {
+		return false
+	}
+	return test.Executor == other.Executor
+}
+
+func (test *ParseTest) Headers(includeFrame bool) []byte {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "TITLE: %v\n", test.Title)
+	for _, t := range test.AltTitles {
+		fmt.Fprintf(buf, "ALT: %v\n", t)
+	}
+	if test.Type != crash.UnknownType {
+		fmt.Fprintf(buf, "TYPE: %v\n", test.Type)
+	}
+	if includeFrame {
+		fmt.Fprintf(buf, "FRAME: %v\n", test.Frame)
+	}
+	if test.Corrupted {
+		fmt.Fprintf(buf, "CORRUPTED: Y\n")
+	}
+	if test.Suppressed {
+		fmt.Fprintf(buf, "SUPPRESSED: Y\n")
+	}
+	if test.Executor != "" {
+		fmt.Fprintf(buf, "EXECUTOR: %s\n", test.Executor)
+	}
+	return buf.Bytes()
 }
 
 func testParseFile(t *testing.T, reporter *Reporter, fn string) {
@@ -90,6 +135,7 @@ func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 	if len(test.Log) == 0 {
 		t.Fatalf("can't find log in input file")
 	}
+	sort.Strings(test.AltTitles)
 	testParseImpl(t, reporter, test)
 }
 
@@ -103,6 +149,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		endPrefix        = "END: "
 		corruptedPrefix  = "CORRUPTED: "
 		suppressedPrefix = "SUPPRESSED: "
+		executorPrefix   = "EXECUTOR: "
 	)
 	switch {
 	case strings.HasPrefix(ln, "#"):
@@ -111,18 +158,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 	case strings.HasPrefix(ln, altTitlePrefix):
 		test.AltTitles = append(test.AltTitles, ln[len(altTitlePrefix):])
 	case strings.HasPrefix(ln, typePrefix):
-		switch v := ln[len(typePrefix):]; v {
-		case Hang.String():
-			test.Type = Hang
-		case MemoryLeak.String():
-			test.Type = MemoryLeak
-		case DataRace.String():
-			test.Type = DataRace
-		case UnexpectedReboot.String():
-			test.Type = UnexpectedReboot
-		default:
-			t.Fatalf("unknown TYPE value %q", v)
-		}
+		test.Type = crash.Type(ln[len(typePrefix):])
 	case strings.HasPrefix(ln, framePrefix):
 		test.Frame = ln[len(framePrefix):]
 	case strings.HasPrefix(ln, startPrefix):
@@ -147,9 +183,31 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		default:
 			t.Fatalf("unknown SUPPRESSED value %q", v)
 		}
+	case strings.HasPrefix(ln, executorPrefix):
+		test.Executor = ln[len(executorPrefix):]
 	default:
 		t.Fatalf("unknown header field %q", ln)
 	}
+}
+
+func testFromReport(rep *Report) *ParseTest {
+	if rep == nil {
+		return &ParseTest{}
+	}
+	ret := &ParseTest{
+		Title:           rep.Title,
+		AltTitles:       rep.AltTitles,
+		Corrupted:       rep.Corrupted,
+		corruptedReason: rep.CorruptedReason,
+		Suppressed:      rep.Suppressed,
+		Type:            rep.Type,
+		Frame:           rep.Frame,
+	}
+	if rep.Executor != nil {
+		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
+	}
+	sort.Strings(ret.AltTitles)
+	return ret
 }
 
 func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
@@ -157,45 +215,26 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	containsCrash := reporter.ContainsCrash(test.Log)
 	expectCrash := (test.Title != "")
 	if expectCrash && !containsCrash {
-		t.Fatalf("ContainsCrash did not find crash")
+		t.Fatalf("did not find crash")
 	}
 	if !expectCrash && containsCrash {
-		t.Fatalf("ContainsCrash found unexpected crash")
+		t.Fatalf("found unexpected crash")
 	}
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, Unknown, ""
-	var altTitles []string
-	if rep != nil {
-		title = rep.Title
-		altTitles = rep.AltTitles
-		corrupted = rep.Corrupted
-		corruptedReason = rep.CorruptedReason
-		suppressed = rep.Suppressed
-		typ = rep.Type
-		frame = rep.Frame
+	if rep != nil && rep.Type == unspecifiedType {
+		t.Fatalf("unspecifiedType leaked outside")
 	}
-	sort.Strings(altTitles)
-	sort.Strings(test.AltTitles)
-	if title != test.Title || !reflect.DeepEqual(altTitles, test.AltTitles) || corrupted != test.Corrupted ||
-		suppressed != test.Suppressed || typ != test.Type || test.Frame != "" && frame != test.Frame {
+	parsed := testFromReport(rep)
+	if !test.Equal(parsed) {
 		if *flagUpdate && test.StartLine+test.EndLine == "" {
-			updateReportTest(t, test, title, altTitles, corrupted, suppressed, typ, frame)
+			updateReportTest(t, test, parsed)
 		}
-		gotAltTitles, wantAltTitles := "", ""
-		for _, t := range altTitles {
-			gotAltTitles += "ALT: " + t + "\n"
-		}
-		for _, t := range test.AltTitles {
-			wantAltTitles += "ALT: " + t + "\n"
-		}
-		t.Fatalf("want:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
-			"got:\nTITLE: %s\n%sTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
-			test.Title, wantAltTitles, test.Type, test.Frame, test.Corrupted, test.Suppressed,
-			title, gotAltTitles, typ, frame, corrupted, corruptedReason, suppressed)
+		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
+			test.Headers(true), parsed.Headers(true), parsed.corruptedReason)
 	}
-	if title != "" && len(rep.Report) == 0 {
+	if parsed.Title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")
 	}
 	if rep == nil {
@@ -212,13 +251,13 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 		t.Fatalf("bad Output:\n%s", rep.Output)
 	}
 	if rep.StartPos != 0 && rep.EndPos != 0 && rep.StartPos >= rep.EndPos {
-		t.Fatalf("StartPos=%v >= EndPos=%v", rep.StartPos, rep.EndPos)
+		t.Fatalf("StartPos %v >= EndPos %v", rep.StartPos, rep.EndPos)
 	}
 	if rep.EndPos > len(rep.Output) {
-		t.Fatalf("EndPos=%v > len(Output)=%v", rep.EndPos, len(rep.Output))
+		t.Fatalf("EndPos %v > len(Output) %v", rep.EndPos, len(rep.Output))
 	}
 	if rep.SkipPos <= rep.StartPos || rep.SkipPos > rep.EndPos {
-		t.Fatalf("bad SkipPos=%v: StartPos=%v EndPos=%v", rep.SkipPos, rep.StartPos, rep.EndPos)
+		t.Fatalf("bad SkipPos %v: StartPos %v EndPos %v", rep.SkipPos, rep.StartPos, rep.EndPos)
 	}
 	if test.StartLine != "" {
 		if test.EndLine == "" {
@@ -246,25 +285,9 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 	}
 }
 
-func updateReportTest(t *testing.T, test *ParseTest, title string, altTitles []string, corrupted, suppressed bool,
-	typ Type, frame string) {
+func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "TITLE: %v\n", title)
-	for _, t := range altTitles {
-		fmt.Fprintf(buf, "ALT: %v\n", t)
-	}
-	if typ != Unknown {
-		fmt.Fprintf(buf, "TYPE: %v\n", typ)
-	}
-	if test.Frame != "" {
-		fmt.Fprintf(buf, "FRAME: %v\n", frame)
-	}
-	if corrupted {
-		fmt.Fprintf(buf, "CORRUPTED: Y\n")
-	}
-	if suppressed {
-		fmt.Fprintf(buf, "SUPPRESSED: Y\n")
-	}
+	buf.Write(parsed.Headers(test.Frame != ""))
 	fmt.Fprintf(buf, "\n%s", test.Log)
 	if test.HasReport {
 		fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
@@ -436,4 +459,18 @@ func TestFuzz(t *testing.T) {
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}
+}
+
+func TestTruncate(t *testing.T) {
+	assert.Equal(t, []byte(`01234
+
+<<cut 11 bytes out>>`), Truncate([]byte(`0123456789ABCDEF`), 5, 0))
+	assert.Equal(t, []byte(`<<cut 11 bytes out>>
+
+BCDEF`), Truncate([]byte(`0123456789ABCDEF`), 0, 5))
+	assert.Equal(t, []byte(`0123
+
+<<cut 9 bytes out>>
+
+DEF`), Truncate([]byte(`0123456789ABCDEF`), 4, 3))
 }

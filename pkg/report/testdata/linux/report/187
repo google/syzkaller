@@ -1,5 +1,5 @@
-# Note: 185-188 have the same root cause.
 TITLE: possible deadlock in do_ip_getsockopt
+TYPE: LOCKDEP
 
 [   37.884335] ======================================================
 [   37.890648] WARNING: possible circular locking dependency detected

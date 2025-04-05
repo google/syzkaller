@@ -1,4 +1,5 @@
 TITLE: WARNING: held lock freed in sctp_wait_for_sndbuf
+TYPE: LOCKDEP
 
 [   25.058100] =========================
 [   25.061864] WARNING: held lock freed!

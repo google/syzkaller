@@ -32,6 +32,14 @@ ioctl$IOMMU_VFIO_IOAS$GET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in,
 ioctl$IOMMU_VFIO_IOAS$SET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$SET])
 ioctl$IOMMU_VFIO_IOAS$CLEAR(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$CLEAR])
 
+ioctl$IOMMU_HWPT_ALLOC$NONE(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_NONE])
+ioctl$IOMMU_HWPT_ALLOC$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_ALLOC], arg ptr[in, iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST])
+
+ioctl$IOMMU_GET_HW_INFO(fd fd_iommufd, cmd const[IOMMU_GET_HW_INFO], arg ptr[in, iommu_hw_info])
+ioctl$IOMMU_HWPT_SET_DIRTY_TRACKING(fd fd_iommufd, cmd const[IOMMU_HWPT_SET_DIRTY_TRACKING], arg ptr[in, iommu_hwpt_set_dirty_tracking])
+ioctl$IOMMU_HWPT_GET_DIRTY_BITMAP(fd fd_iommufd, cmd const[IOMMU_HWPT_GET_DIRTY_BITMAP], arg ptr[in, iommu_hwpt_get_dirty_bitmap])
+ioctl$IOMMU_HWPT_INVALIDATE$TEST(fd fd_iommufd, cmd const[IOMMU_HWPT_INVALIDATE], arg ptr[in, iommu_hwpt_invalidate$IOMMU_HWPT_INVALIDATE_DATA_SELFTEST])
+
 # VFIO compatibility ioctls
 # This shares a few structs with dev_vfio.txt
 ioctl$IOMMU_VFIO_GET_API_VERSION(fd fd_iommufd, cmd const[VFIO_GET_API_VERSION])
@@ -170,6 +178,70 @@ iommu_vfio_ioas$CLEAR {
 	__reserved	const[0x0, int16]
 }
 
+type iommu_hwpt_alloc[DATA_TYPE, DATA] {
+	size		len[parent, int32]
+	flags		flags[iommufd_hwpt_alloc_flags, int32]
+	dev_id		device_handle
+	pt_id		ioas_handle
+	out_hwpt_id	hwpt_handle	(out)
+	__reserved	const[0x0, int32]
+	data_type	const[DATA_TYPE, int32]
+	data_len	len[uptr, int32]
+	uptr		ptr64[in, DATA]
+}
+
+type iommu_hwpt_alloc$IOMMU_HWPT_DATA_NONE iommu_hwpt_alloc[IOMMU_HWPT_DATA_NONE, array[int8]]
+
+iommu_hwpt_selftest {
+	iotlb	const[0xbadbeef, int32]
+}
+
+type iommu_hwpt_alloc$IOMMU_HWPT_DATA_SELFTEST iommu_hwpt_alloc[IOMMU_HWPT_DATA_SELFTEST, iommu_hwpt_selftest]
+
+iommu_hw_info {
+	size			len[parent, int32]
+	flags			const[0x0, int32]
+	dev_id			device_handle
+	data_len		len[data_uptr, int32]
+	data_uptr		ptr64[out, array[int8]]
+	out_data_type		int32	(out)
+	__reserved		const[0x0, int32]
+	out_capabilities	int64	(out)
+}
+
+iommu_hwpt_set_dirty_tracking {
+	size		len[parent, int32]
+	flags		flags[iommufd_hwpt_set_dirty_tracking_flags, int32]
+	hwpt_id		hwpt_handle
+	__reserved	const[0x0, int32]
+}
+
+iommu_hwpt_get_dirty_bitmap {
+	size		len[parent, int32]
+	hwpt_id		hwpt_handle
+	flags		flags[iommufd_hwpt_get_dirty_bitmap_flags, int32]
+	__reserved	const[0x0, int32]
+	iova		int64
+	length		int64
+	page_size	int64
+	data		ptr64[out, array[int8]]
+}
+
+iommu_hwpt_invalidate_selftest {
+	flags		flags[iommufd_hwpt_invalidate_selftest_flags, int32]
+	iotlb_id	int32[0:MOCK_NESTED_DOMAIN_IOTLB_ID_MAX]
+}
+
+iommu_hwpt_invalidate$IOMMU_HWPT_INVALIDATE_DATA_SELFTEST {
+	size		len[parent, int32]
+	hwpt_id		hwpt_handle
+	data_uptr	ptr64[in, array[iommu_hwpt_invalidate_selftest]]
+	data_type	const[IOMMU_HWPT_INVALIDATE_DATA_SELFTEST, int32]
+	entry_len	const[0x8, int32]
+	entry_num	len[data_uptr, int32]
+	__reserved	const[0x0, int32]
+}
+
 iommu_iova_range {
 	start	int64
 	last	int64
@@ -178,9 +250,12 @@ iommu_iova_range {
 iommufd_ioas_map_flags = IOMMU_IOAS_MAP_FIXED_IOVA, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE
 iommufd_ioas_map_flags_syz = MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE, MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_READABLE
 iommufd_option_ops = IOMMU_OPTION_OP_SET, IOMMU_OPTION_OP_GET
+iommufd_hwpt_alloc_flags = IOMMU_HWPT_ALLOC_NEST_PARENT, IOMMU_HWPT_ALLOC_DIRTY_TRACKING
+iommufd_hwpt_set_dirty_tracking_flags = IOMMU_HWPT_DIRTY_TRACKING_ENABLE
+iommufd_hwpt_get_dirty_bitmap_flags = IOMMU_HWPT_GET_DIRTY_BITMAP_NO_CLEAR
 
 iommu_type = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU
-iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_TYPE1_NESTING_IOMMU, VFIO_UPDATE_VADDR
+iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_UPDATE_VADDR
 
 # This section requires CONFIG_IOMMUFD_TEST
 # It allows the kernel to provide a mock consumer of iommufd which allows greater coverage
@@ -193,9 +268,11 @@ resource device_handle[int32]
 resource hwpt_handle[int32]
 resource fd_access[fd]
 resource access_pages_handle[int32]
+resource selftest_device_handle[int32]
 
 ioctl$IOMMU_TEST_OP_ADD_RESERVED(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$add_reserved])
 ioctl$IOMMU_TEST_OP_MOCK_DOMAIN(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain])
+ioctl$IOMMU_TEST_OP_MOCK_DOMAIN_FLAGS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain_flags])
 ioctl$IOMMU_TEST_OP_MD_CHECK_MAP(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$md_check_map])
 ioctl$IOMMU_TEST_OP_MD_CHECK_REFS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$md_check_refs])
 ioctl$IOMMU_TEST_OP_CREATE_ACCESS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$create_access])
@@ -205,8 +282,10 @@ ioctl$IOMMU_TEST_OP_ACCESS_PAGES$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], a
 ioctl$IOMMU_TEST_OP_ACCESS_RW(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw])
 ioctl$IOMMU_TEST_OP_ACCESS_RW$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw$syz])
 ioctl$IOMMU_TEST_OP_SET_TEMP_MEMORY_LIMIT(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$memory_limit])
+ioctl$IOMMU_TEST_OP_MOCK_DOMAIN_REPLACE(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain_replace])
+ioctl$IOMMU_TEST_OP_ACCESS_REPLACE_IOAS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_replace_ioas])
 
-ioctl$IOMMU_DESTROY$device(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$device])
+ioctl$IOMMU_DESTROY$stdev(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$stdev])
 ioctl$IOMMU_DESTROY$hwpt(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$hwpt])
 
 iommu_test_cmd$add_reserved {
@@ -223,14 +302,26 @@ iommu_test_cmd$mock_domain {
 	op		const[IOMMU_TEST_OP_MOCK_DOMAIN, int32]
 	id		ioas_handle
 	__reserved	const[0x0, int32]
-	out_device_id	device_handle	(out)
+	out_stdev_id	selftest_device_handle	(out)
 	out_hwpt_id	hwpt_handle	(out)
+	out_idev_id	device_handle	(out)
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$mock_domain_flags {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MOCK_DOMAIN, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	out_stdev_id	selftest_device_handle	(out)
+	out_hwpt_id	hwpt_handle	(out)
+	out_idev_id	device_handle	(out)
+	dev_flags	flags[iommu_test_cmd_mock_domain_flags, int32]
 } [size[IOMMU_TEST_CMD_SIZE]]
 
 iommu_test_cmd$md_check_map {
 	size		len[parent, int32]
 	op		const[IOMMU_TEST_OP_MD_CHECK_MAP, int32]
-	id		fd_access
+	id		hwpt_handle
 	__reserved	const[0x0, int32]
 	iova		int64
 	length		len[uptr, int64]
@@ -240,10 +331,10 @@ iommu_test_cmd$md_check_map {
 iommu_test_cmd$md_check_refs {
 	size		len[parent, int32]
 	op		const[IOMMU_TEST_OP_MD_CHECK_REFS, int32]
-	id		fd_access
+	id		const[0x0, int32]
 	__reserved	const[0x0, int32]
-	uptr		ptr64[in, array[int8]]
 	length		len[uptr, int64]
+	uptr		ptr64[in, array[int8]]
 	refs		int32
 } [size[IOMMU_TEST_CMD_SIZE]]
 
@@ -324,9 +415,26 @@ iommu_test_cmd$memory_limit {
 	limit		int32
 } [size[IOMMU_TEST_CMD_SIZE]]
 
-iommu_destroy$device {
+iommu_test_cmd$mock_domain_replace {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MOCK_DOMAIN_REPLACE, int32]
+	id		selftest_device_handle
+	__reserved	const[0x0, int32]
+# or hwpt_handle
+	pt_id		ioas_handle
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_replace_ioas {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_ACCESS_REPLACE_IOAS, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+	ioas_id		ioas_handle
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_destroy$stdev {
 	size	len[parent, int32]
-	id	device_handle
+	id	selftest_device_handle
 }
 
 iommu_destroy$hwpt {
@@ -338,4 +446,6 @@ iommu_test_cmd_create_access_flags = MOCK_FLAGS_ACCESS_CREATE_NEEDS_PIN_PAGES
 iommu_test_cmd_acess_pages_flags = MOCK_FLAGS_ACCESS_WRITE
 iommu_test_cmd_acess_pages_flags_syz = MOCK_FLAGS_ACCESS_SYZ, MOCK_FLAGS_ACCESS_WRITE
 iommu_test_cmd_acess_rw_flags = MOCK_ACCESS_RW_WRITE, MOCK_ACCESS_RW_SLOW_PATH
-iommu_test_cmd_acess_rw_flags_syz = MOCK_FLAGS_ACCESS_SYZ, MOCK_ACCESS_RW_WRITE, MOCK_ACCESS_RW_SLOW_PATH
+iommu_test_cmd_acess_rw_flags_syz = MOCK_FLAGS_ACCESS_SYZ, iommu_test_cmd_acess_rw_flags
+iommu_test_cmd_mock_domain_flags = MOCK_FLAGS_DEVICE_NO_DIRTY
+iommufd_hwpt_invalidate_selftest_flags = IOMMU_TEST_INVALIDATE_FLAG_ALL

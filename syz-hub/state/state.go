@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/db"
@@ -34,6 +35,8 @@ type State struct {
 // Manager represents one syz-manager instance.
 type Manager struct {
 	name          string
+	dir           string
+	HTTP          string
 	Domain        string
 	corpusSeq     uint64
 	reproSeq      uint64
@@ -74,13 +77,19 @@ func Make(dir string) (*State, error) {
 	osutil.MkdirAll(managersDir)
 	managers, err := os.ReadDir(managersDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v dir: %v", managersDir, err)
+		return nil, fmt.Errorf("failed to read %v dir: %w", managersDir, err)
 	}
 	for _, manager := range managers {
+		if strings.HasSuffix(manager.Name(), purgedSuffix) {
+			continue
+		}
 		_, err := st.createManager(manager.Name())
 		if err != nil {
 			return nil, err
 		}
+	}
+	if err := st.PurgeOldManagers(); err != nil {
+		return nil, err
 	}
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
@@ -103,7 +112,7 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file, true)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to open %v database: %v", name, err)
+		return nil, 0, fmt.Errorf("failed to open %v database: %w", name, err)
 	}
 	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
@@ -126,12 +135,10 @@ func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 				continue
 			}
 		}
-		if maxSeq < rec.Seq {
-			maxSeq = rec.Seq
-		}
+		maxSeq = max(maxSeq, rec.Seq)
 	}
 	if err := db.Flush(); err != nil {
-		return nil, 0, fmt.Errorf("failed to flush corpus database: %v", err)
+		return nil, 0, fmt.Errorf("failed to flush corpus database: %w", err)
 	}
 	return db, maxSeq, nil
 }
@@ -141,6 +148,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 	osutil.MkdirAll(dir)
 	mgr := &Manager{
 		name:          name,
+		dir:           dir,
 		corpusFile:    filepath.Join(dir, "corpus.db"),
 		corpusSeqFile: filepath.Join(dir, "seq"),
 		reproSeqFile:  filepath.Join(dir, "repro.seq"),
@@ -148,21 +156,17 @@ func (st *State) createManager(name string) (*Manager, error) {
 		ownRepros:     make(map[string]bool),
 	}
 	mgr.corpusSeq = loadSeqFile(mgr.corpusSeqFile)
-	if st.corpusSeq < mgr.corpusSeq {
-		st.corpusSeq = mgr.corpusSeq
-	}
+	st.corpusSeq = max(st.corpusSeq, mgr.corpusSeq)
 	mgr.reproSeq = loadSeqFile(mgr.reproSeqFile)
 	if mgr.reproSeq == 0 {
 		mgr.reproSeq = st.reproSeq
 	}
-	if st.reproSeq < mgr.reproSeq {
-		st.reproSeq = mgr.reproSeq
-	}
+	st.reproSeq = max(st.reproSeq, mgr.reproSeq)
 	domainData, _ := os.ReadFile(mgr.domainFile)
 	mgr.Domain = string(domainData)
 	corpus, _, err := loadDB(mgr.corpusFile, name, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
+		return nil, fmt.Errorf("failed to open manager corpus %v: %w", mgr.corpusFile, err)
 	}
 	mgr.Corpus = corpus
 	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
@@ -171,7 +175,41 @@ func (st *State) createManager(name string) (*Manager, error) {
 	return mgr, nil
 }
 
-func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) error {
+const purgedSuffix = ".purged"
+
+func (st *State) PurgeOldManagers() error {
+	const (
+		timeDay     = 24 * time.Hour
+		purgePeriod = 30 * timeDay
+	)
+	purgedSomething := false
+	for _, mgr := range st.Managers {
+		info, err := os.Stat(mgr.corpusSeqFile)
+		if err != nil {
+			return err
+		}
+		if time.Since(info.ModTime()) < purgePeriod {
+			continue
+		}
+		log.Logf(0, "purging manager %v as it was inactive for %v days", mgr.name, int(purgePeriod/timeDay))
+		oldDir := mgr.dir + purgedSuffix
+		os.RemoveAll(oldDir)
+		if err := os.Rename(mgr.dir, oldDir); err != nil {
+			return err
+		}
+		delete(st.Managers, mgr.name)
+		purgedSomething = true
+	}
+	if !purgedSomething {
+		return nil
+	}
+	corpus := len(st.Corpus.Records)
+	st.purgeCorpus()
+	log.Logf(0, "reduced corpus from %v to %v programs", corpus, len(st.Corpus.Records))
+	return nil
+}
+
+func (st *State) Connect(name, http, domain string, fresh bool, calls []string, corpus [][]byte) error {
 	mgr := st.Managers[name]
 	if mgr == nil {
 		var err error
@@ -180,6 +218,7 @@ func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus
 			return err
 		}
 	}
+	mgr.HTTP = http
 	mgr.Connected = time.Now()
 	mgr.Domain = domain
 	writeFile(mgr.domainFile, []byte(mgr.Domain))
@@ -226,6 +265,8 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(progs)
+	// Update seq file b/c PurgeOldManagers looks at it to detect inactive managers.
+	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
 	return mgr.Domain, progs, more, err
 }
 
@@ -276,7 +317,7 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 		}
 		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
@@ -316,7 +357,7 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 		}
 		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, 0, fmt.Errorf("failed to extract call set: %w\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue

@@ -180,7 +180,7 @@ func (p *parser) expect(tokens ...token) {
 	for _, tok := range tokens {
 		str = append(str, tok.String())
 	}
-	p.s.Error(p.pos, fmt.Sprintf("unexpected %v, expecting %v", p.tok, strings.Join(str, ", ")))
+	p.s.Errorf(p.pos, "unexpected %v, expecting %v", p.tok, strings.Join(str, ", "))
 	panic(errSkipLine)
 }
 
@@ -433,7 +433,59 @@ func (p *parser) parseField(parseAttrs bool) *Field {
 	return field
 }
 
+type operatorInfo struct {
+	op   Operator
+	prio int
+}
+
+const maxOperatorPrio = 2
+
+// The highest priority is 0.
+var binaryOperators = map[token]operatorInfo{
+	tokOr:     {op: OperatorOr, prio: 0},
+	tokCmpEq:  {op: OperatorCompareEq, prio: 1},
+	tokCmpNeq: {op: OperatorCompareNeq, prio: 1},
+	tokBinAnd: {op: OperatorBinaryAnd, prio: 2},
+}
+
+// Parse out a single Type object, which can either be a plain object or an expression.
+// For now, only expressions constructed via '(', ')', "==", "!=", '&', '||' are supported.
 func (p *parser) parseType() *Type {
+	return p.parseBinaryExpr(0)
+}
+
+func (p *parser) parseBinaryExpr(expectPrio int) *Type {
+	if expectPrio > maxOperatorPrio {
+		return p.parseExprFactor()
+	}
+	lastPos := p.pos
+	curr := p.parseBinaryExpr(expectPrio + 1)
+	for {
+		info, ok := binaryOperators[p.tok]
+		if !ok || info.prio != expectPrio {
+			return curr
+		}
+		p.consume(p.tok)
+		curr = &Type{
+			Pos: lastPos,
+			Expression: &BinaryExpression{
+				Pos:      p.pos,
+				Operator: info.op,
+				Left:     curr,
+				Right:    p.parseBinaryExpr(expectPrio + 1),
+			},
+		}
+		lastPos = p.pos
+	}
+}
+
+func (p *parser) parseExprFactor() *Type {
+	if p.tok == tokLParen {
+		p.consume(tokLParen)
+		ret := p.parseBinaryExpr(0)
+		p.consume(tokRParen)
+		return ret
+	}
 	arg := &Type{
 		Pos: p.pos,
 	}
@@ -497,7 +549,7 @@ func (p *parser) parseIdent() *Ident {
 }
 
 func (p *parser) parseString() *String {
-	p.expect(tokString, tokStringHex)
+	p.expect(tokString, tokStringHex, tokIdent)
 	str := &String{
 		Pos:   p.pos,
 		Value: p.lit,
@@ -513,6 +565,8 @@ func strTokToFmt(tok token) StrFmt {
 		return StrFmtRaw
 	case tokStringHex:
 		return StrFmtHex
+	case tokIdent:
+		return StrFmtIdent
 	default:
 		panic("bad string token")
 	}

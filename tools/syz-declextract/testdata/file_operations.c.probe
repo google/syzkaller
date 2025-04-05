@@ -1,0 +1,15 @@
+{
+	"Files": [
+		{
+			"Name": "/dev/foo",
+			"Cover": [0, 1, 2, 3, 4]
+		}
+	],
+	"PCs": [
+		{"Func": "foo_open"},
+		{"Func": "foo_read"},
+		{"Func": "foo_write"},
+		{"Func": "foo_mmap"},
+		{"Func": "foo_ioctl"}
+	]
+}

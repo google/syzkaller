@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -43,13 +44,11 @@ type Options struct {
 	Wifi          bool `json:"wifi,omitempty"`
 	IEEE802154    bool `json:"ieee802154,omitempty"`
 	Sysctl        bool `json:"sysctl,omitempty"`
+	Swap          bool `json:"swap,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
 
-	// Generate code for use with repro package to prints log messages,
-	// which allows to detect hangs.
-	Repro bool `json:"repro,omitempty"`
 	Trace bool `json:"trace,omitempty"`
 	LegacyOptions
 }
@@ -150,6 +149,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		"Fault":         &opts.Fault,
 		"Leak":          &opts.Leak,
 		"Sysctl":        &opts.Sysctl,
+		"Swap":          &opts.Swap,
 	} {
 		if *opt {
 			return fmt.Errorf("option %v is not supported on %v", name, OS)
@@ -167,7 +167,6 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		Sandbox:    cfg.Sandbox,
 		UseTmpDir:  true,
 		HandleSegv: true,
-		Repro:      true,
 	}
 	if cfg.TargetOS == targets.Linux {
 		opts.NetInjection = true
@@ -183,6 +182,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.Wifi = true
 		opts.IEEE802154 = true
 		opts.Sysctl = true
+		opts.Swap = true
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -201,63 +201,49 @@ func (opts Options) Serialize() []byte {
 	return data
 }
 
-func deserializeLegacyOptions1(data string, opts *Options) error {
-	waitRepeat, debug := false, false
-	n, err := fmt.Sscanf(data,
-		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
-			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
-			" HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
-		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
-		&opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
-
-	if err == nil {
-		if want := 14; n != want {
-			return fmt.Errorf("failed to parse repro options: got %v fields, want %v", n, want)
-		}
+func deserializeLegacyOptions(data string, opts *Options) (int, error) {
+	ignoreBool := true
+	keyToTarget := map[string]any{
+		"Threaded":      &opts.Threaded,
+		"Collide":       &opts.Collide,
+		"Repeat":        &opts.Repeat,
+		"Procs":         &opts.Procs,
+		"Sandbox":       &opts.Sandbox,
+		"SandboxArg":    &opts.SandboxArg,
+		"Fault":         &opts.Fault,
+		"FaultCall":     &opts.FaultCall,
+		"FaultNth":      &opts.FaultNth,
+		"EnableTun":     &opts.NetInjection,
+		"UseTmpDir":     &opts.UseTmpDir,
+		"EnableCgroups": &opts.Cgroups,
+		"HandleSegv":    &opts.HandleSegv,
+		"WaitRepeat":    &ignoreBool,
+		"Debug":         &ignoreBool,
+		"Repro":         &ignoreBool,
 	}
-	return err
-}
 
-func deserializeLegacyOptions2(data string, opts *Options) error {
-	waitRepeat, debug := false, false
-	n, err := fmt.Sscanf(data,
-		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
-			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
-			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
-		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
-		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
-	if err == nil {
-		if want := 15; n != want {
-			return fmt.Errorf("failed to parse repro options 2: got %v fields, want %v", n, want)
+	data = strings.TrimSpace(data)
+	data = strings.TrimPrefix(data, "{")
+	data = strings.TrimSuffix(data, "}")
+	totalRead := 0
+	for _, token := range strings.Fields(data) {
+		key, value, keyValueFound := strings.Cut(token, ":")
+		if !keyValueFound {
+			return totalRead, fmt.Errorf("error splitting options token %v", token)
 		}
-	}
-	return err
-}
-
-// Android format.
-func deserializeLegacyOptions3(data string, opts *Options) error {
-	waitRepeat, debug := false, false
-	n, err := fmt.Sscanf(data,
-		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s SandboxArg:%d"+
-			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
-			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
-		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox, &opts.SandboxArg,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
-		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
-	if err == nil {
-		if want := 16; n != want {
-			return fmt.Errorf("failed to parse repro options 3: got %v fields, want %v", n, want)
+		if _, ok := keyToTarget[key]; !ok {
+			return totalRead, fmt.Errorf("error, unexpected option key %v", key)
 		}
+		dest := keyToTarget[key]
+		n, err := fmt.Sscanf(value, "%v", dest)
+		if err != nil {
+			return totalRead, fmt.Errorf("failed to read %v", value)
+		}
+		totalRead += n
+		delete(keyToTarget, key)
 	}
-	return err
-}
 
-var parsers = []func(string, *Options) error{
-	deserializeLegacyOptions1,
-	deserializeLegacyOptions2,
-	deserializeLegacyOptions3,
+	return totalRead, nil
 }
 
 // Support for legacy formats.
@@ -266,14 +252,14 @@ func deserializeLegacyFormats(data []byte, opts *Options) error {
 	strData := string(data)
 
 	// We can distinguish between legacy formats by the number
-	// of fields. The formats we support have 14, 15 and 16.
-	// Each field can be recognized by ':' char.
-	version := strings.Count(strData, ":")
-	if version < 14 || version > 16 {
-		return fmt.Errorf("unrecognized options format")
+	// of fields. The formats we support have 14, 15 and 16 fields.
+	fieldsFound, err := deserializeLegacyOptions(strData, opts)
+	if err != nil {
+		return fmt.Errorf("failed to parse '%v': %w", strData, err)
 	}
-	index := version - 14
-	err := parsers[index](strData, opts)
+	if fieldsFound < 14 || fieldsFound > 16 {
+		return fmt.Errorf("%v params found, expected 14 <= x <= 16", fieldsFound)
+	}
 
 	if opts.Sandbox == "empty" {
 		opts.Sandbox = ""
@@ -316,6 +302,7 @@ func defaultFeatures(value bool) Features {
 		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
 		"ieee802154":  {"setup and use mac802154_hwsim for emulation", value},
 		"sysctl":      {"setup sysctl's for fuzzing", value},
+		"swap":        {"setup and use a swap file", value},
 	}
 }
 
@@ -376,6 +363,62 @@ var ExecutorOpts = Options{
 	Procs:     2,
 	Slowdown:  1,
 	Sandbox:   "none",
-	Repro:     true,
 	UseTmpDir: true,
+}
+
+func FeaturesToFlags(features flatrpc.Feature, manual Features) flatrpc.ExecEnv {
+	for feat := range flatrpc.EnumNamesFeature {
+		opt := FlatRPCFeaturesToCSource[feat]
+		if opt != "" && manual != nil && !manual[opt].Enabled {
+			features &= ^feat
+		}
+	}
+	var flags flatrpc.ExecEnv
+	if manual == nil || manual["net_reset"].Enabled {
+		flags |= flatrpc.ExecEnvEnableNetReset
+	}
+	if manual == nil || manual["cgroups"].Enabled {
+		flags |= flatrpc.ExecEnvEnableCgroups
+	}
+	if manual == nil || manual["close_fds"].Enabled {
+		flags |= flatrpc.ExecEnvEnableCloseFds
+	}
+	if features&flatrpc.FeatureExtraCoverage != 0 {
+		flags |= flatrpc.ExecEnvExtraCover
+	}
+	if features&flatrpc.FeatureDelayKcovMmap != 0 {
+		flags |= flatrpc.ExecEnvDelayKcovMmap
+	}
+	if features&flatrpc.FeatureNetInjection != 0 {
+		flags |= flatrpc.ExecEnvEnableTun
+	}
+	if features&flatrpc.FeatureNetDevices != 0 {
+		flags |= flatrpc.ExecEnvEnableNetDev
+	}
+	if features&flatrpc.FeatureDevlinkPCI != 0 {
+		flags |= flatrpc.ExecEnvEnableDevlinkPCI
+	}
+	if features&flatrpc.FeatureNicVF != 0 {
+		flags |= flatrpc.ExecEnvEnableNicVF
+	}
+	if features&flatrpc.FeatureVhciInjection != 0 {
+		flags |= flatrpc.ExecEnvEnableVhciInjection
+	}
+	if features&flatrpc.FeatureWifiEmulation != 0 {
+		flags |= flatrpc.ExecEnvEnableWifi
+	}
+	return flags
+}
+
+var FlatRPCFeaturesToCSource = map[flatrpc.Feature]string{
+	flatrpc.FeatureNetInjection:    "tun",
+	flatrpc.FeatureNetDevices:      "net_dev",
+	flatrpc.FeatureDevlinkPCI:      "devlink_pci",
+	flatrpc.FeatureNicVF:           "nic_vf",
+	flatrpc.FeatureVhciInjection:   "vhci",
+	flatrpc.FeatureWifiEmulation:   "wifi",
+	flatrpc.FeatureUSBEmulation:    "usb",
+	flatrpc.FeatureBinFmtMisc:      "binfmt_misc",
+	flatrpc.FeatureLRWPANEmulation: "ieee802154",
+	flatrpc.FeatureSwap:            "swap",
 }

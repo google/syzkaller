@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build amd64 || 386 || arm64 || arm || mips64le || ppc64le || riscv64
-// +build amd64 386 arm64 arm mips64le ppc64le riscv64
 
 package prog
 

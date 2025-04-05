@@ -62,7 +62,6 @@ func TestMemAlloc(t *testing.T) {
 		},
 	}
 	for ti, test := range tests {
-		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			ma := newMemAlloc(16 << 20)
 			for i, op := range test {
@@ -92,6 +91,6 @@ func TestVmaAlloc(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		size := r.rand(4) + 1
 		page := va.alloc(r, size)
-		t.Logf("alloc(%v) = %3v-%3v\n", size, page, page+size)
+		t.Logf("alloc(%v) = %3v-%3v", size, page, page+size)
 	}
 }

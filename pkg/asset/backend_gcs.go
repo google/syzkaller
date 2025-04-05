@@ -4,6 +4,7 @@
 package asset
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -15,14 +16,14 @@ import (
 )
 
 type cloudStorageBackend struct {
-	client *gcs.Client
+	client gcs.Client
 	bucket string
 	tracer debugtracer.DebugTracer
 }
 
 func makeCloudStorageBackend(bucket string, tracer debugtracer.DebugTracer) (*cloudStorageBackend, error) {
 	tracer.Log("created gcs backend for bucket '%s'", bucket)
-	client, err := gcs.NewClient()
+	client, err := gcs.NewClient(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("the call to NewClient failed: %w", err)
 	}
@@ -68,7 +69,7 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 	if exists {
 		return nil, &FileExistsError{req.savePath}
 	}
-	w, err := csb.client.FileWriterExt(path, req.contentType, req.contentEncoding)
+	w, err := csb.client.FileWriter(path, req.contentType, req.contentEncoding)
 	csb.tracer.Log("gcs upload: obtained a writer for %s, error %s", path, err)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 }
 
 func (csb *cloudStorageBackend) downloadURL(path string, publicURL bool) (string, error) {
-	return csb.client.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
+	return gcs.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
 }
 
 var allowedDomainsRe = regexp.MustCompile(`^storage\.googleapis\.com|storage\.cloud\.google\.com$`)
@@ -103,19 +104,8 @@ func (csb *cloudStorageBackend) getPath(downloadURL string) (string, error) {
 	return u.Path[len(prefix):], nil
 }
 
-func (csb *cloudStorageBackend) list() ([]storedObject, error) {
-	list, err := csb.client.ListObjects(csb.bucket)
-	if err != nil {
-		return nil, err
-	}
-	ret := []storedObject{}
-	for _, obj := range list {
-		ret = append(ret, storedObject{
-			path:      obj.Path,
-			createdAt: obj.CreatedAt,
-		})
-	}
-	return ret, nil
+func (csb *cloudStorageBackend) list() ([]*gcs.Object, error) {
+	return csb.client.ListObjects(csb.bucket)
 }
 
 func (csb *cloudStorageBackend) remove(path string) error {

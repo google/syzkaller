@@ -19,7 +19,7 @@ func LoadFile(filename string, cfg interface{}) error {
 	}
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("failed to read config file: %v", err)
+		return fmt.Errorf("failed to read config file: %w", err)
 	}
 	return LoadData(data, cfg)
 }
@@ -30,19 +30,15 @@ func LoadData(data []byte, cfg interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(cfg); err != nil {
-		return fmt.Errorf("failed to parse config file: %v", err)
+		return fmt.Errorf("failed to parse config file: %w", err)
 	}
 	return nil
 }
 
 func SaveFile(filename string, cfg interface{}) error {
-	data, err := SaveData(cfg)
+	data, err := json.MarshalIndent(cfg, "", "\t")
 	if err != nil {
 		return err
 	}
 	return osutil.WriteFile(filename, data)
-}
-
-func SaveData(cfg interface{}) ([]byte, error) {
-	return json.MarshalIndent(cfg, "", "\t")
 }

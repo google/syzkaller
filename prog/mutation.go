@@ -25,10 +25,42 @@ const maxBlobLen = uint64(100 << 10)
 // noMutate:    Set of IDs of syscalls which should not be mutated.
 // corpus:      The entire corpus, including original program p.
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool, corpus []*Prog) {
-	r := newRand(p.Target, rs)
-	if ncalls < len(p.Calls) {
-		ncalls = len(p.Calls)
+	p.MutateWithOpts(rs, ncalls, ct, noMutate, corpus, DefaultMutateOpts)
+}
+
+var DefaultMutateOpts = MutateOpts{
+	ExpectedIterations: 5,
+	MutateArgCount:     3,
+
+	SquashWeight:     50,
+	SpliceWeight:     200,
+	InsertWeight:     100,
+	MutateArgWeight:  100,
+	RemoveCallWeight: 10,
+}
+
+type MutateOpts struct {
+	ExpectedIterations int
+	MutateArgCount     int
+	SquashWeight       int
+	SpliceWeight       int
+	InsertWeight       int
+	MutateArgWeight    int
+	RemoveCallWeight   int
+}
+
+func (o MutateOpts) weight() int {
+	return o.SquashWeight + o.SpliceWeight + o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
+}
+
+func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool,
+	corpus []*Prog, opts MutateOpts) {
+	if p.isUnsafe {
+		panic("mutation of unsafe programs is not supposed to be done")
 	}
+	totalWeight := opts.weight()
+	r := newRand(p.Target, rs)
+	ncalls = max(ncalls, len(p.Calls))
 	ctx := &mutator{
 		p:        p,
 		r:        r,
@@ -36,22 +68,33 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[
 		ct:       ct,
 		noMutate: noMutate,
 		corpus:   corpus,
+		opts:     opts,
 	}
-	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(3) {
-		switch {
-		case r.oneOf(5):
+	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(opts.ExpectedIterations) {
+		val := r.Intn(totalWeight)
+		val -= opts.SquashWeight
+		if val < 0 {
 			// Not all calls have anything squashable,
 			// so this has lower priority in reality.
 			ok = ctx.squashAny()
-		case r.nOutOf(1, 100):
-			ok = ctx.splice()
-		case r.nOutOf(20, 31):
-			ok = ctx.insertCall()
-		case r.nOutOf(10, 11):
-			ok = ctx.mutateArg()
-		default:
-			ok = ctx.removeCall()
+			continue
 		}
+		val -= opts.SpliceWeight
+		if val < 0 {
+			ok = ctx.splice()
+			continue
+		}
+		val -= opts.InsertWeight
+		if val < 0 {
+			ok = ctx.insertCall()
+			continue
+		}
+		val -= opts.MutateArgWeight
+		if val < 0 {
+			ok = ctx.mutateArg()
+			continue
+		}
+		ok = ctx.removeCall()
 	}
 	p.sanitizeFix()
 	p.debugValidate()
@@ -69,6 +112,7 @@ type mutator struct {
 	ct       *ChoiceTable // ChoiceTable for syscalls.
 	noMutate map[int]bool // Set of IDs of syscalls which should not be mutated.
 	corpus   []*Prog      // The entire corpus, including original program p.
+	opts     MutateOpts
 }
 
 // This function selects a random other program p0 out of the corpus, and
@@ -184,7 +228,7 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 	updateSizes := true
-	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
+	for stop, ok := false, false; !stop; stop = ok && r.oneOf(ctx.opts.MutateArgCount) {
 		ok = true
 		ma := &mutationArgs{target: p.Target}
 		ForeachArg(c, ma.collectArg)
@@ -198,6 +242,8 @@ func (ctx *mutator) mutateArg() bool {
 			ok = false
 			continue
 		}
+		moreCalls, fieldsPatched := r.patchConditionalFields(c, s)
+		calls = append(calls, moreCalls...)
 		p.insertBefore(c, calls)
 		idx += len(calls)
 		for len(p.Calls) > ctx.ncalls {
@@ -208,7 +254,7 @@ func (ctx *mutator) mutateArg() bool {
 			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
 				idx, len(calls), len(p.Calls), ctx.ncalls))
 		}
-		if updateSizes {
+		if updateSizes || fieldsPatched {
 			p.Target.assignSizesCall(c)
 		}
 	}
@@ -406,18 +452,20 @@ func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
 	for oldSize := arg.Size(); oldSize == arg.Size(); {
 		arg.size += uint64(r.Intn(33)) - 16
 		// Cast to int64 to prevent underflows.
-		if int64(arg.size) < int64(minLen) {
-			arg.size = minLen
-		}
-		if arg.size > maxLen {
-			arg.size = maxLen
-		}
+		arg.size = uint64(max(int64(arg.size), int64(minLen)))
+		arg.size = min(arg.size, maxLen)
 	}
 }
 
 func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	// TODO: swap elements of the array
 	a := arg.(*GroupArg)
+	if len(a.Inner) > 1 && r.oneOf(5) {
+		// Swap array elements.
+		for r.nOutOf(2, 3) {
+			i, j := r.Intn(len(a.Inner)), r.Intn(len(a.Inner))
+			a.Inner[i], a.Inner[j] = a.Inner[j], a.Inner[i]
+		}
+	}
 	count := uint64(0)
 	switch t.Kind {
 	case ArrayRandLen:
@@ -497,7 +545,6 @@ func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 		index++
 	}
 	optType, optDir := t.Fields[index].Type, t.Fields[index].Dir(a.Dir())
-	removeArg(a.Option)
 	var newOpt Arg
 	newOpt, calls = r.generateArg(s, optType, optDir)
 	replaceArg(arg, MakeUnionArg(t, a.Dir(), newOpt, index))
@@ -727,10 +774,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		if len(data) == 0 || uint64(len(data)) >= maxLen {
 			return data, false
 		}
-		n := r.Intn(16) + 1
-		if r := int(maxLen) - len(data); n > r {
-			n = r
-		}
+		n := min(r.Intn(16)+1, int(maxLen)-len(data))
 		pos := r.Intn(len(data))
 		for i := 0; i < n; i++ {
 			data = append(data, 0)
@@ -749,10 +793,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		if len(data) == 0 {
 			return data, false
 		}
-		n := r.Intn(16) + 1
-		if n > len(data) {
-			n = len(data)
-		}
+		n := min(r.Intn(16)+1, len(data))
 		pos := 0
 		if n < len(data) {
 			pos = r.Intn(len(data) - n)
@@ -772,10 +813,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 			return data, false
 		}
 		const max = 256
-		n := max - r.biasedRand(max, 10)
-		if r := int(maxLen) - len(data); n > r {
-			n = r
-		}
+		n := min(max-r.biasedRand(max, 10), int(maxLen)-len(data))
 		for i := 0; i < n; i++ {
 			data = append(data, byte(r.rand(256)))
 		}

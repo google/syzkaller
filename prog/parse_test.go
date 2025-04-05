@@ -5,6 +5,8 @@ package prog
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseSingle(t *testing.T) {
@@ -16,7 +18,7 @@ func TestParseSingle(t *testing.T) {
 	const execLog = `getpid()
 gettid()	
 `
-	entries := target.ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog), NonStrict)
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}
@@ -46,18 +48,43 @@ func TestParseMulti(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := target.ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLogNew), NonStrict)
+	validateProgs(t, entries, len(execLogNew))
+	if entries[0].ID != -1 ||
+		entries[1].ID != 70 ||
+		entries[2].ID != 75 ||
+		entries[3].ID != 80 ||
+		entries[4].ID != 85 {
+		t.Fatalf("bad IDs")
+	}
+}
+
+func TestParseMultiLegacy(t *testing.T) {
+	t.Parallel()
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := target.ParseLog([]byte(execLogOld), NonStrict)
+	validateProgs(t, entries, len(execLogOld))
+	for _, ent := range entries {
+		assert.Equal(t, -1, ent.ID)
+	}
+}
+
+func validateProgs(t *testing.T, entries []*LogEntry, logLen int) {
+	for i, ent := range entries {
+		t.Logf("program #%v: %v", i, ent.P)
+	}
 	if len(entries) != 5 {
-		for i, ent := range entries {
-			t.Logf("program #%v: %v\n", i, ent.P)
-		}
 		t.Fatalf("got %v programs, want 5", len(entries))
 	}
 	off := 0
 	for _, ent := range entries {
-		if off > ent.Start || ent.Start > ent.End || ent.End > len(execLog) {
+		if off > ent.Start || ent.Start > ent.End || ent.End > logLen {
 			t.Fatalf("bad offsets")
 		}
+		off = ent.End
 	}
 	if entries[0].Proc != 0 ||
 		entries[1].Proc != 1 ||
@@ -88,7 +115,28 @@ func TestParseMulti(t *testing.T) {
 	}
 }
 
-const execLog = `
+const execLogNew = `
+getpid()
+gettid()
+15.133581935s ago: executing program 1 (id=70):
+getpid()
+[ 2351.935478] Modules linked in:
+gettid()
+munlockall()
+14.133581935s ago: executing program 2 (id=75):
+[ 2351.935478] Modules linked in:
+getpid()
+gettid()
+13.133581935s ago: executing program 33 (id=80):
+gettid()
+getpid()
+[ 2351.935478] Modules linked in:
+12.133581935s ago: executing program 9 (id=85):
+munlockall()
+`
+
+// Logs before the introduction of rpcserver.LastExecuting.
+const execLogOld = `
 getpid()
 gettid()
 2015/12/21 12:18:05 executing program 1:
@@ -118,7 +166,7 @@ func TestParseFault(t *testing.T) {
 gettid()
 getpid()
 `
-	entries := target.ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog), NonStrict)
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}

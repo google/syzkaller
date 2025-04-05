@@ -14,7 +14,7 @@ func (ctx darwin) build(params Params) (ImageDetails, error) {
 	return ImageDetails{}, fmt.Errorf("pkg/build: darwin.build not implemented")
 }
 
-func (ctx darwin) clean(kernelDir, targetArch string) error {
+func (ctx darwin) clean(params Params) error {
 	// TODO(HerrSpace): Implement this.
 	return fmt.Errorf("pkg/build: darwin.build not implemented")
 }

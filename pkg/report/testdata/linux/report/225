@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in binder_release_work
 ALT: bad-access in binder_release_work
+TYPE: KASAN
 
 [   32.347901] ==================================================================
 [   32.355262] BUG: KASAN: use-after-free in __list_del_entry+0x196/0x1d0

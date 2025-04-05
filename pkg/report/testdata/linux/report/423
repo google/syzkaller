@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in mcba_usb_disconnect
 ALT: bad-access in mcba_usb_disconnect
+TYPE: KASAN
 
 [  723.789406][  T102] ==================================================================
 [  723.790974][  T102] BUG: KASAN: use-after-free in __lock_acquire+0x3377/0x3eb0

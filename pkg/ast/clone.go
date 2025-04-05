@@ -157,7 +157,7 @@ func (n *Int) Clone() Node {
 }
 
 func (n *Type) Clone() Node {
-	return &Type{
+	ret := &Type{
 		Pos:       n.Pos,
 		Value:     n.Value,
 		ValueFmt:  n.ValueFmt,
@@ -168,6 +168,10 @@ func (n *Type) Clone() Node {
 		Colon:     cloneTypes(n.Colon),
 		Args:      cloneTypes(n.Args),
 	}
+	if n.Expression != nil {
+		ret.Expression = n.Expression.Clone().(*BinaryExpression)
+	}
+	return ret
 }
 
 func (n *Field) Clone() Node {
@@ -178,6 +182,15 @@ func (n *Field) Clone() Node {
 		Attrs:    cloneTypes(n.Attrs),
 		NewBlock: n.NewBlock,
 		Comments: cloneComments(n.Comments),
+	}
+}
+
+func (n *BinaryExpression) Clone() Node {
+	return &BinaryExpression{
+		Pos:      n.Pos,
+		Operator: n.Operator,
+		Left:     n.Left.Clone().(*Type),
+		Right:    n.Right.Clone().(*Type),
 	}
 }
 

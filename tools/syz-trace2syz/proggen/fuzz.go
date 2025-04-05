@@ -2,13 +2,12 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build !codeanalysis
-// +build !codeanalysis
 
 package proggen
 
 import (
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys/linux/gen" // pull in the target
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 

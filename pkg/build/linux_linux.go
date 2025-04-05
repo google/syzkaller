@@ -58,7 +58,7 @@ func embedFiles(params Params, callback func(mountDir string) error) error {
 		return err
 	}
 	if err := tryMount(loopFile+"p1", mountDir); err != nil {
-		return fmt.Errorf("mount(%vp1, %v) failed: %v", loopFile, mountDir, err)
+		return fmt.Errorf("mount(%vp1, %v) failed: %w", loopFile, mountDir, err)
 	}
 	defer unix.Unmount(mountDir, 0)
 	if err := callback(mountDir); err != nil {
@@ -122,26 +122,26 @@ func copyKernel(mountDir, kernelPath string) error {
 func linuxSetupLoop(imageFile string) (int, string, error) {
 	image, err := unix.Open(imageFile, unix.O_RDWR, 0)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to open %v: %v", imageFile, err)
+		return 0, "", fmt.Errorf("failed to open %v: %w", imageFile, err)
 	}
 	defer unix.Close(image)
 	loopControl, err := unix.Open("/dev/loop-control", unix.O_RDWR, 0)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to open /dev/loop-control: %v", err)
+		return 0, "", fmt.Errorf("failed to open /dev/loop-control: %w", err)
 	}
 	defer unix.Close(loopControl)
 	loopIndex, err := unix.IoctlRetInt(loopControl, unix.LOOP_CTL_GET_FREE)
 	if err != nil {
-		return 0, "", fmt.Errorf("LOOP_CTL_GET_FREE failed: %v", err)
+		return 0, "", fmt.Errorf("LOOP_CTL_GET_FREE failed: %w", err)
 	}
 	loopFile := fmt.Sprintf("/dev/loop%v", loopIndex)
 	loop, err := unix.Open(loopFile, unix.O_RDWR, 0)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to open %v: %v", loopFile, err)
+		return 0, "", fmt.Errorf("failed to open %v: %w", loopFile, err)
 	}
 	if err := unix.IoctlSetInt(loop, unix.LOOP_SET_FD, image); err != nil {
 		unix.Close(loop)
-		return 0, "", fmt.Errorf("LOOP_SET_FD failed: %v", err)
+		return 0, "", fmt.Errorf("LOOP_SET_FD failed: %w", err)
 	}
 	info := &unix.LoopInfo64{
 		Flags: unix.LO_FLAGS_PARTSCAN,
@@ -152,7 +152,7 @@ func linuxSetupLoop(imageFile string) (int, string, error) {
 	if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(loop), unix.LOOP_SET_STATUS64,
 		uintptr(unsafe.Pointer(info))); err != 0 {
 		unix.Close(loop)
-		return 0, "", fmt.Errorf("LOOP_SET_STATUS64 failed: %v", err)
+		return 0, "", fmt.Errorf("LOOP_SET_STATUS64 failed: %w", err)
 	}
 	return loop, loopFile, nil
 }

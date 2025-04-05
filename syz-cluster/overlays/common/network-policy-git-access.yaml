@@ -1,0 +1,32 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Allow all outbound internet access for the steps that might need to pull repos.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: series-tracker-git-access
+spec:
+  podSelector:
+    matchLabels:
+      app: series-tracker
+  policyTypes:
+  - Egress
+  egress:
+    - {}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kernel-fetcher-git-access
+spec:
+  podSelector:
+    matchLabels:
+      app: kernel-repo-update
+  policyTypes:
+  - Egress
+  egress:
+    - {}

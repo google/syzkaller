@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in iowarrior_disconnect
 ALT: bad-access in iowarrior_disconnect
+TYPE: KASAN
 
 [  272.327487][   T12] ==================================================================
 [  272.335789][   T12] BUG: KASAN: use-after-free in __list_del_entry_valid+0x15e/0x170

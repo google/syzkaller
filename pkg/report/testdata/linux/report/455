@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in xprt_calc_majortimeo
+TYPE: UBSAN
 
 [  173.675058][ T8575] ================================================================================
 [  173.699127][ T8575] UBSAN: Undefined behaviour in net/sunrpc/xprt.c:597:14

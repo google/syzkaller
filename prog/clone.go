@@ -8,7 +8,18 @@ import (
 )
 
 func (p *Prog) Clone() *Prog {
-	newargs := make(map[*ResultArg]*ResultArg)
+	return p.cloneWithMap(make(map[*ResultArg]*ResultArg))
+}
+
+func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
+	if p.isUnsafe {
+		// We could clone it, but since we prohibit mutation
+		// of unsafe programs, it's unclear why we would clone it.
+		// Note: this also covers cloning of corpus programs
+		// during mutation, so if this is removed, we may need
+		// additional checks during mutation.
+		panic("cloning of unsafe programs is not supposed to be done")
+	}
 	p1 := &Prog{
 		Target: p.Target,
 		Calls:  cloneCalls(p.Calls, newargs),
@@ -37,6 +48,10 @@ func cloneCall(c *Call, newargs map[*ResultArg]*ResultArg) *Call {
 	}
 	c1.Props = c.Props
 	return c1
+}
+
+func CloneArg(arg Arg) Arg {
+	return clone(arg, nil)
 }
 
 func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {

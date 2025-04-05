@@ -6,6 +6,8 @@ package report
 import (
 	"bytes"
 	"regexp"
+
+	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 type gvisor struct {
@@ -104,6 +106,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("SIGSEGV:"),
@@ -115,6 +118,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("SIGBUS:"),
@@ -126,6 +130,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("FATAL ERROR:"),
@@ -137,6 +142,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("WARNING: DATA RACE"),
@@ -149,6 +155,7 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("Invalid request partialResult"),
@@ -161,5 +168,18 @@ var gvisorOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
+	},
+	{
+		[]byte("fatal error:"),
+		[]oopsFormat{
+			{
+				title:        compile("fatal error:(.*)"),
+				fmt:          "fatal error:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 }, commonOopses...)

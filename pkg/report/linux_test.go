@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -145,21 +146,67 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 			"[<ffffffff82d1b1d9>] baz+0x101/0x200\n",
 			"[<ffffffff82d1b1d9>] baz+0x101/0x200 baz.c:100\n",
 		},
+		// Frame format with module+offset.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [beep]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 baz.c:100 [beep]\n",
+		},
+		// Frame format with module+offset and stracktrace_build_id.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [beep b31b29679ab712c360bddd861f655ab24898b4db]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 baz.c:100 [beep]\n",
+		},
+
+		// Frame format with module+offset for invalid module.
+		{
+			"[   50.419727][ T3822] baz+0x101/0x200 [invalid_module]\n",
+			"[   50.419727][ T3822] baz+0x101/0x200 [invalid_module]\n",
+		},
+		// Frame format with module+offset for missing symbol.
+		{
+			"[   50.419727][ T3822] missing_symbol+0x101/0x200 [beep]\n",
+			"[   50.419727][ T3822] missing_symbol+0x101/0x200 [beep]\n",
+		},
+		// Frame format with module+offset for invalid offset.
+		{
+			"[   50.419727][ T3822] baz+0x300/0x200 [beep]\n",
+			"[   50.419727][ T3822] baz+0x300/0x200 [beep]\n",
+		},
 	}
-	symbols := map[string][]symbolizer.Symbol{
-		"foo": {
-			{Addr: 0x1000000, Size: 0x190},
+	symbols := map[string]map[string][]symbolizer.Symbol{
+		"": {
+			"foo": {
+				{Addr: 0x1000000, Size: 0x190},
+			},
+			"do_ipv6_setsockopt.isra.7.part.3": {
+				{Addr: 0x2000000, Size: 0x2830},
+			},
+			"baz": {
+				{Addr: 0x3000000, Size: 0x100},
+				{Addr: 0x4000000, Size: 0x200},
+				{Addr: 0x5000000, Size: 0x300},
+			},
 		},
-		"do_ipv6_setsockopt.isra.7.part.3": {
-			{Addr: 0x2000000, Size: 0x2830},
-		},
-		"baz": {
-			{Addr: 0x3000000, Size: 0x100},
-			{Addr: 0x4000000, Size: 0x200},
-			{Addr: 0x5000000, Size: 0x300},
+		"beep": {
+			"baz": {
+				{Addr: 0x4000000, Size: 0x200},
+			},
 		},
 	}
 	symb := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+		if bin == "beep" {
+			switch pc {
+			case 0x4000100:
+				return []symbolizer.Frame{
+					{
+						File: "/linux/baz.c",
+						Line: 100,
+					},
+				}, nil
+			default:
+				return nil, fmt.Errorf("unknown pc 0x%x", pc)
+			}
+		}
 		if bin != "vmlinux" {
 			return nil, fmt.Errorf("unknown pc 0x%x", pc)
 		}
@@ -228,9 +275,31 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 			return nil, fmt.Errorf("unknown pc 0x%x", pc)
 		}
 	}
+	modules := []*vminfo.KernelModule{
+		{
+			Name: "",
+			Path: "vmlinux",
+		},
+		{
+			Name: "beep",
+			Path: "beep",
+		},
+	}
+
+	cfg := &config{
+		kernelDirs: mgrconfig.KernelDirs{
+			Obj: "/linux",
+		},
+		kernelModules: modules,
+	}
+	ctx := &linux{
+		config:  cfg,
+		vmlinux: "vmlinux",
+		symbols: symbols,
+	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			result := symbolizeLine(symb, symbols, "vmlinux", "/linux", []byte(test.line))
+			result := symbolizeLine(symb, ctx, []byte(test.line))
 			if test.result != string(result) {
 				t.Errorf("want %q\n\t     get %q", test.result, string(result))
 			}
@@ -248,7 +317,7 @@ func prepareLinuxReporter(t *testing.T, arch string) (*Reporter, *linux) {
 	}
 	reporter, err := NewReporter(cfg)
 	if err != nil {
-		t.Errorf("Failed to create a reporter instance for %#v: %v", arch, err)
+		t.Errorf("failed to create a reporter instance for %#v: %v", arch, err)
 	}
 	return reporter, reporter.impl.(*linux)
 }
@@ -363,17 +432,16 @@ func TestParseLinuxOpcodes(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		test := test // Capturing the value.
 		t.Run(fmt.Sprintf("%s/%v", test.arch, idx), func(t *testing.T) {
 			t.Parallel()
 			_, linuxReporter := prepareLinuxReporter(t, test.arch)
 			ret, err := linuxReporter.parseOpcodes(test.input)
 			if test.output == nil && err == nil {
-				t.Errorf("Expected an error on input %#v", test)
+				t.Errorf("expected an error on input %#v", test)
 			} else if test.output != nil && err != nil {
-				t.Errorf("Unexpected error %v on input %#v", err, test.input)
+				t.Errorf("unexpected error %v on input %#v", err, test.input)
 			} else if test.output != nil && !reflect.DeepEqual(ret, *test.output) {
-				t.Errorf("Expected: %#v, got: %#v", test.output, ret)
+				t.Errorf("expected: %#v, got: %#v", test.output, ret)
 			}
 		})
 	}
@@ -441,6 +509,6 @@ func testDisassembly(t *testing.T, reporter *Reporter, linuxReporter *linux, tes
 	}
 
 	if !bytes.Equal(output, result) {
-		t.Fatalf("Expected:\n%s\nGot:\n%s\n", output, result)
+		t.Fatalf("expected:\n%s\ngot:\n%s", output, result)
 	}
 }

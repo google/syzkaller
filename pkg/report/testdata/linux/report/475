@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in ip6_fragment
 ALT: bad-access in ip6_fragment
+TYPE: KASAN
 
 [   78.614475][ T8947] ==================================================================
 [   78.622699][ T8947] BUG: KASAN: use-after-free in kfree_skb_list+0x5d/0x60

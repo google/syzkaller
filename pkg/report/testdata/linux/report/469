@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Read in dlfb_usb_probe
 ALT: bad-access in dlfb_usb_probe
+TYPE: KASAN
 
 0.337143][   T95] ==================================================================
 [   40.337147][   T95] BUG: KASAN: slab-out-of-bounds in hex_string+0x439/0x4c0

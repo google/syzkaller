@@ -1,4 +1,5 @@
 TITLE: possible deadlock in tick_handler
+TYPE: LOCKDEP
 
 [ 1740.381206][    C0] WARNING: possible circular locking dependency detected
 [ 1740.381209][    C0] 4.15.0+ #6 Not tainted

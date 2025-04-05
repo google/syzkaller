@@ -1,5 +1,6 @@
 TITLE: BUG: corrupted list in __dev_remove_pack
 ALT: bad-access in __dev_remove_pack
+TYPE: BUG
 
 [   50.710530] list_del corruption. next->prev should be ffff8801d8caa528, but was ffffffff868a8010
 [   50.719785] ------------[ cut here ]------------

@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in selinux_inode_free_security
 ALT: bad-access in selinux_inode_free_security
+TYPE: KASAN
 
 [   70.363639] ==================================================================
 [   70.371158] BUG: KASAN: use-after-free in do_raw_spin_lock+0x1aa/0x1e0

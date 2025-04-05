@@ -115,9 +115,19 @@ indexes:
 - kind: Bug
   properties:
   - name: Namespace
+  - name: SubsystemsRev
+
+- kind: Bug
+  properties:
+  - name: Namespace
   - name: Labels.Label
   - name: Labels.Value
   - name: Status
+
+- kind: Bug
+  properties:
+  - name: Status
+  - name: FixCandidateJob
 
 - kind: Build
   properties:
@@ -154,6 +164,14 @@ indexes:
   properties:
   - name: Namespace
   - name: AssetsLastCheck
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Type
+  - name: Time
+    direction: desc
 
 - kind: Crash
   ancestor: yes
@@ -227,3 +245,20 @@ indexes:
   - name: Type
   - name: Finished
     direction: desc
+
+- kind: Job
+  properties:
+  - name: Type
+  - name: Finished
+    direction: desc
+
+- kind: Job
+  properties:
+  - name: Namespace
+  - name: Type
+
+- kind: ReproTask
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: AttemptsLeft

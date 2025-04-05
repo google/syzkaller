@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sync"
@@ -39,6 +40,7 @@ type TestbedConfig struct {
 	Workdir       string           `json:"workdir"`        // instances will be checked out there
 	ReproConfig   ReproTestConfig  `json:"repro_config"`   // syz-repro benchmarking config
 	ManagerConfig json.RawMessage  `json:"manager_config"` // base manager config
+	ManagerMode   string           `json:"manager_mode"`   // manager mode flag
 	Checkouts     []CheckoutConfig `json:"checkouts"`
 }
 
@@ -71,13 +73,16 @@ type TestbedContext struct {
 
 func main() {
 	flag.Parse()
+	benchcmp, _ := exec.LookPath("syz-benchcmp")
 	cfg := &TestbedConfig{
-		Name:    "testbed",
-		Target:  "syz-manager",
-		RunTime: DurationConfig{24 * time.Hour},
+		Name:     "testbed",
+		Target:   "syz-manager",
+		BenchCmp: benchcmp,
+		RunTime:  DurationConfig{24 * time.Hour},
 		ReproConfig: ReproTestConfig{
 			CrashesPerBug: 1,
 		},
+		ManagerMode: "fuzzing",
 	}
 	err := config.LoadFile(*flagConfig, &cfg)
 	if err != nil {
@@ -188,7 +193,7 @@ func (ctx *TestbedContext) SaveStats() error {
 	}
 	for _, view := range views {
 		dir := filepath.Join(ctx.Config.Workdir, "stats_"+view.Name)
-		err := ctx.Target.SaveStatView(view, dir)
+		err := ctx.Target.SaveStatView(&view, dir)
 		if err != nil {
 			return err
 		}
@@ -205,7 +210,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 	for {
 		checkout, instance, err := ctx.Target.NewJob(slotName, ctx.Checkouts)
 		if err != nil {
-			ret <- fmt.Errorf("failed to create instance: %s", err)
+			ret <- fmt.Errorf("failed to create instance: %w", err)
 			return
 		}
 		checkout.AddRunning(instance)
@@ -232,7 +237,7 @@ func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) 
 		}
 		err = checkout.ArchiveInstance(instance)
 		if err != nil {
-			ret <- fmt.Errorf("a call to ArchiveInstance failed: %s", err)
+			ret <- fmt.Errorf("a call to ArchiveInstance failed: %w", err)
 			return
 		}
 	}

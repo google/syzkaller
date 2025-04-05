@@ -1,0 +1,95 @@
+{{/*
+Copyright 2022 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Manager statistics graphs.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} crash stats</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+{{if .Graph}}
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var data = new google.visualization.DataTable();
+			data.addColumn({type: 'string'});
+			{{range $.Graph.Headers}}
+				data.addColumn({type: 'number', label: '{{.Name}}'});
+				data.addColumn({type: 'string', role: 'tooltip'});
+			{{- end}}
+			data.addRows([ {{range $.Graph.Columns}}
+					[ "{{.Hint}}", {{range .Vals}}
+						{{if .Val}}{{.Val}}{{end}}, '{{.Hint}}',
+					{{- end}}
+					],
+				{{- end}}
+			]);
+			new google.visualization.LineChart(document.getElementById('graph_div')).
+				draw(data, {
+					width: "80%",
+					height: 600,
+					interpolateNulls: true,
+					focusTarget: "category",
+					chartArea: {width: '95%', height: '100%'},
+					legend: {position: 'in'},
+					axisTitlesPosition: 'out',
+					hAxis: {textPosition: 'in', maxAlternation: 1},
+					vAxis: {textPosition: 'in', viewWindowMode: 'maximized'},
+					explorer: {axis: 'horizontal', maxZoomIn: 0, maxZoomOut: 1, zoomDelta: 1.2, keepInBounds: true}
+				})
+		}
+	</script>
+{{end}}
+</head>
+<body>
+	{{template "header" .Header}}
+	<div class="page">
+	{{if .Graph}}
+		<div id="graph_div" class="main-content"></div>
+	{{else if .Table}}
+	{{with .Table}}
+	<div class="main-content">
+		<table class="list_table">
+			<caption>{{.Title}}</caption>
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Count</th>
+					<th>Share</th>
+					<th>Graph</th>
+				</tr>
+			</thead>
+			<tbody>
+			{{range .Rows}}
+				<tr>
+					<td class="title"><a href="{{.Link}}">{{.Title}}</a></td>
+					<td>{{.Count}}</td>
+					<td>{{.Share | printf "%.1f"}}%</td>
+					<td><a href="{{.GraphLink}}">[last month]</a></td>
+				</tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{end}}
+	{{end}}
+	<aside>
+		<form>
+			{{template "input-multi-text" .Regexps}}
+			{{template "input-slider" .GraphMonths}}
+			<input type="submit" name="show-graph" value="Show graph"/> <br />
+		</form>
+		<form>
+			{{template "input-slider" .TableDays}}
+			<input type="submit" name="show-crashers" value="Top crashers"/>
+		</form>
+	</aside>
+	</div>
+</body>
+</html>

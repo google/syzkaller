@@ -73,7 +73,7 @@ r4 = dup(r3)
 		for i := 0; i < iters; i++ {
 			collided := AssignRandomAsync(p, r)
 			if !test.check(collided) {
-				t.Fatalf("bad async assignment:\n%s\n", collided.Serialize())
+				t.Fatalf("bad async assignment:\n%s", collided.Serialize())
 			}
 			for _, call := range collided.Calls {
 				anyAsync = anyAsync || call.Props.Async
@@ -143,7 +143,7 @@ dup(r3)
 				}
 				serialized := string(woProps.Serialize())
 				if serialized != test.duplicated {
-					t.Fatalf("expected:%s\ngot:%s\n", test.duplicated, serialized)
+					t.Fatalf("expected:%s\ngot:%s", test.duplicated, serialized)
 				}
 			}
 			// TODO: also test the `async` assignment.
@@ -182,10 +182,8 @@ dup(r2)
 		},
 	}
 	_, rs, iters := initTest(t)
-	if iters > 100 {
-		// Let's save resources -- we don't need that many for these small tests.
-		iters = 100
-	}
+	// Let's save resources -- we don't need that many for these small tests.
+	iters = min(iters, 100)
 	r := rand.New(rs)
 	for _, test := range tests {
 		target, err := GetTarget(test.os, test.arch)

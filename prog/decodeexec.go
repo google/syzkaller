@@ -4,8 +4,10 @@
 package prog
 
 import (
+	"encoding/binary"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type ExecProg struct {
@@ -70,8 +72,19 @@ type ExecCsumChunk struct {
 	Size  uint64
 }
 
-func (target *Target) DeserializeExec(exec []byte) (ExecProg, error) {
-	dec := &execDecoder{target: target, data: exec}
+func ExecCallCount(exec []byte) (int, error) {
+	v, n := binary.Varint(exec)
+	if n <= 0 {
+		return 0, fmt.Errorf("not enough data in the buffer")
+	}
+	if v > MaxCalls {
+		return 0, fmt.Errorf("too many calls (%v)", v)
+	}
+	return int(v), nil
+}
+
+func (target *Target) DeserializeExec(exec []byte, stats map[string]int) (ExecProg, error) {
+	dec := &execDecoder{target: target, data: exec, stats: stats}
 	dec.parse()
 	if dec.err != nil {
 		return ExecProg{}, dec.err
@@ -95,25 +108,30 @@ type execDecoder struct {
 	vars    []uint64
 	call    ExecCall
 	calls   []ExecCall
+	stats   map[string]int
 }
 
 func (dec *execDecoder) parse() {
+	ncalls := dec.read("header")
 	for dec.err == nil {
-		switch instr := dec.read(); instr {
+		switch instr := dec.read("instr/opcode"); instr {
 		case execInstrCopyin:
 			dec.commitCall()
 			dec.call.Copyin = append(dec.call.Copyin, ExecCopyin{
-				Addr: dec.read(),
+				Addr: dec.read("instr/copyin") + dec.target.DataOffset,
 				Arg:  dec.readArg(),
 			})
 		case execInstrCopyout:
 			dec.call.Copyout = append(dec.call.Copyout, ExecCopyout{
-				Index: dec.read(),
-				Addr:  dec.read(),
-				Size:  dec.read(),
+				Index: dec.read("instr/copyout/index"),
+				Addr:  dec.read("instr/copyout/addr") + dec.target.DataOffset,
+				Size:  dec.read("instr/copyout/size"),
 			})
 		case execInstrEOF:
 			dec.commitCall()
+			if ncalls != uint64(len(dec.calls)) {
+				dec.err = fmt.Errorf("bad number of calls: %v/%v", ncalls, len(dec.calls))
+			}
 			return
 		case execInstrSetProps:
 			dec.commitCall()
@@ -125,8 +143,8 @@ func (dec *execDecoder) parse() {
 				return
 			}
 			dec.call.Meta = dec.target.Syscalls[instr]
-			dec.call.Index = dec.read()
-			for i := dec.read(); i > 0; i-- {
+			dec.call.Index = dec.read("instr/index")
+			for i := dec.read("instr/nargs"); i > 0; i-- {
 				switch arg := dec.readArg(); arg.(type) {
 				case ExecArgConst, ExecArgResult:
 					dec.call.Args = append(dec.call.Args, arg)
@@ -141,7 +159,7 @@ func (dec *execDecoder) parse() {
 
 func (dec *execDecoder) readCallProps(props *CallProps) {
 	props.ForeachProp(func(_, _ string, value reflect.Value) {
-		arg := dec.read()
+		arg := dec.read("call prop")
 		switch kind := value.Kind(); kind {
 		case reflect.Int:
 			value.SetInt(int64(arg))
@@ -156,26 +174,37 @@ func (dec *execDecoder) readCallProps(props *CallProps) {
 }
 
 func (dec *execDecoder) readArg() ExecArg {
-	switch typ := dec.read(); typ {
+	switch typ := dec.read("arg/type"); typ {
 	case execArgConst:
-		meta := dec.read()
+		meta := dec.read("arg/const/meta")
 		return ExecArgConst{
-			Value:          dec.read(),
+			Value:          dec.read("arg/const/value"),
 			Size:           meta & 0xff,
 			Format:         BinaryFormat((meta >> 8) & 0xff),
 			BitfieldOffset: (meta >> 16) & 0xff,
 			BitfieldLength: (meta >> 24) & 0xff,
 			PidStride:      meta >> 32,
 		}
+	case execArgAddr32:
+		fallthrough
+	case execArgAddr64:
+		size := 4
+		if typ == execArgAddr64 {
+			size = 8
+		}
+		return ExecArgConst{
+			Value: dec.read("arg/addr") + dec.target.DataOffset,
+			Size:  uint64(size),
+		}
 	case execArgResult:
-		meta := dec.read()
+		meta := dec.read("arg/result/meta")
 		arg := ExecArgResult{
 			Size:    meta & 0xff,
 			Format:  BinaryFormat((meta >> 8) & 0xff),
-			Index:   dec.read(),
-			DivOp:   dec.read(),
-			AddOp:   dec.read(),
-			Default: dec.read(),
+			Index:   dec.read("arg/result/index"),
+			DivOp:   dec.read("arg/result/divop"),
+			AddOp:   dec.read("arg/result/addop"),
+			Default: dec.read("arg/result/default"),
 		}
 		for uint64(len(dec.vars)) <= arg.Index {
 			dec.vars = append(dec.vars, 0)
@@ -183,23 +212,30 @@ func (dec *execDecoder) readArg() ExecArg {
 		dec.vars[arg.Index] = arg.Default
 		return arg
 	case execArgData:
-		flags := dec.read()
+		flags := dec.read("arg/data/size")
 		size := flags & ^execArgDataReadable
+		dec.addStat("arg/data/blob", int(size))
 		readable := flags&execArgDataReadable != 0
 		return ExecArgData{
 			Data:     dec.readBlob(size),
 			Readable: readable,
 		}
 	case execArgCsum:
-		size := dec.read()
-		switch kind := dec.read(); kind {
+		size := dec.read("arg/csum/size")
+		switch kind := dec.read("arg/csum/kind"); kind {
 		case ExecArgCsumInet:
-			chunks := make([]ExecCsumChunk, dec.read())
+			chunks := make([]ExecCsumChunk, dec.read("arg/csum/chunks"))
 			for i := range chunks {
+				kind := dec.read("arg/csum/chunk/kind")
+				addr := dec.read("arg/csum/chunk/addr")
+				size := dec.read("arg/csum/chunk/size")
+				if kind == ExecArgCsumChunkData {
+					addr += dec.target.DataOffset
+				}
 				chunks[i] = ExecCsumChunk{
-					Kind:  dec.read(),
-					Value: dec.read(),
-					Size:  dec.read(),
+					Kind:  kind,
+					Value: addr,
+					Size:  size,
 				}
 			}
 			return ExecArgCsum{
@@ -217,28 +253,29 @@ func (dec *execDecoder) readArg() ExecArg {
 	}
 }
 
-func (dec *execDecoder) read() uint64 {
-	if len(dec.data) < 8 {
-		dec.setErr(fmt.Errorf("exec program overflow"))
-	}
+func (dec *execDecoder) read(stat string) uint64 {
 	if dec.err != nil {
 		return 0
 	}
-	v := HostEndian.Uint64(dec.data)
-	dec.data = dec.data[8:]
-	return v
+	v, n := binary.Varint(dec.data)
+	if n <= 0 {
+		dec.setErr(fmt.Errorf("exec program overflow"))
+		return 0
+	}
+	dec.addStat(stat, n)
+	dec.data = dec.data[n:]
+	return uint64(v)
 }
 
 func (dec *execDecoder) readBlob(size uint64) []byte {
-	padded := (size + 7) / 8 * 8
-	if uint64(len(dec.data)) < padded {
+	if uint64(len(dec.data)) < size {
 		dec.setErr(fmt.Errorf("exec program overflow"))
 	}
 	if dec.err != nil {
 		return nil
 	}
 	data := dec.data[:size]
-	dec.data = dec.data[padded:]
+	dec.data = dec.data[size:]
 	return data
 }
 
@@ -256,10 +293,19 @@ func (dec *execDecoder) commitCall() {
 		dec.numVars = dec.call.Index + 1
 	}
 	for _, copyout := range dec.call.Copyout {
-		if dec.numVars < copyout.Index+1 {
-			dec.numVars = copyout.Index + 1
-		}
+		dec.numVars = max(dec.numVars, copyout.Index+1)
 	}
 	dec.calls = append(dec.calls, dec.call)
 	dec.call = ExecCall{}
+}
+
+func (dec *execDecoder) addStat(stat string, n int) {
+	if dec.stats == nil {
+		return
+	}
+	prefix := ""
+	for _, part := range strings.Split(stat, "/") {
+		dec.stats[prefix+part] += n
+		prefix += part + "/"
+	}
 }

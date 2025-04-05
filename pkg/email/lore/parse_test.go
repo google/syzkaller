@@ -4,6 +4,7 @@
 package lore
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestThreadsCollection(t *testing.T) {
@@ -238,7 +240,72 @@ Bug report`,
 	}
 
 	if len(threads) > len(expected) {
-		t.Fatalf("Expected %d threads, got %d", len(expected), len(threads))
+		t.Fatalf("expected %d threads, got %d", len(expected), len(threads))
+	}
+}
+
+func TestParsePatchSubject(t *testing.T) {
+	tests := []struct {
+		subj string
+		ret  PatchSubject
+	}{
+		{
+			subj: `[PATCH] abcd`,
+			ret:  PatchSubject{Title: "abcd"},
+		},
+		{
+			subj: `[PATCH 00/20] abcd`,
+			ret:  PatchSubject{Title: "abcd", Seq: value[int](0), Total: value[int](20)},
+		},
+		{
+			subj: `[PATCH 5/6] abcd`,
+			ret:  PatchSubject{Title: "abcd", Seq: value[int](5), Total: value[int](6)},
+		},
+		{
+			subj: `[PATCH RFC v3 0/4] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"RFC"},
+				Version: value[int](3),
+				Seq:     value[int](0),
+				Total:   value[int](4),
+			},
+		},
+		{
+			subj: `[RFC PATCH] abcd`,
+			ret:  PatchSubject{Title: "abcd", Tags: []string{"RFC"}},
+		},
+		{
+			subj: `[PATCH net-next v2 00/21] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"net-next"},
+				Version: value[int](2),
+				Seq:     value[int](0),
+				Total:   value[int](21),
+			},
+		},
+		{
+			subj: `[PATCH v2 RESEND] abcd`,
+			ret:  PatchSubject{Title: "abcd", Version: value[int](2), Tags: []string{"RESEND"}},
+		},
+		{
+			subj: `[PATCH RFC net-next v3 05/21] abcd`,
+			ret: PatchSubject{
+				Title:   "abcd",
+				Tags:    []string{"RFC", "net-next"},
+				Version: value[int](3),
+				Seq:     value[int](5),
+				Total:   value[int](21),
+			},
+		},
+	}
+	for id, test := range tests {
+		t.Run(fmt.Sprint(id), func(t *testing.T) {
+			ret, ok := parsePatchSubject(test.subj)
+			assert.True(t, ok)
+			assert.Equal(t, test.ret, ret)
+		})
 	}
 }
 
@@ -297,5 +364,123 @@ func TestDiscussionType(t *testing.T) {
 		if got != test.ret {
 			t.Fatalf("expected %v got %v for %v", test.ret, got, test.msg)
 		}
+	}
+}
+
+func TestParseSeries(t *testing.T) {
+	messages := []string{
+		// A simple patch series.
+		`Date: Sun, 7 May 2017 19:54:00 -0700
+Subject: [PATCH] Small patch
+Message-ID: <First>
+From: UserA <a@user.com>
+Content-Type: text/plain
+
+
+Some text`,
+		// A series with a cover.
+		`Date: Sun, 7 May 2017 19:55:00 -0700
+Subject: [PATCH v2 00/02] A longer series
+Message-ID: <Second>
+From: UserB <b@user.com>
+To: UserA <a@user.com>
+Content-Type: text/plain
+
+Some cover`,
+		`Date: Sun, 7 May 2017 19:56:00 -0700
+Subject: [PATCH v2 01/02] First patch
+Message-ID: <Second-1>
+From: UserC <c@user.com>
+To: UserA <a@user.com>, UserB <b@user.com>
+Content-Type: text/plain
+In-Reply-To: <Second>
+
+
+Patch 1/2`,
+		`Date: Sun, 7 May 2017 19:56:00 -0700
+Subject: [PATCH v2 02/02] Second patch
+Message-ID: <Second-2>
+From: UserC <c@user.com>
+To: UserA <a@user.com>, UserB <b@user.com>
+Content-Type: text/plain
+In-Reply-To: <Second>
+
+
+Patch 2/2`,
+		// Missing patches.
+		`Date: Sun, 7 May 2017 19:57:00 -0700
+Subject: [PATCH 01/03] Series
+Message-ID: <Third>
+From: Someone <a@b.com>
+Content-Type: text/plain
+
+Bug report`,
+	}
+
+	emails := []*email.Email{}
+	for _, m := range messages {
+		msg, err := email.Parse(strings.NewReader(m), nil, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		emails = append(emails, msg)
+	}
+
+	series := PatchSeries(emails)
+	assert.Len(t, series, 3)
+
+	expectPerID := map[string]*Series{
+		"<First>": {
+			Subject: "Small patch",
+			Version: 1,
+			Patches: []Patch{
+				{
+					Seq:   1,
+					Email: &email.Email{Subject: "[PATCH] Small patch"},
+				},
+			},
+		},
+		"<Second>": {
+			Subject: "A longer series",
+			Version: 2,
+			Patches: []Patch{
+				{
+					Seq:   1,
+					Email: &email.Email{Subject: "[PATCH v2 01/02] First patch"},
+				},
+				{
+					Seq:   2,
+					Email: &email.Email{Subject: "[PATCH v2 02/02] Second patch"},
+				},
+			},
+		},
+		"<Third>": {
+			Subject:   "Series",
+			Version:   1,
+			Corrupted: "the subject mentions 3 patches, 1 are found",
+			Patches: []Patch{
+				{
+					Seq:   1,
+					Email: &email.Email{Subject: "[PATCH 01/03] Series"},
+				},
+			},
+		},
+	}
+	for _, s := range series {
+		expect := expectPerID[s.MessageID]
+		if expect == nil {
+			t.Fatalf("unexpected message: %q", s.MessageID)
+		}
+		expectPerID[s.MessageID] = nil
+		t.Run(s.MessageID, func(t *testing.T) {
+			assert.Equal(t, expect.Corrupted, s.Corrupted, "corrupted differs")
+			assert.Equal(t, expect.Subject, s.Subject, "subject differs")
+			assert.Equal(t, expect.Version, s.Version, "version differs")
+			assert.Len(t, s.Patches, len(expect.Patches), "patch count differs")
+			for i, expectPatch := range expect.Patches {
+				got := s.Patches[i]
+				assert.Equal(t, expectPatch.Seq, got.Seq, "seq differs")
+			}
+		})
 	}
 }

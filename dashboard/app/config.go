@@ -5,18 +5,20 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/mail"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/google/syzkaller/pkg/validator"
 	"github.com/google/syzkaller/pkg/vcs"
-	"golang.org/x/net/context"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
@@ -25,8 +27,8 @@ import (
 type GlobalConfig struct {
 	// Min access levels specified hierarchically throughout the config.
 	AccessLevel AccessLevel
-	// Email suffix of authorized users (e.g. "@foobar.com").
-	AuthDomain string
+	// ACL is a list of authorized domains and e-mails.
+	ACL []*ACLItem
 	// Google Analytics Tracking ID.
 	AnalyticsTrackingID string
 	// URL prefix of source coverage reports.
@@ -61,6 +63,12 @@ type GlobalConfig struct {
 	// Emails received via the addresses below will be attributed to the corresponding
 	// kind of Discussion.
 	DiscussionEmails []DiscussionEmailConfig
+	// Incoming request throttling.
+	Throttle ThrottleConfig
+	// UploadBucket allows to transfer >32MB of data. 32MB is an AppEngine transfer limitation.
+	// This bucket is used by the dashboard API handlers.
+	// Configure bucket items auto deletion. Uploaded data will not be deleted by dashboard.
+	UploadBucket string
 }
 
 // Per-namespace config.
@@ -91,6 +99,9 @@ type Config struct {
 	FixBisectionAutoClose bool
 	// If set, dashboard will periodically request repros and revoke no longer working ones.
 	RetestRepros bool
+	// If set, dashboard will periodically verify the presence of the missing backports in the
+	// tested kernel trees.
+	RetestMissingBackports bool
 	// If set, dashboard will create patch testing jobs to determine bug origin trees.
 	FindBugOriginTrees bool
 	// Managers contains some special additional info about syz-manager instances.
@@ -99,9 +110,9 @@ type Config struct {
 	Reporting []Reporting
 	// TransformCrash hook is called when a manager uploads a crash.
 	// The hook can transform the crash or discard the crash by returning false.
-	TransformCrash func(build *Build, crash *dashapi.Crash) bool
+	TransformCrash func(build *Build, crash *dashapi.Crash) bool `json:"-"`
 	// NeedRepro hook can be used to prevent reproduction of some bugs.
-	NeedRepro func(bug *Bug) bool
+	NeedRepro func(bug *Bug) bool `json:"-"`
 	// List of kernel repositories for this namespace.
 	// The first repo considered the "main" repo (e.g. fixing commit info is shown against this repo).
 	// Other repos are secondary repos, they may be tested or not.
@@ -113,6 +124,49 @@ type Config struct {
 	Subsystems SubsystemsConfig
 	// Instead of Last acitivity, display Discussions on the main page.
 	DisplayDiscussions bool
+	// Cache what we display on the web dashboard.
+	CacheUIPages bool
+	// Enables coverage aggregation.
+	Coverage *CoverageConfig
+	// Reproducers export path.
+	ReproExportPath string
+}
+
+// ACLItem is an Access Control List item.
+// Authorization target may be Email or Domain, not both.
+//
+// Valid example 1:
+//
+//	ACLItem {
+//			Email: 			 "someuser@gmail.com",
+//			AccessLevel: AccessPublic,
+//	}
+//
+// Valid example 2:
+//
+//	ACLItem {
+//			Domain: 		 "kernel.org",
+//			AccessLevel: AccessPublic,
+//	}
+type ACLItem struct {
+	Email  string
+	Domain string
+	Access AccessLevel
+}
+
+const defaultDashboardClientName = "coverage-merger"
+
+type CoverageConfig struct {
+	BatchProject        string
+	BatchServiceAccount string
+	BatchScopes         []string
+	JobInitScript       string
+	SyzEnvInitScript    string
+	DashboardClientName string
+
+	// WebGitURI specifies where can we get the kernel file source code directly from AppEngine.
+	// It may be the Git or Gerrit compatible repo.
+	WebGitURI string
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
@@ -131,6 +185,8 @@ type SubsystemsConfig struct {
 	Revision int
 	// Periodic per-subsystem reminders about open bugs.
 	Reminder *BugListReportingConfig
+	// Maps old subsystem names to new ones.
+	Redirect map[string]string
 }
 
 // BugListReportingConfig describes how aggregated reminders about open bugs should be processed.
@@ -159,7 +215,7 @@ type BugListReportingConfig struct {
 	Config ReportingType
 }
 
-// ObsoletingConfig describes how bugs without reproducer should be obsoleted.
+// ObsoletingConfig describes how bugs should be obsoleted.
 // First, for each bug we conservatively estimate period since the last crash
 // when we consider it stopped happenning. This estimation is based on the first/last time
 // and number and rate of crashes. Then this period is capped by MinPeriod/MaxPeriod.
@@ -173,7 +229,13 @@ type ObsoletingConfig struct {
 	MaxPeriod         time.Duration
 	NonFinalMinPeriod time.Duration
 	NonFinalMaxPeriod time.Duration
+	// Reproducers are retested every ReproRetestPeriod.
+	// If the period is zero, not retesting is performed.
 	ReproRetestPeriod time.Duration
+	// Reproducer retesting begins after there have been no crashes during
+	// the ReproRetestStart period.
+	// By default, it's 14 days.
+	ReproRetestStart time.Duration
 }
 
 // ConfigManager describes a single syz-manager instance.
@@ -196,7 +258,15 @@ type ConfigManager struct {
 	FixBisectionDisabled bool
 	// CC for all bugs that happened only on this manager.
 	CC CCConfig
+	// Other parameters being equal, Priority helps to order bug's crashes.
+	// Priority is an integer in the range [-3;3].
+	Priority int
 }
+
+const (
+	MinManagerPriority = -3
+	MaxManagerPriority = 3
+)
 
 // One reporting stage.
 type Reporting struct {
@@ -207,7 +277,7 @@ type Reporting struct {
 	// Name used in UI.
 	DisplayTitle string
 	// Filter can be used to conditionally skip this reporting or hold off reporting.
-	Filter ReportingFilter
+	Filter ReportingFilter `json:"-"`
 	// How many new bugs report per day.
 	DailyLimit int
 	// Upstream reports into next reporting after this period.
@@ -263,6 +333,8 @@ type KernelRepoLink struct {
 	Alias string
 	// Whether commits from the other repository merged or cherry-picked.
 	Merge bool
+	// Whether syzbot should try to fix bisect the bug in the Alias tree.
+	BisectFixes bool
 }
 
 type CCConfig struct {
@@ -285,11 +357,17 @@ type KcidbConfig struct {
 	Credentials []byte
 }
 
-var (
-	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
-	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
-	clientKeyRe     = regexp.MustCompile("^([a-zA-Z0-9]{16,128})|(" + regexp.QuoteMeta(auth.OauthMagic) + ".*)$")
-)
+// ThrottleConfig determines how many requests a single client can make in a period of time.
+type ThrottleConfig struct {
+	// The time period to be considered.
+	Window time.Duration
+	// No more than Limit requests are allowed within the time window.
+	Limit int
+}
+
+func (t ThrottleConfig) Empty() bool {
+	return t.Window == 0 || t.Limit == 0
+}
 
 type (
 	FilterResult    int
@@ -318,23 +396,66 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 	return nil
 }
 
-// config is installed either by tests or from mainConfig in main function
-// (a separate file should install mainConfig in an init function).
+// configDontUse holds the configuration object that is installed either by tests
+// or from mainConfig in main function (a separate file should install mainConfig
+// in an init function).
+// Please access it via the getConfig(context.Context) method.
 var (
-	config     *GlobalConfig
-	mainConfig *GlobalConfig
+	configDontUse *GlobalConfig
+	mainConfig    *GlobalConfig
+)
+
+// To ensure config integrity during tests, we marshal config after it's installed
+// and optionally verify it during execution.
+var (
+	ensureConfigImmutability = false
+	marshaledConfig          = ""
 )
 
 func installConfig(cfg *GlobalConfig) {
 	checkConfig(cfg)
-	if config != nil {
+	if configDontUse != nil {
 		panic("another config is already installed")
 	}
-	config = cfg
+	configDontUse = cfg
+	if ensureConfigImmutability {
+		marshaledConfig = cfg.marshalJSON()
+	}
 	initEmailReporting()
 	initHTTPHandlers()
 	initAPIHandlers()
 	initKcidb()
+	initBatchProcessors()
+	initCoverageDB()
+}
+
+var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
+
+func contextWithConfig(c context.Context, cfg *GlobalConfig) context.Context {
+	return context.WithValue(c, &contextConfigKey, cfg)
+}
+
+func getConfig(c context.Context) *GlobalConfig {
+	// Check point.
+	validateGlobalConfig()
+
+	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
+		return val
+	}
+	return configDontUse // The base config was not overwriten.
+}
+
+func validateGlobalConfig() {
+	if ensureConfigImmutability {
+		currentConfig := configDontUse.marshalJSON()
+		if diff := cmp.Diff(currentConfig, marshaledConfig); diff != "" {
+			panic("global config changed during execution: " + diff)
+		}
+	}
+}
+
+func getNsConfig(c context.Context, ns string) *Config {
+	return getConfig(c).Namespaces[ns]
 }
 
 func checkConfig(cfg *GlobalConfig) {
@@ -347,11 +468,17 @@ func checkConfig(cfg *GlobalConfig) {
 	for i := range cfg.EmailBlocklist {
 		cfg.EmailBlocklist[i] = email.CanonicalEmail(cfg.EmailBlocklist[i])
 	}
+	if cfg.Throttle.Limit < 0 {
+		panic("throttle limit cannot be negative")
+	}
+	if (cfg.Throttle.Limit != 0) != (cfg.Throttle.Window != 0) {
+		panic("throttling window and limit must be both set")
+	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
-	checkObsoleting(cfg.Obsoleting)
+	checkObsoleting(&cfg.Obsoleting)
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
 	}
@@ -359,6 +486,25 @@ func checkConfig(cfg *GlobalConfig) {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
+	checkACL(cfg.ACL)
+}
+
+func checkACL(acls []*ACLItem) {
+	for _, acl := range acls {
+		if acl.Domain != "" && acl.Email != "" {
+			panic(fmt.Sprintf("authorization domain(%s) AND e-mail(%s) can't be used together, remove one",
+				acl.Domain, acl.Email))
+		}
+		if acl.Domain == "" && acl.Email == "" {
+			panic("authorization domain OR e-mail are needed to init config.ACL")
+		}
+		if acl.Email != "" && strings.Count(acl.Email, "@") != 1 {
+			panic(fmt.Sprintf("authorization for %s isn't possible, need @", acl.Email))
+		}
+		if acl.Domain != "" && strings.Count(acl.Domain, "@") != 0 {
+			panic(fmt.Sprintf("authorization for %s isn't possible, delete @", acl.Domain))
+		}
+	}
 }
 
 func checkDiscussionEmails(list []DiscussionEmailConfig) {
@@ -372,7 +518,7 @@ func checkDiscussionEmails(list []DiscussionEmailConfig) {
 	}
 }
 
-func checkObsoleting(o ObsoletingConfig) {
+func checkObsoleting(o *ObsoletingConfig) {
 	if (o.MinPeriod == 0) != (o.MaxPeriod == 0) {
 		panic("obsoleting: both or none of Min/MaxPeriod must be specified")
 	}
@@ -394,10 +540,13 @@ func checkObsoleting(o ObsoletingConfig) {
 	if o.MinPeriod == 0 && o.NonFinalMinPeriod != 0 {
 		panic("obsoleting: NonFinalMinPeriod without MinPeriod")
 	}
+	if o.ReproRetestStart == 0 {
+		o.ReproRetestStart = time.Hour * 24 * 14
+	}
 }
 
 func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]bool) {
-	if !namespaceNameRe.MatchString(ns) {
+	if !validator.NamespaceName(ns).Ok {
 		panic(fmt.Sprintf("bad namespace name: %q", ns))
 	}
 	if namespaces[ns] {
@@ -414,7 +563,7 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	for name, mgr := range cfg.Managers {
 		checkManager(ns, name, mgr)
 	}
-	if !clientKeyRe.MatchString(cfg.Key) {
+	if !validator.DashClientKey(cfg.Key).Ok {
 		panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
 	}
 	if len(cfg.Reporting) == 0 {
@@ -613,6 +762,10 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
 	}
+	if mgr.Priority < MinManagerPriority && mgr.Priority > MaxManagerPriority {
+		panic(fmt.Sprintf("manager %v/%v priority is not in the [%d;%d] range",
+			ns, name, MinManagerPriority, MaxManagerPriority))
+	}
 	checkCC(&mgr.CC)
 }
 
@@ -644,10 +797,10 @@ func checkConfigAccessLevel(current *AccessLevel, parent AccessLevel, what strin
 
 func checkClients(clientNames map[string]bool, clients map[string]string) {
 	for name, key := range clients {
-		if !clientNameRe.MatchString(name) {
+		if !validator.DashClientName(name).Ok {
 			panic(fmt.Sprintf("bad client name: %v", name))
 		}
-		if !clientKeyRe.MatchString(key) {
+		if !validator.DashClientKey(key).Ok {
 			panic(fmt.Sprintf("bad client key: %v", key))
 		}
 		if clientNames[name] {
@@ -665,15 +818,14 @@ func (cfg *Config) lastActiveReporting() int {
 	return last
 }
 
-var kernelReposKey = "Custom list of kernel repositories"
-
-func contextWithRepos(c context.Context, list []KernelRepo) context.Context {
-	return context.WithValue(c, &kernelReposKey, list)
+func (cfg *Config) mainRepoBranch() (repo, branch string) {
+	return cfg.Repos[0].URL, cfg.Repos[0].Branch
 }
 
-func getKernelRepos(c context.Context, ns string) []KernelRepo {
-	if val, ok := c.Value(&kernelReposKey).([]KernelRepo); ok {
-		return val
+func (gCfg *GlobalConfig) marshalJSON() string {
+	ret, err := json.MarshalIndent(gCfg, "", " ")
+	if err != nil {
+		panic(err)
 	}
-	return config.Namespaces[ns].Repos
+	return string(ret)
 }

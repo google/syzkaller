@@ -3,18 +3,19 @@
 
 shell:
  - make x86_64_defconfig: [-nodefconfig]
- - make kvm_guest.config
+ - make kvm_guest.config: [-cuttlefish]
 
 config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
  # to the builtin command line, so user can always override this.
  # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
- - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16"]
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=64 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=32 rose.rose_ndevs=32"]
  - CMDLINE_BOOL
 
  # Should be faster this way.
- - MCORE2
- - BASE_FULL
+ # MCORE2 deprecated after v6.14.
+ - MCORE2: [-linux-next]
+ - BASE_FULL: [-v6.10]
 
  # 32-on-64 support (compat).
  - IA32_EMULATION
@@ -23,7 +24,8 @@ config:
  - X86_X32_ABI: [-baseline, v5.18]
 
  # Moved from legacy config, reason for enabling is unknown.
- - KALLSYMS_ABSOLUTE_PERCPU
+ # KALLSYMS_ABSOLUTE_PERCPU deprecated after v6.14.
+ - KALLSYMS_ABSOLUTE_PERCPU: [-linux-next]
  - X86_MSR
  - X86_CPUID
  - X86_5LEVEL: n
@@ -44,7 +46,8 @@ config:
  # TODO: should we switch to virtio instead?
  - ETHERNET
  - NET_VENDOR_INTEL
- - E1000
+ # Module in cuttlefish.
+ - E1000: [-cuttlefish]
 
  - X86_ACPI_CPUFREQ
  - CPU_IDLE_GOV_HALTPOLL: [v4.16]
@@ -55,3 +58,6 @@ config:
 
  - TRACE_EVENT_INJECT: [v5.5]
  - PM_TRACE_RTC: [optional]
+
+ # Allows to boot kernel via qemu directly from a vmlinux file.
+ - PVH: [v5.0]

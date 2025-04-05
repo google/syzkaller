@@ -1,0 +1,61 @@
+TITLE: KMSAN: uninit-value in post_read_mst_fixup
+ALT: bad-access in post_read_mst_fixup
+
+[  355.605345][ T5697] =====================================================
+[  355.612721][ T5697] BUG: KMSAN: uninit-value in post_read_mst_fixup+0xab8/0xb70
+[  355.623940][ T5697]  post_read_mst_fixup+0xab8/0xb70
+[  355.629281][ T5697]  ntfs_end_buffer_async_read+0xe53/0x1820
+[  355.645706][ T5697]  end_bio_bh_io_sync+0x130/0x1d0
+[  355.650946][ T5697]  bio_endio+0xb17/0xb70
+[  355.655617][ T5697]  submit_bio_noacct+0x47d/0x2380
+[  355.660893][ T5697]  submit_bio+0x171/0x1c0
+[  355.665546][ T5697]  submit_bh_wbc+0x775/0x7e0
+[  355.670377][ T5697]  submit_bh+0x26/0x30
+[  355.674786][ T5697]  ntfs_read_folio+0x39d8/0x3ee0
+[  355.679956][ T5697]  filemap_read_folio+0xc7/0x360
+[  355.685232][ T5697]  do_read_cache_folio+0x6ad/0xc10
+[  355.690555][ T5697]  read_cache_page+0x63/0x210
+[  355.695570][ T5697]  map_mft_record+0x28b/0xe40
+[  355.695694][ T5697]  ntfs_read_locked_inode+0x355/0x58a0
+[  355.715087][ T5697]  ntfs_read_inode_mount+0x1b03/0x3640
+[  355.720795][ T5697]  ntfs_fill_super+0x2c43/0x45d0
+[  355.726760][ T5697]  mount_bdev+0x4e1/0x7f0
+[  355.731446][ T5697]  ntfs_mount+0x4d/0x60
+[  355.735912][ T5697]  legacy_get_tree+0x110/0x290
+[  355.740895][ T5697]  vfs_get_tree+0xa5/0x500
+[  355.745625][ T5697]  do_new_mount+0x68d/0x1540
+[  355.750425][ T5697]  path_mount+0x725/0x1ee0
+[  355.755141][ T5697]  __se_sys_mount+0x725/0x810
+[  355.760036][ T5697]  __ia32_sys_mount+0xe3/0x150
+[  355.765112][ T5697]  __do_fast_syscall_32+0xa2/0x100
+[  355.770499][ T5697]  do_fast_syscall_32+0x37/0x80
+[  355.775677][ T5697]  do_SYSENTER_32+0x1f/0x30
+[  355.780485][ T5697]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  355.787250][ T5697] 
+[  355.789676][ T5697] Uninit was created at:
+[  355.794296][ T5697]  __alloc_pages+0x9a4/0xe00
+[  355.799125][ T5697]  alloc_pages+0xd01/0x1040
+[  355.803947][ T5697]  folio_alloc+0x42/0x120
+[  355.808493][ T5697]  filemap_alloc_folio+0xa5/0x430
+[  355.813824][ T5697]  do_read_cache_folio+0x14b/0xc10
+[  355.819144][ T5697]  read_cache_page+0x63/0x210
+[  355.824139][ T5697]  map_mft_record+0x28b/0xe40
+[  355.829027][ T5697]  ntfs_read_locked_inode+0x355/0x58a0
+[  355.834784][ T5697]  ntfs_read_inode_mount+0x1b03/0x3640
+[  355.840455][ T5697]  ntfs_fill_super+0x2c43/0x45d0
+[  355.845714][ T5697]  mount_bdev+0x4e1/0x7f0
+[  355.850247][ T5697]  ntfs_mount+0x4d/0x60
+[  355.854719][ T5697]  legacy_get_tree+0x110/0x290
+[  355.859711][ T5697]  vfs_get_tree+0xa5/0x500
+[  355.864447][ T5697]  do_new_mount+0x68d/0x1540
+[  355.864564][ T5697]  path_mount+0x725/0x1ee0
+[  355.883761][ T5697]  __se_sys_mount+0x725/0x810
+[  355.888657][ T5697]  __ia32_sys_mount+0xe3/0x150
+[  355.893735][ T5697]  __do_fast_syscall_32+0xa2/0x100
+[  355.899074][ T5697]  do_fast_syscall_32+0x37/0x80
+[  355.904247][ T5697]  do_SYSENTER_32+0x1f/0x30
+[  355.908985][ T5697]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  355.915668][ T5697] 
+[  355.918097][ T5697] CPU: 0 PID: 5697 Comm: syz-executor.5 Not tainted 6.4.0-rc4-syzkaller-g2741f1b02117 #0
+[  355.928237][ T5697] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/25/2023
+[  355.938565][ T5697] =====================================================

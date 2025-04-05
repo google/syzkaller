@@ -24,7 +24,7 @@ type anyTypes struct {
 
 func (target *Target) initAnyTypes() {
 	var anyPtrs *UnionType
-	for _, typ := range target.types {
+	for _, typ := range target.Types {
 		if typ.Name() == "ANYPTRS" {
 			anyPtrs = typ.(*UnionType)
 			break
@@ -80,38 +80,28 @@ func (p *Prog) complexPtrs() (res []complexPtr) {
 }
 
 func (target *Target) isComplexPtr(arg *PointerArg) bool {
-	if arg.Res == nil || arg.Dir() != DirIn {
+	if arg.Res == nil || !arg.Type().(*PtrType).SquashableElem {
 		return false
 	}
 	if target.isAnyPtr(arg.Type()) {
 		return true
 	}
-	complex, unsupported := false, false
+	complex := false
 	ForeachSubArg(arg.Res, func(a1 Arg, ctx *ArgCtx) {
 		switch typ := a1.Type().(type) {
 		case *StructType:
-			if typ.OverlayField != 0 {
-				// Squashing of structs with out_overlay is not supported.
-				// If we do it, we need to be careful to either squash out part as well,
-				// or remove any resources in the out part from the prog.
-				unsupported = true
-				ctx.Stop = true
-			}
 			if typ.Varlen() {
 				complex = true
+				ctx.Stop = true
 			}
 		case *UnionType:
 			if typ.Varlen() && len(typ.Fields) > 5 {
 				complex = true
+				ctx.Stop = true
 			}
-		case *PtrType:
-			// Squashing of pointers is not supported b/c if we do it
-			// we will pass random garbage as pointers.
-			unsupported = true
-			ctx.Stop = true
 		}
 	})
-	return complex && !unsupported
+	return complex
 }
 
 func (target *Target) isAnyRes(name string) bool {
@@ -126,7 +116,7 @@ func (target *Target) isAnyRes(name string) bool {
 
 func (target *Target) CallContainsAny(c *Call) (res bool) {
 	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
-		if target.isAnyPtr(arg.Type()) {
+		if target.isAnyPtr(arg.Type()) || res {
 			res = true
 			ctx.Stop = true
 		}
@@ -136,7 +126,7 @@ func (target *Target) CallContainsAny(c *Call) (res bool) {
 
 func (target *Target) ArgContainsAny(arg0 Arg) (res bool) {
 	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
-		if target.isAnyPtr(arg.Type()) {
+		if target.isAnyPtr(arg.Type()) || res {
 			res = true
 			ctx.Stop = true
 		}
@@ -185,7 +175,7 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 	case *GroupArg:
 		target.squashGroup(arg, elems)
 	default:
-		panic("bad arg kind")
+		panic(fmt.Sprintf("bad arg kind %v (%#v) %v", a, a, a.Type()))
 	}
 	if pad != 0 {
 		elem := target.ensureDataElem(elems)
@@ -250,7 +240,6 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 		panic("bad")
 	}
 	arg.ref = typ.ref()
-	arg.dir = DirIn
 	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg, index))
 }
 

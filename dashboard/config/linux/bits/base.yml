@@ -51,7 +51,8 @@ config:
 
  # Speeds up randomness initialization.
  - HW_RANDOM
- - HW_RANDOM_VIRTIO
+ # Included as a module in Cuttlefish.
+ - HW_RANDOM_VIRTIO: [-cuttlefish]
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
@@ -61,7 +62,7 @@ config:
  # For detection of supported syscalls
  - KALLSYMS
  - KALLSYMS_ALL
- - KALLSYMS_BASE_RELATIVE
+ - KALLSYMS_BASE_RELATIVE: [-v6.11]
 
  # For namespace sandbox.
  - NAMESPACES
@@ -75,17 +76,19 @@ config:
  # Control groups are needed for better sandboxing of test processes.
  - CGROUP_PIDS
  - MEMCG
+ - MEMCG_V1: [v6.11]
 
  # Debugging features (from kernel_configs.md, do not alpha sort).
  - DEBUG_BUGVERBOSE
  - PANIC_ON_OOPS
  - PANIC_TIMEOUT: 86400
  - SCHED_STACK_END_CHECK
- - FORTIFY_SOURCE: [-riscv, -clang]
+ - FORTIFY_SOURCE: [-riscv, v5.18]
  - HARDENED_USERCOPY
  - HARDENED_USERCOPY_FALLBACK: [-v5.15]
  - BUG_ON_DATA_CORRUPTION
- - DEBUG_LIST
+ # TODO: remove when https://github.com/google/syzkaller/issues/4504 is fixed.
+ - DEBUG_LIST: [-kmsan]
  - DEBUG_STACKOVERFLOW: [-v5.0]
 
  # CONFIG_DEBUG_PI_LIST was renamed to CONFIG_DEBUG_PLIST in 8e18faeac3e4.
@@ -126,7 +129,12 @@ config:
  # (!ARCH_WANTS_NO_INSTR [=y] || STACK_VALIDATION [=n] || GCC_VERSION [=110200]>=120000 || CLANG_VERSION [=0]>=130000)
  - KCOV: [-arm, -s390, -nokcov]
  - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
- - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov]
+ # Doesn't boot with KCOV_ENABLE_COMPARISONS on Cuttlefish.
+ - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov, -cuttlefish]
+ # As of Sep 2024, the test does not pass (at least) on gcc-built kernels.
+ # https://lore.kernel.org/all/66eb52dc.050a0220.92ef1.0006.GAE@google.com/T/
+ # TODO: re-enable the option once the problem is addressed.
+ - KCOV_SELFTEST: n
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
@@ -168,8 +176,16 @@ config:
  - CONFIGFS_FS
  - SECURITYFS
 
+ # Multi-gen LRU is the new better LRU implementation
+ # that is supposed to be the default in future,
+ # so we want to enable it in most tested kernels.
+ # It has no relation to smack, but we use the smack tag
+ # just to get some kernels tested w/o multi-gen LRU as well.
+ - LRU_GEN: [v6.1, -nodefconfig, -smack]
+ - LRU_GEN_ENABLED: [v6.1, -nodefconfig, -smack]
+
  # More debugging info is always good.
- - NMI_CHECK_CPU: [linux-next]
+ - NMI_CHECK_CPU: [x86_64, v6.3]
 
  # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
  # It managed to do so with some mount's, chdir's and bogus file names.

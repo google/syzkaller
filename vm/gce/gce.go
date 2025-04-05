@@ -15,6 +15,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,7 +36,11 @@ import (
 )
 
 func init() {
-	vmimpl.Register("gce", ctor, true)
+	vmimpl.Register("gce", vmimpl.Type{
+		Ctor:        ctor,
+		Overcommit:  true,
+		Preemptible: true,
+	})
 }
 
 type Config struct {
@@ -45,6 +51,15 @@ type Config struct {
 	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
 	Preemptible   bool   `json:"preemptible"`    // use preemptible VMs if available (defaults to true)
 	DisplayDevice bool   `json:"display_device"` // enable a virtual display device
+	// Username to connect to ssh-serialport.googleapis.com.
+	// Leave empty for non-OS Login GCP projects.
+	// Otherwise take the user from `gcloud compute connect-to-serial-port --dry-run`.
+	SerialPortUser string `json:"serial_port_user"`
+	// A private key to connect to ssh-serialport.googleapis.com.
+	// Leave empty for non-OS Login GCP projects.
+	// Otherwise generate one and upload it:
+	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
+	SerialPortKey string `json:"serial_port_key"`
 }
 
 type Pool struct {
@@ -55,18 +70,17 @@ type Pool struct {
 }
 
 type instance struct {
-	env            *vmimpl.Env
-	cfg            *Config
-	GCE            *gce.Context
-	debug          bool
-	name           string
-	ip             string
+	env   *vmimpl.Env
+	cfg   *Config
+	GCE   *gce.Context
+	debug bool
+	name  string
+	vmimpl.SSHOptions
 	gceKey         string // per-instance private ssh key associated with the instance
-	sshKey         string // ssh key
-	sshUser        string
 	closed         chan bool
 	consolew       io.WriteCloser
 	consoleReadCmd string // optional: command to read non-standard kernel console
+	timeouts       targets.Timeouts
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -78,19 +92,16 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
 	cfg := &Config{
-		Count:         1,
-		Preemptible:   true,
-		DisplayDevice: true,
+		Count:       1,
+		Preemptible: true,
+		// Display device is not supported on other platforms.
+		DisplayDevice: env.Arch == targets.AMD64,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse gce vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse gce vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
-	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
 	}
 	if cfg.MachineType == "" {
 		return nil, fmt.Errorf("machine_type parameter is empty")
@@ -105,10 +116,11 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
-	GCE, err := gce.NewContext(cfg.ZoneID)
+	GCE, err := initGCE(cfg.ZoneID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init gce: %v", err)
+		return nil, err
 	}
+
 	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
 
@@ -121,10 +133,10 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		}
 		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
-			return nil, fmt.Errorf("failed to delete GCE image: %v", err)
+			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
 		}
 		if err := GCE.CreateImage(cfg.GCEImage, gcsImage); err != nil {
-			return nil, fmt.Errorf("failed to create GCE image: %v", err)
+			return nil, fmt.Errorf("failed to create GCE image: %w", err)
 		}
 	}
 	pool := &Pool{
@@ -134,6 +146,30 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		consoleReadCmd: consoleReadCmd,
 	}
 	return pool, nil
+}
+
+func initGCE(zoneID string) (*gce.Context, error) {
+	// There happen some transient GCE init errors on and off.
+	// Let's try it several times before aborting.
+	const (
+		gceInitAttempts = 3
+		gceInitBackoff  = 5 * time.Second
+	)
+	var (
+		GCE *gce.Context
+		err error
+	)
+	for i := 1; i <= gceInitAttempts; i++ {
+		if i > 1 {
+			time.Sleep(gceInitBackoff)
+		}
+		GCE, err = gce.NewContext(zoneID)
+		if err == nil {
+			return GCE, nil
+		}
+		log.Logf(0, "init GCE attempt %d/%d failed: %v", i, gceInitAttempts, err)
+	}
+	return nil, fmt.Errorf("all attempts to init GCE failed: %w", err)
 }
 
 func (pool *Pool) Count() int {
@@ -146,11 +182,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	gceKey := filepath.Join(workdir, "key")
 	keygen := osutil.Command("ssh-keygen", "-t", "ed25519", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
+		return nil, fmt.Errorf("failed to execute ssh-keygen: %w\n%s", err, out)
 	}
 	gceKeyPub, err := os.ReadFile(gceKey + ".pub")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %v", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	log.Logf(0, "deleting instance: %v", name)
@@ -178,37 +214,47 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser = "syzkaller"
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
-		output, outputErr := pool.getSerialPortOutput(name, gceKey)
+	inst := &instance{
+		env:   pool.env,
+		cfg:   pool.cfg,
+		debug: pool.env.Debug,
+		GCE:   pool.GCE,
+		name:  name,
+		SSHOptions: vmimpl.SSHOptions{
+			Addr: ip,
+			Port: 22,
+			Key:  sshKey,
+			User: sshUser,
+		},
+
+		gceKey: gceKey,
+
+		closed:         make(chan bool),
+		consoleReadCmd: pool.consoleReadCmd,
+		timeouts:       pool.env.Timeouts,
+	}
+	if err := vmimpl.WaitForSSH(5*time.Minute, inst.SSHOptions,
+		pool.env.OS, nil, false, pool.env.Debug); err != nil {
+		output, outputErr := inst.getSerialPortOutput()
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
 		}
 		return nil, vmimpl.MakeBootError(err, output)
 	}
 	ok = true
-	inst := &instance{
-		env:            pool.env,
-		cfg:            pool.cfg,
-		debug:          pool.env.Debug,
-		GCE:            pool.GCE,
-		name:           name,
-		ip:             ip,
-		gceKey:         gceKey,
-		sshKey:         sshKey,
-		sshUser:        sshUser,
-		closed:         make(chan bool),
-		consoleReadCmd: pool.consoleReadCmd,
-	}
 	return inst, nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	close(inst.closed)
-	inst.GCE.DeleteInstance(inst.name, false)
+	err := inst.GCE.DeleteInstance(inst.name, false)
 	if inst.consolew != nil {
-		inst.consolew.Close()
+		err2 := inst.consolew.Close()
+		if err == nil {
+			err = err2
+		}
 	}
+	return err
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -217,7 +263,8 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(true, inst.sshKey, 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
+	args := append(vmimpl.SCPArgs(true, inst.Key, inst.Port, false),
+		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
 	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
@@ -233,11 +280,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	var conArgs []string
 	if inst.consoleReadCmd == "" {
-		conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
-			inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
-		conArgs = append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
-		// TODO: remove this later (see also a comment in getSerialPortOutput).
-		conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+		conArgs = inst.serialPortArgs(false)
 	} else {
 		conArgs = inst.sshArgs(inst.consoleReadCmd)
 	}
@@ -258,7 +301,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if err := con.Start(); err != nil {
 		conRpipe.Close()
 		conWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to connect to console server: %v", err)
+		return nil, nil, fmt.Errorf("failed to connect to console server: %w", err)
 	}
 	conWpipe.Close()
 
@@ -292,59 +335,36 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		merger.Wait()
 		sshRpipe.Close()
 		sshWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to connect to instance: %v", err)
+		return nil, nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
 	sshWpipe.Close()
 	merger.Add("ssh", sshRpipe)
 
-	errc := make(chan error, 1)
-	signal := func(err error) {
-		select {
-		case errc <- err:
-		default:
-		}
-	}
-
-	go func() {
-		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
-			signal(vmimpl.ErrTimeout)
-		case <-inst.closed:
-			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
-			con.Process.Kill()
-			ssh.Process.Kill()
-			merger.Wait()
-			con.Wait()
-			if cmdErr := ssh.Wait(); cmdErr == nil {
-				// If the command exited successfully, we got EOF error from merger.
-				// But in this case no error has happened and the EOF is expected.
-				err = nil
-			} else if merr, ok := err.(vmimpl.MergerError); ok && merr.R == conRpipe {
+	return vmimpl.Multiplex(ssh, merger, timeout, vmimpl.MultiplexConfig{
+		Console: vmimpl.CmdCloser{Cmd: con},
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+		IgnoreError: func(err error) bool {
+			var mergeError *vmimpl.MergerError
+			if errors.As(err, &mergeError) && mergeError.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
-				log.Logf(0, "%v: gce console connection failed with %v", inst.name, merr.Err)
-				err = vmimpl.ErrTimeout
+				log.Logf(0, "%v: gce console connection failed with %v", inst.name, mergeError.Err)
+				return true
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
-				time.Sleep(5 * time.Second) // just to avoid any GCE races
+				// vmimpl.Multiplex() already adds a delay, so we've already waited enough
+				// to let GCE VM status updates propagate.
 				if !inst.GCE.IsInstanceRunning(inst.name) {
 					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
-					err = vmimpl.ErrTimeout
+					return true
 				}
 			}
-			signal(err)
-			return
-		}
-		con.Process.Kill()
-		ssh.Process.Kill()
-		merger.Wait()
-		con.Wait()
-		ssh.Wait()
-	}()
-	return merger.Output, errc, nil
+			return false
+		},
+	})
 }
 
 func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
@@ -400,27 +420,43 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.ip)
-	if inst.env.OS == targets.Linux && inst.sshUser != "root" {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.Key, 22, false), inst.User+"@"+inst.Addr)
+	if inst.env.OS == targets.Linux && inst.User != "root" {
 		args = []string{"sudo", "bash", "-c", "'" + strings.Join(args, " ") + "'"}
 	}
 	return append(sshArgs, args...)
 }
 
-func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
+func (inst *instance) serialPortArgs(replay bool) []string {
+	user := "syzkaller"
+	if inst.cfg.SerialPortUser != "" {
+		user = inst.cfg.SerialPortUser
+	}
+	key := inst.gceKey
+	if inst.cfg.SerialPortKey != "" {
+		key = inst.cfg.SerialPortKey
+	}
+	replayArg := ""
+	if replay {
+		replayArg = ".replay-lines=10000"
+	}
+	conAddr := fmt.Sprintf("%v.%v.%v.%s.port=1%s@%v-ssh-serialport.googleapis.com",
+		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name, user, replayArg, inst.GCE.RegionID)
+	conArgs := append(vmimpl.SSHArgs(inst.debug, key, 9600, false), conAddr)
+	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
+	// host key algorithm: ssh-rsa.
+	return append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+}
+
+func (inst *instance) getSerialPortOutput() ([]byte, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}
 	defer conRpipe.Close()
 	defer conWpipe.Close()
-	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
-		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
-	conArgs := append(vmimpl.SSHArgs(pool.env.Debug, gceKey, 9600), conAddr)
-	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
-	// host key algorithm: ssh-rsa.
-	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
-	con := osutil.Command("ssh", conArgs...)
+
+	con := osutil.Command("ssh", inst.serialPortArgs(true)...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
 	con.Stderr = conWpipe
@@ -428,7 +464,7 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 		return nil, err
 	}
 	if err := con.Start(); err != nil {
-		return nil, fmt.Errorf("failed to connect to console server: %v", err)
+		return nil, fmt.Errorf("failed to connect to console server: %w", err)
 	}
 	conWpipe.Close()
 	done := make(chan bool)
@@ -456,25 +492,25 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 }
 
 func uploadImageToGCS(localImage, gcsImage string) error {
-	GCS, err := gcs.NewClient()
+	GCS, err := gcs.NewClient(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
+		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
 	defer GCS.Close()
 
 	localReader, err := os.Open(localImage)
 	if err != nil {
-		return fmt.Errorf("failed to open image file: %v", err)
+		return fmt.Errorf("failed to open image file: %w", err)
 	}
 	defer localReader.Close()
 	localStat, err := localReader.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to stat image file: %v", err)
+		return fmt.Errorf("failed to stat image file: %w", err)
 	}
 
-	gcsWriter, err := GCS.FileWriter(gcsImage)
+	gcsWriter, err := GCS.FileWriter(gcsImage, "", "")
 	if err != nil {
-		return fmt.Errorf("failed to upload image: %v", err)
+		return fmt.Errorf("failed to upload image: %w", err)
 	}
 	defer gcsWriter.Close()
 
@@ -491,19 +527,19 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 	}
 	setGNUFormat(tarHeader)
 	if err := tarWriter.WriteHeader(tarHeader); err != nil {
-		return fmt.Errorf("failed to write image tar header: %v", err)
+		return fmt.Errorf("failed to write image tar header: %w", err)
 	}
 	if _, err := io.Copy(tarWriter, localReader); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := tarWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := gzipWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
-		return fmt.Errorf("failed to write image file: %v", err)
+		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
 }

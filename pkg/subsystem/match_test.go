@@ -16,6 +16,10 @@ func TestPathMatcher(t *testing.T) {
 				IncludeRegexp: `^arch/arm/.*$`,
 				ExcludeRegexp: `^arch/arm/boot/dts/.*$`,
 			},
+			// Add a somewhat overlapping rule so that we test that no duplicates are returned.
+			{
+				IncludeRegexp: `^arch/arm/a/.*$`,
+			},
 			{IncludeRegexp: `^drivers/spi/spi-pl022\.c$`},
 			{
 				// nolint:lll
@@ -31,7 +35,7 @@ func TestPathMatcher(t *testing.T) {
 	m := MakePathMatcher([]*Subsystem{arm, docs})
 	assert.ElementsMatch(t, []*Subsystem{arm, docs},
 		m.Match(`Documentation/devicetree/bindings/interrupt-controller/arm,vic.yaml`))
-	assert.ElementsMatch(t, []*Subsystem{arm}, m.Match(`arch/arm/a.c`))
+	assert.ElementsMatch(t, []*Subsystem{arm}, m.Match(`arch/arm/a/a.c`))
 	assert.ElementsMatch(t, []*Subsystem{docs}, m.Match(`Documentation/a/b/c.md`))
 	assert.Empty(t, m.Match(`arch/boot/dts/a.c`))
 }

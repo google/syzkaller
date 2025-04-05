@@ -19,7 +19,7 @@ define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
 # First does the setup calling io_uring_setup, than calls mmap to map the ring and
 # the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
 # with fuzzer-provided mmap length. This wrapper ensures correct length computation.
-syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], addr_ring vma, addr_sqes vma, ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
 
 io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
@@ -54,8 +54,20 @@ io_uring_register$IORING_REGISTER_IOWQ_MAX_WORKERS(fd fd_io_uring, opcode const[
 io_uring_register$IORING_REGISTER_RING_FDS(fd fd_io_uring, opcode const[IORING_REGISTER_RING_FDS], arg ptr[in, array[io_uring_rsrc_register]], nr_args len[arg])
 io_uring_register$IORING_UNREGISTER_RING_FDS(fd fd_io_uring, opcode const[IORING_UNREGISTER_RING_FDS], arg ptr[in, array[io_uring_rsrc_register]], nr_args len[arg])
 # IORING_REGISTER_RING_FDS, IORING_UNREGISTER_RING_FDS >= 5.18
+io_uring_register$IORING_REGISTER_PBUF_RING(fd fd_io_uring, opcode const[IORING_REGISTER_PBUF_RING], arg ptr[in, io_uring_buf_reg], nr_args const[1])
+io_uring_register$IORING_UNREGISTER_PBUF_RING(fd fd_io_uring, opcode const[IORING_UNREGISTER_PBUF_RING], arg ptr[in, io_uring_buf_reg], nr_args const[1])
+# IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING >= 5.19
+io_uring_register$IORING_REGISTER_SYNC_CANCEL(fd fd_io_uring, opcode const[IORING_REGISTER_SYNC_CANCEL], arg ptr[in, io_uring_sync_cancel_reg], nr_args const[1])
+io_uring_register$IORING_REGISTER_FILE_ALLOC_RANGE(fd fd_io_uring, opcode const[IORING_REGISTER_FILE_ALLOC_RANGE], arg ptr[in, io_uring_file_index_range], nr_args const[0])
+io_uring_register$IORING_REGISTER_PBUF_STATUS(fd fd_io_uring, opcode const[IORING_REGISTER_PBUF_STATUS], arg ptr[in, io_uring_buf_status], nr_args const[1])
+io_uring_register$IORING_REGISTER_NAPI(fd fd_io_uring, opcode const[IORING_REGISTER_NAPI], arg ptr[in, io_uring_napi], nr_args const[1])
+io_uring_register$IORING_UNREGISTER_NAPI(fd fd_io_uring, opcode const[IORING_UNREGISTER_NAPI], arg ptr[out, io_uring_napi], nr_args const[1])
+io_uring_register$IORING_REGISTER_CLOCK(fd fd_io_uring, opcode const[IORING_REGISTER_CLOCK], arg ptr[in, io_uring_clock_register], nr_args const[0])
+io_uring_register$IORING_REGISTER_CLONE_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_CLONE_BUFFERS], arg ptr[in, io_uring_clone_buffers], nr_args const[1])
+io_uring_register$IORING_REGISTER_RESIZE_RINGS(fd fd_io_uring, opcode const[IORING_REGISTER_RESIZE_RINGS], arg ptr[in, io_uring_params], nr_args const[1])
+io_uring_register$IORING_REGISTER_MEM_REGION(fd fd_io_uring, opcode const[IORING_REGISTER_MEM_REGION], arg ptr[in, io_uring_mem_region_reg], nr_args const[1])
 
-io_uring_register_opcodes = IORING_REGISTER_BUFFERS, IORING_UNREGISTER_BUFFERS, IORING_REGISTER_FILES, IORING_UNREGISTER_FILES, IORING_REGISTER_EVENTFD, IORING_UNREGISTER_EVENTFD, IORING_REGISTER_FILES_UPDATE, IORING_REGISTER_EVENTFD_ASYNC, IORING_REGISTER_PROBE, IORING_REGISTER_PERSONALITY, IORING_UNREGISTER_PERSONALITY, IORING_REGISTER_RESTRICTIONS, IORING_REGISTER_ENABLE_RINGS, IORING_REGISTER_FILES2, IORING_REGISTER_FILES_UPDATE2, IORING_REGISTER_BUFFERS2, IORING_REGISTER_BUFFERS_UPDATE, IORING_REGISTER_IOWQ_AFF, IORING_UNREGISTER_IOWQ_AFF, IORING_REGISTER_IOWQ_MAX_WORKERS, IORING_REGISTER_RING_FDS, IORING_UNREGISTER_RING_FDS, IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING, IORING_REGISTER_SYNC_CANCEL, IORING_REGISTER_FILE_ALLOC_RANGE
+io_uring_register_opcodes = IORING_REGISTER_BUFFERS, IORING_UNREGISTER_BUFFERS, IORING_REGISTER_FILES, IORING_UNREGISTER_FILES, IORING_REGISTER_EVENTFD, IORING_UNREGISTER_EVENTFD, IORING_REGISTER_FILES_UPDATE, IORING_REGISTER_EVENTFD_ASYNC, IORING_REGISTER_PROBE, IORING_REGISTER_PERSONALITY, IORING_UNREGISTER_PERSONALITY, IORING_REGISTER_RESTRICTIONS, IORING_REGISTER_ENABLE_RINGS, IORING_REGISTER_FILES2, IORING_REGISTER_FILES_UPDATE2, IORING_REGISTER_BUFFERS2, IORING_REGISTER_BUFFERS_UPDATE, IORING_REGISTER_IOWQ_AFF, IORING_UNREGISTER_IOWQ_AFF, IORING_REGISTER_IOWQ_MAX_WORKERS, IORING_REGISTER_RING_FDS, IORING_UNREGISTER_RING_FDS, IORING_REGISTER_PBUF_RING, IORING_UNREGISTER_PBUF_RING, IORING_REGISTER_SYNC_CANCEL, IORING_REGISTER_FILE_ALLOC_RANGE, IORING_REGISTER_PBUF_STATUS, IORING_REGISTER_NAPI, IORING_UNREGISTER_NAPI, IORING_REGISTER_CLOCK, IORING_REGISTER_CLONE_BUFFERS, IORING_REGISTER_SEND_MSG_RING, IORING_REGISTER_RESIZE_RINGS, IORING_REGISTER_MEM_REGION
 
 # The mmap'ed area for SQ and CQ rings are really the same -- the difference is
 # accounted for with the usage of offsets.
@@ -64,7 +76,7 @@ mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags fl
 mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES]) sqes_ptr
 
 # If no flags are specified(0), the io_uring instance is setup for interrupt driven IO.
-io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP, IORING_SETUP_ATTACH_WQ, IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE, IORING_FEAT_RW_CUR_POS, IORING_FEAT_FAST_POLL, IORING_FEAT_POLL_32BITS, IORING_SETUP_R_DISABLED, IORING_FEAT_SQPOLL_NONFIXED, IORING_FEAT_NATIVE_WORKERS, IORING_FEAT_RSRC_TAGS, IORING_FEAT_CQE_SKIP, IORING_SETUP_SUBMIT_ALL, IORING_SETUP_COOP_TASKRUN, IORING_SETUP_TASKRUN_FLAG, IORING_SETUP_SQE128, IORING_SETUP_CQE32
+io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP, IORING_SETUP_ATTACH_WQ, IORING_FEAT_SINGLE_MMAP, IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE, IORING_FEAT_RW_CUR_POS, IORING_FEAT_FAST_POLL, IORING_FEAT_POLL_32BITS, IORING_SETUP_R_DISABLED, IORING_FEAT_SQPOLL_NONFIXED, IORING_FEAT_NATIVE_WORKERS, IORING_FEAT_RSRC_TAGS, IORING_FEAT_CQE_SKIP, IORING_FEAT_LINKED_FILE, IORING_FEAT_REG_REG_RING, IORING_FEAT_RECVSEND_BUNDLE, IORING_FEAT_MIN_TIMEOUT, IORING_SETUP_SUBMIT_ALL, IORING_SETUP_COOP_TASKRUN, IORING_SETUP_TASKRUN_FLAG, IORING_SETUP_SQE128, IORING_SETUP_CQE32, IORING_SETUP_SINGLE_ISSUER, IORING_SETUP_DEFER_TASKRUN, IORING_SETUP_NO_MMAP, IORING_SETUP_REGISTERED_FD_ONLY, IORING_SETUP_NO_SQARRAY, IORING_SETUP_HYBRID_IOPOLL
 # watch out the being tested kernel version
 # IORING_FEAT_SINGLE_MMAP >= 5.4
 # IORING_FEAT_NODROP, IORING_FEAT_SUBMIT_STABLE >= 5.5
@@ -78,8 +90,10 @@ io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP
 # IORING_FEAT_CQE_SKIP >= 5.17
 # IORING_SETUP_SUBMIT_ALL >= 5.18
 # IORING_SETUP_COOP_TASKRUN, IORING_SETUP_TASKRUN_FLAG, IORING_SETUP_SQE128, IORING_SETUP_CQE32 >= 5.19
+# IORING_SETUP_SINGLE_ISSUER >= 6.0
+# IORING_SETUP_DEFER_TASKRUN >= 6.1
 
-io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP, IORING_ENTER_SQ_WAIT, IORING_ENTER_EXT_ARG, IORING_ENTER_REGISTERED_RING
+io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP, IORING_ENTER_SQ_WAIT, IORING_ENTER_EXT_ARG, IORING_ENTER_REGISTERED_RING, IORING_ENTER_ABS_TIMER, IORING_ENTER_EXT_ARG_REG
 # IORING_ENTER_EXT_ARG >= 5.11
 _ = __NR_mmap2
 
@@ -103,7 +117,7 @@ define CQ_RING_OVERFLOW_OFFSET	284
 define CQ_FLAGS_OFFSET	280
 
 # Notice all offsets are pointing to uint32 values. This is assumed for the
-io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_FLAGS_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, CQ_FLAGS_OFFSET
+io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, io_uring_flags_offsets
 
 # Also, all values are int32, thus, set nbytes to 4.
 syz_memcpy_off$IO_URING_METADATA_GENERIC(ring_ptr ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])
@@ -170,6 +184,26 @@ io_uring_rsrc_update2 {
 	resv2	const[0, int32]
 }
 
+io_uring_buf {
+	addr	ptr64[in, array[int8]]
+	len	len[addr, int32]
+	bid	io_uring_bid[int16]
+	resv	const[0, int16]
+}
+
+io_uring_buf_array {
+	data	array[io_uring_buf]
+} [align[4096]]
+
+io_uring_buf_reg {
+	ring_addr	ptr64[in, io_uring_buf_array]
+	ring_entries	len[ring_addr:data, int32]
+	bgid		io_uring_bgid[int16]	(in)
+# IOU_PBUF_RING_MMAP not supported yet
+	flags		const[0, int16]
+	resv		array[const[0, int64], 3]
+}
+
 io_uring_params {
 	sq_entries	int32	(out)
 	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]	(inout)
@@ -196,7 +230,7 @@ io_uring_params {
 syz_io_uring_complete(ring_ptr ring_ptr) fd
 
 # Submit sqe into the sq_ring
-syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u], sqes_index int32)
+syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u])
 
 io_uring_sqe_u [
 	IORING_OP_NOP			io_uring_sqe$nop
@@ -298,12 +332,12 @@ type io_uring_sqe$poll_remove io_uring_sqe[IORING_OP_POLL_REMOVE, const[0, int16
 type io_uring_sqe$sync_file_range io_uring_sqe[IORING_OP_SYNC_FILE_RANGE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[sync_file_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_SYNC_FILE_RANGE >= 5.2
 type io_uring_sqe$sendmsg io_uring_sqe[IORING_OP_SENDMSG, const[0, int16], sock, const[0, int64], ptr[in, send_msghdr], const[0, int32], flags[send_flags, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$recvmsg io_uring_sqe[IORING_OP_RECVMSG, const[0, int16], sock, const[0, int64], ptr[inout, recv_msghdr], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
+type io_uring_sqe$recvmsg io_uring_sqe[IORING_OP_RECVMSG, flags[iouring_recv_ioprio, int16], sock, const[0, int64], ptr[inout, recv_msghdr], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
 # IORING_OP_SENDMSG, IORING_OP_RECVMSG >= 5.3
 type io_uring_sqe$timeout io_uring_sqe[IORING_OP_TIMEOUT, const[0, int16], const[0, int32], io_uring_timeout_completion_event_count, ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_TIMEOUT >= 5.4
 type io_uring_sqe$timeout_remove io_uring_sqe[IORING_OP_TIMEOUT_REMOVE, const[0, int16], const[0, int32], const[0, int64], flags[sqe_user_data, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$accept io_uring_sqe[IORING_OP_ACCEPT, const[0, int16], sock, ptr[inout, len[addr, int32]], ptr[out, sockaddr_storage, opt], const[0, int32], flags[accept_flags, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$accept io_uring_sqe[IORING_OP_ACCEPT, flags[iouring_accept_flags, int16], sock, ptr[inout, len[addr, int32]], ptr[out, sockaddr_storage, opt], const[0, int32], flags[accept_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$async_cancel io_uring_sqe[IORING_OP_ASYNC_CANCEL, const[0, int16], const[0, int32], const[0, int64], flags[sqe_user_data, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$link_timeout io_uring_sqe[IORING_OP_LINK_TIMEOUT, const[0, int16], const[0, int32], const[0, int64], ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$connect io_uring_sqe[IORING_OP_CONNECT, const[0, int16], sock, len[addr, int32], ptr[in, sockaddr_storage], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
@@ -313,6 +347,8 @@ type io_uring_sqe$openat io_uring_sqe[IORING_OP_OPENAT, const[0, int16], fd_dir[
 type io_uring_sqe$close io_uring_sqe[IORING_OP_CLOSE, const[0, int16], fd, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$files_update io_uring_sqe[IORING_OP_FILES_UPDATE, const[0, int16], const[0, int32], fileoff[int64], ptr[in, array[fd]], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$statx io_uring_sqe[IORING_OP_STATX, const[0, int16], fd_dir[opt], ptr[out, statx], ptr64[in, filename], flags[statx_mask, int32], flags[statx_flags, int32], sqe_user_data_not_openat, personality_only_misc]
+
+iouring_accept_flags = IORING_ACCEPT_MULTISHOT, IORING_ACCEPT_DONTWAIT, IORING_ACCEPT_POLL_FIRST
 
 io_uring_sqe_read [
 	pass_buffer		io_uring_sqe[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[out], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data_not_openat, personality_only_misc]
@@ -324,9 +360,11 @@ type io_uring_sqe$fadvise io_uring_sqe[IORING_OP_FADVISE, const[0, int16], fd_or
 type io_uring_sqe$madvise io_uring_sqe[IORING_OP_MADVISE, const[0, int16], const[0, int32], const[0, int64], vma, len[addr, int32], flags[madvise_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$send io_uring_sqe[IORING_OP_SEND, const[0, int16], sock, const[0, int64], buffer[in], len[addr, int32], flags[send_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 
+iouring_recv_ioprio = IORING_RECVSEND_POLL_FIRST, IORING_RECV_MULTISHOT, IORING_RECVSEND_FIXED_BUF, IORING_RECVSEND_BUNDLE
+
 io_uring_sqe_recv [
 	pass_buffer		io_uring_sqe[IORING_OP_RECV, const[0, int16], sock, const[0, int64], buffer[inout], len[addr, int32], flags[recv_flags, int32], sqe_user_data_not_openat, personality_only_misc]
-	use_registered_buffer	io_uring_sqe[IORING_OP_RECV, const[0, int16], sock, const[0, int64], const[0, int64], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
+	use_registered_buffer	io_uring_sqe[IORING_OP_RECV, flags[iouring_recv_ioprio, int16], sock, const[0, int64], const[0, int64], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
 ]
 
 type io_uring_sqe$openat2 io_uring_sqe[IORING_OP_OPENAT2, const[0, int16], fd_dir[opt], ptr[in, open_how], ptr64[in, filename], bytesize[off, int32], const[0, int32], sqe_user_data_openat, personality_only_misc]
@@ -358,7 +396,10 @@ type io_uring_sqe$symlinkat io_uring_sqe[IORING_OP_SYMLINKAT, const[0, int16], f
 type io_uring_sqe$linkat io_uring_sqe[IORING_OP_LINKAT, const[0, int16], fd_dir, ptr64[in, filename], ptr64[in, filename], fd_dir, flags[linkat_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_MKDIRAT, IORING_OP_SYMLINKAT, IORING_OP_LINKAT >= 5.15
 
-type io_uring_sqe$msg_ring io_uring_sqe[IORING_OP_MSG_RING, const[0, int16], fd_io_uring, int64, buffer[in], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+iouring_msg_ring_cmd_flags = IORING_MSG_DATA, IORING_MSG_SEND_FD
+msg_ring_flags = IORING_MSG_RING_CQE_SKIP, IORING_MSG_RING_FLAGS_PASS
+
+type io_uring_sqe$msg_ring io_uring_sqe[IORING_OP_MSG_RING, const[0, int16], fd_io_uring, flags[iouring_msg_ring_cmd_flags, int64], buffer[in], len[addr, int32], flags[msg_ring_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_MSG_RING >= 5.18
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -388,7 +429,7 @@ fd_or_fixed_fd_index [
 io_uring_fsync_flags = 0, IORING_FSYNC_DATASYNC
 
 # 0 for relative, IORING_TIMEOUT_ABS for absolute timeout value
-io_uring_timeout_flags = 0, IORING_TIMEOUT_ABS
+io_uring_timeout_flags = 0, IORING_TIMEOUT_ABS, IORING_TIMEOUT_UPDATE, IORING_TIMEOUT_BOOTTIME, IORING_TIMEOUT_REALTIME, IORING_LINK_TIMEOUT_UPDATE, IORING_TIMEOUT_ETIME_SUCCESS, IORING_TIMEOUT_MULTISHOT, IORING_TIMEOUT_CLOCK_MASK, IORING_TIMEOUT_UPDATE_MASK
 
 # The timeout condition is met when either the specific timeout expries, or the
 # specified number of events have completed. If not set, defaults to 1. Use a
@@ -462,3 +503,69 @@ io_uring_sqe_tee_misc {
 	splice_fd_in		fd
 	pad_unused		array[const[0, int64], 2]
 }
+
+io_uring_sync_cancel_reg {
+	addr	int64
+	fd	fd
+	flags	flags[iouring_async_cancel_flags, int32]
+	timeout	kernel_timespec
+	opcode	int8
+	pad	array[const[0, int8], 7]
+	pad2	array[const[0, int64], 3]
+}
+
+kernel_timespec {
+	tv_sec	int64
+	tv_nsec	int64
+}
+
+iouring_async_cancel_flags = IORING_ASYNC_CANCEL_ALL, IORING_ASYNC_CANCEL_FD, IORING_ASYNC_CANCEL_ANY, IORING_ASYNC_CANCEL_FD_FIXED, IORING_ASYNC_CANCEL_USERDATA, IORING_ASYNC_CANCEL_OP
+
+io_uring_file_index_range {
+	off	int32
+	len	int32
+	resv	int64
+}
+
+io_uring_buf_status {
+	buf_group	int32	(in)
+	head		int32	(out)
+	resv		array[const[0, int32], 8]
+}
+
+io_uring_napi {
+	busy_poll_to		int32
+	prefer_busy_poll	int8
+	pad			array[const[0, int8], 3]
+	resv			const[0, int64]
+}
+
+io_uring_clock_register {
+	clockid	flags[clock_type, int32]
+	resv	array[const[0, int32], 3]
+}
+
+io_uring_clone_buffers {
+	src_fd	fd
+	flags	const[1, int32]
+	pad	array[const[0, int32], 6]
+}
+
+io_uring_mem_region_reg {
+	region_uptr	ptr64[inout, io_uring_region_desc]
+	flags		flags[io_uring_region_flags, int64]
+	resv		array[const[0, int64], 2]
+}
+
+io_uring_region_flags = IORING_MEM_REGION_REG_WAIT_ARG
+
+io_uring_region_desc {
+	user_addr	ptr64[inout, array[int8]]
+	size		len[user_addr, int64]
+	flags		flags[io_uring_region_desc_flags, int32]
+	id		int32
+	mmap_offset	int64
+	resv		array[const[0, int64], 4]
+}
+
+io_uring_region_desc_flags = IORING_MEM_REGION_TYPE_USER

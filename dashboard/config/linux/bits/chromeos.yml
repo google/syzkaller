@@ -13,3 +13,5 @@ config:
  - IIO_CROS_EC_SENSORS_CORE: n
  - IIO_CROS_EC_SENSORS_RING: n
  - IIO_CROS_EC_SENSORS_SYNC: n
+ # With instrumentation, we are quite likely to violate this somewhere anyway.
+ - FRAME_WARN: 0

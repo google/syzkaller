@@ -13,9 +13,9 @@ kvm_asm64_enable_long:
 	mov %cr0, %eax
 	or $0x80000000, %eax
 	mov %eax, %cr0
-	ljmp $SEL_CS64, NEXT_INSN
+	ljmp $X86_SEL_CS64, X86_NEXT_INSN
 .code64
-	mov $SEL_TSS64, %rax
+	mov $X86_SEL_TSS64, %rax
 	ltr %ax
 kvm_asm64_enable_long_end:
 	nop
@@ -32,9 +32,9 @@ kvm_asm32_paged_end:
 .global kvm_asm32_vm86, kvm_asm32_vm86_end
 kvm_asm32_vm86:
 .code32
-	mov $SEL_TSS32, %ax
+	mov $X86_SEL_TSS32, %ax
 	ltr %ax
-	ljmp $SEL_TSS32_VM86, $0
+	ljmp $X86_SEL_TSS32_VM86, $0
 kvm_asm32_vm86_end:
 	nop
 
@@ -44,9 +44,9 @@ kvm_asm32_paged_vm86:
 	mov %cr0, %eax
 	or $0x80000000, %eax
 	mov %eax, %cr0
-	mov $SEL_TSS32, %ax
+	mov $X86_SEL_TSS32, %ax
 	ltr %ax
-	ljmp $SEL_TSS32_VM86, $0
+	ljmp $X86_SEL_TSS32_VM86, $0
 kvm_asm32_paged_vm86_end:
 	nop
 
@@ -56,18 +56,18 @@ kvm_asm16_cpl3:
 	mov %cr0, %eax
 	or $1, %eax
 	mov %eax, %cr0
-	mov $SEL_TSS16, %ax
+	mov $X86_SEL_TSS16, %ax
 	ltr %ax
-	mov $SEL_DS16_CPL3, %ax
+	mov $X86_SEL_DS16_CPL3, %ax
 	mov %ax, %ds
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
 	mov $0x100, %sp
-	movw $PREFIX_SIZE, 0x100
-	movw $SEL_CS16_CPL3, 0x102
+	movw $X86_PREFIX_SIZE, 0x100
+	movw $X86_SEL_CS16_CPL3, 0x102
 	movw $0x100, 0x104
-	movw $SEL_DS16_CPL3, 0x106
+	movw $X86_SEL_DS16_CPL3, 0x106
 	lret
 kvm_asm16_cpl3_end:
 	nop
@@ -78,20 +78,20 @@ kvm_asm64_cpl3:
 	mov %cr0, %eax
 	or $0x80000000, %eax
 	mov %eax, %cr0
-	ljmp $SEL_CS64, NEXT_INSN
+	ljmp $X86_SEL_CS64, X86_NEXT_INSN
 .code64
-	mov $SEL_TSS64, %rax
+	mov $X86_SEL_TSS64, %rax
 	ltr %ax
-	mov $SEL_DS64_CPL3, %rax
+	mov $X86_SEL_DS64_CPL3, %rax
 	mov %ax, %ds
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
-	mov $ADDR_STACK0, %rsp
-	movq $PREFIX_SIZE, 0(%rsp)
-	movq $SEL_CS64_CPL3, 4(%rsp)
-	movq $ADDR_STACK0, 8(%rsp)
-	movq $SEL_DS64_CPL3, 12(%rsp)
+	mov $X86_ADDR_STACK0, %rsp
+	movq $X86_PREFIX_SIZE, 0(%rsp)
+	movq $X86_SEL_CS64_CPL3, 4(%rsp)
+	movq $X86_ADDR_STACK0, 8(%rsp)
+	movq $X86_SEL_DS64_CPL3, 12(%rsp)
 	lretl
 kvm_asm64_cpl3_end:
 	nop
@@ -103,13 +103,13 @@ kvm_asm64_init_vm:
 	mov %cr0, %eax
 	or $0x80000000, %eax
 	mov %eax, %cr0
-	ljmp $SEL_CS64, NEXT_INSN
+	ljmp $X86_SEL_CS64, X86_NEXT_INSN
 .code64
-	mov $SEL_TSS64, %rax
+	mov $X86_SEL_TSS64, %rax
 	ltr %ax
 
 	// Enable and lock non-SMM VM
-	mov $MSR_IA32_FEATURE_CONTROL, %rcx
+	mov $X86_MSR_IA32_FEATURE_CONTROL, %rcx
 	rdmsr
 	or $0x5, %rax
 	wrmsr
@@ -120,16 +120,16 @@ kvm_asm64_init_vm:
 	mov %rax, %cr4
 
 	// Write VMCS revision into VMXON and VMCS regions
-	mov $MSR_IA32_VMX_BASIC, %rcx
+	mov $X86_MSR_IA32_VMX_BASIC, %rcx
 	rdmsr
-	mov $ADDR_VAR_VMXON, %rdx
+	mov $X86_ADDR_VAR_VMXON, %rdx
 	mov %eax, (%rdx)
-	mov $ADDR_VAR_VMCS, %rdx
+	mov $X86_ADDR_VAR_VMCS, %rdx
 	mov %eax, (%rdx)
 
-	mov $ADDR_VAR_VMXON_PTR, %rax
+	mov $X86_ADDR_VAR_VMXON_PTR, %rax
 	vmxon (%rax)
-	mov $ADDR_VAR_VMCS_PTR, %rax
+	mov $X86_ADDR_VAR_VMCS_PTR, %rax
 	vmclear (%rax)
 	vmptrld (%rax)
 
@@ -158,9 +158,9 @@ kvm_asm64_init_vm:
 	VMSET(0x00002C04, $0) // Host IA32_PERF_GLOBAL_CTR
 	VMSET(0x00002800, $0xffffffffffffffff) // VMCS link pointer
 
-	VMSET(0x00000C02, $SEL_CS64) // host CS
+	VMSET(0x00000C02, $X86_SEL_CS64) // host CS
 
-	mov $SEL_DS64, %rax
+	mov $X86_SEL_DS64, %rax
 	mov $0x00000C00, %rdx // host ES
 	vmwrite %rax, %rdx
 	mov $0x00000C04, %rdx // host SS
@@ -171,13 +171,13 @@ kvm_asm64_init_vm:
 	vmwrite %rax, %rdx
 	mov $0x00000C0A, %rdx // host GS
 	vmwrite %rax, %rdx
-	mov $SEL_TSS64, %rax
+	mov $X86_SEL_TSS64, %rax
 	mov $0x00000C0C, %rdx // host TR
 	vmwrite %rax, %rdx
 
 	VMSET(0x00002C02, $0x500) // host EFER
 
-	VMSET(0x00004C00, $SEL_CS64) // Host IA32_SYSENTER_CS
+	VMSET(0x00004C00, $X86_SEL_CS64) // Host IA32_SYSENTER_CS
 	VMSET(0x00006C10, $0) // Host IA32_SYSENTER_ESP
 	VMSET(0x00006C12, $0) // Host IA32_SYSENTER_EIP
 
@@ -190,13 +190,13 @@ kvm_asm64_init_vm:
 
 	VMSET(0x00006C06, $0) // host FS base
 	VMSET(0x00006C08, $0) // host GS base
-	VMSET(0x00006C0A, $ADDR_VAR_TSS64) // host TR base
+	VMSET(0x00006C0A, $X86_ADDR_VAR_TSS64) // host TR base
 
-	VMSET(0x00006C0C, $ADDR_GDT) // host GDTR base
-	VMSET(0x00006C0E, $ADDR_VAR_IDT) // host IDTR base
+	VMSET(0x00006C0C, $X86_ADDR_GDT) // host GDTR base
+	VMSET(0x00006C0E, $X86_ADDR_VAR_IDT) // host IDTR base
 
 	VMSET(0x00006C14, $0) // host RSP
-	VMSET(0x00006C16, ADDR_VAR_VMEXIT_PTR) // host RIP
+	VMSET(0x00006C16, X86_ADDR_VAR_VMEXIT_PTR) // host RIP
 
 	VMSET(0x00000000, $1) // VPID
 	VMSET(0x00000002, $0) // Posted-interrupt notification vector
@@ -228,19 +228,19 @@ kvm_asm64_init_vm:
 	VMSET(0x00002020, $0) // EOI-exit bitmap 2
 	VMSET(0x00002022, $0) // EOI-exit bitmap 3
 
-	VMSET(0x00000800, $SEL_DS64) // Guest ES selector
-	VMSET(0x00000802, $SEL_CS64) // Guest CS selector
-	VMSET(0x00000804, $SEL_DS64) // Guest SS selector
-	VMSET(0x00000806, $SEL_DS64) // Guest DS selector
-	VMSET(0x00000808, $SEL_DS64) // Guest FS selector
-	VMSET(0x0000080A, $SEL_DS64) // Guest GS selector
+	VMSET(0x00000800, $X86_SEL_DS64) // Guest ES selector
+	VMSET(0x00000802, $X86_SEL_CS64) // Guest CS selector
+	VMSET(0x00000804, $X86_SEL_DS64) // Guest SS selector
+	VMSET(0x00000806, $X86_SEL_DS64) // Guest DS selector
+	VMSET(0x00000808, $X86_SEL_DS64) // Guest FS selector
+	VMSET(0x0000080A, $X86_SEL_DS64) // Guest GS selector
 	VMSET(0x0000080C, $0) // Guest LDTR selector
-	VMSET(0x0000080E, $SEL_TSS64) // Guest TR selector
+	VMSET(0x0000080E, $X86_SEL_TSS64) // Guest TR selector
 
 	VMSET(0x00006812, $0) // Guest LDTR base
-	VMSET(0x00006814, $ADDR_VAR_TSS64) // Guest TR base
-	VMSET(0x00006816, $ADDR_GDT) // Guest GDTR base
-	VMSET(0x00006818, $ADDR_VAR_IDT) // Guest IDTR base
+	VMSET(0x00006814, $X86_ADDR_VAR_TSS64) // Guest TR base
+	VMSET(0x00006816, $X86_ADDR_GDT) // Guest GDTR base
+	VMSET(0x00006818, $X86_ADDR_VAR_IDT) // Guest IDTR base
 
 	VMSET(0x00004800, $0xfffff) // Guest ES limit
 	VMSET(0x00004802, $0xfffff) // Guest CS limit
@@ -263,7 +263,7 @@ kvm_asm64_init_vm:
 	VMSET(0x00004822, $0x8b) // Guest TR access rights
 
 	VMSET(0x0000681C, $0) // Guest RSP
-	VMSET(0x0000681E, $ADDR_VAR_USER_CODE) // Guest RIP
+	VMSET(0x0000681E, $X86_ADDR_VAR_USER_CODE) // Guest RIP
 	VMSET(0x00006820, $((1<<1))) // Guest RFLAGS
 	VMSET(0x00002806, $0x500) // Guest IA32_EFER
 	VMSET(0x0000280A, $0) // Guest PDPTE0
@@ -279,9 +279,9 @@ kvm_asm64_init_vm:
 	VMSET(0x00006804, %rax) // Guest CR4
 
 	// Write 1 additional random field.
-	mov $ADDR_VAR_VMWRITE_FLD, %rax
+	mov $X86_ADDR_VAR_VMWRITE_FLD, %rax
 	mov (%rax), %rdx
-	mov $ADDR_VAR_VMWRITE_VAL, %rax
+	mov $X86_ADDR_VAR_VMWRITE_VAL, %rax
 	mov (%rax), %rcx
 	xor %rax, %rax
 	vmread %rdx, %rax

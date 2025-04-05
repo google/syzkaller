@@ -1,4 +1,5 @@
 TITLE: WARNING: zero-size vmalloc in dvb_dmx_init
+TYPE: WARNING
 
 [   35.569409][    T7] ------------[ cut here ]------------
 [   35.574867][    T7] WARNING: CPU: 0 PID: 7 at mm/vmalloc.c:2873 __vmalloc_node_range+0x769/0x970

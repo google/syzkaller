@@ -20,7 +20,6 @@ import (
 type ExecutorLogger func(int, string, ...interface{})
 
 type OptionalConfig struct {
-	ExitCondition      vm.ExitCondition
 	Logf               ExecutorLogger
 	OldFlagsCompatMode bool
 	BeforeContextLen   int
@@ -37,14 +36,27 @@ type ExecProgInstance struct {
 }
 
 type RunResult struct {
-	vm.ExecutionResult
+	Output   []byte
+	Report   *report.Report
+	Duration time.Duration
 }
+
+const (
+	// It's reasonable to expect that tools/syz-execprog should not normally
+	// return a non-zero exit code.
+	SyzExitConditions = vm.ExitTimeout | vm.ExitNormal
+	binExitConditions = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
+)
 
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
 	opt *OptionalConfig) (*ExecProgInstance, error) {
-	execprogBin, err := vmInst.Copy(mgrCfg.ExecprogBin)
-	if err != nil {
-		return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-execprog to VM: %v", err)}
+	var err error
+	execprogBin := mgrCfg.SysTarget.ExecprogBin
+	if execprogBin == "" {
+		execprogBin, err = vmInst.Copy(mgrCfg.ExecprogBin)
+		if err != nil {
+			return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-execprog to VM: %v", err)}
+		}
 	}
 	executorBin := mgrCfg.SysTarget.ExecutorBin
 	if executorBin == "" {
@@ -62,7 +74,7 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	}
 	if opt != nil {
 		ret.OptionalConfig = *opt
-		if ret.StraceBin != "" {
+		if !mgrCfg.StraceBinOnTarget && ret.StraceBin != "" {
 			var err error
 			ret.StraceBin, err = vmInst.Copy(ret.StraceBin)
 			if err != nil {
@@ -73,9 +85,6 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	if ret.Logf == nil {
 		ret.Logf = func(int, string, ...interface{}) {}
 	}
-	if ret.ExitCondition == 0 {
-		ret.ExitCondition = vm.ExitTimeout | vm.ExitNormal | vm.ExitError
-	}
 	return ret, nil
 }
 
@@ -83,7 +92,7 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	reporter *report.Reporter, opt *OptionalConfig) (*ExecProgInstance, error) {
 	vmInst, err := vmPool.Create(vmIndex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create VM: %v", err)
+		return nil, fmt.Errorf("failed to create VM: %w", err)
 	}
 	ret, err := SetupExecProg(vmInst, mgrCfg, reporter, opt)
 	if err != nil {
@@ -93,7 +102,10 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 	return ret, nil
 }
 
-func (inst *ExecProgInstance) runCommand(command string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
+	exitCondition vm.ExitCondition) (*RunResult, error) {
+	start := time.Now()
+
 	var prefixOutput []byte
 	if inst.StraceBin != "" {
 		filterCalls := ""
@@ -107,26 +119,27 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	outc, errc, err := inst.VMInstance.Run(duration, nil, command)
+	opts := []any{exitCondition}
+	if inst.BeforeContextLen != 0 {
+		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
+	}
+	output, rep, err := inst.VMInstance.Run(duration, inst.reporter, command, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run command in VM: %v", err)
+		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}
-	result := &RunResult{
-		ExecutionResult: *inst.VMInstance.MonitorExecutionRaw(outc, errc,
-			inst.reporter, inst.ExitCondition, inst.BeforeContextLen),
-	}
-	if len(prefixOutput) > 0 {
-		result.RawOutput = append(prefixOutput, result.RawOutput...)
-	}
-	if result.Report == nil {
+	if rep == nil {
 		inst.Logf(2, "program did not crash")
 	} else {
-		if err := inst.reporter.Symbolize(result.Report); err != nil {
-			return nil, fmt.Errorf("failed to symbolize report: %v", err)
+		if err := inst.reporter.Symbolize(rep); err != nil {
+			inst.Logf(0, "failed to symbolize report: %v", err)
 		}
-		inst.Logf(2, "program crashed: %v", result.Report.Title)
+		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
-	return result, nil
+	return &RunResult{
+		Output:   append(prefixOutput, output...),
+		Report:   rep,
+		Duration: time.Since(start),
+	}, nil
 }
 
 func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*RunResult, error) {
@@ -134,17 +147,29 @@ func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*Ru
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy binary to VM: %v", err)}
 	}
-	return inst.runCommand(bin, duration)
+	return inst.runCommand(bin, duration, binExitConditions)
 }
 
-func (inst *ExecProgInstance) RunCProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
-	src, err := csource.Write(p, opts)
+type ExecParams struct {
+	// Only one of these will be used, depending on the function.
+	CProg   *prog.Prog
+	SyzProg []byte
+
+	Opts     csource.Options
+	Duration time.Duration
+	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
+	// RunCProg() always runs with binExitConditions.
+	ExitConditions vm.ExitCondition
+}
+
+func (inst *ExecProgInstance) RunCProg(params ExecParams) (*RunResult, error) {
+	src, err := csource.Write(params.CProg, params.Opts)
 	if err != nil {
 		return nil, err
 	}
-	inst.Logf(2, "testing compiled C program (duration=%v, %+v): %s", duration, opts, p)
-	return inst.RunCProgRaw(src, p.Target, duration)
+	inst.Logf(2, "testing compiled C program (duration=%v, %+v): %s",
+		params.Duration, params.Opts, params.CProg)
+	return inst.RunCProgRaw(src, params.CProg.Target, params.Duration)
 }
 
 func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
@@ -158,32 +183,26 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
 }
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
+	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
 	vmProgFile, err := inst.VMInstance.Copy(progFile)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
 	}
 	target := inst.mgrCfg.SysTarget
-	faultCall := -1
-	if opts.Fault {
-		faultCall = opts.FaultCall
-	}
-	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
-		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
+	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, inst.mgrCfg.Type, opts,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration)
+	return inst.runCommand(command, duration, exitCondition)
 }
 
-func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options) (*RunResult, error) {
-	progFile, err := osutil.WriteTempFile(syzProg)
+func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) {
+	progFile, err := osutil.WriteTempFile(params.SyzProg)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(progFile)
-	return inst.RunSyzProgFile(progFile, duration, opts)
-}
 
-func (inst *ExecProgInstance) Close() {
-	inst.VMInstance.Close()
+	if params.ExitConditions == 0 {
+		params.ExitConditions = SyzExitConditions
+	}
+	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts, params.ExitConditions)
 }

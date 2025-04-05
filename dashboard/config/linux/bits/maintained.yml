@@ -1,0 +1,12 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Configs that should be disabled for all instances that report to public mailing lists.
+# This is for configs that are enabled by default, otherwise use unmaintained.yml.
+
+config:
+ # Prevent writing to mounted devices - otherwise syzbot triggers many
+ # inactionable filesystem reports. There have been many discussions
+ # on mailing lists re. this, e.g.
+ # https://lore.kernel.org/all/0000000000007720b405ff59d161@google.com/T/
+ - BLK_DEV_WRITE_MOUNTED: n

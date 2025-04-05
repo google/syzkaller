@@ -50,9 +50,7 @@ setsockopt$inet6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6
 setsockopt$inet6_MCAST_JOIN_GROUP(fd sock_in6, level const[IPPROTO_IPV6], optname const[MCAST_JOIN_GROUP], optval ptr[in, group_req_in6], optlen len[optval])
 setsockopt$inet6_MCAST_LEAVE_GROUP(fd sock_in6, level const[IPPROTO_IPV6], optname const[MCAST_LEAVE_GROUP], optval ptr[in, group_req_in6], optlen len[optval])
 
-sockopt_opt_ipv6_group_source_req = MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE
-
-setsockopt$inet6_group_source_req(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_group_source_req], optval ptr[in, group_source_req_in6], optlen len[optval])
+setsockopt$inet6_group_source_req(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_group_source_req], optval ptr[in, group_source_req_in6], optlen len[optval])
 
 group_req_in6 {
 	gr_interface	int32

@@ -72,17 +72,30 @@ make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=${SOURCEDIR}
 Running syz-manager requires you to have built Fuchsia previously, and added the
 ssh keys to the fuchsia.zbi image:
 
+The output of the Fuchsia build is a _product bundle_. Look up the image files needed
+via `ffx product get-image-path`:
+
 ```bash
-${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi \
-  ${SOURCEDIR}/out/x64/fuchsia.zbi \
-  --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
+  product_bundle_path="$(ffx config get product.path | tr -d '"')"
+  fxfs_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type fxfs)"
+  zbi_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type zbi)"
+  multiboot_path="$(ffx product get-image-path "$product_bundle_path" --slot a --image-type qemu-kernel)"
 ```
 
-You will also need to extend the `fvm` image:
+Make sure the ssh keys exist and are properly configured:
 
 ```bash
-cp "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk"
-${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk" extend --length 3G
+  # Make sure there are ssh keys available
+  ffx config check-ssh-keys
+  auth_keys_path="$(ffx config get ssh.pub | tr -d '"')"
+  priv_key_path="$(ffx config get ssh.priv | tr -d '"')"
+```
+
+Add the authorized keys to the zbi.
+```bash
+fx host-tool zbi -o "${SOURCEDIR}/out/x64/fuchsia-ssh.zbi" \
+  "${zbi_path}" \
+  --entry "data/ssh/authorized_keys=${auth_keys_path}"
 ```
 
 Note: This needs to be repeated after each `fx build`.
@@ -97,8 +110,8 @@ Create a `syz-manager` configuration file, using this as a starting point:
   "workdir": "/workdir.fuchsia",
   "kernel_obj": "/fuchsia/out/syz/kernel_x64-kasan/obj/zircon/kernel",
   "syzkaller": "/syzkaller",
-  "image": "/fuchsia/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk",
-  "sshkey": "/fuchsia/.ssh/pkey",
+  "image": "$fxfs_path",
+  "sshkey": "$priv_key_path",
   "reproduce": false,
   "cover": false,
   "procs": 8,
@@ -107,8 +120,8 @@ Create a `syz-manager` configuration file, using this as a starting point:
     "count": 10,
     "cpu": 4,
     "mem": 2048,
-    "kernel": "/fuchsia/out/x64/multiboot.bin",
-    "initrd": "/fuchsia/out/x64/fuchsia-ssh.zbi"
+    "kernel": "${multiboot_path}",
+    "initrd": " ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi"
   }
 }
 ```

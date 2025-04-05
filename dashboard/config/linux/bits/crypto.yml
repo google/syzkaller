@@ -9,15 +9,17 @@ config:
  - CRYPTO_CURVE25519: [v5.6]
  - CRYPTO_CHACHA20POLY1305
  - CRYPTO_AEGIS128
- - CRYPTO_CFB
+ - CRYPTO_CFB: [-v5.8]
  - CRYPTO_LRW
- - CRYPTO_OFB
+ - CRYPTO_OFB: [-v5.8]
  - CRYPTO_CTS
  - CRYPTO_XTS
- - CRYPTO_KEYWRAP
+ # Removed in "crypto: keywrap - remove unused keywrap algorithm".
+ - CRYPTO_KEYWRAP: [-v6.14]
  - CRYPTO_ADIANTUM
  - CRYPTO_XCBC
- - CRYPTO_VMAC
+ # Removed in "crypto: vmac - remove unused VMAC algorithm".
+ - CRYPTO_VMAC: [-v6.14]
  - CRYPTO_BLAKE2S: [v5.6, -v5.15]
  - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan]
  - CRYPTO_BLAKE2S_ARM: [v6.1, arm]
@@ -30,7 +32,8 @@ config:
  - CRYPTO_TGR192: [-v5.12]
  - CRYPTO_SALSA20: [-v5.12]
  - CRYPTO_SHA3
- - CRYPTO_SM3
+ # Not used in arm32. On riscv, requires TOOLCHAIN_HAS_VECTOR_CRYPTO.
+ - CRYPTO_SM3: [-kmsan, -arm, -riscv]
  - CRYPTO_SM3_AVX_X86_64: [v6.1, x86_64, -kmsan]
  - CRYPTO_WP512
  - CRYPTO_AES_TI
@@ -59,7 +62,7 @@ config:
  - CRYPTO_USER_API_AEAD
  - CRYPTO_HW
  - CRYPTO_DEV_VIRTIO
- - CRYPTO_SM2: [v5.10]
+ - CRYPTO_SM2: [v5.10, -v6.11]
  - CRYPTO_DEV_CCP: [-arm, -riscv, -s390]
  - CRYPTO_DEV_CCP_DD: [-arm, -riscv, -s390]
  - CRYPTO_DEV_SP_CCP: n
@@ -82,9 +85,11 @@ config:
  - CRYPTO_AEGIS128_AESNI_SSE2: [x86_64, -kmsan]
  - CRYPTO_NHPOLY1305_SSE2: [x86_64, -kmsan]
  - CRYPTO_NHPOLY1305_AVX2: [x86_64, -kmsan]
- - CRYPTO_CRC32C_INTEL: [x86_64, -kmsan]
- - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan]
- - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan]
+ # These two were removed in "x86/crc32: expose CRC32 functions through lib".
+ - CRYPTO_CRC32C_INTEL: [x86_64, -kmsan, -v6.14]
+ - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan, -v6.14]
+ # Removed in "x86/crc-t10dif: expose CRC-T10DIF function through lib".
+ - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan, -v6.14]
  - CRYPTO_SHA1_SSSE3: [x86_64, -kmsan]
  - CRYPTO_SHA256_SSSE3: [x86_64, -kmsan]
  - CRYPTO_SHA512_SSSE3: [x86_64, -kmsan]
@@ -111,8 +116,8 @@ config:
  - CRYPTO_AES_ARM_BS: [arm]
  - CRYPTO_AES_ARM_CE: [arm]
  - CRYPTO_GHASH_ARM_CE: [arm]
- - CRYPTO_CRCT10DIF_ARM_CE: [arm]
- - CRYPTO_CRC32_ARM_CE: [arm]
+ - CRYPTO_CRCT10DIF_ARM_CE: [arm, -v6.14]
+ - CRYPTO_CRC32_ARM_CE: [arm, -v6.14]
  - CRYPTO_NHPOLY1305_NEON: [arm, arm64]
  - CRYPTO_CURVE25519_NEON: [arm]
  - CRYPTO_SHA256_ARM64: [arm64]
@@ -126,7 +131,8 @@ config:
  - CRYPTO_SM4_ARM64_CE_BLK: [arm64, v6.1]
  - CRYPTO_SM4_ARM64_NEON_BLK: [arm64, v6.1]
  - CRYPTO_GHASH_ARM64_CE: [arm64]
- - CRYPTO_CRCT10DIF_ARM64_CE: [arm64]
+ # Removed in "arm64/crc-t10dif: expose CRC-T10DIF function through lib".
+ - CRYPTO_CRCT10DIF_ARM64_CE: [arm64, -v6.14]
  - CRYPTO_AES_ARM64: [arm64]
  - CRYPTO_AES_ARM64_CE: [arm64]
  - CRYPTO_AES_ARM64_CE_CCM: [arm64]

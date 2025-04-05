@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build !codeanalysis
-// +build !codeanalysis
 
 // syz-trace2syz converts strace traces to syzkaller programs.
 //
@@ -16,7 +15,7 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -96,7 +95,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 }
 
 func getTraceFiles(dir string) []string {
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("%s", err)
 

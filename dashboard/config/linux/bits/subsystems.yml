@@ -26,8 +26,9 @@ config:
  - NUMA_EMU: [x86_64]
  - NUMA_BALANCING: [-arm]
  - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
- - ADDRESS_MASKING: [x86_64, linux-next]
- - X86_USER_SHADOW_STACK: [x86_64, linux-next]
+ # Starting from v6.13, depends on !CPU_MITIGATIONS.
+ - ADDRESS_MASKING: [x86_64, v6.4, -v6.12]
+ - X86_USER_SHADOW_STACK: [x86_64, v6.6]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
  - X86_X2APIC: [x86_64, -kmsan]
  - CGROUPS
@@ -50,9 +51,9 @@ config:
  - PROFILING
  - PERF_EVENTS
  - SMP
- - KEXEC: [-riscv]
- - HIBERNATION: [-riscv, -s390]
- - HIBERNATION_SNAPSHOT_DEV: [v5.10, -riscv, -s390]
+ - KEXEC
+ - HIBERNATION: [-s390]
+ - HIBERNATION_SNAPSHOT_DEV: [v5.10, -s390]
  - PM_DEBUG: [-s390]
  - ACPI_DOCK: [-arm, -riscv, -s390]
  - ACPI_NFIT: [x86_64]
@@ -69,6 +70,9 @@ config:
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
+ - KVM_PROVE_MMU: [x86_64, v6.6]
+ - KVM_SW_PROTECTED_VM: [x86_64, v6.8]
+ - KVM_HYPERV: [x86_64, v6.8]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
@@ -93,17 +97,20 @@ config:
  - BFQ_CGROUP_DEBUG
  - BINFMT_MISC
  - BINFMT_SCRIPT
- - MEMORY_HOTPLUG: [-arm, -riscv]
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
- - MEMORY_HOTREMOVE: [-arm, -riscv]
+ - MEMORY_HOTPLUG: [-arm]
+ # Replaced in "mm: add build-time option for hotplug memory default online type".
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -v6.14]
+ - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, linux-next]
+ - MEMORY_HOTREMOVE: [-arm]
  - ANON_VMA_NAME: [v5.17]
  - KSM
- - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
- - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -riscv]
- - FRONTSWAP
+ - TRANSPARENT_HUGEPAGE: [-arm]
+ - TRANSPARENT_HUGEPAGE_MADVISE: [-arm]
+ - FRONTSWAP: [-v6.6]
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
  - ZSWAP
+ - ZSWAP_SHRINKER_DEFAULT_ON: [v6.8]
  - ZSMALLOC
  - IDLE_PAGE_TRACKING: [-v5.15]
  - ZONE_DEVICE: [-arm, -riscv, -s390]
@@ -145,7 +152,6 @@ config:
  - DEV_DAX: [x86_64]
  - BLK_DEV_NULL_BLK
  - BLK_DEV_NULL_BLK_FAULT_INJECTION
- - BLK_DEV_FD: [x86_64]
  - ZRAM
  - BLK_DEV_LOOP
  # Loop device per test process.
@@ -186,15 +192,15 @@ config:
  - ATA
  - SATA_AHCI
  - ATA_PIIX
- - PATA_AMD
+ - PATA_AMD: [-s390]
  - PATA_OLDPIIX
  - PATA_SCH
  - ATA_SFF
  - ATA_BMDMA
  - ATA_GENERIC
  - MD
- - MD_LINEAR
- - MD_MULTIPATH
+ - MD_LINEAR: [-v6.8]
+ - MD_MULTIPATH: [-v6.8]
  - BCACHE
  - BLK_DEV_DM
  - DM_CRYPT
@@ -282,7 +288,9 @@ config:
  # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
  - DRM_PANEL_EDP: [v5.16, -s390]
- - DRM_DP_AUX_CHARDEV: [x86_64]
+ - DRM_DP_AUX_CHARDEV: [x86_64, -v6.10]
+ - DRM_DISPLAY_DP_AUX_BUS: [v6.10, -s390]
+ - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
  - DRM_DEBUG_MM
  - DRM_I915: [x86_64]
  - DRM_VGEM
@@ -363,7 +371,7 @@ config:
  - USB_EHCI_HCD
  - USB_EHCI_ROOT_HUB_TT
  - USB_OHCI_HCD
- - USB_UHCI_HCD
+ - USB_UHCI_HCD: [-s390]
  - USB_ACM
  - USB_PRINTER
  - USB_STORAGE
@@ -438,7 +446,8 @@ config:
  - VDPA_SIM: [v6.0, -riscv]
  - VDPA_SIM_NET: [v6.0, -riscv]
  - VDPA_SIM_BLOCK: [v6.0, -riscv]
- - VDPA_USER: [v6.0]
+ # Starting from v6.12, VDPA_USER depends on ARCH_HAS_DMA_OPS, which we don't have.
+ - VDPA_USER: [v6.0, -v6.12]
  - VP_VDPA: [v5.13]
  - VHOST_NET
  - VHOST_VSOCK
@@ -456,28 +465,30 @@ config:
  - INTEL_IOMMU: [x86_64]
  # IOMMUFD must be enabled in order to keep VFIO_CONTAINER disabled.
  - IOMMUFD: [v6.2]
- - IOMMUFD_TEST: [linux-next]
+ - IOMMUFD_TEST: [v6.2]
  # Generally we should not enable this since we don't run any boot unit tests.
  # The only reason to enable it is IOMMUFD_TEST, which really shouldn't
  # depend on RUNTIME_TESTING_MENU since it only adds debug checks.
- - RUNTIME_TESTING_MENU: [linux-next]
+ - RUNTIME_TESTING_MENU: [v6.9]
  - ANDROID_BINDER_IPC
  # Create binder device per test process for isolation.
  # Earlier we defined here 32 devices and syzkaller allocated one per test process.
  # When binderfs is used, we don't need that many - 2 is enough.
  - ANDROID_BINDER_DEVICES: "binder0,binder1"
- - ANDROID_BINDERFS
+ # TODO: re-enable it once https://syzkaller.appspot.com/bug?extid=72b65b56208e052e606c
+ # is addressed.
+ - ANDROID_BINDERFS: [-v6.14, -linux-next]
  - COUNTER
  - VALIDATE_FS_PARSER
  - PSTORE
- - PSTORE_DEFLATE_COMPRESS
- - PSTORE_LZO_COMPRESS
- - PSTORE_LZ4_COMPRESS
- - PSTORE_LZ4HC_COMPRESS
- - PSTORE_842_COMPRESS
- - PSTORE_ZSTD_COMPRESS
+ - PSTORE_DEFLATE_COMPRESS: [-v6.6]
+ - PSTORE_LZO_COMPRESS: [-v6.6]
+ - PSTORE_LZ4_COMPRESS: [-v6.6]
+ - PSTORE_LZ4HC_COMPRESS: [-v6.6]
+ - PSTORE_842_COMPRESS: [-v6.6]
+ - PSTORE_ZSTD_COMPRESS: [-v6.6]
  - PSTORE_COMPRESS
- - PSTORE_DEFLATE_COMPRESS_DEFAULT
+ - PSTORE_DEFLATE_COMPRESS_DEFAULT: [-v6.6]
  # Didn't find how to enable it for riscv in v5.18
  - FS_DAX: [-arm, -riscv]
  - FS_ENCRYPTION
@@ -491,17 +502,16 @@ config:
  - QUOTA_NETLINK_INTERFACE
  - PRINT_QUOTA_WARNING: n
  - QFMT_V2
- - AUTOFS4_FS
+ - AUTOFS4_FS: [-v6.6]
  - FUSE_FS
  - FUSE_DAX: [v5.10, x86_64]
  - CUSE
  - VIRTIO_FS
- - FSCACHE
- - CACHEFILES
  - PROC_KCORE: [-arm]
  - TMPFS
  - TMPFS_POSIX_ACL
  - TMPFS_XATTR
+ - TMPFS_QUOTA: [v6.6]
  - HUGETLBFS: [-arm]
  - ECRYPT_FS
  - ECRYPT_FS_MESSAGING
@@ -570,8 +580,9 @@ config:
  - PKCS7_TEST_KEY
  - SIGNED_PE_FILE_VERIFICATION
  - SECONDARY_TRUSTED_KEYRING
- - CRC4
- - CRC7
+ # CRC4 and CRC7 can now only be selected.
+ - CRC4: [-linux-next]
+ - CRC7: [-linux-next]
  - SCHEDSTATS
  - RAW_DRIVER: [-v5.14]
  - THERMAL: [v5.8]
@@ -581,16 +592,11 @@ config:
  - DAMON: [v5.15]
  - DAMON_VADDR: [v5.15]
  - DAMON_PADDR: [v5.16]
- - DAMON_DBGFS: [v5.15]
+ # DAMON_DBGFS is getting deprecated in v6.9.
+ - DAMON_DBGFS: [v5.15, -v6.9]
  - DAMON_RECLAIM: [v5.17]
-
- # Multi-gen LRU is the new better LRU implementation
- # that is supposed to be the default in future,
- # so we want to enable it in most tested kernels.
- # It has no relation to smack, but we use the smack tag
- # just to get some kernels tested w/o multi-gen LRU as well.
- - LRU_GEN: [v6.1, -smack]
- - LRU_GEN_ENABLED: [v6.1, -smack]
+ - ZSWAP_DEFAULT_ON: [v5.7]
+ - SMB_SERVER: [v5.15]
 
  # For testing of core dumping functionality itself.
  - COREDUMP

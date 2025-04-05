@@ -21,7 +21,7 @@ func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, Endpoint) {
 			Expiration: fmt.Sprint(claims.Expiration.Unix()),
 		})
 		if err != nil {
-			t.Fatalf("Marshal %v", err)
+			t.Fatalf("marshal %v", err)
 		}
 		w.Header()["Content-Type"] = []string{"application/json"}
 		w.Write(bytes)
@@ -41,10 +41,10 @@ func TestBearerValid(t *testing.T) {
 
 	got, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Errorf("inexpected error %v", err)
 	}
 	if !strings.HasSuffix(got, magic) {
-		t.Errorf("Wrong subj %v not suffix of %v", magic, got)
+		t.Errorf("wrong subj %v not suffix of %v", magic, got)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestBearerWrongAudience(t *testing.T) {
 
 	_, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "unexpected audience") {
-		t.Fatalf("Unexpected error %v", err)
+		t.Fatalf("unexpected error %v", err)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestBearerExpired(t *testing.T) {
 
 	_, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "token past expiration") {
-		t.Fatalf("Unexpected error %v", err)
+		t.Fatalf("unexpected error %v", err)
 	}
 }
 
@@ -83,7 +83,7 @@ func TestMissingHeader(t *testing.T) {
 	defer ts.Close()
 	got, err := dut.DetermineAuthSubj(time.Now(), []string{})
 	if err != nil || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -92,7 +92,7 @@ func TestBadHeader(t *testing.T) {
 	defer ts.Close()
 	got, err := dut.DetermineAuthSubj(time.Now(), []string{"bad"})
 	if err != nil || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
@@ -104,6 +104,6 @@ func TestBadHttpStatus(t *testing.T) {
 	dut := MakeEndpoint(ts.URL)
 	got, err := dut.DetermineAuthSubj(time.Now(), []string{"Bearer x"})
 	if err == nil || !strings.HasSuffix(err.Error(), "400") || got != "" {
-		t.Errorf("Unexpected error %v %v", got, err)
+		t.Errorf("unexpected error %v %v", got, err)
 	}
 }

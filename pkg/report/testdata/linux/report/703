@@ -1,0 +1,43 @@
+TITLE: KMSAN: uninit-value in nilfs_add_checksums_on_logs
+ALT: bad-access in nilfs_add_checksums_on_logs
+
+[  417.716144][ T7542] =====================================================
+[  417.723574][ T7542] BUG: KMSAN: uninit-value in crc32_le_base+0x43c/0xd80
+[  417.730751][ T7542]  crc32_le_base+0x43c/0xd80
+[  417.736320][ T7542]  nilfs_add_checksums_on_logs+0xb2c/0xe70
+[  417.742485][ T7542]  nilfs_segctor_do_construct+0x9d40/0xde70
+[  417.748637][ T7542]  nilfs_segctor_construct+0x1eb/0xe30
+[  417.754533][ T7542]  nilfs_segctor_thread+0xc3f/0x11d0
+[  417.759973][ T7542]  kthread+0x3e8/0x540
+[  417.764376][ T7542]  ret_from_fork+0x1f/0x30
+[  417.768957][ T7542] 
+[  417.771436][ T7542] Uninit was created at:
+[  417.776266][ T7542]  __alloc_pages+0x9a4/0xe00
+[  417.781139][ T7542]  alloc_pages+0xd01/0x1040
+[  417.786289][ T7542]  folio_alloc+0x42/0x120
+[  417.790797][ T7542]  filemap_alloc_folio+0xa5/0x430
+[  417.796243][ T7542]  __filemap_get_folio+0x908/0x13a0
+[  417.801608][ T7542]  pagecache_get_page+0x4e/0x200
+[  417.806790][ T7542]  grab_cache_page_write_begin+0x55/0x70
+[  417.812679][ T7542]  block_write_begin+0x4f/0x450
+[  417.817709][ T7542]  nilfs_write_begin+0xfc/0x200
+[  417.823019][ T7542]  generic_perform_write+0x3df/0xbb0
+[  417.828552][ T7542]  __generic_file_write_iter+0x393/0x920
+[  417.834517][ T7542]  generic_file_write_iter+0x103/0x5b0
+[  417.840153][ T7542]  __kernel_write_iter+0x323/0x930
+[  417.846023][ T7542]  dump_user_range+0x593/0xce0
+[  417.850960][ T7542]  elf_core_dump+0x59e8/0x5c60
+[  417.856061][ T7542]  do_coredump+0x31e1/0x4820
+[  417.860947][ T7542]  get_signal+0x2185/0x2bc0
+[  417.865727][ T7542]  arch_do_signal_or_restart+0x4f/0x920
+[  417.871477][ T7542]  exit_to_user_mode_loop+0xe8/0x320
+[  417.877416][ T7542]  exit_to_user_mode_prepare+0x163/0x220
+[  417.883609][ T7542]  syscall_exit_to_user_mode+0x2a/0x140
+[  417.889495][ T7542]  __do_fast_syscall_32+0xb1/0x100
+[  417.894973][ T7542]  do_fast_syscall_32+0x37/0x80
+[  417.900003][ T7542]  do_SYSENTER_32+0x1f/0x30
+[  417.904770][ T7542]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  417.911371][ T7542] 
+[  417.913864][ T7542] CPU: 0 PID: 7542 Comm: segctord Not tainted 6.4.0-rc4-syzkaller-g2741f1b02117 #0
+[  417.923920][ T7542] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/25/2023
+[  417.934289][ T7542] =====================================================

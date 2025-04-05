@@ -1,0 +1,72 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: fuzz-step-template
+spec:
+  templates:
+    - name: fuzz-step
+      inputs:
+        parameters:
+          - name: config
+            value: ""
+          - name: base-build-id
+            value: ""
+          - name: patched-build-id
+            value: ""
+          - name: corpus-url
+            value: ""
+        artifacts:
+          - name: base-kernel
+            path: /base
+          - name: patched-kernel
+            path: /patched
+      timeout: 4h
+      container:
+        image: ${IMAGE_PREFIX}fuzz-step:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/fuzz-step"]
+        args: [
+          "--config", "{{inputs.parameters.config}}",
+          "--session", "{{workflow.parameters.session-id}}",
+          "--base_build", "{{inputs.parameters.base-build-id}}",
+          "--patched_build", "{{inputs.parameters.patched-build-id}}",
+          "--corpus_url", "{{inputs.parameters.corpus-url}}",
+          "--time", "3h",
+          "--workdir", "/workdir",
+          "--vv", "1"
+          ]
+        resources:
+          requests:
+            cpu: 24
+            memory: 64G
+          limits:
+            cpu: 32
+            memory: 64G
+        volumeMounts:
+        - name: workdir
+          mountPath: /workdir
+        - name: output
+          mountPath: /output
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        # Needed for /dev/kvm.
+        # TODO: there's a "device plugin" mechanism in k8s that can share it more safely.
+        securityContext:
+          privileged: true
+      volumes:
+        - name: workdir
+          emptyDir: {}
+        - name: output
+          emptyDir: {}
+        - name: dev-kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+      outputs:
+        parameters:
+          - name: result
+            valueFrom:
+              path: /output/result.json

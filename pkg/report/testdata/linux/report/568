@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in io_submit_sqes
 ALT: bad-access in io_submit_sqes
+TYPE: KASAN
 
 [ 1344.478322][ T6700] ==================================================================
 [ 1344.479538][ T6700] BUG: KASAN: invalid-access in __memset+0x16c/0x188

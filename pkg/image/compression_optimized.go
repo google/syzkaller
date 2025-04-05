@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build !windows && !386 && !arm
-// +build !windows,!386,!arm
 
 package image
 
@@ -23,9 +22,12 @@ type decompressScratch struct {
 	buf []byte
 }
 
+// This is just for memory consumption estimation, does not need to be precise.
+const pageSize = 4 << 10
+
 var decompressPool = sync.Pool{New: func() interface{} {
 	return &decompressScratch{
-		buf: make([]byte, 8<<10),
+		buf: make([]byte, pageSize),
 	}
 }}
 
@@ -64,11 +66,15 @@ func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 	if err != nil {
 		panic(err)
 	}
+	pages := 0
 	dtor = func() {
+		StatImages.Add(-1)
+		StatMemory.Add(int64(-pages * pageSize))
 		if err := syscall.Munmap(data[:maxImageSize]); err != nil {
 			panic(err)
 		}
 	}
+	pagedIn := 0
 	offset := 0
 	for {
 		n, err := scratch.zr.Read(scratch.buf)
@@ -93,6 +99,7 @@ func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 		// or whatever is the alignment for such large objects). We could also break from the middle
 		// of the loop before updating src/dst pointers, but it hurts codegen a lot (compilers like
 		// canonical loop forms).
+		hasData := false
 		words := uintptr(n-1) / wordSize
 		src := (*word)(unsafe.Pointer(&scratch.buf[0]))
 		dst := (*word)(unsafe.Pointer(&data[offset]))
@@ -102,16 +109,24 @@ func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 			}
 			src = (*word)(unsafe.Pointer(uintptr(unsafe.Pointer(src)) + wordSize))
 			dst = (*word)(unsafe.Pointer(uintptr(unsafe.Pointer(dst)) + wordSize))
+			hasData = true
 		}
 		// Copy any remaining trailing bytes.
 		for i := words * wordSize; i < uintptr(n); i++ {
 			v := scratch.buf[i]
 			if v != 0 {
 				data[uintptr(offset)+i] = v
+				hasData = true
 			}
+		}
+		if hasData && offset >= pagedIn {
+			pagedIn = (offset + n + pageSize - 1) & ^(pageSize - 1)
+			pages++
 		}
 		offset += n
 	}
 	data = data[:offset]
+	StatImages.Add(1)
+	StatMemory.Add(int64(pages * pageSize))
 	return
 }

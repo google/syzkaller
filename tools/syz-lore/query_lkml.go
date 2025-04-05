@@ -4,8 +4,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -13,12 +13,16 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,7 +32,8 @@ var (
 	flagArchives  = flag.String("archives", "", "path to the folder with git archives")
 	flagEmails    = flag.String("emails", "", "comma-separated list of own emails")
 	flagDomains   = flag.String("domains", "", "comma-separated list of own domains")
-	flagDashboard = flag.String("dashboard", "https://syzkaller.appspot.com", "dashboard address")
+	flagOutDir    = flag.String("out_dir", "", "a directory to save discussions as JSON files")
+	flagDashboard = flag.String("dashboard", "", "dashboard address")
 	flagAPIClient = flag.String("client", "", "the name of the API client")
 	flagAPIKey    = flag.String("key", "", "api key")
 	flagVerbose   = flag.Bool("v", false, "print more debug info")
@@ -41,11 +46,6 @@ func main() {
 	}
 	emails := strings.Split(*flagEmails, ",")
 	domains := strings.Split(*flagDomains, ",")
-
-	dash, err := dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
-	if err != nil {
-		tool.Failf("dashapi failed: %v", err)
-	}
 	threads := processArchives(*flagArchives, emails, domains)
 	for i, thread := range threads {
 		messages := []dashapi.DiscussionMessage{}
@@ -54,23 +54,52 @@ func main() {
 				ID:       m.MessageID,
 				External: !m.OwnEmail,
 				Time:     m.Date,
+				Email:    m.Author,
 			})
 		}
+		discussion := &dashapi.Discussion{
+			ID:       thread.MessageID,
+			Source:   dashapi.DiscussionLore,
+			Type:     thread.Type,
+			Subject:  thread.Subject,
+			BugIDs:   thread.BugIDs,
+			Messages: messages,
+		}
 		log.Printf("saving %d/%d", i+1, len(threads))
-		err := dash.SaveDiscussion(&dashapi.SaveDiscussionReq{
-			Discussion: &dashapi.Discussion{
-				ID:       thread.MessageID,
-				Source:   dashapi.DiscussionLore,
-				Type:     thread.Type,
-				Subject:  thread.Subject,
-				BugIDs:   thread.BugIDs,
-				Messages: messages,
-			},
-		})
+		err := saveDiscussion(discussion)
+		if err != nil {
+			tool.Fail(err)
+		}
+	}
+}
+
+var dash *dashapi.Dashboard
+
+func saveDiscussion(d *dashapi.Discussion) error {
+	var err error
+	if *flagDashboard != "" && dash == nil {
+		dash, err = dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
 		if err != nil {
 			tool.Failf("dashapi failed: %v", err)
 		}
 	}
+	if *flagOutDir != "" {
+		bytes, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+		path := filepath.Join(*flagOutDir, hash.String([]byte(d.ID))+".json")
+		err = osutil.WriteFile(path, bytes)
+		if err != nil {
+			return err
+		}
+	}
+	if dash != nil {
+		return dash.SaveDiscussion(&dashapi.SaveDiscussionReq{
+			Discussion: d,
+		})
+	}
+	return nil
 }
 
 func processArchives(dir string, emails, domains []string) []*lore.Thread {
@@ -79,7 +108,7 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 		tool.Failf("failed to read directory: %v", err)
 	}
 	threads := runtime.NumCPU()
-	messages := make(chan *lore.EmailReader, threads*2)
+	messages := make(chan lore.EmailReader, threads*2)
 	wg := sync.WaitGroup{}
 	g, _ := errgroup.WithContext(context.Background())
 
@@ -93,28 +122,32 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 		wg.Add(1)
 		g.Go(func() error {
 			defer wg.Done()
-			return lore.ReadArchive(path, messages)
+			repo := vcs.NewLKMLRepo(path)
+			list, err := lore.ReadArchive(repo, time.Time{})
+			if err != nil {
+				return err
+			}
+			for _, reader := range list {
+				messages <- reader
+			}
+			return nil
 		})
 	}
 
 	// Set up some worker threads.
 	var repoEmails []*email.Email
 	var mu sync.Mutex
+	var skipped atomic.Int64
 	for i := 0; i < threads; i++ {
 		g.Go(func() error {
 			for rawMsg := range messages {
-				body, err := rawMsg.Extract()
+				msg, err := rawMsg.Parse(emails, domains)
 				if err != nil {
+					// There are many broken messages in LKML,
+					// no sense to print them all each time.
+					skipped.Add(1)
 					continue
 				}
-				msg, err := email.Parse(bytes.NewReader(body), emails, nil, domains)
-				if err != nil {
-					continue
-				}
-				// Keep memory consumption low.
-				msg.Body = ""
-				msg.Patch = ""
-
 				mu.Lock()
 				repoEmails = append(repoEmails, msg)
 				mu.Unlock()
@@ -128,6 +161,9 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 	close(messages)
 	if err := g.Wait(); err != nil {
 		tool.Failf("%s", err)
+	}
+	if cnt := skipped.Load(); cnt > 0 {
+		log.Printf("skipped %d messages because of parsing errors", cnt)
 	}
 
 	list := lore.Threads(repoEmails)

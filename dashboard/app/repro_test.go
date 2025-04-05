@@ -4,6 +4,9 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -335,8 +338,181 @@ func TestNeedReproIsolated(t *testing.T) {
 		}
 		funcResult := needReproForBug(c.ctx, bug)
 		if funcResult != test.needRepro {
-			t.Errorf("For %#v expected needRepro=%v, got needRepro=%v",
+			t.Errorf("for %#v expected needRepro=%v, got needRepro=%v",
 				bug, test.needRepro, funcResult)
 		}
 	}
+}
+
+func TestFailedReproLogs(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	crash1 := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title1",
+		Log:     []byte("log1"),
+		Report:  []byte("report1"),
+	}
+	c.client.ReportCrash(crash1)
+
+	resp, _ := c.client.ReportingPollBugs("test")
+	c.expectEQ(len(resp.Reports), 1)
+	rep := resp.Reports[0]
+	c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+
+	// Report max attempts.
+	cid := &dashapi.CrashID{
+		BuildID: crash1.BuildID,
+		Title:   crash1.Title,
+	}
+	for i := 0; i < maxReproLogs; i++ {
+		c.advanceTime(time.Minute)
+		cid.ReproLog = []byte(fmt.Sprintf("report log %#v", i))
+		err := c.client.ReportFailedRepro(cid)
+		c.expectOK(err)
+	}
+
+	dbBug, _, _ := c.loadBug(rep.ID)
+	firstRecords := dbBug.ReproAttempts
+	c.expectEQ(len(firstRecords), maxReproLogs)
+
+	// Report one more.
+	cid.ReproLog = []byte(fmt.Sprintf("report log %#v", maxReproLogs))
+	err := c.client.ReportFailedRepro(cid)
+	c.expectOK(err)
+
+	dbBug, _, _ = c.loadBug(rep.ID)
+	lastRecords := dbBug.ReproAttempts
+	c.expectEQ(len(firstRecords), maxReproLogs)
+
+	// Ensure the first record was dropped.
+	checkResponseStatusCode(c, AccessAdmin,
+		textLink(textReproLog, firstRecords[0].Log), http.StatusNotFound)
+
+	// Ensure that the second record is readable.
+	reply, err := c.AuthGET(AccessAdmin, textLink(textReproLog, lastRecords[0].Log))
+	c.expectOK(err)
+	c.expectEQ(reply, []byte("report log 1"))
+}
+
+func TestLogToReproduce(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Also add some unrelated crash, which should not appear in responses.
+	build2 := testBuild(2)
+	client.UploadBuild(build2)
+	client.ReportCrash(testCrash(build2, 3))
+	client.pollBug()
+
+	// Bug with a reproducer.
+	crash1 := testCrashWithRepro(build, 1)
+	client.ReportCrash(crash1)
+	client.pollBug()
+	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
+
+	// Bug without a reproducer.
+	crash2 := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title2",
+		Log:     []byte("log2"),
+		Report:  []byte("report2"),
+	}
+	client.ReportCrash(crash2)
+	client.pollBug()
+	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.Title, "title2")
+	c.expectEQ(resp.CrashLog, []byte("log2"))
+	c.expectEQ(resp.Type, dashapi.RetryReproLog)
+
+	// Suppose we tried to find a repro, but failed.
+	err = client.ReportFailedRepro(&dashapi.CrashID{
+		BuildID:  crash2.BuildID,
+		Title:    crash2.Title,
+		ReproLog: []byte("abcd"),
+	})
+	c.expectOK(err)
+
+	// Now this crash should not be suggested.
+	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
+}
+
+// A frequent case -- when trying to find a reproducer for one bug,
+// we have found a reproducer for a different bug.
+// We want to remember the reproduction log in this case.
+func TestReproForDifferentCrash(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Original crash.
+	crash := &dashapi.Crash{
+		BuildID: "build1",
+		Title:   "title1",
+		Log:     []byte("log1"),
+		Report:  []byte("report1"),
+	}
+	client.ReportCrash(crash)
+	oldBug := client.pollBug()
+
+	// Now we have "found" a reproducer with a different title.
+	crash.Title = "new title"
+	crash.ReproOpts = []byte("opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproLog = []byte("repro log")
+	crash.OriginalTitle = "title1"
+	client.ReportCrash(crash)
+	client.pollBug()
+
+	// Ensure that we have saved the reproduction log in this case.
+	dbBug, _, _ := c.loadBug(oldBug.ID)
+	c.expectEQ(len(dbBug.ReproAttempts), 1)
+}
+
+func TestReproTask(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.client
+
+	build := testBuild(1)
+	build.Manager = "test-manager"
+	client.UploadBuild(build)
+
+	form := url.Values{}
+	const reproValue = "Some repro text"
+	form.Add("send-repro", reproValue)
+
+	c.POSTForm("/test1/manager/test-manager", form)
+
+	// We run the reproducer request 2 times.
+	for i := 0; i < 2; i++ {
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(string(resp.CrashLog), reproValue)
+		c.expectEQ(resp.Type, dashapi.ManualLog)
+	}
+
+	// But no more.
+	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+	c.expectOK(err)
+	c.expectEQ(resp.CrashLog, []byte(nil))
 }

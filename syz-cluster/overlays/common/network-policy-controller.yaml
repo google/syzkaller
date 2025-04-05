@@ -1,0 +1,21 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: controller-access
+spec:
+  podSelector:
+    matchLabels:
+      app: controller
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: series-tracker
+    - podSelector:
+        matchLabels:
+          tier: workflow

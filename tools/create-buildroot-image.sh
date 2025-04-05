@@ -130,6 +130,7 @@ EOF
 		cat >>.config <<EOF
 BR2_cortex_a57=y
 # BR2_LINUX_KERNEL is not set
+BR2_TARGET_ROOTFS_EXT2_4=y
 EOF
 ;;
 	s390x)
@@ -159,6 +160,9 @@ esac
 # This part is common for all architectures.
 cat >rootfs_script.sh <<'EOFEOF'
 set -eux
+
+# Mount /dev right after / is mounted.
+sed -Ei '/\/dev\/pts/i ::sysinit:/bin/mount -t devtmpfs devtmpfs /dev' $1/etc/inittab
 
 # Mount debugfs for KCOV and other filesystems.
 cat >>$1/etc/fstab <<EOF

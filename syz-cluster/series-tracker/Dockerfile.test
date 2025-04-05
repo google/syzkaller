@@ -1,0 +1,39 @@
+# I. Checkout the git repository.
+FROM ubuntu:latest AS git-source
+
+RUN apt-get update && \
+    apt-get install -y git
+
+WORKDIR /git-repo
+
+RUN git init
+RUN git remote add docs-0 http://lore.kernel.org/linux-doc/0
+RUN git fetch docs-0
+RUN git checkout docs-0/master
+
+# II. Build the tool.
+FROM golang:1.23-alpine AS series-tracker-builder
+
+WORKDIR /build
+
+# Prepare the dependencies.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Build the tool.
+COPY pkg/ pkg/
+# TODO: get rid of this dependency.
+COPY prog/ prog/
+COPY dashboard/dashapi/ dashboard/dashapi/
+COPY sys/targets/ sys/targets/ 
+COPY syz-cluster/series-tracker/*.go syz-cluster/series-tracker/
+COPY syz-cluster/pkg/ syz-cluster/pkg/
+
+RUN go build -o /build/series-tracker-bin /build/syz-cluster/series-tracker
+
+# III. Create the actual container.
+FROM git-source
+
+COPY --from=series-tracker-builder /build/series-tracker-bin /bin/series-tracker
+
+ENTRYPOINT ["/bin/series-tracker"]

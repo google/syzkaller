@@ -9,13 +9,13 @@ package main
 // b) LabelReached -- reproducer does not work in any other kernel tree, TO which commits flow.
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -29,7 +29,7 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		ctx := &bugTreeContext{
 			c:       c,
@@ -49,13 +49,12 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 		}
 		bug.TreeTests.NeedPoll = false
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		job, jobKey = ctx.job, ctx.jobKey
 		return nil
 	}
-	if err := db.RunInTransaction(cGlobal, tx,
-		&db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+	if err := runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return nil, nil, err
 	}
 	return job, jobKey, nil
@@ -68,7 +67,7 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to get bug: %v", err)
+			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		ctx := &bugTreeContext{
 			c:         c,
@@ -88,11 +87,11 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 			bug.TreeTests.NeedPoll = true
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return db.RunInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true, Attempts: 10})
+	return runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true})
 }
 
 type pollTreeJobResult interface{}
@@ -182,7 +181,10 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 		var result pollTreeJobResult
 		if merge {
 			// Merge base gives a much better result quality, so use it whenever possible.
-			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{})
+			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{
+				Repo:   ctx.build.KernelRepo,
+				Branch: ctx.build.KernelBranch,
+			})
 		} else {
 			result = ctx.runRepro(node.repo, wantFirstAny{}, runOnHEAD{})
 		}
@@ -225,7 +227,7 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 	return pollResultSkip{}
 }
 
-// selectRepoNodes attributes bugs to trees depending on the patch testing results.
+// selectRepoLabels attributes bugs to trees depending on the patch testing results.
 func (ctx *bugTreeContext) selectRepoLabels(in bool, results map[*repoNode]pollTreeJobResult) []string {
 	crashed := map[*repoNode]bool{}
 	for node, result := range results {
@@ -295,12 +297,15 @@ func (ctx *bugTreeContext) missingBackports() pollTreeJobResult {
 		}
 		var resultCrash pollTreeJobResult
 		if merge {
-			resultCrash = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{})
+			resultCrash = ctx.runRepro(node.repo, wantFirstAny{}, runOnMergeBase{
+				Repo:   ctx.build.KernelRepo,
+				Branch: ctx.build.KernelBranch,
+			})
 		} else {
 			// We already know that the reproducer doesn't crash the tree.
 			// There'd be no sense to call runRepro in the hope of getting a crash,
 			// so let's just look into the past tree testing results.
-			resultCrash = ctx.findResult(node.repo, wantFirstCrash{}, runOnAny{})
+			resultCrash, _ = ctx.bug.findResult(ctx.c, node.repo, wantFirstCrash{}, runOnAny{})
 		}
 		doneCrash, ok := resultCrash.(pollResultDone)
 		if !ok {
@@ -379,7 +384,10 @@ type runReproOn interface{}
 // runReproOn subtypes.
 type runOnAny struct{} // attempts to find any result, if unsuccessful, runs on HEAD
 type runOnHEAD struct{}
-type runOnMergeBase struct{}
+type runOnMergeBase struct {
+	Repo   string
+	Branch string
+}
 
 func (ctx *bugTreeContext) runRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
 	ret := ctx.doRunRepro(repo, result, runOn)
@@ -388,7 +396,7 @@ func (ctx *bugTreeContext) runRepro(repo KernelRepo, result expectedResult, runO
 }
 
 func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
-	existingResult := ctx.findResult(repo, result, runOn)
+	existingResult, _ := ctx.bug.findResult(ctx.c, repo, result, runOn)
 	if _, ok := existingResult.(pollResultSkip); !ok {
 		return existingResult
 	}
@@ -400,7 +408,7 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 	if _, ok := runOn.(runOnAny); ok {
 		runOn = runOnHEAD{}
 	}
-	candidates := ctx.bug.matchingTreeTests(ctx.build, repo, runOn)
+	candidates := ctx.bug.matchingTreeTests(repo, runOn)
 	var bugTreeTest *BugTreeTest
 	if len(candidates) > 0 {
 		bugTreeTest = &ctx.bug.TreeTests.List[candidates[0]]
@@ -410,9 +418,9 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 			Repo:    repo.URL,
 			Branch:  repo.Branch,
 		}
-		if _, ok := runOn.(runOnMergeBase); ok {
-			item.MergeBaseRepo = ctx.build.KernelRepo
-			item.MergeBaseBranch = ctx.build.KernelBranch
+		if v, ok := runOn.(runOnMergeBase); ok {
+			item.MergeBaseRepo = v.Repo
+			item.MergeBaseBranch = v.Branch
 		}
 		ctx.bug.TreeTests.List = append(ctx.bug.TreeTests.List, item)
 		bugTreeTest = &ctx.bug.TreeTests.List[len(ctx.bug.TreeTests.List)-1]
@@ -469,10 +477,11 @@ func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duratio
 	return pollResultSkip{}
 }
 
-func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
+func (bug *Bug) findResult(c context.Context,
+	repo KernelRepo, result expectedResult, runOn runReproOn) (pollTreeJobResult, *Job) {
 	anyPending := false
-	for _, i := range ctx.bug.matchingTreeTests(ctx.build, repo, runOn) {
-		info := &ctx.bug.TreeTests.List[i]
+	for _, i := range bug.matchingTreeTests(repo, runOn) {
+		info := &bug.TreeTests.List[i]
 		anyPending = anyPending || info.Pending != ""
 		key := ""
 		switch result.(type) {
@@ -485,14 +494,14 @@ func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, ru
 		case wantNewAny:
 			key = info.Last
 		default:
-			return pollResultError(fmt.Errorf("unexpected expected result: %T", result))
+			return pollResultError(fmt.Errorf("unexpected expected result: %T", result)), nil
 		}
 		if key == "" {
 			continue
 		}
-		job, _, err := fetchJob(ctx.c, key)
+		job, _, err := fetchJob(c, key)
 		if err != nil {
-			return pollResultError(err)
+			return pollResultError(err), nil
 		}
 		if date, ok := result.(wantNewAny); ok {
 			if job.Finished.Before(time.Time(date)) {
@@ -502,29 +511,30 @@ func (ctx *bugTreeContext) findResult(repo KernelRepo, result expectedResult, ru
 		return pollResultDone{
 			Crashed:  job.CrashTitle != "",
 			Finished: job.Finished,
-		}
+		}, job
 	}
 	if anyPending {
-		return pollResultPending{}
+		return pollResultPending{}, nil
 	} else {
-		return pollResultSkip{}
+		return pollResultSkip{}, nil
 	}
 }
 
-func (bug *Bug) matchingTreeTests(build *Build, repo KernelRepo, runOn runReproOn) []int {
+func (bug *Bug) matchingTreeTests(repo KernelRepo, runOn runReproOn) []int {
 	ret := []int{}
 	for i, item := range bug.TreeTests.List {
 		if item.Repo != repo.URL {
 			continue
 		}
 		ok := true
-		switch runOn.(type) {
+		switch v := runOn.(type) {
 		case runOnHEAD:
+			// TODO: should we check for an empty merge base here?
 			ok = item.Branch == repo.Branch
 		case runOnMergeBase:
 			ok = item.Branch == repo.Branch &&
-				item.MergeBaseRepo == build.KernelRepo &&
-				item.MergeBaseBranch == build.KernelBranch
+				item.MergeBaseRepo == v.Repo &&
+				item.MergeBaseBranch == v.Branch
 		}
 		if ok {
 			ret = append(ret, i)
@@ -540,9 +550,9 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 		crashKey := db.NewKey(ctx.c, "Crash", "", crashID, ctx.bugKey)
 		crash := new(Crash)
 		// We need to also tolerate the case when the crash was just deleted.
-		err := db.Get(ctx.c, crashKey, crash)
+		err := db.Get(ctx.cGlobal, crashKey, crash)
 		if err != nil && err != db.ErrNoSuchEntity {
-			return fmt.Errorf("failed to get crash: %v", err)
+			return fmt.Errorf("failed to get crash: %w", err)
 		} else if err == nil {
 			ok, build, err := ctx.isCrashRelevant(crash)
 			if err != nil {
@@ -555,26 +565,26 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 			}
 		}
 	}
+
 	// Query the most relevant crash with repro.
-	if ctx.crash == nil {
-		crash, crashKey, err := findCrashForBug(ctx.c, ctx.bug)
-		if err != nil {
-			return err
-		}
-		ok, build, err := ctx.isCrashRelevant(crash)
-		if err != nil {
-			return err
-		} else if ok {
-			ctx.build = build
-			ctx.crash = crash
-			ctx.crashKey = crashKey
-		}
+	crash, crashKey, err := findCrashForBug(ctx.cGlobal, ctx.bug)
+	if err != nil {
+		return err
+	}
+	ok, build, err := ctx.isCrashRelevant(crash)
+	if err != nil {
+		return err
+	} else if ok && (ctx.crash == nil || crash.ReportLen > ctx.crash.ReportLen) {
+		// Update the crash only if we found a better one.
+		ctx.build = build
+		ctx.crash = crash
+		ctx.crashKey = crashKey
 	}
 	// Load the rest of the data.
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		repoGraph, err := makeRepoGraph(getKernelRepos(ctx.c, ns))
+		repoGraph, err := makeRepoGraph(getNsConfig(ctx.c, ns).Repos)
 		if err != nil {
 			return err
 		}
@@ -591,7 +601,7 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 		// Let's wait for the repro.
 		return false, nil, nil
 	}
-	newManager, _ := activeManager(crash.Manager, ctx.bug.Namespace)
+	newManager, _ := activeManager(ctx.cGlobal, crash.Manager, ctx.bug.Namespace)
 	if newManager != crash.Manager {
 		// The manager was deprecated since the crash.
 		// Let's just ignore such bugs for now.
@@ -665,7 +675,7 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 				crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
 				crash := new(Crash)
 				if err := db.Get(c, crashKey, crash); err != nil {
-					return fmt.Errorf("failed to get crash: %v", err)
+					return fmt.Errorf("failed to get crash: %w", err)
 				}
 				info := makeJobInfo(c, job, jobKey, bug, build, crash)
 				mu.Lock()
@@ -702,6 +712,141 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 	return ret, nil
 }
 
+// Create a cross-tree bisection job (if needed).
+// Returns:
+// a) Job object and its key -- in case of success.
+// b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
+func crossTreeBisection(c context.Context, bug *Bug,
+	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
+	repoGraph, err := makeRepoGraph(getNsConfig(c, bug.Namespace).Repos)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	bugJobs := &lazyJobList{
+		c:       c,
+		bug:     bug,
+		jobType: JobBisectFix,
+	}
+	var job *Job
+	var jobKey *db.Key
+	expensive := false
+	err = repoGraph.forEachEdge(func(from, to *repoNode, info KernelRepoLink) error {
+		if jobKey != nil {
+			return nil
+		}
+		if !info.BisectFixes {
+			return nil
+		}
+		expensive = true
+		log.Infof(c, "%s: considering cross-tree bisection %s/%s",
+			bug.displayTitle(), from.repo.Alias, to.repo.Alias)
+		_, crashJob := bug.findResult(c, to.repo, wantNewAny{}, runOnHEAD{})
+		if crashJob == nil {
+			// No patch testing was performed yet.
+			return nil
+		}
+		if crashJob.CrashTitle == "" {
+			// The bug is already fixed on the target tree.
+			return nil
+		}
+		crashBuild, err := loadBuild(c, bug.Namespace, crashJob.BuildID)
+		if err != nil {
+			return err
+		}
+		manager, _ := activeManager(c, crashJob.Manager, crashJob.Namespace)
+		if !managers[manager].BisectFix {
+			return nil
+		}
+		_, successJob := bug.findResult(c, from.repo, wantNewAny{}, runOnHEAD{})
+		if successJob == nil {
+			// The jobs is not done yet.
+			return nil
+		}
+		if successJob.CrashTitle != "" {
+			// The kernel tree is still crashed by the repro.
+			return nil
+		}
+		newJob := &Job{
+			Type:            JobBisectFix,
+			Created:         timeNow(c),
+			Namespace:       bug.Namespace,
+			Manager:         crashJob.Manager,
+			BisectFrom:      crashBuild.KernelCommit,
+			KernelRepo:      from.repo.URL,
+			KernelBranch:    from.repo.Branch,
+			MergeBaseRepo:   to.repo.URL,
+			MergeBaseBranch: to.repo.Branch,
+			BugTitle:        bug.displayTitle(),
+			CrashID:         crashJob.CrashID,
+		}
+		// It's expected that crossTreeBisection is not concurrently called with the same
+		// manager list.
+		prevJob, err := bugJobs.lastMatch(newJob)
+		if err != nil {
+			return err
+		}
+		const repeatPeriod = time.Hour * 24 * 30
+		if prevJob != nil && (prevJob.Error == 0 ||
+			prevJob.Finished.After(timeNow(c).Add(-repeatPeriod))) {
+			// The job is already pending or failed recently. Skip.
+			return nil
+		}
+		job = newJob
+		jobKey, err = saveJob(c, newJob, bug.key(c))
+		return err
+	})
+	return job, jobKey, expensive, err
+}
+
+type lazyJobList struct {
+	c       context.Context
+	bug     *Bug
+	jobType JobType
+	jobs    *bugJobs
+}
+
+func (list *lazyJobList) lastMatch(job *Job) (*Job, error) {
+	if list.jobs == nil {
+		var err error
+		list.jobs, err = queryBugJobs(list.c, list.bug, list.jobType)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var best *Job
+	for _, item := range list.jobs.all() {
+		otherJob := item.job
+		same := otherJob.Manager == job.Manager &&
+			otherJob.KernelRepo == job.KernelRepo &&
+			otherJob.KernelBranch == job.KernelBranch &&
+			otherJob.CrashID == job.CrashID &&
+			otherJob.MergeBaseRepo == job.MergeBaseRepo &&
+			otherJob.MergeBaseBranch == job.MergeBaseBranch
+		if !same {
+			continue
+		}
+		if best == nil || best.Created.Before(otherJob.Created) {
+			best = otherJob
+		}
+	}
+	return best, nil
+}
+
+func doneCrossTreeBisection(c context.Context, jobKey *db.Key, job *Job) error {
+	if job.Type != JobBisectFix || job.MergeBaseRepo == "" {
+		// Not a cross tree bisection.
+		return nil
+	}
+	if job.Error != 0 || job.isUnreliableBisect() || len(job.Commits) != 1 {
+		// The result is not interesting.
+		return nil
+	}
+	return updateSingleBug(c, jobKey.Parent(), func(bug *Bug) error {
+		bug.FixCandidateJob = jobKey.Encode()
+		return nil
+	})
+}
+
 type repoNode struct {
 	repo  KernelRepo
 	edges []repoEdge
@@ -709,7 +854,7 @@ type repoNode struct {
 
 type repoEdge struct {
 	in    bool
-	merge bool
+	info  KernelRepoLink
 	other *repoNode
 }
 
@@ -732,8 +877,8 @@ func makeRepoGraph(repos []KernelRepo) (*repoGraph, error) {
 			if g.nodes[link.Alias] == nil {
 				return nil, fmt.Errorf("no repo with alias %q", link.Alias)
 			}
-			g.nodes[repo.Alias].addEdge(true, link.Merge, g.nodes[link.Alias])
-			g.nodes[link.Alias].addEdge(false, link.Merge, g.nodes[repo.Alias])
+			g.nodes[repo.Alias].addEdge(true, link, g.nodes[link.Alias])
+			g.nodes[link.Alias].addEdge(false, link, g.nodes[repo.Alias])
 		}
 	}
 	for alias, node := range g.nodes {
@@ -763,6 +908,21 @@ func (g *repoGraph) nodeByAlias(alias string) *repoNode {
 	return nil
 }
 
+func (g *repoGraph) forEachEdge(cb func(from, to *repoNode, info KernelRepoLink) error) error {
+	for _, node := range g.nodes {
+		for _, e := range node.edges {
+			if !e.in {
+				continue
+			}
+			err := cb(e.other, node, e.info)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // reachable returns a map *repoNode -> bool (whether commits are merged).
 func (n *repoNode) reachable(in bool) map[*repoNode]bool {
 	ret := map[*repoNode]bool{}
@@ -776,14 +936,14 @@ func (n *repoNode) reachableMerged(in, onlyMerge bool, ret map[*repoNode]bool) {
 	var dfs func(*repoNode, bool)
 	dfs = func(node *repoNode, merge bool) {
 		for _, edge := range node.edges {
-			if edge.in != in || onlyMerge && !edge.merge {
+			if edge.in != in || onlyMerge && !edge.info.Merge {
 				continue
 			}
 			if _, ok := ret[edge.other]; ok {
 				continue
 			}
-			ret[edge.other] = merge && edge.merge
-			dfs(edge.other, merge && edge.merge)
+			ret[edge.other] = merge && edge.info.Merge
+			dfs(edge.other, merge && edge.info.Merge)
 		}
 	}
 	dfs(n, true)
@@ -797,10 +957,10 @@ func (n *repoNode) allReachable() map[*repoNode]bool {
 	return ret
 }
 
-func (n *repoNode) addEdge(in, merge bool, other *repoNode) {
+func (n *repoNode) addEdge(in bool, info KernelRepoLink, other *repoNode) {
 	n.edges = append(n.edges, repoEdge{
 		in:    in,
-		merge: merge,
+		info:  info,
 		other: other,
 	})
 }

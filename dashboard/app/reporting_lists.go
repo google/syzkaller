@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -32,7 +32,7 @@ func reportingPollBugLists(c context.Context, typ string) []*dashapi.BugListRepo
 		return nil
 	}
 	ret := []*dashapi.BugListReport{}
-	for ns, nsConfig := range config.Namespaces {
+	for ns, nsConfig := range getConfig(c).Namespaces {
 		rConfig := nsConfig.Subsystems.Reminder
 		if rConfig == nil {
 			continue
@@ -80,7 +80,7 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "failed to load subsystems: %v", err)
 		return
 	}
-	for ns, nsConfig := range config.Namespaces {
+	for ns, nsConfig := range getConfig(c).Namespaces {
 		rConfig := nsConfig.Subsystems.Reminder
 		if rConfig == nil {
 			continue
@@ -173,7 +173,7 @@ func reportingBugListCommand(c context.Context, cmd *dashapi.BugListUpdate) (str
 				return fmt.Errorf("failed to query state: %w", err)
 			}
 			stateEnt := state.getEntry(timeNow(c), subsystem.Namespace,
-				config.Namespaces[subsystem.Namespace].Subsystems.Reminder.SourceReporting)
+				getConfig(c).Namespaces[subsystem.Namespace].Subsystems.Reminder.SourceReporting)
 			stateEnt.Sent++
 			if err := saveReportingState(c, state); err != nil {
 				return fmt.Errorf("failed to save state: %w", err)
@@ -194,12 +194,12 @@ Please visit the new discussion thread.`
 			dbSubsystem := new(Subsystem)
 			err := db.Get(c, subsystemKey, dbSubsystem)
 			if err != nil {
-				return fmt.Errorf("failed to get subsystem: %s", err)
+				return fmt.Errorf("failed to get subsystem: %w", err)
 			}
 			dbSubsystem.LastBugList = time.Time{}
 			_, err = db.Put(c, subsystemKey, dbSubsystem)
 			if err != nil {
-				return fmt.Errorf("failed to save subsystem: %s", err)
+				return fmt.Errorf("failed to save subsystem: %w", err)
 			}
 		}
 		_, err = db.Put(c, reportKey, report)
@@ -208,10 +208,7 @@ Please visit the new discussion thread.`
 		}
 		return nil
 	}
-	return reply, db.RunInTransaction(c, tx, &db.TransactionOptions{
-		XG:       true,
-		Attempts: 10,
-	})
+	return reply, runInTransaction(c, tx, &db.TransactionOptions{XG: true})
 }
 
 func findSubsystemReportByID(c context.Context, ID string) (*Subsystem,
@@ -243,17 +240,12 @@ func findSubsystemReportByID(c context.Context, ID string) (*Subsystem,
 func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Reporting,
 	config *BugListReportingConfig) (*SubsystemReport, error) {
 	rawOpenBugs, fixedBugs, err := queryMatchingBugs(c, subsystem.Namespace,
-		subsystem.Name, reporting.AccessLevel)
+		subsystem.Name, reporting)
 	if err != nil {
 		return nil, err
 	}
 	withRepro, noRepro := []*Bug{}, []*Bug{}
 	for _, bug := range rawOpenBugs {
-		currReporting, _, _, _, _ := currentReporting(bug)
-		if reporting.Name != currReporting.Name {
-			// The big is not at the expected reporting stage.
-			continue
-		}
 		const possiblyFixedTimespan = 24 * time.Hour * 14
 		if bug.LastTime.Before(timeNow(c).Add(-possiblyFixedTimespan)) {
 			// The bug didn't happen recently, possibly it was already fixed.
@@ -262,6 +254,11 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 		}
 		if bug.FirstTime.After(timeNow(c).Add(-config.MinBugAge)) {
 			// Don't take bugs which are too new -- they're still fresh in memory.
+			continue
+		}
+		if bug.prio() == LowPrioBug {
+			// Don't include low priority bugs in reports because the community
+			// actually perceives them as non-actionable.
 			continue
 		}
 		discussions := bug.discussionSummary()
@@ -292,14 +289,16 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 	if takeNoRepro+len(withRepro) < config.BugsInReport {
 		takeNoRepro = config.BugsInReport - len(withRepro)
 	}
-	if takeNoRepro > len(noRepro) {
-		takeNoRepro = len(noRepro)
-	}
+	takeNoRepro = min(takeNoRepro, len(noRepro))
 	sort.Slice(noRepro, func(i, j int) bool {
 		return noRepro[i].NumCrashes > noRepro[j].NumCrashes
 	})
 	takeBugs := append(withRepro, noRepro[:takeNoRepro]...)
 	sort.Slice(takeBugs, func(i, j int) bool {
+		firstPrio, secondPrio := takeBugs[i].prio(), takeBugs[j].prio()
+		if firstPrio != secondPrio {
+			return !firstPrio.LessThan(secondPrio)
+		}
 		if takeBugs[i].NumCrashes != takeBugs[j].NumCrashes {
 			return takeBugs[i].NumCrashes > takeBugs[j].NumCrashes
 		}
@@ -319,28 +318,31 @@ func querySubsystemReport(c context.Context, subsystem *Subsystem, reporting *Re
 }
 
 func makeSubsystemReportStats(c context.Context, open, fixed []*Bug, days int) SubsystemReportStats {
-	if days > 0 {
-		after := timeNow(c).Add(-time.Hour * 24 * time.Duration(days))
-		ret := SubsystemReportStats{}
-		for _, bug := range open {
-			if bug.FirstTime.After(after) {
-				ret.Reported++
-			}
+	after := timeNow(c).Add(-time.Hour * 24 * time.Duration(days))
+	ret := SubsystemReportStats{}
+	for _, bug := range open {
+		if days > 0 && bug.FirstTime.Before(after) {
+			continue
 		}
-		for _, bug := range fixed {
-			if len(bug.CommitInfo) > 0 && bug.CommitInfo[0].Date.After(after) {
-				ret.Fixed++
-			}
+		if bug.prio() == LowPrioBug {
+			ret.LowPrio++
+		} else {
+			ret.Reported++
 		}
-		return ret
 	}
-	return SubsystemReportStats{
-		Reported: len(open),
-		Fixed:    len(fixed),
+	for _, bug := range fixed {
+		if len(bug.CommitInfo) == 0 {
+			continue
+		}
+		if days > 0 && bug.CommitInfo[0].Date.Before(after) {
+			continue
+		}
+		ret.Fixed++
 	}
+	return ret
 }
 
-func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLevel) ([]*Bug, []*Bug, error) {
+func queryMatchingBugs(c context.Context, ns, name string, reporting *Reporting) ([]*Bug, []*Bug, error) {
 	allOpenBugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
@@ -366,11 +368,15 @@ func queryMatchingBugs(c context.Context, ns, name string, accessLevel AccessLev
 			fixed = append(fixed, bug)
 			continue
 		}
-		currReporting, _, _, _, err := currentReporting(bug)
+		currReporting, _, _, _, err := currentReporting(c, bug)
 		if err != nil {
 			continue
 		}
-		if currReporting.AccessLevel > accessLevel {
+		if reporting.Name != currReporting.Name {
+			// The bug is not at the expected reporting stage.
+			continue
+		}
+		if currReporting.AccessLevel > reporting.AccessLevel {
 			continue
 		}
 		open = append(open, bug)
@@ -416,7 +422,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		if !stage.Closed.IsZero() {
 			continue
 		}
-		repConfig := bugListReportingConfig(ns, &stage)
+		repConfig := bugListReportingConfig(c, ns, &stage)
 		if repConfig == nil {
 			// It might happen if e.g. Moderation was set to nil.
 			// Just skip the stage then.
@@ -439,7 +445,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 			Moderation:  stage.Moderation,
 			TotalStats:  subsystemReport.TotalStats.toDashapi(),
 			PeriodStats: subsystemReport.PeriodStats.toDashapi(),
-			PeriodDays:  config.Namespaces[ns].Subsystems.Reminder.PeriodDays,
+			PeriodDays:  getNsConfig(c, ns).Subsystems.Reminder.PeriodDays,
 		}
 		bugKeys, err := subsystemReport.getBugKeys()
 		if err != nil {
@@ -452,7 +458,7 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 		}
 		for _, bug := range bugs {
 			bugReporting := bugReportingByName(bug,
-				config.Namespaces[ns].Subsystems.Reminder.SourceReporting)
+				getNsConfig(c, ns).Subsystems.Reminder.SourceReporting)
 			ret.Bugs = append(ret.Bugs, dashapi.BugListItem{
 				Title:      bug.displayTitle(),
 				Link:       fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
@@ -465,8 +471,8 @@ func reportingBugListReport(c context.Context, subsystemReport *SubsystemReport,
 	return nil, nil
 }
 
-func bugListReportingConfig(ns string, stage *SubsystemReportStage) ReportingType {
-	cfg := config.Namespaces[ns].Subsystems.Reminder
+func bugListReportingConfig(c context.Context, ns string, stage *SubsystemReportStage) ReportingType {
+	cfg := getNsConfig(c, ns).Subsystems.Reminder
 	if stage.Moderation {
 		return cfg.ModerationConfig
 	}
@@ -523,7 +529,7 @@ func (sr *subsystemsRegistry) store(item *Subsystem) {
 
 func (sr *subsystemsRegistry) updatePoll(c context.Context, s *Subsystem, success bool) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		dbSubsystem := new(Subsystem)
 		err := db.Get(c, key, dbSubsystem)
 		if err == db.ErrNoSuchEntity {
@@ -553,19 +559,18 @@ func makeSubsystemReportRegistry(c context.Context) (*subsystemReportRegistry, e
 	if err != nil {
 		return nil, err
 	}
-	var subsystemKeys []*db.Key
-	for _, key := range reportKeys {
-		subsystemKeys = append(subsystemKeys, key.Parent())
-	}
-	subsystems := make([]*Subsystem, len(subsystemKeys))
-	if err := db.GetMulti(c, subsystemKeys, subsystems); err != nil {
-		return nil, fmt.Errorf("failed to query subsystems: %w", err)
-	}
 	ret := &subsystemReportRegistry{
 		entities: map[string]map[string][]*SubsystemReport{},
 	}
-	for i, item := range reports {
-		ret.store(subsystems[i].Namespace, subsystems[i].Name, item)
+	loader := &dependencyLoader[Subsystem]{}
+	for i, key := range reportKeys {
+		report := reports[i]
+		loader.add(key.Parent(), func(subsystem *Subsystem) {
+			ret.store(subsystem.Namespace, subsystem.Name, report)
+		})
+	}
+	if err := loader.load(c); err != nil {
+		return nil, err
 	}
 	return ret, nil
 }
@@ -583,7 +588,7 @@ func (srr *subsystemReportRegistry) store(ns, name string, item *SubsystemReport
 
 func storeSubsystemReport(c context.Context, s *Subsystem, report *SubsystemReport) error {
 	key := subsystemKey(c, s)
-	return db.RunInTransaction(c, func(c context.Context) error {
+	return runInTransaction(c, func(c context.Context) error {
 		// First close all previouly active per-subsystem reports.
 		var previous []*SubsystemReport
 		prevKeys, err := db.NewQuery("SubsystemReport").

@@ -1,10 +1,8 @@
 # For reference see:
 # https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
-*.py		@xairy
-*fuchsia*	@mvanotti @noncombatant @glpesk @eepeep @corkamig
+*fuchsia*	@mvanotti @glpesk @eepeep @bmberger
 *freebsd*	@markjdb @tuexen
 *netbsd*	@krytarowski @R3x
 *openbsd*	@blackgnezdo @mptre
 *gvisor*	@avagin
-vendor/		@dvyukov

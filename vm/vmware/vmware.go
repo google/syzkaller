@@ -18,11 +18,14 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vmimpl.Register("vmware", ctor, false)
+	vmimpl.Register("vmware", vmimpl.Type{
+		Ctor: ctor,
+	})
 }
 
 type Config struct {
@@ -45,6 +48,7 @@ type instance struct {
 	sshuser     string
 	sshkey      string
 	forwardPort int
+	timeouts    targets.Timeouts
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -60,10 +64,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	if _, err := exec.LookPath("vmrun"); err != nil {
 		return nil, fmt.Errorf("cannot find vmrun")
-	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
 	}
 	pool := &Pool{
 		cfg: cfg,
@@ -82,13 +82,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	sshkey := pool.env.SSHKey
 	sshuser := pool.env.SSHUser
 	inst := &instance{
-		cfg:     pool.cfg,
-		debug:   pool.env.Debug,
-		baseVMX: pool.cfg.BaseVMX,
-		vmx:     vmx,
-		sshkey:  sshkey,
-		sshuser: sshuser,
-		closed:  make(chan bool),
+		cfg:      pool.cfg,
+		debug:    pool.env.Debug,
+		baseVMX:  pool.cfg.BaseVMX,
+		vmx:      vmx,
+		sshkey:   sshkey,
+		sshuser:  sshuser,
+		closed:   make(chan bool),
+		timeouts: pool.env.Timeouts,
 	}
 	if err := inst.clone(); err != nil {
 		return nil, err
@@ -141,7 +142,7 @@ func (inst *instance) Forward(port int) (string, error) {
 	return fmt.Sprintf("127.0.0.1:%v", port), nil
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	if inst.debug {
 		log.Logf(0, "stopping %v", inst.vmx)
 	}
@@ -151,13 +152,14 @@ func (inst *instance) Close() {
 	}
 	osutil.RunCmd(2*time.Minute, "", "vmrun", "deleteVM", inst.vmx)
 	close(inst.closed)
+	return nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join("/", base)
 
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22),
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22, false),
 		hostSrc, fmt.Sprintf("%v@%v:%v", inst.sshuser, inst.ipAddr, vmDst))
 
 	if inst.debug {
@@ -186,7 +188,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args := vmimpl.SSHArgs(inst.debug, inst.sshkey, 22)
+	args := vmimpl.SSHArgs(inst.debug, inst.sshkey, 22, false)
 	// Forward target port as part of the ssh connection (reverse proxy)
 	if inst.forwardPort != 0 {
 		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.forwardPort, inst.forwardPort)
@@ -215,7 +217,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("dmesg", dmesg)
 	merger.Add("ssh", rpipe)
 
-	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
+	return vmimpl.Multiplex(cmd, merger, timeout, vmimpl.MultiplexConfig{
+		Console: dmesg,
+		Stop:    stop,
+		Close:   inst.closed,
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
+	})
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

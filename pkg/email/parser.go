@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -59,8 +60,8 @@ const (
 	cmdTest5
 )
 
-var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit" +
-	" (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
+var groupsLinkRe = regexp.MustCompile(`(?m)\nTo view this discussion (?:on the web )?visit` +
+	` (https://groups\.google\.com/.*?)\.(:?$|\n|\r)`)
 
 func prepareEmails(list []string) map[string]bool {
 	ret := make(map[string]bool)
@@ -76,11 +77,11 @@ func prepareEmails(list []string) map[string]bool {
 func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read email: %v", err)
+		return nil, fmt.Errorf("failed to read email: %w", err)
 	}
 	from, err := msg.Header.AddressList("From")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse email header 'From': %v", err)
+		return nil, fmt.Errorf("failed to parse email header 'From': %w", err)
 	}
 	if len(from) == 0 {
 		return nil, fmt.Errorf("failed to parse email header 'To': no senders")
@@ -153,6 +154,9 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
 		link = bodyStr[match[2]:match[3]]
+		if unescaped, err := url.QueryUnescape(link); err == nil {
+			link = unescaped
+		}
 	}
 
 	author := CanonicalEmail(from[0].Address)
@@ -194,7 +198,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 func AddAddrContext(email, context string) (string, error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse %q as email: %v", email, err)
+		return "", fmt.Errorf("failed to parse %q as email: %w", email, err)
 	}
 	at := strings.IndexByte(addr.Address, '@')
 	if at == -1 {
@@ -213,7 +217,7 @@ func AddAddrContext(email, context string) (string, error) {
 func RemoveAddrContext(email string) (string, string, error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to parse %q as email: %v", email, err)
+		return "", "", fmt.Errorf("failed to parse %q as email: %w", email, err)
 	}
 	at := strings.IndexByte(addr.Address, '@')
 	if at == -1 {
@@ -296,13 +300,20 @@ func extractCommand(body string) (*SingleCommand, int) {
 	// For "fix:"/"dup:" we need a whole non-empty line of text.
 	switch cmd {
 	case CmdTest:
-		args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
+		if strings.HasSuffix(str, ":") {
+			// For "#syz test:", we do want to query 2 arguments.
+			args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
+		} else {
+			// For "#syz test", it's likely there won't be anything else, so let's only parse
+			// the first line.
+			args = extractArgsLine(body[cmdPos+cmdEnd:], false)
+		}
 	case CmdSet, CmdUnset:
-		args = extractArgsLine(body[cmdPos+cmdEnd:])
+		args = extractArgsLine(body[cmdPos+cmdEnd:], true)
 	case cmdTest5:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
 	case CmdFix, CmdDup:
-		args = extractArgsLine(body[cmdPos+cmdEnd:])
+		args = extractArgsLine(body[cmdPos+cmdEnd:], true)
 	}
 	return &SingleCommand{
 		Command: cmd,
@@ -365,11 +376,12 @@ func extractArgsTokens(body string, num int) string {
 	return strings.TrimSpace(strings.Join(args, " "))
 }
 
-func extractArgsLine(body string) string {
+func extractArgsLine(body string, skipWs bool) string {
 	pos := 0
-	for pos < len(body) && (body[pos] == ' ' || body[pos] == '\t' ||
-		body[pos] == '\n' || body[pos] == '\r') {
-		pos++
+	if skipWs {
+		for pos < len(body) && unicode.IsSpace(rune(body[pos])) {
+			pos++
+		}
 	}
 	lineEnd := strings.IndexByte(body[pos:], '\n')
 	if lineEnd == -1 {
@@ -386,7 +398,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 		var err error
 		mediaType, params, err = mime.ParseMediaType(headers.Get("Content-Type"))
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
+			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %w", err)
 		}
 	}
 	switch strings.ToLower(headers.Get("Content-Transfer-Encoding")) {
@@ -399,14 +411,14 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 	if disp == "attachment" {
 		attachment, err := io.ReadAll(r)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
+			return nil, nil, fmt.Errorf("failed to read email body: %w", err)
 		}
 		return nil, [][]byte{attachment}, nil
 	}
 	if mediaType == "text/plain" {
 		body, err := io.ReadAll(r)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
+			return nil, nil, fmt.Errorf("failed to read email body: %w", err)
 		}
 		return body, nil, nil
 	}
@@ -422,7 +434,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 			return body, attachments, nil
 		}
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse MIME parts: %v", err)
+			return nil, nil, fmt.Errorf("failed to parse MIME parts: %w", err)
 		}
 		body1, attachments1, err1 := parseBody(p, mail.Header(p.Header))
 		if err1 != nil {

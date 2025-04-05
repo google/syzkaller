@@ -1,0 +1,133 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-workflow-role
+rules:
+- apiGroups:
+    - argoproj.io
+  resources:
+    - workflows
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+    - status
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-workflowtasks-role
+rules:
+- apiGroups: ["argoproj.io"]
+  resources:
+  - workflowtaskresults
+  verbs:
+  - create
+  - patch
+- apiGroups:
+    - argoproj.io
+  resources:
+    - workflowtasksets
+    - workflowartifactgctasks
+  verbs:
+    - list
+    - watch
+- apiGroups:
+  - argoproj.io
+  resources:
+    - workflowtasksets/status
+    - workflowartifactgctasks/status
+  verbs:
+    - patch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-workflow-role-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-workflow-role
+subjects:
+- kind: ServiceAccount
+  name: argo-executor-ksa
+  namespace: default
+- kind: ServiceAccount
+  name: argo-controller-ksa
+  namespace: argo
+- kind: ServiceAccount
+  name: gke-service-ksa
+  namespace: default
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-workflowtasks-role-binding
+  namespace: argo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-workflowtasks-role
+subjects:
+- kind: ServiceAccount
+  name: argo-executor-ksa
+  namespace: default
+- kind: ServiceAccount
+  name: argo-controller-ksa
+  namespace: argo
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-cluster-role-to-controller-binding
+  namespace: argo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: argo-controller-ksa
+  namespace: argo
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-role-to-controller-binding
+  namespace: argo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-role
+subjects:
+- kind: ServiceAccount
+  name: argo-controller-ksa
+  namespace: argo
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: argo-executor-ksa
+  name: argo-executor-ksa.service-account-token
+type: kubernetes.io/service-account-token

@@ -65,7 +65,7 @@ PC values associated to the line are not instrumented or source line doesn't gen
 There is small utility in syzkaller repository to generate coverage report based on raw coverage data. This is available in [syz-cover](/tools/syz-cover) and can be built by:
 
 ``` bash
-GOOS=linux GOARCH=amd64 go build "-ldflags=-s -w" -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
 ```
 
 Raw coverage data can be obtained from running `syz-manager` by:
@@ -77,17 +77,17 @@ wget http://localhost:<your syz-manager port>/rawcover
 Now this raw cover data can be fed to `syz-cover` to generate coverage report:
 
 ``` bash
-./bin/syz-cover --kernel_obj <directory where vmlinux is located> rawcover
+./bin/syz-cover --config <location of your syzkaller config> rawcover
 ```
 
 You can also export CSV file containing function coverage by:
 
 ``` bash
-./bin/syz-cover --kernel_obj <directory where vmlinux is located> --csv <filename where to export>  rawcover
+./bin/syz-cover --config <location of your syzkaller config> --csv <filename where to export>  rawcover
 ```
 
 You can export a JSON file containing line coverage info by:
 
 ```bash
-./bin/syz-cover --kernel_obj <directory where vmlinux is located> --json <filename where to export>  rawcover
+./bin/syz-cover --config <location of your syzkaller config> --json <filename where to export>  rawcover
 ```

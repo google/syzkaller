@@ -15,7 +15,7 @@ resource fd_cgroup_pressure[fd]
 
 mkdirat$cgroup_root(fd const[AT_FDCWD], path ptr[in, string[cgroup_dirs]], mode const[0x1ff])
 mkdirat$cgroup(fd fd_cgroup, path ptr[in, string[cgroup_names]], mode const[0x1ff])
-openat$cgroup_root(fd const[AT_FDCWD], file ptr[in, string[cgroup_dirs]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
+openat$cgroup_root(fd const[AT_FDCWD], file ptr[in, string[cgroup_dirs]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup (automatic_helper)
 openat$cgroup(fd fd_cgroup, file ptr[in, string[cgroup_names]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
 openat$cgroup_ro(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_read]], flags const[O_RDONLY], mode const[0]) fd
 openat$cgroup_int(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_int]], flags const[O_RDWR], mode const[0]) fd_cgroup_int
@@ -41,7 +41,6 @@ cgroup_control {
 
 cgroup_dirs = "./cgroup/syz0", "./cgroup/syz1", "./cgroup.cpu/syz0", "./cgroup.cpu/syz1", "./cgroup.net/syz0", "./cgroup.net/syz1"
 cgroup_names = "syz0", "syz1"
-cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
 cgroup_control_signs = '+', '-'
 cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma", "net", "net_cls", "net_prio", "devices", "blkio", "freezer", "cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"
 cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"

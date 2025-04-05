@@ -1,5 +1,4 @@
 TITLE: KMSAN: kernel-infoleak in kernfs_fop_read_iter
-ALT: KMSAN origin in dev_set_name
 ALT: bad-access in kernfs_fop_read_iter
 
 [  160.663319][ T5029] =====================================================

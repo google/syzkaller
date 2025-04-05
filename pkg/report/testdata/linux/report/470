@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in bcsp_close
 ALT: bad-access in bcsp_close
+TYPE: KASAN
 
 [ 1018.906812][ T7994] ==================================================================
 [ 1018.915133][ T7994] BUG: KASAN: use-after-free in kfree_skb+0x2a/0xb0

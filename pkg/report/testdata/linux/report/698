@@ -1,0 +1,95 @@
+TITLE: KASAN: use-after-free Read in udf_sync_fs
+ALT: bad-access in udf_sync_fs
+TYPE: KASAN
+
+[   54.508689][ T4991] ==================================================================
+[   54.516895][ T4991] BUG: KASAN: use-after-free in crc_itu_t+0x1d5/0x2a0
+[   54.523683][ T4991] Read of size 1 at addr ffff8880743a3000 by task syz-executor922/4991
+[   54.531905][ T4991] 
+[   54.534212][ T4991] CPU: 0 PID: 4991 Comm: syz-executor922 Not tainted 6.4.0-rc5-syzkaller-00016-ga4d7d7011219 #0
+[   54.544604][ T4991] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/25/2023
+[   54.554639][ T4991] Call Trace:
+[   54.557903][ T4991]  <TASK>
+[   54.560817][ T4991]  dump_stack_lvl+0x1e7/0x2d0
+[   54.565487][ T4991]  ? nf_tcp_handle_invalid+0x650/0x650
+[   54.570934][ T4991]  ? panic+0x770/0x770
+[   54.574980][ T4991]  ? _printk+0xd5/0x120
+[   54.579118][ T4991]  print_report+0x163/0x540
+[   54.583601][ T4991]  ? ktime_get_real_ts64+0x460/0x460
+[   54.588871][ T4991]  ? time64_to_tm+0x331/0x4d0
+[   54.593527][ T4991]  ? __virt_addr_valid+0x22f/0x2e0
+[   54.598623][ T4991]  ? __phys_addr+0xba/0x170
+[   54.603125][ T4991]  ? crc_itu_t+0x1d5/0x2a0
+[   54.607549][ T4991]  kasan_report+0x176/0x1b0
+[   54.612054][ T4991]  ? crc_itu_t+0x1d5/0x2a0
+[   54.616462][ T4991]  ? pvclock_gtod_unregister_notifier+0x50/0x50
+[   54.622726][ T4991]  crc_itu_t+0x1d5/0x2a0
+[   54.626953][ T4991]  udf_sync_fs+0x1d2/0x380
+[   54.631360][ T4991]  ? udf_put_super+0x160/0x160
+[   54.636106][ T4991]  sync_filesystem+0xec/0x220
+[   54.640784][ T4991]  generic_shutdown_super+0x6f/0x340
+[   54.646413][ T4991]  kill_block_super+0x84/0xf0
+[   54.651080][ T4991]  deactivate_locked_super+0xa4/0x110
+[   54.656438][ T4991]  cleanup_mnt+0x426/0x4c0
+[   54.660947][ T4991]  ? _raw_spin_unlock_irq+0x23/0x50
+[   54.666150][ T4991]  task_work_run+0x24a/0x300
+[   54.670828][ T4991]  ? dput+0x3a1/0x420
+[   54.674841][ T4991]  ? task_work_cancel+0x2b0/0x2b0
+[   54.679855][ T4991]  ? __x64_sys_umount+0x126/0x170
+[   54.684958][ T4991]  ptrace_notify+0x2cd/0x380
+[   54.689534][ T4991]  ? do_notify_parent+0xf50/0xf50
+[   54.694582][ T4991]  ? user_path_at_empty+0x12f/0x180
+[   54.699800][ T4991]  ? __x64_sys_umount+0x126/0x170
+[   54.706121][ T4991]  ? path_umount+0xea0/0xea0
+[   54.710704][ T4991]  ? syscall_enter_from_user_mode+0x32/0x230
+[   54.716760][ T4991]  syscall_exit_to_user_mode+0x157/0x280
+[   54.722379][ T4991]  do_syscall_64+0x4d/0xc0
+[   54.726780][ T4991]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   54.732656][ T4991] RIP: 0033:0x7f15497fa077
+[   54.737062][ T4991] Code: 09 00 48 83 c4 08 5b 5d c3 66 2e 0f 1f 84 00 00 00 00 00 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 b8 a6 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 c0 ff ff ff f7 d8 64 89 01 48
+[   54.756747][ T4991] RSP: 002b:00007ffd38bbc1e8 EFLAGS: 00000206 ORIG_RAX: 00000000000000a6
+[   54.765235][ T4991] RAX: 0000000000000000 RBX: 000000000000d3ab RCX: 00007f15497fa077
+[   54.773286][ T4991] RDX: 00007ffd38bbc39c RSI: 000000000000000a RDI: 00007ffd38bbc2a0
+[   54.781328][ T4991] RBP: 00007ffd38bbc2a0 R08: 000000000000000c R09: 00007ffd38bbc080
+[   54.789283][ T4991] R10: 00005555563e1633 R11: 0000000000000206 R12: 00007ffd38bbd310
+[   54.797322][ T4991] R13: 00005555563e15f0 R14: 00007ffd38bbc210 R15: 0000000000000001
+[   54.805467][ T4991]  </TASK>
+[   54.808473][ T4991] 
+[   54.810779][ T4991] The buggy address belongs to the physical page:
+[   54.817169][ T4991] page:ffffea0001d0e8c0 refcount:0 mapcount:0 mapping:0000000000000000 index:0x1 pfn:0x743a3
+[   54.827300][ T4991] flags: 0xfff00000000000(node=0|zone=1|lastcpupid=0x7ff)
+[   54.834385][ T4991] page_type: 0xffffffff()
+[   54.838703][ T4991] raw: 00fff00000000000 ffffea0001d0e908 ffffea0001ffb9c8 0000000000000000
+[   54.847355][ T4991] raw: 0000000000000001 0000000000000000 00000000ffffffff 0000000000000000
+[   54.856086][ T4991] page dumped because: kasan: bad access detected
+[   54.862565][ T4991] page_owner tracks the page as freed
+[   54.867910][ T4991] page last allocated via order 0, migratetype Movable, gfp_mask 0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_COMP|__GFP_ZERO), pid 4954, tgid 4954 (sshd), ts 47175862591, free_ts 47253283703
+[   54.885943][ T4991]  post_alloc_hook+0x1e6/0x210
+[   54.890693][ T4991]  get_page_from_freelist+0x321c/0x33a0
+[   54.896221][ T4991]  __alloc_pages+0x255/0x670
+[   54.900902][ T4991]  __folio_alloc+0x13/0x30
+[   54.905296][ T4991]  vma_alloc_folio+0x48a/0x9a0
+[   54.910056][ T4991]  handle_mm_fault+0x2942/0x5860
+[   54.914991][ T4991]  exc_page_fault+0x274/0x910
+[   54.919652][ T4991]  asm_exc_page_fault+0x26/0x30
+[   54.924487][ T4991] page last free stack trace:
+[   54.929141][ T4991]  free_unref_page_prepare+0x903/0xa30
+[   54.934670][ T4991]  free_unref_page_list+0x596/0x830
+[   54.939935][ T4991]  release_pages+0x2193/0x2470
+[   54.944787][ T4991]  tlb_flush_mmu+0x100/0x210
+[   54.949410][ T4991]  tlb_finish_mmu+0xd4/0x1f0
+[   54.953978][ T4991]  unmap_region+0x258/0x2a0
+[   54.958471][ T4991]  do_vmi_align_munmap+0x1123/0x1820
+[   54.963749][ T4991]  do_vmi_munmap+0x24a/0x2b0
+[   54.968333][ T4991]  __vm_munmap+0x226/0x470
+[   54.972857][ T4991]  __x64_sys_munmap+0x69/0x80
+[   54.977717][ T4991]  do_syscall_64+0x41/0xc0
+[   54.982316][ T4991]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   54.988196][ T4991] 
+[   54.990512][ T4991] Memory state around the buggy address:
+[   54.996120][ T4991]  ffff8880743a2f00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   55.004178][ T4991]  ffff8880743a2f80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   55.012241][ T4991] >ffff8880743a3000: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[   55.020289][ T4991]                    ^
+[   55.024353][ T4991]  ffff8880743a3080: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[   55.032395][ T4991]  ffff8880743a3100: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff

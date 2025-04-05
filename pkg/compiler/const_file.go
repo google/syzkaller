@@ -26,6 +26,10 @@ type ConstFile struct {
 type constVal struct {
 	name string
 	vals map[string]uint64 // arch -> value
+	// Set if the value for the arch is weak (come from auto.txt).
+	// Weak values are replaced on mismatch, instead of producing
+	// an error about mismatching values.
+	weak map[string]bool
 }
 
 const undefined = "???"
@@ -40,30 +44,38 @@ func NewConstFile() *ConstFile {
 func (cf *ConstFile) AddArch(arch string, consts map[string]uint64, undeclared map[string]bool) error {
 	cf.arches[arch] = true
 	for name, val := range consts {
-		if err := cf.addConst(arch, name, val, true); err != nil {
+		if err := cf.addConst(arch, name, val, true, false); err != nil {
 			return err
 		}
 	}
 	for name := range undeclared {
-		if err := cf.addConst(arch, name, 0, false); err != nil {
+		if err := cf.addConst(arch, name, 0, false, false); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (cf *ConstFile) addConst(arch, name string, val uint64, declared bool) error {
+func (cf *ConstFile) addConst(arch, name string, val uint64, declared, weak bool) error {
 	cv := cf.m[name]
 	if cv.vals == nil {
 		cv.name = name
 		cv.vals = make(map[string]uint64)
-	}
-	if val0, declared0 := cv.vals[arch]; declared && declared0 && val != val0 {
-		return fmt.Errorf("const=%v arch=%v has different values: %v[%v] vs %v[%v]",
-			name, arch, val, declared, val0, declared0)
+		cv.weak = make(map[string]bool)
 	}
 	if declared {
+		val0, declared0 := cv.vals[arch]
+		if declared0 {
+			if weak {
+				return nil
+			}
+			if !cv.weak[arch] && val != val0 {
+				return fmt.Errorf("const=%v arch=%v has different values: %v[%v] vs %v[%v]",
+					name, arch, val, declared, val0, declared0)
+			}
+		}
 		cv.vals[arch] = val
+		cv.weak[arch] = weak
 	}
 	cf.m[name] = cv
 	return nil
@@ -80,6 +92,10 @@ func (cf *ConstFile) Arch(arch string) map[string]uint64 {
 		}
 	}
 	return m
+}
+
+func (cf *ConstFile) ExistsAny(constName string) bool {
+	return len(cf.m[constName].vals) > 0
 }
 
 func (cf *ConstFile) Serialize() []byte {
@@ -192,6 +208,7 @@ func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.Erro
 		eh(pos, fmt.Sprintf(msg, args...))
 		return false
 	}
+	weak := file == "auto.txt.const"
 	s := bufio.NewScanner(bytes.NewReader(data))
 	var arches []string
 	for ; s.Scan(); pos.Line++ {
@@ -220,7 +237,7 @@ func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.Erro
 			}
 			continue
 		}
-		if !cf.parseConst(arches, name, val, errf) {
+		if !cf.parseConst(arches, name, val, weak, errf) {
 			return false
 		}
 	}
@@ -232,7 +249,7 @@ func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.Erro
 
 type errft func(msg string, args ...interface{}) bool
 
-func (cf *ConstFile) parseConst(arches []string, name, line string, errf errft) bool {
+func (cf *ConstFile) parseConst(arches []string, name, line string, weak bool, errf errft) bool {
 	var dflt map[string]uint64
 	for _, pair := range strings.Split(line, ",") {
 		fields := strings.Split(pair, ":")
@@ -270,13 +287,13 @@ func (cf *ConstFile) parseConst(arches []string, name, line string, errf errft) 
 		for _, arch := range fields[:len(fields)-1] {
 			arch = strings.TrimSpace(arch)
 			delete(dflt, arch)
-			if err := cf.addConst(arch, name, val, defined); err != nil {
+			if err := cf.addConst(arch, name, val, defined, weak); err != nil {
 				return errf("%v", err)
 			}
 		}
 	}
 	for arch, val := range dflt {
-		if err := cf.addConst(arch, name, val, true); err != nil {
+		if err := cf.addConst(arch, name, val, true, weak); err != nil {
 			return errf("%v", err)
 		}
 	}
@@ -288,7 +305,7 @@ func (cf *ConstFile) parseOldConst(arch, name, line string, errf errft) bool {
 	if err != nil {
 		return errf("failed to parse int: %v", err)
 	}
-	if err := cf.addConst(arch, name, val, true); err != nil {
+	if err := cf.addConst(arch, name, val, true, false); err != nil {
 		return errf("%v", err)
 	}
 	return true

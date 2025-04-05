@@ -1,4 +1,5 @@
 TITLE: KASAN: slab-out-of-bounds in ip6_fragment at addr ADDR
+TYPE: KASAN
 CORRUPTED: Y
 
 [ 1579.244514] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x1052/0x2d80 at addr ffff88004ec29b58

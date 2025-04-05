@@ -15,8 +15,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"regexp"
@@ -32,15 +34,9 @@ import (
 	"golang.org/x/tools/go/analysis/passes/structtag"
 )
 
-var AnalyzerPlugin analyzerPlugin
+func main() {}
 
-type analyzerPlugin struct{}
-
-func main() {
-	_ = AnalyzerPlugin
-}
-
-func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
+func New(conf any) ([]*analysis.Analyzer, error) {
 	return []*analysis.Analyzer{
 		SyzAnalyzer,
 		// Some standard analyzers that are not enabled in vet.
@@ -49,7 +45,7 @@ func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 		deepequalerrors.Analyzer,
 		nilness.Analyzer,
 		structtag.Analyzer,
-	}
+	}, nil
 }
 
 var SyzAnalyzer = &analysis.Analyzer{
@@ -77,6 +73,10 @@ func run(p *analysis.Pass) (interface{}, error) {
 				pass.checkLogErrorFormat(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
+			case *ast.IfStmt:
+				pass.checkIfStmt(n)
+			case *ast.AssignStmt:
+				pass.checkAssignStmt(n)
 			}
 			return true
 		})
@@ -145,7 +145,7 @@ var (
 	noPeriodComment   = regexp.MustCompile(`^// [A-Z][a-z].+[a-z]$`)
 	lowerCaseComment  = regexp.MustCompile(`^// [a-z]+ `)
 	onelineExceptions = regexp.MustCompile(`// want \"|http:|https:`)
-	specialComment    = regexp.MustCompile(`//go:generate|//go:build|//go:embed|// nolint:`)
+	specialComment    = regexp.MustCompile(`//go:generate|//go:build|//go:embed|//go:linkname|// nolint:`)
 )
 
 // checkStringLenCompare checks for string len comparisons with 0.
@@ -258,7 +258,7 @@ func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	arg, newLine, sure := pass.logFormatArg(n)
-	if arg == -1 {
+	if arg == -1 || len(n.Args) <= arg {
 		return
 	}
 	val, ok := stringLit(n.Args[arg])
@@ -307,11 +307,18 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 			break
 		}
 		return 1, true, true
+	case "t.Errorf", "t.Fatalf":
+		return 0, false, true
+	case "tool.Failf":
+		return 0, false, true
+	}
+	if fun.Sel.String() == "Logf" {
+		return 0, false, true
 	}
 	return -1, false, false
 }
 
-var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
+var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+?((\.|[A-Z])[[:alnum:]]+)+ `)
 
 func stringLit(n ast.Node) (string, bool) {
 	lit, ok := n.(*ast.BasicLit)
@@ -338,4 +345,64 @@ func (pass *Pass) checkVarDecl(n *ast.GenDecl) {
 		pass.report(n, "Don't use both var, type and value in variable declarations\n"+
 			"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"")
 	}
+}
+
+func (pass *Pass) checkIfStmt(n *ast.IfStmt) {
+	cond, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || len(n.Body.List) != 1 {
+		return
+	}
+	assign, ok := n.Body.List[0].(*ast.AssignStmt)
+	if !ok || assign.Tok != token.ASSIGN || len(assign.Lhs) != 1 {
+		return
+	}
+	isMin := true
+	switch cond.Op {
+	case token.GTR, token.GEQ:
+	case token.LSS, token.LEQ:
+		isMin = false
+	default:
+		return
+	}
+	x := pass.nodeString(cond.X)
+	y := pass.nodeString(cond.Y)
+	lhs := pass.nodeString(assign.Lhs[0])
+	rhs := pass.nodeString(assign.Rhs[0])
+	switch {
+	case x == lhs && y == rhs:
+	case x == rhs && y == lhs:
+		isMin = !isMin
+	default:
+		return
+	}
+	fn := map[bool]string{true: "min", false: "max"}[isMin]
+	pass.report(n, "Use %v function instead", fn)
+}
+
+func (pass *Pass) nodeString(n ast.Node) string {
+	w := new(bytes.Buffer)
+	printer.Fprint(w, pass.Fset, n)
+	return w.String()
+}
+
+// checkAssignStmt warns about loop variables duplication attempts.
+// Before go122 loop variables were per-loop, not per-iter.
+func (pass *Pass) checkAssignStmt(n *ast.AssignStmt) {
+	if len(n.Lhs) != len(n.Rhs) {
+		return
+	}
+	for i, lhs := range n.Lhs {
+		lIdent, ok := lhs.(*ast.Ident)
+		if !ok {
+			return
+		}
+		rIdent, ok := n.Rhs[i].(*ast.Ident)
+		if !ok {
+			return
+		}
+		if lIdent.Name != rIdent.Name {
+			return
+		}
+	}
+	pass.report(n, "Don't duplicate loop variables. They are per-iter (not per-loop) since go122.")
 }

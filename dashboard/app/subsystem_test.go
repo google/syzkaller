@@ -162,6 +162,49 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	expectLabels(t, client, extID, "subsystems:first")
 }
 
+func TestInvalidBugSubsystemRefresh(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Create a bug without any subsystems.
+	c.setSubsystems(subsystemTestNs, nil, 0)
+	crash := testCrash(build, 1)
+	crash.GuiltyFiles = []string{"test.c"}
+	client.ReportCrash(crash)
+	rep := client.pollBug()
+	extID := rep.ID
+
+	// Invalidate the bug.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusInvalid,
+	})
+	c.expectEQ(reply.OK, true)
+	bug, _, _ := c.loadBug(rep.ID)
+	c.expectEQ(bug.Status, BugStatusInvalid)
+
+	// Initially there should be no subsystems.
+	expectLabels(t, client, extID)
+
+	// Update subsystems.
+	c.advanceTime(time.Hour)
+	item := &subsystem.Subsystem{
+		Name:      "first",
+		PathRules: []subsystem.PathRule{{IncludeRegexp: `test\.c`}},
+	}
+	c.setSubsystems(subsystemTestNs, []*subsystem.Subsystem{item}, 1)
+
+	// Refresh subsystems.
+	c.advanceTime(time.Hour)
+	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
+	c.expectOK(err)
+	expectLabels(t, client, extID, "subsystems:first")
+}
+
 func TestUserSubsystemsRefresh(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -206,6 +249,41 @@ func TestUserSubsystemsRefresh(t *testing.T) {
 
 	// The subsystem must still stay the same.
 	expectLabels(t, client, extID, "subsystems:subsystemB")
+}
+
+func TestNoUserSubsystemOverwrite(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Create a bug without subsystems.
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz upstream\n")
+
+	sender := c.pollEmailBug().Sender
+	_, extID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	// Manually set subsystemA.
+	c.incomingEmail(sender, "#syz set subsystems: subsystemA\n",
+		EmailOptFrom("test@requester.com"))
+	expectLabels(t, client, extID, "subsystems:subsystemA")
+
+	// Now we find a reproducer that indicates it's subsystemB.
+
+	crash.GuiltyFiles = []string{"b.c"}
+	crash.ReproOpts = []byte("some opts")
+	crash.ReproSyz = []byte("getpid()")
+	client.ReportCrash(crash)
+	c.pollEmailBug()
+
+	// Make sure subsystem stayed unchanged.
+	expectLabels(t, client, extID, "subsystems:subsystemA")
 }
 
 // nolint: goconst
@@ -267,7 +345,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 
 	// Make sure we don't report crashes at other reporting stages.
 	crash := testCrash(build, 1)
-	crash.Title = `WARNING: a third, keep private` // see the config in app_test.go
+	crash.Title = `WARNING: a third, keep in moderation` // see the config in app_test.go
 	crash.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash)
 	client.pollBug()
@@ -547,7 +625,7 @@ All related reports/information can be found at:
 https://testapp.appspot.com/subsystem-reminders/s/subsystemA
 
 During the period, 9 new issues were detected and 1 were fixed.
-In total, 10 issues are still open and 1 has been fixed so far.
+In total, 10 issues are still open and 1 has already been fixed.
 
 Some of the still happening issues:
 
@@ -919,4 +997,96 @@ To regenerate the report, reply with:
 
 You may send multiple commands in a single email message.
 `, bugToExtID["WARNING: a first"], bugToExtID["WARNING: a second"]))
+}
+
+// nolint: goconst
+func TestRemindersPriority(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientSubsystemRemind, keySubsystemRemind, true)
+	cc := EmailOptCC([]string{"bugs@syzkaller.com", "default@maintainers.com"})
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// WARNING: a first, low prio, has repro
+	aFirst := testCrash(build, 1)
+	aFirst.Title = `WARNING: a first`
+	aFirst.GuiltyFiles = []string{"a.c"}
+	aFirst.ReproOpts = []byte("some opts")
+	aFirst.ReproSyz = []byte("getpid()")
+	client.ReportCrash(aFirst)
+	sender, firstExtID := client.pollEmailAndExtID()
+	c.incomingEmail(sender, "#syz set prio: low\n",
+		EmailOptFrom("test@requester.com"), cc)
+	c.advanceTime(time.Hour)
+
+	// WARNING: a second, normal prio
+	aSecond := testCrash(build, 1)
+	aSecond.Title = `WARNING: a second`
+	aSecond.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(aSecond)
+	secondExtID := client.pollEmailExtID()
+	c.advanceTime(time.Hour)
+
+	// WARNING: a third, high prio
+	aThird := testCrash(build, 1)
+	aThird.Title = `WARNING: a third`
+	aThird.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(aThird)
+	sender, thirdExtID := client.pollEmailAndExtID()
+	c.incomingEmail(sender, "#syz set prio: high\n",
+		EmailOptFrom("test@requester.com"), cc)
+	c.advanceTime(time.Hour)
+
+	// Report bugs once more to pretend they're still valid.
+	c.advanceTime(time.Hour * 24 * 10)
+	client.ReportCrash(aFirst)
+	client.ReportCrash(aSecond)
+	client.ReportCrash(aThird)
+
+	_, err := c.GET("/cron/subsystem_reports")
+	c.expectOK(err)
+
+	reply := client.pollEmailBug()
+	// Verify that the second bug is not present.
+	c.expectEQ(reply.Body, fmt.Sprintf(`Hello subsystemA maintainers/developers,
+
+This is a 30-day syzbot report for the subsystemA subsystem.
+All related reports/information can be found at:
+https://testapp.appspot.com/subsystem-reminders/s/subsystemA
+
+During the period, 2 new issues were detected and 0 were fixed.
+In total, 2 issues are still open.
+There is also 1 low-priority issue.
+
+Some of the still happening issues:
+
+Ref Crashes Repro Title
+<1> 2       No    WARNING: a third
+                  https://testapp.appspot.com/bug?extid=%[1]v
+<2> 2       No    WARNING: a second
+                  https://testapp.appspot.com/bug?extid=%[2]v
+
+The report will be sent to: [subsystemA@list.com subsystemA@person.com].
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
+
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
+
+If the report looks fine to you, reply with:
+#syz upstream
+
+To regenerate the report, reply with:
+#syz regenerate
+
+You may send multiple commands in a single email message.
+`, thirdExtID, secondExtID, firstExtID))
 }

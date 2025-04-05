@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )
@@ -19,7 +19,7 @@ import (
 // reassignBugSubsystems is expected to be periodically called to refresh old automatic
 // subsystem assignments.
 func reassignBugSubsystems(c context.Context, ns string, count int) error {
-	service := getSubsystemService(c, ns)
+	service := getNsConfig(c, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
@@ -28,7 +28,7 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 		return err
 	}
 	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
-	rev := getSubsystemRevision(c, ns)
+	rev := getNsConfig(c, ns).Subsystems.Revision
 	for i, bugKey := range keys {
 		if bugs[i].hasUserSubsystems() {
 			// It might be that the user-set subsystem no longer exists.
@@ -66,10 +66,14 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
 			Filter("SubsystemsTime<", now.Add(-openBugsUpdateTime)),
-		// And, finally, let's consider the update of closed bugs.
+		// Then let's consider the update of closed bugs.
 		db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusFixed).
+			Filter("SubsystemsRev<", rev),
+		// And, at the end, everything else.
+		db.NewQuery("Bug").
+			Filter("Namespace=", ns).
 			Filter("SubsystemsRev<", rev),
 	}
 	var bugs []*Bug
@@ -81,7 +85,7 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 		var tmpBugs []*Bug
 		tmpKeys, err := query.Limit(count).GetAll(c, &tmpBugs)
 		if err != nil {
-			return nil, nil, fmt.Errorf("query %d failed: %s", i, err)
+			return nil, nil, fmt.Errorf("query %d failed: %w", i, err)
 		}
 		bugs = append(bugs, tmpBugs...)
 		keys = append(keys, tmpKeys...)
@@ -131,7 +135,7 @@ func logSubsystemChange(c context.Context, bug *Bug, new []*subsystem.Subsystem)
 	sort.Strings(newNames)
 	if !reflect.DeepEqual(oldNames, newNames) {
 		log.Infof(c, "bug %s: subsystems set from %v to %v",
-			bug.keyHash(), oldNames, newNames)
+			bug.keyHash(c), oldNames, newNames)
 	}
 }
 
@@ -175,7 +179,7 @@ func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
 
 // subsystemMaintainers queries the list of emails to send the bug to.
 func subsystemMaintainers(c context.Context, ns, subsystemName string) []string {
-	service := getSubsystemService(c, ns)
+	service := getNsConfig(c, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
@@ -186,39 +190,16 @@ func subsystemMaintainers(c context.Context, ns, subsystemName string) []string 
 	return item.Emails()
 }
 
-var subsystemsListKey = "custom list of kernel subsystems"
-
-type customSubsystemList struct {
-	ns       string
-	list     []*subsystem.Subsystem
-	revision int
-}
-
-func contextWithSubsystems(c context.Context, custom *customSubsystemList) context.Context {
-	return context.WithValue(c, &subsystemsListKey, custom)
-}
-
 func getSubsystemService(c context.Context, ns string) *subsystem.Service {
-	// This is needed to emulate changes to the subsystem list over time during testing.
-	if val, ok := c.Value(&subsystemsListKey).(*customSubsystemList); ok && val.ns == ns {
-		if len(val.list) == 0 {
-			return nil
-		} else {
-			return subsystem.MustMakeService(val.list)
-		}
-	}
-	return config.Namespaces[ns].Subsystems.Service
+	return getNsConfig(c, ns).Subsystems.Service
 }
 
 func getSubsystemRevision(c context.Context, ns string) int {
-	if val, ok := c.Value(&subsystemsListKey).(*customSubsystemList); ok && val.ns == ns {
-		return val.revision
-	}
-	return config.Namespaces[ns].Subsystems.Revision
+	return getNsConfig(c, ns).Subsystems.Revision
 }
 
 func subsystemListURL(c context.Context, ns string) string {
-	if getSubsystemService(c, ns) == nil {
+	if getNsConfig(c, ns).Subsystems.Service == nil {
 		return ""
 	}
 	return fmt.Sprintf("%v/%v/subsystems?all=true", appURL(c), ns)

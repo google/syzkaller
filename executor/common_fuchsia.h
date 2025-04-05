@@ -160,7 +160,7 @@ static void event_reset(event_t* ev)
 static void event_set(event_t* ev)
 {
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
 }
 

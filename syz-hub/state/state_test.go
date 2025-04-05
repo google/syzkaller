@@ -38,7 +38,7 @@ func (ts *TestState) Reload() {
 
 func (ts *TestState) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) {
 	ts.t.Helper()
-	if err := ts.state.Connect(name, domain, fresh, calls, corpus); err != nil {
+	if err := ts.state.Connect(name, "", domain, fresh, calls, corpus); err != nil {
 		ts.t.Fatalf("Connect failed: %v", err)
 	}
 }
@@ -95,7 +95,7 @@ func TestRepro(t *testing.T) {
 		t.Helper()
 		repro := st.PendingRepro(name)
 		if string(repro) != result {
-			t.Fatalf("PendingRepro returned %q, want %q", string(repro), result)
+			t.Fatalf("got %q, want %q", string(repro), result)
 		}
 	}
 	expectPendingRepro("foo", "")

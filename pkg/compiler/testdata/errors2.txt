@@ -16,7 +16,7 @@ foo$1(a0 r0, a1 r1, a2 r2)
 # Recursive structs/unions.
 
 sr1 {
-	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt)
+	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr2 {
@@ -25,12 +25,12 @@ sr2 {
 }
 
 sr3 {
-	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt)
+	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr4 {
 	f1	ptr[in, sr3]
-	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt)
+	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr5 [
@@ -51,26 +51,31 @@ type templ_sr[T] {
 }
 
 sr8 {
-	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt)
+	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt, or use variable-length arrays)
 }
 
 sr9 {
-	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt)
+	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt, or use variable-length arrays)
+}
+
+sr10 {
+	f0	array[sr10, 10]	### recursive declaration: sr10.f0 -> sr10 (mark some pointers as opt, or use variable-length arrays)
 }
 
 use_sr {
 	u2	u2
-		u3	u3
+	u3	u3
 	s3	s3
 	s4	s4
 	s6	s6
 	s8	s8
-	sr1 sr1
+	sr1	sr1
 	sr2	sr2
 	sr5	sr5
 	sr7	sr7
-	sr8 sr8
-	sr9 sr9
+	sr8	sr8
+	sr9	sr9
+	sr10	sr10
 	s400	s400
 	s401	s401
 	u400	u400
@@ -86,14 +91,14 @@ foo$sr0(a ptr[in, use_sr])
 foo$100(a int32, b len[a])
 foo$101(a len[a])		### len target a refers to itself
 foo$102(a ptr[in, len[a, int8]])	### len target a refers to itself
-foo$103(a int32, b len[c])	### len target c does not exist
-foo$104(a len[parent])		### len target parent does not exist
+foo$103(a int32, b len[c])	### len target c does not exist in <foo$103>
+foo$104(a len[parent])		### parent reached the call (foo$104)
 foo$105(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
 foo$106(a int32, b ptr[in, csum[a, inet, int32]])
-foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist
+foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist in <foo$107>
 
 s1 {
-	f1	len[s2, int32]	### len target s2 does not exist
+	f1	len[s2, int32]	### len target s2 does not exist in s1
 }
 
 s2 {
@@ -123,12 +128,12 @@ s8 {
 } [align[7]]			###  bad struct s8 alignment 7 (must be a sane power of 2)
 
 u0 [
-	f	len[f1, int32]	### len target f1 does not exist
+	f	len[f1, int32]	### len target f1 does not exist in u0
 ]
 
 u1 [
 	f1	ptr[in, array[int8]]
-	f2	len[f1, int32]	### len target f1 does not exist
+	f2	len[f1, int32]	### len target f1 does not exist in u1
 ]
 
 u2 [
@@ -144,27 +149,45 @@ foo$201(a ptr[in, s1])
 foo$202(a ptr[in, s7])
 foo$203(a u1)
 
-foo$204(a ptr[in, slen1])
+foo$204(a ptr[in, slen1], b ptr[in, no_slen22])
 
 slen1 {
 	f0 len[parent, int32]
-	f1 len[parent:f0, int32]	### parent can't be part of path expressions
-	f2 len[slen21:a, int32]		### len target a does not exist
-	f3 len[f0:parent, int32]	### parent can't be part of path expressions
+	f1 len[parent:f0, int32]
+	f2 len[slen21:a, int32]		### len target a does not exist in slen2
+	f3 len[f0:parent, int32]	### parent may only stay at the beginning (max 2 times)
 	f4 len[slen2:f, int32]		### len path slen2 does not refer to a struct
 	f5 len[slen22:f, int32]		### len path slen22 does not refer to a struct
 	f6 len[syscall, int32]		### no argument name after syscall reference
-	f7 len[syscall:b, int32]	### len target b does not exist
+	f7 len[syscall:c, int32]	### len target c does not exist in <foo$204>
 	f8 offsetof[parent, int32]	### offsetof must refer to fields
 	f9 offsetof[slen1, int32]	### offsetof must refer to fields
+	f10 len[f0:syscall:b, int32]	### syscall can't be in the middle of path expressions
+	f11 len[slen3:a, int32]		### len path slen3 does not refer to a struct
 	slen2 ptr[in, array[slen2]]
 	slen21 slen2
+	slen3 slen3
 	slen22 array[slen2]
 }
 
 slen2 {
-	f int32
+	f	int32
+	f1	slen3
+	f2	len[parent:parent:slen22, int32] ### len target slen22 does not exist in no_slen22
 }
+
+slen3 [
+	a int32
+	b int32
+	c len[parent:parent:parent:x, int32] ### parent may only stay at the beginning (max 2 times)
+	d len[parent:a, int32] ### len target a does not exist in slen3
+]
+
+no_slen22 {
+	# This one violates the parent:parent:slen22 chain.
+	f slen2
+}
+
 
 # Resource ctor tests.
 
@@ -369,6 +392,7 @@ foo$531(a ptr[in, const[0xffffffffffffffab, int8]])
 foo$532(a ptr[in, const[0x7234567812345678, int64]])
 foo$533(a ptr[in, const[0x12, int8:4]])	### const val 0x12 does not fit into 4 bits
 foo$534(a ptr[in, flags[large_flags, int8]])	### large_flags U16_MAX=0xffff doesn't fit into 8 bits
+foo$535(a int64[no])			### unknown flags no
 
 large_flags = U8_MAX, U16_MAX
 
@@ -381,6 +405,9 @@ equal_flags_call(a flags[equal_flags_0], b flags[equal_flags_1], c flags[non_equ
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
 type type502[C] const[C, int8]	### unused type type502
+
+C2 = 0, 1, 2			### const C2 is already a flag
+use_flags(a flags[C2])
 
 s405 {
 	f1	int16:8[-256:0]		### int range [18446744073709551360:0] is too large for base type of size 8
@@ -421,3 +448,68 @@ foo$non_generatable(a compressed_image) (no_minimize)	### call foo$non_generatab
 foo$non_minimizable(a compressed_image) (no_generate)	### call foo$non_minimizable refers to type compressed_image and so must be marked no_minimize
 foo$non_generatable_via_struct(a ptr[in, struct_non_generatable])	(no_minimize)	### call foo$non_generatable_via_struct refers to type compressed_image and so must be marked no_generate
 foo$non_minimizable_via_union(a ptr[in, union_non_minimizable])	(no_generate)	### call foo$non_minimizable_via_union refers to type compressed_image and so must be marked no_minimize
+
+resource for_fmt[int32]
+foo$fmt_copyin(a ptr[in, fmt[dec, for_fmt]])
+foo$fmt_copyout(a ptr[out, fmt[dec, for_fmt]])	### resource for_fmt cannot be created in fmt
+
+
+define FLAG1 1
+define FLAG2 2
+
+some_nested_nested_flags {
+	f4	int32
+}
+
+some_nested_flags {
+	f1	int32
+	f2	array[some_nested_nested_flags]
+	f4	for_fmt
+	f5	int32 (if[value[f1] == 0])
+	f6	some_nested_nested_flags
+} [packed]
+
+conditional_fields {
+	f1	int32
+	f2      some_nested_flags (if[value[f1] & FLAG1])
+	f3	some_nested_flags
+	f4	int32	(if[value[f3:f1] != 0])
+	f5	int32	(if[value[f3:f2:f4] != 0]) ### value path f2 does not refer to a struct
+	f6	int32	(if[value[f3:f4] != 0]) ### f4 does not refer to a constant, an integer, or a flag
+	f7	int32	(if[value[f3:some_field] != 0]) ### value target some_field does not exist in some_nested_flags
+	f8	int32	(if[value[f3:f5] != 0]) ### f5 has conditions, so value path cannot reference it
+	f9	int32	(if[value[parent:a] != 0]) ### value target a does not exist in conditional_fields
+	f10	int32	(if[value[f3:f6] != 0]) ### f6 does not refer to a constant, an integer, or a flag
+	f11	len[f2, int32] ### f2 has conditions, so len path cannot reference it
+	f12	union_cond_fields
+	f13	int32:8 (if[1]) ### bitfields may not have conditions
+} [packed]
+
+union_cond_fields [
+	u1	int32 (if[value[parent:parent:f1] != 0])
+	u2	int32 (if[value[parent:parent:unknown] != 0]) ### value target unknown does not exist in conditional_fields
+	u3	int64
+]
+
+foo$conditional(a ptr[in, conditional_fields])
+
+conditional_non_packed {
+	f0	int64
+	f1	conditional_non_packed_nested ### variable size field f1 in the middle of non-packed struct conditional_non_packed
+	f2	int64
+}
+
+conditional_non_packed_nested {
+	f3	int64 (if[value[parent:parent:f0]])
+	f4	int32
+} [packed]
+
+foo$conditional2(a ptr[in, conditional_non_packed])
+
+conditional_non_packed2 {
+	f0	int64
+	f1	int8	(if[value[f0] == 0]) ### variable size field f1 in the middle of non-packed struct conditional_non_packed2
+	f2	int64
+}
+
+foo$conditional3(a ptr[in, conditional_non_packed2])

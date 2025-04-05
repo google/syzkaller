@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in inet_ehash_insert
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [   52.261501] =================================

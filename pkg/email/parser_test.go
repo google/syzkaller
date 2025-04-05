@@ -217,7 +217,8 @@ git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core
 		cmd: &SingleCommand{
 			Command: CmdTest,
 			Str:     "test",
-			Args:    "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+			// We only look for arguments if there's ":" after "#syz test".
+			Args: "",
 		},
 	},
 	{
@@ -247,6 +248,16 @@ locking/core
 			Command: CmdTest,
 			Str:     "test:",
 			Args:    "repo commit",
+		},
+	},
+	{
+		body: `#syz test
+patch-begins
+`,
+		cmd: &SingleCommand{
+			Command: CmdTest,
+			Str:     "test",
+			Args:    "",
 		},
 	},
 	{
@@ -449,6 +460,35 @@ For more options, visit https://groups.google.com/d/optout.`,
 					Args:    "arg1 arg2 arg3",
 				},
 			},
+		}},
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+Subject: new footer
+From: Bob <bob@example.com>
+To: syzbot <foo+4564456@bar.com>
+Content-Type: text/plain; charset="UTF-8"
+
+some title
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller-bugs" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
+To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
+		Email{
+			BugIDs:    []string{"4564456"},
+			MessageID: "<123>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Link:      "https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE@google.com",
+			Subject:   "new footer",
+			Author:    "bob@example.com",
+			Cc:        []string{"bob@example.com"},
+			Body: `some title
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller-bugs" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller-bugs+unsubscribe@googlegroups.com.
+To view this discussion visit https://groups.google.com/d/msgid/syzkaller-bugs/671b7fb2.050a0220.2e773.0000.GAE%40google.com.`,
+			Patch: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -696,7 +736,7 @@ index 3d85747bd86e..a257b872a53d 100644
 				{
 					Command: CmdTest,
 					Str:     "test",
-					Args:    "commit 59372bbf3abd5b24a7f6f676a3968685c280f955",
+					Args:    "",
 				},
 			},
 		}},

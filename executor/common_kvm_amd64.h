@@ -14,63 +14,6 @@
 #define KVM_SMI _IO(KVMIO, 0xb7)
 #endif
 
-#define CR0_PE 1
-#define CR0_MP (1 << 1)
-#define CR0_EM (1 << 2)
-#define CR0_TS (1 << 3)
-#define CR0_ET (1 << 4)
-#define CR0_NE (1 << 5)
-#define CR0_WP (1 << 16)
-#define CR0_AM (1 << 18)
-#define CR0_NW (1 << 29)
-#define CR0_CD (1 << 30)
-#define CR0_PG (1 << 31)
-
-#define CR4_VME 1
-#define CR4_PVI (1 << 1)
-#define CR4_TSD (1 << 2)
-#define CR4_DE (1 << 3)
-#define CR4_PSE (1 << 4)
-#define CR4_PAE (1 << 5)
-#define CR4_MCE (1 << 6)
-#define CR4_PGE (1 << 7)
-#define CR4_PCE (1 << 8)
-#define CR4_OSFXSR (1 << 8)
-#define CR4_OSXMMEXCPT (1 << 10)
-#define CR4_UMIP (1 << 11)
-#define CR4_VMXE (1 << 13)
-#define CR4_SMXE (1 << 14)
-#define CR4_FSGSBASE (1 << 16)
-#define CR4_PCIDE (1 << 17)
-#define CR4_OSXSAVE (1 << 18)
-#define CR4_SMEP (1 << 20)
-#define CR4_SMAP (1 << 21)
-#define CR4_PKE (1 << 22)
-
-#define EFER_SCE 1
-#define EFER_LME (1 << 8)
-#define EFER_LMA (1 << 10)
-#define EFER_NXE (1 << 11)
-#define EFER_SVME (1 << 12)
-#define EFER_LMSLE (1 << 13)
-#define EFER_FFXSR (1 << 14)
-#define EFER_TCE (1 << 15)
-
-// 32-bit page directory entry bits
-#define PDE32_PRESENT 1
-#define PDE32_RW (1 << 1)
-#define PDE32_USER (1 << 2)
-#define PDE32_PS (1 << 7)
-
-// 64-bit page * entry bits
-#define PDE64_PRESENT 1
-#define PDE64_RW (1 << 1)
-#define PDE64_USER (1 << 2)
-#define PDE64_ACCESSED (1 << 5)
-#define PDE64_DIRTY (1 << 6)
-#define PDE64_PS (1 << 7)
-#define PDE64_G (1 << 8)
-
 struct tss16 {
 	uint16 prev;
 	uint16 sp0;
@@ -160,22 +103,22 @@ static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
 	struct kvm_msrs* msrs = (struct kvm_msrs*)buf;
 	struct kvm_msr_entry* entries = msrs->entries;
 	msrs->nmsrs = 5;
-	entries[0].index = MSR_IA32_SYSENTER_CS;
+	entries[0].index = X86_MSR_IA32_SYSENTER_CS;
 	entries[0].data = sel_cs;
-	entries[1].index = MSR_IA32_SYSENTER_ESP;
-	entries[1].data = ADDR_STACK0;
-	entries[2].index = MSR_IA32_SYSENTER_EIP;
-	entries[2].data = ADDR_VAR_SYSEXIT;
-	entries[3].index = MSR_IA32_STAR;
+	entries[1].index = X86_MSR_IA32_SYSENTER_ESP;
+	entries[1].data = X86_ADDR_STACK0;
+	entries[2].index = X86_MSR_IA32_SYSENTER_EIP;
+	entries[2].data = X86_ADDR_VAR_SYSEXIT;
+	entries[3].index = X86_MSR_IA32_STAR;
 	entries[3].data = ((uint64)sel_cs << 32) | ((uint64)sel_cs_cpl3 << 48);
-	entries[4].index = MSR_IA32_LSTAR;
-	entries[4].data = ADDR_VAR_SYSRET;
+	entries[4].index = X86_MSR_IA32_LSTAR;
+	entries[4].data = X86_ADDR_VAR_SYSRET;
 	ioctl(cpufd, KVM_SET_MSRS, msrs);
 }
 
 static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t guest_mem)
 {
-	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
+	sregs->idt.base = guest_mem + X86_ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
 	for (int i = 0; i < 32; i++) {
@@ -185,35 +128,35 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 		case 0:
 			// 16-bit interrupt gate
 			gate.type = 6;
-			gate.base = SEL_CS16;
+			gate.base = X86_SEL_CS16;
 			break;
 		case 1:
 			// 16-bit trap gate
 			gate.type = 7;
-			gate.base = SEL_CS16;
+			gate.base = X86_SEL_CS16;
 			break;
 		case 2:
 			// 16-bit task gate
 			gate.type = 3;
-			gate.base = SEL_TGATE16;
+			gate.base = X86_SEL_TGATE16;
 			break;
 		case 3:
 			// 32-bit interrupt gate
 			gate.type = 14;
-			gate.base = SEL_CS32;
+			gate.base = X86_SEL_CS32;
 			break;
 		case 4:
 			// 32-bit trap gate
 			gate.type = 15;
-			gate.base = SEL_CS32;
+			gate.base = X86_SEL_CS32;
 			break;
 		case 5:
 			// 32-bit task gate
 			gate.type = 11;
-			gate.base = SEL_TGATE32;
+			gate.base = X86_SEL_TGATE32;
 			break;
 		}
-		gate.limit = guest_mem + ADDR_VAR_USER_CODE2; // entry offset
+		gate.limit = guest_mem + X86_ADDR_VAR_USER_CODE2; // entry offset
 		gate.present = 1;
 		gate.dpl = 0;
 		gate.s = 0;
@@ -227,15 +170,15 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 
 static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t guest_mem)
 {
-	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
+	sregs->idt.base = guest_mem + X86_ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
 	for (int i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = (i * 2) << 3;
 		gate.type = (i & 1) ? 14 : 15; // interrupt or trap gate
-		gate.base = SEL_CS64;
-		gate.limit = guest_mem + ADDR_VAR_USER_CODE2; // entry offset
+		gate.base = X86_SEL_CS64;
+		gate.limit = guest_mem + X86_ADDR_VAR_USER_CODE2; // entry offset
 		gate.present = 1;
 		gate.dpl = 0;
 		gate.s = 0;
@@ -314,17 +257,18 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
-	regs.rip = guest_mem + ADDR_TEXT;
-	regs.rsp = ADDR_STACK0;
+	regs.rip = guest_mem + X86_ADDR_TEXT;
+	regs.rsp = X86_ADDR_STACK0;
 
-	sregs.gdt.base = guest_mem + ADDR_GDT;
+	sregs.gdt.base = guest_mem + X86_ADDR_GDT;
 	sregs.gdt.limit = 256 * sizeof(uint64) - 1;
 	uint64* gdt = (uint64*)(host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_ldt;
-	seg_ldt.selector = SEL_LDT;
+	memset(&seg_ldt, 0, sizeof(seg_ldt));
+	seg_ldt.selector = X86_SEL_LDT;
 	seg_ldt.type = 2;
-	seg_ldt.base = guest_mem + ADDR_LDT;
+	seg_ldt.base = guest_mem + X86_ADDR_LDT;
 	seg_ldt.limit = 256 * sizeof(uint64) - 1;
 	seg_ldt.present = 1;
 	seg_ldt.dpl = 0;
@@ -336,7 +280,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	uint64* ldt = (uint64*)(host_mem + sregs.ldt.base);
 
 	struct kvm_segment seg_cs16;
-	seg_cs16.selector = SEL_CS16;
+	memset(&seg_cs16, 0, sizeof(seg_cs16));
+	seg_cs16.selector = X86_SEL_CS16;
 	seg_cs16.type = 11;
 	seg_cs16.base = 0;
 	seg_cs16.limit = 0xfffff;
@@ -348,52 +293,53 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	seg_cs16.l = 0;
 
 	struct kvm_segment seg_ds16 = seg_cs16;
-	seg_ds16.selector = SEL_DS16;
+	seg_ds16.selector = X86_SEL_DS16;
 	seg_ds16.type = 3;
 
 	struct kvm_segment seg_cs16_cpl3 = seg_cs16;
-	seg_cs16_cpl3.selector = SEL_CS16_CPL3;
+	seg_cs16_cpl3.selector = X86_SEL_CS16_CPL3;
 	seg_cs16_cpl3.dpl = 3;
 
 	struct kvm_segment seg_ds16_cpl3 = seg_ds16;
-	seg_ds16_cpl3.selector = SEL_DS16_CPL3;
+	seg_ds16_cpl3.selector = X86_SEL_DS16_CPL3;
 	seg_ds16_cpl3.dpl = 3;
 
 	struct kvm_segment seg_cs32 = seg_cs16;
-	seg_cs32.selector = SEL_CS32;
+	seg_cs32.selector = X86_SEL_CS32;
 	seg_cs32.db = 1;
 
 	struct kvm_segment seg_ds32 = seg_ds16;
-	seg_ds32.selector = SEL_DS32;
+	seg_ds32.selector = X86_SEL_DS32;
 	seg_ds32.db = 1;
 
 	struct kvm_segment seg_cs32_cpl3 = seg_cs32;
-	seg_cs32_cpl3.selector = SEL_CS32_CPL3;
+	seg_cs32_cpl3.selector = X86_SEL_CS32_CPL3;
 	seg_cs32_cpl3.dpl = 3;
 
 	struct kvm_segment seg_ds32_cpl3 = seg_ds32;
-	seg_ds32_cpl3.selector = SEL_DS32_CPL3;
+	seg_ds32_cpl3.selector = X86_SEL_DS32_CPL3;
 	seg_ds32_cpl3.dpl = 3;
 
 	struct kvm_segment seg_cs64 = seg_cs16;
-	seg_cs64.selector = SEL_CS64;
+	seg_cs64.selector = X86_SEL_CS64;
 	seg_cs64.l = 1;
 
 	struct kvm_segment seg_ds64 = seg_ds32;
-	seg_ds64.selector = SEL_DS64;
+	seg_ds64.selector = X86_SEL_DS64;
 
 	struct kvm_segment seg_cs64_cpl3 = seg_cs64;
-	seg_cs64_cpl3.selector = SEL_CS64_CPL3;
+	seg_cs64_cpl3.selector = X86_SEL_CS64_CPL3;
 	seg_cs64_cpl3.dpl = 3;
 
 	struct kvm_segment seg_ds64_cpl3 = seg_ds64;
-	seg_ds64_cpl3.selector = SEL_DS64_CPL3;
+	seg_ds64_cpl3.selector = X86_SEL_DS64_CPL3;
 	seg_ds64_cpl3.dpl = 3;
 
 	struct kvm_segment seg_tss32;
-	seg_tss32.selector = SEL_TSS32;
+	memset(&seg_tss32, 0, sizeof(seg_tss32));
+	seg_tss32.selector = X86_SEL_TSS32;
 	seg_tss32.type = 9;
-	seg_tss32.base = ADDR_VAR_TSS32;
+	seg_tss32.base = X86_ADDR_VAR_TSS32;
 	seg_tss32.limit = 0x1ff;
 	seg_tss32.present = 1;
 	seg_tss32.dpl = 0;
@@ -403,48 +349,49 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	seg_tss32.l = 0;
 
 	struct kvm_segment seg_tss32_2 = seg_tss32;
-	seg_tss32_2.selector = SEL_TSS32_2;
-	seg_tss32_2.base = ADDR_VAR_TSS32_2;
+	seg_tss32_2.selector = X86_SEL_TSS32_2;
+	seg_tss32_2.base = X86_ADDR_VAR_TSS32_2;
 
 	struct kvm_segment seg_tss32_cpl3 = seg_tss32;
-	seg_tss32_cpl3.selector = SEL_TSS32_CPL3;
-	seg_tss32_cpl3.base = ADDR_VAR_TSS32_CPL3;
+	seg_tss32_cpl3.selector = X86_SEL_TSS32_CPL3;
+	seg_tss32_cpl3.base = X86_ADDR_VAR_TSS32_CPL3;
 
 	struct kvm_segment seg_tss32_vm86 = seg_tss32;
-	seg_tss32_vm86.selector = SEL_TSS32_VM86;
-	seg_tss32_vm86.base = ADDR_VAR_TSS32_VM86;
+	seg_tss32_vm86.selector = X86_SEL_TSS32_VM86;
+	seg_tss32_vm86.base = X86_ADDR_VAR_TSS32_VM86;
 
 	struct kvm_segment seg_tss16 = seg_tss32;
-	seg_tss16.selector = SEL_TSS16;
-	seg_tss16.base = ADDR_VAR_TSS16;
+	seg_tss16.selector = X86_SEL_TSS16;
+	seg_tss16.base = X86_ADDR_VAR_TSS16;
 	seg_tss16.limit = 0xff;
 	seg_tss16.type = 1;
 
 	struct kvm_segment seg_tss16_2 = seg_tss16;
-	seg_tss16_2.selector = SEL_TSS16_2;
-	seg_tss16_2.base = ADDR_VAR_TSS16_2;
+	seg_tss16_2.selector = X86_SEL_TSS16_2;
+	seg_tss16_2.base = X86_ADDR_VAR_TSS16_2;
 	seg_tss16_2.dpl = 0;
 
 	struct kvm_segment seg_tss16_cpl3 = seg_tss16;
-	seg_tss16_cpl3.selector = SEL_TSS16_CPL3;
-	seg_tss16_cpl3.base = ADDR_VAR_TSS16_CPL3;
+	seg_tss16_cpl3.selector = X86_SEL_TSS16_CPL3;
+	seg_tss16_cpl3.base = X86_ADDR_VAR_TSS16_CPL3;
 	seg_tss16_cpl3.dpl = 3;
 
 	struct kvm_segment seg_tss64 = seg_tss32;
-	seg_tss64.selector = SEL_TSS64;
-	seg_tss64.base = ADDR_VAR_TSS64;
+	seg_tss64.selector = X86_SEL_TSS64;
+	seg_tss64.base = X86_ADDR_VAR_TSS64;
 	seg_tss64.limit = 0x1ff;
 
 	struct kvm_segment seg_tss64_cpl3 = seg_tss64;
-	seg_tss64_cpl3.selector = SEL_TSS64_CPL3;
-	seg_tss64_cpl3.base = ADDR_VAR_TSS64_CPL3;
+	seg_tss64_cpl3.selector = X86_SEL_TSS64_CPL3;
+	seg_tss64_cpl3.base = X86_ADDR_VAR_TSS64_CPL3;
 	seg_tss64_cpl3.dpl = 3;
 
 	struct kvm_segment seg_cgate16;
-	seg_cgate16.selector = SEL_CGATE16;
+	memset(&seg_cgate16, 0, sizeof(seg_cgate16));
+	seg_cgate16.selector = X86_SEL_CGATE16;
 	seg_cgate16.type = 4;
-	seg_cgate16.base = SEL_CS16 | (2 << 16); // selector + param count
-	seg_cgate16.limit = ADDR_VAR_USER_CODE2; // entry offset
+	seg_cgate16.base = X86_SEL_CS16 | (2 << 16); // selector + param count
+	seg_cgate16.limit = X86_ADDR_VAR_USER_CODE2; // entry offset
 	seg_cgate16.present = 1;
 	seg_cgate16.dpl = 0;
 	seg_cgate16.s = 0;
@@ -454,26 +401,26 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	seg_cgate16.avl = 0;
 
 	struct kvm_segment seg_tgate16 = seg_cgate16;
-	seg_tgate16.selector = SEL_TGATE16;
+	seg_tgate16.selector = X86_SEL_TGATE16;
 	seg_tgate16.type = 3;
-	seg_cgate16.base = SEL_TSS16_2;
+	seg_cgate16.base = X86_SEL_TSS16_2;
 	seg_tgate16.limit = 0;
 
 	struct kvm_segment seg_cgate32 = seg_cgate16;
-	seg_cgate32.selector = SEL_CGATE32;
+	seg_cgate32.selector = X86_SEL_CGATE32;
 	seg_cgate32.type = 12;
-	seg_cgate32.base = SEL_CS32 | (2 << 16); // selector + param count
+	seg_cgate32.base = X86_SEL_CS32 | (2 << 16); // selector + param count
 
 	struct kvm_segment seg_tgate32 = seg_cgate32;
-	seg_tgate32.selector = SEL_TGATE32;
+	seg_tgate32.selector = X86_SEL_TGATE32;
 	seg_tgate32.type = 11;
-	seg_tgate32.base = SEL_TSS32_2;
+	seg_tgate32.base = X86_SEL_TSS32_2;
 	seg_tgate32.limit = 0;
 
 	struct kvm_segment seg_cgate64 = seg_cgate16;
-	seg_cgate64.selector = SEL_CGATE64;
+	seg_cgate64.selector = X86_SEL_CGATE64;
 	seg_cgate64.type = 12;
-	seg_cgate64.base = SEL_CS64;
+	seg_cgate64.base = X86_SEL_CS64;
 
 	int kvmfd = open("/dev/kvm", O_RDWR);
 	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
@@ -486,39 +433,39 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	const char* text_prefix = 0;
 	int text_prefix_size = 0;
-	char* host_text = host_mem + ADDR_TEXT;
+	char* host_text = host_mem + X86_ADDR_TEXT;
 
 	if (text_type == 8) {
 		if (flags & KVM_SETUP_SMM) {
 			if (flags & KVM_SETUP_PROTECTED) {
 				sregs.cs = seg_cs16;
 				sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
-				sregs.cr0 |= CR0_PE;
+				sregs.cr0 |= X86_CR0_PE;
 			} else {
 				sregs.cs.selector = 0;
 				sregs.cs.base = 0;
 			}
 
-			*(host_mem + ADDR_TEXT) = 0xf4; // hlt for rsm
+			*(host_mem + X86_ADDR_TEXT) = 0xf4; // hlt for rsm
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
 		} else if (flags & KVM_SETUP_VIRT86) {
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
-			sregs.cr0 |= CR0_PE;
-			sregs.efer |= EFER_SCE;
+			sregs.cr0 |= X86_CR0_PE;
+			sregs.efer |= X86_EFER_SCE;
 
-			setup_syscall_msrs(cpufd, SEL_CS32, SEL_CS32_CPL3);
+			setup_syscall_msrs(cpufd, X86_SEL_CS32, X86_SEL_CS32_CPL3);
 			setup_32bit_idt(&sregs, host_mem, guest_mem);
 
 			if (flags & KVM_SETUP_PAGING) {
-				uint64 pd_addr = guest_mem + ADDR_PD;
-				uint64* pd = (uint64*)(host_mem + ADDR_PD);
+				uint64 pd_addr = guest_mem + X86_ADDR_PD;
+				uint64* pd = (uint64*)(host_mem + X86_ADDR_PD);
 				// A single 4MB page to cover the memory region
-				pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
+				pd[0] = X86_PDE32_PRESENT | X86_PDE32_RW | X86_PDE32_USER | X86_PDE32_PS;
 				sregs.cr3 = pd_addr;
-				sregs.cr4 |= CR4_PSE;
+				sregs.cr4 |= X86_CR4_PSE;
 
 				text_prefix = kvm_asm32_paged_vm86;
 				text_prefix_size = sizeof(kvm_asm32_paged_vm86) - 1;
@@ -538,22 +485,22 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			text_prefix = kvm_asm16_cpl3;
 			text_prefix_size = sizeof(kvm_asm16_cpl3) - 1;
 		} else {
-			sregs.cr0 |= CR0_PE;
+			sregs.cr0 |= X86_CR0_PE;
 			sregs.cs = seg_cs16;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
 		}
 	} else if (text_type == 32) {
-		sregs.cr0 |= CR0_PE;
-		sregs.efer |= EFER_SCE;
+		sregs.cr0 |= X86_CR0_PE;
+		sregs.efer |= X86_EFER_SCE;
 
-		setup_syscall_msrs(cpufd, SEL_CS32, SEL_CS32_CPL3);
+		setup_syscall_msrs(cpufd, X86_SEL_CS32, X86_SEL_CS32_CPL3);
 		setup_32bit_idt(&sregs, host_mem, guest_mem);
 
 		if (flags & KVM_SETUP_SMM) {
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-			*(host_mem + ADDR_TEXT) = 0xf4; // hlt for rsm
+			*(host_mem + X86_ADDR_TEXT) = 0xf4; // hlt for rsm
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
@@ -561,12 +508,12 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-			uint64 pd_addr = guest_mem + ADDR_PD;
-			uint64* pd = (uint64*)(host_mem + ADDR_PD);
+			uint64 pd_addr = guest_mem + X86_ADDR_PD;
+			uint64* pd = (uint64*)(host_mem + X86_ADDR_PD);
 			// A single 4MB page to cover the memory region
-			pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
+			pd[0] = X86_PDE32_PRESENT | X86_PDE32_RW | X86_PDE32_USER | X86_PDE32_PS;
 			sregs.cr3 = pd_addr;
-			sregs.cr4 |= CR4_PSE;
+			sregs.cr4 |= X86_CR4_PSE;
 
 			text_prefix = kvm_asm32_paged;
 			text_prefix_size = sizeof(kvm_asm32_paged) - 1;
@@ -578,34 +525,34 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 		}
 	} else {
-		sregs.efer |= EFER_LME | EFER_SCE;
-		sregs.cr0 |= CR0_PE;
+		sregs.efer |= X86_EFER_LME | X86_EFER_SCE;
+		sregs.cr0 |= X86_CR0_PE;
 
-		setup_syscall_msrs(cpufd, SEL_CS64, SEL_CS64_CPL3);
+		setup_syscall_msrs(cpufd, X86_SEL_CS64, X86_SEL_CS64_CPL3);
 		setup_64bit_idt(&sregs, host_mem, guest_mem);
 
 		sregs.cs = seg_cs32;
 		sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-		uint64 pml4_addr = guest_mem + ADDR_PML4;
-		uint64* pml4 = (uint64*)(host_mem + ADDR_PML4);
-		uint64 pdpt_addr = guest_mem + ADDR_PDP;
-		uint64* pdpt = (uint64*)(host_mem + ADDR_PDP);
-		uint64 pd_addr = guest_mem + ADDR_PD;
-		uint64* pd = (uint64*)(host_mem + ADDR_PD);
-		pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr;
-		pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr;
-		pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS;
+		uint64 pml4_addr = guest_mem + X86_ADDR_PML4;
+		uint64* pml4 = (uint64*)(host_mem + X86_ADDR_PML4);
+		uint64 pdpt_addr = guest_mem + X86_ADDR_PDP;
+		uint64* pdpt = (uint64*)(host_mem + X86_ADDR_PDP);
+		uint64 pd_addr = guest_mem + X86_ADDR_PD;
+		uint64* pd = (uint64*)(host_mem + X86_ADDR_PD);
+		pml4[0] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER | pdpt_addr;
+		pdpt[0] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER | pd_addr;
+		pd[0] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER | X86_PDE64_PS;
 		sregs.cr3 = pml4_addr;
-		sregs.cr4 |= CR4_PAE;
+		sregs.cr4 |= X86_CR4_PAE;
 
 		if (flags & KVM_SETUP_VM) {
-			sregs.cr0 |= CR0_NE;
+			sregs.cr0 |= X86_CR0_NE;
 
-			*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON;
-			*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS;
-			memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1);
-			*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE;
+			*((uint64*)(host_mem + X86_ADDR_VAR_VMXON_PTR)) = X86_ADDR_VAR_VMXON;
+			*((uint64*)(host_mem + X86_ADDR_VAR_VMCS_PTR)) = X86_ADDR_VAR_VMCS;
+			memcpy(host_mem + X86_ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1);
+			*((uint64*)(host_mem + X86_ADDR_VAR_VMEXIT_PTR)) = X86_ADDR_VAR_VMEXIT_CODE;
 
 			text_prefix = kvm_asm64_init_vm;
 			text_prefix_size = sizeof(kvm_asm64_init_vm) - 1;
@@ -620,48 +567,48 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	struct tss16 tss16;
 	memset(&tss16, 0, sizeof(tss16));
-	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
-	tss16.sp0 = tss16.sp1 = tss16.sp2 = ADDR_STACK0;
-	tss16.ip = ADDR_VAR_USER_CODE2;
+	tss16.ss0 = tss16.ss1 = tss16.ss2 = X86_SEL_DS16;
+	tss16.sp0 = tss16.sp1 = tss16.sp2 = X86_ADDR_STACK0;
+	tss16.ip = X86_ADDR_VAR_USER_CODE2;
 	tss16.flags = (1 << 1);
-	tss16.cs = SEL_CS16;
-	tss16.es = tss16.ds = tss16.ss = SEL_DS16;
-	tss16.ldt = SEL_LDT;
+	tss16.cs = X86_SEL_CS16;
+	tss16.es = tss16.ds = tss16.ss = X86_SEL_DS16;
+	tss16.ldt = X86_SEL_LDT;
 	struct tss16* tss16_addr = (struct tss16*)(host_mem + seg_tss16_2.base);
 	memcpy(tss16_addr, &tss16, sizeof(tss16));
 
 	memset(&tss16, 0, sizeof(tss16));
-	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
-	tss16.sp0 = tss16.sp1 = tss16.sp2 = ADDR_STACK0;
-	tss16.ip = ADDR_VAR_USER_CODE2;
+	tss16.ss0 = tss16.ss1 = tss16.ss2 = X86_SEL_DS16;
+	tss16.sp0 = tss16.sp1 = tss16.sp2 = X86_ADDR_STACK0;
+	tss16.ip = X86_ADDR_VAR_USER_CODE2;
 	tss16.flags = (1 << 1);
-	tss16.cs = SEL_CS16_CPL3;
-	tss16.es = tss16.ds = tss16.ss = SEL_DS16_CPL3;
-	tss16.ldt = SEL_LDT;
+	tss16.cs = X86_SEL_CS16_CPL3;
+	tss16.es = tss16.ds = tss16.ss = X86_SEL_DS16_CPL3;
+	tss16.ldt = X86_SEL_LDT;
 	struct tss16* tss16_cpl3_addr = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
 	memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16));
 
 	struct tss32 tss32;
 	memset(&tss32, 0, sizeof(tss32));
-	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
-	tss32.sp0 = tss32.sp1 = tss32.sp2 = ADDR_STACK0;
-	tss32.ip = ADDR_VAR_USER_CODE;
+	tss32.ss0 = tss32.ss1 = tss32.ss2 = X86_SEL_DS32;
+	tss32.sp0 = tss32.sp1 = tss32.sp2 = X86_ADDR_STACK0;
+	tss32.ip = X86_ADDR_VAR_USER_CODE;
 	tss32.flags = (1 << 1) | (1 << 17);
-	tss32.ldt = SEL_LDT;
+	tss32.ldt = X86_SEL_LDT;
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_addr = (struct tss32*)(host_mem + seg_tss32_vm86.base);
 	memcpy(tss32_addr, &tss32, sizeof(tss32));
 
 	memset(&tss32, 0, sizeof(tss32));
-	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
-	tss32.sp0 = tss32.sp1 = tss32.sp2 = ADDR_STACK0;
-	tss32.ip = ADDR_VAR_USER_CODE;
+	tss32.ss0 = tss32.ss1 = tss32.ss2 = X86_SEL_DS32;
+	tss32.sp0 = tss32.sp1 = tss32.sp2 = X86_ADDR_STACK0;
+	tss32.ip = X86_ADDR_VAR_USER_CODE;
 	tss32.flags = (1 << 1);
 	tss32.cr3 = sregs.cr3;
-	tss32.es = tss32.ds = tss32.ss = tss32.gs = tss32.fs = SEL_DS32;
-	tss32.cs = SEL_CS32;
-	tss32.ldt = SEL_LDT;
+	tss32.es = tss32.ds = tss32.ss = tss32.gs = tss32.fs = X86_SEL_DS32;
+	tss32.cs = X86_SEL_CS32;
+	tss32.ldt = X86_SEL_LDT;
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_cpl3_addr = (struct tss32*)(host_mem + seg_tss32_2.base);
@@ -669,17 +616,17 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	struct tss64 tss64;
 	memset(&tss64, 0, sizeof(tss64));
-	tss64.rsp[0] = ADDR_STACK0;
-	tss64.rsp[1] = ADDR_STACK0;
-	tss64.rsp[2] = ADDR_STACK0;
+	tss64.rsp[0] = X86_ADDR_STACK0;
+	tss64.rsp[1] = X86_ADDR_STACK0;
+	tss64.rsp[2] = X86_ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_addr = (struct tss64*)(host_mem + seg_tss64.base);
 	memcpy(tss64_addr, &tss64, sizeof(tss64));
 
 	memset(&tss64, 0, sizeof(tss64));
-	tss64.rsp[0] = ADDR_STACK0;
-	tss64.rsp[1] = ADDR_STACK0;
-	tss64.rsp[2] = ADDR_STACK0;
+	tss64.rsp[0] = X86_ADDR_STACK0;
+	tss64.rsp[1] = X86_ADDR_STACK0;
+	tss64.rsp[2] = X86_ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_cpl3_addr = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
 	memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64));
@@ -691,24 +638,24 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		// Replace 0xbadc0de in LJMP with offset of a next instruction.
 		void* patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4);
 		if (patch)
-			*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6;
-		uint16 magic = PREFIX_SIZE;
+			*((uint32*)patch) = guest_mem + X86_ADDR_TEXT + ((char*)patch - host_text) + 6;
+		uint16 magic = X86_PREFIX_SIZE;
 		patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic));
 		if (patch)
-			*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size;
+			*((uint16*)patch) = guest_mem + X86_ADDR_TEXT + text_prefix_size;
 	}
 	memcpy((void*)(host_text + text_prefix_size), text, text_size);
 	*(host_text + text_prefix_size + text_size) = 0xf4; // hlt
 
-	memcpy(host_mem + ADDR_VAR_USER_CODE, text, text_size);
-	*(host_mem + ADDR_VAR_USER_CODE + text_size) = 0xf4; // hlt
+	memcpy(host_mem + X86_ADDR_VAR_USER_CODE, text, text_size);
+	*(host_mem + X86_ADDR_VAR_USER_CODE + text_size) = 0xf4; // hlt
 
-	*(host_mem + ADDR_VAR_HLT) = 0xf4; // hlt
-	memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3);
-	memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3);
+	*(host_mem + X86_ADDR_VAR_HLT) = 0xf4; // hlt
+	memcpy(host_mem + X86_ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3);
+	memcpy(host_mem + X86_ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3);
 
-	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0;
-	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0;
+	*(uint64*)(host_mem + X86_ADDR_VAR_VMWRITE_FLD) = 0;
+	*(uint64*)(host_mem + X86_ADDR_VAR_VMWRITE_VAL) = 0;
 
 	if (opt_count > 2)
 		opt_count = 2;
@@ -717,15 +664,15 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		uint64 val = opt_array_ptr[i].val;
 		switch (typ % 9) {
 		case 0:
-			sregs.cr0 ^= val & (CR0_MP | CR0_EM | CR0_ET | CR0_NE | CR0_WP | CR0_AM | CR0_NW | CR0_CD);
+			sregs.cr0 ^= val & (X86_CR0_MP | X86_CR0_EM | X86_CR0_ET | X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | X86_CR0_NW | X86_CR0_CD);
 			break;
 		case 1:
-			sregs.cr4 ^= val & (CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE | CR4_PCE |
-					    CR4_OSFXSR | CR4_OSXMMEXCPT | CR4_UMIP | CR4_VMXE | CR4_SMXE | CR4_FSGSBASE | CR4_PCIDE |
-					    CR4_OSXSAVE | CR4_SMEP | CR4_SMAP | CR4_PKE);
+			sregs.cr4 ^= val & (X86_CR4_VME | X86_CR4_PVI | X86_CR4_TSD | X86_CR4_DE | X86_CR4_MCE | X86_CR4_PGE | X86_CR4_PCE |
+					    X86_CR4_OSFXSR | X86_CR4_OSXMMEXCPT | X86_CR4_UMIP | X86_CR4_VMXE | X86_CR4_SMXE | X86_CR4_FSGSBASE | X86_CR4_PCIDE |
+					    X86_CR4_OSXSAVE | X86_CR4_SMEP | X86_CR4_SMAP | X86_CR4_PKE);
 			break;
 		case 2:
-			sregs.efer ^= val & (EFER_SCE | EFER_NXE | EFER_SVME | EFER_LMSLE | EFER_FFXSR | EFER_TCE);
+			sregs.efer ^= val & (X86_EFER_SCE | X86_EFER_NXE | X86_EFER_SVME | X86_EFER_LMSLE | X86_EFER_FFXSR | X86_EFER_TCE);
 			break;
 		case 3:
 			val &= ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
@@ -757,8 +704,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 			seg_ds64_cpl3.type = val & 0xf;
 			break;
 		case 8:
-			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff);
-			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16);
+			*(uint64*)(host_mem + X86_ADDR_VAR_VMWRITE_FLD) = (val & 0xffff);
+			*(uint64*)(host_mem + X86_ADDR_VAR_VMWRITE_VAL) = (val >> 16);
 			break;
 		default:
 			fail("bad kvm setup opt");

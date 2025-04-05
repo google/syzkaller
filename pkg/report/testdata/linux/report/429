@@ -1,4 +1,5 @@
 TITLE: WARNING: ODEBUG bug in blk_mq_unregister_disk
+TYPE: WARNING
 
 [   77.713943] ------------[ cut here ]------------
 [   77.718699] WARNING: CPU: 0 PID: 2484 at lib/debugobjects.c:260 debug_print_object+0x181/0x210

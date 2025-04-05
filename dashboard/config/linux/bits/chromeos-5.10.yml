@@ -4,8 +4,8 @@
 kernel:
  repo: https://chromium.googlesource.com/chromiumos/third_party/kernel
  # HEAD of chromeos-5.10 branch.
- tag: f8eeaf8c39fb2e2ab00f24cbc728de960815aa69
+ tag: ea6af77b55e49ce0cfbdd5543fe75fc8744cbd92
 
 shell:
- - chromeos/scripts/prepareconfig chromiumos-x86_64 ${BUILDDIR}/.config
+ - CHROMEOS_KERNEL_FAMILY=chromeos chromeos/scripts/prepareconfig chromiumos-x86_64-generic ${BUILDDIR}/.config
  - make olddefconfig

@@ -1,0 +1,39 @@
+#
+# requires: arch=arm64 -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
+#
+# Install a SYZOS program that sets up the IRQ and ITS, and then injects an LPI 0x0 from device 0x0.
+#
+r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@irq_setup={AUTO, AUTO, {0x1, 0x20}}, @its_setup={AUTO, AUTO, {0x1, 0x1, 0x1}}, @its_send_cmd={AUTO, AUTO, {0x3, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}}], AUTO}, 0x0, 0x0)
+syz_kvm_vgic_v3_setup(r1, 0x1, 0x100)
+#
+# Set up ITS device with redistributor at address 0x08080000 (declared at executor/kvm.h):
+# 1. Create KVM_DEV_TYPE_ARM_VGIC_ITS.
+#
+ioctl$KVM_CREATE_DEVICE(r1, AUTO, &AUTO={0x8, <r4=>0xffffffffffffffff, 0x0})
+#
+# 2. Set device attribute {KVM_DEV_ARM_VGIC_GRP_ADDR, KVM_VGIC_ITS_ADDR_TYPE, &addr=0x08080000}.
+#
+ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x0, 0x4, &AUTO=0x08080000})
+#
+# 3. Set device attribute {KVM_DEV_ARM_VGIC_GRP_CTRL, KVM_DEV_ARM_VGIC_CTRL_INIT, 0}.
+#
+ioctl$KVM_SET_DEVICE_ATTR(r4, AUTO, &AUTO=@attr_arm64={0x0, 0x4, 0x0, 0x0})
+#
+# Map struct kvm_run for the VCPU.
+#
+r5 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r6 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r5, 0x3, 0x1, r3, 0x0)
+#
+# This KVM_RUN will stop after receiving the LPI.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r6, 0xfffffffffffffffe)
+#
+# This KVM_RUN will stop after finishing the user program.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r6, 0xffffffffffffffff)

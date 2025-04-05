@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <style>
+    .file {
+      display: none;
+      margin: 0;
+      padding: 0;
+    }
+    .count {
+      font-weight: bold;
+      border-right: 1px solid #ddd;
+      padding-right: 4px;
+      cursor: zoom-in;
+    }
+    .split {
+      height: 100%;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      overflow-x: hidden;
+    }
+    .tree {
+      left: 0;
+      width: 24%;
+    }
+    .function {
+      height: 100%;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      overflow-x: hidden;
+      display: none;
+    }
+    .list {
+      left: 24%;
+      width: 30%;
+    }
+    .right {
+      border-left: 2px solid #444;
+      right: 0;
+      width: 76%;
+      font-family: 'Courier New', Courier, monospace;
+      color: rgb(80, 80, 80);
+    }
+    .cover {
+      float: right;
+      width: 150px;
+      padding-right: 4px;
+    }
+    .cover-right {
+      float: right;
+    }
+    .covered {
+      color: rgb(0, 0, 0);
+      font-weight: bold;
+    }
+    .uncovered {
+      color: rgb(255, 0, 0);
+      font-weight: bold;
+    }
+    .both {
+      color: rgb(200, 100, 0);
+      font-weight: bold;
+    }
+    ul, #dir_list {
+      list-style-type: none;
+      padding-left: 16px;
+    }
+    #dir_list {
+      margin: 0;
+      padding: 0;
+    }
+    .hover:hover {
+      background: #ffff99;
+    }
+    .caret {
+      cursor: pointer;
+      user-select: none;
+    }
+    .caret::before {
+      color: black;
+      content: "\25B6";
+      display: inline-block;
+      margin-right: 3px;
+    }
+    .caret-down::before {
+      transform: rotate(90deg);
+    }
+    .nested {
+      display: none;
+    }
+    .active {
+      display: block;
+    }
+    .total-left {
+      padding-left: 16px;
+    }
+    .total {
+      float: right;
+      width: 250px;
+      padding-right: 4px;
+    }
+    .total-right {
+      float: right;
+    }
+    .flex-column {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+<div class="split tree">
+  <ul id="dir_list">
+    {{template "dir" .Root}}
+  </ul>
+  <br />
+  <hr />
+  <div id="total_coverage">
+    <span class="total-left">Total coverage:</span>
+    <span class="total"> {{.Root.Covered}} ({{.Root.Percent}}%)<span class="total-right">of {{.Root.Total}}</span></span>
+  </div>
+</div>
+<div id="right_pane" class="split right">
+  <button class="nested" id="close-btn" onclick="onCloseClick()">X</button>
+  {{range $i, $f := .Contents}}
+    <pre class="file" id="contents_{{$i}}">{{$f}}</pre>
+  {{end}}
+  {{$base := .}}
+  {{range $i, $p := .Progs}}
+    <pre class="file" id="prog_{{$i}}">
+      {{if $base.RawCover}}<a href="/debuginput?sig={{$p.Sig}}">[raw coverage]</a><br />{{end}}
+      {{$p.Content}}
+    </pre>
+  {{end}}
+  {{range $i, $p := .Functions}}
+    <div class="function list" id="function_{{$i}}">{{$p}}</div>
+  {{end}}
+</div>
+</body>
+<script>
+  (function() {
+    var toggler = document.getElementsByClassName("caret");
+    for (var i = 0; i < toggler.length; i++) {
+      toggler[i].addEventListener("click", function() {
+        this.parentElement.querySelector(".nested").classList.toggle("active");
+        this.classList.toggle("caret-down");
+      });
+    }
+    if (window.location.hash) {
+      var hash = decodeURIComponent(window.location.hash.substring(1)).split("/");
+      var path = "path";
+      for (var i = 0; i < hash.length; i++) {
+        path += "/" + hash[i];
+        var elem = document.getElementById(path);
+        if (elem)
+          elem.click();
+      }
+    }
+  })();
+  var visible;
+  var contentIdx;
+  var currentPC;
+        function onPercentClick(index) {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("function_" + index);
+    visible.style.display = 'block';
+    document.getElementById("right_pane").scrollTo(0, 0);
+    toggleCloseBtn();
+  }
+  function onFileClick(index) {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("contents_" + index);
+    visible.style.display = 'block';
+    contentIdx = index;
+    document.getElementById("right_pane").scrollTo(0, 0);
+    toggleCloseBtn();
+  }
+  function toggleCloseBtn(showBtn) {
+    let display = 'none';
+    if (showBtn)
+      display  = 'block';
+    document.getElementById("close-btn").style.display = display;
+  }
+  function onProgClick(index, span) {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("prog_" + index);
+    visible.style.display = 'block';
+    document.getElementById("right_pane").scrollTo(0, 0);
+    currentPC = span;
+    toggleCloseBtn(true);
+  }
+  function onCloseClick() {
+    if (visible)
+      visible.style.display = 'none';
+    visible = document.getElementById("contents_" + contentIdx);
+    visible.style.display = 'block';
+    toggleCloseBtn();
+    currentPC.scrollIntoView();
+  }
+  </script>
+</html>
+
+{{define "dir"}}
+  {{range $dir := .Dirs}}
+    <li class="flex-column">
+      <span id="path/{{$dir.Path}}" class="caret hover">
+        {{$dir.Name}}
+        <span class="cover hover">
+          {{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
+          <span class="cover-right">of {{$dir.Total}}</span>
+        </span>
+      </span>
+      <ul class="nested">
+        {{template "dir" $dir}}
+      </ul>
+    </li>
+  {{end}}
+  {{range $file := .Files}}
+    <li class="flex-column">
+      <span class="hover">
+        {{if $file.Covered}}
+          <a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
+            {{$file.Name}}
+          </a>
+          <span class="cover hover">
+            <a href="#{{$file.Path}}" id="path/{{$file.Path}}"
+               onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
+              {{$file.Percent}}%
+            </a>
+            <span class="cover-right">of {{$file.Total}}</span>
+          </span>
+        {{else}}
+          {{$file.Name}}
+            <span class="cover hover">
+              ---
+              <span class="cover-right">of {{$file.Total}}</span>
+            </span>
+        {{end}}
+      </span>
+    </li>
+  {{end}}
+{{end}}

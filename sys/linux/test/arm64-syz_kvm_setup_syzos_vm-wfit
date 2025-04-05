@@ -1,0 +1,25 @@
+#
+# requires: arch=arm64 -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
+# Perform a WFIT (wfit x0).
+#
+r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@code={AUTO, AUTO, {"201003d5", 0xd65f03c0}}], AUTO}, 0x0, 0x0)
+
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# Run till the first uexit.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0x0)
+# Run till the second uexit.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0xaaaa)
+# Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0xffffffffffffffff)

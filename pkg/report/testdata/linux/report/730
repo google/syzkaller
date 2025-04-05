@@ -1,0 +1,116 @@
+TITLE: WARNING in udf_rmdir
+TYPE: WARNING
+FRAME: udf_rmdir
+
+[   62.102480][ T5830] ------------[ cut here ]------------
+[   62.108072][ T5830] WARNING: CPU: 1 PID: 5830 at fs/inode.c:336 drop_nlink+0xc4/0x110
+[   62.116109][ T5830] Modules linked in:
+[   62.120143][ T5830] CPU: 1 UID: 0 PID: 5830 Comm: syz-executor175 Not tainted 6.12.0-rc7-syzkaller-00012-g3022e9d00ebe #0
+[   62.131354][ T5830] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/30/2024
+[   62.141522][ T5830] RIP: 0010:drop_nlink+0xc4/0x110
+[   62.146570][ T5830] Code: bb 70 07 00 00 be 08 00 00 00 e8 87 0b e6 ff f0 48 ff 83 70 07 00 00 5b 41 5c 41 5e 41 5f 5d c3 cc cc cc cc e8 ad 61 7f ff 90 <0f> 0b 90 eb 83 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 5c ff ff ff
+[   62.166276][ T5830] RSP: 0018:ffffc900039cfad0 EFLAGS: 00010293
+[   62.172448][ T5830] RAX: ffffffff82157803 RBX: 1ffff1100fcf3100 RCX: ffff888035123c00
+[   62.180525][ T5830] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[   62.188566][ T5830] RBP: 0000000000000000 R08: ffffffff82157783 R09: 1ffff92000739ed8
+[   62.196557][ T5830] R10: dffffc0000000000 R11: fffff52000739ed9 R12: ffff88807e798800
+[   62.204615][ T5830] R13: ffffc900039cfb80 R14: ffff88807e7987b8 R15: dffffc0000000000
+[   62.212627][ T5830] FS:  000055557128d380(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
+[   62.221715][ T5830] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   62.228338][ T5830] CR2: 00007faacd595ed8 CR3: 0000000012376000 CR4: 00000000003526f0
+[   62.236304][ T5830] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   62.244346][ T5830] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   62.252357][ T5830] Call Trace:
+[   62.255628][ T5830]  <TASK>
+[   62.258614][ T5830]  ? __warn+0x168/0x4e0
+[   62.262782][ T5830]  ? drop_nlink+0xc4/0x110
+[   62.267192][ T5830]  ? report_bug+0x2b3/0x500
+[   62.271748][ T5830]  ? drop_nlink+0xc4/0x110
+[   62.276188][ T5830]  ? handle_bug+0x60/0x90
+[   62.280628][ T5830]  ? exc_invalid_op+0x1a/0x50
+[   62.285330][ T5830]  ? asm_exc_invalid_op+0x1a/0x20
+[   62.290433][ T5830]  ? drop_nlink+0x43/0x110
+[   62.294862][ T5830]  ? drop_nlink+0xc3/0x110
+[   62.299351][ T5830]  ? drop_nlink+0xc4/0x110
+[   62.303800][ T5830]  udf_rmdir+0x3bc/0x730
+[   62.308589][ T5830]  ? __pfx_udf_rmdir+0x10/0x10
+[   62.313413][ T5830]  ? down_write+0x18c/0x220
+[   62.318010][ T5830]  ? __pfx_down_write+0x10/0x10
+[   62.322877][ T5830]  ? do_raw_spin_unlock+0x13c/0x8b0
+[   62.328121][ T5830]  ? bpf_lsm_inode_rmdir+0x9/0x10
+[   62.333171][ T5830]  ? security_inode_rmdir+0xd9/0x340
+[   62.338535][ T5830]  vfs_rmdir+0x3a3/0x510
+[   62.342799][ T5830]  do_rmdir+0x3b5/0x580
+[   62.346954][ T5830]  ? __pfx_do_rmdir+0x10/0x10
+[   62.351693][ T5830]  ? getname_flags+0x1e3/0x540
+[   62.356477][ T5830]  __x64_sys_rmdir+0x47/0x50
+[   62.361144][ T5830]  do_syscall_64+0xf3/0x230
+[   62.365735][ T5830]  ? clear_bhb_loop+0x35/0x90
+[   62.370593][ T5830]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   62.376502][ T5830] RIP: 0033:0x7fc98d0ebd99
+[   62.381011][ T5830] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   62.400722][ T5830] RSP: 002b:00007ffd4fd5f668 EFLAGS: 00000246 ORIG_RAX: 0000000000000054
+[   62.409184][ T5830] RAX: ffffffffffffffda RBX: 000000000000001d RCX: 00007fc98d0ebd99
+[   62.417168][ T5830] RDX: 00007fc98d0ebd99 RSI: 00007fc98d0ebd99 RDI: 0000000020000000
+[   62.425223][ T5830] RBP: 00007fc98d1605f0 R08: 000055557128e4c0 R09: 000055557128e4c0
+[   62.433236][ T5830] R10: 000055557128e4c0 R11: 0000000000000246 R12: 00007ffd4fd5f690
+[   62.441314][ T5830] R13: 00007ffd4fd5f8b8 R14: 431bde82d7b634db R15: 00007fc98d13503b
+[   62.449467][ T5830]  </TASK>
+[   62.452504][ T5830] Kernel panic - not syncing: kernel: panic_on_warn set ...
+[   62.459790][ T5830] CPU: 1 UID: 0 PID: 5830 Comm: syz-executor175 Not tainted 6.12.0-rc7-syzkaller-00012-g3022e9d00ebe #0
+[   62.470892][ T5830] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/30/2024
+[   62.481030][ T5830] Call Trace:
+[   62.484303][ T5830]  <TASK>
+[   62.487233][ T5830]  dump_stack_lvl+0x241/0x360
+[   62.491917][ T5830]  ? __pfx_dump_stack_lvl+0x10/0x10
+[   62.497111][ T5830]  ? __pfx__printk+0x10/0x10
+[   62.501695][ T5830]  ? _printk+0xd5/0x120
+[   62.505845][ T5830]  ? __init_begin+0x41000/0x41000
+[   62.510866][ T5830]  ? vscnprintf+0x5d/0x90
+[   62.515194][ T5830]  panic+0x349/0x880
+[   62.519086][ T5830]  ? __warn+0x177/0x4e0
+[   62.523235][ T5830]  ? __pfx_panic+0x10/0x10
+[   62.527643][ T5830]  ? show_trace_log_lvl+0x3b2/0x410
+[   62.532862][ T5830]  __warn+0x34b/0x4e0
+[   62.536839][ T5830]  ? drop_nlink+0xc4/0x110
+[   62.541259][ T5830]  report_bug+0x2b3/0x500
+[   62.545606][ T5830]  ? drop_nlink+0xc4/0x110
+[   62.550023][ T5830]  handle_bug+0x60/0x90
+[   62.554172][ T5830]  exc_invalid_op+0x1a/0x50
+[   62.558693][ T5830]  asm_exc_invalid_op+0x1a/0x20
+[   62.563554][ T5830] RIP: 0010:drop_nlink+0xc4/0x110
+[   62.568593][ T5830] Code: bb 70 07 00 00 be 08 00 00 00 e8 87 0b e6 ff f0 48 ff 83 70 07 00 00 5b 41 5c 41 5e 41 5f 5d c3 cc cc cc cc e8 ad 61 7f ff 90 <0f> 0b 90 eb 83 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c 5c ff ff ff
+[   62.588203][ T5830] RSP: 0018:ffffc900039cfad0 EFLAGS: 00010293
+[   62.594276][ T5830] RAX: ffffffff82157803 RBX: 1ffff1100fcf3100 RCX: ffff888035123c00
+[   62.602241][ T5830] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[   62.610207][ T5830] RBP: 0000000000000000 R08: ffffffff82157783 R09: 1ffff92000739ed8
+[   62.618175][ T5830] R10: dffffc0000000000 R11: fffff52000739ed9 R12: ffff88807e798800
+[   62.626160][ T5830] R13: ffffc900039cfb80 R14: ffff88807e7987b8 R15: dffffc0000000000
+[   62.634169][ T5830]  ? drop_nlink+0x43/0x110
+[   62.638594][ T5830]  ? drop_nlink+0xc3/0x110
+[   62.643021][ T5830]  udf_rmdir+0x3bc/0x730
+[   62.647268][ T5830]  ? __pfx_udf_rmdir+0x10/0x10
+[   62.652052][ T5830]  ? down_write+0x18c/0x220
+[   62.656552][ T5830]  ? __pfx_down_write+0x10/0x10
+[   62.661404][ T5830]  ? do_raw_spin_unlock+0x13c/0x8b0
+[   62.666608][ T5830]  ? bpf_lsm_inode_rmdir+0x9/0x10
+[   62.671630][ T5830]  ? security_inode_rmdir+0xd9/0x340
+[   62.676911][ T5830]  vfs_rmdir+0x3a3/0x510
+[   62.681159][ T5830]  do_rmdir+0x3b5/0x580
+[   62.685323][ T5830]  ? __pfx_do_rmdir+0x10/0x10
+[   62.690037][ T5830]  ? getname_flags+0x1e3/0x540
+[   62.694813][ T5830]  __x64_sys_rmdir+0x47/0x50
+[   62.699411][ T5830]  do_syscall_64+0xf3/0x230
+[   62.703926][ T5830]  ? clear_bhb_loop+0x35/0x90
+[   62.708609][ T5830]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   62.714504][ T5830] RIP: 0033:0x7fc98d0ebd99
+[   62.718917][ T5830] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   62.738519][ T5830] RSP: 002b:00007ffd4fd5f668 EFLAGS: 00000246 ORIG_RAX: 0000000000000054
+[   62.746931][ T5830] RAX: ffffffffffffffda RBX: 000000000000001d RCX: 00007fc98d0ebd99
+[   62.754923][ T5830] RDX: 00007fc98d0ebd99 RSI: 00007fc98d0ebd99 RDI: 0000000020000000
+[   62.762906][ T5830] RBP: 00007fc98d1605f0 R08: 000055557128e4c0 R09: 000055557128e4c0
+[   62.770881][ T5830] R10: 000055557128e4c0 R11: 0000000000000246 R12: 00007ffd4fd5f690
+[   62.778850][ T5830] R13: 00007ffd4fd5f8b8 R14: 431bde82d7b634db R15: 00007fc98d13503b
+[   62.786841][ T5830]  </TASK>
+[   62.790114][ T5830] Kernel Offset: disabled
+[   62.794489][ T5830] Rebooting in 86400 seconds..

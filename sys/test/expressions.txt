@@ -1,0 +1,103 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Syscalls used for testing conditional expressions.
+
+define FIELD_FLAG1	2
+define FIELD_FLAG2	4
+
+field1 {
+	f1	const[0xffffffff, int32]
+}
+
+conditional_struct {
+	mask	int32
+	f1	field1	(if[value[mask] & FIELD_FLAG1])
+	f2	int64	(if[value[mask] & FIELD_FLAG2])
+	f3	int32	(if[value[mask] == FIELD_FLAG1 || value[mask] == FIELD_FLAG2])
+} [packed]
+
+resource some_res[int32]
+
+test$conditional_struct(a ptr[in, conditional_struct]) some_res
+
+# To generate this call, we need to recursively also generate a test$conditional_struct() call.
+
+needs_some_res {
+	switch	int32
+	field	some_res	(if[value[switch] != 0])
+}
+
+resource some_res_nested[int32]
+test$conditional_struct_nested(a ptr[in, needs_some_res]) some_res_nested
+
+# .. and one more level.
+
+needs_some_res_nested {
+	switch	int32
+	field	some_res_nested	(if[value[switch] != 0])
+}
+
+test$conditional_struct_nested2(a ptr[in, needs_some_res_nested])
+
+parent_conditions {
+	mask	int32
+	u	parent_conditions_nested_union
+	s	parent_conditions_nested_struct
+} [packed]
+
+parent_conditions_nested_union [
+	with_flag1	int32	(if[value[parent:parent:mask] & FIELD_FLAG1])
+	without_flag1	int64
+]
+
+parent_conditions_nested_struct {
+	f0	int64
+	f1	int32	(if[value[parent_conditions:mask] & FIELD_FLAG2])
+}
+
+test$parent_conditions(a ptr[in, parent_conditions])
+
+condition_and_align {
+	f0	int8
+	f1	int32	(if[value[f0] == 1])
+	f2	int8
+} [packed, align[4]]
+
+condition_parent_align {
+	f0	int8
+	f1	condition_and_align
+	f2	int8
+} [packed, align[4]]
+
+conditional_struct_minimize {
+	havef0	int8
+	f0	int8	(if[value[havef0] == 1])
+	havef1	int8
+	f1	int8	(if[value[havef1] == 1])
+} [packed]
+
+test$conditional_struct_minimize(a ptr[in, conditional_struct_minimize])
+
+conditional_union [
+	u1	int8	(if[value[conditional_union_parent:f1] == 0])
+	u2	int8
+]
+
+conditional_union_parent {
+	f1	int8:1
+	f2	conditional_union
+}
+
+test$conditional_union(a ptr[in, conditional_union_parent])
+
+resource cond_res[int32]
+
+test$create_cond_resource() cond_res
+
+conditional_resouce_struct {
+	f0	int8
+	f1	cond_res	(if[value[f0] == 1])
+}
+
+test$use_cond_resource(a ptr[in, conditional_resouce_struct])

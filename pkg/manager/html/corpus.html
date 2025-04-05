@@ -1,0 +1,23 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>Corpus{{if $.Call}} for {{$.Call}}{{end}}:</caption>
+	<tr>
+		<th>Coverage</th>
+		<th>Program</th>
+	</tr>
+	{{range $inp := $.Inputs}}
+	<tr>
+		<td>
+			<a href='/cover?input={{$inp.Sig}}'>{{$inp.Cover}}</a>
+			{{if $.RawCover}}
+				/ <a href="/debuginput?sig={{$inp.Sig}}">[raw]</a>
+			{{end}}
+		</td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
+	</tr>
+	{{end}}
+</table>

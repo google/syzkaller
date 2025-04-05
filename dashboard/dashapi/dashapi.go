@@ -11,46 +11,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
 )
 
 type Dashboard struct {
-	Client string
-	Addr   string
-	Key    string
-	ctor   RequestCtor
-	doer   RequestDoer
-	logger RequestLogger
-	// Yes, we have the ability to set custom constructor, doer and logger, but
-	// there are also cases when we just want to mock the whole request processing.
-	// Implementing that on top of http.Request/http.Response would complicate the
-	// code too much.
-	mocker       RequestMocker
+	Client       string
+	Addr         string
+	Key          string
+	ctor         RequestCtor
+	doer         RequestDoer
+	logger       RequestLogger
 	errorHandler func(error)
 }
 
-func New(client, addr, key string) (*Dashboard, error) {
-	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
-}
+type DashboardOpts any
+type UserAgent string
 
-func NewMock(mocker RequestMocker) *Dashboard {
-	return &Dashboard{
-		mocker: mocker,
+func New(client, addr, key string, opts ...DashboardOpts) (*Dashboard, error) {
+	ctor := http.NewRequest
+	for _, o := range opts {
+		switch opt := o.(type) {
+		case UserAgent:
+			ctor = func(method, url string, body io.Reader) (*http.Request, error) {
+				req, err := http.NewRequest(method, url, body)
+				if err != nil {
+					return nil, err
+				}
+				req.Header.Add("User-Agent", string(opt))
+				return req, nil
+			}
+		}
 	}
+	return NewCustom(client, addr, key, ctor, http.DefaultClient.Do, nil, nil)
 }
 
 type (
 	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
 	RequestDoer   func(req *http.Request) (*http.Response, error)
 	RequestLogger func(msg string, args ...interface{})
-	RequestMocker func(method string, req, resp interface{}) error
 )
 
 // key == "" indicates that the ambient GCE service account authority
@@ -171,17 +175,23 @@ type ManagerJobs struct {
 	BisectFix   bool
 }
 
+func (m ManagerJobs) Any() bool {
+	return m.TestPatches || m.BisectCause || m.BisectFix
+}
+
 type JobPollResp struct {
-	ID                string
-	Type              JobType
-	Manager           string
-	KernelRepo        string
-	KernelBranch      string
-	MergeBaseRepo     string
-	MergeBaseBranch   string
+	ID         string
+	Type       JobType
+	Manager    string
+	KernelRepo string
+	// KernelBranch is used for patch testing and serves as the current HEAD
+	// for bisections.
+	KernelBranch    string
+	MergeBaseRepo   string
+	MergeBaseBranch string
+	// Bisection starts from KernelCommit.
 	KernelCommit      string
 	KernelCommitTitle string
-	KernelCommitDate  time.Time
 	KernelConfig      []byte
 	SyzkallerCommit   string
 	Patch             []byte
@@ -323,9 +333,11 @@ type Crash struct {
 	Assets      []NewAsset
 	GuiltyFiles []string
 	// The following is optional and is filled only after repro.
-	ReproOpts []byte
-	ReproSyz  []byte
-	ReproC    []byte
+	ReproOpts     []byte
+	ReproSyz      []byte
+	ReproC        []byte
+	ReproLog      []byte
+	OriginalTitle string // Title before we began bug reproduction.
 }
 
 type ReportCrashResp struct {
@@ -345,6 +357,7 @@ type CrashID struct {
 	Corrupted    bool
 	Suppressed   bool
 	MayBeMissing bool
+	ReproLog     []byte
 }
 
 type NeedReproResp struct {
@@ -361,6 +374,31 @@ func (dash *Dashboard) NeedRepro(crash *CrashID) (bool, error) {
 // ReportFailedRepro notifies dashboard about a failed repro attempt for the crash.
 func (dash *Dashboard) ReportFailedRepro(crash *CrashID) error {
 	return dash.Query("report_failed_repro", crash, nil)
+}
+
+type LogToReproReq struct {
+	BuildID string
+}
+
+type LogToReproType string
+
+const (
+	ManualLog     LogToReproType = "manual"
+	RetryReproLog LogToReproType = "retry"
+)
+
+type LogToReproResp struct {
+	Title    string
+	CrashLog []byte
+	Type     LogToReproType
+}
+
+// LogToRepro are crash logs for older bugs that need to be reproduced on the
+// querying instance.
+func (dash *Dashboard) LogToRepro(req *LogToReproReq) (*LogToReproResp, error) {
+	resp := new(LogToReproResp)
+	err := dash.Query("log_to_repro", req, resp)
+	return resp, err
 }
 
 type LogEntry struct {
@@ -421,9 +459,11 @@ type BugReport struct {
 	ReproCLink        string
 	ReproSyz          []byte
 	ReproSyzLink      string
+	ReproIsRevoked    bool
 	ReproOpts         []byte
 	MachineInfo       []byte
 	MachineInfoLink   string
+	Manager           string
 	CrashID           int64 // returned back in BugUpdate
 	CrashTime         time.Time
 	NumCrashes        int64
@@ -456,6 +496,8 @@ type Asset struct {
 	Title       string
 	DownloadURL string
 	Type        AssetType
+	FsckLogURL  string
+	FsIsClean   bool
 }
 
 type AssetType string
@@ -478,6 +520,9 @@ type BisectResult struct {
 	CrashLogLink    string
 	CrashReportLink string
 	Fix             bool
+	CrossTree       bool
+	// In case a missing backport was backported.
+	Backported *Commit
 }
 
 type BugListReport struct {
@@ -496,6 +541,7 @@ type BugListReport struct {
 
 type BugListReportStats struct {
 	Reported int
+	LowPrio  int
 	Fixed    int
 }
 
@@ -631,6 +677,7 @@ type DiscussionMessage struct {
 	ID       string
 	External bool // true if the message is not from the bot itself
 	Time     time.Time
+	Email    string // not saved to the DB
 }
 
 type SaveDiscussionReq struct {
@@ -640,6 +687,23 @@ type SaveDiscussionReq struct {
 
 func (dash *Dashboard) SaveDiscussion(req *SaveDiscussionReq) error {
 	return dash.Query("save_discussion", req, nil)
+}
+
+func (dash *Dashboard) CreateUploadURL() (string, error) {
+	uploadURL := new(string)
+	if err := dash.Query("create_upload_url", nil, uploadURL); err != nil {
+		return "", fmt.Errorf("create_upload_url: %w", err)
+	}
+	return *uploadURL, nil
+}
+
+// SaveCoverage returns amount of records created in db.
+func (dash *Dashboard) SaveCoverage(gcpURL string) (int, error) {
+	rowsWritten := new(int)
+	if err := dash.Query("save_coverage", gcpURL, rowsWritten); err != nil {
+		return 0, fmt.Errorf("save_coverage: %w", err)
+	}
+	return *rowsWritten, nil
 }
 
 type TestPatchRequest struct {
@@ -720,6 +784,10 @@ type ManagerStatsReq struct {
 	Crashes           uint64
 	SuppressedCrashes uint64
 	Execs             uint64
+
+	// Non-zero only when set.
+	TriagedCoverage uint64
+	TriagedPCs      uint64
 }
 
 func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
@@ -734,6 +802,8 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 type NewAsset struct {
 	DownloadURL string
 	Type        AssetType
+	FsckLog     []byte
+	FsIsClean   bool
 }
 
 type AddBuildAssetsReq struct {
@@ -781,11 +851,12 @@ type LoadFullBugReq struct {
 }
 
 type FullBugInfo struct {
-	SimilarBugs []*SimilarBugInfo
-	BisectCause *BugReport
-	BisectFix   *BugReport
-	Crashes     []*BugReport
-	TreeJobs    []*JobInfo
+	SimilarBugs  []*SimilarBugInfo
+	BisectCause  *BugReport
+	BisectFix    *BugReport
+	Crashes      []*BugReport
+	TreeJobs     []*JobInfo
+	FixCandidate *BugReport
 }
 
 type SimilarBugInfo struct {
@@ -866,6 +937,7 @@ const (
 )
 
 type JobInfo struct {
+	JobKey           string
 	Type             JobType
 	Flags            JobDoneFlags
 	Created          time.Time
@@ -877,9 +949,12 @@ type JobInfo struct {
 	Manager          string
 	BugTitle         string
 	BugID            string
+	KernelRepo       string
+	KernelBranch     string
 	KernelAlias      string
 	KernelCommit     string
 	KernelCommitLink string
+	KernelLink       string
 	PatchLink        string
 	Attempts         int
 	Started          time.Time
@@ -895,6 +970,7 @@ type JobInfo struct {
 	Commit           *Commit   // for conclusive bisection
 	Commits          []*Commit // for inconclusive bisection
 	Reported         bool
+	InvalidatedBy    string
 	TreeOrigin       bool
 	OnMergeBase      bool
 }
@@ -902,9 +978,6 @@ type JobInfo struct {
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
-	}
-	if dash.mocker != nil {
-		return dash.mocker(method, req, reply)
 	}
 	err := dash.queryImpl(method, req, reply)
 	if err != nil {
@@ -933,33 +1006,43 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 		}
 		reflect.ValueOf(reply).Elem().Set(reflect.New(typ.Elem()).Elem())
 	}
-	values := make(url.Values)
-	values.Add("client", dash.Client)
-	values.Add("key", dash.Key)
-	values.Add("method", method)
+	body := &bytes.Buffer{}
+	mWriter := multipart.NewWriter(body)
+	err := mWriter.WriteField("client", dash.Client)
+	if err != nil {
+		return err
+	}
+	err = mWriter.WriteField("key", dash.Key)
+	if err != nil {
+		return err
+	}
+	err = mWriter.WriteField("method", method)
+	if err != nil {
+		return err
+	}
 	if req != nil {
-		data, err := json.Marshal(req)
+		w, err := mWriter.CreateFormField("payload")
 		if err != nil {
-			return fmt.Errorf("failed to marshal request: %v", err)
-		}
-		buf := new(bytes.Buffer)
-		gz := gzip.NewWriter(buf)
-		if _, err := gz.Write(data); err != nil {
 			return err
+		}
+		gz := gzip.NewWriter(w)
+		encoder := json.NewEncoder(gz)
+		if err := encoder.Encode(req); err != nil {
+			return fmt.Errorf("failed to marshal request: %w", err)
 		}
 		if err := gz.Close(); err != nil {
 			return err
 		}
-		values.Add("payload", buf.String())
 	}
-	r, err := dash.ctor("POST", fmt.Sprintf("%v/api", dash.Addr), strings.NewReader(values.Encode()))
+	mWriter.Close()
+	r, err := dash.ctor("POST", fmt.Sprintf("%v/api", dash.Addr), body)
 	if err != nil {
 		return err
 	}
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("Content-Type", mWriter.FormDataContentType())
 	resp, err := dash.doer(r)
 	if err != nil {
-		return fmt.Errorf("http request failed: %v", err)
+		return fmt.Errorf("http request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -968,7 +1051,7 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	}
 	if reply != nil {
 		if err := json.NewDecoder(resp.Body).Decode(reply); err != nil {
-			return fmt.Errorf("failed to unmarshal response: %v", err)
+			return fmt.Errorf("failed to unmarshal response: %w", err)
 		}
 	}
 	return nil

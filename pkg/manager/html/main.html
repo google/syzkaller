@@ -1,0 +1,114 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	{{range $s := $.Stats}}
+	<tr>
+		<td class="stat_name" title="{{$s.Hint}}">{{$s.Name}}</td>
+		<td class="stat_value">
+			{{if $s.Link}}
+				<a href="{{$s.Link}}">{{$s.Value}}</a>
+			{{else}}
+				{{$s.Value}}
+			{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
+
+{{if .Crashes}}
+<table class="list_table">
+	<caption>Crashes:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
+		<th><a onclick="return sortTable(this, 'First Time', textSort, true)" href="#">First Time</a></th>
+		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
+		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
+	</tr>
+	{{range $c := $.Crashes}}
+	<tr>
+		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
+		<td class="stat {{if not $c.Active}}inactive{{end}}">{{$c.Count}}</td>
+		<td class="time {{if not $c.New}}inactive{{end}}">{{formatTime $c.FirstTime}}</td>
+		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
+		<td>
+			{{if $c.Triaged}}
+				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
+			{{end}}
+			{{if $c.Strace}}
+				<a href="/file?name={{$c.Strace}}">Strace</a>
+			{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
+{{end}}
+
+{{define "diff_crashes"}}
+<table class="list_table">
+	<caption>{{.Title}}:</caption>
+	<tr>
+		<th>Description</th>
+		<th>Base</th>
+		<th>Patched</th>
+	</tr>
+	{{range $bug := .List}}
+	<tr>
+		<td class="title">{{$bug.Title}}</td>
+		<td class="title">
+		{{if gt $bug.Base.Crashes 0}}
+			{{$bug.Base.Crashes}} crashes
+		{{else if $bug.Base.NotCrashed}}
+			Not affected
+		{{else}} ? {{end}}
+		{{if $bug.Base.Report}}
+			<a href="/file?name={{$bug.Base.Report}}">[report]</a>
+		{{end}}
+		</td>
+		<td class="title">
+		{{if gt $bug.Patched.Crashes 0}}
+			{{$bug.Patched.Crashes}} crashes
+		{{else}} ? {{end}}
+		{{if $bug.Patched.Report}}
+			<a href="/file?name={{$bug.Patched.Report}}">[report]</a>
+		{{end}}
+		{{if $bug.Patched.CrashLog}}
+			<a href="/file?name={{$bug.Patched.CrashLog}}">[crash log]</a>
+		{{end}}
+		{{if $bug.Patched.Repro}}
+			<a href="/file?name={{$bug.Patched.Repro}}">[syz repro]</a>
+		{{end}}
+		{{if $bug.Patched.ReproLog}}
+			<a href="/file?name={{$bug.Patched.ReproLog}}">[repro log]</a>
+		{{end}}
+		{{if $bug.Reproducing}}[reproducing]{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
+{{end}}
+
+{{if .PatchedOnly}}
+{{template "diff_crashes" .PatchedOnly}}
+{{end}}
+
+{{if .AffectsBoth}}
+{{template "diff_crashes" .AffectsBoth}}
+{{end}}
+
+{{if .InProgress}}
+{{template "diff_crashes" .InProgress}}
+{{end}}
+
+<b>Log:</b>
+<br>
+<textarea id="log_textarea" readonly rows="20" wrap=off>
+{{.Log}}
+</textarea>
+<script>
+	var textarea = document.getElementById("log_textarea");
+	textarea.scrollTop = textarea.scrollHeight;
+</script>

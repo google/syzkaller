@@ -1,0 +1,99 @@
+{
+	"functions": [
+		{
+			"name": "__do_sys_chmod",
+			"file": "syscall.c",
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		},
+		{
+			"name": "__do_sys_open",
+			"file": "syscall.c",
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		}
+	],
+	"syscalls": [
+		{
+			"func": "__do_sys_chmod",
+			"args": [
+				{
+					"name": "filename",
+					"counted_by": -1,
+					"type": {
+						"ptr": {
+							"elem": {
+								"buffer": {
+									"is_string": true
+								}
+							},
+							"is_const": true
+						}
+					}
+				},
+				{
+					"name": "mode",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			],
+			"source_file": "syscall.c"
+		},
+		{
+			"func": "__do_sys_open",
+			"args": [
+				{
+					"name": "filename",
+					"counted_by": -1,
+					"type": {
+						"ptr": {
+							"elem": {
+								"buffer": {
+									"is_string": true
+								}
+							},
+							"is_const": true
+						}
+					}
+				},
+				{
+					"name": "flags",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "mode",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			],
+			"source_file": "syscall.c"
+		}
+	]
+}

@@ -9,10 +9,15 @@ syz_compare(want ptr[in, string], want_len bytesize[want], got ptr[in, compare_d
 syz_compare_int$2(n const[2], v0 intptr, v1 intptr)
 syz_compare_int$3(n const[3], v0 intptr, v1 intptr, v2 intptr)
 syz_compare_int$4(n const[4], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
-syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, compressed_image], zsize bytesize[zdata]) (no_generate, no_minimize)
+syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, compressed_image], zsize bytesize[zdata]) (timeout[4000], no_generate, no_minimize)
+
+# Copies the data into KCOV buffer verbatim.
+syz_inject_cover(ptr ptr[in, array[int8]], size bytesize[ptr])
+syz_inject_remote_cover(ptr ptr[in, array[int8]], size bytesize[ptr]) (prog_timeout[1000], remote_cover)
 
 compare_data [
 	align0		align0
+	align3		align3
 	bf0		syz_bf_struct0
 	bf1		syz_bf_struct1
 	bf2		syz_bf_struct2
@@ -51,6 +56,9 @@ compare_data [
 	overlay0	overlay0
 	overlay1	overlay1
 	overlay2	overlay2
+	conditional	conditional_struct
+	conditional2	condition_and_align
+	conditional3	condition_parent_align
 ] [varlen]
 
 flags_with_one_value = 0
@@ -93,6 +101,22 @@ align0 {
 	f2	int8
 	f3	int16
 	f4	int64
+}
+
+align1 {
+	f0	align2
+}
+
+align2 {
+	f0	ptr[in, align1, opt]
+}
+
+align3 {
+	f0	align2
+	f1	int8
+	f2	align1
+	f3	int8
+	f4	array[align1, 2]
 }
 
 syz_bf_struct4 {

@@ -1,4 +1,5 @@
 TITLE: WARNING: suspicious RCU usage in corrupted
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [  184.760966] =============================

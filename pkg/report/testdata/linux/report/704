@@ -1,0 +1,226 @@
+TITLE: KASAN: slab-use-after-free Read in btrfs_evict_inode
+ALT: bad-access in btrfs_evict_inode
+TYPE: KASAN
+FRAME: btrfs_evict_inode
+
+[  649.625993][ T6659] ==================================================================
+[  649.634110][ T6659] BUG: KASAN: slab-use-after-free in xas_start+0x1ef/0x7b0
+[  649.641348][ T6659] Read of size 8 at addr ffff888077ec2bf8 by task syz-executor.0/6659
+[  649.649516][ T6659] 
+[  649.651852][ T6659] CPU: 0 PID: 6659 Comm: syz-executor.0 Not tainted 6.4.0-syzkaller-11311-g24be4d0b46bb #0
+[  649.661843][ T6659] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/27/2023
+[  649.671910][ T6659] Call Trace:
+[  649.675200][ T6659]  <TASK>
+[  649.678139][ T6659]  dump_stack_lvl+0x1e7/0x2d0
+[  649.682842][ T6659]  ? irq_work_queue+0xca/0x150
+[  649.687661][ T6659]  ? nf_tcp_handle_invalid+0x650/0x650
+[  649.693143][ T6659]  ? panic+0x770/0x770
+[  649.697232][ T6659]  ? _printk+0xd5/0x120
+[  649.701406][ T6659]  print_report+0x163/0x540
+[  649.705965][ T6659]  ? __virt_addr_valid+0x22f/0x2e0
+[  649.711136][ T6659]  ? __phys_addr+0xba/0x170
+[  649.715664][ T6659]  ? xas_start+0x1ef/0x7b0
+[  649.720107][ T6659]  kasan_report+0x175/0x1b0
+[  649.724628][ T6659]  ? xas_start+0x1ef/0x7b0
+[  649.729084][ T6659]  xas_start+0x1ef/0x7b0
+[  649.733353][ T6659]  xas_find+0x177/0xaa0
+[  649.737620][ T6659]  find_lock_entries+0x265/0x10f0
+[  649.742661][ T6659]  ? lru_cache_disable+0x30/0x30
+[  649.747625][ T6659]  ? find_get_entries+0x9d0/0x9d0
+[  649.752679][ T6659]  truncate_inode_pages_range+0x202/0x11b0
+[  649.758516][ T6659]  ? stack_trace_snprint+0xd1/0xf0
+[  649.763652][ T6659]  ? mapping_evict_folio+0x5d0/0x5d0
+[  649.768980][ T6659]  ? _raw_spin_unlock_irq+0x23/0x50
+[  649.774203][ T6659]  ? lockdep_hardirqs_on+0x98/0x140
+[  649.779426][ T6659]  btrfs_evict_inode+0x208/0x1000
+[  649.784592][ T6659]  ? _raw_spin_unlock+0x28/0x40
+[  649.789467][ T6659]  ? btrfs_set_inode_full_sync+0xd0/0xd0
+[  649.795133][ T6659]  ? sb_clear_inode_writeback+0x370/0x370
+[  649.800882][ T6659]  ? bit_waitqueue+0x30/0x30
+[  649.805499][ T6659]  ? do_raw_spin_unlock+0x13b/0x8b0
+[  649.810723][ T6659]  ? btrfs_set_inode_full_sync+0xd0/0xd0
+[  649.816378][ T6659]  evict+0x2a4/0x620
+[  649.820290][ T6659]  evict_inodes+0x5f8/0x690
+[  649.824896][ T6659]  ? btrfs_wait_for_commit+0x306/0x370
+[  649.830409][ T6659]  ? clear_inode+0x150/0x150
+[  649.835026][ T6659]  generic_shutdown_super+0x98/0x340
+[  649.840336][ T6659]  kill_anon_super+0x3b/0x60
+[  649.844948][ T6659]  btrfs_kill_super+0x41/0x50
+[  649.849739][ T6659]  deactivate_locked_super+0xa4/0x110
+[  649.855137][ T6659]  cleanup_mnt+0x426/0x4c0
+[  649.859579][ T6659]  ? _raw_spin_unlock_irq+0x23/0x50
+[  649.864820][ T6659]  task_work_run+0x24a/0x300
+[  649.869436][ T6659]  ? task_work_cancel+0x2b0/0x2b0
+[  649.874490][ T6659]  ? exit_to_user_mode_loop+0x39/0x100
+[  649.879972][ T6659]  exit_to_user_mode_loop+0xd9/0x100
+[  649.885448][ T6659]  exit_to_user_mode_prepare+0xb1/0x140
+[  649.891016][ T6659]  syscall_exit_to_user_mode+0x64/0x280
+[  649.896671][ T6659]  do_syscall_64+0x4d/0xc0
+[  649.901109][ T6659]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  649.907019][ T6659] RIP: 0033:0x7f5d2bc8d7f7
+[  649.911452][ T6659] Code: ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  649.931166][ T6659] RSP: 002b:00007fff8a845338 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+[  649.939601][ T6659] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007f5d2bc8d7f7
+[  649.947595][ T6659] RDX: 00007fff8a84540b RSI: 000000000000000a RDI: 00007fff8a845400
+[  649.955677][ T6659] RBP: 00007fff8a845400 R08: 00000000ffffffff R09: 00007fff8a8451d0
+[  649.963667][ T6659] R10: 00005555568e0893 R11: 0000000000000246 R12: 00007f5d2bcd643b
+[  649.971660][ T6659] R13: 00007fff8a8464c0 R14: 00005555568e0810 R15: 00007fff8a846500
+[  649.979660][ T6659]  </TASK>
+[  649.982692][ T6659] 
+[  649.985025][ T6659] Allocated by task 14764:
+[  649.989443][ T6659]  kasan_set_track+0x4f/0x70
+[  649.994043][ T6659]  __kasan_slab_alloc+0x66/0x70
+[  649.998912][ T6659]  slab_post_alloc_hook+0x68/0x3a0
+[  650.004041][ T6659]  kmem_cache_alloc_lru+0x122/0x300
+[  650.009265][ T6659]  btrfs_alloc_inode+0x58/0x3c0
+[  650.014149][ T6659]  new_inode_pseudo+0x65/0x1d0
+[  650.018934][ T6659]  new_inode+0x29/0x1d0
+[  650.023112][ T6659]  btrfs_create+0x4b/0x140
+[  650.027545][ T6659]  path_openat+0x13e7/0x3180
+[  650.032153][ T6659]  do_filp_open+0x234/0x490
+[  650.036673][ T6659]  do_sys_openat2+0x13e/0x1d0
+[  650.041360][ T6659]  __x64_sys_open+0x225/0x270
+[  650.046047][ T6659]  do_syscall_64+0x41/0xc0
+[  650.050494][ T6659]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  650.056420][ T6659] 
+[  650.058756][ T6659] Freed by task 14828:
+[  650.063620][ T6659]  kasan_set_track+0x4f/0x70
+[  650.068237][ T6659]  kasan_save_free_info+0x28/0x40
+[  650.073303][ T6659]  ____kasan_slab_free+0xd6/0x120
+[  650.078359][ T6659]  kmem_cache_free+0x292/0x500
+[  650.083250][ T6659]  rcu_core+0xaaa/0x1740
+[  650.087518][ T6659]  __do_softirq+0x2ab/0x908
+[  650.093022][ T6659] 
+[  650.095358][ T6659] Last potentially related work creation:
+[  650.101098][ T6659]  kasan_save_stack+0x3f/0x60
+[  650.105894][ T6659]  __kasan_record_aux_stack+0xad/0xc0
+[  650.111381][ T6659]  call_rcu+0x167/0xa70
+[  650.115567][ T6659]  btrfs_run_defrag_inodes+0xa90/0xe20
+[  650.116401][   T27] audit: type=1800 audit(1688479144.532:793): pid=14777 uid=0 auid=4294967295 ses=4294967295 subj=_ op=collect_data cause=failed(directio) comm="syz-executor.1" name="file1" dev="sda1" ino=1953 res=0 errno=0
+[  650.121036][ T6659]  cleaner_kthread+0x287/0x3c0
+[  650.121062][ T6659]  kthread+0x2b8/0x350
+[  650.121078][ T6659]  ret_from_fork+0x1f/0x30
+[  650.154543][ T6659] 
+[  650.156976][ T6659] The buggy address belongs to the object at ffff888077ec2540
+[  650.156976][ T6659]  which belongs to the cache btrfs_inode of size 2256
+[  650.171313][ T6659] The buggy address is located 1720 bytes inside of
+[  650.171313][ T6659]  freed 2256-byte region [ffff888077ec2540, ffff888077ec2e10)
+[  650.185480][ T6659] 
+[  650.187822][ T6659] The buggy address belongs to the physical page:
+[  650.194351][ T6659] page:ffffea0001dfb000 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x77ec0
+[  650.204572][ T6659] head:ffffea0001dfb000 order:3 entire_mapcount:0 nr_pages_mapped:0 pincount:0
+[  650.213543][ T6659] memcg:ffff8880517d3a01
+[  650.217887][ T6659] flags: 0xfff00000010200(slab|head|node=0|zone=1|lastcpupid=0x7ff)
+[  650.225973][ T6659] page_type: 0xffffffff()
+[  650.230323][ T6659] raw: 00fff00000010200 ffff88814c12b780 dead000000000122 0000000000000000
+[  650.239013][ T6659] raw: 0000000000000000 00000000000d000d 00000001ffffffff ffff8880517d3a01
+[  650.247605][ T6659] page dumped because: kasan: bad access detected
+[  650.254130][ T6659] page_owner tracks the page as allocated
+[  650.259851][ T6659] page last allocated via order 3, migratetype Reclaimable, gfp_mask 0x1d20d0(__GFP_IO|__GFP_FS|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP|__GFP_NOMEMALLOC|__GFP_HARDWALL|__GFP_RECLAIMABLE), pid 14755, tgid 14755 (btrfs-cleaner), ts 647294567602, free_ts 618754245154
+[  650.284790][ T6659]  post_alloc_hook+0x1e6/0x210
+[  650.289581][ T6659]  get_page_from_freelist+0x31e8/0x3370
+[  650.295149][ T6659]  __alloc_pages+0x255/0x670
+[  650.299768][ T6659]  alloc_slab_page+0x6a/0x160
+[  650.304450][ T6659]  new_slab+0x84/0x2f0
+[  650.308535][ T6659]  ___slab_alloc+0xade/0x1100
+[  650.313231][ T6659]  kmem_cache_alloc_lru+0x1bf/0x300
+[  650.318448][ T6659]  btrfs_alloc_inode+0x58/0x3c0
+[  650.323313][ T6659]  iget5_locked+0xa0/0x270
+[  650.327746][ T6659]  btrfs_iget_path+0x149/0x1520
+[  650.332626][ T6659]  btrfs_run_defrag_inodes+0x6bd/0xe20
+[  650.338122][ T6659]  cleaner_kthread+0x287/0x3c0
+[  650.342909][ T6659]  kthread+0x2b8/0x350
+[  650.347000][ T6659]  ret_from_fork+0x1f/0x30
+[  650.351434][ T6659] page last free stack trace:
+[  650.356115][ T6659]  free_unref_page_prepare+0x903/0xa30
+[  650.361594][ T6659]  free_unref_page+0x37/0x3f0
+[  650.366289][ T6659]  __slab_free+0x2f6/0x390
+[  650.370726][ T6659]  qlist_free_all+0x22/0x60
+[  650.375249][ T6659]  kasan_quarantine_reduce+0x14b/0x160
+[  650.380733][ T6659]  __kasan_slab_alloc+0x23/0x70
+[  650.385612][ T6659]  slab_post_alloc_hook+0x68/0x3a0
+[  650.390747][ T6659]  kmem_cache_alloc+0x123/0x300
+[  650.395618][ T6659]  add_free_nid+0xdc/0x700
+[  650.400138][ T6659]  f2fs_build_free_nids+0x514/0x11a0
+[  650.405432][ T6659]  f2fs_balance_fs_bg+0x167/0x990
+[  650.410470][ T6659]  f2fs_write_node_pages+0x146/0x6a0
+[  650.415768][ T6659]  do_writepages+0x3a6/0x670
+[  650.420376][ T6659]  __writeback_single_inode+0x155/0xfa0
+[  650.425946][ T6659]  writeback_sb_inodes+0x8e3/0x11d0
+[  650.431171][ T6659]  wb_writeback+0x44d/0xc60
+[  650.435698][ T6659] 
+[  650.438030][ T6659] Memory state around the buggy address:
+[  650.443667][ T6659]  ffff888077ec2a80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  650.451746][ T6659]  ffff888077ec2b00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  650.459822][ T6659] >ffff888077ec2b80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  650.467896][ T6659]                                                                 ^
+[  650.475885][ T6659]  ffff888077ec2c00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  650.484049][ T6659]  ffff888077ec2c80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  650.492129][ T6659] ==================================================================
+[  650.524931][ T6659] Kernel panic - not syncing: KASAN: panic_on_warn set ...
+[  650.532177][ T6659] CPU: 1 PID: 6659 Comm: syz-executor.0 Not tainted 6.4.0-syzkaller-11311-g24be4d0b46bb #0
+[  650.542171][ T6659] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/27/2023
+[  650.552241][ T6659] Call Trace:
+[  650.555533][ T6659]  <TASK>
+[  650.558472][ T6659]  dump_stack_lvl+0x1e7/0x2d0
+[  650.563167][ T6659]  ? nf_tcp_handle_invalid+0x650/0x650
+[  650.568638][ T6659]  ? panic+0x770/0x770
+[  650.572719][ T6659]  ? preempt_schedule_common+0x83/0xc0
+[  650.578267][ T6659]  ? vscnprintf+0x5d/0x80
+[  650.582610][ T6659]  panic+0x30f/0x770
+[  650.586519][ T6659]  ? check_panic_on_warn+0x21/0xa0
+[  650.591643][ T6659]  ? __memcpy_flushcache+0x2b0/0x2b0
+[  650.596940][ T6659]  ? _raw_spin_unlock_irqrestore+0x12c/0x140
+[  650.602934][ T6659]  ? _raw_spin_unlock+0x40/0x40
+[  650.607797][ T6659]  ? print_report+0x4fb/0x540
+[  650.612494][ T6659]  check_panic_on_warn+0x82/0xa0
+[  650.617451][ T6659]  ? xas_start+0x1ef/0x7b0
+[  650.621880][ T6659]  end_report+0x6e/0x130
+[  650.626132][ T6659]  kasan_report+0x186/0x1b0
+[  650.630652][ T6659]  ? xas_start+0x1ef/0x7b0
+[  650.635084][ T6659]  xas_start+0x1ef/0x7b0
+[  650.639354][ T6659]  xas_find+0x177/0xaa0
+[  650.643533][ T6659]  find_lock_entries+0x265/0x10f0
+[  650.648580][ T6659]  ? lru_cache_disable+0x30/0x30
+[  650.653536][ T6659]  ? find_get_entries+0x9d0/0x9d0
+[  650.658594][ T6659]  truncate_inode_pages_range+0x202/0x11b0
+[  650.664434][ T6659]  ? stack_trace_snprint+0xd1/0xf0
+[  650.669569][ T6659]  ? mapping_evict_folio+0x5d0/0x5d0
+[  650.674886][ T6659]  ? _raw_spin_unlock_irq+0x23/0x50
+[  650.680096][ T6659]  ? lockdep_hardirqs_on+0x98/0x140
+[  650.685311][ T6659]  btrfs_evict_inode+0x208/0x1000
+[  650.690359][ T6659]  ? _raw_spin_unlock+0x28/0x40
+[  650.695222][ T6659]  ? btrfs_set_inode_full_sync+0xd0/0xd0
+[  650.700875][ T6659]  ? sb_clear_inode_writeback+0x370/0x370
+[  650.706615][ T6659]  ? bit_waitqueue+0x30/0x30
+[  650.711309][ T6659]  ? do_raw_spin_unlock+0x13b/0x8b0
+[  650.716612][ T6659]  ? btrfs_set_inode_full_sync+0xd0/0xd0
+[  650.722284][ T6659]  evict+0x2a4/0x620
+[  650.726203][ T6659]  evict_inodes+0x5f8/0x690
+[  650.730727][ T6659]  ? btrfs_wait_for_commit+0x306/0x370
+[  650.736207][ T6659]  ? clear_inode+0x150/0x150
+[  650.740812][ T6659]  generic_shutdown_super+0x98/0x340
+[  650.746110][ T6659]  kill_anon_super+0x3b/0x60
+[  650.747654][T14833] loop3: detected capacity change from 0 to 32768
+[  650.754171][T14833] BTRFS: device fsid e417788f-7a09-42b2-9266-8ddc5d5d35d2 devid 1 transid 8 /dev/loop3 scanned by syz-executor.3 (14833)
+[  650.769698][ T6659]  btrfs_kill_super+0x41/0x50
+[  650.774392][ T6659]  deactivate_locked_super+0xa4/0x110
+[  650.779766][ T6659]  cleanup_mnt+0x426/0x4c0
+[  650.784172][ T6659]  ? _raw_spin_unlock_irq+0x23/0x50
+[  650.789364][ T6659]  task_work_run+0x24a/0x300
+[  650.793949][ T6659]  ? task_work_cancel+0x2b0/0x2b0
+[  650.798969][ T6659]  ? exit_to_user_mode_loop+0x39/0x100
+[  650.804424][ T6659]  exit_to_user_mode_loop+0xd9/0x100
+[  650.809696][ T6659]  exit_to_user_mode_prepare+0xb1/0x140
+[  650.815231][ T6659]  syscall_exit_to_user_mode+0x64/0x280
+[  650.820771][ T6659]  do_syscall_64+0x4d/0xc0
+[  650.825187][ T6659]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  650.831073][ T6659] RIP: 0033:0x7f5d2bc8d7f7
+[  650.835480][ T6659] Code: ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  650.855092][ T6659] RSP: 002b:00007fff8a845338 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+[  650.863514][ T6659] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007f5d2bc8d7f7
+[  650.871484][ T6659] RDX: 00007fff8a84540b RSI: 000000000000000a RDI: 00007fff8a845400
+[  650.879453][ T6659] RBP: 00007fff8a845400 R08: 00000000ffffffff R09: 00007fff8a8451d0
+[  650.887418][ T6659] R10: 00005555568e0893 R11: 0000000000000246 R12: 00007f5d2bcd643b
+[  650.895379][ T6659] R13: 00007fff8a8464c0 R14: 00005555568e0810 R15: 00007fff8a846500
+[  650.903354][ T6659]  </TASK>

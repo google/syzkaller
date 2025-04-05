@@ -1,0 +1,60 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.PageTitle}}</title>
+	{{HEAD}}
+</head>
+<body>
+	<header id="topbar">
+		<table class="position_table">
+			<tr>
+				<td>
+					<h1><a href="/">syzkaller</a></h1>
+				</td>
+				<td>
+					<form action="/action" method="post">
+						<input type="hidden" name="url" value="{{.CurrentURL}}" />
+						<button type="submit" name="toggle" value="expert" class="action_button{{if .ExpertMode}}_selected{{end}}" title="Toggle expert mode">
+							🧠
+						</button>
+						<button type="submit" name="toggle" value="pause" class="action_button{{if .Paused}}_selected{{end}}" title="Pause/unpause fuzzing">
+							{{if .Paused}}▶️{{else}}⏸️{{end}}
+						</button>
+					</form>
+				</td>
+				<td class="search">
+					<a href="https://github.com/google/syzkaller/blob/master/docs/" target="_blank">docs</a> |
+					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+					<a href="{{.GitRevisionLink}}" target="_blank">source {{.GitRevision}}</a>
+				</td>
+			</tr>
+		</table>
+		<div class="navigation">
+			<div class="navigation_tab{{if eq .URLPath "/stats"}}_selected{{end}}">
+				<a href='/stats'>📈 stats</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/cover"}}_selected{{end}}">
+				<a href='/cover'>📃 coverage</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/syscalls"}}_selected{{end}}">
+				<a href='/syscalls'>🤖 syscalls</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/corpus"}}_selected{{end}}">
+				<a href='/corpus'>🛒 corpus</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/vms"}}_selected{{end}}">
+				<a href='/vms'>💻 VMs</a>
+			</div>
+			<div class="navigation_tab{{if eq .URLPath "/config"}}_selected{{end}}">
+				<a href='/config'>🔧 config</a>
+			</div>
+		</div>
+	</header>
+	<br>
+	%s
+</body></html>

@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
 	"github.com/google/syzkaller/sys/targets"
@@ -29,13 +31,19 @@ type Derived struct {
 	TargetVMArch string
 
 	// Full paths to binaries we are going to use:
-	FuzzerBin   string
 	ExecprogBin string
 	ExecutorBin string
 
 	Syscalls      []int
 	NoMutateCalls map[int]bool // Set of IDs of syscalls which should not be mutated.
 	Timeouts      targets.Timeouts
+
+	// Special debugging/development mode specified by VM type "none".
+	// In this mode syz-manager does not start any VMs, but instead a user is supposed
+	// to start syz-executor process in a VM manually.
+	VMLess bool
+
+	LocalModules []*vminfo.KernelModule
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -86,8 +94,33 @@ func defaultValues() *Config {
 		MaxCrashLogs:   100,
 		Procs:          6,
 		PreserveCorpus: true,
+		RunFsck:        true,
+		Experimental: Experimental{
+			RemoteCover:      true,
+			CoverEdges:       true,
+			DescriptionsMode: manualDescriptions,
+		},
 	}
 }
+
+type DescriptionsMode int
+
+const (
+	invalidDescriptions = iota
+	ManualDescriptions
+	AutoDescriptions
+	AnyDescriptions
+)
+
+const manualDescriptions = "manual"
+
+var (
+	strToDescriptionsMode = map[string]DescriptionsMode{
+		manualDescriptions: ManualDescriptions,
+		"auto":             AutoDescriptions,
+		"any":              AnyDescriptions,
+	}
+)
 
 func loadPartial(cfg *Config) (*Config, error) {
 	var err error
@@ -113,7 +146,6 @@ func Complete(cfg *Config) error {
 		cfg.TargetArch, "target",
 		cfg.Workdir, "workdir",
 		cfg.Syzkaller, "syzkaller",
-		cfg.HTTP, "http",
 		cfg.Type, "type",
 		cfg.SSHUser, "ssh_user",
 	); err != nil {
@@ -123,7 +155,7 @@ func Complete(cfg *Config) error {
 	if cfg.WorkdirTemplate != "" {
 		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
 		if _, err := os.ReadDir(cfg.WorkdirTemplate); err != nil {
-			return fmt.Errorf("failed to read workdir_template: %v", err)
+			return fmt.Errorf("failed to read workdir_template: %w", err)
 		}
 	}
 	if cfg.Image != "" {
@@ -148,6 +180,33 @@ func Complete(cfg *Config) error {
 	}
 	cfg.CompleteKernelDirs()
 
+	if err := cfg.completeServices(); err != nil {
+		return nil
+	}
+
+	if cfg.FuzzingVMs < 0 {
+		return fmt.Errorf("fuzzing_vms cannot be less than 0")
+	}
+
+	var err error
+	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls,
+		strToDescriptionsMode[cfg.Experimental.DescriptionsMode])
+	if err != nil {
+		return err
+	}
+	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
+	if err != nil {
+		return err
+	}
+	if err := cfg.completeFocusAreas(); err != nil {
+		return err
+	}
+	cfg.initTimeouts()
+	cfg.VMLess = cfg.Type == "none"
+	return nil
+}
+
+func (cfg *Config) completeServices() error {
 	if cfg.HubClient != "" {
 		if err := checkNonEmpty(
 			cfg.Name, "name",
@@ -168,40 +227,30 @@ func Complete(cfg *Config) error {
 			return err
 		}
 	}
-	if cfg.FuzzingVMs < 0 {
-		return fmt.Errorf("fuzzing_vms cannot be less than 0")
-	}
-
-	var err error
-	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
-	if err != nil {
-		return err
-	}
-	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
-	if err != nil {
-		return err
-	}
 	if !cfg.AssetStorage.IsEmpty() {
 		if cfg.DashboardClient == "" {
 			return fmt.Errorf("asset storage also requires dashboard client")
 		}
-		err = cfg.AssetStorage.Validate()
-		if err != nil {
+		if err := cfg.AssetStorage.Validate(); err != nil {
 			return err
 		}
 	}
-	cfg.initTimeouts()
 	return nil
 }
 
 func (cfg *Config) initTimeouts() {
 	slowdown := 1
 	switch {
+	case cfg.Type == "qemu" && (runtime.GOARCH == cfg.SysTarget.Arch || runtime.GOARCH == cfg.SysTarget.VMArch):
+		// If TCG is enabled for QEMU, increase the slowdown.
+		if bytes.Contains(cfg.VM, []byte("-accel tcg")) {
+			slowdown = 10
+		}
 	case cfg.Type == "qemu" && runtime.GOARCH != cfg.SysTarget.Arch && runtime.GOARCH != cfg.SysTarget.VMArch:
 		// Assuming qemu emulation.
 		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
 		slowdown = 10
-	case cfg.Type == "gvisor" && cfg.Cover && strings.Contains(cfg.Name, "-race"):
+	case cfg.Type == targets.GVisor && cfg.Cover && strings.Contains(cfg.Name, "-race"):
 		// Go coverage+race has insane slowdown of ~350x. We can't afford such large value,
 		// but a smaller value should be enough to finish at least some syscalls.
 		// Note: the name check is a hack.
@@ -220,6 +269,10 @@ func checkNonEmpty(fields ...string) error {
 	return nil
 }
 
+func (cov *CovFilterCfg) Empty() bool {
+	return len(cov.Functions)+len(cov.Files)+len(cov.RawPCs) == 0
+}
+
 func (cfg *Config) CompleteKernelDirs() {
 	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
 	if cfg.KernelSrc == "" {
@@ -230,6 +283,20 @@ func (cfg *Config) CompleteKernelDirs() {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
 	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
+}
+
+type KernelDirs struct {
+	Src      string
+	Obj      string
+	BuildSrc string
+}
+
+func (cfg *Config) KernelDirs() *KernelDirs {
+	return &KernelDirs{
+		Src:      cfg.KernelSrc,
+		Obj:      cfg.KernelObj,
+		BuildSrc: cfg.KernelBuildSrc,
+	}
 }
 
 func (cfg *Config) checkSSHParams() error {
@@ -253,27 +320,73 @@ func (cfg *Config) completeBinaries() error {
 	targetBin := func(name, arch string) string {
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}
-	cfg.FuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
 	cfg.ExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
 	cfg.ExecutorBin = targetBin("syz-executor", cfg.TargetArch)
-	// If the target already provides an executor binary, we don't need to copy it.
+
+	if cfg.ExecprogBinOnTarget != "" {
+		cfg.SysTarget.ExecprogBin = cfg.ExecprogBinOnTarget
+	}
+	if cfg.ExecutorBinOnTarget != "" {
+		cfg.SysTarget.ExecutorBin = cfg.ExecutorBinOnTarget
+	}
+	if cfg.StraceBinOnTarget && cfg.StraceBin == "" {
+		cfg.StraceBin = "strace"
+	}
+
+	// If the target already provides binaries, we don't need to copy them.
+	if cfg.SysTarget.ExecprogBin != "" {
+		cfg.ExecprogBin = ""
+	}
 	if cfg.SysTarget.ExecutorBin != "" {
 		cfg.ExecutorBin = ""
 	}
-	if !osutil.IsExist(cfg.FuzzerBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.FuzzerBin)
-	}
-	if !osutil.IsExist(cfg.ExecprogBin) {
+	if cfg.ExecprogBin != "" && !osutil.IsExist(cfg.ExecprogBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecprogBin)
 	}
 	if cfg.ExecutorBin != "" && !osutil.IsExist(cfg.ExecutorBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecutorBin)
 	}
-	if cfg.StraceBin != "" {
+	if !cfg.StraceBinOnTarget && cfg.StraceBin != "" {
 		if !osutil.IsExist(cfg.StraceBin) {
 			return fmt.Errorf("bad config param strace_bin: can't find %v", cfg.StraceBin)
 		}
 		cfg.StraceBin = osutil.Abs(cfg.StraceBin)
+	}
+	return nil
+}
+
+func (cfg *Config) completeFocusAreas() error {
+	names := map[string]bool{}
+	seenEmptyFilter := false
+	for i, area := range cfg.Experimental.FocusAreas {
+		if area.Name != "" {
+			if names[area.Name] {
+				return fmt.Errorf("duplicate focus area name: %q", area.Name)
+			}
+			names[area.Name] = true
+		}
+		if area.Weight <= 0 {
+			return fmt.Errorf("focus area #%d: negative weight", i)
+		}
+		if area.Filter.Empty() {
+			if seenEmptyFilter {
+				return fmt.Errorf("there must be only one focus area with an empty filter")
+			}
+			seenEmptyFilter = true
+		}
+	}
+	if !cfg.CovFilter.Empty() {
+		if len(cfg.Experimental.FocusAreas) > 0 {
+			return fmt.Errorf("you cannot use both cov_filter and focus_areas")
+		}
+		cfg.Experimental.FocusAreas = []FocusArea{
+			{
+				Name:   "filtered",
+				Filter: cfg.CovFilter,
+				Weight: 1.0,
+			},
+		}
+		cfg.CovFilter = CovFilterCfg{}
 	}
 	return nil
 }
@@ -295,7 +408,12 @@ func splitTarget(target string) (string, string, string, error) {
 	return os, vmarch, arch, nil
 }
 
-func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]int, error) {
+func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
+	descriptionsMode DescriptionsMode) ([]int, error) {
+	if descriptionsMode == invalidDescriptions {
+		return nil, fmt.Errorf("config param descriptions_mode must contain one of auto/manual/any")
+	}
+
 	syscalls := make(map[int]bool)
 	if len(enabled) != 0 {
 		for _, c := range enabled {
@@ -315,8 +433,12 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 			syscalls[call.ID] = true
 		}
 	}
+
 	for call := range syscalls {
-		if target.Syscalls[call].Attrs.Disabled {
+		if target.Syscalls[call].Attrs.Disabled ||
+			descriptionsMode == ManualDescriptions && target.Syscalls[call].Attrs.Automatic ||
+			descriptionsMode == AutoDescriptions &&
+				!target.Syscalls[call].Attrs.Automatic && !target.Syscalls[call].Attrs.AutomaticHelper {
 			delete(syscalls, call)
 		}
 	}

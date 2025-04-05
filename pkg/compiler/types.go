@@ -20,6 +20,7 @@ type typeDesc struct {
 	CanBeTypedef      bool            // can be type alias target?
 	CantBeOpt         bool            // can't be marked as opt?
 	CantBeOut         bool            // can't be used as an explicitly output argument?
+	CantHaveOut       bool            // everything inside can only be in
 	NeedBase          bool            // needs base type when used as field?
 	MaxColon          int             // max number of colons (int8:2) on fields
 	OptArgs           int             // number of optional arguments in Args array
@@ -59,8 +60,8 @@ type namedArg struct {
 }
 
 const (
-	kindAny = iota
-	kindInt
+	kindAny = 0
+	kindInt = 1 << iota
 	kindIdent
 	kindString
 )
@@ -75,7 +76,7 @@ var typeInt = &typeDesc{
 	MaxColon:     1,
 	OptArgs:      2,
 	Args: []namedArg{
-		{Name: "range", Type: typeArgIntRange},
+		{Name: "value", Type: typeArgIntValue},
 		{Name: "align", Type: typeArgIntAlign},
 	},
 	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
@@ -88,8 +89,9 @@ var typeInt = &typeDesc{
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
-		if len(args) > 0 && len(args[0].Colon) == 0 {
-			comp.error(args[0].Pos, "first argument of %v needs to be a range", t.Ident)
+		if len(args) > 1 && len(args[0].Colon) == 0 {
+			comp.error(args[1].Pos, "align argument of %v is not supported unless first argument is a range",
+				t.Ident)
 		}
 	},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
@@ -128,31 +130,64 @@ var typeInt = &typeDesc{
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		size, be := comp.parseIntType(t.Ident)
-		kind, rangeBegin, rangeEnd, align := prog.IntPlain, uint64(0), uint64(0), uint64(0)
-		if len(args) > 0 {
-			rangeArg := args[0]
-			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
-			if len(rangeArg.Colon) != 0 {
-				rangeEnd = rangeArg.Colon[0].Value
-			}
-			if len(args) > 1 {
-				align = args[1].Value
-			}
-		}
 		var bitLen uint64
 		if len(t.Colon) != 0 {
 			bitLen = t.Colon[0].Value
 		}
 		base.TypeSize = size
 		base.TypeAlign = getIntAlignment(comp, base)
+		base = genIntCommon(base.TypeCommon, bitLen, be)
+
+		kind, rangeBegin, rangeEnd, align := prog.IntPlain, uint64(0), uint64(0), uint64(0)
+		if len(args) > 0 {
+			rangeArg := args[0]
+			if _, isIntFlag := comp.intFlags[rangeArg.Ident]; isIntFlag {
+				return generateFlagsType(comp, base, rangeArg.Ident)
+			}
+			if len(rangeArg.Colon) == 0 {
+				// If we have an argument that is not a range, then it's a const.
+				return &prog.ConstType{
+					IntTypeCommon: base,
+					Val:           args[0].Value,
+				}
+			}
+			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Colon[0].Value
+			if len(args) > 1 {
+				align = args[1].Value
+			}
+		}
 		return &prog.IntType{
-			IntTypeCommon: genIntCommon(base.TypeCommon, bitLen, be),
+			IntTypeCommon: base,
 			Kind:          kind,
 			RangeBegin:    rangeBegin,
 			RangeEnd:      rangeEnd,
 			Align:         align,
 		}
 	},
+}
+
+func generateFlagsType(comp *compiler, base prog.IntTypeCommon, name string) prog.Type {
+	base.TypeName = name
+	f := comp.intFlags[name]
+	values := genIntArray(f.Values)
+	if len(values) == 0 || len(values) == 1 && values[0] == 0 {
+		// We can get this if all values are unsupported consts.
+		// Also generate const[0] if we have only 1 flags value which is 0,
+		// this is the intention in all existing cases (e.g. an enum with types
+		// of something, but there is really only 1 type exists).
+		return &prog.ConstType{
+			IntTypeCommon: base,
+			Val:           0,
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		return values[i] < values[j]
+	})
+	return &prog.FlagsType{
+		IntTypeCommon: base,
+		Vals:          values,
+		BitMask:       isBitmask(values),
+	}
 }
 
 func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
@@ -175,12 +210,59 @@ var typePtr = &typeDesc{
 			base.TypeSize = 8
 		}
 		base.TypeAlign = getIntAlignment(comp, base)
+		elem := comp.genType(args[1], 0)
+		elemDir := genDir(args[0])
 		return &prog.PtrType{
 			TypeCommon: base.TypeCommon,
-			Elem:       comp.genType(args[1], 0),
-			ElemDir:    genDir(args[0]),
+			Elem:       elem,
+			ElemDir:    elemDir,
 		}
 	},
+}
+
+func isSquashableElem(elem prog.Type, dir prog.Dir) bool {
+	if dir != prog.DirIn {
+		return false
+	}
+	// Check if the pointer element contains something that can be complex, and does not contain
+	// anything unsupported we don't want to sqaush. Prog package later checks at runtime
+	// if a concrete arg actually contains something complex. But we look at the whole type
+	// to understand if it contains anything unsupported b/c a union may contain e.g. a complex struct
+	// and a filename we don't want to squash, or an array may contain something unsupported,
+	// but has 0 size in a concrete argument.
+	complex, unsupported := false, false
+	prog.ForeachArgType(elem, func(t prog.Type, ctx *prog.TypeCtx) {
+		switch typ := t.(type) {
+		case *prog.StructType:
+			if typ.Varlen() {
+				complex = true
+			}
+			if typ.OverlayField != 0 {
+				// Squashing of structs with out_overlay is not supported.
+				// If we do it, we need to be careful to either squash out part as well,
+				// or remove any resources in the out part from the prog.
+				unsupported = true
+			}
+		case *prog.UnionType:
+			if typ.Varlen() && len(typ.Fields) > 5 {
+				complex = true
+			}
+		case *prog.PtrType:
+			// Squashing of pointers is not supported b/c if we do it
+			// we will pass random garbage as pointers.
+			unsupported = true
+		case *prog.BufferType:
+			switch typ.Kind {
+			case prog.BufferFilename, prog.BufferGlob, prog.BufferCompressed:
+				// Squashing file names may lead to unwanted escaping paths (e.g. "/"),
+				// squashing compressed buffers is not useful since we uncompress them ourselves
+				// (not the kernel).
+				unsupported = true
+			}
+		}
+		ctx.Stop = unsupported
+	})
+	return complex && !unsupported
 }
 
 var typeVoid = &typeDesc{
@@ -276,8 +358,7 @@ var typeArray = &typeDesc{
 				NoZ:        true,
 			}
 		}
-		// TypeSize is assigned later in layoutArray.
-		base.TypeAlign = elemType.Alignment()
+		// TypeSize/TypeAlign are assigned later in layoutArray.
 		return &prog.ArrayType{
 			TypeCommon: base.TypeCommon,
 			Elem:       elemType,
@@ -392,29 +473,8 @@ var typeFlags = &typeDesc{
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		name := args[0].Ident
-		base.TypeName = name
-		f := comp.intFlags[name]
-		values := genIntArray(f.Values)
-		if len(values) == 0 || len(values) == 1 && values[0] == 0 {
-			// We can get this if all values are unsupported consts.
-			// Also generate const[0] if we have only 1 flags value which is 0,
-			// this is the intention in all existing cases (e.g. an enum with types
-			// of something, but there is really only 1 type exists).
-			return &prog.ConstType{
-				IntTypeCommon: base,
-				Val:           0,
-			}
-		}
-		sort.Slice(values, func(i, j int) bool {
-			return values[i] < values[j]
-		})
 		base.TypeAlign = getIntAlignment(comp, base)
-		return &prog.FlagsType{
-			IntTypeCommon: base,
-			Vals:          values,
-			BitMask:       isBitmask(values),
-		}
+		return generateFlagsType(comp, base, args[0].Ident)
 	},
 }
 
@@ -747,11 +807,8 @@ func (comp *compiler) stringSize(t *ast.Type, args []*ast.Type) uint64 {
 }
 
 var typeArgStringFlags = &typeArg{
+	Kind: kindIdent | kindString,
 	Check: func(comp *compiler, t *ast.Type) {
-		if !t.HasString && t.Ident == "" {
-			comp.error(t.Pos, "unexpected int %v, string arg must be a string literal or string flags", t.Value)
-			return
-		}
 		if t.Ident != "" && comp.strFlags[t.Ident] == nil {
 			comp.error(t.Pos, "unknown string flags %v", t.Ident)
 			return
@@ -764,6 +821,7 @@ var typeFmt = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	CantBeOut:    true,
+	CantHaveOut:  true,
 	Args: []namedArg{
 		{Name: "format", Type: typeFmtFormat},
 		{Name: "value", Type: typeArgType, IsArg: true},
@@ -947,30 +1005,18 @@ func init() {
 		switch typ1 := typ.(type) {
 		case *prog.UnionType:
 			typ1.Fields = fields
-			for _, f := range fields {
-				if a := f.Type.Alignment(); typ1.TypeAlign < a {
-					typ1.TypeAlign = a
-				}
-			}
 		case *prog.StructType:
 			typ1.Fields = fields
+			for i, field := range fields {
+				if field.Condition != nil {
+					fields[i] = comp.wrapConditionalField(t.Ident, field)
+				}
+			}
 			if overlayField >= 0 {
 				typ1.OverlayField = overlayField
 			}
-			attrs := comp.parseAttrs(structAttrs, s, s.Attrs)
-			if align := attrs[attrAlign]; align != 0 {
-				typ1.TypeAlign = align
-			} else if attrs[attrPacked] != 0 {
-				typ1.TypeAlign = 1
-			} else {
-				for _, f := range fields {
-					a := f.Type.Alignment()
-					if typ1.TypeAlign < a {
-						typ1.TypeAlign = a
-					}
-				}
-			}
 		}
+		// TypeSize/TypeAlign are assigned later in layoutStruct.
 		return typ
 	}
 }
@@ -1004,9 +1050,16 @@ var typeArgInt = &typeArg{
 	Kind: kindInt,
 }
 
-var typeArgIntRange = &typeArg{
-	Kind:     kindInt,
+var typeArgIntValue = &typeArg{
+	Kind:     kindInt | kindIdent,
 	MaxColon: 1,
+	CheckConsts: func(comp *compiler, t *ast.Type) {
+		// If the first arg is not a range, then it should be a valid flags.
+		if len(t.Colon) == 0 && t.Ident != "" && comp.intFlags[t.Ident] == nil {
+			comp.error(t.Pos, "unknown flags %v", t.Ident)
+			return
+		}
+	},
 }
 
 var typeArgIntAlign = &typeArg{
@@ -1104,14 +1157,14 @@ ANYUNION [
 	ANYRES16	ANYRES16
 	ANYRES32	ANYRES32
 	ANYRES64	ANYRES64
-	ANYRESDEC	fmt[dec, ANYRES64]
-	ANYRESHEX	fmt[hex, ANYRES64]
-	ANYRESOCT	fmt[oct, ANYRES64]
+	ANYRESDEC	fmt[dec, ANYRES64] (in)
+	ANYRESHEX	fmt[hex, ANYRES64] (in)
+	ANYRESOCT	fmt[oct, ANYRES64] (in)
 ] [varlen]
 
 ANYPTRS [
-	ANYPTR		ptr[in, array[ANYUNION]]
-	ANYPTR64	ptr64[in, array[ANYUNION]]
+	ANYPTR		ptr[inout, array[ANYUNION]]
+	ANYPTR64	ptr64[inout, array[ANYUNION]]
 ]
 
 resource ANYRES8[int8]: -1, 0
@@ -1120,7 +1173,7 @@ resource ANYRES32[int32]: -1, 0
 resource ANYRES64[int64]: -1, 0
 
 syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
-syz_builtin1(a ptr[out, ANYUNION]) (disabled)
+syz_builtin1(a ptr[inout, ANYUNION]) (disabled)
 syz_builtin2() ANYRES8 (disabled)
 syz_builtin3() ANYRES16 (disabled)
 syz_builtin4() ANYRES32 (disabled)

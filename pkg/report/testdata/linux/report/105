@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Read in ip6_fragment
 ALT: bad-access in ip6_fragment
+TYPE: KASAN
 
 [   42.361487] ==================================================================
 [   42.364412] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x11c8/0x3730

@@ -1,0 +1,37 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+dir: "{{.InterfaceDir}}/mocks"
+outpkg: "mocks"
+mockname: "{{.InterfaceName}}"
+filename: "{{.InterfaceName}}.go"
+resolve-type-alias: False # TODO: remove in mockery 3
+issue-845-fix: True       # TODO: remove in mockery 3
+packages:
+  github.com/google/syzkaller/pkg/gcs:
+    interfaces:
+      Client:
+  github.com/google/syzkaller/pkg/covermerger:
+    interfaces:
+      FileVersProvider:
+  github.com/google/syzkaller/pkg/coveragedb/spannerclient:
+    config:
+      dir: "{{.InterfaceDir}}/../mocks"
+    interfaces:
+      SpannerClient:
+      ReadOnlyTransaction:
+      RowIterator:
+      Row:
+  github.com/google/syzkaller/pkg/rpcserver:
+    interfaces:
+      Manager:
+  github.com/google/syzkaller/vm/proxyapp/proxyrpc:
+    config:
+      dir: "{{.InterfaceDir}}/../mocks"
+    interfaces:
+      ProxyAppInterface:
+  github.com/google/syzkaller/vm/proxyapp:
+    config:
+      mockname: "SubProcessCmd"
+    interfaces:
+      subProcessCmd:

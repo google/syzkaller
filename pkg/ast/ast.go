@@ -27,6 +27,16 @@ type Node interface {
 	walk(cb func(Node))
 }
 
+type Flags[T FlagValue] interface {
+	SetValues(values []T)
+	GetValues() []T
+	GetPos() Pos
+}
+
+type FlagValue interface {
+	GetName() string
+}
+
 // Top-level AST nodes.
 
 type NewLine struct {
@@ -61,7 +71,7 @@ type Include struct {
 }
 
 func (n *Include) Info() (Pos, string, string) {
-	return n.Pos, tok2str[tokInclude], ""
+	return n.Pos, tok2str[tokInclude], n.File.Value
 }
 
 type Incdir struct {
@@ -135,6 +145,18 @@ func (n *IntFlags) Info() (Pos, string, string) {
 	return n.Pos, "flags", n.Name.Name
 }
 
+func (n *IntFlags) SetValues(values []*Int) {
+	n.Values = values
+}
+
+func (n *IntFlags) GetValues() []*Int {
+	return n.Values
+}
+
+func (n *IntFlags) GetPos() Pos {
+	return n.Pos
+}
+
 type StrFlags struct {
 	Pos    Pos
 	Name   *Ident
@@ -143,6 +165,18 @@ type StrFlags struct {
 
 func (n *StrFlags) Info() (Pos, string, string) {
 	return n.Pos, "string flags", n.Name.Name
+}
+
+func (n *StrFlags) SetValues(values []*String) {
+	n.Values = values
+}
+
+func (n *StrFlags) GetValues() []*String {
+	return n.Values
+}
+
+func (n *StrFlags) GetPos() Pos {
+	return n.Pos
 }
 
 type TypeDef struct {
@@ -180,6 +214,10 @@ func (n *String) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokString], ""
 }
 
+func (n *String) GetName() string {
+	return n.Value
+}
+
 type IntFmt int
 
 const (
@@ -194,6 +232,7 @@ type StrFmt int
 const (
 	StrFmtRaw StrFmt = iota
 	StrFmtHex
+	StrFmtIdent
 )
 
 type Int struct {
@@ -209,15 +248,40 @@ func (n *Int) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokInt], ""
 }
 
+func (n *Int) GetName() string {
+	return n.Ident
+}
+
+type Operator int
+
+const (
+	OperatorCompareEq = iota + 1
+	OperatorCompareNeq
+	OperatorBinaryAnd
+	OperatorOr
+)
+
+type BinaryExpression struct {
+	Pos      Pos
+	Operator Operator
+	Left     *Type
+	Right    *Type
+}
+
+func (n *BinaryExpression) Info() (Pos, string, string) {
+	return n.Pos, "binary-expression", ""
+}
+
 type Type struct {
 	Pos Pos
-	// Only one of Value, Ident, String is filled.
-	Value     uint64
-	ValueFmt  IntFmt
-	Ident     string
-	String    string
-	StringFmt StrFmt
-	HasString bool
+	// Only one of Value, Ident, String, Expression is filled.
+	Value      uint64
+	ValueFmt   IntFmt
+	Ident      string
+	String     string
+	StringFmt  StrFmt
+	HasString  bool
+	Expression *BinaryExpression
 	// Parts after COLON (for ranges and bitfields).
 	Colon []*Type
 	// Sub-types in [].

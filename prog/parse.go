@@ -12,13 +12,16 @@ import (
 type LogEntry struct {
 	P     *Prog
 	Proc  int // index of parallel proc
+	ID    int // ID of the executed program (-1 if not present)
 	Start int // start offset in log
 	End   int // end offset in log
 }
 
-func (target *Target) ParseLog(data []byte) []*LogEntry {
+func (target *Target) ParseLog(data []byte, mode DeserializeMode) []*LogEntry {
 	var entries []*LogEntry
-	ent := &LogEntry{}
+	ent := &LogEntry{
+		ID: -1,
+	}
 	var cur []byte
 	faultCall, faultNth := -1, -1
 	for pos := 0; pos < len(data); {
@@ -41,6 +44,10 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 			ent = &LogEntry{
 				Proc:  proc,
 				Start: pos0,
+				ID:    -1,
+			}
+			if id, ok := extractInt(line, "id="); ok {
+				ent.ID = id
 			}
 			// We no longer print it this way, but we still parse such fragments to preserve
 			// the backward compatibility.
@@ -54,7 +61,7 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 
 		tmp := append(cur, line...)
 
-		p, err := target.Deserialize(tmp, NonStrict)
+		p, err := target.Deserialize(tmp, mode)
 		if err != nil {
 			continue
 		}

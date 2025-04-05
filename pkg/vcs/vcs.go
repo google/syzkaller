@@ -10,12 +10,14 @@ import (
 	"net/mail"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -34,8 +36,9 @@ type Repo interface {
 	// SwitchCommit checkouts the specified commit without fetching.
 	SwitchCommit(commit string) (*Commit, error)
 
-	// HeadCommit returns info about the HEAD commit of the current branch of git repository.
-	HeadCommit() (*Commit, error)
+	// Commit returns info about the specified commit hash.
+	// The commit may be the special value HEAD for the current commit.
+	Commit(com string) (*Commit, error)
 
 	// GetCommitByTitle finds commit info by the title. If the commit is not found, nil is returned.
 	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
@@ -45,9 +48,6 @@ type Repo interface {
 	// GetCommitsByTitles is a batch version of GetCommitByTitle.
 	// Returns list of commits and titles of commits that are not found.
 	GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
-
-	// ListRecentCommits returns list of recent commit titles starting from baseCommit.
-	ListRecentCommits(baseCommit string) ([]string, error)
 
 	// ExtractFixTagsFromCommits extracts fixing tags for bugs from git log.
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
@@ -63,13 +63,19 @@ type Repo interface {
 	Contains(commit string) (bool, error)
 
 	// ListCommitHashes lists all commit hashes reachable from baseCommit.
-	ListCommitHashes(baseCommit string) ([]string, error)
+	ListCommitHashes(baseCommit string, from time.Time) ([]string, error)
 
 	// Object returns the contents of a git repository object at the particular moment in history.
 	Object(name, commit string) ([]byte, error)
 
 	// MergeBases returns good common ancestors of the two commits.
 	MergeBases(firstCommit, secondCommit string) ([]*Commit, error)
+
+	// CommitExists check for the commit presence in local checkout.
+	CommitExists(commit string) (bool, error)
+
+	// PushCommit is used to store commit in remote repo.
+	PushCommit(repo, commit string) error
 }
 
 // Bisecter may be optionally implemented by Repo.
@@ -92,12 +98,13 @@ type Bisecter interface {
 
 	IsRelease(commit string) (bool, error)
 
-	EnvForCommit(defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
+	EnvForCommit(defaultCompiler, compilerType, binDir, commit string,
+		kernelConfig []byte, backports []BackportCommit) (*BisectEnv, error)
 }
 
 type ConfigMinimizer interface {
-	Minimize(target *targets.Target, original, baseline []byte, dt debugtracer.DebugTracer,
-		pred func(test []byte) (BisectResult, error)) ([]byte, error)
+	Minimize(target *targets.Target, original, baseline []byte, types []crash.Type,
+		dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error)
 }
 
 type Commit struct {
@@ -110,6 +117,7 @@ type Commit struct {
 	Parents    []string
 	Date       time.Time
 	CommitDate time.Time
+	Patch      []byte
 }
 
 type RecipientType int
@@ -189,17 +197,18 @@ const (
 func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case targets.Linux:
+		if vmType == targets.Starnix {
+			return newFuchsia(dir, opts), nil
+		}
 		return newLinux(dir, opts, vmType), nil
-	case targets.Akaros:
-		return newAkaros(dir, opts), nil
 	case targets.Fuchsia:
 		return newFuchsia(dir, opts), nil
 	case targets.OpenBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.NetBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.FreeBSD:
-		return newGit(dir, nil, opts), nil
+		return newGitRepo(dir, nil, opts), nil
 	case targets.TestOS:
 		return newTestos(dir, opts), nil
 	}
@@ -207,12 +216,12 @@ func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 }
 
 func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
-	git := newGit(dir, nil, append(opts, OptDontSandbox))
+	git := newGitRepo(dir, nil, append(opts, OptDontSandbox))
 	return git
 }
 
 func NewLKMLRepo(dir string) Repo {
-	return newGit(dir, nil, []RepoOpt{OptDontSandbox})
+	return newGitRepo(dir, nil, []RepoOpt{OptDontSandbox})
 }
 
 func Patch(dir string, patch []byte) error {
@@ -264,6 +273,31 @@ func CheckBranch(branch string) bool {
 
 func CheckCommitHash(hash string) bool {
 	return gitHashRe.MatchString(hash)
+}
+
+func ParseReleaseTag(tag string) (v1, v2, rc, v3 int) {
+	invalid := func() {
+		v1, v2, rc, v3 = -1, -1, -1, -1
+	}
+	invalid()
+	matches := releaseTagRe.FindStringSubmatch(tag)
+	if matches == nil {
+		return
+	}
+	for ptr, idx := range map[*int]int{
+		&v1: 1, &v2: 2, &rc: 3, &v3: 4,
+	} {
+		if matches[idx] == "" {
+			continue
+		}
+		var err error
+		*ptr, err = strconv.Atoi(matches[idx])
+		if err != nil {
+			invalid()
+			return
+		}
+	}
+	return
 }
 
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
@@ -328,10 +362,6 @@ func CommitLink(url, hash string) string {
 	return link(url, hash, "", 0, 0)
 }
 
-func TreeLink(url, hash string) string {
-	return link(url, hash, "", 0, 1)
-}
-
 func LogLink(url, hash string) string {
 	return link(url, hash, "", 0, 2)
 }
@@ -340,6 +370,7 @@ func FileLink(url, hash, file string, line int) string {
 	return link(url, hash, file, line, 3)
 }
 
+// nolint: goconst
 func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""

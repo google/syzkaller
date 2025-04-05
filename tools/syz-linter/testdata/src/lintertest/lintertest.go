@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"testing"
+
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 /* some comment */ // want "Use C-style comments // instead of /* */"
@@ -85,6 +88,9 @@ func logErrorMessages() {
 	fmt.Printf("fragment")
 	fmt.Printf("Fragment Fragment %s", msg)
 	fmt.Fprintf(nil, "These can be anything")
+	tool.Fail(err)
+	tool.Failf("good message")
+	tool.Failf("good message %v", 0)
 
 	fmt.Errorf("Bad message")                                           // want "Don't start log/error messages with a Capital letter"
 	log.Fatalf("Bad message %v", 1)                                     // want "Don't start log/error messages with a Capital letter"
@@ -98,6 +104,15 @@ func logErrorMessages() {
 	fmt.Fprintf(os.Stderr, "Real output message with capital letter\n") // want "Don't start log/error messages with a Capital letter"
 	fmt.Fprintf(os.Stderr, "real output message without newline")       // want "Add \\\\n at the end of printed messages"
 	fmt.Fprintf(os.Stderr, "%v", err)                                   // want "Add \\\\n at the end of printed messages"
+	tool.Failf("Bad message")                                           // want "Don't start log/error messages with a Capital letter"
+}
+
+func testMessages(t *testing.T) {
+	t.Logf("good message %v", 1)
+	t.Logf("Bad message %v", 1)     // want "Don't start log/error messages with a Capital letter"
+	t.Errorf("bad message %v\n", 1) // want "Don't use \\\\n at the end of log/error messages"
+	t.Fatalf("Bad message %v", 1)   // want "Don't start log/error messages with a Capital letter"
+	t.Fatalf("PublicFunc is ok %v", 1)
 }
 
 func varDecls() {
@@ -107,4 +122,25 @@ func varDecls() {
 	var _ int = 0
 	var d int = 0 // want "Don't use both var, type and value in variable declarations"
 	_, _, _, _ = a, b, c, d
+}
+
+func minmax() {
+	x, y := 0, 0
+	if x < y + 1 {		// want "Use max function instead"
+		x = y + 1
+	}
+	if x >= y {		// want "Use max function instead"
+		y = x
+	}
+	if x > 10 {		// want "Use min function instead"
+		x = 10
+	}
+}
+
+func loopvar() {
+	s := []int{1, 2, 3}
+	for i, v := range s {
+		i, v := i, v // want "Don't duplicate loop variables.*"
+		_, _ = i, v
+	}
 }

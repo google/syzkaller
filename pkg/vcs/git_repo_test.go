@@ -24,7 +24,7 @@ func TestGitRepo(t *testing.T) {
 	baseDir := t.TempDir()
 	repo1 := CreateTestRepo(t, baseDir, "repo1")
 	repo2 := CreateTestRepo(t, baseDir, "repo2")
-	repo := newGit(filepath.Join(baseDir, "repo"), nil, nil)
+	repo := newGitRepo(filepath.Join(baseDir, "repo"), nil, nil)
 	{
 		com, err := repo.Poll(repo1.Dir, "master")
 		if err != nil {
@@ -50,16 +50,6 @@ func TestGitRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 		if diff := cmp.Diff(com, want); diff != "" {
-			t.Fatal(diff)
-		}
-	}
-	{
-		commits, err := repo.ListRecentCommits(repo1.Commits["branch1"]["1"].Hash)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want := []string{"repo1-branch1-1", "repo1-branch1-0", "repo1-master-0"}
-		if diff := cmp.Diff(commits, want); diff != "" {
 			t.Fatal(diff)
 		}
 	}
@@ -140,7 +130,7 @@ func TestMetadata(t *testing.T) {
 	prevHash := ""
 	for i, test := range metadataTests {
 		repo.CommitChange(test.description)
-		com, err := repo.repo.HeadCommit()
+		com, err := repo.repo.Commit(HEAD)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -325,7 +315,7 @@ func TestBisect(t *testing.T) {
 	var commits []string
 	for i := 0; i < 5; i++ {
 		repo.CommitChange(fmt.Sprintf("commit %v", i))
-		com, err := repo.repo.HeadCommit()
+		com, err := repo.repo.Commit(HEAD)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -339,7 +329,7 @@ func TestBisect(t *testing.T) {
 	}
 	makePred := func(res1, res2, res3 BisectResult) predFunc {
 		return func() (BisectResult, error) {
-			current, err := repo.repo.HeadCommit()
+			current, err := repo.repo.Commit(HEAD)
 			if err != nil {
 				t.Fatal(err)
 			}

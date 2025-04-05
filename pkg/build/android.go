@@ -7,9 +7,11 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -19,10 +21,12 @@ import (
 type android struct{}
 
 type BuildParams struct {
-	DefconfigFragment string `json:"defconfig_fragment"`
-	BuildTarget       string `json:"build_target"`
-	BuildScript       string `json:"build_script"`
-	VendorBootImage   string `json:"vendor_boot_image"`
+	BuildScript      string   `json:"build_script"`
+	EnvVars          []string `json:"env_vars"`
+	Flags            []string `json:"flags"`
+	AdditionalImages []string `json:"additional_images"`
+	AutoconfPath     string   `json:"autoconf_path"`
+	ConfigPath       string   `json:"config_path"`
 }
 
 var ccCompilerRegexp = regexp.MustCompile(`#define\s+CONFIG_CC_VERSION_TEXT\s+"(.*)"`)
@@ -33,34 +37,25 @@ func parseConfig(conf []byte) (*BuildParams, error) {
 		return nil, fmt.Errorf("failed to parse build config: %w", err)
 	}
 
-	if buildCfg.DefconfigFragment == "" {
-		return nil, fmt.Errorf("defconfig fragment not specified for Android build")
-	}
-
-	if buildCfg.BuildTarget == "" {
-		return nil, fmt.Errorf("build target not specified for Android build")
-	}
-
 	if buildCfg.BuildScript == "" {
 		return nil, fmt.Errorf("build script not specified for Android build")
 	}
 
-	if buildCfg.VendorBootImage == "" {
-		return nil, fmt.Errorf("vendor boot image not specified for Android build")
+	if buildCfg.ConfigPath == "" {
+		return nil, fmt.Errorf("kernel config path not specified for Android build")
 	}
 
 	return buildCfg, nil
 }
 
-func (a android) readCompiler(kernelDir string) (string, error) {
-	bytes, err := os.ReadFile(filepath.Join(kernelDir, "out", "mixed", "device-kernel", "private",
-		"gs-google", "include", "generated", "autoconf.h"))
+func (a android) readCompiler(path string) (string, error) {
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
 	result := ccCompilerRegexp.FindSubmatch(bytes)
 	if result == nil {
-		return "", fmt.Errorf("include/generated/autoconf.h does not contain build information")
+		return "", fmt.Errorf("%s does not contain build information", path)
 	}
 	return string(result[1]), nil
 }
@@ -80,49 +75,78 @@ func (a android) build(params Params) (ImageDetails, error) {
 	}
 
 	// Build kernel.
-	cmd := osutil.Command(fmt.Sprintf("./%v", buildCfg.BuildScript))
+	cmd := osutil.Command(fmt.Sprintf("./%v", buildCfg.BuildScript), buildCfg.Flags...)
 	cmd.Dir = params.KernelDir
-	cmd.Env = append(cmd.Env, "OUT_DIR=out", "DIST_DIR=dist", fmt.Sprintf("GKI_DEFCONFIG_FRAGMENT=%v",
-		buildCfg.DefconfigFragment), fmt.Sprintf("BUILD_TARGET=%v", buildCfg.BuildTarget))
+	cmd.Env = append(cmd.Env, buildCfg.EnvVars...)
 
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return details, fmt.Errorf("failed to build kernel: %s", err)
+		return details, fmt.Errorf("failed to build kernel: %w", err)
 	}
 
 	buildDistDir := filepath.Join(params.KernelDir, "dist")
 
 	vmlinux := filepath.Join(buildDistDir, "vmlinux")
-	config := filepath.Join(params.KernelDir, "out", "mixed", "device-kernel", "private", "gs-google", ".config")
 
-	details.CompilerID, err = a.readCompiler(params.KernelDir)
-	if err != nil {
-		return details, fmt.Errorf("failed to read compiler: %v", err)
+	if buildCfg.AutoconfPath != "" {
+		details.CompilerID, err = a.readCompiler(filepath.Join(params.KernelDir, buildCfg.AutoconfPath))
+		if err != nil {
+			return details, fmt.Errorf("failed to read compiler: %w", err)
+		}
 	}
 
 	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "obj", "vmlinux")); err != nil {
-		return details, fmt.Errorf("failed to copy vmlinux: %v", err)
+		return details, fmt.Errorf("failed to copy vmlinux: %w", err)
 	}
-	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "obj", "kernel.config")); err != nil {
-		return details, fmt.Errorf("failed to copy kernel config: %v", err)
+	if err := osutil.CopyFile(filepath.Join(params.KernelDir, buildCfg.ConfigPath),
+		filepath.Join(params.OutputDir, "obj", "kernel.config")); err != nil {
+		return details, fmt.Errorf("failed to copy kernel config: %w", err)
 	}
 
 	imageFile, err := os.Create(filepath.Join(params.OutputDir, "image"))
 	if err != nil {
-		return details, fmt.Errorf("failed to create output file: %v", err)
+		return details, fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer imageFile.Close()
 
-	if err := a.embedImages(imageFile, buildDistDir, "boot.img", "dtbo.img", buildCfg.VendorBootImage,
-		"vendor_dlkm.img"); err != nil {
-		return details, fmt.Errorf("failed to embed images: %v", err)
+	if err := copyModuleFiles(filepath.Join(params.KernelDir, "out"), params.OutputDir); err != nil {
+		return details, fmt.Errorf("failed copying module files: %w", err)
+	}
+
+	images := append(buildCfg.AdditionalImages, "boot.img")
+	if err := a.embedImages(imageFile, buildDistDir, images...); err != nil {
+		return details, fmt.Errorf("failed to embed images: %w", err)
 	}
 
 	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
-		return details, fmt.Errorf("failed to generate signature: %s", err)
+		return details, fmt.Errorf("failed to generate signature: %w", err)
 	}
 
 	return details, nil
+}
+
+func copyModuleFiles(srcDir, dstDir string) error {
+	err := filepath.WalkDir(srcDir,
+		func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return fmt.Errorf("error walking out dir: %w", err)
+			}
+			// Staging directories contain stripped module object files.
+			if strings.Contains(path, "staging") {
+				return nil
+			}
+
+			if filepath.Ext(path) == ".ko" {
+				if err := osutil.CopyFile(path, filepath.Join(dstDir, d.Name())); err != nil {
+					return fmt.Errorf("error copying file: %w", err)
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to copy module objects: %w", err)
+	}
+	return nil
 }
 
 func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) error {
@@ -133,7 +157,7 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 		path := filepath.Join(srcDir, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("failed to read %q: %v", name, err)
+			return fmt.Errorf("failed to read %q: %w", name, err)
 		}
 
 		if err := tw.WriteHeader(&tar.Header{
@@ -141,27 +165,27 @@ func (a android) embedImages(w io.Writer, srcDir string, imageNames ...string) e
 			Mode: 0600,
 			Size: int64(len(data)),
 		}); err != nil {
-			return fmt.Errorf("failed to write header for %q: %v", name, err)
+			return fmt.Errorf("failed to write header for %q: %w", name, err)
 		}
 
 		if _, err := tw.Write(data); err != nil {
-			return fmt.Errorf("failed to write data for %q: %v", name, err)
+			return fmt.Errorf("failed to write data for %q: %w", name, err)
 		}
 	}
 
 	if err := tw.Close(); err != nil {
-		return fmt.Errorf("close archive: %v", err)
+		return fmt.Errorf("close archive: %w", err)
 	}
 
 	return nil
 }
 
-func (a android) clean(kernelDir, targetArch string) error {
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "out")); err != nil {
-		return fmt.Errorf("failed to clean 'out' directory: %v", err)
+func (a android) clean(params Params) error {
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "out")); err != nil {
+		return fmt.Errorf("failed to clean 'out' directory: %w", err)
 	}
-	if err := osutil.RemoveAll(filepath.Join(kernelDir, "dist")); err != nil {
-		return fmt.Errorf("failed to clean 'dist' directory: %v", err)
+	if err := osutil.RemoveAll(filepath.Join(params.KernelDir, "dist")); err != nil {
+		return fmt.Errorf("failed to clean 'dist' directory: %w", err)
 	}
 	return nil
 }

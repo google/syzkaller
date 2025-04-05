@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/ulikunitz/xz"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -24,11 +25,16 @@ import (
 type Storage struct {
 	cfg     *Config
 	backend StorageBackend
-	dash    *dashapi.Dashboard
+	dash    Dashboard
 	tracer  debugtracer.DebugTracer
 }
 
-func StorageFromConfig(cfg *Config, dash *dashapi.Dashboard) (*Storage, error) {
+type Dashboard interface {
+	AddBuildAssets(req *dashapi.AddBuildAssetsReq) error
+	NeededAssetsList() (*dashapi.NeededAssetsResp, error)
+}
+
+func StorageFromConfig(cfg *Config, dash Dashboard) (*Storage, error) {
 	if dash == nil {
 		return nil, fmt.Errorf("dashboard api instance is necessary")
 	}
@@ -123,7 +129,8 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		compressor = typeDescr.customCompressor
 	}
 	res, err := compressor(req, storage.backend.upload)
-	if existsErr, ok := err.(*FileExistsError); ok {
+	var existsErr *FileExistsError
+	if errors.As(err, &existsErr) {
 		storage.tracer.Log("asset %s already exists", path)
 		if extra == nil || !extra.SkipIfExists {
 			return "", err
@@ -137,7 +144,8 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		if err != nil {
 			more := ""
 			closeErr := res.writer.Close()
-			if exiterr, ok := closeErr.(*exec.ExitError); ok {
+			var exiterr *exec.ExitError
+			if errors.As(closeErr, &exiterr) {
 				more = fmt.Sprintf(", process state '%s'", exiterr.ProcessState)
 			}
 			return "", fmt.Errorf("failed to redirect byte stream: copied %d bytes, error %w%s",
@@ -209,12 +217,19 @@ var ErrUnknownBucket = errors.New("the asset is not in the currently managed buc
 
 const deletionEmbargo = time.Hour * 24 * 7
 
+type DeprecateStats struct {
+	Needed   int // The count of assets currently needed in the dashboard.
+	Existing int // The number of assets currently stored.
+	Deleted  int // How many were deleted during DeprecateAssets().
+}
+
 // Best way: convert download URLs to paths.
 // We don't want to risk killing all assets after a slight domain change.
-func (storage *Storage) DeprecateAssets() error {
+func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
+	var stats DeprecateStats
 	resp, err := storage.dash.NeededAssetsList()
 	if err != nil {
-		return fmt.Errorf("failed to query needed assets: %w", err)
+		return stats, fmt.Errorf("failed to query needed assets: %w", err)
 	}
 	needed := map[string]bool{}
 	for _, url := range resp.DownloadURLs {
@@ -225,31 +240,34 @@ func (storage *Storage) DeprecateAssets() error {
 		} else if err != nil {
 			// If we failed to parse just one URL, let's stop the entire process.
 			// Otherwise we'll start deleting still needed files we couldn't recognize.
-			return fmt.Errorf("failed to parse '%s': %w", url, err)
+			return stats, fmt.Errorf("failed to parse '%s': %w", url, err)
 		}
 		needed[path] = true
 	}
+	stats.Needed = len(needed)
 	storage.tracer.Log("queried needed assets: %#v", needed)
+
 	existing, err := storage.backend.list()
 	if err != nil {
-		return fmt.Errorf("failed to query object list: %w", err)
+		return stats, fmt.Errorf("failed to query object list: %w", err)
 	}
+	stats.Existing = len(existing)
 	toDelete := []string{}
 	intersection := 0
 	for _, obj := range existing {
 		keep := false
-		if time.Since(obj.createdAt) < deletionEmbargo {
+		if time.Since(obj.CreatedAt) < deletionEmbargo {
 			// To avoid races between object upload and object deletion, we don't delete
 			// newly uploaded files for a while after they're uploaded.
 			keep = true
 		}
-		if val, ok := needed[obj.path]; ok && val {
+		if val, ok := needed[obj.Path]; ok && val {
 			keep = true
 			intersection++
 		}
-		storage.tracer.Log("-- object %v, %v: keep %t", obj.path, obj.createdAt, keep)
+		storage.tracer.Log("-- object %v, %v: keep %t", obj.Path, obj.CreatedAt, keep)
 		if !keep {
-			toDelete = append(toDelete, obj.path)
+			toDelete = append(toDelete, obj.Path)
 		}
 	}
 	const intersectionCheckCutOff = 4
@@ -257,7 +275,7 @@ func (storage *Storage) DeprecateAssets() error {
 		// This is a last-resort protection against possible dashboard bugs.
 		// If the needed assets have no intersection with the existing assets,
 		// don't delete anything. Otherwise, if it was a bug, we will lose all files.
-		return fmt.Errorf("needed assets have almost no intersection with the existing ones")
+		return stats, fmt.Errorf("needed assets have almost no intersection with the existing ones")
 	}
 	for _, path := range toDelete {
 		err := storage.backend.remove(path)
@@ -265,10 +283,11 @@ func (storage *Storage) DeprecateAssets() error {
 		// Several syz-ci's might be sharing the same storage. So let's tolerate
 		// races during file deletion.
 		if err != nil && err != ErrAssetDoesNotExist {
-			return fmt.Errorf("asset deletion failure: %w", err)
+			return stats, fmt.Errorf("asset deletion failure: %w", err)
 		}
 	}
-	return nil
+	stats.Deleted = len(toDelete)
+	return stats, nil
 }
 
 type uploadRequest struct {
@@ -283,14 +302,9 @@ type uploadResponse struct {
 	writer io.WriteCloser
 }
 
-type storedObject struct {
-	path      string
-	createdAt time.Time
-}
-
 type StorageBackend interface {
 	upload(req *uploadRequest) (*uploadResponse, error)
-	list() ([]storedObject, error)
+	list() ([]*gcs.Object, error)
 	remove(path string) error
 	downloadURL(path string, publicURL bool) (string, error)
 	getPath(url string) (string, error)

@@ -4,8 +4,6 @@
 package linux
 
 import (
-	"runtime"
-
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -25,9 +23,6 @@ func InitTarget(target *prog.Target) {
 		FITHAW:                      target.GetConst("FITHAW"),
 		SNAPSHOT_FREEZE:             target.GetConst("SNAPSHOT_FREEZE"),
 		SNAPSHOT_POWER_OFF:          target.GetConst("SNAPSHOT_POWER_OFF"),
-		EXT4_IOC_SHUTDOWN:           target.GetConst("EXT4_IOC_SHUTDOWN"),
-		EXT4_IOC_RESIZE_FS:          target.GetConst("EXT4_IOC_RESIZE_FS"),
-		EXT4_IOC_MIGRATE:            target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:               target.GetConst("FAN_OPEN_PERM"),
 		FAN_ACCESS_PERM:             target.GetConst("FAN_ACCESS_PERM"),
 		FAN_OPEN_EXEC_PERM:          target.GetConst("FAN_OPEN_EXEC_PERM"),
@@ -44,7 +39,6 @@ func InitTarget(target *prog.Target) {
 		AF_NETLINK:                  target.GetConst("AF_NETLINK"),
 		SOCK_RAW:                    target.GetConst("SOCK_RAW"),
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
-		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
 		// These are not present on all arches.
@@ -109,26 +103,7 @@ func InitTarget(target *prog.Target) {
 		int(target.GetConst("XENSTORE_REL_PATH_MAX")),
 		1 << 16, // gVisor's MaxFilenameLen
 	}
-
-	if target.Arch == runtime.GOARCH {
-		KCOV_INIT_TRACE = uintptr(target.GetConst("KCOV_INIT_TRACE"))
-		KCOV_ENABLE = uintptr(target.GetConst("KCOV_ENABLE"))
-		KCOV_REMOTE_ENABLE = uintptr(target.GetConst("KCOV_REMOTE_ENABLE"))
-		KCOV_DISABLE = uintptr(target.GetConst("KCOV_DISABLE"))
-		KCOV_TRACE_PC = uintptr(target.GetConst("KCOV_TRACE_PC"))
-		KCOV_TRACE_CMP = uintptr(target.GetConst("KCOV_TRACE_CMP"))
-	}
 }
-
-var (
-	// This should not be here, but for now we expose this for syz-fuzzer.
-	KCOV_INIT_TRACE    uintptr
-	KCOV_ENABLE        uintptr
-	KCOV_REMOTE_ENABLE uintptr
-	KCOV_DISABLE       uintptr
-	KCOV_TRACE_PC      uintptr
-	KCOV_TRACE_CMP     uintptr
-)
 
 type arch struct {
 	unix *targets.UnixNeutralizer
@@ -146,9 +121,6 @@ type arch struct {
 	FITHAW                      uint64
 	SNAPSHOT_FREEZE             uint64
 	SNAPSHOT_POWER_OFF          uint64
-	EXT4_IOC_SHUTDOWN           uint64
-	EXT4_IOC_RESIZE_FS          uint64
-	EXT4_IOC_MIGRATE            uint64
 	FAN_OPEN_PERM               uint64
 	FAN_ACCESS_PERM             uint64
 	FAN_OPEN_EXEC_PERM          uint64
@@ -167,7 +139,6 @@ type arch struct {
 	AF_NETLINK                  uint64
 	SOCK_RAW                    uint64
 	NETLINK_GENERIC             uint64
-	USB_MAJOR                   uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
 }
@@ -329,16 +300,6 @@ func (arch *arch) neutralizeIoctl(c *prog.Call) {
 	case arch.SNAPSHOT_POWER_OFF:
 		// SNAPSHOT_POWER_OFF shuts down the machine.
 		cmd.Val = arch.FITHAW
-	case arch.EXT4_IOC_SHUTDOWN:
-		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
-		// Fortunately, the value does not conflict with any other ioctl commands for now.
-		cmd.Val = arch.EXT4_IOC_MIGRATE
-	case arch.EXT4_IOC_RESIZE_FS:
-		// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
-		// and then creation of new temp dirs for tests will fail.
-		// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
-		// and/or if we mount tmpfs for sandbox=none (#971).
-		cmd.Val = arch.EXT4_IOC_MIGRATE
 	case arch.TIOCSSERIAL:
 		// TIOCSSERIAL can do nasty things under root, like causing writes to random memory
 		// pretty much like /dev/mem, but this is also working as intended.

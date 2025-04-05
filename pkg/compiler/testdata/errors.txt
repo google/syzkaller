@@ -73,6 +73,19 @@ sf1 = "a"
 sf2 = "a", "b"
 sf2 = "c"			### string flags sf2 redeclared, previously declared at LOCATION
 
+f110 = 1, 2, 3, 4, f120		### flags f110 used twice or circular dependency on f110
+f120 = 10, 11, 12, f130		### flags f120 used twice or circular dependency on f120
+f130 = 100, 110, f110		### flags f130 used twice or circular dependency on f130
+
+loop_flags(a flags[f110])
+
+f200 = f300, 200, 201		### flags identifier not at the end in f200 definition
+f300 = 300, 301
+
+f210 = "1", "2", "3", f220	### flags f210 used twice or circular dependency on f210
+f220 = "10", "11", f230		### flags f220 used twice or circular dependency on f220
+f230 = "100", "110", f210	### flags f230 used twice or circular dependency on f230
+
 resource r2[r0]: 2
 resource r3[int32:1]		### unexpected ':', only struct fields can be bitfields
 resource r4[int32[opt]]		### resource base can't be marked as opt
@@ -88,7 +101,6 @@ foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr
 foo$12(a buffer[10])		### unexpected int 10 for direction argument of ptr type, expect [in out inout]
 foo$13(a int32[2:3])
 foo$14(a int32[2:2])
-foo$16(a int32[3])		### first argument of int32 needs to be a range
 foo$17(a ptr[in, int32])
 foo$18(a ptr[in, int32[2:3]])
 foo$19(a ptr[in, int32[opt]])
@@ -104,13 +116,13 @@ foo$30(a ptr[in, string[no]])	### unknown string flags no
 foo$31(a int8, b ptr[in, csum[a, inet]])		### wrong number of arguments for type csum, expect csum target, kind, [proto], base type
 foo$32(a int8, b ptr[in, csum[a, inet, 1, int32]])	### only pseudo csum can have proto
 foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
-foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
+foo$34(a int32["foo"])		### unexpected string "foo" for value argument of int32 type, expect identifier or int
 foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
 foo$36(a const[1:2])		### unexpected ':'
 foo$39(a fileoff:1)		### type alias fileoff with ':'
 foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
 foo$41(a vma[C1:C2])
-foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
+foo$43(a ptr[in, string[1]])	### unexpected int 1 for literal or flags argument of string type, expect string or identifier
 foo$44(a int32) len[a]		### len can't be syscall return
 foo$45(a int32) len[b]		### len can't be syscall return
 foo$46(a ptr[in, in])		### unknown type in
@@ -129,16 +141,18 @@ foo$59(a s1)			### s1 can't be syscall argument
 foo$60() s1			### s1 can't be syscall return
 foo$61(a u6)			### u6 can't be syscall argument
 foo$62() u6			### u6 can't be syscall return
-foo$63(a int32[1[2]])		### range argument has subargs
+foo$63(a int32[1[2]])		### value argument has subargs
 foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
 foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len type, expect identifier
 foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
 foo$67(x int32[1:2:3, opt])	### unexpected ':'
-foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
+foo$68(a int32[15, 2])		### align argument of int32 is not supported unless first argument is a range
 foo$69() (foo)			### unknown syscall foo$69 attribute foo
 foo$70() ("foo")		### unexpected string "foo", expect attribute
 foo$71() (42)			### unexpected int 42, expect attribute
 foo$72() (disabled, disabled)	### duplicate syscall foo$72 attribute disabled
+foo$73(a int32[int_flags, 2])	### align argument of int32 is not supported unless first argument is a range
+foo$74() (int8:1)		### unexpected ':'
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -146,6 +160,7 @@ opt {				### struct uses reserved name opt
 
 in = 1, 2			### flags uses reserved name in
 out = "1", "2"			### string flags uses reserved name out
+int_flags = 0, 1, 0xabc, 'x', -11
 
 out [				### union uses reserved name out
 	f1	int32
@@ -166,6 +181,7 @@ s3 {
 	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
 	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
 	f9	const[0]	### wrong number of arguments for type const, expect value, base type
+	f10	int8:1:1	### unexpected ':'
 } [packed, align[4]]
 
 s5 {
@@ -199,6 +215,10 @@ s12 {
 s13 {
 	f1	int8
 } [size[0[0]]]			### size attribute has colon or args
+
+s14 {
+	f1	int8
+} [size[1, 2]]			### size attribute is expected to have 1 argument
 
 u3 [
 	f1	int8
@@ -369,7 +389,7 @@ type TT3[A] {
 
 foo$213(a ptr[in, TT1[int8]])
 
-foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
+foo$glob001(a ptr[in, glob[1]])			### unexpected int 1 for literal or flags argument of glob type, expect string or identifier
 foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
 foo$glob003(a ptr[in, glob["/sys", 5]])		### glob only accepts 1 arg, provided 2
 foo$glob004(a ptr[in, glob["/sys", 5, 2]])	### wrong number of arguments for type glob, expect [literal or flags], [size], [opt]
@@ -419,9 +439,49 @@ union$overlay0 [
 ]
 
 union$directions [
-	f1	int32	(in)	### unknown arg/field f1 attribute in
+	f1	int32	(in)
 	f2	int32	(out)	### unknown arg/field f2 attribute out
+	f3	int32	(inout)	### unknown arg/field f3 attribute inout
 ]
 
 
 compressed$test(a int32) compressed_image	### compressed_image can't be syscall return
+
+define FLAG1 = 1
+define FLAG2 = 2
+
+some_nested_flags {
+	f1	int32
+}
+
+conditional_fields {
+	f1	int32
+	f2      some_nested_flags (if[value[f1] & FLAG1])
+	f3      some_nested_flags (if[value[f1] & FLAG1], if[value[f1] & FLAG1]) ### duplicate arg/field f3 attribute if
+	f4      some_nested_flags (if[value & FLAG1]) ### value reference must have only one argument
+	f5      some_nested_flags (if[value[f1] & FLAG1, FLAG2]) ### if attribute is expected to have only one argument
+	f6      some_nested_flags (if[value[f1, FLAG2] & FLAG1]) ### value reference must have only one argument
+	f7      some_nested_flags (if[5])
+	f8      some_nested_flags
+	f9      some_nested_flags (if[value[f8:f1] & FLAG1])
+	f10     some_nested_flags (if[value[f8:f1, A] & FLAG1]) ### value reference must have only one argument
+	f11     some_nested_flags (if[value[f8:f1[A]] & FLAG1]) ### value aguments must not have any further arguments
+	f12     some_nested_flags (if[f1 == "A"]) ### the token must be either an integer or an identifier
+	f13     some_nested_flags (if["ABCD"]) ### if argument must be an expression
+	f14     some_nested_flags (if[X[Y]]) ### consts in expressions must not have any arguments
+	f15	conditional_fields_union1
+	f16	conditional_fields_union2
+}
+
+conditional_fields_union1 [
+	u1	int32 (if [value[parent:f1] & FLAG1])
+	u2	int32 (if [value[parent:f1] & FLAG2]) ### unions must not have if conditions on the last field
+]
+
+conditional_fields_union2 [
+	u1	int32 (if [value[parent:f1] & FLAG1])
+	u2	int32 ### either no fields have conditions or all except the last
+	u3	int32
+]
+
+invalid_string_attr() (invalid["string"])	### unknown syscall invalid_string_attr attribute invalid

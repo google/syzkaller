@@ -20,8 +20,10 @@ var (
 	flagArch          = flag.String("arch", runtime.GOARCH, "arch to build")
 	flagVM            = flag.String("vm", "gce", "VM type to build")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
-	flagCompiler      = flag.String("compiler", "", "non-defult compiler")
+	flagMake          = flag.String("make", "", "non-default make")
+	flagCompiler      = flag.String("compiler", "", "non-default compiler")
 	flagLinker        = flag.String("linker", "", "non-default linker")
+	flagCcache        = flag.String("ccache", "", "ccache executable")
 	flagKernelConfig  = flag.String("config", "", "kernel config file")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
@@ -35,7 +37,15 @@ func main() {
 		fmt.Printf("not running under root, image build may fail\n")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
-	kernelConfig, err := os.ReadFile(*flagKernelConfig)
+	var kernelConfig []byte
+	if *flagKernelConfig != "" {
+		var err error
+		kernelConfig, err = os.ReadFile(*flagKernelConfig)
+		if err != nil {
+			tool.Fail(err)
+		}
+	}
+	wd, err := os.Getwd()
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -44,10 +54,11 @@ func main() {
 		TargetArch:   *flagArch,
 		VMType:       *flagVM,
 		KernelDir:    *flagKernelSrc,
-		OutputDir:    ".",
+		OutputDir:    wd,
+		Make:         *flagMake,
 		Compiler:     *flagCompiler,
 		Linker:       *flagLinker,
-		Ccache:       "",
+		Ccache:       *flagCcache,
 		UserspaceDir: *flagUserspace,
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,

@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in __io_req_aux_free
+TYPE: LOCKDEP
 
 [   28.141875] ================================
 [   28.146298] WARNING: inconsistent lock state

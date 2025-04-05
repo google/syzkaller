@@ -1,5 +1,6 @@
 TITLE: KASAN: invalid-access Read in __run_timers
 ALT: bad-access in __run_timers
+TYPE: KASAN
 
 [  931.917437][    C0] ==================================================================
 [  931.918594][    C0] BUG: KASAN: invalid-access in __run_timers.part.0+0xc0/0x224

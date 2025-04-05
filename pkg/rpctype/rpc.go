@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"net/rpc"
-	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -23,7 +22,7 @@ type RPCServer struct {
 func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %v: %v", addr, err)
+		return nil, fmt.Errorf("failed to listen on %v: %w", addr, err)
 	}
 	s := rpc.NewServer()
 	if err := s.RegisterName(name, receiver); err != nil {
@@ -53,59 +52,32 @@ func (serv *RPCServer) Addr() net.Addr {
 }
 
 type RPCClient struct {
-	conn      net.Conn
-	c         *rpc.Client
-	timeScale time.Duration
+	conn net.Conn
+	c    *rpc.Client
 }
 
-func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
-	if timeScale <= 0 {
-		return nil, fmt.Errorf("bad rpc time scale %v", timeScale)
-	}
-	var conn net.Conn
-	var err error
-	if addr == "stdin" {
-		// This is used by vm/gvisor which passes us a unix socket connection in stdin.
-		return net.FileConn(os.Stdin)
-	}
-	if conn, err = net.DialTimeout("tcp", addr, time.Minute*timeScale); err != nil {
-		return nil, err
-	}
-	setupKeepAlive(conn, time.Minute*timeScale)
-	return conn, nil
-}
-
-func NewRPCClient(addr string, timeScale time.Duration) (*RPCClient, error) {
-	conn, err := Dial(addr, timeScale)
+func NewRPCClient(addr string) (*RPCClient, error) {
+	conn, err := net.DialTimeout("tcp", addr, 3*time.Minute)
 	if err != nil {
 		return nil, err
 	}
+	setupKeepAlive(conn, time.Minute)
 	cli := &RPCClient{
-		conn:      conn,
-		c:         rpc.NewClient(newFlateConn(conn)),
-		timeScale: timeScale,
+		conn: conn,
+		c:    rpc.NewClient(newFlateConn(conn)),
 	}
 	return cli, nil
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
 	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
-	cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
+	cli.conn.SetDeadline(time.Now().Add(10 * time.Minute))
 	defer cli.conn.SetDeadline(time.Time{})
 	return cli.c.Call(method, args, reply)
 }
 
 func (cli *RPCClient) Close() {
 	cli.c.Close()
-}
-
-func RPCCall(addr string, timeScale time.Duration, method string, args, reply interface{}) error {
-	c, err := NewRPCClient(addr, timeScale)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-	return c.Call(method, args, reply)
 }
 
 func setupKeepAlive(conn net.Conn, keepAlive time.Duration) {

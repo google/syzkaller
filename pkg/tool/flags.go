@@ -9,9 +9,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Flag struct {
@@ -50,6 +52,30 @@ func ParseFlags(set *flag.FlagSet, args []string) error {
 	return nil
 }
 
+func ParseArchList(OS, archList string) ([]string, error) {
+	allArches := targets.List[OS]
+	if allArches == nil {
+		return nil, fmt.Errorf("bad OS %q", OS)
+	}
+	archMap := make(map[string]bool)
+	if archList != "" {
+		for _, arch := range strings.Split(archList, ",") {
+			if allArches[arch] == nil {
+				return nil, fmt.Errorf("bad arch %q for OS %q in arches flag", arch, OS)
+			}
+			archMap[arch] = true
+		}
+	}
+	var arches []string
+	for arch := range allArches {
+		if len(archMap) == 0 || archMap[arch] {
+			arches = append(arches, arch)
+		}
+	}
+	sort.Strings(arches)
+	return arches, nil
+}
+
 const optionalFlag = "optional"
 
 func serializeFlags(flags []Flag) string {
@@ -75,11 +101,11 @@ func deserializeFlags(value string) ([]Flag, error) {
 		}
 		name, err := flagUnescape(arg[:eq])
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse flags %q: %v", value, err)
+			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
 		value, err := flagUnescape(arg[eq+1:])
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse flags %q: %v", value, err)
+			return nil, fmt.Errorf("failed to parse flags %q: %w", value, err)
 		}
 		flags = append(flags, Flag{name, value})
 	}

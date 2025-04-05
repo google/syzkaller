@@ -25,7 +25,21 @@
 # (Googlers see go/docker).
 
 COMMAND=""
+BUILDARGS=()
 DOCKERARGS=()
+if [ -n $http_proxy ]; then
+	BUILDARGS+=" --build-arg http_proxy=$http_proxy"
+	DOCKERARGS+=" --env http_proxy=$http_proxy"
+fi
+if [ -n $https_proxy ]; then
+	BUILDARGS+=" --build-arg https_proxy=$https_proxy"
+	DOCKERARGS+=" --env https_proxy=$https_proxy"
+fi
+if [ -n $no_proxy ]; then
+	BUILDARGS+=" --build-arg no_proxy=$no_proxy"
+	DOCKERARGS+=" --env no_proxy=$no_proxy"
+fi
+
 for ARG in "$@"; do
 	while IFS='=' read KEY VAL; do
 		# If we have a kernel path passed in, we mount it in the container
@@ -48,9 +62,7 @@ fi
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 IMAGE="env"
-if [ "$(basename -- "$0")" == "syz-big-env" ]; then
-	IMAGE="big-env"
-elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
+if [ "$(basename -- "$0")" == "syz-old-env" ]; then
         IMAGE="old-env"
 fi
 
@@ -63,8 +75,15 @@ if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; the
 	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
 fi
 
-# Update docker image
-docker pull -q gcr.io/syzkaller/${IMAGE}
+
+# Build or update docker image
+if [ ! -z "$SYZ_ENV_BUILD" ]; then
+	IMAGE_NAME="syz-$IMAGE"
+	docker build "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+else
+	IMAGE_NAME="gcr.io/syzkaller/$IMAGE"
+	docker pull -q "$IMAGE_NAME"
+fi
 
 # Run everything as the host user, this is important for created/modified files.
 docker run \
@@ -75,7 +94,6 @@ docker run \
 	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
 	--env HOME=/syzkaller \
 	--env GOPATH=/syzkaller/gopath:/gopath \
-	--env SILENCE_SYZ_ENV_HINT=1 \
 	--env FUZZIT_API_KEY \
 	--env GITHUB_REF \
 	--env GITHUB_SHA \
@@ -84,4 +102,4 @@ docker run \
 	--env GITHUB_PR_COMMITS \
 	--env CI \
 	${DOCKERARGS[@]} \
-	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"
+	"$IMAGE_NAME" -c "$COMMAND"

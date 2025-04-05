@@ -10,27 +10,42 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
+type attrDescAttrType int
+
+const (
+	flagAttr attrDescAttrType = iota
+	// TODO: Ultimately we want to replace intAttr with exprAttr.
+	// This will facilitate const expressions in e.g. size[] or align[].
+	intAttr
+	exprAttr
+	stringAttr
+)
+
 type attrDesc struct {
 	Name string
-	// For now we assume attributes can have only 1 argument and it's an integer,
-	// enough to cover existing cases.
-	HasArg      bool
+	// For now we assume attributes can have only 1 argument and it's either an
+	// integer or an expression.
+	Type attrDescAttrType
+	// This function is not invoked for per-field attributes, only for whole
+	// structs/unions.
 	CheckConsts func(comp *compiler, parent ast.Node, attr *ast.Type)
 }
 
 var (
 	attrPacked     = &attrDesc{Name: "packed"}
 	attrVarlen     = &attrDesc{Name: "varlen"}
-	attrSize       = &attrDesc{Name: "size", HasArg: true}
-	attrAlign      = &attrDesc{Name: "align", HasArg: true}
+	attrSize       = &attrDesc{Name: "size", Type: intAttr}
+	attrAlign      = &attrDesc{Name: "align", Type: intAttr}
 	attrIn         = &attrDesc{Name: "in"}
 	attrOut        = &attrDesc{Name: "out"}
 	attrInOut      = &attrDesc{Name: "inout"}
 	attrOutOverlay = &attrDesc{Name: "out_overlay"}
+	attrIf         = &attrDesc{Name: "if", Type: exprAttr}
 
 	structAttrs      = makeAttrs(attrPacked, attrSize, attrAlign)
 	unionAttrs       = makeAttrs(attrVarlen, attrSize)
-	structFieldAttrs = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay)
+	structFieldAttrs = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay, attrIf)
+	unionFieldAttrs  = makeAttrs(attrIn, attrIf) // attrIn is safe.
 	callAttrs        = make(map[string]*attrDesc)
 )
 
@@ -65,7 +80,9 @@ func initCallAttrs() {
 		switch attr.Type.Kind() {
 		case reflect.Bool:
 		case reflect.Uint64:
-			desc.HasArg = true
+			desc.Type = intAttr
+		case reflect.String:
+			desc.Type = stringAttr
 		default:
 			panic("unsupported syscall attribute type")
 		}
@@ -78,6 +95,13 @@ func structOrUnionAttrs(n *ast.Struct) map[string]*attrDesc {
 		return unionAttrs
 	}
 	return structAttrs
+}
+
+func structOrUnionFieldAttrs(n *ast.Struct) map[string]*attrDesc {
+	if n.IsUnion {
+		return unionFieldAttrs
+	}
+	return structFieldAttrs
 }
 
 func makeAttrs(attrs ...*attrDesc) map[string]*attrDesc {

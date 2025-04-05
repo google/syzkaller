@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in io_file_data_ref_zero
+TYPE: LOCKDEP
 
 [ 1034.371675][    C0] ================================
 [ 1034.372179][    C0] WARNING: inconsistent lock state

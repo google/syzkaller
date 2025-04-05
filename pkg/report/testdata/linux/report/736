@@ -1,0 +1,97 @@
+TITLE: BUG: unable to handle kernel paging request in process_srcu
+ALT: bad-access in process_srcu
+FRAME: process_srcu
+
+
+[  626.611274][   T51] BUG: unable to handle page fault for address: ffffffff9175c704
+[  626.619007][   T51] #PF: supervisor read access in kernel mode
+[  626.625004][   T51] #PF: error_code(0x0000) - not-present page
+[  626.631000][   T51] PGD e73a067 P4D e73a067 PUD e73b063 PMD 14d9c9063 PTE 800fffffee8a3062
+[  626.639464][   T51] Oops: Oops: 0000 [#1] PREEMPT SMP KASAN PTI
+[  626.645541][   T51] CPU: 1 UID: 0 PID: 51 Comm: kworker/1:1 Not tainted 6.13.0-rc3-syzkaller #0
+[  626.654406][   T51] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 11/25/2024
+[  626.664478][   T51] Workqueue: rcu_gp process_srcu
+[  626.669529][   T51] RIP: 0010:do_raw_spin_lock+0x8b/0x370
+[  626.675096][   T51] Code: f1 f1 f1 04 f3 f3 f3 48 89 f1 48 89 74 24 38 48 89 04 16 48 8d 5f 04 48 89 d8 48 c1 e8 03 0f b6 04 10 84 c0 0f 85 f6 01 00 00 <8b> 03 3d ad 4e ad de 0f 85 62 01 00 00 4d 8d 6c 24 10 4c 89 e8 48
+[  626.694717][   T51] RSP: 0018:ffffc90000bb77a0 EFLAGS: 00010046
+[  626.700799][   T51] RAX: 0000000000000000 RBX: ffffffff9175c704 RCX: 1ffff92000176efc
+[  626.708785][   T51] RDX: dffffc0000000000 RSI: 1ffff92000176efc RDI: ffffffff9175c700
+[  626.716854][   T51] RBP: ffffc90000bb7870 R08: ffffffff90184ef7 R09: 1ffffffff20309de
+[  626.724869][   T51] R10: dffffc0000000000 R11: fffffbfff20309df R12: ffffffff9175c700
+[  626.732858][   T51] R13: 1ffff92000176f10 R14: ffffffff9175c700 R15: dffffc0000000000
+[  626.740846][   T51] FS:  0000000000000000(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
+[  626.749788][   T51] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  626.756387][   T51] CR2: ffffffff9175c704 CR3: 00000000684e8000 CR4: 00000000003526f0
+[  626.764376][   T51] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  626.772361][   T51] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  626.780346][   T51] Call Trace:
+[  626.783636][   T51]  <TASK>
+[  626.786586][   T51]  ? __die_body+0x5f/0xb0
+[  626.790929][   T51]  ? page_fault_oops+0x8e4/0xcc0
+[  626.795892][   T51]  ? __pfx_page_fault_oops+0x10/0x10
+[  626.801192][   T51]  ? lock_release+0xbf/0xa30
+[  626.805792][   T51]  ? is_prefetch+0x4ed/0x780
+[  626.810395][   T51]  ? kvm_sched_clock_read+0x11/0x20
+[  626.815606][   T51]  ? sched_clock+0x4a/0x70
+[  626.820034][   T51]  ? sched_clock_cpu+0x76/0x490
+[  626.824895][   T51]  ? __pfx_is_prefetch+0x10/0x10
+[  626.829845][   T51]  ? __pfx_sched_clock_cpu+0x10/0x10
+[  626.835150][   T51]  ? __bad_area_nosemaphore+0x118/0x770
+[  626.840712][   T51]  ? __pfx___bad_area_nosemaphore+0x10/0x10
+[  626.846619][   T51]  ? spurious_kernel_fault+0x119/0x5a0
+[  626.852093][   T51]  ? do_kern_addr_fault+0x30/0x80
+[  626.857130][   T51]  ? exc_page_fault+0x5c8/0x8b0
+[  626.862003][   T51]  ? asm_exc_page_fault+0x26/0x30
+[  626.867046][   T51]  ? do_raw_spin_lock+0x8b/0x370
+[  626.872007][   T51]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[  626.878353][   T51]  ? lock_acquire+0xe3/0x550
+[  626.882956][   T51]  ? __pfx_do_raw_spin_lock+0x10/0x10
+[  626.888349][   T51]  _raw_spin_lock_irqsave+0xe1/0x120
+[  626.893642][   T51]  ? __pfx__raw_spin_lock_irqsave+0x10/0x10
+[  626.899545][   T51]  ? rcu_is_watching+0x15/0xb0
+[  626.904321][   T51]  ? __pfx_lock_release+0x10/0x10
+[  626.909359][   T51]  lock_timer_base+0x112/0x240
+[  626.914134][   T51]  __mod_timer+0x1ca/0xeb0
+[  626.918565][   T51]  ? __mutex_unlock_slowpath+0x21e/0x790
+[  626.924221][   T51]  ? __pfx___mod_timer+0x10/0x10
+[  626.929175][   T51]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  626.935524][   T51]  ? _raw_spin_lock_irq+0xdf/0x120
+[  626.940653][   T51]  ? rcu_is_watching+0x15/0xb0
+[  626.945431][   T51]  process_srcu+0x542/0x12e0
+[  626.950043][   T51]  ? __pfx_lock_release+0x10/0x10
+[  626.955092][   T51]  ? __pfx_lockdep_hardirqs_on_prepare+0x10/0x10
+[  626.961444][   T51]  ? rcu_is_watching+0x15/0xb0
+[  626.966224][   T51]  ? process_scheduled_works+0x976/0x1840
+[  626.971965][   T51]  process_scheduled_works+0xa66/0x1840
+[  626.977550][   T51]  ? __pfx_process_scheduled_works+0x10/0x10
+[  626.983555][   T51]  ? __pfx__raw_spin_lock_irq+0x10/0x10
+[  626.989123][   T51]  ? assign_work+0x364/0x3d0
+[  626.993738][   T51]  worker_thread+0x870/0xd30
+[  626.998342][   T51]  ? __kthread_parkme+0x169/0x1d0
+[  627.003377][   T51]  ? __pfx_worker_thread+0x10/0x10
+[  627.008494][   T51]  kthread+0x2f0/0x390
+[  627.012577][   T51]  ? __pfx_worker_thread+0x10/0x10
+[  627.017700][   T51]  ? __pfx_kthread+0x10/0x10
+[  627.022298][   T51]  ret_from_fork+0x4b/0x80
+[  627.026721][   T51]  ? __pfx_kthread+0x10/0x10
+[  627.031323][   T51]  ret_from_fork_asm+0x1a/0x30
+[  627.036106][   T51]  </TASK>
+[  627.039130][   T51] Modules linked in:
+[  627.043044][   T51] CR2: ffffffff9175c704
+[  627.047199][   T51] ---[ end trace 0000000000000000 ]---
+[  627.052673][   T51] RIP: 0010:do_raw_spin_lock+0x8b/0x370
+[  627.058239][   T51] Code: f1 f1 f1 04 f3 f3 f3 48 89 f1 48 89 74 24 38 48 89 04 16 48 8d 5f 04 48 89 d8 48 c1 e8 03 0f b6 04 10 84 c0 0f 85 f6 01 00 00 <8b> 03 3d ad 4e ad de 0f 85 62 01 00 00 4d 8d 6c 24 10 4c 89 e8 48
+[  627.077863][   T51] RSP: 0018:ffffc90000bb77a0 EFLAGS: 00010046
+[  627.083954][   T51] RAX: 0000000000000000 RBX: ffffffff9175c704 RCX: 1ffff92000176efc
+[  627.091944][   T51] RDX: dffffc0000000000 RSI: 1ffff92000176efc RDI: ffffffff9175c700
+[  627.099929][   T51] RBP: ffffc90000bb7870 R08: ffffffff90184ef7 R09: 1ffffffff20309de
+[  627.107917][   T51] R10: dffffc0000000000 R11: fffffbfff20309df R12: ffffffff9175c700
+[  627.115904][   T51] R13: 1ffff92000176f10 R14: ffffffff9175c700 R15: dffffc0000000000
+[  627.123886][   T51] FS:  0000000000000000(0000) GS:ffff8880b8700000(0000) knlGS:0000000000000000
+[  627.132918][   T51] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  627.139513][   T51] CR2: ffffffff9175c704 CR3: 00000000684e8000 CR4: 00000000003526f0
+[  627.147509][   T51] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  627.155493][   T51] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  627.163490][   T51] Kernel panic - not syncing: Fatal exception
+[  627.169702][   T51] Kernel Offset: disabled
+[  627.174046][   T51] Rebooting in 86400 seconds..

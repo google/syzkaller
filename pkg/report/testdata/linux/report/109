@@ -1,5 +1,6 @@
 TITLE: KASAN: stack-out-of-bounds Read in xfrm_state_find
 ALT: bad-access in xfrm_state_find
+TYPE: KASAN
 
 [  189.525626] ==================================================================
 [  189.533112] BUG: KASAN: stack-out-of-bounds in xfrm_state_find+0x30fc/0x3230

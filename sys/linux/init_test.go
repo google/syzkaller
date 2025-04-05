@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys/linux/gen"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -46,10 +46,6 @@ func TestNeutralize(t *testing.T) {
 		{
 			In:  `ioctl(0x0, 0x200000c0045877, 0x0)`,
 			Out: `ioctl(0x0, 0xc0045878, 0x0)`,
-		},
-		{
-			In:  `ioctl$int_in(0x0, 0x2000008004587d, 0x0)`,
-			Out: `ioctl$int_in(0x0, 0x6609, 0x0)`,
 		},
 		{
 			In:  `fanotify_mark(0x1, 0x2, 0x407fe029, 0x3, 0x0)`,
@@ -149,8 +145,37 @@ syz_open_dev$tty1(0xc, 0x4, 0x1)
 			Out: `sched_setattr(0x0, 0x0, 0x0)`,
 		},
 		{
-			In:  `sched_setattr(0x0, &(0x7f00000001c0)=ANY=[@ANYBLOB="1234567812345678"], 0x0)`,
-			Out: `sched_setattr(0x0, &(0x7f00000001c0)=ANY=[@ANYBLOB='\x00\x00\x00\x00\x00\x00\x00\x00'], 0x0)`,
+			In:        `sched_setattr(0x0, &(0x7f00000001c0)=ANY=[@ANYBLOB="1234567812345678"], 0x0)`,
+			Out:       `sched_setattr(0x0, &(0x7f00000001c0)={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, 0x0)`,
+			StrictErr: `wrong array arg`,
 		},
 	})
+}
+
+func TestDeserializeStrictUnsafe(t *testing.T) {
+	t.Parallel()
+	target, _ := prog.GetTarget("linux", "amd64")
+	// Raw mode must preserve the global file name, allow to use mmap with non-fixed addr,
+	// and allow to use disabled syscalls.
+	had := `openat(0x0, &(0x7f0000000000)='/dev/foo', 0x0, 0x0)
+mmap(0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
+clone(0x0, &(0x7f0000000000), &(0x7f0000000010), &(0x7f0000000020), &(0x7f0000000030))
+`
+	p, err := target.Deserialize([]byte(had), prog.StrictUnsafe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(p.Serialize())
+	if had != got {
+		t.Fatalf("program was changed:\n%s\ngot:\n%s", had, got)
+	}
+}
+
+func TestDeserializeNonStrictUnsafe(t *testing.T) {
+	t.Parallel()
+	target, _ := prog.GetTarget("linux", "amd64")
+	_, err := target.Deserialize([]byte("clone()"), prog.NonStrictUnsafe)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

@@ -1,16 +1,13 @@
-From a5c949b813199bc14e264e1440358e95b96954c9 Mon Sep 17 00:00:00 2001
-From: Pavel Skripkin <paskripkin@gmail.com>
-Date: Tue, 7 Sep 2021 22:55:33 +0300
-Subject: [PATCH] usb: dump usb device ids on hid enumeration
+commit 0b9540c5b3cb5e34af4cdc1f6828314a041f8d1a
+Author: Andrey Konovalov <andreyknvl@gmail.com>
+Date:   Thu Jul 25 00:26:01 2024 +0200
 
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-Signed-off-by: Pavel Skripkin <paskripkin@gmail.com>
----
- drivers/hid/hid-core.c | 105 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 105 insertions(+)
+    usb: dump usb and hid device ids on hid enumeration
+    
+    Signed-off-by: Andrey Konovalov <andreyknvl@gmail.com>
 
 diff --git a/drivers/hid/hid-core.c b/drivers/hid/hid-core.c
-index 7db332139f7d..e1231e2b1610 100644
+index 74efda212c55f..d2f1f9243638e 100644
 --- a/drivers/hid/hid-core.c
 +++ b/drivers/hid/hid-core.c
 @@ -27,6 +27,8 @@
@@ -22,7 +19,7 @@ index 7db332139f7d..e1231e2b1610 100644
  
  #include <linux/hid.h>
  #include <linux/hiddev.h>
-@@ -2192,11 +2194,114 @@ static void hid_free_dynids(struct hid_driver *hdrv)
+@@ -2544,11 +2546,112 @@ static void hid_free_dynids(struct hid_driver *hdrv)
  	spin_unlock(&hdrv->dyn_lock);
  }
  
@@ -116,8 +113,6 @@ index 7db332139f7d..e1231e2b1610 100644
 +
 +static int usb_ids_dumped;
 +
-+struct bus_type hid_bus_type;
-+
 +static void usb_device_id_dump_all(void)
 +{
 +	if (usb_ids_dumped)
@@ -137,6 +132,3 @@ index 7db332139f7d..e1231e2b1610 100644
  	spin_lock(&hdrv->dyn_lock);
  	list_for_each_entry(dynid, &hdrv->dyn_list, list) {
  		if (hid_match_one_id(hdev, &dynid->id)) {
--- 
-2.33.0
-

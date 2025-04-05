@@ -4,15 +4,15 @@
 package repro
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
@@ -30,8 +30,9 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 }
 
 func TestBisect(t *testing.T) {
-	ctx := &context{
+	ctx := &reproContext{
 		stats: new(Stats),
+		logf:  t.Logf,
 	}
 
 	rd, iters := initTest(t)
@@ -62,7 +63,7 @@ func TestBisect(t *testing.T) {
 			}
 			return guilty == numGuilty, nil
 		})
-		if numGuilty > 8 && len(progs) == 0 {
+		if numGuilty > 6 && len(progs) == 0 {
 			// Bisection has been aborted.
 			continue
 		}
@@ -89,7 +90,6 @@ func TestSimplifies(t *testing.T) {
 		Cgroups:      true,
 		UseTmpDir:    true,
 		HandleSegv:   true,
-		Repro:        true,
 	}
 	var check func(opts csource.Options, i int)
 	check = func(opts csource.Options, i int) {
@@ -107,40 +107,21 @@ func TestSimplifies(t *testing.T) {
 	check(opts, 0)
 }
 
-func generateTestInstances(ctx *context, count int, execInterface execInterface) {
-	for i := 0; i < count; i++ {
-		ctx.bootRequests <- i
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for vmIndex := range ctx.bootRequests {
-			ctx.instances <- &reproInstance{execProg: execInterface, index: vmIndex}
-		}
-	}()
-	wg.Wait()
-}
-
 type testExecInterface struct {
-	t *testing.T
 	// For now only do the simplest imitation.
 	run func([]byte) (*instance.RunResult, error)
 }
 
-func (tei *testExecInterface) Close() {}
-
-func (tei *testExecInterface) RunCProg(p *prog.Prog, duration time.Duration,
-	opts csource.Options) (*instance.RunResult, error) {
-	return tei.RunSyzProg(p.Serialize(), duration, opts)
-}
-
-func (tei *testExecInterface) RunSyzProg(syzProg []byte, duration time.Duration,
-	opts csource.Options) (*instance.RunResult, error) {
+func (tei *testExecInterface) Run(_ context.Context, params instance.ExecParams,
+	_ instance.ExecutorLogger) (*instance.RunResult, error) {
+	syzProg := params.SyzProg
+	if params.CProg != nil {
+		syzProg = params.CProg.Serialize()
+	}
 	return tei.run(syzProg)
 }
 
-func prepareTestCtx(t *testing.T, log string) *context {
+func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats, error) {
 	mgrConfig := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -157,11 +138,8 @@ func prepareTestCtx(t *testing.T, log string) *context {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := prepareCtx([]byte(log), mgrConfig, nil, reporter, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ctx
+	return runInner(context.Background(), []byte(log), mgrConfig,
+		flatrpc.AllFeatures, reporter, false, exec)
 }
 
 const testReproLog = `
@@ -197,12 +175,9 @@ func testExecRunner(log []byte) (*instance.RunResult, error) {
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
 // No focus on error handling and minor corner cases.
 func TestPlainRepro(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t:   t,
+	result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: testExecRunner,
 	})
-	result, _, err := ctx.run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,10 +191,8 @@ alarm(0xa)
 // There happen to be transient errors like ssh/scp connection failures.
 // Ensure that the code just retries.
 func TestVMErrorResilience(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
 	fail := false
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t: t,
+	result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			fail = !fail
 			if fail {
@@ -228,7 +201,6 @@ func TestVMErrorResilience(t *testing.T) {
 			return testExecRunner(log)
 		},
 	})
-	result, _, err := ctx.run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,20 +212,49 @@ alarm(0xa)
 }
 
 func TestTooManyErrors(t *testing.T) {
-	ctx := prepareTestCtx(t, testReproLog)
 	counter := 0
-	go generateTestInstances(ctx, 3, &testExecInterface{
-		t: t,
+	_, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 		run: func(log []byte) (*instance.RunResult, error) {
 			counter++
-			if counter%3 != 0 {
+			if counter%4 != 0 {
 				return nil, fmt.Errorf("some random error")
 			}
 			return testExecRunner(log)
 		},
 	})
-	_, _, err := ctx.run()
 	if err == nil {
 		t.Fatalf("expected an error")
+	}
+}
+
+func TestProgConcatenation(t *testing.T) {
+	// Since the crash condition is alarm() after pause(), the code
+	// would have to work around the prog.MaxCall limitation.
+	execLog := "2015/12/21 12:18:05 executing program 1:\n"
+	for i := 0; i < prog.MaxCalls; i++ {
+		if i == 10 {
+			execLog += "pause()\n"
+		} else {
+			execLog += "getpid()\n"
+		}
+	}
+	execLog += "2015/12/21 12:18:10 executing program 2:\n"
+	for i := 0; i < prog.MaxCalls; i++ {
+		if i == 10 {
+			execLog += "alarm(0xa)\n"
+		} else {
+			execLog += "getpid()\n"
+		}
+	}
+	result, _, err := runTestRepro(t, execLog, &testExecInterface{
+		run: testExecRunner,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(`pause()
+alarm(0xa)
+`, string(result.Prog.Serialize())); diff != "" {
+		t.Fatal(diff)
 	}
 }

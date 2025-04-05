@@ -24,11 +24,11 @@ func (*openbsd) prepare(sourcedir string, build bool, arches []*Arch) error {
 func (*openbsd) prepareArch(arch *Arch) error {
 	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "arch", "amd64", "include"),
 		filepath.Join(arch.buildDir, "amd64")); err != nil {
-		return fmt.Errorf("failed to create link: %v", err)
+		return fmt.Errorf("failed to create link: %w", err)
 	}
 	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "arch", "amd64", "include"),
 		filepath.Join(arch.buildDir, "machine")); err != nil {
-		return fmt.Errorf("failed to create link: %v", err)
+		return fmt.Errorf("failed to create link: %w", err)
 	}
 	return nil
 }
@@ -71,11 +71,11 @@ func (*openbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"SYS_tmpfd":        true,
 	}
 	compatNames := make(map[string][]string)
-	for _, val := range info.Consts {
-		if _, ok := syscallsQuirks[val]; ok {
-			compat := "SYS___" + val[len("SYS_"):]
-			compatNames[val] = append(compatNames[val], compat)
-			info.Consts = append(info.Consts, compat)
+	for _, def := range info.Consts {
+		if _, ok := syscallsQuirks[def.Name]; ok {
+			compat := "SYS___" + def.Name[len("SYS_"):]
+			compatNames[def.Name] = append(compatNames[def.Name], compat)
+			info.Consts = append(info.Consts, &compiler.Const{Name: compat})
 		}
 	}
 	params := &extractParams{

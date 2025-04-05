@@ -1,0 +1,43 @@
+{{$bisect := .BisectFix -}}
+
+{{- if $bisect.Backported -}}
+The commit that was suspected to fix the issue was backported to the fuzzed
+kernel trees.
+
+commit {{$bisect.Backported.Hash}}
+Author: {{$bisect.Backported.AuthorName}} <{{$bisect.Backported.Author}}>
+Date:   {{formatKernelTime $bisect.Backported.Date}}
+
+    {{$bisect.Commit.Title}}
+
+If you believe this is correct, please reply with
+#syz fix: {{$bisect.Backported.Title}}
+
+The commit was initially detected here:
+{{- else -}}
+syzbot suspects this issue could be fixed by backporting the following commit:
+{{- end}}
+
+commit {{$bisect.Commit.Hash}}
+git tree: {{.KernelRepoAlias}}
+Author: {{$bisect.Commit.AuthorName}} <{{$bisect.Commit.Author}}>
+Date:   {{formatKernelTime $bisect.Commit.Date}}
+
+    {{$bisect.Commit.Title}}
+
+bisection log:  {{$bisect.LogLink}}
+{{if $bisect.CrashReportLink}}final oops:     {{$bisect.CrashReportLink}}
+{{end}}{{if $bisect.CrashLogLink}}console output: {{$bisect.CrashLogLink}}
+{{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
+{{end}}dashboard link: {{.Link}}
+{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
+{{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
+{{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
+{{end}}
+
+{{- if not $bisect.Backported}}
+
+Please keep in mind that other backports might be required as well.
+
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+{{end -}}

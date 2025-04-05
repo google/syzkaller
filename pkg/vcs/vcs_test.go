@@ -226,31 +226,31 @@ func TestFileLink(t *testing.T) {
 	for _, test := range tests {
 		link := FileLink(test.URL, test.Hash, test.File, test.Line)
 		if link != test.FileLink {
-			t.Errorf("Test: %+v\ngot:  %v", test, link)
+			t.Errorf("test: %+v\ngot:  %v", test, link)
 		}
 	}
 }
 
 func TestParse(t *testing.T) {
 	// nolint: lll
-	test1 := []byte(`Foo (Maintainer) Bar <a@email.com> (maintainer:KERNEL)
-	Foo Bar(Reviewer) <b@email.com> (reviewer:KERNEL)
+	test1 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
+	Foo Bar<b@email.com> (reviewer:KERNEL)
 	<somelist@list.com> (open list:FOO)
 	"Supporter Foo" <c@email.com> (supporter:KERNEL)
 	linux-kernel@vger.kernel.org (open list)`)
 	// nolint: lll
-	test2 := []byte(`Foo (Maintainer) Bar <a@email.com> (maintainer:KERNEL)
-	Foo Bar(Reviewer) <b@email.com> (reviewer:KERNEL)
+	test2 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
+	Foo Bar<b@email.com> (reviewer:KERNEL)
 	"Supporter Foo" <c@email.com> (supporter:KERNEL)
 	linux-kernel@vger.kernel.org (open list)`)
 
-	maintainers1 := Recipients{{mail.Address{Name: "Foo (Maintainer) Bar", Address: "a@email.com"}, To},
-		{mail.Address{Name: "Foo Bar(Reviewer)", Address: "b@email.com"}, Cc},
+	maintainers1 := Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+		{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
 		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
 		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
 		{mail.Address{Name: "", Address: "somelist@list.com"}, To}}
-	maintainers2 := Recipients{{mail.Address{Name: "Foo (Maintainer) Bar", Address: "a@email.com"}, To},
-		{mail.Address{Name: "Foo Bar(Reviewer)", Address: "b@email.com"}, Cc},
+	maintainers2 := Recipients{{mail.Address{Name: "Foo Bar", Address: "a@email.com"}, To},
+		{mail.Address{Name: "Foo Bar", Address: "b@email.com"}, Cc},
 		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
 		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}}
 

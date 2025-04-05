@@ -5,6 +5,8 @@ package report
 
 import (
 	"regexp"
+
+	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 func ctorOpenbsd(cfg *config) (reporterImpl, []string, error) {
@@ -36,6 +38,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -90,6 +93,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("lock order reversal:"),
@@ -104,6 +108,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("witness:"),
@@ -122,6 +127,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("uvm_fault("),
@@ -143,6 +149,7 @@ var openbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
+		crash.UnknownType,
 	},
 	{
 		[]byte("kernel:"),
@@ -159,5 +166,7 @@ var openbsdOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("reorder_kernel"),
 		},
+		crash.UnknownType,
 	},
+	&groupGoRuntimeErrors,
 }, commonOopses...)

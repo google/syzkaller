@@ -1,4 +1,5 @@
 TITLE: BUG: sleeping function called from invalid context in __alloc_skb
+TYPE: ATOMIC_SLEEP
 
 [  566.230190][T22160] BUG: sleeping function called from invalid context at include/linux/sched/mm.h:201
 [  566.293770][T22160] in_atomic(): 0, irqs_disabled(): 0, non_block: 0, pid: 22160, name: syz-executor.1

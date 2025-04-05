@@ -4,14 +4,20 @@
 package main
 
 import (
+	"compress/gzip"
+	"context"
 	"crypto/sha256"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
@@ -30,7 +37,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm"
+	"golang.org/x/sync/errgroup"
 )
 
 // This is especially slightly longer than syzkaller rebuild period.
@@ -66,24 +73,36 @@ func init() {
 //   - latest: latest known good kernel build
 //   - current: currently used kernel build
 type Manager struct {
-	name         string
-	workDir      string
-	kernelDir    string
-	currentDir   string
-	latestDir    string
-	configTag    string
-	configData   []byte
-	cfg          *Config
-	repo         vcs.Repo
-	mgrcfg       *ManagerConfig
-	managercfg   *mgrconfig.Config
-	cmd          *ManagerCmd
-	dash         *dashapi.Dashboard
-	debugStorage bool
-	storage      *asset.Storage
-	stop         chan struct{}
-	debug        bool
-	lastBuild    *dashapi.Build
+	name           string
+	workDir        string
+	kernelBuildDir string
+	kernelSrcDir   string
+	currentDir     string
+	latestDir      string
+	configTag      string
+	configData     []byte
+	cfg            *Config
+	repo           vcs.Repo
+	mgrcfg         *ManagerConfig
+	managercfg     *mgrconfig.Config
+	cmd            *ManagerCmd
+	dash           ManagerDashapi
+	debugStorage   bool
+	storage        *asset.Storage
+	stop           chan struct{}
+	debug          bool
+	lastBuild      *dashapi.Build
+	buildFailed    bool
+	lastRestarted  time.Time
+}
+
+type ManagerDashapi interface {
+	ReportBuildError(req *dashapi.BuildErrorReq) error
+	UploadBuild(build *dashapi.Build) error
+	BuilderPoll(manager string) (*dashapi.BuilderPollResp, error)
+	LogError(name, msg string, args ...interface{})
+	CommitPoll() (*dashapi.CommitPollResp, error)
+	UploadCommits(commits []dashapi.Commit) error
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
@@ -124,22 +143,26 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 	}
 
 	mgr := &Manager{
-		name:         mgrcfg.managercfg.Name,
-		workDir:      filepath.Join(dir, "workdir"),
-		kernelDir:    kernelDir,
-		currentDir:   filepath.Join(dir, "current"),
-		latestDir:    filepath.Join(dir, "latest"),
-		configTag:    hash.String(configData),
-		configData:   configData,
-		cfg:          cfg,
-		repo:         repo,
-		mgrcfg:       mgrcfg,
-		managercfg:   mgrcfg.managercfg,
-		dash:         dash,
-		storage:      assetStorage,
-		debugStorage: !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
-		stop:         stop,
-		debug:        debug,
+		name:           mgrcfg.managercfg.Name,
+		workDir:        filepath.Join(dir, "workdir"),
+		kernelSrcDir:   path.Join(kernelDir, mgrcfg.KernelSrcSuffix),
+		kernelBuildDir: kernelDir,
+		currentDir:     filepath.Join(dir, "current"),
+		latestDir:      filepath.Join(dir, "latest"),
+		configTag:      hash.String(configData),
+		configData:     configData,
+		cfg:            cfg,
+		repo:           repo,
+		mgrcfg:         mgrcfg,
+		managercfg:     mgrcfg.managercfg,
+		storage:        assetStorage,
+		debugStorage:   !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
+		stop:           stop,
+		debug:          debug,
+	}
+	// Leave the dashboard interface value as nil if it does not wrap a valid dashboard pointer.
+	if dash != nil {
+		mgr.dash = dash
 	}
 
 	os.RemoveAll(mgr.currentDir)
@@ -156,10 +179,13 @@ var buildSem = instance.NewSemaphore(1)
 // simultaneous env.Test calls.
 var testSem = instance.NewSemaphore(1)
 
+const fuzzingMinutesBeforeCover = 360
+const benchUploadPeriod = 30 * time.Minute
+
 func (mgr *Manager) loop() {
 	lastCommit := ""
 	nextBuildTime := time.Now()
-	var managerRestartTime, artifactUploadTime time.Time
+	var managerRestartTime, artifactUploadTime, benchUploadTime time.Time
 	latestInfo := mgr.checkLatest()
 	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 &&
 		mgr.managercfg.TargetOS != targets.Fuchsia {
@@ -174,6 +200,8 @@ func (mgr *Manager) loop() {
 	} else if latestInfo != nil {
 		log.Logf(0, "%v: latest image is on %v", mgr.name, latestInfo.KernelCommit)
 	}
+
+	benchUploadTime = time.Now().Add(benchUploadPeriod)
 
 	ticker := time.NewTicker(buildRetryPeriod)
 	defer ticker.Stop()
@@ -190,10 +218,22 @@ loop:
 			if err := mgr.uploadCoverReport(); err != nil {
 				mgr.Errorf("failed to upload cover report: %v", err)
 			}
-			if mgr.cfg.CorpusUploadPath != "" {
-				if err := mgr.uploadCorpus(); err != nil {
-					mgr.Errorf("failed to upload corpus: %v", err)
-				}
+			if err := mgr.uploadProgramsWithCoverage(); err != nil {
+				mgr.Errorf("failed to upload programs with coverage: %v", err)
+			}
+			// Function uploadCoverStat also forces manager to drop the coverage structures to reduce memory usage.
+			// Should be the last request touching the coverage data.
+			if err := mgr.uploadCoverStat(fuzzingMinutesBeforeCover); err != nil {
+				mgr.Errorf("failed to upload coverage stat: %v", err)
+			}
+			if err := mgr.uploadCorpus(); err != nil {
+				mgr.Errorf("failed to upload corpus: %v", err)
+			}
+		}
+		if mgr.cfg.BenchUploadPath != "" && time.Now().After(benchUploadTime) {
+			benchUploadTime = time.Now().Add(benchUploadPeriod)
+			if err := mgr.uploadBenchData(); err != nil {
+				mgr.Errorf("failed to upload bench: %v", err)
 			}
 		}
 
@@ -207,7 +247,7 @@ loop:
 			managerRestartTime = latestInfo.Time
 			mgr.restartManager()
 			if mgr.cmd != nil {
-				artifactUploadTime = time.Now().Add(6 * time.Hour)
+				artifactUploadTime = time.Now().Add(fuzzingMinutesBeforeCover * time.Minute)
 			}
 		}
 
@@ -225,18 +265,30 @@ loop:
 	log.Logf(0, "%v: stopped", mgr.name)
 }
 
+func (mgr *Manager) archiveCommit(commit string) {
+	if mgr.cfg.GitArchive == "" || mgr.mgrcfg.DisableGitArchive {
+		return
+	}
+	if err := mgr.repo.PushCommit(mgr.cfg.GitArchive, commit); err != nil {
+		mgr.Errorf("%v: failed to archive commit %s from repo %s: %s",
+			mgr.name, commit, mgr.mgrcfg.Repo, err.Error())
+	}
+}
+
 func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
 	rebuildAfter := buildRetryPeriod
 	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 	if err != nil {
+		mgr.buildFailed = true
 		mgr.Errorf("failed to poll: %v", err)
 	} else {
 		log.Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
-		if commit.Hash != lastCommit &&
-			(latestInfo == nil ||
-				commit.Hash != latestInfo.KernelCommit ||
-				mgr.configTag != latestInfo.KernelConfigTag) {
+		needsUpdate := (latestInfo == nil ||
+			commit.Hash != latestInfo.KernelCommit ||
+			mgr.configTag != latestInfo.KernelConfigTag)
+		mgr.buildFailed = needsUpdate
+		if commit.Hash != lastCommit && needsUpdate {
 			lastCommit = commit.Hash
 			select {
 			case <-buildSem.WaitC():
@@ -244,7 +296,10 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 				if err := mgr.build(commit); err != nil {
 					log.Logf(0, "%v: %v", mgr.name, err)
 				} else {
-					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+					log.Logf(0, "%v: build successful", mgr.name)
+					mgr.archiveCommit(lastCommit)
+					log.Logf(0, "%v: [re]starting manager", mgr.name)
+					mgr.buildFailed = false
 					rebuildAfter = kernelRebuildPeriod
 					latestInfo = mgr.checkLatest()
 					if latestInfo == nil {
@@ -313,17 +368,18 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
 	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to remove tmp dir: %v", err)
+		return fmt.Errorf("failed to remove tmp dir: %w", err)
 	}
 	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %v", err)
+		return fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	params := build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
 		TargetArch:   mgr.managercfg.TargetVMArch,
 		VMType:       mgr.managercfg.Type,
-		KernelDir:    mgr.kernelDir,
+		KernelDir:    mgr.kernelBuildDir,
 		OutputDir:    tmpDir,
+		Make:         mgr.mgrcfg.Make,
 		Compiler:     mgr.mgrcfg.Compiler,
 		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
@@ -332,6 +388,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
 		Build:        mgr.mgrcfg.Build,
+		BuildCPUs:    mgr.cfg.BuildCPUs,
 	}
 	details, err := build.Image(params)
 	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
@@ -339,25 +396,29 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		rep := &report.Report{
 			Title: fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 		}
-		switch err1 := err.(type) {
-		case *build.KernelError:
-			rep.Report = err1.Report
-			rep.Output = err1.Output
-			rep.Recipients = err1.Recipients
-		case *osutil.VerboseError:
-			rep.Report = []byte(err1.Title)
-			rep.Output = err1.Output
+		var kernelError *build.KernelError
+		var verboseError *osutil.VerboseError
+		switch {
+		case errors.As(err, &kernelError):
+			rep.Report = kernelError.Report
+			rep.Output = kernelError.Output
+			rep.Recipients = kernelError.Recipients
+		case errors.As(err, &verboseError):
+			rep.Report = []byte(verboseError.Title)
+			rep.Output = verboseError.Output
+		case errors.As(err, &build.InfraError{}):
+			return err
 		default:
 			rep.Report = []byte(err.Error())
 		}
 		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
-		return fmt.Errorf("kernel build failed: %v", err)
+		return fmt.Errorf("kernel build failed: %w", err)
 	}
 
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
-		return fmt.Errorf("failed to write tag file: %v", err)
+		return fmt.Errorf("failed to write tag file: %w", err)
 	}
 
 	if err := mgr.testImage(tmpDir, info); err != nil {
@@ -366,10 +427,12 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 
 	// Now try to replace latest with our tmp dir as atomically as we can get on Linux.
 	if err := os.RemoveAll(mgr.latestDir); err != nil {
-		return fmt.Errorf("failed to remove latest dir: %v", err)
+		return fmt.Errorf("failed to remove latest dir: %w", err)
 	}
 	return osutil.Rename(tmpDir, mgr.latestDir)
 }
+
+const benchFileName = "bench.json"
 
 func (mgr *Manager) restartManager() {
 	if !osutil.FilesExist(mgr.latestDir, imageFiles) {
@@ -389,9 +452,22 @@ func (mgr *Manager) restartManager() {
 		mgr.Errorf("failed to load build info: %v", err)
 		return
 	}
+	// HEAD might be pointing to a different commit now e.g. due to a recent failed kernel
+	// build attempt, so let's always reset it to the commit the current kernel was built at.
+	_, err = mgr.repo.CheckoutCommit(mgr.mgrcfg.Repo, info.KernelCommit)
+	if err != nil {
+		mgr.Errorf("failed to check out the last kernel commit %q: %v", info.KernelCommit, err)
+		return
+	}
 	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)
 	if err != nil {
 		mgr.Errorf("failed to upload build: %v", err)
+		return
+	}
+	daysSinceCommit := time.Since(info.KernelCommitDate).Hours() / 24
+	if mgr.buildFailed && daysSinceCommit > float64(mgr.mgrcfg.MaxKernelLagDays) {
+		log.Logf(0, "%s: the kernel is now too old (%.1f days since last commit), fuzzing is stopped",
+			mgr.name, daysSinceCommit)
 		return
 	}
 	cfgFile, err := mgr.writeConfig(buildTag)
@@ -401,72 +477,41 @@ func (mgr *Manager) restartManager() {
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
-	args := []string{"-config", cfgFile}
+	benchFile := filepath.Join(mgr.currentDir, benchFileName)
+
+	args := []string{"-config", cfgFile, "-vv", "1", "-bench", benchFile}
 	if mgr.debug {
 		args = append(args, "-debug")
 	}
-	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, args...)
+	mgr.cmd = NewManagerCmd(mgr.name, logFile, benchFile, mgr.Errorf, bin, args...)
+	mgr.lastRestarted = time.Now()
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
+	testSem.Wait()
+	defer testSem.Signal()
+
 	log.Logf(0, "%v: testing image...", mgr.name)
 	mgrcfg, err := mgr.createTestConfig(imageDir, info)
 	if err != nil {
-		return fmt.Errorf("failed to create manager config: %v", err)
+		return fmt.Errorf("failed to create manager config: %w", err)
 	}
-	defer os.RemoveAll(mgrcfg.Workdir)
-	if !vm.AllowsOvercommit(mgrcfg.Type) {
-		return nil // No support for creating machines out of thin air.
-	}
-	env, err := instance.NewEnv(mgrcfg, buildSem, testSem)
+	rep, err := instance.RunSmokeTest(mgrcfg)
 	if err != nil {
+		mgr.Errorf("%s", err)
 		return err
+	} else if rep == nil {
+		return nil
 	}
-	const (
-		testVMs     = 3
-		maxFailures = 1
-	)
-	results, err := env.Test(testVMs, nil, nil, nil)
-	if err != nil {
-		return err
+	rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
+	// There are usually no duplicates for boot errors, so we reset AltTitles.
+	// But if we pass them, we would need to add the same prefix as for Title
+	// in order to avoid duping boot bugs with non-boot bugs.
+	rep.AltTitles = nil
+	if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+		mgr.Errorf("failed to report image error: %v", err)
 	}
-	failures := 0
-	var failureErr error
-	for _, res := range results {
-		if res.Error == nil {
-			continue
-		}
-		failures++
-		switch err := res.Error.(type) {
-		case *instance.TestError:
-			if rep := err.Report; rep != nil {
-				what := "test"
-				if err.Boot {
-					what = "boot"
-				}
-				rep.Title = fmt.Sprintf("%v %v error: %v",
-					mgr.mgrcfg.RepoAlias, what, rep.Title)
-				// There are usually no duplicates for boot errors, so we reset AltTitles.
-				// But if we pass them, we would need to add the same prefix as for Title
-				// in order to avoid duping boot bugs with non-boot bugs.
-				rep.AltTitles = nil
-				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-					mgr.Errorf("failed to report image error: %v", err)
-				}
-			}
-			if err.Boot {
-				failureErr = fmt.Errorf("VM boot failed with: %v", err)
-			} else {
-				failureErr = fmt.Errorf("VM testing failed with: %v", err)
-			}
-		default:
-			failureErr = res.Error
-		}
-	}
-	if failures > maxFailures {
-		return failureErr
-	}
-	return nil
+	return fmt.Errorf("%s", rep.Title)
 }
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
@@ -514,13 +559,19 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
+	mgrcfg.HTTP = "" // Don't start the HTTP server.
+	// For GCE VMs, we need to bind to a real networking interface, so no localhost.
+	mgrcfg.RPC = fmt.Sprintf(":%v", mgr.mgrcfg.testRPCPort)
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
 	if err := instance.SetConfigImage(mgrcfg, imageDir, true); err != nil {
 		return nil, err
 	}
-	mgrcfg.KernelSrc = mgr.kernelDir
+	if err := instance.OverrideVMCount(mgrcfg, 3); err != nil {
+		return nil, err
+	}
+	mgrcfg.KernelSrc = mgr.kernelSrcDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
-		return nil, fmt.Errorf("bad manager config: %v", err)
+		return nil, fmt.Errorf("bad manager config: %w", err)
 	}
 	return mgrcfg, nil
 }
@@ -530,9 +581,9 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	*mgrcfg = *mgr.managercfg
 
 	if mgr.dash != nil {
-		mgrcfg.DashboardClient = mgr.dash.Client
-		mgrcfg.DashboardAddr = mgr.dash.Addr
-		mgrcfg.DashboardKey = mgr.dash.Key
+		mgrcfg.DashboardClient = mgr.mgrcfg.DashboardClient
+		mgrcfg.DashboardAddr = mgr.cfg.DashboardAddr
+		mgrcfg.DashboardKey = mgr.mgrcfg.DashboardKey
 		mgrcfg.AssetStorage = mgr.cfg.AssetStorage
 	}
 	if mgr.cfg.HubAddr != "" {
@@ -555,9 +606,9 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
-	mgrcfg.KernelSrc = mgr.kernelDir
+	mgrcfg.KernelSrc = mgr.kernelSrcDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
-		return "", fmt.Errorf("bad manager config: %v", err)
+		return "", fmt.Errorf("bad manager config: %w", err)
 	}
 	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
@@ -611,7 +662,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	if kernelConfigFile := filepath.Join(imageDir, "kernel.config"); osutil.IsExist(kernelConfigFile) {
 		var err error
 		if kernelConfig, err = os.ReadFile(kernelConfigFile); err != nil {
-			return nil, fmt.Errorf("failed to read kernel.config: %v", err)
+			return nil, fmt.Errorf("failed to read kernel.config: %w", err)
 		}
 	}
 	// Resulting build depends on both kernel build tag and syzkaller commmit.
@@ -647,17 +698,32 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	if err != nil || len(resp.PendingCommits) == 0 && resp.ReportEmail == "" {
 		return nil, nil, err
 	}
+
+	// We don't want to spend too much time querying commits from the history,
+	// so let's pick a random subset of them each time.
+	const sampleCommits = 25
+
+	pendingCommits := resp.PendingCommits
+	if len(pendingCommits) > sampleCommits {
+		rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(
+			len(pendingCommits), func(i, j int) {
+				pendingCommits[i], pendingCommits[j] =
+					pendingCommits[j], pendingCommits[i]
+			})
+		pendingCommits = pendingCommits[:sampleCommits]
+	}
+
 	var present []string
-	if len(resp.PendingCommits) != 0 {
-		commits, err := mgr.repo.ListRecentCommits(buildCommit)
+	if len(pendingCommits) != 0 {
+		commits, _, err := mgr.repo.GetCommitsByTitles(pendingCommits)
 		if err != nil {
 			return nil, nil, err
 		}
 		m := make(map[string]bool, len(commits))
 		for _, com := range commits {
-			m[vcs.CanonicalizeCommit(com)] = true
+			m[vcs.CanonicalizeCommit(com.Title)] = true
 		}
-		for _, com := range resp.PendingCommits {
+		for _, com := range pendingCommits {
 			if m[vcs.CanonicalizeCommit(com)] {
 				present = append(present, com)
 			}
@@ -680,6 +746,13 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 		}
 	}
 	return present, fixCommits, nil
+}
+
+func (mgr *Manager) backportCommits() []vcs.BackportCommit {
+	return append(
+		append([]vcs.BackportCommit{}, mgr.cfg.BisectBackports...),
+		mgr.mgrcfg.BisectBackports...,
+	)
 }
 
 func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
@@ -760,6 +833,21 @@ func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder stri
 	return ret, nil
 }
 
+func (mgr *Manager) httpGET(ctx context.Context, path string) (resp *http.Response, err error) {
+	addr := mgr.managercfg.HTTP
+	if addr != "" && addr[0] == ':' {
+		addr = "127.0.0.1" + addr // in case addr is ":port"
+	}
+	client := &http.Client{
+		Timeout: time.Hour,
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://%s%s", addr, path), nil)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
 func (mgr *Manager) uploadCoverReport() error {
 	directUpload := mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != ""
 	if mgr.storage == nil && !directUpload {
@@ -777,21 +865,13 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer buildSem.Signal()
 
-	// Get coverage report from manager.
-	addr := mgr.managercfg.HTTP
-	if addr != "" && addr[0] == ':' {
-		addr = "127.0.0.1" + addr // in case addr is ":port"
-	}
-	client := http.Client{
-		Timeout: time.Hour,
-	}
-	resp, err := client.Get(fmt.Sprintf("http://%v/cover", addr))
+	resp, err := mgr.httpGET(context.Background(), "/cover")
 	if err != nil {
-		return fmt.Errorf("failed to get report: %v", err)
+		return fmt.Errorf("failed to get report: %w", err)
 	}
 	defer resp.Body.Close()
 	if directUpload {
-		return mgr.uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
+		return uploadFile(context.Background(), nil, mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body, mgr.cfg.PublishGCS)
 	}
 	// Upload via the asset storage.
 	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
@@ -806,66 +886,185 @@ func (mgr *Manager) uploadCoverReport() error {
 	return nil
 }
 
+func (mgr *Manager) uploadCoverJSONLToGCS(gcsClient gcs.Client, mgrSrc, gcsDest, nameSuffix string,
+	publish, compress bool, f func(io.Writer, *json.Decoder) error) error {
+	if !mgr.managercfg.Cover || gcsDest == "" {
+		return nil
+	}
+
+	// Report generation consumes 40G RAM. Generate one at a time.
+	// TODO: remove it once #4585 (symbolization tuning) is closed
+	select {
+	case <-buildSem.WaitC():
+	case <-mgr.stop:
+		return nil
+	}
+	defer buildSem.Signal()
+
+	eg, egCtx := errgroup.WithContext(context.Background())
+	resp, err := mgr.httpGET(egCtx, mgrSrc)
+	if err != nil {
+		return fmt.Errorf("failed to httpGet %s: %w", mgrSrc, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		sb := new(strings.Builder)
+		io.Copy(sb, resp.Body)
+		return fmt.Errorf("failed to GET %s, httpStatus %d: %s",
+			mgrSrc, resp.StatusCode, sb.String())
+	}
+
+	pr, pw := io.Pipe()
+	eg.Go(func() error {
+		defer pw.Close()
+		var w io.Writer
+		w = pw
+		if compress {
+			gzw := gzip.NewWriter(pw)
+			defer gzw.Close()
+			w = gzw
+		}
+		decoder := json.NewDecoder(resp.Body)
+		for decoder.More() {
+			if err := f(w, decoder); err != nil {
+				return fmt.Errorf("callback: %w", err)
+			}
+		}
+		return nil
+	})
+	eg.Go(func() error {
+		defer pr.Close()
+		fileName := fmt.Sprintf("%s/%s%s.jsonl", mgr.mgrcfg.DashboardClient, mgr.name, nameSuffix)
+		if err := uploadFile(egCtx, gcsClient, gcsDest, fileName, pr, publish); err != nil {
+			return fmt.Errorf("uploadFile: %w", err)
+		}
+		return nil
+	})
+	return eg.Wait()
+}
+
+func (mgr *Manager) uploadCoverStat(fuzzingMinutes int) error {
+	// Coverage report generation consumes and caches lots of memory.
+	// In the syz-ci context report generation won't be used after this point,
+	// so tell manager to flush report generator.
+	curTime := time.Now()
+	if err := mgr.uploadCoverJSONLToGCS(nil,
+		"/cover?jsonl=1&flush=1",
+		mgr.cfg.CoverPipelinePath,
+		time.Now().Format("-2006-01-02-15-04"),
+		false,
+		false,
+		func(w io.Writer, dec *json.Decoder) error {
+			var covInfo cover.CoverageInfo
+			if err := dec.Decode(&covInfo); err != nil {
+				return fmt.Errorf("failed to decode CoverageInfo: %w", err)
+			}
+			if err := cover.WriteCIJSONLine(w, covInfo, cover.CIDetails{
+				Version:        1,
+				Timestamp:      curTime.Format(time.RFC3339Nano),
+				FuzzingMinutes: fuzzingMinutes,
+				Arch:           mgr.lastBuild.Arch,
+				BuildID:        mgr.lastBuild.ID,
+				Manager:        mgr.name,
+				KernelRepo:     mgr.lastBuild.KernelRepo,
+				KernelBranch:   mgr.lastBuild.KernelBranch,
+				KernelCommit:   mgr.lastBuild.KernelCommit,
+			}); err != nil {
+				return fmt.Errorf("failed to write CIJSONLine: %w", err)
+			}
+			return nil
+		}); err != nil {
+		return fmt.Errorf("mgr.uploadCoverJSONLToGCS: %w", err)
+	}
+	return nil
+}
+
+func (mgr *Manager) uploadProgramsWithCoverage() error {
+	if err := mgr.uploadCoverJSONLToGCS(nil,
+		"/coverprogs?jsonl=1",
+		mgr.cfg.CoverProgramsPath,
+		"",
+		mgr.cfg.PublishGCS,
+		true,
+		func(w io.Writer, dec *json.Decoder) error {
+			var programCoverage cover.ProgramCoverage
+			if err := dec.Decode(&programCoverage); err != nil {
+				return fmt.Errorf("cover.ProgramCoverage: %w", err)
+			}
+			programCoverage.Repo = mgr.lastBuild.KernelRepo
+			programCoverage.Commit = mgr.lastBuild.KernelCommit
+			if err := cover.WriteJSLine(w, &programCoverage); err != nil {
+				return fmt.Errorf("cover.WriteJSLine: %w", err)
+			}
+			return nil
+		}); err != nil {
+		return fmt.Errorf("mgr.uploadCoverJSONLToGCS: %w", err)
+	}
+	return nil
+}
+
 func (mgr *Manager) uploadCorpus() error {
+	if mgr.cfg.CorpusUploadPath == "" {
+		return nil
+	}
 	f, err := os.Open(filepath.Join(mgr.workDir, "corpus.db"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return mgr.uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f)
+	return uploadFile(context.Background(), nil, mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f, mgr.cfg.PublishGCS)
 }
 
-func (mgr *Manager) uploadFile(dstPath, name string, file io.Reader) error {
-	URL, err := url.Parse(dstPath)
+func (mgr *Manager) uploadBenchData() error {
+	if mgr.lastRestarted.IsZero() {
+		return nil
+	}
+	const minUptime = 30 * time.Minute
+	if time.Since(mgr.lastRestarted) < minUptime {
+		// Let's guard against uploading too many benches in case if the instance constantly
+		// restarts.
+		return nil
+	}
+	f, err := os.Open(filepath.Join(mgr.currentDir, benchFileName))
 	if err != nil {
-		return fmt.Errorf("failed to parse upload path: %v", err)
+		return fmt.Errorf("failed to open bench file: %w", err)
 	}
-	URL.Path = path.Join(URL.Path, name)
-	URLStr := URL.String()
-	log.Logf(0, "uploading %v to %v", name, URLStr)
-	if strings.HasPrefix(URLStr, "gs://") {
-		return uploadFileGCS(strings.TrimPrefix(URLStr, "gs://"), file, mgr.cfg.PublishGCS)
-	}
-	if strings.HasPrefix(URLStr, "http://") ||
-		strings.HasPrefix(URLStr, "https://") {
-		return uploadFileHTTPPut(URLStr, file)
-	}
-	// Use GCS as default to maintain backwards compatibility.
-	return uploadFileGCS(URLStr, file, mgr.cfg.PublishGCS)
-}
-
-func uploadFileGCS(URL string, file io.Reader, publish bool) error {
-	GCS, err := gcs.NewClient()
+	defer f.Close()
+	err = uploadFile(context.Background(), nil, mgr.cfg.BenchUploadPath+"/"+mgr.name,
+		mgr.lastRestarted.Format("2006-01-02_15h.json"), f, false)
 	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
-	}
-	defer GCS.Close()
-	gcsWriter, err := GCS.FileWriter(URL)
-	if err != nil {
-		return fmt.Errorf("failed to create GCS writer: %v", err)
-	}
-	if _, err := io.Copy(gcsWriter, file); err != nil {
-		gcsWriter.Close()
-		return fmt.Errorf("failed to copy report: %v", err)
-	}
-	if err := gcsWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close gcs writer: %v", err)
-	}
-	if publish {
-		return GCS.Publish(URL)
+		return fmt.Errorf("failed to upload the bench file: %w", err)
 	}
 	return nil
 }
 
-func uploadFileHTTPPut(URL string, file io.Reader) error {
-	req, err := http.NewRequest(http.MethodPut, URL, file)
+func uploadFile(ctx context.Context, gcsClient gcs.Client, dstPath, name string, file io.Reader, publish bool) error {
+	URL, err := url.Parse(dstPath)
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+		return fmt.Errorf("failed to parse upload path: %w", err)
+	}
+	URL.Path = path.Join(URL.Path, name)
+	URLStr := URL.String()
+	log.Logf(0, "uploading %v to %v", name, URLStr)
+	if strings.HasPrefix(URLStr, "http://") ||
+		strings.HasPrefix(URLStr, "https://") {
+		if gcsClient != nil {
+			return fmt.Errorf("gcsClient is expected to be nil for the http* requests")
+		}
+		return uploadFileHTTPPut(ctx, URLStr, file)
+	}
+	return gcs.UploadFile(ctx, file, URLStr, gcs.UploadOptions{Publish: publish, GCSClientMock: gcsClient})
+}
+
+func uploadFileHTTPPut(ctx context.Context, URL string, file io.Reader) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, URL, file)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP PUT request: %w", err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to perform HTTP PUT request: %v", err)
+		return fmt.Errorf("failed to perform HTTP PUT request: %w", err)
 	}
 	defer resp.Body.Close()
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
@@ -880,4 +1079,22 @@ func (mgr *Manager) Errorf(msg string, args ...interface{}) {
 	if mgr.dash != nil {
 		mgr.dash.LogError(mgr.name, msg, args...)
 	}
+}
+
+func (mgr *ManagerConfig) validate(cfg *Config) error {
+	// Manager name must not contain dots because it is used as GCE image name prefix.
+	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
+	if !managerNameRe.MatchString(mgr.Name) {
+		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
+	}
+	if mgr.Jobs.AnyEnabled() && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+		return fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
+	}
+	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
+		return fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
+	}
+	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
+		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
+	}
+	return nil
 }

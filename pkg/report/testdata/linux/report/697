@@ -1,0 +1,44 @@
+TITLE: WARNING: zero-size vmalloc in xskq_create
+TYPE: WARNING
+
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 2949 at mm/vmalloc.c:3132 __vmalloc_node_range+0x44c/0x584 mm/vmalloc.c:3132
+Modules linked in:
+Kernel panic - not syncing: kernel: panic_on_warn set ...
+CPU: 1 PID: 2949 Comm: syz-executor398 Not tainted 6.3.0-syzkaller #0
+Hardware name: ARM-Versatile Express
+Backtrace: 
+[<817b2528>] (dump_backtrace) from [<817b261c>] (show_stack+0x18/0x1c arch/arm/kernel/traps.c:256)
+ r7:81d81ac0 r6:82422c04 r5:60000093 r4:81d901cc
+[<817b2604>] (show_stack) from [<817cec84>] (__dump_stack lib/dump_stack.c:88 [inline])
+[<817b2604>] (show_stack) from [<817cec84>] (dump_stack_lvl+0x48/0x54 lib/dump_stack.c:106)
+[<817cec3c>] (dump_stack_lvl) from [<817ceca8>] (dump_stack+0x18/0x1c lib/dump_stack.c:113)
+ r5:00000000 r4:8264dd14
+[<817cec90>] (dump_stack) from [<817b3110>] (panic+0x11c/0x36c kernel/panic.c:340)
+[<817b2ff4>] (panic) from [<802422ec>] (print_tainted+0x0/0xa0 kernel/panic.c:236)
+ r3:8240c488 r2:00000001 r1:81d79fcc r0:81d81ac0
+ r7:80469ba0
+[<80242268>] (check_panic_on_warn) from [<802424e0>] (__warn+0x7c/0x180 kernel/panic.c:673)
+[<80242464>] (__warn) from [<802426bc>] (warn_slowpath_fmt+0xd8/0x1d8 kernel/panic.c:697)
+ r8:00000009 r7:00000c3c r6:81da5110 r5:8240c954 r4:822ab6bc
+[<802425e8>] (warn_slowpath_fmt) from [<80469ba0>] (__vmalloc_node_range+0x44c/0x584 mm/vmalloc.c:3132)
+ r10:00000dc0 r9:8410d080 r8:83d04e80 r7:df800000 r6:00004000 r5:00000000
+ r4:00000000
+[<80469754>] (__vmalloc_node_range) from [<80469db0>] (vmalloc_user+0x6c/0x74 mm/vmalloc.c:3359)
+ r10:00000126 r9:8410d080 r8:83d04e80 r7:00000000 r6:00000000 r5:842aa940
+ r4:00000000
+[<80469d44>] (vmalloc_user) from [<81767778>] (xskq_create+0x74/0xc4 net/xdp/xsk_queue.c:39)
+[<81767704>] (xskq_create) from [<81766c64>] (xsk_init_queue net/xdp/xsk.c:756 [inline])
+[<81767704>] (xskq_create) from [<81766c64>] (xsk_setsockopt+0x1c0/0x2bc net/xdp/xsk.c:1080)
+ r7:83d04eac r6:83d04c00 r5:00000000 r4:00000003
+[<81766aa8>] (xsk_setsockopt) from [<812f6720>] (__sys_setsockopt+0xd4/0x1c8 net/socket.c:2271)
+ r8:80200288 r7:00000126 r6:000118b0 r5:81766aa4 r4:844eb900
+[<812f664c>] (__sys_setsockopt) from [<812f6830>] (__do_sys_setsockopt net/socket.c:2282 [inline])
+[<812f664c>] (__sys_setsockopt) from [<812f6830>] (sys_setsockopt+0x1c/0x24 net/socket.c:2279)
+ r5:00000000 r4:00000020
+[<812f6814>] (sys_setsockopt) from [<80200060>] (ret_fast_syscall+0x0/0x1c arch/arm/mm/proc-v7.S:66)
+Exception stack(0xdf981fa8 to 0xdf981ff0)
+1fa0:                   00000020 00000000 00000003 0000011b 00000003 20000040
+1fc0: 00000020 00000000 000118b0 00000126 000f4240 00000000 00000000 00003a97
+1fe0: 7e9b4c90 7e9b4c80 00010624 0002a900
+Rebooting in 86400 seconds..

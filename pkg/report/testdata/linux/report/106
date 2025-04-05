@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in consume_skb
 ALT: bad-access in consume_skb
+TYPE: KASAN
 CORRUPTED: Y
 
 [   55.468844] ==================================================================

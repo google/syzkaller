@@ -14,7 +14,6 @@ type Rotator struct {
 	calls         map[*Syscall]bool
 	rnd           *rand.Rand
 	resourceless  []*Syscall
-	syscallUses   map[*Syscall][]*ResourceDesc
 	resources     map[*ResourceDesc]rotatorResource
 	goal          int
 	nresourceless int
@@ -32,11 +31,10 @@ type rotatorResource struct {
 
 func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotator {
 	r := &Rotator{
-		target:      target,
-		calls:       calls,
-		rnd:         rnd,
-		syscallUses: make(map[*Syscall][]*ResourceDesc),
-		resources:   make(map[*ResourceDesc]rotatorResource),
+		target:    target,
+		calls:     calls,
+		rnd:       rnd,
+		resources: make(map[*ResourceDesc]rotatorResource),
 	}
 	var sorted []*Syscall
 	for call := range calls {
@@ -46,8 +44,6 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 		return sorted[i].Name < sorted[j].Name
 	})
 	for _, call := range sorted {
-		r.syscallUses[call] = append(r.syscallUses[call], call.inputResources...)
-		r.syscallUses[call] = append(r.syscallUses[call], call.outputResources...)
 		var inputs []*ResourceDesc
 		for _, res := range call.inputResources {
 			// Don't take into account pid/uid/etc, they create too many links.
@@ -86,8 +82,8 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 				r.resources[parent] = info
 			}
 		}
-		outputDedup := make(map[string]bool, len(call.outputResources))
-		for _, res := range call.outputResources {
+		outputDedup := make(map[string]bool, len(call.createsResources))
+		for _, res := range call.createsResources {
 			if outputDedup[res.Name] {
 				continue
 			}
@@ -106,7 +102,7 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 				r.resources[parent] = info
 			}
 		}
-		if len(inputs)+len(call.outputResources) == 0 {
+		if len(inputs)+len(call.createsResources) == 0 {
 			r.resourceless = append(r.resourceless, call)
 		}
 	}
@@ -114,17 +110,10 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 	// However, we assume that 200 syscalls is enough for a fuzzing session,
 	// so we cap at that level to make fuzzing more targeted.
 	r.goal = len(calls) * 19 / 20
-	if r.goal < 1 {
-		r.goal = 1
-	}
-	if max := 200; r.goal > max {
-		r.goal = max
-	}
+	r.goal = max(r.goal, 1)
+	r.goal = min(r.goal, 200)
 	// How many syscalls that don't use any resources we want to add?
-	r.nresourceless = r.goal * len(r.resourceless) / len(calls)
-	if r.nresourceless < 1 {
-		r.nresourceless = 1
-	}
+	r.nresourceless = max(1, r.goal*len(r.resourceless)/len(calls))
 	return r
 }
 
@@ -230,7 +219,7 @@ func (rs *rotatorState) addCall(call *Syscall) {
 		return
 	}
 	rs.calls[call] = true
-	for _, res := range rs.syscallUses[call] {
+	for _, res := range call.usesResources {
 		if rs.topHandled[res] || rs.depHandled[res] {
 			continue
 		}

@@ -47,7 +47,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -72,7 +71,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -98,7 +96,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        true,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     true,
@@ -118,7 +115,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -138,7 +134,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -158,7 +153,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -179,7 +173,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			CloseFDs:     true,
 			UseTmpDir:    true,
 			HandleSegv:   true,
-			Repro:        false,
 			LegacyOptions: LegacyOptions{
 				Collide:   true,
 				Fault:     false,
@@ -314,6 +307,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"wifi":        true,
 			"ieee802154":  true,
 			"sysctl":      true,
+			"swap":        true,
 		}},
 		{"none", "none", false, map[string]bool{}},
 		{"all", "none", true, map[string]bool{
@@ -330,6 +324,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"wifi":        true,
 			"ieee802154":  true,
 			"sysctl":      true,
+			"swap":        true,
 		}},
 		{"", "none", true, map[string]bool{}},
 		{"none", "all", true, map[string]bool{}},
@@ -347,6 +342,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"wifi":        true,
 			"ieee802154":  true,
 			"sysctl":      true,
+			"swap":        true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
 			"tun":     true,
@@ -364,9 +360,13 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"wifi":        true,
 			"ieee802154":  true,
 			"sysctl":      true,
+			"swap":        true,
 		}},
 		{"close_fds", "none", true, map[string]bool{
 			"close_fds": true,
+		}},
+		{"swap", "none", true, map[string]bool{
+			"swap": true,
 		}},
 	}
 	for i, test := range tests {

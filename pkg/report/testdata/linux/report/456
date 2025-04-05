@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in f2fs_fill_super
+TYPE: UBSAN
 
 [   55.446365][ T6377] ================================================================================
 [   55.447852][ T6377] UBSAN: Undefined behaviour in fs/f2fs/super.c:2563:16

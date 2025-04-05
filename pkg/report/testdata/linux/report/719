@@ -1,0 +1,232 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+EXECUTOR: proc=2, id=4572
+
+[  576.777151][    C0] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  576.778800][    C0] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P30749/1:b..l P22934/1:b..l
+[  576.780823][    C0] rcu: 	(detected by 0, t=10002 jiffies, g=56441, q=553 ncpus=2)
+[  576.782461][    C0] task:syz-executor    state:R  running task     stack:21064 pid:22934 tgid:22934 ppid:22913  flags:0x00004000
+[  576.786066][    C0] Call Trace:
+[  576.787338][    C0]  <TASK>
+[  576.787959][    C0]  __schedule+0x1335/0x44b0
+[  576.788955][    C0]  ? swake_up_one_online+0x71/0x120
+[  576.790086][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.791158][    C0]  ? irqentry_exit+0x3f/0x60
+[  576.792139][    C0]  ? sysvec_reschedule_ipi+0x7e/0x190
+[  576.793246][    C0]  ? __pfx___schedule+0x10/0x10
+[  576.794283][    C0]  ? page_table_check_set+0xd1/0x560
+[  576.795414][    C0]  ? preempt_schedule+0xe2/0xf0
+[  576.796485][    C0]  preempt_schedule_common+0x9c/0xe0
+[  576.797617][    C0]  preempt_schedule+0xe2/0xf0
+[  576.798620][    C0]  ? __pfx_preempt_schedule+0x10/0x10
+[  576.799734][    C0]  ? __page_table_check_ptes_set+0x32a/0x430
+[  576.800963][    C0]  preempt_schedule_thunk+0x1a/0x30
+[  576.802058][    C0]  _raw_spin_unlock+0x68/0x70
+[  576.803038][    C0]  copy_pmd_range+0x7857/0x8120
+[  576.804053][    C0]  ? __pfx_copy_pmd_range+0x10/0x10
+[  576.805123][    C0]  ? __pfx___schedule+0x10/0x10
+[  576.806139][    C0]  ? irqentry_exit+0x3f/0x60
+[  576.807099][    C0]  ? sysvec_call_function_single+0x67/0xd0
+[  576.808292][    C0]  ? preempt_schedule_irq+0xd7/0x130
+[  576.809251][    C0]  ? __pfx_preempt_schedule_irq+0x10/0x10
+[  576.810178][    C0]  ? mas_wr_walk_descend+0x5a6/0x880
+[  576.810959][    C0]  ? raw_irqentry_exit_cond_resched+0x48/0x60
+[  576.811999][    C0]  ? sysvec_call_function_single+0x67/0xd0
+[  576.812994][    C0]  ? copy_page_range+0x232/0xd40
+[  576.813828][    C0]  copy_page_range+0x99c/0xd40
+[  576.814647][    C0]  ? __pfx_copy_page_range+0x10/0x10
+[  576.815426][    C0]  ? up_write+0xc9/0x1c0
+[  576.816296][    C0]  ? __pfx_up_write+0x10/0x10
+[  576.817271][    C0]  ? vma_interval_tree_insert_after+0x2e4/0x310
+[  576.818572][    C0]  copy_mm+0x120e/0x1ea0
+[  576.819462][    C0]  ? __pfx_copy_mm+0x10/0x10
+[  576.820443][    C0]  ? _raw_spin_lock+0xa9/0x1b0
+[  576.821500][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.822568][    C0]  ? __init_rwsem+0xd9/0x130
+[  576.823533][    C0]  ? copy_signal+0x4fb/0x650
+[  576.824510][    C0]  copy_process+0x15db/0x3720
+[  576.825535][    C0]  ? __pfx_copy_process+0x10/0x10
+[  576.826599][    C0]  ? __pfx_cgroup_rstat_updated+0x10/0x10
+[  576.827783][    C0]  ? __kasan_check_read+0x15/0x20
+[  576.828843][    C0]  kernel_clone+0x23a/0x8d0
+[  576.829803][    C0]  ? debug_smp_processor_id+0x1b/0x30
+[  576.830919][    C0]  ? __pfx_kernel_clone+0x10/0x10
+[  576.831951][    C0]  __x64_sys_clone+0x259/0x2b0
+[  576.832935][    C0]  ? __pfx___x64_sys_clone+0x10/0x10
+[  576.834076][    C0]  ? handle_mm_fault+0x81c/0xae0
+[  576.835134][    C0]  ? fpregs_assert_state_consistent+0xbb/0xf0
+[  576.836312][    C0]  x64_sys_call+0x246a/0x2e60
+[  576.837192][    C0]  do_syscall_64+0xe3/0x230
+[  576.838152][    C0]  ? clear_bhb_loop+0x25/0x80
+[  576.839135][    C0]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  576.840163][    C0] RIP: 0033:0x7f445ef6d443
+[  576.840906][    C0] RSP: 002b:00007ffce0b328f8 EFLAGS: 00000246 ORIG_RAX: 0000000000000038
+[  576.842265][    C0] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f445ef6d443
+[  576.843603][    C0] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000001200011
+[  576.844988][    C0] RBP: 0000000000000001 R08: 0000000000000000 R09: 0000000000000000
+[  576.846281][    C0] R10: 000055558477b7d0 R11: 0000000000000246 R12: 0000000000000000
+[  576.847562][    C0] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  576.849059][    C0]  </TASK>
+[  576.849573][    C0] task:syz.1.4561      state:R  running task     stack:26536 pid:30749 tgid:30731 ppid:14971  flags:0x00004000
+[  576.851824][    C0] Call Trace:
+[  576.852505][    C0]  <TASK>
+[  576.853113][    C0]  __schedule+0x1335/0x44b0
+[  576.854063][    C0]  ? __pfx_cgroup_rstat_updated+0x10/0x10
+[  576.855240][    C0]  ? __pfx_free_pages_and_swap_cache+0x10/0x10
+[  576.856490][    C0]  ? debug_smp_processor_id+0x1b/0x30
+[  576.857601][    C0]  ? memcg_rstat_updated+0x80/0x300
+[  576.858673][    C0]  ? __pfx___schedule+0x10/0x10
+[  576.859688][    C0]  ? __mod_memcg_lruvec_state+0x283/0x340
+[  576.860849][    C0]  ? __this_cpu_preempt_check+0x17/0x20
+[  576.861996][    C0]  ? __mod_node_page_state+0xb0/0x100
+[  576.863116][    C0]  ? preempt_schedule+0xe2/0xf0
+[  576.864124][    C0]  preempt_schedule_common+0x9c/0xe0
+[  576.865221][    C0]  preempt_schedule+0xe2/0xf0
+[  576.866196][    C0]  ? __pfx_preempt_schedule+0x10/0x10
+[  576.867298][    C0]  ? folio_remove_rmap_ptes+0x37f/0x4c0
+[  576.868421][    C0]  preempt_schedule_thunk+0x1a/0x30
+[  576.869484][    C0]  _raw_spin_unlock+0x68/0x70
+[  576.870474][    C0]  unmap_page_range+0x38e0/0x42e0
+[  576.871516][    C0]  ? __switch_to_asm+0x37/0x70
+[  576.872507][    C0]  ? __pfx_unmap_page_range+0x10/0x10
+[  576.873598][    C0]  ? mm_cid_get+0xb9/0x8e0
+[  576.874526][    C0]  ? dequeue_pushable_task+0x34/0x2e0
+[  576.875612][    C0]  ? _raw_spin_unlock+0x50/0x70
+[  576.876606][    C0]  ? __switch_to_asm+0x37/0x70
+[  576.877571][    C0]  ? mas_next_slot+0x19e0/0x1ab0
+[  576.878575][    C0]  ? uprobe_munmap+0x1aa/0x450
+[  576.879553][    C0]  unmap_single_vma+0x1c8/0x2a0
+[  576.880557][    C0]  unmap_vmas+0x36b/0x580
+[  576.881448][    C0]  ? __pfx_unmap_vmas+0x10/0x10
+[  576.882438][    C0]  ? __pfx_preempt_schedule+0x10/0x10
+[  576.883518][    C0]  ? tlb_gather_mmu_fullmm+0x16c/0x220
+[  576.884639][    C0]  exit_mmap+0x263/0xaf0
+[  576.885495][    C0]  ? __pfx_exit_mmap+0x10/0x10
+[  576.886473][    C0]  ? __pfx_exit_aio+0x10/0x10
+[  576.887410][    C0]  ? uprobe_clear_state+0x268/0x280
+[  576.888465][    C0]  __mmput+0x128/0x3f0
+[  576.889300][    C0]  ? mmput+0x5e/0x80
+[  576.890102][    C0]  mmput+0x66/0x80
+[  576.890862][    C0]  exit_mm+0x135/0x200
+[  576.891690][    C0]  do_exit+0x97c/0x2bd0
+[  576.892534][    C0]  ? __pfx_futex_wake_mark+0x10/0x10
+[  576.893608][    C0]  ? __pfx_do_exit+0x10/0x10
+[  576.894545][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.895575][    C0]  ? cgroup_freezing+0xa0/0xd0
+[  576.896552][    C0]  do_group_exit+0x215/0x2e0
+[  576.897486][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.898537][    C0]  get_signal+0x14e5/0x1650
+[  576.899461][    C0]  ? __pfx_get_signal+0x10/0x10
+[  576.900467][    C0]  arch_do_signal_or_restart+0x96/0x840
+[  576.901621][    C0]  ? __pfx_arch_do_signal_or_restart+0x10/0x10
+[  576.902913][    C0]  syscall_exit_to_user_mode+0x66/0x240
+[  576.904044][    C0]  do_syscall_64+0xf0/0x230
+[  576.904980][    C0]  ? clear_bhb_loop+0x25/0x80
+[  576.905971][    C0]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  576.907171][    C0] RIP: 0033:0x7f4239776b49
+[  576.908073][    C0] RSP: 002b:00007f423a50a0f8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  576.909774][    C0] RAX: fffffffffffffe00 RBX: 00007f4239904118 RCX: 00007f4239776b49
+[  576.911383][    C0] RDX: 0000000000000000 RSI: 0000000000000080 RDI: 00007f4239904118
+[  576.912971][    C0] RBP: 00007f4239904110 R08: 00007f423a50acdc R09: 00007f423a50acdc
+[  576.914569][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f423990411c
+[  576.916168][    C0] R13: 000000000000006e R14: 00007ffe14586dc0 R15: 00007ffe14586ea8
+[  576.917775][    C0]  </TASK>
+[  576.918408][    C0] rcu: rcu_preempt kthread starved for 10015 jiffies! g56441 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[  576.920635][    C0] rcu: 	Unless rcu_preempt kthread gets sufficient CPU time, OOM is now expected behavior.
+[  576.922617][    C0] rcu: RCU grace-period kthread stack dump:
+[  576.923802][    C0] task:rcu_preempt     state:R  running task     stack:25440 pid:17    tgid:17    ppid:2      flags:0x00004000
+[  576.926162][    C0] Call Trace:
+[  576.926828][    C0]  <TASK>
+[  576.927434][    C0]  __schedule+0x1335/0x44b0
+[  576.928355][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.929380][    C0]  ? __mod_timer+0xa6f/0x10a0
+[  576.930362][    C0]  ? __pfx___schedule+0x10/0x10
+[  576.931364][    C0]  ? __pfx___try_to_del_timer_sync+0x10/0x10
+[  576.932578][    C0]  schedule+0xc9/0x240
+[  576.933426][    C0]  schedule_timeout+0x1ad/0x3c0
+[  576.934425][    C0]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[  576.935709][    C0]  ? __pfx_schedule_timeout+0x10/0x10
+[  576.936800][    C0]  ? __pfx_process_timeout+0x10/0x10
+[  576.937876][    C0]  ? prepare_to_swait_event+0x310/0x330
+[  576.938995][    C0]  rcu_gp_fqs_loop+0x2da/0x1200
+[  576.939996][    C0]  ? __pfx_rcu_gp_init+0x10/0x10
+[  576.940998][    C0]  ? __pfx_rcu_gp_fqs_loop+0x10/0x10
+[  576.942102][    C0]  ? finish_swait+0x17f/0x1c0
+[  576.943060][    C0]  rcu_gp_kthread+0xa4/0x3a0
+[  576.943988][    C0]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  576.945042][    C0]  ? __kasan_check_read+0x15/0x20
+[  576.946077][    C0]  ? __kthread_parkme+0x12f/0x180
+[  576.947105][    C0]  kthread+0x2d8/0x370
+[  576.947940][    C0]  ? __pfx_rcu_gp_kthread+0x10/0x10
+[  576.949005][    C0]  ? __pfx_kthread+0x10/0x10
+[  576.949949][    C0]  ret_from_fork+0x56/0x90
+[  576.950843][    C0]  ? __pfx_kthread+0x10/0x10
+[  576.951774][    C0]  ret_from_fork_asm+0x1a/0x30
+[  576.952751][    C0]  </TASK>
+[  576.953381][    C0] rcu: Stack dump where RCU GP kthread last ran:
+[  576.954702][    C0] CPU: 0 PID: 30768 Comm: syz.2.4572 Not tainted 6.10.0-rc5-00257-g88d8f64b9f5f-dirty #20
+[  576.956650][    C0] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[  576.958745][    C0] RIP: 0010:_raw_spin_unlock_irq+0x4c/0x70
+[  576.959932][    C0] Code: 3c 08 00 74 0c 48 c7 c7 00 30 f3 8d e8 cd 87 70 f6 48 83 3d b5 3b 6f 02 00 74 2e 48 89 df e8 eb 12 00 00 90 fb bf 01 00 00 00 <e8> 5f 07 e1 f5 65 8b 05 20 be 7f 74 85 c0 74 08 5b 5d c3 cc cc cc
+[  576.963839][    C0] RSP: 0018:ffffc9000977fc48 EFLAGS: 00000246
+[  576.965079][    C0] RAX: 0000000000000001 RBX: ffff8880188a08c0 RCX: dffffc0000000000
+[  576.966689][    C0] RDX: ffffc90010fbf000 RSI: 000000000003ffff RDI: 0000000000000001
+[  576.968274][    C0] RBP: ffffc9000977fc50 R08: 00007f80d799cb70 R09: 000000001c000004
+[  576.969887][    C0] R10: 00007f80d7914e00 R11: 0000000000000000 R12: 1ffff1100311419c
+[  576.971479][    C0] R13: 0000000000000000 R14: dffffc0000000000 R15: 0000000000000021
+[  576.973091][    C0] FS:  00007f80d87e96c0(0000) GS:ffff88802cc00000(0000) knlGS:0000000000000000
+[  576.974903][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  576.976220][    C0] CR2: 000000110c348fee CR3: 0000000015a8c000 CR4: 0000000000750ef0
+[  576.977834][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  576.979414][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  576.981022][    C0] PKRU: 55555554
+[  576.981763][    C0] Call Trace:
+[  576.982432][    C0]  <IRQ>
+[  576.983017][    C0]  ? show_regs+0x5d/0x70
+[  576.983893][    C0]  ? dump_cpu_task+0x40/0x70
+[  576.984848][    C0]  ? rcu_check_gp_kthread_starvation+0x271/0x300
+[  576.986145][    C0]  ? print_other_cpu_stall+0x118e/0x1380
+[  576.987291][    C0]  ? __pfx_print_other_cpu_stall+0x10/0x10
+[  576.988466][    C0]  ? __pfx_cgroup_rstat_updated+0x10/0x10
+[  576.989628][    C0]  ? __kasan_check_write+0x18/0x20
+[  576.990674][    C0]  ? _raw_spin_lock_irqsave+0xfd/0x220
+[  576.991804][    C0]  ? rcu_sched_clock_irq+0x987/0x1120
+[  576.992900][    C0]  ? __pfx_rcu_sched_clock_irq+0x10/0x10
+[  576.994055][    C0]  ? debug_smp_processor_id+0x1b/0x30
+[  576.995141][    C0]  ? hrtimer_run_queues+0x17f/0x440
+[  576.996208][    C0]  ? update_process_times+0x1cd/0x240
+[  576.997302][    C0]  ? tick_nohz_handler+0x351/0x4d0
+[  576.998363][    C0]  ? __pfx_tick_nohz_handler+0x10/0x10
+[  576.999503][    C0]  ? __hrtimer_run_queues+0x412/0xb40
+[  577.000619][    C0]  ? __pfx___hrtimer_run_queues+0x10/0x10
+[  577.001799][    C0]  ? read_tsc+0xd/0x20
+[  577.002637][    C0]  ? ktime_get_update_offsets_now+0x3f4/0x410
+[  577.003867][    C0]  ? hrtimer_interrupt+0x3b0/0x8a0
+[  577.004905][    C0]  ? __sysvec_apic_timer_interrupt+0xc1/0x2f0
+[  577.006169][    C0]  ? sysvec_apic_timer_interrupt+0xaf/0xd0
+[  577.007355][    C0]  </IRQ>
+[  577.007959][    C0]  <TASK>
+[  577.008557][    C0]  ? asm_sysvec_apic_timer_interrupt+0x1f/0x30
+[  577.009819][    C0]  ? _raw_spin_unlock_irq+0x4c/0x70
+[  577.010909][    C0]  ? _raw_spin_unlock_irq+0x45/0x70
+[  577.011977][    C0]  get_signal+0x131d/0x1650
+[  577.012914][    C0]  ? __pfx_get_signal+0x10/0x10
+[  577.013912][    C0]  arch_do_signal_or_restart+0x96/0x840
+[  577.015041][    C0]  ? __pfx_arch_do_signal_or_restart+0x10/0x10
+[  577.016285][    C0]  ? __pfx___do_sys_rt_sigreturn+0x10/0x10
+[  577.017466][    C0]  syscall_exit_to_user_mode+0x66/0x240
+[  577.018596][    C0]  do_syscall_64+0xf0/0x230
+[  577.019519][    C0]  ? clear_bhb_loop+0x25/0x80
+[  577.020474][    C0]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  577.021666][    C0] RIP: 0033:0x7f80d7976b47
+[  577.022593][    C0] Code: ff ff ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 <0f> 05 48 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b0 ff ff ff f7 d8 64 89
+[  577.026470][    C0] RSP: 002b:00007f80d87e9058 EFLAGS: 00000246
+[  577.027698][    C0] RAX: 000000000000012b RBX: 00007f80d7b03f60 RCX: 00007f80d7976b49
+[  577.029284][    C0] RDX: 0000000000010106 RSI: 00000000200000c0 RDI: 0000000000000003
+[  577.030873][    C0] RBP: 00007f80d79ea084 R08: 0000000000000000 R09: 0000000000000000
+[  577.032474][    C0] R10: 0000000000000002 R11: 0000000000000246 R12: 0000000000000000
+[  577.034109][    C0] R13: 000000000000000b R14: 00007f80d7b03f60 R15: 00007fff80b37638
+[  577.035711][    C0]  </TASK>
+

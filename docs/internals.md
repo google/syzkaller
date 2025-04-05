@@ -11,21 +11,26 @@ red labels indicate corresponding configuration options.
 
 ![Process structure for syzkaller](process_structure.png?raw=true)
 
-The `syz-manager` process starts, monitors and restarts several VM instances, and starts a `syz-fuzzer` process inside of the VMs.
-`syz-manager` is responsible for persistent corpus and crash storage.
-It runs on a host with stable kernel which does not experience white-noise fuzzer load.
+`syz-manager` is responsible for:
+* Starting/restarting/monitoring VM instances.
+* The actual fuzzing process (input generation, mutation, minimization, etc.).
+* Persistent corpus and crash storage.
 
-The `syz-fuzzer` process runs inside of presumably unstable VMs.
-The `syz-fuzzer` guides fuzzing process (input generation, mutation, minimization, etc.) and sends inputs that trigger new coverage back to the `syz-manager` process via RPC.
-It also starts transient `syz-executor` processes.
+It runs on a host with a stable kernel which does not experience white-noise fuzzer load.
 
-Each `syz-executor` process executes a single input (a sequence of syscalls).
-It accepts the program to execute from the `syz-fuzzer` process and sends results back.
-It is designed to be as simple as possible (to not interfere with fuzzing process), written in C++, compiled as static binary and uses shared memory for communication.
+`syz-manager` starts `syz-executor` processes (one inside each VM).
+`syz-executor`s comminucate with `syz-manager` over RPC to receive the programs
+that must be executed and to report back the results (error statuses, collected coverage, etc.).
+
+To execute programs, `syz-executor` starts transient subprocesses.
+
+Each transient subprocess executes a single input (a sequence of syscalls).
+It is designed to be as simple as possible (to not interfere with fuzzing process),
+written in C++, compiled as static binary and uses shared memory for communication.
 
 ## Syscall descriptions
 
-The `syz-fuzzer` process generates programs to be executed by `syz-executor` based on syscall descriptions described [here](syscall_descriptions.md).
+The `syz-manager` process generates programs based on syscall descriptions described [here](syscall_descriptions.md).
 
 ## Coverage
 
@@ -58,7 +63,7 @@ This set may need to be extended if you are using a different kernel architectur
 
 `logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash.
 These logs can be fed to `syz-repro` tool for [crash location and minimization](reproducing_crashes.md),
-or to `syz-execprog` tool for [manual localization](executing_syzkaller_programs.md).
+or to `syz-execprog` tool for [manual localization](reproducing_crashes.md#from-execution-logs).
 `reportN` files contain post-processed and symbolized kernel crash reports (e.g. a KASAN report).
 Normally you need just 1 pair of these files (i.e. `log0` and `report0`), because they all presumably describe the same kernel bug.
 However, `syzkaller` saves up to 100 of them for the case when the crash is poorly reproducible, or if you just want to look at a set of crash reports to infer some similarities or differences.

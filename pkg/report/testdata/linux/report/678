@@ -1,4 +1,5 @@
 TITLE: inconsistent lock state in sync_info_debugfs_show
+TYPE: LOCKDEP
 
 [  952.323563][T12429] ================================
 [  952.328681][T12429] WARNING: inconsistent lock state

@@ -10,17 +10,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+func makeMachO(target *targets.Target, kernelDirs *mgrconfig.KernelDirs,
+	moduleObj []string, hostModules []*vminfo.KernelModule) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
-		objDir:                objDir,
-		srcDir:                srcDir,
-		buildDir:              buildDir,
+		kernelDirs:            kernelDirs,
 		moduleObj:             moduleObj,
 		hostModules:           hostModules,
 		readSymbols:           machoReadSymbols,
@@ -30,7 +29,7 @@ func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
 	})
 }
 
-func machoReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
+func machoReadSymbols(module *vminfo.KernelModule, info *symbolInfo) ([]*Symbol, error) {
 	file, err := macho.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -75,7 +74,7 @@ func machoReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 			if symb.Name == "___sanitizer_cov_trace_pc_guard" {
 				info.tracePCIdx[i] = true
 				if text {
-					info.tracePC = symb.Value
+					info.tracePC[symb.Value] = true
 				}
 			} else {
 				info.traceCmpIdx[i] = true
@@ -88,7 +87,7 @@ func machoReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	return symbols, nil
 }
 
-func machoReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
+func machoReadTextRanges(module *vminfo.KernelModule) ([]pcRange, []*CompileUnit, error) {
 	dir, kernel := filepath.Split(module.Path)
 	dSYMPath := filepath.Join(dir, fmt.Sprintf(
 		"%[1]s.dSYM/Contents/Resources/DWARF/%[1]s", kernel))
@@ -98,12 +97,12 @@ func machoReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
 	}
 	debugInfo, err := dSYM.DWARF()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse DWARF: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse DWARF: %w", err)
 	}
 	return readTextRanges(debugInfo, module, nil)
 }
 
-func machoReadTextData(module *Module) ([]byte, error) {
+func machoReadTextData(module *vminfo.KernelModule) ([]byte, error) {
 	file, err := macho.Open(module.Path)
 	if err != nil {
 		return nil, err
@@ -115,7 +114,8 @@ func machoReadTextData(module *Module) ([]byte, error) {
 	return text.Data()
 }
 
-func machoReadModuleCoverPoints(target *targets.Target, module *Module, info *symbolInfo) ([2][]uint64, error) {
+func machoReadModuleCoverPoints(target *targets.Target, module *vminfo.KernelModule, info *symbolInfo) ([2][]uint64,
+	error) {
 	// TODO: Linux/ELF supports module symbols. We should probably also do that
 	// for XNU/Mach-O. To maximize code re-use we already have a lot of the
 	// plumbing for module support. I think we mainly miss an equivalent to

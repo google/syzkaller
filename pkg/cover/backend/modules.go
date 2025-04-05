@@ -7,51 +7,64 @@ import (
 	"bytes"
 	"debug/elf"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func discoverModules(target *targets.Target, objDir string, moduleObj []string, hostModules []host.KernelModule) (
-	[]*Module, error) {
-	modules := []*Module{
+func DiscoverModules(target *targets.Target, objDir string, moduleObj []string) (
+	[]*vminfo.KernelModule, error) {
+	module := &vminfo.KernelModule{
+		Path: filepath.Join(objDir, target.KernelObject),
+	}
+	textRange, err := elfReadTextSecRange(module)
+	if err != nil {
+		return nil, err
+	}
+	modules := []*vminfo.KernelModule{
 		// A dummy module representing the kernel itself.
-		{Path: filepath.Join(objDir, target.KernelObject)},
+		{
+			Path: module.Path,
+			Size: textRange.End - textRange.Start,
+		},
 	}
 	if target.OS == targets.Linux {
-		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...), hostModules)
+		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...))
 		if err != nil {
 			return nil, err
 		}
 		modules = append(modules, modules1...)
-	} else if len(hostModules) != 0 {
+	} else if len(modules) != 1 {
 		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
 	}
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []host.KernelModule) ([]*Module, error) {
+func discoverModulesLinux(dirs []string) ([]*vminfo.KernelModule, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
 	}
-	var modules []*Module
-	for _, mod := range hostModules {
-		path := paths[mod.Name]
+	var modules []*vminfo.KernelModule
+	for name, path := range paths {
 		if path == "" {
-			log.Logf(0, "failed to discover module %v", mod.Name)
 			continue
 		}
-		log.Logf(0, "module %v -> %v", mod.Name, path)
-		modules = append(modules, &Module{
-			Name: mod.Name,
-			Addr: mod.Addr,
+		log.Logf(2, "module %v -> %v", name, path)
+		module := &vminfo.KernelModule{
+			Name: name,
 			Path: path,
-		})
+		}
+		textRange, err := elfReadTextSecRange(module)
+		if err != nil {
+			return nil, err
+		}
+		module.Size = textRange.End - textRange.Start
+		modules = append(modules, module)
 	}
 	return modules, nil
 }
@@ -59,7 +72,7 @@ func discoverModulesLinux(dirs []string, hostModules []host.KernelModule) ([]*Mo
 func locateModules(dirs []string) (map[string]string, error) {
 	paths := make(map[string]string)
 	for _, dir := range dirs {
-		err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || filepath.Ext(path) != ".ko" {
 				return err
 			}
@@ -96,7 +109,7 @@ func getModuleName(path string) (string, error) {
 	}
 	data, err := section.Data()
 	if err != nil {
-		return "", fmt.Errorf("failed to read .modinfo: %v", err)
+		return "", fmt.Errorf("failed to read .modinfo: %w", err)
 	}
 	if name := searchModuleName(data); name != "" {
 		return name, nil
@@ -107,7 +120,7 @@ func getModuleName(path string) (string, error) {
 	}
 	data, err = section.Data()
 	if err != nil {
-		return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %v", err)
+		return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %w", err)
 	}
 	return string(data), nil
 }
@@ -128,4 +141,41 @@ func searchModuleName(data []byte) string {
 		return ""
 	}
 	return string(data[pos+len(key) : end])
+}
+
+func getKaslrOffset(modules []*vminfo.KernelModule, pcBase uint64) uint64 {
+	for _, mod := range modules {
+		if mod.Name == "" {
+			return mod.Addr - pcBase
+		}
+	}
+	return 0
+}
+
+// when CONFIG_RANDOMIZE_BASE=y, pc from kcov already removed kaslr_offset.
+func FixModules(localModules, modules []*vminfo.KernelModule, pcBase uint64) []*vminfo.KernelModule {
+	kaslrOffset := getKaslrOffset(modules, pcBase)
+	var modules1 []*vminfo.KernelModule
+	for _, mod := range modules {
+		size := uint64(0)
+		path := ""
+		for _, modA := range localModules {
+			if modA.Name == mod.Name {
+				size = modA.Size
+				path = modA.Path
+				break
+			}
+		}
+		if path == "" {
+			continue
+		}
+		addr := mod.Addr - kaslrOffset
+		modules1 = append(modules1, &vminfo.KernelModule{
+			Name: mod.Name,
+			Size: size,
+			Addr: addr,
+			Path: path,
+		})
+	}
+	return modules1
 }

@@ -34,5 +34,8 @@ config:
  - EVM_ATTR_FSUUID
  - AUDIT
 
+ # Lockdown may be too restrictive for normal kernel fuzzing.
+ - LOCK_DOWN_KERNEL_FORCE_NONE: [v5.4]
+
  # Note: this depends on a number of BPF-related configs, which may be not enabled.
  - BPF_LSM: [optional]

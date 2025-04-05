@@ -8,19 +8,21 @@
 // The sequence is terminated by a speciall call execInstrEOF.
 // Each call is (call ID, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
-// There are 4 types of arguments:
+// There are the following types of arguments:
 //  - execArgConst: value is const value
+//  - execArgAddr32/64: constant address
 //  - execArgResult: value is copyout index we want to reference
 //  - execArgData: value is a binary blob (represented as ]size/8[ uint64's)
 //  - execArgCsum: runtime checksum calculation
-// There are 2 other special calls:
+// There are the following special calls:
 //  - execInstrCopyin: copies its second argument into address specified by first argument
 //  - execInstrCopyout: reads value at address specified by first argument (result can be referenced by execArgResult)
+//  - execInstrSetProps: sets special properties for the previous call
 
 package prog
 
 import (
-	"errors"
+	"encoding/binary"
 	"fmt"
 	"reflect"
 	"sort"
@@ -35,6 +37,8 @@ const (
 
 const (
 	execArgConst = uint64(iota)
+	execArgAddr32
+	execArgAddr64
 	execArgResult
 	execArgData
 	execArgCsum
@@ -58,28 +62,29 @@ const (
 	execMaxCommands = 1000 // executor knows about this constant (kMaxCommands)
 )
 
-var ErrExecBufferTooSmall = errors.New("encodingexec: provided buffer is too small")
-
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
-func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
+func (p *Prog) SerializeForExec() ([]byte, error) {
 	p.debugValidate()
 	w := &execContext{
 		target: p.Target,
-		buf:    buffer,
-		eof:    false,
+		buf:    make([]byte, 0, 4<<10),
 		args:   make(map[Arg]argInfo),
 	}
+	w.write(uint64(len(p.Calls)))
 	for _, c := range p.Calls {
 		w.csumMap, w.csumUses = calcChecksumsCall(c)
 		w.serializeCall(c)
 	}
 	w.write(execInstrEOF)
-	if w.eof || w.copyoutSeq > execMaxCommands {
-		return 0, ErrExecBufferTooSmall
+	if len(w.buf) > ExecBufferSize {
+		return nil, fmt.Errorf("encodingexec: too large program (%v/%v)", len(w.buf), ExecBufferSize)
 	}
-	return len(buffer) - len(w.buf), nil
+	if w.copyoutSeq > execMaxCommands {
+		return nil, fmt.Errorf("encodingexec: too many resources (%v/%v)", w.copyoutSeq, execMaxCommands)
+	}
+	return w.buf, nil
 }
 
 func (w *execContext) serializeCall(c *Call) {
@@ -117,7 +122,6 @@ func (w *execContext) serializeCall(c *Call) {
 type execContext struct {
 	target     *Target
 	buf        []byte
-	eof        bool
 	args       map[Arg]argInfo
 	copyoutSeq uint64
 	// Per-call state cached here to not pass it through all functions.
@@ -154,7 +158,7 @@ func (w *execContext) writeCopyin(c *Call) {
 		if ctx.Base == nil {
 			return
 		}
-		addr := w.target.PhysicalAddr(ctx.Base) + ctx.Offset
+		addr := w.target.PhysicalAddr(ctx.Base) - w.target.DataOffset + ctx.Offset
 		addr -= arg.Type().UnitOffset()
 		if w.willBeUsed(arg) {
 			w.args[arg] = argInfo{Addr: addr}
@@ -247,12 +251,7 @@ func (w *execContext) writeCopyout(c *Call) {
 }
 
 func (w *execContext) write(v uint64) {
-	if len(w.buf) < 8 {
-		w.eof = true
-		return
-	}
-	HostEndian.PutUint64(w.buf, v)
-	w.buf = w.buf[8:]
+	w.buf = binary.AppendVarint(w.buf, int64(v))
 }
 
 func (w *execContext) writeArg(arg Arg) {
@@ -278,11 +277,19 @@ func (w *execContext) writeArg(arg Arg) {
 			w.write(a.Type().(*ResourceType).Default())
 		}
 	case *PointerArg:
-		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, FormatNative)
+		switch a.Size() {
+		case 4:
+			w.write(execArgAddr32)
+		case 8:
+			w.write(execArgAddr64)
+		default:
+			panic(fmt.Sprintf("bad pointer address size %v", a.Size()))
+		}
+		w.write(w.target.PhysicalAddr(a) - w.target.DataOffset)
 	case *DataArg:
 		data := a.Data()
 		if len(data) == 0 {
-			return
+			panic("writing data arg with 0 size")
 		}
 		w.write(execArgData)
 		flags := uint64(len(data))
@@ -290,17 +297,7 @@ func (w *execContext) writeArg(arg Arg) {
 			flags |= execArgDataReadable
 		}
 		w.write(flags)
-		padded := len(data)
-		if pad := 8 - len(data)%8; pad != 8 {
-			padded += pad
-		}
-		if len(w.buf) < padded {
-			w.eof = true
-		} else {
-			copy(w.buf, data)
-			copy(w.buf[len(data):], make([]byte, 8))
-			w.buf = w.buf[padded:]
-		}
+		w.buf = append(w.buf, data...)
 	case *UnionArg:
 		w.writeArg(a.Option)
 	default:

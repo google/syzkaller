@@ -113,16 +113,14 @@ type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
 # nlattr with NLA_F_NET_BYTEORDER set (unused for now).
 type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
 
+# NL80211 has probably the biggest number of netlink attributes.
+include <include/uapi/linux/nl80211.h>
+define NETLINK_MAX_ATTRIBUTES	NL80211_ATTR_MAX
+
 nl_generic_attr [
 	generic	array[int8]
-# NL80211 has 150 attributes.
-	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
-	nested	nlattr_tt[int16:14[0:150], 0, 1, array[nl_generic_attr_nonested]]
-] [varlen]
-
-nl_generic_attr_nonested [
-	generic	array[int8]
-	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
+	typed	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 0, nl_generic_attr_data]
+	nested	nlattr_tt[int16:14[0:NETLINK_MAX_ATTRIBUTES], 0, 1, array[nl_generic_attr]]
 ] [varlen]
 
 nl_generic_attr_data [

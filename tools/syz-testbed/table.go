@@ -10,7 +10,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/stats"
+	"github.com/google/syzkaller/pkg/stat/sample"
 )
 
 type Cell = interface{}
@@ -25,7 +25,7 @@ type Table struct {
 
 type ValueCell struct {
 	Value         float64
-	Sample        *stats.Sample
+	Sample        *sample.Sample
 	PercentChange *float64
 	PValue        *float64
 }
@@ -39,7 +39,7 @@ type BoolCell struct {
 	Value bool
 }
 
-func NewValueCell(sample *stats.Sample) *ValueCell {
+func NewValueCell(sample *sample.Sample) *ValueCell {
 	return &ValueCell{Value: sample.Median(), Sample: sample}
 }
 
@@ -161,7 +161,7 @@ func (t *Table) SetRelativeValues(baseColumn string) error {
 	for rowName, row := range t.Cells {
 		baseCell := t.Get(rowName, baseColumn)
 		if baseCell == nil {
-			return fmt.Errorf("base column %s not found in row %s", baseColumn, rowName)
+			continue
 		}
 		baseValueCell, ok := baseCell.(*ValueCell)
 		if !ok {
@@ -183,7 +183,7 @@ func (t *Table) SetRelativeValues(baseColumn string) error {
 			}
 
 			cellSample := valueCell.Sample.RemoveOutliers()
-			pval, err := stats.UTest(baseSample, cellSample)
+			pval, err := sample.UTest(baseSample, cellSample)
 			if err == nil {
 				// Sometimes it fails because there are too few samples.
 				valueCell.PValue = new(float64)

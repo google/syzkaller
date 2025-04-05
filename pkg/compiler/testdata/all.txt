@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 meta noextract
-meta arches["32_shmem", "32_fork_shmem", "64", "64_fork"]
+meta arches["32", "32_fork", "64", "64_fork"]
 
 foo_0(a int8)
 foo_1(a int8[C1:C2])
@@ -20,6 +20,9 @@ foo_12(a int64[0:-1, 0x1000])
 foo_13() (disabled)
 foo_14() r0 (timeout[100])
 foo_15() r0 (disabled, timeout[C1], prog_timeout[C2])
+foo_16(a int32[int_flags])
+foo_17(a int8[C1])
+foo_18(a int64[100])
 
 resource r0[intptr]
 
@@ -92,6 +95,7 @@ len_expr2 {
 	f23	ptr[in, len_expr4]
 	f24	ptr[in, ptr[in, len_expr4]]
 	f25	len[f21:f31, int32]
+	f26	len_union
 }
 
 len_expr3 {
@@ -108,6 +112,11 @@ len_expr3 {
 len_expr4 {
 	f41	int32
 }
+
+len_union [
+	u1	len[parent:parent:f21:f31, int32]
+	u2	int32
+]
 
 foo_len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
 
@@ -180,6 +189,8 @@ bitfield0 {
 	f3	int16:8[-127:0]
 	f4	int16:8[0:255]
 	f5	int64:64[-1:1]
+	f6	int32:4[int_flags]
+	f7	int8:3[C1]
 }
 
 foo_bitfield0(a ptr[in, bitfield0])
@@ -319,9 +330,15 @@ foo_fmt6(a ptr[in, fmt[dec, flags[flags_with_one_value]]])
 
 struct$fmt0 {
 	f0	fmt[dec, int8]
+	f1	fmt[hex, proc[0, 1]]
+	f2	ptr[in, fmt[oct, proc[0, 1]]]
 }
 
 flags_with_one_value = 0
+
+# Syscall attributes.
+
+fsck_test() (fsck["fsck.test -n"])
 
 # Compressed images.
 
@@ -338,3 +355,44 @@ compressed$1(a compressed_image) (no_generate, no_minimize)
 compressed$2(a ptr[in, compressed_image]) (no_generate, no_minimize)
 compressed$3(a ptr[in, struct_compressed]) (no_generate, no_minimize)
 compressed$4(a ptr[in, union_compressed]) (no_generate, no_minimize)
+
+struct$conditional {
+	f0	int32
+	f1	int64	(if[value[f0] == 1])
+	f2	struct$conditional2
+	f3	union$conditional3
+	f4	const[0, int64]
+	f5	int64	(if[value[f4] == 0])
+} [packed]
+
+struct$conditional2 {
+	f3	int32	(if[value[parent:parent:f0] == 2])
+	f4	int32	(if[value[struct$conditional:f0] == 2])
+} [packed]
+
+union$conditional3 [
+	u1	int32	(if[value[parent:parent:f0] == 3])
+	u2	int32	(if[value[struct$conditional:f0] == 3])
+	u3	const[0xabcd, int64]
+]
+
+conditional(a ptr[in, struct$conditional])
+
+# Struct recusrion via arrays.
+
+recursive_struct_call(a ptr[in, recursive_struct], b ptr[in, recursive_struct3])
+
+recursive_struct {
+	f0	array[recursive_struct]
+	f1	recursive_struct2
+	f2	array[recursive_struct2]
+} [packed]
+
+recursive_struct2 {
+	f0	int32
+	f1	array[recursive_struct]
+}
+
+recursive_struct3 {
+	f0	array[recursive_struct3]
+}

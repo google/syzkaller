@@ -1,0 +1,18 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This file covers parts of the kernel that syzbot keeps on fuzzing, but does not report to LKML.
+
+config:
+
+ # Linux kernel still has a big number of XFS v4 bugs, but, as v4 is getting deprecated,
+ # the upstream community has no interest in fixing those code problems.
+ # See e.g. these links:
+ # https://lore.kernel.org/linux-fsdevel/ZG07WoKnBzaN4T1L@dread.disaster.area/T/
+ # https://github.com/google/syzkaller/issues/3918
+ - XFS_FS
+ - XFS_SUPPORT_V4
+
+ # Floppy driver is known to be buggy, maintainers see no sense in further reports at the moment.
+ # https://lore.kernel.org/all/7df3e30a-aa31-495c-9d59-cb6080364f61@kernel.dk/
+ - BLK_DEV_FD: [x86_64]

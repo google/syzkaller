@@ -1,0 +1,19 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate-job
+spec:
+  template:
+    spec:
+      serviceAccountName: gke-db-admin-ksa
+      containers:
+      - name: migrate
+        image: ${IMAGE_PREFIX}db-mgmt:${IMAGE_TAG}
+        env:
+        - name: SPANNER_DATABASE_URI
+          value: "${SPANNER_DATABASE_URI}"
+        args: ["migrate"]
+      restartPolicy: Never

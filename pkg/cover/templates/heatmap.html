@@ -1,0 +1,228 @@
+{{ define "js" }}
+<script>
+    var domain = window.location.hostname;
+    var scriptUrl = 'https://' + domain + '/static/coverage.js';
+
+    var script = document.createElement('script');
+    script.src = scriptUrl;
+
+    document.head.appendChild(script);
+</script>
+{{ end }}
+
+{{ define "style" }}
+  ul {
+    list-style-type: none;
+    padding-left: 0px;
+  }
+  .first_column {
+    display: inline-block;
+    width: 250px;
+  }
+  .date_column {
+    display: inline-block;
+    width: 35px;
+  }
+  .vertical_text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    align-content: center;
+  }
+  .instrumented_column {
+    display: inline-block;
+    width: 50px;
+    text-align: right;
+  }
+  .tree_depth_0 {width: 0px;}
+  .tree_depth_1 {width: 20px;}
+  .tree_depth_2 {width: 40px;}
+  .tree_depth_3 {width: 60px;}
+  .tree_depth_4 {width: 80px;}
+  .tree_depth_5 {width: 100px;}
+  .tree_depth_6 {width: 120px;}
+  .tree_depth_7 {width: 140px;}
+
+  .bold {font-weight: bold;}
+  .caret {
+    cursor: pointer;
+    user-select: none;
+  }
+  .caret::before {
+    color: black;
+    content: "\25B6";
+    display: inline-block;
+    margin-right: 3px;
+  }
+  .caret-down::before {
+    transform: rotate(90deg);
+  }
+  .nested {
+    display: none;
+  }
+  .active {
+    display: block;
+  }
+  .data_row {
+    width: fit-content;
+  }
+  ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(even) .data_row {background: #F4F4F4;}
+  ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:nth-of-type(odd) .data_row {background: #FFF;}
+  .data_row:hover {
+    background-color: #ffff99 !important;
+  }
+  .cover_percent {
+    position: relative;
+    display: inline-block;
+  }
+  .cover_percent .tooltiptext {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+  }
+  .cover_percent:hover .tooltiptext {
+    visibility: visible;
+  }
+{{ end }}
+
+{{ define "body" }}
+  <div style="display:inline-block">
+    <form method="get">
+      <div style="display:inline-block; vertical-align: top">
+        <label for="target-period">Period type:</label>
+        <br>
+        <label for="target-period-count">Period count:</label>
+        <br>
+        <label for="target-subsystem">Subsystem:</label>
+        <br>
+        <label for="target-manager">Manager:</label>
+        <br>
+        <label for="unique-only">Only unique:</label>
+      </div>
+      <div style="display:inline-block; vertical-align: top">
+        <select id="target-period" name="period">
+          <option value="month">Month</option>
+          <option value="day">Day</option>
+        </select>
+        <br>
+        <input id="target-period-count" name="period_count" type="number" min="1" max="12" value="4"/>
+        <br>
+        <select id="target-subsystem" name="subsystem">
+          <option value="">*</option>
+          {{ range $ss := .Subsystems }}
+            <option value="{{ $ss }}">{{ $ss }}</option>
+          {{ end }}
+        </select>
+        <br>
+        <select id="target-manager" name="manager">
+          <option value="">*</option>
+          {{ range $manager := .Managers }}
+            <option value="{{ $manager }}">{{ $manager }}</option>
+          {{ end }}
+        </select>
+        <br>
+        <input type="checkbox" id="unique-only" name="unique-only" value="1">
+      </div>
+      <br>
+      <button id="updateButton">Update</button>
+    </form>
+  </div>
+  <hr>
+  <div style="white-space: nowrap">
+    <div style="display:inline-block">
+      <ul id="collapsible-list">
+        <li>
+          <div class="first_column bold">
+            date
+          </div>
+          {{ range $period := .Periods }}
+          <div class="date_column vertical_text bold">
+            {{ $period }}
+          </div>
+          {{ end }}
+          <div class="instrumented_column vertical_text">
+            {{ approxInstr .Root.LastDayInstrumented }} blocks
+          </div>
+        </li>
+        <li>
+          <div class="first_column bold">
+            total covered
+          </div>
+          {{ range $cov := .Root.Coverage }}
+          <div class="date_column">
+            {{ $cov }}%
+          </div>
+          {{ end }}
+          <div class="instrumented_column vertical_text">
+            of
+          </div>
+        </li>
+        <br>
+        {{template "dir" .Root}}
+      </ul>
+    </div>
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-curr"></pre>
+      <br>
+      <div id="file-content-curr"></div>
+    </div>
+    <div style="display:inline-block; vertical-align: top">
+      <pre id="file-details-prev"></pre>
+      <br>
+      <div id="file-content-prev"></div>
+    </div>
+  </div>
+{{ end }}
+
+{{define "dir"}}
+  {{range $child := .Items}}
+    <li>
+      <div class="data_row">
+        <div class="first_column" style="display: inline-block">
+          <div class="tree_depth_{{ $child.Depth }}" style="display: inline-block">
+          </div>
+          <div class="{{ if $child.IsDir }}caret{{ end }}"
+               style="display: inline-block">
+            {{$child.Name}}
+          </div>
+        </div>
+        {{ range $i, $cov := $child.Coverage }}
+          <div class="date_column cover_percent">
+            {{ if $child.IsDir }}
+              {{ $cov }}%
+            {{ else }}
+              <a href="javascript:onShowFileContent('/upstream{{ index $child.FileCoverageLink $i }}');">{{ $cov }}%</a>
+            {{ end }}
+            <pre class="tooltiptext">{{ index $child.Tooltips $i }}</pre>
+          </div>
+        {{ end }}
+        <div class="instrumented_column">
+          {{ approxInstr $child.LastDayInstrumented }}
+        </div>
+      </div>
+      {{ if $child.IsDir }}
+        <ul class="nested">
+          {{template "dir" $child}}
+        </ul>
+      {{ end }}
+    </li>
+  {{end}}
+{{end}}

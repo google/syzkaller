@@ -4,121 +4,77 @@
 package main
 
 import (
-	"sync"
-	"sync/atomic"
+	"fmt"
+	"runtime"
+	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/google/syzkaller/pkg/image"
+	"github.com/google/syzkaller/pkg/stat"
 )
 
-type Stat uint64
-
 type Stats struct {
-	crashes             Stat
-	crashTypes          Stat
-	crashSuppressed     Stat
-	vmRestarts          Stat
-	newInputs           Stat
-	rotatedInputs       Stat
-	execTotal           Stat
-	hubSendProgAdd      Stat
-	hubSendProgDel      Stat
-	hubSendRepro        Stat
-	hubRecvProg         Stat
-	hubRecvProgDrop     Stat
-	hubRecvRepro        Stat
-	hubRecvReproDrop    Stat
-	corpusCover         Stat
-	corpusCoverFiltered Stat
-	corpusSignal        Stat
-	maxSignal           Stat
-
-	mu         sync.Mutex
-	namedStats map[string]uint64
-	haveHub    bool
+	statCrashes       *stat.Val
+	statCrashTypes    *stat.Val
+	statSuppressed    *stat.Val
+	statUptime        *stat.Val
+	statFuzzingTime   *stat.Val
+	statAvgBootTime   *stat.Val
+	statCoverFiltered *stat.Val
 }
 
 func (mgr *Manager) initStats() {
-	// Prometheus Instrumentation https://prometheus.io/docs/guides/go-application .
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_exec_total",
-		Help: "Total executions during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.execTotal.get()) },
-	))
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_corpus_cover",
-		Help: "Corpus coverage during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.corpusCover.get()) },
-	))
-	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "syz_crash_total",
-		Help: "Count of crashes during current execution of syz-manager",
-	},
-		func() float64 { return float64(mgr.stats.crashes.get()) },
-	))
-}
+	mgr.statCrashes = stat.New("crashes", "Total number of VM crashes",
+		stat.Simple, stat.Prometheus("syz_crash_total"))
+	mgr.statCrashTypes = stat.New("crash types", "Number of unique crashes types",
+		stat.Simple, stat.NoGraph)
+	mgr.statSuppressed = stat.New("suppressed", "Total number of suppressed VM crashes",
+		stat.Simple, stat.Graph("crashes"))
+	mgr.statFuzzingTime = stat.New("fuzzing", "Total fuzzing time in all VMs (seconds)",
+		stat.NoGraph, func(v int, period time.Duration) string { return fmt.Sprintf("%v sec", v/1e9) })
+	mgr.statUptime = stat.New("uptime", "Total uptime (seconds)", stat.Simple, stat.NoGraph,
+		func() int {
+			firstConnect := mgr.firstConnect.Load()
+			if firstConnect == 0 {
+				return 0
+			}
+			return int(time.Now().Unix() - firstConnect)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v sec", v)
+		})
+	mgr.statAvgBootTime = stat.New("instance restart", "Average VM restart time (sec)",
+		stat.NoGraph,
+		func() int {
+			return int(mgr.pool.BootTime.Value().Seconds())
+		},
+		func(v int, _ time.Duration) string {
+			return fmt.Sprintf("%v sec", v)
+		})
 
-func (stats *Stats) all() map[string]uint64 {
-	m := map[string]uint64{
-		"crashes":           stats.crashes.get(),
-		"crash types":       stats.crashTypes.get(),
-		"suppressed":        stats.crashSuppressed.get(),
-		"vm restarts":       stats.vmRestarts.get(),
-		"new inputs":        stats.newInputs.get(),
-		"rotated inputs":    stats.rotatedInputs.get(),
-		"exec total":        stats.execTotal.get(),
-		"coverage":          stats.corpusCover.get(),
-		"filtered coverage": stats.corpusCoverFiltered.get(),
-		"signal":            stats.corpusSignal.get(),
-		"max signal":        stats.maxSignal.get(),
-	}
-	if stats.haveHub {
-		m["hub: send prog add"] = stats.hubSendProgAdd.get()
-		m["hub: send prog del"] = stats.hubSendProgDel.get()
-		m["hub: send repro"] = stats.hubSendRepro.get()
-		m["hub: recv prog"] = stats.hubRecvProg.get()
-		m["hub: recv prog drop"] = stats.hubRecvProgDrop.get()
-		m["hub: recv repro"] = stats.hubRecvRepro.get()
-		m["hub: recv repro drop"] = stats.hubRecvReproDrop.get()
-	}
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	for k, v := range stats.namedStats {
-		m[k] = v
-	}
-	return m
-}
-
-func (stats *Stats) mergeNamed(named map[string]uint64) {
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	if stats.namedStats == nil {
-		stats.namedStats = make(map[string]uint64)
-	}
-	for k, v := range named {
-		switch k {
-		case "exec total":
-			stats.execTotal.add(int(v))
-		default:
-			stats.namedStats[k] += v
-		}
-	}
-}
-
-func (s *Stat) get() uint64 {
-	return atomic.LoadUint64((*uint64)(s))
-}
-
-func (s *Stat) inc() {
-	s.add(1)
-}
-
-func (s *Stat) add(v int) {
-	atomic.AddUint64((*uint64)(s), uint64(v))
-}
-
-func (s *Stat) set(v int) {
-	atomic.StoreUint64((*uint64)(s), uint64(v))
+	stat.New("heap", "Process heap size (bytes)", stat.Graph("memory"),
+		func() int {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			return int(ms.Alloc)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stat.New("VM", "Process VM size (bytes)", stat.Graph("memory"),
+		func() int {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			return int(ms.Sys - ms.HeapReleased)
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stat.New("images memory", "Uncompressed images memory (bytes)", stat.Graph("memory"),
+		func() int {
+			return int(image.StatMemory.Load())
+		}, func(v int, period time.Duration) string {
+			return fmt.Sprintf("%v MB", v>>20)
+		})
+	stat.New("uncompressed images", "Total number of uncompressed images in memory",
+		func() int {
+			return int(image.StatImages.Load())
+		})
+	mgr.statCoverFiltered = stat.New("filtered coverage", "", stat.NoGraph)
 }

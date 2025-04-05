@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"path/filepath"
@@ -26,11 +25,10 @@ type bsd struct {
 func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (reporterImpl, error) {
 	var symbols map[string][]symbolizer.Symbol
 	kernelObject := ""
-	if cfg.kernelObj != "" {
-		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
+	if cfg.kernelDirs.Obj != "" {
+		kernelObject = filepath.Join(cfg.kernelDirs.Obj, cfg.target.KernelObject)
 		var err error
-		symb := symbolizer.NewSymbolizer(cfg.target)
-		symbols, err = symb.ReadTextSymbols(kernelObject)
+		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
 		if err != nil {
 			return nil, err
 		}
@@ -54,14 +52,12 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb := symbolizer.NewSymbolizer(ctx.config.target)
+	symb := symbolizer.Make(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
-	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	prefix := rep.reportPrefixLen
-	for s.Scan() {
-		line := append([]byte{}, s.Bytes()...)
-		line = append(line, '\n')
+	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
+		line := bytes.Clone(line)
 		newLine := ctx.symbolizeLine(symb.Symbolize, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
@@ -73,7 +69,7 @@ func (ctx *bsd) Symbolize(rep *Report) error {
 	return nil
 }
 
-func (ctx *bsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
+func (ctx *bsd) symbolizeLine(symbFunc func(string, ...uint64) ([]symbolizer.Frame, error),
 	line []byte) []byte {
 	var match []int
 	// Check whether the line corresponds to the any of the parts that require symbolization.
@@ -110,7 +106,7 @@ func (ctx *bsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer
 	// Go through each of the frames and add the corresponding file names and line numbers.
 	for _, frame := range frames {
 		file := frame.File
-		file = strings.TrimPrefix(file, ctx.kernelBuildSrc)
+		file = strings.TrimPrefix(file, ctx.kernelDirs.BuildSrc)
 		file = strings.TrimPrefix(file, "/")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)

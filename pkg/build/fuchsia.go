@@ -27,6 +27,7 @@ func syzRoot() (string, error) {
 	return filepath.Abs(filepath.Join(filepath.Dir(selfPath), "../.."))
 }
 
+// nolint: goconst // to ignore "out/"
 func (fu fuchsia) build(params Params) (ImageDetails, error) {
 	syzDir, err := syzRoot()
 	if err != nil {
@@ -87,13 +88,13 @@ func (fu fuchsia) build(params Params) (ImageDetails, error) {
 		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(params.OutputDir, filepath.FromSlash(dst))
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return ImageDetails{}, fmt.Errorf("failed to copy %v: %v", src, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v: %w", src, err)
 		}
 	}
 	return ImageDetails{}, nil
 }
 
-func (fu fuchsia) clean(kernelDir, targetArch string) error {
+func (fu fuchsia) clean(params Params) error {
 	// We always do clean build because incremental build is frequently broken.
 	// So no need to clean separately.
 	return nil

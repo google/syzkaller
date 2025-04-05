@@ -1,0 +1,36 @@
+TITLE: BUG: Bad page state in corrupted
+CORRUPTED: Y
+
+[   35.932064][ T5991] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   35.995178][ T6018] BUG: Bad page state in process syz-executor.0  pfn:1b317b
+[   35.997385][ T6018] page:00000000b430fc6f refcount:0 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x1b317b
+[   36.000175][ T6018] flags: 0x5ffc00000001000(reserved|node=0|zone=2|lastcpupid=0x7ff)
+[   36.002273][ T6018] page_type: 0xffffffff()
+[   36.003460][ T6018] raw: 05ffc00000001000 fffffc0005cc5ec8 fffffc0005cc5ec8 0000000000000000
+[   36.007695][ T6018] raw: 0000000000000000 0000000000000000 00000000ffffffff 0000000000000000
+[   36.010002][ T6018] page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s) set
+[   36.011953][ T6018] Modules linked in:
+[   36.012969][ T6018] CPU: 0 PID: 6018 Comm: syz-executor.0 Not tainted 6.5.0-rc5-syzkaller-g6f09e57d8cf6 #0
+[   36.015567][ T6018] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/12/2023
+[   36.018153][ T6018] Call trace:
+[   36.018992][ T6018]  dump_backtrace+0x1b8/0x1e4
+[   36.020256][ T6018]  show_stack+0x2c/0x44
+[   36.021336][ T6018]  dump_stack_lvl+0xd0/0x124
+[   36.022575][ T6018]  dump_stack+0x1c/0x28
+[   36.023621][ T6018]  bad_page+0x1a4/0x1c4
+[   36.024713][ T6018]  free_page_is_bad_report+0xf4/0x16c
+[   36.026129][ T6018]  free_unref_page_prepare+0x988/0xadc
+[   36.027548][ T6018]  free_unref_page+0x80/0x3dc
+[   36.028762][ T6018]  __folio_put+0xd0/0x12c
+[   36.029926][ T6018]  extract_iter_to_sg+0xb94/0x1c08
+[   36.031259][ T6018]  hash_sendmsg+0x480/0xe84
+[   36.032439][ T6018]  ____sys_sendmsg+0x56c/0x840
+[   36.033674][ T6018]  __sys_sendmmsg+0x318/0x7d8
+[   36.034854][ T6018]  __arm64_sys_sendmmsg+0xa0/0xbc
+[   36.036158][ T6018]  invoke_syscall+0x98/0x2b8
+[   36.037379][ T6018]  el0_svc_common+0x130/0x23c
+[   36.038638][ T6018]  do_el0_svc+0x48/0x58
+[   36.039718][ T6018]  el0_svc+0x58/0x16c
+[   36.040787][ T6018]  el0t_64_sync_handler+0x84/0xfc
+[   36.042086][ T6018]  el0t_64_sync+0x190/0x194
+[   36.045588][ T6018] Disabling lock debugging due to kernel taint

@@ -1,4 +1,5 @@
 TITLE: WARNING: proc registration bug in clusterip_tg_check
+TYPE: WARNING
 
 [   42.189270] ------------[ cut here ]------------
 [   42.190246]  ? lock_acquire+0x1d5/0x580

@@ -4,12 +4,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -47,58 +49,65 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	vmCount := vmPool.Count()
-	if *flagCount > 0 && *flagCount < vmCount {
-		vmCount = *flagCount
-	}
-	if vmCount > 4 {
-		vmCount = 4
-	}
-	vmIndexes := make([]int, vmCount)
-	for i := range vmIndexes {
-		vmIndexes[i] = i
-	}
+	defer vmPool.Close()
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	osutil.HandleInterrupts(vm.Shutdown)
 
-	res, stats, err := repro.Run(data, cfg, nil, reporter, vmPool, vmIndexes)
-	if err != nil {
-		log.Logf(0, "reproduction failed: %v", err)
+	count := vmPool.Count()
+	if *flagCount > 0 {
+		count = *flagCount
 	}
-	if stats != nil {
-		fmt.Printf("extracting prog: %v\n", stats.ExtractProgTime)
-		fmt.Printf("minimizing prog: %v\n", stats.MinimizeProgTime)
-		fmt.Printf("simplifying prog options: %v\n", stats.SimplifyProgTime)
-		fmt.Printf("extracting C: %v\n", stats.ExtractCTime)
-		fmt.Printf("simplifying C: %v\n", stats.SimplifyCTime)
-	}
-	if res == nil {
-		return
-	}
+	pool := vm.NewDispatcher(vmPool, nil)
+	pool.ReserveForRun(count)
 
-	fmt.Printf("opts: %+v crepro: %v\n\n", res.Opts, res.CRepro)
+	ctx, done := context.WithCancel(context.Background())
+	go func() {
+		defer done()
 
-	progSerialized := res.Prog.Serialize()
-	fmt.Printf("%s\n", progSerialized)
-	if err = osutil.WriteFile(*flagOutput, progSerialized); err == nil {
-		fmt.Printf("program saved to %s\n", *flagOutput)
-	} else {
-		log.Logf(0, "failed to write prog to file: %v", err)
-	}
+		res, stats, err := repro.Run(ctx, data, repro.Environment{
+			Config:   cfg,
+			Features: flatrpc.AllFeatures,
+			Reporter: reporter,
+			Pool:     pool,
+		})
+		if err != nil {
+			log.Logf(0, "reproduction failed: %v", err)
+		}
+		if stats != nil {
+			fmt.Printf("extracting prog: %v\n", stats.ExtractProgTime)
+			fmt.Printf("minimizing prog: %v\n", stats.MinimizeProgTime)
+			fmt.Printf("simplifying prog options: %v\n", stats.SimplifyProgTime)
+			fmt.Printf("extracting C: %v\n", stats.ExtractCTime)
+			fmt.Printf("simplifying C: %v\n", stats.SimplifyCTime)
+		}
+		if res == nil {
+			return
+		}
 
-	if res.Report != nil && *flagTitle != "" {
-		recordTitle(res, *flagTitle)
-	}
-	if res.CRepro {
-		recordCRepro(res, *flagCRepro)
-	}
-	if *flagStrace != "" {
-		result := repro.RunStrace(res, cfg, reporter, vmPool, vmIndexes[0])
-		recordStraceResult(result, *flagStrace)
-	}
+		fmt.Printf("opts: %+v crepro: %v\n\n", res.Opts, res.CRepro)
+		progSerialized := res.Prog.Serialize()
+		fmt.Printf("%s\n", progSerialized)
+		if err = osutil.WriteFile(*flagOutput, progSerialized); err == nil {
+			fmt.Printf("program saved to %s\n", *flagOutput)
+		} else {
+			log.Logf(0, "failed to write prog to file: %v", err)
+		}
+
+		if res.Report != nil && *flagTitle != "" {
+			recordTitle(res, *flagTitle)
+		}
+		if res.CRepro {
+			recordCRepro(res, *flagCRepro)
+		}
+		if *flagStrace != "" {
+			result := repro.RunStrace(res, cfg, reporter, pool)
+			recordStraceResult(result, *flagStrace)
+		}
+	}()
+	pool.Loop(ctx)
 }
 
 func recordTitle(res *repro.Result, fileName string) {

@@ -19,17 +19,20 @@ import (
 )
 
 func main() {
+	targetOS := os.Getenv("TARGETOS")
 	targetArch := os.Getenv("TARGETARCH")
-	target := targets.Get(targets.Fuchsia, targetArch)
+	sourceDir := os.Getenv("SOURCEDIR")
+	if targetOS != targets.Fuchsia || sourceDir == "" {
+		return
+	}
+	if !osutil.IsExist(sourceDir) {
+		tool.Failf("cannot find SOURCEDIR %s", sourceDir)
+	}
+	target := targets.Get(targetOS, targetArch)
 	if target == nil {
 		tool.Failf("unknown TARGETARCH %s", targetArch)
 	}
 	arch := target.KernelHeaderArch
-
-	sourceDir := os.Getenv("SOURCEDIR")
-	if !osutil.IsExist(sourceDir) {
-		tool.Failf("cannot find SOURCEDIR %s", sourceDir)
-	}
 
 	fidlgenPath := filepath.Join(
 		sourceDir,
@@ -88,7 +91,7 @@ func main() {
 			return pos.File == file
 		}))
 
-		if err := osutil.WriteFile(file, desc); err != nil {
+		if err := osutil.WriteFileAtomically(file, desc); err != nil {
 			tool.Fail(err)
 		}
 	}

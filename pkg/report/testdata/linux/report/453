@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in lkdtm_ARRAY_BOUNDS
+TYPE: UBSAN
 
 [  180.184126][ T6213] ================================================================================
 [  180.187725][ T6213] UBSAN: Undefined behaviour in drivers/misc/lkdtm/bugs.c:243:16

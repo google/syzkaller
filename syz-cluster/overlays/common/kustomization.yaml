@@ -1,0 +1,28 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resources:
+  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
+  - ../../controller
+  - ../../dashboard
+  - ../../series-tracker
+  - ../../kernel-disk
+  - ../../reporter
+  - ../../workflow
+  - network-deny-all.yaml
+  - network-policy-controller.yaml
+  - network-policy-git-access.yaml
+  - network-policy-web-dashboard.yaml
+  - workflow-roles.yaml
+
+patchesStrategicMerge:
+  - patch-argo-controller.yaml
+  - patch-workflow-controller-configmap.yaml
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent

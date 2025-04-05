@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Write in do_one_initcall
 ALT: bad-access in do_one_initcall
+TYPE: KASAN
 
 [   35.046212][ T5851] ==================================================================
 [   35.047479][ T5851] BUG: KASAN: slab-out-of-bounds in memcpy+0xac/0xc3 [test_kasan]

@@ -1,6 +1,10 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// TODO: switch syz-verifier to use syz-fuzzer.
+
+//go:build ignore
+
 package main
 
 import (
@@ -52,7 +56,7 @@ type statsJSON struct {
 	AverExecSpeed       uint64
 }
 
-// handleStats renders the statsJSON object.
+// renderStats renders the statsJSON object.
 func (monitor *Monitor) renderStats() interface{} {
 	stats := monitor.externalStats
 

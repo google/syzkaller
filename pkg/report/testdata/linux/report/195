@@ -1,5 +1,6 @@
 TITLE: KASAN: wild-memory-access Read in sg_read
 ALT: bad-access in sg_read
+TYPE: KASAN
 
 [   67.633749] ==================================================================
 [   67.633767] BUG: KASAN: wild-memory-access in sg_read+0xe5c/0x1440

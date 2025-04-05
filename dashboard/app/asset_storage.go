@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/sys/targets"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
@@ -49,7 +49,7 @@ func appendBuildAssets(c context.Context, ns, buildID string, assets []Asset) (*
 		log.Infof(c, "updated build: %#v", build)
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{}); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		return nil, err
 	}
 	return retBuild, nil
@@ -136,7 +136,7 @@ func neededCrashURLs(c context.Context) ([]string, error) {
 
 func handleDeprecateAssets(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	for ns := range config.Namespaces {
+	for ns := range getConfig(c).Namespaces {
 		err := deprecateNamespaceAssets(c, ns)
 		if err != nil {
 			log.Errorf(c, "deprecateNamespaceAssets failed for ns=%v: %v", ns, err)
@@ -349,7 +349,7 @@ func (ad *buildAssetDeprecator) updateBuild(buildID string, urlsToDelete []strin
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(ad.c, tx, nil); err != nil {
+	if err := runInTransaction(ad.c, tx, nil); err != nil {
 		return fmt.Errorf("failed to update build: %w", err)
 	}
 	return nil
@@ -442,7 +442,7 @@ func (ad *crashAssetDeprecator) bugStatusPolicy(crashKey *db.Key, crashAsset *As
 	bug := new(Bug)
 	err := db.Get(ad.c, bugKey, bug)
 	if err != nil {
-		return false, fmt.Errorf("failed to query bug: %s", err)
+		return false, fmt.Errorf("failed to query bug: %w", err)
 	}
 	return bug.Status == BugStatusOpen ||
 		bug.Closed.After(timeNow(ad.c).Add(-keepAssetsForClosedBugs)), nil
@@ -463,7 +463,7 @@ func (ad *crashAssetDeprecator) updateCrash(crashKey *db.Key, urlsToDelete []str
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(ad.c, tx, &db.TransactionOptions{Attempts: 10}); err != nil {
+	if err := runInTransaction(ad.c, tx, nil); err != nil {
 		return fmt.Errorf("failed to update crash: %w", err)
 	}
 	return nil
@@ -496,18 +496,27 @@ func queryLatestManagerAssets(c context.Context, ns string, assetType dashapi.As
 	return ret, nil
 }
 
-func createAssetList(build *Build, crash *Crash) []dashapi.Asset {
+func createAssetList(c context.Context, build *Build, crash *Crash, forReport bool) []dashapi.Asset {
+	var crashAssets []Asset
+	if crash != nil {
+		crashAssets = crash.Assets
+	}
 	assetList := []dashapi.Asset{}
-	for _, reportAsset := range append(build.Assets, crash.Assets...) {
+	for _, reportAsset := range append(build.Assets, crashAssets...) {
 		typeDescr := asset.GetTypeDescription(reportAsset.Type)
-		if typeDescr == nil || typeDescr.NoReporting {
+		if typeDescr == nil || forReport && typeDescr.NoReporting {
 			continue
 		}
-		assetList = append(assetList, dashapi.Asset{
+		newAsset := dashapi.Asset{
 			Title:       typeDescr.GetTitle(targets.Get(build.OS, build.Arch)),
 			DownloadURL: reportAsset.DownloadURL,
 			Type:        reportAsset.Type,
-		})
+		}
+		if reportAsset.FsckLog != 0 {
+			newAsset.FsckLogURL = externalLink(c, textFsckLog, reportAsset.FsckLog)
+			newAsset.FsIsClean = reportAsset.FsIsClean
+		}
+		assetList = append(assetList, newAsset)
 	}
 	sort.SliceStable(assetList, func(i, j int) bool {
 		return asset.GetTypeDescription(assetList[i].Type).ReportingPrio <

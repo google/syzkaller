@@ -33,7 +33,7 @@ func (*linux) prepare(sourcedir string, build bool, arches []*Arch) error {
 				out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper", "ARCH="+arch,
 					"-j", fmt.Sprint(runtime.NumCPU()))
 				if err != nil {
-					return fmt.Errorf("make mrproper failed: %v\n%s", err, out)
+					return fmt.Errorf("make mrproper failed: %w\n%s", err, out)
 				}
 			}
 		}
@@ -61,6 +61,11 @@ func (*linux) prepareArch(arch *Arch) error {
 #define va_copy __builtin_va_copy
 #define __va_copy __builtin_va_copy
 `,
+		"asm/kvm.h": `
+struct kvm_debug_exit_arch {};
+struct kvm_guest_debug_arch {};
+struct kvm_sync_regs {};
+`,
 		"asm/a.out.h":    "",
 		"asm/prctl.h":    "",
 		"asm/mce.h":      "",
@@ -79,12 +84,19 @@ func (*linux) prepareArch(arch *Arch) error {
 		return nil
 	}
 	kernelDir := arch.sourceDir
-	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir)
-	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
-	if err != nil {
-		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
+	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir, runtime.NumCPU())
+	if arch.configFile != "" {
+		err := osutil.CopyFile(arch.configFile, filepath.Join(arch.buildDir, ".config"))
+		if err != nil {
+			return fmt.Errorf("failed to copy config file: %w", err)
+		}
+	} else {
+		out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
+		if err != nil {
+			return fmt.Errorf("make defconfig failed: %w\n%s", err, out)
+		}
 	}
-	_, err = osutil.RunCmd(time.Minute, arch.buildDir, filepath.Join(kernelDir, "scripts", "config"),
+	_, err := osutil.RunCmd(time.Minute, arch.buildDir, filepath.Join(kernelDir, "scripts", "config"),
 		// powerpc arch is configured to be big-endian by default, but we want little-endian powerpc.
 		// Since all of our archs are little-endian for now, we just blindly switch it.
 		"-d", "CPU_BIG_ENDIAN", "-e", "CPU_LITTLE_ENDIAN",
@@ -104,13 +116,13 @@ func (*linux) prepareArch(arch *Arch) error {
 	if err != nil {
 		return err
 	}
-	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
+	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {
-		return fmt.Errorf("make olddefconfig failed: %v\n%s", err, out)
+		return fmt.Errorf("make olddefconfig failed: %w\n%s", err, out)
 	}
 	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "init/main.o")...)
 	if err != nil {
-		return fmt.Errorf("make failed: %v\n%s", err, out)
+		return fmt.Errorf("make failed: %w\n%s", err, out)
 	}
 	return nil
 }
@@ -127,6 +139,8 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I.",
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
+		"-DKBUILD_MODFILE=\"-\"",
+		"-D__LINUX_ARM_ARCH__=7", // arm does not build w/o this
 		"-I" + sourceDir + "/arch/" + headerArch + "/include",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated",
@@ -135,7 +149,6 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/include",
 		"-I" + sourceDir + "/include",
 		"-I" + sourceDir + "/arch/" + headerArch + "/include/uapi",
-		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + sourceDir + "/include/uapi",
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,

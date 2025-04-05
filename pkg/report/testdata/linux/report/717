@@ -1,0 +1,6 @@
+TITLE: SYZFAIL: SIGBUS
+TYPE: SYZ_FAILURE
+SUPPRESSED: Y
+
+SYZFAIL: SIGBUS
+handler:0x123 pc:0x7f88b7e4e673 addr:0x7f88b11ffffc (errno 9: Bad file descriptor)

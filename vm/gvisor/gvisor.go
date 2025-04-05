@@ -21,16 +21,21 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vmimpl.Register("gvisor", ctor, true)
+	vmimpl.Register(targets.GVisor, vmimpl.Type{
+		Ctor:       ctor,
+		Overcommit: true,
+	})
 }
 
 type Config struct {
-	Count     int    `json:"count"` // number of VMs to use
-	RunscArgs string `json:"runsc_args"`
+	Count            int    `json:"count"` // number of VMs to use
+	RunscArgs        string `json:"runsc_args"`
+	MemoryTotalBytes uint64 `json:"memory_total_bytes"`
 }
 
 type Pool struct {
@@ -55,14 +60,16 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Count: 1,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse vm config: %v", err)
+		return nil, fmt.Errorf("failed to parse vm config: %w", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
 	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
+	hostTotalMemory := osutil.SystemMemorySize()
+	minMemory := uint64(cfg.Count) * 10_000_000
+	if cfg.MemoryTotalBytes != 0 && (cfg.MemoryTotalBytes < minMemory || cfg.MemoryTotalBytes > hostTotalMemory) {
+		return nil, fmt.Errorf("invalid config param memory_total_bytes: %v, want [%d,%d]",
+			minMemory, cfg.MemoryTotalBytes, hostTotalMemory)
 	}
 	if !osutil.IsExist(env.Image) {
 		return nil, fmt.Errorf("image file %q does not exist", env.Image)
@@ -94,13 +101,17 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		caps += "\"" + c + "\""
 	}
 	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
-	vmConfig := fmt.Sprintf(configTempl, imageDir, caps, name)
+	memoryLimit := int64(pool.cfg.MemoryTotalBytes / uint64(pool.Count()))
+	if pool.cfg.MemoryTotalBytes == 0 {
+		memoryLimit = -1
+	}
+	vmConfig := fmt.Sprintf(configTempl, imageDir, caps, name, memoryLimit)
 	if err := osutil.WriteFile(filepath.Join(bundleDir, "config.json"), []byte(vmConfig)); err != nil {
 		return nil, err
 	}
 	bin, err := exec.LookPath(os.Args[0])
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup %v: %v", os.Args[0], err)
+		return nil, fmt.Errorf("failed to lookup %v: %w", os.Args[0], err)
 	}
 	if err := osutil.CopyFile(bin, filepath.Join(imageDir, "init")); err != nil {
 		return nil, err
@@ -135,8 +146,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("gvisor", rpipe)
-	merger.Add("gvisor-goruntime", panicLogReadFD)
+	merger.Add("runsc", rpipe)
+	merger.Add("runsc-goruntime", panicLogReadFD)
 
 	inst := &instance{
 		cfg:      pool.cfg,
@@ -245,7 +256,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	return cmd
 }
 
-func (inst *instance) Close() {
+func (inst *instance) Close() error {
 	time.Sleep(3 * time.Second)
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	inst.cmd.Process.Kill()
@@ -253,6 +264,7 @@ func (inst *instance) Close() {
 	inst.cmd.Wait()
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
+	return nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -260,7 +272,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("forward port is already setup")
 	}
 	inst.port = port
-	return "stdin", nil
+	return "stdin:0", nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
@@ -410,24 +422,32 @@ const configTempl = `
 		"readonly": true
 	},
 	"linux": {
-	  "cgroupsPath": "%[3]v",
-	  "resources": {
-		  "cpu": {
-			"shares": 1024
-		  }
-	  }
+		"cgroupsPath": "%[3]v",
+		"resources": {
+			"cpu": {
+				"shares": 1024
+			},
+			"memory": {
+				"limit": %[4]d,
+				"reservation": %[4]d,
+				"disableOOMKiller": false
+			}
+		},
+		"sysctl": {
+			"fs.nr_open": "1048576"
+		}
 	},
 	"process":{
-                "args": ["/init"],
-                "cwd": "/tmp",
-                "env": ["SYZ_GVISOR_PROXY=1"],
-                "capabilities": {
-                	"bounding": [%[2]v],
-                	"effective": [%[2]v],
-                	"inheritable": [%[2]v],
-                	"permitted": [%[2]v],
-                	"ambient": [%[2]v]
-                }
+		"args": ["/init"],
+		"cwd": "/tmp",
+		"env": ["SYZ_GVISOR_PROXY=1"],
+		"capabilities": {
+			"bounding": [%[2]v],
+			"effective": [%[2]v],
+			"inheritable": [%[2]v],
+			"permitted": [%[2]v],
+			"ambient": [%[2]v]
+		}
 	}
 }
 `

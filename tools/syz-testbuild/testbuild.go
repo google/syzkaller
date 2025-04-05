@@ -23,13 +23,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 
-	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -75,7 +75,7 @@ func main() {
 		KernelObj:  *flagKernelSrc,
 		Syzkaller:  *flagSyzkaller,
 		Sandbox:    *flagSandbox,
-		SandboxArg: *flagSandboxArg,
+		SandboxArg: int64(*flagSandboxArg),
 		SSHUser:    "root",
 		Procs:      1,
 		Cover:      false,
@@ -95,7 +95,7 @@ func main() {
 		tool.Fail(err)
 	}
 	bisecter := repo.(vcs.Bisecter)
-	head, err := repo.HeadCommit()
+	head, err := repo.Commit(vcs.HEAD)
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -125,15 +125,12 @@ func main() {
 
 func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.Env, com *vcs.Commit) {
 	compiler, compilerType, linker, ccache := "gcc", "gcc", "ld", ""
-	bisectEnv, err := bisecter.EnvForCommit(compiler, compilerType, *flagBisectBin, com.Hash, kernelConfig)
+	bisectEnv, err := bisecter.EnvForCommit(compiler, compilerType, *flagBisectBin, com.Hash, kernelConfig, nil)
 	if err != nil {
 		tool.Fail(err)
 	}
 	log.Printf("testing: %v %v using %v", com.Hash, com.Title, bisectEnv.Compiler)
-	if err := build.Clean(*flagOS, *flagArch, vmType, *flagKernelSrc); err != nil {
-		tool.Fail(err)
-	}
-	_, _, err = env.BuildKernel(&instance.BuildKernelConfig{
+	buildCfg := &instance.BuildKernelConfig{
 		CompilerBin:  bisectEnv.Compiler,
 		LinkerBin:    linker,
 		CcacheBin:    ccache,
@@ -141,9 +138,14 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,
 		KernelConfig: bisectEnv.KernelConfig,
-	})
+	}
+	if err := env.CleanKernel(buildCfg); err != nil {
+		tool.Fail(err)
+	}
+	_, _, err = env.BuildKernel(buildCfg)
 	if err != nil {
-		if verr, ok := err.(*osutil.VerboseError); ok {
+		var verr *osutil.VerboseError
+		if errors.As(err, &verr) {
 			log.Printf("BUILD BROKEN: %v", verr.Title)
 			saveLog(com.Hash, 0, verr.Output)
 		} else {
@@ -162,23 +164,26 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 			verdicts = append(verdicts, "OK")
 			continue
 		}
-		switch err := res.Error.(type) {
-		case *instance.TestError:
-			if err.Boot {
-				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
+
+		var testError *instance.TestError
+		var crashError *instance.CrashError
+		switch {
+		case errors.As(res.Error, &testError):
+			if testError.Boot {
+				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", testError))
 			} else {
-				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", err))
+				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", testError))
 			}
-			output := err.Output
-			if err.Report != nil {
-				output = err.Report.Output
+			output := testError.Output
+			if testError.Report != nil {
+				output = testError.Report.Output
 			}
 			saveLog(com.Hash, i, output)
-		case *instance.CrashError:
-			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
-			output := err.Report.Report
+		case errors.As(res.Error, &crashError):
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", crashError))
+			output := crashError.Report.Report
 			if len(output) == 0 {
-				output = err.Report.Output
+				output = crashError.Report.Output
 			}
 			saveLog(com.Hash, i, output)
 		default:

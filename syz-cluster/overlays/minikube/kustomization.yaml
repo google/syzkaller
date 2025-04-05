@@ -1,0 +1,14 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resources:
+  - service-accounts.yaml
+  - kernel-disk-pvc.yaml
+  - ../common
+  - global-config.yaml
+  - fake-gcs.yaml
+  - network-policy-spanner.yaml
+  - workflow-artifacts.yaml
+
+patchesStrategicMerge:
+  - patch-workflow-controller-configmap.yaml

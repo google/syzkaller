@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -27,6 +26,7 @@ var (
 	flagIncludes  = flag.String("includedirs", "", "path to other kernel source include dirs separated by commas")
 	flagBuildDir  = flag.String("builddir", "", "path to kernel build dir")
 	flagArch      = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
+	flagConfig    = flag.String("config", "", "base kernel config file instead of defconfig")
 )
 
 type Arch struct {
@@ -36,6 +36,7 @@ type Arch struct {
 	buildDir    string
 	build       bool
 	files       []*File
+	configFile  string
 	err         error
 	done        chan bool
 }
@@ -57,7 +58,6 @@ type Extractor interface {
 }
 
 var extractors = map[string]Extractor{
-	targets.Akaros:  new(akaros),
 	targets.Linux:   new(linux),
 	targets.FreeBSD: new(freebsd),
 	targets.Darwin:  new(darwin),
@@ -79,13 +79,17 @@ func main() {
 	if extractor == nil {
 		tool.Failf("unknown os: %v", OS)
 	}
-	arches, nfiles, err := createArches(OS, archList(OS, *flagArch), flag.Args())
+	archList, err := tool.ParseArchList(OS, *flagArch)
+	if err != nil {
+		tool.Failf("failed to parse arch flag: %v", err)
+	}
+	arches, nfiles, err := createArches(OS, archList, flag.Args())
 	if err != nil {
 		tool.Fail(err)
 	}
 	if *flagSourceDir == "" {
-		tool.Fail(fmt.Errorf("provide path to kernel checkout via -sourcedir " +
-			"flag (or make extract SOURCEDIR)"))
+		tool.Failf("provide path to kernel checkout via -sourcedir " +
+			"flag (or make extract SOURCEDIR)")
 	}
 	if err := extractor.prepare(*flagSourceDir, *flagBuild, arches); err != nil {
 		tool.Fail(err)
@@ -193,7 +197,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 		if *flagBuild {
 			dir, err := os.MkdirTemp("", "syzkaller-kernel-build")
 			if err != nil {
-				return nil, 0, fmt.Errorf("failed to create temp dir: %v", err)
+				return nil, 0, fmt.Errorf("failed to create temp dir: %w", err)
 			}
 			buildDir = dir
 		} else if *flagBuildDir != "" {
@@ -214,6 +218,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 			buildDir:    buildDir,
 			build:       *flagBuild,
 			done:        make(chan bool),
+			configFile:  *flagConfig,
 		}
 		var archFiles []string
 		for _, file := range files {
@@ -238,18 +243,6 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 		nfiles += len(arch.files)
 	}
 	return arches, nfiles, nil
-}
-
-func archList(OS, arches string) []string {
-	if arches != "" {
-		return strings.Split(arches, ",")
-	}
-	var archArray []string
-	for arch := range targets.List[OS] {
-		archArray = append(archArray, arch)
-	}
-	sort.Strings(archArray)
-	return archArray
 }
 
 func checkUnsupportedCalls(arches []*Arch) bool {

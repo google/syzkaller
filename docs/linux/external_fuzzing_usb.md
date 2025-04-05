@@ -36,7 +36,7 @@ These pseudo-syscalls targeted at a few different layers:
 There are [runtests](/sys/linux/test/) for USB pseudo-syscalls. They are named starting with the `vusb` prefix and can be run with:
 
 ```
-./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
+./bin/syz-manager -config usb-manager.cfg -mode run-tests -tests vusb
 ```
 
 
@@ -101,117 +101,8 @@ Syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that a
 5. Don't forget to revert the applied patch and rebuild the kernel before doing actual fuzzing.
 
 
-## Running reproducers with Raspberry Pi Zero W
+## Running reproducers on Linux-based boards
 
-It's possible to run syzkaller USB reproducers by using a Linux board plugged into a physical USB host.
-These instructions describe how to set this up on a Raspberry Pi Zero W, but any other board that has a working USB UDC driver can be used as well.
+It's possible to run syzkaller USB reproducers on a Linux-based board plugged into a physical USB host.
 
-1. Download `raspbian-stretch-lite.img` from [here](https://www.raspberrypi.org/downloads/raspbian/).
-
-2. Flash the image into an SD card as described [here](https://www.raspberrypi.org/documentation/installation/installing-images/linux.md).
-
-3. Enable UART as described [here](https://www.raspberrypi.org/documentation/configuration/uart.md).
-
-4. Boot the board and get a shell over UART as described [here](https://learn.adafruit.com/raspberry-pi-zero-creation/give-it-life). You'll need a USB-UART module for that. The default login credentials are `pi` and `raspberry`.
-
-5. Get the board connected to the internet (plug in a USB Ethernet adapter or follow [this](https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md)).
-
-6. Update: `sudo apt-get update && sudo apt-get dist-upgrade && sudo rpi-update && sudo reboot`.
-
-7. Install useful packages: `sudo apt-get install vim git`.
-
-8. Download and install Go:
-
-    ``` bash
-    curl https://dl.google.com/go/go1.14.2.linux-armv6l.tar.gz -o go.linux-armv6l.tar.gz
-    tar -xf go.linux-armv6l.tar.gz
-    mv go goroot
-    mkdir gopath
-    export GOPATH=~/gopath
-    export GOROOT=~/goroot
-    export PATH=~/goroot/bin:$PATH
-    export PATH=~/gopath/bin:$PATH
-    ```
-
-9. Download syzkaller, apply the patch below and build `syz-executor`:
-
-``` c
-diff --git a/executor/common_usb_linux.h b/executor/common_usb_linux.h
-index 451b2a7b..64af45c7 100644
---- a/executor/common_usb_linux.h
-+++ b/executor/common_usb_linux.h
-@@ -292,9 +292,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
-
-        // TODO: consider creating two dummy_udc's per proc to increace the chance of
-        // triggering interaction between multiple USB devices within the same program.
--       char device[32];
--       sprintf(&device[0], "dummy_udc.%llu", procid);
--       int rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
-+       rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
-        if (rv < 0) {
-                debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
-                return rv;
-```
-
-``` bash
-git clone https://github.com/google/syzkaller
-cd syzkaller
-# Put the patch above into ./syzkaller.patch
-git apply ./syzkaller.patch
-make executor
-mkdir ~/syz-bin
-cp bin/linux_arm/syz-executor ~/syz-bin/
-```
-
-10. Build `syz-execprog` on your host machine for arm32 with `make TARGETARCH=arm execprog` and copy to `~/syz-bin` onto the SD card. You may try building syz-execprog on the Raspberry Pi itself, but that worked poorly for me due to large memory consumption during the compilation process.
-
-11. Make sure that you can now execute syzkaller programs:
-
-    ``` bash
-    cat socket.log
-    r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-    sudo ./syz-bin/syz-execprog -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug socket.log
-    ```
-
-12. Setup the dwc2 USB gadget driver:
-
-    ```
-    echo "dtoverlay=dwc2" | sudo tee -a /boot/config.txt
-    echo "dwc2" | sudo tee -a /etc/modules
-    sudo reboot
-    ```
-
-13. Get Linux kernel headers following [this](https://github.com/notro/rpi-source/wiki).
-
-14. Download and build the USB Raw Gadget module following [this](https://github.com/xairy/raw-gadget/tree/master/raw_gadget).
-
-15. Insert the module with `sudo insmod raw_gadget.ko`.
-
-16. [Download](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c), build, and run the [keyboard emulator program](https://github.com/xairy/raw-gadget/tree/master/examples):
-
-    ``` bash
-    # Get keyboard.c
-    gcc keyboard.c -o keyboard
-    sudo ./keyboard 20980000.usb 20980000.usb
-    # Make sure you see the letter 'x' being entered on the host.
-    ```
-
-17. You should now be able to execute syzkaller USB programs:
-
-    ``` bash
-    $ cat usb.log
-    r0 = syz_usb_connect(0x0, 0x24, &(0x7f00000001c0)={{0x12, 0x1, 0x0, 0x8e, 0x32, 0xf7, 0x20, 0xaf0, 0xd257, 0x4e87, 0x0, 0x0, 0x0, 0x1, [{{0x9, 0x2, 0x12, 0x1, 0x0, 0x0, 0x0, 0x0, [{{0x9, 0x4, 0xf, 0x0, 0x0, 0xff, 0xa5, 0x2c}}]}}]}}, 0x0)
-    $ sudo ./syz-bin/syz-execprog -slowdown 3 -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug usb.log
-    ```
-
-    The `slowdown` parameter is a scaling factor which can be used for increasing the syscall timeouts.
-
-18. Steps 19 through 21 are optional. You may use a UART console and a normal USB cable instead of ssh and Zero Stem.
-
-19. Follow [this](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md) to set up a Wi-Fi hotspot.
-
-20. Follow [this](https://www.raspberrypi.org/documentation/remote-access/ssh/) to enable ssh.
-
-21. Optionally solder [Zero Stem](https://zerostem.io/) onto your Raspberry Pi Zero W.
-
-21. You can now connect the board to an arbitrary USB port, wait for it to boot, join its Wi-Fi network, ssh onto it, and run arbitrary syzkaller USB programs.
+See [Running syzkaller USB reproducers](https://github.com/xairy/raw-gadget/blob/master/docs/syzkaller_reproducers.md) in the Raw Gadget repository for the instructions.

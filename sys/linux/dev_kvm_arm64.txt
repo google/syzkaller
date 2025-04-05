@@ -1,0 +1,215 @@
+# Copyright 2024 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# ARM64-specific KVM syscall declarations.
+
+meta arches["arm64"]
+
+include <linux/irqchip/arm-gic-v3.h>
+include <linux/kvm.h>
+include <linux/arm-smccc.h>
+include <uapi/linux/psci.h>
+include <asm/kvm.h>
+
+# kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
+resource kvm_syz_vm[int64]
+
+# Map the given memory into the VM and set up syzos there.
+syz_kvm_setup_syzos_vm(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm
+
+# Create a VCPU inside a kvm_syz_vm VM.
+syz_kvm_add_vcpu(vm kvm_syz_vm, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
+
+kvm_num_irqs = 32, 64, 128, 256, 512
+
+# Set up the VGICv3 IRQ controller inside a VM.
+syz_kvm_vgic_v3_setup(fd fd_kvmvm, ncpus intptr[0:4], nirqs flags[kvm_num_irqs]) fd_kvmdev
+
+# Test assertions, will not be used by the fuzzer.
+syz_kvm_assert_syzos_uexit(run kvm_run_ptr, exitcode int64) (no_generate)
+syz_kvm_assert_reg(fd fd_kvmcpu, reg int64, value int64) (no_generate)
+
+# Old-style way to set up a CPU inside a KVM VM.
+syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[1024], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
+
+kvm_setup_opt_arm64 [
+# unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extention
+	featur1	kvm_setup_opt_feature
+	featur2	kvm_setup_opt_feature
+]
+
+kvm_vcpu_target = KVM_ARM_TARGET_CORTEX_A53, KVM_ARM_TARGET_AEM_V8, KVM_ARM_TARGET_FOUNDATION_V8, KVM_ARM_TARGET_CORTEX_A57, KVM_ARM_TARGET_XGENE_POTENZA, KVM_ARM_TARGET_GENERIC_V8
+# `feature` is a set of feature bits: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-init
+kvm_vcpu_init {
+	target	flags[kvm_vcpu_target, int32]
+	feature	flags[kvm_vcpu_feature_bits_arm64, int32]
+	pad	array[const[0, int32], 6]
+}
+
+kvm_arm_counter_offset {
+	counter_offset	int64
+	reserved	int64
+}
+
+kvm_arm_device_addr {
+	id	int64
+	addr	flags[kvm_guest_addrs, int64]
+}
+
+ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
+ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET], arg ptr[out, kvm_vcpu_init])
+# KVM_ARM_VCPU_FINALIZE accepts a single CPU feature encoded as a bit number: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-finalize.
+ioctl$KVM_ARM_VCPU_FINALIZE(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_FINALIZE], arg ptr[in, flags[kvm_vcpu_features_arm64, int32]])
+ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
+ioctl$KVM_ARM_SET_COUNTER_OFFSET(fd fd_kvmvm, cmd const[KVM_ARM_SET_COUNTER_OFFSET], arg ptr[in, kvm_arm_counter_offset])
+
+# ARM-specific VM capabilities.
+ioctl$KVM_CAP_ARM_MTE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_MTE, void]])
+ioctl$KVM_CAP_ARM_USER_IRQ(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_USER_IRQ, void]])
+ioctl$KVM_CAP_ARM_INJECT_SERROR_ESR(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_INJECT_SERROR_ESR, void]])
+ioctl$KVM_CAP_ARM_SYSTEM_SUSPEND(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_SYSTEM_SUSPEND, void]])
+ioctl$KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_ARM_EAGER_SPLIT_CHUNK_SIZE, int64]])
+
+# syz_kvm_setup_cpu$arm64 takes the same feature bitmap as ioctl$KVM_ARM_VCPU_INIT.
+kvm_setup_opt_feature {
+	typ	const[1, int64]
+	val	flags[kvm_vcpu_feature_bits_arm64, int64]
+}
+
+# Some ioctls accept single CPU features as `bitnr`, whereas others take a set of `1 << bitnr`.
+define KVM_ARM_VCPU_POWER_OFF_BIT	(1 << KVM_ARM_VCPU_POWER_OFF)
+define KVM_ARM_VCPU_EL1_32BIT_BIT	(1 << KVM_ARM_VCPU_EL1_32BIT)
+define KVM_ARM_VCPU_PSCI_0_2_BIT	(1 << KVM_ARM_VCPU_PSCI_0_2)
+define KVM_ARM_VCPU_PMU_V3_BIT	(1 << KVM_ARM_VCPU_PMU_V3)
+define KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_ADDRESS)
+define KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT	(1 << KVM_ARM_VCPU_PTRAUTH_GENERIC)
+define KVM_ARM_VCPU_SVE_BIT	(1 << KVM_ARM_VCPU_SVE)
+kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_ARM_VCPU_PSCI_0_2, KVM_ARM_VCPU_PMU_V3, KVM_ARM_VCPU_PTRAUTH_ADDRESS, KVM_ARM_VCPU_PTRAUTH_GENERIC, KVM_ARM_VCPU_SVE
+kvm_vcpu_feature_bits_arm64 = KVM_ARM_VCPU_POWER_OFF_BIT, KVM_ARM_VCPU_EL1_32BIT_BIT, KVM_ARM_VCPU_PSCI_0_2_BIT, KVM_ARM_VCPU_PMU_V3_BIT, KVM_ARM_VCPU_PTRAUTH_ADDRESS_BIT, KVM_ARM_VCPU_PTRAUTH_GENERIC_BIT, KVM_ARM_VCPU_SVE_BIT
+
+# Unlike on other architectures, ARM64 text is a sequence of commands, each starting with
+# the call number and the command length.
+kvm_text_arm64 {
+	typ	const[0, intptr]
+	text	ptr[in, array[syzos_api_call, 1:32]]
+	size	bytesize[text, int64]
+}
+
+syzos_api_code {
+	insns	text[arm64]
+	ret	const[0xd65f03c0, int32]
+} [packed]
+
+syzos_api_mrs {
+	arg_reg	flags[kvm_regs_arm64_sys, int64]
+}
+
+syzos_api_msr {
+	arg_reg		flags[kvm_regs_arm64_sys, int64]
+	arg_value	int64
+}
+
+# Based on the "SMC Calling Convention" doc, https://documentation-service.arm.com/static/5f8edaeff86e16515cdbe4c6
+# Bit 31 is Standard (0) / Fast Call (1)
+# Bit 30 is SMC32 (0) / SMC64 (1)
+# Bits 29:24 denote the owning entity (relevant constants below are 0x01000000-0x3f000000
+# Bits 23:16 are ignored (must be zero in most cases)
+# Bits 15:0 denote the function number (0-0xffff) within the specified range, so we list all the possible bit values
+# here and hope that the fuzzer will be able to combine them into a number.
+#
+# Numeric constants are used to help the fuzzer construct arbitrary SMC function IDs.
+# We also include IDs from include/linux/arm-smccc.h here.
+kvm_smc_id = 0x80000000, 0x40000000, 0x1000000, 0x2000000, 0x3000000, 0x4000000, 0x5000000, 0x6000000, 0x30000000, 0x31000000, 0x32000000, 0x3f000000, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0xffff, ARM_SMCCC_VERSION_FUNC_ID, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, ARM_SMCCC_ARCH_SOC_ID, ARM_SMCCC_ARCH_WORKAROUND_1, ARM_SMCCC_ARCH_WORKAROUND_2, ARM_SMCCC_ARCH_WORKAROUND_3, ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID, ARM_SMCCC_VENDOR_HYP_KVM_FEATURES_FUNC_ID, ARM_SMCCC_VENDOR_HYP_KVM_PTP_FUNC_ID, ARM_SMCCC_HV_PV_TIME_FEATURES, ARM_SMCCC_HV_PV_TIME_ST, ARM_SMCCC_TRNG_VERSION, ARM_SMCCC_TRNG_FEATURES, ARM_SMCCC_TRNG_GET_UUID, ARM_SMCCC_TRNG_RND32, ARM_SMCCC_TRNG_RND64, PSCI_0_2_FN_PSCI_VERSION, PSCI_0_2_FN_CPU_SUSPEND, PSCI_0_2_FN_CPU_OFF, PSCI_0_2_FN_CPU_ON, PSCI_0_2_FN_AFFINITY_INFO, PSCI_0_2_FN_MIGRATE, PSCI_0_2_FN_MIGRATE_INFO_TYPE, PSCI_0_2_FN_MIGRATE_INFO_UP_CPU, PSCI_0_2_FN_SYSTEM_OFF, PSCI_0_2_FN_SYSTEM_RESET, PSCI_0_2_FN64_CPU_SUSPEND, PSCI_0_2_FN64_CPU_ON, PSCI_0_2_FN64_AFFINITY_INFO, PSCI_0_2_FN64_MIGRATE, PSCI_0_2_FN64_MIGRATE_INFO_UP_CPU, PSCI_1_0_FN_PSCI_FEATURES, PSCI_1_0_FN_CPU_FREEZE, PSCI_1_0_FN_CPU_DEFAULT_SUSPEND, PSCI_1_0_FN_NODE_HW_STATE, PSCI_1_0_FN_SYSTEM_SUSPEND, PSCI_1_0_FN_SET_SUSPEND_MODE, PSCI_1_0_FN_STAT_RESIDENCY, PSCI_1_0_FN_STAT_COUNT, PSCI_1_1_FN_SYSTEM_RESET2, PSCI_1_1_FN_MEM_PROTECT, PSCI_1_1_FN_MEM_PROTECT_CHECK_RANGE, PSCI_1_0_FN64_CPU_DEFAULT_SUSPEND, PSCI_1_0_FN64_NODE_HW_STATE, PSCI_1_0_FN64_SYSTEM_SUSPEND, PSCI_1_0_FN64_STAT_RESIDENCY, PSCI_1_0_FN64_STAT_COUNT, PSCI_1_1_FN64_SYSTEM_RESET2, PSCI_1_1_FN64_MEM_PROTECT_CHECK_RANGE
+
+syzos_api_smccc {
+	arg_id		flags[kvm_smc_id, int32]
+	arg_params	array[int64, 5]
+}
+
+syzos_api_irq_setup {
+	nr_cpus	int32[0:4]
+	nr_spis	int32[0:987]
+}
+
+syzos_memwrite_len = 1, 2, 4, 8
+
+syzos_api_memwrite [
+	generic		syzos_api_memwrite_generic
+	vgic_gicd	syzos_api_memwrite_vgic_gicd
+	vgic_gicr	syzos_api_memwrite_vgic_gicr
+	vgic_gits	syzos_api_memwrite_vgic_gits
+]
+
+syzos_api_memwrite_generic {
+	base	flags[kvm_guest_addrs, int64]
+	offset	int64[0:4096]
+	value	int64
+	len	flags[syzos_memwrite_len, int64]
+}
+
+syzos_api_its_setup {
+	nr_cpus		int64[0:4]
+	nr_devices	int64[0:4]
+	nr_ints		int64[0:1024]
+}
+
+kvm_vgic_gicr_regs = GICR_CTLR, GICR_IIDR, GICR_TYPER, GICR_STATUSR, GICR_WAKER, GICR_SETLPIR, GICR_CLRLPIR, GICR_PROPBASER, GICR_PENDBASER, GICR_INVLPIR, GICR_INVALLR, GICR_SYNCR, GICR_IDREGS, GICR_PIDR2, GICR_IGROUPR0, GICR_ISENABLER0, GICR_ICENABLER0, GICR_ISPENDR0, GICR_ICPENDR0, GICR_ISACTIVER0, GICR_ICACTIVER0, GICR_IPRIORITYR0, GICR_ICFGR0, GICR_IGRPMODR0, GICR_NSACR
+
+# 0x080a0000 is ARM64_ADDR_GICR_BASE from executor/kvm.h, 0x20000 is redistributor size. We assume the maximum number of VCPUs is 4.
+syzos_api_memwrite_vgic_gicr {
+	base	int64[0x80a0000:0x8100000, 0x20000]
+	offset	flags[kvm_vgic_gicr_regs, int64]
+	value	int64
+	len	flags[syzos_memwrite_len, int64]
+}
+
+gits_commands = GITS_CMD_MAPD, GITS_CMD_MAPC, GITS_CMD_MAPTI, GITS_CMD_MAPI, GITS_CMD_MOVI, GITS_CMD_DISCARD, GITS_CMD_INV, GITS_CMD_MOVALL, GITS_CMD_INVALL, GITS_CMD_INT, GITS_CMD_CLEAR, GITS_CMD_SYNC
+
+syzos_api_its_send_cmd {
+	type	flags[gits_commands, int8]
+	valid	int8[0:1]
+	cpuid	int32[0:4]
+	devid	int32[0:16]
+	eventid	int32
+	intid	int32
+	cpuid2	int32[0:4]
+} [packed]
+
+kvm_vgic_gicd_regs = GICD_CTLR, GICD_TYPER, GICD_IIDR, GICD_TYPER2, GICD_STATUSR, GICD_SETSPI_NSR, GICD_CLRSPI_NSR, GICD_SETSPI_SR, GICD_CLRSPI_SR, GICD_IGROUPR, GICD_ISENABLER, GICD_ICENABLER, GICD_ISPENDR, GICD_ICPENDR, GICD_ISACTIVER, GICD_ICACTIVER, GICD_IPRIORITYR, GICD_ICFGR, GICD_IGRPMODR, GICD_NSACR, GICD_IGROUPRnE, GICD_ISENABLERnE, GICD_ICENABLERnE, GICD_ISPENDRnE, GICD_ICPENDRnE, GICD_ISACTIVERnE, GICD_ICACTIVERnE, GICD_IPRIORITYRnE, GICD_ICFGRnE, GICD_IROUTER, GICD_IROUTERnE, GICD_IDREGS, GICD_PIDR2, GICD_ITARGETSR, GICD_SGIR, GICD_CPENDSGIR, GICD_SPENDSGIR
+
+# 0x08000000 is ARM64_ADDR_GICD_BASE from executor/kvm.h
+syzos_api_memwrite_vgic_gicd {
+	base	const[0x8000000, int64]
+	offset	flags[kvm_vgic_gicd_regs, int64]
+	value	int64
+	len	flags[syzos_memwrite_len, int64]
+}
+
+kvm_vgic_gits_regs = GITS_CTLR, GITS_IIDR, GITS_TYPER, GITS_MPIDR, GITS_CBASER, GITS_CWRITER, GITS_CREADR, GITS_BASER, GITS_IDREGS_BASE, GITS_PIDR0, GITS_PIDR1, GITS_PIDR2, GITS_PIDR4, GITS_CIDR0, GITS_CIDR1, GITS_CIDR2, GITS_CIDR3, GITS_TRANSLATER, GITS_SGIR
+
+# 0x08080000 is ARM64_ADDR_GITS_BASE from executor/kvm.h
+syzos_api_memwrite_vgic_gits {
+	base	const[0x8080000, int64]
+	offset	flags[kvm_vgic_gits_regs, int64]
+	value	int64
+	len	flags[syzos_memwrite_len, int64]
+}
+
+type syzos_api[NUM, PAYLOAD] {
+	call	const[NUM, int64]
+	size	bytesize[parent, int64]
+	payload	PAYLOAD
+}
+
+syzos_api_call [
+	uexit		syzos_api[0, intptr]
+	code		syzos_api[1, syzos_api_code]
+	msr		syzos_api[2, syzos_api_msr]
+	smc		syzos_api[3, syzos_api_smccc]
+	hvc		syzos_api[4, syzos_api_smccc]
+	irq_setup	syzos_api[5, syzos_api_irq_setup]
+	memwrite	syzos_api[6, syzos_api_memwrite]
+	its_setup	syzos_api[7, syzos_api_its_setup]
+	its_send_cmd	syzos_api[8, syzos_api_its_send_cmd]
+	mrs		syzos_api[9, syzos_api_mrs]
+] [varlen]

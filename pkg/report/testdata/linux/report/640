@@ -1,4 +1,5 @@
 TITLE: WARNING in packet_release
+TYPE: WARNING
 
 [   51.810488][ T3598] ------------[ cut here ]------------
 [   51.816094][ T3598] WARNING: CPU: 1 PID: 3598 at lib/ref_tracker.c:120 ref_tracker_free.cold+0x110/0x14e

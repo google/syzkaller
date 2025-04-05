@@ -1,0 +1,74 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Page with details about a single bug.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>{{.Bug.Title}}</title>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	<b>{{.Bug.Title}}</b><br><br>
+	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	{{if .LabelGroups}}
+		{{range $group := .LabelGroups}}
+			{{$group.Name}}: {{range $group.Labels}}
+				<span class="bug-label">{{link .Link .Name}}</span>
+			{{- end}}
+		<br>
+		{{end}}
+	<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#labels">[Documentation on labels]</a><br>
+	{{- end}}
+	{{if .DebugSubsystems}}
+	{{link .DebugSubsystems "[Debug subsystem assignment]"}}<br>
+	{{- end}}
+	{{if .Bug.CreditEmail}}
+	Reported-by: {{.Bug.CreditEmail}}<br>
+	{{- end}}
+	{{if .Bug.Commits}}
+		<b>Fix commit:</b> {{template "fix_commits" .Bug.Commits}}<br>
+		{{if .Bug.ClosedTime.IsZero}}
+			<b>Patched on:</b> {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+		{{end}}
+	{{end}}
+	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	{{if .FixCandidate}}
+		<div class="fix-candidate-block">{{template "bisect_results" .FixCandidate}}</div>
+	{{end}}
+	<div>
+		{{if .BisectCause}}<div class="bug-bisection-info">{{template "bisect_results" .BisectCause}}</div>{{end}}
+		{{if .BisectFix}}<div class="bug-bisection-info">{{template "bisect_results" .BisectFix}}</div>{{end}}
+		<div class="bug-bisection-stop"></div>
+	</div>
+
+	{{range $item := .Sections}}
+	<div class="collapsible {{if $item.Show}}collapsible-show{{else}}collapsible-hide{{end}}">
+		<div class="head">
+			<span class="show-icon">&#9654;</span>
+			<span class="hide-icon">&#9660;</span>
+			<span>{{$item.Title}}</span>
+		</div>
+		<div class="content">
+			{{if eq $item.Type "bug_list"}}{{template "bug_list" $item.Value}}{{end}}
+			{{if eq $item.Type "job_list"}}{{template "job_list" $item.Value}}{{end}}
+			{{if eq $item.Type "discussion_list"}}{{template "discussion_list" $item.Value}}{{end}}
+			{{if eq $item.Type "test_results"}}{{template "test_results" $item.Value}}{{end}}
+			{{if eq $item.Type "repro_attempts"}}{{template "repro_attempts" $item.Value}}{{end}}
+		</div>
+	</div>
+	{{end}}
+
+	{{if .SampleReport}}
+	<br><b>Sample crash report:</b><br>
+	<div id="crash_div"><pre>{{.SampleReport}}</pre></div><br>
+	{{end}}
+
+	{{template "crash_list" .Crashes}}
+</body>
+</html>

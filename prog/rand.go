@@ -25,9 +25,10 @@ const (
 
 type randGen struct {
 	*rand.Rand
-	target             *Target
-	inGenerateResource bool
-	recDepth           map[string]int
+	target                *Target
+	inGenerateResource    bool
+	patchConditionalDepth int
+	recDepth              map[string]int
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
@@ -65,8 +66,8 @@ func (r *randGen) rand64() uint64 {
 var (
 	// Some potentially interesting integers.
 	specialInts = []uint64{
-		0, 1, 31, 32, 63, 64, 127, 128,
-		129, 255, 256, 257, 511, 512,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		64, 127, 128, 129, 255, 256, 257, 511, 512,
 		1023, 1024, 1025, 2047, 2048, 4095, 4096,
 		(1 << 15) - 1, (1 << 15), (1 << 15) + 1,
 		(1 << 16) - 1, (1 << 16), (1 << 16) + 1,
@@ -152,11 +153,12 @@ func (r *randGen) biasedRand(n, k int) int {
 	return int(bf)
 }
 
+const maxArrayLen = 10
+
 func (r *randGen) randArrayLen() uint64 {
-	const maxLen = 10
 	// biasedRand produces: 10, 9, ..., 1, 0,
 	// we want: 1, 2, ..., 9, 10, 0
-	return uint64(maxLen-r.biasedRand(maxLen+1, 10)+1) % (maxLen + 1)
+	return uint64(maxArrayLen-r.biasedRand(maxArrayLen+1, 10)+1) % (maxArrayLen + 1)
 }
 
 func (r *randGen) randBufLen() (n uint64) {
@@ -321,11 +323,7 @@ func (r *randGen) randFilenameLength() int {
 		off = -off
 	}
 	lens := r.target.SpecialFileLenghts
-	res := lens[r.Intn(len(lens))] + off
-	if res < 0 {
-		res = 0
-	}
-	return res
+	return max(lens[r.Intn(len(lens))]+off, 0)
 }
 
 func (r *randGen) randFromMap(m map[string]bool) string {
@@ -371,14 +369,26 @@ func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *Pointe
 	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
 }
 
+func (r *randGen) pruneRecursion(name string) (bool, func()) {
+	if r.recDepth[name] >= 2 {
+		return false, nil
+	}
+	r.recDepth[name]++
+	return true, func() {
+		r.recDepth[name]--
+		if r.recDepth[name] == 0 {
+			delete(r.recDepth, name)
+		}
+	}
+}
+
 func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*Call) {
 	if !r.inGenerateResource {
 		panic("inGenerateResource is not set")
 	}
 	kind := res.Desc.Name
 	// Find calls that produce the necessary resources.
-	// TODO: reduce priority of less specialized ctors.
-	metas := r.enabledCtors(s, kind)
+	ctors := r.enabledCtors(s, kind)
 	// We may have no resources, but still be in createResource due to ANYRES.
 	if len(r.target.resourceMap) != 0 && r.oneOf(1000) {
 		// Spoof resource subkind.
@@ -394,24 +404,41 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 		}
 		sort.Strings(all)
 		kind1 := all[r.Intn(len(all))]
-		metas1 := r.enabledCtors(s, kind1)
-		if len(metas1) != 0 {
+		ctors1 := r.enabledCtors(s, kind1)
+		if len(ctors1) != 0 {
 			// Don't use the resource for which we don't have any ctors.
 			// It's fine per-se because below we just return nil in such case.
 			// But in TestCreateResource tests we want to ensure that we don't fail
 			// to create non-optional resources, and if we spoof a non-optional
 			// resource with ctors with a optional resource w/o ctors, then that check will fail.
-			kind, metas = kind1, metas1
+			kind, ctors = kind1, ctors1
 		}
 	}
-	if len(metas) == 0 {
+	if len(ctors) == 0 {
 		// We may not have any constructors for optional input resources because we don't disable
 		// syscalls based on optional inputs resources w/o ctors in TransitivelyEnabledCalls.
 		return nil, nil
 	}
 	// Now we have a set of candidate calls that can create the necessary resource.
 	// Generate one of them.
-	meta := metas[r.Intn(len(metas))]
+	var meta *Syscall
+	// Prefer precise constructors.
+	var precise []*Syscall
+	for _, info := range ctors {
+		if info.Precise {
+			precise = append(precise, info.Call)
+		}
+	}
+	if len(precise) > 0 {
+		// If the argument is optional, it's not guaranteed that there'd be a
+		// precise constructor.
+		meta = precise[r.Intn(len(precise))]
+	}
+	if meta == nil || r.oneOf(3) {
+		// Sometimes just take a random one.
+		meta = ctors[r.Intn(len(ctors))].Call
+	}
+
 	calls := r.generateParticularCall(s, meta)
 	s1 := newState(r.target, s.ct, nil)
 	s1.analyze(calls[len(calls)-1])
@@ -433,14 +460,14 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 	return arg, calls
 }
 
-func (r *randGen) enabledCtors(s *state, kind string) []*Syscall {
-	var metas []*Syscall
-	for _, meta := range r.target.resourceCtors[kind] {
-		if s.ct.Generatable(meta.ID) {
-			metas = append(metas, meta)
+func (r *randGen) enabledCtors(s *state, kind string) []ResourceCtor {
+	var ret []ResourceCtor
+	for _, info := range r.target.resourceCtors[kind] {
+		if s.ct.Generatable(info.Call.ID) {
+			ret = append(ret, info)
 		}
 	}
-	return metas
+	return ret
 }
 
 func (r *randGen) generateText(kind TextKind) []byte {
@@ -449,9 +476,6 @@ func (r *randGen) generateText(kind TextKind) []byte {
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Generate(cfg, r.Rand)
 		}
-		fallthrough
-	case TextArm64:
-		// Just a stub, need something better.
 		text := make([]byte, 50)
 		for i := range text {
 			text[i] = byte(r.Intn(256))
@@ -469,8 +493,6 @@ func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Mutate(cfg, r.Rand, text)
 		}
-		fallthrough
-	case TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
@@ -502,6 +524,9 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	case "ppc64":
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchPowerPC
+	case "arm64":
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchArm64
 	default:
 		return nil
 	}
@@ -543,8 +568,11 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	case TextPpc64:
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchPowerPC
+	case TextArm64:
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchArm64
 	default:
-		panic("unknown text kind")
+		panic(fmt.Sprintf("unknown text kind: %v", kind))
 	}
 	return cfg
 }
@@ -582,8 +610,9 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 	}
 	c := MakeCall(meta, nil)
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
+	moreCalls, _ := r.patchConditionalFields(c, s)
 	r.target.assignSizesCall(c)
-	return append(calls, c)
+	return append(append(calls, moreCalls...), c)
 }
 
 // GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
@@ -644,8 +673,9 @@ func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source) *Prog {
 // Also used for testing as the simplest program.
 func (target *Target) DataMmapProg() *Prog {
 	return &Prog{
-		Target: target,
-		Calls:  target.MakeDataMmap(),
+		Target:   target,
+		Calls:    target.MakeDataMmap(),
+		isUnsafe: true,
 	}
 }
 
@@ -690,24 +720,6 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 		return typ.DefaultArg(dir), nil
 	}
 
-	// Allow infinite recursion for optional pointers.
-	if pt, ok := typ.(*PtrType); ok && typ.Optional() {
-		switch pt.Elem.(type) {
-		case *StructType, *ArrayType, *UnionType:
-			name := pt.Elem.Name()
-			r.recDepth[name]++
-			defer func() {
-				r.recDepth[name]--
-				if r.recDepth[name] == 0 {
-					delete(r.recDepth, name)
-				}
-			}()
-			if r.recDepth[name] >= 3 {
-				return MakeSpecialPointerArg(typ, dir, 0), nil
-			}
-		}
-	}
-
 	if !ignoreSpecial && dir != DirOut {
 		switch typ.(type) {
 		case *StructType, *UnionType:
@@ -721,30 +733,36 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 }
 
 func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	canRecurse := false
 	if !r.inGenerateResource {
 		// Don't allow recursion for resourceCentric/createResource.
 		// That can lead to generation of huge programs and may be very slow
 		// (esp. if we are generating some failing attempts in createResource already).
 		r.inGenerateResource = true
 		defer func() { r.inGenerateResource = false }()
-
+		canRecurse = true
+	}
+	if canRecurse && r.nOutOf(8, 10) ||
+		!canRecurse && r.nOutOf(19, 20) {
+		arg = r.existingResource(s, a, dir)
+		if arg != nil {
+			return
+		}
+	}
+	if canRecurse {
 		if r.oneOf(4) {
 			arg, calls = r.resourceCentric(s, a, dir)
 			if arg != nil {
 				return
 			}
 		}
-		if r.oneOf(3) {
+		if r.nOutOf(4, 5) {
+			// If we could not reuse a resource, let's prefer resource creation over
+			// random int substitution.
 			arg, calls = r.createResource(s, a, dir)
 			if arg != nil {
 				return
 			}
-		}
-	}
-	if r.nOutOf(9, 10) {
-		arg = r.existingResource(s, a, dir)
-		if arg != nil {
-			return
 		}
 	}
 	special := a.SpecialValues()
@@ -832,6 +850,15 @@ func (a *ProcType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Ca
 }
 
 func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	// Allow infinite recursion for arrays.
+	switch a.Elem.(type) {
+	case *StructType, *ArrayType, *UnionType:
+		ok, release := r.pruneRecursion(a.Elem.Name())
+		if !ok {
+			return MakeGroupArg(a, dir, nil), nil
+		}
+		defer release()
+	}
 	var count uint64
 	switch a.Kind {
 	case ArrayRandLen:
@@ -859,6 +886,11 @@ func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 }
 
 func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	if a.isConditional() {
+		// Conditions may reference other fields that may not have already
+		// been generated. We'll fill them in later.
+		return a.DefaultArg(dir), nil
+	}
 	index := r.Intn(len(a.Fields))
 	optType, optDir := a.Fields[index].Type, a.Fields[index].Dir(dir)
 	opt, calls := r.generateArg(s, optType, optDir)
@@ -866,6 +898,17 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	// Allow infinite recursion for optional pointers.
+	if a.Optional() {
+		switch a.Elem.(type) {
+		case *StructType, *ArrayType, *UnionType:
+			ok, release := r.pruneRecursion(a.Elem.Name())
+			if !ok {
+				return MakeSpecialPointerArg(a, dir, 0), nil
+			}
+			defer release()
+		}
+	}
 	// The resource we are trying to generate may be in the pointer,
 	// so don't try to create an empty special pointer during resource generation.
 	if !r.inGenerateResource && r.oneOf(1000) {
@@ -913,13 +956,16 @@ func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, calls []*Call) {
 	var p *Prog
 	var resource *ResultArg
-	for idx := range r.Perm(len(s.corpus)) {
-		p = s.corpus[idx].Clone()
-		resources := getCompatibleResources(p, t.TypeName, r)
-		if len(resources) > 0 {
-			resource = resources[r.Intn(len(resources))]
-			break
+	for _, idx := range r.Perm(len(s.corpus)) {
+		corpusProg := s.corpus[idx]
+		resources := getCompatibleResources(corpusProg, t.TypeName, r)
+		if len(resources) == 0 {
+			continue
 		}
+		argMap := make(map[*ResultArg]*ResultArg)
+		p = corpusProg.cloneWithMap(argMap)
+		resource = argMap[resources[r.Intn(len(resources))]]
+		break
 	}
 
 	// No compatible resource was found.

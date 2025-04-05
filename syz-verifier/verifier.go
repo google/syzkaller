@@ -1,6 +1,10 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// TODO: switch syz-verifier to use syz-fuzzer.
+
+//go:build ignore
+
 package main
 
 import (
@@ -173,7 +177,6 @@ func (vrf *Verifier) Run(prog *prog.Prog, env EnvDescr) (result []*ExecResult, e
 	wg := sync.WaitGroup{}
 	wg.Add(totalKernels)
 	for i := 0; i < totalKernels; i++ {
-		i := i
 		q := vrf.kernelEnvTasks[i][env]
 
 		go func() {
@@ -266,13 +269,10 @@ func (vrf *Verifier) createAndManageInstance(pi *poolInfo, poolID, vmID int) {
 	}
 
 	cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, poolID, 0, false, vrf.newEnv)
-	outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
+	_, _, err = inst.Run(pi.cfg.Timeouts.VMRunningTime, pi.Reporter, cmd, vm.ExitTimeout, vm.StopChan(vrf.vmStop))
 	if err != nil {
 		log.Fatalf("failed to start runner: %v", err)
 	}
-
-	inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
-
 	log.Logf(0, "reboot the VM in pool %d", poolID)
 }
 

@@ -1,4 +1,5 @@
 TITLE: WARNING: ODEBUG bug in corrupted
+TYPE: WARNING
 CORRUPTED: Y
 
 [  438.329938] ------------[ cut here ]------------

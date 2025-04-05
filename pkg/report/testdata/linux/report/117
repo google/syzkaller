@@ -1,4 +1,5 @@
 TITLE: WARNING: bad unlock balance in ipmr_mfc_seq_stop
+TYPE: LOCKDEP
 
 [  163.443279] =====================================
 [  163.448095] WARNING: bad unlock balance detected!

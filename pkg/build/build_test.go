@@ -8,12 +8,15 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCompilerIdentity(t *testing.T) {
 	t.Parallel()
 	for _, compiler := range []string{"gcc", "clang", "bazel"} {
-		compiler := compiler
 		t.Run(compiler, func(t *testing.T) {
 			t.Parallel()
 			if _, err := exec.LookPath(compiler); err != nil {
@@ -36,9 +39,8 @@ func TestCompilerIdentity(t *testing.T) {
 	}
 }
 
-func TestExtractRootCause(t *testing.T) {
+func TestExtractCauseInner(t *testing.T) {
 	for i, test := range rootCauseTests {
-		test := test
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			reason, file := extractCauseInner([]byte(test.e), test.src)
 			if test.reason != string(reason) {
@@ -46,6 +48,36 @@ func TestExtractRootCause(t *testing.T) {
 			}
 			if test.file != file {
 				t.Errorf("expected file: %q, got: %q", test.file, file)
+			}
+		})
+	}
+}
+
+func TestExtractRootCause(t *testing.T) {
+	targetOs := targets.TestOS
+	for i, test := range rootCauseTests {
+		var expected error
+		err := &osutil.VerboseError{Output: []byte(test.e)}
+		if test.reason == "" {
+			continue
+		} else if test.reason == "Killed" {
+			err.ExitCode = 137
+			targetOs = targets.Linux
+			expected = &InfraError{
+				Title:  test.reason,
+				Output: err.Output,
+			}
+		} else {
+			expected = &KernelError{
+				Report:     []byte(test.reason),
+				Output:     err.Output,
+				guiltyFile: test.file,
+			}
+		}
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			got := extractRootCause(err, targetOs, test.src)
+			if got != nil {
+				assert.Equal(t, expected, got)
 			}
 		})
 	}
@@ -543,6 +575,19 @@ Caused by:
 ninja: build stopped: subcommand failed.
 `,
 		`Error: Unable to write generate doc for "/syzkaller/managers/main/kernel/out/x64/host_x64/fpublish" to "host_x64/gen/tools/docsgen/sdk-docs"`,
+		"",
+		"",
+	},
+	{`
+  AR      built-in.a
+  AR      vmlinux.a
+  LD      vmlinux.o
+Killed
+make[1]: *** [scripts/Makefile.vmlinux_o:61: vmlinux.o] Error 137
+make[1]: *** Deleting file 'vmlinux.o'
+make: *** [Makefile:1231: vmlinux_o] Error 2
+`,
+		"Killed",
 		"",
 		"",
 	},

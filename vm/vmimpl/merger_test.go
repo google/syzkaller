@@ -5,6 +5,7 @@ package vmimpl
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
 	"time"
@@ -62,9 +63,10 @@ func TestMerger(t *testing.T) {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
+	var merr MergerError
 	if err := <-merger.Err; err == nil {
 		t.Fatalf("merger did not produce an error on pipe close")
-	} else if merr := err.(MergerError); merr.Name != "pipe1" || merr.R != rp1 || merr.Err != io.EOF {
+	} else if !errors.As(err, &merr) || merr.Name != "pipe1" || merr.R != rp1 || merr.Err != io.EOF {
 		t.Fatalf("merger produced wrong error: %v", err)
 	}
 

@@ -3,7 +3,7 @@
 
 # Syscalls used in syzkaller tests.
 
-syz_execute_func(text ptr[in, text[target]])
+syz_execute_func(text ptr[in, text[target]]) (disabled)
 
 test()
 
@@ -486,6 +486,59 @@ offsetof0 {
 	o7	offsetof[f7, int32]
 }
 
+parent_parent_helper {
+	f1	array[int32, 8]
+	f2	parent_parent_length
+	f3	ptr[in, parent_parent_length]
+}
+
+parent_parent_length {
+	f1	len[parent:parent:f1, int32]
+}
+
+test$length32(a0 ptr[in, parent_parent_helper])
+
+one_parent_length {
+	f1	array[int32, 4]
+	f2	len[parent:f1, int32]
+}
+
+test$length33(a0 ptr[in, one_parent_length])
+
+parent_union_struct {
+	f1	array[int32, 4]
+	f2	ptr[in, parent_union]
+}
+
+parent_union [
+	u1	len[parent:parent:f1, int32]
+	u2	int32
+]
+
+test$length34(a0 ptr[in, parent_union_struct])
+
+struct_with_condition {
+	f1	int32
+	f2	int32	(if[value[f1] == 0x1])
+} [packed]
+
+len_of_cond_struct {
+	f1	len[f2, int32]
+	f2	struct_with_condition
+}
+
+test$length35(a0 ptr[in, len_of_cond_struct])
+
+test$length_any(a0 ptr[in, syz_length_any_struct], a1 len[a0])
+
+syz_length_any_struct {
+	f0	int32
+	f1	int32
+	f2	int32
+	f3	int32
+	f4	array[int8]
+} [packed]
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])
@@ -589,8 +642,16 @@ syz_bf_struct3 {
 	f4	int64be:16
 }
 
+syz_bf_struct26 {
+	f0	bytesize[parent, int32]
+	f1	int32:16[bitmask_flags2]
+	f2	int32:8
+	f3	int32:8[0x18]
+}
+
 test$bf0(a0 ptr[in, syz_bf_struct0])
 test$bf1(a0 ptr[in, syz_bf_struct1])
+test$bf2(a0 ptr[in, syz_bf_struct26])
 
 # Checksums
 
@@ -705,6 +766,7 @@ resource syz_res[int32]: 0xffff
 test$res0() syz_res
 test$res1(a0 syz_res)
 test$res2() fd
+test$res3(a0 ptr[out, syz_res])
 
 # ONLY_32BITS_CONST const is not present on all arches.
 # Ensure that it does not break build.
@@ -811,6 +873,21 @@ auto_struct0 {
 	f2	int32
 }
 
+test$auto1(a const[0x42], b ptr[in, auto_struct1], c len[b], d int32)
+
+auto_struct1 {
+	f0	len[parent, int32]
+	f1	const[0x43, int32]
+	f2	const[0, int32]
+}
+
+test$auto2(a const[0x42], b ptr[in, auto_struct2], c len[b], d int32)
+
+auto_struct2 {
+	f0	len[parent, int32]
+	f1	auto_struct1
+}
+
 # Attributes
 
 resource disabled_resource[int32]
@@ -866,3 +943,53 @@ syz_r103_r104_s {
 	opt0	r103	(out)
 	opt1	r104	(in)
 }
+
+# Optional resources
+
+resource optional_res1[int32]
+resource optional_res2[int32]
+resource required_res1[int32]
+resource required_res2[int32]
+
+test_args4 {
+	a	required_res2
+}
+
+test_args3 {
+	a	required_res1
+}
+
+test_args2 {
+	a	ptr[in, test_args3]
+	b	array[optional_res2]
+}
+
+test_args1 {
+	a0	ptr64[out, test_args4]
+	a1	ptr64[in, array[optional_res1], opt]
+	a2	ptr64[in, test_args2, opt]
+	a3	ptr64[in, test_args3]
+	a4	ptr64[in, test_args4]
+}
+
+test_args0 {
+	a1	optional_res1
+	a2	optional_res2
+	a3	required_res1
+	a4	required_res2
+}
+
+test$output_res(arg ptr[out, test_args0])
+test$optional_res(arg ptr[in, test_args1])
+
+resource common[int32]
+resource subtype_of_common[common]
+
+test$produce_common() common
+test$also_produce_common() common
+test$produce_subtype_of_common() subtype_of_common
+
+test$consume_common(val common)
+test$consume_subtype_of_common(val subtype_of_common)
+
+test$fsck_attr() (fsck["fsck.test -n"])

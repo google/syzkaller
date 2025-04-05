@@ -1,4 +1,5 @@
 TITLE: possible deadlock in test_clear_page_writeback
+TYPE: LOCKDEP
 
 [   26.449922] =====================================================
 [   26.456163] WARNING: HARDIRQ-safe -> HARDIRQ-unsafe lock order detected

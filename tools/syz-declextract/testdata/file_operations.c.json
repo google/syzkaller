@@ -1,0 +1,379 @@
+{
+	"functions": [
+		{
+			"name": "foo_ioctl",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 2,
+					"calls": [
+						"foo_ioctl2"
+					],
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "foo_ioctl",
+									"arg": 1
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "foo_ioctl2",
+									"arg": 0
+								}
+							}
+						},
+						{
+							"src": {
+								"argument": {
+									"func": "foo_ioctl",
+									"arg": 2
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "foo_ioctl2",
+									"arg": 1
+								}
+							}
+						}
+					]
+				},
+				{
+					"arg": 1,
+					"values": [
+						"FOO_IOCTL1",
+						"FOO_IOCTL2",
+						"FOO_IOCTL3",
+						"FOO_IOCTL4",
+						"FOO_IOCTL5"
+					],
+					"loc": 5
+				}
+			]
+		},
+		{
+			"name": "foo_ioctl2",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				},
+				{
+					"arg": 0,
+					"values": [
+						"FOO_IOCTL6",
+						"FOO_IOCTL7"
+					],
+					"loc": 3
+				}
+			]
+		},
+		{
+			"name": "foo_mmap",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "foo_open",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "foo_read",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "foo_write",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "proc_ioctl",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "proc_open",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "proc_read",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "proc_write",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "unused_ioctl",
+			"file": "file_operations.c",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				},
+				{
+					"arg": 1,
+					"values": [
+						"UNUSED_IOCTL1",
+						"UNUSED_IOCTL2"
+					],
+					"loc": 2
+				}
+			]
+		}
+	],
+	"consts": [
+		{
+			"name": "FOO_IOCTL1",
+			"filename": "include/uapi/file_operations.h",
+			"value": 25345
+		},
+		{
+			"name": "FOO_IOCTL2",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2147771138
+		},
+		{
+			"name": "FOO_IOCTL3",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2148033283
+		},
+		{
+			"name": "FOO_IOCTL4",
+			"filename": "include/uapi/file_operations.h",
+			"value": 1074291460
+		},
+		{
+			"name": "FOO_IOCTL5",
+			"filename": "include/uapi/file_operations.h",
+			"value": 3221775109
+		},
+		{
+			"name": "FOO_IOCTL6",
+			"filename": "include/uapi/file_operations.h",
+			"value": 25350
+		},
+		{
+			"name": "FOO_IOCTL7",
+			"filename": "include/uapi/file_operations.h",
+			"value": 25351
+		},
+		{
+			"name": "UNUSED_IOCTL1",
+			"filename": "include/uapi/unused_ioctl.h",
+			"value": 25345
+		},
+		{
+			"name": "UNUSED_IOCTL2",
+			"filename": "file_operations.c",
+			"value": 25346
+		}
+	],
+	"structs": [
+		{
+			"name": "foo_ioctl_arg",
+			"byte_size": 8,
+			"align": 4,
+			"fields": [
+				{
+					"name": "a",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				},
+				{
+					"name": "b",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			]
+		}
+	],
+	"file_ops": [
+		{
+			"name": "foo_file_operations",
+			"open": "foo_open",
+			"read": "foo_read",
+			"write": "foo_write",
+			"mmap": "foo_mmap",
+			"ioctl": "foo_ioctl",
+			"source_file": "file_operations.c"
+		},
+		{
+			"name": "proc_ops_file_operations",
+			"open": "proc_open",
+			"read": "proc_read",
+			"write": "proc_write",
+			"mmap": "proc_open",
+			"source_file": "file_operations.c"
+		},
+		{
+			"name": "proc_ops_file_operations1",
+			"open": "proc_open",
+			"mmap": "proc_open",
+			"ioctl": "proc_ioctl",
+			"source_file": "file_operations.c"
+		},
+		{
+			"name": "unused_file_operations",
+			"ioctl": "unused_ioctl",
+			"source_file": "file_operations.c"
+		}
+	],
+	"ioctls": [
+		{
+			"name": "FOO_IOCTL1",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL2",
+			"type": {
+				"ptr": {
+					"elem": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					},
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL3",
+			"type": {
+				"ptr": {
+					"elem": {
+						"struct": "foo_ioctl_arg"
+					},
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL4",
+			"type": {
+				"ptr": {
+					"elem": {
+						"struct": "foo_ioctl_arg"
+					}
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL5",
+			"type": {
+				"ptr": {
+					"elem": {
+						"struct": "foo_ioctl_arg"
+					}
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL6",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "FOO_IOCTL7",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "UNUSED_IOCTL1",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		},
+		{
+			"name": "UNUSED_IOCTL2",
+			"type": {
+				"int": {
+					"byte_size": 1,
+					"is_const": true
+				}
+			}
+		}
+	]
+}

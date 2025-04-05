@@ -1,4 +1,5 @@
 TITLE: UBSAN: undefined-behaviour in decode_data
+TYPE: UBSAN
 
 [   97.633355][ T6275] ================================================================================
 [   97.635153][ T6275] UBSAN: Undefined behaviour in drivers/net/hamradio/6pack.c:843:16

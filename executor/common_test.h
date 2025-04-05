@@ -31,7 +31,7 @@ static long syz_errno(volatile long v)
 // syz_exit(status int32)
 static long syz_exit(volatile long status)
 {
-	_exit(status);
+	doexit(status);
 	return 0;
 }
 #endif
@@ -129,7 +129,76 @@ static long syz_compare_zlib(volatile long data, volatile long size, volatile lo
 static void loop();
 static int do_sandbox_none(void)
 {
+	// Test various ways how feature setup can fail.
+	// We don't care about these features for test OS,
+	// this is just to test the feature support detection code.
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+#if SYZ_EXECUTOR
+	if (flag_net_injection)
+#endif
+		fail("net injection is not supported");
+#endif
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR
+	if (flag_devlink_pci)
+#endif
+		exitf("devlink_pci is not supported");
+#endif
 	loop();
 	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_test_fuzzer1
+
+static void fake_crash(const char* name)
+{
+	failmsg("crash", "{{CRASH: %s}}", name);
+	doexit(1);
+}
+
+static long syz_test_fuzzer1(volatile long a, volatile long b, volatile long c)
+{
+	// We probably want something more interesting here.
+	if (a == 1 && b == 1 && c == 1)
+		fake_crash("first bug");
+	if (a == 1 && b == 2 && c == 3)
+		fake_crash("second bug");
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_inject_cover
+static long syz_inject_cover(volatile long a, volatile long b)
+#if SYZ_EXECUTOR
+    ; // defined in executor_test.h
+#else
+{
+	return 0;
+}
+#endif
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_inject_remote_cover
+static long syz_inject_remote_cover(volatile long a, volatile long b)
+#if SYZ_EXECUTOR
+    ; // defined in executor_test.h
+#else
+{
+	return 0;
+}
+#endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+static void setup_sysctl()
+{
+}
+#endif
+
+#if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
+static void setup_cgroups()
+{
 }
 #endif

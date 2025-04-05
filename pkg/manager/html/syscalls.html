@@ -1,0 +1,28 @@
+{{/*
+Copyright 2024 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+<table class="list_table">
+	<caption>Per-syscall coverage:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Syscall', textSort)" href="#">Syscall</a></th>
+		<th><a onclick="return sortTable(this, 'Inputs', numSort)" href="#" title="Number of inputs in the corpus added because of this syscall">Inputs</a></th>
+		<th><a onclick="return sortTable(this, 'Total', numSort)" href="#" title="Total number of inputs in the corpus that contain this syscall">Total</a></th>
+		<th><a onclick="return sortTable(this, 'Coverage', numSort)" href="#" title="Coverage achieved by this syscall">Coverage</a></th>
+		<th><a onclick="return sortTable(this, 'Cover overflows', numSort)" href="#" title="Number of times coverage buffer has overflowed on this syscall">Cover overflows</a></th>
+		<th><a onclick="return sortTable(this, 'Comps overflows', numSort)" href="#" title="Number of times comparisons buffer has overflowed on this syscall">Comps overflows</a></th>
+		<th>Prio</th>
+	</tr>
+	{{range $c := $.Calls}}
+	<tr>
+		<td>{{$c.Name}}{{if $c.ID }} [{{$c.ID}}]{{end}}</td>
+		<td><a href='/corpus?call={{$c.Name}}'>{{$c.Inputs}}</a></td>
+		<td>{{$c.Total}}</td>
+		<td><a href='/cover?call={{$c.Name}}'>{{$c.Cover}}</a></td>
+		<td>{{$c.CoverOverflows}}</td>
+		<td>{{$c.CompsOverflows}}</td>
+		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
+	</tr>
+	{{end}}
+</table>

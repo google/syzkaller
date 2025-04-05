@@ -51,6 +51,7 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 			// sync/atomic.AddInt32), which will not work.
 			exclusions = append(exclusions, []string{
 				"//pkg/sleep:sleep",
+				"//pkg/sync:sync",
 				"//pkg/syncevent:syncevent",
 			}...)
 		}
@@ -94,7 +95,7 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	return ImageDetails{}, osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
 }
 
-func (gvisor) clean(kernelDir, targetArch string) error {
+func (gvisor) clean(params Params) error {
 	// Let's assume that bazel always properly handles build without cleaning (until proven otherwise).
 	return nil
 }

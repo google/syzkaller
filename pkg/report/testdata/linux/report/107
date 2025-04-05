@@ -1,4 +1,5 @@
 TITLE: KASAN: slab-out-of-bounds in do_raw_write_lock at addr ADDR
+TYPE: KASAN
 CORRUPTED: Y
 
 [  322.909624] FAULT_FLAG_ALLOW_RETRY missing 30

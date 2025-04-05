@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <style>
+    body {
+      background: white;
+    }
+    #content {
+      color: rgb(70, 70, 70);
+      margin-top: 50px;
+    }
+    th, td {
+      text-align: left;
+      border: 1px solid black;
+    }
+    th {
+      background: gray;
+    }
+    tr:nth-child(2n+1) {
+      background: #CCC
+    }
+    table {
+      border-collapse: collapse;
+      border: 1px solid black;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+<div>
+  <table>
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Covered / Total Lines / %</th>
+      <th>Covered / Total PCs in File / %</th>
+      <th>Covered / Total PCs in Function / %</th>
+      <th>Covered / Total PCs in Covered Function / %</th>
+      <th>Covered / Total Functions / %</th>
+    </tr>
+    </thead>
+    <tbody id="content">
+    {{range $i, $p := .}}
+    <tr>
+      <td>{{$p.name}}</td>
+      <td>{{$p.lines}}</td>
+      <td>{{$p.PCsInFiles}}</td>
+      <td>{{$p.PCsInFuncs}}</td>
+      <td>{{$p.PCsInCoveredFuncs}}</td>
+      <td>{{$p.Funcs}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

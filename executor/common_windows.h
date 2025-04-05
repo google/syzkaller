@@ -60,7 +60,7 @@ static void event_set(event_t* ev)
 {
 	EnterCriticalSection(&ev->cs);
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	ev->state = 1;
 	LeaveCriticalSection(&ev->cs);
 	WakeAllConditionVariable(&ev->cv);

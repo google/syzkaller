@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in chaoskey_disconnect
 ALT: bad-access in chaoskey_disconnect
+TYPE: KASAN
 
 [  744.592276][ T3173] ==================================================================
 [  744.593789][ T3173] BUG: KASAN: use-after-free in refcount_inc_not_zero_checked+0x72/0x1e0

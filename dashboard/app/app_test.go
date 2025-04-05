@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,9 +31,10 @@ func init() {
 	os.Setenv("GAE_MODULE_VERSION", "1")
 	os.Setenv("GAE_MINOR_VERSION", "1")
 
-	isBrokenAuthDomainInTest = true
+	trustedAuthDomain = "" // Devappserver environment value is "", prod value is "gmail.com".
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
+	ensureConfigImmutability = true
 	initMocks()
 	installConfig(testConfig)
 }
@@ -40,7 +42,16 @@ func init() {
 // Config used in tests.
 var testConfig = &GlobalConfig{
 	AccessLevel: AccessPublic,
-	AuthDomain:  "@syzkaller.com",
+	ACL: []*ACLItem{
+		{
+			Domain: "syzkaller.com",
+			Access: AccessUser,
+		},
+		{
+			Email:  makeUser(AuthorizedAccessPublic).Email,
+			Access: AccessPublic,
+		},
+	},
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},
@@ -101,7 +112,7 @@ var testConfig = &GlobalConfig{
 			Reporting: []Reporting{
 				{
 					Name:       "reporting1",
-					DailyLimit: 3,
+					DailyLimit: 5,
 					Embargo:    14 * 24 * time.Hour,
 					Filter:     skipWithRepro,
 					Config: &TestConfig{
@@ -110,7 +121,7 @@ var testConfig = &GlobalConfig{
 				},
 				{
 					Name:       "reporting2",
-					DailyLimit: 3,
+					DailyLimit: 5,
 					Config: &TestConfig{
 						Index: 2,
 					},
@@ -273,6 +284,8 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			FindBugOriginTrees: true,
+			CacheUIPages:       true,
+			RetestRepros:       true,
 		},
 		"access-public-email": {
 			AccessLevel: AccessPublic,
@@ -292,6 +305,12 @@ var testConfig = &GlobalConfig{
 					Branch: "access-public-email",
 					Alias:  "access-public-email",
 				},
+				{
+					// Needed for TestTreeOriginLtsBisection().
+					URL:    "https://upstream.repo/repo",
+					Branch: "upstream-master",
+					Alias:  "upstream-master",
+				},
 			},
 			Reporting: []Reporting{
 				{
@@ -308,6 +327,9 @@ var testConfig = &GlobalConfig{
 			RetestRepros: true,
 			Subsystems: SubsystemsConfig{
 				Service: subsystem.MustMakeService(testSubsystems),
+				Redirect: map[string]string{
+					"oldSubsystem": "subsystemA",
+				},
 			},
 		},
 		// The second namespace reporting to the same mailing list.
@@ -469,11 +491,12 @@ var testConfig = &GlobalConfig{
 			},
 			Reporting: []Reporting{
 				{
-					AccessLevel: AccessUser,
-					Name:        "non-public",
+					// Let's emulate public moderation.
+					AccessLevel: AccessPublic,
+					Name:        "moderation",
 					DailyLimit:  1000,
 					Filter: func(bug *Bug) FilterResult {
-						if strings.Contains(bug.Title, "keep private") {
+						if strings.Contains(bug.Title, "keep in moderation") {
 							return FilterReport
 						}
 						return FilterSkip
@@ -511,8 +534,9 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"tree-tests": {
-			AccessLevel: AccessPublic,
-			Key:         "treeteststreeteststreeteststreeteststreeteststreetests",
+			AccessLevel:           AccessPublic,
+			FixBisectionAutoClose: true,
+			Key:                   "treeteststreeteststreeteststreeteststreeteststreetests",
 			Clients: map[string]string{
 				clientTreeTests: keyTreeTests,
 			},
@@ -524,9 +548,14 @@ var testConfig = &GlobalConfig{
 					DetectMissingBackports: true,
 				},
 			},
+			Managers: map[string]ConfigManager{
+				"better-manager": {
+					Priority: 1,
+				},
+			},
 			Reporting: []Reporting{
 				{
-					AccessLevel: AccessUser,
+					AccessLevel: AccessAdmin,
 					Name:        "non-public",
 					DailyLimit:  1000,
 					Filter: func(bug *Bug) FilterResult {
@@ -535,8 +564,8 @@ var testConfig = &GlobalConfig{
 					Config: &TestConfig{Index: 1},
 				},
 				{
-					AccessLevel: AccessPublic,
-					Name:        "public",
+					AccessLevel: AccessUser,
+					Name:        "user",
 					DailyLimit:  1000,
 					Config: &EmailConfig{
 						Email:         "bugs@syzkaller.com",
@@ -547,7 +576,8 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
-			FindBugOriginTrees: true,
+			FindBugOriginTrees:     true,
+			RetestMissingBackports: true,
 		},
 	},
 }
@@ -672,6 +702,7 @@ func testCrashWithRepro(build *dashapi.Build, id int) *dashapi.Crash {
 	crash.ReproOpts = []byte(fmt.Sprintf("repro opts %v", id))
 	crash.ReproSyz = []byte(fmt.Sprintf("syncfs(%v)", id))
 	crash.ReproC = []byte(fmt.Sprintf("int main() { return %v; }", id))
+	crash.ReproLog = []byte(fmt.Sprintf("repro log %d", id))
 	return crash
 }
 
@@ -820,8 +851,8 @@ func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int) {
 	_, err := c.AuthGET(accessLevel, from)
 	c.expectNE(err, nil)
-	httpErr, ok := err.(HTTPError)
-	c.expectTrue(ok)
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})
 }
@@ -829,8 +860,8 @@ func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int)
 func checkResponseStatusCode(c *Ctx, accessLevel AccessLevel, url string, status int) {
 	_, err := c.AuthGET(accessLevel, url)
 	c.expectNE(err, nil)
-	httpErr, ok := err.(HTTPError)
-	c.expectTrue(ok)
+	var httpErr *HTTPError
+	c.expectTrue(errors.As(err, &httpErr))
 	c.expectEQ(httpErr.Code, status)
 }
 
@@ -926,7 +957,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 
 	// A sanity check for the test itself.
 	if !firstCrashExists() {
-		t.Fatalf("The first reported crash should be present")
+		t.Fatalf("the first reported crash should be present")
 	}
 
 	// Unreport the first crash.
@@ -949,7 +980,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 	// Check that the unreported crash was purged.
 	if firstCrashExists() {
-		t.Fatalf("The unreported crash should have been purged.")
+		t.Fatalf("the unreported crash should have been purged")
 	}
 }
 

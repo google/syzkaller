@@ -6,8 +6,10 @@ cron:
   schedule: every 1 minutes
 - url: /cron/cache_update
   schedule: every 1 hours
+- url: /cron/minute_cache_update
+  schedule: every 1 minutes
 - url: /cron/deprecate_assets
-  schedule: every 1 hours
+  schedule: every 3 hours
 - url: /cron/kcidb_poll
   schedule: every 5 minutes
 - url: /cron/refresh_subsystems
@@ -17,3 +19,17 @@ cron:
 - url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
   schedule: every monday 00:00
   target: ah-builtin-python-bundle
+# Update quarter coverage numbers every week.
+- url: /cron/batch_coverage?quarters=true&steps=2
+  schedule: every sunday 00:00
+# Update other coverage numbers every day.
+- url: /cron/batch_coverage?days=true&months=true&steps=10
+  schedule: every day 00:00
+# Clean up coverage db every week.
+# We're adding data w/o transactions.
+# It is important to run clean operation when there are no batch_coverage in progress.
+- url: /cron/batch_coverage_clean
+  schedule: every saturday 12:00
+# Export reproducers every week.
+- url: /cron/batch_db_export
+  schedule: every saturday 00:00

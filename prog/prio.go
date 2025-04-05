@@ -5,7 +5,9 @@ package prog
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
+	"slices"
 	"sort"
 )
 
@@ -27,11 +29,12 @@ import (
 func (target *Target) CalculatePriorities(corpus []*Prog) [][]int32 {
 	static := target.calcStaticPriorities()
 	if len(corpus) != 0 {
+		// Let's just sum the static and dynamic distributions.
 		dynamic := target.calcDynamicPrio(corpus)
 		for i, prios := range dynamic {
 			dst := static[i]
 			for j, p := range prios {
-				dst[j] = dst[j] * p / prioHigh
+				dst[j] += p
 			}
 		}
 	}
@@ -57,11 +60,16 @@ func (target *Target) calcStaticPriorities() [][]int32 {
 			}
 		}
 	}
-	normalizePrio(prios)
 	// The value assigned for self-priority (call wrt itself) have to be high, but not too high.
 	for c0, pp := range prios {
-		pp[c0] = prioHigh * 9 / 10
+		max := slices.Max(pp)
+		if max == 0 {
+			pp[c0] = 1
+		} else {
+			pp[c0] = max * 3 / 4
+		}
 	}
+	normalizePrios(prios)
 	return prios
 }
 
@@ -72,7 +80,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 		switch a := t.(type) {
 		case *ResourceType:
 			if target.AuxResources[a.Desc.Name] {
-				noteUsage(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
+				noteUsagef(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
 			} else {
 				str := "res"
 				for i, k := range a.Desc.Kind {
@@ -86,20 +94,20 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 			}
 		case *PtrType:
 			if _, ok := a.Elem.(*StructType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if _, ok := a.Elem.(*UnionType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if arr, ok := a.Elem.(*ArrayType); ok {
-				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", arr.Elem.Name())
+				noteUsagef(uses, c, 10, ctx.Dir, "ptrto-%v", arr.Elem.Name())
 			}
 		case *BufferType:
 			switch a.Kind {
 			case BufferBlobRand, BufferBlobRange, BufferText, BufferCompressed:
 			case BufferString, BufferGlob:
 				if a.SubKind != "" {
-					noteUsage(uses, c, 2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
+					noteUsagef(uses, c, 2, ctx.Dir, "str-%v", a.SubKind)
 				}
 			case BufferFilename:
 				noteUsage(uses, c, 10, DirIn, "filename")
@@ -125,7 +133,11 @@ type weights struct {
 	inout int32
 }
 
-func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
+func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string) {
+	noteUsagef(uses, c, weight, dir, "%v", str)
+}
+
+func noteUsagef(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
 	id := fmt.Sprintf(str, args...)
 	if uses[id] == nil {
 		uses[id] = make(map[int]weights)
@@ -155,26 +167,31 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]int32 {
 			}
 		}
 	}
-	normalizePrio(prios)
+	for i := range prios {
+		for j, val := range prios[i] {
+			// It's more important that some calls do coexist than whether
+			// it happened 50 or 100 times.
+			// Let's use sqrt() to lessen the effect of large counts.
+			prios[i][j] = int32(2.0 * math.Sqrt(float64(val)))
+		}
+	}
+	normalizePrios(prios)
 	return prios
 }
 
-const (
-	prioLow  = 10
-	prioHigh = 1000
-)
-
-// normalizePrio normalizes priorities to [prioLow..prioHigh] range.
-func normalizePrio(prios [][]int32) {
+// normalizePrio distributes |N| * 10 points proportional to the values in the matrix.
+func normalizePrios(prios [][]int32) {
+	total := 10 * int32(len(prios))
 	for _, prio := range prios {
-		max := int32(1)
+		sum := int32(0)
 		for _, p := range prio {
-			if max < p {
-				max = p
-			}
+			sum += p
+		}
+		if sum == 0 {
+			continue
 		}
 		for i, p := range prio {
-			prio[i] = prioLow + p*(prioHigh-prioLow)/max
+			prio[i] = p * total / sum
 		}
 	}
 }
@@ -182,10 +199,9 @@ func normalizePrio(prios [][]int32) {
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled and generatable syscalls.
 type ChoiceTable struct {
-	target          *Target
-	runs            [][]int32
-	calls           []*Syscall
-	noGenerateCalls map[int]bool
+	target *Target
+	runs   [][]int32
+	calls  []*Syscall
 }
 
 func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool) *ChoiceTable {
@@ -196,16 +212,16 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 		}
 	}
 	noGenerateCalls := make(map[int]bool)
+	enabledCalls := make(map[*Syscall]bool)
 	for call := range enabled {
-		if call.Attrs.Disabled {
-			delete(enabled, call)
-		} else if call.Attrs.NoGenerate {
+		if call.Attrs.NoGenerate {
 			noGenerateCalls[call.ID] = true
-			delete(enabled, call)
+		} else if !call.Attrs.Disabled {
+			enabledCalls[call] = true
 		}
 	}
 	var generatableCalls []*Syscall
-	for c := range enabled {
+	for c := range enabledCalls {
 		generatableCalls = append(generatableCalls, c)
 	}
 	if len(generatableCalls) == 0 {
@@ -216,8 +232,11 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	})
 	for _, p := range corpus {
 		for _, call := range p.Calls {
-			if !enabled[call.Meta] && !noGenerateCalls[call.Meta.ID] {
+			if !enabledCalls[call.Meta] && !noGenerateCalls[call.Meta.ID] {
 				fmt.Printf("corpus contains disabled syscall %v\n", call.Meta.Name)
+				for call := range enabled {
+					fmt.Printf("%s: enabled\n", call.Name)
+				}
 				panic("disabled syscall")
 			}
 		}
@@ -228,23 +247,19 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	// This helps in quick binary search with biases when generating programs.
 	// This only applies for system calls that are enabled for the target.
 	for i := range run {
-		if !enabled[target.Syscalls[i]] {
+		if !enabledCalls[target.Syscalls[i]] {
 			continue
 		}
 		run[i] = make([]int32, len(target.Syscalls))
 		var sum int32
 		for j := range run[i] {
-			if enabled[target.Syscalls[j]] {
+			if enabledCalls[target.Syscalls[j]] {
 				sum += prios[i][j]
 			}
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{target, run, generatableCalls, noGenerateCalls}
-}
-
-func (ct *ChoiceTable) Enabled(call int) bool {
-	return ct.Generatable(call) || ct.noGenerateCalls[call]
+	return &ChoiceTable{target, run, generatableCalls}
 }
 
 func (ct *ChoiceTable) Generatable(call int) bool {
@@ -252,6 +267,10 @@ func (ct *ChoiceTable) Generatable(call int) bool {
 }
 
 func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
+	if r.Intn(100) < 5 {
+		// Let's make 5% decisions totally at random.
+		return ct.calls[r.Intn(len(ct.calls))].ID
+	}
 	if bias < 0 {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
@@ -260,7 +279,8 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 		panic("disabled or non-generatable syscall")
 	}
 	run := ct.runs[bias]
-	x := int32(r.Intn(int(run[len(run)-1])) + 1)
+	runSum := int(run[len(run)-1])
+	x := int32(r.Intn(runSum) + 1)
 	res := sort.Search(len(run), func(i int) bool {
 		return run[i] >= x
 	})

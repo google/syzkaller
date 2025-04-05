@@ -2,15 +2,14 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build !codeanalysis
-// +build !codeanalysis
 
 package proggen
 
 import (
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
@@ -18,7 +17,7 @@ import (
 )
 
 func ParseFile(filename string, target *prog.Target) ([]*prog.Prog, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %v", err)
 	}

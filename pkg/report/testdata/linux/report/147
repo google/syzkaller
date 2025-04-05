@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in remove_wait_queue
 ALT: bad-access in remove_wait_queue
+TYPE: KASAN
 
 [   19.121820] ==================================================================
 [   19.121834] BUG: KASAN: use-after-free in __lock_acquire+0x3c41/0x3cf0

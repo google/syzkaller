@@ -1,4 +1,5 @@
 TITLE: WARNING: ath10k USB support is incomplete, don't expect anything to work!
+TYPE: WARNING
 
 usb 5-1: config 0 has no interface number 0
 usb 5-1: config 0 interface 24 altsetting 0 has an invalid endpoint with address 0x0, skipping

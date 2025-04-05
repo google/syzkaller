@@ -1,4 +1,5 @@
 TITLE: WARNING in ext4_expand_extra_isize_ea
+TYPE: WARNING
 
 
 [   33.753662][ T5931] EXT4-fs (loop0): 1 truncate cleaned up

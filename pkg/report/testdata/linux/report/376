@@ -1,5 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Read in hdpvr_probe
 ALT: bad-access in hdpvr_probe
+TYPE: KASAN
 
 [  105.345542][ T5735] ==================================================================
 [  105.345545][ T5735] BUG: KASAN: slab-out-of-bounds in string+0x1f6/0x220

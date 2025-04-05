@@ -1,0 +1,39 @@
+#
+# requires: arch=arm64 -threaded
+#
+# This series of tests exercise the system registers that are exposed in the QEMU emulation mode.
+# They should not be used in the corpus when running on real HW.
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm(r1, &(0x7f0000c00000/0x400000)=nil)
+#
+# 0x603000000013c520 is LORSA_EL1.
+# 0x603000000013c521 is LOREA_EL1.
+# 0x603000000013c522 is LORN_EL1.
+# 0x603000000013c523 is LORC_EL1.
+# 0x603000000013c641 is ICC_EOIR0_EL1.
+# 0x603000000013c643 is ICC_BPR0_EL1.
+# 0x603000000013c644 is ICC_AP0R0_EL1.
+# 0x603000000013c648 is ICC_AP1R0_EL1.
+# 0x603000000013c659 is ICC_DIR_EL1.
+# 0x603000000013c65d is ICC_SGI1R_EL1.
+#
+r3 = syz_kvm_add_vcpu(r2, &AUTO={0x0, &AUTO=[@msr={AUTO, AUTO, {0x603000000013c520, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c521, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c522, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c523, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c641, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c643, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c644, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c648, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c659, 0x8000}}, @msr={AUTO, AUTO, {0x603000000013c65d, 0x8000}}], AUTO}, 0x0, 0x0)
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit(r5, 0xffffffffffffffff)
+syz_kvm_assert_reg(r3, 0x603000000013c520, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c521, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c522, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c523, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c641, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c643, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c644, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c648, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c659, 0x8000)
+syz_kvm_assert_reg(r3, 0x603000000013c65d, 0x8000)

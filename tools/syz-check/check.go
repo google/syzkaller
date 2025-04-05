@@ -110,7 +110,7 @@ func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 		warnings = append(warnings, warnings2...)
 	}
 	if netlink {
-		warnings3, err := checkNetlink(OS, arch, obj, structTypes, locs)
+		warnings3, err := checkNetlink(arch, obj, structTypes, locs)
 		if err != nil {
 			return nil, err
 		}
@@ -372,7 +372,7 @@ func parseDescriptions(OS, arch string) ([]prog.Type, map[string]*ast.Struct, []
 // Then read in the symbol data, which is an array of nla_policy structs.
 // These structs allow to easily figure out type/size of attributes.
 // Finally we compare our descriptions with the kernel policy description.
-func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
+func checkNetlink(arch, obj string, structTypes []prog.Type,
 	locs map[string]*ast.Struct) ([]Warn, error) {
 	if arch != targets.AMD64 {
 		// Netlink policies are arch-independent (?),
@@ -388,8 +388,7 @@ func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
 	if rodata == nil {
 		return nil, fmt.Errorf("object file %v does not contain .rodata section", obj)
 	}
-	symb := symbolizer.NewSymbolizer(targets.Get(OS, arch))
-	symbols, err := symb.ReadRodataSymbols(obj)
+	symbols, err := symbolizer.ReadRodataSymbols(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +445,7 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 		binary := make([]byte, symb.Size)
 		addr := symb.Addr - rodata.Addr
 		if _, err := rodata.ReadAt(binary, int64(addr)); err != nil {
-			return nil, fmt.Errorf("failed to read policy %v (%v) at %v: %v",
+			return nil, fmt.Errorf("failed to read policy %v (%v) at %v: %w",
 				kernelName, name, symb.Addr, err)
 		}
 		policy := (*[1e6]nlaPolicy)(unsafe.Pointer(&binary[0]))[:symb.Size/int(unsafe.Sizeof(nlaPolicy{}))]
@@ -726,7 +725,7 @@ func attrSize(policy nlaPolicy) (int, int, int) {
 	return -1, -1, -1
 }
 
-func typeMinMaxValue(payload prog.Type) (min, max uint64, ok bool) {
+func typeMinMaxValue(payload prog.Type) (minVal, maxVal uint64, ok bool) {
 	switch typ := payload.(type) {
 	case *prog.ConstType:
 		return typ.Val, typ.Val, true
@@ -736,16 +735,12 @@ func typeMinMaxValue(payload prog.Type) (min, max uint64, ok bool) {
 		}
 		return 0, ^uint64(0), true
 	case *prog.FlagsType:
-		min, max := ^uint64(0), uint64(0)
+		minVal, maxVal := ^uint64(0), uint64(0)
 		for _, v := range typ.Vals {
-			if min > v {
-				min = v
-			}
-			if max < v {
-				max = v
-			}
+			minVal = min(minVal, v)
+			maxVal = max(maxVal, v)
 		}
-		return min, max, true
+		return minVal, maxVal, true
 	}
 	return 0, 0, false
 }

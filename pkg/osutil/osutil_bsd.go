@@ -2,14 +2,18 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build freebsd || netbsd || openbsd
-// +build freebsd netbsd openbsd
 
 package osutil
 
 import (
 	"os"
 	"os/exec"
+	"time"
 )
+
+func creationTime(fi os.FileInfo) time.Time {
+	return time.Time{}
+}
 
 func RemoveAll(dir string) error {
 	return os.RemoveAll(dir)

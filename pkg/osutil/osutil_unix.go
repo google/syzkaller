@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //go:build freebsd || netbsd || openbsd || linux || darwin
-// +build freebsd netbsd openbsd linux darwin
 
 package osutil
 
@@ -89,48 +88,8 @@ func HandleInterrupts(shutdown chan struct{}) {
 func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	r, w, err := os.Pipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, nil, fmt.Errorf("failed to create pipe: %w", err)
 	}
 	prolongPipe(r, w)
 	return r, w, err
-}
-
-// ProcessExitStatus returns process exit status.
-// This is here only because of fuchsia that does not implement WaitStatus.
-func ProcessExitStatus(ps *os.ProcessState) int {
-	return ps.Sys().(syscall.WaitStatus).ExitStatus()
-}
-
-// CreateMemMappedFile creates a temp file with the requested size and maps it into memory.
-func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
-	f, err = CreateSharedMemFile(size)
-	if err != nil {
-		return
-	}
-	if err = f.Truncate(int64(size)); err != nil {
-		err = fmt.Errorf("failed to truncate shared mem file: %v", err)
-		CloseSharedMemFile(f)
-		return
-	}
-
-	mem, err = syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-	if err != nil {
-		err = fmt.Errorf("failed to mmap shm file: %v", err)
-		CloseSharedMemFile(f)
-	}
-	return
-}
-
-// CloseMemMappedFile destroys memory mapping created by CreateMemMappedFile.
-func CloseMemMappedFile(f *os.File, mem []byte) error {
-	err1 := syscall.Munmap(mem)
-	err2 := CloseSharedMemFile(f)
-	switch {
-	case err1 != nil:
-		return err1
-	case err2 != nil:
-		return err2
-	default:
-		return nil
-	}
 }

@@ -29,6 +29,7 @@ var (
 	flagHintCall = flag.Int("hint-call", -1, "mutate the specified call with hints in hint-src/cmp flags")
 	flagHintSrc  = flag.Uint64("hint-src", 0, "compared value in the program")
 	flagHintCmp  = flag.Uint64("hint-cmp", 0, "compare operand in the kernel")
+	flagStrict   = flag.Bool("strict", true, "parse input program in strict mode")
 )
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	var syscalls map[*prog.Syscall]bool
 	if *flagEnable != "" {
 		enabled := strings.Split(*flagEnable, ",")
-		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil, mgrconfig.AnyDescriptions)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 			os.Exit(1)
@@ -76,16 +77,21 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 			os.Exit(1)
 		}
-		p, err = target.Deserialize(data, prog.Strict)
+		mode := prog.NonStrict
+		if *flagStrict {
+			mode = prog.Strict
+		}
+		p, err = target.Deserialize(data, mode)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 			os.Exit(1)
 		}
 		if *flagHintCall != -1 {
 			comps := make(prog.CompMap)
-			comps.AddComp(*flagHintSrc, *flagHintCmp)
-			p.MutateWithHints(*flagHintCall, comps, func(p *prog.Prog) {
+			comps.Add(0, *flagHintSrc, *flagHintCmp, true)
+			p.MutateWithHints(*flagHintCall, comps, func(p *prog.Prog) bool {
 				fmt.Printf("%s\n\n", p.Serialize())
+				return true
 			})
 			return
 		} else {

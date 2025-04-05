@@ -1,4 +1,5 @@
 TITLE: possible deadlock in tun_queue_purge
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [   44.025025] =========================================================

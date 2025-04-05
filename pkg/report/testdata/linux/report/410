@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Read in hiddev_read
 ALT: bad-access in hiddev_read
+TYPE: KASAN
 
 [  501.875843][ T9186] ==================================================================
 [  501.883925][ T9186] BUG: KASAN: use-after-free in __lock_acquire+0x302a/0x3b50

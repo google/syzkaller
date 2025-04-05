@@ -14,6 +14,10 @@ type customRules struct {
 	extraSubsystems map[string][]string
 	// For these subsystems we do not generate monthly reminders.
 	noReminders map[string]struct{}
+	// We don't want to tag these subsystems in the reports of its sub-subsystem bugs.
+	noIndirectCc map[string]struct{}
+	// Extra child->[]parent links (on top of the inferred ones).
+	addParents map[string][]string
 }
 
 var (
@@ -21,6 +25,7 @@ var (
 		subsystemCalls: map[string][]string{
 			"adfs":      {"syz_mount_image$adfs"},
 			"affs":      {"syz_mount_image$affs"},
+			"bcachefs":  {"syz_mount_image$bcachefs"},
 			"befs":      {"syz_mount_image$befs"},
 			"bfs":       {"syz_mount_image$bfs"},
 			"bluetooth": {"syz_emit_vhci"},
@@ -44,11 +49,10 @@ var (
 			"isofs":    {"syz_mount_image$iso9660"},
 			"jffs2":    {"syz_mount_image$jffs2"},
 			"jfs":      {"syz_mount_image$jfs"},
-			"kvm":      {"syz_kvm_setup_cpu"},
+			"kvm":      {"syz_kvm_setup_cpu", "syz_kvm_vgic_v3_setup", "syz_kvm_setup_syzos_vm", "syz_kvm_add_vcpu"},
 			"minix":    {"syz_mount_image$minix"},
 			"nilfs":    {"syz_mount_image$nilfs2"},
-			"ntfs":     {"syz_mount_image$ntfs"},
-			"ntfs3":    {"syz_mount_image$ntfs3"},
+			"ntfs3":    {"syz_mount_image$ntfs", "syz_mount_image$ntfs3"},
 			"ocfs2":    {"syz_mount_image$ocfs2"},
 			"omfs":     {"syz_mount_image$omfs"},
 			"qnx4":     {"syz_mount_image$qnx4"},
@@ -75,25 +79,40 @@ var (
 			"zonefs":   {"syz_mount_image$zonefs"},
 		},
 		notSubsystemEmails: map[string]struct{}{
-			"linaro-mm-sig@lists.linaro.org":   {},
-			"samba-technical@lists.samba.org":  {},
-			"storagedev@microchip.com":         {},
-			"coreteam@netfilter.org":           {},
-			"SHA-cyfmac-dev-list@infineon.com": {},
+			"linaro-mm-sig@lists.linaro.org":      {},
+			"samba-technical@lists.samba.org":     {},
+			"storagedev@microchip.com":            {},
+			"coreteam@netfilter.org":              {},
+			"SHA-cyfmac-dev-list@infineon.com":    {},
+			"brcm80211-dev-list.pdl@broadcom.com": {},
+			"tomoyo-dev-en@lists.osdn.me":         {},
+			"tomoyo-users-en@lists.osdn.me":       {},
 		},
 		extraSubsystems: map[string][]string{
 			"bfs":    {"BFS FILE SYSTEM"},
-			"fat":    {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
+			"exfat":  {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
 			"fuse":   {"FUSE: FILESYSTEM IN USERSPACE"},
 			"hfs":    {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
 			"isofs":  {"ISOFS FILESYSTEM"},
 			"kernfs": {"KERNFS"},
 			"udf":    {"UDF FILESYSTEM"},
+			"nfc":    {"NFC SUBSYSTEM"},
+			"iomap":  {"FILESYSTEMS [IOMAP]"},
+			"xfs":    {"XFS FILESYSTEM"},
+			"jffs2":  {"JOURNALLING FLASH FILE SYSTEM V2 (JFFS2)"},
+			"smc":    {"SHARED MEMORY COMMUNICATIONS (SMC) SOCKETS"}, // See #5838.
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
 			// in generating monthly reports for it.
 			"kernel": {},
+		},
+		addParents: map[string][]string{
+			// By MAINTAINERS, wireless is somewhat separate, but it's better to keep it as a net child.
+			"wireless": {"net"},
+		},
+		noIndirectCc: map[string]struct{}{
+			"fs": {},
 		},
 	}
 )

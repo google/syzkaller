@@ -1,5 +1,5 @@
-# Note: 189-190 have the same root cause.
 TITLE: possible deadlock in vcs_write
+TYPE: LOCKDEP
 
 [  127.343789] ======================================================
 [  127.343792] WARNING: possible circular locking dependency detected

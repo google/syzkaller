@@ -4,12 +4,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/google/syzkaller/pkg/kcidb"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -21,7 +21,7 @@ func initKcidb() {
 
 func handleKcidbPoll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	for ns, cfg := range config.Namespaces {
+	for ns, cfg := range getConfig(c).Namespaces {
 		if cfg.Kcidb == nil {
 			continue
 		}
@@ -60,7 +60,7 @@ func handleKcidbNamespce(c context.Context, ns string, cfg *KcidbConfig) error {
 
 func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *db.Key) (bool, error) {
 	if bug.KcidbStatus != 0 ||
-		bug.sanitizeAccess(AccessPublic) > AccessPublic ||
+		bug.sanitizeAccess(c, AccessPublic) > AccessPublic ||
 		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() ||
 		bug.Status != BugStatusOpen && timeSince(c, bug.LastTime) > 7*24*time.Hour {
 		return false, nil
@@ -91,11 +91,11 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 			bug.KcidbStatus = 2
 		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
+	if err := runInTransaction(c, tx, nil); err != nil {
 		return false, err
 	}
 	log.Infof(c, "published bug to kcidb: %v:%v '%v'", bug.Namespace, bugKey.StringID(), bug.displayTitle())

@@ -1,0 +1,70 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: boot-step-template
+spec:
+  templates:
+    - name: boot-step
+      inputs:
+        parameters:
+          - name: config
+            value: ""
+          - name: base-build-id
+            value: ""
+          - name: patched-build-id
+            value: ""
+          - name: test-name
+            value: ""
+          - name: report-findings
+            value: "false"
+        artifacts:
+          - name: kernel
+            path: /base
+      container:
+        image: ${IMAGE_PREFIX}boot-step:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/boot-step"]
+        args: [
+          "--config", "{{inputs.parameters.config}}",
+          "--output", "/output/result.json",
+          "--session", "{{workflow.parameters.session-id}}",
+          "--test_name", "{{inputs.parameters.test-name}}",
+          "--base_build", "{{inputs.parameters.base-build-id}}",
+          "--patched_build", "{{inputs.parameters.patched-build-id}}",
+          "-findings={{inputs.parameters.report-findings}}"
+          ]
+        resources:
+          requests:
+            cpu: 6
+            memory: 12G
+          limits:
+            cpu: 8
+            memory: 24G
+        volumeMounts:
+        - name: workdir
+          mountPath: /workdir
+        - name: output
+          mountPath: /output
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        # Needed for /dev/kvm.
+        # TODO: there's a "device plugin" mechanism in k8s that can share it more safely.
+        securityContext:
+          privileged: true
+      volumes:
+        - name: workdir
+          emptyDir: {}
+        - name: output
+          emptyDir: {}
+        - name: dev-kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+      outputs:
+        parameters:
+          - name: result
+            valueFrom:
+              path: /output/result.json

@@ -1,4 +1,5 @@
 TITLE: WARNING: locking bug in do_ipv6_setsockopt
+TYPE: LOCKDEP
 
 [  513.624689][ T4448] =============================
 [  513.625024][ T4448] [ BUG: Invalid wait context ]

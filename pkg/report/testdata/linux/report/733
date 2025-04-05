@@ -1,0 +1,71 @@
+TITLE: WARNING: refcount bug in hdm_disconnect
+TYPE: WARNING
+
+[   82.955158][  T105] usb 1-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[   82.959646][  T105] usb 1-1: config 0 descriptor??
+[   83.193871][   T46] usb 1-1: USB disconnect, device number 2
+[   83.201074][   T46] ------------[ cut here ]------------
+[   83.201634][   T46] WARNING: CPU: 1 PID: 46 at lib/refcount.c:28 refcount_warn_saturate+0x13c/0x174
+[   83.203093][   T46] refcount_t: underflow; use-after-free.
+[   83.203756][   T46] Modules linked in:
+[   83.204486][   T46] Kernel panic - not syncing: kernel: panic_on_warn set ...
+[   83.206124][   T46] CPU: 1 UID: 0 PID: 46 Comm: kworker/1:1 Not tainted 6.11.0-rc7-syzkaller #0
+[   83.207057][   T46] Hardware name: ARM-Versatile Express
+[   83.207553][   T46] Workqueue: usb_hub_wq hub_event
+[   83.208164][   T46] Call trace: 
+[   83.208633][   T46] [<8195d3d8>] (dump_backtrace) from [<8195d4d4>] (show_stack+0x18/0x1c)
+[   83.211105][   T46]  r7:00000000 r6:826228c4 r5:00000000 r4:8200cac0
+[   83.211630][   T46] [<8195d4bc>] (show_stack) from [<8197b1f4>] (dump_stack_lvl+0x54/0x7c)
+[   83.212173][   T46] [<8197b1a0>] (dump_stack_lvl) from [<8197b234>] (dump_stack+0x18/0x1c)
+[   83.212786][   T46]  r5:00000000 r4:8286dd18
+[   83.213215][   T46] [<8197b21c>] (dump_stack) from [<8195df7c>] (panic+0x120/0x368)
+[   83.213669][   T46] [<8195de5c>] (panic) from [<802421e4>] (get_taint+0x0/0x1c)
+[   83.214171][   T46]  r3:8260c5c4 r2:00000001 r1:81ff52e4 r0:81ffd0bc
+[   83.214767][   T46]  r7:80813f4c
+[   83.215124][   T46] [<80242170>] (check_panic_on_warn) from [<80242338>] (__warn+0x7c/0x180)
+[   83.215789][   T46] [<802422bc>] (__warn) from [<80242624>] (warn_slowpath_fmt+0x1e8/0x1f4)
+[   83.216423][   T46]  r8:00000009 r7:8205adc0 r6:df91dc04 r5:8348a400 r4:00000000
+[   83.216809][   T46] [<80242440>] (warn_slowpath_fmt) from [<80813f4c>] (refcount_warn_saturate+0x13c/0x174)
+[   83.218017][   T46]  r10:827c8bd8 r9:848e4080 r8:00000044 r7:848e4430 r6:83ed47b4 r5:848e4400
+[   83.219882][   T46]  r4:83ed4000
+[   83.220637][   T46] [<80813e10>] (refcount_warn_saturate) from [<819372e0>] (kobject_put+0x158/0x1f4)
+[   83.221074][   T46] [<81937188>] (kobject_put) from [<80a74a04>] (put_device+0x18/0x1c)
+[   83.222493][   T46]  r7:848e4430 r6:83ed47b4 r5:848e4400 r4:83ed4000
+[   83.222790][   T46] [<80a749ec>] (put_device) from [<81344bf8>] (hdm_disconnect+0x98/0x9c)
+[   83.223294][   T46] [<81344b60>] (hdm_disconnect) from [<80dbe638>] (usb_unbind_interface+0x84/0x2c4)
+[   83.224325][   T46]  r7:848e4430 r6:827c8bd8 r5:00000000 r4:848e4400
+[   83.224958][   T46] [<80dbe5b4>] (usb_unbind_interface) from [<80a7c8dc>] (device_remove+0x64/0x6c)
+[   83.225820][   T46]  r10:00000000 r9:848e4080 r8:00000044 r7:848e4474 r6:827c8bd8 r5:00000000
+[   83.226462][   T46]  r4:848e4430
+[   83.226745][   T46] [<80a7c878>] (device_remove) from [<80a7ddf4>] (device_release_driver_internal+0x18c/0x200)
+[   83.227972][   T46]  r5:00000000 r4:848e4430
+[   83.228409][   T46] [<80a7dc68>] (device_release_driver_internal) from [<80a7de80>] (device_release_driver+0x18/0x1c)
+[   83.230678][   T46]  r9:848e4080 r8:82fbc140 r7:82fbc138 r6:82fbc10c r5:848e4430 r4:82fbc130
+[   83.231588][   T46] [<80a7de68>] (device_release_driver) from [<80a7bf60>] (bus_remove_device+0xcc/0x120)
+[   83.232270][   T46] [<80a7be94>] (bus_remove_device) from [<80a76070>] (device_del+0x148/0x38c)
+[   83.232934][   T46]  r9:848e4080 r8:8348a400 r7:04208060 r6:00000000 r5:848e4430 r4:848e4474
+[   83.233764][   T46] [<80a75f28>] (device_del) from [<80dbc054>] (usb_disable_device+0xdc/0x1f0)
+[   83.235078][   T46]  r10:00000000 r9:00000000 r8:848e4400 r7:848e4000 r6:84aae288 r5:00000001
+[   83.235898][   T46]  r4:00000038
+[   83.236474][   T46] [<80dbbf78>] (usb_disable_device) from [<80db0eb8>] (usb_disconnect+0xec/0x29c)
+[   83.237453][   T46]  r10:00000001 r9:83ff9600 r8:848e40c4 r7:83e03c00 r6:848e4080 r5:848e4000
+[   83.238762][   T46]  r4:60000013
+[   83.239012][   T46] [<80db0dcc>] (usb_disconnect) from [<80db3b68>] (hub_event+0xe78/0x194c)
+[   83.240738][   T46]  r10:00000001 r9:00000100 r8:839cc900 r7:848e4000 r6:83e03400 r5:83e03e10
+[   83.241398][   T46]  r4:00000001
+[   83.241702][   T46] [<80db2cf0>] (hub_event) from [<80265f04>] (process_one_work+0x1b4/0x4f4)
+[   83.242227][   T46]  r10:82ea8c05 r9:8348a400 r8:01800000 r7:ddde4000 r6:82ea8c00 r5:839cc900
+[   83.242748][   T46]  r4:82fbdb80
+[   83.242934][   T46] [<80265d50>] (process_one_work) from [<80266ae8>] (worker_thread+0x1ec/0x3bc)
+[   83.243534][   T46]  r10:8348a400 r9:82fbdbac r8:61c88647 r7:ddde4020 r6:82604d40 r5:ddde4000
+[   83.244021][   T46]  r4:82fbdb80
+[   83.244223][   T46] [<802668fc>] (worker_thread) from [<8026fb04>] (kthread+0x104/0x134)
+[   83.244653][   T46]  r10:00000000 r9:df87de78 r8:82fbfbc0 r7:82fbdb80 r6:802668fc r5:8348a400
+[   83.244998][   T46]  r4:82fbf940
+[   83.245365][   T46] [<8026fa00>] (kthread) from [<80200114>] (ret_from_fork+0x14/0x20)
+[   83.246008][   T46] Exception stack(0xdf91dfb0 to 0xdf91dff8)
+[   83.246587][   T46] dfa0:                                     00000000 00000000 00000000 00000000
+[   83.247341][   T46] dfc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[   83.247922][   T46] dfe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[   83.248509][   T46]  r9:00000000 r8:00000000 r7:00000000 r6:00000000 r5:8026fa00 r4:82fbf940
+[   83.251162][   T46] Rebooting in 86400 seconds..

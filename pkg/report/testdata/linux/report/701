@@ -1,0 +1,49 @@
+TITLE: KMSAN: uninit-value in btrfs_bin_search
+ALT: bad-access in btrfs_bin_search
+
+[  343.493742][ T5647] =====================================================
+[  343.504878][ T5647] BUG: KMSAN: uninit-value in btrfs_bin_search+0x74c/0xb30
+[  343.512398][ T5647]  btrfs_bin_search+0x74c/0xb30
+[  343.517419][ T5647]  btrfs_search_slot+0x1a7e/0x4380
+[  343.522920][ T5647]  btrfs_insert_empty_items+0xb3/0x220
+[  343.533629][ T5647]  btrfs_create_new_inode+0x188e/0x3d30
+[  343.539373][ T5647]  btrfs_create_common+0x267/0x3b0
+[  343.545492][ T5647]  btrfs_create+0x16b/0x210
+[  343.550222][ T5647]  path_openat+0x2c9f/0x5a00
+[  343.555132][ T5647]  do_filp_open+0x20d/0x590
+[  343.559801][ T5647]  do_sys_openat2+0x1e9/0x8a0
+[  343.564834][ T5647]  __ia32_compat_sys_open+0x26c/0x2c0
+[  343.570406][ T5647]  __do_fast_syscall_32+0xa2/0x100
+[  343.575896][ T5647]  do_fast_syscall_32+0x37/0x80
+[  343.580961][ T5647]  do_SYSENTER_32+0x1f/0x30
+[  343.585826][ T5647]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  343.592581][ T5647] 
+[  343.594982][ T5647] Uninit was created at:
+[  343.599545][ T5647]  __alloc_pages+0x9a4/0xe00
+[  343.604450][ T5647]  alloc_pages+0xd01/0x1040
+[  343.609127][ T5647]  folio_alloc+0x42/0x120
+[  343.613794][ T5647]  filemap_alloc_folio+0xa5/0x430
+[  343.618978][ T5647]  __filemap_get_folio+0x908/0x13a0
+[  343.624491][ T5647]  pagecache_get_page+0x4e/0x200
+[  343.629596][ T5647]  alloc_extent_buffer+0x725/0x3130
+[  343.635150][ T5647]  btrfs_find_create_tree_block+0x46/0x60
+[  343.641046][ T5647]  btrfs_alloc_tree_block+0x344/0x1d20
+[  343.646850][ T5647]  __btrfs_cow_block+0x562/0x1d50
+[  343.652064][ T5647]  btrfs_cow_block+0x7cc/0xa00
+[  343.657182][ T5647]  btrfs_search_slot+0x169d/0x4380
+[  343.662605][ T5647]  btrfs_insert_empty_items+0xb3/0x220
+[  343.668276][ T5647]  btrfs_create_new_inode+0x188e/0x3d30
+[  343.674209][ T5647]  btrfs_create_common+0x267/0x3b0
+[  343.679522][ T5647]  btrfs_create+0x16b/0x210
+[  343.684355][ T5647]  path_openat+0x2c9f/0x5a00
+[  343.689111][ T5647]  do_filp_open+0x20d/0x590
+[  343.693940][ T5647]  do_sys_openat2+0x1e9/0x8a0
+[  343.698823][ T5647]  __ia32_compat_sys_open+0x26c/0x2c0
+[  343.704605][ T5647]  __do_fast_syscall_32+0xa2/0x100
+[  343.709914][ T5647]  do_fast_syscall_32+0x37/0x80
+[  343.715106][ T5647]  do_SYSENTER_32+0x1f/0x30
+[  343.719791][ T5647]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  343.726493][ T5647] 
+[  343.728998][ T5647] CPU: 0 PID: 5647 Comm: syz-executor.3 Not tainted 6.4.0-syzkaller-g257152fe29be #0
+[  343.738795][ T5647] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/27/2023
+[  343.749083][ T5647] =====================================================

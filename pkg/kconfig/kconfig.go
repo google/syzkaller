@@ -120,7 +120,7 @@ type kconfigParser struct {
 func Parse(target *targets.Target, file string) (*KConfig, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open Kconfig file %v: %v", file, err)
+		return nil, fmt.Errorf("failed to open Kconfig file %v: %w", file, err)
 	}
 	return ParseData(target, data, file)
 }
@@ -417,5 +417,6 @@ func (kp *kconfigParser) expandString(str string) string {
 	str = strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
 	str = strings.Replace(str, "$SRCARCH", kp.target.KernelHeaderArch, -1)
 	str = strings.Replace(str, "$(KCONFIG_EXT_PREFIX)", "", -1)
+	str = strings.Replace(str, "$(MALI_KCONFIG_EXT_PREFIX)", "", -1) // ChromeOS.
 	return str
 }

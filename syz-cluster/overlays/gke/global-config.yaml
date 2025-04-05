@@ -1,0 +1,12 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-config
+data:
+  SPANNER_DATABASE_URI: "${SPANNER_DATABASE_URI}"
+  BLOB_STORAGE_GCS_BUCKET: "${BLOB_STORAGE_GCS_BUCKET}"
+  PARALLEL_WORKERS: "1"
+  LORE_ARCHIVES_TO_POLL: "netdev,linux-ext4" # To start with.

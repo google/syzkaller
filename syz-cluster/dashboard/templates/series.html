@@ -1,0 +1,170 @@
+{{define "content"}}
+    <!-- Modal -->
+    <div class="modal fade" tabindex="-1" id="contentModal" role="dialog" aria-labelledby="contentModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="contentModalLabel">Content</h5>&nbsp;
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <!-- will be set dynamically -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      $(document).ready(function() {
+          $('a.modal-link-raw').click(function(event) {
+              event.preventDefault();
+              var body = $('#contentModal .modal-body')
+              var url = $(this).attr('href');
+              body.html("")
+              body.load(url, function(response, status, xhr){
+                  if (status == "success") {
+                      body.html("<pre>" + response + "</pre>")
+                  }
+                  $('#contentModal').modal('show');
+              });
+          })
+      });
+    </script>
+
+    <div class="container">
+        <h2>Patch Series</h2>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr>
+                    <th>Subject</th>
+                    <td><a href="{{.Link}}">{{.Title}}</a></td>
+                </tr>
+                <tr>
+                    <th>Author</th>
+                    <td>{{.AuthorEmail}}</td>
+                </tr>
+                <tr>
+                    <th>Date</th>
+                    <td>{{.PublishedAt}}</td>
+                </tr>
+                <tr>
+                    <th>Version</th>
+                    <td>{{.Version}}</td>
+                </tr>
+                <tr>
+                    <th>Cc</th>
+                    <td>
+                        {{range .Cc}}
+                            <a href="/?cc={{.}}">{{.}}</a>
+                        {{end}}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Patches ({{.TotalPatches}})</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Content</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{$data := .}} 
+                {{range .Patches}}
+                <tr>
+                    <td><a href="{{.Link}}">{{.Title}}</a></td>
+                    <td><a href="/patches/{{.ID}}" class="modal-link-raw">[Body]</a></td>
+                </tr>
+                {{end}}
+           </tbody>
+        </table>
+        {{range .Sessions}}
+        <h3>Session {{.CreatedAt.Format "2006-01-02"}}</h3>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr>
+                    <th><i>ID (for dev)</i></th>
+                    <td>{{.ID}}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                      {{if .StartedAt.IsNull}}
+                          waiting
+                      {{else if .FinishedAt.IsNull}}
+                          in progress
+                      {{else}}
+                          finished
+                      {{end}}
+                    </td>
+                </tr>
+                {{if not .SkipReason.IsNull}}
+                <tr>
+                    <th>Skipped</th>
+                    <td>{{.SkipReason.StringVal}}</td>
+                </tr>
+                {{end}}
+                {{if .LogURI}}
+                <tr>
+                    <th><i>Execution Log</i></th>
+                    <td><a href="/sessions/{{.ID}}/log">[Link]</a></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Base</th>
+                    <th>Patched</th>
+                    <th>Verdict</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{range .Tests}}
+                <tr>
+                    <td>{{.TestName}}</td>
+                    <td>{{if .BaseBuild}}{{.BaseBuild.CommitHash}}{{end}}</td>
+                    <td>{{if .PatchedBuild}}{{.PatchedBuild.CommitHash}}[patched]{{end}}</td>
+                    <th>
+                        {{.Result}}
+                        {{if .LogURI}}
+                            <a href="/sessions/{{.SessionID}}/test_logs?name={{.TestName}}" class="modal-link-raw">[Log]</a>
+                        {{end}}
+                    </th>
+                </tr>
+                {{if .Findings}}
+                <tr>
+                  <td colspan="4">
+                    <table class="table mb-0">
+                      <tbody>
+                      {{range .Findings}}
+                      <tr>
+                        <td>
+                          {{if .ReportURI}}
+                            <a href="/findings/{{.ID}}/report" class="modal-link-raw">{{.Title}}</a>
+                          {{else}}
+                            {{.Title}}
+                          {{end}}
+                        </td>
+                        <td><a href="/findings/{{.ID}}/log" class="modal-link-raw">[Log]</a></td>
+                      </tr>
+                      {{end}}
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+                {{end}}
+            {{end}}
+            </tbody>
+        </table>
+        {{end}}
+    </div>
+{{end}}

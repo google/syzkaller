@@ -5,16 +5,12 @@
 package signal
 
 type (
-	elemType uint32
+	elemType uint64
 	prioType int8
 )
 
-type Signal map[elemType]prioType
-
-type Serial struct {
-	Elems []elemType
-	Prios []prioType
-}
+// Signal was hard to refactor when we enabled recvcheck.
+type Signal map[elemType]prioType // nolint: recvcheck
 
 func (s Signal) Len() int {
 	return len(s)
@@ -32,26 +28,7 @@ func (s Signal) Copy() Signal {
 	return c
 }
 
-func (s *Signal) Split(n int) Signal {
-	if s.Empty() {
-		return nil
-	}
-	c := make(Signal, n)
-	for e, p := range *s {
-		delete(*s, e)
-		c[e] = p
-		n--
-		if n == 0 {
-			break
-		}
-	}
-	if len(*s) == 0 {
-		*s = nil
-	}
-	return c
-}
-
-func FromRaw(raw []uint32, prio uint8) Signal {
+func FromRaw(raw []uint64, prio uint8) Signal {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -62,55 +39,7 @@ func FromRaw(raw []uint32, prio uint8) Signal {
 	return s
 }
 
-func (s Signal) Serialize() Serial {
-	if s.Empty() {
-		return Serial{}
-	}
-	res := Serial{
-		Elems: make([]elemType, len(s)),
-		Prios: make([]prioType, len(s)),
-	}
-	i := 0
-	for e, p := range s {
-		res.Elems[i] = e
-		res.Prios[i] = p
-		i++
-	}
-	return res
-}
-
-func (ser Serial) Deserialize() Signal {
-	if len(ser.Elems) != len(ser.Prios) {
-		panic("corrupted Serial")
-	}
-	if len(ser.Elems) == 0 {
-		return nil
-	}
-	s := make(Signal, len(ser.Elems))
-	for i, e := range ser.Elems {
-		s[e] = ser.Prios[i]
-	}
-	return s
-}
-
-func (s Signal) Diff(s1 Signal) Signal {
-	if s1.Empty() {
-		return nil
-	}
-	var res Signal
-	for e, p1 := range s1 {
-		if p, ok := s[e]; ok && p >= p1 {
-			continue
-		}
-		if res == nil {
-			res = make(Signal)
-		}
-		res[e] = p1
-	}
-	return res
-}
-
-func (s Signal) DiffRaw(raw []uint32, prio uint8) Signal {
+func (s Signal) DiffRaw(raw []uint64, prio uint8) Signal {
 	var res Signal
 	for _, e := range raw {
 		if p, ok := s[elemType(e)]; ok && p >= prioType(prio) {
@@ -122,6 +51,15 @@ func (s Signal) DiffRaw(raw []uint32, prio uint8) Signal {
 		res[elemType(e)] = prioType(prio)
 	}
 	return res
+}
+
+func (s Signal) IntersectsWith(other Signal) bool {
+	for e, p := range s {
+		if p1, ok := other[e]; ok && p1 >= p {
+			return true
+		}
+	}
+	return false
 }
 
 func (s Signal) Intersection(s1 Signal) Signal {
@@ -151,6 +89,14 @@ func (s *Signal) Merge(s1 Signal) {
 			s0[e] = p1
 		}
 	}
+}
+
+func (s Signal) ToRaw() []uint64 {
+	var raw []uint64
+	for e := range s {
+		raw = append(raw, uint64(e))
+	}
+	return raw
 }
 
 type Context struct {

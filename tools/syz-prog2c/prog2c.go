@@ -29,7 +29,6 @@ var (
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagTrace      = flag.Bool("trace", false, "trace syscall results")
-	flagRepro      = flag.Bool("repro", false, "add heartbeats used by pkg/repro")
 	flagStrict     = flag.Bool("strict", false, "parse input program in strict mode")
 	flagLeak       = flag.Bool("leak", false, "do leak checking")
 	flagEnable     = flag.String("enable", "none", "enable only listed additional features")
@@ -92,9 +91,9 @@ func main() {
 		Wifi:          features["wifi"].Enabled,
 		IEEE802154:    features["ieee802154"].Enabled,
 		Sysctl:        features["sysctl"].Enabled,
+		Swap:          features["swap"].Enabled,
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
-		Repro:         *flagRepro,
 		Trace:         *flagTrace,
 	}
 	src, err := csource.Write(p, opts)

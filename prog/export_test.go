@@ -35,7 +35,6 @@ func initTest(t *testing.T) (*Target, rand.Source, int) {
 func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
 	t.Parallel()
 	for _, target := range AllTargets() {
-		target := target
 		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
 			skipTargetRace(t, target)
 			t.Parallel()
@@ -47,14 +46,9 @@ func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
 func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs rand.Source, iters int)) {
 	t.Parallel()
 	targets := AllTargets()
-	iters := testutil.IterCount()
-	iters /= len(targets)
-	if iters < 3 {
-		iters = 3
-	}
+	iters := max(testutil.IterCount()/len(targets), 3)
 	rs0 := testutil.RandSource(t)
 	for _, target := range targets {
-		target := target
 		rs := rand.NewSource(rs0.Int63())
 		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
 			skipTargetRace(t, target)

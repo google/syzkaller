@@ -5,8 +5,10 @@ package qemu
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
 )
@@ -89,7 +91,7 @@ func (inst *instance) qmpRecv() (*qmpResponse, error) {
 		if err != nil || qmp.Event == "" {
 			return qmp, err
 		}
-		log.Logf(1, "event: %v", qmp)
+		log.Logf(3, "event: %v", qmp)
 	}
 }
 
@@ -109,15 +111,22 @@ func (inst *instance) qmp(cmd *qmpCommand) (interface{}, error) {
 		return nil, err
 	}
 	if resp.Error.Desc != "" {
-		return nil, fmt.Errorf("error %v", resp.Error)
+		return nil, fmt.Errorf("%v", resp.Error)
 	}
 	if resp.Return == nil {
 		return nil, fmt.Errorf(`no "return" nor "error" in [%v]`, resp)
+	}
+	if output, _ := resp.Return.(string); strings.HasPrefix(output, "Error:") ||
+		strings.HasPrefix(output, "unknown command:") {
+		return nil, errors.New(output)
 	}
 	return resp.Return, nil
 }
 
 func (inst *instance) hmp(cmd string, cpu int) (string, error) {
+	if inst.debug {
+		log.Logf(0, "qemu: running hmp command: %v", cmd)
+	}
 	req := &qmpCommand{
 		Execute: "human-monitor-command",
 		Arguments: &hmpCommand{
@@ -126,8 +135,11 @@ func (inst *instance) hmp(cmd string, cpu int) (string, error) {
 		},
 	}
 	resp, err := inst.qmp(req)
+	if inst.debug {
+		log.Logf(0, "qemu: reply: %v\n%v", err, resp)
+	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("qemu hmp command '%s': %w", cmd, err)
 	}
 	return resp.(string), nil
 }

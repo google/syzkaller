@@ -1,4 +1,5 @@
 TITLE: kernel BUG in pfkey_send_acquire
+TYPE: BUG
 
 [  280.626490][T13868] skbuff: skb_over_panic: text:ffffffff87ca4a76 len:232 put:72 head:ffff88801115a800 data:ffff88801115a800 tail:0xe8 end:0xc0 dev:<NULL>
 [  280.661924][T13868] ------------[ cut here ]------------

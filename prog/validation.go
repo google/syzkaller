@@ -5,12 +5,17 @@ package prog
 
 import (
 	"fmt"
+	"os"
+	"strings"
 )
 
 var debug = false // enabled in tests and fuzzers
 
-func Debug() {
-	debug = true
+func init() {
+	// Enable debug checking in all tests.
+	if strings.HasSuffix(os.Args[0], ".test") {
+		debug = true
+	}
 }
 
 func (p *Prog) debugValidate() {
@@ -21,24 +26,36 @@ func (p *Prog) debugValidate() {
 	}
 }
 
-type validCtx struct {
-	target *Target
-	args   map[Arg]bool
-	uses   map[Arg]Arg
+func (p *Prog) validate() error {
+	return p.validateWithOpts(validationOptions{})
 }
 
-func (p *Prog) validate() error {
+type validCtx struct {
+	target   *Target
+	isUnsafe bool
+	opts     validationOptions
+	args     map[Arg]bool
+	uses     map[Arg]Arg
+}
+
+type validationOptions struct {
+	ignoreTransient bool
+}
+
+func (p *Prog) validateWithOpts(opts validationOptions) error {
 	ctx := &validCtx{
-		target: p.Target,
-		args:   make(map[Arg]bool),
-		uses:   make(map[Arg]Arg),
+		target:   p.Target,
+		isUnsafe: p.isUnsafe,
+		opts:     opts,
+		args:     make(map[Arg]bool),
+		uses:     make(map[Arg]Arg),
 	}
-	for _, c := range p.Calls {
+	for i, c := range p.Calls {
 		if c.Meta == nil {
 			return fmt.Errorf("call does not have meta information")
 		}
 		if err := ctx.validateCall(c); err != nil {
-			return fmt.Errorf("call %v: %v", c.Meta.Name, err)
+			return fmt.Errorf("call #%d %v: %w", i, c.Meta.Name, err)
 		}
 	}
 	for u, orig := range ctx.uses {
@@ -50,8 +67,11 @@ func (p *Prog) validate() error {
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
-	if c.Meta.Attrs.Disabled {
+	if !ctx.isUnsafe && c.Meta.Attrs.Disabled {
 		return fmt.Errorf("use of a disabled call")
+	}
+	if c.Props.Rerun > 0 && c.Props.FailNth > 0 {
+		return fmt.Errorf("rerun > 0 && fail_nth > 0")
 	}
 	if len(c.Args) != len(c.Meta.Args) {
 		return fmt.Errorf("wrong number of arguments, want %v, got %v",
@@ -61,6 +81,9 @@ func (ctx *validCtx) validateCall(c *Call) error {
 		if err := ctx.validateArg(arg, c.Meta.Args[i].Type, DirIn); err != nil {
 			return err
 		}
+	}
+	if err := c.checkConditions(ctx.target, ctx.opts.ignoreTransient); err != nil {
+		return err
 	}
 	return ctx.validateRet(c)
 }
@@ -94,17 +117,22 @@ func (ctx *validCtx) validateArg(arg Arg, typ Type, dir Dir) error {
 	if _, ok := typ.(*PtrType); ok {
 		dir = DirIn // pointers are always in
 	}
-	if arg.Dir() != dir {
+	// We used to demand that Arg has exactly the same dir as Type, however,
+	// it leads to problems when dealing with ANYRES* types.
+	// If the resource was DirIn before squashing, we should not demand that
+	// it be DirInOut - it would only lead to mutations that make little sense.
+	// Let's only deny truly conflicting directions, e.g. DirIn vs DirOut.
+	if arg.Dir() != dir && dir != DirInOut {
 		return fmt.Errorf("arg %#v type %v has wrong dir %v, expect %v", arg, arg.Type(), arg.Dir(), dir)
 	}
 	if !ctx.target.isAnyPtr(arg.Type()) && arg.Type() != typ {
 		return fmt.Errorf("bad arg type %#v, expect %#v", arg.Type(), typ)
 	}
 	ctx.args[arg] = true
-	return arg.validate(ctx)
+	return arg.validate(ctx, dir)
 }
 
-func (arg *ConstArg) validate(ctx *validCtx) error {
+func (arg *ConstArg) validate(ctx *validCtx, dir Dir) error {
 	switch typ := arg.Type().(type) {
 	case *IntType:
 		if arg.Dir() == DirOut && !isDefault(arg) {
@@ -135,7 +163,7 @@ func (arg *ConstArg) validate(ctx *validCtx) error {
 	return nil
 }
 
-func (arg *ResultArg) validate(ctx *validCtx) error {
+func (arg *ResultArg) validate(ctx *validCtx, dir Dir) error {
 	typ, ok := arg.Type().(*ResourceType)
 	if !ok {
 		return fmt.Errorf("result arg %v has bad type %v", arg, arg.Type().Name())
@@ -161,10 +189,16 @@ func (arg *ResultArg) validate(ctx *validCtx) error {
 			return fmt.Errorf("result arg '%v' has broken link (%+v)", typ.Name(), arg.Res.uses)
 		}
 	}
+	if arg.Dir() == DirIn && len(arg.uses) > 0 {
+		return fmt.Errorf("result arg '%v' is DirIn, but is used %d times", typ.Name(), len(arg.uses))
+	}
+	if len(arg.uses) > 0 && arg.Size() > 8 {
+		return fmt.Errorf("result arg '%v' is to be copied out, yet it's bigger than int64 (%d > 8)", typ.Name(), arg.Size())
+	}
 	return nil
 }
 
-func (arg *DataArg) validate(ctx *validCtx) error {
+func (arg *DataArg) validate(ctx *validCtx, dir Dir) error {
 	typ, ok := arg.Type().(*BufferType)
 	if !ok {
 		return fmt.Errorf("data arg %v has bad type %v", arg, arg.Type().Name())
@@ -183,14 +217,14 @@ func (arg *DataArg) validate(ctx *validCtx) error {
 				typ.Name(), arg.Size(), typ.TypeSize)
 		}
 	case BufferFilename:
-		if escapingFilename(string(arg.data)) {
+		if !ctx.isUnsafe && escapingFilename(string(arg.data)) {
 			return fmt.Errorf("escaping filename %q", arg.data)
 		}
 	}
 	return nil
 }
 
-func (arg *GroupArg) validate(ctx *validCtx) error {
+func (arg *GroupArg) validate(ctx *validCtx, dir Dir) error {
 	switch typ := arg.Type().(type) {
 	case *StructType:
 		if len(arg.Inner) != len(typ.Fields) {
@@ -198,7 +232,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(typ.Fields), len(arg.Inner))
 		}
 		for i, field := range arg.Inner {
-			if err := ctx.validateArg(field, typ.Fields[i].Type, typ.Fields[i].Dir(arg.Dir())); err != nil {
+			if err := ctx.validateArg(field, typ.Fields[i].Type, typ.Fields[i].Dir(dir)); err != nil {
 				return err
 			}
 		}
@@ -209,7 +243,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(arg.Inner), typ.RangeBegin)
 		}
 		for _, elem := range arg.Inner {
-			if err := ctx.validateArg(elem, typ.Elem, arg.Dir()); err != nil {
+			if err := ctx.validateArg(elem, typ.Elem, dir); err != nil {
 				return err
 			}
 		}
@@ -219,7 +253,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 	return nil
 }
 
-func (arg *UnionArg) validate(ctx *validCtx) error {
+func (arg *UnionArg) validate(ctx *validCtx, dir Dir) error {
 	typ, ok := arg.Type().(*UnionType)
 	if !ok {
 		return fmt.Errorf("union arg %v has bad type %v", arg, arg.Type().Name())
@@ -228,10 +262,10 @@ func (arg *UnionArg) validate(ctx *validCtx) error {
 		return fmt.Errorf("union arg %v has bad index %v/%v", arg, arg.Index, len(typ.Fields))
 	}
 	opt := typ.Fields[arg.Index]
-	return ctx.validateArg(arg.Option, opt.Type, opt.Dir(arg.Dir()))
+	return ctx.validateArg(arg.Option, opt.Type, opt.Dir(dir))
 }
 
-func (arg *PointerArg) validate(ctx *validCtx) error {
+func (arg *PointerArg) validate(ctx *validCtx, dir Dir) error {
 	switch typ := arg.Type().(type) {
 	case *VmaType:
 		if arg.Res != nil {
@@ -258,11 +292,16 @@ func (arg *PointerArg) validate(ctx *validCtx) error {
 		}
 	} else {
 		maxMem := ctx.target.NumPages * ctx.target.PageSize
-		size := arg.VmaSize
+		addr, size := arg.Address, arg.VmaSize
 		if size == 0 && arg.Res != nil {
 			size = arg.Res.Size()
 		}
-		if arg.Address >= maxMem || arg.Address+size > maxMem {
+		if ctx.isUnsafe {
+			// Allow mapping 2 surrounding pages for DataMmapProg.
+			addr += ctx.target.PageSize
+			maxMem += 2 * ctx.target.PageSize
+		}
+		if addr >= maxMem || addr+size > maxMem {
 			return fmt.Errorf("ptr %v has bad address %v/%v/%v",
 				arg.Type().Name(), arg.Address, arg.VmaSize, size)
 		}

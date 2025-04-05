@@ -1,5 +1,5 @@
-# TOOD: should be in __virt_to_phys, or somewhere down the stack, but there is no stack and no PC symbol.
 TITLE: WARNING in ret_from_exception
+TYPE: WARNING
 
 [   75.189488][ T4090] ------------[ cut here ]------------
 [   75.190329][ T4090] virt_to_phys used for non-linear address: 0000000022abe3fe (0xffffffd01514e038)

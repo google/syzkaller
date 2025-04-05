@@ -1,5 +1,6 @@
 TITLE: KASAN: use-after-free Write in put_ucounts
 ALT: bad-access in put_ucounts
+TYPE: KASAN
 
 [  728.071420][    C1] ==================================================================
 [  728.080235][    C1] BUG: KASAN: use-after-free in _atomic_dec_and_lock_irqsave+0x27/0x150

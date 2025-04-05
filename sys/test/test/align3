@@ -1,0 +1,4 @@
+# These structs has pointers, and here we assume 64-bit pointers.
+# requires: -arch=32 -arch=32_fork -bigendian
+
+syz_compare(&AUTO="000000000000000001000000000000009999999999999999030000000000000000000000000000009999999999999999", AUTO, &AUTO=@align3={{0x0}, 0x1, {{0x2}}, 0x3, [{{0x4}}, {{0x5}}]}, AUTO)

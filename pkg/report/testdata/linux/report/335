@@ -1,4 +1,5 @@
 TITLE: WARNING: locking bug in corrupted
+TYPE: LOCKDEP
 CORRUPTED: Y
 
 [  336.564505] FAULT_INJECTION: forcing a failure.

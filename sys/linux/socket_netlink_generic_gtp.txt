@@ -19,6 +19,7 @@ syz_genetlink_get_family_id$gtp(name ptr[in, string["gtp"]], fd sock_nl_generic)
 sendmsg$GTP_CMD_NEWPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_NEWPDP]], f flags[send_flags])
 sendmsg$GTP_CMD_DELPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_DELPDP]], f flags[send_flags])
 sendmsg$GTP_CMD_GETPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_GETPDP]], f flags[send_flags])
+sendmsg$GTP_CMD_ECHOREQ(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_ECHOREQ]], f flags[send_flags])
 
 gtp_genl_policy [
 # TODO: fuzzer will have hard time getting ifindex of a gtp device (which needs to be created before).
@@ -31,17 +32,23 @@ gtp_genl_policy [
 	GTPA_NET_NS_FD		nlattr[GTPA_NET_NS_FD, fd_namespace]
 	GTPA_I_TEI		nlattr[GTPA_I_TEI, int32[0:4]]
 	GTPA_O_TEI		nlattr[GTPA_O_TEI, int32[0:4]]
+	GTPA_PEER_ADDR6		nlattr[GTPA_PEER_ADDR6, ipv6_addr]
+	GTPA_MS_ADDR6		nlattr[GTPA_MS_ADDR6, ipv6_addr]
+	GTPA_FAMILY		nlattr[GTPA_FAMILY, int8[socket_domain]]
 ] [varlen]
 
-gtp_policy {
-	IFLA_GTP_FD0	nlattr[IFLA_GTP_FD0, sock_udp]
-	IFLA_GTP_FD1	nlattr[IFLA_GTP_FD1, sock_udp]
-	var		array[gtp_policy$var]
-}
+gtp_policy_fd [
+	udp	sock_udp
+	udp6	sock_udp6
+]
 
-gtp_policy$var [
-	IFLA_GTP_FD0		nlattr[IFLA_GTP_FD0, sock_udp6]
-	IFLA_GTP_FD1		nlattr[IFLA_GTP_FD1, sock_udp6]
+gtp_policy [
+	IFLA_GTP_FD0		nlattr[IFLA_GTP_FD0, gtp_policy_fd]
+	IFLA_GTP_FD1		nlattr[IFLA_GTP_FD1, gtp_policy_fd]
 	IFLA_GTP_PDP_HASHSIZE	nlattr[IFLA_GTP_PDP_HASHSIZE, int32]
 	IFLA_GTP_ROLE		nlattr[IFLA_GTP_ROLE, int32[0:2]]
+	IFLA_GTP_CREATE_SOCKETS	nlattr[IFLA_GTP_CREATE_SOCKETS, bool8]
+	IFLA_GTP_RESTART_COUNT	nlattr[IFLA_GTP_RESTART_COUNT, int8]
+	IFLA_GTP_LOCAL		nlattr[IFLA_GTP_LOCAL, ipv4_addr]
+	IFLA_GTP_LOCAL6		nlattr[IFLA_GTP_LOCAL6, ipv6_addr]
 ] [varlen]

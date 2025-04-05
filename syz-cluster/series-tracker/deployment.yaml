@@ -1,0 +1,40 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: series-tracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: series-tracker
+  template:
+    metadata:
+      labels:
+        app: series-tracker
+    spec:
+      containers:
+      - name: series-tracker-image
+        image: ${IMAGE_PREFIX}series-tracker:${IMAGE_TAG}
+        args:
+          - "-archives"
+          - "$(LORE_ARCHIVES_TO_POLL)"
+        envFrom:
+          - configMapRef:
+              name: global-config
+        volumeMounts:
+        - name: series-tracker-repo-disk
+          mountPath: /git-repo
+        resources:
+          requests:
+            cpu: 4
+            memory: 16G
+          limits:
+            cpu: 8
+            memory: 32G
+      volumes:
+      - name: series-tracker-repo-disk
+        persistentVolumeClaim:
+          claimName: series-tracker-repo-disk-claim

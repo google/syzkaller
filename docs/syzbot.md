@@ -58,7 +58,7 @@ override the commit simply by sending another `#syz fix` command.
 **Note**: all commands must start from beginning of the line.
 
 **Note**: please keep at least `syzkaller-bugs@googlegroups.com` mailing list in CC.
-It serves as a history of what happened with each bug report. Keepint the main kernel
+It serves as a history of what happened with each bug report. Keeping the main kernel
 mailing list (e.g. `linux-kernel@vger.kernel.org `) in CC is useful as well so that
 it's searchable in those archives as well.
 
@@ -82,6 +82,14 @@ or alternatively, to test on exact commit reply with:
 ```
 #syz test: git://repo/address.git commit-hash
 ```
+
+You can also completely omit these parameters:
+```
+#syz test
+```
+
+In this case, syzbot will check out the latest commit from the branch where the
+issue was detected.
 
 If you also provide a patch with the email, `syzbot` will apply it on top of the
 tree before testing. The patch can be provided inline in email text or as
@@ -156,40 +164,20 @@ dashboard.
 It is possible to assign labels to syzkaller-reported bugs. These labels
 are displayed near bug titles on the bug lists and on individual bug pages.
 
-To assign a label, send a `#syz set` command as a reply to the bug report.
+There are two types of labels:
+* Flags
+  * Send `#syz set <label>` to set the flag.
+  * Send `#syz unset <label>` to drop the flag.
+* Label with values
+  * Send `#syz set <label>: <value>[, <value2> ...]`  to overwrite the value list.
+  * `#syz unset <label>` would drop the label with all its values.
 
-```
-#syz set label: value
-```
-
-As of now, the following labels are supported.
-
-**A)** Bug priority
-
-```
-#syz set prio: low
-#syz set prio: normal
-#syz set prio: high
-
-```
-
-**B)** Exclude the bug from monthly reports.
-
-```
-#syz set no-reminders
-```
-
-**C)** Set a subsystem (see also the section above).
-
-```
-#syz set subsystems: net
-```
-
-To **remove** a label, send a `#syz unset` command:
-
-```
-#syz unset prio
-```
+There's a fixed list of supported labels (*). Most important ones:
+| Key | Description | Values | Example |
+| - | - | - | - |
+| `subsystems` | A comma-separated list of subsystems of the bug | See [the list](https://syzkaller.appspot.com/upstream/subsystems) on the syzbot dashboard | `#syz set subsystems: mm, reiserfs` |
+| `prio` | The priority of the bug | One of `low`, `normal`, `high` | `#syz set prio: low`<br>`#syz unset prio` |
+| `no-reminders` | Don't include the bug into monthly reminders | No values, just a flag |  `#syz set no-reminders`<br>`#syz unset no-reminders` |
 
 It is also possible to set and unset labels for individual bugs from a monthly
 subsystem report. Let's consider an example.
@@ -204,12 +192,15 @@ Ref Crashes Repro Title
                   https://syzkaller.appspot.com/bug?id=b4278401038872458a20f08210e46f3ab519b786
 ```
 
-One can send the following email:
+One can send the following email to disable reminders for the first bug and to
+change the subsystem of the second bug:
 
 ```
 #syz set <1> no-reminders
 #syz set <2> subsystems: kernfs
 ```
+
+(*) If you need other labels to facilitate your work, feel free to contact us.
 
 <div id="amend"/>
 <div id="linux-next"/>
@@ -309,28 +300,42 @@ reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
 
 <div id="syzkaller-reproducers"/>
 
-## syzkaller reproducers
+## Running reproducers
+
+*Detailed instructions on running reproducers can be found [here](/docs/reproducing_crashes.md).*
 
 `syzbot` aims at providing stand-alone C reproducers for all reported bugs.
 However, sometimes it can't extract a reproducer at all, or can only extract a
 syzkaller reproducer. syzkaller reproducers are programs in a special syzkaller
 notation and they can be executed on the target system with a little bit more
-effort. See [this](/docs/executing_syzkaller_programs.md) for instructions.
+effort.
 
 A syskaller program can also give you an idea as to what syscalls with what
 arguments were executed (note that some calls can actually be executed in
 parallel).
 
-A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c`
-has lots of flags in common with [syz-execprog](/docs/executing_syzkaller_programs.md),
-e.g. `-threaded` which controls if the syscalls are executed sequentially or in parallel.
+A syzkaller program can be converted to an almost equivalent C source using
+`syz-prog2c` utility. `syz-prog2c` has lots of flags in common with
+[syz-execprog](/docs/reproducing_crashes.md#from-execution-logs),
+e.g. `-threaded` which controls if the syscalls are executed sequentially or
+concurrently.
+
 An example invocation:
 
 ```
 syz-prog2c -prog repro.syz.txt -enable=all -threaded -repeat -procs=8 -sandbox=namespace -segv -tmpdir -waitrepeat
 ```
 
-However, note that if `syzbot` did not provide a C reproducer, it wasn't able to trigger the bug using the C program (though, it can be just because the bug is triggered by a subtle race condition).
+However, note that if `syzbot` did not provide a C reproducer, it wasn't able to
+trigger the bug using the C program (it might also be the case that the bug is
+triggered by a rare race condition).
+
+## Downloadable assets
+
+Syzbot shares links to the bootable disk image, kernel object file and other
+relevant files that can be used to reproduce and debug the issue locally.
+
+See [this tutorial](/docs/syzbot_assets.md) on how to use them.
 
 ## Crash does not reproduce?
 
@@ -347,14 +352,23 @@ then the program needs to be built with `-m32` flag.
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
 
-Latest compiler used by syzbot is contained in `gcr.io/syzkaller/syzbot:gcc-10.2.1` docker image.
-For in-tree kernel build in current directory it can be used as follows:
+Sometimes it might be important to build the kernel using the exact same
+compiler that was used by syzbot. Normally that information is included in every
+email report, e.g.:
 
 ```
-docker pull gcr.io/syzkaller/syzbot:gcc-10.2.1
+compiler:       Debian clang version 15.0.6, GNU ld (GNU Binutils for Debian) 2.40
+```
+
+The latest compilers used by syzbot are contained in the
+`gcr.io/syzkaller/syzbot` docker image. For in-tree kernel build in current
+directory it can be used as follows:
+
+```
+docker pull gcr.io/syzkaller/syzbot
 docker run -it --user $(id -u ${USER}):$(id -g ${USER}) \
 	--volume "$PWD:/syzkaller/pwd" --workdir /syzkaller/pwd \
-	gcr.io/syzkaller/syzbot:gcc-10.2.1
+	gcr.io/syzkaller/syzbot:latest
 make
 ```
 

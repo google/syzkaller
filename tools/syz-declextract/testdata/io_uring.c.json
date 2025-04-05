@@ -1,0 +1,106 @@
+{
+	"functions": [
+		{
+			"name": "io_eopnotsupp_prep",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_nop",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_nop_prep",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_read",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_readv_prep",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_write",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "io_writev_prep",
+			"file": "io_uring.c",
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		}
+	],
+	"consts": [
+		{
+			"name": "IORING_OP_NOP",
+			"filename": "include/uapi/io_uring.h",
+			"value": 0
+		},
+		{
+			"name": "IORING_OP_NOT_SUPPORTED",
+			"filename": "include/uapi/io_uring.h",
+			"value": 3
+		},
+		{
+			"name": "IORING_OP_READV",
+			"filename": "include/uapi/io_uring.h",
+			"value": 1
+		},
+		{
+			"name": "IORING_OP_WRITEV",
+			"filename": "include/uapi/io_uring.h",
+			"value": 2
+		}
+	],
+	"iouring_ops": [
+		{
+			"name": "IORING_OP_NOP",
+			"func": "io_nop",
+			"source_file": "io_uring.c"
+		},
+		{
+			"name": "IORING_OP_READV",
+			"func": "io_read",
+			"source_file": "io_uring.c"
+		},
+		{
+			"name": "IORING_OP_WRITEV",
+			"func": "io_write",
+			"source_file": "io_uring.c"
+		}
+	]
+}

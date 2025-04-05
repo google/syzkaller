@@ -1,0 +1,50 @@
+{{/*
+Copyright 2023 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+The list of polled trees.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot: subsystems list</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	<h2>The list of subsystems</h2><br>
+	<table class="list_table">
+		<thead>
+			<tr>
+				<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
+				<th>List(s)</th>
+				<th><a onclick="return sortTable(this, 'Open', numSort)" href="#">Open</a></th>
+				<th><a onclick="return sortTable(this, 'Fixed', numSort)" href="#">Fixed</a></th>
+			</tr>
+		</thead>
+		<tbody>
+		{{range $item := .List}}
+		<tr>
+			<td>{{link $item.Open.Link $item.Name}}</td>
+			<td>{{$item.Lists}}</td>
+			<td>{{link $item.Open.Link (printf "%d" $item.Open.Count)}}</td>
+			<td>{{link $item.Fixed.Link (printf "%d" $item.Fixed.Count)}}</td>
+		</tr>
+		{{end}}
+		</tbody>
+		<tfoot>
+		<tr>
+			<td><b>{{link .Unclassified.Open.Link "unclassified"}}</b></td>
+			<td>-</td>
+			<td>{{link .Unclassified.Open.Link (printf "%d" .Unclassified.Open.Count)}}</td>
+			<td>{{link .Unclassified.Fixed.Link (printf "%d" .Unclassified.Fixed.Count)}}</td>
+		</tr>
+		</tfoot>
+	</table>
+	<i>(*) Note that the numbers below do not represent the latest data. They are updated once an hour.</i><br><br>
+	{{if .SomeHidden}}
+		Empty subsystems have been hidden from the list. {{link .ShowAllURL "Show all"}}. <br>
+	{{end}}
+</body>
+</html>

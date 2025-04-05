@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,15 +14,21 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
+var (
+	flagDryRun = flag.Bool("dry-run", false, "do not patch the files, just check if they are well formatted")
+)
+
 func main() {
-	if len(os.Args) < 2 {
+	defer tool.Init()()
+	args := flag.Args()
+	if len(args) < 1 {
 		fmt.Fprintf(os.Stderr, "usage: syz-fmt files... or dirs... or all\n")
 		os.Exit(1)
 	}
-	args := os.Args[1:]
 	if len(args) == 1 && args[0] == "all" {
 		args = nil
 		for os := range targets.List {
@@ -65,6 +72,11 @@ func processFile(file string, mode os.FileMode) {
 	}
 	formatted := ast.Format(desc)
 	if bytes.Equal(data, formatted) {
+		return
+	}
+	if *flagDryRun {
+		fmt.Fprintf(os.Stderr, "%v is not well-formatted, please run syz-fmt against it\n", file)
+		os.Exit(2)
 		return
 	}
 	fmt.Printf("reformatting %v\n", file)

@@ -4,13 +4,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
-	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -87,18 +87,16 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 		}
 		return nil
 	}
-	err = db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 15, XG: true})
-	if err != nil {
+	if err = runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
 	// Update individual bug statistics.
 	// We have to do it outside of the main transaction, as we might hit the "operating on
 	// too many entity groups in a single transaction." error.
 	for _, key := range d.BugKeys {
-		err := db.RunInTransaction(c, func(c context.Context) error {
+		if err := runInTransaction(c, func(c context.Context) error {
 			return mergeDiscussionSummary(c, key, d.Source, diff)
-		}, &db.TransactionOptions{Attempts: 15})
-		if err != nil {
+		}, nil); err != nil {
 			return fmt.Errorf("failed to put update summary for %s: %w", key, err)
 		}
 	}
@@ -109,7 +107,7 @@ func mergeDiscussionSummary(c context.Context, key, source string, diff Discussi
 	bug := new(Bug)
 	bugKey := db.NewKey(c, "Bug", key, 0, nil)
 	if err := db.Get(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to get bug: %v", err)
+		return fmt.Errorf("failed to get bug: %w", err)
 	}
 	var record *BugDiscussionInfo
 	for i, item := range bug.DiscussionInfo {
@@ -125,7 +123,7 @@ func mergeDiscussionSummary(c context.Context, key, source string, diff Discussi
 	}
 	record.Summary.merge(diff)
 	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return fmt.Errorf("failed to put bug: %v", err)
+		return fmt.Errorf("failed to put bug: %w", err)
 	}
 	return nil
 }

@@ -1,0 +1,92 @@
+TITLE: KMSAN: uninit-value in aes_encrypt
+ALT: bad-access in aes_encrypt
+
+[  311.903743][ T5388] =====================================================
+[  311.910990][ T5388] BUG: KMSAN: uninit-value in aes_encrypt+0x15cc/0x1db0
+[  311.918092][ T5388]  aes_encrypt+0x15cc/0x1db0
+[  311.922836][ T5388]  aesti_encrypt+0x7d/0xf0
+[  311.927414][ T5388]  crypto_ecb_encrypt+0x1e7/0x380
+[  311.932606][ T5388]  crypto_skcipher_encrypt+0xe0/0x150
+[  311.938151][ T5388]  xts_encrypt+0x3c4/0x540
+[  311.942740][ T5388]  crypto_skcipher_encrypt+0xe0/0x150
+[  311.948274][ T5388]  fscrypt_crypt_block+0x52c/0x900
+[  311.953562][ T5388]  fscrypt_encrypt_pagecache_blocks+0x3e7/0x8b0
+[  311.959983][ T5388]  ext4_bio_write_folio+0x1250/0x2ad0
+[  311.965532][ T5388]  ext4_do_writepages+0x3c5d/0x69b0
+[  311.970900][ T5388]  ext4_writepages+0x30c/0x810
+[  311.975802][ T5388]  do_writepages+0x428/0x870
+[  311.980595][ T5388]  filemap_fdatawrite_wbc+0x1d8/0x270
+[  311.986134][ T5388]  file_write_and_wait_range+0x205/0x3a0
+[  311.991921][ T5388]  ext4_sync_file+0x1f9/0x14e0
+[  311.996861][ T5388]  vfs_fsync_range+0x1fd/0x250
+[  312.001771][ T5388]  ext4_buffered_write_iter+0xb16/0xbe0
+[  312.007499][ T5388]  ext4_file_write_iter+0x2365/0x3400
+[  312.013038][ T5388]  __kernel_write_iter+0x323/0x930
+[  312.018330][ T5388]  dump_user_range+0x593/0xce0
+[  312.023269][ T5388]  elf_core_dump+0x59e8/0x5c60
+[  312.028191][ T5388]  do_coredump+0x31e1/0x4820
+[  312.032961][ T5388]  get_signal+0x2185/0x2bc0
+[  312.037614][ T5388]  arch_do_signal_or_restart+0x4f/0x920
+[  312.043836][ T5388]  exit_to_user_mode_loop+0xe8/0x320
+[  312.049316][ T5388]  exit_to_user_mode_prepare+0x163/0x220
+[  312.055228][ T5388]  irqentry_exit_to_user_mode+0xd/0x20
+[  312.060930][ T5388]  irqentry_exit+0x16/0x40
+[  312.065532][ T5388]  exc_page_fault+0x5a5/0x740
+[  312.070485][ T5388]  asm_exc_page_fault+0x2b/0x30
+[  312.075545][ T5388] 
+[  312.077939][ T5388] Uninit was stored to memory at:
+[  312.083173][ T5388]  xts_xor_tweak+0x454/0xbe0
+[  312.087940][ T5388]  xts_encrypt+0x296/0x540
+[  312.092528][ T5388]  crypto_skcipher_encrypt+0xe0/0x150
+[  312.098062][ T5388]  fscrypt_crypt_block+0x52c/0x900
+[  312.103330][ T5388]  fscrypt_encrypt_pagecache_blocks+0x3e7/0x8b0
+[  312.109740][ T5388]  ext4_bio_write_folio+0x1250/0x2ad0
+[  312.115300][ T5388]  ext4_do_writepages+0x3c5d/0x69b0
+[  312.120679][ T5388]  ext4_writepages+0x30c/0x810
+[  312.125580][ T5388]  do_writepages+0x428/0x870
+[  312.130355][ T5388]  filemap_fdatawrite_wbc+0x1d8/0x270
+[  312.135866][ T5388]  file_write_and_wait_range+0x205/0x3a0
+[  312.141648][ T5388]  ext4_sync_file+0x1f9/0x14e0
+[  312.146741][ T5388]  vfs_fsync_range+0x1fd/0x250
+[  312.151674][ T5388]  ext4_buffered_write_iter+0xb16/0xbe0
+[  312.157672][ T5388]  ext4_file_write_iter+0x2365/0x3400
+[  312.163216][ T5388]  __kernel_write_iter+0x323/0x930
+[  312.168514][ T5388]  dump_user_range+0x593/0xce0
+[  312.173451][ T5388]  elf_core_dump+0x59e8/0x5c60
+[  312.178369][ T5388]  do_coredump+0x31e1/0x4820
+[  312.183136][ T5388]  get_signal+0x2185/0x2bc0
+[  312.187811][ T5388]  arch_do_signal_or_restart+0x4f/0x920
+[  312.193568][ T5388]  exit_to_user_mode_loop+0xe8/0x320
+[  312.199047][ T5388]  exit_to_user_mode_prepare+0x163/0x220
+[  312.204885][ T5388]  irqentry_exit_to_user_mode+0xd/0x20
+[  312.210642][ T5388]  irqentry_exit+0x16/0x40
+[  312.215241][ T5388]  exc_page_fault+0x5a5/0x740
+[  312.220106][ T5388]  asm_exc_page_fault+0x2b/0x30
+[  312.225103][ T5388] 
+[  312.227500][ T5388] Uninit was created at:
+[  312.231956][ T5388]  __alloc_pages+0x9a4/0xe00
+[  312.236757][ T5388]  alloc_pages+0xd01/0x1040
+[  312.241443][ T5388]  folio_alloc+0x42/0x120
+[  312.245942][ T5388]  filemap_alloc_folio+0xa5/0x430
+[  312.251122][ T5388]  __filemap_get_folio+0x908/0x13a0
+[  312.256494][ T5388]  ext4_write_begin+0x3e5/0x2220
+[  312.261662][ T5388]  ext4_da_write_begin+0x4cd/0xec0
+[  312.266920][ T5388]  generic_perform_write+0x3df/0xbb0
+[  312.272368][ T5388]  ext4_buffered_write_iter+0x5ec/0xbe0
+[  312.278079][ T5388]  ext4_file_write_iter+0x2365/0x3400
+[  312.283607][ T5388]  __kernel_write_iter+0x323/0x930
+[  312.288919][ T5388]  dump_user_range+0x593/0xce0
+[  312.293866][ T5388]  elf_core_dump+0x59e8/0x5c60
+[  312.298791][ T5388]  do_coredump+0x31e1/0x4820
+[  312.303740][ T5388]  get_signal+0x2185/0x2bc0
+[  312.308404][ T5388]  arch_do_signal_or_restart+0x4f/0x920
+[  312.314128][ T5388]  exit_to_user_mode_loop+0xe8/0x320
+[  312.319610][ T5388]  exit_to_user_mode_prepare+0x163/0x220
+[  312.325449][ T5388]  irqentry_exit_to_user_mode+0xd/0x20
+[  312.331544][ T5388]  irqentry_exit+0x16/0x40
+[  312.336124][ T5388]  exc_page_fault+0x5a5/0x740
+[  312.340963][ T5388]  asm_exc_page_fault+0x2b/0x30
+[  312.346047][ T5388] 
+[  312.348435][ T5388] CPU: 1 PID: 5388 Comm: syz-executor.3 Not tainted 6.4.0-rc3-syzkaller-gf93f2feda5d6 #0
+[  312.358397][ T5388] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 04/28/2023
+[  312.368575][ T5388] =====================================================

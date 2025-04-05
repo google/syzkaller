@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"reflect"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReportBug(t *testing.T) {
@@ -55,6 +57,7 @@ func TestReportBug(t *testing.T) {
 		OS:                targets.Linux,
 		Arch:              targets.AMD64,
 		VMArch:            targets.AMD64,
+		UserSpaceArch:     targets.AMD64,
 		First:             true,
 		Moderation:        true,
 		Title:             "title1",
@@ -84,6 +87,7 @@ func TestReportBug(t *testing.T) {
 		CrashID:           rep.CrashID,
 		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
+		Manager:           "manager1",
 		HappenedOn:        []string{"repo1 branch1"},
 		Assets:            []dashapi.Asset{},
 		ReportElements:    &dashapi.ReportElements{GuiltyFiles: []string{"a.c"}},
@@ -227,6 +231,7 @@ func TestInvalidBug(t *testing.T) {
 		OS:                targets.Linux,
 		Arch:              targets.AMD64,
 		VMArch:            targets.AMD64,
+		UserSpaceArch:     targets.AMD64,
 		First:             true,
 		Moderation:        true,
 		Title:             "title1 (2)",
@@ -254,6 +259,7 @@ func TestInvalidBug(t *testing.T) {
 		CrashID:           rep.CrashID,
 		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
+		Manager:           "manager1",
 		HappenedOn:        []string{"repo1 branch1"},
 		Assets:            []dashapi.Asset{},
 		ReportElements:    &dashapi.ReportElements{},
@@ -266,20 +272,66 @@ func TestReportingQuota(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	c.updateReporting("test1", "reporting1",
+		func(r Reporting) Reporting {
+			// Set a low daily limit.
+			r.DailyLimit = 2
+			return r
+		})
+
 	build := testBuild(1)
 	c.client.UploadBuild(build)
 
-	const numReports = 8 // quota is 3 per day
+	const numReports = 5
 	for i := 0; i < numReports; i++ {
 		c.client.ReportCrash(testCrash(build, i))
 	}
 
-	for _, reports := range []int{3, 3, 2, 0, 0} {
+	for _, reports := range []int{2, 2, 1, 0, 0} {
 		c.advanceTime(24 * time.Hour)
 		c.client.pollBugs(reports)
 		// Out of quota for today, so must get 0 reports.
 		c.client.pollBugs(0)
 	}
+}
+
+func TestReproReportingQuota(t *testing.T) {
+	// Test that new repro reports are also covered by daily limits.
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	c.updateReporting("test1", "reporting1",
+		func(r Reporting) Reporting {
+			// Set a low daily limit.
+			r.DailyLimit = 2
+			return r
+		})
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// First report of two.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrash(build, 1))
+	client.pollBug()
+
+	// Second report of two.
+	c.advanceTime(time.Minute)
+	crash := testCrash(build, 2)
+	client.ReportCrash(crash)
+	client.pollBug()
+
+	// Now we "find" a reproducer.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrashWithRepro(build, 1))
+
+	// But there's no quota for it.
+	client.pollBugs(0)
+
+	// Wait a day and the quota appears.
+	c.advanceTime(time.Hour * 24)
+	client.pollBug()
 }
 
 // Basic dup scenario: mark one bug as dup of another.
@@ -785,12 +837,12 @@ func TestUpdateBugReporting(t *testing.T) {
 	defer c.Close()
 	setIDs := func(bug *Bug, arr []BugReporting) {
 		for i := range arr {
-			arr[i].ID = bugReportingHash(bug.keyHash(), arr[i].Name)
+			arr[i].ID = bugReportingHash(bug.keyHash(c.ctx), arr[i].Name)
 		}
 	}
 	now := timeNow(c.ctx)
 	// We test against the test2 namespace.
-	cfg := config.Namespaces["test2"]
+	cfg := c.config().Namespaces["test2"]
 	tests := []struct {
 		Before []BugReporting
 		After  []BugReporting
@@ -914,12 +966,12 @@ func TestUpdateBugReporting(t *testing.T) {
 		}
 		setIDs(bug, bug.Reporting)
 		setIDs(bug, test.After)
-		hasError := bug.updateReportings(cfg, now) != nil
+		hasError := bug.updateReportings(c.ctx, cfg, now) != nil
 		if hasError != test.Error {
-			t.Errorf("Before: %#v, Expected error: %v, Got error: %v", test.Before, test.Error, hasError)
+			t.Errorf("before: %#v, expected error: %v, got error: %v", test.Before, test.Error, hasError)
 		}
 		if !test.Error && !reflect.DeepEqual(bug.Reporting, test.After) {
-			t.Errorf("Before: %#v, Expected After: %#v, Got After: %#v", test.Before, test.After, bug.Reporting)
+			t.Errorf("before: %#v, expected after: %#v, got after: %#v", test.Before, test.After, bug.Reporting)
 		}
 	}
 }
@@ -1095,10 +1147,221 @@ func TestReportDecommissionedBugs(t *testing.T) {
 	c.expectEQ(len(closed), 0)
 
 	// And now let's decommission the namespace.
-	config.Namespaces[rep.Namespace].Decommissioned = true
-	defer func() { config.Namespaces[rep.Namespace].Decommissioned = false }()
+	c.decommission(rep.Namespace)
 
 	closed, _ = client.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep.ID)
+}
+
+func TestObsoletePeriod(t *testing.T) {
+	base := time.Now()
+	c := context.Background()
+	config := getConfig(c)
+	tests := []struct {
+		name   string
+		bug    *Bug
+		period time.Duration
+	}{
+		{
+			name: "frequent final bug",
+			bug: &Bug{
+				// Once in a day.
+				NumCrashes: 30,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 30),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// 80 days are definitely enough.
+			period: config.Obsoleting.MinPeriod,
+		},
+		{
+			name: "very short-living final bug",
+			bug: &Bug{
+				NumCrashes: 5,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// Too few crashes, wait max time.
+			period: config.Obsoleting.MaxPeriod,
+		},
+		{
+			name: "rare stable final bug",
+			bug: &Bug{
+				// Once in 20 days.
+				NumCrashes: 20,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 400),
+				Reporting:  []BugReporting{{Reported: base}},
+			},
+			// Wait max time.
+			period: config.Obsoleting.MaxPeriod,
+		},
+		{
+			name: "frequent non-final bug",
+			bug: &Bug{
+				// Once in a day.
+				NumCrashes: 10,
+				FirstTime:  base,
+				LastTime:   base.Add(time.Hour * 24 * 10),
+				Reporting:  []BugReporting{{}},
+			},
+			// 40 days are also enough.
+			period: config.Obsoleting.NonFinalMinPeriod,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ret := test.bug.obsoletePeriod(c)
+			assert.Equal(t, test.period, ret)
+		})
+	}
+}
+
+func TestReportRevokedRepro(t *testing.T) {
+	// There was a bug (#4412) where syzbot infinitely re-reported reproducers
+	// for a bug that was upstreamed after its repro was revoked.
+	// Recreate this situation.
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	build.KernelRepo = "git://mygit.com/git.git"
+	build.KernelBranch = "main"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	client.ReportCrash(crash)
+	rep1 := client.pollBug()
+	client.expectNE(rep1.ReproSyz, nil)
+
+	// Revoke the reproducer.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	jobResp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	c.expectEQ(jobResp.Type, dashapi.JobTestPatch)
+	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+		ID: jobResp.ID,
+	}))
+
+	c.advanceTime(time.Hour)
+	client.ReportCrash(testCrash(build, 1))
+
+	// Upstream the bug.
+	c.advanceTime(time.Hour)
+	client.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
+	rep2 := client.pollBug()
+
+	// Also ensure that we do not report the revoked reproducer.
+	client.expectEQ(rep2.Type, dashapi.ReportNew)
+	client.expectEQ(rep2.ReproSyz, []byte(nil))
+
+	// Expect no further reports.
+	client.pollBugs(0)
+}
+
+func TestWaitForRepro(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	c.setWaitForRepro("test1", time.Hour*24)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	// Normal crash witout repro.
+	client.ReportCrash(testCrash(build, 1))
+	client.pollBugs(0)
+	c.advanceTime(time.Hour * 24)
+	client.pollBug()
+
+	// A crash first without repro, then with it.
+	client.ReportCrash(testCrash(build, 2))
+	c.advanceTime(time.Hour * 12)
+	client.pollBugs(0)
+	client.ReportCrash(testCrashWithRepro(build, 2))
+	client.pollBug()
+
+	// A crash with a reproducer.
+	c.advanceTime(time.Minute)
+	client.ReportCrash(testCrashWithRepro(build, 3))
+	client.pollBug()
+
+	// A crahs that will never have a reproducer.
+	c.advanceTime(time.Minute)
+	crash := testCrash(build, 4)
+	crash.Title = "upstream test error: abcd"
+	client.ReportCrash(crash)
+	client.pollBug()
+}
+
+// The test mimics the failure described in #5829.
+func TestReportRevokedBisectCrash(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublic, keyPublic, true)
+	build := testBuild(1)
+	build.KernelRepo = "git://git.com/git.git"
+	client.UploadBuild(build)
+
+	const crashTitle = "WARNING: abcd"
+
+	crashRepro := testCrashWithRepro(build, 1)
+	crashRepro.Title = crashTitle
+	client.ReportCrash(crashRepro)
+
+	// Do a bisection.
+	pollResp := client.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *testBuild(2),
+		Log:   []byte("bisect log"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:   "111111111111111111111111",
+				Title:  "kernel: break build",
+				Author: "hacker@kernel.org",
+				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	client.expectOK(client.JobDone(done))
+	report := client.pollBug()
+
+	// Revoke the reproducer.
+	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
+	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+		TestPatches: true,
+	})
+	c.expectEQ(resp.Type, dashapi.JobTestPatch)
+	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+		ID: resp.ID,
+	}))
+
+	// Move to the next reporting stage.
+	c.advanceTime(time.Hour)
+	client.updateBug(report.ID, dashapi.BugStatusUpstream, "")
+	report = client.pollBug()
+	client.expectNE(report.ReproCLink, "")
+	client.expectEQ(report.ReproIsRevoked, true)
+
+	// And now report a new reproducer.
+	c.advanceTime(time.Hour)
+	build2 := testBuild(1)
+	client.UploadBuild(build2)
+	crashRepro2 := testCrashWithRepro(build2, 2)
+	crashRepro2.Title = crashTitle
+	client.ReportCrash(crashRepro2)
+
+	// There should be no new report.
+	// We already reported that the bug has a reproducer.
+	client.pollBugs(0)
 }

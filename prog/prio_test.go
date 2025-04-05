@@ -11,19 +11,19 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
-func TestNormalizePrio(t *testing.T) {
+func TestNormalizePrios(t *testing.T) {
 	prios := [][]int32{
 		{2, 2, 2},
 		{1, 2, 4},
 		{1, 2, 0},
 	}
 	want := [][]int32{
-		{1000, 1000, 1000},
-		{257, 505, 1000},
-		{505, 1000, 10},
+		{10, 10, 10},
+		{4, 8, 17},
+		{10, 20, 0},
 	}
 	t.Logf("had:  %+v", prios)
-	normalizePrio(prios)
+	normalizePrios(prios)
 	if !reflect.DeepEqual(prios, want) {
 		t.Logf("got:  %+v", prios)
 		t.Errorf("want: %+v", want)
@@ -63,7 +63,7 @@ func TestStaticPriorities(t *testing.T) {
 			}
 			// Checks that prio[callCreatesRes][callUsesRes] > prio[callUsesRes][callCreatesRes]
 			if count >= counter[call] {
-				t.Fatalf("Too high priority for %s -> %s: %d vs %s -> %s: %d",
+				t.Fatalf("too high priority for %s -> %s: %d vs %s -> %s: %d",
 					call, referenceCall, count, referenceCall, call, counter[call])
 			}
 		}

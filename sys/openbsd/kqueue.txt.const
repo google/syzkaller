@@ -35,5 +35,3 @@ NOTE_TRACK = amd64:1
 NOTE_TRACKERR = amd64:2
 NOTE_TRUNCATE = amd64:128
 NOTE_WRITE = amd64:2
-SYS_kevent = amd64:72
-SYS_kqueue = amd64:269

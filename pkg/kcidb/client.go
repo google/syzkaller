@@ -57,7 +57,7 @@ func (c *Client) Publish(bug *dashapi.BugReport) error {
 	}
 	data, err := json.MarshalIndent(c.convert(target, bug), "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal kcidb json: %v", err)
+		return fmt.Errorf("failed to marshal kcidb json: %w", err)
 	}
 	if err := kcidbValidate(data); err != nil {
 		return err
@@ -81,7 +81,7 @@ func kcidbValidate(data []byte) error {
 	cmd.Stdin = bytes.NewReader(data)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%v failed (%v) on:\n%s\n\nerror: %s",
+		return fmt.Errorf("%v failed (%w) on:\n%s\n\nerror: %s",
 			bin, err, data, output)
 	}
 	return nil

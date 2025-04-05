@@ -19,23 +19,25 @@ h1, h2, h3, h4 {
 	border: 1px solid black;
 	padding: 4px;
 	margin: 4px;
+	display: inline-block;
 }
+
+.navigation_tab a:hover {background-color: #ddd;}
 
 .navigation_tab_selected {
 	font-weight: bold;
 	border: 3px solid black;
 	padding: 4px;
 	margin: 4px;
+	display: inline-block;
 }
 
-.position_table .navigation {
+.navigation {
 	padding-top: 15px;
 	padding-bottom: 6px;
-}
-
-.position_table .navigation-right {
-	padding-top: 15px;
-	text-align: right;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
 }
 
 table {
@@ -80,6 +82,21 @@ table td, table th {
 	width: 100%;
 	padding-top: 10px;
 	padding-left: 20px;
+}
+
+.action_button, .action_button_selected {
+	border: 1px solid black;
+	align: left;
+	vertical-align: center;
+	text-align: center;
+	width: 30px;
+	height: 30px;
+	padding: 4px;
+	margin: 5px;
+}
+
+.action_button_selected {
+	border: 3px solid black;
 }
 
 .position_table .search {
@@ -151,7 +168,7 @@ table td, table th {
 
 .list_table .result {
 	width: 60pt;
-	max-width: 60pt;
+	max-width: 200pt;
 }
 
 .list_table .stat {
@@ -180,14 +197,14 @@ table td, table th {
 }
 
 .list_table .stat_name {
-	width: 150pt;
-	max-width: 150pt;
+	width: 180pt;
+	max-width: 180pt;
 	font-family: monospace;
 }
 
 .list_table .stat_value {
-	width: 120pt;
-	max-width: 120pt;
+	width: 200pt;
+	max-width: 200pt;
 	font-family: monospace;
 }
 
@@ -201,6 +218,13 @@ table td, table th {
 
 .list_table .assets .no-break {
 	display: inline-block;
+}
+
+.list_table .job_description {
+	max-width: 600pt;
+	word-break: break-all;
+	overflow-wrap: break-word;
+	white-space: normal;
 }
 
 .list_table .icon {
@@ -354,6 +378,11 @@ aside {
 	margin-bottom: 7px;
 }
 
+.input-values textarea {
+	width: 750pt;
+	height: 250pt;
+}
+
 .input-group {
 	margin-top: 7px;
 	margin-bottom: 7px;
@@ -362,6 +391,11 @@ aside {
 
 .input-group button {
 	width: 20pt;
+}
+
+.fix-candidate-block {
+	background: lightgreen;
+	padding: 5pt;
 }
 
 .bug-bisection-info {
@@ -404,3 +438,58 @@ aside {
 .collapsible-show .show-icon {
 	display: none;
 }
+
+.emergency-stop {
+	background-color: yellow;
+	padding: 5pt;
+	margin-bottom: 5pt;
+}
+
+.emergency-stopped {
+	background-color: coral;
+	padding: 5pt;
+	margin-bottom: 5pt;
+}
+
+/* Dropdown Button */
+.dropbtn {
+	background-color: transparent;
+	color: #375EAB;
+	text-decoration: none;
+	border: none;
+	font-family: inherit;
+	font-size: inherit;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+	position: relative;
+	display: inline-block;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+	display: none;
+	flex-direction: column;
+	position: absolute;
+	background-color: #f1f1f1;
+	z-index: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content div a {
+	color: black;
+	text-decoration: none;
+	display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {background-color: #ddd;}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {display: flex;}
+
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {background-color: #ddd;}

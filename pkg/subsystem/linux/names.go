@@ -14,17 +14,17 @@ import (
 // setSubsystemNames assigns unique names to the presented subsystems.
 // If it failed to assign a name to a subsystem, the Name field remains empty.
 func setSubsystemNames(list []*subsystem.Subsystem) error {
-	dups := map[string]bool{}
+	dupEmails := map[string]string{}
 	for _, item := range list {
 		if item.Name == "" {
 			continue
 		}
-		if dups[item.Name] {
-			return fmt.Errorf("duplicate name: %s", item.Name)
+		if _, ok := dupEmails[item.Name]; ok {
+			return fmt.Errorf("duplicate name: %q", item.Name)
 		}
-		dups[item.Name] = true
+		// We do not know the email.
+		dupEmails[item.Name] = ""
 	}
-
 	for _, item := range list {
 		if item.Name != "" {
 			continue
@@ -38,11 +38,11 @@ func setSubsystemNames(list []*subsystem.Subsystem) error {
 		if !validateName(name) {
 			return fmt.Errorf("failed to extract a name from %s", email)
 		}
-		if dups[name] {
-			return fmt.Errorf("duplicate subsystem name: %s", item.Name)
+		if other, ok := dupEmails[name]; ok {
+			return fmt.Errorf("duplicate subsystem name %v: emails %q and %q", name, other, email)
 		}
 		item.Name = name
-		dups[name] = true
+		dupEmails[name] = email
 	}
 	return nil
 }
@@ -89,6 +89,7 @@ var (
 	emailExceptions = map[string]string{
 		"patches@opensource.cirrus.com":             "cirrus",
 		"virtualization@lists.linux-foundation.org": "virt", // the name is too long
+		"virtualization@lists.linux.dev":            "virt",
 		"dev@openvswitch.org":                       "openvswitch",
 		"devel@acpica.org":                          "acpica",
 		"kernel@dh-electronics.com":                 "dh-electr",
@@ -110,8 +111,11 @@ var (
 		"rust-for-linux@vger.kernel.org":            "rust",
 		"industrypack-devel@lists.sourceforge.net":  "ipack",
 		"v9fs-developer@lists.sourceforge.net":      "9p",
-		"cluster-devel@redhat.com":                  "gfs2",
 		"kernel-tls-handshake@lists.linux.dev":      "tls",
+		"bcm-kernel-feedback-list@broadcom.com":     "broadcom",
+		"linux@ew.tq-group.com":                     "tq-systems",
+		"linux-imx@nxp.com":                         "nxp",
+		"kernel-list@raspberrypi.com":               "raspberry",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{

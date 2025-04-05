@@ -30,7 +30,9 @@ type maintainersRecord struct {
 func parseLinuxMaintainers(content io.Reader) ([]*maintainersRecord, error) {
 	scanner := bufio.NewScanner(content)
 	// First skip the headers.
+	var skippedLines int
 	for scanner.Scan() {
+		skippedLines++
 		line := scanner.Text()
 		if line == "Maintainers List" {
 			// Also skip ------.
@@ -38,7 +40,7 @@ func parseLinuxMaintainers(content io.Reader) ([]*maintainersRecord, error) {
 			break
 		}
 	}
-	ml := &maintainersLexer{scanner: scanner}
+	ml := &maintainersLexer{scanner: scanner, currentLine: skippedLines + 1}
 	ret := []*maintainersRecord{}
 loop:
 	for {
@@ -138,9 +140,13 @@ func applyProperty(record *maintainersRecord, property *recordProperty) error {
 func parseEmail(value string) (string, error) {
 	// Sometimes there happen extra symbols at the end of the line,
 	// let's make this parser more error tolerant.
-	pos := strings.LastIndexAny(value, ">)")
-	if pos >= 0 {
+	if pos := strings.LastIndexAny(value, ">)"); pos >= 0 {
 		value = value[:pos+1]
+	}
+	// Let's also make the parser more robust by skipping everything before the first <,
+	// if it exists.
+	if pos := strings.LastIndexAny(value, "<"); pos >= 0 {
+		value = value[pos:]
 	}
 	addr, err := mail.ParseAddress(value)
 	if err != nil {

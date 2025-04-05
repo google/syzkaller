@@ -78,7 +78,7 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				comp.error(arg.Pos, "%v arg %v is larger than pointer size", n.Name.Name, arg.Name.Name)
 				continue
 			}
-			argID := fmt.Sprintf("%v|%v", n.CallName, i)
+			argID := fmt.Sprintf("%v|%v", comp.getCallName(n), i)
 			if _, ok := argPos[argID]; !ok {
 				argSizes[i] = typ.Size()
 				argPos[argID] = arg.Pos
@@ -90,9 +90,20 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				continue
 			}
 		}
-		callArgSizes[n.CallName] = argSizes
+		callArgSizes[comp.getCallName(n)] = argSizes
 	}
 	return callArgSizes
+}
+
+func (comp *compiler) getCallName(n *ast.Call) string {
+	// getCallName is used for checking that all variants of the same syscall have same argument sizes
+	// for matching arguments. Automatically-generated syscalls may violate that condition,
+	// so for them we use full syscall name. As the result manual and automatic variants
+	// of the same syscall are not checked against each other.
+	if comp.fileMeta(n.Pos).Automatic {
+		return n.Name.Name
+	}
+	return n.CallName
 }
 
 func (comp *compiler) genSyscalls() []*prog.Syscall {
@@ -100,9 +111,17 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n, callArgSizes[n.CallName]))
+			calls = append(calls, comp.genSyscall(n, callArgSizes[comp.getCallName(n)]))
 		}
 	}
+	// We assign SquashableElem here rather than during pointer type generation
+	// because during pointer generation recursive struct types may not be fully
+	// generated yet, thus ForeachArgType won't observe all types.
+	prog.ForeachTypePost(calls, func(typ prog.Type, ctx *prog.TypeCtx) {
+		if ptr, ok := typ.(*prog.PtrType); ok {
+			ptr.SquashableElem = isSquashableElem(ptr.Elem, ptr.ElemDir)
+		}
+	})
 	sort.Slice(calls, func(i, j int) bool {
 		return calls[i].Name < calls[j].Name
 	})
@@ -115,13 +134,26 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		ret = comp.genType(n.Ret, comp.ptrSize)
 	}
 	var attrs prog.SyscallAttrs
-	descAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
-	for desc, val := range descAttrs {
+	attrs.Automatic = comp.fileMeta(n.Pos).Automatic
+	intAttrs, _, stringAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
+	for desc, val := range intAttrs {
 		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)
-		if desc.HasArg {
+		switch desc.Type {
+		case intAttr:
 			fld.SetUint(val)
-		} else {
+		case flagAttr:
 			fld.SetBool(val != 0)
+		default:
+			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+		}
+	}
+	for desc, val := range stringAttrs {
+		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)
+		switch desc.Type {
+		case stringAttr:
+			fld.SetString(val)
+		default:
+			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
 		}
 	}
 	fields, _ := comp.genFieldArray(n.Args, argSizes)
@@ -204,6 +236,7 @@ func (comp *compiler) layoutType(typ prog.Type, padded map[prog.Type]bool) {
 	if padded[typ] {
 		return
 	}
+	padded[typ] = true
 	switch t := typ.(type) {
 	case *prog.ArrayType:
 		comp.layoutType(t.Elem, padded)
@@ -224,7 +257,6 @@ func (comp *compiler) layoutType(typ prog.Type, padded map[prog.Type]bool) {
 	if !typ.Varlen() && typ.Size() == sizeUnassigned {
 		panic("size unassigned")
 	}
-	padded[typ] = true
 }
 
 func (comp *compiler) layoutArray(t *prog.ArrayType) {
@@ -232,12 +264,19 @@ func (comp *compiler) layoutArray(t *prog.ArrayType) {
 	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Elem.Varlen() {
 		t.TypeSize = t.RangeBegin * t.Elem.Size()
 	}
+	t.TypeAlign = t.Elem.Alignment()
 }
 
 func (comp *compiler) layoutUnion(t *prog.UnionType) {
-	structNode := comp.structs[t.TypeName]
-	attrs := comp.parseAttrs(unionAttrs, structNode, structNode.Attrs)
+	for _, fld := range t.Fields {
+		t.TypeAlign = max(t.TypeAlign, fld.Alignment())
+	}
 	t.TypeSize = 0
+	structNode := comp.structs[t.TypeName]
+	if structNode == conditionalFieldWrapper {
+		return
+	}
+	attrs := comp.parseIntAttrs(unionAttrs, structNode, structNode.Attrs)
 	if attrs[attrVarlen] != 0 {
 		return
 	}
@@ -249,9 +288,7 @@ func (comp *compiler) layoutUnion(t *prog.UnionType) {
 				" which is less than field %v size %v",
 				structNode.Name.Name, sizeAttr, fld.Type.Name(), sz)
 		}
-		if t.TypeSize < sz {
-			t.TypeSize = sz
-		}
+		t.TypeSize = max(t.TypeSize, sz)
 	}
 	if hasSize {
 		t.TypeSize = sizeAttr
@@ -267,9 +304,18 @@ func (comp *compiler) layoutStruct(t *prog.StructType) {
 			varlen = true
 		}
 	}
-	attrs := comp.parseAttrs(structAttrs, structNode, structNode.Attrs)
+	attrs := comp.parseIntAttrs(structAttrs, structNode, structNode.Attrs)
 	t.AlignAttr = attrs[attrAlign]
 	comp.layoutStructFields(t, varlen, attrs[attrPacked] != 0)
+	if align := attrs[attrAlign]; align != 0 {
+		t.TypeAlign = align
+	} else if attrs[attrPacked] != 0 {
+		t.TypeAlign = 1
+	} else {
+		for _, f := range t.Fields {
+			t.TypeAlign = max(t.TypeAlign, f.Alignment())
+		}
+	}
 	t.TypeSize = 0
 	if !varlen {
 		var size uint64
@@ -278,9 +324,7 @@ func (comp *compiler) layoutStruct(t *prog.StructType) {
 				size = 0
 			}
 			size += f.Size()
-			if t.TypeSize < size {
-				t.TypeSize = size
-			}
+			t.TypeSize = max(t.TypeSize, size)
 		}
 		sizeAttr, hasSize := attrs[attrSize]
 		if hasSize {
@@ -313,9 +357,7 @@ func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool
 		fieldAlign := uint64(1)
 		if !packed {
 			fieldAlign = f.Alignment()
-			if structAlign < fieldAlign {
-				structAlign = fieldAlign
-			}
+			structAlign = max(structAlign, fieldAlign)
 		}
 		fullBitOffset := byteOffset*8 + bitOffset
 		var fieldOffset uint64
@@ -457,8 +499,8 @@ func genPad(size uint64) prog.Field {
 func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) ([]prog.Field, int) {
 	outOverlay := -1
 	for i, f := range fields {
-		attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
-		if attrs[attrOutOverlay] > 0 {
+		intAttrs := comp.parseIntAttrs(structFieldAttrs, f, f.Attrs)
+		if intAttrs[attrOutOverlay] > 0 {
 			outOverlay = i
 		}
 	}
@@ -476,8 +518,7 @@ func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) ([]p
 	return res, outOverlay
 }
 
-func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
-	attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
+func (comp *compiler) genFieldDir(attrs map[*attrDesc]uint64) (prog.Dir, bool) {
 	switch {
 	case attrs[attrIn] != 0:
 		return prog.DirIn, true
@@ -491,16 +532,74 @@ func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
 }
 
 func (comp *compiler) genField(f *ast.Field, argSize uint64, overlayDir prog.Dir) prog.Field {
+	intAttrs, exprAttrs, _ := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
 	dir, hasDir := overlayDir, true
 	if overlayDir == prog.DirInOut {
-		dir, hasDir = comp.genFieldDir(f)
+		dir, hasDir = comp.genFieldDir(intAttrs)
 	}
-
 	return prog.Field{
 		Name:         f.Name.Name,
 		Type:         comp.genType(f.Type, argSize),
 		HasDirection: hasDir,
 		Direction:    dir,
+		Condition:    exprAttrs[attrIf],
+	}
+}
+
+var conditionalFieldWrapper = &ast.Struct{}
+
+// For structs, we wrap conditional fields in anonymous unions with a @void field.
+func (comp *compiler) wrapConditionalField(name string, field prog.Field) prog.Field {
+	common := genCommon(fmt.Sprintf("_%s_%s_wrapper", name, field.Name), sizeUnassigned, false)
+	common.IsVarlen = true
+	common.TypeAlign = field.Type.Alignment()
+
+	// Fake the corresponding ast.Struct.
+	comp.structs[common.TypeName] = conditionalFieldWrapper
+
+	voidBase := genIntCommon(genCommon("void", sizeUnassigned, false), 0, false)
+	voidType := typeVoid.Gen(comp, nil, nil, voidBase)
+
+	var newCondition prog.Expression
+	if field.Condition != nil {
+		newCondition = field.Condition.Clone()
+		// Prepend "parent:".
+		newCondition.ForEachValue(func(val *prog.Value) {
+			if len(val.Path) == 0 {
+				return
+			}
+			if val.Path[0] == prog.ParentRef {
+				val.Path = append([]string{prog.ParentRef}, val.Path...)
+			} else {
+				// Single "parent:" would not change anything.
+				val.Path = append([]string{prog.ParentRef, prog.ParentRef}, val.Path...)
+			}
+		})
+	}
+
+	return prog.Field{
+		Name: field.Name,
+		Type: &prog.UnionType{
+			TypeCommon: common,
+			Fields: []prog.Field{
+				{
+					Name:         "value",
+					Type:         field.Type,
+					HasDirection: field.HasDirection,
+					Direction:    field.Direction,
+					Condition:    newCondition,
+				},
+				{
+					Name: "void",
+					Type: voidType,
+					Condition: &prog.BinaryExpression{
+						Operator: prog.OperatorCompareEq,
+						Left:     newCondition,
+						Right:    &prog.Value{Value: 0x0, Path: nil},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -520,6 +619,66 @@ func (comp *compiler) genType(t *ast.Type, argSize uint64) prog.Type {
 	}
 	base.IsVarlen = desc.Varlen != nil && desc.Varlen(comp, t, args)
 	return desc.Gen(comp, t, args, base)
+}
+
+const valueIdent = "value"
+
+var binaryOperatorMap = map[ast.Operator]prog.BinaryOperator{
+	ast.OperatorCompareEq:  prog.OperatorCompareEq,
+	ast.OperatorCompareNeq: prog.OperatorCompareNeq,
+	ast.OperatorBinaryAnd:  prog.OperatorBinaryAnd,
+	ast.OperatorOr:         prog.OperatorOr,
+}
+
+func (comp *compiler) genExpression(t *ast.Type) prog.Expression {
+	if binary := t.Expression; binary != nil {
+		operator, ok := binaryOperatorMap[binary.Operator]
+		if !ok {
+			comp.error(binary.Pos, "unknown binary operator")
+			return nil
+		}
+		return &prog.BinaryExpression{
+			Operator: operator,
+			Left:     comp.genExpression(binary.Left),
+			Right:    comp.genExpression(binary.Right),
+		}
+	} else {
+		return comp.genValue(t)
+	}
+}
+
+func (comp *compiler) genValue(val *ast.Type) *prog.Value {
+	if val.Ident == valueIdent {
+		if len(val.Args) != 1 {
+			comp.error(val.Pos, "value reference must have only one argument")
+			return nil
+		}
+		arg := val.Args[0]
+		if arg.Args != nil {
+			comp.error(val.Pos, "value aguments must not have any further arguments")
+			return nil
+		}
+		path := []string{arg.Ident}
+		for _, elem := range arg.Colon {
+			if elem.Args != nil {
+				comp.error(arg.Pos, "value path elements must not have any attributes")
+				return nil
+			}
+			path = append(path, elem.Ident)
+		}
+		return &prog.Value{Path: path}
+	}
+	if val.Expression != nil || val.HasString {
+		comp.error(val.Pos, "the token must be either an integer or an identifier")
+		return nil
+	}
+	if len(val.Args) != 0 {
+		comp.error(val.Pos, "consts in expressions must not have any arguments")
+		return nil
+	}
+	return &prog.Value{
+		Value: val.Value,
+	}
 }
 
 func genCommon(name string, size uint64, opt bool) prog.TypeCommon {

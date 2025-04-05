@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -69,18 +70,22 @@ func (inst *testInstance) Diagnose(rep *report.Report) ([]byte, bool) {
 	return nil, true
 }
 
-func (inst *testInstance) Close() {
+func (inst *testInstance) Close() error {
+	return nil
 }
 
 func init() {
 	beforeContextDefault = maxErrorLength + 100
 	tickerPeriod = 1 * time.Second
-	waitForOutputTimeout = 3 * time.Second
+	vmimpl.WaitForOutputTimeout = 3 * time.Second
 
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
 	}
-	vmimpl.Register("test", ctor, false)
+	vmimpl.Register("test", vmimpl.Type{
+		Ctor:        ctor,
+		Preemptible: true,
+	})
 }
 
 type Test struct {
@@ -89,9 +94,11 @@ type Test struct {
 	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash.
 	DiagnoseNoWait bool // Diagnose returns output directly rather than to console.
 	Body           func(outc chan []byte, errc chan error)
+	BodyExecuting  func(outc chan []byte, errc chan error, inject chan<- bool)
 	Report         *report.Report
 }
 
+// nolint: goconst // "DIAGNOSE\n", "BUG: bad\n" and "other output\n"
 var tests = []*Test{
 	{
 		Name: "program-exits-normally",
@@ -109,6 +116,7 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: lostConnectionCrash,
+			Type:  crash.LostConnection,
 		},
 	},
 	{
@@ -129,6 +137,7 @@ var tests = []*Test{
 			Output: []byte(
 				"DIAGNOSE\n",
 			),
+			Type: crash.LostConnection,
 		},
 	},
 	{
@@ -144,6 +153,7 @@ var tests = []*Test{
 					"VM DIAGNOSIS:\n" +
 					"DIAGNOSE\n",
 			),
+			Type: crash.LostConnection,
 		},
 	},
 	{
@@ -189,7 +199,7 @@ var tests = []*Test{
 		Name: "fuzzer-is-preempted",
 		Body: func(outc chan []byte, errc chan error) {
 			outc <- []byte("BUG: bad\n")
-			outc <- []byte(fuzzerPreemptedStr + "\n")
+			outc <- []byte(executorPreemptedStr + "\n")
 		},
 	},
 	{
@@ -231,6 +241,7 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: lostConnectionCrash,
+			Type:  crash.LostConnection,
 		},
 	},
 	{
@@ -261,23 +272,12 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name: "no-no-output-1",
+		Name: "no-no-output",
 		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
-				outc <- append(executingProgram1, '\n')
-			}
-			errc <- nil
-		},
-	},
-	{
-		Name: "no-no-output-2",
-		Exit: ExitNormal,
-		Body: func(outc chan []byte, errc chan error) {
-			for i := 0; i < 5; i++ {
-				time.Sleep(time.Second)
-				outc <- append(executingProgram2, '\n')
+				outc <- append(executingProgram, '\n')
 			}
 			errc <- nil
 		},
@@ -322,11 +322,21 @@ var tests = []*Test{
 			errc <- nil
 		},
 	},
+	{
+		Name: "inject-executing",
+		Exit: ExitNormal,
+		BodyExecuting: func(outc chan []byte, errc chan error, inject chan<- bool) {
+			for i := 0; i < 6; i++ {
+				time.Sleep(time.Second)
+				inject <- true
+			}
+			errc <- nil
+		},
+	},
 }
 
 func TestMonitorExecution(t *testing.T) {
 	for _, test := range tests {
-		test := test
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 			testMonitorExecution(t, test)
@@ -346,6 +356,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 				Slowdown: 1,
 				NoOutput: 5 * time.Second,
 			},
+			SysTarget: targets.Get(targets.Linux, targets.AMD64),
 		},
 		Workdir: dir,
 		Type:    "test",
@@ -364,20 +375,34 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatal(err)
 	}
 	defer inst.Close()
-	outc, errc, err := inst.Run(time.Second, nil, "")
-	if err != nil {
-		t.Fatal(err)
-	}
 	testInst := inst.impl.(*testInstance)
 	testInst.diagnoseBug = test.DiagnoseBug
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
 	done := make(chan bool)
+	finishCalled := 0
+	finishCb := EarlyFinishCb(func() { finishCalled++ })
+	opts := []any{test.Exit, finishCb}
+	var inject chan bool
+	if test.BodyExecuting != nil {
+		inject = make(chan bool, 10)
+		opts = append(opts, InjectExecuting(inject))
+	} else {
+		test.BodyExecuting = func(outc chan []byte, errc chan error, inject chan<- bool) {
+			test.Body(outc, errc)
+		}
+	}
 	go func() {
-		test.Body(testInst.outc, testInst.errc)
+		test.BodyExecuting(testInst.outc, testInst.errc, inject)
 		done <- true
 	}()
-	rep := inst.MonitorExecution(outc, errc, reporter, test.Exit)
+	_, rep, err := inst.Run(time.Second, reporter, "", opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
 	<-done
+	if finishCalled != 1 {
+		t.Fatalf("finish callback is called %v times", finishCalled)
+	}
 	if test.Report != nil && rep == nil {
 		t.Fatalf("got no report")
 	}
@@ -391,10 +416,13 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatalf("want title %q, got title %q", test.Report.Title, rep.Title)
 	}
 	if !bytes.Equal(test.Report.Report, rep.Report) {
-		t.Fatalf("want report:\n%s\n\ngot report:\n%s\n", test.Report.Report, rep.Report)
+		t.Fatalf("want report:\n%s\n\ngot report:\n%s", test.Report.Report, rep.Report)
 	}
 	if test.Report.Output != nil && !bytes.Equal(test.Report.Output, rep.Output) {
-		t.Fatalf("want output:\n%s\n\ngot output:\n%s\n", test.Report.Output, rep.Output)
+		t.Fatalf("want output:\n%s\n\ngot output:\n%s", test.Report.Output, rep.Output)
+	}
+	if test.Report.Type != rep.Type {
+		t.Fatalf("want type %q, got type %q", test.Report.Type, rep.Type)
 	}
 }
 
@@ -403,7 +431,7 @@ func TestVMType(t *testing.T) {
 		in   string
 		want string
 	}{
-		{"gvisor", "gvisor"},
+		{targets.GVisor, targets.GVisor},
 		{"proxyapp:android", "proxyapp"},
 	}
 

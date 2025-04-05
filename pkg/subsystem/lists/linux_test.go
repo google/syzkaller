@@ -203,6 +203,36 @@ syz_usb_connect(0x0, 0x58, &(0x7f0000000100)=ANY=[@ANYBLOB="1201000036ee3808d30b
 			// "media" is picked because it's in >= 2/3 guilty paths.
 			expect: []string{"media", "usb"},
 		},
+		{
+			name: "wireless bug that should not be net",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `net/mac80211/rate.c`,
+				},
+			},
+			expect: []string{"wireless"},
+		},
+		{
+			name: "old ntfs bug",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `fs/ntfs/super.c`,
+					SyzRepro: []byte(`
+syz_mount_image$ntfs(&AUTO, &AUTO, AUTO, &AUTO, AUTO, AUTO, &AUTO)`),
+				},
+			},
+			expect: []string{"ntfs3"},
+		},
+		{
+			// "p9" is no longer in "net".
+			name: "vf9fs bug",
+			crashes: []*subsystem.Crash{
+				{
+					GuiltyPath: `net/9p/client.c`,
+				},
+			},
+			expect: []string{"v9fs"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

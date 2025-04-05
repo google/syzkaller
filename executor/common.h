@@ -53,7 +53,7 @@ typedef signed int ssize_t;
 #endif
 NORETURN void doexit(int status)
 {
-	_exit(status);
+	_exit(status); // prevent linter warning: doexit()
 	for (;;) {
 	}
 }
@@ -86,14 +86,6 @@ static unsigned long long procid;
 static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
-
-#if GOOS_akaros
-#include <parlib/parlib.h>
-static void recover(void)
-{
-	_longjmp(segv_env, 1);
-}
-#endif
 
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
@@ -130,13 +122,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 #endif
 	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
-#if GOOS_akaros
-		struct user_context* uctx = (struct user_context*)ctx;
-		uctx->tf.hw_tf.tf_rip = (long)(void*)recover;
-		return;
-#else
 		_longjmp(segv_env, 1);
-#endif
 	}
 	debug("SIGSEGV on %p, exiting\n", (void*)addr);
 	doexit(sig);
@@ -239,8 +225,8 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
-#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
+#if GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
@@ -333,8 +319,9 @@ static int inject_fault(int nth)
 #endif
 
 #if SYZ_FAULT
-static void setup_fault()
+static const char* setup_fault()
 {
+	return NULL;
 }
 #endif
 
@@ -378,7 +365,7 @@ static void thread_start(void* (*fn)(void*), void* arg)
 #endif
 #endif
 
-#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
+#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_test
 #if SYZ_EXECUTOR || SYZ_THREADED
 
 #include <pthread.h>
@@ -408,7 +395,7 @@ static void event_set(event_t* ev)
 {
 	pthread_mutex_lock(&ev->mu);
 	if (ev->state)
-		fail("event already set");
+		exitf("event already set");
 	ev->state = 1;
 	pthread_mutex_unlock(&ev->mu);
 	pthread_cond_broadcast(&ev->cv);
@@ -493,9 +480,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
-#if GOOS_akaros
-#include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd
+#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd
 #include "common_bsd.h"
 #elif GOOS_openbsd
 #include "common_openbsd.h"
@@ -569,10 +554,8 @@ static void execute_one(void)
 static void loop(void)
 #endif
 {
-#if SYZ_REPRO
 	if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
 	}
-#endif
 #if SYZ_TRACE
 	fprintf(stderr, "### start\n");
 #endif
@@ -611,10 +594,6 @@ static void loop(void)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
 static void execute_one(void);
-#if SYZ_EXECUTOR_USES_FORK_SERVER
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #if GOOS_linux
 #define WAIT_FLAGS __WALL
@@ -622,9 +601,10 @@ static void execute_one(void);
 #define WAIT_FLAGS 0
 #endif
 
-#if SYZ_EXECUTOR
-static void reply_handshake();
-#endif
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static void loop(void)
 {
@@ -633,14 +613,8 @@ static void loop(void)
 #endif
 #if SYZ_EXECUTOR
 	// Tell parent that we are ready to serve.
-	reply_handshake();
-#endif
-#if SYZ_EXECUTOR && GOOS_akaros
-	// For akaros we do exec in the child process because new threads can't be created in the fork child.
-	// Thus we proxy input program over the child_pipe to the child process.
-	int child_pipe[2];
-	if (pipe(child_pipe))
-		fail("pipe failed");
+	if (!flag_snapshot)
+		reply_execute(0);
 #endif
 	int iter = 0;
 #if SYZ_REPEAT_TIMES
@@ -659,7 +633,8 @@ static void loop(void)
 		reset_loop();
 #endif
 #if SYZ_EXECUTOR
-		receive_execute();
+		if (!flag_snapshot)
+			receive_execute();
 #endif
 		int pid = fork();
 		if (pid < 0)
@@ -675,33 +650,26 @@ static void loop(void)
 #if SYZ_HAVE_SETUP_EXT_TEST
 			setup_ext_test();
 #endif
-#if GOOS_akaros
-#if SYZ_EXECUTOR
-			dup2(child_pipe[0], kInPipeFd);
-			close(child_pipe[0]);
-			close(child_pipe[1]);
-#endif
-			execl(program_name, program_name, "child", NULL);
-			fail("execl failed");
-#else
 #if SYZ_EXECUTOR
 			close(kInPipeFd);
 #endif
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
 			close(kOutPipeFd);
 #endif
 			execute_one();
-#if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
+#if !SYZ_EXECUTOR && SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
+			// Executor's execute_one has already called close_fds.
 			close_fds();
 #endif
 			doexit(0);
-#endif
 		}
 		debug("spawned worker pid %d\n", pid);
 
-#if SYZ_EXECUTOR && GOOS_akaros
-		resend_execute(child_pipe[1]);
+#if SYZ_EXECUTOR
+		if (flag_snapshot)
+			SnapshotPrepareParent();
 #endif
+
 		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
 		// But SIGCHLD is also delivered when a process stops/continues,
 		// so it would require a loop with status analysis and timeout recalculation.
@@ -709,16 +677,15 @@ static void loop(void)
 		// should be as efficient as sigtimedwait.
 		int status = 0;
 		uint64 start = current_time_ms();
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
 		uint64 last_executed = start;
-		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+		uint32 executed_calls = output_data->completed.load(std::memory_order_relaxed);
 #endif
 		for (;;) {
+			sleep_ms(10);
 			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid)
 				break;
-			sleep_ms(1);
 #if SYZ_EXECUTOR
-#if SYZ_EXECUTOR_USES_SHMEM
 			// Even though the test process executes exit at the end
 			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
 			// this backup watchdog is necessary and its performance is important.
@@ -729,22 +696,34 @@ static void loop(void)
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
 			// and kill it after ~1s of inactivity.
+			// (Globs are an exception: they can be slow, so we allow up to ~120s)
 			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
 			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
+			uint64 glob_timeout_ms = program_timeout_ms * 120;
+
 			uint64 now = current_time_ms();
-			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+			uint32 now_executed = output_data->completed.load(std::memory_order_relaxed);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
 			}
+
 			// TODO: adjust timeout for progs with syz_usb_connect call.
-			if ((now - start < program_timeout_ms) &&
-			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
+			// If the max program timeout is exceeded, kill unconditionally.
+			if ((now - start > program_timeout_ms && request_type != rpc::RequestType::Glob) || (now - start > glob_timeout_ms && request_type == rpc::RequestType::Glob))
+				goto kill_test;
+			// If the request type is not a normal test program (currently, glob expansion request),
+			// then wait for the full timeout (these requests don't update number of completed calls
+			// + they are more important and we don't want timing flakes).
+			if (request_type != rpc::RequestType::Program)
 				continue;
-#else
-			if (current_time_ms() - start < program_timeout_ms)
+			// Always wait at least the min timeout for each program.
+			if (now - start < min_timeout_ms)
 				continue;
-#endif
+			// If it keeps completing syscalls, then don't kill it.
+			if (now - last_executed < inactive_timeout_ms)
+				continue;
+		kill_test:
 #else
 			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 				continue;
@@ -799,52 +778,51 @@ void loop(void)
 #endif
 
 // This is the main function for csource.
-#if GOOS_akaros && SYZ_REPEAT
-#include <string.h>
-
-int main(int argc, char** argv)
-{
-	/*{{{MMAP_DATA}}}*/
-
-	program_name = argv[0];
-	if (argc == 2 && strcmp(argv[1], "child") == 0)
-		child();
-#else
 int main(void)
 {
 	/*{{{MMAP_DATA}}}*/
-#endif
 
-#if SYZ_HAVE_SETUP_EXT
-	setup_ext();
-#endif
 #if SYZ_SYSCTL
 	setup_sysctl();
 #endif
 #if SYZ_CGROUPS
 	setup_cgroups();
 #endif
+	const char* reason;
+	(void)reason;
 #if SYZ_BINFMT_MISC
-	setup_binfmt_misc();
+	if ((reason = setup_binfmt_misc()))
+		printf("the reproducer may not work as expected: binfmt_misc setup failed: %s\n", reason);
 #endif
 #if SYZ_LEAK
-	setup_leak();
+	if ((reason = setup_leak()))
+		printf("the reproducer may not work as expected: leak checking setup failed: %s\n", reason);
 #endif
 #if SYZ_FAULT
-	setup_fault();
+	if ((reason = setup_fault()))
+		printf("the reproducer may not work as expected: fault injection setup failed: %s\n", reason);
 #endif
 #if SYZ_KCSAN
-	setup_kcsan();
+	if ((reason = setup_kcsan()))
+		printf("the reproducer may not work as expected: KCSAN setup failed: %s\n", reason);
 #endif
 #if SYZ_USB
-	setup_usb();
+	if ((reason = setup_usb()))
+		printf("the reproducer may not work as expected: USB injection setup failed: %s\n", reason);
 #endif
 #if SYZ_802154
-	setup_802154();
+	if ((reason = setup_802154()))
+		printf("the reproducer may not work as expected: 802154 injection setup failed: %s\n", reason);
 #endif
-
+#if SYZ_SWAP
+	if ((reason = setup_swap()))
+		printf("the reproducer may not work as expected: swap setup failed: %s\n", reason);
+#endif
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
+#endif
+#if SYZ_HAVE_SETUP_EXT
+	setup_ext();
 #endif
 #if SYZ_MULTI_PROC
 	for (procid = 0; procid < /*{{{PROCS}}}*/; procid++) {

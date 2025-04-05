@@ -1,0 +1,49 @@
+{{/*
+Copyright 2020 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Bugs statistics graph.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} health</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			new google.visualization.LineChart(document.getElementById('graph_div')).
+				draw(google.visualization.arrayToDataTable([
+					["-", {{range $.Graph.Headers}}"{{.Name}}", {{end}}],
+					{{range $.Graph.Columns}}["{{.Hint}}", {{range .Vals}}{{.Val}},{{end}}],{{end}}
+				]), {
+					width: "100%",
+					chartArea: {width: '95%', height: '95%'},
+					legend: {position: 'in'},
+					axisTitlesPosition: 'out',
+					hAxis: {textPosition: 'in', maxAlternation: 1},
+					vAxis: {textPosition: 'in'},
+					focusTarget: "category",
+					series: {
+						0: {targetAxisIndex: 0, color: "red", lineWidth: 3},
+						1: {targetAxisIndex: 1, color: "black"},
+						2: {targetAxisIndex: 1, color: "green"},
+					},
+					vAxes: {
+						0: {title: '# open bugs', gridlines: {multiple: 1}, minorGridlines: {multiple: 1}},
+						1: {title: '# total reported / fixed', gridlines: {count: 0}}
+					}
+				})
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#amend" title="help" target="_blank" class="graph_help">🛈</a>
+	<div id="graph_div"></div>
+</body>
+</html>
