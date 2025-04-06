@@ -35,6 +35,7 @@ NBD_SET_SIZE_BLOCKS = 43783, mips64le:ppc64le:536914695
 NBD_SET_SOCK = 43776, mips64le:ppc64le:536914688
 NBD_SET_TIMEOUT = 43785, mips64le:ppc64le:536914697
 NBD_SOCK_FD = 1
+NBD_SOCK_ITEM = 1
 SOCK_STREAM = 1, mips64le:2
 __NR_ioctl = 54, amd64:16, arm64:riscv64:29, mips64le:5015
 __NR_sendmsg = 211, 386:s390x:370, amd64:46, arm:296, mips64le:5045, ppc64le:341

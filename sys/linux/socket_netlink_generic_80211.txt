@@ -73,7 +73,7 @@ sendmsg$NL80211_CMD_DISCONNECT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wd
 sendmsg$NL80211_CMD_UNEXPECTED_FRAME(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UNEXPECTED_FRAME, void]], f flags[send_flags])
 sendmsg$NL80211_CMD_NOTIFY_RADAR(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_NOTIFY_RADAR, nl80211_policy$chandef_params]], f flags[send_flags])
 sendmsg$NL80211_CMD_RADAR_DETECT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_RADAR_DETECT, nl80211_policy$chandef_params]], f flags[send_flags])
-sendmsg$NL80211_CMD_PEER_MEASUREMENT_START(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_PEER_MEASUREMENT_START, nl80211_pmsr_attr_policy]], f flags[send_flags])
+sendmsg$NL80211_CMD_PEER_MEASUREMENT_START(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_PEER_MEASUREMENT_START, nl80211_policy$pmsr_measurement]], f flags[send_flags])
 sendmsg$NL80211_CMD_UPDATE_OWE_INFO(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UPDATE_OWE_INFO, nl80211_policy$upd_owe_info]], f flags[send_flags])
 sendmsg$NL80211_CMD_GET_SURVEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_SURVEY, void]], f flags[send_flags])
 sendmsg$NL80211_CMD_GET_COALESCE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_GET_COALESCE, void]], f flags[send_flags])
@@ -542,7 +542,7 @@ nl80211_policy$scan [
 	NL80211_ATTR_BSSID				nlattr[NL80211_ATTR_BSSID, ieee80211_bssid]
 	NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST		nlattr[NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST, nl80211_bss_select_rssi_adjust]
 	NL80211_ATTR_SCAN_SUPP_RATES			nlnest[NL80211_ATTR_SCAN_SUPP_RATES, array[nl80211_rates_policy]]
-	NL80211_ATTR_SCHED_SCAN_MATCH			nlnest[NL80211_ATTR_SCHED_SCAN_MATCH, array[nl80211_match_policy]]
+	NL80211_ATTR_SCHED_SCAN_MATCH			nlnest[NL80211_ATTR_SCHED_SCAN_MATCH, array[nlnest[0, array[nl80211_match_policy]]]]
 	NL80211_ATTR_SCAN_FLAGS				nlattr[NL80211_ATTR_SCAN_FLAGS, flags[nl80211_scan_flags, int32]]
 ] [varlen]
 
@@ -650,7 +650,7 @@ nl80211_policy$connect [
 	NL80211_ATTR_VHT_CAPABILITY_MASK	nlattr[NL80211_ATTR_VHT_CAPABILITY_MASK, ieee80211_vht_cap]
 	NL80211_ATTR_USE_RRM			nlattr[NL80211_ATTR_USE_RRM, void]
 	NL80211_ATTR_PBSS			nlattr[NL80211_ATTR_PBSS, void]
-	NL80211_ATTR_BSS_SELECT			nlnest[NL80211_ATTR_BSS_SELECT, array[nl80211_bss_select_policy]]
+	NL80211_ATTR_BSS_SELECT			nlnest[NL80211_ATTR_BSS_SELECT, nlattr[0, array[nl80211_bss_select_policy]]]
 	NL80211_ATTR_EXTERNAL_AUTH_SUPPORT	nlattr[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT, void]
 	NL80211_ATTR_SOCKET_OWNER		nlattr[NL80211_ATTR_SOCKET_OWNER, void]
 ] [varlen]
@@ -691,9 +691,13 @@ nl80211_pmsr_peer_attr_policy [
 	NL80211_PMSR_PEER_ATTR_REQ	nlnest[NL80211_PMSR_PEER_ATTR_REQ, array[nl80211_pmsr_req_attr_policy]]
 ] [varlen]
 
-nl80211_pmsr_attr_policy [
-	NL80211_PMSR_ATTR_PEERS	nlnest[NL80211_PMSR_ATTR_PEERS, array[nlnest[0, array[nl80211_pmsr_peer_attr_policy]]]]
+nl80211_policy$pmsr_measurement [
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_TIMEOUT		nlattr[NL80211_ATTR_TIMEOUT, int32]
+	NL80211_ATTR_PEER_MEASUREMENTS	nlnest[NL80211_ATTR_PEER_MEASUREMENTS, nl80211_pmsr_attr]
 ] [varlen]
+
+type nl80211_pmsr_attr nlnest[NL80211_PMSR_ATTR_PEERS, array[nlnest[0, array[nl80211_pmsr_peer_attr_policy]]]]
 
 nl80211_policy$upd_owe_info [
 	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
