@@ -225,6 +225,9 @@ type Config struct {
 	// More details can be found in pkg/asset/config.go.
 	AssetStorage *asset.Config `json:"asset_storage"`
 
+	// Enable preciseCoverage or not, default to true.
+	PreciseCoverage bool `json:"preciseCoverage"`
+
 	// Experimental options.
 	Experimental Experimental
 

@@ -75,7 +75,7 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
 	if target.OS == targets.Darwin {
-		return makeMachO(target, kernelDirs, moduleObj, modules)
+		return makeMachO(target, kernelDirs, moduleObj, modules, cfg.PreciseCoverage)
 	}
 	if vm == targets.GVisor {
 		return makeGvisor(target, kernelDirs, modules)
@@ -87,7 +87,7 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 		// details.
 		delimiters = []string{"/aosp/", "/private/"}
 	}
-	return makeELF(target, kernelDirs, delimiters, moduleObj, modules)
+	return makeELF(target, kernelDirs, delimiters, moduleObj, modules, cfg.PreciseCoverage)
 }
 
 func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {

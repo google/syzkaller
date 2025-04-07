@@ -37,6 +37,7 @@ type dwarfParams struct {
 	readModuleCoverPoints func(*targets.Target, *vminfo.KernelModule, *symbolInfo) ([2][]uint64, error)
 	readTextRanges        func(*vminfo.KernelModule) ([]pcRange, []*CompileUnit, error)
 	getCompilerVersion    func(string) string
+	preciseCoverage       bool
 }
 
 type Arch struct {
@@ -141,6 +142,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	kernelDirs := params.kernelDirs
 	splitBuildDelimiters := params.splitBuildDelimiters
 	modules := params.hostModules
+	preciseCoverage := params.preciseCoverage
 
 	// Here and below index 0 refers to coverage callbacks (__sanitizer_cov_trace_pc(_guard))
 	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
@@ -148,7 +150,6 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
-	preciseCoverage := true
 	type binResult struct {
 		symbols     []*Symbol
 		coverPoints [2][]uint64
