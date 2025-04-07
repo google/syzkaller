@@ -6,7 +6,6 @@ package html
 import (
 	"fmt"
 	"html/template"
-	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -213,47 +212,4 @@ func dereferencePointer(v interface{}) interface{} {
 
 func commitLink(repo, commit string) string {
 	return vcs.CommitLink(repo, commit)
-}
-
-func AmendURL(baseURL, key, value string) string {
-	return TransformURL(baseURL, key, func(_ []string) []string {
-		if value == "" {
-			return nil
-		}
-		return []string{value}
-	})
-}
-
-func DropParam(baseURL, key, value string) string {
-	return TransformURL(baseURL, key, func(oldValues []string) []string {
-		if value == "" {
-			return nil
-		}
-		var newValues []string
-		for _, iterVal := range oldValues {
-			if iterVal != value {
-				newValues = append(newValues, iterVal)
-			}
-		}
-		return newValues
-	})
-}
-
-func TransformURL(baseURL, key string, f func([]string) []string) string {
-	if baseURL == "" {
-		return ""
-	}
-	parsed, err := url.Parse(baseURL)
-	if err != nil {
-		return ""
-	}
-	values := parsed.Query()
-	ret := f(values[key])
-	if len(ret) == 0 {
-		values.Del(key)
-	} else {
-		values[key] = ret
-	}
-	parsed.RawQuery = values.Encode()
-	return parsed.String()
 }

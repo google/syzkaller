@@ -25,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/html/urlutil"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/sync/errgroup"
@@ -113,7 +114,7 @@ func makeUIBugFilter(c context.Context, filter *userBugFilter) *uiBugFilter {
 	return &uiBugFilter{
 		Filter: filter,
 		DropURL: func(name, value string) string {
-			return html.DropParam(url, name, value)
+			return urlutil.DropParam(url, name, value)
 		},
 	}
 }
@@ -1028,11 +1029,11 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		MemcacheStats:  memcacheStats,
 		Stopped:        alreadyStopped,
 		MoreStopClicks: 2,
-		StopLink:       html.AmendURL("/admin", "stop_clicked", "1"),
+		StopLink:       urlutil.SetParam("/admin", "stop_clicked", "1"),
 	}
 	if r.FormValue("stop_clicked") != "" {
 		data.MoreStopClicks = 1
-		data.StopLink = html.AmendURL("/admin", "action", "emergency_stop")
+		data.StopLink = urlutil.SetParam("/admin", "action", "emergency_stop")
 	}
 	if r.FormValue("job_type") != "" {
 		data.TypeJobs = &uiJobList{Title: "Last jobs:", Jobs: typeJobs}
@@ -1041,8 +1042,8 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		data.RecentJobs = &uiJobList{Title: "Recent jobs:", Jobs: recentJobs}
 		data.RunningJobs = &uiJobList{Title: "Running jobs:", Jobs: runningJobs}
 		data.PendingJobs = &uiJobList{Title: "Pending jobs:", Jobs: pendingJobs}
-		data.FixBisectionsLink = html.AmendURL("/admin", "job_type", fmt.Sprintf("%d", JobBisectFix))
-		data.CauseBisectionsLink = html.AmendURL("/admin", "job_type", fmt.Sprintf("%d", JobBisectCause))
+		data.FixBisectionsLink = urlutil.SetParam("/admin", "job_type", fmt.Sprintf("%d", JobBisectFix))
+		data.CauseBisectionsLink = urlutil.SetParam("/admin", "job_type", fmt.Sprintf("%d", JobBisectCause))
 	}
 	return serveTemplate(w, "admin.html", data)
 }
@@ -1211,7 +1212,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		LabelGroups:  getLabelGroups(c, bug),
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
-		data.DebugSubsystems = html.AmendURL(data.Bug.Link, "debug_subsystems", "1")
+		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
 	// bug.BisectFix is set to BisectNot in three cases :
 	// - no fix bisections have been performed on the bug
@@ -1326,7 +1327,7 @@ func makeBugLabelUI(c context.Context, bug *Bug, entry BugLabel) *uiBugLabel {
 	if !strings.HasPrefix(url, "/"+bug.Namespace) {
 		link = fmt.Sprintf("/%s", bug.Namespace)
 	}
-	link = html.TransformURL(link, "label", func(oldLabels []string) []string {
+	link = urlutil.TransformParam(link, "label", func(oldLabels []string) []string {
 		return mergeLabelSet(oldLabels, entry.String())
 	})
 	ret := &uiBugLabel{
@@ -1458,11 +1459,11 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		Name: "",
 		Open: uiSubsystemStats{
 			Count: cached.NoSubsystem.Open,
-			Link:  html.AmendURL("/"+hdr.Namespace, "no_subsystem", "true"),
+			Link:  urlutil.SetParam("/"+hdr.Namespace, "no_subsystem", "true"),
 		},
 		Fixed: uiSubsystemStats{
 			Count: cached.NoSubsystem.Fixed,
-			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
+			Link:  urlutil.SetParam("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -1471,7 +1472,7 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		List:         list,
 		Unclassified: unclassified,
 		SomeHidden:   someHidden,
-		ShowAllURL:   html.AmendURL(getCurrentURL(c), "all", "true"),
+		ShowAllURL:   urlutil.SetParam(getCurrentURL(c), "all", "true"),
 	})
 }
 
@@ -1487,7 +1488,7 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
-			Link: html.AmendURL("/"+ns+"/fixed", "label", BugLabel{
+			Link: urlutil.SetParam("/"+ns+"/fixed", "label", BugLabel{
 				Label: SubsystemLabel,
 				Value: item.Name,
 			}.String()),
