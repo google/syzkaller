@@ -11,8 +11,10 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/google/syzkaller/pkg/html/urlutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
@@ -85,12 +87,26 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 		List     []*db.SeriesWithSession
 		Filter   db.SeriesFilter
 		Statuses []statusOption
+		// This is very primitive, but better than nothing.
+		FilterFormURL string
+		PrevPageURL   string
+		NextPageURL   string
 	}
+	const perPage = 100
+	offset, err := h.getOffset(r)
+	if err != nil {
+		return err
+	}
+	baseURL := r.URL.RequestURI()
 	data := MainPageData{
 		Filter: db.SeriesFilter{
 			Cc:     r.FormValue("cc"),
 			Status: db.SessionStatus(r.FormValue("status")),
+			Limit:  perPage,
+			Offset: offset,
 		},
+		// If the filters are changed, the old offset value is irrelevant.
+		FilterFormURL: urlutil.DropParam(baseURL, "offset", ""),
 		Statuses: []statusOption{
 			{db.SessionStatusAny, "any"},
 			{db.SessionStatusWaiting, "waiting"},
@@ -98,12 +114,34 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 			{db.SessionStatusFinished, "finished"},
 		},
 	}
-	var err error
-	data.List, err = h.seriesRepo.ListLatest(r.Context(), data.Filter, time.Time{}, 0)
+
+	data.List, err = h.seriesRepo.ListLatest(r.Context(), data.Filter, time.Time{})
 	if err != nil {
 		return fmt.Errorf("failed to query the list: %w", err)
 	}
+	if data.Filter.Offset > 0 {
+		data.PrevPageURL = urlutil.SetParam(baseURL, "offset",
+			fmt.Sprintf("%d", max(0, data.Filter.Offset-perPage)))
+	}
+	// TODO: this is not strictly correct (we also need to check whether there actually more rows).
+	// But let's tolerate it for now.
+	if len(data.List) == data.Filter.Limit {
+		data.NextPageURL = urlutil.SetParam(baseURL, "offset",
+			fmt.Sprintf("%d", data.Filter.Offset+len(data.List)))
+	}
 	return h.templates["index.html"].ExecuteTemplate(w, "base.html", data)
+}
+
+func (h *dashboardHandler) getOffset(r *http.Request) (int, error) {
+	val := r.FormValue("offset")
+	if val == "" {
+		return 0, nil
+	}
+	i, err := strconv.Atoi(val)
+	if err != nil || i < 0 {
+		return 0, fmt.Errorf("%w: invalid offset value", errBadRequest)
+	}
+	return i, nil
 }
 
 func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) error {

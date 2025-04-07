@@ -1,6 +1,6 @@
 {{define "content"}}
     <div class="mx-3">
-      <form>
+      <form action="{{.FilterFormURL}}">
         <div class="row align-items-center">
           <div class="col-auto col-sm-3">
             <label for="inputCc">Cc'd</label>
@@ -13,7 +13,7 @@
               {{range .Statuses}}
                 <option value="{{.Key}}" {{if eq .Key $filter.Status}} selected{{end}}>{{.Value}}</option>
               {{end}}
-              </select>
+            </select>
           </div>
           <div class="col-auto">
             <button type="submit" class="btn btn-primary">Submit</button>
@@ -21,6 +21,19 @@
         </div>
       </form>
     </div>
+
+    {{if or .PrevPageURL .NextPageURL}}
+    <nav class="mx-3">
+      <ul class="pagination">
+        <li class="page-item {{if not .PrevPageURL}}disabled{{end}}">
+          <a class="page-link" href="{{.PrevPageURL}}" tabindex="-1">Previous</a>
+        </li>
+        <li class="page-item {{if not .NextPageURL}}disabled{{end}}">
+          <a class="page-link" href="{{.NextPageURL}}">Next</a>
+        </li>
+      </ul>
+    </nav>
+    {{end}}
 
     <table class="table">
       <thead class="thead-light">

@@ -134,11 +134,13 @@ type SeriesWithSession struct {
 type SeriesFilter struct {
 	Cc     string
 	Status SessionStatus
+	Limit  int
+	Offset int
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
 func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilter,
-	maxPublishedAt time.Time, limit int) ([]*SeriesWithSession, error) {
+	maxPublishedAt time.Time) ([]*SeriesWithSession, error) {
 	ro := repo.client.ReadOnlyTransaction()
 	defer ro.Close()
 
@@ -171,10 +173,14 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 		}
 		stmt.SQL += ")"
 	}
-	stmt.SQL += " ORDER BY PublishedAt DESC"
-	if limit > 0 {
+	stmt.SQL += " ORDER BY PublishedAt DESC, ID"
+	if filter.Limit > 0 {
 		stmt.SQL += " LIMIT @limit"
-		stmt.Params["limit"] = limit
+		stmt.Params["limit"] = filter.Limit
+	}
+	if filter.Offset > 0 {
+		stmt.SQL += " OFFSET @offset"
+		stmt.Params["offset"] = filter.Offset
 	}
 	iter := ro.Query(ctx, stmt)
 	defer iter.Stop()

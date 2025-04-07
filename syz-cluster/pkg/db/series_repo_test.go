@@ -84,22 +84,34 @@ func TestSeriesRepositoryList(t *testing.T) {
 	})
 
 	t.Run("all", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Time{}, 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 3)
 	})
 
 	t.Run("with_limit", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Time{}, 2)
+		list, err := repo.ListLatest(ctx, SeriesFilter{
+			Limit: 2,
+		}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
 		assert.Equal(t, "Series 3", list[0].Series.Title)
 		assert.Equal(t, "Series 2", list[1].Series.Title)
 	})
 
+	t.Run("with_offset", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx, SeriesFilter{
+			Limit:  1,
+			Offset: 1,
+		}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 1)
+		assert.Equal(t, "Series 2", list[0].Series.Title)
+	})
+
 	t.Run("with_from", func(t *testing.T) {
 		// Skips the latest series.
-		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC), 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{}, time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC))
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
 		assert.Equal(t, "Series 2", list[0].Series.Title)
@@ -107,8 +119,7 @@ func TestSeriesRepositoryList(t *testing.T) {
 	})
 
 	t.Run("filter_by_cc", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx,
-			SeriesFilter{Cc: "a"}, time.Time{}, 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{Cc: "a"}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
 	})
@@ -125,7 +136,7 @@ func TestSeriesRepositoryList(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("filter_status_waiting", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusWaiting}, time.Time{}, 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusWaiting}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
 	})
@@ -134,7 +145,7 @@ func TestSeriesRepositoryList(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("filter_status_in_progress", func(t *testing.T) {
-		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusInProgress}, time.Time{}, 0)
+		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusInProgress}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
 	})
