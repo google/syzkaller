@@ -87,8 +87,10 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	if periodType == "" {
 		periodType = coveragedb.DayPeriod
 	}
-	if periodType != coveragedb.DayPeriod && periodType != coveragedb.MonthPeriod {
-		return fmt.Errorf("only day and month are allowed, but received %s instead, %w",
+	if periodType != coveragedb.DayPeriod &&
+		periodType != coveragedb.MonthPeriod &&
+		periodType != coveragedb.QuarterPeriod {
+		return fmt.Errorf("only 'day', 'month' and 'quarter' are allowed, but received %s instead, %w",
 			periodType, ErrClientBadRequest)
 	}
 
