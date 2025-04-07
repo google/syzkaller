@@ -424,7 +424,7 @@ func (inst *instance) repair() error {
 
 func (inst *instance) runScript(script string) error {
 	log.Logf(2, "adb: executing %s", script)
-	output, err := osutil.RunCmd(5*time.Minute, "", "sh", script)
+	output, err := osutil.RunCmd(5*time.Minute, "", "sh", script, inst.device, inst.console)
 	if err != nil {
 		return fmt.Errorf("failed to execute %s: %w", script, err)
 	}
