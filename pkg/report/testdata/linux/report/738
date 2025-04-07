@@ -1,0 +1,159 @@
+TITLE: KASAN: stack-out-of-bounds Read in k_spec
+ALT: bad-access in k_spec
+TYPE: KASAN
+
+[ 1498.039807][    C1] ==================================================================
+[ 1498.039823][    C1] BUG: KASAN: stack-out-of-bounds in __show_regs+0x740/0x750
+[ 1498.039880][    C1] Read of size 8 at addr ffffc900047cfb48 by task kworker/1:3/5221
+[ 1498.039913][    C1] 
+[ 1498.039939][    C1] CPU: 1 UID: 0 PID: 5221 Comm: kworker/1:3 Not tainted 6.14.0-rc6-syzkaller-ged492c95f13a #0
+[ 1498.039982][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 02/12/2025
+[ 1498.040009][    C1] Workqueue: events legacy_dvb_usb_read_remote_control
+[ 1498.040055][    C1] Call Trace:
+[ 1498.040068][    C1]  <IRQ>
+[ 1498.040082][    C1]  dump_stack_lvl+0x116/0x1f0
+[ 1498.040121][    C1]  print_report+0xc3/0x670
+[ 1498.040161][    C1]  ? __virt_addr_valid+0x5e/0x590
+[ 1498.040208][    C1]  kasan_report+0xd9/0x110
+[ 1498.040247][    C1]  ? __show_regs+0x740/0x750
+[ 1498.040292][    C1]  ? __show_regs+0x740/0x750
+[ 1498.040340][    C1]  __show_regs+0x740/0x750
+[ 1498.040379][    C1]  ? asm_exc_page_fault+0x26/0x30
+[ 1498.040429][    C1]  ? asm_exc_page_fault+0x26/0x30
+[ 1498.040478][    C1]  show_trace_log_lvl+0x26c/0x3d0
+[ 1498.040545][    C1]  ? rep_stos_alternative+0x40/0x80
+[ 1498.040593][    C1]  sched_show_task+0x424/0x630
+[ 1498.040652][    C1]  ? trace_lock_acquire+0x14e/0x1f0
+[ 1498.040706][    C1]  ? __pfx_sched_show_task+0x10/0x10
+[ 1498.040763][    C1]  ? show_state_filter+0x28/0x320
+[ 1498.040814][    C1]  show_state_filter+0xee/0x320
+[ 1498.040872][    C1]  k_spec+0xed/0x150
+[ 1498.040916][    C1]  ? __pfx_k_spec+0x10/0x10
+[ 1498.040957][    C1]  kbd_event+0xcbd/0x17a0
+[ 1498.041006][    C1]  ? __pfx_kbd_event+0x10/0x10
+[ 1498.041056][    C1]  ? __pfx_lock_acquire.part.0+0x10/0x10
+[ 1498.041093][    C1]  ? rcu_is_watching+0x12/0xc0
+[ 1498.041146][    C1]  input_handle_events_default+0x116/0x1b0
+[ 1498.041193][    C1]  input_pass_values+0x6c4/0x890
+[ 1498.041248][    C1]  input_handle_event+0xb30/0x14d0
+[ 1498.041305][    C1]  input_event+0x83/0xb0
+[ 1498.041357][    C1]  hidinput_hid_event+0x1d57/0x2410
+[ 1498.041402][    C1]  ? __pfx_hidinput_hid_event+0x10/0x10
+[ 1498.041443][    C1]  ? input_event+0x98/0xb0
+[ 1498.041498][    C1]  hid_process_event+0x4b7/0x5e0
+[ 1498.041554][    C1]  ? __pfx_hidinput_hid_event+0x10/0x10
+[ 1498.041595][    C1]  ? do_raw_spin_unlock+0x172/0x230
+[ 1498.041646][    C1]  hid_input_array_field+0x535/0x710
+[ 1498.041712][    C1]  hid_report_raw_event+0xabc/0x1280
+[ 1498.041772][    C1]  ? lock_acquire.part.0+0x337/0x380
+[ 1498.041816][    C1]  __hid_input_report.constprop.0+0x341/0x440
+[ 1498.041893][    C1]  hid_irq_in+0x35e/0x870
+[ 1498.041945][    C1]  __usb_hcd_giveback_urb+0x389/0x6e0
+[ 1498.042003][    C1]  usb_hcd_giveback_urb+0x396/0x450
+[ 1498.042061][    C1]  dummy_timer+0x17f7/0x3960
+[ 1498.042127][    C1]  ? debug_object_deactivate+0x13b/0x370
+[ 1498.042185][    C1]  ? find_held_lock+0x2d/0x110
+[ 1498.042241][    C1]  ? __pfx_dummy_timer+0x10/0x10
+[ 1498.042297][    C1]  ? mark_held_locks+0x9f/0xe0
+[ 1498.042334][    C1]  ? _raw_spin_unlock_irqrestore+0x52/0x80
+[ 1498.042386][    C1]  ? __pfx_dummy_timer+0x10/0x10
+[ 1498.042439][    C1]  __hrtimer_run_queues+0x20a/0xae0
+[ 1498.042489][    C1]  ? __pfx___hrtimer_run_queues+0x10/0x10
+[ 1498.042533][    C1]  ? read_tsc+0x9/0x20
+[ 1498.042584][    C1]  hrtimer_run_softirq+0x17d/0x350
+[ 1498.042629][    C1]  handle_softirqs+0x206/0x8d0
+[ 1498.042677][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[ 1498.042724][    C1]  __irq_exit_rcu+0xfa/0x160
+[ 1498.042766][    C1]  irq_exit_rcu+0x9/0x30
+[ 1498.042809][    C1]  sysvec_apic_timer_interrupt+0x90/0xb0
+[ 1498.042859][    C1]  </IRQ>
+[ 1498.042880][    C1]  <TASK>
+[ 1498.042893][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[ 1498.042946][    C1] RIP: 0010:console_flush_all+0x9a4/0xc60
+[ 1498.042999][    C1] Code: 00 e8 f0 ae 27 00 9c 5b 81 e3 00 02 00 00 31 ff 48 89 de e8 ee fb 1f 00 48 85 db 0f 85 55 01 00 00 e8 b0 00 20 00 fb 4c 89 e0 <48> c1 e8 03 42 80 3c 38 00 0f 84 11 ff ff ff 4c 89 e7 e8 a5 1a 7a
+[ 1498.043040][    C1] RSP: 0018:ffffc90001fef868 EFLAGS: 00000293
+[ 1498.043072][    C1] RAX: ffffffff893ac7b8 RBX: 0000000000000000 RCX: ffffffff815b5232
+[ 1498.043107][    C1] RDX: ffff88810a738000 RSI: ffffffff815b5240 RDI: 0000000000000007
+[ 1498.043133][    C1] RBP: 0000000000000000 R08: 0000000000000007 R09: 0000000000000000
+[ 1498.043170][    C1] R10: 0000000000000000 R11: 0000000000000005 R12: ffffffff893ac7b8
+[ 1498.043196][    C1] R13: ffffffff893ac760 R14: ffffc90001fef8f8 R15: dffffc0000000000
+[ 1498.043230][    C1]  ? console_flush_all+0x992/0xc60
+[ 1498.043280][    C1]  ? console_flush_all+0x9a0/0xc60
+[ 1498.043332][    C1]  ? console_flush_all+0x9a0/0xc60
+[ 1498.043386][    C1]  ? __pfx_console_flush_all+0x10/0x10
+[ 1498.043446][    C1]  ? __pfx_mark_lock+0x10/0x10
+[ 1498.043514][    C1]  ? is_printk_cpu_sync_owner+0x32/0x40
+[ 1498.043573][    C1]  console_unlock+0xd9/0x210
+[ 1498.043617][    C1]  ? __pfx_console_unlock+0x10/0x10
+[ 1498.043668][    C1]  ? lock_acquire+0x2f/0xb0
+[ 1498.043699][    C1]  ? vprintk_emit+0x638/0x6f0
+[ 1498.043746][    C1]  vprintk_emit+0x424/0x6f0
+[ 1498.043793][    C1]  ? __pfx_vprintk_emit+0x10/0x10
+[ 1498.043843][    C1]  ? mark_held_locks+0x9f/0xe0
+[ 1498.043888][    C1]  ? kasan_quarantine_put+0x10a/0x240
+[ 1498.043954][    C1]  _printk+0xc8/0x100
+[ 1498.043989][    C1]  ? __pfx__printk+0x10/0x10
+[ 1498.044031][    C1]  ? legacy_dvb_usb_read_remote_control+0x401/0x500
+[ 1498.044078][    C1]  ? legacy_dvb_usb_read_remote_control+0x119/0x500
+[ 1498.044126][    C1]  legacy_dvb_usb_read_remote_control+0x40d/0x500
+[ 1498.044171][    C1]  ? rcu_is_watching+0x12/0xc0
+[ 1498.044229][    C1]  ? __pfx_legacy_dvb_usb_read_remote_control+0x10/0x10
+[ 1498.044277][    C1]  ? lock_acquire+0x2f/0xb0
+[ 1498.044311][    C1]  ? process_one_work+0x921/0x1ba0
+[ 1498.044376][    C1]  process_one_work+0x9c5/0x1ba0
+[ 1498.044444][    C1]  ? __pfx_lock_acquire.part.0+0x10/0x10
+[ 1498.044484][    C1]  ? __pfx_process_one_work+0x10/0x10
+[ 1498.044552][    C1]  ? assign_work+0x1a0/0x250
+[ 1498.044611][    C1]  worker_thread+0x6c8/0xf00
+[ 1498.044652][    C1]  ? __pfx_worker_thread+0x10/0x10
+[ 1498.044716][    C1]  kthread+0x3af/0x750
+[ 1498.044774][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1498.044831][    C1]  ? lock_acquire+0x2f/0xb0
+[ 1498.044877][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1498.044935][    C1]  ret_from_fork+0x45/0x80
+[ 1498.044993][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1498.045051][    C1]  ret_from_fork_asm+0x1a/0x30
+[ 1498.045111][    C1]  </TASK>
+[ 1498.045125][    C1] 
+[ 1498.045140][    C1] The buggy address belongs to the virtual mapping at
+[ 1498.045140][    C1]  [ffffc900047c8000, ffffc900047d1000) created by:
+[ 1498.045140][    C1]  kernel_clone+0xfd/0x960
+[ 1498.045207][    C1] 
+[ 1498.045217][    C1] The buggy address belongs to the physical page:
+[ 1498.045245][    C1] page: refcount:1 mapcount:0 mapping:0000000000000000 index:0xffff888100000000 pfn:0x10a7f9
+[ 1498.045282][    C1] flags: 0x200000000000000(node=0|zone=2)
+[ 1498.045332][    C1] raw: 0200000000000000 0000000000000000 dead000000000122 0000000000000000
+[ 1498.045368][    C1] raw: ffff888100000000 0000000000000000 00000001ffffffff 0000000000000000
+[ 1498.045391][    C1] page dumped because: kasan: bad access detected
+[ 1498.045416][    C1] page_owner tracks the page as allocated
+[ 1498.045430][    C1] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x2dc2(GFP_KERNEL|__GFP_HIGHMEM|__GFP_NOWARN|__GFP_ZERO), pid 17157, tgid 17157 (syz.5.2879), ts 1474801571482, free_ts 1474795057571
+[ 1498.045495][    C1]  post_alloc_hook+0x181/0x1b0
+[ 1498.045538][    C1]  get_page_from_freelist+0xe76/0x2b90
+[ 1498.045584][    C1]  __alloc_frozen_pages_noprof+0x21c/0x2290
+[ 1498.045634][    C1]  alloc_pages_mpol+0xe7/0x410
+[ 1498.045687][    C1]  alloc_pages_noprof+0x131/0x390
+[ 1498.045731][    C1]  __vmalloc_node_range_noprof+0x721/0x1530
+[ 1498.045772][    C1]  copy_process+0x2e2d/0x8bd0
+[ 1498.045818][    C1]  kernel_clone+0xfd/0x960
+[ 1498.045871][    C1]  __do_sys_clone3+0x214/0x290
+[ 1498.045919][    C1]  do_syscall_64+0xcd/0x250
+[ 1498.045952][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[ 1498.046001][    C1] page last free pid 9287 tgid 9287 stack trace:
+[ 1498.046023][    C1]  free_frozen_pages+0x653/0xde0
+[ 1498.046067][    C1]  tlb_remove_table_rcu+0x116/0x1a0
+[ 1498.046113][    C1]  rcu_core+0x79d/0x14d0
+[ 1498.046145][    C1]  handle_softirqs+0x206/0x8d0
+[ 1498.046182][    C1]  __irq_exit_rcu+0xfa/0x160
+[ 1498.046220][    C1]  irq_exit_rcu+0x9/0x30
+[ 1498.046261][    C1]  sysvec_apic_timer_interrupt+0x90/0xb0
+[ 1498.046313][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[ 1498.046366][    C1] 
+[ 1498.046375][    C1] Memory state around the buggy address:
+[ 1498.046395][    C1]  ffffc900047cfa00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 1498.046423][    C1]  ffffc900047cfa80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 1498.046452][    C1] >ffffc900047cfb00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 1498.046475][    C1]                                               ^
+[ 1498.046497][    C1]  ffffc900047cfb80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 1498.046525][    C1]  ffffc900047cfc00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 1498.046547][    C1] ==================================================================
+[ 1498.046568][    C1] Kernel panic - not syncing: KASAN: panic_on_warn set ...
