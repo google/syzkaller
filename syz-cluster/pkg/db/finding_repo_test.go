@@ -6,34 +6,23 @@ package db
 import (
 	"testing"
 
-	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFindingRepo(t *testing.T) {
 	client, ctx := NewTransientDB(t)
-	sessionRepo := NewSessionRepository(client)
 	seriesRepo := NewSeriesRepository(client)
 	findingRepo := NewFindingRepository(client)
-	testsRepo := NewSessionTestRepository(client)
+	dtd := &dummyTestData{t, ctx, client}
 
 	series := &Series{ExtID: "some-series"}
 	err := seriesRepo.Insert(ctx, series, nil)
 	assert.NoError(t, err)
 
-	session := &Session{SeriesID: series.ID}
-	err = sessionRepo.Insert(ctx, session)
-	assert.NoError(t, err)
+	session := dtd.dummySession(series)
 
 	// Add test steps.
-	for _, name := range []string{"first", "second"} {
-		err = testsRepo.InsertOrUpdate(ctx, &SessionTest{
-			SessionID: session.ID,
-			TestName:  name,
-			Result:    api.TestPassed,
-		})
-		assert.NoError(t, err)
-	}
+	dtd.addSessionTest(session, "first", "second")
 
 	// Add findings.
 	toInsert := []*Finding{
