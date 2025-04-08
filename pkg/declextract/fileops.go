@@ -61,11 +61,15 @@ func (ctx *context) createFops(fops *FileOps, files []string) {
 }
 
 func (ctx *context) createIoctls(fops *FileOps, suffix, fdt string) {
-	const defaultArgType = "ptr[in, array[int8]]"
-	cmds := ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, 1)
+	const (
+		cmdArg         = 1
+		argArg         = 2
+		defaultArgType = "ptr[in, array[int8]]"
+	)
+	cmds := ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, cmdArg)
 	if len(cmds) == 0 {
-		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile)
-		argType := ctx.inferArgType(fops.Ioctl, fops.SourceFile, 2)
+		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, -1, "")
+		argType := ctx.inferArgType(fops.Ioctl, fops.SourceFile, argArg, -1, "")
 		if argType == "" {
 			argType = defaultArgType
 		}
@@ -80,10 +84,16 @@ func (ctx *context) createIoctls(fops *FileOps, suffix, fdt string) {
 				Type: typ,
 			}
 			argType = ctx.fieldType(f, nil, "", false)
+		} else {
+			argType = ctx.inferArgType(fops.Ioctl, fops.SourceFile, argArg, cmdArg, cmd)
+			if argType == "" {
+				argType = defaultArgType
+			}
 		}
+		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, cmdArg, cmd)
 		name := ctx.uniqualize("ioctl cmd", cmd)
-		ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v)\n",
-			autoSuffix, name, fdt, cmd, argType)
+		ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v) %v\n",
+			autoSuffix, name, fdt, cmd, argType, retType)
 	}
 }
 

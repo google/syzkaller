@@ -34,10 +34,7 @@ import (
 // - Infer that pointers are file names (they should flow to some known function for path resolution).
 // - Use SSA analysis to track flow via local variables better. Potentiall we can just rename on every next use
 //   and ignore backwards edges (it's unlikely that backwards edges are required for type inference).
-// - Infer ioctl commands in transitively called functions using data flow.
 // - Infer file_operations associated with an fd by tracking flow to alloc_file_pseudo and friends.
-// - Add context-sensitivity at least on switched arguments (ioctl commands).
-// - Infer other switched arguments besides ioctl commands.
 // - Infer netlink arg types by tracking flow from genl_info::attrs[ATTR_FOO].
 // - Infer simple constraints on arguments, e.g. "if (arg != 0) return -EINVAL".
 // - Use kernel typedefs for typing (e.g. pid_t). We can use them for uapi structs, but also for kernel
@@ -48,6 +45,10 @@ import (
 //   For example, these cases lead to false inference of fd type for returned value:
 //   https://elixir.bootlin.com/linux/v6.13-rc2/source/net/core/sock.c#L1870
 //   https://elixir.bootlin.com/linux/v6.13-rc2/source/net/socket.c#L1742
+// - Use const[0] for unused arguments. If an arg is unused, or only flows to functions where it's unused,
+//   we can consider it as unused.
+// - Detect common patterns for "must be 0" or "must be const" arguments, e.g.:
+//     if (flags != 0) return -EINVAL;
 
 var (
 	// Refines types based on data flows...
@@ -96,7 +97,7 @@ type typingNode struct {
 	id    string
 	fn    *Function
 	arg   int
-	flows [2]map[*typingNode]bool
+	flows [2]map[*typingNode][]*FunctionScope
 }
 
 const (
@@ -107,14 +108,16 @@ const (
 func (ctx *context) processTypingFacts() {
 	for _, fn := range ctx.Functions {
 		for _, scope := range fn.Scopes {
+			scope.fn = fn
 			for _, fact := range scope.Facts {
 				src := ctx.canonicalNode(fn, fact.Src)
 				dst := ctx.canonicalNode(fn, fact.Dst)
 				if src == nil || dst == nil {
 					continue
 				}
-				src.flows[flowTo][dst] = true
-				dst.flows[flowFrom][src] = true
+
+				src.flows[flowTo][dst] = append(src.flows[flowTo][dst], scope)
+				dst.flows[flowFrom][src] = append(dst.flows[flowFrom][src], scope)
 			}
 		}
 	}
@@ -156,7 +159,7 @@ func (ctx *context) canonicalNode(fn *Function, ent *TypingEntity) *typingNode {
 		arg: arg,
 	}
 	for i := range n.flows {
-		n.flows[i] = make(map[*typingNode]bool)
+		n.flows[i] = make(map[*typingNode][]*FunctionScope)
 	}
 	facts[id] = n
 	return n
@@ -179,35 +182,43 @@ func (ent *TypingEntity) ID(fn *Function) (string, string) {
 	}
 }
 
-func (ctx *context) inferReturnType(name, file string) string {
-	return ctx.inferFuncNode(name, file, "ret")
+func (ctx *context) inferReturnType(name, file string, scopeArg int, scopeVal string) string {
+	return ctx.inferFuncNode(name, file, "ret", scopeArg, scopeVal)
 }
 
-func (ctx *context) inferArgType(name, file string, arg int) string {
-	return ctx.inferFuncNode(name, file, fmt.Sprintf("arg%v", arg))
+func (ctx *context) inferArgType(name, file string, arg, scopeArg int, scopeVal string) string {
+	return ctx.inferFuncNode(name, file, fmt.Sprintf("arg%v", arg), scopeArg, scopeVal)
 }
 
-func (ctx *context) inferFuncNode(name, file, node string) string {
+type fnArg struct {
+	fn  *Function
+	arg int
+}
+
+func (ctx *context) inferFuncNode(name, file, node string, scopeArg int, scopeVal string) string {
 	fn := ctx.findFunc(name, file)
 	if fn == nil {
 		return ""
 	}
-	return ctx.inferNodeType(fn.facts[node], fmt.Sprintf("%v %v", name, node))
+	scopeFnArgs := ctx.inferArgFlow(fnArg{fn, scopeArg})
+	return ctx.inferNodeType(fn.facts[node], scopeFnArgs, scopeVal, fmt.Sprintf("%v %v", name, node))
 }
 
 func (ctx *context) inferFieldType(structName, field string) string {
 	name := fmt.Sprintf("%v.%v", structName, field)
-	return ctx.inferNodeType(ctx.facts[name], name)
+	return ctx.inferNodeType(ctx.facts[name], nil, "", name)
 }
 
-func (ctx *context) inferNodeType(n *typingNode, what string) string {
+func (ctx *context) inferNodeType(n *typingNode, scopeFnArgs map[fnArg]bool, scopeVal, what string) string {
 	if n == nil {
 		return ""
 	}
 	ic := &inferContext{
-		visited:  make(map[*typingNode]bool),
-		flowType: flowFrom,
-		maxDepth: maxTraversalDepth,
+		scopeFnArgs: scopeFnArgs,
+		scopeVal:    scopeVal,
+		visited:     make(map[*typingNode]bool),
+		flowType:    flowFrom,
+		maxDepth:    maxTraversalDepth,
 	}
 	ic.walk(n)
 	ic.flowType = flowTo
@@ -220,13 +231,15 @@ func (ctx *context) inferNodeType(n *typingNode, what string) string {
 }
 
 type inferContext struct {
-	path       []*typingNode
-	visited    map[*typingNode]bool
-	result     string
-	resultPath []*typingNode
-	resultFlow int
-	flowType   int
-	maxDepth   int
+	path        []*typingNode
+	visited     map[*typingNode]bool
+	scopeFnArgs map[fnArg]bool
+	scopeVal    string
+	result      string
+	resultPath  []*typingNode
+	resultFlow  int
+	flowType    int
+	maxDepth    int
 }
 
 func (ic *inferContext) walk(n *typingNode) {
@@ -246,11 +259,37 @@ func (ic *inferContext) walk(n *typingNode) {
 		}
 	}
 	if len(ic.path) < ic.maxDepth {
-		for e := range n.flows[ic.flowType] {
-			ic.walk(e)
+		for e, scopes := range n.flows[ic.flowType] {
+			if ic.relevantScope(scopes) {
+				ic.walk(e)
+			}
 		}
 	}
 	ic.path = ic.path[:len(ic.path)-1]
+}
+
+func (ic *inferContext) relevantScope(scopes []*FunctionScope) bool {
+	if ic.scopeFnArgs == nil {
+		// We are not doing scope-limited walk, so all scopes are relevant.
+		return true
+	}
+	for _, scope := range scopes {
+		if scope.Arg == -1 {
+			// Always use global scope.
+			return true
+		}
+		if !ic.scopeFnArgs[fnArg{scope.fn, scope.Arg}] {
+			// The scope argument is not related to the current scope.
+			return true
+		}
+		// For the scope argument, check that it has the right value.
+		for _, val := range scope.Values {
+			if val == ic.scopeVal {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func refineFieldType(f *Field, typ string, preserveSize bool) {
@@ -317,5 +356,30 @@ func (ctx *context) walkCommandVariants(n *typingNode, variants *[]string, visit
 	}
 	for e := range n.flows[flowTo] {
 		ctx.walkCommandVariants(e, variants, visited, depth+1)
+	}
+}
+
+// inferArgFlow returns transitive closure of all function arguments that the given argument flows to.
+func (ctx *context) inferArgFlow(arg fnArg) map[fnArg]bool {
+	n := arg.fn.facts[fmt.Sprintf("arg%v", arg.arg)]
+	if n == nil {
+		return nil
+	}
+	fnArgs := make(map[fnArg]bool)
+	visited := make(map[*typingNode]bool)
+	ctx.walkArgFlow(n, fnArgs, visited, 0)
+	return fnArgs
+}
+
+func (ctx *context) walkArgFlow(n *typingNode, fnArgs map[fnArg]bool, visited map[*typingNode]bool, depth int) {
+	if visited[n] || depth >= 10 {
+		return
+	}
+	visited[n] = true
+	if n.arg >= 0 {
+		fnArgs[fnArg{n.fn, n.arg}] = true
+	}
+	for e := range n.flows[flowTo] {
+		ctx.walkArgFlow(e, fnArgs, visited, depth+1)
 	}
 }
