@@ -44,7 +44,8 @@
 		},
 		{
 			"name": "__fget_light",
-			"file": "functions.c",
+			"file": "include/fs.h",
+			"is_static": true,
 			"scopes": [
 				{
 					"arg": -1
@@ -53,7 +54,8 @@
 		},
 		{
 			"name": "alloc_fd",
-			"file": "functions.c",
+			"file": "include/fs.h",
+			"is_static": true,
 			"scopes": [
 				{
 					"arg": -1,
@@ -84,7 +86,8 @@
 		},
 		{
 			"name": "from_kuid",
-			"file": "functions.c",
+			"file": "include/fs.h",
+			"is_static": true,
 			"scopes": [
 				{
 					"arg": -1,

@@ -11,7 +11,13 @@ struct file_operations {
 	void (*mmap)(void);
 };
 
-int alloc_fd();
-void __fget_light(int fd);
-int from_kuid();
+static int alloc_fd() {
+	return 1;
+}
 
+static void __fget_light(int fd) {
+}
+
+static int from_kuid() {
+	return 1;
+}

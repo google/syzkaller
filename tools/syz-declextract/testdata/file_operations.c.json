@@ -1,6 +1,27 @@
 {
 	"functions": [
 		{
+			"name": "__fget_light",
+			"file": "include/fs.h",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "alloc_fd",
+			"file": "include/fs.h",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
+				}
+			]
+		},
+		{
 			"name": "foo_ioctl",
 			"file": "file_operations.c",
 			"is_static": true,
@@ -111,6 +132,17 @@
 			"scopes": [
 				{
 					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "from_kuid",
+			"file": "include/fs.h",
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1,
+					"loc": 1
 				}
 			]
 		},

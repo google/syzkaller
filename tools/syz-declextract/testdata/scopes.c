@@ -5,6 +5,17 @@
 #include "include/syscall.h"
 #include "include/uapi/file_operations.h"
 
+static int scopes_helper(long cmd, long aux) {
+	switch (cmd) {
+	case FOO_IOCTL7:
+		return alloc_fd();
+	case FOO_IOCTL8:
+		__fget_light(aux);
+		break;
+	}
+	return 0;
+}
+
 SYSCALL_DEFINE1(scopes0, int x, long cmd, long aux) {
 	int tmp = 0;
 	__fget_light(aux);
@@ -18,6 +29,10 @@ SYSCALL_DEFINE1(scopes0, int x, long cmd, long aux) {
 		return tmp;
 	case FOO_IOCTL4 ... FOO_IOCTL4 + 2:
 		tmp++;
+		break;
+	case FOO_IOCTL7:
+	case FOO_IOCTL8:
+		tmp = scopes_helper(cmd, x);
 		break;
 	case 100 ... 102:
 		tmp++;

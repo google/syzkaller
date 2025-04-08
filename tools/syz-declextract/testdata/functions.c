@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include "include/fs.h"
 #include "include/types.h"
 #include "include/syscall.h"
 
@@ -9,17 +10,6 @@ static void func_foo() {
 
 static void func_bar() {
 	func_foo();
-}
-
-int alloc_fd() {
-	return 1;
-}
-
-void __fget_light(int fd) {
-}
-
-int from_kuid() {
-	return 1;
 }
 
 int func_baz(int f) {
