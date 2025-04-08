@@ -66,8 +66,11 @@ type SecRange struct {
 
 const LineEnd = 1 << 30
 
-func Make(target *targets.Target, vm string, kernelDirs *mgrconfig.KernelDirs, splitBuild bool,
-	moduleObj []string, modules []*vminfo.KernelModule) (*Impl, error) {
+func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) {
+	kernelDirs := cfg.KernelDirs()
+	target := cfg.SysTarget
+	moduleObj := cfg.ModuleObj
+	vm := cfg.Type
 	if kernelDirs.Obj == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
@@ -78,7 +81,7 @@ func Make(target *targets.Target, vm string, kernelDirs *mgrconfig.KernelDirs, s
 		return makeGvisor(target, kernelDirs, modules)
 	}
 	var delimiters []string
-	if splitBuild {
+	if cfg.AndroidSplitBuild {
 		// Path prefixes used by Android Pixel kernels. See
 		// https://source.android.com/docs/setup/build/building-pixel-kernels for more
 		// details.
