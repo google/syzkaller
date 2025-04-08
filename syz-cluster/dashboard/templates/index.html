@@ -54,7 +54,7 @@
           <td>{{.Series.AuthorEmail}}</td>
           <td>
             {{if .Session}}
-              {{.Session.Status}}
+              {{.Session.Status}} {{if gt .Findings 0}}<b>[{{.Findings}} findings]</b>{{end}}
             {{else}}
               -
             {{end}}

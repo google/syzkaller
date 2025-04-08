@@ -125,29 +125,33 @@ func TestSeriesRepositoryList(t *testing.T) {
 	})
 
 	// Start one session to test filtering by status.
-	sessionRepo := NewSessionRepository(client)
 	series2, err := repo.GetByExtID(ctx, "series-2")
 	assert.NoError(t, err)
-	session := &Session{
-		SeriesID:  series2.ID,
-		CreatedAt: time.Now(),
-	}
-	err = sessionRepo.Insert(ctx, session)
-	assert.NoError(t, err)
 
+	dtd := &dummyTestData{t, ctx, client}
+	session := dtd.dummySession(series2)
+	dtd.addSessionTest(session, "test")
 	t.Run("filter_status_waiting", func(t *testing.T) {
 		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusWaiting}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
 	})
 
-	err = sessionRepo.Start(ctx, session.ID)
-	assert.NoError(t, err)
-
+	dtd.startSession(session)
 	t.Run("filter_status_in_progress", func(t *testing.T) {
 		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusInProgress}, time.Time{})
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
+	})
+
+	dtd.addSessionTest(session, "test")
+	dtd.addFinding(session, "title", "test")
+	dtd.finishSession(session)
+	t.Run("query_finding_count", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusFinished}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 1)
+		assert.Equal(t, 1, list[0].Findings, "there must be just one finding")
 	})
 }
 

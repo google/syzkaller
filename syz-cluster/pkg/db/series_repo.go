@@ -127,8 +127,9 @@ func (repo *SeriesRepository) Count(ctx context.Context) (int, error) {
 }
 
 type SeriesWithSession struct {
-	Series  *Series
-	Session *Session
+	Series   *Series
+	Session  *Session
+	Findings int
 }
 
 type SeriesFilter struct {
@@ -191,37 +192,96 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 	}
 
 	// Now query Sessions.
-	var keys []string
 	var ret []*SeriesWithSession
-	idToSeries := map[string]*SeriesWithSession{}
 	for _, series := range seriesList {
+		obj := &SeriesWithSession{Series: series}
+		ret = append(ret, obj)
+	}
+
+	// And the rest of the data.
+	err = repo.querySessions(ctx, ro, ret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sessions: %w", err)
+	}
+	err = repo.queryFindingCounts(ctx, ro, ret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query finding counts: %w", err)
+	}
+	return ret, nil
+}
+
+func (repo *SeriesRepository) querySessions(ctx context.Context, ro *spanner.ReadOnlyTransaction,
+	seriesList []*SeriesWithSession) error {
+	idToSeries := map[string]*SeriesWithSession{}
+	var keys []string
+	for _, item := range seriesList {
+		series := item.Series
+		idToSeries[series.ID] = item
 		if !series.LatestSessionID.IsNull() {
 			keys = append(keys, series.LatestSessionID.String())
 		}
-		obj := &SeriesWithSession{Series: series}
-		ret = append(ret, obj)
-		idToSeries[series.ID] = obj
 	}
-	if len(keys) > 0 {
-		iter := ro.Query(ctx, spanner.Statement{
-			SQL: "SELECT * FROM Sessions WHERE ID IN UNNEST(@ids)",
-			Params: map[string]interface{}{
-				"ids": keys,
-			},
-		})
-		defer iter.Stop()
-		sessions, err := readEntities[Session](iter)
-		if err != nil {
-			return nil, err
-		}
-		for _, session := range sessions {
-			obj := idToSeries[session.SeriesID]
-			if obj != nil {
-				obj.Session = session
-			}
+	if len(keys) == 0 {
+		return nil
+	}
+	iter := ro.Query(ctx, spanner.Statement{
+		SQL: "SELECT * FROM Sessions WHERE ID IN UNNEST(@ids)",
+		Params: map[string]interface{}{
+			"ids": keys,
+		},
+	})
+	defer iter.Stop()
+	sessions, err := readEntities[Session](iter)
+	if err != nil {
+		return err
+	}
+	for _, session := range sessions {
+		obj := idToSeries[session.SeriesID]
+		if obj != nil {
+			obj.Session = session
 		}
 	}
-	return ret, nil
+	return nil
+}
+
+func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanner.ReadOnlyTransaction,
+	seriesList []*SeriesWithSession) error {
+	var keys []string
+	sessionToSeries := map[string]*SeriesWithSession{}
+	for _, series := range seriesList {
+		if series.Session == nil || series.Session.Status() != SessionStatusFinished {
+			continue
+		}
+		keys = append(keys, series.Session.ID)
+		sessionToSeries[series.Session.ID] = series
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+
+	type findingCount struct {
+		SessionID string `spanner:"SessionID"`
+		Count     int64  `spanner:"Count"`
+	}
+
+	stmt := spanner.Statement{
+		SQL: "SELECT `SessionID`, COUNT(`ID`) as `Count` FROM `Findings` " +
+			"WHERE `SessionID` IN UNNEST(@ids) GROUP BY `SessionID`",
+		Params: map[string]interface{}{
+			"ids": keys,
+		},
+	}
+	iter := repo.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	list, err := readEntities[findingCount](iter)
+	if err != nil {
+		return err
+	}
+	for _, item := range list {
+		sessionToSeries[item.SessionID].Findings = int(item.Count)
+	}
+	return nil
 }
 
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.
