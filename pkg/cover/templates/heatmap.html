@@ -159,7 +159,7 @@
           </div>
           {{ end }}
           <div class="instrumented_column vertical_text">
-            {{ approxInstr .Root.LastDayInstrumented }} blocks
+            {{ approxInstr .Root.Summary }} blocks
           </div>
         </li>
         <li>
@@ -215,7 +215,7 @@
           </div>
         {{ end }}
         <div class="instrumented_column">
-          {{ approxInstr $child.LastDayInstrumented }}
+          {{ approxInstr $child.Summary }}
         </div>
       </div>
       {{ if $child.IsDir }}
