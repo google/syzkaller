@@ -45,6 +45,8 @@ type FunctionScope struct {
 	LOC    int           `json:"loc,omitempty"`
 	Calls  []string      `json:"calls,omitempty"`
 	Facts  []*TypingFact `json:"facts,omitempty"`
+
+	fn *Function
 }
 
 type ConstInfo struct {

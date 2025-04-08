@@ -232,37 +232,37 @@ fchown$auto(fd fd, user uid, group gid)
 fchown32$auto(fd fd, user uid, group gid)
 fchownat$auto(dfd fd_dir, filename ptr[in, filename], user uid, group gid, flag int32)
 fcntl$auto(fd fd, cmd int32, arg pid) fd
-fcntl$auto_F_ADD_SEALS(fd fd, cmd const[F_ADD_SEALS], arg pid) fd
-fcntl$auto_F_CREATED_QUERY(fd fd, cmd const[F_CREATED_QUERY], arg pid) fd
-fcntl$auto_F_DUPFD(fd fd, cmd const[F_DUPFD], arg pid) fd
-fcntl$auto_F_DUPFD_CLOEXEC(fd fd, cmd const[F_DUPFD_CLOEXEC], arg pid) fd
-fcntl$auto_F_DUPFD_QUERY(fd fd, cmd const[F_DUPFD_QUERY], arg pid) fd
-fcntl$auto_F_GETFD(fd fd, cmd const[F_GETFD], arg pid) fd
-fcntl$auto_F_GETFL(fd fd, cmd const[F_GETFL], arg pid) fd
-fcntl$auto_F_GETLEASE(fd fd, cmd const[F_GETLEASE], arg pid) fd
-fcntl$auto_F_GETLK(fd fd, cmd const[F_GETLK], arg pid) fd
-fcntl$auto_F_GETOWN(fd fd, cmd const[F_GETOWN], arg pid) fd
-fcntl$auto_F_GETOWNER_UIDS(fd fd, cmd const[F_GETOWNER_UIDS], arg pid) fd
-fcntl$auto_F_GETOWN_EX(fd fd, cmd const[F_GETOWN_EX], arg pid) fd
-fcntl$auto_F_GETPIPE_SZ(fd fd, cmd const[F_GETPIPE_SZ], arg pid) fd
-fcntl$auto_F_GETSIG(fd fd, cmd const[F_GETSIG], arg pid) fd
-fcntl$auto_F_GET_RW_HINT(fd fd, cmd const[F_GET_RW_HINT], arg pid) fd
-fcntl$auto_F_GET_SEALS(fd fd, cmd const[F_GET_SEALS], arg pid) fd
-fcntl$auto_F_NOTIFY(fd fd, cmd const[F_NOTIFY], arg pid) fd
-fcntl$auto_F_OFD_GETLK(fd fd, cmd const[F_OFD_GETLK], arg pid) fd
-fcntl$auto_F_OFD_SETLK(fd fd, cmd const[F_OFD_SETLK], arg pid) fd
-fcntl$auto_F_OFD_SETLKW(fd fd, cmd const[F_OFD_SETLKW], arg pid) fd
+fcntl$auto_F_ADD_SEALS(fd fd, cmd const[F_ADD_SEALS], arg intptr)
+fcntl$auto_F_CREATED_QUERY(fd fd, cmd const[F_CREATED_QUERY], arg intptr)
+fcntl$auto_F_DUPFD(fd fd, cmd const[F_DUPFD], arg fd) fd
+fcntl$auto_F_DUPFD_CLOEXEC(fd fd, cmd const[F_DUPFD_CLOEXEC], arg fd) fd
+fcntl$auto_F_DUPFD_QUERY(fd fd, cmd const[F_DUPFD_QUERY], arg fd)
+fcntl$auto_F_GETFD(fd fd, cmd const[F_GETFD], arg intptr)
+fcntl$auto_F_GETFL(fd fd, cmd const[F_GETFL], arg intptr)
+fcntl$auto_F_GETLEASE(fd fd, cmd const[F_GETLEASE], arg intptr)
+fcntl$auto_F_GETLK(fd fd, cmd const[F_GETLK], arg intptr)
+fcntl$auto_F_GETOWN(fd fd, cmd const[F_GETOWN], arg intptr) pid
+fcntl$auto_F_GETOWNER_UIDS(fd fd, cmd const[F_GETOWNER_UIDS], arg intptr)
+fcntl$auto_F_GETOWN_EX(fd fd, cmd const[F_GETOWN_EX], arg intptr)
+fcntl$auto_F_GETPIPE_SZ(fd fd, cmd const[F_GETPIPE_SZ], arg intptr)
+fcntl$auto_F_GETSIG(fd fd, cmd const[F_GETSIG], arg intptr)
+fcntl$auto_F_GET_RW_HINT(fd fd, cmd const[F_GET_RW_HINT], arg intptr)
+fcntl$auto_F_GET_SEALS(fd fd, cmd const[F_GET_SEALS], arg intptr)
+fcntl$auto_F_NOTIFY(fd fd, cmd const[F_NOTIFY], arg intptr)
+fcntl$auto_F_OFD_GETLK(fd fd, cmd const[F_OFD_GETLK], arg intptr)
+fcntl$auto_F_OFD_SETLK(fd fd, cmd const[F_OFD_SETLK], arg intptr)
+fcntl$auto_F_OFD_SETLKW(fd fd, cmd const[F_OFD_SETLKW], arg intptr)
 fcntl$auto_F_RDLCK(fd fd, cmd int32, arg const[F_RDLCK]) fd
-fcntl$auto_F_SETFD(fd fd, cmd const[F_SETFD], arg pid) fd
-fcntl$auto_F_SETFL(fd fd, cmd const[F_SETFL], arg pid) fd
-fcntl$auto_F_SETLEASE(fd fd, cmd const[F_SETLEASE], arg pid) fd
-fcntl$auto_F_SETLK(fd fd, cmd const[F_SETLK], arg pid) fd
-fcntl$auto_F_SETLKW(fd fd, cmd const[F_SETLKW], arg pid) fd
-fcntl$auto_F_SETOWN(fd fd, cmd const[F_SETOWN], arg pid) fd
-fcntl$auto_F_SETOWN_EX(fd fd, cmd const[F_SETOWN_EX], arg pid) fd
-fcntl$auto_F_SETPIPE_SZ(fd fd, cmd const[F_SETPIPE_SZ], arg pid) fd
-fcntl$auto_F_SETSIG(fd fd, cmd const[F_SETSIG], arg pid) fd
-fcntl$auto_F_SET_RW_HINT(fd fd, cmd const[F_SET_RW_HINT], arg pid) fd
+fcntl$auto_F_SETFD(fd fd, cmd const[F_SETFD], arg intptr)
+fcntl$auto_F_SETFL(fd fd, cmd const[F_SETFL], arg intptr)
+fcntl$auto_F_SETLEASE(fd fd, cmd const[F_SETLEASE], arg intptr)
+fcntl$auto_F_SETLK(fd fd, cmd const[F_SETLK], arg intptr)
+fcntl$auto_F_SETLKW(fd fd, cmd const[F_SETLKW], arg intptr)
+fcntl$auto_F_SETOWN(fd fd, cmd const[F_SETOWN], arg pid)
+fcntl$auto_F_SETOWN_EX(fd fd, cmd const[F_SETOWN_EX], arg intptr)
+fcntl$auto_F_SETPIPE_SZ(fd fd, cmd const[F_SETPIPE_SZ], arg intptr)
+fcntl$auto_F_SETSIG(fd fd, cmd const[F_SETSIG], arg intptr)
+fcntl$auto_F_SET_RW_HINT(fd fd, cmd const[F_SET_RW_HINT], arg intptr)
 fcntl$auto_F_UNLCK(fd fd, cmd int32, arg const[F_UNLCK]) fd
 fcntl$auto_F_WRLCK(fd fd, cmd int32, arg const[F_WRLCK]) fd
 fdatasync$auto(fd fd)
@@ -271,7 +271,7 @@ finit_module$auto(fd fd, uargs ptr[in, string], flags int32)
 flistxattr$auto(fd fd, list ptr[inout, string], size intptr)
 flock$auto(fd fd, cmd int32)
 fremovexattr$auto(fd fd, name ptr[in, string])
-fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
+fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
 fsconfig$auto_EROFS_MOUNT_DAX_ALWAYS(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_ALWAYS])
 fsconfig$auto_EROFS_MOUNT_DAX_NEVER(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_NEVER])
 fsconfig$auto_JFFS2_COMPR_MODE_FORCELZO(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[JFFS2_COMPR_MODE_FORCELZO])
@@ -316,8 +316,8 @@ getitimer$auto_ITIMER_VIRTUAL(which const[ITIMER_VIRTUAL], value ptr[inout, __ke
 getpeername$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
 getpgid$auto(pid pid) pid
 getpriority$auto(which int32, who uid)
-getpriority$auto_PRIO_PGRP(which const[PRIO_PGRP], who uid)
-getpriority$auto_PRIO_PROCESS(which const[PRIO_PROCESS], who uid)
+getpriority$auto_PRIO_PGRP(which const[PRIO_PGRP], who pid)
+getpriority$auto_PRIO_PROCESS(which const[PRIO_PROCESS], who pid)
 getpriority$auto_PRIO_USER(which const[PRIO_USER], who uid)
 getrandom$auto(ubuf ptr[inout, string], len intptr, flags int32)
 getresgid$auto(rgidp ptr[inout, int32], egidp ptr[inout, int32], sgidp ptr[inout, int32])
@@ -332,70 +332,70 @@ getrusage$auto_RUSAGE_SELF(who const[RUSAGE_SELF], ru ptr[inout, rusage$auto])
 getsid$auto(pid pid) pid
 getsockname$auto(fd fd, usockaddr ptr[inout, sockaddr], usockaddr_len ptr[inout, int32])
 getsockopt$auto(fd fd, level int32, optname int32, optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_ACCEPTCONN(fd fd, level int32, optname const[SO_ACCEPTCONN], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BINDTODEVICE(fd fd, level int32, optname const[SO_BINDTODEVICE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BINDTOIFINDEX(fd fd, level int32, optname const[SO_BINDTOIFINDEX], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BPF_EXTENSIONS(fd fd, level int32, optname const[SO_BPF_EXTENSIONS], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BROADCAST(fd fd, level int32, optname const[SO_BROADCAST], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BSDCOMPAT(fd fd, level int32, optname const[SO_BSDCOMPAT], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BUF_LOCK(fd fd, level int32, optname const[SO_BUF_LOCK], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_BUSY_POLL(fd fd, level int32, optname const[SO_BUSY_POLL], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_COOKIE(fd fd, level int32, optname const[SO_COOKIE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_DEBUG(fd fd, level int32, optname const[SO_DEBUG], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_DOMAIN(fd fd, level int32, optname const[SO_DOMAIN], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_DONTROUTE(fd fd, level int32, optname const[SO_DONTROUTE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_ERROR(fd fd, level int32, optname const[SO_ERROR], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_GET_FILTER(fd fd, level int32, optname const[SO_GET_FILTER], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_INCOMING_CPU(fd fd, level int32, optname const[SO_INCOMING_CPU], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_INCOMING_NAPI_ID(fd fd, level int32, optname const[SO_INCOMING_NAPI_ID], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_KEEPALIVE(fd fd, level int32, optname const[SO_KEEPALIVE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_LINGER(fd fd, level int32, optname const[SO_LINGER], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_LOCK_FILTER(fd fd, level int32, optname const[SO_LOCK_FILTER], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_MARK(fd fd, level int32, optname const[SO_MARK], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_MAX_PACING_RATE(fd fd, level int32, optname const[SO_MAX_PACING_RATE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_MEMINFO(fd fd, level int32, optname const[SO_MEMINFO], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_NETNS_COOKIE(fd fd, level int32, optname const[SO_NETNS_COOKIE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_NOFCS(fd fd, level int32, optname const[SO_NOFCS], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_NO_CHECK(fd fd, level int32, optname const[SO_NO_CHECK], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_OOBINLINE(fd fd, level int32, optname const[SO_OOBINLINE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PASSCRED(fd fd, level int32, optname const[SO_PASSCRED], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PASSPIDFD(fd fd, level int32, optname const[SO_PASSPIDFD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PASSSEC(fd fd, level int32, optname const[SO_PASSSEC], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PEEK_OFF(fd fd, level int32, optname const[SO_PEEK_OFF], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PEERCRED(fd fd, level int32, optname const[SO_PEERCRED], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PEERGROUPS(fd fd, level int32, optname const[SO_PEERGROUPS], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PEERNAME(fd fd, level int32, optname const[SO_PEERNAME], optval ptr[inout, string], optlen ptr[inout, int32]) fd
+getsockopt$auto_SO_ACCEPTCONN(fd fd, level int32, optname const[SO_ACCEPTCONN], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BINDTODEVICE(fd fd, level int32, optname const[SO_BINDTODEVICE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BINDTOIFINDEX(fd fd, level int32, optname const[SO_BINDTOIFINDEX], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BPF_EXTENSIONS(fd fd, level int32, optname const[SO_BPF_EXTENSIONS], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BROADCAST(fd fd, level int32, optname const[SO_BROADCAST], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BSDCOMPAT(fd fd, level int32, optname const[SO_BSDCOMPAT], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BUF_LOCK(fd fd, level int32, optname const[SO_BUF_LOCK], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_BUSY_POLL(fd fd, level int32, optname const[SO_BUSY_POLL], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_COOKIE(fd fd, level int32, optname const[SO_COOKIE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_DEBUG(fd fd, level int32, optname const[SO_DEBUG], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_DOMAIN(fd fd, level int32, optname const[SO_DOMAIN], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_DONTROUTE(fd fd, level int32, optname const[SO_DONTROUTE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_ERROR(fd fd, level int32, optname const[SO_ERROR], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_GET_FILTER(fd fd, level int32, optname const[SO_GET_FILTER], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_INCOMING_CPU(fd fd, level int32, optname const[SO_INCOMING_CPU], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_INCOMING_NAPI_ID(fd fd, level int32, optname const[SO_INCOMING_NAPI_ID], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_KEEPALIVE(fd fd, level int32, optname const[SO_KEEPALIVE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_LINGER(fd fd, level int32, optname const[SO_LINGER], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_LOCK_FILTER(fd fd, level int32, optname const[SO_LOCK_FILTER], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_MARK(fd fd, level int32, optname const[SO_MARK], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_MAX_PACING_RATE(fd fd, level int32, optname const[SO_MAX_PACING_RATE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_MEMINFO(fd fd, level int32, optname const[SO_MEMINFO], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_NETNS_COOKIE(fd fd, level int32, optname const[SO_NETNS_COOKIE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_NOFCS(fd fd, level int32, optname const[SO_NOFCS], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_NO_CHECK(fd fd, level int32, optname const[SO_NO_CHECK], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_OOBINLINE(fd fd, level int32, optname const[SO_OOBINLINE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PASSCRED(fd fd, level int32, optname const[SO_PASSCRED], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PASSPIDFD(fd fd, level int32, optname const[SO_PASSPIDFD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PASSSEC(fd fd, level int32, optname const[SO_PASSSEC], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PEEK_OFF(fd fd, level int32, optname const[SO_PEEK_OFF], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PEERCRED(fd fd, level int32, optname const[SO_PEERCRED], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PEERGROUPS(fd fd, level int32, optname const[SO_PEERGROUPS], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PEERNAME(fd fd, level int32, optname const[SO_PEERNAME], optval ptr[inout, string], optlen ptr[inout, int32])
 getsockopt$auto_SO_PEERPIDFD(fd fd, level int32, optname const[SO_PEERPIDFD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PEERSEC(fd fd, level int32, optname const[SO_PEERSEC], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PREFER_BUSY_POLL(fd fd, level int32, optname const[SO_PREFER_BUSY_POLL], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PRIORITY(fd fd, level int32, optname const[SO_PRIORITY], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_PROTOCOL(fd fd, level int32, optname const[SO_PROTOCOL], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVBUF(fd fd, level int32, optname const[SO_RCVBUF], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVLOWAT(fd fd, level int32, optname const[SO_RCVLOWAT], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVMARK(fd fd, level int32, optname const[SO_RCVMARK], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVPRIORITY(fd fd, level int32, optname const[SO_RCVPRIORITY], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVTIMEO_NEW(fd fd, level int32, optname const[SO_RCVTIMEO_NEW], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RCVTIMEO_OLD(fd fd, level int32, optname const[SO_RCVTIMEO_OLD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RESERVE_MEM(fd fd, level int32, optname const[SO_RESERVE_MEM], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_REUSEADDR(fd fd, level int32, optname const[SO_REUSEADDR], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_REUSEPORT(fd fd, level int32, optname const[SO_REUSEPORT], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_RXQ_OVFL(fd fd, level int32, optname const[SO_RXQ_OVFL], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_SELECT_ERR_QUEUE(fd fd, level int32, optname const[SO_SELECT_ERR_QUEUE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_SNDBUF(fd fd, level int32, optname const[SO_SNDBUF], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_SNDLOWAT(fd fd, level int32, optname const[SO_SNDLOWAT], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_SNDTIMEO_NEW(fd fd, level int32, optname const[SO_SNDTIMEO_NEW], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_SNDTIMEO_OLD(fd fd, level int32, optname const[SO_SNDTIMEO_OLD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMPING_NEW(fd fd, level int32, optname const[SO_TIMESTAMPING_NEW], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMPING_OLD(fd fd, level int32, optname const[SO_TIMESTAMPING_OLD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMPNS_NEW(fd fd, level int32, optname const[SO_TIMESTAMPNS_NEW], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMPNS_OLD(fd fd, level int32, optname const[SO_TIMESTAMPNS_OLD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMP_NEW(fd fd, level int32, optname const[SO_TIMESTAMP_NEW], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TIMESTAMP_OLD(fd fd, level int32, optname const[SO_TIMESTAMP_OLD], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TXREHASH(fd fd, level int32, optname const[SO_TXREHASH], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TXTIME(fd fd, level int32, optname const[SO_TXTIME], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_TYPE(fd fd, level int32, optname const[SO_TYPE], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_WIFI_STATUS(fd fd, level int32, optname const[SO_WIFI_STATUS], optval ptr[inout, string], optlen ptr[inout, int32]) fd
-getsockopt$auto_SO_ZEROCOPY(fd fd, level int32, optname const[SO_ZEROCOPY], optval ptr[inout, string], optlen ptr[inout, int32]) fd
+getsockopt$auto_SO_PEERSEC(fd fd, level int32, optname const[SO_PEERSEC], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PREFER_BUSY_POLL(fd fd, level int32, optname const[SO_PREFER_BUSY_POLL], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PRIORITY(fd fd, level int32, optname const[SO_PRIORITY], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_PROTOCOL(fd fd, level int32, optname const[SO_PROTOCOL], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVBUF(fd fd, level int32, optname const[SO_RCVBUF], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVLOWAT(fd fd, level int32, optname const[SO_RCVLOWAT], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVMARK(fd fd, level int32, optname const[SO_RCVMARK], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVPRIORITY(fd fd, level int32, optname const[SO_RCVPRIORITY], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVTIMEO_NEW(fd fd, level int32, optname const[SO_RCVTIMEO_NEW], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RCVTIMEO_OLD(fd fd, level int32, optname const[SO_RCVTIMEO_OLD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RESERVE_MEM(fd fd, level int32, optname const[SO_RESERVE_MEM], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_REUSEADDR(fd fd, level int32, optname const[SO_REUSEADDR], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_REUSEPORT(fd fd, level int32, optname const[SO_REUSEPORT], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_RXQ_OVFL(fd fd, level int32, optname const[SO_RXQ_OVFL], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_SELECT_ERR_QUEUE(fd fd, level int32, optname const[SO_SELECT_ERR_QUEUE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_SNDBUF(fd fd, level int32, optname const[SO_SNDBUF], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_SNDLOWAT(fd fd, level int32, optname const[SO_SNDLOWAT], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_SNDTIMEO_NEW(fd fd, level int32, optname const[SO_SNDTIMEO_NEW], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_SNDTIMEO_OLD(fd fd, level int32, optname const[SO_SNDTIMEO_OLD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMPING_NEW(fd fd, level int32, optname const[SO_TIMESTAMPING_NEW], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMPING_OLD(fd fd, level int32, optname const[SO_TIMESTAMPING_OLD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMPNS_NEW(fd fd, level int32, optname const[SO_TIMESTAMPNS_NEW], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMPNS_OLD(fd fd, level int32, optname const[SO_TIMESTAMPNS_OLD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMP_NEW(fd fd, level int32, optname const[SO_TIMESTAMP_NEW], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TIMESTAMP_OLD(fd fd, level int32, optname const[SO_TIMESTAMP_OLD], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TXREHASH(fd fd, level int32, optname const[SO_TXREHASH], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TXTIME(fd fd, level int32, optname const[SO_TXTIME], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_TYPE(fd fd, level int32, optname const[SO_TYPE], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_WIFI_STATUS(fd fd, level int32, optname const[SO_WIFI_STATUS], optval ptr[inout, string], optlen ptr[inout, int32])
+getsockopt$auto_SO_ZEROCOPY(fd fd, level int32, optname const[SO_ZEROCOPY], optval ptr[inout, string], optlen ptr[inout, int32])
 gettimeofday$auto(tv ptr[inout, __kernel_old_timeval$auto], tz ptr[inout, timezone$auto])
 getxattr$auto(pathname ptr[in, filename], name ptr[in, string], value ptr[inout, array[auto_todo]], size intptr)
 getxattrat$auto(dfd fd_dir, pathname ptr[in, filename], at_flags int32, name ptr[in, string], uargs ptr[inout, xattr_args$auto], usize intptr)
@@ -414,31 +414,31 @@ io_uring_enter$auto(fd fd, to_submit int32, min_complete int32, flags int32, arg
 io_uring_register$auto(fd fd, opcode int32, arg ptr[inout, array[auto_todo]], nr_args int32)
 io_uring_setup$auto(entries int32, params ptr[inout, io_uring_params$auto]) fd
 ioctl$auto(fd fd, cmd int32, arg fd)
-ioctl$auto_FIBMAP(fd fd, cmd const[FIBMAP], arg fd)
+ioctl$auto_FIBMAP(fd fd, cmd const[FIBMAP], arg intptr)
 ioctl$auto_FICLONE(fd fd, cmd const[FICLONE], arg fd)
-ioctl$auto_FICLONERANGE(fd fd, cmd const[FICLONERANGE], arg fd)
-ioctl$auto_FIDEDUPERANGE(fd fd, cmd const[FIDEDUPERANGE], arg fd)
-ioctl$auto_FIFREEZE(fd fd, cmd const[FIFREEZE], arg fd)
-ioctl$auto_FIGETBSZ(fd fd, cmd const[FIGETBSZ], arg fd)
-ioctl$auto_FIOASYNC(fd fd, cmd const[FIOASYNC], arg fd)
-ioctl$auto_FIOCLEX(fd fd, cmd const[FIOCLEX], arg fd)
-ioctl$auto_FIONBIO(fd fd, cmd const[FIONBIO], arg fd)
-ioctl$auto_FIONCLEX(fd fd, cmd const[FIONCLEX], arg fd)
-ioctl$auto_FIONREAD(fd fd, cmd const[FIONREAD], arg fd)
-ioctl$auto_FIOQSIZE(fd fd, cmd const[FIOQSIZE], arg fd)
-ioctl$auto_FITHAW(fd fd, cmd const[FITHAW], arg fd)
-ioctl$auto_FS_IOC_FIEMAP(fd fd, cmd const[FS_IOC_FIEMAP], arg fd)
-ioctl$auto_FS_IOC_FSGETXATTR(fd fd, cmd const[FS_IOC_FSGETXATTR], arg fd)
-ioctl$auto_FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg fd)
-ioctl$auto_FS_IOC_GETFLAGS(fd fd, cmd const[FS_IOC_GETFLAGS], arg fd)
-ioctl$auto_FS_IOC_GETFSSYSFSPATH(fd fd, cmd const[FS_IOC_GETFSSYSFSPATH], arg fd)
-ioctl$auto_FS_IOC_GETFSUUID(fd fd, cmd const[FS_IOC_GETFSUUID], arg fd)
-ioctl$auto_FS_IOC_RESVSP(fd fd, cmd const[FS_IOC_RESVSP], arg fd)
-ioctl$auto_FS_IOC_RESVSP64(fd fd, cmd const[FS_IOC_RESVSP64], arg fd)
-ioctl$auto_FS_IOC_SETFLAGS(fd fd, cmd const[FS_IOC_SETFLAGS], arg fd)
-ioctl$auto_FS_IOC_UNRESVSP(fd fd, cmd const[FS_IOC_UNRESVSP], arg fd)
-ioctl$auto_FS_IOC_UNRESVSP64(fd fd, cmd const[FS_IOC_UNRESVSP64], arg fd)
-ioctl$auto_FS_IOC_ZERO_RANGE(fd fd, cmd const[FS_IOC_ZERO_RANGE], arg fd)
+ioctl$auto_FICLONERANGE(fd fd, cmd const[FICLONERANGE], arg intptr)
+ioctl$auto_FIDEDUPERANGE(fd fd, cmd const[FIDEDUPERANGE], arg intptr)
+ioctl$auto_FIFREEZE(fd fd, cmd const[FIFREEZE], arg intptr)
+ioctl$auto_FIGETBSZ(fd fd, cmd const[FIGETBSZ], arg intptr)
+ioctl$auto_FIOASYNC(fd fd, cmd const[FIOASYNC], arg intptr)
+ioctl$auto_FIOCLEX(fd fd, cmd const[FIOCLEX], arg intptr)
+ioctl$auto_FIONBIO(fd fd, cmd const[FIONBIO], arg intptr)
+ioctl$auto_FIONCLEX(fd fd, cmd const[FIONCLEX], arg intptr)
+ioctl$auto_FIONREAD(fd fd, cmd const[FIONREAD], arg intptr)
+ioctl$auto_FIOQSIZE(fd fd, cmd const[FIOQSIZE], arg intptr)
+ioctl$auto_FITHAW(fd fd, cmd const[FITHAW], arg intptr)
+ioctl$auto_FS_IOC_FIEMAP(fd fd, cmd const[FS_IOC_FIEMAP], arg intptr)
+ioctl$auto_FS_IOC_FSGETXATTR(fd fd, cmd const[FS_IOC_FSGETXATTR], arg intptr)
+ioctl$auto_FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg intptr)
+ioctl$auto_FS_IOC_GETFLAGS(fd fd, cmd const[FS_IOC_GETFLAGS], arg intptr)
+ioctl$auto_FS_IOC_GETFSSYSFSPATH(fd fd, cmd const[FS_IOC_GETFSSYSFSPATH], arg intptr)
+ioctl$auto_FS_IOC_GETFSUUID(fd fd, cmd const[FS_IOC_GETFSUUID], arg intptr)
+ioctl$auto_FS_IOC_RESVSP(fd fd, cmd const[FS_IOC_RESVSP], arg intptr)
+ioctl$auto_FS_IOC_RESVSP64(fd fd, cmd const[FS_IOC_RESVSP64], arg intptr)
+ioctl$auto_FS_IOC_SETFLAGS(fd fd, cmd const[FS_IOC_SETFLAGS], arg intptr)
+ioctl$auto_FS_IOC_UNRESVSP(fd fd, cmd const[FS_IOC_UNRESVSP], arg intptr)
+ioctl$auto_FS_IOC_UNRESVSP64(fd fd, cmd const[FS_IOC_UNRESVSP64], arg intptr)
+ioctl$auto_FS_IOC_ZERO_RANGE(fd fd, cmd const[FS_IOC_ZERO_RANGE], arg intptr)
 ioperm$auto(from intptr, num intptr, turn_on int32)
 iopl$auto(level int32)
 ioprio_get$auto(which int32, who uid)
@@ -446,39 +446,39 @@ ioprio_set$auto(which int32, who uid, ioprio int32)
 kcmp$auto(pid1 pid, pid2 pid, type int32, idx1 fd, idx2 fd)
 kexec_load$auto(entry intptr, nr_segments intptr, segments ptr[inout, kexec_segment$auto], flags intptr)
 keyctl$auto(option int32, arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_ASSUME_AUTHORITY(option const[KEYCTL_ASSUME_AUTHORITY], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_CAPABILITIES(option const[KEYCTL_CAPABILITIES], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_CHOWN(option const[KEYCTL_CHOWN], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_CLEAR(option const[KEYCTL_CLEAR], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_DESCRIBE(option const[KEYCTL_DESCRIBE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_DH_COMPUTE(option const[KEYCTL_DH_COMPUTE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_GET_KEYRING_ID(option const[KEYCTL_GET_KEYRING_ID], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_GET_PERSISTENT(option const[KEYCTL_GET_PERSISTENT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_GET_SECURITY(option const[KEYCTL_GET_SECURITY], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_INSTANTIATE(option const[KEYCTL_INSTANTIATE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_INSTANTIATE_IOV(option const[KEYCTL_INSTANTIATE_IOV], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_INVALIDATE(option const[KEYCTL_INVALIDATE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_JOIN_SESSION_KEYRING(option const[KEYCTL_JOIN_SESSION_KEYRING], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_LINK(option const[KEYCTL_LINK], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_MOVE(option const[KEYCTL_MOVE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_NEGATE(option const[KEYCTL_NEGATE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_PKEY_DECRYPT(option const[KEYCTL_PKEY_DECRYPT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_PKEY_ENCRYPT(option const[KEYCTL_PKEY_ENCRYPT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_PKEY_QUERY(option const[KEYCTL_PKEY_QUERY], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_PKEY_SIGN(option const[KEYCTL_PKEY_SIGN], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_PKEY_VERIFY(option const[KEYCTL_PKEY_VERIFY], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_READ(option const[KEYCTL_READ], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_REJECT(option const[KEYCTL_REJECT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_RESTRICT_KEYRING(option const[KEYCTL_RESTRICT_KEYRING], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_REVOKE(option const[KEYCTL_REVOKE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_SEARCH(option const[KEYCTL_SEARCH], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_SESSION_TO_PARENT(option const[KEYCTL_SESSION_TO_PARENT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_SETPERM(option const[KEYCTL_SETPERM], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_SET_REQKEY_KEYRING(option const[KEYCTL_SET_REQKEY_KEYRING], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_SET_TIMEOUT(option const[KEYCTL_SET_TIMEOUT], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_UNLINK(option const[KEYCTL_UNLINK], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_UPDATE(option const[KEYCTL_UPDATE], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
-keyctl$auto_KEYCTL_WATCH_KEY(option const[KEYCTL_WATCH_KEY], arg2 uid, arg3 uid, arg4 gid, arg5 intptr)
+keyctl$auto_KEYCTL_ASSUME_AUTHORITY(option const[KEYCTL_ASSUME_AUTHORITY], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_CAPABILITIES(option const[KEYCTL_CAPABILITIES], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_CHOWN(option const[KEYCTL_CHOWN], arg2 intptr, arg3 uid, arg4 gid, arg5 intptr)
+keyctl$auto_KEYCTL_CLEAR(option const[KEYCTL_CLEAR], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_DESCRIBE(option const[KEYCTL_DESCRIBE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_DH_COMPUTE(option const[KEYCTL_DH_COMPUTE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_GET_KEYRING_ID(option const[KEYCTL_GET_KEYRING_ID], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_GET_PERSISTENT(option const[KEYCTL_GET_PERSISTENT], arg2 uid, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_GET_SECURITY(option const[KEYCTL_GET_SECURITY], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_INSTANTIATE(option const[KEYCTL_INSTANTIATE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_INSTANTIATE_IOV(option const[KEYCTL_INSTANTIATE_IOV], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_INVALIDATE(option const[KEYCTL_INVALIDATE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_JOIN_SESSION_KEYRING(option const[KEYCTL_JOIN_SESSION_KEYRING], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_LINK(option const[KEYCTL_LINK], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_MOVE(option const[KEYCTL_MOVE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_NEGATE(option const[KEYCTL_NEGATE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_PKEY_DECRYPT(option const[KEYCTL_PKEY_DECRYPT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_PKEY_ENCRYPT(option const[KEYCTL_PKEY_ENCRYPT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_PKEY_QUERY(option const[KEYCTL_PKEY_QUERY], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_PKEY_SIGN(option const[KEYCTL_PKEY_SIGN], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_PKEY_VERIFY(option const[KEYCTL_PKEY_VERIFY], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_READ(option const[KEYCTL_READ], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_REJECT(option const[KEYCTL_REJECT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_RESTRICT_KEYRING(option const[KEYCTL_RESTRICT_KEYRING], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_REVOKE(option const[KEYCTL_REVOKE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_SEARCH(option const[KEYCTL_SEARCH], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_SESSION_TO_PARENT(option const[KEYCTL_SESSION_TO_PARENT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_SETPERM(option const[KEYCTL_SETPERM], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_SET_REQKEY_KEYRING(option const[KEYCTL_SET_REQKEY_KEYRING], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_SET_TIMEOUT(option const[KEYCTL_SET_TIMEOUT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_UNLINK(option const[KEYCTL_UNLINK], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_UPDATE(option const[KEYCTL_UPDATE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$auto_KEYCTL_WATCH_KEY(option const[KEYCTL_WATCH_KEY], arg2 intptr, arg3 fd, arg4 intptr, arg5 intptr)
 keyctl$auto_KEY_REQKEY_DEFL_DEFAULT(option int32, arg2 const[KEY_REQKEY_DEFL_DEFAULT], arg3 uid, arg4 gid, arg5 intptr)
 keyctl$auto_KEY_REQKEY_DEFL_GROUP_KEYRING(option int32, arg2 const[KEY_REQKEY_DEFL_GROUP_KEYRING], arg3 uid, arg4 gid, arg5 intptr)
 keyctl$auto_KEY_REQKEY_DEFL_NO_CHANGE(option int32, arg2 const[KEY_REQKEY_DEFL_NO_CHANGE], arg3 uid, arg4 gid, arg5 intptr)
@@ -626,57 +626,57 @@ poll$auto(ufds ptr[inout, pollfd$auto], nfds int32, timeout_msecs int32)
 ppoll$auto(ufds ptr[inout, pollfd$auto], nfds int32, tsp ptr[inout, __kernel_timespec$auto], sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
 ppoll_time64$auto(ufds ptr[inout, pollfd$auto], nfds int32, tsp ptr[inout, __kernel_timespec$auto], sigmask ptr[in, sigset_t$auto], sigsetsize const[8])
 prctl$auto(option int32, arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_AUXV(option const[PR_GET_AUXV], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_CHILD_SUBREAPER(option const[PR_GET_CHILD_SUBREAPER], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_DUMPABLE(option const[PR_GET_DUMPABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_ENDIAN(option const[PR_GET_ENDIAN], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_FPEMU(option const[PR_GET_FPEMU], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_FPEXC(option const[PR_GET_FPEXC], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_FP_MODE(option const[PR_GET_FP_MODE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_IO_FLUSHER(option const[PR_GET_IO_FLUSHER], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_MDWE(option const[PR_GET_MDWE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_MEMORY_MERGE(option const[PR_GET_MEMORY_MERGE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_NAME(option const[PR_GET_NAME], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_NO_NEW_PRIVS(option const[PR_GET_NO_NEW_PRIVS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_PDEATHSIG(option const[PR_GET_PDEATHSIG], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_SECCOMP(option const[PR_GET_SECCOMP], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_SHADOW_STACK_STATUS(option const[PR_GET_SHADOW_STACK_STATUS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_SPECULATION_CTRL(option const[PR_GET_SPECULATION_CTRL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_TAGGED_ADDR_CTRL(option const[PR_GET_TAGGED_ADDR_CTRL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_THP_DISABLE(option const[PR_GET_THP_DISABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_TID_ADDRESS(option const[PR_GET_TID_ADDRESS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_TIMERSLACK(option const[PR_GET_TIMERSLACK], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_TIMING(option const[PR_GET_TIMING], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_TSC(option const[PR_GET_TSC], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_GET_UNALIGN(option const[PR_GET_UNALIGN], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_LOCK_SHADOW_STACK_STATUS(option const[PR_LOCK_SHADOW_STACK_STATUS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_MCE_KILL(option const[PR_MCE_KILL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_MCE_KILL_GET(option const[PR_MCE_KILL_GET], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_MPX_DISABLE_MANAGEMENT(option const[PR_MPX_DISABLE_MANAGEMENT], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_MPX_ENABLE_MANAGEMENT(option const[PR_MPX_ENABLE_MANAGEMENT], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_PAC_GET_ENABLED_KEYS(option const[PR_PAC_GET_ENABLED_KEYS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_PAC_RESET_KEYS(option const[PR_PAC_RESET_KEYS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_PAC_SET_ENABLED_KEYS(option const[PR_PAC_SET_ENABLED_KEYS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_PPC_GET_DEXCR(option const[PR_PPC_GET_DEXCR], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_PPC_SET_DEXCR(option const[PR_PPC_SET_DEXCR], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_RISCV_SET_ICACHE_FLUSH_CTX(option const[PR_RISCV_SET_ICACHE_FLUSH_CTX], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_RISCV_V_GET_CONTROL(option const[PR_RISCV_V_GET_CONTROL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_RISCV_V_SET_CONTROL(option const[PR_RISCV_V_SET_CONTROL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SCHED_CORE(option const[PR_SCHED_CORE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_GET_AUXV(option const[PR_GET_AUXV], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_CHILD_SUBREAPER(option const[PR_GET_CHILD_SUBREAPER], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_DUMPABLE(option const[PR_GET_DUMPABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_ENDIAN(option const[PR_GET_ENDIAN], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_FPEMU(option const[PR_GET_FPEMU], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_FPEXC(option const[PR_GET_FPEXC], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_FP_MODE(option const[PR_GET_FP_MODE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_IO_FLUSHER(option const[PR_GET_IO_FLUSHER], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_MDWE(option const[PR_GET_MDWE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_MEMORY_MERGE(option const[PR_GET_MEMORY_MERGE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_NAME(option const[PR_GET_NAME], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_NO_NEW_PRIVS(option const[PR_GET_NO_NEW_PRIVS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_PDEATHSIG(option const[PR_GET_PDEATHSIG], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_SECCOMP(option const[PR_GET_SECCOMP], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_SHADOW_STACK_STATUS(option const[PR_GET_SHADOW_STACK_STATUS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_SPECULATION_CTRL(option const[PR_GET_SPECULATION_CTRL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_TAGGED_ADDR_CTRL(option const[PR_GET_TAGGED_ADDR_CTRL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_THP_DISABLE(option const[PR_GET_THP_DISABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_TID_ADDRESS(option const[PR_GET_TID_ADDRESS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_TIMERSLACK(option const[PR_GET_TIMERSLACK], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_TIMING(option const[PR_GET_TIMING], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_TSC(option const[PR_GET_TSC], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_GET_UNALIGN(option const[PR_GET_UNALIGN], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_LOCK_SHADOW_STACK_STATUS(option const[PR_LOCK_SHADOW_STACK_STATUS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_MCE_KILL(option const[PR_MCE_KILL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_MCE_KILL_GET(option const[PR_MCE_KILL_GET], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_MPX_DISABLE_MANAGEMENT(option const[PR_MPX_DISABLE_MANAGEMENT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_MPX_ENABLE_MANAGEMENT(option const[PR_MPX_ENABLE_MANAGEMENT], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_PAC_GET_ENABLED_KEYS(option const[PR_PAC_GET_ENABLED_KEYS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_PAC_RESET_KEYS(option const[PR_PAC_RESET_KEYS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_PAC_SET_ENABLED_KEYS(option const[PR_PAC_SET_ENABLED_KEYS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_PPC_GET_DEXCR(option const[PR_PPC_GET_DEXCR], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_PPC_SET_DEXCR(option const[PR_PPC_SET_DEXCR], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_RISCV_SET_ICACHE_FLUSH_CTX(option const[PR_RISCV_SET_ICACHE_FLUSH_CTX], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_RISCV_V_GET_CONTROL(option const[PR_RISCV_V_GET_CONTROL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_RISCV_V_SET_CONTROL(option const[PR_RISCV_V_SET_CONTROL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SCHED_CORE(option const[PR_SCHED_CORE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr)
 prctl$auto_PR_SCHED_CORE_CREATE(option int32, arg2 const[PR_SCHED_CORE_CREATE], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SCHED_CORE_GET(option int32, arg2 const[PR_SCHED_CORE_GET], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SCHED_CORE_SHARE_FROM(option int32, arg2 const[PR_SCHED_CORE_SHARE_FROM], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SCHED_CORE_SHARE_TO(option int32, arg2 const[PR_SCHED_CORE_SHARE_TO], arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_CHILD_SUBREAPER(option const[PR_SET_CHILD_SUBREAPER], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_DUMPABLE(option const[PR_SET_DUMPABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_ENDIAN(option const[PR_SET_ENDIAN], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_FPEMU(option const[PR_SET_FPEMU], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_FPEXC(option const[PR_SET_FPEXC], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_FP_MODE(option const[PR_SET_FP_MODE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_IO_FLUSHER(option const[PR_SET_IO_FLUSHER], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_MDWE(option const[PR_SET_MDWE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_MEMORY_MERGE(option const[PR_SET_MEMORY_MERGE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_MM(option const[PR_SET_MM], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_SET_CHILD_SUBREAPER(option const[PR_SET_CHILD_SUBREAPER], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_DUMPABLE(option const[PR_SET_DUMPABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_ENDIAN(option const[PR_SET_ENDIAN], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_FPEMU(option const[PR_SET_FPEMU], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_FPEXC(option const[PR_SET_FPEXC], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_FP_MODE(option const[PR_SET_FP_MODE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_IO_FLUSHER(option const[PR_SET_IO_FLUSHER], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_MDWE(option const[PR_SET_MDWE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_MEMORY_MERGE(option const[PR_SET_MEMORY_MERGE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_MM(option const[PR_SET_MM], arg2 intptr, arg3 fd, arg4 intptr, arg5 intptr)
 prctl$auto_PR_SET_MM_ARG_END(option int32, arg2 const[PR_SET_MM_ARG_END], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SET_MM_ARG_START(option int32, arg2 const[PR_SET_MM_ARG_START], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SET_MM_BRK(option int32, arg2 const[PR_SET_MM_BRK], arg3 pid, arg4 intptr, arg5 intptr) fd
@@ -688,30 +688,30 @@ prctl$auto_PR_SET_MM_START_BRK(option int32, arg2 const[PR_SET_MM_START_BRK], ar
 prctl$auto_PR_SET_MM_START_CODE(option int32, arg2 const[PR_SET_MM_START_CODE], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SET_MM_START_DATA(option int32, arg2 const[PR_SET_MM_START_DATA], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SET_MM_START_STACK(option int32, arg2 const[PR_SET_MM_START_STACK], arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_NAME(option const[PR_SET_NAME], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_NO_NEW_PRIVS(option const[PR_SET_NO_NEW_PRIVS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_SECCOMP(option const[PR_SET_SECCOMP], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_SHADOW_STACK_STATUS(option const[PR_SET_SHADOW_STACK_STATUS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_SYSCALL_USER_DISPATCH(option const[PR_SET_SYSCALL_USER_DISPATCH], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_TAGGED_ADDR_CTRL(option const[PR_SET_TAGGED_ADDR_CTRL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_THP_DISABLE(option const[PR_SET_THP_DISABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_TIMERSLACK(option const[PR_SET_TIMERSLACK], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_TIMING(option const[PR_SET_TIMING], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_TSC(option const[PR_SET_TSC], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_UNALIGN(option const[PR_SET_UNALIGN], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SET_VMA(option const[PR_SET_VMA], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_SET_NAME(option const[PR_SET_NAME], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_NO_NEW_PRIVS(option const[PR_SET_NO_NEW_PRIVS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_SECCOMP(option const[PR_SET_SECCOMP], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_SET_SHADOW_STACK_STATUS(option const[PR_SET_SHADOW_STACK_STATUS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_SYSCALL_USER_DISPATCH(option const[PR_SET_SYSCALL_USER_DISPATCH], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_TAGGED_ADDR_CTRL(option const[PR_SET_TAGGED_ADDR_CTRL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_THP_DISABLE(option const[PR_SET_THP_DISABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_TIMERSLACK(option const[PR_SET_TIMERSLACK], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_TIMING(option const[PR_SET_TIMING], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_TSC(option const[PR_SET_TSC], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_UNALIGN(option const[PR_SET_UNALIGN], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SET_VMA(option const[PR_SET_VMA], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
 prctl$auto_PR_SET_VMA_ANON_NAME(option int32, arg2 const[PR_SET_VMA_ANON_NAME], arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SME_GET_VL(option const[PR_SME_GET_VL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SME_SET_VL(option const[PR_SME_SET_VL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SVE_GET_VL(option const[PR_SVE_GET_VL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_SVE_SET_VL(option const[PR_SVE_SET_VL], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_SME_GET_VL(option const[PR_SME_GET_VL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SME_SET_VL(option const[PR_SME_SET_VL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SVE_GET_VL(option const[PR_SVE_GET_VL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_SVE_SET_VL(option const[PR_SVE_SET_VL], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
 prctl$auto_PR_SYS_DISPATCH_OFF(option int32, arg2 const[PR_SYS_DISPATCH_OFF], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_SYS_DISPATCH_ON(option int32, arg2 const[PR_SYS_DISPATCH_ON], arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_TASK_PERF_EVENTS_DISABLE(option const[PR_TASK_PERF_EVENTS_DISABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_TASK_PERF_EVENTS_ENABLE(option const[PR_TASK_PERF_EVENTS_ENABLE], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
-prctl$auto_PR_TIMER_CREATE_RESTORE_IDS(option const[PR_TIMER_CREATE_RESTORE_IDS], arg2 intptr, arg3 pid, arg4 intptr, arg5 intptr) fd
+prctl$auto_PR_TASK_PERF_EVENTS_DISABLE(option const[PR_TASK_PERF_EVENTS_DISABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_TASK_PERF_EVENTS_ENABLE(option const[PR_TASK_PERF_EVENTS_ENABLE], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$auto_PR_TIMER_CREATE_RESTORE_IDS(option const[PR_TIMER_CREATE_RESTORE_IDS], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
 prctl$auto_PR_TIMER_CREATE_RESTORE_IDS_GET(option int32, arg2 const[PR_TIMER_CREATE_RESTORE_IDS_GET], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_TIMER_CREATE_RESTORE_IDS_OFF(option int32, arg2 const[PR_TIMER_CREATE_RESTORE_IDS_OFF], arg3 pid, arg4 intptr, arg5 intptr) fd
 prctl$auto_PR_TIMER_CREATE_RESTORE_IDS_ON(option int32, arg2 const[PR_TIMER_CREATE_RESTORE_IDS_ON], arg3 pid, arg4 intptr, arg5 intptr) fd
@@ -868,26 +868,26 @@ sched_setattr$auto(pid pid, uattr ptr[inout, sched_attr$auto], flags int32)
 sched_setparam$auto(pid pid, param ptr[inout, sched_param$auto])
 sched_setscheduler$auto(pid pid, policy int32, param ptr[inout, sched_param$auto])
 seccomp$auto(op int32, flags int32, uargs ptr[inout, array[auto_todo]]) fd
-seccomp$auto_SECCOMP_GET_ACTION_AVAIL(op const[SECCOMP_GET_ACTION_AVAIL], flags int32, uargs ptr[inout, array[auto_todo]]) fd
-seccomp$auto_SECCOMP_GET_NOTIF_SIZES(op const[SECCOMP_GET_NOTIF_SIZES], flags int32, uargs ptr[inout, array[auto_todo]]) fd
+seccomp$auto_SECCOMP_GET_ACTION_AVAIL(op const[SECCOMP_GET_ACTION_AVAIL], flags int32, uargs ptr[inout, array[auto_todo]])
+seccomp$auto_SECCOMP_GET_NOTIF_SIZES(op const[SECCOMP_GET_NOTIF_SIZES], flags int32, uargs ptr[inout, array[auto_todo]])
 seccomp$auto_SECCOMP_SET_MODE_FILTER(op const[SECCOMP_SET_MODE_FILTER], flags int32, uargs ptr[inout, array[auto_todo]]) fd
-seccomp$auto_SECCOMP_SET_MODE_STRICT(op const[SECCOMP_SET_MODE_STRICT], flags int32, uargs ptr[inout, array[auto_todo]]) fd
+seccomp$auto_SECCOMP_SET_MODE_STRICT(op const[SECCOMP_SET_MODE_STRICT], flags int32, uargs ptr[inout, array[auto_todo]])
 select$auto(n int32, inp ptr[inout, __kernel_fd_set$auto], outp ptr[inout, __kernel_fd_set$auto], exp ptr[inout, __kernel_fd_set$auto], tvp ptr[inout, __kernel_old_timeval$auto])
 semctl$auto(semid int32, semnum int32, cmd int32, arg intptr) pid
-semctl$auto_GETALL(semid int32, semnum int32, cmd const[GETALL], arg intptr) pid
-semctl$auto_GETNCNT(semid int32, semnum int32, cmd const[GETNCNT], arg intptr) pid
+semctl$auto_GETALL(semid int32, semnum int32, cmd const[GETALL], arg intptr)
+semctl$auto_GETNCNT(semid int32, semnum int32, cmd const[GETNCNT], arg intptr)
 semctl$auto_GETPID(semid int32, semnum int32, cmd const[GETPID], arg intptr) pid
-semctl$auto_GETVAL(semid int32, semnum int32, cmd const[GETVAL], arg intptr) pid
-semctl$auto_GETZCNT(semid int32, semnum int32, cmd const[GETZCNT], arg intptr) pid
-semctl$auto_IPC_INFO(semid int32, semnum int32, cmd const[IPC_INFO], arg intptr) pid
-semctl$auto_IPC_RMID(semid int32, semnum int32, cmd const[IPC_RMID], arg intptr) pid
-semctl$auto_IPC_SET(semid int32, semnum int32, cmd const[IPC_SET], arg intptr) pid
-semctl$auto_IPC_STAT(semid int32, semnum int32, cmd const[IPC_STAT], arg intptr) pid
-semctl$auto_SEM_INFO(semid int32, semnum int32, cmd const[SEM_INFO], arg intptr) pid
-semctl$auto_SEM_STAT(semid int32, semnum int32, cmd const[SEM_STAT], arg intptr) pid
-semctl$auto_SEM_STAT_ANY(semid int32, semnum int32, cmd const[SEM_STAT_ANY], arg intptr) pid
-semctl$auto_SETALL(semid int32, semnum int32, cmd const[SETALL], arg intptr) pid
-semctl$auto_SETVAL(semid int32, semnum int32, cmd const[SETVAL], arg intptr) pid
+semctl$auto_GETVAL(semid int32, semnum int32, cmd const[GETVAL], arg intptr)
+semctl$auto_GETZCNT(semid int32, semnum int32, cmd const[GETZCNT], arg intptr)
+semctl$auto_IPC_INFO(semid int32, semnum int32, cmd const[IPC_INFO], arg intptr)
+semctl$auto_IPC_RMID(semid int32, semnum int32, cmd const[IPC_RMID], arg intptr)
+semctl$auto_IPC_SET(semid int32, semnum int32, cmd const[IPC_SET], arg intptr)
+semctl$auto_IPC_STAT(semid int32, semnum int32, cmd const[IPC_STAT], arg intptr)
+semctl$auto_SEM_INFO(semid int32, semnum int32, cmd const[SEM_INFO], arg intptr)
+semctl$auto_SEM_STAT(semid int32, semnum int32, cmd const[SEM_STAT], arg intptr)
+semctl$auto_SEM_STAT_ANY(semid int32, semnum int32, cmd const[SEM_STAT_ANY], arg intptr)
+semctl$auto_SETALL(semid int32, semnum int32, cmd const[SETALL], arg intptr)
+semctl$auto_SETVAL(semid int32, semnum int32, cmd const[SETVAL], arg intptr)
 semget$auto(key int32, nsems int32, semflg int32)
 semop$auto(semid int32, tsops ptr[inout, sembuf$auto], nsops int32)
 semtimedop$auto(semid int32, tsops ptr[inout, sembuf$auto], nsops int32, timeout ptr[in, __kernel_timespec$auto])
@@ -920,8 +920,8 @@ setitimer$auto_ITIMER_VIRTUAL(which const[ITIMER_VIRTUAL], value ptr[inout, __ke
 setns$auto(fd fd, flags int32)
 setpgid$auto(pid pid, pgid pid)
 setpriority$auto(which int32, who uid, niceval int32)
-setpriority$auto_PRIO_PGRP(which const[PRIO_PGRP], who uid, niceval int32)
-setpriority$auto_PRIO_PROCESS(which const[PRIO_PROCESS], who uid, niceval int32)
+setpriority$auto_PRIO_PGRP(which const[PRIO_PGRP], who pid, niceval int32)
+setpriority$auto_PRIO_PROCESS(which const[PRIO_PROCESS], who pid, niceval int32)
 setpriority$auto_PRIO_USER(which const[PRIO_USER], who uid, niceval int32)
 setregid$auto(rgid gid, egid gid)
 setregid32$auto(rgid gid, egid gid)
@@ -1027,22 +1027,22 @@ socket$auto(family int32, type int32, protocol int32) fd
 socketcall$auto(call int32, args ptr[inout, intptr]) fd
 socketcall$auto_SYS_ACCEPT(call const[SYS_ACCEPT], args ptr[inout, intptr]) fd
 socketcall$auto_SYS_ACCEPT4(call const[SYS_ACCEPT4], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_BIND(call const[SYS_BIND], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_CONNECT(call const[SYS_CONNECT], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_GETPEERNAME(call const[SYS_GETPEERNAME], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_GETSOCKNAME(call const[SYS_GETSOCKNAME], args ptr[inout, intptr]) fd
+socketcall$auto_SYS_BIND(call const[SYS_BIND], args ptr[inout, intptr])
+socketcall$auto_SYS_CONNECT(call const[SYS_CONNECT], args ptr[inout, intptr])
+socketcall$auto_SYS_GETPEERNAME(call const[SYS_GETPEERNAME], args ptr[inout, intptr])
+socketcall$auto_SYS_GETSOCKNAME(call const[SYS_GETSOCKNAME], args ptr[inout, intptr])
 socketcall$auto_SYS_GETSOCKOPT(call const[SYS_GETSOCKOPT], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_LISTEN(call const[SYS_LISTEN], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_RECV(call const[SYS_RECV], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_RECVFROM(call const[SYS_RECVFROM], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_RECVMMSG(call const[SYS_RECVMMSG], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_RECVMSG(call const[SYS_RECVMSG], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SEND(call const[SYS_SEND], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SENDMMSG(call const[SYS_SENDMMSG], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SENDMSG(call const[SYS_SENDMSG], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SENDTO(call const[SYS_SENDTO], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SETSOCKOPT(call const[SYS_SETSOCKOPT], args ptr[inout, intptr]) fd
-socketcall$auto_SYS_SHUTDOWN(call const[SYS_SHUTDOWN], args ptr[inout, intptr]) fd
+socketcall$auto_SYS_LISTEN(call const[SYS_LISTEN], args ptr[inout, intptr])
+socketcall$auto_SYS_RECV(call const[SYS_RECV], args ptr[inout, intptr])
+socketcall$auto_SYS_RECVFROM(call const[SYS_RECVFROM], args ptr[inout, intptr])
+socketcall$auto_SYS_RECVMMSG(call const[SYS_RECVMMSG], args ptr[inout, intptr])
+socketcall$auto_SYS_RECVMSG(call const[SYS_RECVMSG], args ptr[inout, intptr])
+socketcall$auto_SYS_SEND(call const[SYS_SEND], args ptr[inout, intptr])
+socketcall$auto_SYS_SENDMMSG(call const[SYS_SENDMMSG], args ptr[inout, intptr])
+socketcall$auto_SYS_SENDMSG(call const[SYS_SENDMSG], args ptr[inout, intptr])
+socketcall$auto_SYS_SENDTO(call const[SYS_SENDTO], args ptr[inout, intptr])
+socketcall$auto_SYS_SETSOCKOPT(call const[SYS_SETSOCKOPT], args ptr[inout, intptr])
+socketcall$auto_SYS_SHUTDOWN(call const[SYS_SHUTDOWN], args ptr[inout, intptr])
 socketcall$auto_SYS_SOCKET(call const[SYS_SOCKET], args ptr[inout, intptr]) fd
 socketcall$auto_SYS_SOCKETPAIR(call const[SYS_SOCKETPAIR], args ptr[inout, intptr]) fd
 socketpair$auto(family int32, type int32, protocol int32, usockvec ptr[inout, int32]) fd
@@ -1123,9 +1123,9 @@ utimes$auto(filename ptr[inout, filename], utimes ptr[inout, __kernel_old_timeva
 vmsplice$auto(fd fd, uiov ptr[in, iovec$auto], nr_segs intptr, flags int32)
 wait4$auto(upid pid, stat_addr ptr[inout, int32], options int32, ru ptr[inout, rusage$auto]) pid
 waitid$auto(which int32, upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
-waitid$auto_P_ALL(which const[P_ALL], upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
-waitid$auto_P_PGID(which const[P_PGID], upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
-waitid$auto_P_PID(which const[P_PID], upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
+waitid$auto_P_ALL(which const[P_ALL], upid int32, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
+waitid$auto_P_PGID(which const[P_PGID], upid pid, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
+waitid$auto_P_PID(which const[P_PID], upid pid, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
 waitid$auto_P_PIDFD(which const[P_PIDFD], upid fd_pidfd, infop ptr[inout, siginfo$auto], options int32, ru ptr[inout, rusage$auto]) pid
 waitpid$auto(pid pid, stat_addr ptr[inout, int32], options int32) pid
 write$auto(fd fd, buf ptr[in, string], count intptr)
@@ -1437,7 +1437,7 @@ ioctl$auto_TIOCGETD(fd fd_console_fops_tty_io, cmd const[TIOCGETD], arg ptr[in, 
 ioctl$auto_TIOCGEXCL(fd fd_console_fops_tty_io, cmd const[TIOCGEXCL], arg ptr[in, int32])
 ioctl$auto_TIOCGICOUNT(fd fd_console_fops_tty_io, cmd const[TIOCGICOUNT], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGPGRP(fd fd_console_fops_tty_io, cmd const[TIOCGPGRP], arg ptr[in, array[int8]])
-ioctl$auto_TIOCGPTPEER(fd fd_console_fops_tty_io, cmd const[TIOCGPTPEER], arg const[0])
+ioctl$auto_TIOCGPTPEER(fd fd_console_fops_tty_io, cmd const[TIOCGPTPEER], arg const[0]) fd
 ioctl$auto_TIOCGSERIAL(fd fd_console_fops_tty_io, cmd const[TIOCGSERIAL], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGSID(fd fd_console_fops_tty_io, cmd const[TIOCGSID], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGWINSZ(fd fd_console_fops_tty_io, cmd const[TIOCGWINSZ], arg ptr[in, array[int8]])
@@ -2074,7 +2074,7 @@ write$auto_kmsg_fops_printk(fd fd_kmsg_fops_printk, buf ptr[in, array[int8]], le
 resource fd_kvm_chardev_ops_kvm_main[fd]
 openat$auto_kvm_chardev_ops_kvm_main(fd const[AT_FDCWD], file ptr[in, string["/dev/kvm"]], flags flags[open_flags], mode const[0]) fd_kvm_chardev_ops_kvm_main
 ioctl$auto_KVM_CHECK_EXTENSION(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_CHECK_EXTENSION], arg const[0])
-ioctl$auto_KVM_CREATE_VM(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_CREATE_VM], arg const[0])
+ioctl$auto_KVM_CREATE_VM(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_CREATE_VM], arg const[0]) fd
 ioctl$auto_KVM_GET_API_VERSION(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_GET_API_VERSION], arg const[0])
 ioctl$auto_KVM_GET_DEVICE_ATTR(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[inout, kvm_device_attr$auto])
 ioctl$auto_KVM_GET_EMULATED_CPUID(fd fd_kvm_chardev_ops_kvm_main, cmd const[KVM_GET_EMULATED_CPUID], arg ptr[inout, kvm_cpuid2$auto])
@@ -2103,9 +2103,9 @@ read$auto_long_retry_limit_ops_(fd fd_long_retry_limit_ops_, buf ptr[out, array[
 
 resource fd_loop_ctl_fops_loop[fd]
 openat$auto_loop_ctl_fops_loop(fd const[AT_FDCWD], file ptr[in, string["/dev/loop-control"]], flags flags[open_flags], mode const[0]) fd_loop_ctl_fops_loop
-ioctl$auto_LOOP_CTL_ADD(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_ADD], arg ptr[in, array[int8]])
-ioctl$auto_LOOP_CTL_GET_FREE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_GET_FREE], arg ptr[in, array[int8]])
-ioctl$auto_LOOP_CTL_REMOVE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_REMOVE], arg ptr[in, array[int8]])
+ioctl$auto_LOOP_CTL_ADD(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_ADD], arg pid)
+ioctl$auto_LOOP_CTL_GET_FREE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_GET_FREE], arg pid)
+ioctl$auto_LOOP_CTL_REMOVE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_REMOVE], arg pid)
 
 resource fd_lowpan_control_fops_6lowpan[fd]
 openat$auto_lowpan_control_fops_6lowpan(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/bluetooth/6lowpan_control"]], flags flags[open_flags], mode const[0]) fd_lowpan_control_fops_6lowpan
@@ -2243,15 +2243,15 @@ read$auto_nodes_fops_netdebug(fd fd_nodes_fops_netdebug, buf ptr[out, array[int8
 resource fd_ns_file_operations_nsfs[fd]
 ns_file_operations_nsfs_files = "/proc/self/ns/cgroup", "/proc/thread-self/ns/cgroup"
 openat$auto_ns_file_operations_nsfs(fd const[AT_FDCWD], file ptr[in, string[ns_file_operations_nsfs_files]], flags flags[open_flags], mode const[0]) fd_ns_file_operations_nsfs
-ioctl$auto_NS_GET_MNTNS_ID(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_MNTNS_ID], arg ptr[in, int64])
-ioctl$auto_NS_GET_NSTYPE(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_NSTYPE], arg const[0])
-ioctl$auto_NS_GET_OWNER_UID(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_OWNER_UID], arg const[0])
-ioctl$auto_NS_GET_PARENT(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PARENT], arg const[0])
-ioctl$auto_NS_GET_PID_FROM_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PID_FROM_PIDNS], arg ptr[in, int32])
-ioctl$auto_NS_GET_PID_IN_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PID_IN_PIDNS], arg ptr[in, int32])
-ioctl$auto_NS_GET_TGID_FROM_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_TGID_FROM_PIDNS], arg ptr[in, int32])
-ioctl$auto_NS_GET_TGID_IN_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_TGID_IN_PIDNS], arg ptr[in, int32])
-ioctl$auto_NS_GET_USERNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_USERNS], arg const[0])
+ioctl$auto_NS_GET_MNTNS_ID(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_MNTNS_ID], arg ptr[in, int64]) fd
+ioctl$auto_NS_GET_NSTYPE(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_NSTYPE], arg const[0]) fd
+ioctl$auto_NS_GET_OWNER_UID(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_OWNER_UID], arg const[0]) fd
+ioctl$auto_NS_GET_PARENT(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PARENT], arg const[0]) fd
+ioctl$auto_NS_GET_PID_FROM_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PID_FROM_PIDNS], arg ptr[in, int32]) fd
+ioctl$auto_NS_GET_PID_IN_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_PID_IN_PIDNS], arg ptr[in, int32]) fd
+ioctl$auto_NS_GET_TGID_FROM_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_TGID_FROM_PIDNS], arg ptr[in, int32]) fd
+ioctl$auto_NS_GET_TGID_IN_PIDNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_TGID_IN_PIDNS], arg ptr[in, int32]) pid
+ioctl$auto_NS_GET_USERNS(fd fd_ns_file_operations_nsfs, cmd const[NS_GET_USERNS], arg const[0]) fd
 
 resource fd_nsim_dev_health_break_fops_health[fd]
 nsim_dev_health_break_fops_health_files = "/sys/kernel/debug/netdevsim/netdevsim0/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim1/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim2/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim4/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim5/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim6/health/break_health", "/sys/kernel/debug/netdevsim/netdevsim7/health/break_health"
@@ -3171,9 +3171,9 @@ read$auto_suspend_stats_fops_(fd fd_suspend_stats_fops_, buf ptr[out, array[int8
 
 resource fd_sw_sync_debugfs_fops_sync_debug[fd]
 openat$auto_sw_sync_debugfs_fops_sync_debug(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/sync/sw_sync"]], flags flags[open_flags], mode const[0]) fd_sw_sync_debugfs_fops_sync_debug
-ioctl$auto_SW_SYNC_GET_DEADLINE(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_GET_DEADLINE], arg ptr[inout, sw_sync_get_deadline$auto])
-ioctl$auto_SW_SYNC_IOC_CREATE_FENCE(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_IOC_CREATE_FENCE], arg ptr[inout, sw_sync_create_fence_data$auto])
-ioctl$auto_SW_SYNC_IOC_INC(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_IOC_INC], arg ptr[inout, int32])
+ioctl$auto_SW_SYNC_GET_DEADLINE(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_GET_DEADLINE], arg ptr[inout, sw_sync_get_deadline$auto]) fd
+ioctl$auto_SW_SYNC_IOC_CREATE_FENCE(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_IOC_CREATE_FENCE], arg ptr[inout, sw_sync_create_fence_data$auto]) fd
+ioctl$auto_SW_SYNC_IOC_INC(fd fd_sw_sync_debugfs_fops_sync_debug, cmd const[SW_SYNC_IOC_INC], arg ptr[inout, int32]) fd
 
 resource fd_sync_info_debugfs_fops_[fd]
 openat$auto_sync_info_debugfs_fops_(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/sync/info"]], flags flags[open_flags], mode const[0]) fd_sync_info_debugfs_fops_
@@ -3359,7 +3359,7 @@ ioctl$auto_TIOCGETD2(fd fd_tty_fops_tty_io, cmd const[TIOCGETD], arg ptr[in, arr
 ioctl$auto_TIOCGEXCL2(fd fd_tty_fops_tty_io, cmd const[TIOCGEXCL], arg ptr[in, int32])
 ioctl$auto_TIOCGICOUNT2(fd fd_tty_fops_tty_io, cmd const[TIOCGICOUNT], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGPGRP2(fd fd_tty_fops_tty_io, cmd const[TIOCGPGRP], arg ptr[in, array[int8]])
-ioctl$auto_TIOCGPTPEER2(fd fd_tty_fops_tty_io, cmd const[TIOCGPTPEER], arg const[0])
+ioctl$auto_TIOCGPTPEER2(fd fd_tty_fops_tty_io, cmd const[TIOCGPTPEER], arg const[0]) fd
 ioctl$auto_TIOCGSERIAL2(fd fd_tty_fops_tty_io, cmd const[TIOCGSERIAL], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGSID2(fd fd_tty_fops_tty_io, cmd const[TIOCGSID], arg ptr[in, array[int8]])
 ioctl$auto_TIOCGWINSZ2(fd fd_tty_fops_tty_io, cmd const[TIOCGWINSZ], arg ptr[in, array[int8]])
@@ -3382,32 +3382,32 @@ resource fd_tun_fops_tun[fd]
 openat$auto_tun_fops_tun(fd const[AT_FDCWD], file ptr[in, string["/dev/net/tun"]], flags flags[open_flags], mode const[0]) fd_tun_fops_tun
 read$auto_tun_fops_tun(fd fd_tun_fops_tun, buf ptr[out, array[int8]], len bytesize[buf])
 write$auto_tun_fops_tun(fd fd_tun_fops_tun, buf ptr[in, array[int8]], len bytesize[buf])
-ioctl$auto_SIOCGIFHWADDR2(fd fd_tun_fops_tun, cmd const[SIOCGIFHWADDR], arg ptr[in, array[int8]])
-ioctl$auto_SIOCSIFHWADDR2(fd fd_tun_fops_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, array[int8]])
-ioctl$auto_TUNATTACHFILTER(fd fd_tun_fops_tun, cmd const[TUNATTACHFILTER], arg ptr[inout, sock_fprog$auto])
-ioctl$auto_TUNDETACHFILTER(fd fd_tun_fops_tun, cmd const[TUNDETACHFILTER], arg ptr[inout, sock_fprog$auto])
-ioctl$auto_TUNGETDEVNETNS(fd fd_tun_fops_tun, cmd const[TUNGETDEVNETNS], arg const[0])
-ioctl$auto_TUNGETFILTER(fd fd_tun_fops_tun, cmd const[TUNGETFILTER], arg ptr[in, sock_fprog$auto])
-ioctl$auto_TUNGETIFF2(fd fd_tun_fops_tun, cmd const[TUNGETIFF], arg ptr[in, int32])
-ioctl$auto_TUNGETSNDBUF(fd fd_tun_fops_tun, cmd const[TUNGETSNDBUF], arg ptr[in, int32])
-ioctl$auto_TUNGETVNETBE2(fd fd_tun_fops_tun, cmd const[TUNGETVNETBE], arg ptr[in, int32])
-ioctl$auto_TUNGETVNETHDRSZ2(fd fd_tun_fops_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[in, int32])
-ioctl$auto_TUNGETVNETLE2(fd fd_tun_fops_tun, cmd const[TUNGETVNETLE], arg ptr[in, int32])
-ioctl$auto_TUNSETCARRIER(fd fd_tun_fops_tun, cmd const[TUNSETCARRIER], arg ptr[inout, int32])
-ioctl$auto_TUNSETDEBUG(fd fd_tun_fops_tun, cmd const[TUNSETDEBUG], arg ptr[inout, int32])
-ioctl$auto_TUNSETFILTEREBPF(fd fd_tun_fops_tun, cmd const[TUNSETFILTEREBPF], arg ptr[in, int32])
-ioctl$auto_TUNSETGROUP(fd fd_tun_fops_tun, cmd const[TUNSETGROUP], arg ptr[inout, int32])
-ioctl$auto_TUNSETLINK(fd fd_tun_fops_tun, cmd const[TUNSETLINK], arg ptr[inout, int32])
-ioctl$auto_TUNSETNOCSUM(fd fd_tun_fops_tun, cmd const[TUNSETNOCSUM], arg ptr[inout, int32])
-ioctl$auto_TUNSETOFFLOAD2(fd fd_tun_fops_tun, cmd const[TUNSETOFFLOAD], arg ptr[inout, int32])
-ioctl$auto_TUNSETOWNER(fd fd_tun_fops_tun, cmd const[TUNSETOWNER], arg ptr[inout, int32])
-ioctl$auto_TUNSETPERSIST(fd fd_tun_fops_tun, cmd const[TUNSETPERSIST], arg ptr[inout, int32])
-ioctl$auto_TUNSETSNDBUF2(fd fd_tun_fops_tun, cmd const[TUNSETSNDBUF], arg ptr[inout, int32])
-ioctl$auto_TUNSETSTEERINGEBPF(fd fd_tun_fops_tun, cmd const[TUNSETSTEERINGEBPF], arg ptr[in, int32])
-ioctl$auto_TUNSETTXFILTER(fd fd_tun_fops_tun, cmd const[TUNSETTXFILTER], arg ptr[inout, int32])
-ioctl$auto_TUNSETVNETBE2(fd fd_tun_fops_tun, cmd const[TUNSETVNETBE], arg ptr[inout, int32])
-ioctl$auto_TUNSETVNETHDRSZ2(fd fd_tun_fops_tun, cmd const[TUNSETVNETHDRSZ], arg ptr[inout, int32])
-ioctl$auto_TUNSETVNETLE2(fd fd_tun_fops_tun, cmd const[TUNSETVNETLE], arg ptr[inout, int32])
+ioctl$auto_SIOCGIFHWADDR2(fd fd_tun_fops_tun, cmd const[SIOCGIFHWADDR], arg ptr[in, array[int8]]) fd
+ioctl$auto_SIOCSIFHWADDR2(fd fd_tun_fops_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, array[int8]]) fd
+ioctl$auto_TUNATTACHFILTER(fd fd_tun_fops_tun, cmd const[TUNATTACHFILTER], arg ptr[inout, sock_fprog$auto]) fd
+ioctl$auto_TUNDETACHFILTER(fd fd_tun_fops_tun, cmd const[TUNDETACHFILTER], arg ptr[inout, sock_fprog$auto]) fd
+ioctl$auto_TUNGETDEVNETNS(fd fd_tun_fops_tun, cmd const[TUNGETDEVNETNS], arg const[0]) fd
+ioctl$auto_TUNGETFILTER(fd fd_tun_fops_tun, cmd const[TUNGETFILTER], arg ptr[in, sock_fprog$auto]) fd
+ioctl$auto_TUNGETIFF2(fd fd_tun_fops_tun, cmd const[TUNGETIFF], arg ptr[in, int32]) fd
+ioctl$auto_TUNGETSNDBUF(fd fd_tun_fops_tun, cmd const[TUNGETSNDBUF], arg ptr[in, int32]) fd
+ioctl$auto_TUNGETVNETBE2(fd fd_tun_fops_tun, cmd const[TUNGETVNETBE], arg ptr[in, int32]) fd
+ioctl$auto_TUNGETVNETHDRSZ2(fd fd_tun_fops_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[in, int32]) fd
+ioctl$auto_TUNGETVNETLE2(fd fd_tun_fops_tun, cmd const[TUNGETVNETLE], arg ptr[in, int32]) fd
+ioctl$auto_TUNSETCARRIER(fd fd_tun_fops_tun, cmd const[TUNSETCARRIER], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETDEBUG(fd fd_tun_fops_tun, cmd const[TUNSETDEBUG], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETFILTEREBPF(fd fd_tun_fops_tun, cmd const[TUNSETFILTEREBPF], arg ptr[in, int32]) fd
+ioctl$auto_TUNSETGROUP(fd fd_tun_fops_tun, cmd const[TUNSETGROUP], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETLINK(fd fd_tun_fops_tun, cmd const[TUNSETLINK], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETNOCSUM(fd fd_tun_fops_tun, cmd const[TUNSETNOCSUM], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETOFFLOAD2(fd fd_tun_fops_tun, cmd const[TUNSETOFFLOAD], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETOWNER(fd fd_tun_fops_tun, cmd const[TUNSETOWNER], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETPERSIST(fd fd_tun_fops_tun, cmd const[TUNSETPERSIST], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETSNDBUF2(fd fd_tun_fops_tun, cmd const[TUNSETSNDBUF], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETSTEERINGEBPF(fd fd_tun_fops_tun, cmd const[TUNSETSTEERINGEBPF], arg ptr[in, int32]) fd
+ioctl$auto_TUNSETTXFILTER(fd fd_tun_fops_tun, cmd const[TUNSETTXFILTER], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETVNETBE2(fd fd_tun_fops_tun, cmd const[TUNSETVNETBE], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETVNETHDRSZ2(fd fd_tun_fops_tun, cmd const[TUNSETVNETHDRSZ], arg ptr[inout, int32]) fd
+ioctl$auto_TUNSETVNETLE2(fd fd_tun_fops_tun, cmd const[TUNSETVNETLE], arg ptr[inout, int32]) fd
 
 resource fd_u32_array_fops_file[fd]
 u32_array_fops_file_files = "/sys/kernel/debug/netdevsim/netdevsim0/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim0/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim0/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim0/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim0/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim0/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim0/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim0/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim1/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim1/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim1/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim1/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim1/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim1/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim1/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim1/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim2/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim2/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim2/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim2/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim2/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim2/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim2/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim2/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim3/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim3/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim3/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim3/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim3/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim3/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim3/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim3/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim4/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim4/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim4/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim4/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim4/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim4/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim4/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim4/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim5/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim5/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim5/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim5/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim5/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim5/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim5/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim5/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim6/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim6/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim6/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim6/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim6/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim6/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim6/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim6/ports/3/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim7/ports/0/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim7/ports/0/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim7/ports/1/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim7/ports/1/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim7/ports/2/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim7/ports/2/udp_ports_table1", "/sys/kernel/debug/netdevsim/netdevsim7/ports/3/udp_ports_table0", "/sys/kernel/debug/netdevsim/netdevsim7/ports/3/udp_ports_table1"
@@ -3447,8 +3447,8 @@ ioctl$auto_UDF_RELOCATE_BLOCKS(fd fd_udf_dir_operations_udfdecl, cmd const[UDF_R
 
 resource fd_udmabuf_fops_udmabuf[fd]
 openat$auto_udmabuf_fops_udmabuf(fd const[AT_FDCWD], file ptr[in, string["/dev/udmabuf"]], flags flags[open_flags], mode const[0]) fd_udmabuf_fops_udmabuf
-ioctl$auto_UDMABUF_CREATE(fd fd_udmabuf_fops_udmabuf, cmd const[UDMABUF_CREATE], arg ptr[inout, udmabuf_create$auto])
-ioctl$auto_UDMABUF_CREATE_LIST(fd fd_udmabuf_fops_udmabuf, cmd const[UDMABUF_CREATE_LIST], arg ptr[inout, udmabuf_create_list$auto])
+ioctl$auto_UDMABUF_CREATE(fd fd_udmabuf_fops_udmabuf, cmd const[UDMABUF_CREATE], arg ptr[inout, udmabuf_create$auto]) fd
+ioctl$auto_UDMABUF_CREATE_LIST(fd fd_udmabuf_fops_udmabuf, cmd const[UDMABUF_CREATE_LIST], arg ptr[inout, udmabuf_create_list$auto]) fd
 
 resource fd_uhid_fops_uhid[fd]
 openat$auto_uhid_fops_uhid(fd const[AT_FDCWD], file ptr[in, string["/dev/uhid"]], flags flags[open_flags], mode const[0]) fd_uhid_fops_uhid
@@ -3719,7 +3719,7 @@ ioctl$auto_XFS_IOC_GETVERSION(fd fd_xfs_dir_file_operations_xfs_file, cmd const[
 ioctl$auto_XFS_IOC_GET_RESBLKS(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_GET_RESBLKS], arg ptr[in, xfs_fsop_resblks$auto])
 ioctl$auto_XFS_IOC_GOINGDOWN(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_GOINGDOWN], arg ptr[in, int32])
 ioctl$auto_XFS_IOC_INUMBERS(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_INUMBERS], arg ptr[in, xfs_inumbers_req$auto])
-ioctl$auto_XFS_IOC_OPEN_BY_HANDLE(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_OPEN_BY_HANDLE], arg ptr[inout, xfs_fsop_handlereq$auto])
+ioctl$auto_XFS_IOC_OPEN_BY_HANDLE(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_OPEN_BY_HANDLE], arg ptr[inout, xfs_fsop_handlereq$auto]) fd
 ioctl$auto_XFS_IOC_PATH_TO_FSHANDLE(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_PATH_TO_FSHANDLE], arg ptr[inout, xfs_fsop_handlereq$auto])
 ioctl$auto_XFS_IOC_PATH_TO_HANDLE(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_PATH_TO_HANDLE], arg ptr[inout, xfs_fsop_handlereq$auto])
 ioctl$auto_XFS_IOC_READLINK_BY_HANDLE(fd fd_xfs_dir_file_operations_xfs_file, cmd const[XFS_IOC_READLINK_BY_HANDLE], arg ptr[inout, xfs_fsop_handlereq$auto])
@@ -9775,7 +9775,7 @@ xfs_growfs_log$auto {
 }
 
 xfs_growfs_rt$auto {
-	newblocks	int64
+	newblocks	auto_union[gid, int64]
 	extsize		int32
 }
 

@@ -161,20 +161,22 @@ func (ctx *context) processSyscalls() {
 	var syscalls []*Syscall
 	for _, call := range ctx.Syscalls {
 		ctx.processFields(call.Args, "", false)
-		call.returnType = ctx.inferReturnType(call.Func, call.SourceFile)
-		for i, arg := range call.Args {
-			typ := ctx.inferArgType(call.Func, call.SourceFile, i)
-			refineFieldType(arg, typ, false)
-		}
-		ctx.emitSyscall(&syscalls, call, "")
-		for i := range call.Args {
-			cmds := ctx.inferCommandVariants(call.Func, call.SourceFile, i)
+		for varArg := range call.Args {
+			cmds := ctx.inferCommandVariants(call.Func, call.SourceFile, varArg)
 			for _, cmd := range cmds {
 				variant := *call
 				variant.Args = slices.Clone(call.Args)
-				newArg := *variant.Args[i]
-				newArg.syzType = fmt.Sprintf("const[%v]", cmd)
-				variant.Args[i] = &newArg
+				for i, oldArg := range variant.Args {
+					arg := *oldArg
+					if i == varArg {
+						arg.syzType = fmt.Sprintf("const[%v]", cmd)
+					} else {
+						typ := ctx.inferArgType(call.Func, call.SourceFile, i, varArg, cmd)
+						refineFieldType(&arg, typ, false)
+					}
+					variant.Args[i] = &arg
+				}
+				variant.returnType = ctx.inferReturnType(call.Func, call.SourceFile, varArg, cmd)
 				suffix := cmd
 				if call.Func == "__do_sys_ioctl" {
 					suffix = ctx.uniqualize("ioctl cmd", cmd)
@@ -182,6 +184,12 @@ func (ctx *context) processSyscalls() {
 				ctx.emitSyscall(&syscalls, &variant, "_"+suffix)
 			}
 		}
+		call.returnType = ctx.inferReturnType(call.Func, call.SourceFile, -1, "")
+		for i, arg := range call.Args {
+			typ := ctx.inferArgType(call.Func, call.SourceFile, i, -1, "")
+			refineFieldType(arg, typ, false)
+		}
+		ctx.emitSyscall(&syscalls, call, "")
 	}
 	ctx.Syscalls = sortAndDedupSlice(syscalls)
 }
