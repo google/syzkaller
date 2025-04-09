@@ -15,6 +15,13 @@
               {{end}}
             </select>
           </div>
+          <div class="form-check col-auto">
+            <input class="form-check-input" type="checkbox" name="with_findings" value="true"
+                   id="onlyWithFindings"{{if .Filter.WithFindings}} checked=""{{end}}>
+            <label class="form-check-label" for="onlyWithFindings">
+              Only with findings
+            </label>
+          </div>
           <div class="col-auto">
             <button type="submit" class="btn btn-primary">Submit</button>
           </div>
