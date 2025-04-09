@@ -164,5 +164,9 @@ func loadCompileCommands(dbFile string) ([]compileCommand, error) {
 	rand.New(rand.NewSource(time.Now().UnixNano())).Shuffle(len(cmds), func(i, j int) {
 		cmds[i], cmds[j] = cmds[j], cmds[i]
 	})
+	if len(cmds) == 0 {
+		return nil, fmt.Errorf("no kernel compile commands in compile_commands.json" +
+			" (was the kernel compiled with gcc?)")
+	}
 	return cmds, nil
 }
