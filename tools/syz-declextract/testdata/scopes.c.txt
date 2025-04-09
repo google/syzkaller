@@ -18,3 +18,8 @@ scopes0$auto_FOO_IOCTL3(x int32, cmd const[FOO_IOCTL3], aux fd) fd
 scopes0$auto_FOO_IOCTL4(x int32, cmd const[FOO_IOCTL4], aux fd)
 scopes0$auto_FOO_IOCTL7(x int32, cmd const[FOO_IOCTL7], aux fd) fd
 scopes0$auto_FOO_IOCTL8(x fd, cmd const[FOO_IOCTL8], aux fd)
+scopes0$auto_LARGE_SINT(x int32, cmd const[LARGE_SINT], aux fd)
+scopes0$auto_LARGE_UINT(x int32, cmd const[LARGE_UINT], aux fd)
+
+define LARGE_SINT	0
+define LARGE_UINT	-9223372036854775808

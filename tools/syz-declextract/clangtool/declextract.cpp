@@ -494,7 +494,13 @@ int Extractor::alignofType(const Type* T) { return static_cast<int>(Context->get
 template <typename T> T Extractor::evaluate(const Expr* E) {
   Expr::EvalResult Res;
   E->EvaluateAsConstantExpr(Res, *Context);
-  return static_cast<T>(Res.Val.getInt().getExtValue());
+  // TODO: it's unclear what to do if it's not Int (in some cases we see None here).
+  if (Res.Val.getKind() != APValue::Int)
+    return 0;
+  auto val = Res.Val.getInt();
+  if (val.isSigned())
+    return val.sextOrTrunc(64).getSExtValue();
+  return val.zextOrTrunc(64).getZExtValue();
 }
 
 void Extractor::matchNetlinkPolicy() {
