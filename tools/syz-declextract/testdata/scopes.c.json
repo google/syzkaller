@@ -284,6 +284,14 @@
 							}
 						}
 					]
+				},
+				{
+					"arg": 0,
+					"values": [
+						"LARGE_UINT",
+						"LARGE_SINT"
+					],
+					"loc": 3
 				}
 			]
 		}
@@ -318,6 +326,16 @@
 			"name": "FOO_IOCTL8",
 			"filename": "include/uapi/file_operations.h",
 			"value": 25352
+		},
+		{
+			"name": "LARGE_SINT",
+			"filename": "scopes.c",
+			"value": 0
+		},
+		{
+			"name": "LARGE_UINT",
+			"filename": "scopes.c",
+			"value": -9223372036854775808
 		}
 	],
 	"structs": [
