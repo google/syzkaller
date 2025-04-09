@@ -57,6 +57,7 @@ var staticFs embed.FS
 func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{id}/log", errToStatus(h.sessionLog))
+	mux.HandleFunc("/sessions/{id}/triage_log", errToStatus(h.sessionTriageLog))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
@@ -220,6 +221,17 @@ func (h *dashboardHandler) sessionLog(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("%w: session", errNotFound)
 	}
 	return h.streamBlob(w, session.LogURI)
+}
+
+// nolint:dupl
+func (h *dashboardHandler) sessionTriageLog(w http.ResponseWriter, r *http.Request) error {
+	session, err := h.sessionRepo.GetByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return err
+	} else if session == nil {
+		return fmt.Errorf("%w: session", errNotFound)
+	}
+	return h.streamBlob(w, session.TriageLogURI)
 }
 
 // nolint:dupl

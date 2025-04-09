@@ -13,7 +13,8 @@ type TriageResult struct {
 }
 
 type SkipRequest struct {
-	Reason string `json:"reason"`
+	Reason    string `json:"reason"`
+	TriageLog []byte `json:"log"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.

@@ -99,7 +99,12 @@
                 {{if not .SkipReason.IsNull}}
                 <tr>
                     <th>Skipped</th>
-                    <td>{{.SkipReason.StringVal}}</td>
+                    <td>
+                        {{.SkipReason.StringVal}}
+                        {{if .TriageLogURI}}
+                            <a href="/sessions/{{.ID}}/triage_log">[Log]</a>
+                        {{end}}
+                    </td>
                 </tr>
                 {{end}}
                 {{if .LogURI}}
