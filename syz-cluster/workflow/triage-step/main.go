@@ -57,6 +57,13 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
+	if skipReason := triage.NeedFuzzing(series); skipReason != "" {
+		return &api.TriageResult{
+			Skip: &api.SkipRequest{
+				Reason: skipReason,
+			},
+		}, nil
+	}
 	trees, err := client.GetTrees(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trees: %w", err)
