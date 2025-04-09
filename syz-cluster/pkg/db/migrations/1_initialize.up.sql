@@ -56,6 +56,7 @@ CREATE TABLE Sessions (
     FinishedAt TIMESTAMP,
     SkipReason STRING(1024),
     LogURI STRING(512) NOT NULL,
+    TriageLogURI STRING(512) NOT NULL,
     Tags ARRAY<STRING(256)>,
     CONSTRAINT FK_SeriesSessions FOREIGN KEY (SeriesID) REFERENCES Series (ID),
 ) PRIMARY KEY(ID);

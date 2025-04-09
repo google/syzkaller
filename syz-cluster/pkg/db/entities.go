@@ -60,14 +60,15 @@ const (
 )
 
 type Session struct {
-	ID         string             `spanner:"ID"`
-	SeriesID   string             `spanner:"SeriesID"`
-	CreatedAt  time.Time          `spanner:"CreatedAt"`
-	StartedAt  spanner.NullTime   `spanner:"StartedAt"`
-	FinishedAt spanner.NullTime   `spanner:"FinishedAt"`
-	SkipReason spanner.NullString `spanner:"SkipReason"`
-	LogURI     string             `spanner:"LogURI"`
-	Tags       []string           `spanner:"Tags"`
+	ID           string             `spanner:"ID"`
+	SeriesID     string             `spanner:"SeriesID"`
+	CreatedAt    time.Time          `spanner:"CreatedAt"`
+	StartedAt    spanner.NullTime   `spanner:"StartedAt"`
+	FinishedAt   spanner.NullTime   `spanner:"FinishedAt"`
+	SkipReason   spanner.NullString `spanner:"SkipReason"`
+	LogURI       string             `spanner:"LogURI"`
+	TriageLogURI string             `spanner:"TriageLogURI"`
+	Tags         []string           `spanner:"Tags"`
 	// TODO: to accept more specific fuzzing assignment,
 	// add Triager, BaseRepo, BaseCommit, Config fields.
 }

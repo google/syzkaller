@@ -9,7 +9,6 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
-// TODO: add tests.
 func SelectTree(series *api.Series, trees []*api.Tree) *api.Tree {
 	seriesCc := map[string]bool{}
 	for _, cc := range series.Cc {
