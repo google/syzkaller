@@ -281,13 +281,7 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
       IsAnonymous = true;
     }
     FieldType FieldType = genType(F->getType(), BackupFieldName);
-    int BitWidth = F->isBitField()
-#if LLVM_VERSION_MAJOR >= 21
-	    ? F->getBitWidthValue()
-#else
-	    ? F->getBitWidthValue(*Context)
-#endif
-	    : 0;
+    int BitWidth = F->isBitField() ? F->getBitWidthValue() : 0;
     int CountedBy = F->getType()->isCountAttributedType()
                         ? llvm::dyn_cast<FieldDecl>(
                               F->getType()->getAs<CountAttributedType>()->getCountExpr()->getReferencedDeclOfCallee())
