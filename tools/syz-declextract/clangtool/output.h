@@ -158,7 +158,8 @@ struct TypingFact {
 
 struct FunctionScope {
   int Arg = 0;
-  int LOC = 0;
+  int StartLine = 0;
+  int EndLine = 0;
   std::vector<std::string> Values;
   std::vector<std::string> Calls;
   std::vector<TypingFact> Facts;
@@ -167,6 +168,8 @@ struct FunctionScope {
 struct Function {
   std::string Name;
   std::string File;
+  int StartLine = 0;
+  int EndLine = 0;
   bool IsStatic = false;
   std::vector<FunctionScope> Scopes;
 };
@@ -362,7 +365,8 @@ inline void print(JSONPrinter& Printer, const FunctionScope& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("arg", V.Arg);
   Printer.Field("values", V.Values);
-  Printer.Field("loc", V.LOC);
+  Printer.Field("start_line", V.StartLine);
+  Printer.Field("end_line", V.EndLine);
   Printer.Field("calls", V.Calls);
   Printer.Field("facts", V.Facts, true);
 }
@@ -371,6 +375,8 @@ inline void print(JSONPrinter& Printer, const Function& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("name", V.Name);
   Printer.Field("file", V.File);
+  Printer.Field("start_line", V.StartLine);
+  Printer.Field("end_line", V.EndLine);
   Printer.Field("is_static", V.IsStatic);
   Printer.Field("scopes", V.Scopes, true);
 }

@@ -3,20 +3,22 @@
 		{
 			"name": "__do_sys_chmod",
 			"file": "syscall.c",
+			"start_line": 10,
+			"end_line": 12,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "__do_sys_open",
 			"file": "syscall.c",
+			"start_line": 6,
+			"end_line": 8,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		}
