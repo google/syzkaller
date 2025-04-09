@@ -206,13 +206,13 @@ std::string TypeName(QualType QT) {
 // Top function that converts any clang type QT to our output type.
 FieldType Extractor::genType(QualType QT, const std::string& BackupName) {
   const Type* T = QT.IgnoreParens().getUnqualifiedType().getDesugaredType(*Context).getTypePtr();
-  if (auto* Typ = llvm::dyn_cast<BuiltinType>(T)) {
+  if (llvm::isa<BuiltinType>(T)) {
     return IntType{.ByteSize = sizeofType(T), .Name = TypeName(QT), .Base = QualType(T, 0).getAsString()};
   }
   if (auto* Typ = llvm::dyn_cast<EnumType>(T)) {
     return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(Typ->getDecl())};
   }
-  if (auto* Typ = llvm::dyn_cast<FunctionProtoType>(T)) {
+  if (llvm::isa<FunctionProtoType>(T)) {
     return PtrType{.Elem = TodoType(), .IsConst = true};
   }
   if (auto* Typ = llvm::dyn_cast<IncompleteArrayType>(T)) {
