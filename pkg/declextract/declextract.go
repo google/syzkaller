@@ -181,7 +181,7 @@ func (ctx *context) processSyscalls() {
 				if call.Func == "__do_sys_ioctl" {
 					suffix = ctx.uniqualize("ioctl cmd", cmd)
 				}
-				ctx.emitSyscall(&syscalls, &variant, "_"+suffix)
+				ctx.emitSyscall(&syscalls, &variant, "_"+suffix, cmd, varArg, cmd)
 			}
 		}
 		call.returnType = ctx.inferReturnType(call.Func, call.SourceFile, -1, "")
@@ -189,21 +189,30 @@ func (ctx *context) processSyscalls() {
 			typ := ctx.inferArgType(call.Func, call.SourceFile, i, -1, "")
 			refineFieldType(arg, typ, false)
 		}
-		ctx.emitSyscall(&syscalls, call, "")
+		ctx.emitSyscall(&syscalls, call, "", "", -1, "")
 	}
 	ctx.Syscalls = sortAndDedupSlice(syscalls)
 }
 
-func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall, suffix string) {
+func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall,
+	suffix, cmd string, scopeArg int, scopeVal string) {
 	fn := strings.TrimPrefix(call.Func, "__do_sys_")
 	for _, name := range ctx.syscallRename[fn] {
+		syscallName := name
+		identifyingConst := "__NR_" + name
+		if cmd != "" {
+			syscallName += "$" + cmd
+			identifyingConst = cmd
+		}
 		ctx.noteInterface(&Interface{
 			Type:             IfaceSyscall,
-			Name:             name,
-			IdentifyingConst: "__NR_" + name,
+			Name:             syscallName,
+			IdentifyingConst: identifyingConst,
 			Files:            []string{call.SourceFile},
 			Func:             call.Func,
 			AutoDescriptions: true,
+			scopeArg:         scopeArg,
+			scopeVal:         scopeVal,
 		})
 		newCall := *call
 		newCall.Func = name + autoSuffix + suffix

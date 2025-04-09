@@ -3,10 +3,11 @@
 		{
 			"name": "__do_sys_scopes0",
 			"file": "scopes.c",
+			"start_line": 25,
+			"end_line": 51,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 4,
 					"calls": [
 						"__fget_light"
 					],
@@ -44,7 +45,8 @@
 					"values": [
 						"FOO_IOCTL1"
 					],
-					"loc": 3,
+					"start_line": 29,
+					"end_line": 32,
 					"calls": [
 						"__fget_light"
 					],
@@ -71,7 +73,8 @@
 						"FOO_IOCTL2",
 						"FOO_IOCTL3"
 					],
-					"loc": 4,
+					"start_line": 32,
+					"end_line": 36,
 					"calls": [
 						"alloc_fd"
 					],
@@ -109,7 +112,8 @@
 						"1074291461",
 						"1074291462"
 					],
-					"loc": 3
+					"start_line": 36,
+					"end_line": 39
 				},
 				{
 					"arg": 1,
@@ -117,7 +121,8 @@
 						"FOO_IOCTL7",
 						"FOO_IOCTL8"
 					],
-					"loc": 4,
+					"start_line": 39,
+					"end_line": 43,
 					"calls": [
 						"scopes_helper"
 					],
@@ -171,11 +176,12 @@
 						"101",
 						"102"
 					],
-					"loc": 3
+					"start_line": 43,
+					"end_line": 46
 				},
 				{
 					"arg": 1,
-					"loc": 3,
+					"start_line": 46,
 					"facts": [
 						{
 							"src": {
@@ -197,6 +203,8 @@
 		{
 			"name": "__fget_light",
 			"file": "include/fs.h",
+			"start_line": 18,
+			"end_line": 19,
 			"is_static": true,
 			"scopes": [
 				{
@@ -207,40 +215,44 @@
 		{
 			"name": "alloc_fd",
 			"file": "include/fs.h",
+			"start_line": 14,
+			"end_line": 16,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "from_kuid",
 			"file": "include/fs.h",
+			"start_line": 21,
+			"end_line": 23,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "scopes_helper",
 			"file": "scopes.c",
+			"start_line": 11,
+			"end_line": 23,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 2
+					"arg": -1
 				},
 				{
 					"arg": 0,
 					"values": [
 						"FOO_IOCTL7"
 					],
-					"loc": 2,
+					"start_line": 13,
+					"end_line": 15,
 					"calls": [
 						"alloc_fd"
 					],
@@ -264,7 +276,8 @@
 					"values": [
 						"FOO_IOCTL8"
 					],
-					"loc": 3,
+					"start_line": 15,
+					"end_line": 18,
 					"calls": [
 						"__fget_light"
 					],
@@ -291,7 +304,7 @@
 						"LARGE_UINT",
 						"LARGE_SINT"
 					],
-					"loc": 3
+					"start_line": 18
 				}
 			]
 		}

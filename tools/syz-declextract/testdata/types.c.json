@@ -3,30 +3,33 @@
 		{
 			"name": "__do_sys_align_syscall",
 			"file": "types.c",
+			"start_line": 97,
+			"end_line": 99,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "__do_sys_types_syscall",
 			"file": "types.c",
+			"start_line": 53,
+			"end_line": 57,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "anon_flow",
 			"file": "types.c",
+			"start_line": 59,
+			"end_line": 68,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 8,
 					"facts": [
 						{
 							"src": {
@@ -133,21 +136,23 @@
 		{
 			"name": "atomic_load32",
 			"file": "include/types.h",
+			"start_line": 17,
+			"end_line": 19,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
+			"start_line": 21,
+			"end_line": 23,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		}

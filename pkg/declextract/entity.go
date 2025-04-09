@@ -24,15 +24,16 @@ type Output struct {
 }
 
 type Function struct {
-	Name     string `json:"name,omitempty"`
-	File     string `json:"file,omitempty"`
-	IsStatic bool   `json:"is_static,omitempty"`
+	Name      string `json:"name,omitempty"`
+	File      string `json:"file,omitempty"`
+	StartLine int    `json:"start_line,omitempty"`
+	EndLine   int    `json:"end_line,omitempty"`
+	IsStatic  bool   `json:"is_static,omitempty"`
 	// Information about function scopes. There is a global scope (with Arg=-1),
 	// and scope for each switch case on the function argument.
 	Scopes []*FunctionScope `json:"scopes,omitempty"`
 
 	callers int
-	calls   []*Function
 	facts   map[string]*typingNode
 }
 
@@ -41,12 +42,14 @@ type FunctionScope struct {
 	Arg int `json:"arg"`
 	// The set of case values for this scope.
 	// It's empt for the global scope for the default case scope.
-	Values []string      `json:"values,omitempty"`
-	LOC    int           `json:"loc,omitempty"`
-	Calls  []string      `json:"calls,omitempty"`
-	Facts  []*TypingFact `json:"facts,omitempty"`
+	Values    []string      `json:"values,omitempty"`
+	StartLine int           `json:"start_line,omitempty"`
+	EndLine   int           `json:"end_line,omitempty"`
+	Calls     []string      `json:"calls,omitempty"`
+	Facts     []*TypingFact `json:"facts,omitempty"`
 
-	fn *Function
+	fn    *Function
+	calls []*Function
 }
 
 type ConstInfo struct {

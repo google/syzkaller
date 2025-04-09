@@ -3,27 +3,31 @@
 		{
 			"name": "atomic_load32",
 			"file": "include/types.h",
+			"start_line": 17,
+			"end_line": 19,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
+			"start_line": 21,
+			"end_line": 23,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "bar_cmd",
 			"file": "netlink.c",
+			"start_line": 43,
+			"end_line": 43,
 			"is_static": true,
 			"scopes": [
 				{
@@ -34,6 +38,8 @@
 		{
 			"name": "bar_doit",
 			"file": "netlink.c",
+			"start_line": 76,
+			"end_line": 76,
 			"is_static": true,
 			"scopes": [
 				{
@@ -44,6 +50,8 @@
 		{
 			"name": "bar_post_doit",
 			"file": "netlink.c",
+			"start_line": 77,
+			"end_line": 77,
 			"is_static": true,
 			"scopes": [
 				{
@@ -54,6 +62,8 @@
 		{
 			"name": "bar_pre_doit",
 			"file": "netlink.c",
+			"start_line": 75,
+			"end_line": 75,
 			"is_static": true,
 			"scopes": [
 				{
@@ -64,6 +74,8 @@
 		{
 			"name": "foo_cmd",
 			"file": "netlink.c",
+			"start_line": 42,
+			"end_line": 42,
 			"is_static": true,
 			"scopes": [
 				{

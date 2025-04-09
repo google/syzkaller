@@ -141,7 +141,6 @@ private:
   int sizeofType(const Type* T);
   int alignofType(const Type* T);
   void extractIoctl(const Expr* Cmd, const MacroDesc& Macro);
-  int getStmtLOC(const Stmt* S);
   std::optional<MacroDesc> isMacroRef(const Expr* E);
 };
 
@@ -356,11 +355,6 @@ std::string Extractor::getDeclFileID(const Decl* Decl) {
           .string();
   std::replace(file.begin(), file.end(), '-', '_');
   return file;
-}
-
-int Extractor::getStmtLOC(const Stmt* S) {
-  return std::max<int>(0, SourceManager->getExpansionLineNumber(S->getSourceRange().getEnd()) -
-                              SourceManager->getExpansionLineNumber(S->getSourceRange().getBegin()) - 1);
 }
 
 std::optional<MacroDesc> Extractor::isMacroRef(const Expr* E) {
@@ -636,7 +630,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
       : Extractor(Extractor), CurrentFunc(Func->getNameAsString()), Context(Extractor->Context),
         SourceManager(Extractor->SourceManager) {
     // The global function scope.
-    Scopes.push_back(FunctionScope{.Arg = -1, .LOC = Extractor->getStmtLOC(Func->getBody())});
+    Scopes.push_back(FunctionScope{.Arg = -1});
     Current = &Scopes[0];
     TraverseStmt(Func->getBody());
   }
@@ -692,11 +686,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
       }
     }
 
-    int Begin = SourceManager->getExpansionLineNumber(S->getBeginLoc());
-    int End = SourceManager->getExpansionLineNumber(S->getEndLoc());
-    if (IsInteresting)
-      Scopes[0].LOC = std::max<int>(0, Scopes[0].LOC - (End - Begin));
-    SwitchStack.push({S, IsInteresting, IsInteresting ? static_cast<int>(Param->Argument->Arg) : -1, End});
+    SwitchStack.push({S, IsInteresting, IsInteresting ? static_cast<int>(Param->Argument->Arg) : -1});
     return true;
   }
 
@@ -711,10 +701,10 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     if (!C->getNextSwitchCase() || C->getNextSwitchCase()->getSubStmt() != C) {
       int Line = SourceManager->getExpansionLineNumber(C->getBeginLoc());
       if (Current != &Scopes[0])
-        Current->LOC = Line - Current->LOC;
+        Current->EndLine = Line;
       Scopes.push_back(FunctionScope{
           .Arg = SwitchStack.top().Arg,
-          .LOC = Line,
+          .StartLine = Line,
       });
       Current = &Scopes.back();
     }
@@ -749,10 +739,8 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     auto Top = SwitchStack.top();
     if (Top.S != S)
       return true;
-    if (Top.IsInteresting) {
-      Current->LOC = Top.EndLine - Current->LOC;
+    if (Top.IsInteresting)
       Current = &Scopes[0];
-    }
     SwitchStack.pop();
     return true;
   }
@@ -769,7 +757,6 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     const SwitchStmt* S;
     bool IsInteresting;
     int Arg;
-    int EndLine;
   };
 
   Extractor* Extractor;
@@ -787,12 +774,17 @@ void Extractor::matchFunctionDef() {
   const auto* Func = getResult<FunctionDecl>("function");
   if (!Func->getBody())
     return;
-  const std::string& SourceFile = std::filesystem::relative(
-      SourceManager->getFilename(SourceManager->getExpansionLoc(Func->getSourceRange().getBegin())).str());
+  auto Range = Func->getSourceRange();
+  const std::string& SourceFile =
+      std::filesystem::relative(SourceManager->getFilename(SourceManager->getExpansionLoc(Range.getBegin())).str());
+  const int StartLine = SourceManager->getExpansionLineNumber(Range.getBegin());
+  const int EndLine = SourceManager->getExpansionLineNumber(Range.getEnd());
   FunctionAnalyzer Analyzer(this, Func);
   Output.emit(Function{
       .Name = Func->getNameAsString(),
       .File = SourceFile,
+      .StartLine = StartLine,
+      .EndLine = EndLine,
       .IsStatic = Func->isStatic(),
       .Scopes = std::move(Analyzer.Scopes),
   });

@@ -260,7 +260,7 @@ func (ic *inferContext) walk(n *typingNode) {
 	}
 	if len(ic.path) < ic.maxDepth {
 		for e, scopes := range n.flows[ic.flowType] {
-			if ic.relevantScope(scopes) {
+			if relevantScopes(ic.scopeFnArgs, ic.scopeVal, scopes) {
 				ic.walk(e)
 			}
 		}
@@ -268,25 +268,32 @@ func (ic *inferContext) walk(n *typingNode) {
 	ic.path = ic.path[:len(ic.path)-1]
 }
 
-func (ic *inferContext) relevantScope(scopes []*FunctionScope) bool {
-	if ic.scopeFnArgs == nil {
+func relevantScopes(scopeFnArgs map[fnArg]bool, scopeVal string, scopes []*FunctionScope) bool {
+	for _, scope := range scopes {
+		if relevantScope(scopeFnArgs, scopeVal, scope) {
+			return true
+		}
+	}
+	return false
+}
+
+func relevantScope(scopeFnArgs map[fnArg]bool, scopeVal string, scope *FunctionScope) bool {
+	if scopeFnArgs == nil {
 		// We are not doing scope-limited walk, so all scopes are relevant.
 		return true
 	}
-	for _, scope := range scopes {
-		if scope.Arg == -1 {
-			// Always use global scope.
+	if scope.Arg == -1 {
+		// Always use global scope.
+		return true
+	}
+	if !scopeFnArgs[fnArg{scope.fn, scope.Arg}] {
+		// The scope argument is not related to the current scope.
+		return true
+	}
+	// For the scope argument, check that it has the right value.
+	for _, val := range scope.Values {
+		if val == scopeVal {
 			return true
-		}
-		if !ic.scopeFnArgs[fnArg{scope.fn, scope.Arg}] {
-			// The scope argument is not related to the current scope.
-			return true
-		}
-		// For the scope argument, check that it has the right value.
-		for _, val := range scope.Values {
-			if val == ic.scopeVal {
-				return true
-			}
 		}
 	}
 	return false

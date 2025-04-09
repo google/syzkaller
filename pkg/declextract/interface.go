@@ -19,6 +19,9 @@ type Interface struct {
 	ManualDescriptions bool
 	AutoDescriptions   bool
 	ReachableLOC       int
+
+	scopeArg int
+	scopeVal string
 }
 
 const (
@@ -38,7 +41,7 @@ func (ctx *context) noteInterface(iface *Interface) {
 
 func (ctx *context) finishInterfaces() {
 	for _, iface := range ctx.interfaces {
-		iface.ReachableLOC = ctx.reachableLOC(iface.Func, iface.Files[0])
+		iface.ReachableLOC = ctx.reachableLOC(iface.Func, iface.Files[0], iface.scopeArg, iface.scopeVal)
 		slices.Sort(iface.Files)
 		iface.Files = slices.Compact(iface.Files)
 		if iface.Access == "" {
@@ -57,7 +60,6 @@ func (ctx *context) processFunctions() {
 			ctx.funcs[fn.Name] = fn
 		}
 	}
-	nocallers := 0
 	for _, fn := range ctx.Functions {
 		for _, scope := range fn.Scopes {
 			for _, callee := range scope.Calls {
@@ -65,34 +67,26 @@ func (ctx *context) processFunctions() {
 				if called == nil || called == fn {
 					continue
 				}
-				fn.calls = append(fn.calls, called)
+				scope.calls = append(scope.calls, called)
 				called.callers++
 			}
-		}
-		if len(fn.calls) == 0 {
-			nocallers++
 		}
 	}
 }
 
-func (ctx *context) reachableLOC(name, file string) int {
+func (ctx *context) reachableLOC(name, file string, scopeArg int, scopeVal string) int {
 	fn := ctx.findFunc(name, file)
 	if fn == nil {
 		ctx.warn("can't find function %v called in %v", name, file)
 		return 0
 	}
-	reachable := make(map[*Function]bool)
-	ctx.collectRachable(fn, reachable)
-	loc := 0
-	for fn := range reachable {
-		for _, scope := range fn.Scopes {
-			loc += scope.LOC
-		}
-	}
-	return loc
+	scopeFnArgs := ctx.inferArgFlow(fnArg{fn, scopeArg})
+	visited := make(map[*Function]bool)
+	return ctx.collectLOC(fn, scopeFnArgs, scopeVal, visited)
 }
 
-func (ctx *context) collectRachable(fn *Function, reachable map[*Function]bool) {
+func (ctx *context) collectLOC(fn *Function, scopeFnArgs map[fnArg]bool, scopeVal string,
+	visited map[*Function]bool) int {
 	// Ignore very common functions when computing reachability for complexity analysis.
 	// Counting kmalloc/printk against each caller is not useful (they have ~10K calls).
 	// There are also subsystem common functions (e.g. functions called in some parts of fs/net).
@@ -103,13 +97,21 @@ func (ctx *context) collectRachable(fn *Function, reachable map[*Function]bool) 
 	// 3 callers - 16527 functions
 	const commonFuncThreshold = 5
 
-	reachable[fn] = true
-	for _, callee := range fn.calls {
-		if reachable[callee] || callee.callers >= commonFuncThreshold {
+	visited[fn] = true
+	loc := max(0, fn.EndLine-fn.StartLine-1)
+	for _, scope := range fn.Scopes {
+		if !relevantScope(scopeFnArgs, scopeVal, scope) {
+			loc -= max(0, scope.EndLine-scope.StartLine)
 			continue
 		}
-		ctx.collectRachable(callee, reachable)
+		for _, callee := range scope.calls {
+			if visited[callee] || callee.callers >= commonFuncThreshold {
+				continue
+			}
+			loc += ctx.collectLOC(callee, scopeFnArgs, scopeVal, visited)
+		}
 	}
+	return loc
 }
 
 func (ctx *context) findFunc(name, file string) *Function {

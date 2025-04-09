@@ -3,10 +3,11 @@
 		{
 			"name": "__do_sys_functions",
 			"file": "functions.c",
+			"start_line": 31,
+			"end_line": 34,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 2,
 					"calls": [
 						"__fget_light",
 						"func_baz"
@@ -45,6 +46,8 @@
 		{
 			"name": "__fget_light",
 			"file": "include/fs.h",
+			"start_line": 18,
+			"end_line": 19,
 			"is_static": true,
 			"scopes": [
 				{
@@ -55,54 +58,59 @@
 		{
 			"name": "alloc_fd",
 			"file": "include/fs.h",
+			"start_line": 14,
+			"end_line": 16,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "atomic_load32",
 			"file": "include/types.h",
+			"start_line": 17,
+			"end_line": 19,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
+			"start_line": 21,
+			"end_line": 23,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "from_kuid",
 			"file": "include/fs.h",
+			"start_line": 21,
+			"end_line": 23,
 			"is_static": true,
 			"scopes": [
 				{
-					"arg": -1,
-					"loc": 1
+					"arg": -1
 				}
 			]
 		},
 		{
 			"name": "func_bar",
 			"file": "functions.c",
+			"start_line": 11,
+			"end_line": 13,
 			"is_static": true,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 1,
 					"calls": [
 						"func_foo"
 					]
@@ -112,10 +120,11 @@
 		{
 			"name": "func_baz",
 			"file": "functions.c",
+			"start_line": 15,
+			"end_line": 24,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 8,
 					"calls": [
 						"func_foo",
 						"func_bar",
@@ -155,6 +164,8 @@
 		{
 			"name": "func_foo",
 			"file": "functions.c",
+			"start_line": 8,
+			"end_line": 9,
 			"is_static": true,
 			"scopes": [
 				{
@@ -165,10 +176,11 @@
 		{
 			"name": "func_qux",
 			"file": "functions.c",
+			"start_line": 26,
+			"end_line": 29,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 2,
 					"calls": [
 						"alloc_fd"
 					],
@@ -204,10 +216,11 @@
 		{
 			"name": "typing",
 			"file": "functions.c",
+			"start_line": 46,
+			"end_line": 52,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 5,
 					"calls": [
 						"typing1"
 					],
@@ -298,10 +311,11 @@
 		{
 			"name": "typing1",
 			"file": "functions.c",
+			"start_line": 42,
+			"end_line": 44,
 			"scopes": [
 				{
 					"arg": -1,
-					"loc": 1,
 					"facts": [
 						{
 							"src": {
