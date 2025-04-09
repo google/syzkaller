@@ -5,7 +5,7 @@
 export KERNEL=$PWD/linux
 git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
 cd $KERNEL
-make CC=clang defconfig # Having clang as the compiler is optional but removes erros later on
+make CC=clang defconfig
 ./scripts/config -e FTRACE_SYSCALLS
 make CC=clang olddefconfig
 make CC=clang -j`nproc` # kernel has to be built at least once for the script to work
