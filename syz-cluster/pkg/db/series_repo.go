@@ -133,10 +133,11 @@ type SeriesWithSession struct {
 }
 
 type SeriesFilter struct {
-	Cc     string
-	Status SessionStatus
-	Limit  int
-	Offset int
+	Cc           string
+	Status       SessionStatus
+	WithFindings bool
+	Limit        int
+	Offset       int
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -173,6 +174,10 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 			return nil, fmt.Errorf("unknown status value: %q", filter.Status)
 		}
 		stmt.SQL += ")"
+	}
+	if filter.WithFindings {
+		stmt.SQL += " AND Series.LatestSessionID IS NOT NULL " +
+			"AND EXISTS(SELECT 1 FROM Findings WHERE Findings.SessionID = Series.LatestSessionID)"
 	}
 	stmt.SQL += " ORDER BY PublishedAt DESC, ID"
 	if filter.Limit > 0 {

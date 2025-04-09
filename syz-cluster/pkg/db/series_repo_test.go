@@ -153,6 +153,13 @@ func TestSeriesRepositoryList(t *testing.T) {
 		assert.Len(t, list, 1)
 		assert.Equal(t, 1, list[0].Findings, "there must be just one finding")
 	})
+
+	t.Run("query_with_findings", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx, SeriesFilter{WithFindings: true}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 1)
+		assert.Equal(t, "Series 2", list[0].Series.Title)
+	})
 }
 
 func TestSeriesRepositoryUpdate(t *testing.T) {
