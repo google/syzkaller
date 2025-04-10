@@ -37,8 +37,9 @@ import (
 )
 
 type DiffFuzzerConfig struct {
-	Debug       bool
-	PatchedOnly chan *UniqueBug
+	Debug        bool
+	PatchedOnly  chan *UniqueBug
+	ArtifactsDir string // Where to store the artifacts that supplement the logs.
 }
 
 type UniqueBug struct {
@@ -73,7 +74,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 	base.source = stream
 	new.duplicateInto = stream
 
-	store := &DiffFuzzerStore{BasePath: new.cfg.Workdir}
+	store := &DiffFuzzerStore{BasePath: cfg.ArtifactsDir}
 	diffCtx := &diffContext{
 		doneRepro:     make(chan *ReproResult),
 		base:          base,
