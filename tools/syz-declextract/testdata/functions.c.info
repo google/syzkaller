@@ -1,1 +1,1 @@
-SYSCALL	functions	func:__do_sys_functions	loc:13	access:unknown	manual_desc:false	auto_desc:true	file:functions.c	subsystem:kernel
+SYSCALL	functions	func:__do_sys_functions	loc:13	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:functions.c	subsystem:kernel

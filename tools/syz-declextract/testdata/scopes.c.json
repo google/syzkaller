@@ -182,6 +182,7 @@
 				{
 					"arg": 1,
 					"start_line": 46,
+					"end_line": 49,
 					"facts": [
 						{
 							"src": {
@@ -304,7 +305,8 @@
 						"LARGE_UINT",
 						"LARGE_SINT"
 					],
-					"start_line": 18
+					"start_line": 18,
+					"end_line": 21
 				}
 			]
 		}

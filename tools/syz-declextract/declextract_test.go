@@ -64,11 +64,20 @@ func TestDeclextract(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		loadProbeInfo := func() (*ifaceprobe.Info, error) {
-			return probeInfo, nil
+		coverFile := filepath.Join(cfg.KernelSrc, filepath.Base(file)+".cover")
+		if !osutil.IsExist(coverFile) {
+			coverFile = ""
 		}
 		autoFile := filepath.Join(cfg.KernelObj, filepath.Base(file)+".txt")
-		res, err := run(autoFile, loadProbeInfo, "", cfg)
+		runcfg := &config{
+			autoFile:  autoFile,
+			coverFile: coverFile,
+			loadProbeInfo: func() (*ifaceprobe.Info, error) {
+				return probeInfo, nil
+			},
+			Config: cfg,
+		}
+		res, err := run(runcfg)
 		if err != nil {
 			if *flagUpdate {
 				osutil.CopyFile(autoFile, file+".txt")

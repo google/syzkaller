@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -35,47 +37,58 @@ var target = targets.Get(targets.Linux, targets.AMD64)
 
 func main() {
 	var (
-		flagConfig = flag.String("config", "", "manager config file")
-		flagBinary = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
-		flagArches = flag.String("arches", "", "comma-separated list of arches to extract (all if empty)")
+		flagConfig   = flag.String("config", "", "manager config file")
+		flagBinary   = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
+		flagCoverage = flag.String("coverage", "", "syzbot coverage jsonl file")
+		flagArches   = flag.String("arches", "", "comma-separated list of arches to extract (all if empty)")
 	)
 	defer tool.Init()()
-	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	mgrcfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
 	loadProbeInfo := func() (*ifaceprobe.Info, error) {
-		return probe(cfg, *flagConfig)
+		return probe(mgrcfg, *flagConfig)
 	}
-	if _, err := run(filepath.FromSlash("sys/linux/auto.txt"), loadProbeInfo, *flagArches, &clangtool.Config{
-		ToolBin:    *flagBinary,
-		KernelSrc:  cfg.KernelSrc,
-		KernelObj:  cfg.KernelObj,
-		CacheFile:  filepath.Join(cfg.Workdir, "declextract.cache"),
-		DebugTrace: os.Stderr,
-	}); err != nil {
+	cfg := &config{
+		archList:      *flagArches,
+		autoFile:      filepath.FromSlash("sys/linux/auto.txt"),
+		coverFile:     *flagCoverage,
+		loadProbeInfo: loadProbeInfo,
+		Config: &clangtool.Config{
+			ToolBin:    *flagBinary,
+			KernelSrc:  mgrcfg.KernelSrc,
+			KernelObj:  mgrcfg.KernelObj,
+			CacheFile:  filepath.Join(mgrcfg.Workdir, "declextract.cache"),
+			DebugTrace: os.Stderr,
+		},
+	}
+	if _, err := run(cfg); err != nil {
 		tool.Fail(err)
 	}
 }
 
-func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), archList string, cfg *clangtool.Config) (
-	*declextract.Result, error) {
-	arches, err := tool.ParseArchList(target.OS, archList)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arches flag: %w", err)
-	}
-	out, probeInfo, syscallRename, err := prepare(loadProbeInfo, arches, cfg)
+type config struct {
+	archList      string
+	autoFile      string
+	coverFile     string
+	loadProbeInfo func() (*ifaceprobe.Info, error)
+	*clangtool.Config
+}
+
+func run(cfg *config) (*declextract.Result, error) {
+	out, probeInfo, coverage, syscallRename, err := prepare(cfg)
 	if err != nil {
 		return nil, err
 	}
-	res, err := declextract.Run(out, probeInfo, syscallRename, cfg.DebugTrace)
+	res, err := declextract.Run(out, probeInfo, coverage, syscallRename, cfg.DebugTrace)
 	if err != nil {
 		return nil, err
 	}
-	if err := osutil.WriteFile(autoFile, res.Descriptions); err != nil {
+	if err := osutil.WriteFile(cfg.autoFile, res.Descriptions); err != nil {
 		return nil, err
 	}
-	if err := osutil.WriteFile(autoFile+".info", serialize(res.Interfaces)); err != nil {
+	if err := osutil.WriteFile(cfg.autoFile+".info", serialize(res.Interfaces)); err != nil {
 		return nil, err
 	}
 	// In order to remove unused bits of the descriptions, we need to write them out first,
@@ -83,7 +96,7 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), archLi
 	// by manual descriptions (compiler.CollectUnused requires complete descriptions).
 	// This also canonicalizes them b/c new lines are added during parsing.
 	eh, errors := errorHandler()
-	desc := ast.ParseGlob(filepath.Join(filepath.Dir(autoFile), "*.txt"), eh)
+	desc := ast.ParseGlob(filepath.Join(filepath.Dir(cfg.autoFile), "*.txt"), eh)
 	if desc == nil {
 		return nil, fmt.Errorf("failed to parse descriptions\n%s", errors.Bytes())
 	}
@@ -96,8 +109,8 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), archLi
 	if consts == nil {
 		return nil, fmt.Errorf("failed to typecheck descriptions: %w\n%s", err, errors.Bytes())
 	}
-	finishInterfaces(res.Interfaces, consts, autoFile)
-	if err := osutil.WriteFile(autoFile+".info", serialize(res.Interfaces)); err != nil {
+	finishInterfaces(res.Interfaces, consts, cfg.autoFile)
+	if err := osutil.WriteFile(cfg.autoFile+".info", serialize(res.Interfaces)); err != nil {
 		return nil, err
 	}
 	removeUnused(desc, "", unusedNodes)
@@ -107,10 +120,10 @@ func run(autoFile string, loadProbeInfo func() (*ifaceprobe.Info, error), archLi
 	if err != nil {
 		return nil, fmt.Errorf("failed to typecheck descriptions: %w\n%s", err, errors.Bytes())
 	}
-	removeUnused(desc, autoFile, unusedConsts)
+	removeUnused(desc, cfg.autoFile, unusedConsts)
 	// We need re-parse them again b/c new lines are fixed up during parsing.
-	formatted := ast.Format(ast.Parse(ast.Format(desc), autoFile, nil))
-	if err := osutil.WriteFile(autoFile, formatted); err != nil {
+	formatted := ast.Format(ast.Parse(ast.Format(desc), cfg.autoFile, nil))
+	if err := osutil.WriteFile(cfg.autoFile, formatted); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -128,13 +141,17 @@ func removeUnused(desc *ast.Description, autoFile string, unusedNodes []ast.Node
 	})
 }
 
-func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), arches []string, cfg *clangtool.Config) (
-	*declextract.Output, *ifaceprobe.Info, map[string][]string, error) {
+func prepare(cfg *config) (*declextract.Output, *ifaceprobe.Info, []*cover.FileCoverage,
+	map[string][]string, error) {
+	arches, err := tool.ParseArchList(target.OS, cfg.archList)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to parse arches flag: %w", err)
+	}
 	var eg errgroup.Group
 	var out *declextract.Output
 	eg.Go(func() error {
 		var err error
-		out, err = clangtool.Run(cfg)
+		out, err = clangtool.Run(cfg.Config)
 		if err != nil {
 			return err
 		}
@@ -143,7 +160,7 @@ func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), arches []string, cf
 	var probeInfo *ifaceprobe.Info
 	eg.Go(func() error {
 		var err error
-		probeInfo, err = loadProbeInfo()
+		probeInfo, err = cfg.loadProbeInfo()
 		if err != nil {
 			return fmt.Errorf("kernel probing failed: %w", err)
 		}
@@ -158,8 +175,38 @@ func prepare(loadProbeInfo func() (*ifaceprobe.Info, error), arches []string, cf
 		}
 		return nil
 	})
-	err := eg.Wait()
-	return out, probeInfo, syscallRename, err
+	var coverage []*cover.FileCoverage
+	eg.Go(func() error {
+		if cfg.coverFile == "" {
+			return nil
+		}
+		var err error
+		coverage, err = loadCoverage(cfg.coverFile)
+		return err
+	})
+	err = eg.Wait()
+	return out, probeInfo, coverage, syscallRename, err
+}
+
+func loadCoverage(fileName string) ([]*cover.FileCoverage, error) {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(f)
+	dec.DisallowUnknownFields()
+	var coverage []*cover.FileCoverage
+	for {
+		elem := new(cover.FileCoverage)
+		if err := dec.Decode(elem); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		coverage = append(coverage, elem)
+	}
+	return coverage, nil
 }
 
 func probe(cfg *mgrconfig.Config, cfgFile string) (*ifaceprobe.Info, error) {
@@ -202,9 +249,10 @@ func errorHandler() (func(pos ast.Pos, msg string), *bytes.Buffer) {
 func serialize(interfaces []*declextract.Interface) []byte {
 	w := new(bytes.Buffer)
 	for _, iface := range interfaces {
-		fmt.Fprintf(w, "%v\t%v\tfunc:%v\tloc:%v\taccess:%v\tmanual_desc:%v\tauto_desc:%v",
-			iface.Type, iface.Name, iface.Func, iface.ReachableLOC, iface.Access,
-			iface.ManualDescriptions, iface.AutoDescriptions)
+		fmt.Fprintf(w, "%v\t%v\tfunc:%v\tloc:%v\tcoverage:%v\taccess:%v\tmanual_desc:%v\tauto_desc:%v",
+			iface.Type, iface.Name, iface.Func, iface.ReachableLOC,
+			cover.Percent(iface.CoveredBlocks, iface.TotalBlocks),
+			iface.Access, iface.ManualDescriptions, iface.AutoDescriptions)
 		for _, file := range iface.Files {
 			fmt.Fprintf(w, "\tfile:%v", file)
 		}

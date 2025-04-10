@@ -48,8 +48,10 @@ type FunctionScope struct {
 	Calls     []string      `json:"calls,omitempty"`
 	Facts     []*TypingFact `json:"facts,omitempty"`
 
-	fn    *Function
-	calls []*Function
+	fn            *Function
+	calls         []*Function
+	coveredBlocks int
+	totalBlocks   int
 }
 
 type ConstInfo struct {

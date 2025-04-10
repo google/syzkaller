@@ -270,7 +270,7 @@ finit_module$auto(fd fd, uargs ptr[in, string], flags int32)
 flistxattr$auto(fd fd, list ptr[inout, string], size intptr)
 flock$auto(fd fd, cmd int32)
 fremovexattr$auto(fd fd, name ptr[in, string])
-fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
+fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
 fsconfig$auto_EROFS_MOUNT_DAX_ALWAYS(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_ALWAYS])
 fsconfig$auto_EROFS_MOUNT_DAX_NEVER(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_NEVER])
 fsconfig$auto_JFFS2_COMPR_MODE_FORCELZO(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[JFFS2_COMPR_MODE_FORCELZO])
@@ -9778,7 +9778,7 @@ xfs_growfs_log$auto {
 }
 
 xfs_growfs_rt$auto {
-	newblocks	int64
+	newblocks	auto_union[gid, int64]
 	extsize		int32
 }
 

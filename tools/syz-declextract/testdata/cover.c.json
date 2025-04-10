@@ -1,0 +1,142 @@
+{
+	"functions": [
+		{
+			"name": "__do_sys_cover",
+			"file": "cover.c",
+			"start_line": 23,
+			"end_line": 37,
+			"scopes": [
+				{
+					"arg": -1,
+					"facts": [
+						{
+							"src": {
+								"local": {
+									"name": "tmp"
+								}
+							},
+							"dst": {
+								"return": {
+									"func": "__do_sys_cover"
+								}
+							}
+						}
+					]
+				},
+				{
+					"arg": 0,
+					"values": [
+						"COVER_IOCTL1"
+					],
+					"start_line": 27,
+					"end_line": 29
+				},
+				{
+					"arg": 0,
+					"values": [
+						"COVER_IOCTL2"
+					],
+					"start_line": 29,
+					"end_line": 31
+				},
+				{
+					"arg": 0,
+					"values": [
+						"COVER_IOCTL3",
+						"COVER_IOCTL4"
+					],
+					"start_line": 31,
+					"end_line": 35,
+					"calls": [
+						"cover_helper"
+					],
+					"facts": [
+						{
+							"src": {
+								"argument": {
+									"func": "__do_sys_cover",
+									"arg": 0
+								}
+							},
+							"dst": {
+								"argument": {
+									"func": "cover_helper",
+									"arg": 0
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "cover_helper",
+			"file": "cover.c",
+			"start_line": 11,
+			"end_line": 21,
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				},
+				{
+					"arg": 0,
+					"values": [
+						"COVER_IOCTL3"
+					],
+					"start_line": 15,
+					"end_line": 17
+				},
+				{
+					"arg": 0,
+					"values": [
+						"COVER_IOCTL4"
+					],
+					"start_line": 17,
+					"end_line": 20
+				}
+			]
+		}
+	],
+	"consts": [
+		{
+			"name": "COVER_IOCTL1",
+			"filename": "cover.c",
+			"value": 1
+		},
+		{
+			"name": "COVER_IOCTL2",
+			"filename": "cover.c",
+			"value": 2
+		},
+		{
+			"name": "COVER_IOCTL3",
+			"filename": "cover.c",
+			"value": 3
+		},
+		{
+			"name": "COVER_IOCTL4",
+			"filename": "cover.c",
+			"value": 4
+		}
+	],
+	"syscalls": [
+		{
+			"func": "__do_sys_cover",
+			"args": [
+				{
+					"name": "cmd",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"name": "int",
+							"base": "int"
+						}
+					}
+				}
+			],
+			"source_file": "cover.c"
+		}
+	]
+}

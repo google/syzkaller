@@ -6,6 +6,8 @@ package declextract
 import (
 	"slices"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/cover"
 )
 
 type Interface struct {
@@ -19,6 +21,8 @@ type Interface struct {
 	ManualDescriptions bool
 	AutoDescriptions   bool
 	ReachableLOC       int
+	CoveredBlocks      int
+	TotalBlocks        int
 
 	scopeArg int
 	scopeVal string
@@ -41,7 +45,7 @@ func (ctx *context) noteInterface(iface *Interface) {
 
 func (ctx *context) finishInterfaces() {
 	for _, iface := range ctx.interfaces {
-		iface.ReachableLOC = ctx.reachableLOC(iface.Func, iface.Files[0], iface.scopeArg, iface.scopeVal)
+		ctx.calculateLOC(iface)
 		slices.Sort(iface.Files)
 		iface.Files = slices.Compact(iface.Files)
 		if iface.Access == "" {
@@ -60,7 +64,29 @@ func (ctx *context) processFunctions() {
 			ctx.funcs[fn.Name] = fn
 		}
 	}
+	coverBlocks := make(map[string][]*cover.Block)
+	for _, file := range ctx.coverage {
+		for _, fn := range file.Functions {
+			coverBlocks[file.FilePath+fn.FuncName] = fn.Blocks
+		}
+	}
 	for _, fn := range ctx.Functions {
+		for _, block := range coverBlocks[fn.File+fn.Name] {
+			var match *FunctionScope
+			for _, scope := range fn.Scopes {
+				if scope.Arg == -1 {
+					match = scope
+				}
+				if block.FromLine >= scope.StartLine && block.FromLine <= scope.EndLine {
+					match = scope
+					break
+				}
+			}
+			match.totalBlocks++
+			if block.HitCount != 0 {
+				match.coveredBlocks++
+			}
+		}
 		for _, scope := range fn.Scopes {
 			for _, callee := range scope.Calls {
 				called := ctx.findFunc(callee, fn.File)
@@ -74,19 +100,19 @@ func (ctx *context) processFunctions() {
 	}
 }
 
-func (ctx *context) reachableLOC(name, file string, scopeArg int, scopeVal string) int {
-	fn := ctx.findFunc(name, file)
+func (ctx *context) calculateLOC(iface *Interface) {
+	fn := ctx.findFunc(iface.Func, iface.Files[0])
 	if fn == nil {
-		ctx.warn("can't find function %v called in %v", name, file)
-		return 0
+		ctx.warn("can't find function %v called in %v", iface.Func, iface.Files[0])
+		return
 	}
-	scopeFnArgs := ctx.inferArgFlow(fnArg{fn, scopeArg})
+	scopeFnArgs := ctx.inferArgFlow(fnArg{fn, iface.scopeArg})
 	visited := make(map[*Function]bool)
-	return ctx.collectLOC(fn, scopeFnArgs, scopeVal, visited)
+	iface.ReachableLOC = ctx.collectLOC(iface, fn, scopeFnArgs, iface.scopeVal, visited)
 }
 
-func (ctx *context) collectLOC(fn *Function, scopeFnArgs map[fnArg]bool, scopeVal string,
-	visited map[*Function]bool) int {
+func (ctx *context) collectLOC(iface *Interface, fn *Function, scopeFnArgs map[fnArg]bool,
+	scopeVal string, visited map[*Function]bool) int {
 	// Ignore very common functions when computing reachability for complexity analysis.
 	// Counting kmalloc/printk against each caller is not useful (they have ~10K calls).
 	// There are also subsystem common functions (e.g. functions called in some parts of fs/net).
@@ -104,11 +130,13 @@ func (ctx *context) collectLOC(fn *Function, scopeFnArgs map[fnArg]bool, scopeVa
 			loc -= max(0, scope.EndLine-scope.StartLine)
 			continue
 		}
+		iface.TotalBlocks += scope.totalBlocks
+		iface.CoveredBlocks += scope.coveredBlocks
 		for _, callee := range scope.calls {
 			if visited[callee] || callee.callers >= commonFuncThreshold {
 				continue
 			}
-			loc += ctx.collectLOC(callee, scopeFnArgs, scopeVal, visited)
+			loc += ctx.collectLOC(iface, callee, scopeFnArgs, scopeVal, visited)
 		}
 	}
 	return loc

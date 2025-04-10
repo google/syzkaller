@@ -877,7 +877,7 @@ func addFunctionCoverage(file *file, data *templateData) {
 		percentage := ""
 		coveredTotal += function.covered
 		if function.covered > 0 {
-			percentage = fmt.Sprintf("%v%%", percent(function.covered, function.pcs))
+			percentage = fmt.Sprintf("%v%%", Percent(function.covered, function.pcs))
 			TotalInCoveredFunc += function.pcs
 		} else {
 			percentage = "---"
@@ -891,7 +891,7 @@ func addFunctionCoverage(file *file, data *templateData) {
 	buf.WriteString("<span class='hover'>SUMMARY")
 	percentInCoveredFunc := ""
 	if TotalInCoveredFunc > 0 {
-		percentInCoveredFunc = fmt.Sprintf("%v%%", percent(coveredTotal, TotalInCoveredFunc))
+		percentInCoveredFunc = fmt.Sprintf("%v%%", Percent(coveredTotal, TotalInCoveredFunc))
 	} else {
 		percentInCoveredFunc = "---"
 	}
@@ -915,21 +915,24 @@ func processDir(dir *templateDir) {
 	for _, f := range dir.Files {
 		dir.Total += f.Total
 		dir.Covered += f.Covered
-		f.Percent = percent(f.Covered, f.Total)
+		f.Percent = Percent(f.Covered, f.Total)
 	}
 	for _, child := range dir.Dirs {
 		processDir(child)
 		dir.Total += child.Total
 		dir.Covered += child.Covered
 	}
-	dir.Percent = percent(dir.Covered, dir.Total)
+	dir.Percent = Percent(dir.Covered, dir.Total)
 	if dir.Covered == 0 {
 		dir.Dirs = nil
 		dir.Files = nil
 	}
 }
 
-func percent[T int | int64](covered, total T) T {
+func Percent[T int | int64](covered, total T) T {
+	if total == 0 {
+		return 0
+	}
 	f := math.Ceil(float64(covered) / float64(total) * 100)
 	if f == 100 && covered < total {
 		f = 99

@@ -1,2 +1,2 @@
-SYSCALL	chmod	func:__do_sys_chmod	loc:1	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel
-SYSCALL	open	func:__do_sys_open	loc:1	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel
+SYSCALL	chmod	func:__do_sys_chmod	loc:1	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel
+SYSCALL	open	func:__do_sys_open	loc:1	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:syscall.c	subsystem:kernel

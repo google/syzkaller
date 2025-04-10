@@ -1,4 +1,4 @@
-NETLINK	NETLINK_BAR_CMD_FOO	func:NETLINK_BAR_CMD_FOO	loc:0	access:user	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
-NETLINK	NETLINK_FOO_CMD_BAR	func:bar_cmd	loc:0	access:ns_admin	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
-NETLINK	NETLINK_FOO_CMD_FOO	func:foo_cmd	loc:0	access:admin	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
-NETLINK	NETLINK_NOPOLICY_CMD	func:foo_cmd	loc:0	access:user	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
+NETLINK	NETLINK_BAR_CMD_FOO	func:NETLINK_BAR_CMD_FOO	loc:0	coverage:0	access:user	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
+NETLINK	NETLINK_FOO_CMD_BAR	func:bar_cmd	loc:0	coverage:0	access:ns_admin	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
+NETLINK	NETLINK_FOO_CMD_FOO	func:foo_cmd	loc:0	coverage:0	access:admin	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
+NETLINK	NETLINK_NOPOLICY_CMD	func:foo_cmd	loc:0	coverage:0	access:user	manual_desc:false	auto_desc:true	file:netlink.c	subsystem:kernel
