@@ -256,17 +256,11 @@ func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error
 	return nil
 }
 
-type CoveredBlock struct {
-	FromLine int `json:"from_line"`
-	FromCol  int `json:"from_column"`
-	ToLine   int `json:"to_line"`
-	ToCol    int `json:"to_column"`
-}
-
-type FunctionCoverage struct {
-	FuncName     string          `json:"func_name"`
-	Instrumented int             `json:"total_blocks,omitempty"`
-	Blocks       []*CoveredBlock `json:"covered_blocks"`
+type ProgramCoverage struct {
+	Repo         string          `json:"repo,omitempty"`
+	Commit       string          `json:"commit,omitempty"`
+	Program      string          `json:"program"`
+	CoveredFiles []*FileCoverage `json:"coverage"`
 }
 
 type FileCoverage struct {
@@ -276,11 +270,17 @@ type FileCoverage struct {
 	Functions []*FunctionCoverage `json:"functions"`
 }
 
-type ProgramCoverage struct {
-	Repo         string          `json:"repo,omitempty"`
-	Commit       string          `json:"commit,omitempty"`
-	Program      string          `json:"program"`
-	CoveredFiles []*FileCoverage `json:"coverage"`
+type FunctionCoverage struct {
+	FuncName     string          `json:"func_name"`
+	Instrumented int             `json:"total_blocks,omitempty"`
+	Blocks       []*CoveredBlock `json:"covered_blocks"`
+}
+
+type CoveredBlock struct {
+	FromLine int `json:"from_line"`
+	FromCol  int `json:"from_column"`
+	ToLine   int `json:"to_line"`
+	ToCol    int `json:"to_column"`
 }
 
 // DoCoverPrograms returns the corpus programs with the associated coverage.
