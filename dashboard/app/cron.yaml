@@ -33,3 +33,9 @@ cron:
 # Export reproducers every week.
 - url: /cron/batch_db_export
   schedule: every saturday 00:00
+# Monthly coverage reports are regenerated every week.
+# Coverage data propagation may take up to ~48 hours.
+# 7 days + 2 days = 9 days is the maximum expected delay to guarantee monthly coverage data will not change.
+# We use 15 for convenience here.
+- url: /cron/email_coverage_reports
+  schedule: 15 of month 00:00

@@ -1,0 +1,4 @@
+Regressions happened in '{{.Namespace}}' from {{.PeriodFrom}} ({{.PeriodFromDays}} days) to {{.PeriodTo}} ({{.PeriodToDays}} days).
+Web version: {{.Link}}
+
+{{.Table}}

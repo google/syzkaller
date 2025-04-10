@@ -14,9 +14,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/google/syzkaller/pkg/coveragedb/mocks"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestReportBug(t *testing.T) {
@@ -1364,4 +1367,54 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 	// There should be no new report.
 	// We already reported that the bug has a reproducer.
 	client.pollBugs(0)
+}
+
+func TestCoverageRegression(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	mTran1 := mocks.NewReadOnlyTransaction(t)
+	mTran1.On("Query", mock.Anything, mock.Anything).
+		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
+			{
+				Filepath:     "file_name.c",
+				Instrumented: 100,
+				Covered:      100,
+			},
+		})).Once()
+
+	mTran2 := mocks.NewReadOnlyTransaction(t)
+	mTran2.On("Query", mock.Anything, mock.Anything).
+		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
+			{
+				Filepath:     "file_name.c",
+				Instrumented: 0,
+			},
+		})).Once()
+
+	m := mocks.NewSpannerClient(t)
+	m.On("Single").
+		Return(mTran1).Once()
+	m.On("Single").
+		Return(mTran2).Once()
+
+	c.transformContext = func(ctx context.Context) context.Context {
+		return SetCoverageDBClient(ctx, m)
+	}
+	_, err := c.AuthGET(AccessAdmin, "/cron/email_coverage_reports")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(c.emailSink))
+	msg := <-c.emailSink
+	assert.Equal(t, []string{"test@test.test"}, msg.To)
+	assert.Equal(t, "coverage-tests coverage regression (November 1999)->(December 1999)", msg.Subject)
+	wantLink := "https:///coverage-tests/coverage?" +
+		"dateto=1999-12-31&min-cover-lines-drop=1&order-by-cover-lines-drop=1&period=month&period_count=2"
+	assert.Equal(t, `Regressions happened in 'coverage-tests' from November 1999 (30 days) to December 1999 (31 days).
+Web version: `+wantLink+`
+
+Blocks diff,	Path
+       -100	
+       -100	/file_name.c
+
+`, msg.Body)
 }

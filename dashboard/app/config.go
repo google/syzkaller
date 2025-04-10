@@ -155,6 +155,7 @@ type ACLItem struct {
 }
 
 const defaultDashboardClientName = "coverage-merger"
+const defaultRegressionThreshold = 50
 
 type CoverageConfig struct {
 	BatchProject        string
@@ -167,6 +168,15 @@ type CoverageConfig struct {
 	// WebGitURI specifies where can we get the kernel file source code directly from AppEngine.
 	// It may be the Git or Gerrit compatible repo.
 	WebGitURI string
+
+	// EmailRegressionsTo species the regressions recipient.
+	// If empty, regression analysis is disabled.
+	EmailRegressionsTo string
+
+	// RegressionThreshold is a minimal basic block coverage drop in a file.
+	// The amount of files in the dir and other factors do not matter.
+	// Defaults to defaultRegressionThreshold.
+	RegressionThreshold int
 }
 
 // DiscussionEmailConfig defines the correspondence between an email and a DiscussionSource.
@@ -585,6 +595,16 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	checkKernelRepos(ns, cfg, cfg.Repos)
 	checkNamespaceReporting(ns, cfg)
 	checkSubsystems(ns, cfg)
+	checkCoverageConfig(ns, cfg)
+}
+
+func checkCoverageConfig(ns string, cfg *Config) {
+	if cfg.Coverage == nil || cfg.Coverage.EmailRegressionsTo == "" {
+		return
+	}
+	if _, err := mail.ParseAddress(cfg.Coverage.EmailRegressionsTo); err != nil {
+		panic(fmt.Sprintf("bad cfg.Coverage.EmailRegressionsTo in '%s': %s", ns, err.Error()))
+	}
 }
 
 func checkSubsystems(ns string, cfg *Config) {
