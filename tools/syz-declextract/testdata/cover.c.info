@@ -1,0 +1,5 @@
+SYSCALL	cover	func:__do_sys_cover	loc:22	coverage:75	access:unknown	manual_desc:false	auto_desc:true	file:cover.c	subsystem:kernel
+SYSCALL	cover$COVER_IOCTL1	func:__do_sys_cover	loc:7	coverage:100	access:unknown	manual_desc:false	auto_desc:true	file:cover.c	subsystem:kernel
+SYSCALL	cover$COVER_IOCTL2	func:__do_sys_cover	loc:7	coverage:67	access:unknown	manual_desc:false	auto_desc:true	file:cover.c	subsystem:kernel
+SYSCALL	cover$COVER_IOCTL3	func:__do_sys_cover	loc:15	coverage:100	access:unknown	manual_desc:false	auto_desc:true	file:cover.c	subsystem:kernel
+SYSCALL	cover$COVER_IOCTL4	func:__do_sys_cover	loc:16	coverage:80	access:unknown	manual_desc:false	auto_desc:true	file:cover.c	subsystem:kernel

@@ -76,7 +76,8 @@
 						"FOO_IOCTL4",
 						"FOO_IOCTL5"
 					],
-					"start_line": 23
+					"start_line": 23,
+					"end_line": 28
 				}
 			]
 		},
@@ -96,7 +97,8 @@
 						"FOO_IOCTL6",
 						"FOO_IOCTL7"
 					],
-					"start_line": 15
+					"start_line": 15,
+					"end_line": 18
 				}
 			]
 		},
@@ -224,7 +226,8 @@
 						"UNUSED_IOCTL1",
 						"UNUSED_IOCTL2"
 					],
-					"start_line": 61
+					"start_line": 61,
+					"end_line": 63
 				}
 			]
 		}

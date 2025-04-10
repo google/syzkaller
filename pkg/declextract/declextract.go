@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 )
 
@@ -27,11 +28,12 @@ type StructInfo struct {
 	Align int
 }
 
-func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string, trace io.Writer) (
-	*Result, error) {
+func Run(out *Output, probe *ifaceprobe.Info, coverage []*cover.FileCoverage,
+	syscallRename map[string][]string, trace io.Writer) (*Result, error) {
 	ctx := &context{
 		Output:        out,
 		probe:         probe,
+		coverage:      coverage,
 		syscallRename: syscallRename,
 		structs:       make(map[string]*Struct),
 		funcs:         make(map[string]*Function),
@@ -64,6 +66,7 @@ func Run(out *Output, probe *ifaceprobe.Info, syscallRename map[string][]string,
 type context struct {
 	*Output
 	probe         *ifaceprobe.Info
+	coverage      []*cover.FileCoverage
 	syscallRename map[string][]string // syscall function -> syscall names
 	structs       map[string]*Struct
 	funcs         map[string]*Function

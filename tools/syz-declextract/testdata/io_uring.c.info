@@ -1,3 +1,3 @@
-IOURING	IORING_OP_NOP	func:io_nop	loc:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel
-IOURING	IORING_OP_READV	func:io_read	loc:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel
-IOURING	IORING_OP_WRITEV	func:io_write	loc:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel
+IOURING	IORING_OP_NOP	func:io_nop	loc:0	coverage:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel
+IOURING	IORING_OP_READV	func:io_read	loc:0	coverage:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel
+IOURING	IORING_OP_WRITEV	func:io_write	loc:0	coverage:0	access:user	manual_desc:false	auto_desc:false	file:io_uring.c	subsystem:kernel

@@ -43,9 +43,19 @@ ninja syz-declextract
 ./bin/syz-declextract $KERNEL/fs/read_write.c | less # or any other .c file
 ```
 
+## Coverage Data
+
+Coverage data (coverage.jsonl) can be obtained from syzbot dashboard using:
+```
+curl --header "accept-encoding: gzip" https://syzkaller.appspot.com/upstream/coverage?jsonl=1 | gunzip > coverage.jsonl
+```
+Note: the coverage is tied to a particular kernel commit. For consistency that commit
+should be used for the rest of the process as well.
+
 ## Running on the whole kernel
 ```
-go run ./tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg
+go run ./tools/syz-declextract -binary=$LLVM_BUILD/bin/syz-declextract -config=manager.cfg \
+	-coverage coverage.jsonl
 syz-env make extract SOURCEDIR=$KERNEL
 ```
 

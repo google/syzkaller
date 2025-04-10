@@ -1,0 +1,23 @@
+{
+        "file_path": "cover.c",
+        "functions": [
+                {
+                        "func_name": "__do_sys_cover",
+                        "blocks": [
+                                { "hit_count": 1, "from_line": 24 },
+                                { "hit_count": 1, "from_line": 28 },
+                                { "hit_count": 0, "from_line": 30 },
+                                { "hit_count": 1, "from_line": 33 },
+                                { "hit_count": 1, "from_line": 36 }
+			]
+		},
+                {
+                        "func_name": "cover_helper",
+                        "blocks": [
+                                { "hit_count": 1, "from_line": 12 },
+                                { "hit_count": 1, "from_line": 16 },
+                                { "hit_count": 0, "from_line": 18 }
+			]
+		}
+	]
+}

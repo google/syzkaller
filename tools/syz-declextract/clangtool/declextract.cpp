@@ -739,8 +739,11 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     auto Top = SwitchStack.top();
     if (Top.S != S)
       return true;
-    if (Top.IsInteresting)
+    if (Top.IsInteresting) {
+      if (Current != &Scopes[0])
+        Current->EndLine = SourceManager->getExpansionLineNumber(S->getEndLoc());
       Current = &Scopes[0];
+    }
     SwitchStack.pop();
     return true;
   }

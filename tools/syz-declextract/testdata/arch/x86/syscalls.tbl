@@ -7,4 +7,5 @@
 4	64	align_syscall		sys_align_syscall
 5	64	functions		sys_functions
 6	64	scopes0			sys_scopes0
+7	64	cover			sys_cover
 
