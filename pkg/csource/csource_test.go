@@ -240,6 +240,17 @@ syscall(SYS_csource7, /*flag=*/4ul);
 syscall(SYS_csource7, /*flag=BIT_0|0x4*/5ul);
 `,
 		},
+
+		{
+			input: `
+csource0(0xffffffff)
+csource8(0xffffffffffffffff)
+`,
+			output: `
+syscall(SYS_csource0, /*num=*/(intptr_t)-1);
+syscall(SYS_csource8, /*num=*/(intptr_t)-1);
+`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
