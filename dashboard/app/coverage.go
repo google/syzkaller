@@ -103,7 +103,14 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return fmt.Errorf("periods_count is wrong, expected [1, 12]: %w", err)
 	}
 
-	periods, err := coveragedb.GenNPeriodsTill(nPeriods, civil.DateOf(timeNow(c)), periodType)
+	dateTo := civil.DateOf(timeNow(c))
+	if customDate := r.FormValue("dateto"); customDate != "" {
+		if dateTo, err = civil.ParseDate(customDate); err != nil {
+			return fmt.Errorf("civil.ParseDate(%s): %w", customDate, err)
+		}
+	}
+
+	periods, err := coveragedb.GenNPeriodsTill(nPeriods, dateTo, periodType)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
