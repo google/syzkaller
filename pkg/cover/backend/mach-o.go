@@ -16,7 +16,7 @@ import (
 )
 
 func makeMachO(target *targets.Target, kernelDirs *mgrconfig.KernelDirs,
-	moduleObj []string, hostModules []*vminfo.KernelModule) (*Impl, error) {
+	moduleObj []string, hostModules []*vminfo.KernelModule, preciseCoverage bool) (*Impl, error) {
 	return makeDWARF(&dwarfParams{
 		target:                target,
 		kernelDirs:            kernelDirs,
@@ -26,6 +26,7 @@ func makeMachO(target *targets.Target, kernelDirs *mgrconfig.KernelDirs,
 		readTextData:          machoReadTextData,
 		readModuleCoverPoints: machoReadModuleCoverPoints,
 		readTextRanges:        machoReadTextRanges,
+		preciseCoverage:       preciseCoverage,
 	})
 }
 
