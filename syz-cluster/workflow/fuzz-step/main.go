@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -52,25 +53,30 @@ func main() {
 		log.Fatalf("the binary is built without the git revision information")
 	}
 	ctx := context.Background()
-	if err := reportStatus(ctx, client, api.TestRunning); err != nil {
+	if err := reportStatus(ctx, client, api.TestRunning, ""); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
 	}
+
+	artifactsDir := filepath.Join(*flagWorkdir, "artifacts")
+	osutil.MkdirAll(artifactsDir)
+
 	// We want to only cancel the run() operation in order to be able to also report
 	// the final test result back.
 	runCtx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	err = run(runCtx, client)
+	err = run(runCtx, client, artifactsDir)
 	status := api.TestPassed // TODO: what about TestFailed?
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		app.Errorf("the step failed: %v", err)
 		status = api.TestError
 	}
-	if err := reportStatus(ctx, client, status); err != nil {
+	log.Logf(0, "fuzzing is finished")
+	if err := reportStatus(ctx, client, status, artifactsDir); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
 }
 
-func run(baseCtx context.Context, client *api.Client) error {
+func run(baseCtx context.Context, client *api.Client, artifactsDir string) error {
 	series, err := client.GetSessionSeries(baseCtx, *flagSession)
 	if err != nil {
 		return fmt.Errorf("failed to query the series info: %w", err)
@@ -79,7 +85,7 @@ func run(baseCtx context.Context, client *api.Client) error {
 	// Until there's a way to pass the log.Logger object and capture all,
 	// use the global log collection.
 	const MB = 1000000
-	log.EnableLogCaching(10000, 10*MB)
+	log.EnableLogCaching(100000, 10*MB)
 
 	base, patched, err := loadConfigs("/configs", *flagConfig, true)
 	if err != nil {
@@ -118,11 +124,16 @@ func run(baseCtx context.Context, client *api.Client) error {
 	})
 	eg.Go(func() error {
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
-			Debug:       false,
-			PatchedOnly: bugs,
+			Debug:        false,
+			PatchedOnly:  bugs,
+			ArtifactsDir: artifactsDir,
 		})
 	})
-	const updatePeriod = time.Minute
+	const (
+		updatePeriod         = 5 * time.Minute
+		artifactUploadPeriod = 30 * time.Minute
+	)
+	lastArtifactUpdate := time.Now()
 	eg.Go(func() error {
 		for {
 			select {
@@ -130,7 +141,12 @@ func run(baseCtx context.Context, client *api.Client) error {
 				return nil
 			case <-time.After(updatePeriod):
 			}
-			err := reportStatus(ctx, client, api.TestRunning)
+			artifacts := ""
+			if time.Since(lastArtifactUpdate) > artifactUploadPeriod {
+				lastArtifactUpdate = time.Now()
+				artifacts = artifactsDir
+			}
+			err := reportStatus(ctx, client, api.TestRunning, artifacts)
 			if err != nil {
 				app.Errorf("failed to update status: %v", err)
 			}
@@ -202,7 +218,7 @@ func loadConfigs(configFolder, configName string, complete bool) (*mgrconfig.Con
 	return base, patched, nil
 }
 
-func reportStatus(ctx context.Context, client *api.Client, status string) error {
+func reportStatus(ctx context.Context, client *api.Client, status, artifactsDir string) error {
 	testResult := &api.TestResult{
 		SessionID:      *flagSession,
 		TestName:       testName,
@@ -211,7 +227,22 @@ func reportStatus(ctx context.Context, client *api.Client, status string) error 
 		Result:         status,
 		Log:            []byte(log.CachedLogOutput()),
 	}
-	return client.UploadTestResult(ctx, testResult)
+	err := client.UploadTestResult(ctx, testResult)
+	if err != nil {
+		return fmt.Errorf("failed to upload the status: %w", err)
+	}
+	if artifactsDir == "" {
+		return nil
+	}
+	tarGzReader, err := compressArtifacts(artifactsDir)
+	if err != nil {
+		return fmt.Errorf("failed to compress the artifacts dir: %w", err)
+	}
+	err = client.UploadTestArtifacts(ctx, *flagSession, testName, tarGzReader)
+	if err != nil {
+		return fmt.Errorf("failed to upload the status: %w", err)
+	}
+	return nil
 }
 
 func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueBug) error {
@@ -224,4 +255,35 @@ func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueB
 		// TODO: include the reproducer.
 	}
 	return client.UploadFinding(ctx, finding)
+}
+
+func compressArtifacts(dir string) (io.Reader, error) {
+	var buf bytes.Buffer
+	lw := &LimitedWriter{
+		writer: &buf,
+		// Don't create an archive larger than 64MB.
+		limit: 64 * 1000 * 1000,
+	}
+	err := osutil.TarGzDirectory(dir, lw)
+	if err != nil {
+		return nil, err
+	}
+	return &buf, nil
+}
+
+type LimitedWriter struct {
+	written int
+	limit   int
+	writer  io.Writer
+}
+
+var errWriteOverLimit = errors.New("the writer exceeded the limit")
+
+func (lw *LimitedWriter) Write(p []byte) (n int, err error) {
+	if len(p)+lw.written > lw.limit {
+		return 0, errWriteOverLimit
+	}
+	n, err = lw.writer.Write(p)
+	lw.written += n
+	return
 }
