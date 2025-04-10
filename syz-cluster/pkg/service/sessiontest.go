@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -46,18 +47,44 @@ func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) erro
 	if req.PatchedBuildID != "" {
 		entity.PatchedBuildID = spanner.NullString{StringVal: req.PatchedBuildID, Valid: true}
 	}
-	if entity.LogURI != "" {
-		err := s.blobStorage.Update(entity.LogURI, bytes.NewReader(req.Log))
-		if err != nil {
-			return fmt.Errorf("failed to update the log: %w", err)
-		}
-	} else if len(req.Log) > 0 {
-		// TODO: it will leak if we fail to save the entity.
-		uri, err := s.blobStorage.Store(bytes.NewReader(req.Log))
+	// TODO: the code does not really handle simultaneous requests.
+	if len(req.Log) > 0 {
+		entity.LogURI, err = s.uploadOrUpdate(ctx, entity.LogURI, bytes.NewReader(req.Log))
 		if err != nil {
 			return fmt.Errorf("failed to save the log: %w", err)
 		}
-		entity.LogURI = uri
 	}
-	return s.testRepo.InsertOrUpdate(context.Background(), entity)
+	return s.testRepo.InsertOrUpdate(ctx, entity)
+}
+
+// TODO: this function has the same problems as Save().
+func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testName string, reader io.Reader) error {
+	entity, err := s.testRepo.Get(ctx, sessionID, testName)
+	if err != nil {
+		return fmt.Errorf("failed to query the test: %w", err)
+	} else if entity == nil {
+		return fmt.Errorf("the test has not been submitted yet")
+	}
+	newArchiveURI, err := s.uploadOrUpdate(ctx, entity.ArtifactsArchiveURI, reader)
+	if err != nil {
+		return fmt.Errorf("failed to save the artifacts archive: %w", err)
+	}
+	entity.ArtifactsArchiveURI = newArchiveURI
+	return s.testRepo.InsertOrUpdate(ctx, entity)
+}
+
+func (s *SessionTestService) uploadOrUpdate(ctx context.Context, uri string, reader io.Reader) (string, error) {
+	if uri != "" {
+		err := s.blobStorage.Update(uri, reader)
+		if err != nil {
+			return "", fmt.Errorf("failed to update: %w", err)
+		}
+		return uri, nil
+	}
+	// TODO: it will leak if we fail to save the entity.
+	uri, err := s.blobStorage.Store(reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to save: %w", err)
+	}
+	return uri, nil
 }

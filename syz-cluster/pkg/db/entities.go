@@ -106,13 +106,14 @@ func (s *Session) SetSkipReason(reason string) {
 }
 
 type SessionTest struct {
-	SessionID      string             `spanner:"SessionID"`
-	BaseBuildID    spanner.NullString `spanner:"BaseBuildID"`
-	PatchedBuildID spanner.NullString `spanner:"PatchedBuildID"`
-	UpdatedAt      time.Time          `spanner:"UpdatedAt"`
-	TestName       string             `spanner:"TestName"`
-	Result         string             `spanner:"Result"`
-	LogURI         string             `spanner:"LogURI"`
+	SessionID           string             `spanner:"SessionID"`
+	BaseBuildID         spanner.NullString `spanner:"BaseBuildID"`
+	PatchedBuildID      spanner.NullString `spanner:"PatchedBuildID"`
+	UpdatedAt           time.Time          `spanner:"UpdatedAt"`
+	TestName            string             `spanner:"TestName"`
+	Result              string             `spanner:"Result"`
+	LogURI              string             `spanner:"LogURI"`
+	ArtifactsArchiveURI string             `spanner:"ArtifactsArchiveURI"`
 }
 
 type Finding struct {
