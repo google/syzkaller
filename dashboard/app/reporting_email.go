@@ -20,7 +20,10 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/html"
@@ -34,6 +37,7 @@ import (
 // Email reporting interface.
 
 func initEmailReporting() {
+	http.HandleFunc("/cron/email_coverage_reports", handleCoverageReports)
 	http.HandleFunc("/cron/email_poll", handleEmailPoll)
 	http.HandleFunc("/_ah/mail/", handleIncomingMail)
 	http.HandleFunc("/_ah/bounce", handleEmailBounce)
@@ -100,6 +104,109 @@ func (cfg *EmailConfig) Validate() error {
 		return fmt.Errorf("email config: subject prefix %q contains leading/trailing spaces", cfg.SubjectPrefix)
 	}
 	return nil
+}
+
+// handleCoverageReports sends reports for the previous period.
+// Assuming it is called June 15, the monthly report will cover April-May diff.
+func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	targetDate := civil.DateOf(timeNow(ctx)).AddMonths(-1)
+	periods, err := coveragedb.GenNPeriodsTill(2, targetDate, "month")
+	if err != nil {
+		msg := fmt.Sprintf("error generating coverage report: %s", err.Error())
+		log.Errorf(ctx, "%s", msg)
+		http.Error(w, "%s: %w", http.StatusBadRequest)
+		return
+	}
+	wg := sync.WaitGroup{}
+	for nsName := range getConfig(ctx).Namespaces {
+		if nsName == "upstream" {
+			email := r.FormValue("email")
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := sendNsCoverageReport(ctx, nsName, email, periods); err != nil {
+					msg := fmt.Sprintf("error generating coverage report for ns '%s': %s", nsName, err.Error())
+					log.Errorf(ctx, "%s", msg)
+					w.Write([]byte(msg + "\n"))
+					return
+				}
+				w.Write([]byte(fmt.Sprintf("sent ns '%s' report to '%s'\n", nsName, email)))
+			}()
+		}
+	}
+	wg.Wait()
+}
+
+func sendNsCoverageReport(ctx context.Context, ns, email string, period []coveragedb.TimePeriod) error {
+	var days int
+	for _, p := range period {
+		days += p.Days
+	}
+	periodFrom := fmt.Sprintf("%s %d", period[0].DateTo.Month.String(), period[0].DateTo.Year)
+	periodTo := fmt.Sprintf("%s %d", period[1].DateTo.Month.String(), period[1].DateTo.Year)
+	table, err := coverageTable(ctx, ns, period)
+	if err != nil {
+		return fmt.Errorf("coverageTable: %w", err)
+	}
+	args := struct {
+		Namespace      string
+		PeriodFrom     string
+		PeriodFromDays int
+		PeriodTo       string
+		PeriodToDays   int
+		Link           string
+		Table          string
+	}{
+		Namespace:      ns,
+		PeriodFrom:     periodFrom,
+		PeriodFromDays: period[0].Days,
+		PeriodTo:       periodTo,
+		PeriodToDays:   period[1].Days,
+		Link: fmt.Sprintf("https://%s.appspot.com/%s/coverage"+
+			"?period=%s&period_count=2&dateto=%s&order-by-cover-lines-drop=1&min-cover-lines-drop=6",
+			appengine.AppID(ctx), ns, period[1].Type, period[1].DateTo.String()),
+		Table: table,
+	}
+	title := fmt.Sprintf("%s coverage regression (%s)->(%s)", ns, periodFrom, periodTo)
+	err = sendMailTemplate(ctx, &mailSendParams{
+		templateName: "mail_ns_coverage.txt",
+		templateArg:  args,
+		title:        title,
+		cfg: &EmailConfig{
+			Email: email,
+		},
+	})
+	if err != nil {
+		err2 := fmt.Errorf("error generating coverage report: %w", err)
+		log.Errorf(ctx, "%s", err2.Error())
+		return err2
+	}
+	return nil
+}
+
+func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePeriod) (string, error) {
+	covAndDates, err := coveragedb.FilesCoverageWithDetails(
+		ctx,
+		coverageDBClient,
+		&coveragedb.SelectScope{
+			Ns:      ns,
+			Periods: fromTo,
+		},
+		false)
+	if err != nil {
+		return "", fmt.Errorf("coveragedb.FilesCoverageWithDetails: %w", err)
+	}
+	templData := cover.FilesCoverageToTemplateData(covAndDates)
+	cover.FormatResult(templData, cover.Format{
+		OrderByCoveredLinesDrop:   true,
+		FilterMinCoveredLinesDrop: 6, // removes long tail, adjusted experimentally
+	})
+	res := "Blocks diff,\tPath\n"
+	templData.Root.Visit(func(path string, summary int64) {
+		res += fmt.Sprintf("% 11d\t%s\n", summary, path)
+	})
+	return res, nil
 }
 
 // handleEmailPoll is called by cron and sends emails for new bugs, if any.
