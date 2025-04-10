@@ -175,13 +175,21 @@ func TestExecutorMacros(t *testing.T) {
 
 func TestSource(t *testing.T) {
 	t.Parallel()
-	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+
+	target32, err := prog.GetTarget(targets.TestOS, targets.TestArch32)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	target64, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	type Test struct {
 		input  string
 		output string
+		target *prog.Target // target64 by default.
 	}
 	tests := []Test{
 		{
@@ -216,11 +224,11 @@ syscall(SYS_csource5, /*buf=*/0x%xul);
 NONFAILING(memcpy((void*)0x%x, "101010101010", 12));
 syscall(SYS_csource6, /*buf=*/0x%xul);
 `,
-				target.DataOffset+0x40, target.DataOffset+0x40,
-				target.DataOffset+0x80, target.DataOffset+0x80,
-				target.DataOffset+0xc0, target.DataOffset+0xc0,
-				target.DataOffset+0x100, target.DataOffset+0x100,
-				target.DataOffset+0x140, target.DataOffset+0x140),
+				target64.DataOffset+0x40, target64.DataOffset+0x40,
+				target64.DataOffset+0x80, target64.DataOffset+0x80,
+				target64.DataOffset+0xc0, target64.DataOffset+0xc0,
+				target64.DataOffset+0x100, target64.DataOffset+0x100,
+				target64.DataOffset+0x140, target64.DataOffset+0x140),
 		},
 		{
 			input: `
@@ -251,17 +259,31 @@ syscall(SYS_csource0, /*num=*/(intptr_t)-1);
 syscall(SYS_csource8, /*num=*/(intptr_t)-1);
 `,
 		},
+		{
+			input: `
+csource0(0xffffffff)
+csource8(0xffffffffffffffff)
+`,
+			output: `
+syscall(SYS_csource0, /*num=*/(intptr_t)-1);
+syscall(SYS_csource8, /*num=*/(intptr_t)-1);
+`,
+			target: target32,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			p, err := target.Deserialize([]byte(test.input), prog.Strict)
+			if test.target == nil {
+				test.target = target64
+			}
+			p, err := test.target.Deserialize([]byte(test.input), prog.Strict)
 			if err != nil {
 				t.Fatal(err)
 			}
 			ctx := &context{
 				p:         p,
-				target:    target,
-				sysTarget: targets.Get(target.OS, target.Arch),
+				target:    test.target,
+				sysTarget: targets.Get(test.target.OS, test.target.Arch),
 			}
 			calls, _, err := ctx.generateProgCalls(p, false)
 			if err != nil {
