@@ -579,6 +579,31 @@ var testConfig = &GlobalConfig{
 			FindBugOriginTrees:     true,
 			RetestMissingBackports: true,
 		},
+		"coverage-tests": {
+			Coverage: &CoverageConfig{
+				EmailRegressionsTo:  "test@test.test",
+				RegressionThreshold: 1,
+			},
+			AccessLevel: AccessPublic,
+			Key:         "coveragetestskeycoveragetestskeycoveragetestskey",
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/test.git",
+					Branch: "main",
+					Alias:  "main",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					Name:       "non-public",
+					DailyLimit: 1000,
+					Filter: func(bug *Bug) FilterResult {
+						return FilterReport
+					},
+					Config: &TestConfig{Index: 1},
+				},
+			},
+		},
 	},
 }
 

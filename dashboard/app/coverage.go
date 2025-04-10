@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/google/syzkaller/pkg/html/urlutil"
 	"github.com/google/syzkaller/pkg/validator"
 	"google.golang.org/appengine/v2"
 )
@@ -71,6 +72,59 @@ func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r
 	return handleHeatmap(c, w, r, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
 
+type covPageParam int
+
+const (
+	// keep-sorted start
+	CommitHash covPageParam = iota
+	DateTo
+	FilePath
+	ManagerName
+	MinCoverLinesDrop
+	OrderByCoverDrop
+	PeriodCount
+	PeriodType
+	SubsystemName
+	UniqueOnly
+	// keep-sorted end
+)
+
+var covPageParams = map[covPageParam]string{
+	// keep-sorted start
+	CommitHash:        "commit",
+	DateTo:            "dateto",
+	FilePath:          "filepath",
+	ManagerName:       "manager",
+	MinCoverLinesDrop: "min-cover-lines-drop",
+	OrderByCoverDrop:  "order-by-cover-lines-drop",
+	PeriodCount:       "period_count",
+	PeriodType:        "period",
+	SubsystemName:     "subsystem",
+	UniqueOnly:        "unique-only",
+	// keep-sorted end
+}
+
+func coveragePageLink(ns, periodType, dateTo string, minDrop, periodCount int, orderByCoverDrop bool) string {
+	if periodType == "" {
+		periodType = coveragedb.MonthPeriod
+	}
+	url := "/" + ns + "/coverage"
+	url = urlutil.SetParam(url, covPageParams[PeriodType], periodType)
+	if periodCount != 0 {
+		url = urlutil.SetParam(url, covPageParams[PeriodCount], strconv.Itoa(periodCount))
+	}
+	if dateTo != "" {
+		url = urlutil.SetParam(url, covPageParams[DateTo], dateTo)
+	}
+	if minDrop > 0 {
+		url = urlutil.SetParam(url, covPageParams[MinCoverLinesDrop], strconv.Itoa(minDrop))
+	}
+	if orderByCoverDrop {
+		url = urlutil.SetParam(url, covPageParams[OrderByCoverDrop], "1")
+	}
+	return url
+}
+
 func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f funcStyleBodyJS) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
@@ -80,10 +134,10 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
-	ss := r.FormValue("subsystem")
-	manager := r.FormValue("manager")
+	ss := r.FormValue(covPageParams[SubsystemName])
+	manager := r.FormValue(covPageParams[ManagerName])
 
-	periodType := r.FormValue("period")
+	periodType := r.FormValue(covPageParams[PeriodType])
 	if periodType == "" {
 		periodType = coveragedb.DayPeriod
 	}
@@ -94,7 +148,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 			periodType, ErrClientBadRequest)
 	}
 
-	periodCount := r.FormValue("period_count")
+	periodCount := r.FormValue(covPageParams[PeriodCount])
 	if periodCount == "" {
 		periodCount = "4"
 	}
@@ -104,7 +158,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	}
 
 	dateTo := civil.DateOf(timeNow(c))
-	if customDate := r.FormValue("dateto"); customDate != "" {
+	if customDate := r.FormValue(covPageParams[DateTo]); customDate != "" {
 		if dateTo, err = civil.ParseDate(customDate); err != nil {
 			return fmt.Errorf("civil.ParseDate(%s): %w", customDate, err)
 		}
@@ -126,12 +180,12 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	slices.Sort(managers)
 	slices.Sort(subsystems)
 
-	onlyUnique := r.FormValue("unique-only") == "1"
-	orderByCoverLinesDrop := r.FormValue("order-by-cover-lines-drop") == "1"
+	onlyUnique := r.FormValue(covPageParams[UniqueOnly]) == "1"
+	orderByCoverLinesDrop := r.FormValue(covPageParams[OrderByCoverDrop]) == "1"
 	// Prefixing "0" we don't fail on empty string.
-	minCoverLinesDrop, err := strconv.Atoi("0" + r.FormValue("min-cover-lines-drop"))
+	minCoverLinesDrop, err := strconv.Atoi("0" + r.FormValue(covPageParams[MinCoverLinesDrop]))
 	if err != nil {
-		return fmt.Errorf("min-cover-lines-drop should be integer")
+		return fmt.Errorf(covPageParams[MinCoverLinesDrop] + " should be integer")
 	}
 
 	var style template.CSS
@@ -182,18 +236,18 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if nsConfig.Coverage == nil || nsConfig.Coverage.WebGitURI == "" {
 		return ErrClientNotFound
 	}
-	dateToStr := r.FormValue("dateto")
-	periodType := r.FormValue("period")
-	targetCommit := r.FormValue("commit")
-	kernelFilePath := r.FormValue("filepath")
-	manager := r.FormValue("manager")
+	dateToStr := r.FormValue(covPageParams[DateTo])
+	periodType := r.FormValue(covPageParams[PeriodType])
+	targetCommit := r.FormValue(covPageParams[CommitHash])
+	kernelFilePath := r.FormValue(covPageParams[FilePath])
+	manager := r.FormValue(covPageParams[ManagerName])
 	if err := validator.AnyError("input validation failed",
-		validator.TimePeriodType(periodType, "period"),
-		validator.CommitHash(targetCommit, "commit"),
-		validator.KernelFilePath(kernelFilePath, "filepath"),
+		validator.TimePeriodType(periodType, covPageParams[PeriodType]),
+		validator.CommitHash(targetCommit, covPageParams[CommitHash]),
+		validator.KernelFilePath(kernelFilePath, covPageParams[FilePath]),
 		validator.AnyOk(
-			validator.Allowlisted(manager, []string{"", "*"}, "manager"),
-			validator.ManagerName(manager, "manager")),
+			validator.Allowlisted(manager, []string{"", "*"}, covPageParams[ManagerName]),
+			validator.ManagerName(manager, covPageParams[ManagerName])),
 	); err != nil {
 		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
 	}
@@ -205,7 +259,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
-	onlyUnique := r.FormValue("unique-only") == "1"
+	onlyUnique := r.FormValue(covPageParams[UniqueOnly]) == "1"
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
 	client := GetCoverageDBClient(c)
 	if client == nil {
@@ -268,7 +322,7 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
-	periodType := r.FormValue("period")
+	periodType := r.FormValue(covPageParams[PeriodType])
 	if periodType == "" {
 		periodType = coveragedb.QuarterPeriod
 	}

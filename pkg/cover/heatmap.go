@@ -145,12 +145,20 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
 	}
 }
 
+func (thm *templateHeatmapRow) Visit(v func(string, int64), path ...string) {
+	curPath := append(path, thm.Name)
+	v(strings.Join(curPath, "/"), thm.Summary)
+	for _, item := range thm.Items {
+		item.Visit(v, curPath...)
+	}
+}
+
 type pageColumnTarget struct {
 	TimePeriod coveragedb.TimePeriod
 	Commit     string
 }
 
-func filesCoverageToTemplateData(fCov []*coveragedb.FileCoverageWithDetails) *templateHeatmap {
+func FilesCoverageToTemplateData(fCov []*coveragedb.FileCoverageWithDetails) *templateHeatmap {
 	res := templateHeatmap{
 		Root: &templateHeatmapRow{
 			IsDir:        true,
@@ -223,7 +231,7 @@ func DoHeatMapStyleBodyJS(
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to FilesCoverageWithDetails: %w", err)
 	}
-	templData := filesCoverageToTemplateData(covAndDates)
+	templData := FilesCoverageToTemplateData(covAndDates)
 	templData.Subsystems = sss
 	templData.Managers = managers
 	FormatResult(templData, dataFilters)
@@ -252,7 +260,7 @@ func DoSubsystemsHeatMapStyleBodyJS(
 			ssCovAndDates = append(ssCovAndDates, &newRecord)
 		}
 	}
-	templData := filesCoverageToTemplateData(ssCovAndDates)
+	templData := FilesCoverageToTemplateData(ssCovAndDates)
 	templData.Managers = managers
 	FormatResult(templData, format)
 	return stylesBodyJSTemplate(templData)
