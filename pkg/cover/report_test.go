@@ -424,7 +424,6 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 	}
 }
 
-// nolint:lll
 func checkJSONLReport(t *testing.T, gotBytes, wantBytes []byte) {
 	compacted := new(bytes.Buffer)
 	if err := json.Compact(compacted, wantBytes); err != nil {
@@ -446,8 +445,9 @@ var sampleJSONLlProgs = []byte(`{
 			"functions": [
 				{
 					"func_name": "main",
-					"covered_blocks": [
+					"blocks": [
 						{
+							"hit_count": 1,
 							"from_line": 1,
 							"from_column": 0,
 							"to_line": 1,
