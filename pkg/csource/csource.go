@@ -354,8 +354,7 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 				panic("string format in syscall argument")
 			}
 			com := ctx.argComment(call.Meta.Args[i], arg)
-			suf := ctx.literalSuffix(arg, native)
-			argsStrs = append(argsStrs, com+handleBigEndian(arg, ctx.constArgToStr(arg, suf)))
+			argsStrs = append(argsStrs, com+handleBigEndian(arg, ctx.constArgToStr(arg, native)))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
@@ -403,7 +402,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 	switch arg := copyin.Arg.(type) {
 	case prog.ExecArgConst:
 		if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-			ctx.copyinVal(w, copyin.Addr, arg.Size, handleBigEndian(arg, ctx.constArgToStr(arg, "")), arg.Format)
+			ctx.copyinVal(w, copyin.Addr, arg.Size, handleBigEndian(arg, ctx.constArgToStr(arg, false)), arg.Format)
 		} else {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("bitfield+string format")
@@ -417,7 +416,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				bitfieldOffset = arg.Size*8 - arg.BitfieldOffset - arg.BitfieldLength
 			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
-				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, ""),
+				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false),
 				bitfieldOffset, arg.BitfieldLength)
 		}
 	case prog.ExecArgResult:
@@ -550,12 +549,21 @@ func (ctx *context) argComment(field prog.Field, arg prog.ExecArg) string {
 	return "/*" + field.Name + "=" + val + "*/"
 }
 
-func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {
+// enforceBitSize is necessary e.g. in the variadic arguments context of the syscall() function.
+func (ctx *context) constArgToStr(arg prog.ExecArgConst, enforceBitSize bool) string {
+	suffix := ""
+	if enforceBitSize {
+		suffix = ctx.literalSuffix(arg)
+	}
 	mask := (uint64(1) << (arg.Size * 8)) - 1
 	v := arg.Value & mask
 	val := ""
 	if v == ^uint64(0)&mask {
-		val = "-1"
+		if enforceBitSize {
+			val = "(intptr_t)-1"
+		} else {
+			val = "-1"
+		}
 	} else if v >= 10 {
 		val = fmt.Sprintf("0x%x%s", v, suffix)
 	} else {
@@ -567,8 +575,8 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst, suffix string) string {
 	return val
 }
 
-func (ctx *context) literalSuffix(arg prog.ExecArgConst, native bool) string {
-	if native && arg.Size == 8 {
+func (ctx *context) literalSuffix(arg prog.ExecArgConst) string {
+	if arg.Size == 8 {
 		// syscall() is variadic, so constant arguments must be explicitly
 		// promoted. Otherwise the compiler is free to leave garbage in the
 		// upper 32 bits of the argument value. In practice this can happen
