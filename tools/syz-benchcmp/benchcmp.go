@@ -23,7 +23,7 @@ import (
 
 var (
 	flagAll  = flag.Bool("all", false, "draw graphs for all variables")
-	flagOut  = flag.String("out", "", "file to save graphs to; if empty, a random name will be generated")
+	flagOut  = flag.String("out", "", "save the graph into the file instead of starting the browser")
 	flagOver = flag.String("over", "fuzzing", "the variable that lies on the X axis")
 	flagSkip = flag.Int("skip", -30, "skip that many seconds after start (skip first 20% by default)")
 )
@@ -241,8 +241,10 @@ func display(graphs []*Graph) {
 		tool.Failf("failed to execute template: %v", err)
 	}
 	outf.Close()
-	if err := exec.Command("xdg-open", outf.Name()).Start(); err != nil {
-		tool.Failf("failed to start browser: %v", err)
+	if *flagOut == "" {
+		if err := exec.Command("xdg-open", outf.Name()).Start(); err != nil {
+			tool.Failf("failed to start browser: %v", err)
+		}
 	}
 }
 
