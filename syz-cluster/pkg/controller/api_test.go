@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -78,6 +79,24 @@ func TestAPISaveFinding(t *testing.T) {
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
 	})
+}
+
+func TestAPIUploadTestArtifacts(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+
+	_, sessionID := UploadTestSeries(t, ctx, client, testSeries)
+	buildResp := UploadTestBuild(t, ctx, client, testBuild)
+	err := client.UploadTestResult(ctx, &api.TestResult{
+		SessionID:   sessionID,
+		BaseBuildID: buildResp.ID,
+		TestName:    "test",
+		Result:      api.TestRunning,
+		Log:         []byte("some log"),
+	})
+	assert.NoError(t, err)
+	err = client.UploadTestArtifacts(ctx, sessionID, "test", bytes.NewReader([]byte("artifacts content")))
+	assert.NoError(t, err)
 }
 
 var testSeries = &api.Series{

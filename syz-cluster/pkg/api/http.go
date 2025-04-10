@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 )
 
@@ -29,6 +31,28 @@ func postJSON[Req any, Resp any](ctx context.Context, url string, req *Req) (*Re
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	return finishRequest[Resp](httpReq)
+}
+
+func postMultiPartFile[Resp any](ctx context.Context, url string, reader io.Reader) (*Resp, error) {
+	// TODO: this will work well only up to some size of the file. We need a pipe and a goroutine.
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("content", "content")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a form file part: %w", err)
+	}
+	if _, err := io.Copy(part, reader); err != nil {
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 	return finishRequest[Resp](httpReq)
 }
 

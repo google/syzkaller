@@ -43,6 +43,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/upload", c.uploadSession)
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
+	mux.HandleFunc("/tests/upload_artifacts", c.uploadTestArtifact)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/trees", c.getTrees)
 	return mux
@@ -109,6 +110,36 @@ func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO: add parameters validation (and also of the Log size).
 	err := c.testService.Save(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON[interface{}](w, nil)
+}
+
+func (c APIServer) uploadTestArtifact(w http.ResponseWriter, r *http.Request) {
+	const maxMemory = 16 * 1000 * 1000 // 16 MB.
+	if err := r.ParseMultipartForm(maxMemory); err != nil {
+		http.Error(w, "could not parse the multipart form", http.StatusBadRequest)
+		return
+	}
+	defer r.MultipartForm.RemoveAll()
+
+	file, _, err := r.FormFile("content")
+	if err != nil {
+		if err == http.ErrMissingFile {
+			http.Error(w, "the 'content' file must be present", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, fmt.Sprintf("failed to query the file: %s", err), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	err = c.testService.SaveArtifacts(r.Context(),
+		r.FormValue("session"),
+		r.FormValue("test"),
+		file)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return

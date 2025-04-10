@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -72,6 +73,16 @@ func (client Client) UploadBuild(ctx context.Context, req *UploadBuildReq) (*Upl
 
 func (client Client) UploadTestResult(ctx context.Context, req *TestResult) error {
 	_, err := postJSON[TestResult, any](ctx, client.baseURL+"/tests/upload", req)
+	return err
+}
+
+func (client Client) UploadTestArtifacts(ctx context.Context, sessionID, testName string,
+	tarGzContent io.Reader) error {
+	v := url.Values{}
+	v.Add("session", sessionID)
+	v.Add("test", testName)
+	url := client.baseURL + "/tests/upload_artifacts?" + v.Encode()
+	_, err := postMultiPartFile[any](ctx, url, tarGzContent)
 	return err
 }
 
