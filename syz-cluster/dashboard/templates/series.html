@@ -130,6 +130,9 @@
                         {{if .LogURI}}
                             <a href="/sessions/{{.SessionID}}/test_logs?name={{.TestName}}" class="modal-link-raw">[Log]</a>
                         {{end}}
+                        {{if .ArtifactsArchiveURI}}
+                            <a href="/sessions/{{.SessionID}}/test_artifacts?name={{.TestName}}">[Artifacts]</a>
+                        {{end}}
                     </th>
                 </tr>
                 {{if .Findings}}

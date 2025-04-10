@@ -58,6 +58,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sessions/{id}/log", errToStatus(h.sessionLog))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
+	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
@@ -254,9 +255,22 @@ func (h *dashboardHandler) sessionTestLog(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	} else if test == nil {
-		return fmt.Errorf("%w: test log", errNotFound)
+		return fmt.Errorf("%w: test", errNotFound)
 	}
 	return h.streamBlob(w, test.LogURI)
+}
+
+func (h *dashboardHandler) sessionTestArtifacts(w http.ResponseWriter, r *http.Request) error {
+	test, err := h.sessionTestRepo.Get(r.Context(), r.PathValue("id"), r.FormValue("name"))
+	if err != nil {
+		return err
+	} else if test == nil {
+		return fmt.Errorf("%w: test", errNotFound)
+	}
+	filename := fmt.Sprintf("%s_%s.tar.gz", test.SessionID, test.TestName)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	return h.streamBlob(w, test.ArtifactsArchiveURI)
 }
 
 func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {
