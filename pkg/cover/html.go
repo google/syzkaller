@@ -264,19 +264,19 @@ type ProgramCoverage struct {
 }
 
 type FileCoverage struct {
-	Repo      string              `json:"repo,omitempty"`
-	Commit    string              `json:"commit,omitempty"`
-	FilePath  string              `json:"file_path"`
-	Functions []*FunctionCoverage `json:"functions"`
+	Repo      string          `json:"repo,omitempty"`
+	Commit    string          `json:"commit,omitempty"`
+	FilePath  string          `json:"file_path"`
+	Functions []*FuncCoverage `json:"functions"`
 }
 
-type FunctionCoverage struct {
-	FuncName     string          `json:"func_name"`
-	Instrumented int             `json:"total_blocks,omitempty"`
-	Blocks       []*CoveredBlock `json:"covered_blocks"`
+type FuncCoverage struct {
+	FuncName string   `json:"func_name"`
+	Blocks   []*Block `json:"blocks"`
 }
 
-type CoveredBlock struct {
+type Block struct {
+	HitCount int `json:"hit_count,omitempty"`
 	FromLine int `json:"from_line"`
 	FromCol  int `json:"from_column"`
 	ToLine   int `json:"to_line"`
@@ -312,22 +312,23 @@ func (rg *ReportGenerator) DoCoverPrograms(w io.Writer, params HandlerParams) er
 
 		var progCoverage []*FileCoverage
 		for filePath, functions := range fileFuncFrames {
-			var expFuncs []*FunctionCoverage
+			var expFuncs []*FuncCoverage
 			for funcName, frames := range functions {
-				var expCoveredBlocks []*CoveredBlock
+				var expCoveredBlocks []*Block
 				for _, frame := range frames {
 					endCol := frame.EndCol
 					if endCol == backend.LineEnd {
 						endCol = -1
 					}
-					expCoveredBlocks = append(expCoveredBlocks, &CoveredBlock{
+					expCoveredBlocks = append(expCoveredBlocks, &Block{
+						HitCount: 1,
 						FromCol:  frame.StartCol,
 						FromLine: frame.StartLine,
 						ToCol:    endCol,
 						ToLine:   frame.EndLine,
 					})
 				}
-				expFuncs = append(expFuncs, &FunctionCoverage{
+				expFuncs = append(expFuncs, &FuncCoverage{
 					FuncName: funcName,
 					Blocks:   expCoveredBlocks,
 				})

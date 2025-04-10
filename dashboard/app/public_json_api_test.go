@@ -264,7 +264,7 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 			{
 				FilePath: "/file",
 				FuncName: "func_name",
-				Lines:    []int64{1, 2, 3},
+				Lines:    []int64{1, 2, 3, 4},
 			},
 		},
 		[]*coveragedb.FileCoverageWithLineInfo{
@@ -273,8 +273,8 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 					Filepath: "/file",
 					Commit:   "test-commit",
 				},
-				LinesInstrumented: []int64{1, 2, 3},
-				HitCounts:         []int64{10, 20, 30},
+				LinesInstrumented: []int64{1, 2, 3, 4},
+				HitCounts:         []int64{10, 20, 30, 0},
 			},
 		},
 	))
@@ -289,24 +289,32 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 	"functions": [
 		{
 			"func_name": "func_name",
-			"total_blocks": 3,
-			"covered_blocks": [
+			"blocks": [
 				{
+					"hit_count": 10,
 					"from_line": 1,
 					"from_column": 0,
 					"to_line": 1,
 					"to_column": -1
 				},
 				{
+					"hit_count": 20,
 					"from_line": 2,
 					"from_column": 0,
 					"to_line": 2,
 					"to_column": -1
 				},
 				{
+					"hit_count": 30,
 					"from_line": 3,
 					"from_column": 0,
 					"to_line": 3,
+					"to_column": -1
+				},
+				{
+					"from_line": 4,
+					"from_column": 0,
+					"to_line": 4,
 					"to_column": -1
 				}
 			]
