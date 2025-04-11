@@ -414,16 +414,13 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	corpusObj := corpus.NewFocusedCorpus(kc.ctx, nil, kc.coverFilters.Areas)
 	fuzzerObj := fuzzer.NewFuzzer(kc.ctx, &fuzzer.Config{
-		Corpus:   corpusObj,
-		Coverage: kc.cfg.Cover,
-		// TODO: it may be unstable between different revisions though.
-		// For now it's only kept true because it seems to increase repro chances in local runs (???).
-		FaultInjection: true,
-		Comparisons:    features&flatrpc.FeatureComparisons != 0,
-		Collide:        true,
-		EnabledCalls:   syscalls,
-		NoMutateCalls:  kc.cfg.NoMutateCalls,
-		PatchTest:      true,
+		Corpus:        corpusObj,
+		Coverage:      kc.cfg.Cover,
+		Comparisons:   features&flatrpc.FeatureComparisons != 0,
+		Collide:       true,
+		EnabledCalls:  syscalls,
+		NoMutateCalls: kc.cfg.NoMutateCalls,
+		PatchTest:     true,
 		Logf: func(level int, msg string, args ...interface{}) {
 			if level != 0 {
 				return
