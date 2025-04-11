@@ -64,7 +64,7 @@ func main() {
 	// the final test result back.
 	runCtx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	err = run(runCtx, client, artifactsDir)
+	err = run(runCtx, client, d, artifactsDir)
 	status := api.TestPassed // TODO: what about TestFailed?
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		app.Errorf("the step failed: %v", err)
@@ -76,7 +76,7 @@ func main() {
 	}
 }
 
-func run(baseCtx context.Context, client *api.Client, artifactsDir string) error {
+func run(baseCtx context.Context, client *api.Client, timeout time.Duration, artifactsDir string) error {
 	series, err := client.GetSessionSeries(baseCtx, *flagSession)
 	if err != nil {
 		return fmt.Errorf("failed to query the series info: %w", err)
@@ -124,9 +124,10 @@ func run(baseCtx context.Context, client *api.Client, artifactsDir string) error
 	})
 	eg.Go(func() error {
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
-			Debug:        false,
-			PatchedOnly:  bugs,
-			ArtifactsDir: artifactsDir,
+			Debug:         false,
+			PatchedOnly:   bugs,
+			ArtifactsDir:  artifactsDir,
+			MaxTriageTime: timeout / 2,
 		})
 	})
 	const (
