@@ -279,7 +279,16 @@ func FormatResult(thm *templateHeatmap, format Format) {
 		})
 		// We want to show the coverage drop numbers instead of total instrumented blocks.
 		thm.Transform(func(row *templateHeatmapRow) {
-			row.Summary = -1 * (slices.Max(row.Covered) - row.Covered[len(row.Covered)-1])
+			if !row.IsDir {
+				row.Summary = -1 * (slices.Max(row.Covered) - row.Covered[len(row.Covered)-1])
+				return
+			}
+			row.Summary = 0
+			for _, item := range row.Items {
+				if item.Summary < 0 { // only the items with coverage drop
+					row.Summary += item.Summary
+				}
+			}
 		})
 	}
 }
