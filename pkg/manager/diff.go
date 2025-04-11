@@ -416,9 +416,8 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	fuzzerObj := fuzzer.NewFuzzer(kc.ctx, &fuzzer.Config{
 		Corpus:   corpusObj,
 		Coverage: kc.cfg.Cover,
-		// TODO: it may be unstable between different revisions though.
-		// For now it's only kept true because it seems to increase repro chances in local runs (???).
-		FaultInjection: true,
+		// Fault injection may bring instaibility into bug reproducibility, which may lead to false positives.
+		FaultInjection: false,
 		Comparisons:    features&flatrpc.FeatureComparisons != 0,
 		Collide:        true,
 		EnabledCalls:   syscalls,
