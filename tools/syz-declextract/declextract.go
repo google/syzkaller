@@ -275,7 +275,9 @@ func finishInterfaces(interfaces []*declextract.Interface, consts map[string]*co
 	}
 	extractor := subsystem.MakeExtractor(subsystem.GetList(target.OS))
 	for _, iface := range interfaces {
-		iface.ManualDescriptions = manual[iface.IdentifyingConst]
+		if iface.IdentifyingConst != "" {
+			iface.ManualDescriptions = declextract.Tristate(manual[iface.IdentifyingConst])
+		}
 		var crashes []*subsystem.Crash
 		for _, file := range iface.Files {
 			crashes = append(crashes, &subsystem.Crash{GuiltyPath: file})

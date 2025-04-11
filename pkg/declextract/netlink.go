@@ -47,7 +47,7 @@ func (ctx *context) serializeNetlink() {
 				Files:            []string{fam.SourceFile},
 				Func:             op.Func,
 				Access:           op.Access,
-				AutoDescriptions: true,
+				AutoDescriptions: TristateYes,
 			})
 		}
 
