@@ -167,7 +167,14 @@ loop:
 			dc.store.BaseCrashed(rep.Title, rep.Report)
 		case ret := <-runner.done:
 			// We have run the reproducer on the base instance.
-			if ret.crashReport == nil {
+
+			// A sanity check: the base kernel might have crashed with the same title
+			// since the moment we have stared the reproduction / running on the repro base.
+			crashesOnBase := dc.store.EverCrashedBase(ret.origReport.Title)
+			if ret.crashReport == nil && crashesOnBase {
+				// Report it as error so that we could at least find it in the logs.
+				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
+			} else if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.origReport.Title)
 				dc.patchedOnly <- &UniqueBug{
 					Report: ret.origReport,
