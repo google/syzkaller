@@ -176,9 +176,12 @@ loop:
 				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
 			} else if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.origReport.Title)
-				dc.patchedOnly <- &UniqueBug{
+				select {
+				case <-ctx.Done():
+				case dc.patchedOnly <- &UniqueBug{
 					Report: ret.origReport,
 					Repro:  ret.repro,
+				}:
 				}
 				log.Logf(0, "patched-only: %s", ret.origReport.Title)
 			} else {
