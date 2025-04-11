@@ -40,6 +40,11 @@ type DiffFuzzerConfig struct {
 	Debug        bool
 	PatchedOnly  chan *UniqueBug
 	ArtifactsDir string // Where to store the artifacts that supplement the logs.
+	// The fuzzer waits no more than MaxTriageTime time until it starts taking VMs away
+	// for bug reproduction.
+	// The option may help find a balance between spending too much time triaging
+	// the corpus and not reaching a proper kernel coverage.
+	MaxTriageTime time.Duration
 }
 
 type UniqueBug struct {
@@ -76,6 +81,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 
 	store := &DiffFuzzerStore{BasePath: cfg.ArtifactsDir}
 	diffCtx := &diffContext{
+		cfg:           cfg,
 		doneRepro:     make(chan *ReproResult),
 		base:          base,
 		new:           new,
@@ -102,6 +108,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 }
 
 type diffContext struct {
+	cfg   DiffFuzzerConfig
 	store *DiffFuzzerStore
 	http  *HTTPServer
 
@@ -126,10 +133,8 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 	g.Go(func() error {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
-		// TODO: determine the exact moment of corpus triage.
-		select {
-		case <-time.After(15 * time.Minute):
-		case <-ctx.Done():
+		dc.waitCorpusTriage(ctx)
+		if ctx.Err() != nil {
 			return nil
 		}
 		log.Logf(0, "starting bug reproductions")
@@ -202,6 +207,35 @@ loop:
 	return g.Wait()
 }
 
+func (dc *diffContext) waitCorpusTriage(ctx context.Context) {
+	// Wait either until we have triaged 90% of the candidates or
+	// once MaxTriageTime has passed.
+	// We don't want to wait for 100% of the candidates because there's usually a long
+	// tail of slow triage jobs + the value of the candidates diminishes over time.
+	const triagedThreshold = 0.9
+	const backOffTime = 30 * time.Second
+
+	startedAt := time.Now()
+	for {
+		select {
+		case <-time.After(backOffTime):
+		case <-ctx.Done():
+			return
+		}
+		triaged := dc.new.triageProgress()
+		if triaged >= triagedThreshold {
+			log.Logf(0, "triaged %.1f%% of the corpus", triaged*100.0)
+			return
+		}
+		if dc.cfg.MaxTriageTime != 0 &&
+			time.Since(startedAt) >= dc.cfg.MaxTriageTime {
+			log.Logf(0, "timed out waiting for %.1f%% triage (have %.1f%%)",
+				triagedThreshold*100.0, triaged*100.0)
+			return
+		}
+	}
+}
+
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
 const maxReproAttempts = 6
 
@@ -268,6 +302,8 @@ type kernelContext struct {
 	pool       *vm.Dispatcher
 	features   flatrpc.Feature
 	candidates chan []fuzzer.Candidate
+	// Once candidates is assigned, candidatesCount holds their original count.
+	candidatesCount atomic.Int64
 
 	coverFilters    CoverageFilters
 	reportGenerator *ReportGeneratorWrapper
@@ -381,7 +417,6 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 			log.Logf(level, msg, args...)
 		},
 	}, rnd, kc.cfg.Target)
-	kc.fuzzer.Store(fuzzerObj)
 
 	if kc.http != nil {
 		kc.http.Fuzzer.Store(fuzzerObj)
@@ -396,6 +431,9 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 		// The loop will be aborted later.
 		break
 	}
+	// We assign kc.fuzzer after kc.candidatesCount to simplify the triageProgress implementation.
+	kc.candidatesCount.Store(int64(len(candidates)))
+	kc.fuzzer.Store(fuzzerObj)
 
 	filtered := FilterCandidates(candidates, syscalls, false).Candidates
 	log.Logf(0, "%s: adding %d seeds", kc.name, len(filtered))
@@ -483,6 +521,19 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 		}),
 	)
 	return rep, err
+}
+
+func (kc *kernelContext) triageProgress() float64 {
+	fuzzer := kc.fuzzer.Load()
+	if fuzzer == nil {
+		return 0
+	}
+	total := kc.candidatesCount.Load()
+	if total == 0.0 {
+		// There were no candidates in the first place.
+		return 1
+	}
+	return 1.0 - float64(fuzzer.CandidatesToTriage())/float64(total)
 }
 
 // reproRunner is used to run reproducers on the base kernel to determine whether it is affected.

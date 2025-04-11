@@ -106,8 +106,12 @@ func newExecQueues(fuzzer *Fuzzer) execQueues {
 	return ret
 }
 
+func (fuzzer *Fuzzer) CandidatesToTriage() int {
+	return fuzzer.statCandidates.Val() + fuzzer.statJobsTriageCandidate.Val()
+}
+
 func (fuzzer *Fuzzer) CandidateTriageFinished() bool {
-	return fuzzer.statCandidates.Val()+fuzzer.statJobsTriageCandidate.Val() == 0
+	return fuzzer.CandidatesToTriage() == 0
 }
 
 func (fuzzer *Fuzzer) execute(executor queue.Executor, req *queue.Request) *queue.Result {
