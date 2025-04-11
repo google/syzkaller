@@ -54,6 +54,9 @@ type UniqueBug struct {
 }
 
 func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg DiffFuzzerConfig) error {
+	if cfg.PatchedOnly == nil {
+		return fmt.Errorf("you must set up a patched only channel")
+	}
 	base, err := setup(ctx, "base", baseCfg, cfg.Debug)
 	if err != nil {
 		return err
@@ -146,13 +149,13 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 	g.Go(dc.new.Loop)
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
-	rareStat := time.NewTicker(5 * time.Minute)
+	statTimer := time.NewTicker(5 * time.Minute)
 loop:
 	for {
 		select {
 		case <-ctx.Done():
 			break loop
-		case <-rareStat.C:
+		case <-statTimer.C:
 			vals := make(map[string]int)
 			for _, stat := range stat.Collect(stat.All) {
 				vals[stat.Name] = stat.V
@@ -163,13 +166,12 @@ loop:
 			log.Logf(1, "base crash: %v", rep.Title)
 			dc.store.BaseCrashed(rep.Title, rep.Report)
 		case ret := <-runner.done:
+			// We have run the reproducer on the base instance.
 			if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.origReport.Title)
-				if dc.patchedOnly != nil {
-					dc.patchedOnly <- &UniqueBug{
-						Report: ret.origReport,
-						Repro:  ret.repro,
-					}
+				dc.patchedOnly <- &UniqueBug{
+					Report: ret.origReport,
+					Repro:  ret.repro,
 				}
 				log.Logf(0, "patched-only: %s", ret.origReport.Title)
 			} else {
@@ -177,6 +179,7 @@ loop:
 				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
+			// We have finished reproducing a crash from the patched instance.
 			if ret.Repro != nil && ret.Repro.Report != nil {
 				origTitle := ret.Crash.Report.Title
 				if ret.Repro.Report.Title == origTitle {
@@ -194,6 +197,7 @@ loop:
 			}
 			dc.store.SaveRepro(ret)
 		case rep := <-dc.new.crashes:
+			// A new crash is found on the patched instance.
 			crash := &Crash{Report: rep}
 			need := dc.NeedRepro(crash)
 			log.Logf(0, "patched crashed: %v [need repro = %v]",
