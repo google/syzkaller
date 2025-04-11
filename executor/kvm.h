@@ -2,6 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 #define X86_ADDR_TEXT 0x0000
+#define X86_ADDR_PD_IOAPIC 0x0000
 #define X86_ADDR_GDT 0x1000
 #define X86_ADDR_LDT 0x1800
 #define X86_ADDR_PML4 0x2000
@@ -31,6 +32,17 @@
 #define X86_ADDR_VAR_VMEXIT_CODE 0x9000
 #define X86_ADDR_VAR_USER_CODE 0x9100
 #define X86_ADDR_VAR_USER_CODE2 0x9120
+#define X86_ADDR_SMRAM 0x30000
+// Write to this page to trigger a page fault and stop KVM_RUN.
+#define X86_ADDR_EXIT 0x40000
+// Dedicated address within the exit page for the uexit command.
+#define X86_ADDR_UEXIT (X86_ADDR_EXIT + 256)
+#define X86_ADDR_DIRTY_PAGES 0x41000
+#define X86_ADDR_USER_CODE 0x50000
+#define X86_ADDR_EXECUTOR_CODE 0x54000
+#define X86_ADDR_SCRATCH_CODE 0x58000
+#define X86_ADDR_UNUSED 0x200000
+#define X86_ADDR_IOAPIC 0xfec00000
 
 #define X86_CR0_PE 1ULL
 #define X86_CR0_MP (1ULL << 1)
@@ -138,6 +150,9 @@
 #define KVM_GUEST_MEM_SIZE (1024 * KVM_PAGE_SIZE)
 #define SZ_4K 0x00001000
 #define SZ_64K 0x00010000
+#define GENMASK_ULL(h, l)                   \
+	(((~0ULL) - (1ULL << (l)) + 1ULL) & \
+	 (~0ULL >> (63 - (h))))
 
 // GICv3 distributor address.
 #define ARM64_ADDR_GICD_BASE 0x08000000
