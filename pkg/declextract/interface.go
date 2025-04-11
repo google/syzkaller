@@ -18,8 +18,8 @@ type Interface struct {
 	Func               string
 	Access             string
 	Subsystems         []string
-	ManualDescriptions bool
-	AutoDescriptions   bool
+	ManualDescriptions TristateVal
+	AutoDescriptions   TristateVal
 	ReachableLOC       int
 	CoveredBlocks      int
 	TotalBlocks        int
@@ -28,9 +28,19 @@ type Interface struct {
 	scopeVal string
 }
 
+type TristateVal int
+
+const (
+	TristateUnknown TristateVal = iota
+	TristateYes
+	TristateNo
+)
+
 const (
 	IfaceSyscall   = "SYSCALL"
 	IfaceNetlinkOp = "NETLINK"
+	IfaceFileop    = "FILEOP"
+	IfaceIoctl     = "IOCTL"
 	IfaceIouring   = "IOURING"
 
 	AccessUnknown = "unknown"
@@ -44,10 +54,24 @@ func (ctx *context) noteInterface(iface *Interface) {
 }
 
 func (ctx *context) finishInterfaces() {
+	ctx.interfaces = sortAndDedupSlice(ctx.interfaces)
+	count := make(map[string]int)
+	for _, iface := range ctx.interfaces {
+		count[iface.Type+iface.Name]++
+	}
+	// Lots of file ops have the same name, add file name to them.
+	for _, iface := range ctx.interfaces {
+		if count[iface.Type+iface.Name] > 1 {
+			iface.Name = iface.Name + "_" + fileNameSuffix(iface.Files[0])
+		}
+	}
 	for _, iface := range ctx.interfaces {
 		ctx.calculateLOC(iface)
 		slices.Sort(iface.Files)
 		iface.Files = slices.Compact(iface.Files)
+		if iface.Access == "" {
+			iface.Access = AccessUnknown
+		}
 		if iface.Access == "" {
 			iface.Access = AccessUnknown
 		}
@@ -147,4 +171,46 @@ func (ctx *context) findFunc(name, file string) *Function {
 		return fn
 	}
 	return ctx.funcs[name]
+}
+
+func (ctx *context) funcDefinitionFile(name, calledFrom string) string {
+	fn := ctx.findFunc(name, calledFrom)
+	if fn == nil {
+		return ""
+	}
+	return fn.File
+}
+
+func fileNameSuffix(file string) string {
+	// Remove file extension.
+	ext := strings.LastIndexByte(file, '.')
+	if ext != -1 {
+		file = file[:ext]
+	}
+	raw := []byte(file)
+	for i, v := range raw {
+		if v >= 'a' && v <= 'z' || v >= 'A' && v <= 'Z' || v >= '0' && v <= '9' {
+			continue
+		}
+		raw[i] = '_'
+	}
+	return string(raw)
+}
+
+func Tristate(v bool) TristateVal {
+	if v {
+		return TristateYes
+	}
+	return TristateNo
+}
+
+func (tv TristateVal) String() string {
+	switch tv {
+	case TristateYes:
+		return "true"
+	case TristateNo:
+		return "false"
+	default:
+		return "unknown"
+	}
 }

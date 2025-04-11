@@ -213,7 +213,7 @@ func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall,
 			IdentifyingConst: identifyingConst,
 			Files:            []string{call.SourceFile},
 			Func:             call.Func,
-			AutoDescriptions: true,
+			AutoDescriptions: TristateYes,
 			scopeArg:         scopeArg,
 			scopeVal:         scopeVal,
 		})
@@ -232,6 +232,7 @@ func (ctx *context) processIouring() {
 			Files:            []string{op.SourceFile},
 			Func:             op.Func,
 			Access:           AccessUser,
+			AutoDescriptions: TristateNo,
 		})
 	}
 }

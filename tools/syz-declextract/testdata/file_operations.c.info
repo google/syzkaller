@@ -1,0 +1,16 @@
+FILEOP	foo_mmap	func:foo_mmap	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:true	file:file_operations.c	subsystem:kernel
+FILEOP	foo_read	func:foo_read	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:true	file:file_operations.c	subsystem:kernel
+FILEOP	foo_write	func:foo_write	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:true	file:file_operations.c	subsystem:kernel
+FILEOP	proc_open	func:proc_open	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:false	file:file_operations.c	subsystem:kernel
+FILEOP	proc_read	func:proc_read	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:false	file:file_operations.c	subsystem:kernel
+FILEOP	proc_write	func:proc_write	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:false	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL1	func:foo_ioctl	loc:10	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL2	func:foo_ioctl	loc:10	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL3	func:foo_ioctl	loc:10	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL4	func:foo_ioctl	loc:10	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL5	func:foo_ioctl	loc:10	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL6	func:foo_ioctl	loc:8	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	FOO_IOCTL7	func:foo_ioctl	loc:8	coverage:0	access:unknown	manual_desc:false	auto_desc:true	file:file_operations.c	subsystem:kernel
+IOCTL	UNUSED_IOCTL1	func:unused_ioctl	loc:4	coverage:0	access:unknown	manual_desc:false	auto_desc:false	file:file_operations.c	subsystem:kernel
+IOCTL	UNUSED_IOCTL2	func:unused_ioctl	loc:4	coverage:0	access:unknown	manual_desc:false	auto_desc:false	file:file_operations.c	subsystem:kernel
+IOCTL	proc_ioctl	func:proc_ioctl	loc:0	coverage:0	access:unknown	manual_desc:unknown	auto_desc:false	file:file_operations.c	subsystem:kernel

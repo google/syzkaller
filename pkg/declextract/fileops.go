@@ -9,7 +9,10 @@ import (
 	"strings"
 )
 
-// TODO: also emit interface entry for file_operations.
+const (
+	ioctlCmdArg = 1
+	ioctlArgArg = 2
+)
 
 func (ctx *context) serializeFileOps() {
 	for _, ioctl := range ctx.Ioctls {
@@ -18,14 +21,60 @@ func (ctx *context) serializeFileOps() {
 	fopsToFiles := ctx.mapFopsToFiles()
 	for _, fops := range ctx.FileOps {
 		files := fopsToFiles[fops]
+		canGenerate := Tristate(len(files) != 0)
+		for _, op := range []string{fops.Read, fops.Write, fops.Mmap} {
+			if op == "" {
+				continue
+			}
+			file := ctx.funcDefinitionFile(op, fops.SourceFile)
+			if file == "" {
+				// TODO: in some cases we misparse fops defined via macros, e.g. for:
+				//	.write = (foo) ? bar : baz,
+				// We extract "foo".
+				continue
+			}
+			ctx.noteInterface(&Interface{
+				Type:             IfaceFileop,
+				Name:             op,
+				Func:             op,
+				Files:            []string{file},
+				AutoDescriptions: canGenerate,
+			})
+		}
+		var ioctlCmds []string
+		if fops.Ioctl != "" {
+			ioctlCmds = ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, ioctlCmdArg)
+			file := ctx.funcDefinitionFile(fops.Ioctl, fops.SourceFile)
+			for _, cmd := range ioctlCmds {
+				ctx.noteInterface(&Interface{
+					Type:             IfaceIoctl,
+					Name:             cmd,
+					IdentifyingConst: cmd,
+					Files:            []string{file},
+					Func:             fops.Ioctl,
+					AutoDescriptions: canGenerate,
+					scopeArg:         ioctlCmdArg,
+					scopeVal:         cmd,
+				})
+			}
+			if len(ioctlCmds) == 0 {
+				ctx.noteInterface(&Interface{
+					Type:             IfaceIoctl,
+					Name:             fops.Ioctl,
+					Files:            []string{file},
+					Func:             fops.Ioctl,
+					AutoDescriptions: canGenerate,
+				})
+			}
+		}
 		if len(files) == 0 {
 			continue // each unmapped entry means some code we don't know how to cover yet
 		}
-		ctx.createFops(fops, files)
+		ctx.createFops(fops, files, ioctlCmds)
 	}
 }
 
-func (ctx *context) createFops(fops *FileOps, files []string) {
+func (ctx *context) createFops(fops *FileOps, files, ioctlCmds []string) {
 	// If it has only open, then emit only openat that returns generic fd.
 	fdt := "fd"
 	if len(fops.ops()) > 1 || fops.Open == "" {
@@ -55,21 +104,17 @@ func (ctx *context) createFops(fops *FileOps, files []string) {
 			" flags flags[mmap_flags], fd %v, offset fileoff)\n", suffix, fdt)
 	}
 	if fops.Ioctl != "" {
-		ctx.createIoctls(fops, suffix, fdt)
+		ctx.createIoctls(fops, ioctlCmds, suffix, fdt)
 	}
 	ctx.fmt("\n")
 }
 
-func (ctx *context) createIoctls(fops *FileOps, suffix, fdt string) {
-	const (
-		cmdArg         = 1
-		argArg         = 2
-		defaultArgType = "ptr[in, array[int8]]"
-	)
-	cmds := ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, cmdArg)
+func (ctx *context) createIoctls(fops *FileOps, ioctlCmds []string, suffix, fdt string) {
+	const defaultArgType = "ptr[in, array[int8]]"
+	cmds := ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, ioctlCmdArg)
 	if len(cmds) == 0 {
 		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, -1, "")
-		argType := ctx.inferArgType(fops.Ioctl, fops.SourceFile, argArg, -1, "")
+		argType := ctx.inferArgType(fops.Ioctl, fops.SourceFile, ioctlArgArg, -1, "")
 		if argType == "" {
 			argType = defaultArgType
 		}
@@ -85,12 +130,12 @@ func (ctx *context) createIoctls(fops *FileOps, suffix, fdt string) {
 			}
 			argType = ctx.fieldType(f, nil, "", false)
 		} else {
-			argType = ctx.inferArgType(fops.Ioctl, fops.SourceFile, argArg, cmdArg, cmd)
+			argType = ctx.inferArgType(fops.Ioctl, fops.SourceFile, ioctlArgArg, ioctlCmdArg, cmd)
 			if argType == "" {
 				argType = defaultArgType
 			}
 		}
-		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, cmdArg, cmd)
+		retType := ctx.inferReturnType(fops.Ioctl, fops.SourceFile, ioctlCmdArg, cmd)
 		name := ctx.uniqualize("ioctl cmd", cmd)
 		ctx.fmt("ioctl%v_%v(fd %v, cmd const[%v], arg %v) %v\n",
 			autoSuffix, name, fdt, cmd, argType, retType)
