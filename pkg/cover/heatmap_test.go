@@ -150,7 +150,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := filesCoverageToTemplateData(test.input)
+			got := FilesCoverageToTemplateData(test.input)
 			assert.EqualExportedValues(t, test.want, got)
 		})
 	}
