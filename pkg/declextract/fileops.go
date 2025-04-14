@@ -26,13 +26,7 @@ func (ctx *context) serializeFileOps() {
 			if op == "" {
 				continue
 			}
-			file := ctx.funcDefinitionFile(op, fops.SourceFile)
-			if file == "" {
-				// TODO: in some cases we misparse fops defined via macros, e.g. for:
-				//	.write = (foo) ? bar : baz,
-				// We extract "foo".
-				continue
-			}
+			file := ctx.mustFindFunc(op, fops.SourceFile).File
 			ctx.noteInterface(&Interface{
 				Type:             IfaceFileop,
 				Name:             op,
@@ -44,7 +38,7 @@ func (ctx *context) serializeFileOps() {
 		var ioctlCmds []string
 		if fops.Ioctl != "" {
 			ioctlCmds = ctx.inferCommandVariants(fops.Ioctl, fops.SourceFile, ioctlCmdArg)
-			file := ctx.funcDefinitionFile(fops.Ioctl, fops.SourceFile)
+			file := ctx.mustFindFunc(fops.Ioctl, fops.SourceFile).File
 			for _, cmd := range ioctlCmds {
 				ctx.noteInterface(&Interface{
 					Type:             IfaceIoctl,

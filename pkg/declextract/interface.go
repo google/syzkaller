@@ -4,6 +4,7 @@
 package declextract
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -173,12 +174,12 @@ func (ctx *context) findFunc(name, file string) *Function {
 	return ctx.funcs[name]
 }
 
-func (ctx *context) funcDefinitionFile(name, calledFrom string) string {
-	fn := ctx.findFunc(name, calledFrom)
+func (ctx *context) mustFindFunc(name, file string) *Function {
+	fn := ctx.findFunc(name, file)
 	if fn == nil {
-		return ""
+		panic(fmt.Sprintf("no func %q in %q", name, file))
 	}
-	return fn.File
+	return fn
 }
 
 func fileNameSuffix(file string) string {
