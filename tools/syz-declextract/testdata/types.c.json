@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_align_syscall",
 			"file": "types.c",
-			"start_line": 97,
-			"end_line": 99,
+			"start_line": 111,
+			"end_line": 113,
 			"scopes": [
 				{
 					"arg": -1
@@ -23,10 +23,21 @@
 			]
 		},
 		{
+			"name": "__do_sys_types_syscall2",
+			"file": "types.c",
+			"start_line": 69,
+			"end_line": 71,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
 			"name": "anon_flow",
 			"file": "types.c",
-			"start_line": 59,
-			"end_line": 68,
+			"start_line": 73,
+			"end_line": 82,
 			"scopes": [
 				{
 					"arg": -1,
@@ -172,6 +183,26 @@
 			"name": "c",
 			"filename": "types.c",
 			"value": 2
+		},
+		{
+			"name": "enum_bar_a",
+			"filename": "types.c",
+			"value": 0
+		},
+		{
+			"name": "enum_bar_b",
+			"filename": "types.c",
+			"value": 1
+		},
+		{
+			"name": "enum_foo_a",
+			"filename": "types.c",
+			"value": 0
+		},
+		{
+			"name": "enum_foo_b",
+			"filename": "types.c",
+			"value": 1
 		}
 	],
 	"enums": [
@@ -181,6 +212,20 @@
 				"a",
 				"b",
 				"c"
+			]
+		},
+		{
+			"name": "enum_bar",
+			"values": [
+				"enum_bar_a",
+				"enum_bar_b"
+			]
+		},
+		{
+			"name": "enum_foo",
+			"values": [
+				"enum_foo_a",
+				"enum_foo_b"
 			]
 		}
 	],
@@ -995,6 +1040,32 @@
 									"base": "unsigned int"
 								}
 							}
+						}
+					}
+				}
+			],
+			"source_file": "types.c"
+		},
+		{
+			"func": "__do_sys_types_syscall2",
+			"args": [
+				{
+					"name": "foo",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"enum": "enum_foo"
+						}
+					}
+				},
+				{
+					"name": "bar",
+					"counted_by": -1,
+					"type": {
+						"int": {
+							"byte_size": 4,
+							"enum": "enum_bar"
 						}
 					}
 				}
