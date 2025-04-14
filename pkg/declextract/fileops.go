@@ -23,8 +23,12 @@ func (ctx *context) serializeFileOps() {
 	for _, fops := range ctx.FileOps {
 		files := fopsToFiles[fops]
 		canGenerate := Tristate(len(files) != 0)
-		for _, op := range []*Function{fops.read, fops.write, fops.mmap} {
+		for _, op := range []*Function{fops.open, fops.read, fops.write, fops.mmap} {
 			if op == nil {
+				continue
+			}
+			if op == fops.open && (uniqueFuncs[fops.read] == 1 || uniqueFuncs[fops.write] == 1 ||
+				uniqueFuncs[fops.mmap] == 1 || uniqueFuncs[fops.ioctl] == 1) {
 				continue
 			}
 			ctx.noteInterface(&Interface{
