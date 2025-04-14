@@ -175,6 +175,9 @@ func (ctx *context) findFunc(name, file string) *Function {
 }
 
 func (ctx *context) mustFindFunc(name, file string) *Function {
+	if name == "" {
+		return nil
+	}
 	fn := ctx.findFunc(name, file)
 	if fn == nil {
 		panic(fmt.Sprintf("no func %q in %q", name, file))

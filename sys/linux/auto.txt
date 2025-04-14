@@ -35,7 +35,6 @@ include <include/uapi/linux/cdrom.h>
 include <include/uapi/linux/cec.h>
 include <include/uapi/linux/cgroupstats.h>
 include <include/uapi/linux/cifs/cifs_netlink.h>
-include <include/uapi/linux/comedi.h>
 include <include/uapi/linux/ethtool_netlink_generated.h>
 include <include/uapi/linux/eventpoll.h>
 include <include/uapi/linux/ext4.h>
@@ -315,7 +314,7 @@ finit_module$auto(fd fd, uargs ptr[in, string], flags int32)
 flistxattr$auto(fd fd, list ptr[inout, string], size intptr)
 flock$auto(fd fd, cmd int32)
 fremovexattr$auto(fd fd, name ptr[in, string])
-fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
+fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
 fsconfig$auto_EROFS_MOUNT_DAX_ALWAYS(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_ALWAYS])
 fsconfig$auto_EROFS_MOUNT_DAX_NEVER(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_NEVER])
 fsconfig$auto_FSCONFIG_CMD_CREATE(fd fd, cmd const[FSCONFIG_CMD_CREATE], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
@@ -1536,28 +1535,6 @@ clk_summary_fops__files = "/sys/kernel/debug/clk/clk_orphan_summary", "/sys/kern
 openat$auto_clk_summary_fops_(fd const[AT_FDCWD], file ptr[in, string[clk_summary_fops__files]], flags flags[open_flags], mode const[0]) fd_clk_summary_fops_
 read$auto_clk_summary_fops_(fd fd_clk_summary_fops_, buf ptr[out, array[int8]], len bytesize[buf])
 
-resource fd_comedi_fops_comedi_fops[fd]
-openat$auto_comedi_fops_comedi_fops(fd const[AT_FDCWD], file ptr[in, string["/proc/comedi"]], flags flags[open_flags], mode const[0]) fd_comedi_fops_comedi_fops
-read$auto_comedi_fops_comedi_fops(fd fd_comedi_fops_comedi_fops, buf ptr[out, array[int8]], len bytesize[buf])
-write$auto_comedi_fops_comedi_fops(fd fd_comedi_fops_comedi_fops, buf ptr[in, array[int8]], len bytesize[buf])
-mmap$auto_comedi_fops_comedi_fops(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_comedi_fops_comedi_fops, offset fileoff)
-ioctl$auto_COMEDI_BUFCONFIG(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_BUFCONFIG], arg ptr[in, comedi_bufconfig$auto])
-ioctl$auto_COMEDI_BUFINFO(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_BUFINFO], arg ptr[inout, comedi_bufinfo$auto])
-ioctl$auto_COMEDI_CANCEL(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_CANCEL], arg const[0])
-ioctl$auto_COMEDI_CHANINFO(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_CHANINFO], arg ptr[in, comedi_chaninfo$auto])
-ioctl$auto_COMEDI_CMD(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_CMD], arg ptr[in, comedi_cmd$auto])
-ioctl$auto_COMEDI_CMDTEST(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_CMDTEST], arg ptr[in, comedi_cmd$auto])
-ioctl$auto_COMEDI_DEVINFO(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_DEVINFO], arg ptr[in, comedi_devinfo$auto])
-ioctl$auto_COMEDI_INSN(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_INSN], arg ptr[in, comedi_insn$auto])
-ioctl$auto_COMEDI_INSNLIST(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_INSNLIST], arg ptr[in, comedi_insnlist$auto])
-ioctl$auto_COMEDI_LOCK(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_LOCK], arg const[0])
-ioctl$auto_COMEDI_POLL(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_POLL], arg const[0])
-ioctl$auto_COMEDI_RANGEINFO(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_RANGEINFO], arg ptr[in, comedi_rangeinfo$auto])
-ioctl$auto_COMEDI_SETRSUBD(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_SETRSUBD], arg const[0])
-ioctl$auto_COMEDI_SETWSUBD(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_SETWSUBD], arg const[0])
-ioctl$auto_COMEDI_SUBDINFO(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_SUBDINFO], arg ptr[in, comedi_subdinfo$auto])
-ioctl$auto_COMEDI_UNLOCK(fd fd_comedi_fops_comedi_fops, cmd const[COMEDI_UNLOCK], arg const[0])
-
 resource fd_component_list_fops_[fd]
 openat$auto_component_list_fops_(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/asoc/components"]], flags flags[open_flags], mode const[0]) fd_component_list_fops_
 read$auto_component_list_fops_(fd fd_component_list_fops_, buf ptr[out, array[int8]], len bytesize[buf])
@@ -2562,7 +2539,7 @@ read$auto_proc_gid_map_operations_base(fd fd_proc_gid_map_operations_base, buf p
 write$auto_proc_gid_map_operations_base(fd fd_proc_gid_map_operations_base, buf ptr[in, array[int8]], len bytesize[buf])
 
 resource fd_proc_iter_file_ops_compat_inode[fd]
-proc_iter_file_ops_compat_inode_files = "/proc/buddyinfo", "/proc/bus/pci/devices", "/proc/consoles", "/proc/crypto", "/proc/diskstats", "/proc/fb", "/proc/fs/ext4/sda1/mb_groups", "/proc/fs/ext4/sda1/mb_structs_summary", "/proc/fs/netfs/caches", "/proc/fs/netfs/cookies", "/proc/fs/netfs/requests", "/proc/fs/netfs/volumes", "/proc/interrupts", "/proc/iomem", "/proc/ioports", "/proc/kcore", "/proc/key-users", "/proc/keys", "/proc/lockdep", "/proc/lockdep_chains", "/proc/locks", "/proc/misc", "/proc/pagetypeinfo", "/proc/partitions", "/proc/schedstat", "/proc/scsi/sg/debug", "/proc/scsi/sg/device_strs", "/proc/scsi/sg/devices", "/proc/self/net/arp_tables_matches", "/proc/self/net/arp_tables_targets", "/proc/self/net/bonding/bond0", "/proc/self/net/ip6_tables_matches", "/proc/self/net/ip6_tables_targets", "/proc/self/net/ip_tables_matches", "/proc/self/net/ip_tables_targets", "/proc/self/net/rt_cache", "/proc/self/net/softnet_stat", "/proc/self/net/stat/rt_cache", "/proc/thread-self/net/arp_tables_matches", "/proc/thread-self/net/arp_tables_targets", "/proc/thread-self/net/bonding/bond0", "/proc/thread-self/net/ip6_tables_matches", "/proc/thread-self/net/ip6_tables_targets", "/proc/thread-self/net/ip_tables_matches", "/proc/thread-self/net/ip_tables_targets", "/proc/thread-self/net/rt_cache", "/proc/thread-self/net/softnet_stat", "/proc/thread-self/net/stat/rt_cache", "/proc/timer_list", "/proc/tty/drivers", "/proc/tty/ldiscs", "/proc/vmstat", "/proc/zoneinfo"
+proc_iter_file_ops_compat_inode_files = "/proc/buddyinfo", "/proc/bus/pci/devices", "/proc/cgroups", "/proc/comedi", "/proc/consoles", "/proc/crypto", "/proc/diskstats", "/proc/dma", "/proc/driver/nvram", "/proc/driver/rtc", "/proc/execdomains", "/proc/fb", "/proc/filesystems", "/proc/fs/cifs/DebugData", "/proc/fs/cifs/open_files", "/proc/fs/ext4/sda1/es_shrinker_info", "/proc/fs/ext4/sda1/fc_info", "/proc/fs/ext4/sda1/mb_groups", "/proc/fs/ext4/sda1/mb_stats", "/proc/fs/ext4/sda1/mb_structs_summary", "/proc/fs/ext4/sda1/options", "/proc/fs/jfs/TxAnchor", "/proc/fs/netfs/caches", "/proc/fs/netfs/cookies", "/proc/fs/netfs/requests", "/proc/fs/netfs/volumes", "/proc/fs/xfs/xqm", "/proc/fs/xfs/xqmstat", "/proc/interrupts", "/proc/iomem", "/proc/ioports", "/proc/irq/0/affinity_hint", "/proc/irq/0/effective_affinity", "/proc/irq/0/effective_affinity_list", "/proc/irq/0/node", "/proc/irq/0/spurious", "/proc/irq/1/affinity_hint", "/proc/irq/1/effective_affinity", "/proc/irq/1/effective_affinity_list", "/proc/irq/1/node", "/proc/irq/1/spurious", "/proc/irq/10/affinity_hint", "/proc/irq/10/effective_affinity", "/proc/irq/10/effective_affinity_list", "/proc/irq/10/node", "/proc/irq/10/spurious", "/proc/irq/11/affinity_hint", "/proc/irq/11/effective_affinity", "/proc/irq/11/effective_affinity_list", "/proc/irq/11/node", "/proc/irq/11/spurious", "/proc/irq/12/affinity_hint", "/proc/irq/12/effective_affinity", "/proc/irq/12/effective_affinity_list", "/proc/irq/12/node", "/proc/irq/12/spurious", "/proc/irq/13/affinity_hint", "/proc/irq/13/effective_affinity", "/proc/irq/13/effective_affinity_list", "/proc/irq/13/node", "/proc/irq/13/spurious", "/proc/irq/14/affinity_hint", "/proc/irq/14/effective_affinity", "/proc/irq/14/effective_affinity_list", "/proc/irq/14/node", "/proc/irq/14/spurious", "/proc/irq/15/affinity_hint", "/proc/irq/15/effective_affinity", "/proc/irq/15/effective_affinity_list", "/proc/irq/15/node", "/proc/irq/15/spurious", "/proc/irq/2/affinity_hint", "/proc/irq/2/effective_affinity", "/proc/irq/2/effective_affinity_list", "/proc/irq/2/node", "/proc/irq/2/spurious", "/proc/irq/24/affinity_hint", "/proc/irq/24/effective_affinity", "/proc/irq/24/effective_affinity_list", "/proc/irq/24/node", "/proc/irq/24/spurious", "/proc/irq/25/affinity_hint", "/proc/irq/25/effective_affinity", "/proc/irq/25/effective_affinity_list", "/proc/irq/25/node", "/proc/irq/25/spurious", "/proc/irq/3/affinity_hint", "/proc/irq/3/effective_affinity", "/proc/irq/3/effective_affinity_list", "/proc/irq/3/node", "/proc/irq/3/spurious", "/proc/irq/4/affinity_hint", "/proc/irq/4/effective_affinity", "/proc/irq/4/effective_affinity_list", "/proc/irq/4/node", "/proc/irq/4/spurious", "/proc/irq/5/affinity_hint", "/proc/irq/5/effective_affinity", "/proc/irq/5/effective_affinity_list", "/proc/irq/5/node", "/proc/irq/5/spurious", "/proc/irq/6/affinity_hint", "/proc/irq/6/effective_affinity", "/proc/irq/6/effective_affinity_list", "/proc/irq/6/node", "/proc/irq/6/spurious", "/proc/irq/7/affinity_hint", "/proc/irq/7/effective_affinity", "/proc/irq/7/effective_affinity_list", "/proc/irq/7/node", "/proc/irq/7/spurious", "/proc/irq/8/affinity_hint", "/proc/irq/8/effective_affinity", "/proc/irq/8/effective_affinity_list", "/proc/irq/8/node", "/proc/irq/8/spurious", "/proc/irq/9/affinity_hint", "/proc/irq/9/effective_affinity", "/proc/irq/9/effective_affinity_list", "/proc/irq/9/node", "/proc/irq/9/spurious", "/proc/kcore", "/proc/key-users", "/proc/keys", "/proc/lockdep", "/proc/lockdep_chains", "/proc/lockdep_stats", "/proc/locks", "/proc/misc", "/proc/mtd", "/proc/pagetypeinfo", "/proc/partitions", "/proc/schedstat", "/proc/scsi/sg/debug", "/proc/scsi/sg/device_hdr", "/proc/scsi/sg/device_strs", "/proc/scsi/sg/devices", "/proc/scsi/sg/version", "/proc/self/net/arp_tables_matches", "/proc/self/net/arp_tables_targets", "/proc/self/net/bonding/bond0", "/proc/self/net/dev_snmp6/batadv0", "/proc/self/net/dev_snmp6/batadv_slave_0", "/proc/self/net/dev_snmp6/batadv_slave_1", "/proc/self/net/dev_snmp6/bond0", "/proc/self/net/dev_snmp6/bond_slave_0", "/proc/self/net/dev_snmp6/bond_slave_1", "/proc/self/net/dev_snmp6/bridge0", "/proc/self/net/dev_snmp6/bridge_slave_0", "/proc/self/net/dev_snmp6/bridge_slave_1", "/proc/self/net/dev_snmp6/caif0", "/proc/self/net/dev_snmp6/dummy0", "/proc/self/net/dev_snmp6/erspan0", "/proc/self/net/dev_snmp6/geneve0", "/proc/self/net/dev_snmp6/geneve1", "/proc/self/net/dev_snmp6/gre0", "/proc/self/net/dev_snmp6/gretap0", "/proc/self/net/dev_snmp6/hsr0", "/proc/self/net/dev_snmp6/hsr_slave_0", "/proc/self/net/dev_snmp6/hsr_slave_1", "/proc/self/net/dev_snmp6/ip6_vti0", "/proc/self/net/dev_snmp6/ip6gre0", "/proc/self/net/dev_snmp6/ip6gretap0", "/proc/self/net/dev_snmp6/ip6tnl0", "/proc/self/net/dev_snmp6/ip_vti0", "/proc/self/net/dev_snmp6/ipvlan0", "/proc/self/net/dev_snmp6/ipvlan1", "/proc/self/net/dev_snmp6/lo", "/proc/self/net/dev_snmp6/macsec0", "/proc/self/net/dev_snmp6/macvlan0", "/proc/self/net/dev_snmp6/macvlan1", "/proc/self/net/dev_snmp6/macvtap0", "/proc/self/net/dev_snmp6/netdevsim0", "/proc/self/net/dev_snmp6/netdevsim1", "/proc/self/net/dev_snmp6/netdevsim2", "/proc/self/net/dev_snmp6/netdevsim3", "/proc/self/net/dev_snmp6/nlmon0", "/proc/self/net/dev_snmp6/sit0", "/proc/self/net/dev_snmp6/syz_tun", "/proc/self/net/dev_snmp6/team0", "/proc/self/net/dev_snmp6/team_slave_0", "/proc/self/net/dev_snmp6/team_slave_1", "/proc/self/net/dev_snmp6/tunl0", "/proc/self/net/dev_snmp6/veth0", "/proc/self/net/dev_snmp6/veth0_macvtap", "/proc/self/net/dev_snmp6/veth0_to_batadv", "/proc/self/net/dev_snmp6/veth0_to_bond", "/proc/self/net/dev_snmp6/veth0_to_bridge", "/proc/self/net/dev_snmp6/veth0_to_hsr", "/proc/self/net/dev_snmp6/veth0_to_team", "/proc/self/net/dev_snmp6/veth0_virt_wifi", "/proc/self/net/dev_snmp6/veth0_vlan", "/proc/self/net/dev_snmp6/veth1", "/proc/self/net/dev_snmp6/veth1_macvtap", "/proc/self/net/dev_snmp6/veth1_to_batadv", "/proc/self/net/dev_snmp6/veth1_to_bond", "/proc/self/net/dev_snmp6/veth1_to_bridge", "/proc/self/net/dev_snmp6/veth1_to_hsr", "/proc/self/net/dev_snmp6/veth1_to_team", "/proc/self/net/dev_snmp6/veth1_virt_wifi", "/proc/self/net/dev_snmp6/veth1_vlan", "/proc/self/net/dev_snmp6/virt_wifi0", "/proc/self/net/dev_snmp6/vlan0", "/proc/self/net/dev_snmp6/vlan1", "/proc/self/net/dev_snmp6/wg0", "/proc/self/net/dev_snmp6/wg1", "/proc/self/net/dev_snmp6/wg2", "/proc/self/net/dev_snmp6/wlan0", "/proc/self/net/dev_snmp6/wlan1", "/proc/self/net/dev_snmp6/xfrm0", "/proc/self/net/ip6_tables_matches", "/proc/self/net/ip6_tables_targets", "/proc/self/net/ip_tables_matches", "/proc/self/net/ip_tables_targets", "/proc/self/net/psched", "/proc/self/net/rt_acct", "/proc/self/net/rt_cache", "/proc/self/net/softnet_stat", "/proc/self/net/stat/rt_cache", "/proc/self/net/vlan/vlan0", "/proc/self/net/vlan/vlan1", "/proc/thread-self/net/arp_tables_matches", "/proc/thread-self/net/arp_tables_targets", "/proc/thread-self/net/bonding/bond0", "/proc/thread-self/net/dev_snmp6/batadv0", "/proc/thread-self/net/dev_snmp6/batadv_slave_0", "/proc/thread-self/net/dev_snmp6/batadv_slave_1", "/proc/thread-self/net/dev_snmp6/bond0", "/proc/thread-self/net/dev_snmp6/bond_slave_0", "/proc/thread-self/net/dev_snmp6/bond_slave_1", "/proc/thread-self/net/dev_snmp6/bridge0", "/proc/thread-self/net/dev_snmp6/bridge_slave_0", "/proc/thread-self/net/dev_snmp6/bridge_slave_1", "/proc/thread-self/net/dev_snmp6/caif0", "/proc/thread-self/net/dev_snmp6/dummy0", "/proc/thread-self/net/dev_snmp6/erspan0", "/proc/thread-self/net/dev_snmp6/geneve0", "/proc/thread-self/net/dev_snmp6/geneve1", "/proc/thread-self/net/dev_snmp6/gre0", "/proc/thread-self/net/dev_snmp6/gretap0", "/proc/thread-self/net/dev_snmp6/hsr0", "/proc/thread-self/net/dev_snmp6/hsr_slave_0", "/proc/thread-self/net/dev_snmp6/hsr_slave_1", "/proc/thread-self/net/dev_snmp6/ip6_vti0", "/proc/thread-self/net/dev_snmp6/ip6gre0", "/proc/thread-self/net/dev_snmp6/ip6gretap0", "/proc/thread-self/net/dev_snmp6/ip6tnl0", "/proc/thread-self/net/dev_snmp6/ip_vti0", "/proc/thread-self/net/dev_snmp6/ipvlan0", "/proc/thread-self/net/dev_snmp6/ipvlan1", "/proc/thread-self/net/dev_snmp6/lo", "/proc/thread-self/net/dev_snmp6/macsec0", "/proc/thread-self/net/dev_snmp6/macvlan0", "/proc/thread-self/net/dev_snmp6/macvlan1", "/proc/thread-self/net/dev_snmp6/macvtap0", "/proc/thread-self/net/dev_snmp6/netdevsim0", "/proc/thread-self/net/dev_snmp6/netdevsim1", "/proc/thread-self/net/dev_snmp6/netdevsim2", "/proc/thread-self/net/dev_snmp6/netdevsim3", "/proc/thread-self/net/dev_snmp6/nlmon0", "/proc/thread-self/net/dev_snmp6/sit0", "/proc/thread-self/net/dev_snmp6/syz_tun", "/proc/thread-self/net/dev_snmp6/team0", "/proc/thread-self/net/dev_snmp6/team_slave_0", "/proc/thread-self/net/dev_snmp6/team_slave_1", "/proc/thread-self/net/dev_snmp6/tunl0", "/proc/thread-self/net/dev_snmp6/veth0", "/proc/thread-self/net/dev_snmp6/veth0_macvtap", "/proc/thread-self/net/dev_snmp6/veth0_to_batadv", "/proc/thread-self/net/dev_snmp6/veth0_to_bond", "/proc/thread-self/net/dev_snmp6/veth0_to_bridge", "/proc/thread-self/net/dev_snmp6/veth0_to_hsr", "/proc/thread-self/net/dev_snmp6/veth0_to_team", "/proc/thread-self/net/dev_snmp6/veth0_virt_wifi", "/proc/thread-self/net/dev_snmp6/veth0_vlan", "/proc/thread-self/net/dev_snmp6/veth1", "/proc/thread-self/net/dev_snmp6/veth1_macvtap", "/proc/thread-self/net/dev_snmp6/veth1_to_batadv", "/proc/thread-self/net/dev_snmp6/veth1_to_bond", "/proc/thread-self/net/dev_snmp6/veth1_to_bridge", "/proc/thread-self/net/dev_snmp6/veth1_to_hsr", "/proc/thread-self/net/dev_snmp6/veth1_to_team", "/proc/thread-self/net/dev_snmp6/veth1_virt_wifi", "/proc/thread-self/net/dev_snmp6/veth1_vlan", "/proc/thread-self/net/dev_snmp6/virt_wifi0", "/proc/thread-self/net/dev_snmp6/vlan0", "/proc/thread-self/net/dev_snmp6/vlan1", "/proc/thread-self/net/dev_snmp6/wg0", "/proc/thread-self/net/dev_snmp6/wg1", "/proc/thread-self/net/dev_snmp6/wg2", "/proc/thread-self/net/dev_snmp6/wlan0", "/proc/thread-self/net/dev_snmp6/wlan1", "/proc/thread-self/net/dev_snmp6/xfrm0", "/proc/thread-self/net/ip6_tables_matches", "/proc/thread-self/net/ip6_tables_targets", "/proc/thread-self/net/ip_tables_matches", "/proc/thread-self/net/ip_tables_targets", "/proc/thread-self/net/psched", "/proc/thread-self/net/rt_acct", "/proc/thread-self/net/rt_cache", "/proc/thread-self/net/softnet_stat", "/proc/thread-self/net/stat/rt_cache", "/proc/thread-self/net/vlan/vlan0", "/proc/thread-self/net/vlan/vlan1", "/proc/timer_list", "/proc/tty/driver/serial", "/proc/tty/driver/usbserial", "/proc/tty/drivers", "/proc/tty/ldiscs", "/proc/vmallocinfo", "/proc/vmstat", "/proc/zoneinfo"
 openat$auto_proc_iter_file_ops_compat_inode(fd const[AT_FDCWD], file ptr[in, string[proc_iter_file_ops_compat_inode_files]], flags flags[open_flags], mode const[0]) fd_proc_iter_file_ops_compat_inode
 read$auto_proc_iter_file_ops_compat_inode(fd fd_proc_iter_file_ops_compat_inode, buf ptr[out, array[int8]], len bytesize[buf])
 write$auto_proc_iter_file_ops_compat_inode(fd fd_proc_iter_file_ops_compat_inode, buf ptr[in, array[int8]], len bytesize[buf])
@@ -2582,7 +2559,7 @@ read$auto_proc_mem_operations_base(fd fd_proc_mem_operations_base, buf ptr[out, 
 write$auto_proc_mem_operations_base(fd fd_proc_mem_operations_base, buf ptr[in, array[int8]], len bytesize[buf])
 
 resource fd_proc_mountinfo_operations_mnt_namespace[fd]
-proc_mountinfo_operations_mnt_namespace_files = "/proc/cpuinfo", "/proc/devices", "/proc/self/mountinfo", "/proc/thread-self/mountinfo"
+proc_mountinfo_operations_mnt_namespace_files = "/proc/cmdline", "/proc/cpuinfo", "/proc/devices", "/proc/loadavg", "/proc/meminfo", "/proc/self/mountinfo", "/proc/softirqs", "/proc/stat", "/proc/thread-self/mountinfo", "/proc/uptime", "/proc/version"
 openat$auto_proc_mountinfo_operations_mnt_namespace(fd const[AT_FDCWD], file ptr[in, string[proc_mountinfo_operations_mnt_namespace_files]], flags flags[open_flags], mode const[0]) fd_proc_mountinfo_operations_mnt_namespace
 read$auto_proc_mountinfo_operations_mnt_namespace(fd fd_proc_mountinfo_operations_mnt_namespace, buf ptr[out, array[int8]], len bytesize[buf])
 
@@ -2686,7 +2663,7 @@ read$auto_proc_setgroups_operations_base(fd fd_proc_setgroups_operations_base, b
 write$auto_proc_setgroups_operations_base(fd fd_proc_setgroups_operations_base, buf ptr[in, array[int8]], len bytesize[buf])
 
 resource fd_proc_single_file_operations_base[fd]
-proc_single_file_operations_base_files = "/proc/cgroups", "/proc/cmdline", "/proc/dma", "/proc/driver/nvram", "/proc/driver/rtc", "/proc/execdomains", "/proc/filesystems", "/proc/fs/cifs/DebugData", "/proc/fs/cifs/open_files", "/proc/fs/ext4/sda1/es_shrinker_info", "/proc/fs/ext4/sda1/fc_info", "/proc/fs/ext4/sda1/mb_stats", "/proc/fs/ext4/sda1/options", "/proc/fs/jfs/TxAnchor", "/proc/fs/xfs/xqm", "/proc/fs/xfs/xqmstat", "/proc/irq/0/affinity_hint", "/proc/irq/0/effective_affinity", "/proc/irq/0/effective_affinity_list", "/proc/irq/0/node", "/proc/irq/0/spurious", "/proc/irq/1/affinity_hint", "/proc/irq/1/effective_affinity", "/proc/irq/1/effective_affinity_list", "/proc/irq/1/node", "/proc/irq/1/spurious", "/proc/irq/10/affinity_hint", "/proc/irq/10/effective_affinity", "/proc/irq/10/effective_affinity_list", "/proc/irq/10/node", "/proc/irq/10/spurious", "/proc/irq/11/affinity_hint", "/proc/irq/11/effective_affinity", "/proc/irq/11/effective_affinity_list", "/proc/irq/11/node", "/proc/irq/11/spurious", "/proc/irq/12/affinity_hint", "/proc/irq/12/effective_affinity", "/proc/irq/12/effective_affinity_list", "/proc/irq/12/node", "/proc/irq/12/spurious", "/proc/irq/13/affinity_hint", "/proc/irq/13/effective_affinity", "/proc/irq/13/effective_affinity_list", "/proc/irq/13/node", "/proc/irq/13/spurious", "/proc/irq/14/affinity_hint", "/proc/irq/14/effective_affinity", "/proc/irq/14/effective_affinity_list", "/proc/irq/14/node", "/proc/irq/14/spurious", "/proc/irq/15/affinity_hint", "/proc/irq/15/effective_affinity", "/proc/irq/15/effective_affinity_list", "/proc/irq/15/node", "/proc/irq/15/spurious", "/proc/irq/2/affinity_hint", "/proc/irq/2/effective_affinity", "/proc/irq/2/effective_affinity_list", "/proc/irq/2/node", "/proc/irq/2/spurious", "/proc/irq/24/affinity_hint", "/proc/irq/24/effective_affinity", "/proc/irq/24/effective_affinity_list", "/proc/irq/24/node", "/proc/irq/24/spurious", "/proc/irq/25/affinity_hint", "/proc/irq/25/effective_affinity", "/proc/irq/25/effective_affinity_list", "/proc/irq/25/node", "/proc/irq/25/spurious", "/proc/irq/3/affinity_hint", "/proc/irq/3/effective_affinity", "/proc/irq/3/effective_affinity_list", "/proc/irq/3/node", "/proc/irq/3/spurious", "/proc/irq/4/affinity_hint", "/proc/irq/4/effective_affinity", "/proc/irq/4/effective_affinity_list", "/proc/irq/4/node", "/proc/irq/4/spurious", "/proc/irq/5/affinity_hint", "/proc/irq/5/effective_affinity", "/proc/irq/5/effective_affinity_list", "/proc/irq/5/node", "/proc/irq/5/spurious", "/proc/irq/6/affinity_hint", "/proc/irq/6/effective_affinity", "/proc/irq/6/effective_affinity_list", "/proc/irq/6/node", "/proc/irq/6/spurious", "/proc/irq/7/affinity_hint", "/proc/irq/7/effective_affinity", "/proc/irq/7/effective_affinity_list", "/proc/irq/7/node", "/proc/irq/7/spurious", "/proc/irq/8/affinity_hint", "/proc/irq/8/effective_affinity", "/proc/irq/8/effective_affinity_list", "/proc/irq/8/node", "/proc/irq/8/spurious", "/proc/irq/9/affinity_hint", "/proc/irq/9/effective_affinity", "/proc/irq/9/effective_affinity_list", "/proc/irq/9/node", "/proc/irq/9/spurious", "/proc/loadavg", "/proc/lockdep_stats", "/proc/meminfo", "/proc/mtd", "/proc/scsi/sg/device_hdr", "/proc/scsi/sg/version", "/proc/self/arch_status", "/proc/self/cgroup", "/proc/self/cpuset", "/proc/self/io", "/proc/self/ksm_merging_pages", "/proc/self/ksm_stat", "/proc/self/limits", "/proc/self/net/dev_snmp6/batadv0", "/proc/self/net/dev_snmp6/batadv_slave_0", "/proc/self/net/dev_snmp6/batadv_slave_1", "/proc/self/net/dev_snmp6/bond0", "/proc/self/net/dev_snmp6/bond_slave_0", "/proc/self/net/dev_snmp6/bond_slave_1", "/proc/self/net/dev_snmp6/bridge0", "/proc/self/net/dev_snmp6/bridge_slave_0", "/proc/self/net/dev_snmp6/bridge_slave_1", "/proc/self/net/dev_snmp6/caif0", "/proc/self/net/dev_snmp6/dummy0", "/proc/self/net/dev_snmp6/erspan0", "/proc/self/net/dev_snmp6/geneve0", "/proc/self/net/dev_snmp6/geneve1", "/proc/self/net/dev_snmp6/gre0", "/proc/self/net/dev_snmp6/gretap0", "/proc/self/net/dev_snmp6/hsr0", "/proc/self/net/dev_snmp6/hsr_slave_0", "/proc/self/net/dev_snmp6/hsr_slave_1", "/proc/self/net/dev_snmp6/ip6_vti0", "/proc/self/net/dev_snmp6/ip6gre0", "/proc/self/net/dev_snmp6/ip6gretap0", "/proc/self/net/dev_snmp6/ip6tnl0", "/proc/self/net/dev_snmp6/ip_vti0", "/proc/self/net/dev_snmp6/ipvlan0", "/proc/self/net/dev_snmp6/ipvlan1", "/proc/self/net/dev_snmp6/lo", "/proc/self/net/dev_snmp6/macsec0", "/proc/self/net/dev_snmp6/macvlan0", "/proc/self/net/dev_snmp6/macvlan1", "/proc/self/net/dev_snmp6/macvtap0", "/proc/self/net/dev_snmp6/netdevsim0", "/proc/self/net/dev_snmp6/netdevsim1", "/proc/self/net/dev_snmp6/netdevsim2", "/proc/self/net/dev_snmp6/netdevsim3", "/proc/self/net/dev_snmp6/nlmon0", "/proc/self/net/dev_snmp6/sit0", "/proc/self/net/dev_snmp6/syz_tun", "/proc/self/net/dev_snmp6/team0", "/proc/self/net/dev_snmp6/team_slave_0", "/proc/self/net/dev_snmp6/team_slave_1", "/proc/self/net/dev_snmp6/tunl0", "/proc/self/net/dev_snmp6/veth0", "/proc/self/net/dev_snmp6/veth0_macvtap", "/proc/self/net/dev_snmp6/veth0_to_batadv", "/proc/self/net/dev_snmp6/veth0_to_bond", "/proc/self/net/dev_snmp6/veth0_to_bridge", "/proc/self/net/dev_snmp6/veth0_to_hsr", "/proc/self/net/dev_snmp6/veth0_to_team", "/proc/self/net/dev_snmp6/veth0_virt_wifi", "/proc/self/net/dev_snmp6/veth0_vlan", "/proc/self/net/dev_snmp6/veth1", "/proc/self/net/dev_snmp6/veth1_macvtap", "/proc/self/net/dev_snmp6/veth1_to_batadv", "/proc/self/net/dev_snmp6/veth1_to_bond", "/proc/self/net/dev_snmp6/veth1_to_bridge", "/proc/self/net/dev_snmp6/veth1_to_hsr", "/proc/self/net/dev_snmp6/veth1_to_team", "/proc/self/net/dev_snmp6/veth1_virt_wifi", "/proc/self/net/dev_snmp6/veth1_vlan", "/proc/self/net/dev_snmp6/virt_wifi0", "/proc/self/net/dev_snmp6/vlan0", "/proc/self/net/dev_snmp6/vlan1", "/proc/self/net/dev_snmp6/wg0", "/proc/self/net/dev_snmp6/wg1", "/proc/self/net/dev_snmp6/wg2", "/proc/self/net/dev_snmp6/wlan0", "/proc/self/net/dev_snmp6/wlan1", "/proc/self/net/dev_snmp6/xfrm0", "/proc/self/net/psched", "/proc/self/net/rt_acct", "/proc/self/net/vlan/vlan0", "/proc/self/net/vlan/vlan1", "/proc/self/oom_score", "/proc/self/personality", "/proc/self/schedstat", "/proc/self/stack", "/proc/self/stat", "/proc/self/statm", "/proc/self/status", "/proc/self/syscall", "/proc/self/wchan", "/proc/softirqs", "/proc/thread-self/arch_status", "/proc/thread-self/cgroup", "/proc/thread-self/cpuset", "/proc/thread-self/io", "/proc/thread-self/ksm_merging_pages", "/proc/thread-self/ksm_stat", "/proc/thread-self/limits", "/proc/thread-self/net/dev_snmp6/batadv0", "/proc/thread-self/net/dev_snmp6/batadv_slave_0", "/proc/thread-self/net/dev_snmp6/batadv_slave_1", "/proc/thread-self/net/dev_snmp6/bond0", "/proc/thread-self/net/dev_snmp6/bond_slave_0", "/proc/thread-self/net/dev_snmp6/bond_slave_1", "/proc/thread-self/net/dev_snmp6/bridge0", "/proc/thread-self/net/dev_snmp6/bridge_slave_0", "/proc/thread-self/net/dev_snmp6/bridge_slave_1", "/proc/thread-self/net/dev_snmp6/caif0", "/proc/thread-self/net/dev_snmp6/dummy0", "/proc/thread-self/net/dev_snmp6/erspan0", "/proc/thread-self/net/dev_snmp6/geneve0", "/proc/thread-self/net/dev_snmp6/geneve1", "/proc/thread-self/net/dev_snmp6/gre0", "/proc/thread-self/net/dev_snmp6/gretap0", "/proc/thread-self/net/dev_snmp6/hsr0", "/proc/thread-self/net/dev_snmp6/hsr_slave_0", "/proc/thread-self/net/dev_snmp6/hsr_slave_1", "/proc/thread-self/net/dev_snmp6/ip6_vti0", "/proc/thread-self/net/dev_snmp6/ip6gre0", "/proc/thread-self/net/dev_snmp6/ip6gretap0", "/proc/thread-self/net/dev_snmp6/ip6tnl0", "/proc/thread-self/net/dev_snmp6/ip_vti0", "/proc/thread-self/net/dev_snmp6/ipvlan0", "/proc/thread-self/net/dev_snmp6/ipvlan1", "/proc/thread-self/net/dev_snmp6/lo", "/proc/thread-self/net/dev_snmp6/macsec0", "/proc/thread-self/net/dev_snmp6/macvlan0", "/proc/thread-self/net/dev_snmp6/macvlan1", "/proc/thread-self/net/dev_snmp6/macvtap0", "/proc/thread-self/net/dev_snmp6/netdevsim0", "/proc/thread-self/net/dev_snmp6/netdevsim1", "/proc/thread-self/net/dev_snmp6/netdevsim2", "/proc/thread-self/net/dev_snmp6/netdevsim3", "/proc/thread-self/net/dev_snmp6/nlmon0", "/proc/thread-self/net/dev_snmp6/sit0", "/proc/thread-self/net/dev_snmp6/syz_tun", "/proc/thread-self/net/dev_snmp6/team0", "/proc/thread-self/net/dev_snmp6/team_slave_0", "/proc/thread-self/net/dev_snmp6/team_slave_1", "/proc/thread-self/net/dev_snmp6/tunl0", "/proc/thread-self/net/dev_snmp6/veth0", "/proc/thread-self/net/dev_snmp6/veth0_macvtap", "/proc/thread-self/net/dev_snmp6/veth0_to_batadv", "/proc/thread-self/net/dev_snmp6/veth0_to_bond", "/proc/thread-self/net/dev_snmp6/veth0_to_bridge", "/proc/thread-self/net/dev_snmp6/veth0_to_hsr", "/proc/thread-self/net/dev_snmp6/veth0_to_team", "/proc/thread-self/net/dev_snmp6/veth0_virt_wifi", "/proc/thread-self/net/dev_snmp6/veth0_vlan", "/proc/thread-self/net/dev_snmp6/veth1", "/proc/thread-self/net/dev_snmp6/veth1_macvtap", "/proc/thread-self/net/dev_snmp6/veth1_to_batadv", "/proc/thread-self/net/dev_snmp6/veth1_to_bond", "/proc/thread-self/net/dev_snmp6/veth1_to_bridge", "/proc/thread-self/net/dev_snmp6/veth1_to_hsr", "/proc/thread-self/net/dev_snmp6/veth1_to_team", "/proc/thread-self/net/dev_snmp6/veth1_virt_wifi", "/proc/thread-self/net/dev_snmp6/veth1_vlan", "/proc/thread-self/net/dev_snmp6/virt_wifi0", "/proc/thread-self/net/dev_snmp6/vlan0", "/proc/thread-self/net/dev_snmp6/vlan1", "/proc/thread-self/net/dev_snmp6/wg0", "/proc/thread-self/net/dev_snmp6/wg1", "/proc/thread-self/net/dev_snmp6/wg2", "/proc/thread-self/net/dev_snmp6/wlan0", "/proc/thread-self/net/dev_snmp6/wlan1", "/proc/thread-self/net/dev_snmp6/xfrm0", "/proc/thread-self/net/psched", "/proc/thread-self/net/rt_acct", "/proc/thread-self/net/vlan/vlan0", "/proc/thread-self/net/vlan/vlan1", "/proc/thread-self/oom_score", "/proc/thread-self/personality", "/proc/thread-self/schedstat", "/proc/thread-self/stack", "/proc/thread-self/stat", "/proc/thread-self/statm", "/proc/thread-self/status", "/proc/thread-self/syscall", "/proc/thread-self/wchan", "/proc/tty/driver/serial", "/proc/tty/driver/usbserial", "/proc/uptime", "/proc/version", "/proc/vmallocinfo"
+proc_single_file_operations_base_files = "/proc/self/arch_status", "/proc/self/cgroup", "/proc/self/cpuset", "/proc/self/io", "/proc/self/ksm_merging_pages", "/proc/self/ksm_stat", "/proc/self/limits", "/proc/self/oom_score", "/proc/self/personality", "/proc/self/schedstat", "/proc/self/stack", "/proc/self/stat", "/proc/self/statm", "/proc/self/status", "/proc/self/syscall", "/proc/self/wchan", "/proc/thread-self/arch_status", "/proc/thread-self/cgroup", "/proc/thread-self/cpuset", "/proc/thread-self/io", "/proc/thread-self/ksm_merging_pages", "/proc/thread-self/ksm_stat", "/proc/thread-self/limits", "/proc/thread-self/oom_score", "/proc/thread-self/personality", "/proc/thread-self/schedstat", "/proc/thread-self/stack", "/proc/thread-self/stat", "/proc/thread-self/statm", "/proc/thread-self/status", "/proc/thread-self/syscall", "/proc/thread-self/wchan"
 openat$auto_proc_single_file_operations_base(fd const[AT_FDCWD], file ptr[in, string[proc_single_file_operations_base_files]], flags flags[open_flags], mode const[0]) fd_proc_single_file_operations_base
 read$auto_proc_single_file_operations_base(fd fd_proc_single_file_operations_base, buf ptr[out, array[int8]], len bytesize[buf])
 
@@ -3280,8 +3257,7 @@ openat$auto_split_huge_pages_fops_huge_memory(fd const[AT_FDCWD], file ptr[in, s
 write$auto_split_huge_pages_fops_huge_memory(fd fd_split_huge_pages_fops_huge_memory, buf ptr[in, array[int8]], len bytesize[buf])
 
 resource fd_stat_fops_[fd]
-stat_fops__files = "/proc/stat", "/sys/kernel/debug/f2fs/status"
-openat$auto_stat_fops_(fd const[AT_FDCWD], file ptr[in, string[stat_fops__files]], flags flags[open_flags], mode const[0]) fd_stat_fops_
+openat$auto_stat_fops_(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/f2fs/status"]], flags flags[open_flags], mode const[0]) fd_stat_fops_
 read$auto_stat_fops_(fd fd_stat_fops_, buf ptr[out, array[int8]], len bytesize[buf])
 
 resource fd_stat_fops_per_vm_kvm_main[fd]
@@ -3295,9 +3271,12 @@ openat$auto_state_fops_(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/deb
 read$auto_state_fops_(fd fd_state_fops_, buf ptr[out, array[int8]], len bytesize[buf])
 
 resource fd_stats_fops_[fd]
-stats_fops__files = "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/kfence/stats"
-openat$auto_stats_fops_(fd const[AT_FDCWD], file ptr[in, string[stats_fops__files]], flags flags[open_flags], mode const[0]) fd_stats_fops_
+openat$auto_stats_fops_(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/binder/stats"]], flags flags[open_flags], mode const[0]) fd_stats_fops_
 read$auto_stats_fops_(fd fd_stats_fops_, buf ptr[out, array[int8]], len bytesize[buf])
+
+resource fd_stats_fops_2[fd]
+openat$auto_stats_fops_2(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kfence/stats"]], flags flags[open_flags], mode const[0]) fd_stats_fops_2
+read$auto_stats_fops_2(fd fd_stats_fops_2, buf ptr[out, array[int8]], len bytesize[buf])
 
 resource fd_stats_seq_fops_netdebug[fd]
 openat$auto_stats_seq_fops_netdebug(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/o2net/stats"]], flags flags[open_flags], mode const[0]) fd_stats_seq_fops_netdebug
@@ -7480,95 +7459,6 @@ clone_args$auto {
 	set_tid		int64
 	set_tid_size	int64
 	cgroup		int64
-}
-
-comedi_bufconfig$auto {
-	subdevice	int32
-	flags		int32
-	maximum_size	int32
-	size		int32
-	unused		array[const[0, int32], 4]
-}
-
-comedi_bufinfo$auto {
-	subdevice	int32
-	bytes_read	int32
-	buf_write_ptr	int32
-	buf_read_ptr	int32
-	buf_write_count	int32
-	buf_read_count	int32
-	bytes_written	int32
-	unused		array[const[0, int32], 4]
-}
-
-comedi_chaninfo$auto {
-	subdev		int32
-	maxdata_list	ptr[inout, int32]
-	flaglist	ptr[inout, int32]
-	rangelist	ptr[inout, int32]
-	unused		array[const[0, int32], 4]
-}
-
-comedi_cmd$auto {
-	subdev		int32
-	flags		int32
-	start_src	int32
-	start_arg	int32
-	scan_begin_src	int32
-	scan_begin_arg	int32
-	convert_src	int32
-	convert_arg	int32
-	scan_end_src	int32
-	scan_end_arg	int32
-	stop_src	int32
-	stop_arg	int32
-	chanlist	ptr[inout, int32]
-	chanlist_len	int32
-	data		ptr[inout, int16]
-	data_len	int32
-}
-
-comedi_devinfo$auto {
-	version_code	int32
-	n_subdevs	int32
-	driver_name	array[int8, 20]
-	board_name	array[int8, 20]
-	read_subdevice	int32
-	write_subdevice	int32
-	unused		array[const[0, int32], 30]
-}
-
-comedi_insn$auto {
-	insn		int32
-	n		int32
-	data		ptr[inout, int32]
-	subdev		int32
-	chanspec	int32
-	unused		array[const[0, int32], 3]
-}
-
-comedi_insnlist$auto {
-	n_insns	int32
-	insns	ptr[inout, comedi_insn$auto]
-}
-
-comedi_rangeinfo$auto {
-	range_type	int32
-	range_ptr	ptr[inout, array[auto_todo]]
-}
-
-comedi_subdinfo$auto {
-	type			int32
-	n_chan			int32
-	subd_flags		int32
-	timer_type		int32
-	len_chanlist		int32
-	maxdata			int32
-	flags			int32
-	range_type		int32
-	settling_time_0		int32
-	insn_bits_support	int32
-	unused			array[const[0, int32], 8]
 }
 
 compat_blk_user_trace_setup$auto {

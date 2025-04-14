@@ -6,10 +6,10 @@
 		}
 	],
 	"PCs": [
-		{"Func": "foo_open"},
-		{"Func": "foo_read"},
-		{"Func": "foo_write"},
-		{"Func": "foo_mmap"},
-		{"Func": "foo_ioctl"}
+		{"File": "file_operations.c", "Func": "foo_open"},
+		{"File": "file_operations.c", "Func": "foo_read"},
+		{"File": "file_operations.c", "Func": "foo_write"},
+		{"File": "file_operations.c", "Func": "foo_mmap"},
+		{"File": "file_operations.c", "Func": "foo_ioctl"}
 	]
 }
