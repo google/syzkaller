@@ -3,6 +3,10 @@
 		{
 			"Name": "/dev/foo",
 			"Cover": [0, 1, 2, 3, 4]
+		},
+		{
+			"Name": "/dev/CAFÉ NAND",
+			"Cover": [0, 1, 2, 3, 4]
 		}
 	],
 	"PCs": [
