@@ -5,6 +5,10 @@
 #include "include/uapi/file_operations.h"
 #include "include/uapi/unused_ioctl.h"
 
+enum {
+	FOO_IOCTL12 = _IOR('c', 12, int),
+};
+
 static void foo_open() {}
 static void foo_read() {}
 static void foo_write() {}
@@ -25,6 +29,9 @@ static void foo_ioctl(void* file, unsigned int cmd, unsigned long arg) {
 	case FOO_IOCTL3:
 	case FOO_IOCTL4:
 	case FOO_IOCTL5:
+	case FOO_IOCTL10:
+	case FOO_IOCTL11:
+	case FOO_IOCTL12:
 	}
 	foo_ioctl2(cmd, arg);
 }

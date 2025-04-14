@@ -13,6 +13,11 @@
 #define FOO_IOCTL8		_IO('c', 8)
 #define FOO_IOCTL9		_IO('c', 9)
 
+enum {
+	FOO_IOCTL10 = _IOR('c', 10, int),
+	FOO_IOCTL11 = _IOR('c', 11, int),
+};
+
 struct foo_ioctl_arg {
 	int a, b;
 };
