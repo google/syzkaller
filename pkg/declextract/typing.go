@@ -49,6 +49,11 @@ import (
 //   we can consider it as unused.
 // - Detect common patterns for "must be 0" or "must be const" arguments, e.g.:
 //     if (flags != 0) return -EINVAL;
+// - Capture taking address of functions in functions.
+//   If code takes a function address, the target function most likely needs to be accounted
+//   in LOC/complexity/coverage analysis (effectively called). We won't see this function
+//   to be called via a function pointer later, or it may be passed to a very common function
+//   that we won't analyze (e.g. single_open(..., show_callback, ...)).
 
 var (
 	// Refines types based on data flows...

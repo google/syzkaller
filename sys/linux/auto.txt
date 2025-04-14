@@ -9816,7 +9816,7 @@ xfs_growfs_log$auto {
 }
 
 xfs_growfs_rt$auto {
-	newblocks	int64
+	newblocks	auto_union[gid, int64]
 	extsize		int32
 }
 
