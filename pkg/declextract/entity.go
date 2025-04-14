@@ -89,6 +89,17 @@ type FileOps struct {
 	Mmap       string `json:"mmap,omitempty"`
 	Ioctl      string `json:"ioctl,omitempty"`
 	SourceFile string `json:"source_file,omitempty"`
+
+	*fileOps
+}
+
+type fileOps struct {
+	open  *Function
+	read  *Function
+	write *Function
+	mmap  *Function
+	ioctl *Function
+	ops   []*Function // all non-nil callbacks
 }
 
 type Ioctl struct {
