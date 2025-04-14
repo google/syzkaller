@@ -124,7 +124,7 @@ private:
   void run(const MatchFinder::MatchResult& Result, MatchFunc Action);
   template <typename T> const T* getResult(StringRef ID) const;
   FieldType extractRecord(QualType QT, const RecordType* Typ, const std::string& BackupName);
-  std::string extractEnum(const EnumDecl* Decl);
+  std::string extractEnum(QualType QT, const EnumDecl* Decl);
   void emitConst(const std::string& Name, int64_t Val, SourceLocation Loc);
   std::string getDeclName(const Expr* Expr);
   const ValueDecl* getValueDecl(const Expr* Expr);
@@ -223,7 +223,7 @@ FieldType Extractor::genType(QualType QT, const std::string& BackupName) {
     return IntType{.ByteSize = sizeofType(T), .Name = TypeName(QT), .Base = QualType(T, 0).getAsString()};
   }
   if (auto* Typ = llvm::dyn_cast<EnumType>(T)) {
-    return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(Typ->getDecl())};
+    return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(QT, Typ->getDecl())};
   }
   if (llvm::isa<FunctionProtoType>(T)) {
     return PtrType{.Elem = TodoType(), .IsConst = true};
@@ -330,8 +330,22 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
   return Name;
 }
 
-std::string Extractor::extractEnum(const EnumDecl* Decl) {
-  const std::string& Name = Decl->getNameAsString();
+std::string Extractor::extractEnum(QualType QT, const EnumDecl* Decl) {
+  std::string Name = Decl->getNameAsString();
+  if (Name.empty()) {
+    // This is an unnamed enum declared with a typedef:
+    //   typedef enum {...} enum_name;
+    auto Elaborated = dyn_cast<ElaboratedType>(QT.getTypePtr());
+    if (Elaborated) {
+      auto Typedef = dyn_cast<TypedefType>(Elaborated->getNamedType().getTypePtr());
+      if (Typedef)
+        Name = Typedef->getDecl()->getNameAsString();
+    }
+    if (Name.empty()) {
+      QT.dump();
+      llvm::report_fatal_error("enum with empty name");
+    }
+  }
   if (EnumDedup[Name])
     return Name;
   EnumDedup[Name] = true;

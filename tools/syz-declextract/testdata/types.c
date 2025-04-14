@@ -56,6 +56,20 @@ SYSCALL_DEFINE1(types_syscall, struct anon_struct* p, struct empty_struct* y,
 	return 0;
 }
 
+enum enum_foo {
+	enum_foo_a,
+	enum_foo_b,
+};
+
+typedef const enum {
+	enum_bar_a,
+	enum_bar_b,
+} enum_bar;
+
+SYSCALL_DEFINE1(types_syscall2, const enum enum_foo foo, const enum_bar bar) {
+	return 0;
+}
+
 void  anon_flow(int x) {
 	struct anon_struct s;
 	s.a.x = x;
