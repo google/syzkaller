@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/ast"
 )
 
 const (
@@ -179,6 +181,11 @@ func (ctx *context) mapFopsToFiles(uniqueFuncs map[*Function]int) map[*FileOps][
 	ctx.FileOps = append(ctx.FileOps, generic)
 	fopsToFiles := make(map[*FileOps][]string)
 	for _, file := range ctx.probe.Files {
+		// There is a single non US-ASCII file in sysfs: "/sys/bus/pci/drivers/CAFÉ NAND".
+		// Ignore it for now as descriptions shouldn't contain non US-ASCII chars.
+		if ast.IsValidStringLit(file.Name) >= 0 {
+			continue
+		}
 		// For each file figure out the potential file_operations that match this file best.
 		best := ctx.mapFileToFops(fileToFuncs[file.Name], funcToFops, uniqueFuncs, generic)
 		for _, fops := range best {
