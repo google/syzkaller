@@ -126,6 +126,7 @@ private:
   FieldType extractRecord(QualType QT, const RecordType* Typ, const std::string& BackupName);
   std::string extractEnum(QualType QT, const EnumDecl* Decl);
   void emitConst(const std::string& Name, int64_t Val, SourceLocation Loc);
+  std::string getFuncName(const Expr* Expr);
   std::string getDeclName(const Expr* Expr);
   const ValueDecl* getValueDecl(const Expr* Expr);
   std::string getDeclFileID(const Decl* Decl);
@@ -447,10 +448,18 @@ const T* Extractor::findFirstMatch(const Node* Expr, const Condition& Cond) {
   return Matches.empty() ? nullptr : Matches[0];
 }
 
+// Extracts the first function reference from the expression.
+// TODO: try to extract the actual function reference the expression will be evaluated to
+// (the first one is not necessarily the right one).
+std::string Extractor::getFuncName(const Expr* Expr) {
+  auto* Decl =
+      findFirstMatch<DeclRefExpr>(Expr, stmt(forEachDescendant(declRefExpr(hasType(functionType())).bind("res"))));
+  return Decl ? Decl->getDecl()->getNameAsString() : "";
+}
+
 // If expression refers to some identifier, returns the identifier name.
 // Otherwise returns an empty string.
 // For example, if the expression is `function_name`, returns "function_name" string.
-// If AppendFile, then it also appends per-file suffix.
 std::string Extractor::getDeclName(const Expr* Expr) {
   // The expression can be complex and include casts and e.g. InitListExpr,
   // to remove all of these we match the first/any DeclRefExpr.
@@ -603,9 +612,9 @@ void Extractor::matchNetlinkFamily() {
       }
       if (Policy.empty())
         Policy = DefaultPolicy;
-      std::string Func = getDeclName(OpInit->getInit(OpsFields["doit"]));
+      std::string Func = getFuncName(OpInit->getInit(OpsFields["doit"]));
       if (Func.empty())
-        Func = getDeclName(OpInit->getInit(OpsFields["dumpit"]));
+        Func = getFuncName(OpInit->getInit(OpsFields["dumpit"]));
       int Flags = evaluate(OpInit->getInit(OpsFields["flags"]));
       const char* Access = AccessUser;
       constexpr int GENL_ADMIN_PERM = 0x01;
@@ -916,12 +925,12 @@ void Extractor::matchIouring() {
   auto Fields = structFieldIndexes(InitList->getInit(0)->getType()->getAsRecordDecl());
   for (const auto& [I, Name] : InitConsts) {
     const auto& Init = llvm::dyn_cast<InitListExpr>(InitList->getInit(I));
-    std::string Prep = getDeclName(Init->getInit(Fields["prep"]));
+    std::string Prep = getFuncName(Init->getInit(Fields["prep"]));
     if (Prep == "io_eopnotsupp_prep")
       continue;
     Output.emit(IouringOp{
         .Name = Name,
-        .Func = getDeclName(Init->getInit(Fields["issue"])),
+        .Func = getFuncName(Init->getInit(Fields["issue"])),
     });
   }
 }
@@ -939,17 +948,17 @@ void Extractor::matchFileOps() {
   if (NameSeq)
     VarName += std::to_string(NameSeq);
   auto Fields = structFieldIndexes(Fops->getType()->getAsRecordDecl());
-  std::string Open = getDeclName(Fops->getInit(Fields["open"]));
-  std::string Ioctl = getDeclName(Fops->getInit(Fields["unlocked_ioctl"]));
-  std::string Read = getDeclName(Fops->getInit(Fields["read"]));
+  std::string Open = getFuncName(Fops->getInit(Fields["open"]));
+  std::string Ioctl = getFuncName(Fops->getInit(Fields["unlocked_ioctl"]));
+  std::string Read = getFuncName(Fops->getInit(Fields["read"]));
   if (Read.empty())
-    Read = getDeclName(Fops->getInit(Fields["read_iter"]));
-  std::string Write = getDeclName(Fops->getInit(Fields["write"]));
+    Read = getFuncName(Fops->getInit(Fields["read_iter"]));
+  std::string Write = getFuncName(Fops->getInit(Fields["write"]));
   if (Write.empty())
-    Write = getDeclName(Fops->getInit(Fields["write_iter"]));
-  std::string Mmap = getDeclName(Fops->getInit(Fields["mmap"]));
+    Write = getFuncName(Fops->getInit(Fields["write_iter"]));
+  std::string Mmap = getFuncName(Fops->getInit(Fields["mmap"]));
   if (Mmap.empty())
-    Mmap = getDeclName(Fops->getInit(Fields["get_unmapped_area"]));
+    Mmap = getFuncName(Fops->getInit(Fields["get_unmapped_area"]));
   Output.emit(FileOps{
       .Name = VarName,
       .Open = std::move(Open),

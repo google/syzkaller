@@ -69,6 +69,7 @@ include <include/uapi/linux/kvm.h>
 include <include/uapi/linux/l2tp.h>
 include <include/uapi/linux/landlock.h>
 include <include/uapi/linux/loop.h>
+include <include/uapi/linux/membarrier.h>
 include <include/uapi/linux/mount.h>
 include <include/uapi/linux/msg.h>
 include <include/uapi/linux/nbd-netlink.h>
@@ -93,6 +94,7 @@ include <include/uapi/linux/ptrace.h>
 include <include/uapi/linux/random.h>
 include <include/uapi/linux/resource.h>
 include <include/uapi/linux/rtc.h>
+include <include/uapi/linux/sched.h>
 include <include/uapi/linux/seccomp.h>
 include <include/uapi/linux/seg6_genl.h>
 include <include/uapi/linux/sem.h>
@@ -313,14 +315,14 @@ finit_module$auto(fd fd, uargs ptr[in, string], flags int32)
 flistxattr$auto(fd fd, list ptr[inout, string], size intptr)
 flock$auto(fd fd, cmd int32)
 fremovexattr$auto(fd fd, name ptr[in, string])
-fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
+fsconfig$auto(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
 fsconfig$auto_EROFS_MOUNT_DAX_ALWAYS(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_ALWAYS])
 fsconfig$auto_EROFS_MOUNT_DAX_NEVER(fd fd, cmd int32, _key ptr[in, string], _value ptr[in, array[auto_todo]], aux const[EROFS_MOUNT_DAX_NEVER])
 fsconfig$auto_FSCONFIG_CMD_CREATE(fd fd, cmd const[FSCONFIG_CMD_CREATE], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
 fsconfig$auto_FSCONFIG_CMD_CREATE_EXCL(fd fd, cmd const[FSCONFIG_CMD_CREATE_EXCL], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
 fsconfig$auto_FSCONFIG_CMD_RECONFIGURE(fd fd, cmd const[FSCONFIG_CMD_RECONFIGURE], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
 fsconfig$auto_FSCONFIG_SET_BINARY(fd fd, cmd const[FSCONFIG_SET_BINARY], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
-fsconfig$auto_FSCONFIG_SET_FD(fd fd, cmd const[FSCONFIG_SET_FD], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux uid)
+fsconfig$auto_FSCONFIG_SET_FD(fd fd, cmd const[FSCONFIG_SET_FD], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
 fsconfig$auto_FSCONFIG_SET_FLAG(fd fd, cmd const[FSCONFIG_SET_FLAG], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
 fsconfig$auto_FSCONFIG_SET_PATH(fd fd, cmd const[FSCONFIG_SET_PATH], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux gid)
 fsconfig$auto_FSCONFIG_SET_PATH_EMPTY(fd fd, cmd const[FSCONFIG_SET_PATH_EMPTY], _key ptr[in, string], _value ptr[in, array[auto_todo]], aux int32)
@@ -656,6 +658,17 @@ madvise$auto_MADV_WIPEONFORK(start intptr, len_in intptr, behavior const[MADV_WI
 map_shadow_stack$auto(addr intptr, size intptr, flags int32)
 mbind$auto(start intptr, len intptr, mode intptr, nmask ptr[in, intptr], maxnode intptr, flags int32)
 membarrier$auto(cmd int32, flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_GET_REGISTRATIONS(cmd const[MEMBARRIER_CMD_GET_REGISTRATIONS], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_GLOBAL(cmd const[MEMBARRIER_CMD_GLOBAL], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_GLOBAL_EXPEDITED(cmd const[MEMBARRIER_CMD_GLOBAL_EXPEDITED], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_PRIVATE_EXPEDITED(cmd const[MEMBARRIER_CMD_PRIVATE_EXPEDITED], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ(cmd const[MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE(cmd const[MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_QUERY(cmd const[MEMBARRIER_CMD_QUERY], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED(cmd const[MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED(cmd const[MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ(cmd const[MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ], flags int32, cpu_id int32)
+membarrier$auto_MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE(cmd const[MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE], flags int32, cpu_id int32)
 memfd_create$auto(uname ptr[in, string], flags int32) fd
 memfd_secret$auto(flags int32) fd
 migrate_pages$auto(pid pid, maxnode intptr, old_nodes ptr[in, intptr], new_nodes ptr[in, intptr])
@@ -965,7 +978,21 @@ rt_sigtimedwait_time64$auto(uthese ptr[in, sigset_t$auto], uinfo ptr[inout, sigi
 rt_tgsigqueueinfo$auto(tgid pid, pid pid, sig int32, uinfo ptr[inout, siginfo$auto])
 rt_tgsigqueueinfo$auto_SIGCONT(tgid pid, pid pid, sig const[SIGCONT], uinfo ptr[inout, siginfo$auto])
 sched_get_priority_max$auto(policy int32)
+sched_get_priority_max$auto_SCHED_BATCH(policy const[SCHED_BATCH])
+sched_get_priority_max$auto_SCHED_DEADLINE(policy const[SCHED_DEADLINE])
+sched_get_priority_max$auto_SCHED_EXT(policy const[SCHED_EXT])
+sched_get_priority_max$auto_SCHED_FIFO(policy const[SCHED_FIFO])
+sched_get_priority_max$auto_SCHED_IDLE(policy const[SCHED_IDLE])
+sched_get_priority_max$auto_SCHED_NORMAL(policy const[SCHED_NORMAL])
+sched_get_priority_max$auto_SCHED_RR(policy const[SCHED_RR])
 sched_get_priority_min$auto(policy int32)
+sched_get_priority_min$auto_SCHED_BATCH(policy const[SCHED_BATCH])
+sched_get_priority_min$auto_SCHED_DEADLINE(policy const[SCHED_DEADLINE])
+sched_get_priority_min$auto_SCHED_EXT(policy const[SCHED_EXT])
+sched_get_priority_min$auto_SCHED_FIFO(policy const[SCHED_FIFO])
+sched_get_priority_min$auto_SCHED_IDLE(policy const[SCHED_IDLE])
+sched_get_priority_min$auto_SCHED_NORMAL(policy const[SCHED_NORMAL])
+sched_get_priority_min$auto_SCHED_RR(policy const[SCHED_RR])
 sched_getaffinity$auto(pid pid, len int32, user_mask_ptr ptr[inout, intptr])
 sched_getattr$auto(pid pid, uattr ptr[inout, sched_attr$auto], usize int32, flags int32)
 sched_getparam$auto(pid pid, param ptr[inout, sched_param$auto])
@@ -2223,9 +2250,9 @@ read$auto_long_retry_limit_ops_(fd fd_long_retry_limit_ops_, buf ptr[out, array[
 
 resource fd_loop_ctl_fops_loop[fd]
 openat$auto_loop_ctl_fops_loop(fd const[AT_FDCWD], file ptr[in, string["/dev/loop-control"]], flags flags[open_flags], mode const[0]) fd_loop_ctl_fops_loop
-ioctl$auto_LOOP_CTL_ADD(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_ADD], arg fd)
-ioctl$auto_LOOP_CTL_GET_FREE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_GET_FREE], arg fd)
-ioctl$auto_LOOP_CTL_REMOVE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_REMOVE], arg fd)
+ioctl$auto_LOOP_CTL_ADD(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_ADD], arg pid)
+ioctl$auto_LOOP_CTL_GET_FREE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_GET_FREE], arg pid)
+ioctl$auto_LOOP_CTL_REMOVE(fd fd_loop_ctl_fops_loop, cmd const[LOOP_CTL_REMOVE], arg pid)
 
 resource fd_lowpan_control_fops_6lowpan[fd]
 openat$auto_lowpan_control_fops_6lowpan(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/bluetooth/6lowpan_control"]], flags flags[open_flags], mode const[0]) fd_lowpan_control_fops_6lowpan
@@ -9899,7 +9926,7 @@ xfs_growfs_log$auto {
 }
 
 xfs_growfs_rt$auto {
-	newblocks	auto_union[gid, int64]
+	newblocks	int64
 	extsize		int32
 }
 

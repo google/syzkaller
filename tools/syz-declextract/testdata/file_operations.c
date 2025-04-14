@@ -9,10 +9,15 @@ enum {
 	FOO_IOCTL12 = _IOR('c', 12, int),
 };
 
+enum {
+	config_foo
+};
+
 static void foo_open() {}
 static void foo_read() {}
 static void foo_write() {}
 static void foo_mmap() {}
+static void foo_mmap2() {}
 
 static void foo_ioctl2(unsigned int cmd, unsigned long arg) {
 	switch (cmd) {
@@ -41,7 +46,9 @@ const struct file_operations foo = {
 	.read = foo_read,
 	.write = foo_write,
 	.unlocked_ioctl = foo_ioctl,
-	.mmap = foo_mmap,
+	// Such code happens after macro expansion,
+	// we want to extract the first function name.
+	.mmap = ((config_foo) ? foo_mmap : foo_mmap2),
 };
 
 static void proc_open() {}
