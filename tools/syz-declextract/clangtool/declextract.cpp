@@ -52,7 +52,8 @@ struct MacroDef {
 };
 using MacroMap = std::unordered_map<std::string, MacroDef>;
 
-struct MacroDesc {
+// ConstDesc describes a macro or an enum value.
+struct ConstDesc {
   std::string Name;
   std::string Value;
   SourceRange SourceRange;
@@ -140,8 +141,9 @@ private:
   std::optional<QualType> getSizeofType(const Expr* E);
   int sizeofType(const Type* T);
   int alignofType(const Type* T);
-  void extractIoctl(const Expr* Cmd, const MacroDesc& Macro);
-  std::optional<MacroDesc> isMacroRef(const Expr* E);
+  void extractIoctl(const Expr* Cmd, const ConstDesc& Const);
+  std::optional<ConstDesc> isMacroOrEnum(const Expr* E);
+  ConstDesc constDesc(const Expr* E, const std::string& Str, const std::string& Value, const SourceRange& SourceRange);
 };
 
 // PPCallbacksTracker records all macro definitions (name/value/source location).
@@ -173,6 +175,18 @@ private:
     };
   }
 };
+
+const Expr* removeCasts(const Expr* E) {
+  for (;;) {
+    if (auto* P = dyn_cast<ParenExpr>(E))
+      E = P->getSubExpr();
+    else if (auto* C = dyn_cast<CastExpr>(E))
+      E = C->getSubExpr();
+    else
+      break;
+  }
+  return E;
+}
 
 bool Extractor::handleBeginSource(CompilerInstance& CI) {
   Preprocessor& PP = CI.getPreprocessor();
@@ -357,20 +371,27 @@ std::string Extractor::getDeclFileID(const Decl* Decl) {
   return file;
 }
 
-std::optional<MacroDesc> Extractor::isMacroRef(const Expr* E) {
+std::optional<ConstDesc> Extractor::isMacroOrEnum(const Expr* E) {
   if (!E)
     return {};
+  if (auto* Enum = removeCasts(E)->getEnumConstantDecl())
+    return constDesc(E, Enum->getNameAsString(), "", Enum->getSourceRange());
   auto Range = Lexer::getAsCharRange(E->getSourceRange(), *SourceManager, Context->getLangOpts());
   const std::string& Str = Lexer::getSourceText(Range, *SourceManager, Context->getLangOpts()).str();
   auto MacroDef = Macros.find(Str);
   if (MacroDef == Macros.end())
     return {};
+  return constDesc(E, Str, MacroDef->second.Value, MacroDef->second.SourceRange);
+}
+
+ConstDesc Extractor::constDesc(const Expr* E, const std::string& Str, const std::string& Value,
+                               const SourceRange& SourceRange) {
   int64_t Val = evaluate(E);
-  emitConst(Str, Val, MacroDef->second.SourceRange.getBegin());
-  return MacroDesc{
+  emitConst(Str, Val, SourceRange.getBegin());
+  return ConstDesc{
       .Name = Str,
-      .Value = MacroDef->second.Value,
-      .SourceRange = MacroDef->second.SourceRange,
+      .Value = Value,
+      .SourceRange = SourceRange,
       .IntValue = Val,
   };
 }
@@ -597,18 +618,6 @@ std::string Extractor::getUniqueDeclName(const NamedDecl* Decl) {
   return Decl->getNameAsString() + "_" + getDeclFileID(Decl);
 }
 
-const Expr* removeCasts(const Expr* E) {
-  for (;;) {
-    if (auto* P = dyn_cast<ParenExpr>(E))
-      E = P->getSubExpr();
-    else if (auto* C = dyn_cast<CastExpr>(E))
-      E = C->getSubExpr();
-    else
-      break;
-  }
-  return E;
-}
-
 bool isInterestingCall(const CallExpr* Call) {
   auto* CalleeDecl = Call->getDirectCallee();
   // We don't handle indirect calls yet.
@@ -677,8 +686,8 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
         auto* Case = dyn_cast<CaseStmt>(C);
         if (!Case)
           continue;
-        auto LMacro = Extractor->isMacroRef(Case->getLHS());
-        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        auto LMacro = Extractor->isMacroOrEnum(Case->getLHS());
+        auto RMacro = Extractor->isMacroOrEnum(Case->getRHS());
         if (LMacro || RMacro) {
           IsInteresting = true;
           break;
@@ -711,7 +720,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     // Otherwise it's a default case, for which we don't add any values.
     if (auto* Case = dyn_cast<CaseStmt>(C)) {
       int64_t LVal = Extractor->evaluate(Case->getLHS());
-      auto LMacro = Extractor->isMacroRef(Case->getLHS());
+      auto LMacro = Extractor->isMacroOrEnum(Case->getLHS());
       if (LMacro) {
         Current->Values.push_back(LMacro->Name);
         Extractor->extractIoctl(Case->getLHS(), *LMacro);
@@ -723,7 +732,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
         //   case FOO ... BAR:
         // Add all values in the range.
         int64_t RVal = Extractor->evaluate(Case->getRHS());
-        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        auto RMacro = Extractor->isMacroOrEnum(Case->getRHS());
         for (int64_t V = LVal + 1; V <= RVal - (RMacro ? 1 : 0); V++)
           Current->Values.push_back(std::to_string(V));
         if (RMacro)
@@ -937,13 +946,13 @@ void Extractor::matchFileOps() {
   });
 }
 
-void Extractor::extractIoctl(const Expr* Cmd, const MacroDesc& Macro) {
+void Extractor::extractIoctl(const Expr* Cmd, const ConstDesc& Const) {
   // This is old style ioctl defined directly via a number.
   // We can't infer anything about it.
-  if (Macro.Value.find("_IO") != 0)
+  if (Const.Value.find("_IO") != 0)
     return;
   FieldType Type;
-  auto Dir = _IOC_DIR(Macro.IntValue);
+  auto Dir = _IOC_DIR(Const.IntValue);
   if (Dir == _IOC_NONE) {
     Type = IntType{.ByteSize = 1, .IsConst = true};
   } else if (std::optional<QualType> Arg = getSizeofType(Cmd)) {
@@ -957,7 +966,7 @@ void Extractor::extractIoctl(const Expr* Cmd, const MacroDesc& Macro) {
     return;
   }
   Output.emit(Ioctl{
-      .Name = Macro.Name,
+      .Name = Const.Name,
       .Type = std::move(Type),
   });
 }
