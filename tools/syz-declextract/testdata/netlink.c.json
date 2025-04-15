@@ -239,7 +239,6 @@
 			"ops": [
 				{
 					"name": "NETLINK_BAR_CMD_FOO",
-					"func": "NETLINK_BAR_CMD_FOO",
 					"access": "user",
 					"policy": "foo_genl_policy_netlink"
 				}
