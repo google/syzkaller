@@ -54,6 +54,10 @@ import (
 //   in LOC/complexity/coverage analysis (effectively called). We won't see this function
 //   to be called via a function pointer later, or it may be passed to a very common function
 //   that we won't analyze (e.g. single_open(..., show_callback, ...)).
+// - Extract file permissions during ifaceprobe and use that to assign interface accessibility
+//   for file interfaces, e.g. for:
+//     crw-------   1 root    root      10,   239 Apr  8 20:36 uhid
+//   we can say that it's root-only.
 
 var (
 	// Refines types based on data flows...
