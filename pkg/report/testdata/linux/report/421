@@ -1,4 +1,6 @@
 TITLE: INFO: rcu detected stall in sys_exit_group
+ALT: INFO: rcu detected stall in __x64_sys_exit_group
+ALT: stall in __x64_sys_exit_group
 ALT: stall in sys_exit_group
 TYPE: HANG
 

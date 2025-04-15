@@ -917,7 +917,7 @@ func (ctx *linux) setExecutorInfo(rep *Report) {
 	rep.Executor = info
 }
 
-func linuxStallFrameExtractor(frames []string) string {
+func linuxStallFrameExtractor(frames []string) (string, int) {
 	// During rcu stalls and cpu lockups kernel loops in some part of code,
 	// usually across several functions. When the stall is detected, traceback
 	// points to a random stack within the looping code. We generally take
@@ -929,22 +929,23 @@ func linuxStallFrameExtractor(frames []string) string {
 	// However, for highly discriminated functions syscalls like ioctl/read/write/connect
 	// we take the previous function (e.g. for connect the one that points to exact
 	// protocol, or for ioctl the one that is related to the device).
-	prev := frames[0]
-	for _, frame := range frames {
+	prev, prevIdx := frames[0], 0
+	for i, frame := range frames {
 		if matchesAny([]byte(frame), linuxStallAnchorFrames) {
 			if strings.Contains(frame, "smp_call_function") {
 				// In this case we want this function rather than the previous one
 				// (there can be several variations on the next one).
 				prev = "smp_call_function"
+				prevIdx = i
 			}
-			return prev
+			return prev, prevIdx
 		}
-		prev = frame
+		prev, prevIdx = frame, i
 	}
-	return ""
+	return "", -1
 }
 
-func linuxHangTaskFrameExtractor(frames []string) string {
+func linuxHangTaskFrameExtractor(frames []string) (string, int) {
 	// The problem with task hung reports is that they manifest at random victim stacks,
 	// rather at the root cause stack. E.g. if there is something wrong with RCU subsystem,
 	// we are getting hangs all over the kernel on all synchronize_* calls.
@@ -959,13 +960,13 @@ func linuxHangTaskFrameExtractor(frames []string) string {
 		"synchronize_net":   synchronizeRCU,
 		"synchronize_sched": synchronizeRCU,
 	}
-	for _, frame := range frames {
+	for i, frame := range frames {
 		for anchor, replacement := range anchorFrames {
 			if strings.Contains(frame, anchor) {
 				if replacement != "" {
 					frame = replacement
 				}
-				return frame
+				return frame, i
 			}
 		}
 	}
@@ -973,15 +974,15 @@ func linuxHangTaskFrameExtractor(frames []string) string {
 		"wait", "synchronize", "context_switch", "__switch_to", "cancel_delayed_work",
 		"rcu_barrier"}
 nextFrame:
-	for _, frame := range frames {
+	for i, frame := range frames {
 		for _, ignore := range skip {
 			if strings.Contains(frame, ignore) {
 				continue nextFrame
 			}
 		}
-		return frame
+		return frame, i
 	}
-	return ""
+	return "", -1
 }
 
 var linuxStallAnchorFrames = []*regexp.Regexp{

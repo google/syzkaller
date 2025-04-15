@@ -1,5 +1,7 @@
 TITLE: BUG: soft lockup in smp_call_function
+ALT: BUG: soft lockup in smp_call_function_single
 ALT: stall in smp_call_function
+ALT: stall in smp_call_function_single
 TYPE: HANG
 
 [  247.938942] watchdog: BUG: soft lockup - CPU#0 stuck for 134s! [kworker/0:2:1400]
