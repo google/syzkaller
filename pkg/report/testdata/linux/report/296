@@ -1,4 +1,6 @@
 TITLE: BUG: soft lockup in mount
+ALT: BUG: soft lockup in compat_SyS_mount
+ALT: stall in compat_SyS_mount
 ALT: stall in mount
 TYPE: HANG
 

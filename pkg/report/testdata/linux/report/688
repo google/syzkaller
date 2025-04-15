@@ -1,4 +1,6 @@
 TITLE: INFO: rcu detected stall in sys_recvmmsg
+ALT: INFO: rcu detected stall in __arm64_sys_recvmmsg
+ALT: stall in __arm64_sys_recvmmsg
 ALT: stall in sys_recvmmsg
 TYPE: HANG
 

@@ -1,5 +1,7 @@
 TITLE: INFO: task hung in synchronize_rcu
+ALT: INFO: task hung in synchronize_sched
 ALT: hang in synchronize_rcu
+ALT: hang in synchronize_sched
 TYPE: HANG
 
 [  369.632214] INFO: task syz-executor4:8442 blocked for more than 120 seconds.

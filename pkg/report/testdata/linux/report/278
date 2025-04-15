@@ -1,4 +1,6 @@
 TITLE: INFO: rcu detected stall in sys_futex
+ALT: INFO: rcu detected stall in __x64_sys_futex
+ALT: stall in __x64_sys_futex
 ALT: stall in sys_futex
 TYPE: HANG
 

@@ -1,4 +1,6 @@
 TITLE: INFO: rcu detected stall in sys_inotify_init
+ALT: INFO: rcu detected stall in __ia32_sys_inotify_init
+ALT: stall in __ia32_sys_inotify_init
 ALT: stall in sys_inotify_init
 TYPE: HANG
 

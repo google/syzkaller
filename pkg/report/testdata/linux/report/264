@@ -1,4 +1,6 @@
 TITLE: BUG: soft lockup in sys_rmdir
+ALT: BUG: soft lockup in __x64_sys_rmdir
+ALT: stall in __x64_sys_rmdir
 ALT: stall in sys_rmdir
 TYPE: HANG
 

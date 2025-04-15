@@ -1,5 +1,7 @@
 TITLE: INFO: rcu detected stall in openat2
+ALT: INFO: rcu detected stall in sys_openat2
 ALT: stall in openat2
+ALT: stall in sys_openat2
 TYPE: HANG
 
 rcu: INFO: rcu_sched self-detected stall on CPU
