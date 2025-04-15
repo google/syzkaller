@@ -224,6 +224,7 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) error {
 	tracer.Log("started build: %q", req)
 	info, err := build.Image(params)
 	tracer.Log("compiler: %q", info.CompilerID)
+	tracer.Log("signature: %q", info.Signature)
 	if err != nil {
 		var kernelError *build.KernelError
 		var verboseError *osutil.VerboseError
