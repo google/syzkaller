@@ -39,6 +39,7 @@ import (
 type DiffFuzzerConfig struct {
 	Debug        bool
 	PatchedOnly  chan *UniqueBug
+	Store        *DiffFuzzerStore
 	ArtifactsDir string // Where to store the artifacts that supplement the logs.
 	// The fuzzer waits no more than MaxTriageTime time until it starts taking VMs away
 	// for bug reproduction.
@@ -82,13 +83,12 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 	base.source = stream
 	new.duplicateInto = stream
 
-	store := &DiffFuzzerStore{BasePath: cfg.ArtifactsDir}
 	diffCtx := &diffContext{
 		cfg:           cfg,
 		doneRepro:     make(chan *ReproResult),
 		base:          base,
 		new:           new,
-		store:         store,
+		store:         cfg.Store,
 		reproAttempts: map[string]int{},
 		patchedOnly:   cfg.PatchedOnly,
 	}
@@ -96,7 +96,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 		diffCtx.http = &HTTPServer{
 			Cfg:       newCfg,
 			StartTime: time.Now(),
-			DiffStore: store,
+			DiffStore: cfg.Store,
 			Pools: map[string]*vm.Dispatcher{
 				new.name:  new.pool,
 				base.name: base.pool,

@@ -48,8 +48,8 @@ func main() {
 
 	ctx := vm.ShutdownCtx()
 	err = manager.RunDiffFuzzer(ctx, baseCfg, newCfg, manager.DiffFuzzerConfig{
-		ArtifactsDir: newCfg.Workdir,
-		Debug:        *flagDebug,
+		Store: &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
+		Debug: *flagDebug,
 	})
 	if err != nil {
 		log.Fatal(err)

@@ -4,9 +4,12 @@
 package manager
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -114,6 +117,40 @@ func (s *DiffFuzzerStore) List() []DiffBug {
 		list = append(list, *obj)
 	}
 	return list
+}
+
+func (s *DiffFuzzerStore) PlainTextDump() []byte {
+	list := s.List()
+	sort.Slice(list, func(i, j int) bool {
+		// Put patched-only on top, otherwise sort by the title.
+		first, second := list[i].PatchedOnly(), list[j].PatchedOnly()
+		if first != second {
+			return first
+		}
+		return list[i].Title < list[j].Title
+	})
+	var buf bytes.Buffer
+	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "Title\tOn-Base\tOn-Patched")
+
+	printInfo := func(info *DiffBugInfo) {
+		if info.Crashes > 0 {
+			fmt.Fprintf(w, "%d crashes", info.Crashes)
+		}
+		if info.Repro != "" {
+			fmt.Fprintf(w, "[reproduced]")
+		}
+	}
+
+	for _, item := range list {
+		fmt.Fprintf(w, "%s\t", item.Title)
+		printInfo(&item.Base)
+		fmt.Fprintf(w, "\t")
+		printInfo(&item.Patched)
+		fmt.Fprintf(w, "\n")
+	}
+	w.Flush()
+	return buf.Bytes()
 }
 
 func (s *DiffFuzzerStore) saveFile(title, name string, data []byte) string {
