@@ -46,7 +46,7 @@ func (c *Crash) FullTitle() string {
 }
 
 type ReproManagerView interface {
-	RunRepro(crash *Crash) *ReproResult
+	RunRepro(ctx context.Context, crash *Crash) *ReproResult
 	NeedRepro(crash *Crash) bool
 	ResizeReproPool(size int)
 }
@@ -222,7 +222,7 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 		go func() {
 			defer wg.Done()
 
-			r.handle(crash)
+			r.handle(ctx, crash)
 
 			r.mu.Lock()
 			delete(r.reproducing, title)
@@ -244,10 +244,10 @@ func (r *ReproLoop) calculateReproVMs(repros int) int {
 	return (repros*4 + 2) / 3
 }
 
-func (r *ReproLoop) handle(crash *Crash) {
+func (r *ReproLoop) handle(ctx context.Context, crash *Crash) {
 	log.Logf(0, "start reproducing '%v'", crash.FullTitle())
 
-	res := r.mgr.RunRepro(crash)
+	res := r.mgr.RunRepro(ctx, crash)
 
 	crepro := false
 	title := ""

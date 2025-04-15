@@ -505,8 +505,8 @@ func reportReproError(err error) {
 	log.Errorf("repro failed: %v", err)
 }
 
-func (mgr *Manager) RunRepro(crash *manager.Crash) *manager.ReproResult {
-	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
+	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
 		Config:   mgr.cfg,
 		Features: mgr.enabledFeatures,
 		Reporter: mgr.reporter,

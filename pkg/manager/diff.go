@@ -272,12 +272,12 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	return true
 }
 
-func (dc *diffContext) RunRepro(crash *Crash) *ReproResult {
+func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult {
 	dc.mu.Lock()
 	dc.reproAttempts[crash.Title]++
 	dc.mu.Unlock()
 
-	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
 		Config:   dc.new.cfg,
 		Features: dc.new.features,
 		Reporter: dc.new.reporter,

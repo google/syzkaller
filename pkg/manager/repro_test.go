@@ -147,10 +147,19 @@ func (m *reproMgrMock) onVMShutdown(t *testing.T, reproLoop *ReproLoop) {
 	t.Fatal("reserved VMs must have dropped to 0")
 }
 
-func (m *reproMgrMock) RunRepro(crash *Crash) *ReproResult {
+func (m *reproMgrMock) RunRepro(ctx context.Context, crash *Crash) *ReproResult {
 	retCh := make(chan *ReproResult)
-	m.run <- runCallback{crash: crash, ret: retCh}
-	ret := <-retCh
+	select {
+	case m.run <- runCallback{crash: crash, ret: retCh}:
+	case <-ctx.Done():
+		return &ReproResult{}
+	}
+	var ret *ReproResult
+	select {
+	case ret = <-retCh:
+	case <-ctx.Done():
+		return &ReproResult{}
+	}
 	close(retCh)
 	return ret
 }
