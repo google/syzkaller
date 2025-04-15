@@ -105,6 +105,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration, art
 	eg, ctx := errgroup.WithContext(baseCtx)
 	bugs := make(chan *manager.UniqueBug)
 	eg.Go(func() error {
+		defer log.Logf(0, "bug reporting terminated")
 		for {
 			var bug *manager.UniqueBug
 			select {
@@ -123,6 +124,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration, art
 		return nil
 	})
 	eg.Go(func() error {
+		defer log.Logf(0, "diff fuzzing terminated")
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
 			Debug:         false,
 			PatchedOnly:   bugs,
@@ -136,6 +138,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration, art
 	)
 	lastArtifactUpdate := time.Now()
 	eg.Go(func() error {
+		defer log.Logf(0, "status reporting terminated")
 		for {
 			select {
 			case <-ctx.Done():
