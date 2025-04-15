@@ -79,6 +79,7 @@ const (
 	SessionStatusWaiting    SessionStatus = "waiting"
 	SessionStatusInProgress SessionStatus = "in progress"
 	SessionStatusFinished   SessionStatus = "finished"
+	SessionStatusSkipped    SessionStatus = "skipped"
 	// To be used in filters.
 	SessionStatusAny SessionStatus = ""
 )
@@ -90,6 +91,8 @@ func (s *Session) Status() SessionStatus {
 		return SessionStatusWaiting
 	} else if s.FinishedAt.IsNull() {
 		return SessionStatusInProgress
+	} else if !s.SkipReason.IsNull() {
+		return SessionStatusSkipped
 	}
 	return SessionStatusFinished
 }
