@@ -21,8 +21,9 @@ config:
  # 32-on-64 support (compat).
  - IA32_EMULATION
  # X86_X32 renamed to X86_X32_ABI in v5.18
- - X86_X32: [-baseline, -v5.18]
- - X86_X32_ABI: [-baseline, v5.18]
+ # Note that we cannot build X86_X32(_ABI) with LLVM=1.
+ - X86_X32: [-baseline, -clang, -v5.18]
+ - X86_X32_ABI: [-baseline, -clang, v5.18]
 
  # Moved from legacy config, reason for enabling is unknown.
  # KALLSYMS_ABSOLUTE_PERCPU deprecated after v6.14.
