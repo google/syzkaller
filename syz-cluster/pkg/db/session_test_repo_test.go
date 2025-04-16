@@ -43,7 +43,7 @@ func TestSessionTestRepository(t *testing.T) {
 			PatchedBuildID: spanner.NullString{StringVal: build2.ID, Valid: true},
 			Result:         api.TestPassed,
 		}
-		err = testsRepo.InsertOrUpdate(ctx, test)
+		err = testsRepo.InsertOrUpdate(ctx, test, nil)
 		assert.NoError(t, err)
 	}
 

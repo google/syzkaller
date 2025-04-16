@@ -26,7 +26,7 @@ func (d *dummyTestData) addSessionTest(session *Session, names ...string) {
 			SessionID: session.ID,
 			TestName:  name,
 			Result:    api.TestPassed,
-		})
+		}, nil)
 		assert.NoError(d.t, err)
 	}
 }
