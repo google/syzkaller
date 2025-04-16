@@ -495,7 +495,7 @@ func reportReproError(err error) {
 		// The kernel could have crashed before we executed any programs.
 		log.Logf(0, "repro failed: %v", err)
 		return
-	} else if errors.Is(err, repro.ErrNoVMs) {
+	} else if errors.Is(err, repro.ErrNoVMs) || errors.Is(err, context.Canceled) {
 		// This error is to be expected if we're shutting down.
 		if shutdown {
 			return
