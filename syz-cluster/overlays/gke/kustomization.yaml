@@ -13,7 +13,7 @@ resources:
 patches:
   - target:
       kind: WorkflowTemplate
-      name: boot-step-template
+      name: (boot|fuzz)-step-template
     patch: |-
       - op: replace
         path: /spec/templates/0/tolerations
@@ -24,12 +24,9 @@ patches:
               effect: "NoSchedule"
   - target:
       kind: WorkflowTemplate
-      name: fuzz-step-template
+      name: (boot|fuzz)-step-template
     patch: |-
       - op: replace
-        path: /spec/templates/0/tolerations
+        path: /spec/templates/0/nodeSelector
         value:
-            - key: "workload"
-              operator: "Equal"
-              value: "nested-vm"
-              effect: "NoSchedule"
+          cloud.google.com/gke-nodepool: nested-vm-pool
