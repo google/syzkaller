@@ -200,10 +200,17 @@ func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir st
 		if ccache != "" {
 			compiler = ccache + " " + compiler
 		}
-		args = append(args, "CC="+compiler)
 	}
-	if linker != "" {
-		args = append(args, "LD="+linker)
+	// The standard way to build Linux with clang is to pass LLVM=1 instead of CC= and LD=.
+	if compiler == targets.DefaultLLVMCompiler && (linker == "" || linker == targets.DefaultLLVMLinker) {
+		args = append(args, "LLVM=1")
+	} else {
+		if compiler != "" {
+			args = append(args, "CC="+compiler)
+		}
+		if linker != "" {
+			args = append(args, "LD="+linker)
+		}
 	}
 	if buildDir != "" {
 		args = append(args, "O="+buildDir)

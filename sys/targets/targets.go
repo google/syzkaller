@@ -881,6 +881,11 @@ func (target *Target) Timeouts(slowdown int) Timeouts {
 	return timeouts
 }
 
+const (
+	DefaultLLVMCompiler = "clang"
+	DefaultLLVMLinker   = "ld.lld"
+)
+
 func (target *Target) setCompiler(clang bool) {
 	// setCompiler may be called effectively twice for target.other,
 	// so first we remove flags the previous call may have added.
@@ -895,9 +900,9 @@ func (target *Target) setCompiler(clang bool) {
 	}
 	target.CFlags = target.CFlags[:pos]
 	if clang {
-		target.CCompiler = "clang"
-		target.KernelCompiler = "clang"
-		target.KernelLinker = "ld.lld"
+		target.CCompiler = DefaultLLVMCompiler
+		target.KernelCompiler = DefaultLLVMCompiler
+		target.KernelLinker = DefaultLLVMLinker
 		if target.Triple != "" {
 			target.CFlags = append(target.CFlags, "--target="+target.Triple)
 		}

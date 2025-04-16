@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -444,22 +445,21 @@ clean:
 }
 
 func (ctx *Context) Make(args ...string) error {
-	args = append(args,
-		"O="+ctx.BuildDir,
-		"ARCH="+ctx.Target.KernelArch,
-		"-j", fmt.Sprint(runtime.NumCPU()),
-	)
-	if ctx.Target.Triple != "" {
-		args = append(args, "CROSS_COMPILE="+ctx.Target.Triple+"-")
-	}
+	compiler, linker := "", ""
 	if ctx.Inst.Compiler != "" {
-		args = append(args, "CC="+ctx.replaceVars(ctx.Inst.Compiler))
-	} else if ctx.Target.KernelCompiler != "" {
-		args = append(args, "CC="+ctx.Target.KernelCompiler)
+		compiler = ctx.replaceVars(ctx.Inst.Compiler)
 	}
 	if ctx.Inst.Linker != "" {
-		args = append(args, "LD="+ctx.replaceVars(ctx.Inst.Linker))
+		linker = ctx.replaceVars(ctx.Inst.Linker)
 	}
+	args = append(args, build.LinuxMakeArgs(
+		ctx.Target,
+		compiler,
+		linker,
+		"", // ccache
+		ctx.BuildDir,
+		runtime.NumCPU(),
+	)...)
 	_, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, "make", args...)
 	return err
 }
