@@ -39,25 +39,26 @@ func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) erro
 			TestName:  req.TestName,
 		}
 	}
-	entity.Result = req.Result
-	entity.UpdatedAt = time.Now()
-	if req.BaseBuildID != "" {
-		entity.BaseBuildID = spanner.NullString{StringVal: req.BaseBuildID, Valid: true}
-	}
-	if req.PatchedBuildID != "" {
-		entity.PatchedBuildID = spanner.NullString{StringVal: req.PatchedBuildID, Valid: true}
-	}
-	// TODO: the code does not really handle simultaneous requests.
+	logURI := entity.LogURI
 	if len(req.Log) > 0 {
-		entity.LogURI, err = s.uploadOrUpdate(ctx, entity.LogURI, bytes.NewReader(req.Log))
+		logURI, err = s.uploadOrUpdate(ctx, logURI, bytes.NewReader(req.Log))
 		if err != nil {
 			return fmt.Errorf("failed to save the log: %w", err)
 		}
 	}
-	return s.testRepo.InsertOrUpdate(ctx, entity)
+	return s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) {
+		test.Result = req.Result
+		test.UpdatedAt = time.Now()
+		test.LogURI = logURI
+		if req.BaseBuildID != "" {
+			test.BaseBuildID = spanner.NullString{StringVal: req.BaseBuildID, Valid: true}
+		}
+		if req.PatchedBuildID != "" {
+			test.PatchedBuildID = spanner.NullString{StringVal: req.PatchedBuildID, Valid: true}
+		}
+	})
 }
 
-// TODO: this function has the same problems as Save().
 func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testName string, reader io.Reader) error {
 	entity, err := s.testRepo.Get(ctx, sessionID, testName)
 	if err != nil {
@@ -69,8 +70,9 @@ func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testN
 	if err != nil {
 		return fmt.Errorf("failed to save the artifacts archive: %w", err)
 	}
-	entity.ArtifactsArchiveURI = newArchiveURI
-	return s.testRepo.InsertOrUpdate(ctx, entity)
+	return s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) {
+		test.ArtifactsArchiveURI = newArchiveURI
+	})
 }
 
 func (s *SessionTestService) uploadOrUpdate(ctx context.Context, uri string, reader io.Reader) (string, error) {
