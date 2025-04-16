@@ -85,14 +85,7 @@ type FullSessionTest struct {
 }
 
 func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID string) ([]*FullSessionTest, error) {
-	stmt := spanner.Statement{
-		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
-			" ORDER BY `UpdatedAt`",
-		Params: map[string]interface{}{"session": sessionID},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	list, err := readEntities[SessionTest](iter)
+	list, err := repo.BySessionRaw(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,4 +123,15 @@ func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID stri
 		}
 	}
 	return ret, nil
+}
+
+func (repo *SessionTestRepository) BySessionRaw(ctx context.Context, sessionID string) ([]*SessionTest, error) {
+	stmt := spanner.Statement{
+		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
+			" ORDER BY `UpdatedAt`",
+		Params: map[string]interface{}{"session": sessionID},
+	}
+	iter := repo.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	return readEntities[SessionTest](iter)
 }
