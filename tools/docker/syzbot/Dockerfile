@@ -40,22 +40,25 @@ ENV PATH /usr/local/go/bin:$PATH
 # The default clang-14 is too old, install the latest one.
 RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main"
+RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-20 main" | sudo tee /etc/apt/sources.list.d/llvm-20.list
 RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends llvm-15 clang-15 clang-format-15 clang-tidy-15 lld-15
+RUN apt-get install -y -q --no-install-recommends llvm-20 clang-20 clang-format-20 clang-tidy-20 lld-20
 RUN apt autoremove -y -q
-RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100
-RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 100
-RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-15 100
-RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15 100
-RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-nm llvm-nm /usr/bin/llvm-nm-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-objcopy llvm-objcopy /usr/bin/llvm-objcopy-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-objdump llvm-objdump /usr/bin/llvm-objdump-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-addr2line llvm-addr2line /usr/bin/llvm-addr2line-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-readelf llvm-readelf /usr/bin/llvm-readelf-15 100
-RUN sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-15 100
+RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
+RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
+RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-20 100
+RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
+RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-nm llvm-nm /usr/bin/llvm-nm-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-objcopy llvm-objcopy /usr/bin/llvm-objcopy-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-objdump llvm-objdump /usr/bin/llvm-objdump-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-addr2line llvm-addr2line /usr/bin/llvm-addr2line-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-readelf llvm-readelf /usr/bin/llvm-readelf-20 100
+RUN sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-20 100
+
+# Also install clang-15 to keep bisections alive.
+RUN apt-get install -y -q --no-install-recommends clang-15
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
