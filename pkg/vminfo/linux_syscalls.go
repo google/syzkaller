@@ -79,11 +79,11 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_usb_control_io":          linuxCheckUSBEmulation,
 	"syz_usb_ep_write":            linuxCheckUSBEmulation,
 	"syz_usb_ep_read":             linuxCheckUSBEmulation,
-	"syz_kvm_setup_cpu":           linuxSyzKvmSetupCPUSupported,
+	"syz_kvm_setup_cpu":           linuxSyzKvmSupported,
 	"syz_kvm_vgic_v3_setup":       linuxSyzSupportedOnArm64,
-	"syz_kvm_setup_syzos_vm":      linuxSyzSupportedOnArm64,
-	"syz_kvm_add_vcpu":            linuxSyzSupportedOnArm64,
-	"syz_kvm_assert_syzos_uexit":  linuxSyzSupportedOnArm64,
+	"syz_kvm_setup_syzos_vm":      linuxSyzKvmSupported,
+	"syz_kvm_add_vcpu":            linuxSyzKvmSupported,
+	"syz_kvm_assert_syzos_uexit":  linuxSyzKvmSupported,
 	"syz_kvm_assert_reg":          linuxSyzSupportedOnArm64,
 	"syz_emit_vhci":               linuxVhciInjectionSupported,
 	"syz_init_net_socket":         linuxSyzInitNetSocketSupported,
@@ -174,13 +174,18 @@ func linuxCheckUSBEmulation(ctx *checkContext, call *prog.Syscall) string {
 
 const unsupportedArch = "unsupported arch"
 
-func linuxSyzKvmSetupCPUSupported(ctx *checkContext, call *prog.Syscall) string {
+func linuxSyzKvmSupported(ctx *checkContext, call *prog.Syscall) string {
 	switch call.Name {
 	case "syz_kvm_setup_cpu$x86":
 		if ctx.target.Arch == targets.AMD64 || ctx.target.Arch == targets.I386 {
 			return ""
 		}
-	case "syz_kvm_setup_cpu$arm64":
+	case "syz_kvm_setup_syzos_vm$x86", "syz_kvm_add_vcpu$x86", "syz_kvm_assert_syzos_uexit$x86":
+		if ctx.target.Arch == targets.AMD64 {
+			return ""
+		}
+	case "syz_kvm_setup_cpu$arm64", "syz_kvm_setup_syzos_vm$arm64", "syz_kvm_add_vcpu$arm64":
+	case "syz_kvm_assert_syzos_uexit$arm64":
 		if ctx.target.Arch == targets.ARM64 {
 			return ""
 		}

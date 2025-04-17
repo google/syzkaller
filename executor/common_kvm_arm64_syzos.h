@@ -989,10 +989,6 @@ GUEST_CODE static void its_init(uint64 coll_tbl,
 #define GITS_CMD_CLEAR 0x04
 #define GITS_CMD_SYNC 0x05
 
-#define GENMASK_ULL(h, l)                   \
-	(((~0ULL) - (1ULL << (l)) + 1ULL) & \
-	 (~0ULL >> (63 - (h))))
-
 // Avoid inlining this function, because it may cause emitting constants into .rodata.
 GUEST_CODE static noinline void
 its_mask_encode(uint64* raw_cmd, uint64 val, int h, int l)
