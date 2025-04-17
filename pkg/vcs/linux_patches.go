@@ -118,4 +118,18 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:  `5fe6caa62b07fd39cd6a28acc8f92ba2955e11a6`,
 		FixTitle: `Bluetooth: Fix type of len in rfcomm_sock_getsockopt{,_old}()`,
 	},
+	{
+		// Fixes `error: expression requires  'long double' type support, but target 'x86_64-unknown-linux-gnu' does not support it`.
+		// The guilty hash is not the one specified in the commit, but a later one - it still allows to build v5.15
+		// and yet does not conflict with v5.10.
+		GuiltyHash: `d21446eafa3a5cb238fe9eb79f49932cdb417d40`,
+		FixHash:    `310780e825f3ffd211b479b8f828885a6faedd63`,
+		FixTitle:   `usb: dwc2: hcd_queue: Fix use of floating point literal`,
+	},
+	{
+		// The commit above does not apply to v5.10, so let's try again using a backported commit
+		// and the original guilty hash.
+		GuiltyHash: `310780e825f3ffd211b479b8f828885a6faedd63`,
+		FixHash:    `2b7ab82f51736a8550a3b4248054ca8042c57869`,
+	},
 }
