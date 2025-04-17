@@ -107,4 +107,15 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `e77aff5528a183462714f750e45add6cc71e276a`,
 		FixTitle:   `binderfs: fix use-after-free in binder_devices`,
 	},
+	{
+		// Fixes: `error: call to '__bad_copy_from' declared with 'error' attribute: copy source size is too small`.
+		FixHash:  `9bf4e919ccad613b3596eebf1ff37b05b6405307`,
+		FixTitle: `Bluetooth: Fix type of len in {l2cap,sco}_sock_getsockopt_old()`,
+	},
+	{
+		// Improves the commit above.
+		// The GuiltyHash won't work for cherry-picked commits, so let's just try to apply it.
+		FixHash:  `5fe6caa62b07fd39cd6a28acc8f92ba2955e11a6`,
+		FixTitle: `Bluetooth: Fix type of len in rfcomm_sock_getsockopt{,_old}()`,
+	},
 }
