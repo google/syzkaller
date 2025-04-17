@@ -21,7 +21,7 @@ endef
 
 $(eval $(call build_image_rules,./controller,controller))
 $(eval $(call build_image_rules,./dashboard,web-dashboard))
-$(eval $(call build_image_rules,./reporter,reporter))
+$(eval $(call build_image_rules,./reporter-server,reporter-server))
 $(eval $(call build_image_rules,./series-tracker,series-tracker))
 $(eval $(call build_image_rules,./db-mgmt,db-mgmt))
 $(eval $(call build_image_rules,./workflow/triage-step,triage-step))
@@ -29,7 +29,7 @@ $(eval $(call build_image_rules,./workflow/build-step,build-step))
 $(eval $(call build_image_rules,./workflow/fuzz-step,fuzz-step))
 $(eval $(call build_image_rules,./workflow/boot-step,boot-step))
 
-IMAGES := controller web-dashboard reporter series-tracker db-mgmt triage-step build-step boot-step fuzz-step
+IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-step build-step boot-step fuzz-step
 BUILD_TARGETS := $(addprefix build-, $(IMAGES))
 PUSH_TARGETS := $(addprefix push-, $(IMAGES))
 

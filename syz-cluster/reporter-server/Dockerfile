@@ -9,16 +9,16 @@ RUN go mod download
 COPY pkg/gcs/ pkg/gcs/
 
 # Build the tool.
-COPY syz-cluster/reporter/ syz-cluster/reporter/
+COPY syz-cluster/reporter-server/ syz-cluster/reporter-server/
 COPY syz-cluster/pkg/ syz-cluster/pkg/
-RUN go build -o /bin/reporter /build/syz-cluster/reporter
+RUN go build -o /bin/reporter-server /build/syz-cluster/reporter-server
 
 # Build the container.
 FROM alpine:latest
 WORKDIR /app
 
-COPY --from=reporter-builder /bin/reporter /bin/reporter
+COPY --from=reporter-builder /bin/reporter-server /bin/reporter-server
 
 EXPOSE 8080
 
-ENTRYPOINT ["/bin/reporter"]
+ENTRYPOINT ["/bin/reporter-server"]
