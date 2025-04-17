@@ -137,4 +137,10 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:  `bdbee7d7fd95ab064ad3d4988f4361c3f0cbafd7`,
 		FixTitle: `drm/modes: Switch to 64bit maths to avoid integer overflow`,
 	},
+	{
+		// Fixes `error: call to '__read_overflow' declared with 'error' attribute: detected read beyond
+		// size of object (1st parameter)`.
+		FixHash:  `876e480da2f74715fc70e37723e77ca16a631e35`,
+		FixTitle: `RDMA/cma: Distinguish between sockaddr_in and sockaddr_in6 by size`,
+	},
 }
