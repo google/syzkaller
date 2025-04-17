@@ -132,4 +132,9 @@ var pickLinuxCommits = []BackportCommit{
 		GuiltyHash: `310780e825f3ffd211b479b8f828885a6faedd63`,
 		FixHash:    `2b7ab82f51736a8550a3b4248054ca8042c57869`,
 	},
+	{
+		// Fixes `UBSAN: signed-integer-overflow in drivers/gpu/drm/drm_modes.c` on v5.10.
+		FixHash:  `bdbee7d7fd95ab064ad3d4988f4361c3f0cbafd7`,
+		FixTitle: `drm/modes: Switch to 64bit maths to avoid integer overflow`,
+	},
 }
