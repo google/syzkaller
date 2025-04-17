@@ -4,21 +4,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reporter-deployment
+  name: reporter-server-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reporter
+      app: reporter-server
   template:
     metadata:
       labels:
-        app: reporter
+        app: reporter-server
     spec:
       serviceAccountName: gke-service-ksa
       containers:
       - name: reporter-image
-        image: ${IMAGE_PREFIX}reporter:${IMAGE_TAG}
+        image: ${IMAGE_PREFIX}reporter-server:${IMAGE_TAG}
         envFrom:
           - configMapRef:
               name: global-config
