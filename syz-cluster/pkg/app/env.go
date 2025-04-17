@@ -70,6 +70,9 @@ func DefaultStorage(ctx context.Context) (blob.Storage, error) {
 }
 
 func DefaultClient() *api.Client {
-	// TODO: take it from some env variable.
 	return api.NewClient(`http://controller-service:8080`)
+}
+
+func DefaultReporterClient() *api.ReporterClient {
+	return api.NewReporterClient(`http://reporter-server-service:8080`)
 }

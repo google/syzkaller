@@ -11,3 +11,7 @@ data:
     # Whatever, it's just for debugging.
     loreArchives:
       - linux-wireless
+    emailReporting:
+      name: test-name
+      docs: http://docs/
+      supportEmail: name@email.com

@@ -1,0 +1,35 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-reporter-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: email-reporter
+  template:
+    metadata:
+      labels:
+        app: email-reporter
+    spec:
+      serviceAccountName: gke-service-ksa
+      containers:
+      - name: email-reporter
+        image: ${IMAGE_PREFIX}email-reporter:${IMAGE_TAG}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /config
+        resources:
+          requests:
+            cpu: 2
+            memory: 8G
+          limits:
+            cpu: 4
+            memory: 16G
+      volumes:
+      - name: config-volume
+        configMap:
+          name: global-config
