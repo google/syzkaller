@@ -230,7 +230,11 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 			r.mu.Unlock()
 
 			r.parallel <- struct{}{}
-			r.pingQueue <- struct{}{}
+			// If the context is cancelled, no one is listening on pingQueue.
+			select {
+			case r.pingQueue <- struct{}{}:
+			default:
+			}
 		}()
 	}
 }

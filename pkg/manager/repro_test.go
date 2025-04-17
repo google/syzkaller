@@ -123,6 +123,28 @@ func TestReproRWRace(t *testing.T) {
 	mock.onVMShutdown(t, obj)
 }
 
+func TestCancelRunningRepro(t *testing.T) {
+	mock := &reproMgrMock{
+		run: make(chan runCallback),
+	}
+	obj := NewReproLoop(mock, 1, false)
+	ctx, done := context.WithCancel(context.Background())
+	complete := make(chan struct{})
+	go func() {
+		obj.Loop(ctx)
+		close(complete)
+	}()
+
+	defer func() {
+		<-complete
+	}()
+
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "B"}})
+	<-mock.run
+	done()
+}
+
 type reproMgrMock struct {
 	reserved       atomic.Int64
 	run            chan runCallback
