@@ -1,4 +1,6 @@
 TITLE: INFO: rcu detected stall in rmdir
+ALT: INFO: rcu detected stall in SyS_rmdir
+ALT: stall in SyS_rmdir
 ALT: stall in rmdir
 TYPE: HANG
 

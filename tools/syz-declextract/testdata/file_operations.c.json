@@ -27,8 +27,8 @@
 		{
 			"name": "foo_ioctl",
 			"file": "file_operations.c",
-			"start_line": 21,
-			"end_line": 30,
+			"start_line": 30,
+			"end_line": 42,
 			"is_static": true,
 			"scopes": [
 				{
@@ -74,18 +74,21 @@
 						"FOO_IOCTL2",
 						"FOO_IOCTL3",
 						"FOO_IOCTL4",
-						"FOO_IOCTL5"
+						"FOO_IOCTL5",
+						"FOO_IOCTL10",
+						"FOO_IOCTL11",
+						"FOO_IOCTL12"
 					],
-					"start_line": 23,
-					"end_line": 28
+					"start_line": 32,
+					"end_line": 40
 				}
 			]
 		},
 		{
 			"name": "foo_ioctl2",
 			"file": "file_operations.c",
-			"start_line": 13,
-			"end_line": 19,
+			"start_line": 22,
+			"end_line": 28,
 			"is_static": true,
 			"scopes": [
 				{
@@ -97,16 +100,28 @@
 						"FOO_IOCTL6",
 						"FOO_IOCTL7"
 					],
-					"start_line": 15,
-					"end_line": 18
+					"start_line": 24,
+					"end_line": 27
 				}
 			]
 		},
 		{
 			"name": "foo_mmap",
 			"file": "file_operations.c",
-			"start_line": 11,
-			"end_line": 11,
+			"start_line": 19,
+			"end_line": 19,
+			"is_static": true,
+			"scopes": [
+				{
+					"arg": -1
+				}
+			]
+		},
+		{
+			"name": "foo_mmap2",
+			"file": "file_operations.c",
+			"start_line": 20,
+			"end_line": 20,
 			"is_static": true,
 			"scopes": [
 				{
@@ -117,8 +132,8 @@
 		{
 			"name": "foo_open",
 			"file": "file_operations.c",
-			"start_line": 8,
-			"end_line": 8,
+			"start_line": 16,
+			"end_line": 16,
 			"is_static": true,
 			"scopes": [
 				{
@@ -129,8 +144,8 @@
 		{
 			"name": "foo_read",
 			"file": "file_operations.c",
-			"start_line": 9,
-			"end_line": 9,
+			"start_line": 17,
+			"end_line": 17,
 			"is_static": true,
 			"scopes": [
 				{
@@ -141,8 +156,8 @@
 		{
 			"name": "foo_write",
 			"file": "file_operations.c",
-			"start_line": 10,
-			"end_line": 10,
+			"start_line": 18,
+			"end_line": 18,
 			"is_static": true,
 			"scopes": [
 				{
@@ -165,8 +180,8 @@
 		{
 			"name": "proc_ioctl",
 			"file": "file_operations.c",
-			"start_line": 43,
-			"end_line": 43,
+			"start_line": 57,
+			"end_line": 57,
 			"is_static": true,
 			"scopes": [
 				{
@@ -177,8 +192,8 @@
 		{
 			"name": "proc_open",
 			"file": "file_operations.c",
-			"start_line": 40,
-			"end_line": 40,
+			"start_line": 54,
+			"end_line": 54,
 			"is_static": true,
 			"scopes": [
 				{
@@ -189,8 +204,8 @@
 		{
 			"name": "proc_read",
 			"file": "file_operations.c",
-			"start_line": 41,
-			"end_line": 41,
+			"start_line": 55,
+			"end_line": 55,
 			"is_static": true,
 			"scopes": [
 				{
@@ -201,8 +216,8 @@
 		{
 			"name": "proc_write",
 			"file": "file_operations.c",
-			"start_line": 42,
-			"end_line": 42,
+			"start_line": 56,
+			"end_line": 56,
 			"is_static": true,
 			"scopes": [
 				{
@@ -213,8 +228,8 @@
 		{
 			"name": "unused_ioctl",
 			"file": "file_operations.c",
-			"start_line": 59,
-			"end_line": 64,
+			"start_line": 73,
+			"end_line": 78,
 			"is_static": true,
 			"scopes": [
 				{
@@ -226,8 +241,8 @@
 						"UNUSED_IOCTL1",
 						"UNUSED_IOCTL2"
 					],
-					"start_line": 61,
-					"end_line": 63
+					"start_line": 75,
+					"end_line": 77
 				}
 			]
 		}
@@ -237,6 +252,21 @@
 			"name": "FOO_IOCTL1",
 			"filename": "include/uapi/file_operations.h",
 			"value": 25345
+		},
+		{
+			"name": "FOO_IOCTL10",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2147771146
+		},
+		{
+			"name": "FOO_IOCTL11",
+			"filename": "include/uapi/file_operations.h",
+			"value": 2147771147
+		},
+		{
+			"name": "FOO_IOCTL12",
+			"filename": "file_operations.c",
+			"value": 2147771148
 		},
 		{
 			"name": "FOO_IOCTL2",

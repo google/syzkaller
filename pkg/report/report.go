@@ -449,7 +449,7 @@ type stackFmt struct {
 	extractor frameExtractor
 }
 
-type frameExtractor func(frames []string) string
+type frameExtractor func(frames []string) (string, int)
 
 var parseStackTrace *regexp.Regexp
 
@@ -517,24 +517,38 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 				continue
 			}
 		}
-		var args []interface{}
+		var argPrefix []any
 		for i := 2; i < len(match); i += 2 {
-			args = append(args, string(output[match[i]:match[i+1]]))
+			argPrefix = append(argPrefix, string(output[match[i]:match[i+1]]))
 		}
+		var frames []extractedFrame
 		corrupted = ""
 		if f.stack != nil {
-			frames, ok := extractStackFrame(params, f.stack, output[match[0]:])
+			var ok bool
+			frames, ok = extractStackFrame(params, f.stack, output[match[0]:])
 			if !ok {
 				corrupted = corruptedNoFrames
 			}
-			for _, frame := range frames {
-				args = append(args, frame)
-			}
 		}
+		args := canonicalArgs(argPrefix, frames)
 		desc = fmt.Sprintf(f.fmt, args...)
 		for _, alt := range f.alt {
 			altTitles = append(altTitles, fmt.Sprintf(alt, args...))
 		}
+
+		// Also consider partially stripped prefixes - these will help us
+		// better deduplicate the reports.
+		argSequences := partiallyStrippedArgs(argPrefix, frames, params)
+		for _, args := range argSequences {
+			altTitle := fmt.Sprintf(f.fmt, args...)
+			if altTitle != desc {
+				altTitles = append(altTitles, altTitle)
+			}
+			for _, alt := range f.alt {
+				altTitles = append(altTitles, fmt.Sprintf(alt, args...))
+			}
+		}
+		altTitles = uniqueStrings(altTitles)
 		format = f
 	}
 	if desc == "" {
@@ -577,21 +591,47 @@ type stackParams struct {
 	stripFramePrefixes []string
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]string, bool) {
+func (sp *stackParams) stripFrames(frames []string) []string {
+	var ret []string
+	for _, origFrame := range frames {
+		// Pick the shortest one.
+		frame := origFrame
+		for _, prefix := range sp.stripFramePrefixes {
+			newFrame := strings.TrimPrefix(origFrame, prefix)
+			if len(newFrame) < len(frame) {
+				frame = newFrame
+			}
+		}
+		ret = append(ret, frame)
+	}
+	return ret
+}
+
+type extractedFrame struct {
+	canonical string
+	raw       string
+}
+
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]extractedFrame, bool) {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
 	if len(skip) != 0 {
 		skipRe = regexp.MustCompile(strings.Join(skip, "|"))
 	}
-	extractor := func(frames []string) string {
-		if len(frames) == 0 {
-			return ""
+	extractor := func(rawFrames []string) extractedFrame {
+		if len(rawFrames) == 0 {
+			return extractedFrame{}
 		}
+		stripped := params.stripFrames(rawFrames)
 		if stack.extractor == nil {
-			return frames[0]
+			return extractedFrame{stripped[0], rawFrames[0]}
 		}
-		return stack.extractor(frames)
+		frame, idx := stack.extractor(stripped)
+		if frame != "" {
+			return extractedFrame{frame, rawFrames[idx]}
+		}
+		return extractedFrame{}
 	}
 	frames, ok := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
 	if ok || len(stack.parts2) == 0 {
@@ -605,20 +645,21 @@ func lines(text []byte) [][]byte {
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp, extractor frameExtractor) ([]string, bool) {
+	parts []*regexp.Regexp, extractor func([]string) extractedFrame) ([]extractedFrame, bool) {
 	lines := lines(output)
-	var frames, results []string
+	var rawFrames []string
+	var results []extractedFrame
 	ok := true
 	numStackTraces := 0
 nextPart:
 	for partIdx := 0; ; partIdx++ {
 		if partIdx == len(parts) || parts[partIdx] == parseStackTrace && numStackTraces > 0 {
-			keyFrame := extractor(frames)
-			if keyFrame == "" {
-				keyFrame, ok = "corrupted", false
+			keyFrame := extractor(rawFrames)
+			if keyFrame.canonical == "" {
+				keyFrame, ok = extractedFrame{"corrupted", "corrupted"}, false
 			}
 			results = append(results, keyFrame)
-			frames = nil
+			rawFrames = nil
 		}
 		if partIdx == len(parts) {
 			break
@@ -640,7 +681,7 @@ nextPart:
 				if partIdx != len(parts)-1 {
 					match := parts[partIdx+1].FindSubmatch(ln)
 					if match != nil {
-						frames = appendStackFrame(frames, match, params, skipRe)
+						rawFrames = appendStackFrame(rawFrames, match, skipRe)
 						partIdx++
 						continue nextPart
 					}
@@ -652,7 +693,7 @@ nextPart:
 						break
 					}
 				}
-				frames = appendStackFrame(frames, match, params, skipRe)
+				rawFrames = appendStackFrame(rawFrames, match, skipRe)
 			}
 		} else {
 			var ln []byte
@@ -666,7 +707,7 @@ nextPart:
 				if match == nil {
 					continue
 				}
-				frames = appendStackFrame(frames, match, params, skipRe)
+				rawFrames = appendStackFrame(rawFrames, match, skipRe)
 				break
 			}
 		}
@@ -674,20 +715,66 @@ nextPart:
 	return results, ok
 }
 
-func appendStackFrame(frames []string, match [][]byte, params *stackParams, skipRe *regexp.Regexp) []string {
+func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []string {
 	if len(match) < 2 {
 		return frames
 	}
 	for _, frame := range match[1:] {
 		if frame != nil && (skipRe == nil || !skipRe.Match(frame)) {
-			frameName := string(frame)
-			for _, prefix := range params.stripFramePrefixes {
-				frameName = strings.TrimPrefix(frameName, prefix)
-			}
-			frames = append(frames, frameName)
+			frames = append(frames, string(frame))
 		}
 	}
 	return frames
+}
+
+func canonicalArgs(prefix []any, frames []extractedFrame) []any {
+	ret := append([]any{}, prefix...)
+	for _, frame := range frames {
+		ret = append(ret, frame.canonical)
+	}
+	return ret
+}
+
+func partiallyStrippedArgs(prefix []any, frames []extractedFrame, params *stackParams) [][]any {
+	if params == nil {
+		return nil
+	}
+	ret := [][]any{}
+	for i := 0; i <= len(params.stripFramePrefixes); i++ {
+		var list []any
+		add := true
+
+		// Also include the raw frames.
+		stripPrefix := ""
+		if i > 0 {
+			stripPrefix, add = params.stripFramePrefixes[i-1], false
+		}
+		for _, frame := range frames {
+			trimmed := strings.TrimPrefix(frame.raw, stripPrefix)
+			if trimmed != frame.raw {
+				add = true
+			}
+			list = append(list, trimmed)
+		}
+		if add {
+			list = append(append([]any{}, prefix...), list...)
+			ret = append(ret, list)
+		}
+	}
+	return ret
+}
+
+func uniqueStrings(source []string) []string {
+	dup := map[string]struct{}{}
+	var ret []string
+	for _, item := range source {
+		if _, ok := dup[item]; ok {
+			continue
+		}
+		dup[item] = struct{}{}
+		ret = append(ret, item)
+	}
+	return ret
 }
 
 func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignores []*regexp.Regexp) *Report {

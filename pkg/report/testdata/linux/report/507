@@ -1,4 +1,6 @@
 TITLE: INFO: task hung in synchronize_rcu
+ALT: INFO: task hung in __synchronize_srcu
+ALT: hang in __synchronize_srcu
 ALT: hang in synchronize_rcu
 TYPE: HANG
 

@@ -20,7 +20,9 @@ func NewSessionTestRepository(client *spanner.Client) *SessionTestRepository {
 	}
 }
 
-func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *SessionTest) error {
+// If the beforeSave callback is specified, it will be called before saving the entity.
+func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *SessionTest,
+	beforeSave func(*SessionTest)) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			// Check if the test already exists.
@@ -38,6 +40,9 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 
 			_, iterErr := iter.Next()
 			if iterErr == nil {
+				if beforeSave != nil {
+					beforeSave(test)
+				}
 				m, err := spanner.UpdateStruct("SessionTests", test)
 				if err != nil {
 					return err
@@ -46,6 +51,9 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 			} else if iterErr != iterator.Done {
 				return iterErr
 			} else {
+				if beforeSave != nil {
+					beforeSave(test)
+				}
 				m, err := spanner.InsertStruct("SessionTests", test)
 				if err != nil {
 					return err
@@ -77,14 +85,7 @@ type FullSessionTest struct {
 }
 
 func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID string) ([]*FullSessionTest, error) {
-	stmt := spanner.Statement{
-		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
-			" ORDER BY `UpdatedAt`",
-		Params: map[string]interface{}{"session": sessionID},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	list, err := readEntities[SessionTest](iter)
+	list, err := repo.BySessionRaw(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -122,4 +123,15 @@ func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID stri
 		}
 	}
 	return ret, nil
+}
+
+func (repo *SessionTestRepository) BySessionRaw(ctx context.Context, sessionID string) ([]*SessionTest, error) {
+	stmt := spanner.Statement{
+		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
+			" ORDER BY `UpdatedAt`",
+		Params: map[string]interface{}{"session": sessionID},
+	}
+	iter := repo.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	return readEntities[SessionTest](iter)
 }

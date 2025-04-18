@@ -39,7 +39,13 @@ import (
 type DiffFuzzerConfig struct {
 	Debug        bool
 	PatchedOnly  chan *UniqueBug
+	Store        *DiffFuzzerStore
 	ArtifactsDir string // Where to store the artifacts that supplement the logs.
+	// The fuzzer waits no more than MaxTriageTime time until it starts taking VMs away
+	// for bug reproduction.
+	// The option may help find a balance between spending too much time triaging
+	// the corpus and not reaching a proper kernel coverage.
+	MaxTriageTime time.Duration
 }
 
 type UniqueBug struct {
@@ -49,6 +55,9 @@ type UniqueBug struct {
 }
 
 func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg DiffFuzzerConfig) error {
+	if cfg.PatchedOnly == nil {
+		return fmt.Errorf("you must set up a patched only channel")
+	}
 	base, err := setup(ctx, "base", baseCfg, cfg.Debug)
 	if err != nil {
 		return err
@@ -74,12 +83,12 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 	base.source = stream
 	new.duplicateInto = stream
 
-	store := &DiffFuzzerStore{BasePath: cfg.ArtifactsDir}
 	diffCtx := &diffContext{
+		cfg:           cfg,
 		doneRepro:     make(chan *ReproResult),
 		base:          base,
 		new:           new,
-		store:         store,
+		store:         cfg.Store,
 		reproAttempts: map[string]int{},
 		patchedOnly:   cfg.PatchedOnly,
 	}
@@ -87,7 +96,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 		diffCtx.http = &HTTPServer{
 			Cfg:       newCfg,
 			StartTime: time.Now(),
-			DiffStore: store,
+			DiffStore: cfg.Store,
 			Pools: map[string]*vm.Dispatcher{
 				new.name:  new.pool,
 				base.name: base.pool,
@@ -102,6 +111,7 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 }
 
 type diffContext struct {
+	cfg   DiffFuzzerConfig
 	store *DiffFuzzerStore
 	http  *HTTPServer
 
@@ -126,10 +136,8 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 	g.Go(func() error {
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
-		// TODO: determine the exact moment of corpus triage.
-		select {
-		case <-time.After(15 * time.Minute):
-		case <-ctx.Done():
+		dc.waitCorpusTriage(ctx)
+		if ctx.Err() != nil {
 			return nil
 		}
 		log.Logf(0, "starting bug reproductions")
@@ -141,13 +149,13 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 	g.Go(dc.new.Loop)
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
-	rareStat := time.NewTicker(5 * time.Minute)
+	statTimer := time.NewTicker(5 * time.Minute)
 loop:
 	for {
 		select {
 		case <-ctx.Done():
 			break loop
-		case <-rareStat.C:
+		case <-statTimer.C:
 			vals := make(map[string]int)
 			for _, stat := range stat.Collect(stat.All) {
 				vals[stat.Name] = stat.V
@@ -158,13 +166,22 @@ loop:
 			log.Logf(1, "base crash: %v", rep.Title)
 			dc.store.BaseCrashed(rep.Title, rep.Report)
 		case ret := <-runner.done:
-			if ret.crashReport == nil {
+			// We have run the reproducer on the base instance.
+
+			// A sanity check: the base kernel might have crashed with the same title
+			// since the moment we have stared the reproduction / running on the repro base.
+			crashesOnBase := dc.store.EverCrashedBase(ret.origReport.Title)
+			if ret.crashReport == nil && crashesOnBase {
+				// Report it as error so that we could at least find it in the logs.
+				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
+			} else if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.origReport.Title)
-				if dc.patchedOnly != nil {
-					dc.patchedOnly <- &UniqueBug{
-						Report: ret.origReport,
-						Repro:  ret.repro,
-					}
+				select {
+				case <-ctx.Done():
+				case dc.patchedOnly <- &UniqueBug{
+					Report: ret.origReport,
+					Repro:  ret.repro,
+				}:
 				}
 				log.Logf(0, "patched-only: %s", ret.origReport.Title)
 			} else {
@@ -172,6 +189,7 @@ loop:
 				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
+			// We have finished reproducing a crash from the patched instance.
 			if ret.Repro != nil && ret.Repro.Report != nil {
 				origTitle := ret.Crash.Report.Title
 				if ret.Repro.Report.Title == origTitle {
@@ -189,6 +207,7 @@ loop:
 			}
 			dc.store.SaveRepro(ret)
 		case rep := <-dc.new.crashes:
+			// A new crash is found on the patched instance.
 			crash := &Crash{Report: rep}
 			need := dc.NeedRepro(crash)
 			log.Logf(0, "patched crashed: %v [need repro = %v]",
@@ -200,6 +219,35 @@ loop:
 		}
 	}
 	return g.Wait()
+}
+
+func (dc *diffContext) waitCorpusTriage(ctx context.Context) {
+	// Wait either until we have triaged 90% of the candidates or
+	// once MaxTriageTime has passed.
+	// We don't want to wait for 100% of the candidates because there's usually a long
+	// tail of slow triage jobs + the value of the candidates diminishes over time.
+	const triagedThreshold = 0.9
+	const backOffTime = 30 * time.Second
+
+	startedAt := time.Now()
+	for {
+		select {
+		case <-time.After(backOffTime):
+		case <-ctx.Done():
+			return
+		}
+		triaged := dc.new.triageProgress()
+		if triaged >= triagedThreshold {
+			log.Logf(0, "triaged %.1f%% of the corpus", triaged*100.0)
+			return
+		}
+		if dc.cfg.MaxTriageTime != 0 &&
+			time.Since(startedAt) >= dc.cfg.MaxTriageTime {
+			log.Logf(0, "timed out waiting for %.1f%% triage (have %.1f%%)",
+				triagedThreshold*100.0, triaged*100.0)
+			return
+		}
+	}
 }
 
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
@@ -224,12 +272,12 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	return true
 }
 
-func (dc *diffContext) RunRepro(crash *Crash) *ReproResult {
+func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult {
 	dc.mu.Lock()
 	dc.reproAttempts[crash.Title]++
 	dc.mu.Unlock()
 
-	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
 		Config:   dc.new.cfg,
 		Features: dc.new.features,
 		Reporter: dc.new.reporter,
@@ -268,6 +316,8 @@ type kernelContext struct {
 	pool       *vm.Dispatcher
 	features   flatrpc.Feature
 	candidates chan []fuzzer.Candidate
+	// Once candidates is assigned, candidatesCount holds their original count.
+	candidatesCount atomic.Int64
 
 	coverFilters    CoverageFilters
 	reportGenerator *ReportGeneratorWrapper
@@ -366,9 +416,8 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 	fuzzerObj := fuzzer.NewFuzzer(kc.ctx, &fuzzer.Config{
 		Corpus:   corpusObj,
 		Coverage: kc.cfg.Cover,
-		// TODO: it may be unstable between different revisions though.
-		// For now it's only kept true because it seems to increase repro chances in local runs (???).
-		FaultInjection: true,
+		// Fault injection may bring instaibility into bug reproducibility, which may lead to false positives.
+		FaultInjection: false,
 		Comparisons:    features&flatrpc.FeatureComparisons != 0,
 		Collide:        true,
 		EnabledCalls:   syscalls,
@@ -381,7 +430,6 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 			log.Logf(level, msg, args...)
 		},
 	}, rnd, kc.cfg.Target)
-	kc.fuzzer.Store(fuzzerObj)
 
 	if kc.http != nil {
 		kc.http.Fuzzer.Store(fuzzerObj)
@@ -396,6 +444,9 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 		// The loop will be aborted later.
 		break
 	}
+	// We assign kc.fuzzer after kc.candidatesCount to simplify the triageProgress implementation.
+	kc.candidatesCount.Store(int64(len(candidates)))
+	kc.fuzzer.Store(fuzzerObj)
 
 	filtered := FilterCandidates(candidates, syscalls, false).Candidates
 	log.Logf(0, "%s: adding %d seeds", kc.name, len(filtered))
@@ -483,6 +534,19 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 		}),
 	)
 	return rep, err
+}
+
+func (kc *kernelContext) triageProgress() float64 {
+	fuzzer := kc.fuzzer.Load()
+	if fuzzer == nil {
+		return 0
+	}
+	total := kc.candidatesCount.Load()
+	if total == 0.0 {
+		// There were no candidates in the first place.
+		return 1
+	}
+	return 1.0 - float64(fuzzer.CandidatesToTriage())/float64(total)
 }
 
 // reproRunner is used to run reproducers on the base kernel to determine whether it is affected.

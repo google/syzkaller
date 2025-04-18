@@ -495,7 +495,7 @@ func reportReproError(err error) {
 		// The kernel could have crashed before we executed any programs.
 		log.Logf(0, "repro failed: %v", err)
 		return
-	} else if errors.Is(err, repro.ErrNoVMs) {
+	} else if errors.Is(err, repro.ErrNoVMs) || errors.Is(err, context.Canceled) {
 		// This error is to be expected if we're shutting down.
 		if shutdown {
 			return
@@ -505,8 +505,8 @@ func reportReproError(err error) {
 	log.Errorf("repro failed: %v", err)
 }
 
-func (mgr *Manager) RunRepro(crash *manager.Crash) *manager.ReproResult {
-	res, stats, err := repro.Run(context.Background(), crash.Output, repro.Environment{
+func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
+	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
 		Config:   mgr.cfg,
 		Features: mgr.enabledFeatures,
 		Reporter: mgr.reporter,

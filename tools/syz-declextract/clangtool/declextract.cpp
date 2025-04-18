@@ -52,7 +52,8 @@ struct MacroDef {
 };
 using MacroMap = std::unordered_map<std::string, MacroDef>;
 
-struct MacroDesc {
+// ConstDesc describes a macro or an enum value.
+struct ConstDesc {
   std::string Name;
   std::string Value;
   SourceRange SourceRange;
@@ -123,8 +124,9 @@ private:
   void run(const MatchFinder::MatchResult& Result, MatchFunc Action);
   template <typename T> const T* getResult(StringRef ID) const;
   FieldType extractRecord(QualType QT, const RecordType* Typ, const std::string& BackupName);
-  std::string extractEnum(const EnumDecl* Decl);
+  std::string extractEnum(QualType QT, const EnumDecl* Decl);
   void emitConst(const std::string& Name, int64_t Val, SourceLocation Loc);
+  std::string getFuncName(const Expr* Expr);
   std::string getDeclName(const Expr* Expr);
   const ValueDecl* getValueDecl(const Expr* Expr);
   std::string getDeclFileID(const Decl* Decl);
@@ -140,8 +142,9 @@ private:
   std::optional<QualType> getSizeofType(const Expr* E);
   int sizeofType(const Type* T);
   int alignofType(const Type* T);
-  void extractIoctl(const Expr* Cmd, const MacroDesc& Macro);
-  std::optional<MacroDesc> isMacroRef(const Expr* E);
+  void extractIoctl(const Expr* Cmd, const ConstDesc& Const);
+  std::optional<ConstDesc> isMacroOrEnum(const Expr* E);
+  ConstDesc constDesc(const Expr* E, const std::string& Str, const std::string& Value, const SourceRange& SourceRange);
 };
 
 // PPCallbacksTracker records all macro definitions (name/value/source location).
@@ -173,6 +176,18 @@ private:
     };
   }
 };
+
+const Expr* removeCasts(const Expr* E) {
+  for (;;) {
+    if (auto* P = dyn_cast<ParenExpr>(E))
+      E = P->getSubExpr();
+    else if (auto* C = dyn_cast<CastExpr>(E))
+      E = C->getSubExpr();
+    else
+      break;
+  }
+  return E;
+}
 
 bool Extractor::handleBeginSource(CompilerInstance& CI) {
   Preprocessor& PP = CI.getPreprocessor();
@@ -209,7 +224,7 @@ FieldType Extractor::genType(QualType QT, const std::string& BackupName) {
     return IntType{.ByteSize = sizeofType(T), .Name = TypeName(QT), .Base = QualType(T, 0).getAsString()};
   }
   if (auto* Typ = llvm::dyn_cast<EnumType>(T)) {
-    return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(Typ->getDecl())};
+    return IntType{.ByteSize = sizeofType(T), .Enum = extractEnum(QT, Typ->getDecl())};
   }
   if (llvm::isa<FunctionProtoType>(T)) {
     return PtrType{.Elem = TodoType(), .IsConst = true};
@@ -316,8 +331,22 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
   return Name;
 }
 
-std::string Extractor::extractEnum(const EnumDecl* Decl) {
-  const std::string& Name = Decl->getNameAsString();
+std::string Extractor::extractEnum(QualType QT, const EnumDecl* Decl) {
+  std::string Name = Decl->getNameAsString();
+  if (Name.empty()) {
+    // This is an unnamed enum declared with a typedef:
+    //   typedef enum {...} enum_name;
+    auto Elaborated = dyn_cast<ElaboratedType>(QT.getTypePtr());
+    if (Elaborated) {
+      auto Typedef = dyn_cast<TypedefType>(Elaborated->getNamedType().getTypePtr());
+      if (Typedef)
+        Name = Typedef->getDecl()->getNameAsString();
+    }
+    if (Name.empty()) {
+      QT.dump();
+      llvm::report_fatal_error("enum with empty name");
+    }
+  }
   if (EnumDedup[Name])
     return Name;
   EnumDedup[Name] = true;
@@ -357,20 +386,27 @@ std::string Extractor::getDeclFileID(const Decl* Decl) {
   return file;
 }
 
-std::optional<MacroDesc> Extractor::isMacroRef(const Expr* E) {
+std::optional<ConstDesc> Extractor::isMacroOrEnum(const Expr* E) {
   if (!E)
     return {};
+  if (auto* Enum = removeCasts(E)->getEnumConstantDecl())
+    return constDesc(E, Enum->getNameAsString(), "", Enum->getSourceRange());
   auto Range = Lexer::getAsCharRange(E->getSourceRange(), *SourceManager, Context->getLangOpts());
   const std::string& Str = Lexer::getSourceText(Range, *SourceManager, Context->getLangOpts()).str();
   auto MacroDef = Macros.find(Str);
   if (MacroDef == Macros.end())
     return {};
+  return constDesc(E, Str, MacroDef->second.Value, MacroDef->second.SourceRange);
+}
+
+ConstDesc Extractor::constDesc(const Expr* E, const std::string& Str, const std::string& Value,
+                               const SourceRange& SourceRange) {
   int64_t Val = evaluate(E);
-  emitConst(Str, Val, MacroDef->second.SourceRange.getBegin());
-  return MacroDesc{
+  emitConst(Str, Val, SourceRange.getBegin());
+  return ConstDesc{
       .Name = Str,
-      .Value = MacroDef->second.Value,
-      .SourceRange = MacroDef->second.SourceRange,
+      .Value = Value,
+      .SourceRange = SourceRange,
       .IntValue = Val,
   };
 }
@@ -412,10 +448,18 @@ const T* Extractor::findFirstMatch(const Node* Expr, const Condition& Cond) {
   return Matches.empty() ? nullptr : Matches[0];
 }
 
+// Extracts the first function reference from the expression.
+// TODO: try to extract the actual function reference the expression will be evaluated to
+// (the first one is not necessarily the right one).
+std::string Extractor::getFuncName(const Expr* Expr) {
+  auto* Decl =
+      findFirstMatch<DeclRefExpr>(Expr, stmt(forEachDescendant(declRefExpr(hasType(functionType())).bind("res"))));
+  return Decl ? Decl->getDecl()->getNameAsString() : "";
+}
+
 // If expression refers to some identifier, returns the identifier name.
 // Otherwise returns an empty string.
 // For example, if the expression is `function_name`, returns "function_name" string.
-// If AppendFile, then it also appends per-file suffix.
 std::string Extractor::getDeclName(const Expr* Expr) {
   // The expression can be complex and include casts and e.g. InitListExpr,
   // to remove all of these we match the first/any DeclRefExpr.
@@ -568,9 +612,9 @@ void Extractor::matchNetlinkFamily() {
       }
       if (Policy.empty())
         Policy = DefaultPolicy;
-      std::string Func = getDeclName(OpInit->getInit(OpsFields["doit"]));
+      std::string Func = getFuncName(OpInit->getInit(OpsFields["doit"]));
       if (Func.empty())
-        Func = getDeclName(OpInit->getInit(OpsFields["dumpit"]));
+        Func = getFuncName(OpInit->getInit(OpsFields["dumpit"]));
       int Flags = evaluate(OpInit->getInit(OpsFields["flags"]));
       const char* Access = AccessUser;
       constexpr int GENL_ADMIN_PERM = 0x01;
@@ -595,18 +639,6 @@ void Extractor::matchNetlinkFamily() {
 
 std::string Extractor::getUniqueDeclName(const NamedDecl* Decl) {
   return Decl->getNameAsString() + "_" + getDeclFileID(Decl);
-}
-
-const Expr* removeCasts(const Expr* E) {
-  for (;;) {
-    if (auto* P = dyn_cast<ParenExpr>(E))
-      E = P->getSubExpr();
-    else if (auto* C = dyn_cast<CastExpr>(E))
-      E = C->getSubExpr();
-    else
-      break;
-  }
-  return E;
 }
 
 bool isInterestingCall(const CallExpr* Call) {
@@ -677,8 +709,8 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
         auto* Case = dyn_cast<CaseStmt>(C);
         if (!Case)
           continue;
-        auto LMacro = Extractor->isMacroRef(Case->getLHS());
-        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        auto LMacro = Extractor->isMacroOrEnum(Case->getLHS());
+        auto RMacro = Extractor->isMacroOrEnum(Case->getRHS());
         if (LMacro || RMacro) {
           IsInteresting = true;
           break;
@@ -711,7 +743,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
     // Otherwise it's a default case, for which we don't add any values.
     if (auto* Case = dyn_cast<CaseStmt>(C)) {
       int64_t LVal = Extractor->evaluate(Case->getLHS());
-      auto LMacro = Extractor->isMacroRef(Case->getLHS());
+      auto LMacro = Extractor->isMacroOrEnum(Case->getLHS());
       if (LMacro) {
         Current->Values.push_back(LMacro->Name);
         Extractor->extractIoctl(Case->getLHS(), *LMacro);
@@ -723,7 +755,7 @@ struct FunctionAnalyzer : RecursiveASTVisitor<FunctionAnalyzer> {
         //   case FOO ... BAR:
         // Add all values in the range.
         int64_t RVal = Extractor->evaluate(Case->getRHS());
-        auto RMacro = Extractor->isMacroRef(Case->getRHS());
+        auto RMacro = Extractor->isMacroOrEnum(Case->getRHS());
         for (int64_t V = LVal + 1; V <= RVal - (RMacro ? 1 : 0); V++)
           Current->Values.push_back(std::to_string(V));
         if (RMacro)
@@ -893,12 +925,12 @@ void Extractor::matchIouring() {
   auto Fields = structFieldIndexes(InitList->getInit(0)->getType()->getAsRecordDecl());
   for (const auto& [I, Name] : InitConsts) {
     const auto& Init = llvm::dyn_cast<InitListExpr>(InitList->getInit(I));
-    std::string Prep = getDeclName(Init->getInit(Fields["prep"]));
+    std::string Prep = getFuncName(Init->getInit(Fields["prep"]));
     if (Prep == "io_eopnotsupp_prep")
       continue;
     Output.emit(IouringOp{
         .Name = Name,
-        .Func = getDeclName(Init->getInit(Fields["issue"])),
+        .Func = getFuncName(Init->getInit(Fields["issue"])),
     });
   }
 }
@@ -916,17 +948,17 @@ void Extractor::matchFileOps() {
   if (NameSeq)
     VarName += std::to_string(NameSeq);
   auto Fields = structFieldIndexes(Fops->getType()->getAsRecordDecl());
-  std::string Open = getDeclName(Fops->getInit(Fields["open"]));
-  std::string Ioctl = getDeclName(Fops->getInit(Fields["unlocked_ioctl"]));
-  std::string Read = getDeclName(Fops->getInit(Fields["read"]));
+  std::string Open = getFuncName(Fops->getInit(Fields["open"]));
+  std::string Ioctl = getFuncName(Fops->getInit(Fields["unlocked_ioctl"]));
+  std::string Read = getFuncName(Fops->getInit(Fields["read"]));
   if (Read.empty())
-    Read = getDeclName(Fops->getInit(Fields["read_iter"]));
-  std::string Write = getDeclName(Fops->getInit(Fields["write"]));
+    Read = getFuncName(Fops->getInit(Fields["read_iter"]));
+  std::string Write = getFuncName(Fops->getInit(Fields["write"]));
   if (Write.empty())
-    Write = getDeclName(Fops->getInit(Fields["write_iter"]));
-  std::string Mmap = getDeclName(Fops->getInit(Fields["mmap"]));
+    Write = getFuncName(Fops->getInit(Fields["write_iter"]));
+  std::string Mmap = getFuncName(Fops->getInit(Fields["mmap"]));
   if (Mmap.empty())
-    Mmap = getDeclName(Fops->getInit(Fields["get_unmapped_area"]));
+    Mmap = getFuncName(Fops->getInit(Fields["get_unmapped_area"]));
   Output.emit(FileOps{
       .Name = VarName,
       .Open = std::move(Open),
@@ -937,13 +969,13 @@ void Extractor::matchFileOps() {
   });
 }
 
-void Extractor::extractIoctl(const Expr* Cmd, const MacroDesc& Macro) {
+void Extractor::extractIoctl(const Expr* Cmd, const ConstDesc& Const) {
   // This is old style ioctl defined directly via a number.
   // We can't infer anything about it.
-  if (Macro.Value.find("_IO") != 0)
+  if (Const.Value.find("_IO") != 0)
     return;
   FieldType Type;
-  auto Dir = _IOC_DIR(Macro.IntValue);
+  auto Dir = _IOC_DIR(Const.IntValue);
   if (Dir == _IOC_NONE) {
     Type = IntType{.ByteSize = 1, .IsConst = true};
   } else if (std::optional<QualType> Arg = getSizeofType(Cmd)) {
@@ -957,7 +989,7 @@ void Extractor::extractIoctl(const Expr* Cmd, const MacroDesc& Macro) {
     return;
   }
   Output.emit(Ioctl{
-      .Name = Macro.Name,
+      .Name = Const.Name,
       .Type = std::move(Type),
   });
 }

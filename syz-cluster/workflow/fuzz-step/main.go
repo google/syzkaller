@@ -53,30 +53,33 @@ func main() {
 		log.Fatalf("the binary is built without the git revision information")
 	}
 	ctx := context.Background()
-	if err := reportStatus(ctx, client, api.TestRunning, ""); err != nil {
+	if err := reportStatus(ctx, client, api.TestRunning, nil); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
 	}
 
 	artifactsDir := filepath.Join(*flagWorkdir, "artifacts")
 	osutil.MkdirAll(artifactsDir)
+	store := &manager.DiffFuzzerStore{BasePath: artifactsDir}
 
 	// We want to only cancel the run() operation in order to be able to also report
 	// the final test result back.
 	runCtx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	err = run(runCtx, client, artifactsDir)
+	err = run(runCtx, client, d, store)
 	status := api.TestPassed // TODO: what about TestFailed?
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		app.Errorf("the step failed: %v", err)
 		status = api.TestError
 	}
 	log.Logf(0, "fuzzing is finished")
-	if err := reportStatus(ctx, client, status, artifactsDir); err != nil {
+	log.Logf(0, "status at the end:\n%s", store.PlainTextDump())
+	if err := reportStatus(ctx, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
 }
 
-func run(baseCtx context.Context, client *api.Client, artifactsDir string) error {
+func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
+	store *manager.DiffFuzzerStore) error {
 	series, err := client.GetSessionSeries(baseCtx, *flagSession)
 	if err != nil {
 		return fmt.Errorf("failed to query the series info: %w", err)
@@ -105,6 +108,7 @@ func run(baseCtx context.Context, client *api.Client, artifactsDir string) error
 	eg, ctx := errgroup.WithContext(baseCtx)
 	bugs := make(chan *manager.UniqueBug)
 	eg.Go(func() error {
+		defer log.Logf(0, "bug reporting terminated")
 		for {
 			var bug *manager.UniqueBug
 			select {
@@ -123,10 +127,12 @@ func run(baseCtx context.Context, client *api.Client, artifactsDir string) error
 		return nil
 	})
 	eg.Go(func() error {
+		defer log.Logf(0, "diff fuzzing terminated")
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
-			Debug:        false,
-			PatchedOnly:  bugs,
-			ArtifactsDir: artifactsDir,
+			Debug:         false,
+			PatchedOnly:   bugs,
+			Store:         store,
+			MaxTriageTime: timeout / 2,
 		})
 	})
 	const (
@@ -135,18 +141,19 @@ func run(baseCtx context.Context, client *api.Client, artifactsDir string) error
 	)
 	lastArtifactUpdate := time.Now()
 	eg.Go(func() error {
+		defer log.Logf(0, "status reporting terminated")
 		for {
 			select {
 			case <-ctx.Done():
 				return nil
 			case <-time.After(updatePeriod):
 			}
-			artifacts := ""
+			var useStore *manager.DiffFuzzerStore
 			if time.Since(lastArtifactUpdate) > artifactUploadPeriod {
 				lastArtifactUpdate = time.Now()
-				artifacts = artifactsDir
+				useStore = store
 			}
-			err := reportStatus(ctx, client, api.TestRunning, artifacts)
+			err := reportStatus(ctx, client, api.TestRunning, useStore)
 			if err != nil {
 				app.Errorf("failed to update status: %v", err)
 			}
@@ -218,7 +225,7 @@ func loadConfigs(configFolder, configName string, complete bool) (*mgrconfig.Con
 	return base, patched, nil
 }
 
-func reportStatus(ctx context.Context, client *api.Client, status, artifactsDir string) error {
+func reportStatus(ctx context.Context, client *api.Client, status string, store *manager.DiffFuzzerStore) error {
 	testResult := &api.TestResult{
 		SessionID:      *flagSession,
 		TestName:       testName,
@@ -231,10 +238,10 @@ func reportStatus(ctx context.Context, client *api.Client, status, artifactsDir 
 	if err != nil {
 		return fmt.Errorf("failed to upload the status: %w", err)
 	}
-	if artifactsDir == "" {
+	if store == nil {
 		return nil
 	}
-	tarGzReader, err := compressArtifacts(artifactsDir)
+	tarGzReader, err := compressArtifacts(store.BasePath)
 	if err != nil {
 		return fmt.Errorf("failed to compress the artifacts dir: %w", err)
 	}

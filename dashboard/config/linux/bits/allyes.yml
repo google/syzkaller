@@ -1,0 +1,137 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# TODO: consider enabling configs disabled in base.yml:
+#  - FUNCTION_TRACER
+#  - HYPERV
+#  - XEN
+#  - USB*
+# E.g. FUNCTION_TRACER enables DYNAMIC_FTRACE, which enables HID_BPF.
+
+config:
+ # Build/boot broken configs.
+ # Leads to infinite recursion.
+ - SERIAL_NUVOTON_MA35D1_CONSOLE: n
+
+ # Prevents setting NR_CPUS in base.yml
+ - MAXSMP: n
+
+ # Slightly reduces vmlinux size (no ORC info).
+ - UNWINDER_FRAME_POINTER
+ - DEBUG_INFO_REDUCED: [override]
+
+ # Rodata makes boot unbearably slow.
+ - CMDLINE: [append, "rodata=off"]
+
+ # This prevents NULL deref crashes in msix_capability_init during boot.
+ # It's unclear which one of these is guilty, we just disable
+ # all that mention MSI.
+ - X86_POSTED_MSI: n
+ - PCIE_ALTERA_MSI: n
+ - PCI_XGENE_MSI: n
+ - DVB_DDBRIDGE_MSIENABLE: n
+ - MSI_EC: n
+ - MSI_LAPTOP: n
+ - MSI_WMI: n
+ - MSI_WMI_PLATFORM: n
+ - IMX_MU_MSI: n
+ - SOPHGO_SG2042_MSI: n
+ - NTB_MSI: n
+
+ # Crashes on boot.
+ - GPIB_CB7210: n
+
+ # Disable most debug configs.
+ # We don't need to be rigorous, it just makes build/boot faster,
+ # and avoids runtime crashes on existing bugs.
+ - KASAN: n
+ - KCSAN: n
+ - KMSAN: n
+ - UBSAN: n
+ - CFI_CLANG: n
+ - STACKPROTECTOR: n
+ - AUTOFDO_CLANG: n
+ - PROPELLER_CLANG: n
+ - CPU_MITIGATIONS: n
+ - LOCKDEP: n
+ - PROVE_LOCKING: n
+ - DEBUG_LOCK_ALLOC: n
+ - LOCK_STAT: n
+ - DEBUG_WW_MUTEX_SLOWPATH: n
+ - DEBUG_NET_SMALL_RTNL: n
+ - DEBUG_OBJECTS: n
+ - DRM_I915_SW_FENCE_DEBUG_OBJECTS: n
+ - DEBUG_PREEMPT: n
+ - FORTIFY_SOURCE: [n, override]
+ - HARDENED_USERCOPY: [n, override]
+ - DEBUG_LIST: [n, override]
+ - DEBUG_PLIST: [n, override]
+ - DEBUG_PI_LIST: [n, override]
+ - NET_DEV_REFCNT_TRACKER: [n, override]
+ - NET_NS_REFCNT_TRACKER: [n, override]
+ - DEBUG_NET: [n, override]
+ - FAULT_INJECTION: [n, override]
+ - FAILSLAB: [n, override]
+ - FAIL_PAGE_ALLOC: [n, override]
+ - FAIL_MAKE_REQUEST: [n, override]
+ - FAIL_IO_TIMEOUT: [n, override]
+ - FAIL_FUTEX: [n, override]
+ - FAULT_INJECTION_DEBUG_FS: [n, override]
+ - FAULT_INJECTION_CONFIGFS: [n, override]
+ - FAULT_INJECTION_USERCOPY: [n, override]
+ - DEBUG_VM: n
+
+ # Disable all boot testing.
+ # Slow and some of these crash.
+ - KUNIT: n
+ - RUNTIME_TESTING_MENU: n
+ - OF_UNITTEST: n
+ - KALLSYMS_SELFTEST: n
+ - STATIC_KEYS_SELFTEST: n
+ - STATIC_CALL_SELFTEST: n
+ - BT_SELFTEST: n
+ - BT_SELFTEST_ECDH: n
+ - BT_SELFTEST_SMP: n
+ - TSNEP_SELFTESTS: n
+ - STMMAC_SELFTESTS: n
+ - DRM_I915_SELFTEST: n
+ - DMABUF_SELFTESTS: n
+ - IOMMU_IO_PGTABLE_LPAE_SELFTEST: n
+ - IOMMU_IO_PGTABLE_ARMV7S_SELFTEST: n
+ - ANDROID_BINDER_IPC_SELFTEST: n
+ - FIPS_SIGNATURE_SELFTEST: n
+ - FIPS_SIGNATURE_SELFTEST_RSA: n
+ - FIPS_SIGNATURE_SELFTEST_ECDSA: n
+ - CRYPTO_KRB5_SELFTESTS: n
+ - RANDOM32_SELFTEST: n
+ - GLOB_SELFTEST: n
+ - KCSAN_SELFTEST: n
+ - DEBUG_OBJECTS_SELFTEST: n
+ - DEBUG_LOCKING_API_SELFTESTS: n
+ - WW_MUTEX_SELFTEST: n
+ - FTRACE_SELFTEST: n
+ - FTRACE_STARTUP_TEST: n
+ - PREEMPTIRQ_DELAY_TEST: n
+ - SYNTH_EVENT_GEN_TEST: n
+ - KPROBE_EVENT_GEN_TEST: n
+ - RING_BUFFER_STARTUP_TEST: n
+ - COMEDI_TESTS: n
+ - WIREGUARD_DEBUG: n
+ - XZ_DEC_TEST: n
+ - LWQ_TEST: n
+ - DEBUG_NMI_SELFTEST: n
+ - RCU_SCALE_TEST: n
+ - RCU_TORTURE_TEST: n
+ - RCU_TORTURE_TEST_CHK_RDR_STATE: n
+ - RCU_TORTURE_TEST_LOG_CPU: n
+ - RCU_TORTURE_TEST_LOG_GP: n
+ - RCU_REF_SCALE_TEST: n
+ - LOCK_TORTURE_TEST: n
+ - SCF_TORTURE_TEST: n
+ - TORTURE_TEST: n
+ - FSL_BMAN_TEST: n
+ - FSL_BMAN_TEST_API: n
+ - FSL_QMAN_TEST: n
+ - FSL_QMAN_TEST_API: n
+ - FSL_QMAN_TEST_STASH: n
+ - BTRFS_FS_RUN_SANITY_TESTS: n

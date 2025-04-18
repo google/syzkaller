@@ -169,7 +169,10 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 		case SessionStatusInProgress:
 			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
 		case SessionStatusFinished:
-			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL"
+			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL" +
+				" AND Sessions.SkipReason IS NULL"
+		case SessionStatusSkipped:
+			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.SkipReason IS NOT NULL"
 		default:
 			return nil, fmt.Errorf("unknown status value: %q", filter.Status)
 		}

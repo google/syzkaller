@@ -1,5 +1,7 @@
 TITLE: INFO: rcu detected stall in smp_call_function
+ALT: INFO: rcu detected stall in smp_call_function_single
 ALT: stall in smp_call_function
+ALT: stall in smp_call_function_single
 TYPE: HANG
 
 [ 3481.239960] INFO: rcu_sched detected stalls on CPUs/tasks:

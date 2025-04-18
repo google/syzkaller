@@ -1,4 +1,6 @@
-TITLE: WARNING: refcount bug in sys_memfd_secret
+TITLE: WARNING: refcount bug in memfd_secret
+ALT: WARNING: refcount bug in __se_sys_memfd_secret
+ALT: WARNING: refcount bug in sys_memfd_secret
 TYPE: WARNING
 
 [   54.834944][ T6519] ------------[ cut here ]------------

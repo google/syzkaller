@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"slices"
+	"strings"
 )
 
 type Output struct {
@@ -88,6 +89,17 @@ type FileOps struct {
 	Mmap       string `json:"mmap,omitempty"`
 	Ioctl      string `json:"ioctl,omitempty"`
 	SourceFile string `json:"source_file,omitempty"`
+
+	*fileOps
+}
+
+type fileOps struct {
+	open  *Function
+	read  *Function
+	write *Function
+	mmap  *Function
+	ioctl *Function
+	ops   []*Function // all non-nil callbacks
 }
 
 type Ioctl struct {
@@ -249,6 +261,13 @@ func (out *Output) SortAndDedup() {
 func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
 	for _, fn := range out.Functions {
 		fn.File = updatePath(fn.File)
+		// To optimize build time kernel/sched compiles a number of source files together
+		// by including them into another source file. As the result static functions
+		// declared in one source file effectively referenced from another source file.
+		// In order to be able to resolve them, we pretend such functions are not static.
+		if strings.HasSuffix(fn.File, ".c") && fn.File != file {
+			fn.IsStatic = false
+		}
 	}
 	for _, ci := range out.Consts {
 		ci.Filename = updatePath(ci.Filename)
