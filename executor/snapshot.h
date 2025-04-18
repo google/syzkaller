@@ -213,7 +213,7 @@ static void SnapshotStart()
 		thread_t* th = &threads[i];
 		thread_create(th, i, flag_coverage);
 		if (flag_coverage)
-			PopulateMemory(th->cov.data, kCoveragePopulate);
+			PopulateMemory(th->cov.alloc, kCoveragePopulate);
 	}
 	TouchMemory((char*)output_data + output_size - kOutputPopulate, kOutputPopulate);
 	TouchMemory(ivs.input, kInputPopulate);
