@@ -107,4 +107,40 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `e77aff5528a183462714f750e45add6cc71e276a`,
 		FixTitle:   `binderfs: fix use-after-free in binder_devices`,
 	},
+	{
+		// Fixes: `error: call to '__bad_copy_from' declared with 'error' attribute: copy source size is too small`.
+		FixHash:  `9bf4e919ccad613b3596eebf1ff37b05b6405307`,
+		FixTitle: `Bluetooth: Fix type of len in {l2cap,sco}_sock_getsockopt_old()`,
+	},
+	{
+		// Improves the commit above.
+		// The GuiltyHash won't work for cherry-picked commits, so let's just try to apply it.
+		FixHash:  `5fe6caa62b07fd39cd6a28acc8f92ba2955e11a6`,
+		FixTitle: `Bluetooth: Fix type of len in rfcomm_sock_getsockopt{,_old}()`,
+	},
+	{
+		// Fixes `error: expression requires  'long double' type support, but target 'x86_64-unknown-linux-gnu' does not support it`.
+		// The guilty hash is not the one specified in the commit, but a later one - it still allows to build v5.15
+		// and yet does not conflict with v5.10.
+		GuiltyHash: `d21446eafa3a5cb238fe9eb79f49932cdb417d40`,
+		FixHash:    `310780e825f3ffd211b479b8f828885a6faedd63`,
+		FixTitle:   `usb: dwc2: hcd_queue: Fix use of floating point literal`,
+	},
+	{
+		// The commit above does not apply to v5.10, so let's try again using a backported commit
+		// and the original guilty hash.
+		GuiltyHash: `310780e825f3ffd211b479b8f828885a6faedd63`,
+		FixHash:    `2b7ab82f51736a8550a3b4248054ca8042c57869`,
+	},
+	{
+		// Fixes `UBSAN: signed-integer-overflow in drivers/gpu/drm/drm_modes.c` on v5.10.
+		FixHash:  `bdbee7d7fd95ab064ad3d4988f4361c3f0cbafd7`,
+		FixTitle: `drm/modes: Switch to 64bit maths to avoid integer overflow`,
+	},
+	{
+		// Fixes `error: call to '__read_overflow' declared with 'error' attribute: detected read beyond
+		// size of object (1st parameter)`.
+		FixHash:  `876e480da2f74715fc70e37723e77ca16a631e35`,
+		FixTitle: `RDMA/cma: Distinguish between sockaddr_in and sockaddr_in6 by size`,
+	},
 }
