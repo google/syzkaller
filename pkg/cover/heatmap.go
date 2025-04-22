@@ -294,7 +294,7 @@ func FormatResult(thm *templateHeatmap, format Format) {
 }
 
 func approximateInstrumented(points int64) string {
-	dim := "_"
+	dim := " "
 	if abs(points) > 10000 {
 		dim = "K"
 		points /= 1000
