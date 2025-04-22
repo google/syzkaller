@@ -73,7 +73,10 @@ func LoadPartialData(data []byte) (*Config, error) {
 	if err := config.LoadData(data, cfg); err != nil {
 		return nil, err
 	}
-	return loadPartial(cfg)
+	if err := SetTargets(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
 func LoadPartialFile(filename string) (*Config, error) {
@@ -81,7 +84,10 @@ func LoadPartialFile(filename string) (*Config, error) {
 	if err := config.LoadFile(filename, cfg); err != nil {
 		return nil, err
 	}
-	return loadPartial(cfg)
+	if err := SetTargets(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
 func defaultValues() *Config {
@@ -122,21 +128,21 @@ var (
 	}
 )
 
-func loadPartial(cfg *Config) (*Config, error) {
+func SetTargets(cfg *Config) error {
 	var err error
 	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.RawTarget)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	cfg.Target, err = prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	cfg.SysTarget = targets.Get(cfg.TargetOS, cfg.TargetVMArch)
 	if cfg.SysTarget == nil {
-		return nil, fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
+		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
 	}
-	return cfg, nil
+	return nil
 }
 
 func Complete(cfg *Config) error {
