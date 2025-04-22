@@ -1,0 +1,13 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://source.android.com/setup/build/building-kernels
+# for details on how to checkout and build Android kernel.
+
+# Following branch: android16-6.12
+kernel:
+ repo: https://android.googlesource.com/kernel/common
+ tag: 063f6b76b907ee6cbe102cdd80e1c850d4eaa7c9
+
+shell:
+ - make gki_defconfig
