@@ -187,6 +187,7 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 		crash := r.popCrash()
 		for {
 			if crash != nil && !r.mgr.NeedRepro(crash) {
+				log.Logf(1, "reproduction of %q aborted: it's no longer needed", crash.FullTitle())
 				crash = nil
 				// Now we might not need that many VMs.
 				r.mu.Lock()
