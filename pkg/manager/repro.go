@@ -188,11 +188,15 @@ func (r *ReproLoop) Loop(ctx context.Context) {
 		for {
 			if crash != nil && !r.mgr.NeedRepro(crash) {
 				log.Logf(1, "reproduction of %q aborted: it's no longer needed", crash.FullTitle())
-				crash = nil
 				// Now we might not need that many VMs.
 				r.mu.Lock()
 				r.adjustPoolSizeLocked()
 				r.mu.Unlock()
+
+				// Immediately check if there was any other crash in the queue, so that we fall back
+				// to waiting on pingQueue only if there were really no other crashes in the queue.
+				crash = r.popCrash()
+				continue
 			}
 			if crash != nil {
 				break

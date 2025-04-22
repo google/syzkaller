@@ -97,8 +97,12 @@ func TestReproOrder(t *testing.T) {
 }
 
 func TestReproRWRace(t *testing.T) {
+	var reproProgExist atomic.Bool
 	mock := &reproMgrMock{
 		run: make(chan runCallback),
+		needReproCb: func(_ *Crash) bool {
+			return !reproProgExist.Load()
+		},
 	}
 	obj := NewReproLoop(mock, 3, false)
 
@@ -114,7 +118,7 @@ func TestReproRWRace(t *testing.T) {
 	called := <-mock.run
 	// Pretend that processRepro() is finished and
 	// we've written "repro.prog" to the disk.
-	mock.reproProgExist.Store(true)
+	reproProgExist.Store(true)
 	assert.False(t, mock.NeedRepro(nil))
 	called.ret <- &ReproResult{}
 	assert.True(t, obj.CanReproMore())
@@ -145,10 +149,38 @@ func TestCancelRunningRepro(t *testing.T) {
 	done()
 }
 
+func TestEnqueueTriggersRepro(t *testing.T) {
+	mock := &reproMgrMock{
+		run: make(chan runCallback),
+		needReproCb: func(crash *Crash) bool {
+			return crash.FullTitle() == "C"
+		},
+	}
+	obj := NewReproLoop(mock, 1, false)
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}, Manual: true})
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "B"}, Manual: true})
+	obj.Enqueue(&Crash{Report: &report.Report{Title: "C"}})
+
+	ctx, done := context.WithCancel(context.Background())
+	complete := make(chan struct{})
+	go func() {
+		obj.Loop(ctx)
+		close(complete)
+	}()
+
+	defer func() {
+		<-complete
+	}()
+	// The test will hang if the loop never picks up the title C.
+	crash := <-mock.run
+	assert.Equal(t, "C", crash.crash.FullTitle())
+	done()
+}
+
 type reproMgrMock struct {
-	reserved       atomic.Int64
-	run            chan runCallback
-	reproProgExist atomic.Bool
+	reserved    atomic.Int64
+	run         chan runCallback
+	needReproCb func(*Crash) bool
 }
 
 type runCallback struct {
@@ -187,7 +219,10 @@ func (m *reproMgrMock) RunRepro(ctx context.Context, crash *Crash) *ReproResult 
 }
 
 func (m *reproMgrMock) NeedRepro(crash *Crash) bool {
-	return !m.reproProgExist.Load()
+	if m.needReproCb != nil {
+		return m.needReproCb(crash)
+	}
+	return true
 }
 
 func (m *reproMgrMock) ResizeReproPool(VMs int) {
