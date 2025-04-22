@@ -62,7 +62,6 @@ func main() {
 		tool.Fail(err)
 	}
 	// In order to speed up the process we generate instances that use the same kernel revision in parallel.
-	failed := false
 	generated := make(map[string]bool)
 	for _, inst := range instances {
 		// Find the first instance that we did not generate yet.
@@ -103,15 +102,16 @@ func main() {
 				results <- nil
 			}()
 		}
+		failed := false
 		for i := 0; i < batch; i++ {
 			if err := <-results; err != nil {
 				fmt.Printf("%v\n", err)
 				failed = true
 			}
 		}
-	}
-	if failed {
-		tool.Failf("some configs failed")
+		if failed {
+			tool.Failf("some configs failed")
+		}
 	}
 	if len(generated) == 0 {
 		tool.Failf("unknown instance name")
