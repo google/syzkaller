@@ -42,10 +42,6 @@ instances:
  - chromeos-5.15:		[chromeos, chromeos-5.15, nodefconfig, x86_64, timeouts_native, clang, onlyusb, kasan]
  - chromeos-6.1:		[chromeos, chromeos-6.1, nodefconfig, x86_64, timeouts_native, clang, onlyusb, kasan]
  - chromeos-6.6:		[chromeos, chromeos-6.6, nodefconfig, x86_64, timeouts_native, clang, onlyusb, kasan]
- - cos-5.15-kasan:		[cos, cos-5.15, x86_64, clang, nodefconfig, baseline, timeouts_native, nonoise, kasan]
- - cos-5.15-arm64-kasan:	[cos, cos-5.15, arm64, clang, nodefconfig, baseline, timeouts_native, nonoise, kasan]
- - cos-6.1-kasan:		[cos, cos-6.1, x86_64, clang, nodefconfig, baseline, timeouts_native, nonoise, kasan]
- - cos-6.1-arm64-kasan:		[cos, cos-6.1, arm64, clang, nodefconfig, baseline, timeouts_native, nonoise, kasan]
 
 # Note: fragments are included top to bottom from this list. When a config fragments overrides
 # another, the override has to be loaded second. These files are included from the bits/ dir.
@@ -109,5 +105,3 @@ includes:
  - chromeos-5.15.yml: [chromeos-5.15]
  - chromeos-6.1.yml: [chromeos-6.1]
  - chromeos-6.6.yml: [chromeos-6.6]
- - cos-5.15.yml: [cos-5.15]
- - cos-6.1.yml: [cos-6.1]
