@@ -43,7 +43,7 @@ func TestAccessConfig(t *testing.T) {
 }
 
 // TestAccess checks that all UIs respect access levels.
-// nolint: funlen, goconst
+// nolint: funlen, goconst, gocyclo
 func TestAccess(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -246,6 +246,15 @@ func TestAccess(t *testing.T) {
 					strconv.FormatUint(uint64(crash.MachineInfo), 16)),
 			},
 		}...)
+		for _, asset := range crash.Assets {
+			if asset.FsckLog != 0 {
+				entities = append(entities, entity{
+					level: level,
+					ref:   fmt.Sprint(crash.MachineInfo),
+					url:   fmt.Sprintf("/x/fsck.log?x=%x", uint64(asset.FsckLog)),
+				})
+			}
+		}
 	}
 
 	// noteBuildAccessLevel collects all entities associated with the kernel build buildID.
@@ -337,6 +346,13 @@ func TestAccess(t *testing.T) {
 			crashOpen.ReproSyz = []byte(accessPrefix + "repro syz")
 			crashOpen.ReproLog = []byte(accessPrefix + "repro log")
 			crashOpen.MachineInfo = []byte(ns + "machine info")
+			crashOpen.Assets = []dashapi.NewAsset{
+				{
+					DownloadURL: "http://a.b",
+					Type:        dashapi.MountInRepro,
+					FsckLog:     []byte("fsck log"),
+				},
+			}
 			client.ReportCrash(crashOpen)
 			repOpen := client.pollBug()
 			if reportingIdx != 0 {
