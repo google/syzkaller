@@ -160,10 +160,12 @@ func (ctx *linux) EnvForCommit(
 
 func linuxClangPath(tags map[string]bool, binDir, defaultCompiler string) string {
 	version := ""
+	// The defaultCompiler and clang-15 are assumed to be available.
 	switch {
-	case tags["v5.9"]:
-		// Verified to work with 14.0.6.
+	case tags["v6.15"]:
 		return defaultCompiler
+	case tags["v5.9"]:
+		return "clang-15"
 	default:
 		// everything before v5.3 might not work great
 		// everything before v5.1 does not work
