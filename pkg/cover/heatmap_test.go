@@ -179,6 +179,11 @@ func TestFormatResult(t *testing.T) {
 									Covered: []int64{0, 0},
 									Depth:   1,
 								},
+								{
+									Name:    "file2",
+									Covered: []int64{1, 0},
+									Depth:   1,
+								},
 							},
 							Name:    "dir",
 							Covered: []int64{1, 0},
@@ -193,6 +198,13 @@ func TestFormatResult(t *testing.T) {
 				Root: &templateHeatmapRow{
 					Items: []*templateHeatmapRow{
 						{
+							Items: []*templateHeatmapRow{
+								{
+									Name:    "file2",
+									Covered: []int64{1, 0},
+									Depth:   1,
+								},
+							},
 							Name:    "dir",
 							Covered: []int64{1, 0},
 							IsDir:   true,
