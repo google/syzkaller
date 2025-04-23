@@ -767,7 +767,7 @@ func (pw *poolWrapper) Run(ctx context.Context, params instance.ExecParams,
 
 	var result *instance.RunResult
 	var err error
-	pw.pool.Run(func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+	runErr := pw.pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 		updInfo(func(info *dispatcher.Info) {
 			typ := "syz"
 			if params.CProg != nil {
@@ -787,6 +787,9 @@ func (pw *poolWrapper) Run(ctx context.Context, params instance.ExecParams,
 			result, err = ret.RunSyzProg(params)
 		}
 	})
+	if runErr != nil {
+		return nil, runErr
+	}
 	return result, err
 }
 
