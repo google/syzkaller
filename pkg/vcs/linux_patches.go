@@ -107,4 +107,11 @@ var pickLinuxCommits = []BackportCommit{
 		FixHash:    `e77aff5528a183462714f750e45add6cc71e276a`,
 		FixTitle:   `binderfs: fix use-after-free in binder_devices`,
 	},
+	{
+		// Fixes `unregister_netdevice: waiting for batadv0 to become free. Usage count = 3`.
+		// Several v6.15-rc* tags are essentially unfuzzeable because of this.
+		GuiltyHash: `00b35530811f2aa3d7ceec2dbada80861c7632a8`,
+		FixHash:    `10a77965760c6e2b3eef483be33ae407004df894`,
+		FixTitle:   `batman-adv: Fix double-hold of meshif when getting enabled`,
+	},
 }
