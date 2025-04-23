@@ -19,8 +19,14 @@ func TestClangVersion(t *testing.T) {
 	expected := binDir + "llvm-9.0.1/bin/clang"
 	assert.Equal(t, actual, expected, "unexpected clang path")
 
-	// Recent tag case.
+	// Older tag case.
 	tags["v5.9"] = true
+	actual = linuxClangPath(tags, binDir, defaultCompiler)
+	expected = "clang-15"
+	assert.Equal(t, actual, expected, "unexpected clang path")
+
+	// Recent tag case.
+	tags["v6.15"] = true
 	actual = linuxClangPath(tags, binDir, defaultCompiler)
 	expected = defaultCompiler
 	assert.Equal(t, actual, expected, "unexpected clang path")
