@@ -6,6 +6,7 @@ package manager
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -583,7 +584,7 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 			// The third time we leave it as is in case it was important.
 			opts.Threaded = true
 		}
-		pool.Run(func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+		runErr := pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 			var ret *instance.ExecProgInstance
 			ret, err = instance.SetupExecProg(inst, rr.kernel.cfg, rr.kernel.reporter, nil)
 			if err != nil {
@@ -595,6 +596,9 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 				Opts:     opts,
 			})
 		})
+		if errors.Is(runErr, context.Canceled) {
+			break
+		}
 		crashed := result != nil && result.Report != nil
 		log.Logf(1, "attempt #%d to run %q on base: crashed=%v", i, ret.origReport.Title, crashed)
 		if crashed {

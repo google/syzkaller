@@ -6,6 +6,7 @@ package dispatcher
 import (
 	"context"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -87,7 +88,7 @@ func TestPoolSplit(t *testing.T) {
 		case <-stopRuns:
 		}
 	}
-	go mgr.Run(job)
+	go mgr.Run(ctx, job)
 
 	// So far, there are no reserved instances.
 	for i := 0; i < count; i++ {
@@ -113,7 +114,7 @@ func TestPoolSplit(t *testing.T) {
 
 	// Now let's create and finish more jobs.
 	for i := 0; i < 10; i++ {
-		go mgr.Run(job)
+		go mgr.Run(ctx, job)
 	}
 	mgr.ReserveForRun(2)
 	for i := 0; i < 10; i++ {
@@ -150,8 +151,7 @@ func TestPoolStress(t *testing.T) {
 		}
 	}()
 	for i := 0; i < 128; i++ {
-		go mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
-		})
+		go mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {})
 		mgr.ReserveForRun(5 + i%5)
 	}
 
@@ -221,7 +221,7 @@ func TestPoolPause(t *testing.T) {
 	}()
 
 	run := make(chan bool, 1)
-	go mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+	go mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
 		run <- true
 	})
 	time.Sleep(10 * time.Millisecond)
@@ -231,10 +231,59 @@ func TestPoolPause(t *testing.T) {
 	mgr.TogglePause(false)
 	<-run
 
-	mgr.Run(func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {})
+	mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {})
 
 	cancel()
 	<-done
+}
+
+func TestPoolCancelRun(t *testing.T) {
+	// The test to aid the race detector.
+	mgr := NewPool[*nilInstance](
+		10,
+		func(idx int) (*nilInstance, error) {
+			return &nilInstance{}, nil
+		},
+		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+			<-ctx.Done()
+		},
+	)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		mgr.Loop(ctx)
+		wg.Done()
+	}()
+
+	mgr.ReserveForRun(2)
+
+	started := make(chan struct{})
+	// Schedule more jobs than could be processed simultaneously.
+	for i := 0; i < 15; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
+				select {
+				case <-ctx.Done():
+					return
+				case started <- struct{}{}:
+				}
+				<-ctx.Done()
+			})
+		}()
+	}
+
+	// Two can be started.
+	<-started
+	<-started
+
+	// Now stop the loop and the jbos.
+	cancel()
+
+	// Everything must really stop.
+	wg.Wait()
 }
 
 func makePool(count int) []testInstance {

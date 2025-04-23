@@ -114,7 +114,7 @@ func (p *Pool[T]) Loop(ctx context.Context) {
 func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 	p.waitUnpaused()
 	ctx, cancel := context.WithCancel(ctx)
-
+	defer cancel()
 	log.Logf(2, "pool: booting instance %d", inst.idx)
 
 	inst.reset(cancel)
@@ -187,13 +187,24 @@ func (p *Pool[T]) ReserveForRun(count int) {
 }
 
 // Run blocks until it has found an instance to execute job and until job has finished.
-func (p *Pool[T]) Run(job Runner[T]) {
-	done := make(chan struct{})
-	p.jobs <- func(ctx context.Context, inst T, upd UpdateInfo) {
-		job(ctx, inst, upd)
-		close(done)
+// Returns an error if the job was aborted by cancelling the context.
+func (p *Pool[T]) Run(ctx context.Context, job Runner[T]) error {
+	done := make(chan error)
+	// Submit the job.
+	select {
+	case p.jobs <- func(jobCtx context.Context, inst T, upd UpdateInfo) {
+		mergedCtx, cancel := mergeContextCancel(jobCtx, ctx)
+		defer cancel()
+
+		job(mergedCtx, inst, upd)
+		done <- mergedCtx.Err()
+	}:
+	case <-ctx.Done():
+		// If the loop is aborted, no one is going to pick up the job.
+		return ctx.Err()
 	}
-	<-done
+	// Await the job.
+	return <-done
 }
 
 func (p *Pool[T]) Total() int {
@@ -310,4 +321,16 @@ func (pi *poolInstance[T]) free(job Runner[T]) {
 		return
 	default:
 	}
+}
+
+func mergeContextCancel(main, monitor context.Context) (context.Context, func()) {
+	withCancel, cancel := context.WithCancel(main)
+	go func() {
+		select {
+		case <-withCancel.Done():
+		case <-monitor.Done():
+		}
+		cancel()
+	}()
+	return withCancel, cancel
 }
