@@ -259,17 +259,23 @@ func DoSubsystemsHeatMapStyleBodyJS(
 }
 
 func FormatResult(thm *templateHeatmap, format Format) {
-	thm.Filter(func(row *templateHeatmapRow) bool {
-		if row.IsDir && len(row.Items) > 0 {
-			return true
-		}
-		return slices.Max(row.Covered)-row.Covered[len(row.Covered)-1] >= int64(format.FilterMinCoveredLinesDrop)
-	})
+	// Remove file coverage lines with drop less than a threshold.
+	if format.FilterMinCoveredLinesDrop > 0 {
+		thm.Filter(func(row *templateHeatmapRow) bool {
+			return row.IsDir ||
+				slices.Max(row.Covered)-row.Covered[len(row.Covered)-1] >= int64(format.FilterMinCoveredLinesDrop)
+		})
+	}
+	// Remove file coverage lines with zero coverage during the analysis period.
 	if format.DropCoveredLines0 {
 		thm.Filter(func(row *templateHeatmapRow) bool {
 			return slices.Max(row.Covered) > 0
 		})
 	}
+	// Drop empty dir elements.
+	thm.Filter(func(row *templateHeatmapRow) bool {
+		return !row.IsDir || len(row.Items) > 0
+	})
 	// The files are sorted lexicographically by default.
 	if format.OrderByCoveredLinesDrop {
 		thm.Sort(func(row1 *templateHeatmapRow, row2 *templateHeatmapRow) int {
