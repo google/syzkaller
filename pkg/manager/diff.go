@@ -297,7 +297,11 @@ func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult 
 		Stats: stats,
 		Err:   err,
 	}
-	dc.doneRepro <- ret
+	select {
+	case dc.doneRepro <- ret:
+	case <-ctx.Done():
+		// If the context is cancelled, no one may be listening on doneRepro.
+	}
 	return ret
 }
 
@@ -506,7 +510,10 @@ func (kc *kernelContext) fuzzerInstance(ctx context.Context, inst *vm.Instance, 
 	lastExec, _ := kc.serv.ShutdownInstance(index, rep != nil)
 	if rep != nil {
 		rpcserver.PrependExecuting(rep, lastExec)
-		kc.crashes <- rep
+		select {
+		case kc.crashes <- rep:
+		case <-ctx.Done():
+		}
 	}
 	if err != nil {
 		log.Errorf("#%d run failed: %s", inst.Index(), err)
