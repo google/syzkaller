@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -22,36 +20,28 @@ import (
 )
 
 type SeriesProcessor struct {
-	blobStorage     blob.Storage
-	seriesRepo      *db.SeriesRepository
-	sessionRepo     *db.SessionRepository
-	sessionTestRepo *db.SessionTestRepository
-	workflows       workflow.Service
-	dbPollInterval  time.Duration
-	parallelWorkers int
+	blobStorage       blob.Storage
+	seriesRepo        *db.SeriesRepository
+	sessionRepo       *db.SessionRepository
+	sessionTestRepo   *db.SessionTestRepository
+	workflows         workflow.Service
+	dbPollInterval    time.Duration
+	parallelWorkflows int
 }
 
-func NewSeriesProcessor(env *app.AppEnvironment) *SeriesProcessor {
+func NewSeriesProcessor(env *app.AppEnvironment, cfg *app.AppConfig) *SeriesProcessor {
 	workflows, err := workflow.NewArgoService()
 	if err != nil {
 		app.Fatalf("failed to initialize workflows: %v", err)
 	}
-	parallelWorkers := 1
-	if val := os.Getenv("PARALLEL_WORKERS"); val != "" {
-		var err error
-		parallelWorkers, err = strconv.Atoi(val)
-		if err != nil || parallelWorkers < 1 {
-			app.Fatalf("invalid PARALLEL_WORKERS value")
-		}
-	}
 	return &SeriesProcessor{
-		blobStorage:     env.BlobStorage,
-		seriesRepo:      db.NewSeriesRepository(env.Spanner),
-		sessionRepo:     db.NewSessionRepository(env.Spanner),
-		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
-		dbPollInterval:  time.Minute,
-		workflows:       workflows,
-		parallelWorkers: parallelWorkers,
+		blobStorage:       env.BlobStorage,
+		seriesRepo:        db.NewSeriesRepository(env.Spanner),
+		sessionRepo:       db.NewSessionRepository(env.Spanner),
+		sessionTestRepo:   db.NewSessionTestRepository(env.Spanner),
+		dbPollInterval:    time.Minute,
+		workflows:         workflows,
+		parallelWorkflows: cfg.ParallelWorkflows,
 	}
 }
 
@@ -113,7 +103,7 @@ func (sp *SeriesProcessor) seriesRunner(ctx context.Context, ch <-chan *db.Sessi
 	var eg errgroup.Group
 	defer eg.Wait()
 
-	eg.SetLimit(sp.parallelWorkers)
+	eg.SetLimit(sp.parallelWorkflows)
 	for {
 		var session *db.Session
 		select {

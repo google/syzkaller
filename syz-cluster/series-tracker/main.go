@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"slices"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -26,8 +25,6 @@ import (
 )
 
 var (
-	flagArchives = flag.String("archives", "",
-		"a comma-separated list of the archives to poll")
 	flagVerbose = flag.Bool("verbose", false, "enable verbose output")
 )
 
@@ -58,18 +55,14 @@ func main() {
 }
 
 func archivesToPoll() []string {
-	var ret []string
-	for _, part := range strings.Split(*flagArchives, ",") {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			app.Fatalf("an empty name in the --archives argument")
-		}
-		ret = append(ret, part)
+	cfg, err := app.Config()
+	if err != nil {
+		app.Fatalf("failed to fetch the config: %v", err)
 	}
-	if len(ret) == 0 {
-		app.Fatalf("--archives must not be empty")
+	if len(cfg.LoreArchives) == 0 {
+		app.Fatalf("the list of archives to poll is empty")
 	}
-	return ret
+	return cfg.LoreArchives
 }
 
 type SeriesFetcher struct {

@@ -1,0 +1,12 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-config-env
+data:
+  SPANNER_EMULATOR_HOST: "cloud-spanner-emulator:9010"
+  SPANNER_DATABASE_URI: "projects/my-project/instances/my-instance/databases/db"
+  STORAGE_EMULATOR_HOST: "http://fake-gcs-server.default.svc.cluster.local:4443"
+  BLOB_STORAGE_GCS_BUCKET: "blobs" # Initialized in fake-gcs.yaml

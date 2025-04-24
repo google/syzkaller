@@ -21,7 +21,7 @@ spec:
         image: ${IMAGE_PREFIX}reporter-server:${IMAGE_TAG}
         envFrom:
           - configMapRef:
-              name: global-config
+              name: global-config-env
         ports:
         - containerPort: 8080
         resources:
