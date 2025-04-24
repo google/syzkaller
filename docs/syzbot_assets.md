@@ -3,7 +3,7 @@
 As a part of every bug report, syzbot shares downloadable assets -- that is,
 disk images and kernel binaries on which the bug was originally found.
 
-This document serves as a guide on how to use those assets to reproce such bugs
+This document serves as a guide on how to use those assets to reproduce such bugs
 locally.
 
 ### A sample report
@@ -153,7 +153,7 @@ $ qemu-system-aarch64 -machine virt -cpu cortex-a57 -smp 4 -m 4G -nographic -dri
 
 #### The bug doesn't reproduce
 
-If the `C` reproder did not work, try to run the `syz` reproducer.
+If the `C` reproducer did not work, try to run the `syz` reproducer.
 
 If there's still no success, it might be that relatively rare case when the
 execution environment becomes important. Syzbot fuzzes kernels on GCE VMs, which
