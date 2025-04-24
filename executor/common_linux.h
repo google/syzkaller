@@ -874,18 +874,15 @@ static void initialize_devlink_pci(void)
 #if SYZ_EXECUTOR || SYZ_WIFI || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
 
 #define WIFI_INITIAL_DEVICE_COUNT 2
-#define WIFI_MAC_BASE                              \
-	{                                          \
-		0x08, 0x02, 0x11, 0x00, 0x00, 0x00 \
-	}
-#define WIFI_IBSS_BSSID                            \
-	{                                          \
-		0x50, 0x50, 0x50, 0x50, 0x50, 0x50 \
-	}
-#define WIFI_IBSS_SSID                             \
-	{                                          \
-		0x10, 0x10, 0x10, 0x10, 0x10, 0x10 \
-	}
+#define WIFI_MAC_BASE \
+	{             \
+	    0x08, 0x02, 0x11, 0x00, 0x00, 0x00}
+#define WIFI_IBSS_BSSID \
+	{               \
+	    0x50, 0x50, 0x50, 0x50, 0x50, 0x50}
+#define WIFI_IBSS_SSID \
+	{              \
+	    0x10, 0x10, 0x10, 0x10, 0x10, 0x10}
 #define WIFI_DEFAULT_FREQUENCY 2412
 #define WIFI_DEFAULT_SIGNAL 0
 #define WIFI_DEFAULT_RX_RATE 1
@@ -1506,26 +1503,26 @@ static void initialize_netdevices(void)
 		const char* type;
 		const char* dev;
 	} devtypes[] = {
-		// Note: ip6erspan device can't be added if ip6gretap exists in the same namespace.
-		{"ip6gretap", "ip6gretap0"},
-		{"bridge", "bridge0"},
-		{"vcan", "vcan0"},
-		{"bond", "bond0"},
-		{"team", "team0"},
-		{"dummy", "dummy0"},
+	    // Note: ip6erspan device can't be added if ip6gretap exists in the same namespace.
+	    {"ip6gretap", "ip6gretap0"},
+	    {"bridge", "bridge0"},
+	    {"vcan", "vcan0"},
+	    {"bond", "bond0"},
+	    {"team", "team0"},
+	    {"dummy", "dummy0"},
 #if SYZ_EXECUTOR || SYZ_NIC_VF
-		{"nicvf", "nicvf0"},
+	    {"nicvf", "nicvf0"},
 #endif
-		{"nlmon", "nlmon0"},
-		{"caif", "caif0"},
-		{"batadv", "batadv0"},
-		// Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
-		{"vxcan", "vxcan1"},
-		// This adds connected veth0 and veth1 devices.
-		{"veth", 0},
-		{"wireguard", "wg0"},
-		{"wireguard", "wg1"},
-		{"wireguard", "wg2"},
+	    {"nlmon", "nlmon0"},
+	    {"caif", "caif0"},
+	    {"batadv", "batadv0"},
+	    // Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
+	    {"vxcan", "vxcan1"},
+	    // This adds connected veth0 and veth1 devices.
+	    {"veth", 0},
+	    {"wireguard", "wg0"},
+	    {"wireguard", "wg1"},
+	    {"wireguard", "wg2"},
 	};
 	const char* devmasters[] = {"bridge", "bond", "team", "batadv"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt
@@ -1535,67 +1532,67 @@ static void initialize_netdevices(void)
 		int macsize;
 		bool noipv6;
 	} devices[] = {
-		{"lo", ETH_ALEN},
-		{"sit0", 0},
-		{"bridge0", ETH_ALEN},
-		{"vcan0", 0, true},
-		{"tunl0", 0},
-		{"gre0", 0},
-		{"gretap0", ETH_ALEN},
-		{"ip_vti0", 0},
-		{"ip6_vti0", 0},
-		{"ip6tnl0", 0},
-		{"ip6gre0", 0},
-		{"ip6gretap0", ETH_ALEN},
-		{"erspan0", ETH_ALEN},
-		{"bond0", ETH_ALEN},
-		{"veth0", ETH_ALEN},
-		{"veth1", ETH_ALEN},
-		{"team0", ETH_ALEN},
-		{"veth0_to_bridge", ETH_ALEN},
-		{"veth1_to_bridge", ETH_ALEN},
-		{"veth0_to_bond", ETH_ALEN},
-		{"veth1_to_bond", ETH_ALEN},
-		{"veth0_to_team", ETH_ALEN},
-		{"veth1_to_team", ETH_ALEN},
-		{"veth0_to_hsr", ETH_ALEN},
-		{"veth1_to_hsr", ETH_ALEN},
-		{"hsr0", 0},
-		{"dummy0", ETH_ALEN},
+	    {"lo", ETH_ALEN},
+	    {"sit0", 0},
+	    {"bridge0", ETH_ALEN},
+	    {"vcan0", 0, true},
+	    {"tunl0", 0},
+	    {"gre0", 0},
+	    {"gretap0", ETH_ALEN},
+	    {"ip_vti0", 0},
+	    {"ip6_vti0", 0},
+	    {"ip6tnl0", 0},
+	    {"ip6gre0", 0},
+	    {"ip6gretap0", ETH_ALEN},
+	    {"erspan0", ETH_ALEN},
+	    {"bond0", ETH_ALEN},
+	    {"veth0", ETH_ALEN},
+	    {"veth1", ETH_ALEN},
+	    {"team0", ETH_ALEN},
+	    {"veth0_to_bridge", ETH_ALEN},
+	    {"veth1_to_bridge", ETH_ALEN},
+	    {"veth0_to_bond", ETH_ALEN},
+	    {"veth1_to_bond", ETH_ALEN},
+	    {"veth0_to_team", ETH_ALEN},
+	    {"veth1_to_team", ETH_ALEN},
+	    {"veth0_to_hsr", ETH_ALEN},
+	    {"veth1_to_hsr", ETH_ALEN},
+	    {"hsr0", 0},
+	    {"dummy0", ETH_ALEN},
 #if SYZ_EXECUTOR || SYZ_NIC_VF
-		{"nicvf0", 0, true},
+	    {"nicvf0", 0, true},
 #endif
-		{"nlmon0", 0},
-		{"vxcan0", 0, true},
-		{"vxcan1", 0, true},
-		{"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
-		{"batadv0", ETH_ALEN},
-		{netdevsim, ETH_ALEN},
-		{"xfrm0", ETH_ALEN},
-		{"veth0_virt_wifi", ETH_ALEN},
-		{"veth1_virt_wifi", ETH_ALEN},
-		{"virt_wifi0", ETH_ALEN},
-		{"veth0_vlan", ETH_ALEN},
-		{"veth1_vlan", ETH_ALEN},
-		{"vlan0", ETH_ALEN},
-		{"vlan1", ETH_ALEN},
-		{"macvlan0", ETH_ALEN},
-		{"macvlan1", ETH_ALEN},
-		{"ipvlan0", ETH_ALEN},
-		{"ipvlan1", ETH_ALEN},
-		{"veth0_macvtap", ETH_ALEN},
-		{"veth1_macvtap", ETH_ALEN},
-		{"macvtap0", ETH_ALEN},
-		{"macsec0", ETH_ALEN},
-		{"veth0_to_batadv", ETH_ALEN},
-		{"veth1_to_batadv", ETH_ALEN},
-		{"batadv_slave_0", ETH_ALEN},
-		{"batadv_slave_1", ETH_ALEN},
-		{"geneve0", ETH_ALEN},
-		{"geneve1", ETH_ALEN},
-		{"wg0", 0},
-		{"wg1", 0},
-		{"wg2", 0},
+	    {"nlmon0", 0},
+	    {"vxcan0", 0, true},
+	    {"vxcan1", 0, true},
+	    {"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
+	    {"batadv0", ETH_ALEN},
+	    {netdevsim, ETH_ALEN},
+	    {"xfrm0", ETH_ALEN},
+	    {"veth0_virt_wifi", ETH_ALEN},
+	    {"veth1_virt_wifi", ETH_ALEN},
+	    {"virt_wifi0", ETH_ALEN},
+	    {"veth0_vlan", ETH_ALEN},
+	    {"veth1_vlan", ETH_ALEN},
+	    {"vlan0", ETH_ALEN},
+	    {"vlan1", ETH_ALEN},
+	    {"macvlan0", ETH_ALEN},
+	    {"macvlan1", ETH_ALEN},
+	    {"ipvlan0", ETH_ALEN},
+	    {"ipvlan1", ETH_ALEN},
+	    {"veth0_macvtap", ETH_ALEN},
+	    {"veth1_macvtap", ETH_ALEN},
+	    {"macvtap0", ETH_ALEN},
+	    {"macsec0", ETH_ALEN},
+	    {"veth0_to_batadv", ETH_ALEN},
+	    {"veth1_to_batadv", ETH_ALEN},
+	    {"batadv_slave_0", ETH_ALEN},
+	    {"batadv_slave_1", ETH_ALEN},
+	    {"geneve0", ETH_ALEN},
+	    {"geneve1", ETH_ALEN},
+	    {"wg0", 0},
+	    {"wg1", 0},
+	    {"wg2", 0},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -2100,7 +2097,7 @@ struct btf_header {
 };
 
 #define BTF_INFO_KIND(info) (((info) >> 24) & 0x0f)
-#define BTF_INFO_VLEN(info) ((info)&0xffff)
+#define BTF_INFO_VLEN(info) ((info) & 0xffff)
 
 #define BTF_KIND_INT 1
 #define BTF_KIND_ARRAY 3
@@ -5125,41 +5122,41 @@ static void setup_sysctl()
 		const char* data;
 	} files[] = {
 #if GOARCH_amd64 || GOARCH_386
-		// nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
-		// It happens a lot in qemu, and the messages are frequently corrupted
-		// (intermixed with other kernel output as they are printed from NMI)
-		// and are not matched against the suppression in pkg/report.
-		// This write prevents these messages from being printed.
-		{"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    // nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+	    // It happens a lot in qemu, and the messages are frequently corrupted
+	    // (intermixed with other kernel output as they are printed from NMI)
+	    // and are not matched against the suppression in pkg/report.
+	    // This write prevents these messages from being printed.
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
 #endif
-		{"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
-		// bpf_jit_kallsyms and disabling bpf_jit_harden are required
-		// for unwinding through bpf functions.
-		{"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
-		{"/proc/sys/net/core/bpf_jit_harden", "0"},
-		// This is to provide more useful info in crash reports.
-		{"/proc/sys/kernel/kptr_restrict", "0"},
-		{"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
-		// This is to restrict effects of recursive exponential mounts, for details see
-		// "mnt: Add a per mount namespace limit on the number of mounts" commit.
-		{"/proc/sys/fs/mount-max", "100"},
-		// Dumping all tasks to console can take too long.
-		{"/proc/sys/vm/oom_dump_tasks", "0"},
-		// Executor hits lots of SIGSEGVs, no point in logging them.
-		{"/proc/sys/debug/exception-trace", "0"},
-		{"/proc/sys/kernel/printk", "7 4 1 3"},
-		// Faster gc (1 second) is intended to make tests more repeatable.
-		{"/proc/sys/kernel/keys/gc_delay", "1"},
-		// We always want to prefer killing the allocating test process rather than somebody else
-		// (sshd or another random test process).
-		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
-		// This blocks some of the ways the fuzzer can trigger a reboot.
-		// ctrl-alt-del=0 tells kernel to signal cad_pid instead of rebooting.
-		// We set cad_pid to a transient process pid ctrl-alt-del a no-op.
-		// Note: we need to write a live process pid.
-		// For context see: https://groups.google.com/g/syzkaller-bugs/c/WqOY4TiRnFg/m/6P9u8lWZAQAJ
-		{"/proc/sys/kernel/ctrl-alt-del", "0"},
-		{"/proc/sys/kernel/cad_pid", tmppid},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    // bpf_jit_kallsyms and disabling bpf_jit_harden are required
+	    // for unwinding through bpf functions.
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    // This is to provide more useful info in crash reports.
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    // This is to restrict effects of recursive exponential mounts, for details see
+	    // "mnt: Add a per mount namespace limit on the number of mounts" commit.
+	    {"/proc/sys/fs/mount-max", "100"},
+	    // Dumping all tasks to console can take too long.
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	    // Executor hits lots of SIGSEGVs, no point in logging them.
+	    {"/proc/sys/debug/exception-trace", "0"},
+	    {"/proc/sys/kernel/printk", "7 4 1 3"},
+	    // Faster gc (1 second) is intended to make tests more repeatable.
+	    {"/proc/sys/kernel/keys/gc_delay", "1"},
+	    // We always want to prefer killing the allocating test process rather than somebody else
+	    // (sshd or another random test process).
+	    {"/proc/sys/vm/oom_kill_allocating_task", "1"},
+	    // This blocks some of the ways the fuzzer can trigger a reboot.
+	    // ctrl-alt-del=0 tells kernel to signal cad_pid instead of rebooting.
+	    // We set cad_pid to a transient process pid ctrl-alt-del a no-op.
+	    // Note: we need to write a live process pid.
+	    // For context see: https://groups.google.com/g/syzkaller-bugs/c/WqOY4TiRnFg/m/6P9u8lWZAQAJ
+	    {"/proc/sys/kernel/ctrl-alt-del", "0"},
+	    {"/proc/sys/kernel/cad_pid", tmppid},
 
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {

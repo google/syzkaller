@@ -62,7 +62,7 @@
 #define PATB_HR (1UL << 63)
 #define PRTB_MASK 0x0ffffffffffff000UL
 
-#define ALIGNUP(p, q) ((void*)(((unsigned long)(p) + (q)-1) & ~((q)-1)))
+#define ALIGNUP(p, q) ((void*)(((unsigned long)(p) + (q) - 1) & ~((q) - 1)))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #ifndef KVM_REG_PPC_DEC_EXPIRY
@@ -387,8 +387,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	if (kvmppc_set_one_reg(cpufd, KVM_REG_PPC_PID, &pid))
 		return -1;
 
-		// Hypercalls need to be enable so we enable them all here to
-		// allow fuzzing
+	// Hypercalls need to be enable so we enable them all here to
+	// allow fuzzing
 #define MAX_HCALL 0x450
 	for (unsigned hcall = 4; hcall < MAX_HCALL; hcall += 4)
 		kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_ENABLE_HCALL, hcall, 1);
