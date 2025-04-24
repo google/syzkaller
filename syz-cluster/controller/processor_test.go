@@ -191,11 +191,11 @@ func prepareProcessorTest(t *testing.T, workflows workflow.Service) (*SeriesProc
 	env, ctx := app.TestEnvironment(t)
 	client := controller.TestServer(t, env)
 	return &SeriesProcessor{
-		seriesRepo:      db.NewSeriesRepository(env.Spanner),
-		sessionRepo:     db.NewSessionRepository(env.Spanner),
-		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
-		workflows:       workflows,
-		dbPollInterval:  time.Second / 10,
-		parallelWorkers: 2,
+		seriesRepo:        db.NewSeriesRepository(env.Spanner),
+		sessionRepo:       db.NewSessionRepository(env.Spanner),
+		sessionTestRepo:   db.NewSessionTestRepository(env.Spanner),
+		workflows:         workflows,
+		dbPollInterval:    time.Second / 10,
+		parallelWorkflows: 2,
 	}, client, ctx
 }

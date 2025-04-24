@@ -4,10 +4,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: global-config
+  name: global-config-env
 data:
-  config.yaml: |
-    parallelWorkflows: 5
-    loreArchives:
-      - netdev
-      - linux-ext4
+  SPANNER_DATABASE_URI: "${SPANNER_DATABASE_URI}"
+  BLOB_STORAGE_GCS_BUCKET: "${BLOB_STORAGE_GCS_BUCKET}"

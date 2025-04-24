@@ -21,7 +21,7 @@ spec:
         image: ${IMAGE_PREFIX}web-dashboard:${IMAGE_TAG}
         envFrom:
           - configMapRef:
-              name: global-config
+              name: global-config-env
         ports:
         - containerPort: 8081
         resources:

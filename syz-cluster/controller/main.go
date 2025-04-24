@@ -20,7 +20,11 @@ func main() {
 	if err != nil {
 		app.Fatalf("failed to set up environment: %v", err)
 	}
-	sp := NewSeriesProcessor(env)
+	cfg, err := app.Config()
+	if err != nil {
+		app.Fatalf("failed to fetch the config: %v", err)
+	}
+	sp := NewSeriesProcessor(env, cfg)
 	go func() {
 		err := sp.Loop(ctx)
 		app.Fatalf("processor loop failed: %v", err)

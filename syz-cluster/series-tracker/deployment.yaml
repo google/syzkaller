@@ -18,15 +18,11 @@ spec:
       containers:
       - name: series-tracker-image
         image: ${IMAGE_PREFIX}series-tracker:${IMAGE_TAG}
-        args:
-          - "-archives"
-          - "$(LORE_ARCHIVES_TO_POLL)"
-        envFrom:
-          - configMapRef:
-              name: global-config
         volumeMounts:
         - name: series-tracker-repo-disk
           mountPath: /git-repo
+        - name: config-volume
+          mountPath: /config
         resources:
           requests:
             cpu: 4
@@ -38,3 +34,6 @@ spec:
       - name: series-tracker-repo-disk
         persistentVolumeClaim:
           claimName: series-tracker-repo-disk-claim
+      - name: config-volume
+        configMap:
+          name: global-config

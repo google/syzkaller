@@ -6,6 +6,7 @@ resources:
   - kernel-disk-pvc.yaml
   - ../common
   - global-config.yaml
+  - global-config-env.yaml
   - fake-gcs.yaml
   - network-policy-spanner.yaml
   - workflow-artifacts.yaml

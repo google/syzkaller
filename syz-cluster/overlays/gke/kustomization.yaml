@@ -4,6 +4,7 @@
 resources:
   - ../common
   - global-config.yaml
+  - global-config-env.yaml
   - kernel-disk-pvc.yaml
   - workflow-artifacts.yaml
 
