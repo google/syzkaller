@@ -135,6 +135,7 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 		})
 	}
 	g.Go(func() error {
+		defer log.Logf(1, "syz-diff: repro loop terminated")
 		// Let both base and patched instances somewhat progress in fuzzing before we take
 		// VMs away for bug reproduction.
 		dc.waitCorpusTriage(ctx)
@@ -368,6 +369,8 @@ func setup(ctx context.Context, name string, cfg *mgrconfig.Config, debug bool) 
 }
 
 func (kc *kernelContext) Loop() error {
+	defer log.Logf(1, "syz-diff (%s): kernel context loop terminated", kc.name)
+
 	if err := kc.serv.Listen(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
