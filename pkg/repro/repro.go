@@ -416,10 +416,14 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 		// There's a risk of exceeding prog.MaxCalls, so let's first minimize
 		// all entries separately.
 		for i := 0; i < len(entries); i++ {
+			var testErr error
 			ctx.reproLogf(2, "minimizing program #%d before concatenation", i)
 			callsBefore := len(entries[i].P.Calls)
 			entries[i].P, _ = prog.Minimize(entries[i].P, -1, prog.MinimizeCallsOnly,
 				func(p1 *prog.Prog, _ int) bool {
+					if testErr != nil {
+						return false
+					}
 					var newEntries []*prog.LogEntry
 					if i > 0 {
 						newEntries = append(newEntries, entries[:i]...)
@@ -432,11 +436,15 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 					}
 					ret, err := ctx.testProgs(newEntries, dur, ctx.startOpts, false)
 					if err != nil {
+						testErr = err
 						ctx.reproLogf(0, "concatenation step failed with %v", err)
 						return false
 					}
 					return ret.Crashed
 				})
+			if testErr != nil {
+				return nil, testErr
+			}
 			ctx.reproLogf(2, "minimized %d calls -> %d calls", callsBefore, len(entries[i].P.Calls))
 		}
 	}
@@ -480,7 +488,11 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 	if ctx.fast {
 		mode = prog.MinimizeCallsOnly
 	}
+	var testErr error
 	res.Prog, _ = prog.Minimize(res.Prog, -1, mode, func(p1 *prog.Prog, callIndex int) bool {
+		if testErr != nil {
+			return false
+		}
 		if len(p1.Calls) == 0 {
 			// We do want to keep at least one call, otherwise tools/syz-execprog
 			// will immediately exit.
@@ -489,11 +501,14 @@ func (ctx *reproContext) minimizeProg(res *Result) (*Result, error) {
 		ret, err := ctx.testProg(p1, res.Duration, res.Opts, false)
 		if err != nil {
 			ctx.reproLogf(2, "minimization failed with %v", err)
+			testErr = err
 			return false
 		}
 		return ret.Crashed
 	})
-
+	if testErr != nil {
+		return res, nil
+	}
 	return res, nil
 }
 
