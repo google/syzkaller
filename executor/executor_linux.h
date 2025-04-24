@@ -62,7 +62,9 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 	void* got = mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
 	if (data - SYZ_PAGE_SIZE != got)
 		failmsg("mmap of left data PROT_NONE page failed", "want %p, got %p", data - SYZ_PAGE_SIZE, got);
+	// NOLINTBEGIN(clang-analyzer-security.MmapWriteExec)
 	got = mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
+	// NOLINTEND(clang-analyzer-security.MmapWriteExec)
 	if (data != got)
 		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
 	got = mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED_EXCLUSIVE, -1, 0);
