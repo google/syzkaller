@@ -56,7 +56,7 @@ void bpf(const char* data, long size)
 	attr.prog_type = BPF_PROG_TYPE_SOCKET_FILTER;
 	attr.insns = (uint64_t)data;
 	attr.insn_cnt = size / 8;
-	attr.license = (uint64_t) "GPL";
+	attr.license = (uint64_t)"GPL";
 
 	cover_start();
 	int pfd = syscall(SYS_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
