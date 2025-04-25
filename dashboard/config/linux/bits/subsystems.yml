@@ -489,8 +489,9 @@ config:
  - PSTORE_ZSTD_COMPRESS: [-v6.6]
  - PSTORE_COMPRESS
  - PSTORE_DEFLATE_COMPRESS_DEFAULT: [-v6.6]
- # Didn't find how to enable it for riscv in v5.18
- - FS_DAX: [-arm, -riscv]
+ # For some architectures, we may only have FS_DAX_LIMITED.
+ - FS_DAX: [-arm, -riscv, -s390]
+ - FS_DAX_LIMITED: [s390, arm, riscv]
  - FS_ENCRYPTION
  - FS_VERITY
  - FS_VERITY_BUILTIN_SIGNATURES
@@ -581,8 +582,8 @@ config:
  - SIGNED_PE_FILE_VERIFICATION
  - SECONDARY_TRUSTED_KEYRING
  # CRC4 and CRC7 can now only be selected.
- - CRC4: [-linux-next]
- - CRC7: [-linux-next]
+ - CRC4: [-v6.15]
+ - CRC7: [-v6.15]
  - SCHEDSTATS
  - RAW_DRIVER: [-v5.14]
  - THERMAL: [v5.8]

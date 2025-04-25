@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
- - SYSV_FS: [-linux-next]
+ - SYSV_FS: [-v6.15]
  - ZONEFS_FS: [v5.6]
  - ISO9660_FS
  - JOLIET
@@ -205,5 +205,4 @@ config:
  - FSCACHE
  - CACHEFILES
 
- # TODO: it will appear in v6.15.
- - DEBUG_VFS: [linux-next]
+ - DEBUG_VFS: [v6.15]
