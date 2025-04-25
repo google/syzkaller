@@ -14,8 +14,7 @@ config:
  - CMDLINE_BOOL
 
  # Should be faster this way.
- # MCORE2 deprecated after v6.14.
- - MCORE2: [-linux-next]
+ - MCORE2: [-v6.15]
  - BASE_FULL: [-v6.10]
 
  # 32-on-64 support (compat).
@@ -26,8 +25,7 @@ config:
  - X86_X32_ABI: [-baseline, -clang, v5.18]
 
  # Moved from legacy config, reason for enabling is unknown.
- # KALLSYMS_ABSOLUTE_PERCPU deprecated after v6.14.
- - KALLSYMS_ABSOLUTE_PERCPU: [-linux-next]
+ - KALLSYMS_ABSOLUTE_PERCPU: [-v6.15]
  - X86_MSR
  - X86_CPUID
  - X86_5LEVEL: n

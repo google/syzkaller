@@ -16,8 +16,9 @@ config:
  - NF_CT_PROTO_SCTP
  - NETFILTER_XT_MATCH_SCTP
 
- - IP_DCCP
- - IP_DCCP_CCID3
+ # These will be deprecated in v6.16.
+ - IP_DCCP: [-linux-next]
+ - IP_DCCP_CCID3: [-linux-next]
  - NF_CT_PROTO_DCCP
  - NETFILTER_XT_MATCH_DCCP
 
