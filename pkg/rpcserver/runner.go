@@ -415,10 +415,6 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		if msg.Info.Freshness == 0 {
 			runner.stats.statExecutorRestarts.Add(1)
 		}
-		if !runner.cover && req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal != 0 {
-			// Coverage collection is disabled, but signal was requested => use a substitute signal.
-			addFallbackSignal(req.Prog, msg.Info)
-		}
 		for _, call := range msg.Info.Calls {
 			runner.convertCallInfo(call)
 		}
@@ -432,6 +428,12 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 			}
 			msg.Info.ExtraRaw = nil
 			runner.convertCallInfo(msg.Info.Extra)
+		}
+		if !runner.cover && req.ExecOpts.ExecFlags&flatrpc.ExecFlagCollectSignal != 0 {
+			// Coverage collection is disabled, but signal was requested => use a substitute signal.
+			// Note that we do it after all the processing above in order to prevent it from being
+			// filtered out.
+			addFallbackSignal(req.Prog, msg.Info)
 		}
 	}
 	status := queue.Success
