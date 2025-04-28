@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -19,11 +18,8 @@ import (
 )
 
 var (
-	flagOS        = flag.String("os", runtime.GOOS, "target os")
-	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
-	flagKernelObj = flag.String("kernel_obj", ".", "path to kernel build/obj dir")
-	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources (defaults to kernel_obj)")
-	flagOutDir    = flag.String("outdir", "", "output directory")
+	flagConfig = flag.String("config", "", "configuration file")
+	flagOutDir = flag.String("outdir", "", "output directory")
 )
 
 func main() {
@@ -33,11 +29,7 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	cfg, err := mgrconfig.LoadPartialData([]byte(`{
-		"kernel_obj": "` + *flagKernelObj + `",
-		"kernel_src": "` + *flagKernelSrc + `",
-		"target": "` + *flagOS + "/" + *flagArch + `"
-	}`))
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
