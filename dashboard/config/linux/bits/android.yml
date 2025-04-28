@@ -11,3 +11,5 @@ config:
  - CMDLINE: [append, "cgroup_disable=pressure cgroup.memory=nokmem"]
  # Disable -Werror for -Wframe-larger-than' warning
  - KVM_WERROR: n
+ # The kernel hangs during boot on qemu if it's set to 0.
+ - SERIAL_8250_RUNTIME_UARTS: 4
