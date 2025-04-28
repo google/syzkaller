@@ -113,6 +113,17 @@ func (serv *HTTPServer) Serve(ctx context.Context) error {
 	// Browsers like to request this, without special handler this goes to / handler.
 	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
+	go func() {
+		webAddr := mgrconfig.PublicWebAddr(serv.Cfg.HTTP)
+		urlStr := fmt.Sprintf("%v/subsystemcover", webAddr)
+		timer := time.NewTicker(10 * time.Minute)
+		defer timer.Stop()
+		for range timer.C {
+			log.Logf(2, "accessing %v to symbolize regularly", urlStr)
+			http.Get(urlStr)
+		}
+	}()
+
 	log.Logf(0, "serving http on http://%v", serv.Cfg.HTTP)
 	server := &http.Server{Addr: serv.Cfg.HTTP}
 	go func() {
