@@ -1,108 +1,148 @@
 External USB fuzzing for Linux kernel
 =====================================
 
-Syzkaller supports fuzzing the Linux kernel USB subsystem externally (as can be done by plugging in a programmable USB device like [Facedancer](https://github.com/usb-tools/Facedancer)). This allowed finding over [300 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
+syzkaller supports fuzzing the Linux kernel USB subsystem from the external side.
+Instead of relying on external hardware (like [Facedancer](https://github.com/usb-tools/Facedancer)-based boards) or VM management software features (like QEMU [usbredir](https://www.spice-space.org/usbredir.html)), syzkaller fuzzes USB fully within a (potentially-virtualized) enviroment that runs the Linux kernel.
 
-USB fuzzing support consists of 3 parts:
+The USB fuzzing support in syzkaller is based on:
 
-1. Syzkaller changes; see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section for details.
-2. Kernel interface for USB device emulation called [Raw Gadget](https://github.com/xairy/raw-gadget), which is now in the mainline kernel.
-3. KCOV changes that allow to collect coverage from background kernel threads and interrupts, which are now in the mainline kernel.
+1. [Raw Gadget](https://github.com/xairy/raw-gadget) — kernel module that implements a low-level interface for the Linux USB Gadget subsystem (now in the mainline kernel);
+2. [Dummy HCD/UDC](https://github.com/xairy/raw-gadget/tree/master/dummy_hcd) — kernel module that sets up virtual USB Device and Host controllers that are connected to each other inside the kernel (existed in the mainline kernel for a long time);
+3. KCOV changes that allow collecting coverage [from background kernel threads and interrupts](https://docs.kernel.org/dev-tools/kcov.html#remote-coverage-collection) (now in the mainline kernel);
+4. syzkaller changes built on top of the other parts; see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section.
 
-See the OffensiveCon 2019 [Coverage-Guided USB Fuzzing with Syzkaller](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing) talk ([video](https://www.youtube.com/watch?v=1MD5JV6LfxA)) for some (partially outdated) details.
+Besides this documentation page, for details, see:
 
-As USB fuzzing requires kernel side support, for non-mainline kernels you need all mainline patches that touch `drivers/usb/gadget/udc/dummy_hcd.c`, `drivers/usb/gadget/legacy/raw_gadget.c` and `kernel/kcov.c`.
+- [Coverage-Guided USB Fuzzing with Syzkaller](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing) talk ([video](https://www.youtube.com/watch?v=1MD5JV6LfxA)) from OffensiveCon 2019 (the talk was given while the USB fuzzing support was a work-in-progress, so some details are outdated);
+
+- [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk ([video](https://www.youtube.com/watch?v=AT3PQjKxa_c)) from BSides Munich 2022 (more up-to-date, but less in-depth).
+
+See [this page](/docs/linux/found_bugs_usb.md) for the list of bugs found in the Linux kernel USB stack so far.
 
 
 ## Internals
 
-Currently, syzkaller defines 6 USB pseudo-syscalls (see [syzlang descriptions](/sys/linux/vusb.txt) and [pseudo-syscalls](/executor/common_usb.h) [implementation](/executor/common_usb_linux.h), which relies on the Raw Gadget interface linked above):
+syzkaller defines 6 pseudo-syscalls for emulating USB devices for fuzzing (see the [syzlang descriptions](/sys/linux/vusb.txt) and the [C](/executor/common_usb.h) [implementations](/executor/common_usb_linux.h)):
 
-1. `syz_usb_connect` - connects a USB device. Handles all requests to the control endpoint until a `SET_CONFIGURATION` request is received.
-2. `syz_usb_connect_ath9k` - connects an `ath9k` USB device. Compared to `syz_usb_connect`, this syscall also handles firmware download requests that happen after `SET_CONFIGURATION` for the `ath9k` driver.
-3. `syz_usb_disconnect` - disconnects a USB device.
-4. `syz_usb_control_io` - sends or receives a control message over endpoint 0.
-5. `syz_usb_ep_write` - sends a message to a non-control endpoint.
-6. `syz_usb_ep_read` - receives a message from a non-control endpoint.
+1. `syz_usb_connect` — handles the enumeration process of a new USB device (in simple terms: connects a new USB device; in detail: handles all requests to the control endpoint until a `SET_CONFIGURATION` request is received);
+2. `syz_usb_connect_ath9k` — flavor of `syz_usb_connect` for connecting an `ath9k` USB device.
+Not implemented as a `$`variant of `syz_usb_connect`, as `ath9k` expects a compatible device to immediately handle the firmware download requests after the enumeration (after the `SET_CONFIGURATION` request);
+3. `syz_usb_disconnect` — disconnects a USB device;
+4. `syz_usb_control_io` — handles a post-enumeration control request (`IN` or `OUT`);
+5. `syz_usb_ep_write` — handles a non-control `IN` request on an endpoint;
+6. `syz_usb_ep_read` — handles a non-control `OUT` request on an endpoint.
 
-These pseudo-syscalls targeted at a few different layers:
+The syzlang descriptions for these pseudo-syscalls are targeted at a few different layers:
 
-1. USB core enumeration process is targeted by the generic `syz_usb_connect` variant. As the USB device descriptor fields for this pseudo-syscall get [patched](/sys/linux/init_vusb.go) by syzkaller runtime, `syz_usb_connect` also briefly targets the enumeration process of various USB drivers.
-2. Enumeration process for class-specific drivers is targeted by `syz_usb_connect$hid`, `syz_usb_connect$cdc_ecm`, etc. (the device descriptors provided to them have fixed identifying USB IDs to always match to the same USB class driver) accompanied by matching `syz_usb_control_io$*` pseudo-syscalls.
-3. Subsequent communication through non-control endpoints for class-specific drivers is not targeted by existing descriptions yet for any of the supported classes. But it can be triggered through generic `syz_usb_ep_write` and `syz_usb_ep_read` pseudo-syscalls.
-4. Enumeration process for device-specific drivers is not covered by existing descriptions yet.
-5. Subsequent communication through non-control endpoints for device-specific drivers is partially described only for `ath9k` driver via `syz_usb_connect_ath9k`, `syz_usb_ep_write$ath9k_ep1` and `syz_usb_ep_write$ath9k_ep2` pseudo-syscalls.
+1. The common USB enumeration code is targeted by the generic `syz_usb_connect` variant.
+In addition, this generic variant also briefly touches the enumeration code in various USB drivers: the USB device descriptor fields get [patched](/sys/linux/init_vusb.go) during the program generation;
 
-There are [runtests](/sys/linux/test/) for USB pseudo-syscalls. They are named starting with the `vusb` prefix and can be run with:
+2. The code of the class-specific drivers is targeted by `syz_usb_connect$hid`, `syz_usb_connect$cdc_ecm`, and other variants (accompanied by matching `syz_usb_control_io$*` and `syz_usb_ep_read/write$*` pseudo-syscalls).
+The descriptor fields for these `syz_usb_connect` variants are also intended to be patched during the program generation based on the driver class (to exercise various driver quirks), but so far, this has only been implemented for the HID class;
 
-```
-./bin/syz-manager -config usb-manager.cfg -mode run-tests -tests vusb
-```
-
-
-## Things to improve
-
-The core support for USB fuzzing is in place, but there's still a place for improvements:
-
-1. Remove the device from `usb_devices` in `syz_usb_disconnect` and don't call `lookup_usb_index` multiple times within `syz_usb_connect`. Currently, this causes some reproducers to have the `repeat` flag set when it's not required.
-
-2. Add descriptions for more relevant USB classes and drivers.
-
-3. Resolve TODOs from [sys/linux/vusb.txt](/sys/linux/vusb.txt).
-
-4. Implement a proper way for dynamically extracting relevant USB ids from the kernel (a related [discussion](https://www.spinics.net/lists/linux-usb/msg187915.html)).
-
-5. Add a mode for standalone fuzzing of physical USB hosts (by using Raspberry Pi Zero, see below).
-This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some [differences](https://github.com/RoganDawes/LOGITacker/blob/USB_host_enum/fingerprint_os.md#derive-the-os-from-the-fingerprint) in protocol implementation);
-b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
-c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
-
-6. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
+3. The code of the device-specific drivers is intended to be targeted by more `syz_usb_connect` variants whose descriptors do not get patched and are fully defined in syzlang instead.
+So far, the only such (partial) descriptions have been added for the `ath9k` driver (`syz_usb_connect_ath9k` and `syz_usb_ep_write$ath9k_ep*`).
 
 
 ## Setting up
 
-1. Make sure the version of the kernel you're using is at least 5.7. It's recommended to backport all kernel patches that touch kcov, USB Raw Gadget, and USB Dummy UDC/HCD.
+1. Use the kernel version 5.7 or later.
 
-2. Configure the kernel: at the very least, `CONFIG_USB_RAW_GADGET=y` and `CONFIG_USB_DUMMY_HCD=y` must be enabled.
+    It's also recommended to backport all kernel patches that touch `drivers/usb/gadget/legacy/raw_gadget.c`, `drivers/usb/gadget/udc/dummy_hcd.c`, and `kernel/kcov.c`;
 
-    The easiest option is to use the [config](/dashboard/config/linux/upstream-usb.config) from the syzbot USB fuzzing instance.
+2. Enable `CONFIG_USB_RAW_GADGET=y` and `CONFIG_USB_DUMMY_HCD=y` in the kernel config.
 
-3. Build the kernel.
+    Optionally, also enable the config options for the specific USB drivers that you wish to fuzz.
 
-4. Optionally update syzkaller descriptions by extracting USB IDs using the [instructions](/docs/linux/external_fuzzing_usb.md#updating-syzkaller-usb-ids) below.
+    As an alternative, you can use the [config](/dashboard/config/linux/upstream-usb.config) from the syzbot USB fuzzing instance.
+    This config has the options for many USB drivers commonly-used in distro kernels enabled;
 
-5. Enable `syz_usb_connect`, `syz_usb_disconnect`, `syz_usb_control_io`, `syz_usb_ep_write` and `syz_usb_ep_read` pseudo-syscalls in the manager config.
+3. Build the kernel;
 
-6. Set `sandbox` to `none` in the manager config.
+4. Optionally, update syzkaller descriptions by [extracting the USB IDs](/docs/linux/external_fuzzing_usb.md#updating-syzkaller-usb-ids).
 
-7. Pass `dummy_hcd.num=8` (or whatever number you use for `procs`) to the kernel command line in the manager config.
+    This step is recommended if you wish to just rely on the existing syzlang descriptions to fuzz all USB drivers enabled in your kernel config.
 
-8. Run.
+    If you plan to add new syzlang descriptions that target a specific USB driver, this step can be skipped;
+
+5. Optionally, write syzlang descriptions for the USB driver you wish to fuzz;
+
+6. Enable `syz_usb_connect`, `syz_usb_disconnect`, `syz_usb_control_io`, `syz_usb_ep_write` and `syz_usb_ep_read` pseudo-syscalls (or any of their specific variants) in the manager config;
+
+7. Set `sandbox` to `none` in the manager config;
+
+8. Pass `dummy_hcd.num=4` (or whichever number you use for `procs`) to the kernel command-line parameters in the manager config;
+
+9. Run syzkaller.
+
+    Make sure that you see both `USBEmulation` and `ExtraCoverage` enabled in the `machine check` section in the log.
+
+    You should also see a decent amount of coverage in `drivers/usb/core/*` after the first few programs get added to the corpus.
+
+
+## Limitations
+
+Most of the limitations of the USB fuzzing support in syzkaller stem from the features [missing](https://github.com/xairy/raw-gadget/tree/master?tab=readme-ov-file#limitations) from the Raw Gadget and Dummy HCD/UDC implementations (USB 3, isochronous transfers, etc).
+
+In addition, `syz_usb_connect` only supports devices with a single configuration (but this can be fixed).
+This is not a critical limitation, as most kernel drivers are tied to specific interfaces and do not care about the configurations.
+However, there are USB devices whose drivers assume the device to have multiple specific configurations.
+
+
+## Runtests
+
+There are a few [runtests](/sys/linux/test/) for the USB pseudo-syscalls.
+They are named starting with the `vusb` prefix and can be run as:
+
+``` bash
+./bin/syz-manager -config usb-manager.cfg -mode run-tests -tests vusb
+```
 
 
 ## Updating syzkaller USB IDs
 
-Syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that are [patched](/sys/linux/init_vusb.go) into `syz_usb_connect` by syzkaller runtime. One of the ways to make syzkaller target only particular USB drivers is to alter that list. The instructions below describe a hackish way to generate syzkaller USB IDs for all USB drivers enabled in your `.config`.
+syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that are [patched](/sys/linux/init_vusb.go) into `syz_usb_connect` (for the generic and the HID variants) during the program generation.
 
-1. Apply [this](/tools/syz-usbgen/usb_ids.patch) kernel patch.
+To update the syzkaller USB IDs to match the USB drivers enabled in your kernel config:
 
-2. Build and boot the kernel.
+1. Apply [this](/tools/syz-usbgen/usb_ids.patch) kernel patch;
 
-3. Connect a USB HID device. In case you're using a `CONFIG_USB_RAW_GADGET=y` kernel, use the
-[keyboard emulation program](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c).
+2. Build and boot the kernel;
 
-4. Use [syz-usbgen](/tools/syz-usbgen/usbgen.go) script to update [syzkaller descriptions](/sys/linux/init_vusb_ids.go):
+3. Connect a USB HID device.
 
-    ```
+    Assuming you have `CONFIG_USB_RAW_GADGET=y` enabled, you can just run the [keyboard emulation program](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c);
+
+4. Use [syz-usbgen](/tools/syz-usbgen/usbgen.go) script to update [sys/linux/init_vusb_ids.go](/sys/linux/init_vusb_ids.go):
+
+    ``` bash
     ./bin/syz-usbgen $KERNEL_LOG ./sys/linux/init_vusb_ids.go
     ```
 
-5. Don't forget to revert the applied patch and rebuild the kernel before doing actual fuzzing.
+5. Revert the applied kernel patch and rebuild the kernel before starting syzkaller.
+
+
+## Things to improve
+
+The core support for USB fuzzing is in place, but there's still space for improvement:
+
+1. Remove the device from `usb_devices` in `syz_usb_disconnect` and don't call `lookup_usb_index` multiple times within `syz_usb_connect`.
+Currently, this causes some reproducers to have the `repeat` flag set when it's not required;
+
+2. Add descriptions for more relevant USB classes and drivers and resolve TODOs from [sys/linux/vusb.txt](/sys/linux/vusb.txt);
+
+3. Implement a proper way for dynamically extracting relevant USB ids from the kernel (a related [discussion](https://www.spinics.net/lists/linux-usb/msg187915.html));
+
+4. Add a mode for standalone fuzzing of physical USB hosts (from a Linux-based board with a UDC).
+This includes: a. Making sure that the current way `syz_usb_connect` handles the enumeration works properly with different OSes (there are some [differences](https://github.com/RoganDawes/LOGITacker/blob/USB_host_enum/fingerprint_os.md#derive-the-os-from-the-fingerprint));
+b. Using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing;
+c. Making UDC driver name configurable for `syz-execprog` and `syz-prog2c`;
+
+5. Generate syzkaller programs from a `usbmon` trace produced by real USB devices (this should make syzkaller go significantly deeper into the USB drivers code).
 
 
 ## Running reproducers on Linux-based boards
 
-It's possible to run syzkaller USB reproducers on a Linux-based board plugged into a physical USB host.
+It is possible to run the reproducers for USB bugs generated by syzkaller on a Linux-based board plugged into a physical USB host.
 
 See [Running syzkaller USB reproducers](https://github.com/xairy/raw-gadget/blob/master/docs/syzkaller_reproducers.md) in the Raw Gadget repository for the instructions.
