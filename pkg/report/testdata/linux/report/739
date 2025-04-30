@@ -1,0 +1,10 @@
+TITLE: 
+
+
+[  131.553111][   T62] team0 (unregistering): Port device team_slave_0 removed
+[  131.561113][ T5816] BTRFS info (device loop0): last unmount of filesystem ed167579-eb65-4e76-9a50-61ac97e9b59d
+[  131.611624][ T6481] XFS (loop4): Ending clean mount
+[  131.879441][  T152] XFS (loop4): WARNING: Reset corrupted AGFL on AG 0. 1 blocks leaked. Please unmount and run xfs_repair.
+[  131.967845][ T5817] XFS (loop4): Unmounting Filesystem d7dc424e-7990-42cb-9f91-9cb7200a101d
+[  132.139042][ T6495] loop0: detected capacity change from 0 to 256
+[  132.348915][ T6495] exFAT-fs (loop0): start_clu is invalid cluster(0x400)
