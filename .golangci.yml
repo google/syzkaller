@@ -83,6 +83,7 @@ linters-settings:
     min-complexity: 12
   godot:
     scope: toplevel
+    exclude: "keep-sorted"
   gocognit:
     # TODO: consider reducing this value.
     min-complexity: 70
