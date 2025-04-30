@@ -1962,6 +1962,7 @@ var linuxOopses = append([]*oops{
 			compile(`WARNING: kernel not compiled with CPU_SRSO`),
 			compile(`EXT4-[Ff][Ss](?: \(.*\))?:`), // printed in __ext4_msg
 			compile(`(?i)warning: .* uses (deprecated v2 capabilities|wireless extensions)`),
+			compile(`XFS \(\w+\): WARNING`),
 		},
 		crash.Warning,
 	},
