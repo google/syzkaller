@@ -1399,7 +1399,7 @@ func TestCoverageRegression(t *testing.T) {
 		Return(mTran2).Once()
 
 	c.transformContext = func(ctx context.Context) context.Context {
-		return SetCoverageDBClient(ctx, m)
+		return setCoverageDBClient(ctx, m)
 	}
 	_, err := c.AuthGET(AccessAdmin, "/cron/email_coverage_reports")
 	assert.NoError(t, err)

@@ -110,9 +110,6 @@ func (cfg *EmailConfig) Validate() error {
 // Assuming it is called June 15, the monthly report will cover April-May diff.
 func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if coverageDBClient != nil { // initialized in prod deployment, nil in tests
-		ctx = SetCoverageDBClient(r.Context(), coverageDBClient)
-	}
 	targetDate := civil.DateOf(timeNow(ctx)).AddMonths(-1)
 	periods, err := coveragedb.GenNPeriodsTill(2, targetDate, "month")
 	if err != nil {
@@ -196,7 +193,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePeriod, minDrop int) (string, error) {
 	covAndDates, err := coveragedb.FilesCoverageWithDetails(
 		ctx,
-		GetCoverageDBClient(ctx),
+		getCoverageDBClient(ctx),
 		&coveragedb.SelectScope{
 			Ns:      ns,
 			Periods: fromTo,

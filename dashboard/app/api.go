@@ -104,7 +104,6 @@ var maxCrashes = func() int {
 func handleJSON(fn JSONHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
-		c = SetCoverageDBClient(c, coverageDBClient)
 		reply, err := fn(c, r)
 		if err != nil {
 			status := logErrorPrepareStatus(c, err)
@@ -1944,7 +1943,7 @@ func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) 
 		sss = service.List()
 		log.Infof(c, "found %d subsystems for %s namespace", len(sss), descr.Namespace)
 	}
-	rowsCreated, err := coveragedb.SaveMergeResult(c, GetCoverageDBClient(c), descr, jsonDec, sss)
+	rowsCreated, err := coveragedb.SaveMergeResult(c, getCoverageDBClient(c), descr, jsonDec, sss)
 	if err != nil {
 		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
 			descr.Namespace, descr.DateTo.String(), err)

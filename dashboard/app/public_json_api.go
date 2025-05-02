@@ -188,7 +188,7 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) e
 		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
 	}
 	defaultTimePeriod := tps[0]
-	covDBClient := GetCoverageDBClient(ctx)
+	covDBClient := getCoverageDBClient(ctx)
 	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, defaultTimePeriod)
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)

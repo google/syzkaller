@@ -27,7 +27,7 @@ var coverageDBClient spannerclient.SpannerClient
 func initCoverageDB() {
 	if !appengine.IsAppEngine() {
 		// It is a test environment.
-		// Use SetCoverageDBClient to specify the coveragedb mock or emulator in every test.
+		// Use setCoverageDBClient to specify the coveragedb mock or emulator in every test.
 		return
 	}
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -40,13 +40,15 @@ func initCoverageDB() {
 
 var keyCoverageDBClient = "coveragedb client key"
 
-func SetCoverageDBClient(ctx context.Context, client spannerclient.SpannerClient) context.Context {
-	return context.WithValue(ctx, &keyCoverageDBClient, client)
-}
-
-func GetCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
-	client, _ := ctx.Value(&keyCoverageDBClient).(spannerclient.SpannerClient)
-	return client
+func getCoverageDBClient(ctx context.Context) spannerclient.SpannerClient {
+	ctxClient, _ := ctx.Value(&keyCoverageDBClient).(spannerclient.SpannerClient)
+	if ctxClient == nil && coverageDBClient == nil {
+		panic("attempt to get coverage db client before it was set in tests")
+	}
+	if ctxClient != nil {
+		return ctxClient
+	}
+	return coverageDBClient
 }
 
 type funcStyleBodyJS func(
@@ -190,7 +192,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, GetCoverageDBClient(c),
+	if style, body, js, err = f(c, getCoverageDBClient(c),
 		&coveragedb.SelectScope{
 			Ns:        hdr.Namespace,
 			Subsystem: ss,
@@ -261,7 +263,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	onlyUnique := r.FormValue(covPageParams[UniqueOnly]) == "1"
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
-	client := GetCoverageDBClient(c)
+	client := getCoverageDBClient(c)
 	if client == nil {
 		return fmt.Errorf("spannerdb client is nil")
 	}
@@ -329,7 +331,7 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if periodType != coveragedb.QuarterPeriod && periodType != coveragedb.MonthPeriod {
 		return fmt.Errorf("only quarter and month are allowed, but received %s instead", periodType)
 	}
-	hist, err := MergedCoverage(c, GetCoverageDBClient(c), hdr.Namespace, periodType)
+	hist, err := MergedCoverage(c, getCoverageDBClient(c), hdr.Namespace, periodType)
 	if err != nil {
 		return err
 	}

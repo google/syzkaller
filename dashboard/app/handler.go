@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/html"
-	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/user"
 )
@@ -33,11 +32,7 @@ func handlerWrapper(fn contextHandler) http.Handler {
 
 func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := appengine.NewContext(r)
-		if coverageDBClient != nil { // Nil in prod.
-			c = SetCoverageDBClient(c, coverageDBClient)
-		}
-		c = context.WithValue(c, &currentURLKey, r.URL.RequestURI())
+		c := context.WithValue(r.Context(), &currentURLKey, r.URL.RequestURI())
 		authorizedUser, _ := userAccessLevel(currentUser(c), "", getConfig(c))
 		if !authorizedUser {
 			if !throttleRequest(c, w, r) {

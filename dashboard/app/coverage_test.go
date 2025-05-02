@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -16,6 +17,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/api/iterator"
 )
+
+func setCoverageDBClient(ctx context.Context, client spannerclient.SpannerClient) context.Context {
+	return context.WithValue(ctx, &keyCoverageDBClient, client)
+}
 
 func TestFileCoverage(t *testing.T) {
 	tests := []struct {
