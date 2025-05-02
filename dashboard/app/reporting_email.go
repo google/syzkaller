@@ -110,7 +110,9 @@ func (cfg *EmailConfig) Validate() error {
 // Assuming it is called June 15, the monthly report will cover April-May diff.
 func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	curHostPort := r.URL.Host
+	if coverageDBClient != nil { // initialized in prod deployment, nil in tests
+		ctx = SetCoverageDBClient(r.Context(), coverageDBClient)
+	}
 	targetDate := civil.DateOf(timeNow(ctx)).AddMonths(-1)
 	periods, err := coveragedb.GenNPeriodsTill(2, targetDate, "month")
 	if err != nil {
@@ -133,7 +135,7 @@ func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := sendNsCoverageReport(ctx, nsName, emailTo, curHostPort, periods, minDrop); err != nil {
+			if err := sendNsCoverageReport(ctx, nsName, emailTo, periods, minDrop); err != nil {
 				msg := fmt.Sprintf("error generating coverage report for ns '%s': %s", nsName, err.Error())
 				log.Errorf(ctx, "%s", msg)
 				return
@@ -143,7 +145,7 @@ func handleCoverageReports(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 }
 
-func sendNsCoverageReport(ctx context.Context, ns, email, domain string,
+func sendNsCoverageReport(ctx context.Context, ns, email string,
 	period []coveragedb.TimePeriod, minDrop int) error {
 	var days int
 	for _, p := range period {
@@ -169,7 +171,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email, domain string,
 		PeriodFromDays: period[0].Days,
 		PeriodTo:       periodTo,
 		PeriodToDays:   period[1].Days,
-		Link: fmt.Sprintf("https://%s%s", domain,
+		Link: fmt.Sprintf("%s%s", appURL(ctx),
 			coveragePageLink(ns, period[1].Type, period[1].DateTo.String(), minDrop, 2, true)),
 		Table: table,
 	}
