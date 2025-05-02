@@ -259,7 +259,7 @@ func TestPublicJSONAPI(t *testing.T) {
 }
 
 func TestWriteExtAPICoverageFor(t *testing.T) {
-	ctx := SetCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
+	ctx := setCoverageDBClient(context.Background(), fileFuncLinesDBFixture(t,
 		[]*coveragedb.FuncLines{
 			{
 				FilePath: "/file",

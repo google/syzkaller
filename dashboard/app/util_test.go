@@ -236,7 +236,7 @@ func (c *Ctx) setCoverageMocks(ns string, dbClientMock spannerclient.SpannerClie
 			ret.Coverage = &CoverageConfig{WebGitURI: "test-git"}
 			return &ret
 		})
-		ctxWithSpanner := SetCoverageDBClient(ctx, dbClientMock)
+		ctxWithSpanner := setCoverageDBClient(ctx, dbClientMock)
 		ctxWithSpannerAndFileProvider := setWebGit(ctxWithSpanner, fileProvMock)
 		return contextWithConfig(ctxWithSpannerAndFileProvider, newConfig)
 	}
