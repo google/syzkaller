@@ -143,7 +143,7 @@ func (c *client) DeleteFile(gcsFile string) error {
 		return err
 	}
 	err = c.client.Bucket(bucket).Object(filename).Delete(c.ctx)
-	if err == storage.ErrObjectNotExist {
+	if errors.Is(err, storage.ErrObjectNotExist) {
 		return ErrFileNotFound
 	}
 	return err
@@ -155,7 +155,7 @@ func (c *client) FileExists(gcsFile string) (bool, error) {
 		return false, err
 	}
 	_, err = c.client.Bucket(bucket).Object(filename).Attrs(c.ctx)
-	if err == storage.ErrObjectNotExist {
+	if errors.Is(err, storage.ErrObjectNotExist) {
 		return false, nil
 	} else if err != nil {
 		return false, err
