@@ -781,14 +781,13 @@ func initTarget(target *Target, OS, arch string) {
 }
 
 func (target *Target) defaultDataOffset() uint64 {
+	if target.Arch == ARM64 || target.Arch == ARM {
+		// On ARM/ARM64, in many cases we can't use many enough bits of the address space.
+		// Let's use the old value for now. It's also problematic (see #5770), but it's
+		// lesser of the two evils.
+		return 0x20000000
+	}
 	if target.PtrSize == 8 {
-		if target.Arch == ARM64 {
-			// On ARM64, in many cases we can't use many enough bits of the address space.
-			// Let's use the old value for now. It's also problematic (see #5770), but it's
-			// lesser of the two evils.
-			return 0x20000000
-		}
-
 		// An address from ASAN's 64-bit HighMem area.
 		// 0x200000000000 works both for arm64 and amd64. We don't run syzkaller tests on any other platform.
 		// During real fuzzing, we don't build with ASAN, so the address should not matter much as long as
