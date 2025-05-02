@@ -1,7 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package reporter
 
 import (
 	"errors"
@@ -12,51 +12,51 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
-type ReporterAPI struct {
+type APIServer struct {
 	service *service.ReportService
 }
 
-func NewReporterAPI(service *service.ReportService) *ReporterAPI {
-	return &ReporterAPI{service: service}
+func NewAPIServer(service *service.ReportService) *APIServer {
+	return &APIServer{service: service}
 }
 
-func (ra *ReporterAPI) Mux() *http.ServeMux {
+func (s *APIServer) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/reports/{report_id}/update", ra.updateReport)
-	mux.HandleFunc("/reports/{report_id}/upstream", ra.upstreamReport)
-	mux.HandleFunc("/reports/{report_id}/confirm", ra.confirmReport)
-	mux.HandleFunc("/reports", ra.nextReports)
+	mux.HandleFunc("/reports/{report_id}/update", s.updateReport)
+	mux.HandleFunc("/reports/{report_id}/upstream", s.upstreamReport)
+	mux.HandleFunc("/reports/{report_id}/confirm", s.confirmReport)
+	mux.HandleFunc("/reports", s.nextReports)
 	return mux
 }
 
 // nolint: dupl
-func (ra *ReporterAPI) updateReport(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) updateReport(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.UpdateReportReq](w, r)
 	if req == nil {
 		return // TODO: return StatusBadRequest here and below.
 	}
-	err := ra.service.Update(r.Context(), r.PathValue("report_id"), req)
+	err := s.service.Update(r.Context(), r.PathValue("report_id"), req)
 	reply[interface{}](w, nil, err)
 }
 
 // nolint: dupl
-func (ra *ReporterAPI) upstreamReport(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) upstreamReport(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.UpstreamReportReq](w, r)
 	if req == nil {
 		return
 	}
 	// TODO: journal the action.
-	err := ra.service.Upstream(r.Context(), r.PathValue("report_id"), req)
+	err := s.service.Upstream(r.Context(), r.PathValue("report_id"), req)
 	reply[interface{}](w, nil, err)
 }
 
-func (ra *ReporterAPI) nextReports(w http.ResponseWriter, r *http.Request) {
-	resp, err := ra.service.Next(r.Context(), r.FormValue("reporter"))
+func (s *APIServer) nextReports(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.service.Next(r.Context(), r.FormValue("reporter"))
 	reply(w, resp, err)
 }
 
-func (ra *ReporterAPI) confirmReport(w http.ResponseWriter, r *http.Request) {
-	err := ra.service.Confirm(r.Context(), r.PathValue("report_id"))
+func (s *APIServer) confirmReport(w http.ResponseWriter, r *http.Request) {
+	err := s.service.Confirm(r.Context(), r.PathValue("report_id"))
 	reply[interface{}](w, nil, err)
 }
 
