@@ -1,7 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package reporter
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func TestAPIReportFlow(t *testing.T) {
 
 	markSessionFinished(t, env, sessionID)
 
-	generator := newReportGenerator(env)
+	generator := NewGenerator(env)
 	err = generator.process(ctx, 1)
 	assert.NoError(t, err)
 
@@ -115,7 +115,7 @@ func TestAPIReportFlow(t *testing.T) {
 }
 
 func ReporterServer(t *testing.T, env *app.AppEnvironment) *api.ReporterClient {
-	apiServer := NewReporterAPI(service.NewReportService(env))
+	apiServer := NewAPIServer(service.NewReportService(env))
 	server := httptest.NewServer(apiServer.Mux())
 	t.Cleanup(server.Close)
 	return api.NewReporterClient(server.URL)
