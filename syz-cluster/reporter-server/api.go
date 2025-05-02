@@ -51,7 +51,7 @@ func (ra *ReporterAPI) upstreamReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ra *ReporterAPI) nextReports(w http.ResponseWriter, r *http.Request) {
-	resp, err := ra.service.Next(r.Context())
+	resp, err := ra.service.Next(r.Context(), r.FormValue("reporter"))
 	reply(w, resp, err)
 }
 

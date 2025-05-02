@@ -134,7 +134,8 @@ type SessionReport struct {
 	SessionID  string           `spanner:"SessionID"`
 	ReportedAt spanner.NullTime `spanner:"ReportedAt"`
 	Moderation bool             `spanner:"Moderation"`
-	Link       string           `spanner:"Link"`
+	MessageID  string           `spanner:"MessageID"`
+	Reporter   string           `spanner:"Reporter"`
 }
 
 func (s *SessionReport) SetReportedAt(t time.Time) {
