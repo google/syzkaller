@@ -33,10 +33,13 @@ func (repo *ReportRepository) Insert(ctx context.Context, rep *SessionReport) er
 	return repo.genericEntityOps.Insert(ctx, rep)
 }
 
-func (repo *ReportRepository) ListNotReported(ctx context.Context, limit int) ([]*SessionReport, error) {
+func (repo *ReportRepository) ListNotReported(ctx context.Context, reporter string,
+	limit int) ([]*SessionReport, error) {
 	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM `SessionReports` WHERE `ReportedAt` IS NULL",
-		Params: map[string]interface{}{},
+		SQL: "SELECT * FROM `SessionReports` WHERE `Reporter` = @reporter AND `ReportedAt` IS NULL",
+		Params: map[string]interface{}{
+			"reporter": reporter,
+		},
 	}
 	addLimit(&stmt, limit)
 	return repo.readEntities(ctx, stmt)

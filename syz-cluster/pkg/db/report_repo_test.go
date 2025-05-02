@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const dummyReporter = "abcd"
+
 func TestReportRepository(t *testing.T) {
 	client, ctx := NewTransientDB(t)
 	sessionRepo := NewSessionRepository(client)
@@ -28,13 +30,13 @@ func TestReportRepository(t *testing.T) {
 		err = sessionRepo.Insert(ctx, session)
 		assert.NoError(t, err)
 
-		report := &SessionReport{SessionID: session.ID}
+		report := &SessionReport{SessionID: session.ID, Reporter: dummyReporter}
 		err = reportRepo.Insert(ctx, report)
 		assert.NoError(t, err)
 		keys = append(keys, report.ID)
 	}
 
-	list, err := reportRepo.ListNotReported(ctx, 10)
+	list, err := reportRepo.ListNotReported(ctx, dummyReporter, 10)
 	assert.NoError(t, err)
 	assert.Len(t, list, 3)
 
@@ -45,7 +47,7 @@ func TestReportRepository(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Now one less.
-	list, err = reportRepo.ListNotReported(ctx, 10)
+	list, err = reportRepo.ListNotReported(ctx, dummyReporter, 10)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)
 }
@@ -105,7 +107,7 @@ func TestSessionsWithoutReports(t *testing.T) {
 
 	// Create a report for the first session.
 	reportRepo := NewReportRepository(client)
-	err = reportRepo.Insert(ctx, &SessionReport{SessionID: sessions[0].ID})
+	err = reportRepo.Insert(ctx, &SessionReport{SessionID: sessions[0].ID, Reporter: dummyReporter})
 	assert.NoError(t, err)
 
 	// Now only the second session must be returned.

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/syzkaller/syz-cluster/pkg/service"
@@ -74,6 +75,7 @@ func (rg *reportGenerator) process(ctx context.Context, limit int) error {
 		report := &db.SessionReport{
 			SessionID:  session.ID,
 			Moderation: true,
+			Reporter:   api.EmailReporter, // for now the only way
 		}
 		err := rg.reportRepo.Insert(ctx, report)
 		if err != nil {

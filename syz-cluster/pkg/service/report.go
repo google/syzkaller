@@ -31,11 +31,8 @@ func NewReportService(env *app.AppEnvironment) *ReportService {
 var ErrReportNotFound = errors.New("report is not found")
 
 func (rs *ReportService) Update(ctx context.Context, id string, req *api.UpdateReportReq) error {
-	// TODO: validate the link?
 	err := rs.reportRepo.Update(ctx, id, func(rep *db.SessionReport) error {
-		if req.Link != "" {
-			rep.Link = req.Link
-		}
+		rep.MessageID = req.MessageID
 		return nil
 	})
 	if errors.Is(err, db.ErrEntityNotFound) {
@@ -72,6 +69,7 @@ func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.Upstr
 	// prevent duplications.
 	err = rs.reportRepo.Insert(ctx, &db.SessionReport{
 		SessionID: rep.SessionID,
+		Reporter:  rep.Reporter,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to schedule a new report: %w", err)
@@ -79,8 +77,8 @@ func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.Upstr
 	return nil
 }
 
-func (rs *ReportService) Next(ctx context.Context) (*api.NextReportResp, error) {
-	list, err := rs.reportRepo.ListNotReported(ctx, 1)
+func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextReportResp, error) {
+	list, err := rs.reportRepo.ListNotReported(ctx, reporter, 1)
 	if err != nil {
 		return nil, err
 	} else if len(list) != 1 {

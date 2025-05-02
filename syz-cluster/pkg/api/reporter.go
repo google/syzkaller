@@ -5,6 +5,7 @@ package api
 
 import (
 	"context"
+	"net/url"
 	"strings"
 )
 
@@ -20,16 +21,19 @@ type NextReportResp struct {
 	Report *SessionReport `json:"report"`
 }
 
-func (client ReporterClient) GetNextReport(ctx context.Context) (*NextReportResp, error) {
-	return postJSON[any, NextReportResp](ctx, client.baseURL+"/reports", nil)
-}
+const EmailReporter = "email"
 
-// TODO: What to do if sending the report failed? Retry or mark as failed?
+func (client ReporterClient) GetNextReport(ctx context.Context, reporter string) (*NextReportResp, error) {
+	v := url.Values{}
+	v.Add("reporter", reporter)
+	return postJSON[any, NextReportResp](ctx, client.baseURL+"/reports?"+v.Encode(), nil)
+}
 
 type UpdateReportReq struct {
-	Link string `json:"link"`
+	MessageID string `json:"message_id"`
 }
 
+// UpdateReport may be used to remember the message ID and the link to the discussion.
 func (client ReporterClient) UpdateReport(ctx context.Context, id string, req *UpdateReportReq) error {
 	_, err := postJSON[UpdateReportReq, any](ctx, client.baseURL+"/reports/"+id+"/update", req)
 	return err
