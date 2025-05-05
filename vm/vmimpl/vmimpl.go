@@ -96,6 +96,11 @@ type BootError struct {
 }
 
 func MakeBootError(err error, output []byte) error {
+	if len(output) == 0 {
+		// In reports, it may be helpful to distinguish the case when the boot output
+		// was collected, but turned out to be empty.
+		output = []byte("<empty boot output>")
+	}
 	var verboseError *osutil.VerboseError
 	if errors.As(err, &verboseError) {
 		return BootError{verboseError.Title, append(verboseError.Output, output...)}
