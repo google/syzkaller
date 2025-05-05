@@ -37,7 +37,7 @@ func NewGenerator(env *app.AppEnvironment) *ReportGenerator {
 
 func (rg *ReportGenerator) Loop(ctx context.Context) {
 	for {
-		err := rg.process(ctx, generateReportsLimit)
+		err := rg.Process(ctx, generateReportsLimit)
 		if err != nil {
 			app.Errorf("failed to process reports: %v", err)
 		}
@@ -49,7 +49,7 @@ func (rg *ReportGenerator) Loop(ctx context.Context) {
 	}
 }
 
-func (rg *ReportGenerator) process(ctx context.Context, limit int) error {
+func (rg *ReportGenerator) Process(ctx context.Context, limit int) error {
 	list, err := rg.sessionRepo.MissingReportList(ctx,
 		time.Now().Add(-relevantReportAge), limit)
 	if err != nil {

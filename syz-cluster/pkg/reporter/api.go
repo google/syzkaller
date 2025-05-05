@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
@@ -72,4 +75,11 @@ func reply[T any](w http.ResponseWriter, obj T, err error) {
 		return
 	}
 	api.ReplyJSON[T](w, obj)
+}
+
+func TestServer(t *testing.T, env *app.AppEnvironment) *api.ReporterClient {
+	apiServer := NewAPIServer(service.NewReportService(env))
+	server := httptest.NewServer(apiServer.Mux())
+	t.Cleanup(server.Close)
+	return api.NewReporterClient(server.URL)
 }
