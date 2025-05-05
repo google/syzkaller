@@ -43,9 +43,15 @@ type syzos_api$x86[NUM, PAYLOAD] {
 	payload	PAYLOAD
 }
 
+syzos_api_cpuid {
+	eax	int32
+	ecx	int32
+}
+
 syzos_api_call$x86 [
 	uexit	syzos_api$x86[0, intptr]
 	code	syzos_api$x86[1, syzos_api_code$x86]
+	cpuid	syzos_api$x86[2, syzos_api_cpuid]
 ] [varlen]
 
 kvm_text_x86 [

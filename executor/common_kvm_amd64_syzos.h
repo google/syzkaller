@@ -21,6 +21,7 @@ extern char *__start_guest, *__stop_guest;
 typedef enum {
 	SYZOS_API_UEXIT,
 	SYZOS_API_CODE,
+	SYZOS_API_CPUID,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -39,8 +40,15 @@ struct api_call_code {
 	uint8 insns[];
 };
 
+struct api_call_cpuid {
+	struct api_call_header header;
+	uint32 eax;
+	uint32 ecx;
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint8* insns, uint64 size);
+static void guest_cpuid(uint32 eax, uint32 ecx);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -73,6 +81,10 @@ guest_main(uint64 size, uint64 cpu)
 			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
 			break;
 		}
+		case SYZOS_API_CPUID: {
+			struct api_call_cpuid* ccmd = (struct api_call_cpuid*)cmd;
+			guest_cpuid(ccmd->eax, ccmd->ecx);
+		}
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -93,4 +105,13 @@ GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)X86_ADDR_UEXIT;
 	*ptr = exit_code;
+}
+
+GUEST_CODE static noinline void guest_cpuid(uint32 eax, uint32 ecx)
+{
+	asm volatile(
+	    "cpuid\n"
+	    : // Currently ignore outputs
+	    : "a"(eax), "c"(ecx)
+	    : "rbx", "rdx");
 }
