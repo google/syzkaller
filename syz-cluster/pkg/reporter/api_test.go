@@ -4,17 +4,11 @@
 package reporter
 
 import (
-	"context"
-	"fmt"
-	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
-	"github.com/google/syzkaller/syz-cluster/pkg/db"
-	"github.com/google/syzkaller/syz-cluster/pkg/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,38 +17,14 @@ func TestAPIReportFlow(t *testing.T) {
 	client := controller.TestServer(t, env)
 
 	// Create series/session/test/findings.
-	_, sessionID := controller.UploadTestSeries(t, ctx, client, testSeries)
-	buildResp := controller.UploadTestBuild(t, ctx, client, &api.Build{
-		Arch:       "amd64",
-		TreeName:   "mainline",
-		ConfigName: "config",
-		CommitHash: "abcd",
-	})
-	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   sessionID,
-		BaseBuildID: buildResp.ID,
-		TestName:    "test",
-		Result:      api.TestRunning,
-	})
-	assert.NoError(t, err)
-	for i := 0; i < 2; i++ {
-		finding := &api.NewFinding{
-			SessionID: sessionID,
-			Title:     fmt.Sprintf("finding %d", i),
-			TestName:  "test",
-			Report:    []byte(fmt.Sprintf("report %d", i)),
-		}
-		err = client.UploadFinding(ctx, finding)
-		assert.NoError(t, err)
-	}
-
-	markSessionFinished(t, env, sessionID)
+	testSeries := controller.DummySeries()
+	controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
 
 	generator := NewGenerator(env)
-	err = generator.process(ctx, 1)
+	err := generator.Process(ctx, 1)
 	assert.NoError(t, err)
 
-	reportClient := ReporterServer(t, env)
+	reportClient := TestServer(t, env)
 	// The same report will be returned multiple times.
 	nextResp, err := reportClient.GetNextReport(ctx, api.EmailReporter)
 	assert.NoError(t, err)
@@ -77,6 +47,7 @@ func TestAPIReportFlow(t *testing.T) {
 				},
 			},
 		},
+		// These findings relate to controller.DummyFindings().
 		Findings: []*api.Finding{
 			{
 				Title:  "finding 0",
@@ -112,32 +83,4 @@ func TestAPIReportFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, nextResp3.Report.Moderation)
 	assert.Equal(t, nextResp2.Report.Series, nextResp3.Report.Series)
-}
-
-func ReporterServer(t *testing.T, env *app.AppEnvironment) *api.ReporterClient {
-	apiServer := NewAPIServer(service.NewReportService(env))
-	server := httptest.NewServer(apiServer.Mux())
-	t.Cleanup(server.Close)
-	return api.NewReporterClient(server.URL)
-}
-
-func markSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
-	repo := db.NewSessionRepository(env.Spanner)
-	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {
-		session.SetFinishedAt(time.Now())
-		return nil
-	})
-	assert.NoError(t, err)
-}
-
-var testSeries = &api.Series{
-	ExtID: "ext-id",
-	Title: "test series name",
-	Patches: []api.SeriesPatch{
-		{
-			Seq:   1,
-			Title: "first patch title",
-			Body:  []byte("first content"),
-		},
-	},
 }
