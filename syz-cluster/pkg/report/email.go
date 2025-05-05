@@ -9,25 +9,20 @@ import (
 	"html/template"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
-
-type Config struct {
-	Name         string
-	DocsLink     string
-	SupportEmail string
-}
 
 //go:embed template.txt
 var templateFS embed.FS
 
-func Render(rep *api.SessionReport, config *Config) ([]byte, error) {
+func Render(rep *api.SessionReport, config *app.EmailConfig) ([]byte, error) {
 	tmpl, err := template.ParseFS(templateFS, "template.txt")
 	if err != nil {
 		return nil, err
 	}
 	data := struct {
 		Report *api.SessionReport
-		Config *Config
+		Config *app.EmailConfig
 	}{
 		Report: rep,
 		Config: config,

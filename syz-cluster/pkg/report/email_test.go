@@ -12,13 +12,14 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/stretchr/testify/assert"
 )
 
 var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
 
 func TestRender(t *testing.T) {
-	config := &Config{
+	config := &app.EmailConfig{
 		Name:         "syzbot",
 		DocsLink:     "http://docs/link",
 		SupportEmail: "support@email.com",
