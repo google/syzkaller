@@ -161,8 +161,8 @@ var archConfigs = map[string]*archConfig{
 	},
 	"linux/arm": {
 		Qemu: "qemu-system-arm",
-		// The buildroot image we use does not boot with vexpress-a15/cortex-a15.
-		QemuArgs:               "-machine virt -cpu max -accel tcg,thread=multi",
+		// For some reason, new qemu-system-arm versions complain that "The only valid type is: cortex-a15".
+		QemuArgs:               "-machine vexpress-a15 -cpu cortex-a15 -accel tcg,thread=multi",
 		NetDev:                 "virtio-net-device",
 		RngDev:                 "virtio-rng-device",
 		UseNewQemuImageOptions: true,
