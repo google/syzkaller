@@ -40,7 +40,7 @@ case "$TARGETARCH" in
 esac
 
 git fetch origin
-git checkout 2022.08.2
+git checkout 2025.02.1
 
 make "${DEFCONFIG}"
 
@@ -121,15 +121,15 @@ BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
 BR2_LINUX_KERNEL_IMAGEGZ=y
 BR2_LINUX_KERNEL_GZIP=y
 BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_10=y
-BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="5.10"
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="5.10.235"
 BR2_ROOTFS_POST_IMAGE_SCRIPT="board/aarch64-efi/post-image.sh ./post_image_script.sh support/scripts/genimage.sh"
 BR2_ROOTFS_POST_SCRIPT_ARGS="-c ./custom-genimage-efi.cfg"
 EOF
 ;;
 	arm)
 		cat >>.config <<EOF
-BR2_cortex_a57=y
 # BR2_LINUX_KERNEL is not set
+BR2_cortex_a15_a7=y
 BR2_TARGET_ROOTFS_EXT2_4=y
 EOF
 ;;
@@ -154,6 +154,15 @@ EOF
 EOF
 ;;
 esac
+
+# Set syslogd level to "critical", otherwise we may get too many unrelated logs (see #5452).
+sed -i 's/SYSLOGD_ARGS=""$/SYSLOGD_ARGS="-l 2"/' package/busybox/S01syslogd
+
+# dhcpd version 10.1.0 fails to start in the presence of CONFIG_SECCOMP.
+sed -i 's/DHCPCD_VERSION = 10.1.0$/DHCPCD_VERSION = 10.2.0/' package/dhcpcd/dhcpcd.mk
+if ! grep -q "dhcpcd-10.2.0.tar.xz" package/dhcpcd/dhcpcd.hash; then
+  echo "sha256 7916fed1560835b5b9d70d27604c3858e501c5a177eef027f96eb7ab0f711399 dhcpcd-10.2.0.tar.xz" >> package/dhcpcd/dhcpcd.hash
+fi
 
 # This script modifies the target root filesystem
 # before it's packed into the final image.
