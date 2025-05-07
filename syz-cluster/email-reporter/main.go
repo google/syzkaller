@@ -30,7 +30,10 @@ func main() {
 	if cfg.EmailReporting == nil {
 		app.Fatalf("reporting is not configured: %v", err)
 	}
-	sender := &smtpSender{}
+	sender, err := newSender(ctx, cfg.EmailReporting)
+	if err != nil {
+		app.Fatalf("failed to create an SMTP sender: %s", err)
+	}
 	handler := &Handler{
 		apiClient:   app.DefaultReporterClient(),
 		emailConfig: cfg.EmailReporting,

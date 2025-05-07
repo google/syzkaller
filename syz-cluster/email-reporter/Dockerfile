@@ -6,7 +6,11 @@ WORKDIR /build
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
+COPY pkg/auth/ pkg/auth/
 COPY pkg/gcs/ pkg/gcs/
+COPY pkg/gce/ pkg/gce/
+COPY pkg/email/ pkg/email/
+COPY dashboard/dashapi/ dashboard/dashapi/
 
 # Build the tool.
 COPY syz-cluster/email-reporter/ syz-cluster/email-reporter/
