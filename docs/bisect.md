@@ -22,6 +22,7 @@ Create a config file with following lines adjusted for your environment:
 {
 	"bin_dir": "/home/syzkaller/bisect_bin",
 	"ccache": "/usr/bin/ccache",
+	"compiler_type": "gcc",
 	"kernel_repo": "git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git",
 	"kernel_branch": "master",
 	"syzkaller_repo": "https://github.com/google/syzkaller",
