@@ -72,8 +72,15 @@ GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
 # That's only needed if you use gdb or nm.
-# If you need that, build manually without these flags.
-GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X 'github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)'"
+# If you need that, build manually with DEBUG=true env.
+GLFLAGS :=
+GGFLAGS :=
+ifeq ("$(DEBUG)", "true")
+	GGFLAGS := -gcflags="all=-N -l"
+else
+	GLFLAGS := -s -w
+endif
+GOFLAGS := -ldflags="$(GLFLAGS) -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)" $(GGFLAGS)
 ifneq ("$(GOTAGS)", "")
 	GOFLAGS += " -tags=$(GOTAGS)"
 endif
