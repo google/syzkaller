@@ -341,6 +341,7 @@ type symbolInfo struct {
 }
 
 type pcRange struct {
+	// [start; end)
 	start uint64
 	end   uint64
 	unit  *CompileUnit
@@ -351,7 +352,32 @@ type pcFixFn = (func([2]uint64) ([2]uint64, bool))
 func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pcFixFn) (
 	[]pcRange, []*CompileUnit, error) {
 	var ranges []pcRange
-	var units []*CompileUnit
+	unitMap := map[string]*CompileUnit{}
+	addRange := func(r [2]uint64, fileName string) {
+		if pcFix != nil {
+			var filtered bool
+			r, filtered = pcFix(r)
+			if filtered {
+				return
+			}
+		}
+		unit, ok := unitMap[fileName]
+		if !ok {
+			unit = &CompileUnit{
+				ObjectUnit: ObjectUnit{
+					Name: fileName,
+				},
+				Module: module,
+			}
+			unitMap[fileName] = unit
+		}
+		if module.Name == "" {
+			ranges = append(ranges, pcRange{r[0], r[1], unit})
+		} else {
+			ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
+		}
+	}
+
 	for r := debugInfo.Reader(); ; {
 		ent, err := r.Next()
 		if err != nil {
@@ -363,39 +389,95 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 		if ent.Tag != dwarf.TagCompileUnit {
 			return nil, nil, fmt.Errorf("found unexpected tag %v on top level", ent.Tag)
 		}
-		attrName := ent.Val(dwarf.AttrName)
-		if attrName == nil {
+		attrName, ok := ent.Val(dwarf.AttrName).(string)
+		if !ok {
 			continue
 		}
-		unit := &CompileUnit{
-			ObjectUnit: ObjectUnit{
-				Name: attrName.(string),
-			},
-			Module: module,
-		}
-		units = append(units, unit)
-		ranges1, err := debugInfo.Ranges(ent)
-		if err != nil {
-			return nil, nil, err
-		}
+		attrCompDir, _ := ent.Val(dwarf.AttrCompDir).(string)
 
-		var filtered bool
-		for _, r := range ranges1 {
-			if pcFix != nil {
-				r, filtered = pcFix(r)
-				if filtered {
-					continue
-				}
+		const languageRust = 28
+		if language, ok := ent.Val(dwarf.AttrLanguage).(int64); ok && language == languageRust {
+			rawRanges, err := rustRanges(debugInfo, ent)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to query Rust PC ranges: %w", err)
 			}
-			if module.Name == "" {
-				ranges = append(ranges, pcRange{r[0], r[1], unit})
-			} else {
-				ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
+			for _, r := range rawRanges {
+				addRange([2]uint64{r.start, r.end}, r.file)
+			}
+		} else {
+			// Compile unit names are relative to the compilation dir,
+			// while per-line info isn't.
+			// Let's stick to the common approach.
+			unitName := filepath.Join(attrCompDir, attrName)
+			ranges1, err := debugInfo.Ranges(ent)
+			if err != nil {
+				return nil, nil, err
+			}
+			for _, r := range ranges1 {
+				addRange(r, unitName)
 			}
 		}
 		r.SkipChildren()
 	}
+	var units []*CompileUnit
+	for _, unit := range unitMap {
+		units = append(units, unit)
+	}
 	return ranges, units, nil
+}
+
+type rustRange struct {
+	// [start; end)
+	start uint64
+	end   uint64
+	file  string
+}
+
+func rustRanges(debugInfo *dwarf.Data, ent *dwarf.Entry) ([]rustRange, error) {
+	// For Rust, a single compilation unit may comprise all .rs files that belong to the crate.
+	// To properly render the coverage, we need to somehow infer the ranges that belong to
+	// those individual .rs files.
+	// For simplicity, let's create fake ranges by looking at the DWARF line information.
+	var ret []rustRange
+	lr, err := debugInfo.LineReader(ent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query line reader: %w", err)
+	}
+	var startPC uint64
+	var files []string
+	for {
+		var entry dwarf.LineEntry
+		if err = lr.Next(&entry); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, fmt.Errorf("failed to parse next line entry: %w", err)
+		}
+		if startPC == 0 || entry.Address != startPC {
+			for _, file := range files {
+				ret = append(ret, rustRange{
+					start: startPC,
+					end:   entry.Address,
+					file:  file,
+				})
+			}
+			files = files[:0]
+			startPC = entry.Address
+		}
+		// Keep on collecting file names that are covered by the range.
+		files = append(files, entry.File.Name)
+	}
+	if startPC != 0 {
+		// We don't know the end PC for these, but let's still add them to the ranges.
+		for _, file := range files {
+			ret = append(ret, rustRange{
+				start: startPC,
+				end:   startPC + 1,
+				file:  file,
+			})
+		}
+	}
+	return ret, nil
 }
 
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
