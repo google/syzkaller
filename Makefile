@@ -134,6 +134,7 @@ else
 	$(CXX) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
 		$(ADDCXXFLAGS) $(CXXFLAGS) $(LDFLAGS) -DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1 \
 		-DHOSTGOOS_$(HOSTOS)=1 -DGIT_REVISION=\"$(REV)\"
+	tools/check-postbuild.sh $(TARGETOS) $(TARGETARCH) ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) $(CXX)
 endif
 endif
 endif
