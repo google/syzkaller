@@ -34,8 +34,10 @@ func main() {
 	if err != nil {
 		app.Fatalf("failed to create an SMTP sender: %s", err)
 	}
+	reporterClient := app.DefaultReporterClient()
 	handler := &Handler{
-		apiClient:   app.DefaultReporterClient(),
+		reporter:    api.LKMLReporter,
+		apiClient:   reporterClient,
 		emailConfig: cfg.EmailReporting,
 		sender:      sender.Send,
 	}

@@ -127,6 +127,7 @@ func setupHandlerTest(t *testing.T, env *app.AppEnvironment, ctx context.Context
 
 	emailServer := makeFakeSender()
 	handler := &Handler{
+		reporter:    api.LKMLReporter,
 		apiClient:   reporter.TestServer(t, env),
 		emailConfig: testEmailConfig,
 		sender:      emailServer.send,

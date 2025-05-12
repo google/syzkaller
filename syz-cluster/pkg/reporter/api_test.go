@@ -26,9 +26,9 @@ func TestAPIReportFlow(t *testing.T) {
 
 	reportClient := TestServer(t, env)
 	// The same report will be returned multiple times.
-	nextResp, err := reportClient.GetNextReport(ctx, api.EmailReporter)
+	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
 	assert.NoError(t, err)
-	nextResp2, err := reportClient.GetNextReport(ctx, api.EmailReporter)
+	nextResp2, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
 	assert.NoError(t, err)
 	assert.Equal(t, nextResp2, nextResp)
 	// We don't know IDs in advance.
@@ -68,7 +68,7 @@ func TestAPIReportFlow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// It should no longer appear in Next().
-	emptyNext, err := reportClient.GetNextReport(ctx, api.EmailReporter)
+	emptyNext, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
 	assert.NoError(t, err)
 	assert.Nil(t, emptyNext.Report)
 
@@ -79,7 +79,7 @@ func TestAPIReportFlow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// It should appear again, now with Moderation=false.
-	nextResp3, err := reportClient.GetNextReport(ctx, api.EmailReporter)
+	nextResp3, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
 	assert.NoError(t, err)
 	assert.False(t, nextResp3.Report.Moderation)
 	assert.Equal(t, nextResp2.Report.Series, nextResp3.Report.Series)

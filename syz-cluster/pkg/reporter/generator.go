@@ -59,7 +59,7 @@ func (rg *ReportGenerator) Process(ctx context.Context, limit int) error {
 		report := &db.SessionReport{
 			SessionID:  session.ID,
 			Moderation: true,
-			Reporter:   api.EmailReporter,
+			Reporter:   api.LKMLReporter,
 		}
 		err := rg.reportRepo.Insert(ctx, report)
 		if err != nil {
