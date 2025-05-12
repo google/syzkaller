@@ -18,17 +18,21 @@
 // Start/end of the guest section.
 extern char *__start_guest, *__stop_guest;
 
+// Compilers will eagerly try to transform the switch statement in guest_main()
+// into a jump table, unless the cases are sparse enough.
+// We use prime numbers multiplied by 10 to prevent this behavior.
+// Remember these constants must match those in sys/linux/dev_kvm_arm64.txt.
 typedef enum {
-	SYZOS_API_UEXIT,
-	SYZOS_API_CODE,
-	SYZOS_API_MSR,
-	SYZOS_API_SMC,
-	SYZOS_API_HVC,
-	SYZOS_API_IRQ_SETUP,
-	SYZOS_API_MEMWRITE,
-	SYZOS_API_ITS_SETUP,
-	SYZOS_API_ITS_SEND_CMD,
-	SYZOS_API_MRS,
+	SYZOS_API_UEXIT = 0,
+	SYZOS_API_CODE = 10,
+	SYZOS_API_MSR = 20,
+	SYZOS_API_SMC = 30,
+	SYZOS_API_HVC = 50,
+	SYZOS_API_IRQ_SETUP = 70,
+	SYZOS_API_MEMWRITE = 110,
+	SYZOS_API_ITS_SETUP = 130,
+	SYZOS_API_ITS_SEND_CMD = 170,
+	SYZOS_API_MRS = 190,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
