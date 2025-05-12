@@ -34,6 +34,8 @@ type EmailConfig struct {
 	ModerationList string `yaml:"moderationList"`
 	// The list we listen on.
 	ArchiveList string `yaml:"archiveList"`
+	// Lore git archive to poll for incoming messages.
+	LoreArchiveURL string `yaml:"loreArchiveURL"`
 }
 
 // The project configuration is expected to be mounted at /config/config.yaml.

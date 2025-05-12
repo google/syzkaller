@@ -18,7 +18,7 @@ import (
 func TestModerationReportFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
 
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
@@ -61,7 +61,7 @@ func TestModerationReportFlow(t *testing.T) {
 func TestInvalidReply(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
 
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
@@ -117,7 +117,7 @@ Unknown command
 }
 
 func setupHandlerTest(t *testing.T, env *app.AppEnvironment, ctx context.Context,
-	series *api.Series) (*Handler, *fakeSender) {
+	series *api.Series) (*Handler, *api.ReporterClient, *fakeSender) {
 	client := controller.TestServer(t, env)
 	controller.FakeSeriesWithFindings(t, ctx, env, client, series)
 
@@ -126,13 +126,14 @@ func setupHandlerTest(t *testing.T, env *app.AppEnvironment, ctx context.Context
 	assert.NoError(t, err)
 
 	emailServer := makeFakeSender()
+	reporterClient := reporter.TestServer(t, env)
 	handler := &Handler{
 		reporter:    api.LKMLReporter,
-		apiClient:   reporter.TestServer(t, env),
+		apiClient:   reporterClient,
 		emailConfig: testEmailConfig,
 		sender:      emailServer.send,
 	}
-	return handler, emailServer
+	return handler, reporterClient, emailServer
 }
 
 type fakeSender struct {

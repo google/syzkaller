@@ -22,6 +22,8 @@ spec:
         volumeMounts:
           - name: config-volume
             mountPath: /config
+          - name: reporter-lore-disk
+            mountPath: /lore-repo
         resources:
           requests:
             cpu: 2
@@ -33,3 +35,6 @@ spec:
       - name: config-volume
         configMap:
           name: global-config
+      - name: reporter-lore-disk
+        persistentVolumeClaim:
+          claimName: reporter-lore-disk-claim
