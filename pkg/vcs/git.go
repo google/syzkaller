@@ -228,17 +228,18 @@ func (git *gitRepo) Contains(commit string) (bool, error) {
 	return err == nil, nil
 }
 
+const gitDateFormat = "Mon Jan 2 15:04:05 2006 -0700"
+
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
 	if len(lines) < 8 || len(lines[0]) != 40 {
 		return nil, fmt.Errorf("unexpected git log output: %q", output)
 	}
-	const dateFormat = "Mon Jan 2 15:04:05 2006 -0700"
-	date, err := time.Parse(dateFormat, string(lines[4]))
+	date, err := time.Parse(gitDateFormat, string(lines[4]))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
 	}
-	commitDate, err := time.Parse(dateFormat, string(lines[6]))
+	commitDate, err := time.Parse(gitDateFormat, string(lines[6]))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse date in git log output: %w\n%q", err, output)
 	}
@@ -346,19 +347,31 @@ func (git *gitRepo) GetCommitsByTitles(titles []string) ([]*Commit, []string, er
 	return results, missing, nil
 }
 
-func (git *gitRepo) ListCommitHashes(baseCommit string, from time.Time) ([]string, error) {
-	args := []string{"log", "--pretty=format:%h"}
-	if !from.IsZero() {
-		args = append(args, "--since", from.Format(time.RFC3339))
+func (git *gitRepo) LatestCommits(afterCommit string, afterDate time.Time) ([]CommitShort, error) {
+	args := []string{"log", "--pretty=format:%h:%cd"}
+	if !afterDate.IsZero() {
+		args = append(args, "--since", afterDate.Format(time.RFC3339))
 	}
-	output, err := git.Run(append(args, baseCommit)...)
+	if afterCommit != "" {
+		args = append(args, afterCommit+"..")
+	}
+	output, err := git.Run(args...)
 	if err != nil {
 		return nil, err
 	}
 	if len(output) == 0 {
 		return nil, nil
 	}
-	return strings.Split(string(output), "\n"), nil
+	var ret []CommitShort
+	for _, line := range strings.Split(string(output), "\n") {
+		hash, date, _ := strings.Cut(line, ":")
+		commitDate, err := time.Parse(gitDateFormat, date)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse date in %q: %w", line, err)
+		}
+		ret = append(ret, CommitShort{Hash: hash, CommitDate: commitDate})
+	}
+	return ret, nil
 }
 
 func (git *gitRepo) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {

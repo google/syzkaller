@@ -106,8 +106,8 @@ func (ctx *fuchsia) Contains(commit string) (bool, error) {
 	return ctx.repo.Contains(commit)
 }
 
-func (ctx *fuchsia) ListCommitHashes(baseCommit string, from time.Time) ([]string, error) {
-	return ctx.repo.ListCommitHashes(baseCommit, from)
+func (ctx *fuchsia) LatestCommits(afterCommit string, afterDate time.Time) ([]CommitShort, error) {
+	return ctx.repo.LatestCommits(afterCommit, afterDate)
 }
 
 func (ctx *fuchsia) Object(name, commit string) ([]byte, error) {
