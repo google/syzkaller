@@ -3,3 +3,4 @@
 
 resources:
 - deployment.yaml
+- lore-disk-pvc.yaml
