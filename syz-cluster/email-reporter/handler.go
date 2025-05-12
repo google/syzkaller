@@ -26,6 +26,7 @@ type EmailToSend struct {
 type SendEmailCb func(context.Context, *EmailToSend) (string, error)
 
 type Handler struct {
+	reporter    string
 	apiClient   *api.ReporterClient
 	emailConfig *app.EmailConfig
 	sender      SendEmailCb
@@ -46,7 +47,7 @@ func (h *Handler) PollReportsLoop(ctx context.Context, pollPeriod time.Duration)
 }
 
 func (h *Handler) PollAndReport(ctx context.Context) (*api.SessionReport, error) {
-	reply, err := h.apiClient.GetNextReport(ctx, api.EmailReporter)
+	reply, err := h.apiClient.GetNextReport(ctx, h.reporter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to poll the next report: %w", err)
 	} else if reply == nil || reply.Report == nil {

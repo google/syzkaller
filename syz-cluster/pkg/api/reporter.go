@@ -21,7 +21,7 @@ type NextReportResp struct {
 	Report *SessionReport `json:"report"`
 }
 
-const EmailReporter = "email"
+const LKMLReporter = "lkml"
 
 func (client ReporterClient) GetNextReport(ctx context.Context, reporter string) (*NextReportResp, error) {
 	v := url.Values{}
