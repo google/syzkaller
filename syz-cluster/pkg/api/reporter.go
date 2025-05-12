@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type ReporterClient struct {
@@ -52,4 +53,31 @@ type UpstreamReportReq struct {
 func (client ReporterClient) UpstreamReport(ctx context.Context, id string, req *UpstreamReportReq) error {
 	_, err := postJSON[UpstreamReportReq, any](ctx, client.baseURL+"/reports/"+id+"/upstream", req)
 	return err
+}
+
+type RecordReplyReq struct {
+	MessageID string    `json:"message_id"`
+	InReplyTo string    `json:"in_reply_to"`
+	Reporter  string    `json:"reporter"`
+	Time      time.Time `json:"time"`
+}
+
+type RecordReplyResp struct {
+	New      bool   `json:"new"`
+	ReportID string `json:"report_id"` // or empty, if no original message was found
+}
+
+func (client ReporterClient) RecordReply(ctx context.Context, req *RecordReplyReq) (*RecordReplyResp, error) {
+	return postJSON[RecordReplyReq, RecordReplyResp](ctx, client.baseURL+"/reports/record_reply", req)
+}
+
+type LastReplyResp struct {
+	Time time.Time `json:"time"`
+}
+
+// Returns nil if no reply has ever been recorded.
+func (client ReporterClient) LastReply(ctx context.Context, reporter string) (*LastReplyResp, error) {
+	v := url.Values{}
+	v.Add("reporter", reporter)
+	return postJSON[any, LastReplyResp](ctx, client.baseURL+"/reports/last_reply?"+v.Encode(), nil)
 }

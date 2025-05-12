@@ -31,6 +31,14 @@ func (d *dummyTestData) addSessionTest(session *Session, names ...string) {
 	}
 }
 
+func (d *dummyTestData) dummySeries() *Series {
+	seriesRepo := NewSeriesRepository(d.client)
+	series := &Series{ExtID: "series-ext-id"}
+	err := seriesRepo.Insert(d.ctx, series, nil)
+	assert.NoError(d.t, err)
+	return series
+}
+
 func (d *dummyTestData) dummySession(series *Series) *Session {
 	sessionRepo := NewSessionRepository(d.client)
 	session := &Session{
