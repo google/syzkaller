@@ -5,6 +5,7 @@ package reporter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -83,4 +84,81 @@ func TestAPIReportFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, nextResp3.Report.Moderation)
 	assert.Equal(t, nextResp2.Report.Series, nextResp3.Report.Series)
+}
+
+func TestReplyReporting(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+
+	// Create series/session/test/findings.
+	testSeries := controller.DummySeries()
+	controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
+
+	generator := NewGenerator(env)
+	err := generator.Process(ctx, 1)
+	assert.NoError(t, err)
+
+	// Create a report.
+	reportClient := TestServer(t, env)
+	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
+	assert.NoError(t, err)
+
+	// Confirm the report and set its message ID.
+	reportID := nextResp.Report.ID
+	err = reportClient.ConfirmReport(ctx, reportID)
+	assert.NoError(t, err)
+
+	err = reportClient.UpdateReport(ctx, reportID, &api.UpdateReportReq{
+		MessageID: "message-id",
+	})
+	assert.NoError(t, err)
+
+	// Direct reply to the report.
+	resp, err := reportClient.RecordReply(ctx, &api.RecordReplyReq{
+		MessageID: "direct-reply-id",
+		InReplyTo: "message-id",
+		Reporter:  api.LKMLReporter,
+		Time:      time.Now(),
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, &api.RecordReplyResp{
+		New:      true,
+		ReportID: reportID,
+	}, resp)
+
+	// Reply to the reply.
+	replyToReply := &api.RecordReplyReq{
+		MessageID: "reply-to-reply-id",
+		InReplyTo: "direct-reply-id",
+		Reporter:  api.LKMLReporter,
+		Time:      time.Now(),
+	}
+	resp, err = reportClient.RecordReply(ctx, replyToReply)
+	assert.NoError(t, err)
+	assert.Equal(t, &api.RecordReplyResp{
+		New:      true,
+		ReportID: reportID,
+	}, resp)
+
+	t.Run("dup-report", func(t *testing.T) {
+		resp, err := reportClient.RecordReply(ctx, replyToReply)
+		assert.NoError(t, err)
+		assert.Equal(t, &api.RecordReplyResp{
+			New:      false,
+			ReportID: reportID,
+		}, resp)
+	})
+
+	t.Run("unknown-message", func(t *testing.T) {
+		resp, err := reportClient.RecordReply(ctx, &api.RecordReplyReq{
+			MessageID: "whatever",
+			InReplyTo: "unknown-id",
+			Reporter:  api.LKMLReporter,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, &api.RecordReplyResp{
+			New:      false,
+			ReportID: "",
+		}, resp)
+	})
 }

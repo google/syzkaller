@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/reporter"
-	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
 func main() {
@@ -23,7 +22,7 @@ func main() {
 	generator := reporter.NewGenerator(env)
 	go generator.Loop(ctx)
 
-	api := reporter.NewAPIServer(service.NewReportService(env))
+	api := reporter.NewAPIServer(env)
 	log.Printf("listening on port 8080")
 	app.Fatalf("listen failed: %v", http.ListenAndServe(":8080", api.Mux()))
 }

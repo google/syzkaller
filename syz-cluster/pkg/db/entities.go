@@ -141,3 +141,9 @@ type SessionReport struct {
 func (s *SessionReport) SetReportedAt(t time.Time) {
 	s.ReportedAt = spanner.NullTime{Time: t, Valid: true}
 }
+
+type ReportReply struct {
+	MessageID string    `spanner:"MessageID"`
+	ReportID  string    `spanner:"ReportID"`
+	Time      time.Time `spanner:"Time"`
+}

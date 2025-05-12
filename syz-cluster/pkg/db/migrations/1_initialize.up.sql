@@ -100,14 +100,23 @@ CREATE UNIQUE INDEX NoDupFindings ON Findings(SessionID, TestName, Title);
 
 -- Session's bug reports.
 CREATE TABLE SessionReports (
-    ID STRING(36) NOT NULL, -- UUID??
+    ID STRING(36) NOT NULL, -- UUID
     SessionID STRING(36) NOT NULL, -- UUID
     ReportedAt TIMESTAMP,
     Moderation BOOL,
-    MessageID STRING(256),
+    MessageID STRING(512),
     Reporter STRING(256),
     CONSTRAINT FK_SessionReports FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
 ) PRIMARY KEY(ID);
 
 CREATE UNIQUE INDEX NoDupSessionReports ON SessionReports(SessionID, Moderation);
 CREATE INDEX SessionReportsByStatus ON SessionReports (Reporter, ReportedAt);
+CREATE INDEX SessionReportsByMessageID ON SessionReports(Reporter, MessageID);
+
+-- Replies on a session report.
+CREATE TABLE ReportReplies (
+    MessageID STRING(512) NOT NULL, -- Gmail sets a limit of 500 characters for Message-ID
+    ReportID STRING(36) NOT NULL, -- UUID
+    Time TIMESTAMP,
+    CONSTRAINT FK_ReplyReportID FOREIGN KEY (ReportID) REFERENCES SessionReports (ID),
+) PRIMARY KEY(MessageID, ReportID);
