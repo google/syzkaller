@@ -62,8 +62,10 @@ type Repo interface {
 	// (e.g. do CheckoutBranch before).
 	Contains(commit string) (bool, error)
 
-	// ListCommitHashes lists all commit hashes reachable from baseCommit.
-	ListCommitHashes(baseCommit string, from time.Time) ([]string, error)
+	// LatestCommits lists all latest commit hashes well as their commit dates.
+	// If afterCommit is specified, the output only includes the commits from which afterCommit is reachable.
+	// If afterDate is specified, the output only includes the newe commits.
+	LatestCommits(afterCommit string, afterDate time.Time) ([]CommitShort, error)
 
 	// Object returns the contents of a git repository object at the particular moment in history.
 	Object(name, commit string) ([]byte, error)
@@ -118,6 +120,11 @@ type Commit struct {
 	Date       time.Time
 	CommitDate time.Time
 	Patch      []byte
+}
+
+type CommitShort struct {
+	Hash       string
+	CommitDate time.Time
 }
 
 type RecipientType int

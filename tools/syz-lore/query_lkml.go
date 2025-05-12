@@ -123,7 +123,7 @@ func processArchives(dir string, emails, domains []string) []*lore.Thread {
 		g.Go(func() error {
 			defer wg.Done()
 			repo := vcs.NewLKMLRepo(path)
-			list, err := lore.ReadArchive(repo, time.Time{})
+			list, err := lore.ReadArchive(repo, "", time.Time{})
 			if err != nil {
 				return err
 			}

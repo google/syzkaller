@@ -13,12 +13,13 @@ import (
 )
 
 type EmailReader struct {
+	vcs.CommitShort
 	Read func() ([]byte, error)
 }
 
 // ReadArchive queries the parsed messages from a single LKML message archive.
-func ReadArchive(repo vcs.Repo, fromTime time.Time) ([]EmailReader, error) {
-	commits, err := repo.ListCommitHashes("HEAD", fromTime)
+func ReadArchive(repo vcs.Repo, afterCommit string, afterTime time.Time) ([]EmailReader, error) {
+	commits, err := repo.LatestCommits(afterCommit, afterTime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent commits: %w", err)
 	}
@@ -26,8 +27,9 @@ func ReadArchive(repo vcs.Repo, fromTime time.Time) ([]EmailReader, error) {
 	for _, iterCommit := range commits {
 		commit := iterCommit
 		ret = append(ret, EmailReader{
+			CommitShort: commit,
 			Read: func() ([]byte, error) {
-				return repo.Object("m", commit)
+				return repo.Object("m", commit.Hash)
 			},
 		})
 	}

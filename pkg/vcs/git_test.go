@@ -240,39 +240,30 @@ func TestContains(t *testing.T) {
 	}
 }
 
-func TestCommitHashes(t *testing.T) {
+func TestLatestCommits(t *testing.T) {
 	baseDir := t.TempDir()
 	repo := MakeTestRepo(t, baseDir)
 
 	repo.Git("checkout", "-b", "branch-a")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	repo.Git("checkout", "-b", "branch-b")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-	got, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 2 {
-		t.Fatalf("expected 2 commits")
-	}
+	got, err := repo.repo.LatestCommits("", time.Time{})
+	assert.NoError(t, err)
+	assert.Len(t, got, 2, "expected 2 commits")
 	for i, commit := range got {
-		if contained, _ := repo.repo.Contains(commit); !contained {
+		if contained, _ := repo.repo.Contains(commit.Hash); !contained {
 			t.Fatalf("commit %d is not contained", i)
 		}
 	}
 
-	// Now change HEAD.
-	repo.Git("checkout", "branch-a")
-	got, err = repo.repo.ListCommitHashes("HEAD", time.Time{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 {
-		t.Fatalf("expected 1 commit, got %d", len(got))
-	}
-	if contained, _ := repo.repo.Contains(got[0]); !contained {
-		t.Fatalf("commit in branch-b is not contained")
-	}
+	// Now ignore the first commit.
+	got2, err := repo.repo.LatestCommits(got[1].Hash, time.Time{})
+	assert.NoError(t, err)
+	assert.Len(t, got2, 1, "expected 1 commit")
+	assert.Equal(t, got2[0].Hash, got[0].Hash, "expected to see the HEAD commit")
+
+	// TODO: test the afterDate argument.
+	// It will require setting the GIT_COMMITTER_DATE env variable.
 }
 
 func TestObject(t *testing.T) {
@@ -293,7 +284,7 @@ func TestObject(t *testing.T) {
 	repo.Git("add", "object.txt")
 	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
 
-	commits, err := repo.repo.ListCommitHashes("HEAD", time.Time{})
+	commits, err := repo.repo.LatestCommits("", time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +292,7 @@ func TestObject(t *testing.T) {
 		t.Fatalf("expected 2 commits, got %d", len(commits))
 	}
 	// Verify file's contents at the first revision.
-	data, err := repo.repo.Object("object.txt", commits[1])
+	data, err := repo.repo.Object("object.txt", commits[1].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,14 +300,14 @@ func TestObject(t *testing.T) {
 		t.Fatal(diff)
 	}
 	// And at the second one.
-	data, err = repo.repo.Object("object.txt", commits[0])
+	data, err = repo.repo.Object("object.txt", commits[0].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(data, secondRev); diff != "" {
 		t.Fatal(diff)
 	}
-	com, err := repo.repo.Commit(commits[0])
+	com, err := repo.repo.Commit(commits[0].Hash)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
