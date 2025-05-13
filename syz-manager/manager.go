@@ -29,7 +29,6 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/log"
@@ -1376,7 +1375,7 @@ func (mgr *Manager) trackUsedFiles() {
 }
 
 func (mgr *Manager) dashboardReporter() {
-	webAddr := publicWebAddr(mgr.cfg.HTTP)
+	webAddr := mgrconfig.PublicWebAddr(mgr.cfg.HTTP)
 	triageInfoSent := false
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
@@ -1462,20 +1461,4 @@ func (mgr *Manager) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, er
 		pcs = append(pcs, pc)
 	}
 	return pcs, nil
-}
-
-func publicWebAddr(addr string) string {
-	if addr == "" {
-		return ""
-	}
-	_, port, err := net.SplitHostPort(addr)
-	if err == nil && port != "" {
-		if host, err := os.Hostname(); err == nil {
-			addr = net.JoinHostPort(host, port)
-		}
-		if GCE, err := gce.NewContext(""); err == nil {
-			addr = net.JoinHostPort(GCE.ExternalIP, port)
-		}
-	}
-	return "http://" + addr
 }
