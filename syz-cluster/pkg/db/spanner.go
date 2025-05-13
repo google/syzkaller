@@ -104,24 +104,29 @@ func dropSpannerDB(ctx context.Context, uri ParsedURI) error {
 //go:embed migrations/*.sql
 var migrationsFs embed.FS
 
-func RunMigrations(ctx context.Context, uri string) error {
-	sourceDriver, err := iofs.New(migrationsFs, "migrations")
+func RunMigrations(uri string) error {
+	m, err := getMigrateInstance(uri)
 	if err != nil {
 		return err
+	}
+	return m.Up()
+}
+
+func getMigrateInstance(uri string) (*migrate.Migrate, error) {
+	sourceDriver, err := iofs.New(migrationsFs, "migrations")
+	if err != nil {
+		return nil, err
 	}
 	s := &migrate_spanner.Spanner{}
 	dbDriver, err := s.Open("spanner://" + uri + "?x-clean-statements=true")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	m, err := migrate.NewWithInstance("iofs", sourceDriver, "spanner", dbDriver)
-	if err == migrate.ErrNoChange {
-		// This is not a problem.
-		return nil
-	} else if err != nil {
-		return err
+	if err != nil {
+		return nil, err
 	}
-	return m.Up()
+	return m, nil
 }
 
 func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
@@ -162,7 +167,7 @@ func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
 		t.Fatal(err)
 	}
 	t.Cleanup(client.Close)
-	err = RunMigrations(ctx, uri.Full)
+	err = RunMigrations(uri.Full)
 	if err != nil {
 		t.Fatal(err)
 	}

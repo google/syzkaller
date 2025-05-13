@@ -66,7 +66,7 @@ func main() {
 		switch os.Args[1] {
 		case "migrate":
 			log.Printf("running schema migrations")
-			err = db.RunMigrations(ctx, uri.Full)
+			err = db.RunMigrations(uri.Full)
 		case "run":
 			if len(os.Args) < 3 {
 				app.Fatalf("second argument is the SQL query to run")
