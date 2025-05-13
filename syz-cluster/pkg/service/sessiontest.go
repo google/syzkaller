@@ -39,24 +39,35 @@ func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) erro
 			TestName:  req.TestName,
 		}
 	}
-	logURI := entity.LogURI
-	if len(req.Log) > 0 {
-		logURI, err = s.uploadOrUpdate(ctx, logURI, bytes.NewReader(req.Log))
-		if err != nil {
-			return fmt.Errorf("failed to save the log: %w", err)
-		}
-	}
-	return s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) {
+	var logURI string
+	if err := s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) error {
 		test.Result = req.Result
 		test.UpdatedAt = time.Now()
-		test.LogURI = logURI
+		if len(req.Log) > 0 {
+			var err error
+			test.LogURI, err = s.blobStorage.NewURI()
+			if err != nil {
+				return err
+			}
+		}
+		logURI = test.LogURI
 		if req.BaseBuildID != "" {
 			test.BaseBuildID = spanner.NullString{StringVal: req.BaseBuildID, Valid: true}
 		}
 		if req.PatchedBuildID != "" {
 			test.PatchedBuildID = spanner.NullString{StringVal: req.PatchedBuildID, Valid: true}
 		}
-	})
+		return nil
+	}); err != nil {
+		return err
+	}
+	if logURI != "" {
+		err := s.blobStorage.Write(logURI, bytes.NewReader(req.Log))
+		if err != nil {
+			return fmt.Errorf("failed to save the log: %w", err)
+		}
+	}
+	return nil
 }
 
 func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testName string, reader io.Reader) error {
@@ -66,27 +77,22 @@ func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testN
 	} else if entity == nil {
 		return fmt.Errorf("the test has not been submitted yet")
 	}
-	newArchiveURI, err := s.uploadOrUpdate(ctx, entity.ArtifactsArchiveURI, reader)
-	if err != nil {
-		return fmt.Errorf("failed to save the artifacts archive: %w", err)
-	}
-	return s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) {
-		test.ArtifactsArchiveURI = newArchiveURI
-	})
-}
-
-func (s *SessionTestService) uploadOrUpdate(ctx context.Context, uri string, reader io.Reader) (string, error) {
-	if uri != "" {
-		err := s.blobStorage.Update(uri, reader)
-		if err != nil {
-			return "", fmt.Errorf("failed to update: %w", err)
+	var archiveURI string
+	if err := s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) error {
+		if test.ArtifactsArchiveURI == "" {
+			var err error
+			test.ArtifactsArchiveURI, err = s.blobStorage.NewURI()
+			if err != nil {
+				return err
+			}
 		}
-		return uri, nil
+		archiveURI = test.ArtifactsArchiveURI
+		return nil
+	}); err != nil {
+		return err
 	}
-	// TODO: it will leak if we fail to save the entity.
-	uri, err := s.blobStorage.Store(reader)
-	if err != nil {
-		return "", fmt.Errorf("failed to save: %w", err)
+	if err := s.blobStorage.Write(archiveURI, reader); err != nil {
+		return fmt.Errorf("failed to upload the archive: %w", err)
 	}
-	return uri, nil
+	return nil
 }

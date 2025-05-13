@@ -4,7 +4,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -66,7 +65,7 @@ func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*
 		for _, patch := range series.Patches {
 			// In case of errors, we will waste some space, but let's ignore it for simplicity.
 			// Patches are not super big.
-			uri, err := s.blobStorage.Store(bytes.NewReader(patch.Body))
+			uri, err := blob.StoreBytes(s.blobStorage, patch.Body)
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload patch body: %w", err)
 			}

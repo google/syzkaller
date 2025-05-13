@@ -4,6 +4,7 @@
 package blob
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -16,9 +17,9 @@ import (
 // Storage is not assumed to be used for partciularly large objects (e.g. GB of size),
 // but rather for blobs that risk overwhelming Spanner column size limits.
 type Storage interface {
-	// Store returns a URI to use later.
-	Store(source io.Reader) (string, error)
-	Update(key string, source io.Reader) error
+	// Returns a random URI to use later.
+	NewURI() (string, error)
+	Write(uri string, source io.Reader) error
 	Read(uri string) (io.ReadCloser, error)
 }
 
@@ -36,33 +37,20 @@ func NewLocalStorage(baseFolder string) *LocalStorage {
 
 const localStoragePrefix = "local://"
 
-func (ls *LocalStorage) Store(source io.Reader) (string, error) {
-	name := uuid.NewString()
-	err := ls.writeFile(name, source)
+func (ls *LocalStorage) NewURI() (string, error) {
+	key, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
-	return localStoragePrefix + name, nil
+	return localStoragePrefix + key.String(), nil
 }
 
-func (ls *LocalStorage) Update(uri string, source io.Reader) error {
-	if !strings.HasPrefix(uri, localStoragePrefix) {
-		return fmt.Errorf("unsupported URI type")
+func (ls *LocalStorage) Write(uri string, source io.Reader) error {
+	path, err := ls.uriToPath(uri)
+	if err != nil {
+		return err
 	}
-	return ls.writeFile(strings.TrimPrefix(uri, localStoragePrefix), source)
-}
-
-func (ls *LocalStorage) Read(uri string) (io.ReadCloser, error) {
-	if !strings.HasPrefix(uri, localStoragePrefix) {
-		return nil, fmt.Errorf("unsupported URI type")
-	}
-	// TODO: add some other URI validation checks?
-	path := filepath.Join(ls.baseFolder, strings.TrimPrefix(uri, localStoragePrefix))
-	return os.Open(path)
-}
-
-func (ls *LocalStorage) writeFile(name string, source io.Reader) error {
-	file, err := os.Create(filepath.Join(ls.baseFolder, name))
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -72,6 +60,21 @@ func (ls *LocalStorage) writeFile(name string, source io.Reader) error {
 		return fmt.Errorf("failed to save data: %w", err)
 	}
 	return nil
+}
+
+func (ls *LocalStorage) Read(uri string) (io.ReadCloser, error) {
+	path, err := ls.uriToPath(uri)
+	if err != nil {
+		return nil, err
+	}
+	return os.Open(path)
+}
+
+func (ls *LocalStorage) uriToPath(uri string) (string, error) {
+	if !strings.HasPrefix(uri, localStoragePrefix) {
+		return "", fmt.Errorf("unsupported URI type")
+	}
+	return filepath.Join(ls.baseFolder, strings.TrimPrefix(uri, localStoragePrefix)), nil
 }
 
 func ReadAllBytes(storage Storage, uri string) ([]byte, error) {
@@ -84,4 +87,16 @@ func ReadAllBytes(storage Storage, uri string) ([]byte, error) {
 	}
 	defer reader.Close()
 	return io.ReadAll(reader)
+}
+
+func StoreBytes(storage Storage, data []byte) (string, error) {
+	uri, err := storage.NewURI()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate URI: %w", err)
+	}
+	err = storage.Write(uri, bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	return uri, nil
 }
