@@ -4,6 +4,7 @@
 package bhyve
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -324,7 +325,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
@@ -360,9 +361,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	go func() {
 		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
+		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()

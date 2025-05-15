@@ -271,7 +271,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
@@ -340,9 +340,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	sshWpipe.Close()
 	merger.Add("ssh", sshRpipe)
 
-	return vmimpl.Multiplex(ssh, merger, timeout, vmimpl.MultiplexConfig{
+	return vmimpl.Multiplex(ctx, ssh, merger, vmimpl.MultiplexConfig{
 		Console: vmimpl.CmdCloser{Cmd: con},
-		Stop:    stop,
 		Close:   inst.closed,
 		Debug:   inst.debug,
 		Scale:   inst.timeouts.Scale,

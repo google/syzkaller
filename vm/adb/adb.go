@@ -7,6 +7,7 @@ package adb
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -521,7 +522,7 @@ func isRemoteCuttlefish(dev string) (bool, string) {
 	return true, ip
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	var tty io.ReadCloser
 	var err error
@@ -566,9 +567,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("console", tty)
 	merger.Add("adb", adbRpipe)
 
-	return vmimpl.Multiplex(adb, merger, timeout, vmimpl.MultiplexConfig{
+	return vmimpl.Multiplex(ctx, adb, merger, vmimpl.MultiplexConfig{
 		Console: tty,
-		Stop:    stop,
 		Close:   inst.closed,
 		Debug:   inst.debug,
 		Scale:   inst.timeouts.Scale,
