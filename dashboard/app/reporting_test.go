@@ -1413,7 +1413,6 @@ func TestCoverageRegression(t *testing.T) {
 Web version: `+wantLink+`
 
 Blocks diff,	Path
-       -100	
        -100	/file_name.c
 
 `, msg.Body)
