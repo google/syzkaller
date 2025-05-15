@@ -1,0 +1,11 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+  - RUST
+  - GENDWARFKSYMS: [-baseline]
+  - RUST_FW_LOADER_ABSTRACTIONS
+  - RUST_PHYLIB_ABSTRACTIONS
+  - BLK_DEV_RUST_NULL
+  - RUST_DEBUG_ASSERTIONS
+  - RUST_OVERFLOW_CHECKS
