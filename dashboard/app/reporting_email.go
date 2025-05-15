@@ -208,8 +208,10 @@ func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePerio
 		FilterMinCoveredLinesDrop: minDrop,
 	})
 	res := "Blocks diff,\tPath\n"
-	templData.Root.Visit(func(path string, summary int64) {
-		res += fmt.Sprintf("% 11d\t%s\n", summary, path)
+	templData.Root.Visit(func(path string, summary int64, isDir bool) {
+		if !isDir {
+			res += fmt.Sprintf("% 11d\t%s\n", summary, path)
+		}
 	})
 	return res, nil
 }

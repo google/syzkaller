@@ -145,9 +145,9 @@ func (thm *templateHeatmapRow) prepareDataFor(pageColumns []pageColumnTarget) {
 	}
 }
 
-func (thm *templateHeatmapRow) Visit(v func(string, int64), path ...string) {
+func (thm *templateHeatmapRow) Visit(v func(string, int64, bool), path ...string) {
 	curPath := append(path, thm.Name)
-	v(strings.Join(curPath, "/"), thm.Summary)
+	v(strings.Join(curPath, "/"), thm.Summary, thm.IsDir)
 	for _, item := range thm.Items {
 		item.Visit(v, curPath...)
 	}
