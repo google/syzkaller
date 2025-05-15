@@ -13,7 +13,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf software-properties-common \
 	# These are needed to build Linux kernel:
 	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 \
-	zlib1g-dev libelf-dev libncurses-dev libmpc-dev libssl-dev \
+	zlib1g-dev libncurses-dev libmpc-dev libssl-dev \
 	apt-transport-https curl gnupg python-is-python3 \
 	# Needed for building Cuttlefish images.
 	rsync libarchive-tools \
@@ -22,9 +22,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	util-linux dosfstools ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
 	exfatprogs gfs2-utils \
 	# Needed for buiding gVisor.
-	crossbuild-essential-amd64 crossbuild-essential-arm64 libbpf-dev \
-	# Needed for CONFIG_GENDWARFKSYMS.
-	libdw-dev
+	crossbuild-essential-amd64 crossbuild-essential-arm64 libbpf-dev
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
         DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	  libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-12-dev lib32stdc++-12-dev \
@@ -82,6 +80,20 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
     DEBIAN_FRONTEND=noninteractive apt-get install -t bookworm-backports -y -q \
     qemu-system-s390x qemu-system-mips qemu-system-ppc
+
+# Rust toolchain for kernel builds.
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+ENV RUST_VERSION=1.87.0
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $RUST_VERSION
+RUN rustup component add rust-src
+RUN cargo install --locked bindgen-cli
+
+# Use the latest libdw-dev release, otherwise we get compilation error when CONFIG_RUST=y.
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/bookworm-backports.list
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends libdw-dev/bookworm-backports libelf-dev/bookworm-backports
 
 # Install gcloud https://cloud.google.com/sdk/docs/install#deb.
 RUN apt-get install -y -q ca-certificates \
