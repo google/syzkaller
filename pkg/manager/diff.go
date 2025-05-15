@@ -573,6 +573,11 @@ type reproRunnerResult struct {
 	repro       *repro.Result
 }
 
+// Run executes the reproducer 3 times with slightly different options.
+// The objective is to verify whether the bug triggered by the reproducer affects the base kernel.
+// To avoid reporting false positives, the function does not require the kernel to crash with exactly
+// the same crash title as in the original crash report. Any single crash is accepted.
+// The result is sent back over the rr.done channel.
 func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 	pool := rr.kernel.pool
 	cnt := int(rr.running.Add(1))
@@ -583,17 +588,19 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 	}()
 
 	ret := reproRunnerResult{origReport: r.Report, repro: r}
-
-	var result *instance.RunResult
-	var err error
-	for i := 0; i < 3; i++ {
+	for doneRuns := 0; doneRuns < 3; {
+		if ctx.Err() != nil {
+			return
+		}
 		opts := r.Opts
 		opts.Repeat = true
-		if i == 0 || i == 1 {
+		if doneRuns < 2 {
 			// Two times out of 3, test with Threaded=true.
-			// The third time we leave it as is in case it was important.
+			// The third time we leave it as it was in the reproducer (in case it was important).
 			opts.Threaded = true
 		}
+		var err error
+		var result *instance.RunResult
 		runErr := pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 			var ret *instance.ExecProgInstance
 			ret, err = instance.SetupExecProg(inst, rr.kernel.cfg, rr.kernel.reporter, nil)
@@ -606,19 +613,23 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 				Opts:     opts,
 			})
 		})
+		logPrefix := fmt.Sprintf("attempt #%d to run %q on base", doneRuns, ret.origReport.Title)
 		if errors.Is(runErr, context.Canceled) {
-			break
+			// Just exit without sending anything over the channel.
+			log.Logf(1, "%s: aborting due to context cancelation", logPrefix)
+			return
+		} else if runErr != nil || err != nil {
+			log.Logf(1, "%s: skipping due to errors: %v / %v", logPrefix, runErr, err)
+			continue
 		}
-		crashed := result != nil && result.Report != nil
-		log.Logf(1, "attempt #%d to run %q on base: crashed=%v", i, ret.origReport.Title, crashed)
-		if crashed {
+		doneRuns++
+		if result != nil && result.Report != nil {
+			log.Logf(1, "%s: crashed with %s", logPrefix, result.Report.Title)
 			ret.crashReport = result.Report
 			break
+		} else {
+			log.Logf(1, "%s: did not crash", logPrefix)
 		}
-	}
-	if err != nil {
-		log.Errorf("failed to run repro: %v", err)
-		return
 	}
 	select {
 	case rr.done <- ret:
