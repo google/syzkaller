@@ -89,18 +89,19 @@ var (
 			"tomoyo-users-en@lists.osdn.me":       {},
 		},
 		extraSubsystems: map[string][]string{
-			"bfs":    {"BFS FILE SYSTEM"},
-			"exfat":  {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
-			"fuse":   {"FUSE: FILESYSTEM IN USERSPACE"},
-			"hfs":    {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
-			"isofs":  {"ISOFS FILESYSTEM"},
-			"kernfs": {"KERNFS"},
-			"udf":    {"UDF FILESYSTEM"},
-			"nfc":    {"NFC SUBSYSTEM"},
-			"iomap":  {"FILESYSTEMS [IOMAP]"},
-			"xfs":    {"XFS FILESYSTEM"},
-			"jffs2":  {"JOURNALLING FLASH FILE SYSTEM V2 (JFFS2)"},
-			"smc":    {"SHARED MEMORY COMMUNICATIONS (SMC) SOCKETS"}, // See #5838.
+			"bfs":     {"BFS FILE SYSTEM"},
+			"exfat":   {"EXFAT FILE SYSTEM", "VFAT/FAT/MSDOS FILESYSTEM"},
+			"fuse":    {"FUSE: FILESYSTEM IN USERSPACE"},
+			"hfs":     {"HFS FILESYSTEM", "HFSPLUS FILESYSTEM"},
+			"isofs":   {"ISOFS FILESYSTEM"},
+			"kernfs":  {"KERNFS"},
+			"udf":     {"UDF FILESYSTEM"},
+			"nfc":     {"NFC SUBSYSTEM"},
+			"iomap":   {"FILESYSTEMS [IOMAP]"},
+			"xfs":     {"XFS FILESYSTEM"},
+			"jffs2":   {"JOURNALLING FLASH FILE SYSTEM V2 (JFFS2)"},
+			"smc":     {"SHARED MEMORY COMMUNICATIONS (SMC) SOCKETS"}, // See #5838.
+			"kvm-x86": {"KERNEL VIRTUAL MACHINE FOR X86 (KVM/x86)"},
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
