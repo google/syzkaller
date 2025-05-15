@@ -11,6 +11,7 @@
 package cuttlefish
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -167,9 +168,9 @@ func (inst *instance) Close() error {
 	return inst.gceInst.Close()
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
-	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell 'cd %s; %s'", deviceRoot, command))
+	return inst.gceInst.Run(ctx, fmt.Sprintf("adb shell 'cd %s; %s'", deviceRoot, command))
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

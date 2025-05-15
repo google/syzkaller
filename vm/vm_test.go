@@ -5,6 +5,7 @@ package vm
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func (inst *testInstance) Forward(port int) (string, error) {
 	return "", nil
 }
 
-func (inst *testInstance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *testInstance) Run(ctx context.Context, command string) (
 	outc <-chan []byte, errc <-chan error, err error) {
 	return inst.outc, inst.errc, nil
 }
@@ -395,7 +396,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.BodyExecuting(testInst.outc, testInst.errc, inject)
 		done <- true
 	}()
-	_, rep, err := inst.Run(time.Second, reporter, "", opts...)
+	_, rep, err := inst.Run(context.Background(), reporter, "", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
