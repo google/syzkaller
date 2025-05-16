@@ -206,6 +206,9 @@ config:
  # Don't test/need this.
  - XEN: n
 
+ # Let's keep it enabled even for baseline builds as otherwise it blocks GENDWARFKSYMS and RUST.
+ - MODVERSIONS: [-allyes]
+
  # These are legacy gadget drivers that we don't reach/test and some of these break boot:
  # https://github.com/google/syzkaller/pull/1975#issuecomment-712807462
  - USB_G_NCM: n
