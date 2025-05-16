@@ -112,6 +112,19 @@ RUN chmod 0777 /syzkaller
 ENV SOURCEDIR_FUCHSIA /syzkaller/fuchsia
 ENV SOURCEDIR_NETBSD /syzkaller/netbsd
 
+# Latest Rust compiler.
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.86.0
+RUN rustup component add rust-src
+RUN cargo install --locked bindgen-cli
+
+# Use the latest libdw-dev release, otherwise we get compilation error when CONFIG_RUST=y.
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/bookworm-backports.list
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends libdw-dev/bookworm-backports libelf-dev/bookworm-backports
+
 # Install node to pass act jobs (https://github.com/nektos/act)
 RUN apt-get install -y -q nodejs
 
