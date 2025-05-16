@@ -5,6 +5,7 @@ package starnix
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -403,7 +404,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, fmt.Errorf("instance %s: can't push binary %s to instance over scp", inst.name, base)
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
@@ -430,8 +431,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 	wpipe.Close()
-	return vmimpl.Multiplex(cmd, inst.merger, timeout, vmimpl.MultiplexConfig{
-		Stop:  stop,
+	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,
 	})

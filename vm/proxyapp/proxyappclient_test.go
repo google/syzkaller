@@ -5,6 +5,7 @@ package proxyapp
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/rpc"
@@ -401,28 +402,13 @@ func TestInstance_Forward_Failure(t *testing.T) {
 	assert.Empty(t, remoteAddressToUse)
 }
 
-func TestInstance_Run_SimpleOk(t *testing.T) {
-	mockInstance, inst := createInstanceFixture(t)
-	mockInstance.
-		On("RunStart", mock.Anything, mock.Anything).
-		Return(nil).
-		On("RunReadProgress", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-
-	outc, errc, err := inst.Run(10*time.Second, make(chan bool), "command")
-	assert.NotNil(t, outc)
-	assert.NotNil(t, errc)
-	assert.Nil(t, err)
-}
-
 func TestInstance_Run_Failure(t *testing.T) {
 	mockInstance, inst := createInstanceFixture(t)
 	mockInstance.
 		On("RunStart", mock.Anything, mock.Anything).
 		Return(fmt.Errorf("run start error"))
 
-	outc, errc, err := inst.Run(10*time.Second, make(chan bool), "command")
+	outc, errc, err := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
 	assert.Nil(t, outc)
 	assert.Nil(t, errc)
 	assert.NotEmpty(t, err)
@@ -438,7 +424,7 @@ func TestInstance_Run_OnTimeout(t *testing.T) {
 		On("RunStop", mock.Anything, mock.Anything).
 		Return(nil)
 
-	_, errc, _ := inst.Run(time.Second, make(chan bool), "command")
+	_, errc, _ := inst.Run(contextWithTimeout(t, time.Second), "command")
 	err := <-errc
 
 	assert.Equal(t, err, vmimpl.ErrTimeout)
@@ -455,9 +441,9 @@ func TestInstance_Run_OnStop(t *testing.T) {
 		On("RunStop", mock.Anything, mock.Anything).
 		Return(nil)
 
-	stop := make(chan bool)
-	_, errc, _ := inst.Run(10*time.Second, stop, "command")
-	stop <- true
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_, errc, _ := inst.Run(ctx, "command")
+	cancel()
 	err := <-errc
 	assert.Equal(t, err, vmimpl.ErrTimeout)
 }
@@ -478,7 +464,7 @@ func TestInstance_RunReadProgress_OnErrorReceived(t *testing.T) {
 		Return(nil).
 		Once()
 
-	outc, _, _ := inst.Run(10*time.Second, make(chan bool), "command")
+	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
 	output := string(<-outc)
 
 	assert.Equal(t, "mock error\nSYZFAIL: proxy app plugin error\n", output)
@@ -500,7 +486,7 @@ func TestInstance_RunReadProgress_OnFinished(t *testing.T) {
 		Return(nil).
 		Once()
 
-	_, errc, _ := inst.Run(10*time.Second, make(chan bool), "command")
+	_, errc, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
 	err := <-errc
 
 	assert.Equal(t, err, nil)
@@ -519,7 +505,7 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 		Return(fmt.Errorf("runreadprogresserror")).
 		Once()
 
-	outc, _, _ := inst.Run(10*time.Second, make(chan bool), "command")
+	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
 	output := string(<-outc)
 
 	assert.Equal(t,
@@ -532,3 +518,9 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 //  [option] check pool size was changed
 
 // TODO: test pool.Close() calls plugin API and return error.
+
+func contextWithTimeout(t *testing.T, timeout time.Duration) context.Context {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	t.Cleanup(cancel)
+	return ctx
+}

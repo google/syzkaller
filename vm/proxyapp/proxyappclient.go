@@ -477,11 +477,7 @@ func buildMerger(names ...string) (*vmimpl.OutputMerger, []io.Writer) {
 	return merger, wPipes
 }
 
-func (inst *instance) Run(
-	timeout time.Duration,
-	stop <-chan bool,
-	command string,
-) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(ctx context.Context, command string) (<-chan []byte, <-chan error, error) {
 	merger, wPipes := buildMerger("stdout", "stderr", "console")
 	receivedStdoutChunks := wPipes[0]
 	receivedStderrChunks := wPipes[1]
@@ -502,7 +498,6 @@ func (inst *instance) Run(
 
 	runID := reply.RunID
 	terminationError := make(chan error, 1)
-	timeoutSignal := time.After(timeout)
 	signalClientErrorf := clientErrorf(receivedStderrChunks)
 
 	go func() {
@@ -531,11 +526,8 @@ func (inst *instance) Run(
 				} else {
 					continue
 				}
-			case <-timeoutSignal:
+			case <-ctx.Done():
 				// It is the happy path.
-				inst.runStop(runID)
-				terminationError <- vmimpl.ErrTimeout
-			case <-stop:
 				inst.runStop(runID)
 				terminationError <- vmimpl.ErrTimeout
 			}

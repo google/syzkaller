@@ -41,7 +41,9 @@ func (mgr *Manager) snapshotLoop(ctx context.Context, inst *vm.Instance) error {
 	// All network connections (including ssh) will break once we start restoring snapshots.
 	// So we start a background process and log to /dev/kmsg.
 	cmd := fmt.Sprintf("nohup %v exec snapshot 1>/dev/null 2>/dev/kmsg </dev/null &", executor)
-	if _, _, err := inst.Run(time.Hour, mgr.reporter, cmd); err != nil {
+	ctxTimeout, cancel := context.WithTimeout(ctx, time.Hour)
+	defer cancel()
+	if _, _, err := inst.Run(ctxTimeout, mgr.reporter, cmd); err != nil {
 		return err
 	}
 

@@ -253,7 +253,6 @@ const (
 	ExitError
 )
 
-type StopContext context.Context
 type InjectExecuting <-chan bool
 type OutputSize int
 
@@ -264,13 +263,11 @@ type EarlyFinishCb func()
 // and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
 // Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
 // Accepted options:
-//   - StopContext: the context to be used to prematurely stop the command
 //   - ExitCondition: says which exit modes should be considered as errors/OK
 //   - OutputSize: how much output to keep/return
-func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, command string, opts ...any) (
+func (inst *Instance) Run(ctx context.Context, reporter *report.Reporter, command string, opts ...any) (
 	[]byte, *report.Report, error) {
 	exit := ExitNormal
-	var stop <-chan bool
 	var injected <-chan bool
 	var finished func()
 	outputSize := beforeContextDefault
@@ -278,24 +275,17 @@ func (inst *Instance) Run(timeout time.Duration, reporter *report.Reporter, comm
 		switch opt := o.(type) {
 		case ExitCondition:
 			exit = opt
-		case StopContext:
-			stopCh := make(chan bool)
-			go func() {
-				<-opt.Done()
-				close(stopCh)
-			}()
-			stop = stopCh
 		case OutputSize:
 			outputSize = int(opt)
 		case InjectExecuting:
-			injected = (<-chan bool)(opt)
+			injected = opt
 		case EarlyFinishCb:
 			finished = opt
 		default:
 			panic(fmt.Sprintf("unknown option %#v", opt))
 		}
 	}
-	outc, errc, err := inst.impl.Run(timeout, stop, command)
+	outc, errc, err := inst.impl.Run(ctx, command)
 	if err != nil {
 		return nil, nil, err
 	}

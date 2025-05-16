@@ -5,6 +5,7 @@ package isolated
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -311,7 +312,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	args := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, inst.cfg.SystemSSHCfg),
 		inst.User+"@"+inst.Addr)
@@ -354,9 +355,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("dmesg", dmesg)
 	merger.Add("ssh", rpipe)
 
-	return vmimpl.Multiplex(cmd, merger, timeout, vmimpl.MultiplexConfig{
+	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,
-		Stop:    stop,
 		Close:   inst.closed,
 		Debug:   inst.debug,
 		Scale:   inst.timeouts.Scale,

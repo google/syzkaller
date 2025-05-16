@@ -652,8 +652,10 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, inj
 		return nil, nil, fmt.Errorf("failed to parse manager's address")
 	}
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
-	_, rep, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.reporter, cmd,
-		vm.ExitTimeout, vm.StopContext(ctx), vm.InjectExecuting(injectExec),
+	ctxTimeout, cancel := context.WithTimeout(ctx, mgr.cfg.Timeouts.VMRunningTime)
+	defer cancel()
+	_, rep, err := inst.Run(ctxTimeout, mgr.reporter, cmd,
+		vm.ExitTimeout, vm.InjectExecuting(injectExec),
 		finishCb,
 	)
 	if err != nil {

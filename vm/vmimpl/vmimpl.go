@@ -8,6 +8,7 @@
 package vmimpl
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -47,8 +48,8 @@ type Instance interface {
 	// Run runs cmd inside of the VM (think of ssh cmd).
 	// outc receives combined cmd and kernel console output.
 	// errc receives either command Wait return error or vmimpl.ErrTimeout.
-	// Command is terminated after timeout. Send on the stop chan can be used to terminate it earlier.
-	Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error)
+	// Command terminates with context. Use context.WithTimeout to terminate it earlier.
+	Run(ctx context.Context, command string) (outc <-chan []byte, errc <-chan error, err error)
 
 	// Diagnose retrieves additional debugging info from the VM
 	// (e.g. by sending some sys-rq's or SIGABORT'ing a Go program).
@@ -170,14 +171,13 @@ var WaitForOutputTimeout = 10 * time.Second
 
 type MultiplexConfig struct {
 	Console     io.Closer
-	Stop        <-chan bool
 	Close       <-chan bool
 	Debug       bool
 	Scale       time.Duration
 	IgnoreError func(err error) bool
 }
 
-func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, config MultiplexConfig) (
+func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config MultiplexConfig) (
 	<-chan []byte, <-chan error, error) {
 	if config.Scale <= 0 {
 		panic("slowdown must be set")
@@ -191,9 +191,7 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, timeout time.Duration, confi
 	}
 	go func() {
 		select {
-		case <-time.After(timeout):
-			signal(ErrTimeout)
-		case <-config.Stop:
+		case <-ctx.Done():
 			signal(ErrTimeout)
 		case <-config.Close:
 			if config.Debug {

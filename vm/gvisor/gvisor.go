@@ -7,6 +7,7 @@ package gvisor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -286,7 +287,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return filepath.Join("/", fname), nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+func (inst *instance) Run(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	args := []string{"exec", "-user=0:0"}
 	for _, c := range sandboxCaps {
@@ -327,9 +328,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	go func() {
 		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
+		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()

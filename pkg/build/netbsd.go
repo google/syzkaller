@@ -4,6 +4,7 @@
 package build
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -155,7 +156,9 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	}
 	commands = append(commands, "mknod /dev/vhci c 355 0")
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
-	_, rep, err := inst.Run(time.Minute, reporter, strings.Join(commands, ";"))
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	_, rep, err := inst.Run(ctxTimeout, reporter, strings.Join(commands, ";"))
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %w", err)
 	}

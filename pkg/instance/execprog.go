@@ -4,6 +4,7 @@
 package instance
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -123,7 +124,9 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 	if inst.BeforeContextLen != 0 {
 		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
 	}
-	output, rep, err := inst.VMInstance.Run(duration, inst.reporter, command, opts...)
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), duration)
+	defer cancel()
+	output, rep, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}
