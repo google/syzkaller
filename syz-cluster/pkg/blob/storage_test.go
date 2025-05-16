@@ -9,20 +9,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLocalStorage(t *testing.T) {
 	storage := NewLocalStorage(t.TempDir())
 	var uris []string
 	for i := 0; i < 2; i++ {
+		uri, err := storage.NewURI()
+		require.NoError(t, err)
 		content := fmt.Sprintf("object #%d", i)
-		uri, err := storage.Store(bytes.NewReader([]byte(content)))
-		assert.NoError(t, err)
+		err = storage.Write(uri, bytes.NewReader([]byte(content)))
+		require.NoError(t, err)
 		uris = append(uris, uri)
 	}
 	for i, uri := range uris {
 		readBytes, err := ReadAllBytes(storage, uri)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.EqualValues(t, fmt.Sprintf("object #%d", i), readBytes)
 	}
 	_, err := storage.Read(localStoragePrefix + "abcdef")

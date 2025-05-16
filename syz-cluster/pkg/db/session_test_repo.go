@@ -22,7 +22,7 @@ func NewSessionTestRepository(client *spanner.Client) *SessionTestRepository {
 
 // If the beforeSave callback is specified, it will be called before saving the entity.
 func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *SessionTest,
-	beforeSave func(*SessionTest)) error {
+	beforeSave func(*SessionTest) error) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			// Check if the test already exists.
@@ -41,7 +41,10 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 			_, iterErr := iter.Next()
 			if iterErr == nil {
 				if beforeSave != nil {
-					beforeSave(test)
+					err := beforeSave(test)
+					if err != nil {
+						return err
+					}
 				}
 				m, err := spanner.UpdateStruct("SessionTests", test)
 				if err != nil {
@@ -52,7 +55,10 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 				return iterErr
 			} else {
 				if beforeSave != nil {
-					beforeSave(test)
+					err := beforeSave(test)
+					if err != nil {
+						return err
+					}
 				}
 				m, err := spanner.InsertStruct("SessionTests", test)
 				if err != nil {
