@@ -87,6 +87,9 @@ k8s-config-gke: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-w
 migrate-job.yaml: ensure-spanner-database-uri-env
 	@cat db-mgmt/migrate-job.yaml | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst
 
+fetch-kernels-once.yaml:
+	@cat kernel-disk/fetch-kernels-once.yaml
+
 ensure-spanner-database-uri-env:
 	@if [ -z "${SPANNER_DATABASE_URI}" ]; then \
                 echo "Error: SPANNER_DATABASE_URI must be defined."; \
