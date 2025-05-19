@@ -21,6 +21,8 @@ $ make build-all
 ```
 $ make restart-spanner
 $ kubectl create namespace argo
+$ make k8s-config-argo | kubectl apply -f -
+$ make k8s-config-argo-wait
 $ make k8s-config-dev | kubectl apply -f -
 ```
 5. (Optional) Pre-fetch the kernel git repository:

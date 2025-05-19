@@ -2,15 +2,9 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 resources:
-  - service-accounts.yaml
-  - kernel-disk-pvc.yaml
-  - ../common/argo
-  - ../common
-  - global-config.yaml
-  - global-config-env.yaml
-  - fake-gcs.yaml
-  - network-policy-spanner.yaml
-  - workflow-artifacts.yaml
+  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
+  - workflow-roles.yaml
 
 patchesStrategicMerge:
+  - patch-argo-controller.yaml
   - patch-workflow-controller-configmap.yaml

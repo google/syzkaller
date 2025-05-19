@@ -2,7 +2,6 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 resources:
-  - https://github.com/argoproj/argo-workflows/releases/download/v3.6.2/install.yaml
   - ../../controller
   - ../../dashboard
   - ../../series-tracker
@@ -13,11 +12,6 @@ resources:
   - network-policy-controller.yaml
   - network-policy-git-access.yaml
   - network-policy-web-dashboard.yaml
-  - workflow-roles.yaml
-
-patchesStrategicMerge:
-  - patch-argo-controller.yaml
-  - patch-workflow-controller-configmap.yaml
 
 patches:
   - target:
