@@ -64,8 +64,19 @@ restart-spanner: build-db-mgmt
 	minikube addons enable cloud-spanner;
 	./run-local.sh db-mgmt migrate
 
-
 SUBSTITUTE_VARS := '$$IMAGE_PREFIX $$IMAGE_TAG $$SPANNER_DATABASE_URI $$BLOB_STORAGE_GCS_BUCKET $$WORKFLOW_ARTIFACTS_BUCKET'
+
+# It takes some time for K8S to set up Argo CRDs, so if we `kubectl apply` everything at once, it will not
+# work on the first attempt.
+# The following two targets facilitate CI/CD:
+# - k8s-config-argo installs Argo workflows.
+# - k8s-config-argo-wait awaits untill all CRDs are ready.
+k8s-config-argo:
+	@kubectl kustomize ./overlays/common/argo/
+
+k8s-config-argo-wait:
+	@kubectl wait --for condition=established --timeout=60s crd/cronworkflows.argoproj.io
+	@kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
 
 k8s-config-dev:
 	@kubectl kustomize ./overlays/minikube/ | IMAGE_PREFIX=${IMAGE_PREFIX} IMAGE_TAG=${IMAGE_TAG} envsubst ${SUBSTITUTE_VARS}
