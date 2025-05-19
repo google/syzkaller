@@ -1,0 +1,152 @@
+TITLE: KASAN: slab-use-after-free Read in chrdev_open
+ALT: bad-access in chrdev_open
+TYPE: KASAN
+
+==================================================================
+BUG: KASAN: slab-use-after-free in __list_add_valid_or_report+0x16a/0x1a0
+Read of size 8 at addr ffff888012acfc20 by task syz-executor311/9489
+
+CPU: 0 UID: 0 PID: 9489 Comm: syz-executor311 Not tainted 6.15.0-rc1 #1 PREEMPT(full) 
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1ubuntu1.1 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x116/0x1b0
+ print_report+0xc1/0x630
+ kasan_report+0x96/0xd0
+ __list_add_valid_or_report+0x16a/0x1a0
+ chrdev_open+0x3a7/0x590
+ do_dentry_open+0x786/0x1c90
+ vfs_open+0x82/0x3f0
+ path_openat+0x1f75/0x2980
+ do_filp_open+0x1f9/0x2f0
+ do_sys_openat2+0x4e3/0x710
+ do_sys_open+0xc6/0x150
+ __x64_sys_openat+0x9d/0x110
+ do_syscall_64+0xcf/0x260
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fe80723d76d
+Code: c3 e8 17 2d 00 00 0f 1f 80 00 00 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 c0 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe67327788 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
+RAX: ffffffffffffffda RBX: 0030656c69662f2e RCX: 00007fe80723d76d
+RDX: 0000000000000000 RSI: 0000000020002140 RDI: ffffffffffffff9c
+RBP: 0000000000000003 R08: 00007ffe67327ca9 R09: 00007ffe67327ca9
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe673277ac
+R13: 00007ffe673277d0 R14: 00007ffe673277b0 R15: 0000000000000001
+ </TASK>
+
+Allocated by task 9483:
+ kasan_save_stack+0x24/0x50
+ kasan_save_track+0x14/0x30
+ __kasan_slab_alloc+0x87/0x90
+ kmem_cache_alloc_lru_noprof+0x165/0x4a0
+ ntfs_alloc_inode+0x27/0x80
+ alloc_inode+0x67/0x1f0
+ new_inode+0x16/0x40
+ ntfs_new_inode+0x44/0x110
+ ntfs_create_inode+0x3e5/0x4200
+ ntfs_mknod+0x3c/0x50
+ vfs_mknod+0x5f3/0x900
+ do_mknodat+0x377/0x540
+ __x64_sys_mknodat+0xb0/0xe0
+ do_syscall_64+0xcf/0x260
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+Freed by task 15:
+ kasan_save_stack+0x24/0x50
+ kasan_save_track+0x14/0x30
+ kasan_save_free_info+0x3a/0x60
+ __kasan_slab_free+0x54/0x70
+ kmem_cache_free+0x14d/0x550
+ i_callback+0x46/0x70
+ rcu_core+0x7a4/0x1660
+ handle_softirqs+0x1be/0x850
+ run_ksoftirqd+0x3a/0x60
+ smpboot_thread_fn+0x3d2/0xaa0
+ kthread+0x447/0x8a0
+ ret_from_fork+0x48/0x80
+ ret_from_fork_asm+0x1a/0x30
+
+Last potentially related work creation:
+ kasan_save_stack+0x24/0x50
+ kasan_record_aux_stack+0xb0/0xc0
+ __call_rcu_common.constprop.0+0x99/0x820
+ destroy_inode+0x12b/0x1b0
+ evict+0x4d2/0x830
+ iput+0x513/0x820
+ dentry_unlink_inode+0x2cd/0x4c0
+ __dentry_kill+0x186/0x5b0
+ shrink_dentry_list+0x13d/0x650
+ shrink_dcache_parent+0x1c4/0x590
+ do_one_tree+0x11/0x50
+ shrink_dcache_for_umount+0x95/0x1c0
+ generic_shutdown_super+0x6c/0x390
+ kill_block_super+0x3b/0x90
+ ntfs3_kill_sb+0x40/0xf0
+ deactivate_locked_super+0xbb/0x130
+ deactivate_super+0xb1/0xd0
+ cleanup_mnt+0x378/0x510
+ task_work_run+0x172/0x280
+ syscall_exit_to_user_mode+0x29e/0x2a0
+ do_syscall_64+0xdc/0x260
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+The buggy address belongs to the object at ffff888012acf580
+ which belongs to the cache ntfs_inode_cache of size 1752
+The buggy address is located 1696 bytes inside of
+ freed 1752-byte region [ffff888012acf580, ffff888012acfc58)
+
+The buggy address belongs to the physical page:
+page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x12ac8
+head: order:3 mapcount:0 entire_mapcount:0 nr_pages_mapped:0 pincount:0
+memcg:ffff88801f47ab01
+flags: 0xfff00000000040(head|node=0|zone=1|lastcpupid=0x7ff)
+page_type: f5(slab)
+raw: 00fff00000000040 ffff88801f352c80 dead000000000122 0000000000000000
+raw: 0000000000000000 0000000000110011 00000000f5000000 ffff88801f47ab01
+head: 00fff00000000040 ffff88801f352c80 dead000000000122 0000000000000000
+head: 0000000000000000 0000000000110011 00000000f5000000 ffff88801f47ab01
+head: 00fff00000000003 ffffea00004ab201 00000000ffffffff 00000000ffffffff
+head: ffffffffffffffff 0000000000000000 00000000ffffffff 0000000000000008
+page dumped because: kasan: bad access detected
+page_owner tracks the page as allocated
+page last allocated via order 3, migratetype Reclaimable, gfp_mask 0xd2050(__GFP_RECLAIMABLE|__GFP_IO|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP|__GFP_NOMEMALLOC), pid 9483, tgid 9483 (syz-executor311), ts 123154831134, free_ts 103166767187
+ prep_new_page+0x1b0/0x1e0
+ get_page_from_freelist+0x1649/0x30f0
+ __alloc_frozen_pages_noprof+0x2fd/0x6d0
+ alloc_pages_mpol+0x209/0x550
+ new_slab+0x24b/0x340
+ ___slab_alloc+0xf0c/0x17c0
+ __slab_alloc.isra.0+0x56/0xb0
+ kmem_cache_alloc_lru_noprof+0x272/0x4a0
+ ntfs_alloc_inode+0x27/0x80
+ alloc_inode+0x67/0x1f0
+ iget5_locked+0x5f/0xa0
+ ntfs_iget5+0xda/0x3a10
+ ntfs_fill_super+0x1abd/0x3f10
+ get_tree_bdev_flags+0x38a/0x620
+ vfs_get_tree+0x93/0x340
+ path_mount+0x1270/0x1b90
+page last free pid 6892 tgid 6892 stack trace:
+ __free_frozen_pages+0x7cd/0x1320
+ __put_partials+0x14c/0x170
+ qlist_free_all+0x50/0x130
+ kasan_quarantine_reduce+0x168/0x1c0
+ __kasan_slab_alloc+0x67/0x90
+ __kmalloc_noprof+0x1c8/0x600
+ tomoyo_realpath_from_path+0xc3/0x600
+ tomoyo_path_perm+0x235/0x440
+ security_inode_getattr+0x122/0x2b0
+ vfs_getattr+0x26/0x70
+ vfs_fstat+0x50/0xa0
+ __do_sys_newfstat+0x83/0x100
+ do_syscall_64+0xcf/0x260
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+Memory state around the buggy address:
+ ffff888012acfb00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffff888012acfb80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+>ffff888012acfc00: fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc fc
+                               ^
+ ffff888012acfc80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+ ffff888012acfd00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+==================================================================
