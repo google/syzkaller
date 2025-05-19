@@ -11,7 +11,3 @@ data:
     loreArchives:
       - netdev
       - linux-ext4
-    emailReporting:
-      name: test-name
-      docs: http://docs/
-      supportEmail: name@email.com
