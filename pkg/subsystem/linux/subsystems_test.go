@@ -236,7 +236,6 @@ var (
 	testRules = &customRules{
 		subsystemCalls: map[string][]string{
 			"ext4":  {"syz_mount_image$ext4"},
-			"vxfs":  {"syz_mount_image$vxfs"},
 			"tmpfs": {"syz_mount_image$tmpfs"},
 		},
 		extraSubsystems: map[string][]string{

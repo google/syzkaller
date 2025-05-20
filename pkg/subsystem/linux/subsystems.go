@@ -141,6 +141,15 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) error {
 	if ctx.extraRules == nil {
 		return nil
 	}
+	if err := noDanglingRules(list, ctx.extraRules.subsystemCalls); err != nil {
+		return fmt.Errorf("subsystemCalls rules check failed: %w", err)
+	}
+	if err := noDanglingRules(list, ctx.extraRules.noReminders); err != nil {
+		return fmt.Errorf("noReminders rules check failed: %w", err)
+	}
+	if err := noDanglingRules(list, ctx.extraRules.noIndirectCc); err != nil {
+		return fmt.Errorf("noIndirectCc rules check failed: %w", err)
+	}
 	perName := map[string]*subsystem.Subsystem{}
 	for _, entry := range list {
 		entry.Syscalls = ctx.extraRules.subsystemCalls[entry.Name]
@@ -169,6 +178,28 @@ func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) error {
 	}
 	transitiveReduction(list)
 	return nil
+}
+
+// Check that there are no rules that don't refer to any subsystem from the list.
+func noDanglingRules[T any](list []*subsystem.Subsystem, rules map[string]T) error {
+	usedRule := map[string]struct{}{}
+	for _, entry := range list {
+		if _, ok := rules[entry.Name]; !ok {
+			continue
+		}
+		usedRule[entry.Name] = struct{}{}
+	}
+	if len(usedRule) == len(rules) {
+		return nil
+	}
+	var dangling []string
+	for key := range rules {
+		if _, ok := usedRule[key]; ok {
+			continue
+		}
+		dangling = append(dangling, key)
+	}
+	return fmt.Errorf("unused keys: %q", dangling)
 }
 
 func mergeRawRecords(records []*maintainersRecord, email string) *subsystem.Subsystem {

@@ -23,19 +23,30 @@ type customRules struct {
 var (
 	linuxSubsystemRules = &customRules{
 		subsystemCalls: map[string][]string{
-			"adfs":      {"syz_mount_image$adfs"},
-			"affs":      {"syz_mount_image$affs"},
+			// TODO: we don't have subsystems for the following mount calls:
+			// - syz_mount_image$adfs
+			// - syz_mount_image$affs
+			// - syz_mount_image$befs
+			// - syz_mount_image$cramfs
+			// - syz_mount_image$efs
+			// - syz_mount_image$hpfs
+			// - syz_mount_image$minix
+			// - syz_mount_image$qnx4
+			// - syz_mount_image$qnx6
+			// - syz_mount_image$romfs
+			// - syz_mount_image$sysv
+			// - syz_mount_image$ufs
+			// - syz_mount_image$vxfs
+			// - syz_mount_image$zonefs
+
 			"bcachefs":  {"syz_mount_image$bcachefs"},
-			"befs":      {"syz_mount_image$befs"},
 			"bfs":       {"syz_mount_image$bfs"},
 			"bluetooth": {"syz_emit_vhci"},
 			"btrfs":     {"syz_mount_image$btrfs"},
-			"cramfs":    {"syz_mount_image$cramfs"},
-			"efs":       {"syz_mount_image$efs"},
 			"erofs":     {"syz_mount_image$erofs"},
 			"ext4":      {"syz_mount_image$ext4"},
 			"f2fs":      {"syz_mount_image$f2fs"},
-			"fat": {
+			"exfat": {
 				"syz_mount_image$msdos",
 				"syz_mount_image$vfat",
 				"syz_mount_image$exfat",
@@ -43,28 +54,20 @@ var (
 			"fuse":     {"syz_fuse_handle_req"},
 			"gfs2":     {"syz_mount_image$gfs2", "syz_mount_image$gfs2meta"},
 			"hfs":      {"syz_mount_image$hfs", "syz_mount_image$hfsplus"},
-			"hpfs":     {"syz_mount_image$hpfs"},
 			"input":    {"syz_usb_connect$hid"},
 			"io-uring": {"syz_io_uring_setup"},
 			"isofs":    {"syz_mount_image$iso9660"},
 			"jffs2":    {"syz_mount_image$jffs2"},
 			"jfs":      {"syz_mount_image$jfs"},
 			"kvm":      {"syz_kvm_setup_cpu", "syz_kvm_vgic_v3_setup", "syz_kvm_setup_syzos_vm", "syz_kvm_add_vcpu"},
-			"minix":    {"syz_mount_image$minix"},
 			"nilfs":    {"syz_mount_image$nilfs2"},
 			"ntfs3":    {"syz_mount_image$ntfs", "syz_mount_image$ntfs3"},
 			"ocfs2":    {"syz_mount_image$ocfs2"},
-			"omfs":     {"syz_mount_image$omfs"},
-			"qnx4":     {"syz_mount_image$qnx4"},
-			"qnx6":     {"syz_mount_image$qnx6"},
-			"reiserfs": {"syz_mount_image$reiserfs"},
-			"romfs":    {"syz_mount_image$romfs"},
+			"karma":    {"syz_mount_image$omfs"},
 			"squashfs": {"syz_mount_image$squashfs"},
-			"sysv":     {"syz_mount_image$sysv"},
-			"tmpfs":    {"syz_mount_image$tmpfs"},
-			"ubifs":    {"syz_mount_image$ubifs"},
+			"mm":       {"syz_mount_image$tmpfs"},
+			"mtd":      {"syz_mount_image$ubifs"},
 			"udf":      {"syz_mount_image$udf"},
-			"ufs":      {"syz_mount_image$ufs"},
 			"usb": {
 				"syz_usb_connect",
 				"syz_usb_connect$hid",
@@ -73,10 +76,8 @@ var (
 				"syz_usb_connect$cdc_ncm",
 				"syz_usb_connect$uac1",
 			},
-			"vxfs":     {"syz_mount_image$vxfs"},
 			"wireless": {"syz_80211_join_ibss", "syz_80211_inject_frame"},
 			"xfs":      {"syz_mount_image$xfs"},
-			"zonefs":   {"syz_mount_image$zonefs"},
 		},
 		notSubsystemEmails: map[string]struct{}{
 			"linaro-mm-sig@lists.linaro.org":      {},
