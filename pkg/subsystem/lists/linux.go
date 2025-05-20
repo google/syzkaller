@@ -1334,6 +1334,7 @@ func subsystems_linux() []*Subsystem {
 
 	exfat = Subsystem{
 		Name:        "exfat",
+		Syscalls:    []string{"syz_mount_image$msdos", "syz_mount_image$vfat", "syz_mount_image$exfat"},
 		Lists:       []string{"linux-fsdevel@vger.kernel.org"},
 		Maintainers: []string{"linkinjeon@kernel.org", "sj1557.seo@samsung.com"},
 		Parents:     []*Subsystem{&fs},
@@ -2158,6 +2159,7 @@ func subsystems_linux() []*Subsystem {
 
 	karma = Subsystem{
 		Name:        "karma",
+		Syscalls:    []string{"syz_mount_image$omfs"},
 		Lists:       []string{"linux-karma-devel@lists.sourceforge.net"},
 		Maintainers: []string{"me@bobcopeland.com"},
 		Parents:     []*Subsystem{&fs},
@@ -3019,9 +3021,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	mm = Subsystem{
-		Name:    "mm",
-		Lists:   []string{"linux-mm@kvack.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:     "mm",
+		Syscalls: []string{"syz_mount_image$tmpfs"},
+		Lists:    []string{"linux-mm@kvack.org"},
+		Parents:  []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^arch/[^/]*/include/asm/percpu\\.h$|^include/linux/percpu[^/]*\\.h$|^lib/percpu[^/]*\\.c$|^mm/percpu[^/]*\\.c$"},
 			{IncludeRegexp: "^arch/[^/]*/include/asm/tlb\\.h$|^include/asm-generic/tlb\\.h$|^mm/mmu_gather\\.c$"},
@@ -3118,9 +3121,10 @@ func subsystems_linux() []*Subsystem {
 	}
 
 	mtd = Subsystem{
-		Name:    "mtd",
-		Lists:   []string{"linux-mtd@lists.infradead.org"},
-		Parents: []*Subsystem{&kernel},
+		Name:     "mtd",
+		Syscalls: []string{"syz_mount_image$ubifs"},
+		Lists:    []string{"linux-mtd@lists.infradead.org"},
+		Parents:  []*Subsystem{&kernel},
 		PathRules: []PathRule{
 			{IncludeRegexp: "^drivers/mtd/devices/block2mtd\\.c$"},
 			{IncludeRegexp: "^drivers/mtd/devices/docg3[^/]*$"},
