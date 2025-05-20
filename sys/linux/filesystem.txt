@@ -86,6 +86,7 @@ blockdev_filename [
 	nbd		nbd_filename
 	loop		loop_filename
 	nullb		string["/dev/nullb0"]
+	rnullb		string["/dev/rnullb0"]
 	md0		string["/dev/md0"]
 	sg0		string["/dev/sg0"]
 	sr0		string["/dev/sr0"]
