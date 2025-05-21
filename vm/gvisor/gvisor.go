@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +38,7 @@ type Config struct {
 	Count            int    `json:"count"` // number of VMs to use
 	RunscArgs        string `json:"runsc_args"`
 	MemoryTotalBytes uint64 `json:"memory_total_bytes"`
+	CPUs             uint64 `json:"cpus"`
 }
 
 type Pool struct {
@@ -106,7 +108,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if pool.cfg.MemoryTotalBytes == 0 {
 		memoryLimit = -1
 	}
-	vmConfig := fmt.Sprintf(configTempl, imageDir, caps, name, memoryLimit)
+	cpuPeriod := uint64(100000)
+	cpus := pool.cfg.CPUs
+	if cpus == 0 {
+		cpus = uint64(runtime.NumCPU())
+	}
+	cpuLimit := cpuPeriod * cpus
+	vmConfig := fmt.Sprintf(configTempl, imageDir, caps, name, memoryLimit, cpuLimit, cpuPeriod)
 	if err := osutil.WriteFile(filepath.Join(bundleDir, "config.json"), []byte(vmConfig)); err != nil {
 		return nil, err
 	}
@@ -164,7 +172,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
 
-	cmd := inst.runscCmd("--panic-log", panicLog, "run", "-bundle", bundleDir, inst.name)
+	cmd := inst.runscCmd("--panic-log", panicLog, "--cpu-num-from-quota", "run", "-bundle", bundleDir, inst.name)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -424,7 +432,9 @@ const configTempl = `
 		"cgroupsPath": "%[3]v",
 		"resources": {
 			"cpu": {
-				"shares": 1024
+				"shares": 1024,
+				"period": %[6]d,
+				"quota": %[5]d
 			},
 			"memory": {
 				"limit": %[4]d,
