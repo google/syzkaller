@@ -31,3 +31,11 @@ patches:
         path: /spec/templates/0/nodeSelector
         value:
           cloud.google.com/gke-nodepool: nested-vm-pool
+  - target:
+      kind: Service
+      name: web-dashboard-service
+    patch: |-
+      - op: replace
+        path: /metadata/annotations
+        value:
+          cloud.google.com/neg: '{"exposed_ports": {"80":{"name": "web-dashboard"}}}'
