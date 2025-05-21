@@ -13,6 +13,8 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -209,6 +211,9 @@ const (
 )
 
 func main() {
+	go func() {
+		http.ListenAndServe("0.0.0.0:6060", nil)
+	}()
 	flag.Parse()
 	if !prog.GitRevisionKnown() {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
