@@ -655,16 +655,24 @@ func TestHintsRandom(t *testing.T) {
 	r := newRand(target, rs)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 5, ct)
-		for i, c := range p.Calls {
+		for j, c := range p.Calls {
 			vals := extractValues(c)
-			for j := 0; j < 5; j++ {
+			for k := 0; k < 5; k++ {
 				vals[r.randInt64()] = true
+			}
+			// In the test mode, MutateWithHints is essentially quadratic over the number of values
+			// since we run full prog validation on each run.
+			// To avoid consuming too much time, let's just skip all calls that are too big.
+			const valsCutOff = 10000
+			if len(vals) > valsCutOff {
+				t.Logf("iter %d: skipping call %d - too big", i, j)
+				continue
 			}
 			comps := make(CompMap)
 			for v := range vals {
 				comps.Add(1, v, r.randInt64(), true)
 			}
-			p.MutateWithHints(i, comps, func(p1 *Prog) bool { return true })
+			p.MutateWithHints(j, comps, func(p1 *Prog) bool { return true })
 		}
 	}
 }
