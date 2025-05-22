@@ -4,8 +4,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: db-migrate-job
+  generateName: db-migrate-job-
 spec:
+  ttlSecondsAfterFinished: 86400
   template:
     spec:
       serviceAccountName: gke-db-admin-ksa
