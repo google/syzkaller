@@ -4,7 +4,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -30,13 +29,13 @@ func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 	var reportURI, logURI string
 	var err error
 	if len(req.Log) > 0 {
-		logURI, err = s.blobStorage.Store(bytes.NewReader(req.Log))
+		logURI, err = blob.StoreBytes(s.blobStorage, req.Log)
 		if err != nil {
 			return fmt.Errorf("failed to save the log: %w", err)
 		}
 	}
 	if len(req.Report) > 0 {
-		reportURI, err = s.blobStorage.Store(bytes.NewReader(req.Report))
+		reportURI, err = blob.StoreBytes(s.blobStorage, req.Report)
 		if err != nil {
 			return fmt.Errorf("failed to save the report: %w", err)
 		}
