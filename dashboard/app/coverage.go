@@ -137,7 +137,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		return ErrClientNotFound
 	}
 	ss := r.FormValue(covPageParams[SubsystemName])
-	manager := r.FormValue(covPageParams[ManagerName])
+	fromManagers := r.Form[covPageParams[ManagerName]]
 
 	periodType := r.FormValue(covPageParams[PeriodType])
 	if periodType == "" {
@@ -196,7 +196,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 		&coveragedb.SelectScope{
 			Ns:        hdr.Namespace,
 			Subsystem: ss,
-			Manager:   manager,
+			Managers:  fromManagers,
 			Periods:   periods,
 		},
 		onlyUnique, subsystems, managers,
@@ -229,6 +229,20 @@ func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
 	}
 }
 
+func validateManagerNames(managers []string) validator.Result {
+	if len(managers) == 0 {
+		return validator.ResultOk
+	}
+	for _, manager := range managers {
+		if vr := validator.AnyOk(
+			validator.Allowlisted(manager, []string{"", "*"}, covPageParams[ManagerName]),
+			validator.ManagerName(manager, covPageParams[ManagerName])); !vr.Ok {
+			return vr
+		}
+	}
+	return validator.ResultOk
+}
+
 func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
@@ -242,14 +256,12 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	periodType := r.FormValue(covPageParams[PeriodType])
 	targetCommit := r.FormValue(covPageParams[CommitHash])
 	kernelFilePath := r.FormValue(covPageParams[FilePath])
-	manager := r.FormValue(covPageParams[ManagerName])
+	managers := r.Form[covPageParams[ManagerName]]
 	if err := validator.AnyError("input validation failed",
 		validator.TimePeriodType(periodType, covPageParams[PeriodType]),
 		validator.CommitHash(targetCommit, covPageParams[CommitHash]),
 		validator.KernelFilePath(kernelFilePath, covPageParams[FilePath]),
-		validator.AnyOk(
-			validator.Allowlisted(manager, []string{"", "*"}, covPageParams[ManagerName]),
-			validator.ManagerName(manager, covPageParams[ManagerName])),
+		validateManagerNames(managers),
 	); err != nil {
 		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
 	}
@@ -268,16 +280,16 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		return fmt.Errorf("spannerdb client is nil")
 	}
 	hitLines, hitCounts, err := coveragedb.ReadLinesHitCount(
-		c, client, hdr.Namespace, targetCommit, kernelFilePath, manager, tp)
+		c, client, hdr.Namespace, targetCommit, kernelFilePath, managers, tp)
 	covMap := coveragedb.MakeCovMap(hitLines, hitCounts)
 	if err != nil {
-		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
+		return fmt.Errorf("coveragedb.ReadLinesHitCount(%v): %w", managers, err)
 	}
 	if onlyUnique {
 		// This request is expected to be made second by tests.
 		// Moving it to goroutine don't forget to change multiManagerCovDBFixture.
 		allHitLines, allHitCounts, err := coveragedb.ReadLinesHitCount(
-			c, client, hdr.Namespace, targetCommit, kernelFilePath, "*", tp)
+			c, client, hdr.Namespace, targetCommit, kernelFilePath, nil, tp)
 		if err != nil {
 			return fmt.Errorf("coveragedb.ReadLinesHitCount(*): %w", err)
 		}

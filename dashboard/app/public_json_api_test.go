@@ -328,11 +328,11 @@ func fileFuncLinesDBFixture(t *testing.T, funcLines []*coveragedb.FuncLines,
 	fileCovWithLineInfo []*coveragedb.FileCoverageWithLineInfo) spannerclient.SpannerClient {
 	mPartialTran := mocks.NewReadOnlyTransaction(t)
 	mPartialTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, funcLines)).Once()
+		Return(coveragedb.NewRowIteratorMock(t, funcLines)).Once()
 
 	mFullTran := mocks.NewReadOnlyTransaction(t)
 	mFullTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, fileCovWithLineInfo)).Once()
+		Return(coveragedb.NewRowIteratorMock(t, fileCovWithLineInfo)).Once()
 
 	m := mocks.NewSpannerClient(t)
 	m.On("Single").

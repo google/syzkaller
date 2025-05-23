@@ -40,7 +40,11 @@ function initUpdateForm(){
 function onShowFileContent(url) {
   var curUrlParams = new URLSearchParams(window.location.search);
   url += '&subsystem=' + (curUrlParams.get('subsystem') || "")
-  url += '&manager=' + (curUrlParams.get('manager') || "")
+   // Get all 'manager' parameters.
+  var managerParams = curUrlParams.getAll('manager');
+  managerParams.forEach(function(managerValue) {
+    url += '&manager=' + (managerValue || "");
+  });
   url += '&unique-only=' + (curUrlParams.get('unique-only') || "")
 
   $.get(url, function(response) {

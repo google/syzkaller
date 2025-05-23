@@ -214,38 +214,16 @@ func fullCoverageDBFixture(
 ) spannerclient.SpannerClient {
 	mPartialTran := mocks.NewReadOnlyTransaction(t)
 	mPartialTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, partial)).Once()
+		Return(NewRowIteratorMock(t, partial)).Once()
 
 	mFullTran := mocks.NewReadOnlyTransaction(t)
 	mFullTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, full)).Once()
+		Return(NewRowIteratorMock(t, full)).Once()
 
 	m := mocks.NewSpannerClient(t)
 	m.On("Single").
 		Return(mPartialTran).Once()
 	m.On("Single").
 		Return(mFullTran).Once()
-	return m
-}
-
-func newRowIteratorMock(t *testing.T, events []*FileCoverageWithLineInfo,
-) *mocks.RowIterator {
-	m := mocks.NewRowIterator(t)
-	m.On("Stop").Once().Return()
-	for _, item := range events {
-		mRow := mocks.NewRow(t)
-		mRow.On("ToStruct", mock.Anything).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*FileCoverageWithLineInfo)
-				*arg = *item
-			}).
-			Return(nil).Once()
-
-		m.On("Next").
-			Return(mRow, nil).Once()
-	}
-
-	m.On("Next").
-		Return(nil, iterator.Done).Once()
 	return m
 }
