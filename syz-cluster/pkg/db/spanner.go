@@ -109,7 +109,12 @@ func RunMigrations(uri string) error {
 	if err != nil {
 		return err
 	}
-	return m.Up()
+	err = m.Up()
+	if err == migrate.ErrNoChange {
+		// Not really an error.
+		return nil
+	}
+	return err
 }
 
 func getMigrateInstance(uri string) (*migrate.Migrate, error) {
