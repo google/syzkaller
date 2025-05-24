@@ -17,10 +17,13 @@ static bool pkeys_enabled;
 // very large buffer b/c there are usually multiple procs, and each of them consumes
 // significant amount of memory. In snapshot mode we have only one proc, so we can have
 // larger coverage buffer.
-const int kSnapshotCoverSize = 1024 << 10;
+const int kSnapshotCoverSize = 8 << 10;
 
 const unsigned long KCOV_TRACE_PC = 0;
 const unsigned long KCOV_TRACE_CMP = 1;
+const unsigned long KCOV_TRACE_UNIQ_PC = 2;
+const unsigned long KCOV_TRACE_UNIQ_EDGE = 4;
+const unsigned long KCOV_TRACE_UNIQ_CMP = 8;
 
 template <int N>
 struct kcov_remote_arg {
@@ -108,6 +111,7 @@ static void cover_open(cover_t* cov, bool extra)
 	if (dup2(fd, cov->fd) < 0)
 		failmsg("filed to dup cover fd", "from=%d, to=%d", fd, cov->fd);
 	close(fd);
+	is_uniq_mode = true;
 	const int kcov_init_trace = is_kernel_64_bit ? KCOV_INIT_TRACE64 : KCOV_INIT_TRACE32;
 	const int cover_size = extra ? kExtraCoverSize : flag_snapshot ? kSnapshotCoverSize
 								       : kCoverSize;
@@ -151,21 +155,44 @@ static void cover_mmap(cover_t* cov)
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
+
+	if (is_uniq_mode) {
+		// Now map edge cover.
+		unsigned int off = cov->mmap_alloc_size;
+		mapped = (char*)mmap(NULL, cov->mmap_alloc_size + 2 * SYZ_PAGE_SIZE,
+				     PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, off);
+		if (mapped == MAP_FAILED)
+			exitf("failed to preallocate kcov buffer");
+		cov->data_edge = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
+					     PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, off);
+		if (cov->data_edge == MAP_FAILED) {
+			is_uniq_mode = false;
+			debug("edge mmap failed, fallback to none uniq mode\n");
+			return;
+		}
+		if (pkeys_enabled && pkey_mprotect(cov->data_edge, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+			exitf("failed to pkey_mprotect kcov buffer");
+		cov->data_edge_end = cov->data_edge + cov->mmap_alloc_size;
+	}
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
-	unsigned int kcov_mode = collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;
+	cov->mode = collect_comps ? KCOV_TRACE_UNIQ_CMP : KCOV_TRACE_UNIQ_PC | KCOV_TRACE_UNIQ_EDGE;
 	// The KCOV_ENABLE call should be fatal,
 	// but in practice ioctl fails with assorted errors (9, 14, 25),
 	// so we use exitf.
 	if (!extra) {
-		if (ioctl(cov->fd, KCOV_ENABLE, kcov_mode))
-			exitf("cover enable write trace failed, mode=%d", kcov_mode);
+		if (ioctl(cov->fd, KCOV_ENABLE, cov->mode)) {
+			is_uniq_mode = false;
+			cov->mode = collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;
+			if (ioctl(cov->fd, KCOV_ENABLE, cov->mode))
+				exitf("cover enable write trace failed, mode=%d", cov->mode);
+		}
 		return;
 	}
 	kcov_remote_arg<1> arg = {
-	    .trace_mode = kcov_mode,
+	    .trace_mode = static_cast<uint32>(collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC),
 	    // Coverage buffer size of background threads.
 	    .area_size = kExtraCoverSize,
 	    .num_handles = 1,
@@ -188,6 +215,7 @@ static void cover_reset(cover_t* cov)
 	}
 	cover_unprotect(cov);
 	*(uint64*)cov->data = 0;
+	*(uint64*)cov->data_edge = 0;
 	cover_protect(cov);
 	cov->overflow = false;
 }
@@ -197,6 +225,10 @@ static void cover_collect_impl(cover_t* cov)
 {
 	cov->size = *(cover_data_t*)cov->data;
 	cov->overflow = (cov->data + (cov->size + 2) * sizeof(cover_data_t)) > cov->data_end;
+	if (cov->mode & KCOV_TRACE_UNIQ_EDGE) {
+		cov->size_edge = *(cover_data_t*)cov->data_edge;
+		cov->overflow |= (cov->data_edge + (cov->size_edge + 2) * sizeof(cover_data_t)) > cov->data_edge_end;
+	}
 }
 
 static void cover_collect(cover_t* cov)
