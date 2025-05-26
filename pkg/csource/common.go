@@ -132,10 +132,13 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 
 func removeSystemDefines(src []byte, defines []string) ([]byte, error) {
 	remove := map[string]string{
-		"__STDC__":        "1",
-		"__STDC_HOSTED__": "1",
-		"__STDC_UTF_16__": "1",
-		"__STDC_UTF_32__": "1",
+		"__STDC__":                 "1",
+		"__STDC_HOSTED__":          "1",
+		"__STDC_UTF_16__":          "1",
+		"__STDC_UTF_32__":          "1",
+		"__STDC_EMBED_NOT_FOUND__": "0",
+		"__STDC_EMBED_FOUND__":     "1",
+		"__STDC_EMBED_EMPTY__":     "2",
 	}
 	for _, def := range defines {
 		eq := strings.IndexByte(def, '=')
