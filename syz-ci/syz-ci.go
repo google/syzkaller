@@ -52,6 +52,7 @@ package main
 // modification time allows us to understand if we need to rebuild after a restart.
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -281,10 +282,10 @@ func main() {
 		}()
 	}
 
-	stop := make(chan struct{})
+	ctx, stop := context.WithCancel(context.Background())
 	var managers []*Manager
 	for _, mgrcfg := range cfg.Managers {
-		mgr, err := createManager(cfg, mgrcfg, stop, *flagDebug)
+		mgr, err := createManager(cfg, mgrcfg, *flagDebug)
 		if err != nil {
 			log.Errorf("failed to create manager %v: %v", mgrcfg.Name, err)
 			continue
@@ -300,7 +301,7 @@ func main() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				mgr.loop()
+				mgr.loop(ctx)
 			}()
 		}
 	}
@@ -308,12 +309,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create dashapi connection %v", err)
 	}
-	stopJobs := jp.startLoop(&wg)
+	ctxJobs, stopJobs := context.WithCancel(ctx)
+	wgJobs := sync.WaitGroup{}
+	jp.startLoop(ctxJobs, &wgJobs)
 
 	// For testing. Racy. Use with care.
 	http.HandleFunc("/upload_cover", func(w http.ResponseWriter, r *http.Request) {
 		for _, mgr := range managers {
-			if err := mgr.uploadCoverReport(); err != nil {
+			if err := mgr.uploadCoverReport(ctx); err != nil {
 				w.Write([]byte(fmt.Sprintf("failed for %v: %v <br>\n", mgr.name, err)))
 				return
 			}
@@ -322,14 +325,15 @@ func main() {
 	})
 
 	wg.Add(1)
-	go deprecateAssets(cfg, stop, &wg)
+	go deprecateAssets(ctx, cfg, &wg)
 
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
 	}
-	stopJobs() // Gracefully wait for the running jobs to finish.
-	close(stop)
+	stopJobs()
+	wgJobs.Wait()
+	stop()
 	wg.Wait()
 
 	select {
@@ -339,7 +343,7 @@ func main() {
 	}
 }
 
-func deprecateAssets(cfg *Config, stop chan struct{}, wg *sync.WaitGroup) {
+func deprecateAssets(ctx context.Context, cfg *Config, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if cfg.DashboardAddr == "" || cfg.AssetStorage.IsEmpty() ||
 		!cfg.AssetStorage.DoDeprecation {
@@ -359,7 +363,7 @@ loop:
 	for {
 		const sleepDuration = 6 * time.Hour
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			break loop
 		case <-time.After(sleepDuration):
 		}
