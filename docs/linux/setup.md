@@ -67,7 +67,7 @@ Make sure that your GCC meets this requirement, or get a GCC that [syzbot](/docs
 Besides coverage support in GCC, you also need support for it on the kernel side.
 KCOV was added into mainline Linux kernel in version 4.6 and is be enabled by `CONFIG_KCOV=y` kernel configation option.
 For older kernels you need to at least backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
-Besides that, it's recomended to backport all kernel patches that touch `kernel/kcov.c`.
+Besides that, it's recommended to backport all kernel patches that touch `kernel/kcov.c`.
 
 To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
 See [this page](kernel_configs.md) for details.
@@ -75,7 +75,7 @@ See [this page](kernel_configs.md) for details.
 ### VM Setup
 
 Syzkaller performs kernel fuzzing on worker virtual machines or physical devices.
-These worker enviroments are referred to as VMs.
+These worker environments are referred to as VMs.
 Out-of-the-box syzkaller supports QEMU, kvmtool and GCE virtual machines, Android devices and Odroid C2 boards.
 
 These are the generic requirements for a syzkaller VM:
