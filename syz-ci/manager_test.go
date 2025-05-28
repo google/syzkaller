@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -200,11 +201,15 @@ func TestUploadCoverJSONLToGCS(t *testing.T) {
 				gcsMock.On("Publish", test.wantGCSFileName).
 					Return(nil).Once()
 			}
-			err := mgr.uploadCoverJSONLToGCS(gcsMock,
+			err := mgr.uploadCoverJSONLToGCS(context.Background(), gcsMock,
 				"/teststream&jsonl=1",
 				"gs://test-bucket",
-				test.inputNameSuffix,
-				test.inputPublish, test.inputCompress, func(w io.Writer, dec *json.Decoder) error {
+				uploadOptions{
+					nameSuffix: test.inputNameSuffix,
+					publish:    test.inputPublish,
+					compress:   test.inputCompress,
+				},
+				func(w io.Writer, dec *json.Decoder) error {
 					var v any
 					if err := dec.Decode(&v); err != nil {
 						return fmt.Errorf("cover.ProgramCoverage: %w", err)
