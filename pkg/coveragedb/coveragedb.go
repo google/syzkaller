@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -140,9 +141,27 @@ type LinesCoverage struct {
 	HitCounts         []int64
 }
 
-func linesCoverageStmt(ns, filepath, commit, manager string, timePeriod TimePeriod) spanner.Statement {
-	if manager == "" {
-		manager = "*"
+func (lc *LinesCoverage) Add(other *LinesCoverage) {
+	sum := make(map[int64]int64)
+	for i, line := range lc.LinesInstrumented {
+		hitCount := lc.HitCounts[i]
+		sum[line] += hitCount
+	}
+	for i, line := range other.LinesInstrumented {
+		hitCount := other.HitCounts[i]
+		sum[line] += hitCount
+	}
+	lc.LinesInstrumented = slices.Collect(maps.Keys(sum))
+	slices.Sort(lc.LinesInstrumented)
+	lc.HitCounts = nil
+	for _, line := range lc.LinesInstrumented {
+		lc.HitCounts = append(lc.HitCounts, sum[line])
+	}
+}
+
+func linesCoverageStmt(ns, filepath, commit string, managers []string, timePeriod TimePeriod) spanner.Statement {
+	if len(managers) == 0 {
+		managers = append(managers, "*")
 	}
 	return spanner.Statement{
 		SQL: `
@@ -153,40 +172,48 @@ from merge_history
 	join files
 		on merge_history.session = files.session
 where
-	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5 and manager=$6`,
+	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5
+    and manager=ANY(SELECT id FROM UNNEST($6) AS id)`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,
 			"p4": filepath,
 			"p5": commit,
-			"p6": manager,
+			"p6": managers,
 		},
 	}
 }
 
+// ReadLinesHitCount returns lines, hit counts and error.
 func ReadLinesHitCount(ctx context.Context, client spannerclient.SpannerClient,
-	ns, commit, file, manager string, tp TimePeriod,
+	ns, commit, file string, managers []string, tp TimePeriod,
 ) ([]int64, []int64, error) {
-	stmt := linesCoverageStmt(ns, file, commit, manager, tp)
+	stmt := linesCoverageStmt(ns, file, commit, managers, tp)
 	iter := client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
-	row, err := iter.Next()
-	if err == iterator.Done {
-		return nil, nil, nil
+	var recordsReceived int
+	var res LinesCoverage
+	for {
+		row, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, nil, fmt.Errorf("iter.Next: %w", err)
+		}
+		var r LinesCoverage
+		if err = row.ToStruct(&r); err != nil {
+			return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
+		}
+		recordsReceived++
+		res.Add(&r)
 	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("iter.Next: %w", err)
-	}
-	var r LinesCoverage
-	if err = row.ToStruct(&r); err != nil {
-		return nil, nil, fmt.Errorf("failed to row.ToStruct() spanner DB: %w", err)
-	}
-	if _, err := iter.Next(); err != iterator.Done {
+	if len(managers) == 1 && recordsReceived > 1 {
 		return nil, nil, fmt.Errorf("more than 1 line is available")
 	}
-	return r.LinesInstrumented, r.HitCounts, nil
+	return res.LinesInstrumented, res.HitCounts, nil
 }
 
 func historyMutation(session string, template *HistoryRecord) *spanner.Mutation {
@@ -403,7 +430,7 @@ func MakeCovMap(keys, vals []int64) map[int]int64 {
 type SelectScope struct {
 	Ns        string
 	Subsystem string
-	Manager   string
+	Managers  []string
 	Periods   []TimePeriod
 }
 
@@ -412,7 +439,7 @@ type SelectScope struct {
 func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient, ns string, timePeriod TimePeriod,
 ) (<-chan *FileCoverageWithLineInfo, <-chan error) {
 	iter := client.Single().Query(ctx,
-		filesCoverageWithDetailsStmt(ns, "", "", timePeriod, true))
+		filesCoverageWithDetailsStmt(ns, "", nil, timePeriod, true))
 	resCh := make(chan *FileCoverageWithLineInfo)
 	errCh := make(chan error)
 	go func() {
@@ -435,14 +462,14 @@ func FilesCoverageWithDetails(
 	for _, timePeriod := range scope.Periods {
 		needLinesDetails := onlyUnique
 		iterManager := client.Single().Query(ctx,
-			filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Manager, timePeriod, needLinesDetails))
+			filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Managers, timePeriod, needLinesDetails))
 		defer iterManager.Stop()
 
 		var err error
 		var periodRes []*FileCoverageWithDetails
 		if onlyUnique {
 			iterAll := client.Single().Query(ctx,
-				filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, "", timePeriod, needLinesDetails))
+				filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, nil, timePeriod, needLinesDetails))
 			defer iterAll.Stop()
 			periodRes, err = readCoverageUniq(iterAll, iterManager)
 			if err != nil {
@@ -462,10 +489,10 @@ func FilesCoverageWithDetails(
 	return res, nil
 }
 
-func filesCoverageWithDetailsStmt(ns, subsystem, manager string, timePeriod TimePeriod, withLines bool,
+func filesCoverageWithDetailsStmt(ns, subsystem string, managers []string, timePeriod TimePeriod, withLines bool,
 ) spanner.Statement {
-	if manager == "" {
-		manager = "*"
+	if len(managers) == 0 {
+		managers = append(managers, "*")
 	}
 	selectColumns := "commit, instrumented, covered, files.filepath, subsystems"
 	if withLines {
@@ -479,12 +506,12 @@ from merge_history
   join file_subsystems
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
-  merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=$4`,
+  merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=ANY(SELECT id FROM UNNEST($4) AS id)`,
 		Params: map[string]interface{}{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,
-			"p4": manager,
+			"p4": managers,
 		},
 	}
 	if subsystem != "" {
