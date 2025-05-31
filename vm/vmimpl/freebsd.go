@@ -18,12 +18,12 @@ func DiagnoseFreeBSD(w io.Writer) ([]byte, bool) {
 		"set $lines = 0",    // disable pagination
 		"set $maxwidth = 0", // disable line continuation
 		"show registers",
+		"show all tcpcbs/bl",
 		"show proc",
 		"ps",
 		"show all locks",
 		"show malloc",
 		"show uma",
-		"show all tcpcbs/l",
 	}
 	for _, c := range commands {
 		w.Write([]byte(c + "\n"))
