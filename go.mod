@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.120.0
 	cloud.google.com/go/batch v1.12.0
 	cloud.google.com/go/bigquery v1.67.0
+	cloud.google.com/go/compute/metadata v0.6.0
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/profiler v0.4.1
 	cloud.google.com/go/pubsub v1.47.0
@@ -24,7 +25,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.22.0
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.10.0
@@ -54,7 +55,6 @@ require (
 	cloud.google.com/go/ai v0.8.0 // indirect
 	cloud.google.com/go/auth v0.16.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/iam v1.5.0 // indirect
 	cloud.google.com/go/longrunning v0.6.6 // indirect
 	cloud.google.com/go/monitoring v1.24.1 // indirect
@@ -175,7 +175,7 @@ require (
 	github.com/karamaru-alpha/copyloopvar v1.1.0 // indirect
 	github.com/kisielk/errcheck v1.8.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.5 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
