@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.6.0
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/profiler v0.4.1
-	cloud.google.com/go/pubsub v1.47.0
+	cloud.google.com/go/pubsub v1.49.0
 	cloud.google.com/go/secretmanager v1.14.7
 	cloud.google.com/go/spanner v1.78.0
 	cloud.google.com/go/storage v1.52.0
