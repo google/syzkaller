@@ -2413,13 +2413,14 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 		return open(buf, O_RDWR, 0);
 	} else {
 		// syz_open_dev(dev ptr[in, string["/dev/foo"]], id intptr, flags flags[open_flags]) fd
+		unsigned long nb = a1;
 		char buf[1024];
 		char* hash;
 		strncpy(buf, (char*)a0, sizeof(buf) - 1);
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
-			*hash = '0' + (char)(a1 % 10); // 10 devices should be enough for everyone.
-			a1 /= 10;
+			*hash = '0' + (char)(nb % 10); // 10 devices should be enough for everyone.
+			nb /= 10;
 		}
 		return open(buf, a2, 0);
 	}
