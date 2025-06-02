@@ -2412,7 +2412,7 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 		sprintf(buf, "/dev/%s/%d:%d", a0 == 0xc ? "char" : "block", (uint8)a1, (uint8)a2);
 		return open(buf, O_RDWR, 0);
 	} else {
-		// syz_open_dev(dev ptr[in, string["/dev/foo"]], id intptr, flags flags[open_flags]) fd
+		// syz_open_dev(dev ptr[in, string["/dev/foo#"]], id intptr, flags flags[open_flags]) fd
 		unsigned long nb = a1;
 		char buf[1024];
 		char* hash;
