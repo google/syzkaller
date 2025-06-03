@@ -39,8 +39,14 @@ func TestFileCoverage(t *testing.T) {
 			wantInRes: []string{"1 line1"},
 		},
 		{
-			name:     "regular db",
-			covDB:    func(t *testing.T) spannerclient.SpannerClient { return coverageDBFixture(t) },
+			name: "regular db",
+			covDB: func(t *testing.T) spannerclient.SpannerClient {
+				return coverageDBFixture(t,
+					[]*coveragedb.LinesCoverage{{
+						LinesInstrumented: []int64{1, 2, 3},
+						HitCounts:         []int64{4, 5, 6},
+					}})
+			},
 			fileProv: func(t *testing.T) covermerger.FileVersProvider { return staticFileProvider(t) },
 			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
 				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c",
@@ -60,6 +66,31 @@ func TestFileCoverage(t *testing.T) {
 				" 0      1 line1", // Covered, is not unique.
 				" 5      2 line2", // Covered and is unique.
 				"        3 line3", // Covered only by "*" managers.
+			},
+		},
+		{
+			name: "multiple managers, merge result",
+			covDB: func(t *testing.T) spannerclient.SpannerClient {
+				return coverageDBFixture(t,
+					[]*coveragedb.LinesCoverage{
+						{
+							LinesInstrumented: []int64{1, 2, 3},
+							HitCounts:         []int64{1, 2, 3},
+						},
+						{
+							LinesInstrumented: []int64{1, 2, 3},
+							HitCounts:         []int64{10, 20, 30},
+						},
+					})
+			},
+			fileProv: func(t *testing.T) covermerger.FileVersProvider { return staticFileProvider(t) },
+			url: "/test2/coverage/file?dateto=2025-01-31&period=month" +
+				"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c" +
+				"&manager=manager1&manager=manager2",
+			wantInRes: []string{
+				" 11      1 line1",
+				" 22      2 line2",
+				" 33      3 line3",
 			},
 		},
 	}
@@ -112,11 +143,8 @@ func emptyCoverageDBFixture(t *testing.T, times int) spannerclient.SpannerClient
 	return m
 }
 
-func coverageDBFixture(t *testing.T) spannerclient.SpannerClient {
-	mRowIt := newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
-		LinesInstrumented: []int64{1, 2, 3},
-		HitCounts:         []int64{4, 5, 6},
-	}})
+func coverageDBFixture(t *testing.T, covLines []*coveragedb.LinesCoverage) spannerclient.SpannerClient {
+	mRowIt := coveragedb.NewRowIteratorMock(t, covLines)
 
 	mTran := mocks.NewReadOnlyTransaction(t)
 	mTran.On("Query", mock.Anything, mock.Anything).
@@ -131,14 +159,14 @@ func coverageDBFixture(t *testing.T) spannerclient.SpannerClient {
 func multiManagerCovDBFixture(t *testing.T) spannerclient.SpannerClient {
 	mReadFullCoverageTran := mocks.NewReadOnlyTransaction(t)
 	mReadFullCoverageTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
+		Return(coveragedb.NewRowIteratorMock(t, []*coveragedb.LinesCoverage{{
 			LinesInstrumented: []int64{1, 2, 3},
 			HitCounts:         []int64{4, 5, 6},
 		}})).Once()
 
 	mReadPartialCoverageTran := mocks.NewReadOnlyTransaction(t)
 	mReadPartialCoverageTran.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.LinesCoverage{{
+		Return(coveragedb.NewRowIteratorMock(t, []*coveragedb.LinesCoverage{{
 			LinesInstrumented: []int64{1, 2},
 			HitCounts:         []int64{3, 5},
 		}})).Once()
@@ -150,27 +178,5 @@ func multiManagerCovDBFixture(t *testing.T) spannerclient.SpannerClient {
 	m.On("Single").
 		Return(mReadFullCoverageTran).Once()
 
-	return m
-}
-
-func newRowIteratorMock[K any](t *testing.T, cov []*K,
-) *mocks.RowIterator {
-	m := mocks.NewRowIterator(t)
-	m.On("Stop").Once().Return()
-	for _, item := range cov {
-		mRow := mocks.NewRow(t)
-		mRow.On("ToStruct", mock.Anything).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(0).(*K)
-				*arg = *item
-			}).
-			Return(nil).Once()
-
-		m.On("Next").
-			Return(mRow, nil).Once()
-	}
-
-	m.On("Next").
-		Return(nil, iterator.Done).Once()
 	return m
 }

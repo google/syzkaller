@@ -1375,7 +1375,7 @@ func TestCoverageRegression(t *testing.T) {
 
 	mTran1 := mocks.NewReadOnlyTransaction(t)
 	mTran1.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
+		Return(coveragedb.NewRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
 			{
 				Filepath:     "file_name.c",
 				Instrumented: 100,
@@ -1385,7 +1385,7 @@ func TestCoverageRegression(t *testing.T) {
 
 	mTran2 := mocks.NewReadOnlyTransaction(t)
 	mTran2.On("Query", mock.Anything, mock.Anything).
-		Return(newRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
+		Return(coveragedb.NewRowIteratorMock(t, []*coveragedb.FileCoverageWithDetails{
 			{
 				Filepath:     "file_name.c",
 				Instrumented: 0,
