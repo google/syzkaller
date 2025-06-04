@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/html/urlutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/sync/errgroup"
@@ -365,6 +366,7 @@ type uiCommit struct {
 type uiBug struct {
 	Namespace      string
 	Title          string
+	ImpactScore    int
 	NumCrashes     int64
 	NumCrashesBad  bool
 	BisectCause    BisectStatus
@@ -1938,6 +1940,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
+		ImpactScore:    report.TitlesToImpact(bug.Title, bug.AltTitles...),
 		BisectCause:    bug.BisectCause,
 		BisectFix:      bug.BisectFix,
 		NumCrashes:     bug.NumCrashes,
