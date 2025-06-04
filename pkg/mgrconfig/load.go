@@ -6,6 +6,7 @@ package mgrconfig
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -498,4 +500,20 @@ func MatchSyscall(name, pattern string) bool {
 		return true
 	}
 	return false
+}
+
+func PublicWebAddr(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	_, port, err := net.SplitHostPort(addr)
+	if err == nil && port != "" {
+		if host, err := os.Hostname(); err == nil {
+			addr = net.JoinHostPort(host, port)
+		}
+		if GCE, err := gce.NewContext(""); err == nil {
+			addr = net.JoinHostPort(GCE.ExternalIP, port)
+		}
+	}
+	return "http://" + addr
 }
