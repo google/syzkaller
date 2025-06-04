@@ -29,7 +29,7 @@ function sortTable(item, colName, conv, desc = false) {
 
 function findColumnByName(headers, colName) {
 	for (i = 0; i < headers.length; i++) {
-		if (headers[i].textContent == colName)
+		if (headers[i].innerText == colName)
 			return i;
 	}
 	return 0;

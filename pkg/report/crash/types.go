@@ -38,7 +38,7 @@ const (
 	MemoryLeak              = Type("LEAK")
 	MemorySafetyBUG         = Type("MEMORY_SAFETY_BUG")
 	MemorySafetyUBSAN       = Type("MEMORY_SAFETY_UBSAN")
-	MemorySafetyWARNING     = Type("MEMORY_SAFETY_WARNING")
+	RefcountWARNING         = Type("REFCOUNT_WARNING")
 	UBSAN                   = Type("UBSAN")
 	Warning                 = Type("WARNING")
 	// keep-sorted end
@@ -79,7 +79,7 @@ func (t Type) IsBUG() bool {
 }
 
 func (t Type) IsWarning() bool {
-	return t == Warning || t == MemorySafetyWARNING
+	return t == Warning || t == RefcountWARNING
 }
 
 func (t Type) IsBugOrWarning() bool {
@@ -87,7 +87,7 @@ func (t Type) IsBugOrWarning() bool {
 }
 
 func (t Type) IsMemSafety() bool {
-	return t == MemorySafetyBUG || t == MemorySafetyWARNING || t == MemorySafetyUBSAN
+	return t == MemorySafetyBUG || t == RefcountWARNING || t == MemorySafetyUBSAN
 }
 
 func (t Type) IsMemoryLeak() bool {

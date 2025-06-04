@@ -146,11 +146,11 @@ var titleToType = []struct {
 		includePrefixes: []string{
 			"WARNING: refcount bug",
 		},
-		crashType: crash.MemorySafetyWARNING,
+		crashType: crash.RefcountWARNING,
 	},
 	{
 		includePrefixes: []string{
-			"UBSAN: array-index",
+			"UBSAN: array-index-out-of-bounds",
 		},
 		crashType: crash.MemorySafetyUBSAN,
 	},

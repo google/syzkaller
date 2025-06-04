@@ -168,6 +168,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
 		{{end}}
 		<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
+		<th>
+			<a onclick="return sortTable(this, 'Rank 🛈', numSort)" href="#">Rank</a>
+			{{template "info_link" "https://github.com/google/syzkaller/blob/master/pkg/report/README.md"}}
+		</th>
 		<th><a onclick="return sortTable(this, 'Repro', reproSort)" href="#">Repro</a></th>
 		<th><a onclick="return sortTable(this, 'Cause bisect', textSort)" href="#">Cause bisect</a></th>
 		<th><a onclick="return sortTable(this, 'Fix bisect', textSort)" href="#">Fix bisect</a></th>
@@ -202,6 +206,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<span class="bug-label">{{link .Link .Name}}</span>
 				{{- end}}
 			</td>
+			<td class="stat">{{$b.ImpactScore}}</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
 			<td class="bisect_status">{{print $b.BisectCause}}</td>
 			<td class="bisect_status">{{print $b.BisectFix}}</td>
