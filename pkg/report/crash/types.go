@@ -10,7 +10,8 @@ type Type string
 const (
 	UnknownType = Type("")
 	// keep-sorted start
-	AtomicSleep            = Type("ATOMIC_SLEEP")
+	AtomicSleep = Type("ATOMIC_SLEEP")
+	// keep-sorted end
 	Bug                    = Type("BUG")
 	DoS                    = Type("DoS")
 	Hang                   = Type("HANG")
@@ -29,16 +30,15 @@ const (
 	KMSANUnknown           = Type("KMSAN-UNKNOWN")
 	KMSANUseAfterFreeRead  = Type("KMSAN-USE-AFTER-FREE-READ")
 	LockdepBug             = Type("LOCKDEP")
+	LostConnection         = Type("LOST_CONNECTION")
 	MemoryLeak             = Type("LEAK")
 	MemorySafetyBUG        = Type("MEMORY_SAFETY_BUG")
 	MemorySafetyUBSAN      = Type("MEMORY_SAFETY_UBSAN")
-	MemorySafetyWARNING    = Type("MEMORY_SAFETY_WARNING")
+	RefcountWARNING        = Type("REFCOUNT_WARNING")
+	SyzFailure             = Type("SYZ_FAILURE")
 	UBSAN                  = Type("UBSAN")
+	UnexpectedReboot       = Type("REBOOT")
 	Warning                = Type("WARNING")
-	// keep-sorted end
-	LostConnection   = Type("LOST_CONNECTION")
-	SyzFailure       = Type("SYZ_FAILURE")
-	UnexpectedReboot = Type("REBOOT")
 )
 
 func (t Type) String() string {
@@ -73,7 +73,7 @@ func (t Type) IsBUG() bool {
 }
 
 func (t Type) IsWarning() bool {
-	return t == Warning || t == MemorySafetyWARNING
+	return t == Warning || t == RefcountWARNING
 }
 
 func (t Type) IsBugOrWarning() bool {
@@ -81,7 +81,7 @@ func (t Type) IsBugOrWarning() bool {
 }
 
 func (t Type) IsMemSafety() bool {
-	return t == MemorySafetyBUG || t == MemorySafetyWARNING || t == MemorySafetyUBSAN
+	return t == MemorySafetyBUG || t == RefcountWARNING || t == MemorySafetyUBSAN
 }
 
 func (t Type) IsMemoryLeak() bool {
