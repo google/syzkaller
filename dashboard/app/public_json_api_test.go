@@ -280,7 +280,7 @@ func TestWriteExtAPICoverageFor(t *testing.T) {
 	))
 
 	var buf bytes.Buffer
-	err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo")
+	err := writeExtAPICoverageFor(ctx, &buf, "test-ns", "test-repo", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, `{
 	"repo": "test-repo",
