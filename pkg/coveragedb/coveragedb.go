@@ -409,10 +409,10 @@ type SelectScope struct {
 
 // FilesCoverageStream streams information about all the line coverage.
 // It is expensive and better to be used for time insensitive operations.
-func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient, ns string, timePeriod TimePeriod,
+func FilesCoverageStream(ctx context.Context, client spannerclient.SpannerClient, scope *SelectScope,
 ) (<-chan *FileCoverageWithLineInfo, <-chan error) {
 	iter := client.Single().Query(ctx,
-		filesCoverageWithDetailsStmt(ns, "", "", timePeriod, true))
+		filesCoverageWithDetailsStmt(scope, true))
 	resCh := make(chan *FileCoverageWithLineInfo)
 	errCh := make(chan error)
 	go func() {
@@ -435,14 +435,24 @@ func FilesCoverageWithDetails(
 	for _, timePeriod := range scope.Periods {
 		needLinesDetails := onlyUnique
 		iterManager := client.Single().Query(ctx,
-			filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, scope.Manager, timePeriod, needLinesDetails))
+			filesCoverageWithDetailsStmt(&SelectScope{
+				Ns:        scope.Ns,
+				Subsystem: scope.Subsystem,
+				Manager:   scope.Manager,
+				Periods:   []TimePeriod{timePeriod},
+			}, needLinesDetails))
 		defer iterManager.Stop()
 
 		var err error
 		var periodRes []*FileCoverageWithDetails
 		if onlyUnique {
 			iterAll := client.Single().Query(ctx,
-				filesCoverageWithDetailsStmt(scope.Ns, scope.Subsystem, "", timePeriod, needLinesDetails))
+				filesCoverageWithDetailsStmt(&SelectScope{
+					Ns:        scope.Ns,
+					Subsystem: scope.Subsystem,
+					Manager:   "",
+					Periods:   []TimePeriod{timePeriod},
+				}, needLinesDetails))
 			defer iterAll.Stop()
 			periodRes, err = readCoverageUniq(iterAll, iterManager)
 			if err != nil {
@@ -462,8 +472,8 @@ func FilesCoverageWithDetails(
 	return res, nil
 }
 
-func filesCoverageWithDetailsStmt(ns, subsystem, manager string, timePeriod TimePeriod, withLines bool,
-) spanner.Statement {
+func filesCoverageWithDetailsStmt(scope *SelectScope, withLines bool) spanner.Statement {
+	manager := scope.Manager
 	if manager == "" {
 		manager = "*"
 	}
@@ -481,15 +491,15 @@ from merge_history
 where
   merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=$4`,
 		Params: map[string]interface{}{
-			"p1": ns,
-			"p2": timePeriod.DateTo,
-			"p3": timePeriod.Days,
+			"p1": scope.Ns,
+			"p2": scope.Periods[0].DateTo,
+			"p3": scope.Periods[0].Days,
 			"p4": manager,
 		},
 	}
-	if subsystem != "" {
+	if scope.Subsystem != "" {
 		stmt.SQL += " and $5=ANY(subsystems)"
-		stmt.Params["p5"] = subsystem
+		stmt.Params["p5"] = scope.Subsystem
 	}
 	stmt.SQL += "\norder by files.filepath"
 	return stmt

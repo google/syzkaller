@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 
 	"cloud.google.com/go/civil"
 	"github.com/google/syzkaller/pkg/cover"
@@ -56,22 +58,135 @@ type funcStyleBodyJS func(
 	scope *coveragedb.SelectScope, onlyUnique bool, sss, managers []string, dataFilters cover.Format,
 ) (template.CSS, template.HTML, template.HTML, error)
 
-func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if r.FormValue("jsonl") == "1" {
-		hdr, err := commonHeader(c, r, w, "")
-		if err != nil {
-			return err
+type coverageHeatmapParams struct {
+	manager    string
+	subsystem  string
+	onlyUnique bool
+	periodType string
+	nPeriods   int
+	dateTo     civil.Date
+	cover.Format
+}
+
+const minPeriodsOnThePage = 1
+const maxPeriodsOnThePage = 12
+
+func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
+	minCoverLinesDrop, err := getIntParam(r, covPageParams[MinCoverLinesDrop], 0)
+	if err != nil {
+		return nil, err
+	}
+	onlyUnique, err := getBoolParam(r, covPageParams[UniqueOnly], false)
+	if err != nil {
+		return nil, err
+	}
+	orderByCoverDrop, err := getBoolParam(r, covPageParams[OrderByCoverDrop], false)
+	if err != nil {
+		return nil, err
+	}
+	periodType, err := getStringParam(r, covPageParams[PeriodType], coveragedb.DayPeriod)
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains(coveragedb.AllPeriods, periodType) {
+		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
+			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
+	}
+
+	nPeriods, err := getIntParam(r, covPageParams[PeriodCount], 4)
+	if err != nil || nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
+		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]: %w",
+			minPeriodsOnThePage, maxPeriodsOnThePage, err)
+	}
+
+	dateTo := civil.DateOf(timeNow(ctx))
+	if customDate := r.FormValue(covPageParams[DateTo]); customDate != "" {
+		if dateTo, err = civil.ParseDate(customDate); err != nil {
+			return nil, fmt.Errorf("civil.ParseDate(%s): %w", customDate, err)
 		}
+	}
+
+	return &coverageHeatmapParams{
+		manager:    r.FormValue(covPageParams[ManagerName]),
+		subsystem:  r.FormValue(covPageParams[SubsystemName]),
+		onlyUnique: onlyUnique,
+		periodType: periodType,
+		nPeriods:   nPeriods,
+		dateTo:     dateTo,
+		Format: cover.Format{
+			DropCoveredLines0:         onlyUnique,
+			OrderByCoveredLinesDrop:   orderByCoverDrop,
+			FilterMinCoveredLinesDrop: minCoverLinesDrop,
+		},
+	}, nil
+}
+
+func getIntParam(r *http.Request, name string, orDefault ...int) (int, error) {
+	if r.FormValue(name) == "" {
+		if len(orDefault) > 0 {
+			return orDefault[0], nil
+		}
+		return 0, errors.New("missing parameter " + name)
+	}
+	res, err := strconv.Atoi(r.FormValue(name))
+	if err != nil {
+		return 0, fmt.Errorf("strconv.Atoi(%s): %w", name, err)
+	}
+	return res, nil
+}
+
+func getBoolParam(r *http.Request, name string, orDefault ...bool) (bool, error) {
+	if r.FormValue(name) == "" {
+		if len(orDefault) > 0 {
+			return orDefault[0], nil
+		}
+		return false, errors.New("missing parameter " + name)
+	}
+	res, err := strconv.ParseBool(r.FormValue(name))
+	if err != nil {
+		return false, fmt.Errorf("strconv.ParseBool(%s): %w", name, err)
+	}
+	return res, nil
+}
+
+func getStringParam(r *http.Request, name string, orDefault ...string) (string, error) {
+	if r.FormValue(name) == "" {
+		if len(orDefault) > 0 {
+			return orDefault[0], nil
+		}
+		return "", errors.New("missing parameter " + name)
+	}
+	return r.FormValue(name), nil
+}
+
+func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	params, err := makeHeatmapParams(c, r)
+	if err != nil {
+		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+	}
+	if requestJSONL, _ := getBoolParam(r, "jsonl", false); requestJSONL {
 		ns := hdr.Namespace
 		repo, _ := getNsConfig(c, ns).mainRepoBranch()
 		w.Header().Set("Content-Type", "application/json")
-		return writeExtAPICoverageFor(c, w, ns, repo)
+		return writeExtAPICoverageFor(c, w, ns, repo, params)
 	}
-	return handleHeatmap(c, w, r, cover.DoHeatMapStyleBodyJS)
+	return handleHeatmap(c, w, hdr, params, cover.DoHeatMapStyleBodyJS)
 }
 
 func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	return handleHeatmap(c, w, r, cover.DoSubsystemsHeatMapStyleBodyJS)
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	params, err := makeHeatmapParams(c, r)
+	if err != nil {
+		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+	}
+	return handleHeatmap(c, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
 
 type covPageParam int
@@ -127,46 +242,14 @@ func coveragePageLink(ns, periodType, dateTo string, minDrop, periodCount int, o
 	return url
 }
 
-func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f funcStyleBodyJS) error {
-	hdr, err := commonHeader(c, r, w, "")
-	if err != nil {
-		return err
-	}
+func handleHeatmap(c context.Context, w http.ResponseWriter, hdr *uiHeader, p *coverageHeatmapParams,
+	f funcStyleBodyJS) error {
 	nsConfig := getNsConfig(c, hdr.Namespace)
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
-	ss := r.FormValue(covPageParams[SubsystemName])
-	manager := r.FormValue(covPageParams[ManagerName])
 
-	periodType := r.FormValue(covPageParams[PeriodType])
-	if periodType == "" {
-		periodType = coveragedb.DayPeriod
-	}
-	if periodType != coveragedb.DayPeriod &&
-		periodType != coveragedb.MonthPeriod &&
-		periodType != coveragedb.QuarterPeriod {
-		return fmt.Errorf("only 'day', 'month' and 'quarter' are allowed, but received %s instead, %w",
-			periodType, ErrClientBadRequest)
-	}
-
-	periodCount := r.FormValue(covPageParams[PeriodCount])
-	if periodCount == "" {
-		periodCount = "4"
-	}
-	nPeriods, err := strconv.Atoi(periodCount)
-	if err != nil || nPeriods > 12 || nPeriods < 1 {
-		return fmt.Errorf("periods_count is wrong, expected [1, 12]: %w", err)
-	}
-
-	dateTo := civil.DateOf(timeNow(c))
-	if customDate := r.FormValue(covPageParams[DateTo]); customDate != "" {
-		if dateTo, err = civil.ParseDate(customDate); err != nil {
-			return fmt.Errorf("civil.ParseDate(%s): %w", customDate, err)
-		}
-	}
-
-	periods, err := coveragedb.GenNPeriodsTill(nPeriods, dateTo, periodType)
+	periods, err := coveragedb.GenNPeriodsTill(p.nPeriods, p.dateTo, p.periodType)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
@@ -182,29 +265,17 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, r *http.Request, f 
 	slices.Sort(managers)
 	slices.Sort(subsystems)
 
-	onlyUnique := r.FormValue(covPageParams[UniqueOnly]) == "1"
-	orderByCoverLinesDrop := r.FormValue(covPageParams[OrderByCoverDrop]) == "1"
-	// Prefixing "0" we don't fail on empty string.
-	minCoverLinesDrop, err := strconv.Atoi("0" + r.FormValue(covPageParams[MinCoverLinesDrop]))
-	if err != nil {
-		return fmt.Errorf(covPageParams[MinCoverLinesDrop] + " should be integer")
-	}
-
 	var style template.CSS
 	var body, js template.HTML
 	if style, body, js, err = f(c, getCoverageDBClient(c),
 		&coveragedb.SelectScope{
 			Ns:        hdr.Namespace,
-			Subsystem: ss,
-			Manager:   manager,
+			Subsystem: p.subsystem,
+			Manager:   p.manager,
 			Periods:   periods,
 		},
-		onlyUnique, subsystems, managers,
-		cover.Format{
-			FilterMinCoveredLinesDrop: minCoverLinesDrop,
-			OrderByCoveredLinesDrop:   orderByCoverLinesDrop,
-			DropCoveredLines0:         onlyUnique,
-		}); err != nil {
+		p.onlyUnique, subsystems, managers, p.Format,
+	); err != nil {
 		return fmt.Errorf("failed to generate heatmap: %w", err)
 	}
 	return serveTemplate(w, "custom_content.html", struct {
@@ -261,7 +332,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
-	onlyUnique := r.FormValue(covPageParams[UniqueOnly]) == "1"
+	onlyUnique, _ := getBoolParam(r, covPageParams[UniqueOnly], false)
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
 	client := getCoverageDBClient(c)
 	if client == nil {

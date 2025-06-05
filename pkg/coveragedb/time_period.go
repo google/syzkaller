@@ -41,6 +41,8 @@ const (
 	QuarterPeriod = "quarter"
 )
 
+var AllPeriods = []string{DayPeriod, MonthPeriod, QuarterPeriod}
+
 var errUnknownTimePeriodType = errors.New("unknown time period type")
 
 func MinMaxDays(periodType string) (int, int, error) {

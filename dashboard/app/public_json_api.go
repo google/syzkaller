@@ -178,7 +178,7 @@ func GetJSONDescrFor(page interface{}) ([]byte, error) {
 	return json.MarshalIndent(res, "", "\t")
 }
 
-func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) error {
+func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string, p *coverageHeatmapParams) error {
 	// By default, return the previous month coverage. It guarantees the good numbers.
 	//
 	// The alternative is to return the current month.
@@ -187,13 +187,25 @@ func writeExtAPICoverageFor(ctx context.Context, w io.Writer, ns, repo string) e
 	if err != nil {
 		return fmt.Errorf("coveragedb.GenNPeriodsTill: %w", err)
 	}
-	defaultTimePeriod := tps[0]
+
 	covDBClient := getCoverageDBClient(ctx)
-	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, defaultTimePeriod)
+	ff, err := coveragedb.MakeFuncFinder(ctx, covDBClient, ns, tps[0])
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeFuncFinder: %w", err)
 	}
-	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient, ns, defaultTimePeriod)
+	subsystem := ""
+	manager := ""
+	if p != nil {
+		subsystem = p.subsystem
+		manager = p.manager
+	}
+	covCh, errCh := coveragedb.FilesCoverageStream(ctx, covDBClient,
+		&coveragedb.SelectScope{
+			Ns:        ns,
+			Subsystem: subsystem,
+			Manager:   manager,
+			Periods:   tps,
+		})
 	if err := writeFileCoverage(ctx, w, repo, ff, covCh); err != nil {
 		return fmt.Errorf("populateFileCoverage: %w", err)
 	}
