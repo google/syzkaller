@@ -46,7 +46,7 @@ class StructRepr(object):
         Returns the metadata description for a struct field in syzkaller format.
         eg: "len    intptr".
         In cases where more than one syzkaller type maps to a native type, return
-        a string with possible syzkaller types seperated by '|'.
+        a string with possible syzkaller types separated by '|'.
         '''
 
         def _get_syzkaller_type(native_type):

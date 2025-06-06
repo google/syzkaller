@@ -2,7 +2,7 @@ External USB fuzzing for Linux kernel
 =====================================
 
 syzkaller supports fuzzing the Linux kernel USB subsystem from the external side.
-Instead of relying on external hardware (like [Facedancer](https://github.com/usb-tools/Facedancer)-based boards) or VM management software features (like QEMU [usbredir](https://www.spice-space.org/usbredir.html)), syzkaller fuzzes USB fully within a (potentially-virtualized) enviroment that runs the Linux kernel.
+Instead of relying on external hardware (like [Facedancer](https://github.com/usb-tools/Facedancer)-based boards) or VM management software features (like QEMU [usbredir](https://www.spice-space.org/usbredir.html)), syzkaller fuzzes USB fully within a (potentially-virtualized) environment that runs the Linux kernel.
 
 The USB fuzzing support in syzkaller is based on:
 
