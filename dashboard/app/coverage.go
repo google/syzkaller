@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -72,91 +71,60 @@ const minPeriodsOnThePage = 1
 const maxPeriodsOnThePage = 12
 
 func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
-	minCoverLinesDrop, err := getIntParam(r, covPageParams[MinCoverLinesDrop], 0)
-	if err != nil {
-		return nil, err
-	}
-	onlyUnique, err := getBoolParam(r, covPageParams[UniqueOnly], false)
-	if err != nil {
-		return nil, err
-	}
-	orderByCoverDrop, err := getBoolParam(r, covPageParams[OrderByCoverDrop], false)
-	if err != nil {
-		return nil, err
-	}
-	periodType, err := getStringParam(r, covPageParams[PeriodType], coveragedb.DayPeriod)
-	if err != nil {
-		return nil, err
-	}
+	onlyUnique := getParam[bool](r, covPageParams[UniqueOnly], false)
+	periodType := getParam[string](r, covPageParams[PeriodType])
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
 		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
 			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
 	}
-
-	nPeriods, err := getIntParam(r, covPageParams[PeriodCount], 4)
-	if err != nil || nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
-		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]: %w",
-			minPeriodsOnThePage, maxPeriodsOnThePage, err)
-	}
-
-	dateTo := civil.DateOf(timeNow(ctx))
-	if customDate := r.FormValue(covPageParams[DateTo]); customDate != "" {
-		if dateTo, err = civil.ParseDate(customDate); err != nil {
-			return nil, fmt.Errorf("civil.ParseDate(%s): %w", customDate, err)
-		}
+	nPeriods := getParam[int](r, covPageParams[PeriodCount], 4)
+	if nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
+		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]",
+			minPeriodsOnThePage, maxPeriodsOnThePage)
 	}
 
 	return &coverageHeatmapParams{
-		manager:    r.FormValue(covPageParams[ManagerName]),
-		subsystem:  r.FormValue(covPageParams[SubsystemName]),
+		manager:    getParam[string](r, covPageParams[ManagerName]),
+		subsystem:  getParam[string](r, covPageParams[SubsystemName]),
 		onlyUnique: onlyUnique,
 		periodType: periodType,
 		nPeriods:   nPeriods,
-		dateTo:     dateTo,
+		dateTo:     getParam[civil.Date](r, covPageParams[DateTo], civil.DateOf(timeNow(ctx))),
 		Format: cover.Format{
 			DropCoveredLines0:         onlyUnique,
-			OrderByCoveredLinesDrop:   orderByCoverDrop,
-			FilterMinCoveredLinesDrop: minCoverLinesDrop,
+			OrderByCoveredLinesDrop:   getParam[bool](r, covPageParams[OrderByCoverDrop]),
+			FilterMinCoveredLinesDrop: getParam[int](r, covPageParams[MinCoverLinesDrop]),
 		},
 	}, nil
 }
 
-func getIntParam(r *http.Request, name string, orDefault ...int) (int, error) {
+func getParam[T int | string | bool | civil.Date](r *http.Request, name string, orDefault ...T) T {
+	var def T
+	if len(orDefault) > 0 {
+		def = orDefault[0]
+	}
 	if r.FormValue(name) == "" {
-		if len(orDefault) > 0 {
-			return orDefault[0], nil
-		}
-		return 0, errors.New("missing parameter " + name)
+		return def
 	}
-	res, err := strconv.Atoi(r.FormValue(name))
-	if err != nil {
-		return 0, fmt.Errorf("strconv.Atoi(%s): %w", name, err)
-	}
-	return res, nil
+	var t T
+	return extractVal(t, r.FormValue(name)).(T)
 }
 
-func getBoolParam(r *http.Request, name string, orDefault ...bool) (bool, error) {
-	if r.FormValue(name) == "" {
-		if len(orDefault) > 0 {
-			return orDefault[0], nil
-		}
-		return false, errors.New("missing parameter " + name)
+func extractVal(t interface{}, val string) interface{} {
+	switch t.(type) {
+	case int:
+		res, _ := strconv.Atoi(val)
+		return res
+	case string:
+		return val
+	case bool:
+		res, _ := strconv.ParseBool(val)
+		return res
+	case civil.Date:
+		res, _ := civil.ParseDate(val)
+		return res
 	}
-	res, err := strconv.ParseBool(r.FormValue(name))
-	if err != nil {
-		return false, fmt.Errorf("strconv.ParseBool(%s): %w", name, err)
-	}
-	return res, nil
-}
-
-func getStringParam(r *http.Request, name string, orDefault ...string) (string, error) {
-	if r.FormValue(name) == "" {
-		if len(orDefault) > 0 {
-			return orDefault[0], nil
-		}
-		return "", errors.New("missing parameter " + name)
-	}
-	return r.FormValue(name), nil
+	panic("unsupported type")
 }
 
 func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -168,7 +136,7 @@ func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
-	if requestJSONL, _ := getBoolParam(r, "jsonl", false); requestJSONL {
+	if getParam[bool](r, "jsonl") {
 		ns := hdr.Namespace
 		repo, _ := getNsConfig(c, ns).mainRepoBranch()
 		w.Header().Set("Content-Type", "application/json")
@@ -332,7 +300,6 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
-	onlyUnique, _ := getBoolParam(r, covPageParams[UniqueOnly], false)
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
 	client := getCoverageDBClient(c)
 	if client == nil {
@@ -344,7 +311,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
 	}
-	if onlyUnique {
+	if getParam[bool](r, covPageParams[UniqueOnly]) {
 		// This request is expected to be made second by tests.
 		// Moving it to goroutine don't forget to change multiManagerCovDBFixture.
 		allHitLines, allHitCounts, err := coveragedb.ReadLinesHitCount(
