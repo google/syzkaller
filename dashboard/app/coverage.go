@@ -71,29 +71,29 @@ const minPeriodsOnThePage = 1
 const maxPeriodsOnThePage = 12
 
 func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapParams, error) {
-	onlyUnique := getParam[bool](r, covPageParams[UniqueOnly], false)
-	periodType := getParam[string](r, covPageParams[PeriodType])
+	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
+	periodType := getParam[string](r, PeriodType.ParamName())
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
 		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
 			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
 	}
-	nPeriods := getParam[int](r, covPageParams[PeriodCount], 4)
+	nPeriods := getParam[int](r, PeriodCount.ParamName(), 4)
 	if nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
 		return nil, fmt.Errorf("periods_count is wrong, expected [%d, %d]",
 			minPeriodsOnThePage, maxPeriodsOnThePage)
 	}
 
 	return &coverageHeatmapParams{
-		manager:    getParam[string](r, covPageParams[ManagerName]),
-		subsystem:  getParam[string](r, covPageParams[SubsystemName]),
+		manager:    getParam[string](r, ManagerName.ParamName()),
+		subsystem:  getParam[string](r, SubsystemName.ParamName()),
 		onlyUnique: onlyUnique,
 		periodType: periodType,
 		nPeriods:   nPeriods,
-		dateTo:     getParam[civil.Date](r, covPageParams[DateTo], civil.DateOf(timeNow(ctx))),
+		dateTo:     getParam[civil.Date](r, DateTo.ParamName(), civil.DateOf(timeNow(ctx))),
 		Format: cover.Format{
 			DropCoveredLines0:         onlyUnique,
-			OrderByCoveredLinesDrop:   getParam[bool](r, covPageParams[OrderByCoverDrop]),
-			FilterMinCoveredLinesDrop: getParam[int](r, covPageParams[MinCoverLinesDrop]),
+			OrderByCoveredLinesDrop:   getParam[bool](r, OrderByCoverDrop.ParamName()),
+			FilterMinCoveredLinesDrop: getParam[int](r, MinCoverLinesDrop.ParamName()),
 		},
 	}, nil
 }
@@ -157,55 +157,44 @@ func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r
 	return handleHeatmap(c, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
 
-type covPageParam int
+type covPageParam string
+
+func (p covPageParam) ParamName() string {
+	return string(p)
+}
 
 const (
 	// keep-sorted start
-	CommitHash covPageParam = iota
-	DateTo
-	FilePath
-	ManagerName
-	MinCoverLinesDrop
-	OrderByCoverDrop
-	PeriodCount
-	PeriodType
-	SubsystemName
-	UniqueOnly
+	CommitHash        = covPageParam("commit")
+	DateTo            = covPageParam("dateto")
+	FilePath          = covPageParam("filepath")
+	ManagerName       = covPageParam("manager")
+	MinCoverLinesDrop = covPageParam("min-cover-lines-drop")
+	OrderByCoverDrop  = covPageParam("order-by-cover-lines-drop")
+	PeriodCount       = covPageParam("period_count")
+	PeriodType        = covPageParam("period")
+	SubsystemName     = covPageParam("subsystem")
+	UniqueOnly        = covPageParam("unique-only")
 	// keep-sorted end
 )
-
-var covPageParams = map[covPageParam]string{
-	// keep-sorted start
-	CommitHash:        "commit",
-	DateTo:            "dateto",
-	FilePath:          "filepath",
-	ManagerName:       "manager",
-	MinCoverLinesDrop: "min-cover-lines-drop",
-	OrderByCoverDrop:  "order-by-cover-lines-drop",
-	PeriodCount:       "period_count",
-	PeriodType:        "period",
-	SubsystemName:     "subsystem",
-	UniqueOnly:        "unique-only",
-	// keep-sorted end
-}
 
 func coveragePageLink(ns, periodType, dateTo string, minDrop, periodCount int, orderByCoverDrop bool) string {
 	if periodType == "" {
 		periodType = coveragedb.MonthPeriod
 	}
 	url := "/" + ns + "/coverage"
-	url = urlutil.SetParam(url, covPageParams[PeriodType], periodType)
+	url = urlutil.SetParam(url, PeriodType.ParamName(), periodType)
 	if periodCount != 0 {
-		url = urlutil.SetParam(url, covPageParams[PeriodCount], strconv.Itoa(periodCount))
+		url = urlutil.SetParam(url, PeriodCount.ParamName(), strconv.Itoa(periodCount))
 	}
 	if dateTo != "" {
-		url = urlutil.SetParam(url, covPageParams[DateTo], dateTo)
+		url = urlutil.SetParam(url, DateTo.ParamName(), dateTo)
 	}
 	if minDrop > 0 {
-		url = urlutil.SetParam(url, covPageParams[MinCoverLinesDrop], strconv.Itoa(minDrop))
+		url = urlutil.SetParam(url, MinCoverLinesDrop.ParamName(), strconv.Itoa(minDrop))
 	}
 	if orderByCoverDrop {
-		url = urlutil.SetParam(url, covPageParams[OrderByCoverDrop], "1")
+		url = urlutil.SetParam(url, OrderByCoverDrop.ParamName(), "1")
 	}
 	return url
 }
@@ -277,18 +266,18 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if nsConfig.Coverage == nil || nsConfig.Coverage.WebGitURI == "" {
 		return ErrClientNotFound
 	}
-	dateToStr := r.FormValue(covPageParams[DateTo])
-	periodType := r.FormValue(covPageParams[PeriodType])
-	targetCommit := r.FormValue(covPageParams[CommitHash])
-	kernelFilePath := r.FormValue(covPageParams[FilePath])
-	manager := r.FormValue(covPageParams[ManagerName])
+	dateToStr := r.FormValue(DateTo.ParamName())
+	periodType := r.FormValue(PeriodType.ParamName())
+	targetCommit := r.FormValue(CommitHash.ParamName())
+	kernelFilePath := r.FormValue(FilePath.ParamName())
+	manager := r.FormValue(ManagerName.ParamName())
 	if err := validator.AnyError("input validation failed",
-		validator.TimePeriodType(periodType, covPageParams[PeriodType]),
-		validator.CommitHash(targetCommit, covPageParams[CommitHash]),
-		validator.KernelFilePath(kernelFilePath, covPageParams[FilePath]),
+		validator.TimePeriodType(periodType, PeriodType.ParamName()),
+		validator.CommitHash(targetCommit, CommitHash.ParamName()),
+		validator.KernelFilePath(kernelFilePath, FilePath.ParamName()),
 		validator.AnyOk(
-			validator.Allowlisted(manager, []string{"", "*"}, covPageParams[ManagerName]),
-			validator.ManagerName(manager, covPageParams[ManagerName])),
+			validator.Allowlisted(manager, []string{"", "*"}, ManagerName.ParamName()),
+			validator.ManagerName(manager, ManagerName.ParamName())),
 	); err != nil {
 		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
 	}
@@ -311,7 +300,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
 	}
-	if getParam[bool](r, covPageParams[UniqueOnly]) {
+	if getParam[bool](r, UniqueOnly.ParamName()) {
 		// This request is expected to be made second by tests.
 		// Moving it to goroutine don't forget to change multiManagerCovDBFixture.
 		allHitLines, allHitCounts, err := coveragedb.ReadLinesHitCount(
@@ -362,7 +351,7 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
-	periodType := r.FormValue(covPageParams[PeriodType])
+	periodType := r.FormValue(PeriodType.ParamName())
 	if periodType == "" {
 		periodType = coveragedb.QuarterPeriod
 	}
