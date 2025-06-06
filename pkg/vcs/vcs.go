@@ -369,6 +369,11 @@ func CommitLink(url, hash string) string {
 	return link(url, hash, "", 0, 0)
 }
 
+// Used externally - do not remove.
+func TreeLink(url, hash string) string {
+	return link(url, hash, "", 0, 1)
+}
+
 func LogLink(url, hash string) string {
 	return link(url, hash, "", 0, 2)
 }
