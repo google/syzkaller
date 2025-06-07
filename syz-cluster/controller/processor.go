@@ -201,10 +201,11 @@ func (sp *SeriesProcessor) stopRunningTests(ctx context.Context, sessionID strin
 		}
 		log.Printf("session %q is finished, but the test %q is running: marking it stopped",
 			sessionID, test.TestName)
-		err = sp.sessionTestRepo.InsertOrUpdate(ctx, test, func(entity *db.SessionTest) {
+		err = sp.sessionTestRepo.InsertOrUpdate(ctx, test, func(entity *db.SessionTest) error {
 			if entity.Result == api.TestRunning {
 				entity.Result = api.TestError
 			}
+			return nil
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update the step %q: %w", test.TestName, err)
@@ -214,19 +215,24 @@ func (sp *SeriesProcessor) stopRunningTests(ctx context.Context, sessionID strin
 }
 
 func (sp *SeriesProcessor) updateSessionLog(ctx context.Context, session *db.Session, log []byte) error {
-	return sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
+	var logURI string
+	err := sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
 		if session.LogURI == "" {
-			path, err := sp.blobStorage.Store(bytes.NewReader(log))
+			var err error
+			session.LogURI, err = sp.blobStorage.NewURI()
 			if err != nil {
-				return fmt.Errorf("failed to save the log: %w", err)
-			}
-			session.LogURI = path
-		} else {
-			err := sp.blobStorage.Update(session.LogURI, bytes.NewReader(log))
-			if err != nil {
-				return fmt.Errorf("failed to update the log %q: %w", session.LogURI, err)
+				return fmt.Errorf("failed to generate blob storage URI: %w", err)
 			}
 		}
+		logURI = session.LogURI
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	err = sp.blobStorage.Write(logURI, bytes.NewReader(log))
+	if err != nil {
+		return fmt.Errorf("failed to update the log %q: %w", session.LogURI, err)
+	}
+	return nil
 }

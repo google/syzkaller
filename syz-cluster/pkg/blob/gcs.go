@@ -29,49 +29,20 @@ func NewGCSClient(ctx context.Context, bucket string) (Storage, error) {
 	}, nil
 }
 
-func (gcs *gcsDriver) Store(source io.Reader) (string, error) {
-	object := uuid.NewString()
-	err := gcs.writeObject(object, source)
+func (gcs *gcsDriver) NewURI() (string, error) {
+	key, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
-	return gcs.objectURI(object), nil
+	return fmt.Sprintf("gcs://%s/%s", gcs.bucket, key.String()), nil
 }
 
-func (gcs *gcsDriver) Update(uri string, source io.Reader) error {
-	object, err := gcs.objectName(uri)
+func (gcs *gcsDriver) Write(uri string, source io.Reader) error {
+	bucket, object, err := gcs.parseURI(uri)
 	if err != nil {
 		return err
 	}
-	return gcs.writeObject(object, source)
-}
-
-func (gcs *gcsDriver) Read(uri string) (io.ReadCloser, error) {
-	object, err := gcs.objectName(uri)
-	if err != nil {
-		return nil, err
-	}
-	return gcs.client.FileReader(fmt.Sprintf("%s/%s", gcs.bucket, object))
-}
-
-var gcsObjectRe = regexp.MustCompile(`^gcs://([\w-]+)/([\w-]+)$`)
-
-func (gcs *gcsDriver) objectName(uri string) (string, error) {
-	match := gcsObjectRe.FindStringSubmatch(uri)
-	if len(match) == 0 {
-		return "", fmt.Errorf("invalid GCS URI")
-	} else if match[1] != gcs.bucket {
-		return "", fmt.Errorf("unexpected GCS bucket")
-	}
-	return match[2], nil
-}
-
-func (gcs *gcsDriver) objectURI(object string) string {
-	return fmt.Sprintf("gcs://%s/%s", gcs.bucket, object)
-}
-
-func (gcs *gcsDriver) writeObject(object string, source io.Reader) error {
-	w, err := gcs.client.FileWriter(fmt.Sprintf("%s/%s", gcs.bucket, object), "", "")
+	w, err := gcs.client.FileWriter(fmt.Sprintf("%s/%s", bucket, object), "", "")
 	if err != nil {
 		return err
 	}
@@ -79,4 +50,24 @@ func (gcs *gcsDriver) writeObject(object string, source io.Reader) error {
 
 	_, err = io.Copy(w, source)
 	return err
+}
+
+func (gcs *gcsDriver) Read(uri string) (io.ReadCloser, error) {
+	bucket, object, err := gcs.parseURI(uri)
+	if err != nil {
+		return nil, err
+	}
+	return gcs.client.FileReader(fmt.Sprintf("%s/%s", bucket, object))
+}
+
+var gcsObjectRe = regexp.MustCompile(`^gcs://([\w-]+)/([\w-]+)$`)
+
+func (gcs *gcsDriver) parseURI(uri string) (string, string, error) {
+	match := gcsObjectRe.FindStringSubmatch(uri)
+	if len(match) == 0 {
+		return "", "", fmt.Errorf("invalid GCS URI")
+	} else if match[1] != gcs.bucket {
+		return "", "", fmt.Errorf("unexpected GCS bucket")
+	}
+	return gcs.bucket, match[2], nil
 }
