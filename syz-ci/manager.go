@@ -1082,6 +1082,16 @@ func uploadFileHTTPPut(ctx context.Context, URL string, file io.Reader) error {
 
 // Errorf logs non-fatal error and sends it to dashboard.
 func (mgr *Manager) Errorf(msg string, args ...interface{}) {
+	for _, arg := range args {
+		err, _ := arg.(error)
+		if err == nil {
+			continue
+		}
+		if errors.Is(err, context.Canceled) {
+			// Context cancelation-related errors only create unnecessary noise.
+			return
+		}
+	}
 	log.Errorf(mgr.name+": "+msg, args...)
 	if mgr.dash != nil {
 		mgr.dash.LogError(mgr.name, msg, args...)
