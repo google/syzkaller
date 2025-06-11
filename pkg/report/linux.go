@@ -1138,7 +1138,7 @@ var linuxStackParams = &stackParams{
 		"krealloc",
 		"kmem_cache",
 		"allocate_slab",
-		"folio_alloc",
+		"folio_(?:alloc|unlock)",
 		"filemap_alloc_folio",
 		"__filemap_get_folio",
 		"find_or_create_page",

@@ -1,0 +1,88 @@
+TITLE: kernel BUG in f2fs_sync_node_pages
+TYPE: BUG
+
+[  155.791771][ T1059] ------------[ cut here ]------------
+[  155.797494][ T1059] kernel BUG at mm/filemap.c:1498!
+[  155.810751][ T1059] Oops: invalid opcode: 0000 [#1] SMP KASAN PTI
+[  155.817098][ T1059] CPU: 1 UID: 0 PID: 1059 Comm: kworker/u8:6 Not tainted 6.15.0-next-20250606-syzkaller #0 PREEMPT(full) 
+[  155.828428][ T1059] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[  155.838540][ T1059] Workqueue: writeback wb_workfn (flush-7:5)
+[  155.844611][ T1059] RIP: 0010:folio_unlock+0x13d/0x160
+[  155.849943][ T1059] Code: de c8 ff 48 89 df 48 c7 c6 20 36 94 8b e8 7b 78 10 00 90 0f 0b e8 33 de c8 ff 48 89 df 48 c7 c6 40 2c 94 8b e8 64 78 10 00 90 <0f> 0b e8 1c de c8 ff 48 89 df 48 c7 c6 20 36 94 8b e8 4d 78 10 00
+[  155.869596][ T1059] RSP: 0018:ffffc90003c3ee28 EFLAGS: 00010246
+[  155.875774][ T1059] RAX: f2397056558d0800 RBX: ffffea0000d027c0 RCX: 0000000000000000
+[  155.883760][ T1059] RDX: 0000000000000006 RSI: ffffffff8d984053 RDI: 00000000ffffffff
+[  155.891929][ T1059] RBP: ffffc90003c3f110 R08: ffffffff8fa126f7 R09: 1ffffffff1f424de
+[  155.899917][ T1059] R10: dffffc0000000000 R11: fffffbfff1f424df R12: 1ffffd40001a04f9
+[  155.907901][ T1059] R13: 00fff3800000423c R14: ffffea0000d027c8 R15: dffffc0000000000
+[  155.915977][ T1059] FS:  0000000000000000(0000) GS:ffff888125d4d000(0000) knlGS:0000000000000000
+[  155.924923][ T1059] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  155.931527][ T1059] CR2: 00007ffec346a000 CR3: 000000007d7e0000 CR4: 00000000003526f0
+[  155.939530][ T1059] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  155.947522][ T1059] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  155.955505][ T1059] Call Trace:
+[  155.958797][ T1059]  <TASK>
+[  155.961746][ T1059]  f2fs_sync_node_pages+0x180a/0x1a10
+[  155.967150][ T1059]  ? __pfx_f2fs_sync_node_pages+0x10/0x10
+[  155.972884][ T1059]  ? __percpu_counter_sum+0x1c2/0x1e0
+[  155.978291][ T1059]  ? rcu_is_watching+0x15/0xb0
+[  155.983079][ T1059]  ? blk_start_plug+0x52/0x1b0
+[  155.987856][ T1059]  f2fs_write_node_pages+0x303/0x6e0
+[  155.993160][ T1059]  ? __pfx_f2fs_write_node_pages+0x10/0x10
+[  155.998984][ T1059]  ? unwind_next_frame+0xa5/0x2390
+[  156.004121][ T1059]  ? unwind_next_frame+0x19ae/0x2390
+[  156.009431][ T1059]  ? __pfx_f2fs_write_node_pages+0x10/0x10
+[  156.015250][ T1059]  do_writepages+0x32b/0x550
+[  156.019871][ T1059]  ? reacquire_held_locks+0x127/0x1d0
+[  156.025259][ T1059]  ? writeback_sb_inodes+0x372/0x1000
+[  156.030665][ T1059]  __writeback_single_inode+0x145/0xff0
+[  156.036232][ T1059]  ? do_raw_spin_unlock+0x122/0x240
+[  156.041464][ T1059]  writeback_sb_inodes+0x6b5/0x1000
+[  156.046714][ T1059]  ? switch_ldt+0x10a/0x250
+[  156.051249][ T1059]  ? __pfx_writeback_sb_inodes+0x10/0x10
+[  156.056923][ T1059]  ? rcu_is_watching+0x15/0xb0
+[  156.061739][ T1059]  wb_writeback+0x43b/0xaf0
+[  156.066265][ T1059]  ? queue_io+0x391/0x590
+[  156.070611][ T1059]  ? __pfx_wb_writeback+0x10/0x10
+[  156.075682][ T1059]  ? _raw_spin_unlock_irq+0x23/0x50
+[  156.080908][ T1059]  wb_workfn+0x409/0xef0
+[  156.085178][ T1059]  ? __pfx_wb_workfn+0x10/0x10
+[  156.089956][ T1059]  ? __lock_acquire+0xab9/0xd20
+[  156.094826][ T1059]  ? process_scheduled_works+0x9ef/0x17b0
+[  156.100567][ T1059]  ? _raw_spin_unlock_irq+0x23/0x50
+[  156.105784][ T1059]  ? process_scheduled_works+0x9ef/0x17b0
+[  156.111519][ T1059]  ? process_scheduled_works+0x9ef/0x17b0
+[  156.117263][ T1059]  process_scheduled_works+0xae1/0x17b0
+[  156.122844][ T1059]  ? __pfx_process_scheduled_works+0x10/0x10
+[  156.128847][ T1059]  worker_thread+0x8a0/0xda0
+[  156.133458][ T1059]  kthread+0x70e/0x8a0
+[  156.137547][ T1059]  ? __pfx_worker_thread+0x10/0x10
+[  156.142676][ T1059]  ? __pfx_kthread+0x10/0x10
+[  156.147283][ T1059]  ? _raw_spin_unlock_irq+0x23/0x50
+[  156.152505][ T1059]  ? lockdep_hardirqs_on+0x9c/0x150
+[  156.157717][ T1059]  ? __pfx_kthread+0x10/0x10
+[  156.162323][ T1059]  ret_from_fork+0x3f9/0x770
+[  156.166942][ T1059]  ? __pfx_ret_from_fork+0x10/0x10
+[  156.172098][ T1059]  ? __switch_to_asm+0x39/0x70
+[  156.176880][ T1059]  ? __switch_to_asm+0x33/0x70
+[  156.181655][ T1059]  ? __pfx_kthread+0x10/0x10
+[  156.186261][ T1059]  ret_from_fork_asm+0x1a/0x30
+[  156.191131][ T1059]  </TASK>
+[  156.194158][ T1059] Modules linked in:
+[  156.199886][ T1059] ---[ end trace 0000000000000000 ]---
+[  156.371602][ T6681] EXT4-fs (loop0): encrypted files will use data=ordered instead of data journaling mode
+[  156.391971][ T6681] EXT4-fs (loop0): couldn't mount as ext2 due to feature incompatibilities
+[  156.948317][ T1059] RIP: 0010:folio_unlock+0x13d/0x160
+[  156.972914][ T1059] Code: de c8 ff 48 89 df 48 c7 c6 20 36 94 8b e8 7b 78 10 00 90 0f 0b e8 33 de c8 ff 48 89 df 48 c7 c6 40 2c 94 8b e8 64 78 10 00 90 <0f> 0b e8 1c de c8 ff 48 89 df 48 c7 c6 20 36 94 8b e8 4d 78 10 00
+[  157.040666][ T1059] RSP: 0018:ffffc90003c3ee28 EFLAGS: 00010246
+[  157.048867][ T1059] RAX: f2397056558d0800 RBX: ffffea0000d027c0 RCX: 0000000000000000
+[  157.059263][ T1059] RDX: 0000000000000006 RSI: ffffffff8d984053 RDI: 00000000ffffffff
+[  157.094042][ T1059] RBP: ffffc90003c3f110 R08: ffffffff8fa126f7 R09: 1ffffffff1f424de
+[  157.103430][ T1059] R10: dffffc0000000000 R11: fffffbfff1f424df R12: 1ffffd40001a04f9
+[  157.114786][ T1059] R13: 00fff3800000423c R14: ffffea0000d027c8 R15: dffffc0000000000
+[  157.124859][ T1059] FS:  0000000000000000(0000) GS:ffff888125d4d000(0000) knlGS:0000000000000000
+[  157.133932][ T1059] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  157.141515][ T1059] CR2: 0000200000404030 CR3: 0000000078688000 CR4: 00000000003526f0
+[  157.149617][ T1059] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  157.161850][ T1059] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  157.211594][ T1059] Kernel panic - not syncing: Fatal exception
