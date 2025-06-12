@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/ianlancetaylor/demangle"
 )
 
 type reporterImpl interface {
@@ -721,7 +722,7 @@ func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []
 	}
 	for _, frame := range match[1:] {
 		if frame != nil && (skipRe == nil || !skipRe.Match(frame)) {
-			frames = append(frames, string(frame))
+			frames = append(frames, demangle.Filter(string(frame), demangle.NoParams))
 		}
 	}
 	return frames

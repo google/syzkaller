@@ -1,0 +1,306 @@
+TITLE: possible deadlock in fakeName
+TYPE: LOCKDEP
+EXECUTOR: proc=5, id=7376
+
+[  492.198014][T24950] ======================================================
+[  492.198599][T24950] WARNING: possible circular locking dependency detected
+[  492.199166][T24950] 6.15.0-rc7-dirty #2 Not tainted
+[  492.199662][T24950] ------------------------------------------------------
+[  492.200243][T24950] syz.5.7376/24950 is trying to acquire lock:
+[  492.200764][T24950] ffff888106a71958 (&q->elevator_lock){+.+.}-{4:4}, at: _Z8fakeNameiii+0x49a/0x1a10
+[  492.201679][T24950] 
+[  492.201679][T24950] but task is already holding lock:
+[  492.202324][T24950] ffff888106a71428 (&q->q_usage_counter(io)#55){++++}-{0:0}, at: nbd_start_device+0x16c/0xac0
+[  492.203199][T24950] 
+[  492.203199][T24950] which lock already depends on the new lock.
+[  492.203199][T24950] 
+[  492.204282][T24950] 
+[  492.204282][T24950] the existing dependency chain (in reverse order) is:
+[  492.205026][T24950] 
+[  492.205026][T24950] -> #2 (&q->q_usage_counter(io)#55){++++}-{0:0}:
+[  492.205755][T24950]        lock_acquire+0x120/0x360
+[  492.206191][T24950]        blk_alloc_queue+0x538/0x620
+[  492.207668][T24950]        __blk_mq_alloc_disk+0x164/0x350
+[  492.208143][T24950]        nbd_dev_add+0x478/0xb10
+[  492.208580][T24950]        nbd_init+0x21a/0x2d0
+[  492.208987][T24950]        do_one_initcall+0x233/0x820
+[  492.209427][T24950]        do_initcall_level+0x137/0x1f0
+[  492.209898][T24950]        do_initcalls+0x69/0xd0
+[  492.211387][T24950]        kernel_init_freeable+0x3d9/0x570
+[  492.212872][T24950]        kernel_init+0x1d/0x1d0
+[  492.214106][T24950]        ret_from_fork+0x4b/0x80
+[  492.215349][T24950]        ret_from_fork_asm+0x1a/0x30
+[  492.216687][T24950] 
+[  492.216687][T24950] -> #1 (fs_reclaim){+.+.}-{0:0}:
+[  492.218501][T24950]        lock_acquire+0x120/0x360
+[  492.219773][T24950]        fs_reclaim_acquire+0x72/0x100
+[  492.221247][T24950]        kmem_cache_alloc_noprof+0x44/0x3c0
+[  492.222382][T24950]        __kernfs_new_node+0xd7/0x7f0
+[  492.223332][T24950]        kernfs_new_node+0x102/0x210
+[  492.224319][T24950]        kernfs_create_dir_ns+0x44/0x130
+[  492.225321][T24950]        sysfs_create_dir_ns+0x123/0x280
+[  492.226310][T24950]        kobject_add_internal+0x59f/0xb40
+[  492.227320][T24950]        kobject_add+0x155/0x220
+[  492.228199][T24950]        elv_register_queue+0xdb/0x260
+[  492.229196][T24950]        blk_register_queue+0x375/0x450
+[  492.230186][T24950]        add_disk_fwnode+0x77f/0x10e0
+[  492.231152][T24950]        _RNvXCsktjF9JQNZ8U_5rnullNtB2_13NullBlkModuleNtCs43vyB533jt3_6kernel13InPlaceModule4init+0x904/0xc30
+[  492.232707][T24950]        __rnull_mod_init+0x1a/0x70
+[  492.233328][T24950]        do_one_initcall+0x233/0x820
+[  492.233954][T24950]        do_initcall_level+0x137/0x1f0
+[  492.234606][T24950]        do_initcalls+0x69/0xd0
+[  492.235198][T24950]        kernel_init_freeable+0x3d9/0x570
+[  492.235883][T24950]        kernel_init+0x1d/0x1d0
+[  492.236478][T24950]        ret_from_fork+0x4b/0x80
+[  492.237083][T24950]        ret_from_fork_asm+0x1a/0x30
+[  492.237709][T24950] 
+[  492.237709][T24950] -> #0 (&q->elevator_lock){+.+.}-{4:4}:
+[  492.238636][T24950]        validate_chain+0xb9b/0x2140
+[  492.239262][T24950]        __lock_acquire+0xaac/0xd20
+[  492.239881][T24950]        lock_acquire+0x120/0x360
+[  492.240504][T24950]        __mutex_lock+0x182/0xe80
+[  492.241103][T24950]        _Z8fakeNameiii+0x49a/0x1a10
+[  492.241900][T24950]        nbd_start_device+0x16c/0xac0
+[  492.242492][T24950]        nbd_genl_connect+0x1250/0x1930
+[  492.242954][T24950]        genl_family_rcv_msg_doit+0x212/0x300
+[  492.243465][T24950]        genl_rcv_msg+0x60e/0x790
+[  492.243901][T24950]        netlink_rcv_skb+0x21c/0x490
+[  492.244352][T24950]        genl_rcv+0x28/0x40
+[  492.244734][T24950]        netlink_unicast+0x758/0x8d0
+[  492.245165][T24950]        netlink_sendmsg+0x805/0xb30
+[  492.245611][T24950]        __sock_sendmsg+0x21c/0x270
+[  492.246055][T24950]        ____sys_sendmsg+0x505/0x830
+[  492.246500][T24950]        ___sys_sendmsg+0x21f/0x2a0
+[  492.246948][T24950]        __x64_sys_sendmsg+0x19b/0x260
+[  492.247396][T24950]        do_syscall_64+0xf6/0x210
+[  492.247817][T24950]        entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  492.248351][T24950] 
+[  492.248351][T24950] other info that might help us debug this:
+[  492.248351][T24950] 
+[  492.249170][T24950] Chain exists of:
+[  492.249170][T24950]   &q->elevator_lock --> fs_reclaim --> &q->q_usage_counter(io)#55
+[  492.249170][T24950] 
+[  492.250308][T24950]  Possible unsafe locking scenario:
+[  492.250308][T24950] 
+[  492.250911][T24950]        CPU0                    CPU1
+[  492.251357][T24950]        ----                    ----
+[  492.251804][T24950]   lock(&q->q_usage_counter(io)#55);
+[  492.252287][T24950]                                lock(fs_reclaim);
+[  492.252868][T24950]                                lock(&q->q_usage_counter(io)#55);
+[  492.253541][T24950]   lock(&q->elevator_lock);
+[  492.253948][T24950] 
+[  492.253948][T24950]  *** DEADLOCK ***
+[  492.253948][T24950] 
+[  492.254623][T24950] 6 locks held by syz.5.7376/24950:
+[  492.255064][T24950]  #0: ffffffff8f76e570 (cb_lock){++++}-{4:4}, at: genl_rcv+0x19/0x40
+[  492.255786][T24950]  #1: ffffffff8f76e388 (genl_mutex){+.+.}-{4:4}, at: genl_rcv_msg+0x10d/0x790
+[  492.256540][T24950]  #2: ffff88802383a198 (&nbd->config_lock){+.+.}-{4:4}, at: nbd_genl_connect+0x94f/0x1930
+[  492.257385][T24950]  #3: ffff88802383a0d8 (&set->tag_list_lock){+.+.}-{4:4}, at: blk_mq_update_nr_hw_queues+0xac/0x1a10
+[  492.258321][T24950]  #4: ffff888106a71428 (&q->q_usage_counter(io)#55){++++}-{0:0}, at: nbd_start_device+0x16c/0xac0
+[  492.259234][T24950]  #5: ffff888106a71460 (&q->q_usage_counter(queue)#7){+.+.}-{0:0}, at: nbd_start_device+0x16c/0xac0
+[  492.260176][T24950] 
+[  492.260176][T24950] stack backtrace:
+[  492.260687][T24950] CPU: 0 UID: 0 PID: 24950 Comm: syz.5.7376 Not tainted 6.15.0-rc7-dirty #2 PREEMPT(full) 
+[  492.260700][T24950] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[  492.260709][T24950] Call Trace:
+[  492.260715][T24950]  <TASK>
+[  492.260721][T24950]  dump_stack_lvl+0x189/0x250
+[  492.260734][T24950]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  492.260746][T24950]  ? __pfx__printk+0x10/0x10
+[  492.260760][T24950]  ? print_lock_name+0xde/0x100
+[  492.260772][T24950]  print_circular_bug+0x2ee/0x310
+[  492.260789][T24950]  check_noncircular+0x134/0x160
+[  492.260806][T24950]  validate_chain+0xb9b/0x2140
+[  492.260826][T24950]  __lock_acquire+0xaac/0xd20
+[  492.260840][T24950]  ? blk_mq_update_nr_hw_queues+0x49a/0x1a10
+[  492.260856][T24950]  lock_acquire+0x120/0x360
+[  492.260867][T24950]  ? blk_mq_update_nr_hw_queues+0x49a/0x1a10
+[  492.260887][T24950]  __mutex_lock+0x182/0xe80
+[  492.260899][T24950]  ? blk_mq_update_nr_hw_queues+0x49a/0x1a10
+[  492.260918][T24950]  ? blk_mq_update_nr_hw_queues+0x49a/0x1a10
+[  492.260935][T24950]  ? __pfx___mutex_lock+0x10/0x10
+[  492.260949][T24950]  ? __kasan_kmalloc+0x93/0xb0
+[  492.260967][T24950]  ? blk_mq_update_nr_hw_queues+0x47b/0x1a10
+[  492.260985][T24950]  blk_mq_update_nr_hw_queues+0x49a/0x1a10
+[  492.261006][T24950]  ? __pfx_blk_mq_update_nr_hw_queues+0x10/0x10
+[  492.261023][T24950]  ? nbd_add_socket+0x688/0x9a0
+[  492.261034][T24950]  nbd_start_device+0x16c/0xac0
+[  492.261045][T24950]  ? __nla_parse+0x40/0x60
+[  492.261059][T24950]  nbd_genl_connect+0x1250/0x1930
+[  492.261078][T24950]  ? __pfx_nbd_genl_connect+0x10/0x10
+[  492.261100][T24950]  ? genl_family_rcv_msg_attrs_parse+0x1c9/0x2a0
+[  492.261118][T24950]  genl_family_rcv_msg_doit+0x212/0x300
+[  492.261136][T24950]  ? __pfx_genl_family_rcv_msg_doit+0x10/0x10
+[  492.261156][T24950]  ? stack_depot_save_flags+0x40/0x910
+[  492.261168][T24950]  genl_rcv_msg+0x60e/0x790
+[  492.261185][T24950]  ? __pfx_genl_rcv_msg+0x10/0x10
+[  492.261199][T24950]  ? __pfx_nbd_genl_connect+0x10/0x10
+[  492.261219][T24950]  netlink_rcv_skb+0x21c/0x490
+[  492.261231][T24950]  ? __pfx_genl_rcv_msg+0x10/0x10
+[  492.261246][T24950]  ? __pfx_netlink_rcv_skb+0x10/0x10
+[  492.261263][T24950]  ? down_read+0x1ad/0x2e0
+[  492.261277][T24950]  genl_rcv+0x28/0x40
+[  492.261291][T24950]  netlink_unicast+0x758/0x8d0
+[  492.261304][T24950]  netlink_sendmsg+0x805/0xb30
+[  492.261319][T24950]  ? __pfx_netlink_sendmsg+0x10/0x10
+[  492.261332][T24950]  ? aa_sock_msg_perm+0x94/0x160
+[  492.261349][T24950]  ? bpf_lsm_socket_sendmsg+0x9/0x20
+[  492.261365][T24950]  ? __pfx_netlink_sendmsg+0x10/0x10
+[  492.261378][T24950]  __sock_sendmsg+0x21c/0x270
+[  492.261388][T24950]  ____sys_sendmsg+0x505/0x830
+[  492.261404][T24950]  ? __pfx_____sys_sendmsg+0x10/0x10
+[  492.261420][T24950]  ? import_iovec+0x74/0xa0
+[  492.261436][T24950]  ___sys_sendmsg+0x21f/0x2a0
+[  492.261450][T24950]  ? __pfx____sys_sendmsg+0x10/0x10
+[  492.261474][T24950]  ? __fget_files+0x2a/0x420
+[  492.261485][T24950]  ? __fget_files+0x3a0/0x420
+[  492.261499][T24950]  __x64_sys_sendmsg+0x19b/0x260
+[  492.261514][T24950]  ? __pfx___x64_sys_sendmsg+0x10/0x10
+[  492.261532][T24950]  ? do_syscall_64+0xba/0x210
+[  492.261545][T24950]  do_syscall_64+0xf6/0x210
+[  492.261558][T24950]  ? clear_bhb_loop+0x60/0xb0
+[  492.261571][T24950]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  492.261582][T24950] RIP: 0033:0x7fc91838e969
+[  492.261593][T24950] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[  492.261603][T24950] RSP: 002b:00007fc9191d7038 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[  492.261614][T24950] RAX: ffffffffffffffda RBX: 00007fc9185b5fa0 RCX: 00007fc91838e969
+[  492.261623][T24950] RDX: 0000000000004000 RSI: 0000200000000300 RDI: 0000000000000004
+[  492.261631][T24950] RBP: 00007fc918410ab1 R08: 0000000000000000 R09: 0000000000000000
+[  492.261638][T24950] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  492.261646][T24950] R13: 0000000000000000 R14: 00007fc9185b5fa0 R15: 00007ffef33da528
+[  492.261658][T24950]  </TASK>
+
+REPORT:
+======================================================
+WARNING: possible circular locking dependency detected
+6.15.0-rc7-dirty #2 Not tainted
+------------------------------------------------------
+syz.5.7376/24950 is trying to acquire lock:
+ffff888106a71958 (&q->elevator_lock){+.+.}-{4:4}, at: fakeName+0x49a/0x1a10
+
+but task is already holding lock:
+ffff888106a71428 (&q->q_usage_counter(io)#55){++++}-{0:0}, at: nbd_start_device+0x16c/0xac0
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&q->q_usage_counter(io)#55){++++}-{0:0}:
+       lock_acquire+0x120/0x360
+       blk_alloc_queue+0x538/0x620
+       __blk_mq_alloc_disk+0x164/0x350
+       nbd_dev_add+0x478/0xb10
+       nbd_init+0x21a/0x2d0
+       do_one_initcall+0x233/0x820
+       do_initcall_level+0x137/0x1f0
+       do_initcalls+0x69/0xd0
+       kernel_init_freeable+0x3d9/0x570
+       kernel_init+0x1d/0x1d0
+       ret_from_fork+0x4b/0x80
+       ret_from_fork_asm+0x1a/0x30
+
+-> #1 (fs_reclaim){+.+.}-{0:0}:
+       lock_acquire+0x120/0x360
+       fs_reclaim_acquire+0x72/0x100
+       kmem_cache_alloc_noprof+0x44/0x3c0
+       __kernfs_new_node+0xd7/0x7f0
+       kernfs_new_node+0x102/0x210
+       kernfs_create_dir_ns+0x44/0x130
+       sysfs_create_dir_ns+0x123/0x280
+       kobject_add_internal+0x59f/0xb40
+       kobject_add+0x155/0x220
+       elv_register_queue+0xdb/0x260
+       blk_register_queue+0x375/0x450
+       add_disk_fwnode+0x77f/0x10e0
+       <rnull::NullBlkModule as kernel::InPlaceModule>::init+0x904/0xc30
+       __rnull_mod_init+0x1a/0x70
+       do_one_initcall+0x233/0x820
+       do_initcall_level+0x137/0x1f0
+       do_initcalls+0x69/0xd0
+       kernel_init_freeable+0x3d9/0x570
+       kernel_init+0x1d/0x1d0
+       ret_from_fork+0x4b/0x80
+       ret_from_fork_asm+0x1a/0x30
+
+-> #0 (&q->elevator_lock){+.+.}-{4:4}:
+       validate_chain+0xb9b/0x2140
+       __lock_acquire+0xaac/0xd20
+       lock_acquire+0x120/0x360
+       __mutex_lock+0x182/0xe80
+       fakeName+0x49a/0x1a10
+       nbd_start_device+0x16c/0xac0
+       nbd_genl_connect+0x1250/0x1930
+       genl_family_rcv_msg_doit+0x212/0x300
+       genl_rcv_msg+0x60e/0x790
+       netlink_rcv_skb+0x21c/0x490
+       genl_rcv+0x28/0x40
+       netlink_unicast+0x758/0x8d0
+       netlink_sendmsg+0x805/0xb30
+       __sock_sendmsg+0x21c/0x270
+       ____sys_sendmsg+0x505/0x830
+       ___sys_sendmsg+0x21f/0x2a0
+       __x64_sys_sendmsg+0x19b/0x260
+       do_syscall_64+0xf6/0x210
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &q->elevator_lock --> fs_reclaim --> &q->q_usage_counter(io)#55
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&q->q_usage_counter(io)#55);
+                               lock(fs_reclaim);
+                               lock(&q->q_usage_counter(io)#55);
+  lock(&q->elevator_lock);
+
+ *** DEADLOCK ***
+
+6 locks held by syz.5.7376/24950:
+ #0: ffffffff8f76e570 (cb_lock){++++}-{4:4}, at: genl_rcv+0x19/0x40
+ #1: ffffffff8f76e388 (genl_mutex){+.+.}-{4:4}, at: genl_rcv_msg+0x10d/0x790
+ #2: ffff88802383a198 (&nbd->config_lock){+.+.}-{4:4}, at: nbd_genl_connect+0x94f/0x1930
+ #3: ffff88802383a0d8 (&set->tag_list_lock){+.+.}-{4:4}, at: blk_mq_update_nr_hw_queues+0xac/0x1a10
+ #4: ffff888106a71428 (&q->q_usage_counter(io)#55){++++}-{0:0}, at: nbd_start_device+0x16c/0xac0
+ #5: ffff888106a71460 (&q->q_usage_counter(queue)#7){+.+.}-{0:0}, at: nbd_start_device+0x16c/0xac0
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 24950 Comm: syz.5.7376 Not tainted 6.15.0-rc7-dirty #2 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x189/0x250
+ print_circular_bug+0x2ee/0x310
+ check_noncircular+0x134/0x160
+ validate_chain+0xb9b/0x2140
+ __lock_acquire+0xaac/0xd20
+ lock_acquire+0x120/0x360
+ __mutex_lock+0x182/0xe80
+ blk_mq_update_nr_hw_queues+0x49a/0x1a10
+ nbd_start_device+0x16c/0xac0
+ nbd_genl_connect+0x1250/0x1930
+ genl_family_rcv_msg_doit+0x212/0x300
+ genl_rcv_msg+0x60e/0x790
+ netlink_rcv_skb+0x21c/0x490
+ genl_rcv+0x28/0x40
+ netlink_unicast+0x758/0x8d0
+ netlink_sendmsg+0x805/0xb30
+ __sock_sendmsg+0x21c/0x270
+ ____sys_sendmsg+0x505/0x830
+ ___sys_sendmsg+0x21f/0x2a0
+ __x64_sys_sendmsg+0x19b/0x260
+ do_syscall_64+0xf6/0x210
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fc91838e969
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fc9191d7038 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+RAX: ffffffffffffffda RBX: 00007fc9185b5fa0 RCX: 00007fc91838e969
+RDX: 0000000000004000 RSI: 0000200000000300 RDI: 0000000000000004
+RBP: 00007fc918410ab1 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 0000000000000000 R14: 00007fc9185b5fa0 R15: 00007ffef33da528
+ </TASK>

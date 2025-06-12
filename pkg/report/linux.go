@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/ianlancetaylor/demangle"
 )
 
 type linux struct {
@@ -426,6 +427,7 @@ func (ctx *linux) symbolize(rep *Report, symbFunc symbFuncCb) error {
 				lines = symbolizeLine(symbFunc, ctx, parsed)
 			}
 			for _, line := range lines {
+				line.Name = demangle.Filter(line.Name, demangle.NoParams)
 				newLine = append(newLine, line.Assemble()...)
 			}
 		} else {
