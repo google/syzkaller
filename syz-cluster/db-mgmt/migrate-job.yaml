@@ -9,13 +9,17 @@ spec:
   ttlSecondsAfterFinished: 86400
   backoffLimit: 0
   template:
+    metadata:
+      labels:
+        app: db-mgmt
     spec:
       serviceAccountName: gke-db-admin-ksa
       containers:
       - name: migrate
         image: ${IMAGE_PREFIX}db-mgmt:${IMAGE_TAG}
-        env:
-        - name: SPANNER_DATABASE_URI
-          value: "${SPANNER_DATABASE_URI}"
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: global-config-env
         args: ["migrate"]
       restartPolicy: Never
