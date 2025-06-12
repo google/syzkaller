@@ -187,6 +187,8 @@ ioctl$KVM_GET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_GET_NR_MMU_PAGES], arg int
 ioctl$KVM_REINJECT_CONTROL(fd fd_kvmvm, cmd const[KVM_REINJECT_CONTROL], arg ptr[in, kvm_reinject_control])
 ioctl$KVM_HYPERV_EVENTFD(fd fd_kvmvm, cmd const[KVM_HYPERV_EVENTFD], arg ptr[in, kvm_hyperv_eventfd])
 
+# Defined by include/linux/kvm_host.h, but for some reason wouldn't extract.
+define KVM_MAX_IRQ_ROUTES	4096
 ioctl$KVM_CAP_DISABLE_QUIRKS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DISABLE_QUIRKS, flags[kvm_x86_quirks, int64]]])
 ioctl$KVM_CAP_DISABLE_QUIRKS2(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_DISABLE_QUIRKS2, flags[kvm_x86_quirks, int64]]])
 ioctl$KVM_CAP_SPLIT_IRQCHIP(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_SPLIT_IRQCHIP, int64[0:KVM_MAX_IRQ_ROUTES]]])
