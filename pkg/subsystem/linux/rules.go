@@ -88,6 +88,7 @@ var (
 			"brcm80211-dev-list.pdl@broadcom.com": {},
 			"tomoyo-dev-en@lists.osdn.me":         {},
 			"tomoyo-users-en@lists.osdn.me":       {},
+			"kernel@collabora.com":                {},
 		},
 		extraSubsystems: map[string][]string{
 			"bfs":     {"BFS FILE SYSTEM"},

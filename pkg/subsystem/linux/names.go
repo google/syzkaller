@@ -116,6 +116,7 @@ var (
 		"linux@ew.tq-group.com":                     "tq-systems",
 		"linux-imx@nxp.com":                         "nxp",
 		"kernel-list@raspberrypi.com":               "raspberry",
+		"tomoyo-users_en@lists.sourceforge.net":     "tomoyo",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
