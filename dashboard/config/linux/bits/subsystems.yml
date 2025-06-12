@@ -100,7 +100,7 @@ config:
  - MEMORY_HOTPLUG: [-arm]
  # Replaced in "mm: add build-time option for hotplug memory default online type".
  - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -v6.14]
- - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, linux-next]
+ - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, v6.14]
  - MEMORY_HOTREMOVE: [-arm]
  - ANON_VMA_NAME: [v5.17]
  - KSM

@@ -33,7 +33,7 @@ config:
  - CRYPTO_SALSA20: [-v5.12]
  - CRYPTO_SHA3
  # Not used in arm32. On riscv, requires TOOLCHAIN_HAS_VECTOR_CRYPTO.
- - CRYPTO_SM3: [-kmsan, -arm, -riscv, -linux-next]
+ - CRYPTO_SM3: [-kmsan, -arm, -riscv, -v6.16]
  # After 6.15, it will be CRYPTO_LIB_SM3.
  - CRYPTO_LIB_SM3: [linux-next, -kmsan, -arm, -riscv]
  - CRYPTO_SM3_AVX_X86_64: [v6.1, x86_64, -kmsan]
@@ -93,7 +93,9 @@ config:
  # Removed in "x86/crc-t10dif: expose CRC-T10DIF function through lib".
  - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan, -v6.14]
  - CRYPTO_SHA1_SSSE3: [x86_64, -kmsan]
- - CRYPTO_SHA256_SSSE3: [x86_64, -kmsan]
+ # Replaced in v6.16 "crypto: x86/sha256 - implement library instead of shash".
+ - CRYPTO_SHA256_SSSE3: [x86_64, -kmsan, -v6.16]
+ - CRYPTO_SHA256_X86_64: [x86_64, -kmsan, v6.16]
  - CRYPTO_SHA512_SSSE3: [x86_64, -kmsan]
  - CRYPTO_DEV_PADLOCK: [x86_64]
  - CRYPTO_DEV_PADLOCK_AES: [x86_64]
@@ -114,7 +116,8 @@ config:
  - CRYPTO_POLY1305_ARM: [arm]
  - CRYPTO_SHA1_ARM_NEON: [arm]
  - CRYPTO_SHA1_ARM_CE: [arm]
- - CRYPTO_SHA2_ARM_CE: [arm]
+ # Removed in crypto: "arm/sha256 - implement library instead of shash".
+ - CRYPTO_SHA2_ARM_CE: [arm, -v6.16]
  - CRYPTO_AES_ARM_BS: [arm]
  - CRYPTO_AES_ARM_CE: [arm]
  - CRYPTO_GHASH_ARM_CE: [arm]
@@ -125,8 +128,9 @@ config:
  - CRYPTO_SHA256_ARM64: [arm64]
  - CRYPTO_SHA512_ARM64: [arm64]
  - CRYPTO_SHA1_ARM64_CE: [arm64]
- - CRYPTO_SHA2_ARM64_CE: [arm64]
- - CRYPTO_SHA512_ARM64_CE: [arm64]
+ # Removed in "crypto: arm64/sha256 - implement library instead of shash".
+ - CRYPTO_SHA2_ARM64_CE: [arm64, -v6.16]
+ - CRYPTO_SHA512_ARM64_CE: [arm64, -v6.16]
  - CRYPTO_SHA3_ARM64: [arm64]
  - CRYPTO_SM3_ARM64_CE: [arm64]
  - CRYPTO_SM4_ARM64_CE: [arm64]
