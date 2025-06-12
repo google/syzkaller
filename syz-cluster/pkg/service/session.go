@@ -36,9 +36,9 @@ func (s *SessionService) SkipSession(ctx context.Context, sessionID string, skip
 	var triageLogURI string
 	if len(skip.TriageLog) > 0 {
 		var err error
-		triageLogURI, err = s.blobStorage.Store(bytes.NewReader(skip.TriageLog))
+		triageLogURI, err = s.blobStorage.Write(bytes.NewReader(skip.TriageLog), "Session", sessionID, "triage_log")
 		if err != nil {
-			return fmt.Errorf("failed to save the log: %w", err)
+			return fmt.Errorf("failed to save the triage log: %w", err)
 		}
 	}
 	err := s.sessionRepo.Update(ctx, sessionID, func(session *db.Session) error {
