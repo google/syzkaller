@@ -4,21 +4,21 @@
 package blob
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 // Storage is not assumed to be used for partciularly large objects (e.g. GB of size),
 // but rather for blobs that risk overwhelming Spanner column size limits.
 type Storage interface {
-	// Store returns a URI to use later.
-	Store(source io.Reader) (string, error)
-	Update(key string, source io.Reader) error
+	// Write stores the object uniquely identified by a set of IDs (parts).
+	// If it already exists, it will be overwritten.
+	// The first argument is the URI which can be used to later retrieve it with Read.
+	Write(source io.Reader, parts ...string) (string, error)
 	Read(uri string) (io.ReadCloser, error)
 }
 
@@ -36,20 +36,19 @@ func NewLocalStorage(baseFolder string) *LocalStorage {
 
 const localStoragePrefix = "local://"
 
-func (ls *LocalStorage) Store(source io.Reader) (string, error) {
-	name := uuid.NewString()
-	err := ls.writeFile(name, source)
+func (ls *LocalStorage) Write(source io.Reader, parts ...string) (string, error) {
+	// A whatever approach that can handle arbitrary inputs.
+	name := base64.StdEncoding.EncodeToString([]byte(filepath.Join(parts...)))
+	file, err := os.Create(filepath.Join(ls.baseFolder, name))
 	if err != nil {
 		return "", err
 	}
-	return localStoragePrefix + name, nil
-}
-
-func (ls *LocalStorage) Update(uri string, source io.Reader) error {
-	if !strings.HasPrefix(uri, localStoragePrefix) {
-		return fmt.Errorf("unsupported URI type")
+	defer file.Close()
+	_, err = io.Copy(file, source)
+	if err != nil {
+		return "", fmt.Errorf("failed to save data: %w", err)
 	}
-	return ls.writeFile(strings.TrimPrefix(uri, localStoragePrefix), source)
+	return localStoragePrefix + name, nil
 }
 
 func (ls *LocalStorage) Read(uri string) (io.ReadCloser, error) {
@@ -59,19 +58,6 @@ func (ls *LocalStorage) Read(uri string) (io.ReadCloser, error) {
 	// TODO: add some other URI validation checks?
 	path := filepath.Join(ls.baseFolder, strings.TrimPrefix(uri, localStoragePrefix))
 	return os.Open(path)
-}
-
-func (ls *LocalStorage) writeFile(name string, source io.Reader) error {
-	file, err := os.Create(filepath.Join(ls.baseFolder, name))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = io.Copy(file, source)
-	if err != nil {
-		return fmt.Errorf("failed to save data: %w", err)
-	}
-	return nil
 }
 
 func ReadAllBytes(storage Storage, uri string) ([]byte, error) {

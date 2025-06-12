@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/google/uuid"
 )
 
 type FindingService struct {
@@ -27,28 +28,27 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 }
 
 func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
-	var reportURI, logURI string
+	finding := &db.Finding{
+		ID:        uuid.NewString(),
+		SessionID: req.SessionID,
+		TestName:  req.TestName,
+		Title:     req.Title,
+	}
 	var err error
 	if len(req.Log) > 0 {
-		logURI, err = s.blobStorage.Store(bytes.NewReader(req.Log))
+		finding.LogURI, err = s.blobStorage.Write(bytes.NewReader(req.Log), "Finding", finding.ID, "log")
 		if err != nil {
 			return fmt.Errorf("failed to save the log: %w", err)
 		}
 	}
 	if len(req.Report) > 0 {
-		reportURI, err = s.blobStorage.Store(bytes.NewReader(req.Report))
+		finding.ReportURI, err = s.blobStorage.Write(bytes.NewReader(req.Report), "Finding", finding.ID, "report")
 		if err != nil {
 			return fmt.Errorf("failed to save the report: %w", err)
 		}
 	}
 	// TODO: if it's not actually addded, the blob records will be orphaned.
-	err = s.findingRepo.Save(ctx, &db.Finding{
-		SessionID: req.SessionID,
-		TestName:  req.TestName,
-		Title:     req.Title,
-		ReportURI: reportURI,
-		LogURI:    logURI,
-	})
+	err = s.findingRepo.Save(ctx, finding)
 	if err == db.ErrFindingExists {
 		// It's ok, just ignore.
 		return nil

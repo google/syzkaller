@@ -16,7 +16,7 @@ func TestLocalStorage(t *testing.T) {
 	var uris []string
 	for i := 0; i < 2; i++ {
 		content := fmt.Sprintf("object #%d", i)
-		uri, err := storage.Store(bytes.NewReader([]byte(content)))
+		uri, err := storage.Write(bytes.NewReader([]byte(content)), fmt.Sprint(i))
 		assert.NoError(t, err)
 		uris = append(uris, uri)
 	}

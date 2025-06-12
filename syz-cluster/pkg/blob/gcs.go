@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path"
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/gcs"
-	"github.com/google/uuid"
 )
 
 type gcsDriver struct {
@@ -29,54 +29,39 @@ func NewGCSClient(ctx context.Context, bucket string) (Storage, error) {
 	}, nil
 }
 
-func (gcs *gcsDriver) Store(source io.Reader) (string, error) {
-	object := uuid.NewString()
-	err := gcs.writeObject(object, source)
+func (gcs *gcsDriver) Write(source io.Reader, parts ...string) (string, error) {
+	if len(parts) == 0 {
+		return "", fmt.Errorf("no identifiers for the object were passed to Write")
+	}
+	object := path.Join(gcs.bucket, path.Join(parts...))
+	w, err := gcs.client.FileWriter(object, "", "")
 	if err != nil {
 		return "", err
 	}
-	return gcs.objectURI(object), nil
-}
-
-func (gcs *gcsDriver) Update(uri string, source io.Reader) error {
-	object, err := gcs.objectName(uri)
+	defer w.Close()
+	_, err = io.Copy(w, source)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return gcs.writeObject(object, source)
+	return "gcs://" + object, nil
 }
 
 func (gcs *gcsDriver) Read(uri string) (io.ReadCloser, error) {
-	object, err := gcs.objectName(uri)
+	bucket, object, err := gcs.parseURI(uri)
 	if err != nil {
 		return nil, err
 	}
-	return gcs.client.FileReader(fmt.Sprintf("%s/%s", gcs.bucket, object))
+	return gcs.client.FileReader(path.Join(bucket, object))
 }
 
-var gcsObjectRe = regexp.MustCompile(`^gcs://([\w-]+)/([\w-]+)$`)
+var gcsObjectRe = regexp.MustCompile(`^gcs://([\w-]+)/(.+)$`)
 
-func (gcs *gcsDriver) objectName(uri string) (string, error) {
+func (gcs *gcsDriver) parseURI(uri string) (string, string, error) {
 	match := gcsObjectRe.FindStringSubmatch(uri)
 	if len(match) == 0 {
-		return "", fmt.Errorf("invalid GCS URI")
+		return "", "", fmt.Errorf("invalid GCS URI")
 	} else if match[1] != gcs.bucket {
-		return "", fmt.Errorf("unexpected GCS bucket")
+		return "", "", fmt.Errorf("unexpected GCS bucket")
 	}
-	return match[2], nil
-}
-
-func (gcs *gcsDriver) objectURI(object string) string {
-	return fmt.Sprintf("gcs://%s/%s", gcs.bucket, object)
-}
-
-func (gcs *gcsDriver) writeObject(object string, source io.Reader) error {
-	w, err := gcs.client.FileWriter(fmt.Sprintf("%s/%s", gcs.bucket, object), "", "")
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, source)
-	return err
+	return gcs.bucket, match[2], nil
 }
