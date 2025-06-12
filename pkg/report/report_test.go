@@ -61,6 +61,9 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 	if test.Frame != "" && test.Frame != other.Frame {
 		return false
 	}
+	if test.HasReport && !bytes.Equal(test.Report, other.Report) {
+		return false
+	}
 	return test.Executor == other.Executor
 }
 
@@ -89,6 +92,11 @@ func (test *ParseTest) Headers(includeFrame bool) []byte {
 }
 
 func testParseFile(t *testing.T, reporter *Reporter, fn string) {
+	test := parseReport(t, reporter, fn)
+	testParseImpl(t, reporter, test)
+}
+
+func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 	data, err := os.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +144,7 @@ func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 		t.Fatalf("can't find log in input file")
 	}
 	sort.Strings(test.AltTitles)
-	testParseImpl(t, reporter, test)
+	return test
 }
 
 func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
@@ -202,6 +210,7 @@ func testFromReport(rep *Report) *ParseTest {
 		Suppressed:      rep.Suppressed,
 		Type:            rep.Type,
 		Frame:           rep.Frame,
+		Report:          rep.Report,
 	}
 	if rep.Executor != nil {
 		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
@@ -290,7 +299,7 @@ func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	buf.Write(parsed.Headers(test.Frame != ""))
 	fmt.Fprintf(buf, "\n%s", test.Log)
 	if test.HasReport {
-		fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
+		fmt.Fprintf(buf, "REPORT:\n%s", parsed.Report)
 	}
 	if err := os.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
 		t.Logf("failed to update test file: %v", err)
@@ -362,6 +371,36 @@ func parseGuiltyTest(t *testing.T, fn string) (map[string]string, []byte) {
 		vars[strings.TrimSpace(ln[:colon])] = strings.TrimSpace(ln[colon+1:])
 	}
 	return vars, data[nlnl+2:]
+}
+
+func TestSymbolize(t *testing.T) {
+	// We cannot fully test symbolization as we need kernel binaries with debug info, but
+	// let's at least test symbol demangling that's done as part of Symbolize().
+	forEachFile(t, "symbolize", testSymbolizeFile)
+}
+
+func testSymbolizeFile(t *testing.T, reporter *Reporter, fn string) {
+	test := parseReport(t, reporter, fn)
+	if !test.HasReport {
+		t.Fatalf("the test must have the REPORT section")
+	}
+	rep := reporter.Parse(test.Log)
+	if rep == nil {
+		t.Fatalf("did not find crash")
+	}
+	err := reporter.Symbolize(rep)
+	if err != nil {
+		t.Fatalf("failed to symbolize: %v", err)
+	}
+	parsed := testFromReport(rep)
+	if !test.Equal(parsed) {
+		if *flagUpdate {
+			updateReportTest(t, test, parsed)
+		}
+		assert.Equal(t, string(test.Report), string(rep.Report), "extracted wrong report")
+		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
+			test.Headers(true), parsed.Headers(true), parsed.corruptedReason)
+	}
 }
 
 func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Reporter, fn string)) {
