@@ -97,7 +97,7 @@ k8s-config-dev:
 k8s-config-gke: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
 	@kubectl kustomize ./overlays/gke/ | sed $(SED_EXPRESSIONS)
 
-migrate-job.yaml: ensure-spanner-database-uri-env
+migrate-job.yaml:
 	@cat db-mgmt/migrate-job.yaml | sed $(SED_EXPRESSIONS)
 
 fetch-kernels-once.yaml:
