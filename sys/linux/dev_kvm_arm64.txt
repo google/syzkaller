@@ -212,4 +212,6 @@ syzos_api_call [
 	its_setup	syzos_api[130, syzos_api_its_setup]
 	its_send_cmd	syzos_api[170, syzos_api_its_send_cmd]
 	mrs		syzos_api[190, syzos_api_mrs]
+	eret		syzos_api[230, intptr]
+	svc		syzos_api[290, syzos_api_smccc]
 ] [varlen]

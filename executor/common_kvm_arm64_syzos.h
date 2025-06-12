@@ -33,6 +33,8 @@ typedef enum {
 	SYZOS_API_ITS_SETUP = 130,
 	SYZOS_API_ITS_SEND_CMD = 170,
 	SYZOS_API_MRS = 190,
+	SYZOS_API_ERET = 230,
+	SYZOS_API_SVC = 290,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -103,6 +105,8 @@ static void guest_handle_mrs(uint64 reg);
 static void guest_handle_msr(uint64 reg, uint64 val);
 static void guest_handle_smc(struct api_call_smccc* cmd);
 static void guest_handle_hvc(struct api_call_smccc* cmd);
+static void guest_handle_svc(struct api_call_smccc* cmd);
+static void guest_handle_eret(uint64 unused);
 static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
 static void guest_handle_memwrite(struct api_call_memwrite* cmd);
 static void guest_handle_its_setup(struct api_call_3* cmd);
@@ -149,12 +153,21 @@ guest_main(uint64 size, uint64 cpu)
 			guest_handle_msr(ccmd->args[0], ccmd->args[1]);
 			break;
 		}
+		case SYZOS_API_ERET: {
+			struct api_call_1* ccmd = (struct api_call_1*)cmd;
+			guest_handle_eret(ccmd->arg);
+			break;
+		}
 		case SYZOS_API_SMC: {
 			guest_handle_smc((struct api_call_smccc*)cmd);
 			break;
 		}
 		case SYZOS_API_HVC: {
 			guest_handle_hvc((struct api_call_smccc*)cmd);
+			break;
+		}
+		case SYZOS_API_SVC: {
+			guest_handle_svc((struct api_call_smccc*)cmd);
 			break;
 		}
 		case SYZOS_API_IRQ_SETUP: {
@@ -243,6 +256,12 @@ guest_handle_mrs(uint64 reg)
 	    : "x0", "x30");
 }
 
+GUEST_CODE static noinline void
+guest_handle_eret(uint64 unused)
+{
+	asm("eret\n" : : : "memory");
+}
+
 // Write value to a system register using an MSR instruction.
 // The word "MSR" here has nothing to do with the x86 MSR registers.
 GUEST_CODE static noinline void
@@ -296,6 +315,28 @@ GUEST_CODE static noinline void guest_handle_hvc(struct api_call_smccc* cmd)
 	    "mov x5, %[arg5]\n"
 	    // TODO(glider): nonzero immediate values are designated for use by hypervisor vendors.
 	    "hvc #0\n"
+	    : // Ignore the outputs for now
+	    : [func_id] "r"((uint64)cmd->func_id),
+	      [arg1] "r"(cmd->params[0]), [arg2] "r"(cmd->params[1]),
+	      [arg3] "r"(cmd->params[2]), [arg4] "r"(cmd->params[3]),
+	      [arg5] "r"(cmd->params[4])
+	    : "x0", "x1", "x2", "x3", "x4", "x5",
+	      // These registers are not used above, but may be clobbered by the HVC call.
+	      "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17",
+	      "memory");
+}
+
+GUEST_CODE static noinline void guest_handle_svc(struct api_call_smccc* cmd)
+{
+	asm volatile(
+	    "mov x0, %[func_id]\n"
+	    "mov x1, %[arg1]\n"
+	    "mov x2, %[arg2]\n"
+	    "mov x3, %[arg3]\n"
+	    "mov x4, %[arg4]\n"
+	    "mov x5, %[arg5]\n"
+	    // TODO(glider): nonzero immediate values are designated for use by hypervisor vendors.
+	    "svc #0\n"
 	    : // Ignore the outputs for now
 	    : [func_id] "r"((uint64)cmd->func_id),
 	      [arg1] "r"(cmd->params[0]), [arg2] "r"(cmd->params[1]),
