@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseKConfig(t *testing.T) {
@@ -33,6 +34,37 @@ config FOO
 			_ = kconf
 		})
 	}
+}
+
+func TestSelectedby(t *testing.T) {
+	configData := `
+mainmenu "test"
+
+config FEATURE_A
+    bool "Feature A"
+    select FEATURE_B
+
+config FEATURE_B
+    bool "Feature B"
+    select FEATURE_C
+
+config FEATURE_C
+    bool "Feature C"
+
+`
+	target := targets.Get("linux", "amd64")
+	kconf, err := ParseData(target, []byte(configData), "Kconfig")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Empty(t, kconf.SelectedBy("FEATURE_A"))
+	assert.Equal(t, map[string]bool{
+		"FEATURE_A": true,
+	}, kconf.SelectedBy("FEATURE_B"))
+	assert.Equal(t, map[string]bool{
+		"FEATURE_A": true,
+		"FEATURE_B": true,
+	}, kconf.SelectedBy("FEATURE_C"))
 }
 
 func TestFuzzParseKConfig(t *testing.T) {
