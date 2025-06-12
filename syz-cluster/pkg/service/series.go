@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/google/uuid"
 )
 
 // SeriesService is tested in controller/.
@@ -53,6 +54,7 @@ func (s *SeriesService) getSessionSeries(ctx context.Context, sessionID string,
 
 func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*api.UploadSeriesResp, error) {
 	seriesObj := &db.Series{
+		ID:          uuid.NewString(),
 		ExtID:       series.ExtID,
 		AuthorEmail: series.AuthorEmail,
 		Title:       series.Title,
@@ -66,7 +68,8 @@ func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*
 		for _, patch := range series.Patches {
 			// In case of errors, we will waste some space, but let's ignore it for simplicity.
 			// Patches are not super big.
-			uri, err := s.blobStorage.Store(bytes.NewReader(patch.Body))
+			uri, err := s.blobStorage.Write(bytes.NewReader(patch.Body),
+				"Series", seriesObj.ID, "Patches", fmt.Sprint(patch.Seq))
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload patch body: %w", err)
 			}

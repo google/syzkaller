@@ -138,7 +138,7 @@ func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Sessio
 			app.Errorf("failed to query workflow %q status: %v", session.ID, err)
 			continue
 		}
-		if workflowLog != nil {
+		if len(workflowLog) > 0 {
 			err := sp.updateSessionLog(ctx, session, workflowLog)
 			if err != nil {
 				app.Errorf("failed to update session log: %v", err)
@@ -214,19 +214,12 @@ func (sp *SeriesProcessor) stopRunningTests(ctx context.Context, sessionID strin
 }
 
 func (sp *SeriesProcessor) updateSessionLog(ctx context.Context, session *db.Session, log []byte) error {
+	logURI, err := sp.blobStorage.Write(bytes.NewReader(log), "Session", session.ID, "log")
+	if err != nil {
+		return fmt.Errorf("failed to save the log: %w", err)
+	}
 	return sp.sessionRepo.Update(ctx, session.ID, func(session *db.Session) error {
-		if session.LogURI == "" {
-			path, err := sp.blobStorage.Store(bytes.NewReader(log))
-			if err != nil {
-				return fmt.Errorf("failed to save the log: %w", err)
-			}
-			session.LogURI = path
-		} else {
-			err := sp.blobStorage.Update(session.LogURI, bytes.NewReader(log))
-			if err != nil {
-				return fmt.Errorf("failed to update the log %q: %w", session.LogURI, err)
-			}
-		}
+		session.LogURI = logURI
 		return nil
 	})
 }

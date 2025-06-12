@@ -41,7 +41,8 @@ func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) erro
 	}
 	logURI := entity.LogURI
 	if len(req.Log) > 0 {
-		logURI, err = s.uploadOrUpdate(ctx, logURI, bytes.NewReader(req.Log))
+		logURI, err = s.blobStorage.Write(bytes.NewReader(req.Log),
+			"Session", req.SessionID, "Test", req.TestName, "log")
 		if err != nil {
 			return fmt.Errorf("failed to save the log: %w", err)
 		}
@@ -66,27 +67,11 @@ func (s *SessionTestService) SaveArtifacts(ctx context.Context, sessionID, testN
 	} else if entity == nil {
 		return fmt.Errorf("the test has not been submitted yet")
 	}
-	newArchiveURI, err := s.uploadOrUpdate(ctx, entity.ArtifactsArchiveURI, reader)
+	archiveURI, err := s.blobStorage.Write(reader, "Session", sessionID, "Test", testName, "artifacts")
 	if err != nil {
 		return fmt.Errorf("failed to save the artifacts archive: %w", err)
 	}
 	return s.testRepo.InsertOrUpdate(ctx, entity, func(test *db.SessionTest) {
-		test.ArtifactsArchiveURI = newArchiveURI
+		test.ArtifactsArchiveURI = archiveURI
 	})
-}
-
-func (s *SessionTestService) uploadOrUpdate(ctx context.Context, uri string, reader io.Reader) (string, error) {
-	if uri != "" {
-		err := s.blobStorage.Update(uri, reader)
-		if err != nil {
-			return "", fmt.Errorf("failed to update: %w", err)
-		}
-		return uri, nil
-	}
-	// TODO: it will leak if we fail to save the entity.
-	uri, err := s.blobStorage.Store(reader)
-	if err != nil {
-		return "", fmt.Errorf("failed to save: %w", err)
-	}
-	return uri, nil
 }
