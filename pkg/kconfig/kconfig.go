@@ -30,13 +30,15 @@ type Menu struct {
 	Elems  []*Menu    // sub-elements for menus
 	Parent *Menu      // parent menu, non-nil for everythign except for mainmenu
 
-	kconf     *KConfig // back-link to the owning KConfig
-	prompts   []prompt
-	defaults  []defaultVal
-	dependsOn expr
-	visibleIf expr
-	deps      map[string]bool
-	depsOnce  sync.Once
+	kconf      *KConfig // back-link to the owning KConfig
+	prompts    []prompt
+	defaults   []defaultVal
+	dependsOn  expr
+	visibleIf  expr
+	deps       map[string]bool
+	depsOnce   sync.Once
+	selects    []string
+	selectedBy []string // filled in in setSelectedBy()
 }
 
 type prompt struct {
@@ -144,6 +146,7 @@ func ParseData(target *targets.Target, data []byte, file string) (*KConfig, erro
 		Configs: make(map[string]*Menu),
 	}
 	kconf.walk(root, nil, nil)
+	kconf.setSelectedBy()
 	return kconf, nil
 }
 
@@ -157,6 +160,37 @@ func (kconf *KConfig) walk(m *Menu, dependsOn, visibleIf expr) {
 	for _, elem := range m.Elems {
 		kconf.walk(elem, m.dependsOn, m.visibleIf)
 	}
+}
+
+// NOTE: the function is ignoring the "if" part of select/imply.
+func (kconf *KConfig) setSelectedBy() {
+	for name, cfg := range kconf.Configs {
+		for _, selectedName := range cfg.selects {
+			selected := kconf.Configs[selectedName]
+			if selected == nil {
+				continue
+			}
+			selected.selectedBy = append(selected.selectedBy, name)
+		}
+	}
+}
+
+// NOTE: the function is ignoring the "if" part of select/imply.
+func (kconf *KConfig) SelectedBy(name string) map[string]bool {
+	ret := map[string]bool{}
+	toVisit := []string{name}
+	for len(toVisit) > 0 {
+		next := kconf.Configs[toVisit[len(toVisit)-1]]
+		toVisit = toVisit[:len(toVisit)-1]
+		if next == nil {
+			continue
+		}
+		for _, selectedBy := range next.selectedBy {
+			ret[selectedBy] = true
+			toVisit = append(toVisit, selectedBy)
+		}
+	}
+	return ret
 }
 
 func (kp *kconfigParser) parseFile() {
@@ -293,7 +327,8 @@ func (kp *kconfigParser) parseProperty(prop string) {
 		kp.MustConsume("if")
 		cur.visibleIf = exprAnd(cur.visibleIf, kp.parseExpr())
 	case "select", "imply":
-		_ = kp.Ident()
+		name := kp.Ident()
+		cur.selects = append(cur.selects, name)
 		if kp.TryConsume("if") {
 			_ = kp.parseExpr()
 		}

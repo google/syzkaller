@@ -315,7 +315,17 @@ func (ctx *Context) verifyConfigs(cf *kconfig.ConfigFile) error {
 		if act == kconfig.No {
 			errs.push("%v:%v: %v is not present in the final config", cfg.File, cfg.Line, cfg.Name)
 		} else if cfg.Value == kconfig.No {
-			errs.push("%v:%v: %v is present in the final config", cfg.File, cfg.Line, cfg.Name)
+			var selectedBy []string
+			for name := range ctx.Kconf.SelectedBy(cfg.Name) {
+				if cf.Value(name) == kconfig.Yes {
+					selectedBy = append(selectedBy, name)
+				}
+			}
+			selectedByStr := ""
+			if len(selectedBy) > 0 {
+				selectedByStr = fmt.Sprintf(", possibly selected by %q", selectedBy)
+			}
+			errs.push("%v:%v: %v is present in the final config%s", cfg.File, cfg.Line, cfg.Name, selectedByStr)
 		} else {
 			errs.push("%v:%v: %v does not match final config %v vs %v",
 				cfg.File, cfg.Line, cfg.Name, cfg.Value, act)
