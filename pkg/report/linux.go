@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/ianlancetaylor/demangle"
 )
 
 type linux struct {
@@ -380,10 +381,16 @@ func (ctx *linux) extractContext(line []byte) string {
 }
 
 func (ctx *linux) Symbolize(rep *Report) error {
+	var symbFunc symbFuncCb
 	if ctx.vmlinux != "" {
-		if err := ctx.symbolize(rep); err != nil {
-			return err
+		symb := symbolizer.Make(ctx.config.target)
+		defer symb.Close()
+		symbFunc = func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+			return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
 		}
+	}
+	if err := ctx.symbolize(rep, symbFunc); err != nil {
+		return err
 	}
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
 
@@ -406,17 +413,26 @@ func (ctx *linux) Symbolize(rep *Report) error {
 	return nil
 }
 
-func (ctx *linux) symbolize(rep *Report) error {
-	symb := symbolizer.Make(ctx.config.target)
-	defer symb.Close()
-	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
-		return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
-	}
+type symbFuncCb = func(string, uint64) ([]symbolizer.Frame, error)
+
+func (ctx *linux) symbolize(rep *Report, symbFunc symbFuncCb) error {
 	var symbolized []byte
 	prefix := rep.reportPrefixLen
 	for _, line := range bytes.SplitAfter(rep.Report, []byte("\n")) {
-		line := bytes.Clone(line)
-		newLine := symbolizeLine(symbFunc, ctx, line)
+		var newLine []byte
+		parsed, ok := parseLinuxBacktraceLine(line)
+		if ok {
+			lines := []linuxBacktraceLine{parsed}
+			if symbFunc != nil {
+				lines = symbolizeLine(symbFunc, ctx, parsed)
+			}
+			for _, line := range lines {
+				line.Name = demangle.Filter(line.Name, demangle.NoParams)
+				newLine = append(newLine, line.Assemble()...)
+			}
+		} else {
+			newLine = line
+		}
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
@@ -436,72 +452,111 @@ func (ctx *linux) symbolize(rep *Report) error {
 	return nil
 }
 
-func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error), ctx *linux, line []byte) []byte {
+type linuxBacktraceLine struct {
+	// Fields and corresponding indices in the indices array.
+	Name   string // 2:3
+	Offset uint64 // 4:5
+	Size   uint64 // 6:7
+	// ... 8:9 is a ModName + its enclosing parentheses.
+	ModName    string // 10:11
+	BuildID    string // 12:13
+	IsRipFrame bool
+	// These fields are to be set externally.
+	Inline   bool
+	FileLine string
+	// These fields are not to be modified outside of the type's methods.
+	raw     []byte
+	indices []int
+}
+
+func parseLinuxBacktraceLine(line []byte) (info linuxBacktraceLine, ok bool) {
 	match := linuxSymbolizeRe.FindSubmatchIndex(line)
 	if match == nil {
-		return line
+		return
 	}
-	fn := line[match[2]:match[3]]
-	off, err := strconv.ParseUint(string(line[match[4]:match[5]]), 16, 64)
+	info.raw = line
+	info.indices = match
+	info.Name = string(line[match[2]:match[3]])
+	var err error
+	info.Offset, err = strconv.ParseUint(string(line[match[4]:match[5]]), 16, 64)
 	if err != nil {
-		return line
+		return
 	}
-	size, err := strconv.ParseUint(string(line[match[6]:match[7]]), 16, 64)
+	info.Size, err = strconv.ParseUint(string(line[match[6]:match[7]]), 16, 64)
 	if err != nil {
-		return line
+		return
 	}
-	modName := ""
 	if match[10] != -1 && match[11] != -1 {
-		modName = string(line[match[10]:match[11]])
+		info.ModName = string(line[match[10]:match[11]])
 	}
-	buildID := ""
 	if match[12] != -1 && match[13] != -1 {
-		buildID = string(line[match[12]:match[13]])
+		info.BuildID = string(line[match[12]:match[13]])
 	}
-	symb := ctx.symbols[modName][string(fn)]
+	info.IsRipFrame = linuxRipFrame.Match(line)
+	return info, true
+}
+
+// Note that Assemble() ignores changes to Offset and Size (no reason as these are not updated anywhere).
+func (line linuxBacktraceLine) Assemble() []byte {
+	match := line.indices
+	modified := append([]byte{}, line.raw...)
+	if line.BuildID != "" {
+		modified = replace(modified, match[8], match[9], []byte(" ["+line.ModName+"]"))
+	}
+	if line.FileLine != "" {
+		modified = replace(modified, match[7], match[7], []byte(line.FileLine))
+	}
+	if line.Inline {
+		end := match[7] + len(line.FileLine)
+		modified = replace(modified, end, end, []byte(" [inline]"))
+		modified = replace(modified, match[2], match[7], []byte(line.Name))
+	} else {
+		modified = replace(modified, match[2], match[3], []byte(line.Name))
+	}
+	return modified
+}
+
+func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error), ctx *linux,
+	parsed linuxBacktraceLine) []linuxBacktraceLine {
+	symb := ctx.symbols[parsed.ModName][parsed.Name]
 	if len(symb) == 0 {
-		return line
+		return []linuxBacktraceLine{parsed}
 	}
 	var funcStart uint64
 	for _, s := range symb {
-		if funcStart == 0 || int(size) == s.Size {
+		if funcStart == 0 || int(parsed.Size) == s.Size {
 			funcStart = s.Addr
 		}
 	}
-	pc := funcStart + off
-	if !linuxRipFrame.Match(line) {
+	pc := funcStart + parsed.Offset
+	if !parsed.IsRipFrame {
 		// Usually we have return PCs, so we need to look at the previous instruction.
 		// But RIP lines contain the exact faulting PC.
 		pc--
 	}
 	var bin string
 	for _, mod := range ctx.config.kernelModules {
-		if mod.Name == modName {
+		if mod.Name == parsed.ModName {
 			bin = mod.Path
 			break
 		}
 	}
 	frames, err := symbFunc(bin, pc)
 	if err != nil || len(frames) == 0 {
-		return line
+		return []linuxBacktraceLine{parsed}
 	}
-	var symbolized []byte
+	var ret []linuxBacktraceLine
 	for _, frame := range frames {
 		path, _ := backend.CleanPath(frame.File, &ctx.kernelDirs, nil)
-		info := fmt.Sprintf(" %v:%v", path, frame.Line)
-		modified := append([]byte{}, line...)
-		if buildID != "" {
-			modified = replace(modified, match[8], match[9], []byte(" ["+modName+"]"))
-		}
-		modified = replace(modified, match[7], match[7], []byte(info))
+		copy := parsed
+		copy.FileLine = fmt.Sprintf(" %v:%v", path, frame.Line)
 		if frame.Inline {
-			end := match[7] + len(info)
-			modified = replace(modified, end, end, []byte(" [inline]"))
-			modified = replace(modified, match[2], match[7], []byte(frame.Func))
+			copy.Inline = true
+			copy.Name = frame.Func
 		}
-		symbolized = append(symbolized, modified...)
+		ret = append(ret, copy)
 	}
-	return symbolized
+	return ret
 }
 
 type parsedOpcodes struct {

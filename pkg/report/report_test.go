@@ -61,6 +61,9 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 	if test.Frame != "" && test.Frame != other.Frame {
 		return false
 	}
+	if test.HasReport && !bytes.Equal(test.Report, other.Report) {
+		return false
+	}
 	return test.Executor == other.Executor
 }
 
@@ -202,6 +205,7 @@ func testFromReport(rep *Report) *ParseTest {
 		Suppressed:      rep.Suppressed,
 		Type:            rep.Type,
 		Frame:           rep.Frame,
+		Report:          rep.Report,
 	}
 	if rep.Executor != nil {
 		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
@@ -225,6 +229,12 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	}
 	if rep != nil && rep.Type == unspecifiedType {
 		t.Fatalf("unspecifiedType leaked outside")
+	}
+	if rep != nil {
+		err := reporter.Symbolize(rep)
+		if err != nil {
+			t.Fatalf("failed to Symbolize: %v", err)
+		}
 	}
 	parsed := testFromReport(rep)
 	if !test.Equal(parsed) {
@@ -290,7 +300,7 @@ func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	buf.Write(parsed.Headers(test.Frame != ""))
 	fmt.Fprintf(buf, "\n%s", test.Log)
 	if test.HasReport {
-		fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
+		fmt.Fprintf(buf, "REPORT:\n%s", parsed.Report)
 	}
 	if err := os.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
 		t.Logf("failed to update test file: %v", err)
