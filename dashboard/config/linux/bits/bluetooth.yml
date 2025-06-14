@@ -12,7 +12,7 @@ config:
  - BT_CMTP: [-v6.12]
  - BT_HIDP
  - BT_LE
- - BT_HS: [-v6.9]
+ - BT_HS: [-v6.9, -stable-6.6]
  - BT_6LOWPAN
  - BT_LEDS
  - BT_MSFTEXT: [v5.5]

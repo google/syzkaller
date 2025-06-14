@@ -27,7 +27,7 @@ config:
  - NUMA_BALANCING: [-arm]
  - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
  # Starting from v6.13, depends on !CPU_MITIGATIONS.
- - ADDRESS_MASKING: [x86_64, v6.4, -v6.12]
+ - ADDRESS_MASKING: [x86_64, v6.4, -v6.12, -stable-6.6]
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
  - X86_X2APIC: [x86_64, -kmsan]
