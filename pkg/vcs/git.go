@@ -84,8 +84,11 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	if _, err := git.Run("fetch", "--force"); err != nil {
-		// Something else is wrong, re-clone.
+	if output, err := git.Run("fetch", "--force"); err != nil {
+		if git.isNetworkError(output) {
+			// The clone operation will fail as well, so no sense to re-clone.
+			return nil, err
+		}
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
 		}
@@ -97,6 +100,11 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	return git.Commit(HEAD)
+}
+
+func (git *gitRepo) isNetworkError(output []byte) bool {
+	// The list is not exhaustive and is meant to be extended over time.
+	return bytes.Contains(output, []byte("fatal: read error: Connection reset by peer"))
 }
 
 func (git *gitRepo) CheckoutBranch(repo, branch string) (*Commit, error) {
