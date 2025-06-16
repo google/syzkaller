@@ -445,7 +445,7 @@ type io_uring_timeout_completion_event_count int64[0:10]
 # openat and openat2 returns a useful resource (fd) that we can use for other
 # systemcalls. The resulting fds are returned within io_uring_cqe.res. The only way
 # to identify cqes for those operations is to keep track of their user data. Thus,
-# use a seperate set of sqe_user_data range for openat and openat2.
+# use a separate set of sqe_user_data range for openat and openat2.
 sqe_user_data_not_openat = 0, 1
 sqe_user_data_openat = 0x12345, 0x23456
 sqe_user_data = 0, 1, 0x12345, 0x23456
