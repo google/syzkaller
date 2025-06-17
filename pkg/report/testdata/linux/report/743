@@ -1,0 +1,224 @@
+TITLE: WARNING in __ieee80211_beacon_get
+TYPE: WARNING
+EXECUTOR: proc=9, id=803
+
+[  456.487620][    C1] ------------[ cut here ]------------
+[  456.493487][    C1] WARNING: net/mac80211/tx.c:5024 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+[  456.504170][    C1] Modules linked in:
+[  456.508373][    C1] CPU: 1 UID: 0 PID: 11907 Comm: syz.9.803 Not tainted 6.16.0-rc2-next-20250616-syzkaller #0 PREEMPT(full) 
+[  456.519883][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[  456.529983][    C1] RIP: 0010:__ieee80211_beacon_get+0x125d/0x1630
+[  456.536355][    C1] Code: e7 e8 27 f2 2f f7 45 31 f6 4c 8b bc 24 a0 00 00 00 e9 78 fe ff ff e8 92 bf d6 f6 90 0f 0b 90 e9 e0 f7 ff ff e8 84 bf d6 f6 90 <0f> 0b 90 e9 38 fb ff ff e8 76 bf d6 f6 48 c7 c7 a0 5c 79 8f 4c 89
+[  456.556047][    C1] RSP: 0000:ffffc90000a089f8 EFLAGS: 00010246
+[  456.562128][    C1] RAX: ffffffff8ae9aaac RBX: ffffffff8ae99886 RCX: ffff8880254c1e00
+[  456.570166][    C1] RDX: 0000000000000100 RSI: 0000000000000000 RDI: 0000000000000000
+[  456.578202][    C1] RBP: 0000000000000000 R08: ffff8880254c1e00 R09: 0000000000000003
+[  456.586217][    C1] R10: 0000000000000007 R11: 0000000000000100 R12: ffff888057086500
+[  456.594216][    C1] R13: dffffc0000000000 R14: ffff8880570869d0 R15: ffff888058186024
+[  456.602240][    C1] FS:  0000000000000000(0000) GS:ffff888125d40000(0000) knlGS:0000000000000000
+[  456.611234][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  456.617865][    C1] CR2: 00007fd624370000 CR3: 000000000df38000 CR4: 00000000003526f0
+[  456.625879][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  456.633857][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  456.641894][    C1] Call Trace:
+[  456.645219][    C1]  <IRQ>
+[  456.648074][    C1]  ? __ieee80211_beacon_get+0x36/0x1630
+[  456.653659][    C1]  ieee80211_beacon_get_tim+0xb4/0x2b0
+[  456.659163][    C1]  ? __pfx_ieee80211_beacon_get_tim+0x10/0x10
+[  456.665278][    C1]  mac80211_hwsim_beacon_tx+0x3ce/0x860
+[  456.670840][    C1]  ? ieee80211_iterate_active_interfaces_atomic+0x2a/0x180
+[  456.678073][    C1]  __iterate_interfaces+0x2a8/0x590
+[  456.683279][    C1]  ? __pfx_mac80211_hwsim_beacon_tx+0x10/0x10
+[  456.689374][    C1]  ? ieee80211_iterate_active_interfaces_atomic+0x2a/0x180
+[  456.696631][    C1]  ? __pfx_mac80211_hwsim_beacon_tx+0x10/0x10
+[  456.702714][    C1]  ieee80211_iterate_active_interfaces_atomic+0xdb/0x180
+[  456.709773][    C1]  mac80211_hwsim_beacon+0xbb/0x1c0
+[  456.715007][    C1]  ? __pfx_mac80211_hwsim_beacon+0x10/0x10
+[  456.720827][    C1]  __hrtimer_run_queues+0x529/0xc60
+[  456.726075][    C1]  ? __pfx___hrtimer_run_queues+0x10/0x10
+[  456.731821][    C1]  ? read_tsc+0x9/0x20
+[  456.735918][    C1]  ? __pfx___local_bh_disable_ip+0x10/0x10
+[  456.741744][    C1]  hrtimer_run_softirq+0x187/0x2b0
+[  456.746878][    C1]  handle_softirqs+0x283/0x870
+[  456.751660][    C1]  ? __irq_exit_rcu+0xca/0x1f0
+[  456.756479][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[  456.761782][    C1]  ? irqtime_account_irq+0xb6/0x1c0
+[  456.767014][    C1]  __irq_exit_rcu+0xca/0x1f0
+[  456.771618][    C1]  ? __pfx___irq_exit_rcu+0x10/0x10
+[  456.776863][    C1]  irq_exit_rcu+0x9/0x30
+[  456.781118][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[  456.786784][    C1]  </IRQ>
+[  456.789716][    C1]  <TASK>
+[  456.792650][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  456.798662][    C1] RIP: 0010:__sanitizer_cov_trace_const_cmp8+0x37/0x90
+[  456.805549][    C1] Code: 08 00 9e 92 65 8b 15 08 91 dd 10 81 e2 00 01 ff 00 74 11 81 fa 00 01 00 00 75 57 83 b9 3c 16 00 00 00 74 4e 8b 91 18 16 00 00 <83> fa 03 75 43 48 8b 91 20 16 00 00 44 8b 89 1c 16 00 00 49 c1 e1
+[  456.825207][    C1] RSP: 0000:ffffc9000bc172c8 EFLAGS: 00000246
+[  456.831296][    C1] RAX: ffffffff821345b0 RBX: ffffea0000c673c0 RCX: ffff8880254c1e00
+[  456.839361][    C1] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  456.847373][    C1] RBP: 0000000000000001 R08: ffffea0000c673c7 R09: 1ffffd400018ce78
+[  456.855378][    C1] R10: dffffc0000000000 R11: fffff9400018ce79 R12: 0000000000000000
+[  456.863355][    C1] R13: dffffc0000000000 R14: dffffc0000000000 R15: ffffea0000c673c0
+[  456.871366][    C1]  ? __folio_rmap_sanity_checks+0x120/0x700
+[  456.877308][    C1]  __folio_rmap_sanity_checks+0x120/0x700
+[  456.883046][    C1]  folio_remove_rmap_ptes+0x3b/0xaf0
+[  456.888367][    C1]  ? page_table_check_clear+0x187/0x700
+[  456.893919][    C1]  ? page_table_check_clear+0x4f3/0x700
+[  456.899501][    C1]  ? page_table_check_clear+0x187/0x700
+[  456.905089][    C1]  unmap_page_range+0x1e59/0x41c0
+[  456.910159][    C1]  ? __pfx_unmap_page_range+0x10/0x10
+[  456.915569][    C1]  ? mas_find+0x987/0xbc0
+[  456.919906][    C1]  ? unmap_vmas+0x144/0x580
+[  456.924420][    C1]  unmap_vmas+0x399/0x580
+[  456.928798][    C1]  ? __pfx_unmap_vmas+0x10/0x10
+[  456.933676][    C1]  exit_mmap+0x248/0xb50
+[  456.937950][    C1]  ? uprobe_clear_state+0x20f/0x290
+[  456.943161][    C1]  ? __pfx_exit_mmap+0x10/0x10
+[  456.947949][    C1]  ? __mutex_unlock_slowpath+0x1cd/0x700
+[  456.953604][    C1]  ? __pfx_exit_aio+0x10/0x10
+[  456.958321][    C1]  ? uprobe_clear_state+0x274/0x290
+[  456.963534][    C1]  __mmput+0x118/0x420
+[  456.967640][    C1]  exit_mm+0x1da/0x2c0
+[  456.971735][    C1]  ? __pfx_exit_mm+0x10/0x10
+[  456.976360][    C1]  ? rcu_is_watching+0x15/0xb0
+[  456.981142][    C1]  do_exit+0x648/0x22e0
+[  456.985330][    C1]  ? do_raw_spin_lock+0x121/0x290
+[  456.990364][    C1]  ? __pfx_do_exit+0x10/0x10
+[  456.994994][    C1]  do_group_exit+0x21c/0x2d0
+[  456.999602][    C1]  ? lockdep_hardirqs_on+0x9c/0x150
+[  457.004880][    C1]  get_signal+0x1286/0x1340
+[  457.009417][    C1]  arch_do_signal_or_restart+0x9a/0x750
+[  457.015006][    C1]  ? count_memcg_event_mm+0x21/0x260
+[  457.020330][    C1]  ? __pfx_arch_do_signal_or_restart+0x10/0x10
+[  457.026531][    C1]  ? exit_to_user_mode_loop+0x40/0x110
+[  457.032004][    C1]  exit_to_user_mode_loop+0x75/0x110
+[  457.037320][    C1]  do_syscall_64+0x2bd/0x3b0
+[  457.041925][    C1]  ? lockdep_hardirqs_on+0x9c/0x150
+[  457.047253][    C1]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  457.053325][    C1]  ? clear_bhb_loop+0x60/0xb0
+[  457.058030][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  457.063927][    C1] RIP: 0033:0x7f7ace38e929
+[  457.068361][    C1] Code: Unable to access opcode bytes at 0x7f7ace38e8ff.
+[  457.075399][    C1] RSP: 002b:00007f7acc1f6038 EFLAGS: 00000246 ORIG_RAX: 000000000000012b
+[  457.083837][    C1] RAX: 0000000000010106 RBX: 00007f7ace5b6080 RCX: 00007f7ace38e929
+[  457.091854][    C1] RDX: 0000000000010106 RSI: 00002000000000c0 RDI: 0000000000000003
+[  457.099854][    C1] RBP: 00007f7ace410b39 R08: 0000000000000000 R09: 0000000000000000
+[  457.107865][    C1] R10: 0000000000000002 R11: 0000000000000246 R12: 0000000000000000
+[  457.115864][    C1] R13: 0000000000000001 R14: 00007f7ace5b6080 R15: 00007ffdb04f0738
+[  457.123853][    C1]  </TASK>
+[  457.126909][    C1] Kernel panic - not syncing: kernel: panic_on_warn set ...
+[  457.134192][    C1] CPU: 1 UID: 0 PID: 11907 Comm: syz.9.803 Not tainted 6.16.0-rc2-next-20250616-syzkaller #0 PREEMPT(full) 
+[  457.145647][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[  457.155703][    C1] Call Trace:
+[  457.158994][    C1]  <IRQ>
+[  457.161841][    C1]  dump_stack_lvl+0x99/0x250
+[  457.166445][    C1]  ? __asan_memcpy+0x40/0x70
+[  457.171045][    C1]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  457.176251][    C1]  ? __pfx__printk+0x10/0x10
+[  457.180858][    C1]  panic+0x2db/0x790
+[  457.184770][    C1]  ? __pfx_panic+0x10/0x10
+[  457.189276][    C1]  __warn+0x334/0x4c0
+[  457.193266][    C1]  ? __ieee80211_beacon_get+0x125d/0x1630
+[  457.198990][    C1]  ? __ieee80211_beacon_get+0x125d/0x1630
+[  457.204719][    C1]  report_bug+0x2be/0x4f0
+[  457.209083][    C1]  ? __ieee80211_beacon_get+0x125d/0x1630
+[  457.214820][    C1]  ? __ieee80211_beacon_get+0x125d/0x1630
+[  457.220556][    C1]  ? __ieee80211_beacon_get+0x125f/0x1630
+[  457.226277][    C1]  handle_bug+0x84/0x160
+[  457.230530][    C1]  exc_invalid_op+0x1a/0x50
+[  457.235043][    C1]  asm_exc_invalid_op+0x1a/0x20
+[  457.239897][    C1] RIP: 0010:__ieee80211_beacon_get+0x125d/0x1630
+[  457.246228][    C1] Code: e7 e8 27 f2 2f f7 45 31 f6 4c 8b bc 24 a0 00 00 00 e9 78 fe ff ff e8 92 bf d6 f6 90 0f 0b 90 e9 e0 f7 ff ff e8 84 bf d6 f6 90 <0f> 0b 90 e9 38 fb ff ff e8 76 bf d6 f6 48 c7 c7 a0 5c 79 8f 4c 89
+[  457.265836][    C1] RSP: 0000:ffffc90000a089f8 EFLAGS: 00010246
+[  457.271906][    C1] RAX: ffffffff8ae9aaac RBX: ffffffff8ae99886 RCX: ffff8880254c1e00
+[  457.279880][    C1] RDX: 0000000000000100 RSI: 0000000000000000 RDI: 0000000000000000
+[  457.287854][    C1] RBP: 0000000000000000 R08: ffff8880254c1e00 R09: 0000000000000003
+[  457.295827][    C1] R10: 0000000000000007 R11: 0000000000000100 R12: ffff888057086500
+[  457.303796][    C1] R13: dffffc0000000000 R14: ffff8880570869d0 R15: ffff888058186024
+[  457.311783][    C1]  ? __ieee80211_beacon_get+0x36/0x1630
+[  457.317346][    C1]  ? __ieee80211_beacon_get+0x125c/0x1630
+[  457.323080][    C1]  ? __ieee80211_beacon_get+0x125c/0x1630
+[  457.328803][    C1]  ? __ieee80211_beacon_get+0x36/0x1630
+[  457.334382][    C1]  ieee80211_beacon_get_tim+0xb4/0x2b0
+[  457.339849][    C1]  ? __pfx_ieee80211_beacon_get_tim+0x10/0x10
+[  457.345937][    C1]  mac80211_hwsim_beacon_tx+0x3ce/0x860
+[  457.351498][    C1]  ? ieee80211_iterate_active_interfaces_atomic+0x2a/0x180
+[  457.358707][    C1]  __iterate_interfaces+0x2a8/0x590
+[  457.363912][    C1]  ? __pfx_mac80211_hwsim_beacon_tx+0x10/0x10
+[  457.369985][    C1]  ? ieee80211_iterate_active_interfaces_atomic+0x2a/0x180
+[  457.377189][    C1]  ? __pfx_mac80211_hwsim_beacon_tx+0x10/0x10
+[  457.383266][    C1]  ieee80211_iterate_active_interfaces_atomic+0xdb/0x180
+[  457.390297][    C1]  mac80211_hwsim_beacon+0xbb/0x1c0
+[  457.395513][    C1]  ? __pfx_mac80211_hwsim_beacon+0x10/0x10
+[  457.401342][    C1]  __hrtimer_run_queues+0x529/0xc60
+[  457.406570][    C1]  ? __pfx___hrtimer_run_queues+0x10/0x10
+[  457.412302][    C1]  ? read_tsc+0x9/0x20
+[  457.416387][    C1]  ? __pfx___local_bh_disable_ip+0x10/0x10
+[  457.422213][    C1]  hrtimer_run_softirq+0x187/0x2b0
+[  457.427333][    C1]  handle_softirqs+0x283/0x870
+[  457.432108][    C1]  ? __irq_exit_rcu+0xca/0x1f0
+[  457.436885][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[  457.442184][    C1]  ? irqtime_account_irq+0xb6/0x1c0
+[  457.447392][    C1]  __irq_exit_rcu+0xca/0x1f0
+[  457.451993][    C1]  ? __pfx___irq_exit_rcu+0x10/0x10
+[  457.457206][    C1]  irq_exit_rcu+0x9/0x30
+[  457.461460][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[  457.467102][    C1]  </IRQ>
+[  457.470036][    C1]  <TASK>
+[  457.472966][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[  457.478952][    C1] RIP: 0010:__sanitizer_cov_trace_const_cmp8+0x37/0x90
+[  457.485812][    C1] Code: 08 00 9e 92 65 8b 15 08 91 dd 10 81 e2 00 01 ff 00 74 11 81 fa 00 01 00 00 75 57 83 b9 3c 16 00 00 00 74 4e 8b 91 18 16 00 00 <83> fa 03 75 43 48 8b 91 20 16 00 00 44 8b 89 1c 16 00 00 49 c1 e1
+[  457.505429][    C1] RSP: 0000:ffffc9000bc172c8 EFLAGS: 00000246
+[  457.511510][    C1] RAX: ffffffff821345b0 RBX: ffffea0000c673c0 RCX: ffff8880254c1e00
+[  457.519498][    C1] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  457.527473][    C1] RBP: 0000000000000001 R08: ffffea0000c673c7 R09: 1ffffd400018ce78
+[  457.535453][    C1] R10: dffffc0000000000 R11: fffff9400018ce79 R12: 0000000000000000
+[  457.543444][    C1] R13: dffffc0000000000 R14: dffffc0000000000 R15: ffffea0000c673c0
+[  457.551441][    C1]  ? __folio_rmap_sanity_checks+0x120/0x700
+[  457.557400][    C1]  __folio_rmap_sanity_checks+0x120/0x700
+[  457.563133][    C1]  folio_remove_rmap_ptes+0x3b/0xaf0
+[  457.568437][    C1]  ? page_table_check_clear+0x187/0x700
+[  457.574019][    C1]  ? page_table_check_clear+0x4f3/0x700
+[  457.579578][    C1]  ? page_table_check_clear+0x187/0x700
+[  457.585143][    C1]  unmap_page_range+0x1e59/0x41c0
+[  457.590212][    C1]  ? __pfx_unmap_page_range+0x10/0x10
+[  457.595595][    C1]  ? mas_find+0x987/0xbc0
+[  457.599929][    C1]  ? unmap_vmas+0x144/0x580
+[  457.604438][    C1]  unmap_vmas+0x399/0x580
+[  457.608779][    C1]  ? __pfx_unmap_vmas+0x10/0x10
+[  457.613672][    C1]  exit_mmap+0x248/0xb50
+[  457.617935][    C1]  ? uprobe_clear_state+0x20f/0x290
+[  457.623144][    C1]  ? __pfx_exit_mmap+0x10/0x10
+[  457.627907][    C1]  ? __mutex_unlock_slowpath+0x1cd/0x700
+[  457.633563][    C1]  ? __pfx_exit_aio+0x10/0x10
+[  457.638254][    C1]  ? uprobe_clear_state+0x274/0x290
+[  457.643463][    C1]  __mmput+0x118/0x420
+[  457.647554][    C1]  exit_mm+0x1da/0x2c0
+[  457.651645][    C1]  ? __pfx_exit_mm+0x10/0x10
+[  457.656265][    C1]  ? rcu_is_watching+0x15/0xb0
+[  457.661066][    C1]  do_exit+0x648/0x22e0
+[  457.665252][    C1]  ? do_raw_spin_lock+0x121/0x290
+[  457.670295][    C1]  ? __pfx_do_exit+0x10/0x10
+[  457.674915][    C1]  do_group_exit+0x21c/0x2d0
+[  457.679523][    C1]  ? lockdep_hardirqs_on+0x9c/0x150
+[  457.684732][    C1]  get_signal+0x1286/0x1340
+[  457.689270][    C1]  arch_do_signal_or_restart+0x9a/0x750
+[  457.694831][    C1]  ? count_memcg_event_mm+0x21/0x260
+[  457.700146][    C1]  ? __pfx_arch_do_signal_or_restart+0x10/0x10
+[  457.706316][    C1]  ? exit_to_user_mode_loop+0x40/0x110
+[  457.711787][    C1]  exit_to_user_mode_loop+0x75/0x110
+[  457.717082][    C1]  do_syscall_64+0x2bd/0x3b0
+[  457.721684][    C1]  ? lockdep_hardirqs_on+0x9c/0x150
+[  457.726892][    C1]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  457.732965][    C1]  ? clear_bhb_loop+0x60/0xb0
+[  457.737651][    C1]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  457.743551][    C1] RIP: 0033:0x7f7ace38e929
+[  457.747963][    C1] Code: Unable to access opcode bytes at 0x7f7ace38e8ff.
+[  457.754978][    C1] RSP: 002b:00007f7acc1f6038 EFLAGS: 00000246 ORIG_RAX: 000000000000012b
+[  457.763401][    C1] RAX: 0000000000010106 RBX: 00007f7ace5b6080 RCX: 00007f7ace38e929
+[  457.771373][    C1] RDX: 0000000000010106 RSI: 00002000000000c0 RDI: 0000000000000003
+[  457.779344][    C1] RBP: 00007f7ace410b39 R08: 0000000000000000 R09: 0000000000000000
+[  457.787316][    C1] R10: 0000000000000002 R11: 0000000000000246 R12: 0000000000000000
+[  457.795296][    C1] R13: 0000000000000001 R14: 00007f7ace5b6080 R15: 00007ffdb04f0738
+[  457.803283][    C1]  </TASK>
+[  457.806470][    C1] Kernel Offset: disabled
+[  457.810805][    C1] Rebooting in 86400 seconds..
