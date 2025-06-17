@@ -1,0 +1,67 @@
+TITLE: WARNING in v9fs_fid_get_acl
+TYPE: WARNING
+
+[   60.880086][ T5830] ------------[ cut here ]------------
+[   60.885827][ T5830] WARNING: CPU: 0 PID: 5830 at mm/page_alloc.c:4728 __alloc_frozen_pages_noprof+0x3c5/0x710
+[   60.896011][ T5830] Modules linked in:
+[   60.899938][ T5830] CPU: 0 UID: 0 PID: 5830 Comm: syz-executor405 Not tainted 6.13.0-rc1-next-20241205-syzkaller #0
+[   60.910593][ T5830] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+[   60.920724][ T5830] RIP: 0010:__alloc_frozen_pages_noprof+0x3c5/0x710
+[   60.927394][ T5830] Code: ff df 0f 85 09 01 00 00 44 89 e9 81 e1 7f ff ff ff a9 00 00 04 00 41 0f 44 cd 41 89 cd e9 f9 00 00 00 c6 05 87 3a 0c 0e 01 90 <0f> 0b 90 41 83 fc 0a 0f 86 13 fd ff ff 45 31 e4 48 c7 44 24 20 0e
+[   60.947123][ T5830] RSP: 0018:ffffc90003e8f940 EFLAGS: 00010246
+[   60.953230][ T5830] RAX: 0000000000000000 RBX: dffffc0000000000 RCX: 0000000000000000
+[   60.961263][ T5830] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffc90003e8f9c8
+[   60.969284][ T5830] RBP: ffffc90003e8fa50 R08: ffffc90003e8f9c7 R09: 0000000000000000
+[   60.977298][ T5830] R10: ffffc90003e8f9a0 R11: fffff520007d1f39 R12: 0000000000000020
+[   60.985322][ T5830] R13: 0000000000040d40 R14: 1ffff920007d1f30 R15: 1ffff920007d1f2c
+[   60.993289][ T5830] FS:  0000555587715480(0000) GS:ffff8880b8600000(0000) knlGS:0000000000000000
+[   61.002261][ T5830] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   61.009019][ T5830] CR2: 0000000020001000 CR3: 000000003352e000 CR4: 00000000003526f0
+[   61.017077][ T5830] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   61.025105][ T5830] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   61.033117][ T5830] Call Trace:
+[   61.036440][ T5830]  <TASK>
+[   61.039379][ T5830]  ? __warn+0x165/0x4d0
+[   61.043542][ T5830]  ? __alloc_frozen_pages_noprof+0x3c5/0x710
+[   61.049580][ T5830]  ? report_bug+0x2b3/0x500
+[   61.054104][ T5830]  ? __alloc_frozen_pages_noprof+0x3c5/0x710
+[   61.060146][ T5830]  ? handle_bug+0x60/0x90
+[   61.064534][ T5830]  ? exc_invalid_op+0x1a/0x50
+[   61.069322][ T5830]  ? asm_exc_invalid_op+0x1a/0x20
+[   61.074418][ T5830]  ? __alloc_frozen_pages_noprof+0x3c5/0x710
+[   61.080417][ T5830]  ? kfree+0x196/0x430
+[   61.084557][ T5830]  ? __pfx___alloc_frozen_pages_noprof+0x10/0x10
+[   61.090903][ T5830]  ? v9fs_fid_xattr_get+0x327/0x450
+[   61.096205][ T5830]  __alloc_pages_noprof+0xa/0x30
+[   61.101416][ T5830]  ___kmalloc_large_node+0x8b/0x1d0
+[   61.106668][ T5830]  __kmalloc_large_node_noprof+0x1a/0x80
+[   61.112316][ T5830]  __kmalloc_noprof+0x339/0x4c0
+[   61.117205][ T5830]  ? v9fs_fid_get_acl+0x4f/0x100
+[   61.122163][ T5830]  v9fs_fid_get_acl+0x4f/0x100
+[   61.126987][ T5830]  v9fs_get_acl+0x96/0x350
+[   61.131476][ T5830]  v9fs_inode_from_fid_dotl+0x22d/0x2c0
+[   61.137060][ T5830]  v9fs_mount+0x718/0xa90
+[   61.141401][ T5830]  ? __pfx_v9fs_mount+0x10/0x10
+[   61.146322][ T5830]  ? __kmalloc_cache_noprof+0x243/0x390
+[   61.151879][ T5830]  ? rcu_is_watching+0x15/0xb0
+[   61.156693][ T5830]  legacy_get_tree+0xee/0x190
+[   61.161379][ T5830]  ? __pfx_v9fs_mount+0x10/0x10
+[   61.166287][ T5830]  vfs_get_tree+0x90/0x2b0
+[   61.170719][ T5830]  do_new_mount+0x2be/0xb40
+[   61.175271][ T5830]  ? __pfx_do_new_mount+0x10/0x10
+[   61.180310][ T5830]  __se_sys_mount+0x2d6/0x3c0
+[   61.185041][ T5830]  ? __pfx___se_sys_mount+0x10/0x10
+[   61.190252][ T5830]  ? exc_page_fault+0x590/0x8b0
+[   61.195157][ T5830]  ? __x64_sys_mount+0x20/0xc0
+[   61.199952][ T5830]  do_syscall_64+0xf3/0x230
+[   61.204535][ T5830]  ? clear_bhb_loop+0x35/0x90
+[   61.209314][ T5830]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   61.215249][ T5830] RIP: 0033:0x7f05fcd17de9
+[   61.219683][ T5830] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 17 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   61.239354][ T5830] RSP: 002b:00007ffc85e9b418 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[   61.247813][ T5830] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f05fcd17de9
+[   61.255862][ T5830] RDX: 0000000020000b80 RSI: 00000000200003c0 RDI: 0000000000000000
+[   61.263925][ T5830] RBP: 000000000000ec55 R08: 0000000020000580 R09: 00007ffc85e9b450
+[   61.271936][ T5830] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffc85e9b450
+[   61.279966][ T5830] R13: 00007ffc85e9b43c R14: 431bde82d7b634db R15: 00007f05fcd60087
+[   61.287987][ T5830]  </TASK>

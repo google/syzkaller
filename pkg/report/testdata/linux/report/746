@@ -1,0 +1,72 @@
+TITLE: WARNING in drm_mode_create_lease_ioctl
+TYPE: WARNING
+
+[   42.860506][ T5936] WARNING: CPU: 0 PID: 5936 at mm/page_alloc.c:4715 __alloc_frozen_pages_noprof+0x1f66/0x2470
+[   42.863402][ T5936] Modules linked in:
+[   42.865118][ T5936] CPU: 0 UID: 0 PID: 5936 Comm: syz-executor305 Not tainted 6.14.0-rc4-syzkaller-00248-g03d38806a902 #0
+[   42.869306][ T5936] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+[   42.872295][ T5936] RIP: 0010:__alloc_frozen_pages_noprof+0x1f66/0x2470
+[   42.874216][ T5936] Code: 24 38 41 89 c6 0f b6 c0 44 8b ac 24 84 00 00 00 89 44 24 18 e9 a8 f7 ff ff 90 0f 0b 90 e9 b6 f7 ff ff c6 05 2d 52 3a 0e 01 90 <0f> 0b 90 e9 d9 e4 ff ff 90 0f 0b 90 e9 4e fb ff ff 83 bc 24 80 00
+[   42.879500][ T5936] RSP: 0018:ffffc900039677c0 EFLAGS: 00010246
+[   42.881159][ T5936] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[   42.883611][ T5936] RDX: 0000000000000000 RSI: 000000000000000b RDI: 0000000000040dc0
+[   42.885830][ T5936] RBP: 00000000007a1200 R08: 0000000000000007 R09: 0000000000000000
+[   42.888010][ T5936] R10: 0000000000000000 R11: 0000000000000000 R12: 000000000000000b
+[   42.890200][ T5936] R13: 1ffff9200072cf0c R14: 00000000007a1200 R15: ffffffff855c28fd
+[   42.892470][ T5936] FS:  00005555724b6380(0000) GS:ffff88806a600000(0000) knlGS:0000000000000000
+[   42.894921][ T5936] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   42.896753][ T5936] CR2: 00004000003d0000 CR3: 0000000025918000 CR4: 0000000000352ef0
+[   42.898895][ T5936] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   42.901047][ T5936] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   42.903319][ T5936] Call Trace:
+[   42.904281][ T5936]  <TASK>
+[   42.905149][ T5936]  ? __warn+0xea/0x3c0
+[   42.906348][ T5936]  ? __alloc_frozen_pages_noprof+0x1f66/0x2470
+[   42.908026][ T5936]  ? report_bug+0x3c0/0x580
+[   42.909339][ T5936]  ? handle_bug+0x54/0xa0
+[   42.910570][ T5936]  ? exc_invalid_op+0x17/0x50
+[   42.911967][ T5936]  ? asm_exc_invalid_op+0x1a/0x20
+[   42.913405][ T5936]  ? drm_mode_create_lease_ioctl+0x4bd/0x1f60
+[   42.915153][ T5936]  ? __alloc_frozen_pages_noprof+0x1f66/0x2470
+[   42.916925][ T5936]  ? count_memcg_events_mm.constprop.0+0x138/0x340
+[   42.918754][ T5936]  ? __pfx_lock_release+0x10/0x10
+[   42.920158][ T5936]  ? find_held_lock+0x2d/0x110
+[   42.921647][ T5936]  ? __pfx___alloc_frozen_pages_noprof+0x10/0x10
+[   42.923471][ T5936]  ? __pfx___up_read+0x10/0x10
+[   42.924831][ T5936]  ? do_user_addr_fault+0x83d/0x13f0
+[   42.926360][ T5936]  ? drm_mode_create_lease_ioctl+0x4bd/0x1f60
+[   42.928050][ T5936]  __alloc_pages_noprof+0xb/0x1b0
+[   42.929637][ T5936]  ___kmalloc_large_node+0x84/0x1b0
+[   42.931620][ T5936]  __kmalloc_large_node_noprof+0x1c/0x70
+[   42.933298][ T5936]  __kmalloc_noprof.cold+0xc/0x61
+[   42.934898][ T5936]  ? _copy_from_user+0x59/0xd0
+[   42.936423][ T5936]  drm_mode_create_lease_ioctl+0x4bd/0x1f60
+[   42.938212][ T5936]  ? __pfx___lock_acquire+0x10/0x10
+[   42.939700][ T5936]  ? __pfx_drm_mode_create_lease_ioctl+0x10/0x10
+[   42.941516][ T5936]  ? lock_acquire.part.0+0x11b/0x380
+[   42.943017][ T5936]  ? find_held_lock+0x2d/0x110
+[   42.944380][ T5936]  ? drm_is_current_master+0x2c/0x40
+[   42.946013][ T5936]  ? do_raw_spin_unlock+0x172/0x230
+[   42.947479][ T5936]  drm_ioctl_kernel+0x1e6/0x3d0
+[   42.948854][ T5936]  ? __pfx_drm_mode_create_lease_ioctl+0x10/0x10
+[   42.950646][ T5936]  ? __pfx___might_fault+0x1/0x10
+[   42.952142][ T5936]  ? __pfx_drm_ioctl_kernel+0x10/0x10
+[   42.953680][ T5936]  ? __might_fault+0xe3/0x190
+[   42.955049][ T5936]  drm_ioctl+0x5d6/0xc00
+[   42.956322][ T5936]  ? __pfx_drm_mode_create_lease_ioctl+0x10/0x10
+[   42.958082][ T5936]  ? __pfx_drm_ioctl+0x10/0x10
+[   42.959455][ T5936]  ? selinux_file_ioctl+0x180/0x270
+[   42.960902][ T5936]  ? selinux_file_ioctl+0xb4/0x270
+[   42.962499][ T5936]  ? __pfx_drm_ioctl+0x10/0x10
+[   42.963810][ T5936]  __x64_sys_ioctl+0x190/0x200
+[   42.965160][ T5936]  do_syscall_64+0xcd/0x250
+[   42.966472][ T5936]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   42.968134][ T5936] RIP: 0033:0x7fee89044129
+[   42.969441][ T5936] Code: 48 83 c4 28 c3 e8 37 17 00 00 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   42.975252][ T5936] RSP: 002b:00007ffe5200dad8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[   42.977569][ T5936] RAX: ffffffffffffffda RBX: 0000400000000000 RCX: 00007fee89044129
+[   42.979768][ T5936] RDX: 00004000000003c0 RSI: 00000000c01864c6 RDI: 0000000000000003
+[   42.982069][ T5936] RBP: 00007fee890b7610 R08: 0023647261632f69 R09: 00007ffe5200dca8
+[   42.984285][ T5936] R10: 000000000000000f R11: 0000000000000246 R12: 0000000000000001
+[   42.986487][ T5936] R13: 00007ffe5200dc98 R14: 0000000000000001 R15: 0000000000000001
+[   42.988657][ T5936]  </TASK>
