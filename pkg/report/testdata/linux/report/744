@@ -1,0 +1,112 @@
+TITLE: WARNING in dbAdjTree
+TYPE: WARNING
+
+[  237.726449][  T112] WARNING: fs/jfs/jfs_dmap.c:2867 at dbAdjTree+0x454/0x4e0, CPU#0: jfsCommit/112
+[  237.729558][   T43] usb 1-1: config 1 interface 0 altsetting 0 has 1 endpoint descriptor, different from the interface descriptor's value: 0
+[  237.736143][  T112] Modules linked in:
+[  237.749016][   T43] usb 1-1: config 1 interface 2 altsetting 1 has 0 endpoint descriptors, different from the interface descriptor's value: 1
+[  237.755269][  T112] CPU: 0 UID: 0 PID: 112 Comm: jfsCommit Not tainted 6.16.0-rc2-next-20250617-syzkaller #0 PREEMPT(full) 
+[  237.769760][   T43] usb 1-1: New USB device found, idVendor=1d6b, idProduct=0101, bcdDevice= 0.40
+[  237.778028][  T112] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[  237.797266][  T112] RIP: 0010:dbAdjTree+0x454/0x4e0
+[  237.802653][  T112] Code: 5a ff ff ff e8 6d ea 81 fe eb 05 e8 66 ea 81 fe 48 83 c4 28 5b 41 5c 41 5d 41 5e 41 5f 5d e9 83 f7 2d 08 cc e8 4d ea 81 fe 90 <0f> 0b 90 eb e1 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c e1 fb ff ff
+[  237.823544][  T112] RSP: 0018:ffffc900026c7988 EFLAGS: 00010293
+[  237.829670][  T112] RAX: ffffffff833e8123 RBX: ffff8880701db010 RCX: ffff88801e3e5a00
+[  237.838375][  T112] RDX: 0000000000000000 RSI: 0000000000000155 RDI: 0000000000020056
+[  237.838513][   T43] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[  237.846448][  T112] RBP: 0000000000020056 R08: ffffea0001c076c7 R09: 1ffffd4000380ed8
+[  237.846473][  T112] R10: dffffc0000000000 R11: fffff94000380ed9 R12: ffff8880701db018
+[  237.846490][  T112] R13: dffffc0000000000 R14: 0000000000000004 R15: 0000000000000155
+[  237.846507][  T112] FS:  0000000000000000(0000) GS:ffff888125c40000(0000) knlGS:0000000000000000
+[  237.846526][  T112] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  237.846543][  T112] CR2: 00007fcb789f3178 CR3: 00000000731e8000 CR4: 00000000003526f0
+[  237.846563][  T112] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  237.846577][  T112] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  237.913066][   T43] usb 1-1: Product: syz
+[  237.919598][  T112] Call Trace:
+[  237.926755][  T112]  <TASK>
+[  237.929740][  T112]  ? __pfx_lock_metapage+0x10/0x10
+[  237.935025][  T112]  dbJoin+0x238/0x300
+[  237.939067][  T112]  ? do_read_cache_folio+0x4c6/0x590
+[  237.944500][  T112]  dbFreeBits+0x4e1/0xdb0
+[  237.948895][  T112]  dbFree+0x336/0x650
+[  237.952968][  T112]  txFreeMap+0x7ff/0xde0
+[  237.957257][  T112]  txUpdateMap+0x308/0x9c0
+[  237.961816][  T112]  jfs_lazycommit+0x43f/0xa90
+[  237.963682][   T43] usb 1-1: Manufacturer: syz
+[  237.966542][  T112]  ? __pfx_jfs_lazycommit+0x10/0x10
+[  237.976446][  T112]  ? __pfx_default_wake_function+0x10/0x10
+[  237.979918][   T43] usb 1-1: SerialNumber: syz
+[  237.982383][  T112]  ? __kthread_parkme+0x7b/0x200
+[  237.982414][  T112]  ? __kthread_parkme+0x1a1/0x200
+[  237.982443][  T112]  kthread+0x711/0x8a0
+[  238.002759][  T112]  ? __pfx_jfs_lazycommit+0x10/0x10
+[  238.008047][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.008087][  T112]  ? _raw_spin_unlock_irq+0x23/0x50
+[  238.018823][  T112]  ? lockdep_hardirqs_on+0x9c/0x150
+[  238.018861][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.018899][  T112]  ret_from_fork+0x3fc/0x770
+[  238.034089][  T112]  ? __pfx_ret_from_fork+0x10/0x10
+[  238.034134][  T112]  ? __switch_to_asm+0x39/0x70
+[  238.034154][  T112]  ? __switch_to_asm+0x33/0x70
+[  238.034172][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.034195][  T112]  ret_from_fork_asm+0x1a/0x30
+[  238.034228][  T112]  </TASK>
+[  238.034250][  T112] Kernel panic - not syncing: kernel: panic_on_warn set ...
+[  238.034264][  T112] CPU: 0 UID: 0 PID: 112 Comm: jfsCommit Not tainted 6.16.0-rc2-next-20250617-syzkaller #0 PREEMPT(full) 
+[  238.034287][  T112] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[  238.034299][  T112] Call Trace:
+[  238.034309][  T112]  <TASK>
+[  238.034317][  T112]  dump_stack_lvl+0x99/0x250
+[  238.034350][  T112]  ? __asan_memcpy+0x40/0x70
+[  238.034385][  T112]  ? __pfx_dump_stack_lvl+0x10/0x10
+[  238.034425][  T112]  ? __pfx__printk+0x10/0x10
+[  238.034486][  T112]  panic+0x2db/0x790
+[  238.034532][  T112]  ? __pfx_panic+0x10/0x10
+[  238.034585][  T112]  ? ret_from_fork_asm+0x1a/0x30
+[  238.034615][  T112]  __warn+0x334/0x4c0
+[  238.034651][  T112]  ? dbAdjTree+0x454/0x4e0
+[  238.034685][  T112]  ? dbAdjTree+0x454/0x4e0
+[  238.034714][  T112]  report_bug+0x2be/0x4f0
+[  238.034744][  T112]  ? dbAdjTree+0x454/0x4e0
+[  238.034775][  T112]  ? dbAdjTree+0x454/0x4e0
+[  238.034803][  T112]  ? dbAdjTree+0x456/0x4e0
+[  238.034832][  T112]  handle_bug+0x84/0x160
+[  238.034883][  T112]  exc_invalid_op+0x1a/0x50
+[  238.034919][  T112]  asm_exc_invalid_op+0x1a/0x20
+[  238.034943][  T112] RIP: 0010:dbAdjTree+0x454/0x4e0
+[  238.034975][  T112] Code: 5a ff ff ff e8 6d ea 81 fe eb 05 e8 66 ea 81 fe 48 83 c4 28 5b 41 5c 41 5d 41 5e 41 5f 5d e9 83 f7 2d 08 cc e8 4d ea 81 fe 90 <0f> 0b 90 eb e1 44 89 e1 80 e1 07 80 c1 03 38 c1 0f 8c e1 fb ff ff
+[  238.034996][  T112] RSP: 0018:ffffc900026c7988 EFLAGS: 00010293
+[  238.035022][  T112] RAX: ffffffff833e8123 RBX: ffff8880701db010 RCX: ffff88801e3e5a00
+[  238.035041][  T112] RDX: 0000000000000000 RSI: 0000000000000155 RDI: 0000000000020056
+[  238.035058][  T112] RBP: 0000000000020056 R08: ffffea0001c076c7 R09: 1ffffd4000380ed8
+[  238.035088][  T112] R10: dffffc0000000000 R11: fffff94000380ed9 R12: ffff8880701db018
+[  238.035106][  T112] R13: dffffc0000000000 R14: 0000000000000004 R15: 0000000000000155
+[  238.035133][  T112]  ? dbAdjTree+0x453/0x4e0
+[  238.035169][  T112]  ? dbAdjTree+0x453/0x4e0
+[  238.035196][  T112]  ? __pfx_lock_metapage+0x10/0x10
+[  238.035237][  T112]  dbJoin+0x238/0x300
+[  238.035265][  T112]  ? do_read_cache_folio+0x4c6/0x590
+[  238.035302][  T112]  dbFreeBits+0x4e1/0xdb0
+[  238.035346][  T112]  dbFree+0x336/0x650
+[  238.035386][  T112]  txFreeMap+0x7ff/0xde0
+[  238.035423][  T112]  txUpdateMap+0x308/0x9c0
+[  238.035463][  T112]  jfs_lazycommit+0x43f/0xa90
+[  238.035498][  T112]  ? __pfx_jfs_lazycommit+0x10/0x10
+[  238.035525][  T112]  ? __pfx_default_wake_function+0x10/0x10
+[  238.035561][  T112]  ? __kthread_parkme+0x7b/0x200
+[  238.035586][  T112]  ? __kthread_parkme+0x1a1/0x200
+[  238.035618][  T112]  kthread+0x711/0x8a0
+[  238.035649][  T112]  ? __pfx_jfs_lazycommit+0x10/0x10
+[  238.035674][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.035705][  T112]  ? _raw_spin_unlock_irq+0x23/0x50
+[  238.035733][  T112]  ? lockdep_hardirqs_on+0x9c/0x150
+[  238.035760][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.035791][  T112]  ret_from_fork+0x3fc/0x770
+[  238.035830][  T112]  ? __pfx_ret_from_fork+0x10/0x10
+[  238.035880][  T112]  ? __switch_to_asm+0x39/0x70
+[  238.035906][  T112]  ? __switch_to_asm+0x33/0x70
+[  238.035931][  T112]  ? __pfx_kthread+0x10/0x10
+[  238.035959][  T112]  ret_from_fork_asm+0x1a/0x30
+[  238.036003][  T112]  </TASK>
+[  238.039568][  T112] Kernel Offset: disabled
