@@ -12,6 +12,7 @@ include <asm/mce.h>
 # kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
 resource kvm_syz_vm$x86[int64]
 resource fd_sgx_provision[fd]
+resource fd_sev[fd]
 
 # Map the given memory into the VM and set up syzos there.
 syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
@@ -163,6 +164,195 @@ define KVM_SETUP_VM	(1<<6)
 # SGX-related
 openat$sgx_provision(fd const[AT_FDCWD], file ptr[in, string["/dev/sgx_provision"]], flags flags[open_flags], mode const[0]) fd_sgx_provision
 ioctl$KVM_CAP_SGX_ATTRIBUTE(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_SGX_ATTRIBUTE, fd_sgx_provision]])
+
+# SEV-related (based on https://www.kernel.org/doc/html/latest/virt/kvm/x86/amd-memory-encryption.html)
+openat$sev(fd const[AT_FDCWD], file ptr[in, string["/dev/sev"]], flags flags[open_flags], mode const[0]) fd_sev
+
+ioctl$KVM_SEV_INIT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_INIT, const[0, intptr]]])
+ioctl$KVM_SEV_ES_INIT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_ES_INIT, const[0, intptr]]])
+ioctl$KVM_SEV_INIT2(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_INIT2, ptr[in, kvm_sev_init]]])
+
+ioctl$KVM_SEV_LAUNCH_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_START, ptr[inout, kvm_sev_launch_start]]])
+ioctl$KVM_SEV_LAUNCH_UPDATE_DATA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_UPDATE_DATA, ptr[in, kvm_sev_launch_update_data]]])
+ioctl$KVM_SEV_LAUNCH_UPDATE_VMSA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_UPDATE_VMSA, const[0, intptr]]])
+ioctl$KVM_SEV_LAUNCH_SECRET(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_SECRET, ptr[in, kvm_sev_launch_secret]]])
+ioctl$KVM_SEV_LAUNCH_MEASURE(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_MEASURE, ptr[in, kvm_sev_launch_measure]]])
+ioctl$KVM_SEV_LAUNCH_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_LAUNCH_FINISH, const[0, intptr]]])
+
+ioctl$KVM_SEV_SEND_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SEND_START, ptr[in, kvm_sev_send_start]]])
+ioctl$KVM_SEV_SEND_UPDATE_DATA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SEND_UPDATE_DATA, ptr[in, kvm_sev_send_update_data]]])
+ioctl$KVM_SEV_SEND_UPDATE_VMSA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SEND_UPDATE_VMSA, const[0, intptr]]])
+ioctl$KVM_SEV_SEND_CANCEL(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SEND_CANCEL, const[0, intptr]]])
+ioctl$KVM_SEV_SEND_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SEND_FINISH, const[0, intptr]]])
+
+ioctl$KVM_SEV_RECEIVE_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_RECEIVE_START, ptr[inout, kvm_sev_receive_start]]])
+ioctl$KVM_SEV_RECEIVE_UPDATE_DATA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_RECEIVE_UPDATE_DATA, ptr[in, kvm_sev_receive_update_data]]])
+ioctl$KVM_SEV_RECEIVE_UPDATE_VMSA(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_RECEIVE_UPDATE_VMSA, const[0, intptr]]])
+ioctl$KVM_SEV_RECEIVE_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_RECEIVE_FINISH, const[0, intptr]]])
+
+ioctl$KVM_SEV_GUEST_STATUS(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_GUEST_STATUS, ptr[out, kvm_sev_guest_status]]])
+ioctl$KVM_SEV_DBG_DECRYPT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_DBG_DECRYPT, ptr[in, kvm_sev_dbg]]])
+ioctl$KVM_SEV_DBG_ENCRYPT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_DBG_ENCRYPT, ptr[in, kvm_sev_dbg]]])
+ioctl$KVM_SEV_CERT_EXPORT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_CERT_EXPORT, const[0, intptr]]])
+ioctl$KVM_SEV_GET_ATTESTATION_REPORT(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_GET_ATTESTATION_REPORT, ptr[in, kvm_sev_attestation_report]]])
+
+ioctl$KVM_SEV_SNP_LAUNCH_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_START, ptr[in, kvm_sev_snp_launch_start]]])
+ioctl$KVM_SEV_SNP_LAUNCH_UPDATE(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_UPDATE, ptr[in, kvm_sev_snp_launch_update]]])
+ioctl$KVM_SEV_SNP_LAUNCH_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_FINISH, ptr[in, kvm_sev_snp_launch_finish]]])
+
+type kvm_memory_encrypt_op[ID, DATA] {
+	id	const[ID, int32]
+	data	DATA
+	error	int32
+	sev_fd	fd_sev	(in)
+}
+
+kvm_sev_init {
+	vmsa_features	int64
+	flags		int32
+	ghcb_version	int16
+	pad1		const[0, int16]
+	pad2		array[const[0, int32], 8]
+}
+
+kvm_sev_launch_start {
+	handle		int32
+	policy		int32
+	dh_addr		vma64[1:4]
+	dh_len		len[dh_addr, int32]
+	pad0		const[0, int32]
+	session_uaddr	vma64[1:4]
+	session_len	len[session_uaddr, int32]
+	pad1		const[0, int32]
+}
+
+kvm_sev_launch_update_data {
+	uaddr	vma64[1:4]
+	len	len[uaddr, int32]
+	pad0	const[0, int32]
+}
+
+kvm_sev_launch_secret {
+	hdr_uaddr	vma64[1:4]
+	hdr_len		len[hdr_uaddr, int32]
+	pad0		const[0, int32]
+	guest_uaddr	vma64[1:4]
+	guest_len	len[guest_uaddr, int32]
+	pad1		const[0, int32]
+	trans_uaddr	vma64[1:4]
+	trans_len	len[trans_uaddr, int32]
+	pad2		const[0, int32]
+}
+
+kvm_sev_launch_measure {
+	uaddr	vma64[1:4]
+	len	len[uaddr, int32]
+	pad0	const[0, int32]
+}
+
+kvm_sev_guest_status {
+	handle	int32
+	policy	int32
+	state	int32
+}
+
+kvm_sev_dbg {
+	src_uaddr	vma64[1:4]
+	dst_uaddr	vma64[1:4]
+	len		len[src_uaddr, int32]
+}
+
+kvm_sev_attestation_report {
+	mnonce	array[int8, 16]
+	uaddr	vma64[1:4]
+	len	len[uaddr, int32]
+	pad0	const[0, int32]
+}
+
+kvm_sev_send_start {
+	policy			int32
+	pad0			const[0, int32]
+	pdh_cert_uaddr		vma64[1:4]
+	pdh_cert_len		len[pdh_cert_uaddr, int32]
+	pad1			const[0, int32]
+	plat_certs_uaddr	vma64[1:4]
+	plat_certs_len		len[plat_certs_uaddr, int32]
+	pad2			const[0, int32]
+	amd_certs_uaddr		vma64[1:4]
+	amd_certs_len		len[amd_certs_uaddr, int32]
+	pad3			const[0, int32]
+	session_uaddr		vma64[1:4]
+	session_len		len[session_uaddr, int32]
+	pad4			const[0, int32]
+}
+
+kvm_sev_send_update_data {
+	hdr_uaddr	vma64[1:4]
+	hdr_len		len[hdr_uaddr, int32]
+	pad0		const[0, int32]
+	guest_uaddr	vma64[1:4]
+	guest_len	len[guest_uaddr, int32]
+	pad1		const[0, int32]
+	trans_uaddr	vma64[1:4]
+	trans_len	len[trans_uaddr, int32]
+	pad2		const[0, int32]
+}
+
+kvm_sev_receive_start {
+	handle		int32
+	policy		int32
+	pdh_addr	vma64[1:4]
+	pdh_len		len[pdh_addr, int32]
+	pad0		const[0, int32]
+	session_uaddr	vma64[1:4]
+	session_len	len[session_uaddr, int32]
+	pad1		const[0, int32]
+}
+
+kvm_sev_receive_update_data {
+	hdr_uaddr	vma64[1:4]
+	hdr_len		len[hdr_uaddr, int32]
+	pad0		const[0, int32]
+	guest_uaddr	vma64[1:4]
+	guest_len	len[guest_uaddr, int32]
+	pad1		const[0, int32]
+	trans_uaddr	vma64[1:4]
+	trans_len	len[trans_uaddr, int32]
+	pad2		const[0, int32]
+}
+
+kvm_sev_snp_launch_start {
+	policy	int64
+	gosvw	array[int8, 16]
+	flags	int16
+	pad0	array[const[0, int8], 6]
+	pad1	array[const[0, int64], 4]
+}
+
+kvm_sev_snp_launch_update {
+	gfn_start	int64
+	uaddr		vma64[1:4]
+	len		len[uaddr, int64]
+	type		flags[snp_page_type, int8]
+	pad0		const[0, int8]
+	flags		int16
+	pad1		const[0, int32]
+	pad2		array[const[0, int64], 4]
+}
+
+snp_page_type = KVM_SEV_SNP_PAGE_TYPE_NORMAL, KVM_SEV_SNP_PAGE_TYPE_ZERO, KVM_SEV_SNP_PAGE_TYPE_UNMEASURED, KVM_SEV_SNP_PAGE_TYPE_SECRETS, KVM_SEV_SNP_PAGE_TYPE_CPUID
+
+kvm_sev_snp_launch_finish {
+	id_block_uaddr	vma64[1:4]
+	id_auth_uaddr	vma64[1:4]
+	id_block_en	int8
+	auth_key_en	int8
+	vcek_disabled	int8
+	host_data	array[int8, KVM_SEV_SNP_FINISH_DATA_SIZE]
+	pad0		array[const[0, int8], 3]
+	flags		int16
+	pad1		array[const[0, int64], 4]
+}
 
 #x86(-64) specific ioctls
 ioctl$KVM_GET_MSR_INDEX_LIST(fd fd_kvm, cmd const[KVM_GET_MSR_INDEX_LIST], arg ptr[in, kvm_msr_list])
