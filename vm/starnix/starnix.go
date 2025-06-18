@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -64,6 +65,11 @@ type instance struct {
 	sshPrivKey  string
 	merger      *vmimpl.OutputMerger
 	timeouts    targets.Timeouts
+}
+
+type ffxCommandOpts struct {
+	isolated    bool
+	startDaemon bool
 }
 
 const targetDir = "/tmp"
@@ -133,30 +139,24 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			inst.fuchsiaDir,
 			err)
 	}
-	pubkey, err := inst.runFfx(30*time.Second, "config", "get", "ssh.pub")
+	pubkey, err := inst.getFfxConfigValue("ssh.pub")
 	if err != nil {
 		return nil, err
 	}
-	inst.sshPubKey = string(bytes.Trim(pubkey, "\"\n"))
-	privkey, err := inst.runFfx(30*time.Second, "config", "get", "ssh.priv")
-	if err != nil {
-		return nil, err
-	}
-	inst.sshPrivKey = string(bytes.Trim(privkey, "\"\n"))
+	inst.sshPubKey = pubkey
 
-	// Copy auto-detected product bundle path from in-tree ffx to isolated ffx.
-	cmd := osutil.Command(inst.ffxBinary,
-		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
-		"config", "get", "product.path")
-	cmd.Env = append(cmd.Environ(), "FUCHSIA_ANALYTICS_DISABLED=1")
-	cmd.Dir = inst.fuchsiaDir
-	output, err := osutil.Run(30*time.Second, cmd)
+	privkey, err := inst.getFfxConfigValue("ssh.priv")
 	if err != nil {
 		return nil, err
 	}
-	pbPath := string(bytes.Trim(output, "\"\n"))
+	inst.sshPrivKey = privkey
 
-	if _, err := inst.runFfx(30*time.Second, "config", "set", "product.path", pbPath); err != nil {
+	// Copy auto-detected paths from in-tree ffx to isolated ffx.
+	err = inst.copyFfxConfigValuesToIsolate(
+		"product.path",
+		"sdk.overrides.aemu_internal",
+		"sdk.overrides.uefi_internal_x64")
+	if err != nil {
 		return nil, err
 	}
 
@@ -186,7 +186,7 @@ func (inst *instance) boot() error {
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
 
-	inst.runFfx(5*time.Minute, "emu", "stop", inst.name)
+	inst.runFfx(5*time.Minute, ffxCommandOpts{isolated: true, startDaemon: false}, "emu", "stop", inst.name)
 
 	if err := inst.startFuchsiaVM(); err != nil {
 		return fmt.Errorf("instance %s: could not start Fuchsia VM: %w", inst.name, err)
@@ -207,7 +207,7 @@ func (inst *instance) boot() error {
 }
 
 func (inst *instance) Close() error {
-	inst.runFfx(5*time.Minute, "emu", "stop", inst.name)
+	inst.runFfx(5*time.Minute, ffxCommandOpts{isolated: true, startDaemon: false}, "emu", "stop", inst.name)
 	if inst.fuchsiaLogs != nil {
 		inst.fuchsiaLogs.Process.Kill()
 		inst.fuchsiaLogs.Wait()
@@ -229,8 +229,10 @@ func (inst *instance) Close() error {
 }
 
 func (inst *instance) startFuchsiaVM() error {
-	inst.runFfx(30*time.Second, "config", "get", "product.path")
-	if _, err := inst.runFfx(5*time.Minute, "emu", "start", "--headless",
+	if _, err := inst.runFfx(
+		5*time.Minute,
+		ffxCommandOpts{isolated: true, startDaemon: false},
+		"emu", "start", "--headless",
 		"--name", inst.name, "--net", "user"); err != nil {
 		return err
 	}
@@ -241,7 +243,10 @@ func (inst *instance) startFuchsiaLogs() error {
 	// `ffx log` outputs some buffered logs by default, and logs from early boot
 	// trigger a false positive from the unexpected reboot check. To avoid this,
 	// only request logs from now on.
-	cmd := inst.ffxCommand("--target", inst.name, "log", "--since", "now",
+	cmd := inst.ffxCommand(
+		ffxCommandOpts{isolated: true, startDaemon: false},
+		"--target", inst.name,
+		"log", "--since", "now",
 		"--show-metadata", "--show-full-moniker", "--no-color",
 		"--exclude-tags", "netlink")
 	cmd.Stdout = inst.wpipe
@@ -257,8 +262,11 @@ func (inst *instance) startFuchsiaLogs() error {
 }
 
 func (inst *instance) startSshdAndConnect() error {
+	// Start the ffx daemon as required for `ffx component run`.
+	opts := ffxCommandOpts{isolated: true, startDaemon: true}
 	if _, err := inst.runFfx(
 		5*time.Minute,
+		opts,
 		"--target",
 		inst.name,
 		"component",
@@ -271,8 +279,10 @@ func (inst *instance) startSshdAndConnect() error {
 	if inst.debug {
 		log.Logf(1, "instance %s: started alpine container", inst.name)
 	}
+	opts.startDaemon = false
 	if _, err := inst.runFfx(
 		5*time.Minute,
+		opts,
 		"--target",
 		inst.name,
 		"component",
@@ -287,6 +297,7 @@ func (inst *instance) startSshdAndConnect() error {
 	}
 	if _, err := inst.runFfx(
 		5*time.Minute,
+		opts,
 		"--target",
 		inst.name,
 		"component",
@@ -308,6 +319,7 @@ func (inst *instance) connect() error {
 	}
 	address, err := inst.runFfx(
 		30*time.Second,
+		ffxCommandOpts{isolated: true, startDaemon: false},
 		"--target",
 		inst.name,
 		"target",
@@ -324,7 +336,8 @@ func (inst *instance) connect() error {
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-i", inst.sshPrivKey,
 		"-NT",
-		"-L", fmt.Sprintf("localhost:%d:localhost:7000", inst.port), fmt.Sprintf("ssh://%s", bytes.Trim(address, "\n")),
+		"-L", fmt.Sprintf("localhost:%d:localhost:7000", inst.port),
+		fmt.Sprintf("ssh://%s", bytes.Trim(address, "\n")),
 	)
 	cmd.Stderr = os.Stderr
 	if err = cmd.Start(); err != nil {
@@ -340,24 +353,66 @@ func (inst *instance) connect() error {
 	return nil
 }
 
-func (inst *instance) ffxCommand(args ...string) *exec.Cmd {
+func (inst *instance) ffxCommand(opts ffxCommandOpts, args ...string) *exec.Cmd {
+	config := []string{"-c", "log.enabled=false,ffx.analytics.disabled=true"}
+	if !opts.startDaemon {
+		config = append(config, "-c", "daemon.autostart=false")
+	}
+	args = slices.Concat(config, args)
 	cmd := osutil.Command(inst.ffxBinary, args...)
 	cmd.Dir = inst.fuchsiaDir
-	cmd.Env = append(cmd.Environ(), "FFX_ISOLATE_DIR="+inst.ffxDir, "FUCHSIA_ANALYTICS_DISABLED=1")
+	cmd.Env = append(cmd.Environ(), "FUCHSIA_ANALYTICS_DISABLED=1")
+	if opts.isolated {
+		cmd.Env = append(cmd.Env, "FFX_ISOLATE_DIR="+inst.ffxDir)
+	}
 	return cmd
 }
 
-func (inst *instance) runFfx(timeout time.Duration, args ...string) ([]byte, error) {
+func (inst *instance) runFfx(timeout time.Duration, opts ffxCommandOpts, args ...string) ([]byte, error) {
 	if inst.debug {
-		log.Logf(1, "instance %s: running ffx: %q", inst.name, args)
+		isolation := "without"
+		if opts.isolated {
+			isolation = "with"
+		}
+		log.Logf(1, "instance %s: running ffx %s isolation: %q", inst.name, isolation, args)
 	}
-	cmd := inst.ffxCommand(args...)
+	cmd := inst.ffxCommand(opts, args...)
 	cmd.Stderr = os.Stderr
 	output, err := osutil.Run(timeout, cmd)
 	if inst.debug {
 		log.Logf(1, "instance %s: %s", inst.name, output)
 	}
 	return output, err
+}
+
+// Gets a value from ffx's default configuration.
+func (inst *instance) getFfxConfigValue(key string) (string, error) {
+	rawValue, err := inst.runFfx(
+		30*time.Second,
+		ffxCommandOpts{isolated: false, startDaemon: false},
+		"config", "get", key)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.Trim(rawValue, "\"\n")), nil
+}
+
+// Copies values from ffx's default configuration into the ffx isolate's configuration.
+func (inst *instance) copyFfxConfigValuesToIsolate(keys ...string) error {
+	for _, key := range keys {
+		value, err := inst.getFfxConfigValue(key)
+		if err != nil {
+			return err
+		}
+		_, err = inst.runFfx(
+			30*time.Second,
+			ffxCommandOpts{isolated: true, startDaemon: false},
+			"config", "set", key, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Runs a command inside the fuchsia directory.
