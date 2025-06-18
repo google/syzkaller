@@ -46,25 +46,26 @@ type Pool struct {
 }
 
 type instance struct {
-	fuchsiaDir  string
-	ffxBinary   string
-	ffxDir      string
-	name        string
-	index       int
-	cfg         *Config
-	version     string
-	debug       bool
-	workdir     string
-	port        int
-	forwardPort int
-	rpipe       io.ReadCloser
-	wpipe       io.WriteCloser
-	fuchsiaLogs *exec.Cmd
-	sshBridge   *exec.Cmd
-	sshPubKey   string
-	sshPrivKey  string
-	merger      *vmimpl.OutputMerger
-	timeouts    targets.Timeouts
+	fuchsiaDir   string
+	ffxBinary    string
+	ffxLogBinary string
+	ffxDir       string
+	name         string
+	index        int
+	cfg          *Config
+	version      string
+	debug        bool
+	workdir      string
+	port         int
+	forwardPort  int
+	rpipe        io.ReadCloser
+	wpipe        io.WriteCloser
+	fuchsiaLogs  *exec.Cmd
+	sshBridge    *exec.Cmd
+	sshPubKey    string
+	sshPrivKey   string
+	merger       *vmimpl.OutputMerger
+	timeouts     targets.Timeouts
 }
 
 type ffxCommandOpts struct {
@@ -124,6 +125,10 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	var err error
 	inst.ffxBinary, err = GetToolPath(inst.fuchsiaDir, "ffx")
+	if err != nil {
+		return nil, err
+	}
+	inst.ffxLogBinary, err = GetToolPath(inst.fuchsiaDir, "ffx-log")
 	if err != nil {
 		return nil, err
 	}
@@ -245,14 +250,20 @@ func (inst *instance) startFuchsiaLogs() error {
 	// only request logs from now on.
 	cmd := inst.ffxCommand(
 		ffxCommandOpts{isolated: true, startDaemon: false},
-		"--target", inst.name,
-		"log", "--since", "now",
+		inst.ffxLogBinary,
+		"--target", inst.name, "log", "--since", "now",
 		"--show-metadata", "--show-full-moniker", "--no-color",
 		"--exclude-tags", "netlink")
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
 	inst.merger.Add("fuchsia", inst.rpipe)
+	if inst.debug {
+		log.Logf(1, "instance %s: starting ffx log", inst.name)
+	}
 	if err := cmd.Start(); err != nil {
+		if inst.debug {
+			log.Logf(0, "instance %s: failed to start ffx log", inst.name)
+		}
 		return err
 	}
 	inst.fuchsiaLogs = cmd
@@ -279,7 +290,7 @@ func (inst *instance) startSshdAndConnect() error {
 	if inst.debug {
 		log.Logf(1, "instance %s: started alpine container", inst.name)
 	}
-	opts.startDaemon = false
+	opts = ffxCommandOpts{isolated: true, startDaemon: false}
 	if _, err := inst.runFfx(
 		5*time.Minute,
 		opts,
@@ -353,13 +364,13 @@ func (inst *instance) connect() error {
 	return nil
 }
 
-func (inst *instance) ffxCommand(opts ffxCommandOpts, args ...string) *exec.Cmd {
+func (inst *instance) ffxCommand(opts ffxCommandOpts, binary string, args ...string) *exec.Cmd {
 	config := []string{"-c", "log.enabled=false,ffx.analytics.disabled=true"}
 	if !opts.startDaemon {
 		config = append(config, "-c", "daemon.autostart=false")
 	}
 	args = slices.Concat(config, args)
-	cmd := osutil.Command(inst.ffxBinary, args...)
+	cmd := osutil.Command(binary, args...)
 	cmd.Dir = inst.fuchsiaDir
 	cmd.Env = append(cmd.Environ(), "FUCHSIA_ANALYTICS_DISABLED=1")
 	if opts.isolated {
@@ -376,7 +387,7 @@ func (inst *instance) runFfx(timeout time.Duration, opts ffxCommandOpts, args ..
 		}
 		log.Logf(1, "instance %s: running ffx %s isolation: %q", inst.name, isolation, args)
 	}
-	cmd := inst.ffxCommand(opts, args...)
+	cmd := inst.ffxCommand(opts, inst.ffxBinary, args...)
 	cmd.Stderr = os.Stderr
 	output, err := osutil.Run(timeout, cmd)
 	if inst.debug {
