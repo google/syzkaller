@@ -15,7 +15,7 @@ spec:
       labels:
         app: email-reporter
     spec:
-      serviceAccountName: gke-service-ksa
+      serviceAccountName: gke-email-reporter-ksa
       containers:
       - name: email-reporter
         image: ${IMAGE_PREFIX}email-reporter:${IMAGE_TAG}
