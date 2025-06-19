@@ -1,0 +1,84 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/blkdev.h>
+include <scsi/scsi.h>
+include <scsi/scsi_ioctl.h>
+include <scsi/sg.h>
+include <linux/bsg.h>
+
+resource fd_bsg[fd_sg]
+
+openat$bsg(fd const[AT_FDCWD], file ptr[in, string[bsg_devices]], flags flags[open_flags], mode const[0]) fd_bsg
+
+# bsg shares some ioctl calls with main sg driver in sys/linux/dev_sg.txt.
+# Describe them here separately for the sake of clarity and visibility.
+ioctl$BSG_GET_COMMAND_Q(fd fd_bsg, cmd const[SG_GET_COMMAND_Q], arg ptr[out, int32])
+ioctl$BSG_SET_COMMAND_Q(fd fd_bsg, cmd const[SG_SET_COMMAND_Q], arg ptr[in, bool32])
+
+ioctl$BSG_GET_VERSION_NUM(fd fd_bsg, cmd const[SG_GET_VERSION_NUM], arg ptr[out, int32])
+ioctl$BSG_SET_TIMEOUT(fd fd_bsg, cmd const[SG_SET_TIMEOUT], arg ptr[in, int64])
+ioctl$BSG_GET_TIMEOUT(fd fd_bsg, cmd const[SG_GET_TIMEOUT], arg const[0])
+ioctl$BSG_GET_RESERVED_SIZE(fd fd_bsg, cmd const[SG_GET_RESERVED_SIZE], arg ptr[out, int32])
+ioctl$BSG_SET_RESERVED_SIZE(fd fd_bsg, cmd const[SG_SET_RESERVED_SIZE], arg ptr[in, int32])
+ioctl$BSG_EMULATED_HOST(fd fd_bsg, cmd const[SG_EMULATED_HOST], arg ptr[out, int32])
+
+ioctl$BSG_IO(fd fd_bsg, cmd const[SG_IO], arg ptr[inout, sg_io_v4])
+
+# TODO: Double-check and narrow down some of the missing constraints
+# on expected values in this struct to make fuzzing more effective.
+# For instance, such fields as:
+# req_tag, req_prio, d[in,out]_iovec_count, d[in,out]_xferp, flags, usr_ptr
+sg_io_v4 {
+	guard			flags[bsg_guard, int32]
+	prot			const[BSG_PROTOCOL_SCSI, int32]
+	subprot			int32[bsg_sub_protocols]
+
+	req_len			len[req, int32]
+	req			ptr[in, array[int8, 1:SCSI_CDB_SIZE]]
+	req_tag			int64
+	req_attr		const[0, int32]
+	req_prio		int32
+	req_extra		int32
+	max_resp_len		bytesize[resp, int32]
+	resp			ptr[out, array[int8, SCSI_SENSE_BUFFERSIZE]]
+
+# TODO: Figure out the logic behind scatter lists pointed to by din_xferp (and dout_xferp)
+# and how to account for it in syz-lang. For now, keep it simple with 0.
+	dout_iovec_count	const[0, int32]
+	dout_xfer_len		len[dout_xferp, int32]
+	din_iovec_count		const[0, int32]
+	din_xfer_len		len[din_xferp, int32]
+	dout_xferp		ptr[in, array[int8, 0:BSG_XFER_SIZE]]
+	din_xferp		ptr[out, array[int8, 0:BSG_XFER_SIZE]]
+
+	timeout			int32
+	flags			flags[bsg_flags, int32]
+	usr_ptr			ptr[inout, array[int8]]
+	spare_in		int32
+
+	drv_status		const[0, int32]
+	trans_status		const[0, int32]
+	dev_status		const[0, int32]
+	retry_delay		const[0, int32]
+	info			const[0, int32]
+	dur			const[0, int32]
+	resp_len		const[0, int32]
+	din_resid		const[0, int32]
+	dout_resid		const[0, int32]
+	gen_tag			const[0, int64]
+	spare_out		const[0, int32]
+
+	pad			const[0, int32]
+}
+
+# TODO: Format for bsg devices' names: "/dev/bsg/a:b:c:d". Figure out if a more sensible option exists
+# apart from hardcoding it (like below).
+bsg_devices = "/dev/bsg/0:0:0:0", "/dev/bsg/1:0:0:0", "/dev/bsg/2:0:0:0", "/dev/bsg/3:0:0:0"
+bsg_sub_protocols = BSG_SUB_PROTOCOL_SCSI_CMD, BSG_SUB_PROTOCOL_SCSI_TMF, BSG_SUB_PROTOCOL_SCSI_TRANSPORT
+bsg_flags = BSG_FLAG_Q_AT_TAIL, BSG_FLAG_Q_AT_HEAD
+bsg_guard = 0, 'Q'
+
+define SCSI_SENSE_BUFFERSIZE	96
+define SCSI_CDB_SIZE	32
+define BSG_XFER_SIZE	128
