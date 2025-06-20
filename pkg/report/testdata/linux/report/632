@@ -1,5 +1,6 @@
 TITLE: KMSAN: uninit-value in __perf_event_task_sched_in
 ALT: bad-access in __perf_event_task_sched_in
+TYPE: KMSAN
 CORRUPTED: Y
 
 [ 1307.507727][    T0] =====================================================
