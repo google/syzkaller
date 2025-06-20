@@ -258,6 +258,20 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) e
 		return h.streamBlob(w, finding.ReportURI)
 	case "log":
 		return h.streamBlob(w, finding.LogURI)
+	case "syz_repro":
+		opts, err := blob.ReadAllBytes(h.blobStorage, finding.SyzReproOptsURI)
+		if err != nil {
+			return err
+		}
+		repro, err := blob.ReadAllBytes(h.blobStorage, finding.SyzReproURI)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "# %s\n", opts)
+		_, err = w.Write(repro)
+		return err
+	case "c_repro":
+		return h.streamBlob(w, finding.CReproURI)
 	default:
 		return fmt.Errorf("%w: unknown key value", errBadRequest)
 	}
