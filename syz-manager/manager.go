@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
@@ -864,14 +863,9 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 
 	var cprogText []byte
 	if repro.CRepro {
-		cprog, err := csource.Write(repro.Prog, repro.Opts)
-		if err == nil {
-			formatted, err := csource.Format(cprog)
-			if err == nil {
-				cprog = formatted
-			}
-			cprogText = cprog
-		} else {
+		var err error
+		cprogText, err = repro.CProgram()
+		if err != nil {
 			log.Logf(0, "failed to write C source: %v", err)
 		}
 	}

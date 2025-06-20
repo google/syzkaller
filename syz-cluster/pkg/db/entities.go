@@ -121,12 +121,15 @@ type SessionTest struct {
 }
 
 type Finding struct {
-	ID        string `spanner:"ID"`
-	SessionID string `spanner:"SessionID"`
-	TestName  string `spanner:"TestName"`
-	Title     string `spanner:"Title"`
-	ReportURI string `spanner:"ReportURI"`
-	LogURI    string `spanner:"LogURI"`
+	ID              string `spanner:"ID"`
+	SessionID       string `spanner:"SessionID"`
+	TestName        string `spanner:"TestName"`
+	Title           string `spanner:"Title"`
+	ReportURI       string `spanner:"ReportURI"`
+	LogURI          string `spanner:"LogURI"`
+	SyzReproURI     string `spanner:"SyzReproURI"`
+	SyzReproOptsURI string `spanner:"SyzReproOptsURI"`
+	CReproURI       string `spanner:"CReproURI"`
 }
 
 type SessionReport struct {

@@ -35,19 +35,30 @@ func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 		Title:     req.Title,
 	}
 	var err error
-	if len(req.Log) > 0 {
-		finding.LogURI, err = s.blobStorage.Write(bytes.NewReader(req.Log), "Finding", finding.ID, "log")
+
+	type saveAsset struct {
+		saveTo *string
+		value  []byte
+		name   string
+	}
+
+	for _, asset := range []saveAsset{
+		{&finding.LogURI, req.Log, "log"},
+		{&finding.ReportURI, req.Report, "report"},
+		{&finding.SyzReproURI, req.SyzRepro, "syz_repro"},
+		{&finding.SyzReproOptsURI, req.SyzReproOpts, "syz_repro_opts"},
+		{&finding.CReproURI, req.CRepro, "c_repro"},
+	} {
+		if len(asset.value) == 0 {
+			continue
+		}
+		*asset.saveTo, err = s.blobStorage.Write(bytes.NewReader(asset.value), "Finding", finding.ID, asset.name)
 		if err != nil {
-			return fmt.Errorf("failed to save the log: %w", err)
+			return fmt.Errorf("failed to save %s: %w", asset.name, err)
 		}
 	}
-	if len(req.Report) > 0 {
-		finding.ReportURI, err = s.blobStorage.Write(bytes.NewReader(req.Report), "Finding", finding.ID, "report")
-		if err != nil {
-			return fmt.Errorf("failed to save the report: %w", err)
-		}
-	}
-	// TODO: if it's not actually addded, the blob records will be orphaned.
+
+	// TODO: if it's not actually addded, the blobs above will be orphaned.
 	err = s.findingRepo.Save(ctx, finding)
 	if err == db.ErrFindingExists {
 		// It's ok, just ignore.

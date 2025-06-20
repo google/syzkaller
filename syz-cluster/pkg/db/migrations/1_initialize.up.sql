@@ -90,8 +90,11 @@ CREATE TABLE Findings (
     SessionID STRING(36) NOT NULL,
     TestName STRING(256) NOT NULL,
     Title STRING(256) NOT NULL,
-    ReportURI STRING(256) NOT NULL,
     LogURI STRING(256) NOT NULL,
+    ReportURI STRING(256) NOT NULL,
+    SyzReproURI STRING(256) NOT NULL,
+    SyzReproOptsURI STRING(256) NOT NULL,
+    CReproURI STRING(256) NOT NULL,
     CONSTRAINT FK_SessionCrashes FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
     CONSTRAINT FK_TestCrashes FOREIGN KEY (SessionID, TestName) REFERENCES SessionTests (SessionID, TestName),
 ) PRIMARY KEY (ID);

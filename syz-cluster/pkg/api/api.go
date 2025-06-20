@@ -82,11 +82,14 @@ type BootResult struct {
 
 // NewFinding is a kernel crash, boot error, etc. found during a test.
 type NewFinding struct {
-	SessionID string `json:"session_id"`
-	TestName  string `json:"test_name"`
-	Title     string `json:"title"`
-	Report    []byte `json:"report"`
-	Log       []byte `json:"log"`
+	SessionID    string `json:"session_id"`
+	TestName     string `json:"test_name"`
+	Title        string `json:"title"`
+	Report       []byte `json:"report"`
+	Log          []byte `json:"log"`
+	SyzRepro     []byte `json:"syz_repro"`
+	SyzReproOpts []byte `json:"syz_repro_opts"`
+	CRepro       []byte `json:"c_repro"`
 }
 
 type Series struct {

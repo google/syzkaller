@@ -259,7 +259,19 @@ func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueB
 		Title:     bug.Report.Title,
 		Report:    bug.Report.Report,
 		Log:       bug.Report.Output,
-		// TODO: include the reproducer.
+	}
+	if repro := bug.Repro; repro != nil {
+		if repro.Prog != nil {
+			finding.SyzRepro = repro.Prog.Serialize()
+			finding.SyzReproOpts = repro.Opts.Serialize()
+		}
+		if repro.CRepro {
+			var err error
+			finding.CRepro, err = repro.CProgram()
+			if err != nil {
+				app.Errorf("failed to generate C program: %v", err)
+			}
+		}
 	}
 	return client.UploadFinding(ctx, finding)
 }

@@ -154,7 +154,11 @@
                             {{.Title}}
                           {{end}}
                         </td>
-                        <td><a href="/findings/{{.ID}}/log" class="modal-link-raw">[Log]</a></td>
+                        <td>
+                          {{if .LogURI}}<a href="/findings/{{.ID}}/log" class="modal-link-raw">[Log]</a>{{end}}
+                          {{if .SyzReproURI}}<a href="/findings/{{.ID}}/syz_repro" class="modal-link-raw">[Syz Repro]</a>{{end}}
+                          {{if .CReproURI}}<a href="/findings/{{.ID}}/c_repro" class="modal-link-raw">[C Repro]</a>{{end}}
+                        </td>
                       </tr>
                       {{end}}
                       </tbody>
