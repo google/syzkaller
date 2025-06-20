@@ -1,0 +1,80 @@
+TITLE: attempt to add with overflow in <ashmem_rust::Ashmem as kernel::miscdevice::MiscDevice>::mmap
+FRAME: <ashmem_rust::Ashmem as kernel::miscdevice::MiscDevice>::mmap
+EXECUTOR: proc=0, id=595
+
+[   60.002464][ T2148] rust_kernel: panicked at /syzkaller/managers/ci2-android-6-12-rust/kernel/rust/kernel/page_size_compat.rs:60:5:
+[   60.002464][ T2148] attempt to add with overflow
+[   60.029392][ T2148] ------------[ cut here ]------------
+[   60.034979][ T2148] kernel BUG at rust/helpers/bug.c:7!
+[   60.041623][   T36] kauditd_printk_skb: 2 callbacks suppressed
+[   60.041639][   T36] audit: type=1400 audit(1750384805.360:363): avc:  denied  { read } for  pid=91 comm="syslogd" name="log" dev="sda1" ino=2010 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:var_t tclass=lnk_file permissive=1
+[   60.041680][ T2148] Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
+[   60.048360][   T36] audit: type=1400 audit(1750384805.360:364): avc:  denied  { search } for  pid=91 comm="syslogd" name="/" dev="tmpfs" ino=1 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=dir permissive=1
+[   60.069491][ T2148] CPU: 0 UID: 0 PID: 2148 Comm: syz.0.595 Not tainted 6.12.23-syzkaller-gf9fbc66f8444 #0 b8de21ba31122219d6c6778e419c74a11adc861d
+[   60.069531][ T2148] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[   60.069552][ T2148] RIP: 0010:rust_helper_BUG+0x8/0x10
+[   60.069595][ T2148] Code: cc cc cc cc cc 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 b8 d9 79 6d ea 90 90 90 90 90 90 90 90 90 90 90 f3 0f 1e fa 55 48 89 e5 <0f> 0b 66 0f 1f 44 00 00 b8 93 bd 24 66 90 90 90 90 90 90 90 90 90
+[   60.077143][   T36] audit: type=1400 audit(1750384805.360:365): avc:  denied  { write } for  pid=91 comm="syslogd" name="/" dev="tmpfs" ino=1 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=dir permissive=1
+[   60.097801][ T2148] RSP: 0018:ffffc900015e73f0 EFLAGS: 00010246
+[   60.097837][ T2148] RAX: 000000000000008c RBX: 1ffff920002bce80 RCX: e973f9fc28168300
+[   60.097855][ T2148] RDX: ffffc90001661000 RSI: 0000000000005f5d RDI: 0000000000005f5e
+[   60.097870][ T2148] RBP: ffffc900015e73f0 R08: ffffc900015e70e7 R09: 1ffff920002bce1c
+[   60.097888][ T2148] R10: dffffc0000000000 R11: fffff520002bce1d R12: 0000000000000000
+[   60.111870][   T36] audit: type=1400 audit(1750384805.360:366): avc:  denied  { add_name } for  pid=91 comm="syslogd" name="messages" scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=dir permissive=1
+[   60.121307][ T2148] R13: dffffc0000000000 R14: ffffc900015e7420 R15: ffffc900015e7450
+[   60.121329][ T2148] FS:  00007f82e516e6c0(0000) GS:ffff8881f6e00000(0000) knlGS:0000000000000000
+[   60.121349][ T2148] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   60.121364][ T2148] CR2: 000000110c337c75 CR3: 000000010d67c000 CR4: 00000000003526b0
+[   60.121385][ T2148] DR0: 0000000000000002 DR1: 000000000000009b DR2: 00040000ffffffff
+[   60.121401][ T2148] DR3: 0000000000000009 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   60.127349][   T36] audit: type=1400 audit(1750384805.360:367): avc:  denied  { create } for  pid=91 comm="syslogd" name="messages" scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=file permissive=1
+[   60.146289][ T2148] Call Trace:
+[   60.146302][ T2148]  <TASK>
+[   60.146312][ T2148]  _RNvCscSpY9Juk0HT_7___rustc17rust_begin_unwind+0x15b/0x160
+[   60.146351][ T2148]  ? __cfi__RNvCscSpY9Juk0HT_7___rustc17rust_begin_unwind+0x10/0x10
+[   60.168091][   T36] audit: type=1400 audit(1750384805.360:368): avc:  denied  { append open } for  pid=91 comm="syslogd" path="/tmp/messages" dev="tmpfs" ino=5 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=file permissive=1
+[   60.173592][ T2148]  ? kernel_text_address+0xa9/0xe0
+[   60.173624][ T2148]  ? __cfi__RNvXs1b_NtCs9jEwPDbx20M_4core3fmtRNtNtNtB8_5panic10panic_info9PanicInfoNtB6_7Display3fmtCs43vyB533jt3_6kernel+0x10/0x10
+[   60.182184][   T36] audit: type=1400 audit(1750384805.360:369): avc:  denied  { getattr } for  pid=91 comm="syslogd" path="/tmp/messages" dev="tmpfs" ino=5 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=file permissive=1
+[   60.189718][ T2148]  ? __cfi_stack_trace_consume_entry+0x10/0x10
+[   60.189754][ T2148]  ? arch_stack_walk+0x10b/0x170
+[   60.189785][ T2148]  _RNvNtCs9jEwPDbx20M_4core9panicking9panic_fmt+0x84/0x90
+[   60.189819][ T2148]  ? __cfi__RNvNtCs9jEwPDbx20M_4core9panicking9panic_fmt+0x10/0x10
+[   60.405990][ T2148]  _RNvNtNtCs9jEwPDbx20M_4core9panicking11panic_const24panic_const_add_overflow+0xb2/0xc0
+[   60.415948][ T2148]  ? __cfi__RNvNtNtCs9jEwPDbx20M_4core9panicking11panic_const24panic_const_add_overflow+0x10/0x10
+[   60.426733][ T2148]  _RNvXs1_CscPPBqWtAqum_11ashmem_rustNtB5_6AshmemNtNtCs43vyB533jt3_6kernel10miscdevice10MiscDevice4mmap+0xe44/0xfb0
+[   60.438994][ T2148]  ? mas_wr_store_type+0x8eb/0x1ad0
+[   60.444300][ T2148]  ? __cfi__RNvXs1_CscPPBqWtAqum_11ashmem_rustNtB5_6AshmemNtNtCs43vyB533jt3_6kernel10miscdevice10MiscDevice4mmap+0x10/0x10
+[   60.457082][ T2148]  ? mas_preallocate+0x56e/0xc60
+[   60.462035][ T2148]  ? __cfi_mas_preallocate+0x10/0x10
+[   60.467334][ T2148]  ? kasan_save_alloc_info+0x40/0x50
+[   60.472648][ T2148]  ? __asan_memset+0x39/0x50
+[   60.477260][ T2148]  mmap_region+0x1371/0x1bd0
+[   60.481872][ T2148]  ? __cfi_mmap_region+0x10/0x10
+[   60.486860][ T2148]  ? __kasan_check_read+0x15/0x20
+[   60.491904][ T2148]  ? arch_get_unmapped_area_topdown+0x232/0x8d0
+[   60.498168][ T2148]  ? file_mmap_ok+0x147/0x1a0
+[   60.502857][ T2148]  do_mmap+0xb6d/0x13c0
+[   60.507028][ T2148]  ? __cfi_do_mmap+0x10/0x10
+[   60.511752][ T2148]  ? down_write_killable+0xe9/0x2d0
+[   60.516990][ T2148]  ? __cfi_down_write_killable+0x10/0x10
+[   60.522695][ T2148]  vm_mmap_pgoff+0x38f/0x4e0
+[   60.527327][ T2148]  ? __cfi_vm_mmap_pgoff+0x10/0x10
+[   60.532469][ T2148]  ? __fget_files+0x2c5/0x340
+[   60.537165][ T2148]  ksys_mmap_pgoff+0x166/0x1e0
+[   60.541961][ T2148]  __x64_sys_mmap+0x121/0x140
+[   60.546657][ T2148]  x64_sys_call+0x13bf/0x2ee0
+[   60.551348][ T2148]  do_syscall_64+0x58/0xf0
+[   60.555781][ T2148]  ? clear_bhb_loop+0x35/0x90
+[   60.560477][ T2148]  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+[   60.566393][ T2148] RIP: 0033:0x7f82e438e929
+[   60.570832][ T2148] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[   60.590446][ T2148] RSP: 002b:00007f82e516e038 EFLAGS: 00000246 ORIG_RAX: 0000000000000009
+[   60.598901][ T2148] RAX: ffffffffffffffda RBX: 00007f82e45b5fa0 RCX: 00007f82e438e929
+[   60.606881][ T2148] RDX: 0000000000000000 RSI: 000000000000f000 RDI: 0000200000fee000
+[   60.614862][ T2148] RBP: 00007f82e4410b39 R08: 0000000000000004 R09: 0000000000000000
+[   60.622863][ T2148] R10: 0000000000000011 R11: 0000000000000246 R12: 0000000000000000
+[   60.630847][ T2148] R13: 0000000000000000 R14: 00007f82e45b5fa0 R15: 00007ffc43ea3e48
+[   60.638855][ T2148]  </TASK>
+[   60.641877][ T2148] Modules linked in:
+[   60.646676][ T2148] ---[ end trace 0000000000000000 ]---

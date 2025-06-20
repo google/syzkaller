@@ -721,8 +721,12 @@ func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []
 		return frames
 	}
 	for _, frame := range match[1:] {
-		if frame != nil && (skipRe == nil || !skipRe.Match(frame)) {
-			frames = append(frames, demangle.Filter(string(frame), demangle.NoParams))
+		if frame == nil {
+			continue
+		}
+		frame := demangle.Filter(string(frame), demangle.NoParams)
+		if skipRe == nil || !skipRe.MatchString(frame) {
+			frames = append(frames, frame)
 		}
 	}
 	return frames
@@ -873,7 +877,7 @@ func Truncate(log []byte, begin, end int) []byte {
 
 var (
 	filenameRe    = regexp.MustCompile(`([a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h)):[0-9]+`)
-	reportFrameRe = regexp.MustCompile(`.* in ([a-zA-Z0-9_]+)`)
+	reportFrameRe = regexp.MustCompile(`.* in ((?:<[a-zA-Z0-9_: ]+>)?[a-zA-Z0-9_:]+)`)
 	// Matches a slash followed by at least one directory nesting before .c/.h file.
 	deeperPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_\-\./]+/[a-zA-Z0-9_\-]+\.(c|h)$`)
 )

@@ -1,0 +1,142 @@
+TITLE: attempt to subtract with overflow in <rust_binder::process::Process>::update_ref
+FRAME: <rust_binder::process::Process>::update_ref
+
+[   23.717039][  T298] rust_kernel: panicked at drivers/android/binder/node.rs:877:13:
+[   23.717039][  T298] attempt to subtract with overflow
+[   23.732166][   T36] audit: type=1400 audit(1750305980.320:67): avc:  denied  { mount } for  pid=297 comm="syz-executor821" name="/" dev="tmpfs" ino=1 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:tmpfs_t tclass=filesystem permissive=1
+[   23.745283][  T298] ------------[ cut here ]------------
+[   23.766295][   T36] audit: type=1400 audit(1750305980.320:68): avc:  denied  { mounton } for  pid=297 comm="syz-executor821" path="/root/syz-tmp/newroot/dev" dev="tmpfs" ino=3 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:user_tmpfs_t tclass=dir permissive=1
+[   23.771620][  T298] kernel BUG at rust/helpers/bug.c:7!
+[   23.772028][  T298] Oops: invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
+[   23.795556][   T36] audit: type=1400 audit(1750305980.320:69): avc:  denied  { mount } for  pid=297 comm="syz-executor821" name="/" dev="proc" ino=1 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:proc_t tclass=filesystem permissive=1
+[   23.800761][  T298] CPU: 0 UID: 0 PID: 298 Comm: syz-executor821 Not tainted 6.12.23-syzkaller-g30b14cdad458 #0 c708c6bafa1314b3e84c64b9f03b67766970ebbd
+[   23.808042][   T36] audit: type=1400 audit(1750305980.320:70): avc:  denied  { mounton } for  pid=297 comm="syz-executor821" path="/root/syz-tmp/newroot/sys/kernel/debug" dev="debugfs" ino=1 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:debugfs_t tclass=dir permissive=1
+[   23.829966][  T298] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/07/2025
+[   23.829979][  T298] RIP: 0010:rust_helper_BUG+0x8/0x10
+[   23.843932][   T36] audit: type=1400 audit(1750305980.330:71): avc:  denied  { mounton } for  pid=297 comm="syz-executor821" path="/root/syz-tmp/newroot/proc/sys/fs/binfmt_misc" dev="proc" ino=725 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:sysctl_fs_t tclass=dir permissive=1
+[   23.868928][  T298] Code: cc cc cc cc cc 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 b8 8d 71 4c 30 90 90 90 90 90 90 90 90 90 90 90 f3 0f 1e fa 55 48 89 e5 <0f> 0b 66 0f 1f 44 00 00 b8 c7 b5 05 bc 90 90 90 90 90 90 90 90 90
+[   23.868946][  T298] RSP: 0018:ffffc9000124dab0 EFLAGS: 00010246
+[   23.868964][  T298] RAX: 0000000000000061 RBX: 1ffff92000249b58 RCX: 59dc727b65a9b400
+[   23.868977][  T298] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000002
+[   23.868989][  T298] RBP: ffffc9000124dab0 R08: 0000000000000003 R09: 0000000000000004
+[   23.879480][   T36] audit: type=1400 audit(1750305980.330:72): avc:  denied  { unmount } for  pid=297 comm="syz-executor821" scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:fs_t tclass=filesystem permissive=1
+[   23.884388][  T298] R10: dffffc0000000000 R11: fffff52000249abc R12: 0000000000000000
+[   23.884404][  T298] R13: dffffc0000000000 R14: ffffc9000124dae0 R15: ffffc9000124db10
+[   23.884419][  T298] FS:  00005555659f6380(0000) GS:ffff8881f6e00000(0000) knlGS:0000000000000000
+[   23.910543][   T36] audit: type=1400 audit(1750305980.330:73): avc:  denied  { mounton } for  pid=297 comm="syz-executor821" path="/dev/gadgetfs" dev="devtmpfs" ino=434 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:device_t tclass=dir permissive=1
+[   23.929851][  T298] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   23.929868][  T298] CR2: 00007f76714410d0 CR3: 000000012e67a000 CR4: 00000000003526b0
+[   23.929887][  T298] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   24.049614][  T298] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   24.057562][  T298] Call Trace:
+[   24.060834][  T298]  <TASK>
+[   24.063751][  T298]  _RNvCscSpY9Juk0HT_7___rustc17rust_begin_unwind+0x15b/0x160
+[   24.071185][  T298]  ? __cfi__RNvCscSpY9Juk0HT_7___rustc17rust_begin_unwind+0x10/0x10
+[   24.079157][  T298]  ? _RNvMs0_NtCshgDM7dBCdno_11rust_binder4nodeNtB5_4Node22update_refcount_locked+0x401/0x810
+[   24.089370][  T298]  ? __cfi__RNvXs1b_NtCs9jEwPDbx20M_4core3fmtRNtNtNtB8_5panic10panic_info9PanicInfoNtB6_7Display3fmtCs43vyB533jt3_6kernel+0x10/0x10
+[   24.102882][  T298]  ? __cfi__RNvMs0_NtCshgDM7dBCdno_11rust_binder4nodeNtB5_4Node22update_refcount_locked+0x10/0x10
+[   24.113451][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.118534][  T298]  ? _raw_spin_lock+0x8c/0x120
+[   24.123282][  T298]  ? __cfi__raw_spin_lock+0x10/0x10
+[   24.128451][  T298]  _RNvNtCs9jEwPDbx20M_4core9panicking9panic_fmt+0x84/0x90
+[   24.135623][  T298]  ? __cfi__RNvNtCs9jEwPDbx20M_4core9panicking9panic_fmt+0x10/0x10
+[   24.143499][  T298]  _RNvNtNtCs9jEwPDbx20M_4core9panicking11panic_const24panic_const_sub_overflow+0xb2/0xc0
+[   24.153392][  T298]  ? __cfi__RNvNtNtCs9jEwPDbx20M_4core9panicking11panic_const24panic_const_sub_overflow+0x10/0x10
+[   24.163987][  T298]  _RNvMs3_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process10update_ref+0x17e5/0x1860
+[   24.173695][  T298]  ? __cfi__RNvMs3_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process10update_ref+0x10/0x10
+[   24.183734][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.188838][  T298]  ? _raw_spin_lock+0x8c/0x120
+[   24.193675][  T298]  ? __cfi__raw_spin_lock+0x10/0x10
+[   24.198846][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.204041][  T298]  _RNvMs2_NtCshgDM7dBCdno_11rust_binder6threadNtB5_6Thread10write_read+0x27cf/0x96a0
+[   24.213690][  T298]  ? __cfi__RNvMs2_NtCshgDM7dBCdno_11rust_binder6threadNtB5_6Thread10write_read+0x10/0x10
+[   24.223590][  T298]  ? is_bpf_text_address+0x17b/0x1a0
+[   24.228884][  T298]  ? is_bpf_text_address+0x17b/0x1a0
+[   24.234184][  T298]  ? kernel_text_address+0xa9/0xe0
+[   24.239297][  T298]  ? __kernel_text_address+0x11/0x40
+[   24.244557][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.249666][  T298]  ? _raw_spin_lock_irqsave+0xaf/0x150
+[   24.255105][  T298]  ? is_bpf_text_address+0x17b/0x1a0
+[   24.260363][  T298]  ? kernel_text_address+0xa9/0xe0
+[   24.265461][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.270568][  T298]  ? _raw_spin_lock_irqsave+0xaf/0x150
+[   24.276031][  T298]  ? __cfi__raw_spin_lock_irqsave+0x10/0x10
+[   24.281898][  T298]  ? _raw_spin_unlock_irqrestore+0x4a/0x70
+[   24.287769][  T298]  ? stack_depot_save_flags+0x399/0x800
+[   24.293291][  T298]  ? kasan_save_alloc_info+0x40/0x50
+[   24.298575][  T298]  ? kasan_save_track+0x4f/0x80
+[   24.303418][  T298]  ? kasan_save_track+0x3e/0x80
+[   24.308262][  T298]  ? kasan_save_alloc_info+0x40/0x50
+[   24.313556][  T298]  ? __kasan_kmalloc+0x96/0xb0
+[   24.318307][  T298]  ? __kmalloc_node_track_caller_noprof+0x1ad/0x440
+[   24.324891][  T298]  ? krealloc_noprof+0x8d/0x130
+[   24.329742][  T298]  ? rust_helper_krealloc+0x33/0xd0
+[   24.334918][  T298]  ? _RNvMNtNtCs43vyB533jt3_6kernel5alloc9allocatorNtB2_11ReallocFunc4call+0xaf/0x100
+[   24.344448][  T298]  ? _RNvMs3_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process18get_current_thread+0x715/0x1440
+[   24.354944][  T298]  ? _RNvMs5_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process5ioctl+0x1a9/0x2c20
+[   24.364209][  T298]  ? _RNvCshgDM7dBCdno_11rust_binder26rust_binder_unlocked_ioctl+0xa0/0x100
+[   24.373032][  T298]  ? __se_sys_ioctl+0x132/0x1b0
+[   24.377857][  T298]  ? __x64_sys_ioctl+0x7f/0xa0
+[   24.382592][  T298]  ? do_syscall_64+0x58/0xf0
+[   24.387164][  T298]  ? entry_SYSCALL_64_after_hwframe+0x76/0x7e
+[   24.393209][  T298]  ? __kasan_kmalloc+0x96/0xb0
+[   24.398155][  T298]  ? kasan_save_alloc_info+0x40/0x50
+[   24.403457][  T298]  ? __kasan_kmalloc+0x96/0xb0
+[   24.408209][  T298]  ? __kmalloc_node_track_caller_noprof+0x1ad/0x440
+[   24.414780][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.419865][  T298]  ? _raw_spin_lock+0x8c/0x120
+[   24.424606][  T298]  ? __cfi__raw_spin_lock+0x10/0x10
+[   24.429779][  T298]  ? arch_scale_cpu_capacity+0x1c/0xb0
+[   24.435471][  T298]  ? _raw_spin_unlock+0x45/0x60
+[   24.440301][  T298]  ? rust_helper_spin_unlock+0x19/0x30
+[   24.445757][  T298]  ? _RNvMs3_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process18get_current_thread+0x934/0x1440
+[   24.456258][  T298]  ? __cfi___update_load_avg_cfs_rq+0x10/0x10
+[   24.462741][  T298]  ? update_curr+0x60d/0xc60
+[   24.467320][  T298]  ? arch_scale_cpu_capacity+0x1c/0xb0
+[   24.472879][  T298]  ? __cfi__RNvMs3_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process18get_current_thread+0x10/0x10
+[   24.483665][  T298]  ? update_curr_dl_se+0x10c/0xb20
+[   24.488768][  T298]  ? sched_clock_noinstr+0xd/0x30
+[   24.493850][  T298]  ? __cfi___update_load_avg_cfs_rq+0x10/0x10
+[   24.499917][  T298]  ? update_curr+0x60d/0xc60
+[   24.505002][  T298]  ? dequeue_entity+0xa9c/0x1750
+[   24.509935][  T298]  _RNvMs5_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process5ioctl+0x411/0x2c20
+[   24.519118][  T298]  ? avc_has_extended_perms+0x7c7/0xdd0
+[   24.524641][  T298]  ? __asan_memcpy+0x5a/0x80
+[   24.529227][  T298]  ? avc_has_extended_perms+0x921/0xdd0
+[   24.534763][  T298]  ? __cfi__RNvMs5_NtCshgDM7dBCdno_11rust_binder7processNtB5_7Process5ioctl+0x10/0x10
+[   24.544304][  T298]  ? do_vfs_ioctl+0xeda/0x1e30
+[   24.549233][  T298]  ? sched_clock+0x44/0x60
+[   24.553655][  T298]  ? __ia32_compat_sys_ioctl+0x850/0x850
+[   24.559275][  T298]  ? psi_group_change+0xb44/0x1130
+[   24.564382][  T298]  ? ioctl_has_perm+0x384/0x4d0
+[   24.569240][  T298]  ? has_cap_mac_admin+0xd0/0xd0
+[   24.574172][  T298]  ? __schedule+0x1463/0x1f10
+[   24.578946][  T298]  ? selinux_file_ioctl+0x6e0/0x1360
+[   24.585784][  T298]  ? __cfi_selinux_file_ioctl+0x10/0x10
+[   24.591326][  T298]  ? __kasan_check_write+0x18/0x20
+[   24.596432][  T298]  ? _raw_spin_lock_irq+0x8d/0x120
+[   24.601534][  T298]  ? __cfi__raw_spin_lock_irq+0x10/0x10
+[   24.607099][  T298]  ? __asan_memset+0x39/0x50
+[   24.611676][  T298]  ? ptrace_stop+0x6c9/0x8c0
+[   24.616264][  T298]  ? _raw_spin_unlock_irq+0x45/0x70
+[   24.621459][  T298]  ? ptrace_notify+0x1e8/0x270
+[   24.626243][  T298]  _RNvCshgDM7dBCdno_11rust_binder26rust_binder_unlocked_ioctl+0xa0/0x100
+[   24.634819][  T298]  ? __se_sys_ioctl+0x114/0x1b0
+[   24.639657][  T298]  ? __cfi__RNvCshgDM7dBCdno_11rust_binder26rust_binder_unlocked_ioctl+0x10/0x10
+[   24.649179][  T298]  __se_sys_ioctl+0x132/0x1b0
+[   24.653831][  T298]  __x64_sys_ioctl+0x7f/0xa0
+[   24.658405][  T298]  x64_sys_call+0x1878/0x2ee0
+[   24.663145][  T298]  do_syscall_64+0x58/0xf0
+[   24.667537][  T298]  ? clear_bhb_loop+0x35/0x90
+[   24.672647][  T298]  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+[   24.678526][  T298] RIP: 0033:0x7f76713ca249
+[   24.682924][  T298] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 51 18 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   24.702527][  T298] RSP: 002b:00007ffe59fd2328 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[   24.710941][  T298] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f76713ca249
+[   24.718978][  T298] RDX: 0000200000000480 RSI: 00000000c0306201 RDI: 0000000000000004
+[   24.726938][  T298] RBP: 00000000000f4240 R08: 0000000000000000 R09: 00005555659f7610
+[   24.734884][  T298] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f76714181bc
+[   24.742833][  T298] R13: 00007f767141309b R14: 00007ffe59fd2350 R15: 00007ffe59fd2340
+[   24.750779][  T298]  </TASK>
+[   24.753778][  T298] Modules linked in:
+[   24.757801][  T298] ---[ end trace 0000000000000000 ]---
