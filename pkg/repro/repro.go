@@ -989,3 +989,15 @@ func (stats *Stats) FullLog() []byte {
 		stats.ExtractProgTime, stats.MinimizeProgTime,
 		stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log))
 }
+
+func (repro *Result) CProgram() ([]byte, error) {
+	cprog, err := csource.Write(repro.Prog, repro.Opts)
+	if err == nil {
+		formatted, err := csource.Format(cprog)
+		if err == nil {
+			return formatted, nil
+		}
+		return cprog, nil
+	}
+	return nil, err
+}
