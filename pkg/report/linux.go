@@ -2314,6 +2314,27 @@ var linuxOopses = append([]*oops{
 		crash.UnknownType,
 	},
 	{
+		[]byte("rust_kernel: panicked"),
+		[]oopsFormat{
+			{
+				title:  compile("rust_kernel: panicked"),
+				report: compile("rust_kernel: panicked at [^\n]*?\n(.+?)\n"),
+				fmt:    "%[1]v in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+					skip: []string{
+						regexp.QuoteMeta(`__rustc::rust_begin_unwind`),
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+		crash.UnknownType,
+	},
+	{
 		[]byte("kernel BUG"),
 		[]oopsFormat{
 			{
