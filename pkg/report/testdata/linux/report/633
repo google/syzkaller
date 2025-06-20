@@ -1,5 +1,6 @@
 TITLE: KMSAN: uninit-value in prepend_path
 ALT: bad-access in prepend_path
+TYPE: KMSAN
 CORRUPTED: Y
 
 [  370.741346][ T8537] =====================================================
