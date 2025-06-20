@@ -407,8 +407,11 @@ func readTextRanges(debugInfo *dwarf.Data, module *vminfo.KernelModule, pcFix pc
 		} else {
 			// Compile unit names are relative to the compilation dir,
 			// while per-line info isn't.
-			// Let's stick to the common approach.
-			unitName := filepath.Join(attrCompDir, attrName)
+			// attrName could be an absolute path for out-of-tree modules.
+			unitName := attrName
+			if !filepath.IsAbs(attrName) {
+				unitName = filepath.Join(attrCompDir, attrName)
+			}
 			ranges1, err := debugInfo.Ranges(ent)
 			if err != nil {
 				return nil, nil, err
