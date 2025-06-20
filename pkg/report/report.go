@@ -83,19 +83,6 @@ type ExecutorInfo struct {
 	ExecID int // The program the syz-executor was executing.
 }
 
-// unspecifiedType can be used to cancel oops.defaultReportType from oopsFormat.reportType.
-const unspecifiedType = crash.Type("UNSPECIFIED")
-
-func (rep *Report) setType(typ, defaultType crash.Type) {
-	if typ == unspecifiedType {
-		rep.Type = crash.UnknownType
-	} else if typ != crash.UnknownType {
-		rep.Type = typ
-	} else {
-		rep.Type = defaultType
-	}
-}
-
 func (rep *Report) String() string {
 	return fmt.Sprintf("crash: %v\n%s", rep.Title, rep.Report)
 }
@@ -406,8 +393,6 @@ type oops struct {
 	header       []byte
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
-	// defaultReportType will be used if oopsFormat's reportType is empty.
-	defaultReportType crash.Type
 }
 
 type oopsFormat struct {
@@ -428,8 +413,6 @@ type oopsFormat struct {
 	// present, but this format does not comply with that.
 	noStackTrace bool
 	corrupted    bool
-	// If not empty, report will have this type.
-	reportType crash.Type
 }
 
 type stackFmt struct {
@@ -811,14 +794,13 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, altTitles, format := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
 	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	rep.setType(format.reportType, oops.defaultReportType)
-
+	rep.Type = titleToCrashType(rep.Title)
 	return rep
 }
 
@@ -896,7 +878,6 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.SyzFailure,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -910,7 +891,6 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.SyzFailure,
 	},
 	{
 		[]byte("panic:"),
@@ -935,7 +915,6 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
-		crash.UnknownType,
 	},
 }
 
@@ -952,5 +931,15 @@ var groupGoRuntimeErrors = oops{
 		compile("ALSA"),
 		compile("fatal error: cannot create timer"),
 	},
-	crash.UnknownType,
+}
+
+func titleToCrashType(title string) crash.Type {
+	for _, t := range titleToType {
+		for _, prefix := range t.includePrefixes {
+			if strings.HasPrefix(title, prefix) {
+				return t.crashType
+			}
+		}
+	}
+	return crash.UnknownType
 }

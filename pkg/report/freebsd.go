@@ -5,8 +5,6 @@ package report
 
 import (
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 type freebsd struct {
@@ -57,7 +55,6 @@ var freebsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("panic:"),
@@ -105,7 +102,6 @@ var freebsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	&groupGoRuntimeErrors,
 }, commonOopses...)

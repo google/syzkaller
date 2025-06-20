@@ -188,7 +188,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		}
 		rep.reportPrefixLen = len(rep.Report)
 		rep.Report = append(rep.Report, report...)
-		rep.setType(format.reportType, oops.defaultReportType)
+		rep.Type = titleToCrashType(rep.Title)
 		setExecutorInfo(rep)
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = isCorrupted(title, report, format)
@@ -1457,7 +1457,6 @@ var linuxOopses = append([]*oops{
 					// These frames are present in KASAN_HW_TAGS reports.
 					skip: []string{"kernel_fault", "tag_check", "mem_abort", "^el1_", "^el1h_"},
 				},
-				reportType: crash.KASAN,
 			},
 			{
 				title:  compile("BUG: KASAN:"),
@@ -1472,18 +1471,15 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"slab_", "kfree", "vunmap", "vfree"},
 				},
-				reportType: crash.KASAN,
 			},
 			{
-				title:      compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
-				fmt:        "KASAN: %[1]v %[2]v",
-				reportType: crash.KASAN,
+				title: compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
+				fmt:   "KASAN: %[1]v %[2]v",
 			},
 			{
-				title:      compile("BUG: KASAN: (.*)"),
-				fmt:        "KASAN: %[1]v",
-				corrupted:  true,
-				reportType: crash.KASAN,
+				title:     compile("BUG: KASAN: (.*)"),
+				fmt:       "KASAN: %[1]v",
+				corrupted: true,
 			},
 			{
 				title:  compile("BUG: KMSAN: kernel-usb-infoleak"),
@@ -1499,7 +1495,6 @@ var linuxOopses = append([]*oops{
 					skip: []string{"alloc_skb", "usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
 				},
 				noStackTrace: true,
-				reportType:   crash.KMSAN,
 			},
 			{
 				title:  compile("BUG: KMSAN:"),
@@ -1517,14 +1512,12 @@ var linuxOopses = append([]*oops{
 					skip: []string{"alloc_skb", "netlink_ack", "netlink_rcv_skb"},
 				},
 				noStackTrace: true,
-				reportType:   crash.KMSAN,
 			},
 			{
 				title:        compile("BUG: KCSAN: data-race"),
 				report:       compile("BUG: KCSAN: (.*)"),
 				fmt:          "KCSAN: %[1]v",
 				noStackTrace: true,
-				reportType:   crash.DataRace,
 			},
 			{
 				title:        compile("BUG: KCSAN:"),
@@ -1619,7 +1612,6 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"spin_", "_lock", "_unlock"},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
 				title: compile("BUG: soft lockup"),
@@ -1633,13 +1625,11 @@ var linuxOopses = append([]*oops{
 					},
 					extractor: linuxStallFrameExtractor,
 				},
-				reportType: crash.Hang,
 			},
 			{
-				title:      compile("BUG: .*still has locks held!"),
-				report:     compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
-				fmt:        "BUG: still has locks held in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("BUG: .*still has locks held!"),
+				report: compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				fmt:    "BUG: still has locks held in %[1]v",
 			},
 			{
 				title: compile("BUG: scheduling while atomic"),
@@ -1651,7 +1641,6 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"schedule"},
 				},
-				reportType: crash.AtomicSleep,
 			},
 			{
 				title:        compile("BUG: lock held when returning to user space"),
@@ -1669,13 +1658,11 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
-				title:      compile("BUG: held lock freed!"),
-				report:     compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
-				fmt:        "BUG: held lock freed in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("BUG: held lock freed!"),
+				report: compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				fmt:    "BUG: held lock freed in %[1]v",
 			},
 			{
 				title:        compile("BUG: Bad rss-counter state"),
@@ -1736,7 +1723,6 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 				},
-				reportType: crash.AtomicSleep,
 			},
 			{
 				title: compile("BUG: using ([a-z_]+)\\(\\) in preemptible"),
@@ -1769,7 +1755,6 @@ var linuxOopses = append([]*oops{
 						"idr_get", "list_lru_init", "kasprintf", "kvasprintf",
 						"pcpu_create", "strdup", "strndup", "memdup"},
 				},
-				reportType: crash.MemoryLeak,
 			},
 			{
 				title: compile("BUG: .*stack guard page was hit at"),
@@ -1783,7 +1768,6 @@ var linuxOopses = append([]*oops{
 					},
 					extractor: linuxStallFrameExtractor,
 				},
-				reportType: unspecifiedType, // This is a printk(), not a BUG_ON().
 			},
 			{
 				title: compile("BUG: Invalid wait context"),
@@ -1797,7 +1781,6 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"lock_sock", "release_sock"},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
 				title:     compile(`BUG:[[:space:]]*(?:\n|$)`),
@@ -1816,7 +1799,6 @@ var linuxOopses = append([]*oops{
 			// pkg/host output in debug mode.
 			compile("BUG: no syscalls can create resource"),
 		},
-		crash.UnknownType,
 	},
 	{
 		[]byte("WARNING:"),
@@ -1850,29 +1832,25 @@ var linuxOopses = append([]*oops{
 				stack: warningStackFmt("refcount", "kobject_"),
 			},
 			{
-				title:      compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),
-				fmt:        "WARNING: locking bug in %[1]v",
-				stack:      warningStackFmt("lock_sock", "release_sock"),
-				reportType: crash.LockdepBug,
+				title: compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),
+				fmt:   "WARNING: locking bug in %[1]v",
+				stack: warningStackFmt("lock_sock", "release_sock"),
 			},
 			{
-				title:      compile("WARNING: .*still has locks held!"),
-				report:     compile("WARNING: .*still has locks held!(?:.*\\n)+?.*at: {{FUNC}}"),
-				fmt:        "WARNING: still has locks held in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("WARNING: .*still has locks held!"),
+				report: compile("WARNING: .*still has locks held!(?:.*\\n)+?.*at: {{FUNC}}"),
+				fmt:    "WARNING: still has locks held in %[1]v",
 			},
 			{
-				title:      compile("WARNING: Nested lock was not taken"),
-				fmt:        "WARNING: nested lock was not taken in %[1]v",
-				stack:      warningStackFmt(),
-				reportType: crash.LockdepBug,
+				title: compile("WARNING: Nested lock was not taken"),
+				fmt:   "WARNING: nested lock was not taken in %[1]v",
+				stack: warningStackFmt(),
 			},
 			{
 				title:        compile("WARNING: lock held when returning to user space"),
 				report:       compile("WARNING: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:          "WARNING: lock held when returning to user space in %[1]v",
 				noStackTrace: true,
-				reportType:   crash.LockdepBug,
 			},
 			{
 				title: compile("WARNING: .*mm/.*\\.c.* k?.?malloc"),
@@ -1915,13 +1893,11 @@ var linuxOopses = append([]*oops{
 					skip: []string{"process_one_work", "flush_workqueue",
 						"drain_workqueue", "destroy_workqueue"},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
-				title:      compile("WARNING: possible irq lock inversion dependency detected"),
-				report:     compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("WARNING: possible irq lock inversion dependency detected"),
+				report: compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
 				title: compile("WARNING: .*-safe -> .*-unsafe lock order detected"),
@@ -1932,13 +1908,11 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
-				title:      compile("WARNING: possible recursive locking detected"),
-				report:     compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("WARNING: possible recursive locking detected"),
+				report: compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
 				title:  compile("WARNING: inconsistent lock state"),
@@ -1950,7 +1924,6 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
 				title:  compile("WARNING: suspicious RCU usage"),
@@ -1963,19 +1936,16 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"rcu", "kmem", "slab"},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
 				title:        compile("WARNING: kernel stack regs at [0-9a-f]+ in [^ ]* has bad '([^']+)' value"),
 				fmt:          "WARNING: kernel stack regs has bad '%[1]v' value",
 				noStackTrace: true,
-				reportType:   unspecifiedType, // This is printk().
 			},
 			{
 				title:        compile("WARNING: kernel stack frame pointer at [0-9a-f]+ in [^ ]* has bad value"),
 				fmt:          "WARNING: kernel stack frame pointer has bad value",
 				noStackTrace: true,
-				reportType:   unspecifiedType, // This is printk().
 			},
 			{
 				title: compile("WARNING: bad unlock balance detected!"),
@@ -1987,31 +1957,26 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 				},
-				reportType: crash.LockdepBug,
 			},
 			{
-				title:      compile("WARNING: held lock freed!"),
-				report:     compile("WARNING: held lock freed!(?:.*\\n)+?.*at:(?: {{PC}})? +{{FUNC}}"),
-				fmt:        "WARNING: held lock freed in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("WARNING: held lock freed!"),
+				report: compile("WARNING: held lock freed!(?:.*\\n)+?.*at:(?: {{PC}})? +{{FUNC}}"),
+				fmt:    "WARNING: held lock freed in %[1]v",
 			},
 			{
 				title:        compile("WARNING: kernel stack regs .* has bad 'bp' value"),
 				fmt:          "WARNING: kernel stack regs has bad value",
 				noStackTrace: true,
-				reportType:   unspecifiedType, // This is printk().
 			},
 			{
 				title:        compile("WARNING: kernel stack frame pointer .* has bad value"),
 				fmt:          "WARNING: kernel stack regs has bad value",
 				noStackTrace: true,
-				reportType:   unspecifiedType, // This is printk().
 			},
 			{
-				title:      compile(`WARNING:[[:space:]]*(?:\n|$)`),
-				fmt:        "WARNING: corrupted",
-				corrupted:  true,
-				reportType: unspecifiedType, // This is printk().
+				title:     compile(`WARNING:[[:space:]]*(?:\n|$)`),
+				fmt:       "WARNING: corrupted",
+				corrupted: true,
 			},
 		},
 		[]*regexp.Regexp{
@@ -2027,40 +1992,34 @@ var linuxOopses = append([]*oops{
 			compile(`(?i)warning: .* uses (deprecated v2 capabilities|wireless extensions)`),
 			compile(`XFS \(\w+\): WARNING`),
 		},
-		crash.Warning,
 	},
 	{
 		[]byte("INFO:"),
 		[]oopsFormat{
 			{
-				title:      compile("INFO: possible circular locking dependency detected"),
-				report:     compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("INFO: possible circular locking dependency detected"),
+				report: compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
-				title:      compile("INFO: possible irq lock inversion dependency detected"),
-				report:     compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("INFO: possible irq lock inversion dependency detected"),
+				report: compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
-				title:      compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
-				report:     compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
+				report: compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
-				title:      compile("INFO: possible recursive locking detected"),
-				report:     compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
-				fmt:        "possible deadlock in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("INFO: possible recursive locking detected"),
+				report: compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				fmt:    "possible deadlock in %[1]v",
 			},
 			{
-				title:      compile("INFO: inconsistent lock state"),
-				report:     compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
-				fmt:        "inconsistent lock state in %[1]v",
-				reportType: crash.LockdepBug,
+				title:  compile("INFO: inconsistent lock state"),
+				report: compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				fmt:    "inconsistent lock state in %[1]v",
 			},
 			{
 				title: compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall"),
@@ -2079,7 +2038,6 @@ var linuxOopses = append([]*oops{
 					skip:      []string{"apic_timer_interrupt", "rcu"},
 					extractor: linuxStallFrameExtractor,
 				},
-				reportType: crash.Hang,
 			},
 			{
 				title: compile("INFO: trying to register non-static key"),
@@ -2115,7 +2073,6 @@ var linuxOopses = append([]*oops{
 					},
 					extractor: linuxHangTaskFrameExtractor,
 				},
-				reportType: crash.Hang,
 			},
 			{
 				title: compile("INFO: task .* can't die for more than .* seconds"),
@@ -2128,7 +2085,6 @@ var linuxOopses = append([]*oops{
 					},
 					skip: []string{"schedule"},
 				},
-				reportType: crash.Hang,
 			},
 			{
 				// This gets captured for corrupted old-style KASAN reports.
@@ -2153,7 +2109,6 @@ var linuxOopses = append([]*oops{
 			compile("rmt_storage:INFO:"),                             // Android prints this.
 			compile("_INFO:"),                                        // To filter out "INVALID BTF_INFO:NUM".
 		},
-		crash.UnknownType,
 	},
 	{
 		[]byte("Unable to handle kernel"),
@@ -2172,7 +2127,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("general protection fault"),
@@ -2193,7 +2147,6 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile(`general protection fault .* error:\d+ in `),
 		},
-		crash.UnknownType,
 	},
 	{
 		[]byte("stack segment: "),
@@ -2211,7 +2164,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("Kernel panic"),
@@ -2297,7 +2249,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("PANIC: double fault"),
@@ -2313,7 +2264,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("rust_kernel: panicked"),
@@ -2334,7 +2284,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("kernel BUG"),
@@ -2376,7 +2325,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.Bug,
 	},
 	{
 		[]byte("Kernel BUG"),
@@ -2387,7 +2335,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.Bug,
 	},
 	{
 		[]byte("BUG kmalloc-"),
@@ -2398,7 +2345,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("divide error:"),
@@ -2414,7 +2360,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		// A misspelling of the above introduced in 9d06c4027f21 ("x86/entry: Convert Divide Error to IDTENTRY").
@@ -2431,7 +2376,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("invalid opcode:"),
@@ -2447,7 +2391,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("UBSAN:"),
@@ -2490,7 +2433,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UBSAN,
 	},
 	{
 		[]byte("Booting the kernel."),
@@ -2499,7 +2441,6 @@ var linuxOopses = append([]*oops{
 				title:        compile("^Booting the kernel"),
 				fmt:          "unexpected kernel reboot",
 				noStackTrace: true,
-				reportType:   crash.UnexpectedReboot,
 			},
 		},
 		[]*regexp.Regexp{
@@ -2508,7 +2449,6 @@ var linuxOopses = append([]*oops{
 			// as an invalid mount option and we detect false reboot.
 			compile("Parsing ELF|Decompressing Linux|Unknown parameter '"),
 		},
-		crash.UnknownType,
 	},
 	{
 		[]byte("unregister_netdevice: waiting for"),
@@ -2520,7 +2460,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		// Custom vfs error printed by older versions of the kernel, see #3621.
@@ -2533,7 +2472,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		// Custom vfs error printed by older versions of the kernel, see #3621.
@@ -2546,7 +2484,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("Internal error:"),
@@ -2568,7 +2505,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("Unhandled fault:"),
@@ -2589,7 +2525,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("Alignment trap:"),
@@ -2607,7 +2542,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("trusty: panic"),
@@ -2631,7 +2565,6 @@ var linuxOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	&groupGoRuntimeErrors,
 }, commonOopses...)

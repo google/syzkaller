@@ -208,7 +208,7 @@ func testFromReport(rep *Report) *ParseTest {
 		Corrupted:       rep.Corrupted,
 		corruptedReason: rep.CorruptedReason,
 		Suppressed:      rep.Suppressed,
-		Type:            rep.Type,
+		Type:            titleToCrashType(rep.Title),
 		Frame:           rep.Frame,
 		Report:          rep.Report,
 	}
@@ -231,9 +231,6 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	}
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
-	}
-	if rep != nil && rep.Type == unspecifiedType {
-		t.Fatalf("unspecifiedType leaked outside")
 	}
 	parsed := testFromReport(rep)
 	if !test.Equal(parsed) {
