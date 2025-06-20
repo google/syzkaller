@@ -1499,6 +1499,7 @@ var linuxOopses = append([]*oops{
 					skip: []string{"alloc_skb", "usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
 				},
 				noStackTrace: true,
+				reportType:   crash.KMSAN,
 			},
 			{
 				title:  compile("BUG: KMSAN:"),
@@ -1516,6 +1517,7 @@ var linuxOopses = append([]*oops{
 					skip: []string{"alloc_skb", "netlink_ack", "netlink_rcv_skb"},
 				},
 				noStackTrace: true,
+				reportType:   crash.KMSAN,
 			},
 			{
 				title:        compile("BUG: KCSAN: data-race"),
