@@ -82,12 +82,22 @@ type ExecutorInfo struct {
 	ExecID int // The program the syz-executor was executing.
 }
 
-func (r Report) String() string {
-	return fmt.Sprintf("crash: %v\n%s", r.Title, r.Report)
+// unspecifiedType can be used to cancel oops.defaultReportType from oopsFormat.reportType.
+const unspecifiedType = crash.Type("UNSPECIFIED")
+
+func (rep *Report) setType(typ, defaultType crash.Type) {
+	if typ == unspecifiedType {
+		rep.Type = crash.UnknownType
+	} else if typ != crash.UnknownType {
+		rep.Type = typ
+	} else {
+		rep.Type = defaultType
+	}
 }
 
-// unspecifiedType can be used to cancel oops.reportType from oopsFormat.reportType.
-const unspecifiedType = crash.Type("UNSPECIFIED")
+func (rep *Report) String() string {
+	return fmt.Sprintf("crash: %v\n%s", rep.Title, rep.Report)
+}
 
 // NewReporter creates reporter for the specified OS/Type.
 func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
@@ -237,16 +247,6 @@ func (reporter *Reporter) Symbolize(rep *Report) error {
 		rep.Suppressed = true
 	}
 	return nil
-}
-
-func setReportType(rep *Report, oops *oops, format oopsFormat) {
-	if format.reportType == unspecifiedType {
-		rep.Type = crash.UnknownType
-	} else if format.reportType != crash.UnknownType {
-		rep.Type = format.reportType
-	} else if oops.reportType != crash.UnknownType {
-		rep.Type = oops.reportType
-	}
 }
 
 func (reporter *Reporter) isInteresting(rep *Report) bool {
@@ -405,8 +405,8 @@ type oops struct {
 	header       []byte
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
-	// This reportType will be used if oopsFormat's reportType is empty.
-	reportType crash.Type
+	// defaultReportType will be used if oopsFormat's reportType is empty.
+	defaultReportType crash.Type
 }
 
 type oopsFormat struct {
@@ -812,7 +812,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	setReportType(rep, oops, format)
+	rep.setType(format.reportType, oops.defaultReportType)
 
 	return rep
 }
