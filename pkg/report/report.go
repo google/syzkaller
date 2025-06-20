@@ -45,8 +45,6 @@ type Report struct {
 	// Alternative titles, used for better deduplication.
 	// If two crashes have a non-empty intersection of Title/AltTitles, they are considered the same bug.
 	AltTitles []string
-	// Bug type (e.g. hang, memory leak, etc).
-	Type crash.Type
 	// The indicative function name.
 	Frame string
 	// Report contains whole oops text.
@@ -78,22 +76,13 @@ type Report struct {
 	symbolized bool
 }
 
+func (rep *Report) Type() crash.Type {
+	return titleToCrashType(rep.Title)
+}
+
 type ExecutorInfo struct {
 	ProcID int // ID of the syz-executor proc mentioned in the crash report.
 	ExecID int // The program the syz-executor was executing.
-}
-
-// unspecifiedType can be used to cancel oops.defaultReportType from oopsFormat.reportType.
-const unspecifiedType = crash.Type("UNSPECIFIED")
-
-func (rep *Report) setType(typ, defaultType crash.Type) {
-	if typ == unspecifiedType {
-		rep.Type = crash.UnknownType
-	} else if typ != crash.UnknownType {
-		rep.Type = typ
-	} else {
-		rep.Type = defaultType
-	}
 }
 
 func (rep *Report) String() string {
@@ -406,8 +395,6 @@ type oops struct {
 	header       []byte
 	formats      []oopsFormat
 	suppressions []*regexp.Regexp
-	// defaultReportType will be used if oopsFormat's reportType is empty.
-	defaultReportType crash.Type
 }
 
 type oopsFormat struct {
@@ -428,8 +415,6 @@ type oopsFormat struct {
 	// present, but this format does not comply with that.
 	noStackTrace bool
 	corrupted    bool
-	// If not empty, report will have this type.
-	reportType crash.Type
 }
 
 type stackFmt struct {
@@ -811,13 +796,12 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, altTitles, format := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
 	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	rep.setType(format.reportType, oops.defaultReportType)
 
 	return rep
 }
@@ -896,7 +880,6 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.SyzFailure,
 	},
 	{
 		// Errors produced by log.Fatal functions.
@@ -910,7 +893,6 @@ var commonOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.SyzFailure,
 	},
 	{
 		[]byte("panic:"),
@@ -935,7 +917,6 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
-		crash.UnknownType,
 	},
 }
 
@@ -952,5 +933,4 @@ var groupGoRuntimeErrors = oops{
 		compile("ALSA"),
 		compile("fatal error: cannot create timer"),
 	},
-	crash.UnknownType,
 }

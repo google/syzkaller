@@ -1,4 +1,4 @@
-TITLE: attempt to subtract with overflow in <rust_binder::process::Process>::update_ref
+TITLE: rust_kernel panicked: attempt to subtract with overflow in <rust_binder::process::Process>::update_ref
 FRAME: <rust_binder::process::Process>::update_ref
 
 [   23.717039][  T298] rust_kernel: panicked at drivers/android/binder/node.rs:877:13:

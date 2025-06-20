@@ -1,4 +1,4 @@
-TITLE: attempt to add with overflow in <ashmem_rust::Ashmem as kernel::miscdevice::MiscDevice>::mmap
+TITLE: rust_kernel panicked: attempt to add with overflow in <ashmem_rust::Ashmem as kernel::miscdevice::MiscDevice>::mmap
 FRAME: <ashmem_rust::Ashmem as kernel::miscdevice::MiscDevice>::mmap
 EXECUTOR: proc=0, id=595
 
