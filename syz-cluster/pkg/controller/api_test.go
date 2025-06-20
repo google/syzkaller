@@ -68,10 +68,13 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("must succeed", func(t *testing.T) {
 		finding := &api.NewFinding{
-			SessionID: sessionID,
-			TestName:  "test",
-			Report:    []byte("report"),
-			Log:       []byte("log"),
+			SessionID:    sessionID,
+			TestName:     "test",
+			Report:       []byte("report"),
+			Log:          []byte("log"),
+			SyzRepro:     []byte("syz repro"),
+			SyzReproOpts: []byte("syz_repro_opts"),
+			CRepro:       []byte("C repro"),
 		}
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
