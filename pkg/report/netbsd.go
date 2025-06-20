@@ -5,8 +5,6 @@ package report
 
 import (
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 func ctorNetbsd(cfg *config) (reporterImpl, []string, error) {
@@ -33,7 +31,6 @@ var netbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	{
 		[]byte("panic: "),
@@ -67,7 +64,6 @@ var netbsdOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile(`ddb\.onpanic:`),
 		},
-		crash.UnknownType,
 	},
 	{
 		[]byte("UBSan:"),
@@ -78,7 +74,6 @@ var netbsdOopses = append([]*oops{
 			},
 		},
 		[]*regexp.Regexp{},
-		crash.UnknownType,
 	},
 	&groupGoRuntimeErrors,
 }, commonOopses...)
