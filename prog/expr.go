@@ -205,8 +205,11 @@ func (c *Call) setDefaultConditions(target *Target, transientOnly bool) bool {
 				if transientOnly && !unionArg.transient {
 					return
 				}
-				// If several union options match, take the first one.
 				idx := okIndices[0]
+				if defIdx, ok := unionType.defaultField(); ok {
+					// If there's a default value available, use it.
+					idx = defIdx
+				}
 				field := unionType.Fields[idx]
 				replace[unionArg] = MakeUnionArg(unionType,
 					unionArg.Dir(),

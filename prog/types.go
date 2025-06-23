@@ -815,31 +815,43 @@ func (t *UnionType) String() string {
 }
 
 func (t *UnionType) DefaultArg(dir Dir) Arg {
-	idx := t.defaultField()
+	idx, _ := t.defaultField()
 	f := t.Fields[idx]
 	arg := MakeUnionArg(t, dir, f.DefaultArg(f.Dir(dir)), idx)
 	arg.transient = t.isConditional()
 	return arg
 }
 
-func (t *UnionType) defaultField() int {
-	// If it's a conditional union, the last field will be the default value.
+func (t *UnionType) defaultField() (int, bool) {
+	// If it's a conditional union, the last field is usually a safe choice for the default value as
+	// it must have no condition.
+	// Auto-generated wrappers for conditional fields are an exception since both fields will have
+	// conditions, and, moreover, these conditions will be mutually exclusive.
 	if t.isConditional() {
-		return len(t.Fields) - 1
+		if t.Fields[len(t.Fields)-1].Condition != nil {
+			// There's no correct default index.
+			return 0, false
+		}
+		return len(t.Fields) - 1, true
 	}
 	// Otherwise, just take the first.
-	return 0
+	return 0, true
 }
 
 func (t *UnionType) isConditional() bool {
-	// In pkg/compiler, we ensure that either none of the fields have conditions,
-	// or all except the last one.
+	// Either all fields will have a conditions, or all except the last one, or none.
+	// So checking for the first one is always enough.
 	return t.Fields[0].Condition != nil
 }
 
 func (t *UnionType) isDefaultArg(arg Arg) bool {
 	a := arg.(*UnionArg)
-	return a.Index == t.defaultField() && isDefault(a.Option)
+	defIdx, ok := t.defaultField()
+	if !ok {
+		// Any value is the only possible option.
+		return isDefault(a.Option)
+	}
+	return a.Index == defIdx && isDefault(a.Option)
 }
 
 type ConstValue struct {
