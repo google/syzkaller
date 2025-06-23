@@ -78,10 +78,12 @@ type Environment struct {
 	// The Fast repro mode restricts the repro log bisection,
 	// it skips multiple simpifications and C repro generation.
 	Fast bool
+
+	logf func(string, ...interface{})
 }
 
 func Run(ctx context.Context, log []byte, env Environment) (*Result, *Stats, error) {
-	return runInner(ctx, log, env.Config, env.Features, env.Reporter, env.Fast, &poolWrapper{
+	return runInner(ctx, log, env, &poolWrapper{
 		cfg:      env.Config,
 		reporter: env.Reporter,
 		pool:     env.Pool,
@@ -90,8 +92,8 @@ func Run(ctx context.Context, log []byte, env Environment) (*Result, *Stats, err
 
 var ErrEmptyCrashLog = errors.New("no programs")
 
-func runInner(ctx context.Context, crashLog []byte, cfg *mgrconfig.Config, features flatrpc.Feature,
-	reporter *report.Reporter, fast bool, exec execInterface) (*Result, *Stats, error) {
+func runInner(ctx context.Context, crashLog []byte, env Environment, exec execInterface) (*Result, *Stats, error) {
+	cfg := env.Config
 	entries := cfg.Target.ParseLog(crashLog, prog.NonStrict)
 	if len(entries) == 0 {
 		return nil, nil, fmt.Errorf("log (%d bytes) parse failed: %w", len(crashLog), ErrEmptyCrashLog)
@@ -99,7 +101,7 @@ func runInner(ctx context.Context, crashLog []byte, cfg *mgrconfig.Config, featu
 	crashStart := len(crashLog)
 	crashTitle, crashType := "", crash.UnknownType
 	var crashExecutor *report.ExecutorInfo
-	if rep := reporter.Parse(crashLog); rep != nil {
+	if rep := env.Reporter.Parse(crashLog); rep != nil {
 		crashStart = rep.StartPos
 		crashTitle = rep.Title
 		crashType = rep.Type
@@ -124,7 +126,7 @@ func runInner(ctx context.Context, crashLog []byte, cfg *mgrconfig.Config, featu
 	case crashType == crash.Hang:
 		testTimeouts = testTimeouts[2:]
 	}
-	if fast {
+	if env.Fast {
 		testTimeouts = []time.Duration{30 * time.Second, 5 * time.Minute}
 	}
 	reproCtx := &reproContext{
@@ -138,11 +140,12 @@ func runInner(ctx context.Context, crashLog []byte, cfg *mgrconfig.Config, featu
 
 		entries:        entries,
 		testTimeouts:   testTimeouts,
-		startOpts:      createStartOptions(cfg, features, crashType),
+		startOpts:      createStartOptions(cfg, env.Features, crashType),
 		stats:          new(Stats),
 		timeouts:       cfg.Timeouts,
 		observedTitles: map[string]bool{},
-		fast:           fast,
+		fast:           env.Fast,
+		logf:           env.logf,
 	}
 	return reproCtx.run()
 }

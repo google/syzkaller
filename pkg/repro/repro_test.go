@@ -138,8 +138,13 @@ func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats
 	if err != nil {
 		t.Fatal(err)
 	}
-	return runInner(context.Background(), []byte(log), mgrConfig,
-		flatrpc.AllFeatures, reporter, false, exec)
+	return runInner(context.Background(), []byte(log), Environment{
+		Config:   mgrConfig,
+		Features: flatrpc.AllFeatures,
+		Fast:     false,
+		Reporter: reporter,
+		logf:     t.Logf,
+	}, exec)
 }
 
 const testReproLog = `
