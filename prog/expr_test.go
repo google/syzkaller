@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateConditionalFields(t *testing.T) {
@@ -308,4 +309,17 @@ func TestNestedConditionalCall(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDefaultConditionalSerialize(t *testing.T) {
+	// Serialize() omits default-valued fields for a more compact representation,
+	// but that shouldn't mess with the selected option (see #6105).
+	const rawProg = "test$parent_conditions(&(0x7f0000000000)={0xa3})\n"
+	target := initTargetTest(t, "test", "64")
+	prog, err := target.Deserialize([]byte(rawProg), NonStrict)
+	require.NoError(t, err)
+	serialized := prog.Serialize()
+	prog2, err := target.Deserialize(serialized, NonStrict)
+	require.NoError(t, err)
+	assert.Equal(t, rawProg, string(prog2.Serialize()))
 }
