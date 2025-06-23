@@ -261,6 +261,10 @@ func (arg *UnionArg) validate(ctx *validCtx, dir Dir) error {
 	if arg.Index < 0 || arg.Index >= len(typ.Fields) {
 		return fmt.Errorf("union arg %v has bad index %v/%v", arg, arg.Index, len(typ.Fields))
 	}
+	if arg.transient && !ctx.opts.ignoreTransient {
+		// The union must have been patched via Call.setDefaultConditions.
+		return fmt.Errorf("union arg %v is transient (incomplete)", arg)
+	}
 	opt := typ.Fields[arg.Index]
 	return ctx.validateArg(arg.Option, opt.Type, opt.Dir(dir))
 }
