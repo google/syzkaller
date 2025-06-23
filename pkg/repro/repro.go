@@ -33,6 +33,9 @@ type Result struct {
 	// Information about the final (non-symbolized) crash that we reproduced.
 	// Can be different from what we started reproducing.
 	Report *report.Report
+	// A very rough estimate of the probability with which the resulting syz
+	// reproducer crashes the kernel.
+	Reliability float64
 }
 
 type Stats struct {
@@ -263,7 +266,47 @@ func (ctx *reproContext) repro() (*Result, error) {
 			}
 		}
 	}
+	// Validate the resulting reproducer - a random rare kernel crash might have diverted the process.
+	res.Reliability, err = calculateReliability(func() (bool, error) {
+		ret, err := ctx.testProg(res.Prog, res.Duration, res.Opts, false)
+		if err != nil {
+			return false, err
+		}
+		ctx.reproLogf(2, "validation run: crashed=%v", ret.Crashed)
+		return ret.Crashed, nil
+	})
+	if err != nil {
+		ctx.reproLogf(2, "could not calculate reliability, err=%v", err)
+		return nil, err
+	}
+
+	const minReliability = 0.15
+	if res.Reliability < minReliability {
+		ctx.reproLogf(1, "reproducer is too unreliable: %.2f", res.Reliability)
+		return nil, err
+	}
+
 	return res, nil
+}
+
+func calculateReliability(cb func() (bool, error)) (float64, error) {
+	const (
+		maxRuns  = 10
+		enoughOK = 3
+	)
+	total := 0
+	okCount := 0
+	for i := 0; i < maxRuns && okCount < enoughOK; i++ {
+		total++
+		ok, err := cb()
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			okCount++
+		}
+	}
+	return float64(okCount) / float64(total), nil
 }
 
 func (ctx *reproContext) extractProg(entries []*prog.LogEntry) (*Result, error) {

@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/csource"
@@ -19,6 +21,8 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initTest(t *testing.T) (*rand.Rand, int) {
@@ -138,13 +142,14 @@ func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats
 	if err != nil {
 		t.Fatal(err)
 	}
-	return runInner(context.Background(), []byte(log), Environment{
+	env := Environment{
 		Config:   mgrConfig,
 		Features: flatrpc.AllFeatures,
 		Fast:     false,
 		Reporter: reporter,
 		logf:     t.Logf,
-	}, exec)
+	}
+	return runInner(context.Background(), []byte(log), env, exec)
 }
 
 const testReproLog = `
@@ -165,16 +170,26 @@ getpid()
 // Only crash if `pause()` is followed by `alarm(0xa)`.
 var testCrashCondition = regexp.MustCompile(`(?s)pause\(\).*alarm\(0xa\)`)
 
+var (
+	expectedReproducer = "pause()\nalarm(0xa)\n"
+)
+
+func fakeCrashResult(title string) *instance.RunResult {
+	ret := &instance.RunResult{}
+	if title != "" {
+		ret.Report = &report.Report{
+			Title: title,
+		}
+	}
+	return ret
+}
+
 func testExecRunner(log []byte) (*instance.RunResult, error) {
 	crash := testCrashCondition.Match(log)
 	if crash {
-		ret := &instance.RunResult{}
-		ret.Report = &report.Report{
-			Title: `some crash`,
-		}
-		return ret, nil
+		return fakeCrashResult("crashed"), nil
 	}
-	return &instance.RunResult{}, nil
+	return fakeCrashResult(""), nil
 }
 
 // Just a pkg/repro smoke test: check that we can extract a two-call reproducer.
@@ -186,9 +201,7 @@ func TestPlainRepro(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(`pause()
-alarm(0xa)
-`, string(result.Prog.Serialize())); diff != "" {
+	if diff := cmp.Diff(expectedReproducer, string(result.Prog.Serialize())); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -261,5 +274,77 @@ func TestProgConcatenation(t *testing.T) {
 alarm(0xa)
 `, string(result.Prog.Serialize())); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestFlakyCrashes(t *testing.T) {
+	t.Parallel()
+	// A single flaky crash may divert the whole process.
+	// Let's check if the Reliability score provides a reasonable cut-off for such fake results.
+
+	r := rand.New(testutil.RandSource(t))
+	iters := 250
+
+	success := 0
+	for i := 0; i < iters; i++ {
+		counter, lastFake := 0, 0
+		result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
+			run: func(log []byte) (*instance.RunResult, error) {
+				// Throw in a fake crash with 5% probability,
+				// but not more often than once in 10 consecutive runs.
+				counter++
+				if r.Intn(20) == 0 && counter-lastFake >= 10 {
+					lastFake = counter
+					return fakeCrashResult("flaky crash"), nil
+				}
+				return testExecRunner(log)
+			},
+		})
+		// It should either find nothing (=> validation worked) or find the exact reproducer.
+		require.NoError(t, err)
+		if result == nil {
+			continue
+		}
+		success++
+		assert.Equal(t, expectedReproducer, string(result.Prog.Serialize()), "reliability: %.2f", result.Reliability)
+	}
+
+	// There was no deep reasoning behind the success rate. It's not 100% due to flakiness,
+	// but there should still be some significant number of success cases.
+	assert.Greater(t, success, iters/3*2, "must succeed >2/3 of cases")
+}
+
+func BenchmarkCalculateReliability(b *testing.B) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for base := 0.0; base < 1.0; base += 0.1 {
+		b.Run(fmt.Sprintf("p=%.2f", base), func(b *testing.B) {
+			if b.N == 0 {
+				return
+			}
+			neededRuns := make([]int, 0, b.N)
+			reliability := make([]float64, 0, b.N)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				runs := 0
+				ret, err := calculateReliability(func() (bool, error) {
+					runs++
+					return r.Float64() < base, nil
+				})
+				require.NoError(b, err)
+				neededRuns = append(neededRuns, runs)
+				reliability = append(reliability, ret)
+			}
+			b.StopTimer()
+
+			sort.Ints(neededRuns)
+			b.ReportMetric(float64(neededRuns[len(neededRuns)/2]), "runs")
+
+			sort.Float64s(reliability)
+			b.ReportMetric(reliability[len(reliability)/10], "p10")
+			b.ReportMetric(reliability[len(reliability)/2], "median")
+			b.ReportMetric(reliability[len(reliability)*9/10], "p90")
+		})
 	}
 }
