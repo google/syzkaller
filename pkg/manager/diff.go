@@ -197,8 +197,8 @@ loop:
 				if ret.Repro.Report.Title == origTitle {
 					origTitle = "-SAME-"
 				}
-				log.Logf(1, "found repro for %q (orig title: %q), took %.2f minutes",
-					ret.Repro.Report.Title, origTitle, ret.Stats.TotalTime.Minutes())
+				log.Logf(1, "found repro for %q (orig title: %q, reliability: %2.f), took %.2f minutes",
+					ret.Repro.Report.Title, origTitle, ret.Repro.Reliability, ret.Stats.TotalTime.Minutes())
 				g.Go(func() error {
 					runner.Run(ctx, ret.Repro)
 					return nil
@@ -575,12 +575,30 @@ type reproRunnerResult struct {
 	repro       *repro.Result
 }
 
+const (
+	// We want to avoid false positives as much as possible, so let's use
+	// a stricter relibability cut-off than what's used inside pkg/repro.
+	reliabilityCutOff = 0.4
+	// 80% reliability x 3 runs is a 0.8% chance of false positives.
+	// 6 runs at 40% reproducibility gives a ~4% false positive chance.
+	reliabilityThreshold = 0.8
+)
+
 // Run executes the reproducer 3 times with slightly different options.
 // The objective is to verify whether the bug triggered by the reproducer affects the base kernel.
 // To avoid reporting false positives, the function does not require the kernel to crash with exactly
 // the same crash title as in the original crash report. Any single crash is accepted.
 // The result is sent back over the rr.done channel.
 func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
+	if r.Reliability < reliabilityCutOff {
+		log.Logf(1, "%s: repro is too unreliable, skipping", r.Report.Title)
+		return
+	}
+	needRuns := 3
+	if r.Reliability < reliabilityThreshold {
+		needRuns = 6
+	}
+
 	pool := rr.kernel.pool
 	cnt := int(rr.running.Add(1))
 	pool.ReserveForRun(min(cnt, pool.Total()))
@@ -590,13 +608,13 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 	}()
 
 	ret := reproRunnerResult{origReport: r.Report, repro: r}
-	for doneRuns := 0; doneRuns < 3; {
+	for doneRuns := 0; doneRuns < needRuns; {
 		if ctx.Err() != nil {
 			return
 		}
 		opts := r.Opts
 		opts.Repeat = true
-		if doneRuns < 2 {
+		if doneRuns%3 != 2 {
 			// Two times out of 3, test with Threaded=true.
 			// The third time we leave it as it was in the reproducer (in case it was important).
 			opts.Threaded = true
