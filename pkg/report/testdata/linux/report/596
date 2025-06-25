@@ -1,4 +1,5 @@
 TITLE: KFENCE: memory corruption in test_corruption
+TYPE: KFENCE
 
 [    4.996949] ==================================================================
 [    4.997809] BUG: KFENCE: memory corruption in test_corruption+0xb3/0x20f
