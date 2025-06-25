@@ -15,6 +15,7 @@ const (
 	Bug              = Type("BUG")
 	Warning          = Type("WARNING")
 	KASAN            = Type("KASAN")
+	KFENCE           = Type("KFENCE")
 	LockdepBug       = Type("LOCKDEP")
 	AtomicSleep      = Type("ATOMIC_SLEEP")
 	KMSAN            = Type("KMSAN")
