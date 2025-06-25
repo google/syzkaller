@@ -16,10 +16,6 @@ var titleToType = []struct {
 		crashType:       crash.DataRace,
 	},
 	{
-		includePrefixes: []string{"KFENCE: "},
-		crashType:       crash.UnknownType,
-	},
-	{
 		includePrefixes: []string{
 			// keep-sorted start
 			"BUG: bad unlock balance in",
@@ -143,6 +139,10 @@ var titleToType = []struct {
 	{
 		includePrefixes: []string{"KASAN: "},
 		crashType:       crash.KASAN,
+	},
+	{
+		includePrefixes: []string{"KFENCE: "},
+		crashType:       crash.KFENCE,
 	},
 	{
 		includePrefixes: []string{"KMSAN: "},
