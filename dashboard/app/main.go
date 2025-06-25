@@ -2433,7 +2433,9 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	iter := adminClient.Entries(c,
 		logadmin.Filter(
 			// We filter our instances.delete errors as false positives. Delete event happens every second.
-			fmt.Sprintf(`(NOT protoPayload.methodName:v1.compute.instances.delete) AND timestamp > "%s" AND severity>="ERROR"`,
+			// Also, ignore GKE logs since it streams all stderr output as severity=ERROR.
+			fmt.Sprintf(`(NOT protoPayload.methodName:v1.compute.instances.delete)`+
+				` AND (NOT resource.type="k8s_container") AND timestamp > "%s" AND severity>="ERROR"`,
 				lastWeek)),
 		logadmin.NewestFirst(),
 	)
