@@ -667,7 +667,21 @@ func cleanPathAndroid(path, srcDir string, delimiters []string, existFn func(str
 	return "", ""
 }
 
-func CleanPath(path string, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters []string) (string, string) {
+func CleanPath(path string, _kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters []string) (string, string) {
+	kernelDirs := *_kernelDirs
+	kernelPath, err := filepath.EvalSymlinks(kernelDirs.Obj)
+	if err == nil {
+		kernelDirs.Obj = kernelPath
+	}
+	kernelPath, err = filepath.EvalSymlinks(kernelDirs.Src)
+	if err == nil {
+		kernelDirs.Src = kernelPath
+	}
+	kernelPath, err = filepath.EvalSymlinks(kernelDirs.BuildSrc)
+	if err == nil {
+		kernelDirs.BuildSrc = kernelPath
+	}
+
 	filename := ""
 
 	path = filepath.Clean(path)
