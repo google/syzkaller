@@ -719,7 +719,10 @@ func objdump(target *targets.Target, mod *vminfo.KernelModule) ([2][]uint64, err
 	callInsns, traceFuncs := archCallInsn(target)
 	for s.Scan() {
 		if pc := parseLine(callInsns, traceFuncs, s.Bytes()); pc != 0 {
-			pcs[0] = append(pcs[0], pc+mod.Addr)
+			if mod.Name != "" {
+				pc = pc + mod.Addr
+			}
+			pcs[0] = append(pcs[0], pc)
 		}
 	}
 	stderrOut, _ := io.ReadAll(stderr)
