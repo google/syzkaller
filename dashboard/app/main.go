@@ -365,6 +365,7 @@ type uiCommit struct {
 type uiBug struct {
 	Namespace      string
 	Title          string
+	ImpactScore    int
 	NumCrashes     int64
 	NumCrashesBad  bool
 	BisectCause    BisectStatus
@@ -1938,6 +1939,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
+		ImpactScore:    TitleToImpact(bug.Title),
 		BisectCause:    bug.BisectCause,
 		BisectFix:      bug.BisectFix,
 		NumCrashes:     bug.NumCrashes,
