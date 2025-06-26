@@ -24,7 +24,7 @@ require (
 	github.com/google/keep-sorted v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
-	github.com/ianlancetaylor/demangle v0.0.0-20250417193237-f615e6bd150b
+	github.com/ianlancetaylor/demangle v0.0.0-20250625212726-86fd2c0a1a74
 	github.com/prometheus/client_golang v1.22.0
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/speakeasy-api/git-diff-parser v0.0.3
