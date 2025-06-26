@@ -4,24 +4,27 @@
 # Import constants needed for openat(2), like O_WRONLY.
 include <linux/fcntl.h>
 
-resource fd_kftf[fd]
+resource fd_kftf_fuzzable[fd]
+resource fd_int_sqrt[fd]
 
 kftf_simple_arg {
-    data	int32
-    access	int32
+	first	int8
+	second	int8
+	third	int8
 }
 
-# 3. Define a specialized openat() syscall.
-# It opens the specific debugfs file and returns the special fd_kftf resource.
-# Using a '$' suffix makes this a unique variant for Syzkaller.
-openat$kftf(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kftf/input"]], flags const[O_WRONLY], mode const[0]) fd_kftf
+kftf_test_name = "kftf_fuzzable"
 
-# 4. Define a specialized write() syscall.
-# It takes the fd_kftf resource as an argument.
-# The `data` argument is a pointer to the struct you defined.
-# The `len` argument is automatically calculated to be the size of the input struct.
-write$kftf(fd fd_kftf, data ptr[in, kftf_simple_arg], len bytesize[data])
+syz_kfuzztest_run(name ptr[in, string[kftf_test_name]], data ptr[in, kftf_simple_arg], len bytesize[data])
 
-# 5. Define a specialized close() syscall.
-# This ensures that the special fd_kftf resource is properly closed.
-close$kftf(fd fd_kftf)
+openat$kftf_fuzzable(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kftf/kftf_fuzzable/input"]], flags const[O_WRONLY], mode const[0]) fd_kftf_fuzzable
+write$kftf_fuzzable(fd fd_kftf_fuzzable, data ptr[in, kftf_simple_arg], len bytesize[data])
+close$kftf_fuzzable(fd fd_kftf_fuzzable)
+
+int_sqrt_arg {
+	x	int64
+}
+
+openat$int_sqrt(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kftf/int_sqrt/input"]], flags const[O_WRONLY], mode const[0]) fd_int_sqrt
+write$int_sqrt(fd fd_int_sqrt, data ptr[in, int_sqrt_arg], len bytesize[data])
+close$int_sqrt(fd fd_int_sqrt)

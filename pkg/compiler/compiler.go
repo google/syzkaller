@@ -108,6 +108,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		Types:       types,
 		Unsupported: comp.unsupported,
 	}
+
 	if comp.errors != 0 {
 		return nil
 	}

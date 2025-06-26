@@ -42,6 +42,9 @@ func Register(os, arch, revision string, init func(*prog.Target), files embed.FS
 }
 
 func fill(target *prog.Target, files embed.FS) {
+	fmt.Printf("[ENTER] fill(). OS: %s, Arch: %s\n", target.OS, target.Arch)
+	fmt.Printf("before: len(syscalls) = %d\n", len(target.Syscalls))
+
 	data, err := files.ReadFile(FileName(target.OS, target.Arch))
 	if err != nil {
 		panic(err)
@@ -55,6 +58,7 @@ func fill(target *prog.Target, files embed.FS) {
 	target.Consts = desc.Consts
 	target.Flags = desc.Flags
 	target.Types = desc.Types
+	fmt.Printf("after: len(syscalls) = %d\n", len(target.Syscalls))
 }
 
 func Serialize(desc *Desc) ([]byte, error) {

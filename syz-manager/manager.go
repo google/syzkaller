@@ -244,10 +244,14 @@ func main() {
 	RunManager(mode, cfg)
 }
 
+// EG: it looks like syz-manager is creating the rpcserver - which means the
+// VM should be sending stuff up to it? I guess if the executor is running on
+// there then it should know how to send trafic up to the server...
 func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	var vmPool *vm.Pool
 	if !cfg.VMLess {
 		var err error
+		// create a pool of virtual machines
 		vmPool, err = vm.Create(cfg, *flagDebug)
 		if err != nil {
 			log.Fatalf("%v", err)
@@ -255,6 +259,7 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		defer vmPool.Close()
 	}
 
+	// make the workdir based on config
 	osutil.MkdirAll(cfg.Workdir)
 
 	reporter, err := report.NewReporter(cfg)
@@ -284,6 +289,7 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	if *flagDebug {
 		mgr.cfg.Procs = 1
 	}
+	// I guess this is the HTTP endpoint for the web page??
 	mgr.http = &manager.HTTPServer{
 		// Note that if cfg.HTTP == "", we don't start the server.
 		Cfg:        cfg,
@@ -291,14 +297,16 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		CrashStore: mgr.crashStore,
 	}
 
+	// stats that are exposed by the manager on the web page
 	mgr.initStats()
 	if mgr.mode.LoadCorpus {
+		// async load the corpus into mem from the workdir
 		go mgr.preloadCorpus()
 	} else {
 		close(mgr.corpusPreload)
 	}
 
-	// Create RPC server for fuzzers.
+	// Create RPC server for fuzzers
 	mgr.servStats = rpcserver.NewStats()
 	rpcCfg := &rpcserver.RemoteConfig{
 		Config:  mgr.cfg,
@@ -310,11 +318,13 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
+	// okay so the server is listening
 	if err := mgr.serv.Listen(); err != nil {
 		log.Fatalf("failed to start rpc server: %v", err)
 	}
 	ctx := vm.ShutdownCtx()
 	go func() {
+		// serving requests?
 		err := mgr.serv.Serve(ctx)
 		if err != nil {
 			log.Fatalf("%s", err)
@@ -1096,8 +1106,13 @@ func (mgr *Manager) BugFrames() (leaks, races []string) {
 	return
 }
 
+// The fuzzing loop and all of that is started right in here. So by this stage
+// it would be ideal to already have the syscalls discovered and enabled
+// accordingly.
 func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	enabledSyscalls map[*prog.Syscall]bool) (queue.Source, error) {
+	fmt.Printf("[ENTER] MachineChecked\n")
+
 	if len(enabledSyscalls) == 0 {
 		return nil, fmt.Errorf("all system calls are disabled")
 	}
@@ -1129,6 +1144,11 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
 			corpusUpdates, mgr.coverFilters.Areas)
 		mgr.http.Corpus.Store(mgr.corpus)
+
+		fmt.Printf("MachineChecked, dumping enabled syscalls\n")
+		for syscall := range enabledSyscalls {
+			fmt.Printf("\t%+v\n", syscall)
+		}
 
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{

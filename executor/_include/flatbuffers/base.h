@@ -138,9 +138,11 @@
   #endif
 #endif // !defined(FLATBUFFERS_LITTLEENDIAN)
 
-#define FLATBUFFERS_VERSION_MAJOR 2
-#define FLATBUFFERS_VERSION_MINOR 0
-#define FLATBUFFERS_VERSION_REVISION 8
+// FIXME: this is a bandaid fix to get the prog to compile as my version of
+// flatc is visibly different than the intended version. TODO
+#define FLATBUFFERS_VERSION_MAJOR 25
+#define FLATBUFFERS_VERSION_MINOR 2
+#define FLATBUFFERS_VERSION_REVISION 10
 #define FLATBUFFERS_STRING_EXPAND(X) #X
 #define FLATBUFFERS_STRING(X) FLATBUFFERS_STRING_EXPAND(X)
 namespace flatbuffers {

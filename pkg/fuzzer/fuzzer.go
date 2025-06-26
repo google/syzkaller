@@ -44,6 +44,7 @@ type Fuzzer struct {
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	target *prog.Target) *Fuzzer {
+	fmt.Printf("[ENTER] NewFuzzer\n")
 	if cfg.NewInputFilter == nil {
 		cfg.NewInputFilter = func(call string) bool {
 			return true

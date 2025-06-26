@@ -24,6 +24,8 @@ import (
 	"github.com/google/syzkaller/vm/dispatcher"
 )
 
+// it seems like this is what does the fuzzing execution by sending RPCs down
+// to the VMs.
 type Runner struct {
 	id            int
 	source        *queue.Distributor
@@ -51,7 +53,7 @@ type Runner struct {
 	mu          sync.Mutex
 	conn        *flatrpc.Conn
 	stopped     bool
-	machineInfo []byte
+	machineInfo []byte // what exactly does this represent??
 }
 
 type runnerStats struct {
@@ -76,8 +78,14 @@ type handshakeConfig struct {
 	Callback func(*flatrpc.InfoRequestRawT) (handshakeResult, error)
 }
 
+type kFuzzTarget struct {
+	funcName    string
+	funcArgType string
+}
+
 type handshakeResult struct {
 	Files         []*flatrpc.FileInfo
+	KFuzzTargets  []*flatrpc.KFuzzTarget
 	Features      []*flatrpc.FeatureInfo
 	CovFilter     []uint64
 	MachineInfo   []byte
@@ -85,6 +93,7 @@ type handshakeResult struct {
 }
 
 func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (handshakeResult, error) {
+	fmt.Printf("[ENTER] Handshake\n")
 	if runner.updInfo != nil {
 		runner.updInfo(func(info *dispatcher.Info) {
 			info.Status = "handshake"
@@ -102,9 +111,12 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (hands
 		ProgramTimeoutMs: int32(cfg.Timeouts.Program / time.Millisecond),
 		LeakFrames:       cfg.LeakFrames,
 		RaceFrames:       cfg.RaceFrames,
-		Files:            cfg.Files,
+		Files:            cfg.Files, // the files we are requesting from the VM?
 		Features:         cfg.Features,
 	}
+
+	// flow: get handshake req and send response (ConnectReply)
+	// await reception of InfoRequest
 	if err := flatrpc.Send(conn, connectReply); err != nil {
 		return handshakeResult{}, err
 	}
@@ -112,10 +124,13 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (hands
 	if err != nil {
 		return handshakeResult{}, err
 	}
-	ret, err := cfg.Callback(infoReq)
+	// AHA this might just be where machine info is!
+	fmt.Printf("about to call Callback()\n")
+	ret, err := cfg.Callback(infoReq) // this is where we get machine info
 	if err != nil {
 		return handshakeResult{}, err
 	}
+	fmt.Printf("finished executing Callback()\n")
 	infoReply := &flatrpc.InfoReply{
 		CoverFilter: ret.CovFilter,
 	}

@@ -5852,3 +5852,45 @@ static long syz_pidfd_open(volatile long pid, volatile long flags)
 }
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_kfuzztest_run
+
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+static long syz_kfuzztest_run(volatile long test_name_ptr, volatile long input_data,
+			      volatile long input_data_size)
+{
+	printf("[ENTER]sys_kfuzztests_run\n");
+	const char* test_name = (const char*)test_name_ptr;
+	if (!test_name)
+		return 1;
+
+	char buf[256] = "/sys/kernel/debug/kftf/";
+	strcat(buf, test_name);
+	strcat(buf, "/input");
+	printf("executing syz_kfuzztest_run. path = %s\n", buf);
+
+	int fd = openat(AT_FDCWD, buf, O_WRONLY, 0);
+	if (fd < 0)
+		return 1;
+
+	ssize_t bytes_written = write(fd, (void*)input_data, (size_t)input_data_size);
+	if (bytes_written < 0) {
+		close(fd);
+		return 1;
+	}
+
+	if (close(fd) != 0)
+		return 1;
+
+	return 0;
+}
+
+#endif

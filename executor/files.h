@@ -1,7 +1,10 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <filesystem>
+#include <fstream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -115,5 +118,43 @@ static std::vector<std::unique_ptr<rpc::FileInfoRawT>> ReadFiles(const std::vect
 		for (const auto& match : Glob(file))
 			results.push_back(ReadFile(match));
 	}
+	return results;
+}
+
+// NOTE: this isn't using the same conventions as the ReadFiles() function.
+// It shouldn't be a problem using more modern functionality seeing as we are
+// compiling with C++17 anyways, but leaving this in here regardless.
+static std::vector<std::unique_ptr<rpc::KFuzzTargetRawT>> DiscoverKFuzzTargets()
+{
+	std::string kftfDir = "/sys/kernel/debug/kftf";
+	std::vector<std::unique_ptr<rpc::KFuzzTargetRawT>> results;
+	std::error_code ec;
+
+	// Enumerate exposed KFuzzTest cases by iterating over the dedicated
+	// sysfs entry
+	for (const auto& entry : std::filesystem::directory_iterator(kftfDir, ec)) {
+		// If an error occured in the previous iteration, we break out
+		// of the loop.
+		if (ec)
+			break;
+
+		// This shouldn't happen as everything under this path
+		// is a directory by design. But to avoid breaking anything,
+		// we tolerate this by skipping over the entry.
+		if (!entry.is_directory(ec))
+			continue;
+
+		// Read the type name information from the metadata path.
+		auto metadataPath = entry.path() / "metadata";
+		std::ifstream metadataFile(metadataPath, std::ifstream::in);
+		std::stringstream buff;
+		buff << metadataFile.rdbuf();
+
+		auto fuzzTarget = std::make_unique<rpc::KFuzzTargetRawT>();
+		fuzzTarget->func_name = entry.path().filename().c_str();
+		fuzzTarget->func_arg_type = buff.str();
+		results.push_back(std::move(fuzzTarget));
+	}
+
 	return results;
 }

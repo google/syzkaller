@@ -58,6 +58,7 @@ func LoadData(data []byte) (*Config, error) {
 }
 
 func LoadFile(filename string) (*Config, error) {
+	fmt.Printf("LoadFile(%s)\n", filename)
 	cfg, err := LoadPartialFile(filename)
 	if err != nil {
 		return nil, err

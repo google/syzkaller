@@ -224,6 +224,7 @@ func (serv *server) Close() error {
 }
 
 func (serv *server) Listen() error {
+	fmt.Printf("Listen(serv.cfg.RPC = %s)\n", serv.cfg.RPC)
 	s, err := flatrpc.Listen(serv.cfg.RPC)
 	if err != nil {
 		return err
@@ -236,6 +237,7 @@ func (serv *server) Listen() error {
 var errFatal = errors.New("aborting RPC server")
 
 func (serv *server) Serve(ctx context.Context) error {
+	fmt.Printf("[ENTER] Serve(ctx)\n")
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return serv.serv.Serve(ctx, func(ctx context.Context, conn *flatrpc.Conn) error {
@@ -249,11 +251,16 @@ func (serv *server) Serve(ctx context.Context) error {
 	})
 	g.Go(func() error {
 		var info *handshakeResult
+		// this select statement allows us to wait on either ctx being signaled
+		// as done, or for a value to come through the channel. In any case,
+		// we are blocking here.
+		// The error group allows us to get errors returned to us.
 		select {
 		case <-ctx.Done():
 			return nil
 		case info = <-serv.onHandshake:
 		}
+		fmt.Printf("received handshake, entering runCheck\n")
 		// We run the machine check specifically from the top level context,
 		// not from the per-connection one.
 		return serv.runCheck(ctx, info)
@@ -275,6 +282,7 @@ func authHash(value uint64) uint64 {
 }
 
 func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
+	fmt.Printf("[ENTER] handleConn\n")
 	// Use a random cookie, because we do not want the fuzzer to accidentally guess it and DDoS multiple managers.
 	helloCookie := rand.Uint64()
 	expectCookie := authHash(helloCookie)
@@ -297,6 +305,7 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 		return fmt.Errorf("client failed to respond with a valid cookie: %v (expected %v)", connectReq.Cookie, expectCookie)
 	}
 
+	// aha so a runner connects _here_.
 	// From now on, assume that the client is well-behaving.
 	log.Logf(1, "runner %v connected", id)
 
@@ -326,13 +335,16 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	return nil
 }
 
+// I guess the executor is going to send connection requets frequently, and then
+// we answer.
 func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *flatrpc.Conn) error {
+	fmt.Printf("[ENTER] handleRunnerConn\n")
 	opts := &handshakeConfig{
 		VMLess:   serv.cfg.VMLess,
 		Files:    serv.checker.RequiredFiles(),
 		Timeouts: serv.timeouts,
-		Callback: serv.handleMachineInfo,
-	}
+		Callback: serv.handleMachineInfo, // boom, machine info here
+	} // every handshake has some different configuration!
 	opts.LeakFrames, opts.RaceFrames = serv.mgr.BugFrames()
 	if serv.checkDone.Load() {
 		opts.Features = serv.setupFeatures
@@ -360,6 +372,12 @@ func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *
 	return serv.connectionLoop(ctx, runner)
 }
 
+// Who calls this?? Hypothesis: the vms call up with some list of files I guess?
+// in that case, when we run with 4 VMs we would expect to see this called 4
+// times. Indeed this is the case! So the VMs are calling up into the RPC server
+// with this information.
+// XXX: we DO NOT want the discovery to be here. This is more about just raw
+// machine information.
 func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handshakeResult, error) {
 	modules, machineInfo, err := serv.checker.MachineInfo(infoReq.Files)
 	if err != nil {
@@ -402,6 +420,7 @@ func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 		MachineInfo:   machineInfo,
 		Canonicalizer: canonicalizer,
 		Files:         infoReq.Files,
+		KFuzzTargets:  infoReq.KfuzzTargets,
 		Features:      infoReq.Features,
 	}, nil
 }
@@ -471,8 +490,28 @@ func (serv *server) runCheck(ctx context.Context, info *handshakeResult) error {
 	if checkErr != nil {
 		return checkErr
 	}
+
+	// POC KFuzzLogic:
+	// The idea is to just statically enable some syscalls to know that we can
+	// we can...
+	discoveredSyscalls := make(map[string]bool)
+	prefixes := []string{"openat", "write", "close"}
+	for _, fuzzTarg := range info.KFuzzTargets {
+		for _, prefix := range prefixes {
+			name := fmt.Sprintf("%s$%s", prefix, fuzzTarg.FuncName)
+			discoveredSyscalls[name] = true
+		}
+	}
+
+	// for _, target := range serv.target.Syscalls {
+	// 	if discoveredSyscalls[target.Name] {
+	// 		enabledCalls[target] = true
+	// 	}
+	// }
+
 	enabledFeatures := features.Enabled()
 	serv.setupFeatures = features.NeedSetup()
+	// this is where the fuzz loop will start.
 	newSource, err := serv.mgr.MachineChecked(enabledFeatures, enabledCalls)
 	if err != nil {
 		return err
