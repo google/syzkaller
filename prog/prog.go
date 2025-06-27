@@ -19,6 +19,18 @@ type Prog struct {
 
 const ExtraCallName = ".extra"
 
+func (p *Prog) ValidateDeps() bool {
+	return p.validateDepsProtected()
+}
+
+func SetPromoteDeps(val bool) {
+	setPromoteDepsProtected(val)
+}
+
+func IsPromoteDeps() bool {
+	return isPromoteDepsProtected()
+}
+
 func (p *Prog) CallName(call int) string {
 	if call >= len(p.Calls) || call < -1 {
 		panic(fmt.Sprintf("bad call index %v/%v", call, len(p.Calls)))

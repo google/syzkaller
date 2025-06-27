@@ -49,6 +49,7 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 			return true
 		}
 	}
+	prog.SetPromoteDeps(cfg.PromoteSyscallsDependency)
 	f := &Fuzzer{
 		Stats:  newStats(target),
 		Config: cfg,
@@ -201,19 +202,20 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 }
 
 type Config struct {
-	Debug          bool
-	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...interface{})
-	Snapshot       bool
-	Coverage       bool
-	FaultInjection bool
-	Comparisons    bool
-	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(call string) bool
-	PatchTest      bool
+	Debug                     bool
+	Corpus                    *corpus.Corpus
+	Logf                      func(level int, msg string, args ...interface{})
+	Snapshot                  bool
+	Coverage                  bool
+	FaultInjection            bool
+	Comparisons               bool
+	Collide                   bool
+	EnabledCalls              map[*prog.Syscall]bool
+	NoMutateCalls             map[int]bool
+	FetchRawCover             bool
+	NewInputFilter            func(call string) bool
+	PatchTest                 bool
+	PromoteSyscallsDependency bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -276,6 +278,12 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 		// more frequently because fallback signal is weak.
 		mutateRate = 0.5
 	}
+	if prog.IsPromoteDeps() {
+		// if we want to promote dependencies, we penalize mutation since
+		// we want to avoid picking and mutating programs with broken
+		// dependencies
+		mutateRate = 0.3
+	}
 	var req *queue.Request
 	rnd := fuzzer.rand()
 	if rnd.Float64() < mutateRate {
@@ -284,7 +292,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
 	}
-	if fuzzer.Config.Collide && rnd.Intn(3) == 0 {
+	if !prog.IsPromoteDeps() && fuzzer.Config.Collide && rnd.Intn(3) == 0 {
 		req = &queue.Request{
 			Prog: randomCollide(req.Prog, rnd),
 			Stat: fuzzer.statExecCollide,

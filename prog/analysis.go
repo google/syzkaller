@@ -12,19 +12,79 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/image"
 )
 
 type state struct {
-	target    *Target
-	ct        *ChoiceTable
-	corpus    []*Prog
-	files     map[string]bool
-	resources map[string][]*ResultArg
-	strings   map[string]bool
-	ma        *memAlloc
-	va        *vmaAlloc
+	target     *Target
+	ct         *ChoiceTable
+	corpus     []*Prog
+	files      map[string]bool
+	resources  map[string][]*ResultArg
+	strings    map[string]bool
+	ma         *memAlloc
+	va         *vmaAlloc
+	ioctlStack []string
+}
+
+func pushFieldToStack(s *state, fName string) {
+	if len(s.ioctlStack) > 0 {
+		index := len(s.ioctlStack) - 1
+		s.ioctlStack[index] = s.ioctlStack[index] + "-" + fName
+	}
+}
+
+func popFieldFromStack(s *state) {
+	if len(s.ioctlStack) > 0 {
+		index := len(s.ioctlStack) - 1
+		lastIndex := strings.LastIndex(s.ioctlStack[index], "-")
+		s.ioctlStack[index] = s.ioctlStack[index][:lastIndex]
+	}
+}
+
+func pushIoctlToStack(s *state, ioctlName string) {
+	s.ioctlStack = append(s.ioctlStack, ioctlName)
+}
+
+func popIoctlFromStack(s *state) {
+	if len(s.ioctlStack) > 0 {
+		s.ioctlStack = s.ioctlStack[:len(s.ioctlStack)-1]
+	}
+}
+
+func getIoctlFieldLoopIterations(s *state) int {
+	recCounter := 0
+	indexLastEl := len(s.ioctlStack) - 1
+	if indexLastEl >= 0 {
+		for _, v := range s.ioctlStack[:indexLastEl] {
+			if v == s.ioctlStack[indexLastEl] {
+				recCounter++
+			}
+		}
+	}
+	return recCounter
+}
+
+func isIoctlInStack(s *state, ioctl string) bool {
+	currentIoctls := []string{}
+	for _, v := range s.ioctlStack {
+		parts := strings.Split(v, "-")
+		currentIoctls = append(currentIoctls, parts[0])
+	}
+
+	for _, v := range currentIoctls {
+		if v == ioctl {
+			return true
+		}
+	}
+
+	return false
+}
+
+func clearIoctlStack(s *state) {
+	s.ioctlStack = []string{}
 }
 
 // analyze analyzes the program p up to but not including call c.
