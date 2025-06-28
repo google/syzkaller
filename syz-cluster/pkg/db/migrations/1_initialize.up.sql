@@ -107,14 +107,12 @@ CREATE TABLE SessionReports (
     SessionID STRING(36) NOT NULL, -- UUID
     ReportedAt TIMESTAMP,
     Moderation BOOL,
-    MessageID STRING(512),
     Reporter STRING(256),
     CONSTRAINT FK_SessionReports FOREIGN KEY (SessionID) REFERENCES Sessions (ID),
 ) PRIMARY KEY(ID);
 
 CREATE UNIQUE INDEX NoDupSessionReports ON SessionReports(SessionID, Moderation);
 CREATE INDEX SessionReportsByStatus ON SessionReports (Reporter, ReportedAt);
-CREATE INDEX SessionReportsByMessageID ON SessionReports(Reporter, MessageID);
 
 -- Replies on a session report.
 CREATE TABLE ReportReplies (

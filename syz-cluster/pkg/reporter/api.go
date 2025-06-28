@@ -29,23 +29,12 @@ func NewAPIServer(env *app.AppEnvironment) *APIServer {
 
 func (s *APIServer) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/reports/{report_id}/update", s.updateReport)
 	mux.HandleFunc("/reports/{report_id}/upstream", s.upstreamReport)
 	mux.HandleFunc("/reports/{report_id}/confirm", s.confirmReport)
 	mux.HandleFunc("/reports/record_reply", s.recordReply)
 	mux.HandleFunc("/reports/last_reply", s.lastReply)
 	mux.HandleFunc("/reports", s.nextReports)
 	return mux
-}
-
-// nolint: dupl
-func (s *APIServer) updateReport(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.UpdateReportReq](w, r)
-	if req == nil {
-		return // TODO: return StatusBadRequest here and below.
-	}
-	err := s.reportService.Update(r.Context(), r.PathValue("report_id"), req)
-	reply[interface{}](w, nil, err)
 }
 
 // nolint: dupl

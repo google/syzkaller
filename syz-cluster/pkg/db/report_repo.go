@@ -44,14 +44,3 @@ func (repo *ReportRepository) ListNotReported(ctx context.Context, reporter stri
 	addLimit(&stmt, limit)
 	return repo.readEntities(ctx, stmt)
 }
-
-func (repo *ReportRepository) FindByMessageID(ctx context.Context, reporter, messageID string) (*SessionReport, error) {
-	stmt := spanner.Statement{
-		SQL: "SELECT * FROM `SessionReports` WHERE `Reporter` = @reporter AND `MessageID` = @messageID",
-		Params: map[string]interface{}{
-			"reporter":  reporter,
-			"messageID": messageID,
-		},
-	}
-	return repo.readEntity(ctx, stmt)
-}

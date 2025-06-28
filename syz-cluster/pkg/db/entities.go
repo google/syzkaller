@@ -137,7 +137,6 @@ type SessionReport struct {
 	SessionID  string           `spanner:"SessionID"`
 	ReportedAt spanner.NullTime `spanner:"ReportedAt"`
 	Moderation bool             `spanner:"Moderation"`
-	MessageID  string           `spanner:"MessageID"`
 	Reporter   string           `spanner:"Reporter"`
 }
 

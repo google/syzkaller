@@ -108,15 +108,18 @@ func TestReplyReporting(t *testing.T) {
 	err = reportClient.ConfirmReport(ctx, reportID)
 	assert.NoError(t, err)
 
-	err = reportClient.UpdateReport(ctx, reportID, &api.UpdateReportReq{
-		MessageID: "message-id",
+	const reportMessageID = "message-id"
+	_, err = reportClient.RecordReply(ctx, &api.RecordReplyReq{
+		MessageID: reportMessageID,
+		ReportID:  reportID,
+		Reporter:  api.LKMLReporter,
 	})
 	assert.NoError(t, err)
 
 	// Direct reply to the report.
 	resp, err := reportClient.RecordReply(ctx, &api.RecordReplyReq{
 		MessageID: "direct-reply-id",
-		InReplyTo: "message-id",
+		InReplyTo: reportMessageID,
 		Reporter:  api.LKMLReporter,
 		Time:      time.Now(),
 	})

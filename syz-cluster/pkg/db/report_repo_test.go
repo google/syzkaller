@@ -40,29 +40,16 @@ func TestReportRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, list, 3)
 
-	const messageID = "message-id"
 	err = reportRepo.Update(ctx, keys[0], func(rep *SessionReport) error {
 		rep.SetReportedAt(time.Now())
-		rep.MessageID = messageID
 		return nil
 	})
 	assert.NoError(t, err)
-
 	t.Run("not-reported-count", func(t *testing.T) {
 		// Now one less.
 		list, err := reportRepo.ListNotReported(ctx, dummyReporter, 10)
 		assert.NoError(t, err)
 		assert.Len(t, list, 2)
-	})
-	t.Run("find-by-id-found", func(t *testing.T) {
-		report, err := reportRepo.FindByMessageID(ctx, dummyReporter, messageID)
-		assert.NoError(t, err)
-		assert.NotNil(t, report)
-	})
-	t.Run("find-by-id-empty", func(t *testing.T) {
-		report, err := reportRepo.FindByMessageID(ctx, dummyReporter, "non-existing-id")
-		assert.NoError(t, err)
-		assert.Nil(t, report)
 	})
 }
 
