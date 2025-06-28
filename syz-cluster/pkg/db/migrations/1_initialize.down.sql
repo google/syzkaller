@@ -20,7 +20,6 @@ DROP INDEX SessionsByFinishedAt;
 DROP INDEX NoDupFindings;
 DROP INDEX NoDupSessionReports;
 DROP INDEX SessionReportsByStatus;
-DROP INDEX SessionReportsByMessageID;
 
 DROP TABLE ReportReplies;
 DROP TABLE Findings;

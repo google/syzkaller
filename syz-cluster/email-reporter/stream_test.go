@@ -29,8 +29,10 @@ func TestEmailStream(t *testing.T) {
 	err = reporterClient.ConfirmReport(ctx, report.ID)
 	assert.NoError(t, err)
 	const messageID = "<message-id>"
-	err = reporterClient.UpdateReport(ctx, report.ID, &api.UpdateReportReq{
+	_, err = reporterClient.RecordReply(ctx, &api.RecordReplyReq{
 		MessageID: messageID,
+		ReportID:  report.ID,
+		Reporter:  api.LKMLReporter,
 	})
 	assert.NoError(t, err)
 

@@ -30,16 +30,6 @@ func (client ReporterClient) GetNextReport(ctx context.Context, reporter string)
 	return postJSON[any, NextReportResp](ctx, client.baseURL+"/reports?"+v.Encode(), nil)
 }
 
-type UpdateReportReq struct {
-	MessageID string `json:"message_id"`
-}
-
-// UpdateReport may be used to remember the message ID and the link to the discussion.
-func (client ReporterClient) UpdateReport(ctx context.Context, id string, req *UpdateReportReq) error {
-	_, err := postJSON[UpdateReportReq, any](ctx, client.baseURL+"/reports/"+id+"/update", req)
-	return err
-}
-
 // ConfirmReport should be called to mark a report as sent.
 func (client ReporterClient) ConfirmReport(ctx context.Context, id string) error {
 	_, err := postJSON[any, any](ctx, client.baseURL+"/reports/"+id+"/confirm", nil)
@@ -56,7 +46,9 @@ func (client ReporterClient) UpstreamReport(ctx context.Context, id string, req 
 }
 
 type RecordReplyReq struct {
-	MessageID string    `json:"message_id"`
+	MessageID string `json:"message_id"`
+	ReportID  string `json:"report_id"`
+	// If ReportID is not set, InReplyTo will help identify the original report.
 	InReplyTo string    `json:"in_reply_to"`
 	Reporter  string    `json:"reporter"`
 	Time      time.Time `json:"time"`

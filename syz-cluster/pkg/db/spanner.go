@@ -343,10 +343,3 @@ func (g *genericEntityOps[EntityType, KeyType]) readEntities(ctx context.Context
 	defer iter.Stop()
 	return readEntities[EntityType](iter)
 }
-
-func (g *genericEntityOps[EntityType, KeyType]) readEntity(ctx context.Context,
-	stmt spanner.Statement) (*EntityType, error) {
-	iter := g.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readOne[EntityType](iter)
-}
