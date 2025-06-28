@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
@@ -71,20 +72,29 @@ func main() {
 	}
 }
 
+// To prevent false positive results, demand that in order to be marked as FAILED,
+// the test must fail 3 times in a row.
+const retryCount = 3
+
 func runTest(ctx context.Context, client *api.Client) (bool, error) {
 	cfg, err := mgrconfig.LoadFile(filepath.Join("/configs", *flagConfig, "base.cfg"))
 	if err != nil {
 		return false, err
 	}
 	cfg.Workdir = "/tmp/test-workdir"
-	rep, err := instance.RunSmokeTest(cfg)
-	if err != nil {
-		return false, err
-	} else if rep == nil {
-		return true, nil
-	}
 
-	log.Printf("found: %q", rep.Title)
+	var rep *report.Report
+	for i := 0; i < retryCount; i++ {
+		log.Printf("starting attempt #%d", i)
+		var err error
+		rep, err = instance.RunSmokeTest(cfg)
+		if err != nil {
+			return false, err
+		} else if rep == nil {
+			return true, nil
+		}
+		log.Printf("attempt failed: %q", rep.Title)
+	}
 	if *flagFindings {
 		log.Printf("reporting the finding")
 		findingErr := client.UploadFinding(ctx, &api.NewFinding{
