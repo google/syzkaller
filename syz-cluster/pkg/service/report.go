@@ -30,17 +30,6 @@ func NewReportService(env *app.AppEnvironment) *ReportService {
 
 var ErrReportNotFound = errors.New("report is not found")
 
-func (rs *ReportService) Update(ctx context.Context, id string, req *api.UpdateReportReq) error {
-	err := rs.reportRepo.Update(ctx, id, func(rep *db.SessionReport) error {
-		rep.MessageID = req.MessageID
-		return nil
-	})
-	if errors.Is(err, db.ErrEntityNotFound) {
-		return ErrReportNotFound
-	}
-	return err
-}
-
 func (rs *ReportService) Confirm(ctx context.Context, id string) error {
 	err := rs.reportRepo.Update(ctx, id, func(rep *db.SessionReport) error {
 		if rep.ReportedAt.IsNull() {

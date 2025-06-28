@@ -31,22 +31,10 @@ func NewDiscussionService(env *app.AppEnvironment) *DiscussionService {
 }
 
 func (d *DiscussionService) RecordReply(ctx context.Context, req *api.RecordReplyReq) (*api.RecordReplyResp, error) {
-	// First check if the message was a directl reply to the report.
-	report, err := d.reportRepo.FindByMessageID(ctx, req.Reporter, req.InReplyTo)
+	reportID, err := d.identifyReport(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to search among the reports: %w", err)
-	}
-	var reportID string
-	if report != nil {
-		reportID = report.ID
-	} else {
-		// Now try to find a matching reply.
-		reportID, err = d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.InReplyTo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to search among the replies: %w", err)
-		}
-	}
-	if reportID == "" {
+		return nil, err
+	} else if reportID == "" {
 		// We could not find the related report.
 		return &api.RecordReplyResp{}, nil
 	}
@@ -77,4 +65,23 @@ func (d *DiscussionService) LastReply(ctx context.Context, reporter string) (*ap
 		return &api.LastReplyResp{Time: reply.Time}, nil
 	}
 	return &api.LastReplyResp{}, nil
+}
+
+func (d *DiscussionService) identifyReport(ctx context.Context, req *api.RecordReplyReq) (string, error) {
+	// If the report ID was passed explicitly, just verify it.
+	if req.ReportID != "" {
+		report, err := d.reportRepo.GetByID(ctx, req.ReportID)
+		if err != nil {
+			return "", fmt.Errorf("failed to query the report: %w", err)
+		} else if report != nil {
+			return report.ID, nil
+		}
+		return "", nil
+	}
+	// Now try to find a matching reply.
+	reportID, err := d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.InReplyTo)
+	if err != nil {
+		return "", fmt.Errorf("search among the replies failed: %w", err)
+	}
+	return reportID, nil
 }

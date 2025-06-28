@@ -93,11 +93,13 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to send: %w", err)
 	}
-
-	// Now that the report is sent, update the link to the email discussion.
-	err = h.apiClient.UpdateReport(ctx, rep.ID, &api.UpdateReportReq{
+	// Record MessageID so that we could later trace user replies back to it.
+	_, err = h.apiClient.RecordReply(ctx, &api.RecordReplyReq{
 		// TODO: for Lore emails, set Link = lore.Link(msgID).
 		MessageID: msgID,
+		Time:      time.Now(),
+		ReportID:  rep.ID,
+		Reporter:  h.reporter,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update: %w", err)
