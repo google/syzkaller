@@ -1,30 +1,22 @@
-# Copyright 2025 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+# this code was automatically generated, do not modify
 
-# Import constants needed for openat(2), like O_WRONLY.
-include <linux/fcntl.h>
+nested {
+        value   int8
+}
 
-resource fd_kftf_fuzzable[fd]
-resource fd_int_sqrt[fd]
+top_level {
+        nested  nested
+}
 
 kftf_simple_arg {
-	first	int8
-	second	int8
-	third	int8
+        first   top_level
+        second  nested
+        third   top_level
 }
-
-kftf_test_name = "kftf_fuzzable"
-
-syz_kfuzztest_run(name ptr[in, string[kftf_test_name]], data ptr[in, kftf_simple_arg], len bytesize[data])
-
-openat$kftf_fuzzable(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kftf/kftf_fuzzable/input"]], flags const[O_WRONLY], mode const[0]) fd_kftf_fuzzable
-write$kftf_fuzzable(fd fd_kftf_fuzzable, data ptr[in, kftf_simple_arg], len bytesize[data])
-close$kftf_fuzzable(fd fd_kftf_fuzzable)
 
 int_sqrt_arg {
-	x	int64
+        x       int64
 }
 
-openat$int_sqrt(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/kftf/int_sqrt/input"]], flags const[O_WRONLY], mode const[0]) fd_int_sqrt
-write$int_sqrt(fd fd_int_sqrt, data ptr[in, int_sqrt_arg], len bytesize[data])
-close$int_sqrt(fd fd_int_sqrt)
+syz_kfuzztest_run$int_sqrt(name ptr[in, string["int_sqrt"]], data ptr[in, int_sqrt_arg], len bytesize[data])
+syz_kfuzztest_run$kftf_fuzzable(name ptr[in, string["kftf_fuzzable"]], data ptr[in, kftf_simple_arg], len bytesize[data])

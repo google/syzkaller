@@ -503,6 +503,27 @@ func (serv *server) runCheck(ctx context.Context, info *handshakeResult) error {
 		}
 	}
 
+	// generate test cases
+	// for _, fuzzTarg := range info.KFuzzTargets {
+	// 	_ = kfuzztest.KFuzzTestGenerate(fuzzTarg.FuncName, fuzzTarg.FuncArgType)
+	// }
+
+	fmt.Printf("kfuzztest syscall\n")
+	for call := range enabledCalls {
+		if !strings.Contains(call.Name, "kfuzztest") {
+			continue
+		}
+
+		fmt.Printf("ID: %d\n", call.ID)
+		fmt.Printf("NR: %d\n", call.NR)
+		fmt.Printf("name: %s\n", call.Name)
+		fmt.Printf("CallName: %s\n", call.CallName)
+		fmt.Printf("Args:\n")
+		for _, arg := range call.Args {
+			fmt.Printf("\tName: %s\n", arg.String())
+		}
+	}
+
 	// for _, target := range serv.target.Syscalls {
 	// 	if discoveredSyscalls[target.Name] {
 	// 		enabledCalls[target] = true
