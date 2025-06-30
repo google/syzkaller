@@ -177,6 +177,7 @@ loop:
 				// Report it as error so that we could at least find it in the logs.
 				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
 			} else if ret.crashReport == nil {
+				dc.new.symbolize(ret.origReport)
 				dc.store.BaseNotCrashed(ret.origReport.Title)
 				select {
 				case <-ctx.Done():
@@ -654,6 +655,13 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 	select {
 	case rr.done <- ret:
 	case <-ctx.Done():
+	}
+}
+
+func (kc *kernelContext) symbolize(rep *report.Report) {
+	err := kc.reporter.Symbolize(rep)
+	if err != nil {
+		log.Logf(0, "failed to symbolize: %v", err)
 	}
 }
 
