@@ -3,6 +3,7 @@
 Dear researchers, feel free to contact us at syzkaller@googlegroups.com if you need any assistance.
 
 _newer first_
+* [Unlocking Low Frequency Syscalls in Kernel Fuzzing with Dependency-Based RAG](https://dl.acm.org/doi/abs/10.1145/3728913) ([pdf](https://dl.acm.org/doi/pdf/10.1145/3728913), [source code](https://github.com/QGrain/SyzGPT))
 * [A Little Goes a Long Way: Tuning Configuration Selection for Continuous Kernel Fuzzing](https://www.computer.org/csdl/proceedings-article/icse/2025/056900a521/215aWUHqo9i)
 * [SyzDirect: Directed Greybox Fuzzing for Linux Kernel](https://dl.acm.org/doi/abs/10.1145/3576915.3623146)
 * [KIT: Testing OS-Level Virtualization for Functional Interference Bugs](https://doi.org/10.1145/3575693.3575731)
