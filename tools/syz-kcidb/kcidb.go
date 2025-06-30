@@ -15,7 +15,7 @@ import (
 
 func main() {
 	const (
-		origin    = "syzkcidb"
+		origin    = "syzbot"
 		projectID = "kernelci-production"
 		topicName = "playground_kernelci_new"
 	)

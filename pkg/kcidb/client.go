@@ -90,19 +90,18 @@ func kcidbValidate(data []byte) error {
 func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb {
 	res := &Kcidb{
 		Version: &Version{
-			Major: 3,
-			Minor: 0,
+			Major: 5,
+			Minor: 3,
 		},
-		Revisions: []*Revision{
+		Checkouts: []*Checkout{
 			{
 				Origin:              c.origin,
-				ID:                  bug.KernelCommit,
+				ID:                  c.extID(bug.KernelCommit),
 				GitRepositoryURL:    normalizeRepo(bug.KernelRepo),
 				GitCommitHash:       bug.KernelCommit,
 				GitRepositoryBranch: bug.KernelBranch,
-				Description:         bug.KernelCommitTitle,
-				PublishingTime:      bug.KernelCommitDate.Format(time.RFC3339),
-				DiscoveryTime:       bug.BuildTime.Format(time.RFC3339),
+				Comment:         bug.KernelCommitTitle,
+				StartTime:       bug.BuildTime.Format(time.RFC3339),
 				Valid:               true,
 			},
 		},
@@ -110,18 +109,18 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 			{
 				Origin:       c.origin,
 				ID:           c.extID(bug.BuildID),
-				RevisionID:   bug.KernelCommit,
+				CheckoutID:   c.extID(bug.KernelCommit),
 				Architecture: target.KernelArch,
 				Compiler:     bug.CompilerID,
 				StartTime:    bug.BuildTime.Format(time.RFC3339),
 				ConfigURL:    bug.KernelConfigLink,
-				Valid:        true,
+				Status:       "PASS",
 			},
 		},
 	}
 	if strings.Contains(bug.Title, "build error") {
 		build := res.Builds[0]
-		build.Valid = false
+		build.Status = "FAIL"
 		build.LogURL = bug.LogLink
 		build.Misc = &BuildMisc{
 			OriginURL:  bug.Link,
@@ -156,9 +155,8 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 				Path:        "syzkaller",
 				StartTime:   bug.CrashTime.Format(time.RFC3339),
 				OutputFiles: outputFiles,
-				Description: bug.Title,
+				Comment: bug.Title,
 				Status:      "FAIL",
-				Waived:      false,
 				Misc: &TestMisc{
 					OriginURL:       bug.Link,
 					ReportedBy:      bug.CreditEmail,
