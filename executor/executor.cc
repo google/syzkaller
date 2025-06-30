@@ -954,7 +954,7 @@ void execute_one()
 	// (it's fixed and known anyway).
 	output_builder.emplace(output_data, output_size, !flag_snapshot);
 	uint64 start = current_time_ms();
-	uint8* input_pos = input_data; // global
+	uint8* input_pos = input_data;
 
 	if (cover_collection_required()) {
 		if (!flag_threaded)

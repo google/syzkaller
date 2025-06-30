@@ -82,7 +82,6 @@ func (checker *Checker) MachineInfo(fileInfos []*flatrpc.FileInfo) ([]*KernelMod
 	if err != nil {
 		return nil, nil, err
 	}
-
 	info := new(bytes.Buffer)
 	tmp := new(bytes.Buffer)
 	for _, fn := range checker.machineInfos() {

@@ -1,7 +1,6 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#include "pkg/flatrpc/flatrpc.h"
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -11,7 +10,6 @@
 #include <algorithm>
 #include <deque>
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -183,7 +181,7 @@ public:
 	}
 
 private:
-	enum State : uint8 { // this is cool I didn't know you could do this
+	enum State : uint8 {
 		// The process has just started.
 		Started,
 		// We sent the process env flags and waiting for handshake reply.
@@ -640,8 +638,6 @@ private:
 		return (cookie * prime1) ^ prime2;
 	}
 
-	// this is perfect. So the executor_runner calls up into the manager, and
-	// then sends some information!
 	int Handshake()
 	{
 		// Handshake stage 0: get a cookie from the manager.
@@ -651,13 +647,12 @@ private:
 		// Handshake stage 1: share basic information about the client.
 		rpc::ConnectRequestRawT conn_req;
 		conn_req.cookie = HashAuthCookie(conn_hello.cookie);
-		conn_req.id = vm_index_; // I guess it knows this because it was created with it??
+		conn_req.id = vm_index_;
 		conn_req.arch = GOARCH;
 		conn_req.git_revision = GIT_REVISION;
 		conn_req.syz_revision = SYZ_REVISION;
 		conn_.Send(conn_req);
 
-		// get some information about how we are going to execute syscalls.
 		rpc::ConnectReplyRawT conn_reply;
 		conn_.Recv(conn_reply);
 		if (conn_reply.debug)
@@ -677,29 +672,8 @@ private:
 			max_signal_.emplace();
 
 		// Handshake stage 2: share information requested by the manager.
-		// EG: This is what we see handled in rpc_server.go/handleMachineInfo.
 		rpc::InfoRequestRawT info_req;
-		// these files are explicitly requested in `pkg/vminfo`.
 		info_req.files = ReadFiles(conn_reply.files);
-		info_req.kfuzz_targets = DiscoverKFuzzTargets();
-		std::cout << "executor_runner.h: enumerating kfuzz targets" << std::endl;
-
-		for (auto& targ : info_req.kfuzz_targets) {
-			std::cout << "\t{" << targ->func_name << ", " << targ->func_arg_type << "}" << std::endl;
-		}
-
-		// XXX: we could put discovery right over here inside of the info reply.
-		// Instead of VMInfo explicitly requesting files to be read, the runner
-		// will look inside of the `/sys/kernel/debug/kftf/*` dirs and return
-		// the name of all the fuzz targets that it discovers. The runner.go
-		// file can then propagate these up to the rpc server I guess?
-
-		// EG: this confirms the files that we are receiving from the host!
-		std::cout << "executor_runner.h: reading files..." << std::endl;
-		for (std::string& file : conn_reply.files) {
-			std::cout << "\t" << file << std::endl;
-		}
-		std::cout << "executor_runner.h: Done reading files from request." << std::endl;
 
 		// This does any one-time setup for the requested features on the machine.
 		// Note: this can be called multiple times and must be idempotent.

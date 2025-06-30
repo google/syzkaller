@@ -24,7 +24,6 @@ type ConnectReply = ConnectReplyRawT
 type InfoRequest = InfoRequestRawT
 type InfoReply = InfoReplyRawT
 type FileInfo = FileInfoRawT
-type KFuzzTarget = KFuzzTargetRawT
 type GlobInfo = GlobInfoRawT
 type FeatureInfo = FeatureInfoRawT
 type HostMessages = HostMessagesRawT

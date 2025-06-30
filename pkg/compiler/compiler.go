@@ -100,14 +100,6 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		return nil
 	}
 	syscalls := comp.genSyscalls()
-	for _, call := range syscalls {
-		if strings.Contains(call.Name, "kfuzztest") {
-			for _, field := range call.Args {
-				fmt.Printf("%+v\n", field)
-			}
-		}
-	}
-
 	comp.layoutTypes(syscalls)
 	types := comp.generateTypes(syscalls)
 	prg := &Prog{
@@ -116,7 +108,6 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		Types:       types,
 		Unsupported: comp.unsupported,
 	}
-
 	if comp.errors != 0 {
 		return nil
 	}

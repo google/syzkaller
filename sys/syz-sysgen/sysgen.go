@@ -73,7 +73,6 @@ var outDir = flag.String("out", "", "path to out dir")
 func main() {
 	defer tool.Init()()
 
-	// the files that we generate are all .gob.flate files!
 	// Cleanup old files in the case set of architectures has chnaged.
 	allFiles, err := filepath.Glob(filepath.Join(*outDir, "sys", generated.Glob()))
 	if err != nil {

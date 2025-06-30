@@ -1,21 +1,21 @@
 # this code was automatically generated, do not modify
 
 nested {
-        value   int8
+	value	int8
 }
 
 top_level {
-        nested  nested
+	nested	nested
 }
 
 kftf_simple_arg {
-        first   top_level
-        second  nested
-        third   top_level
+	first	top_level
+	second	nested
+	third	top_level
 }
 
 int_sqrt_arg {
-        x       int64
+	x	int64
 }
 
 syz_kfuzztest_run$int_sqrt(name ptr[in, string["int_sqrt"]], data ptr[in, int_sqrt_arg], len bytesize[data])
