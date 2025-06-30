@@ -4,11 +4,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -366,12 +366,10 @@ type CCConfig struct {
 type KcidbConfig struct {
 	// Origin is how this system identified in Kcidb, e.g. "syzbot_foobar".
 	Origin string
-	// Project is Kcidb GCE project name, e.g. "kernelci-production".
-	Project string
-	// Topic is pubsub topic to publish messages to, e.g. "playground_kernelci_new".
-	Topic string
-	// Credentials is Google application credentials file contents to use for authorization.
-	Credentials []byte
+	// RestURI is the REST API endpoint to which the Kcidb client will send data.
+	RestURI string
+	// Token is the authorization token to use for the Kcidb client.
+	Token string
 }
 
 // ThrottleConfig determines how many requests a single client can make in a period of time.
@@ -813,14 +811,15 @@ func checkKcidb(ns string, kcidb *KcidbConfig) {
 	if !regexp.MustCompile("^[a-z0-9_]+$").MatchString(kcidb.Origin) {
 		panic(fmt.Sprintf("%v: bad Kcidb origin %q", ns, kcidb.Origin))
 	}
-	if kcidb.Project == "" {
-		panic(fmt.Sprintf("%v: empty Kcidb project", ns))
+	if kcidb.RestURI == "" {
+		panic(fmt.Sprintf("%v: empty Kcidb RestURI", ns))
 	}
-	if kcidb.Topic == "" {
-		panic(fmt.Sprintf("%v: empty Kcidb topic", ns))
+	// Validate RestURI must be a valid URL.
+	if _, err := url.ParseRequestURI(kcidb.RestURI); err != nil {
+		panic(fmt.Sprintf("%v: invalid Kcidb RestURI %q: %v", ns, kcidb.RestURI, err))
 	}
-	if !bytes.Contains(kcidb.Credentials, []byte("private_key")) {
-		panic(fmt.Sprintf("%v: empty Kcidb credentials", ns))
+	if kcidb.Token == "" || len(kcidb.Token) < 8 {
+		panic(fmt.Sprintf("%v: bad Kcidb token %q", ns, kcidb.Token))
 	}
 }
 
