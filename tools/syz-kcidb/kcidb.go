@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"flag"
-	"os"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/kcidb"
@@ -20,7 +19,8 @@ func main() {
 		topicName = "playground_kernelci_new"
 	)
 	var (
-		flagCred       = flag.String("cred", "", "application credentials file for KCIDB")
+		flagRestURI    = flag.String("rest", "", "REST API endpoint for KCIDB")
+		flagToken      = flag.String("token", "", "KCIDB API token")
 		flagDashClient = flag.String("client", "", "dashboard client")
 		flagDashAddr   = flag.String("addr", "", "dashboard address")
 		flagDashKey    = flag.String("key", "", "dashboard API key")
@@ -37,12 +37,8 @@ func main() {
 		tool.Fail(err)
 	}
 
-	cred, err := os.ReadFile(*flagCred)
-	if err != nil {
-		tool.Fail(err)
-	}
 	kcidb.Validate = true
-	client, err := kcidb.NewClient(context.Background(), origin, projectID, topicName, cred)
+	client, err := kcidb.NewClient(context.Background(), origin, *flagRestURI, *flagToken)
 	if err != nil {
 		tool.Fail(err)
 	}
