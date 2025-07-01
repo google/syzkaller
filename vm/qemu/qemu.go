@@ -201,8 +201,8 @@ var archConfigs = map[string]*archConfig{
 	},
 	"linux/s390x": {
 		Qemu:     "qemu-system-s390x",
-		QemuArgs: "-M s390-ccw-virtio -cpu max,zpci=on",
-		NetDev:   "virtio-net-pci",
+		QemuArgs: "-M s390-ccw-virtio -cpu max",
+		NetDev:   "virtio-net-ccw",
 		RngDev:   "virtio-rng-ccw",
 		CmdLine: []string{
 			"root=/dev/vda",
