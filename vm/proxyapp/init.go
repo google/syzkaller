@@ -20,9 +20,10 @@ import (
 
 func makeDefaultParams() *proxyAppParams {
 	return &proxyAppParams{
-		CommandRunner:  osutilCommandContext,
-		InitRetryDelay: 10 * time.Second,
-		LogOutput:      os.Stdout,
+		CommandRunner:       osutilCommandContext,
+		InitRetryDelay:      10 * time.Second,
+		CreateInstanceDelay: 1 * time.Second,
+		LogOutput:           os.Stdout,
 	}
 }
 
@@ -36,9 +37,10 @@ func init() {
 
 // Package configuration VARs are mostly needed for tests.
 type proxyAppParams struct {
-	CommandRunner  func(context.Context, string, ...string) subProcessCmd
-	InitRetryDelay time.Duration
-	LogOutput      io.Writer
+	CommandRunner       func(context.Context, string, ...string) subProcessCmd
+	InitRetryDelay      time.Duration
+	CreateInstanceDelay time.Duration
+	LogOutput           io.Writer
 }
 
 func osutilCommandContext(ctx context.Context, bin string, args ...string) subProcessCmd {

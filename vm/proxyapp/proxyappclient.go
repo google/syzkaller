@@ -181,6 +181,7 @@ type ProxyApp struct {
 	onLostConnection    chan bool
 	stopLogPooling      chan bool
 	logPoolingDone      chan bool
+	params              *proxyAppParams
 }
 
 func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, []io.Closer, error) {
@@ -290,6 +291,7 @@ func runProxyApp(params *proxyAppParams, cmd string, initRPClient bool) (*ProxyA
 		Client:       client,
 		terminate:    cancelContext,
 		onTerminated: onTerminated,
+		params:       params,
 	}, nil
 }
 
@@ -406,6 +408,7 @@ func (proxy *ProxyApp) CreateInstance(workdir, image string, index int) (vmimpl.
 		params.WorkdirData = workdirData
 	}
 
+	time.Sleep(proxy.params.CreateInstanceDelay)
 	err := proxy.Call("ProxyVM.CreateInstance", params, &reply)
 	if err != nil {
 		return nil, fmt.Errorf("failed to proxy.Call(\"ProxyVM.CreateInstance\"): %w", err)

@@ -33,9 +33,10 @@ var testEnv = &vmimpl.Env{
 
 func makeTestParams() *proxyAppParams {
 	return &proxyAppParams{
-		CommandRunner:  osutilCommandContext,
-		InitRetryDelay: 0,
-		LogOutput:      io.Discard,
+		CommandRunner:       osutilCommandContext,
+		InitRetryDelay:      0,
+		CreateInstanceDelay: 0,
+		LogOutput:           io.Discard,
 	}
 }
 
