@@ -16,7 +16,7 @@ require (
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.6.5
 	github.com/dvyukov/go-fuzz v0.0.0-20220726122315-1d375ef9f9f6
-	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/golangci/golangci-lint v1.63.4
 	github.com/google/flatbuffers v25.1.24+incompatible
 	github.com/google/generative-ai-go v0.19.0
