@@ -1,4 +1,5 @@
 TITLE: panic: assertion failed: in6p == NULL || (in6p->inp_vflag & INP_IPV6)
+TYPE: DoS
 
 panic(cpu 0 caller 0xffffff801f3ada45): assertion failed: in6p == NULL || (in6p->inp_vflag & INP_IPV6), file: /Users/space/kernel/xnu-7195.81.3/bsd/netinet6/in6_mcast.c, line: 1905
 Backtrace (CPU 0), Frame : Return Address

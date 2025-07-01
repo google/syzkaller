@@ -1,4 +1,5 @@
 TITLE: panic: executor NUM: failed: event already set (errno NUM)
+TYPE: DoS
 
 panic: executor 2: failed: event already set (errno 0)
 child failed (errno 2)

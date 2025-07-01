@@ -1,5 +1,6 @@
 TITLE: general protection fault in nl802154_add_llsec_key
 ALT: bad-access in nl802154_add_llsec_key
+TYPE: DoS
 
 [   65.899519][ T6734] general protection fault, probably for non-canonical address 0xdffffc0000000000: 0000 [#1] SMP KASAN
 [   65.901961][ T6734] KASAN: null-ptr-deref in range [0x0000000000000000-0x0000000000000007]

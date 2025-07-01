@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in vgic_mmio_write_invlpi
 ALT: bad-access in vgic_mmio_write_invlpi
+TYPE: MEMORY_SAFETY_BUG
 FRAME: vgic_mmio_write_invlpi
 EXECUTOR: proc=2, id=929
 

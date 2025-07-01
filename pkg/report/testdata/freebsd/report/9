@@ -1,4 +1,5 @@
 TITLE: panic: sctp: no chunks on the queues
+TYPE: DoS
 
 panic: No chunks on the queues for sid 5.
 cpuid = 0

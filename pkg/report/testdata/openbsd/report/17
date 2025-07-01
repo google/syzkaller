@@ -1,4 +1,5 @@
 TITLE: panic: attempt to execute user address
+TYPE: DoS
 
 panic: attempt to execute user address 0xf7 in supervisor mode
 Stopped at      db_enter+0x18:  addq    $0x8,%rsp

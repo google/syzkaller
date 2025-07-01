@@ -1,4 +1,5 @@
 TITLE: panic: cleaned vnode isn't
+TYPE: DoS
 
 login: cleaned vnode: 0xffffff001742a5c0, type VBAD, use 0, write 0, hold 0,
 	tag VT_UFS, ino 26028, on dev 4, 0 flags 0x100, effnlink 1, nlink 1

@@ -1,4 +1,5 @@
 TITLE: panic: payload too small
+TYPE: DoS
 
 [00121.386] 05209.05460> panic: payload too small
 [00121.386] 05209.05460> 

@@ -1,5 +1,6 @@
 TITLE: general protection fault in set_next_entity
 ALT: bad-access in set_next_entity
+TYPE: DoS
 
 [   61.686373] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [   61.693805] general protection fault: 0000 [#1] PREEMPT SMP KASAN

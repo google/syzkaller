@@ -1,4 +1,5 @@
 TITLE: panic: size_on_all_streams smaller than control length
+TYPE: DoS
 
 panic: size_on_all_streams = 2644 smaller than control length 4096
 cpuid = 0

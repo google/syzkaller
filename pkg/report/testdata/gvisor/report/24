@@ -1,4 +1,5 @@
 TITLE: panic: unable to activate mm: creating stub process: resource temporarily unavailable
+TYPE: DoS
 SUPPRESSED: Y
 
 panic: unable to activate mm: creating stub process: resource temporarily unavailable

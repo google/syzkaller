@@ -1,5 +1,6 @@
 TITLE: general protection fault in fq_reset
 ALT: bad-access in fq_reset
+TYPE: DoS
 
 [ 1503.551672][T10069] general protection fault, probably for non-canonical address 0xdffffc000eeeeef0: 0000 [#1] PREEMPT SMP KASAN
 [ 1503.563429][T10069] KASAN: probably user-memory-access in range [0x0000000077777780-0x0000000077777787]

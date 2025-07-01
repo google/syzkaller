@@ -1,5 +1,6 @@
 # This is not corrupted but we don't understand this stack trace format.
 TITLE: PANIC: double fault in compat_sock_ioctl
+TYPE: DoS
 CORRUPTED: Y
 
 [   10.584905] PANIC: double fault, error_code: 0x0

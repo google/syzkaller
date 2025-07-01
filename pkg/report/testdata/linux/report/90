@@ -1,4 +1,5 @@
 TITLE: kernel panic: Couldn't open N_TTY ldisc
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1722.511384] Kernel panic - not syncing: Couldn't open N_TTY ldisc for ptm1 --- error -12.

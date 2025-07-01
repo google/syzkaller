@@ -1,5 +1,6 @@
 TITLE: general protection fault in timerqueue_del
 ALT: bad-access in timerqueue_del
+TYPE: DoS
 
 [  110.420358][    C0] general protection fault: 0000 [#1] PREEMPT SMP KASAN
 [  110.427307][    C0] CPU: 0 PID: 12754 Comm: syz-executor.2 Not tainted 5.3.0-rc2 #81

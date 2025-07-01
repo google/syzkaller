@@ -1,4 +1,5 @@
 TITLE: panic: not implemented
+TYPE: DoS
 
 [00058.247] 05208.08054> panic: not implemented
 [00058.247] 05208.08054> 

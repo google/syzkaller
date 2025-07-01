@@ -1,5 +1,6 @@
 TITLE: Unhandled fault in jffs2_parse_param
 ALT: bad-access in jffs2_parse_param
+TYPE: DoS
 
 8<--- cut here ---
 Unhandled fault: page domain fault (0x01b) at 0x00000008

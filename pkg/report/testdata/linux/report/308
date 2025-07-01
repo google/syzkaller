@@ -1,5 +1,6 @@
 TITLE: general protection fault in __aa_lookupn_ns
 ALT: bad-access in __aa_lookupn_ns
+TYPE: DoS
 
 [  234.220213] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [  234.245620] general protection fault: 0000 [#1] PREEMPT SMP KASAN

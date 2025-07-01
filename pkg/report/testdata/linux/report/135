@@ -1,4 +1,5 @@
 TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
+TYPE: LOCKDEP
 
 [  177.880417] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor6/27031
 [  177.889042] caller is __this_cpu_preempt_check+0x13/0x20

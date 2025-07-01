@@ -1,4 +1,5 @@
 TITLE: panic: kernel diagnostic assertion "tname->un_flags serialport: VM disconnected.
+TYPE: DoS
 CORRUPTED: Y
 
 16:00:17 executing program 0:

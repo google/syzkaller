@@ -1,4 +1,5 @@
 TITLE: PANIC: double fault in corrupted
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1009.603175] PANIC: double fault, error_code: 0x0

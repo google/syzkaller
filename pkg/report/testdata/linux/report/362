@@ -1,5 +1,6 @@
 TITLE: general protection fault in shrink_slab
 ALT: bad-access in shrink_slab
+TYPE: DoS
 
 [  415.516184] kasan: CONFIG_KASAN_INLINE enabled
 [  415.520916] kasan: GPF could be caused by NULL-ptr deref or user memory access

@@ -1,4 +1,5 @@
 TITLE: panic: vop_generic_badop
+TYPE: DoS
 
 panic: vop_generic_bapdoapn
 iStopped at     db_enter+0x18:  addq    $0x8,%rsp

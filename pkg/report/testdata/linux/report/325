@@ -1,4 +1,5 @@
 TITLE: PANIC: double fault in __udp6_lib_lookup
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1017.993148] PANIC: double fault, error_code: 0x0

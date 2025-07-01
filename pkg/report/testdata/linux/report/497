@@ -1,4 +1,5 @@
 TITLE: BUG: using smp_processor_id() in preemptible code in ext4_mb_new_blocks
+TYPE: LOCKDEP
 
 [   52.199503][ T6731] BUG: using smp_processor_id() in preemptible [00000000] code: systemd-rfkill/6731
 [   52.208990][ T6731] caller is ext4_mb_new_blocks+0xa4d/0x3b70

@@ -1,4 +1,5 @@
 TITLE: trusty: ASSERT FAILED:
+TYPE: DoS
 CORRUPTED: Y
 
 [  330.928744] trusty: trusty_app 6: brk:  start 0x0000e5e0 end 0x0000f5e0

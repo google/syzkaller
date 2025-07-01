@@ -1,5 +1,6 @@
 TITLE: general protection fault in integrity_inode_free
 ALT: bad-access in integrity_inode_free
+TYPE: DoS
 
 [   36.583433] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [   36.590897] general protection fault: 0000 [#1] PREEMPT SMP KASAN

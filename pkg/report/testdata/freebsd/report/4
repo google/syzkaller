@@ -1,4 +1,5 @@
 TITLE: panic: mtx_lock() of destroyed mutex at sys/kern/sys_socket.c:LINE
+TYPE: DoS
 
 login: panic: mtx_lock() of destroyed mutex @ /mnt/go/src/github.com/google/syzkaller/bin/managers/freebsd/kernel/sys/kern/sys_socket.c:316
 cpuid = 0

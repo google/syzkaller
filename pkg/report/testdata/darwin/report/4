@@ -1,4 +1,5 @@
 TITLE: panic: pf_send_tcp: not AF_INET or AF_INET6!
+TYPE: DoS
 
 panic(cpu 1 caller 0xffffff801d080ed5): "pf_send_tcp: not AF_INET or AF_INET6!"@/Users/space/kernel/xnu-7195.81.3/bsd/net/pf.c:2578
 Backtrace (CPU 1), Frame : Return Address

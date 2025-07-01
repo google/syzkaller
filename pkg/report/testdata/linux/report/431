@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in partition_sched_domains_locked
 ALT: bad-access in partition_sched_domains_locked
+TYPE: MEMORY_SAFETY_BUG
 
 IPVS: ftp: loaded support on port[0] = 21
 IPVS: ftp: loaded support on port[0] = 21

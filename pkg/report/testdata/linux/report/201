@@ -1,5 +1,6 @@
 TITLE: general protection fault in corrupted
 ALT: bad-access in corrupted
+TYPE: DoS
 CORRUPTED: Y
 
 [   32.536478] binder: BINDER_SET_CONTEXT_MGR already set

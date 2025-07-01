@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in nfsd_reply_cache_free_locked
 ALT: bad-access in nfsd_reply_cache_free_locked
+TYPE: MEMORY_SAFETY_BUG
 
 [ 1261.886878][ T8682] BUG: unable to handle page fault for address: ffff887ffffffff0
 [ 1261.894638][ T8682] #PF: supervisor read access in kernel mode

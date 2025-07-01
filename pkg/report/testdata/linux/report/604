@@ -3,6 +3,7 @@
 # This looks like a bug in the arm64 kernel unwinder.
 TITLE: Internal error in el0_svc_naked
 ALT: bad-access in el0_svc_naked
+TYPE: DoS
 
 [   28.231851] Internal error: Oops - SP/PC alignment exception: 8a000000 [#1] PREEMPT SMP
 [   28.231866] Modules linked in:
