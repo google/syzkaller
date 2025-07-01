@@ -1,4 +1,5 @@
 TITLE: panic: runtime error: invalid memory address or nil pointer dereference
+TYPE: DoS
 
 r9 = getuid()
 ioctl$TUNSETOWNER(r3, 0x400454cc, r9)

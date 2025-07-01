@@ -1,4 +1,5 @@
 TITLE: panic: Decrementing non-positive ref count
+TYPE: DoS
 
 I0617 06:54:32.688334   62388 x:0] [ 1843] Error opening /bin/sh: no such file or directory
 I0617 06:54:32.688354   62388 x:0] [ 1843] Failed to load /bin/sh: no such file or directory

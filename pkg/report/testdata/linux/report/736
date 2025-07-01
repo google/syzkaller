@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in process_srcu
 ALT: bad-access in process_srcu
+TYPE: MEMORY_SAFETY_BUG
 FRAME: process_srcu
 
 

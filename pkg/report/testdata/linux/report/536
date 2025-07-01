@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in selinux_socket_sendmsg
 ALT: bad-access in selinux_socket_sendmsg
+TYPE: MEMORY_SAFETY_BUG
 
 [ 1418.056449][ T6604] Unable to handle kernel paging request at virtual address dfffa00000000003
 [ 1418.057778][ T6604] Mem abort info:

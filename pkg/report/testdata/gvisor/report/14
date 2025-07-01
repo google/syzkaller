@@ -1,4 +1,5 @@
 TITLE: panic: ptrace sysemu failed: no such process
+TYPE: DoS
 SUPPRESSED: Y
 
 panic: ptrace sysemu failed: no such process

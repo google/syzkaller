@@ -1,4 +1,5 @@
 TITLE: divide error in __tcp_select_window
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1722.511384] divide error: 0000 [#1] SMP KASAN

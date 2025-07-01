@@ -1,5 +1,6 @@
 TITLE: general protection fault in device_find_child
 ALT: bad-access in device_find_child
+TYPE: DoS
 
 
 [   50.704637][   T48] sysfs: cannot create duplicate filename '/devices/virtual/bluetooth/hci0/hci0:201'

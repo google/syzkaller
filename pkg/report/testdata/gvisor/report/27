@@ -1,4 +1,5 @@
 TITLE: panic: header.ScopeForIPv6Address(IP): bad address
+TYPE: DoS
 
 panic: header.ScopeForIPv6Address(172.20.20.24): bad address
 

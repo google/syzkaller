@@ -1,4 +1,5 @@
 TITLE: panic: sbflush_internal: residual data
+TYPE: DoS
 
 panic: sbflush_internal: ccc 0 mb 0 mbcnt 768
 cpuid = 0

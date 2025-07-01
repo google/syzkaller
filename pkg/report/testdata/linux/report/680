@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in simple_xattr_alloc
 ALT: bad-access in simple_xattr_alloc
+TYPE: MEMORY_SAFETY_BUG
 
 [   34.404245][ T3083] Unable to handle kernel paging request at virtual address 00616161616161a1
 [   34.406713][ T3083] Mem abort info:

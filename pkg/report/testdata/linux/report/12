@@ -1,5 +1,6 @@
 TITLE: general protection fault in drm_legacy_newctx
 ALT: bad-access in drm_legacy_newctx
+TYPE: DoS
 START: [ 1021.364461] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
 CORRUPTED: Y
 

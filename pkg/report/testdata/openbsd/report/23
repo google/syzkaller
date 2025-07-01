@@ -1,4 +1,5 @@
 TITLE: panic: unhandled af
+TYPE: DoS
 
 panic: unhandled af 1
 Stopped at      db_enter+0x18:  addq    $0x8,%rsp

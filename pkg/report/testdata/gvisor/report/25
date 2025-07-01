@@ -1,4 +1,5 @@
 TITLE: panic: Sentry detected stuck tasks
+TYPE: DoS
 
 panic: Sentry detected 15 stuck task(s):
 	Task tid: 7045 (0x1b85), entered RunSys state 3m41.68s ago.

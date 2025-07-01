@@ -1,3 +1,4 @@
 TITLE: unregister_netdevice: waiting for DEV to become free
+TYPE: DoS
 
 [  624.887185] unregister_netdevice: waiting for lo to become free. Usage count = 5

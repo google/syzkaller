@@ -1,4 +1,5 @@
 TITLE: panic: MountNamespace.FindInode: path is empty
+TYPE: DoS
 
 move_pages(r2, 0x5, &(0x7f0000000080)=[&(0x7f0000ffb000/0x3000)=nil, &(0x7f0000ffb000/0x4000)=nil, &(0x7f0000ffc000/0x4000)=nil, &(0x7f0000ffd000/0x3000)=nil, &(0x7f0000ffc000/0x4000)=nil], 0x0, &(0x7f00000000c0), 0x4)
 write$cgroup_subtree(r1, &(0x7f0000000140), 0x0)

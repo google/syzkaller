@@ -1,4 +1,5 @@
 TITLE: divide error in snd_hrtimer_callback
+TYPE: DoS
 CORRUPTED: Y
 
 [  616.309156] divide error: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN

@@ -1,5 +1,6 @@
 TITLE: Unhandled fault in write_comp_data
 ALT: bad-access in write_comp_data
+TYPE: DoS
 
 [ 1328.320581][    C1] 8<--- cut here ---
 [ 1328.320974][    C1] Unhandled fault: page domain fault (0x01b) at 0x00000ea3

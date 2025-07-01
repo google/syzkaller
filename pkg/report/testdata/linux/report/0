@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in corrupted
 ALT: bad-access in corrupted
+TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
 
 [  772.918915] BUG: unable to handle kernel paging request at ffff88002bde1e40

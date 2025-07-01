@@ -1,4 +1,5 @@
 TITLE: BUG: Object already free
+TYPE: DoS
 CORRUPTED: Y
 
 [  367.131148] BUG kmalloc-8 (Tainted: G    B         ): Object already free

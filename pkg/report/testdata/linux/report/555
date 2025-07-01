@@ -1,5 +1,6 @@
 TITLE: Unhandled fault in __dabt_svc
 ALT: bad-access in __dabt_svc
+TYPE: DoS
 
 [ 9080.453689][T11783] 8<--- cut here ---
 [ 9080.454760][T11783] Unhandled fault: page domain fault (0x01b) at 0x00000e30

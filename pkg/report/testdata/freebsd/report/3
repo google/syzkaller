@@ -1,4 +1,5 @@
 TITLE: panic: ffs_write: type ADDR X (Y,Z)
+TYPE: DoS
 
 panic: ffs_write: type 0xfffff80036275ce8 8 (0,230)
 cpuid = 0

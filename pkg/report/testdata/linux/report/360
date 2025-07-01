@@ -1,5 +1,6 @@
 TITLE: general protection fault in locks_remove_file
 ALT: bad-access in locks_remove_file
+TYPE: DoS
 
 [   51.907753] kasan: CONFIG_KASAN_INLINE enabled
 [   51.913122] kasan: GPF could be caused by NULL-ptr deref or user memory access

@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in blk_rq_map_sg
 ALT: bad-access in blk_rq_map_sg
+TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
 
 [ 1722.511384] Unable to handle kernel paging request at virtual address 0c0c9ca0

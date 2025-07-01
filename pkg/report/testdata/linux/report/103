@@ -1,4 +1,5 @@
 TITLE: divide error in corrupted
+TYPE: DoS
 CORRUPTED: Y
 
 [   89.659427] netlink: 13 bytes leftover after parsing attributes in process syz-executor5'.

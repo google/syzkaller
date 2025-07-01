@@ -1,4 +1,5 @@
 TITLE: VFS: Busy inodes after unmount (use-after-free)
+TYPE: DoS
 
 
 VFS: Busy inodes after unmount of %s. Self-destruct in 5 seconds.  Have a nice day...

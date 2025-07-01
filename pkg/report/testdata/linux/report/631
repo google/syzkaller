@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in __unwind_start
 ALT: bad-access in __unwind_start
+TYPE: MEMORY_SAFETY_BUG
 
 [  335.953960][T15844] BUG: unable to handle page fault for address: ffffc9001652fa68
 [  335.961732][T15844] #PF: supervisor read access in kernel mode

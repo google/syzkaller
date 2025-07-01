@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in foo_ioctl
 ALT: bad-access in foo_ioctl
+TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
 
 foo

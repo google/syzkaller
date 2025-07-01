@@ -1,4 +1,5 @@
 TITLE: panic: runtime error: slice bounds out of range
+TYPE: DoS
 
 [00086.522] 04724.07088> panic: runtime error: slice bounds out of range
 [00086.522] 04724.07088> 

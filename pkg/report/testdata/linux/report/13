@@ -1,5 +1,6 @@
 TITLE: general protection fault in logfs_init_inode
 ALT: bad-access in logfs_init_inode
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1722.509639] kasan: GPF could be caused by NULL-ptr deref or user memory access

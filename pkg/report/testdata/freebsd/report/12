@@ -1,4 +1,5 @@
 TITLE: panic: sx lock still held in solisten_proto
+TYPE: DoS
 
 panic: sx lock still held
 cpuid = 0

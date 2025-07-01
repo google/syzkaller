@@ -1,4 +1,5 @@
 TITLE: divide error in tabledist
+TYPE: DoS
 
 [   63.550339][    C1] divide_error: 0000 [#1] PREEMPT SMP KASAN
 [   63.556240][    C1] CPU: 1 PID: 6855 Comm: syz-executor857 Not tainted 5.9.0-rc8-syzkaller #0

@@ -1,5 +1,6 @@
 TITLE: general protection fault in corrupted
 ALT: bad-access in corrupted
+TYPE: DoS
 CORRUPTED: Y
 
 [ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled

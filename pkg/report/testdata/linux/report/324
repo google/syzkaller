@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel paging request in lookup_object
 ALT: bad-access in lookup_object
+TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
 
 [  946.951230] BUG: unable to handle kernel paging request at 000000fe840fc4b9

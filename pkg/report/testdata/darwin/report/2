@@ -1,4 +1,5 @@
 TITLE: panic: in6p_route_copyout: wrong or corrupted route
+TYPE: DoS
 
 panic(cpu 1 caller 0xffffff80186da902): "in6p_route_copyout: wrong or corrupted route: 0xffffff8ae77ba750"@/Users/space/kernel/xnu-7195.81.3/bsd/netinet6/in6_pcb.c:1450
 Backtrace (CPU 1), Frame : Return Address

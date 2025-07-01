@@ -1,5 +1,6 @@
 TITLE: general protection fault in __kernfs_remove
 ALT: bad-access in __kernfs_remove
+TYPE: DoS
 
 [ 1703.516227][ T2809] general protection fault, probably for non-canonical address 0xdffffc0000000002: 0000 [#1] PREEMPT SMP KASAN
 [ 1703.528051][ T2809] KASAN: null-ptr-deref in range [0x0000000000000010-0x0000000000000017]
