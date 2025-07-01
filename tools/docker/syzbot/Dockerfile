@@ -32,7 +32,7 @@ RUN test "$(uname -m)" != x86_64 && exit 0 || \
 
 # Since go 1.21 the toolchain required by go.mod is automatically downloaded.
 # There is no need to version up golang here after go.mod changes.
-RUN curl https://dl.google.com/go/go1.22.7.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/go/go1.24.4.linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/').tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
 
 # The default clang-14 is too old, install the latest one.
