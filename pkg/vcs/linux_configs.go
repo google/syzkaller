@@ -99,46 +99,70 @@ func setLinuxTagConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 // setLinuxSanitizerConfigs() removes Linux kernel sanitizers that are not necessary
 // to trigger the specified crash types.
 func setLinuxSanitizerConfigs(cf *kconfig.ConfigFile, types []crash.Type, dt debugtracer.DebugTracer) {
-	keep := map[crash.Type]func(){
-		crash.Hang: func() {
-			cf.Unset("RCU_STALL_COMMON")
-			cf.Unset("LOCKUP_DETECTOR")
-			cf.Unset("SOFTLOCKUP_DETECTOR")
-			cf.Unset("HARDLOCKUP_DETECTOR")
-			cf.Unset("DETECT_HUNG_TASK")
-			// It looks like it's the only reliable way to completely disable hung errors.
-			cmdline := cf.Value("CMDLINE")
-			pos := strings.LastIndexByte(cmdline, '"')
-			const rcuStallSuppress = "rcupdate.rcu_cpu_stall_suppress=1"
-			if pos >= 0 && !strings.Contains(cmdline, rcuStallSuppress) {
-				cf.Set("CMDLINE", cmdline[:pos]+" "+rcuStallSuppress+cmdline[pos:])
-			}
+	keep := map[string]struct {
+		pred     crash.TypeGroupPred
+		disabler func()
+	}{
+		"hang": {
+			pred: crash.Type.IsHang,
+			disabler: func() {
+				cf.Unset("RCU_STALL_COMMON")
+				cf.Unset("LOCKUP_DETECTOR")
+				cf.Unset("SOFTLOCKUP_DETECTOR")
+				cf.Unset("HARDLOCKUP_DETECTOR")
+				cf.Unset("DETECT_HUNG_TASK")
+				// It looks like it's the only reliable way to completely disable hung errors.
+				cmdline := cf.Value("CMDLINE")
+				pos := strings.LastIndexByte(cmdline, '"')
+				const rcuStallSuppress = "rcupdate.rcu_cpu_stall_suppress=1"
+				if pos >= 0 && !strings.Contains(cmdline, rcuStallSuppress) {
+					cf.Set("CMDLINE", cmdline[:pos]+" "+rcuStallSuppress+cmdline[pos:])
+				}
+			},
 		},
-		crash.MemoryLeak: func() { cf.Unset("DEBUG_KMEMLEAK") },
-		crash.UBSAN:      func() { cf.Unset("UBSAN") },
-		crash.Bug:        func() { cf.Unset("BUG") },
-		crash.KASAN:      func() { cf.Unset("KASAN") },
-		crash.LockdepBug: func() {
-			cf.Unset("LOCKDEP")
-			cf.Unset("PROVE_LOCKING") // it selects LOCKDEP
+		"memleak": {
+			pred:     crash.Type.IsMemoryLeak,
+			disabler: func() { cf.Unset("DEBUG_KMEMLEAK") },
 		},
-		crash.AtomicSleep: func() { cf.Unset("DEBUG_ATOMIC_SLEEP") },
+		"ubsan": {
+			pred:     crash.Type.IsUBSAN,
+			disabler: func() { cf.Unset("UBSAN") },
+		},
+		"bug_or_warning": {
+			pred:     crash.Type.IsBugOrWarning,
+			disabler: func() { cf.Unset("BUG") },
+		},
+		"kasan": {
+			pred:     crash.Type.IsKASAN,
+			disabler: func() { cf.Unset("KASAN") },
+		},
+		"locking": {
+			pred: crash.Type.IsLockdep,
+			disabler: func() {
+				cf.Unset("LOCKDEP")
+				cf.Unset("PROVE_LOCKING") // it selects LOCKDEP
+			},
+		},
+		"atomic_sleep": {
+			pred:     crash.Type.IsAtomicSleep,
+			disabler: func() { cf.Unset("DEBUG_ATOMIC_SLEEP") },
+		},
 	}
-	need := map[crash.Type]bool{}
+	need := map[string]bool{}
 	for _, typ := range types {
-		if typ == crash.Warning {
-			// These are disabled together.
-			typ = crash.Bug
+		for keepName, funcs := range keep {
+			if funcs.pred(typ) {
+				need[keepName] = true
+			}
 		}
-		need[typ] = true
 	}
 	var disabled []string
-	for typ, f := range keep {
-		if need[typ] {
+	for categoryName, funcs := range keep {
+		if need[categoryName] {
 			continue
 		}
-		f()
-		disabled = append(disabled, string(typ))
+		funcs.disabler()
+		disabled = append(disabled, categoryName)
 	}
 	if len(disabled) > 0 {
 		dt.Log("disabling configs for %v, they are not needed", disabled)
