@@ -454,12 +454,7 @@ func (inst *inst) csourceOptions() (csource.Options, error) {
 		return opts, err
 	}
 	// Combine repro options and default options in a way that increases chances to reproduce the crash.
-	// First, we always enable threaded/collide as it should be [almost] strictly better.
-	// Executor does not support empty sandbox, so we use none instead.
-	// Finally, always use repeat and multiple procs.
-	if opts.Sandbox == "" {
-		opts.Sandbox = "none"
-	}
+	// We always enable threaded/collide as it should be [almost] strictly better.
 	opts.Repeat, opts.Threaded = true, true
 	return opts, nil
 }
@@ -470,6 +465,11 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 	repeatCount := 1
 	if opts.Repeat {
 		repeatCount = 0
+	}
+	sandbox := opts.Sandbox
+	if sandbox == "" {
+		// Executor does not support empty sandbox, so we use none instead.
+		sandbox = "none"
 	}
 	osArg := ""
 	if targets.Get(OS, arch).HostFuzzer {
@@ -489,7 +489,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
 		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
-		execprog, executor, arch, osArg, opts.Sandbox,
+		execprog, executor, arch, osArg, sandbox,
 		opts.Procs, repeatCount, opts.Threaded, opts.Collide,
 		optionalArg, progFile)
 }
