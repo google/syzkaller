@@ -800,7 +800,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	rep.Type = titleToCrashType(rep.Title)
+	rep.Type = TitleToCrashType(rep.Title)
 	return rep
 }
 
@@ -933,7 +933,7 @@ var groupGoRuntimeErrors = oops{
 	},
 }
 
-func titleToCrashType(title string) crash.Type {
+func TitleToCrashType(title string) crash.Type {
 	for _, t := range titleToType {
 		for _, prefix := range t.includePrefixes {
 			if strings.HasPrefix(title, prefix) {

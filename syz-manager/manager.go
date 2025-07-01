@@ -696,7 +696,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		mgr.memoryLeakFrames[crash.Frame] = true
 		mgr.mu.Unlock()
 	}
-	if crash.Type == crash_pkg.DataRace {
+	if crash.Type == crash_pkg.KCSANDataRace {
 		mgr.mu.Lock()
 		mgr.dataRaceFrames[crash.Frame] = true
 		mgr.mu.Unlock()

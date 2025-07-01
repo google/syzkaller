@@ -12,8 +12,29 @@ var titleToType = []struct {
 	crashType       crash.Type
 }{
 	{
+		includePrefixes: []string{
+			// keep-sorting start
+			"BUG: corrupted list",
+			"BUG: unable to handle kernel paging request",
+			// keep-sorting end
+		},
+		crashType: crash.MemorySafetyBUG,
+	},
+	{
+		includePrefixes: []string{
+			"WARNING: refcount bug",
+		},
+		crashType: crash.MemorySafetyWARNING,
+	},
+	{
+		includePrefixes: []string{
+			"UBSAN: array-index",
+		},
+		crashType: crash.MemorySafetyUBSAN,
+	},
+	{
 		includePrefixes: []string{"KCSAN: data-race"},
-		crashType:       crash.DataRace,
+		crashType:       crash.KCSANDataRace,
 	},
 	{
 		includePrefixes: []string{
@@ -23,6 +44,7 @@ var titleToType = []struct {
 			"BUG: rwlock",
 			"BUG: spinlock",
 			"BUG: still has locks held in",
+			"BUG: using", // BUG: using ... in preemptible ...
 			"WARNING: bad unlock balance in",
 			"WARNING: held lock freed in",
 			"WARNING: lock held",
@@ -53,7 +75,6 @@ var titleToType = []struct {
 		includePrefixes: []string{
 			// keep-sorted start
 			"BUG: bad usercopy in",
-			"BUG: corrupted list in",
 			"kernel BUG ",
 			// keep-sorted end
 		},
@@ -90,7 +111,6 @@ var titleToType = []struct {
 			// keep-sorted start
 			"Alignment trap in",
 			"BUG: Object already free",
-			"BUG: unable to handle kernel",
 			"Internal error in",
 			"PANIC: double fault",
 			"Unhandled fault in",
@@ -109,7 +129,7 @@ var titleToType = []struct {
 			"unregister_netdevice: waiting for DEV to become free",
 			// keep-sorted end
 		},
-		crashType: crash.UnknownType,
+		crashType: crash.DoS,
 	},
 	{
 		includePrefixes: []string{"unexpected kernel reboot"},
