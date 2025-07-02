@@ -1,5 +1,5 @@
 TITLE: KASAN: wild-memory-access in sg_read
-TYPE: KASAN
+TYPE: KASAN-OTHER
 CORRUPTED: Y
 
 [   56.874510] ==================================================================

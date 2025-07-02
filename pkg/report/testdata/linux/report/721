@@ -1,6 +1,6 @@
 TITLE: KASAN: use-after-free Read in ila_nf_input
 ALT: bad-access in ila_nf_input
-TYPE: KASAN
+TYPE: KASAN-USE-AFTER-FREE-READ
 EXECUTOR: proc=4, id=2288
 
 

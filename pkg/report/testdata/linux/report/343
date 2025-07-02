@@ -1,6 +1,6 @@
 TITLE: KASAN: stack-out-of-bounds Read in __udp6_lib_err
 ALT: bad-access in __udp6_lib_err
-TYPE: KASAN
+TYPE: KASAN-READ
 CORRUPTED: Y
 
 [  183.310893] ==================================================================
