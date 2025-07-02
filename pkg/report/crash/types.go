@@ -3,27 +3,34 @@
 
 package crash
 
+import "slices"
+
 type Type string
 
 const (
 	UnknownType = Type("")
 	// keep-sorted start
-	AtomicSleep         = Type("ATOMIC_SLEEP")
-	Bug                 = Type("BUG")
-	DoS                 = Type("DoS")
-	Hang                = Type("HANG")
-	KASAN               = Type("KASAN")
-	KCSAN               = Type("KCSAN")
-	KCSANDataRace       = Type("DATARACE")
-	KFENCE              = Type("KFENCE")
-	KMSAN               = Type("KMSAN")
-	LockdepBug          = Type("LOCKDEP")
-	MemoryLeak          = Type("LEAK")
-	MemorySafetyBUG     = Type("MEMORY_SAFETY_BUG")
-	MemorySafetyUBSAN   = Type("MEMORY_SAFETY_UBSAN")
-	MemorySafetyWARNING = Type("MEMORY_SAFETY_WARNING")
-	UBSAN               = Type("UBSAN")
-	Warning             = Type("WARNING")
+	AtomicSleep            = Type("ATOMIC_SLEEP")
+	Bug                    = Type("BUG")
+	DoS                    = Type("DoS")
+	Hang                   = Type("HANG")
+	KASANInvalidFree       = Type("KASAN-INVALID-FREE")
+	KASANOther             = Type("KASAN-OTHER")
+	KASANRead              = Type("KASAN-READ")
+	KASANUseAfterFreeRead  = Type("KASAN-USE-AFTER-FREE-READ")
+	KASANUseAfterFreeWrite = Type("KASAN-USE-AFTER-FREE-WRITE")
+	KASANWrite             = Type("KASAN-WRITE")
+	KCSAN                  = Type("KCSAN")
+	KCSANDataRace          = Type("DATARACE")
+	KFENCE                 = Type("KFENCE")
+	KMSAN                  = Type("KMSAN")
+	LockdepBug             = Type("LOCKDEP")
+	MemoryLeak             = Type("LEAK")
+	MemorySafetyBUG        = Type("MEMORY_SAFETY_BUG")
+	MemorySafetyUBSAN      = Type("MEMORY_SAFETY_UBSAN")
+	MemorySafetyWARNING    = Type("MEMORY_SAFETY_WARNING")
+	UBSAN                  = Type("UBSAN")
+	Warning                = Type("WARNING")
 	// keep-sorted end
 	LostConnection   = Type("LOST_CONNECTION")
 	SyzFailure       = Type("SYZ_FAILURE")
@@ -40,7 +47,8 @@ func (t Type) String() string {
 type TypeGroupPred func(Type) bool
 
 func (t Type) IsKASAN() bool {
-	return t == KASAN
+	return slices.Contains([]Type{
+		KASANRead, KASANWrite, KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANOther}, t)
 }
 
 func (t Type) IsKMSAN() bool {

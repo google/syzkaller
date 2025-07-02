@@ -31,14 +31,14 @@ func TestDropLinuxSanitizerConfigs(t *testing.T) {
 		},
 		{
 			name:  "kasan bug",
-			types: []crash.Type{crash.KASAN},
+			types: []crash.Type{crash.KASANOther},
 			test: func(t *testing.T, cf *kconfig.ConfigFile) {
 				assertConfigs(t, cf, "KASAN")
 			},
 		},
 		{
 			name:  "warning & kasan bug",
-			types: []crash.Type{crash.Warning, crash.KASAN},
+			types: []crash.Type{crash.Warning, crash.KASANOther},
 			test: func(t *testing.T, cf *kconfig.ConfigFile) {
 				assertConfigs(t, cf, "KASAN", "BUG")
 			},
