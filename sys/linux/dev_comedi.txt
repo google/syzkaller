@@ -1,0 +1,172 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/comedi.h>
+
+# Descriptions for fuzzing COMEDI drivers.
+
+# Currently, there is little hope to fuzz most comedi drivers as that requires special qemu setup with emulated pci capabilities,
+# while some usb drivers (like vmk80xx) are accessible via vusb approach.
+# For now, focus instead on manually configurable legacy drivers: create static devices via module option comedi.comedi_num_legacy_minors,
+# and attempt to configure them via COMEDI_DEVCONFIG ioctl. This leads to marginally deeper exploration of this driver stack.
+
+# TODO: Expand coverage properly by emulating required pci hardware.
+
+resource fd_comedi[fd]
+
+openat$comedi(fd const[AT_FDCWD], file ptr[in, string[comedi_devices]], flags flags[open_flags], mode const[0]) fd_comedi
+
+# Account for both configurable and dynamically allocated comedi devices. Depending on what value is passed
+# to config option 'comedi.comedi_num_legacy_minors=N', the first N devices will be static. No reason to set N
+# higher than 4.
+# TODO: Come up with a more elegant way to list devices to open. Maybe a modified syz_open_dev() is in order?
+comedi_devices = "/dev/comedi0", "/dev/comedi1", "/dev/comedi2", "/dev/comedi3", "/dev/comedi4", "/dev/comedi5"
+
+ioctl$COMEDI_DEVCONFIG(fd fd_comedi, cmd const[COMEDI_DEVCONFIG], arg ptr[in, comedi_devconfig])
+ioctl$COMEDI_DEVINFO(fd fd_comedi, cmd const[COMEDI_DEVINFO], arg ptr[out, comedi_devinfo])
+ioctl$COMEDI_SUBDINFO(fd fd_comedi, cmd const[COMEDI_SUBDINFO], arg ptr[out, comedi_subdinfo])
+ioctl$COMEDI_CHANINFO(fd fd_comedi, cmd const[COMEDI_CHANINFO], arg ptr[inout, comedi_chaninfo])
+ioctl$COMEDI_LOCK(fd fd_comedi, cmd const[COMEDI_LOCK])
+ioctl$COMEDI_UNLOCK(fd fd_comedi, cmd const[COMEDI_UNLOCK])
+ioctl$COMEDI_CANCEL(fd fd_comedi, cmd const[COMEDI_CANCEL])
+ioctl$COMEDI_RANGEINFO(fd fd_comedi, cmd const[COMEDI_RANGEINFO], arg ptr[inout, comedi_rangeinfo])
+ioctl$COMEDI_CMD(fd fd_comedi, cmd const[COMEDI_CMD], arg ptr[inout, comedi_cmd])
+ioctl$COMEDI_CMDTEST(fd fd_comedi, cmd const[COMEDI_CMDTEST], arg ptr[inout, comedi_cmd])
+ioctl$COMEDI_INSNLIST(fd fd_comedi, cmd const[COMEDI_INSNLIST], arg ptr[inout, comedi_insnlist])
+ioctl$COMEDI_INSN(fd fd_comedi, cmd const[COMEDI_INSN], arg ptr[inout, comedi_insn])
+ioctl$COMEDI_BUFCONFIG(fd fd_comedi, cmd const[COMEDI_BUFCONFIG], arg ptr[inout, comedi_bufconfig])
+ioctl$COMEDI_BUFINFO(fd fd_comedi, cmd const[COMEDI_BUFINFO], arg ptr[inout, comedi_bufinfo])
+ioctl$COMEDI_POLL(fd fd_comedi, cmd const[COMEDI_POLL])
+ioctl$COMEDI_SETRSUBD(fd fd_comedi, cmd const[COMEDI_SETRSUBD])
+ioctl$COMEDI_SETWSUBD(fd fd_comedi, cmd const[COMEDI_SETWSUBD])
+
+comedi_devconfig {
+# TODO: For now, use driver names to try to configure devices. Maybe add all related board names to these strings as well?
+	board_name	string[comedi_drivers, COMEDI_NAMELEN]
+	options		array[int32, COMEDI_NDEVCONFOPTS]
+}
+
+# List of all drivers that support "manual" configuration via comedi_config utility or COMEDI_DEVCONFIG ioctl. Only driver names for now.
+comedi_drivers = "8255", "adl_pci9118", "adq12b", "aio_aio12_8", "aio_iiro_16", "amplc_dio200", "amplc_pc236", "amplc_pc263", "c6xdigio", "comedi_bond", "comedi_parport", "comedi_test", "dac02", "das08_isa", "das16m1", "das1800", "das6402", "das800", "dmm32at", "dt2801", "dt2811", "dt2814", "dt2815", "dt2817", "dt282x", "fl512", "mpc624", "multiq3", "ni_at_a2150", "ni_at_ao", "ni_atmio16d", "ni_daq_700", "ni_labpc", "pcl711", "pcl724", "pcl726", "pcl730", "pcl812", "pcl816", "pcl818", "pcm3724", "pcmad", "pcmda12", "pcmmio", "pcmuio", "rti800", "rti802", "s526"
+
+comedi_devinfo {
+	version		int32
+	n_subdevs	int32
+	driver_name	array[int8, COMEDI_NAMELEN]
+	board_name	array[int8, COMEDI_NAMELEN]
+	read_subd	int32
+	write_subd	int32
+	unused		array[const[0, int32], 30]
+}
+
+comedi_subdinfo {
+	type		flags[comedi_subd_type, int32]
+	n_chan		int32
+	subd_flags	flags[comedi_sdf, int32]
+	timer_type	int32
+	len_chanlist	int32
+	maxdata		int32
+	flags		int32
+	range_type	int32
+	sett_time_0	int32
+	insn_bits_supp	flags[comedi_insn_bits_supp, int32]
+	unused		array[const[0, int32], 8]
+}
+
+comedi_subd_type = COMEDI_SUBD_UNUSED, COMEDI_SUBD_AI, COMEDI_SUBD_AO, COMEDI_SUBD_DI, COMEDI_SUBD_DO, COMEDI_SUBD_DIO, COMEDI_SUBD_COUNTER, COMEDI_SUBD_TIMER, COMEDI_SUBD_MEMORY, COMEDI_SUBD_CALIB, COMEDI_SUBD_PROC, COMEDI_SUBD_SERIAL, COMEDI_SUBD_PWM
+comedi_sdf = SDF_BUSY, SDF_BUSY_OWNER, SDF_LOCKED, SDF_LOCK_OWNER, SDF_MAXDATA, SDF_FLAGS, SDF_RANGETYPE, SDF_PWM_COUNTER, SDF_PWM_HBRIDGE, SDF_CMD, SDF_SOFT_CALIBRATED, SDF_CMD_WRITE, SDF_CMD_READ, SDF_READABLE, SDF_WRITABLE, SDF_WRITEABLE, SDF_INTERNAL, SDF_GROUND, SDF_COMMON, SDF_DIFF, SDF_OTHER, SDF_DITHER, SDF_DEGLITCH, SDF_MMAP, SDF_RUNNING, SDF_LSAMPL, SDF_PACKED
+comedi_insn_bits_supp = COMEDI_UNKNOWN_SUPPORT, COMEDI_SUPPORTED, COMEDI_UNSUPPORTED
+
+# Some data used in comedi_chaninfo depends on what COMEDI_SUBDINFO ioctl obtains. Keep it simple for now.
+# Use semi-arbitrary limits on list sizes as they may differ depending on the driver.
+comedi_chaninfo {
+	subdev		int32
+	maxd_list	ptr[out, array[int32, 0:COMEDI_CHANINFO_MAX_LIST_SIZE]]
+	flaglist	ptr[out, int32]
+	rangelist	ptr[out, array[int32, 0:COMEDI_CHANINFO_MAX_LIST_SIZE]]
+	unused		array[const[0, int32], 4]
+}
+
+comedi_rangeinfo {
+	range_type	int32
+	range_ptr	ptr[out, array[comedi_krange]]
+}
+
+comedi_krange {
+	min	int32
+	max	int32
+	flags	flags[comedi_krange_flags, int32]
+}
+
+comedi_krange_flags = RF_EXTERNAL, 0
+
+comedi_bufconfig {
+	subd		int32
+	flags		int32
+	max_size	int32
+	size		int32
+	unused		array[const[0, int32], 4]
+}
+
+comedi_bufinfo {
+	subd		int32
+	bytes_read	int32
+
+# These are indexes, not proper pointers.
+	buf_write_ptr	int32
+	buf_read_ptr	int32
+
+	buf_write_count	int32
+	buf_read_count	int32
+	bytes_written	int32
+	unused		array[const[0, int32], 4]
+}
+
+# TODO: COMEDI_INSN[LIST] ioctls reliably trigger a WARNING stemming from attempts to kmalloc too much.
+# While the error is real, descriptions may be flawed as well. Should we restrict sizes here to trigger the warning less often?
+comedi_insn {
+	insn		flags[comedi_insn_type, int32]
+	n		len[data, int32]
+# Use semi-arbitrary limits on data as COMEDI expects it to be.
+	data		ptr[inout, array[int32, COMEDI_INSN_MIN_DATA_SIZE:COMEDI_INSN_MAX_DATA_SIZE]]
+	subdev		int32
+	chanspec	int32
+	unused		array[const[0, int32], 3]
+}
+
+comedi_insn_type = INSN_MASK_WRITE, INSN_MASK_READ, INSN_MASK_SPECIAL, INSN_READ, INSN_WRITE, INSN_BITS, INSN_CONFIG, INSN_DEVICE_CONFIG, INSN_GTOD, INSN_WAIT, INSN_INTTRIG
+
+comedi_insnlist {
+	n_insns	len[insns, int32]
+# Restrict somewhat the number of COMEDI instructions otherwise same kmalloc warning slows down the fuzzing process.
+	insns	ptr[inout, array[comedi_insn, 0:COMEDI_INSNLIST_SIZE]]
+}
+
+comedi_cmd {
+	subdev		int32
+	flags		flags[comedi_cmdf, int32]
+	start_src	flags[comedi_trig, int32]
+	start_arg	int32
+	scan_begin_src	flags[comedi_trig, int32]
+	scan_begin_arg	int32
+	convert_src	flags[comedi_trig, int32]
+	convert_arg	int32
+	scan_end_src	flags[comedi_trig, int32]
+	scan_end_arg	int32
+	stop_src	flags[comedi_trig, int32]
+	stop_arg	int32
+	chanlist	ptr[inout, array[int32]]
+	chanlist_len	len[chanlist, int32]
+	data		ptr[inout, array[int8]]
+	data_len	len[data, int32]
+}
+
+comedi_cmdf = CMDF_BOGUS, CMDF_PRIORITY, CMDF_WAKE_EOS, CMDF_WRITE, CMDF_RAWDATA, CMDF_ROUND_MASK, CMDF_ROUND_NEAREST, CMDF_ROUND_DOWN, CMDF_ROUND_UP, CMDF_ROUND_UP_NEXT
+comedi_trig = TRIG_ANY, TRIG_INVALID, TRIG_NONE, TRIG_NOW, TRIG_FOLLOW, TRIG_TIMER, TRIG_COUNT, TRIG_EXT, TRIG_INT, TRIG_OTHER
+
+define COMEDI_CHANINFO_MAX_LIST_SIZE	65536
+define COMEDI_INSN_MIN_DATA_SIZE	15
+define COMEDI_INSN_MAX_DATA_SIZE	65537
+define COMEDI_INSNLIST_SIZE	16
