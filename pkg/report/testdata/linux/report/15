@@ -1,6 +1,6 @@
 TITLE: KASAN: slab-out-of-bounds Read in corrupted
 ALT: bad-access in corrupted
-TYPE: KASAN
+TYPE: KASAN-READ
 CORRUPTED: Y
 
 [ 1722.511384] ==================================================================

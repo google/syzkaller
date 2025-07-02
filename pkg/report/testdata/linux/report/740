@@ -1,6 +1,6 @@
 TITLE: KASAN: slab-use-after-free Read in chrdev_open
 ALT: bad-access in chrdev_open
-TYPE: KASAN
+TYPE: KASAN-USE-AFTER-FREE-READ
 
 ==================================================================
 BUG: KASAN: slab-use-after-free in __list_add_valid_or_report+0x16a/0x1a0

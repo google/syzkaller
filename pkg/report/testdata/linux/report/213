@@ -1,5 +1,5 @@
 TITLE: KASAN: slab-out-of-bounds in rds_cong_queue_updates
-TYPE: KASAN
+TYPE: KASAN-READ
 CORRUPTED: Y
 
 [  357.015823] ==================================================================
