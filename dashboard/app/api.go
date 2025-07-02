@@ -36,6 +36,7 @@ import (
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
+	aemail "google.golang.org/appengine/v2/mail"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -57,6 +58,7 @@ var apiHandlers = map[string]APIHandler{
 	"load_full_bug":         apiLoadFullBug,
 	"save_discussion":       apiSaveDiscussion,
 	"create_upload_url":     apiCreateUploadURL,
+	"send_email":            apiSendEmail,
 	"save_coverage":         gcsPayloadHandler(apiSaveCoverage),
 	"upload_build":          nsHandler(apiUploadBuild),
 	"builder_poll":          nsHandler(apiBuilderPoll),
@@ -1927,6 +1929,21 @@ func apiCreateUploadURL(c context.Context, payload io.Reader) (interface{}, erro
 		return nil, errors.New("not configured")
 	}
 	return fmt.Sprintf("%s/%s.upload", bucket, uuid.New().String()), nil
+}
+
+func apiSendEmail(c context.Context, payload io.Reader) (interface{}, error) {
+	req := new(dashapi.SendEmailReq)
+	if err := json.NewDecoder(payload).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
+	}
+	return nil, sendEmail(c, &aemail.Message{
+		Sender:  req.Sender,
+		ReplyTo: req.InReplyTo,
+		To:      req.To,
+		Cc:      req.Cc,
+		Subject: req.Subject,
+		Body:    req.Body,
+	})
 }
 
 // apiSaveCoverage reads jsonl data from payload and stores it to coveragedb.
