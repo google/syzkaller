@@ -204,7 +204,11 @@ func AddAddrContext(email, context string) (string, error) {
 	if at == -1 {
 		return "", fmt.Errorf("failed to parse %q as email: no @", email)
 	}
-	result := addr.Address[:at] + "+" + context + addr.Address[at:]
+	result := addr.Address[:at]
+	if context != "" {
+		result += "+" + context
+	}
+	result += addr.Address[at:]
 	if addr.Name != "" {
 		addr.Address = result
 		result = addr.String()

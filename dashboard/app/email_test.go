@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // nolint: funlen
@@ -1348,7 +1349,7 @@ func TestSingleListForward(t *testing.T) {
 		EmailOptCC([]string{"some@list.com"}), EmailOptSubject("fix bug title"))
 
 	forwarded := c.pollEmailBug()
-	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Subject, "fix bug title")
 	c.expectEQ(forwarded.Sender, sender)
 	c.expectEQ(forwarded.To, []string{"test@syzkaller.com"})
 	c.expectEQ(len(forwarded.Cc), 0)
@@ -1387,7 +1388,7 @@ func TestTwoListsForward(t *testing.T) {
 		EmailOptCC(nil), EmailOptSubject("fix bug title"))
 
 	forwarded := c.pollEmailBug()
-	c.expectEQ(forwarded.Subject, "[syzbot] fix bug title")
+	c.expectEQ(forwarded.Subject, "fix bug title")
 	c.expectEQ(forwarded.Sender, sender)
 	c.expectEQ(forwarded.To, []string{"some@list.com", "test@syzkaller.com"})
 	c.expectEQ(len(forwarded.Cc), 0)
@@ -1401,4 +1402,64 @@ Author: default@sender.com
 
 #syz fix: some: commit title
 `)
+}
+
+func TestForwardEmailInbox(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	c.transformContext = func(c context.Context) context.Context {
+		newConfig := *getConfig(c)
+		newConfig.MonitoredInboxes = []*PerInboxConfig{
+			{
+				InboxRe:   `^syzbot\+prefix.*@testapp\.appspotmail\.com$`,
+				ForwardTo: []string{`forward@a.com`, `forward@b.com`},
+			},
+		}
+		return contextWithConfig(c, &newConfig)
+	}
+
+	t.Run("forwarded", func(t *testing.T) {
+		c.incomingEmail("syzbot+prefixABCD@testapp.appspotmail.com",
+			"#syz invalid",
+			EmailOptMessageID(1),
+			EmailOptFrom("someone@mail.com"),
+			EmailOptCC([]string{"some@list.com"}))
+		msg := c.pollEmailBug()
+		require.NotNil(t, msg)
+		assert.Equal(t, `"syzbot" <syzbot@testapp.appspotmail.com>`, msg.Sender)
+		assert.ElementsMatch(t, []string{"forward@a.com", "forward@b.com", "someone@mail.com"},
+			msg.To, "must be sent to the author and the missing lists")
+		assert.Equal(t, "<1>", msg.Headers.Get("In-Reply-To"))
+		assert.Equal(t, `For archival purposes, forwarding an incoming command email to
+forward@a.com, forward@b.com.
+
+***
+
+Subject: crash1
+Author: someone@mail.com
+
+#syz invalid
+`, msg.Body)
+	})
+
+	t.Run("no command", func(t *testing.T) {
+		c.incomingEmail("syzbot+prefixABCD@testapp.appspotmail.com",
+			"Some spam message",
+			EmailOptMessageID(1),
+			EmailOptFrom("someone@mail.com"))
+		c.expectNoEmail()
+	})
+
+	t.Run("unrelated", func(t *testing.T) {
+		// It will react as if the email targeted the bug ABCD.
+		c.incomingEmail("syzbot+ABCD@testapp.appspotmail.com",
+			"#syz invalid",
+			EmailOptMessageID(1),
+			EmailOptFrom("someone@mail.com"),
+			EmailOptCC([]string{"some@list.com"}))
+		msg := c.pollEmailBug()
+		require.NotNil(t, msg)
+		assert.Contains(t, msg.Body, "I see the command but can't find the corresponding bug")
+	})
 }

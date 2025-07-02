@@ -55,6 +55,8 @@ type GlobalConfig struct {
 	// List of email addresses which are considered app's own email addresses.
 	// All emails sent from one of these email addresses shall be ignored by the app on reception.
 	ExtraOwnEmailAddresses []string
+	// Emails sent to these addresses are not to be processed like replies to syzbot emails.
+	MonitoredInboxes []*PerInboxConfig
 	// Main part of the URL at which the app is reachable.
 	// This URL is used e.g. to construct HTML links contained in the emails sent by the app.
 	AppURL string
@@ -69,6 +71,13 @@ type GlobalConfig struct {
 	// This bucket is used by the dashboard API handlers.
 	// Configure bucket items auto deletion. Uploaded data will not be deleted by dashboard.
 	UploadBucket string
+}
+
+type PerInboxConfig struct {
+	// Regexp of the inbox which received the message.
+	InboxRe string
+	// The mailing lists that must be also Cc'd for all emails that contain syz commands.
+	ForwardTo []string
 }
 
 // Per-namespace config.
@@ -496,6 +505,7 @@ func checkConfig(cfg *GlobalConfig) {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
+	checkMonitoredInboxes(cfg.MonitoredInboxes)
 	checkACL(cfg.ACL)
 }
 
@@ -513,6 +523,18 @@ func checkACL(acls []*ACLItem) {
 		}
 		if acl.Domain != "" && strings.Count(acl.Domain, "@") != 0 {
 			panic(fmt.Sprintf("authorization for %s isn't possible, delete @", acl.Domain))
+		}
+	}
+}
+
+func checkMonitoredInboxes(list []*PerInboxConfig) {
+	for _, item := range list {
+		_, err := regexp.Compile(item.InboxRe)
+		if err != nil {
+			panic(fmt.Sprintf("invalid InboxRe: %v", err))
+		}
+		if len(item.ForwardTo) == 0 {
+			panic("PerInboxConfig with an empty ForwardTo")
 		}
 	}
 }
