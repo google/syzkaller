@@ -885,6 +885,19 @@ func (dash *Dashboard) UpdateReport(req *UpdateReportReq) error {
 	return dash.Query("update_report", req, nil)
 }
 
+type SendEmailReq struct {
+	Sender    string
+	To        []string
+	Cc        []string
+	Subject   string
+	InReplyTo string
+	Body      string
+}
+
+func (dash *Dashboard) SendEmail(req *SendEmailReq) error {
+	return dash.Query("send_email", req, nil)
+}
+
 type (
 	BugStatus       int
 	BugStatusReason string
