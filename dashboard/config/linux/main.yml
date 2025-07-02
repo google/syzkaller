@@ -67,6 +67,7 @@ includes:
  - bluetooth.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
  - wireless.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
  - hamradio.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
+ - comedi.yml: [-baseline, -onlynet, -onlyusb, -android, -chromeos, -s390, -arm64_emu]
  - usb.yml: [onlyusb]
  - lsm.yml: [lsm]
  - apparmor.yml: [apparmor]

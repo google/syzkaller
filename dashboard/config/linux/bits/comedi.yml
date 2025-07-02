@@ -1,0 +1,84 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+  # Enable support for legacy devices to be able to manually configure them via ioctl.
+  - CMDLINE: [append, "comedi.comedi_num_legacy_minors=4"]
+
+  # Enable specific drivers that allow for manual device configuration, as well as available comedi usb drivers.
+  - COMEDI
+
+  # COMEDI USB drivers
+  - COMEDI_USB_DRIVERS
+  - COMEDI_DT9812
+  - COMEDI_NI_USB6501
+  - COMEDI_USBDUX
+  - COMEDI_USBDUXFAST
+  - COMEDI_USBDUXSIGMA
+  - COMEDI_VMK80XX
+
+  # COMEDI misc drivers
+  - COMEDI_MISC_DRIVERS
+  - COMEDI_KCOMEDILIB
+  - COMEDI_BOND
+  - COMEDI_TEST
+  - COMEDI_PARPORT
+
+  # COMEDI pci drivers
+  - COMEDI_PCI_DRIVERS
+  - COMEDI_8255
+  - COMEDI_8255_SA
+  - COMEDI_8255_PCI
+  - COMEDI_ADL_PCI9118
+  - COMEDI_NI_LABPC_PCI
+
+  # COMEDI pcmcia drivers
+  - COMEDI_PCMCIA_DRIVERS
+  - COMEDI_NI_DAQ_700_CS
+  - COMEDI_NI_LABPC_CS
+
+  # COMEDI isa drivers
+  - ISA_BUS: [x86_64]
+  - COMEDI_ISA_DRIVERS: [x86_64]
+  - COMEDI_ADQ12B: [x86_64]
+  - COMEDI_AIO_AIO12_8: [x86_64]
+  - COMEDI_AIO_IIRO_16: [x86_64]
+  - COMEDI_AMPLC_DIO200_ISA: [x86_64]
+  - COMEDI_AMPLC_PC236_ISA: [x86_64]
+  - COMEDI_AMPLC_PC263_ISA: [x86_64]
+  - COMEDI_C6XDIGIO: [x86_64]
+  - COMEDI_DAC02: [x86_64]
+  - COMEDI_DAS08_ISA: [x86_64]
+  - COMEDI_DAS16M1: [x86_64]
+  - COMEDI_DAS1800: [x86_64]
+  - COMEDI_DAS6402: [x86_64]
+  - COMEDI_DAS800: [x86_64]
+  - COMEDI_DMM32AT: [x86_64]
+  - COMEDI_DT2801: [x86_64]
+  - COMEDI_DT2811: [x86_64]
+  - COMEDI_DT2814: [x86_64]
+  - COMEDI_DT2815: [x86_64]
+  - COMEDI_DT2817: [x86_64]
+  - COMEDI_DT282X: [x86_64]
+  - COMEDI_FL512: [x86_64]
+  - COMEDI_MPC624: [x86_64]
+  - COMEDI_MULTIQ3: [x86_64]
+  - COMEDI_NI_AT_A2150: [x86_64]
+  - COMEDI_NI_AT_AO: [x86_64]
+  - COMEDI_NI_ATMIO16D: [x86_64]
+  - COMEDI_NI_LABPC_ISA: [x86_64]
+  - COMEDI_PCL711: [x86_64]
+  - COMEDI_PCL724: [x86_64]
+  - COMEDI_PCL726: [x86_64]
+  - COMEDI_PCL730: [x86_64]
+  - COMEDI_PCL812: [x86_64]
+  - COMEDI_PCL816: [x86_64]
+  - COMEDI_PCL818: [x86_64]
+  - COMEDI_PCM3724: [x86_64]
+  - COMEDI_PCMAD: [x86_64]
+  - COMEDI_PCMDA12: [x86_64]
+  - COMEDI_PCMMIO: [x86_64]
+  - COMEDI_PCMUIO: [x86_64]
+  - COMEDI_RTI800: [x86_64]
+  - COMEDI_RTI802: [x86_64]
+  - COMEDI_S526: [x86_64]
