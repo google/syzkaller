@@ -14,6 +14,62 @@ var titleToType = []struct {
 	{
 		includePrefixes: []string{
 			// keep-sorting start
+			"KASAN: global-out-of-bounds Write",
+			"KASAN: null-ptr-deref Write",
+			"KASAN: out-of-bounds Write",
+			"KASAN: slab-out-of-bounds Write",
+			"KASAN: stack-out-of-bounds Write",
+			"KASAN: user-memory-access Write",
+			"KASAN: vmalloc-out-of-bounds Write",
+			"KASAN: wild-memory-access Write",
+			// keep-sorting end
+		},
+		crashType: crash.KASANWrite,
+	},
+	{
+		includePrefixes: []string{
+			// keep-sorting start
+			"KASAN: global-out-of-bounds Read",
+			"KASAN: invalid-access Read",
+			"KASAN: null-ptr-deref Read",
+			"KASAN: out-of-bounds Read",
+			"KASAN: slab-out-of-bounds Read",
+			"KASAN: slab-out-of-bounds", // Read/Write is not clear. It is at least Read.
+			"KASAN: stack-out-of-bounds Read",
+			"KASAN: stack-out-of-bounds", // Read/Write is not clear. It is at least Read.
+			"KASAN: unknown-crash Read",
+			"KASAN: user-memory-access Read",
+			"KASAN: vmalloc-out-of-bounds Read",
+			"KASAN: wild-memory-access Read",
+			// keep-sorting end
+		},
+		crashType: crash.KASANRead,
+	},
+	{
+		includePrefixes: []string{
+			"KASAN: double-free or invalid-free",
+			"KASAN: invalid-free",
+		},
+		crashType: crash.KASANInvalidFree,
+	},
+
+	{
+		includePrefixes: []string{
+			"KASAN: slab-use-after-free Read",
+			"KASAN: use-after-free Read",
+		},
+		crashType: crash.KASANUseAfterFreeRead,
+	},
+	{
+		includePrefixes: []string{
+			"KASAN: slab-use-after-free Write",
+			"KASAN: use-after-free Write",
+		},
+		crashType: crash.KASANUseAfterFreeWrite,
+	},
+	{
+		includePrefixes: []string{
+			// keep-sorting start
 			"BUG: corrupted list",
 			"BUG: unable to handle kernel paging request",
 			// keep-sorting end
@@ -158,7 +214,7 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{"KASAN: "},
-		crashType:       crash.KASAN,
+		crashType:       crash.KASANOther,
 	},
 	{
 		includePrefixes: []string{"KFENCE: "},
