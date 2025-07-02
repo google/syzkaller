@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/bigquery v1.67.0
 	cloud.google.com/go/compute/metadata v0.7.0
 	cloud.google.com/go/logging v1.13.0
-	cloud.google.com/go/profiler v0.4.1
+	cloud.google.com/go/profiler v0.4.3
 	cloud.google.com/go/pubsub v1.49.0
 	cloud.google.com/go/secretmanager v1.14.7
 	cloud.google.com/go/spanner v1.80.0
@@ -145,7 +145,7 @@ require (
 	github.com/golangci/unconvert v0.0.0-20240309020433-c5143eacb3ed // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
+	github.com/google/pprof v0.0.0-20250602020802-c6617b811d0e // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/safehtml v0.1.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
