@@ -1,5 +1,5 @@
 TITLE: KCSAN: data-race in e1000_clean_rx_irq
-TYPE: DATARACE
+TYPE: KCSAN-DATARACE
 FRAME: e1000_clean_rx_irq
 
 [   44.381409][    C4]  ==================================================================

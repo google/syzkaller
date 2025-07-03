@@ -1,0 +1,33 @@
+TITLE: KCSAN: assert: race in dequeue_entities
+TYPE: KCSAN-ASSERT
+FRAME: dequeue_entities
+EXECUTOR: proc=2, id=327
+
+[   67.053553][ T4926] ==================================================================
+[   67.061656][ T4926] BUG: KCSAN: assert: race in dequeue_entities+0x6df/0x760
+[   67.068875][ T4926]
+[   67.071200][ T4926] race at unknown origin, with assert no writes to 0xffff8881001cb1e8 of 4 bytes by task 4926 on cpu 0:
+[   67.082412][ T4926]  dequeue_entities+0x6df/0x760
+[   67.087294][ T4926]  pick_next_task_fair+0x7d/0x410
+[   67.092327][ T4926]  __schedule+0x284/0x940
+[   67.096845][ T4926]  schedule+0x55/0xc0
+[   67.100839][ T4926]  synchronize_rcu_expedited+0x611/0x7a0
+[   67.106511][ T4926]  synchronize_rcu+0x46/0x320
+[   67.111209][ T4926]  nf_tables_abort+0x38f5/0x4340
+[   67.116168][ T4926]  nfnetlink_rcv+0x10ce/0x15c0
+[   67.120941][ T4926]  netlink_unicast+0x599/0x670
+[   67.125722][ T4926]  netlink_sendmsg+0x5cc/0x6e0
+[   67.130506][ T4926]  __sock_sendmsg+0x140/0x180
+[   67.135224][ T4926]  ____sys_sendmsg+0x312/0x410
+[   67.140036][ T4926]  __sys_sendmsg+0x1d9/0x270
+[   67.144649][ T4926]  __x64_sys_sendmsg+0x46/0x50
+[   67.149433][ T4926]  x64_sys_call+0x2689/0x2d60
+[   67.154132][ T4926]  do_syscall_64+0xc9/0x1c0
+[   67.158645][ T4926]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   67.164576][ T4926]
+[   67.166912][ T4926] value changed: 0x00000000 -> 0x00000001
+[   67.172634][ T4926]
+[   67.174965][ T4926] Reported by Kernel Concurrency Sanitizer on:
+[   67.181139][ T4926] CPU: 0 UID: 0 PID: 4926 Comm: syz.2.327 Not tainted 6.12.0-rc5-syzkaller-00299-g11066801dd4b #0
+[   67.191741][ T4926] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+[   67.202164][ T4926] ==================================================================

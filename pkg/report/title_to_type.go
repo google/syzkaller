@@ -117,6 +117,10 @@ var titleToType = []struct {
 		crashType:       crash.KCSANDataRace,
 	},
 	{
+		includePrefixes: []string{"KCSAN: assert: race in"},
+		crashType:       crash.KCSANAssert,
+	},
+	{
 		includePrefixes: []string{
 			// keep-sorted start
 			"BUG: bad unlock balance in",
@@ -251,5 +255,9 @@ var titleToType = []struct {
 	{
 		includePrefixes: []string{"UBSAN:"},
 		crashType:       crash.UBSAN,
+	},
+	{
+		includePrefixes: []string{"KCSAN:"},
+		crashType:       crash.KCSANUnknown,
 	},
 }
