@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in btrfs_bin_search
 ALT: bad-access in btrfs_bin_search
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  343.493742][ T5647] =====================================================
 [  343.504878][ T5647] BUG: KMSAN: uninit-value in btrfs_bin_search+0x74c/0xb30

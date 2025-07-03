@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in nilfs_add_checksums_on_logs
 ALT: bad-access in nilfs_add_checksums_on_logs
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  417.716144][ T7542] =====================================================
 [  417.723574][ T7542] BUG: KMSAN: uninit-value in crc32_le_base+0x43c/0xd80

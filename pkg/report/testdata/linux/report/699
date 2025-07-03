@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in aes_encrypt
 ALT: bad-access in aes_encrypt
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  311.903743][ T5388] =====================================================
 [  311.910990][ T5388] BUG: KMSAN: uninit-value in aes_encrypt+0x15cc/0x1db0

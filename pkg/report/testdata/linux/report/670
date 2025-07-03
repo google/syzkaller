@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in native_apic_mem_write
 ALT: bad-access in native_apic_mem_write
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  663.629383][    C1] =====================================================
 [  663.636461][    C1] BUG: KMSAN: uninit-value in native_apic_mem_write+0x6e/0x90

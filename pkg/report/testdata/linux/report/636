@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in ppp_send_frame
 ALT: bad-access in ppp_send_frame
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [   87.733076][ T3479] =====================================================
 [   87.740069][ T3479] BUG: KMSAN: uninit-value in ppp_send_frame+0x28d/0x27c0

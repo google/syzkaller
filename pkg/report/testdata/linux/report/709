@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in tipc_nl_node_reset_link_stats
 ALT: bad-access in tipc_nl_node_reset_link_stats
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [ 1414.295772][T23431] =====================================================
 [ 1414.303512][T23431] BUG: KMSAN: uninit-value in strstr+0xb8/0x2f0

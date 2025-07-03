@@ -1,6 +1,6 @@
 TITLE: KMSAN: kernel-infoleak in kernfs_fop_read_iter
 ALT: bad-access in kernfs_fop_read_iter
-TYPE: KMSAN
+TYPE: KMSAN-INFO-LEAK
 
 [  160.663319][ T5029] =====================================================
 [  160.670618][ T5029] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x870/0x1fd0

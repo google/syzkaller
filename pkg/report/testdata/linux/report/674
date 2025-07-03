@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in ntfs_iget5
 ALT: bad-access in ntfs_iget5
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  493.519926][ T7865] =====================================================
 [  493.527002][ T7865] BUG: KMSAN: uninit-value in ntfs_iget5+0x6cf/0x6510
