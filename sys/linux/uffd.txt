@@ -6,8 +6,10 @@ include <uapi/linux/fcntl.h>
 include <uapi/linux/userfaultfd.h>
 
 resource fd_uffd[fd]
+resource fd_uffd_dev[fd]
 
 userfaultfd(flags flags[userfaultfd_flags]) fd_uffd
+openat$userfaultfd(fd const[AT_FDCWD], file ptr[in, string["/dev/userfaultfd"]], flags flags[userfaultfd_flags], mode const[0]) fd_uffd_dev
 
 ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
 ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
@@ -15,8 +17,12 @@ ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uf
 ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_copy])
 ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_zeropage])
+ioctl$UFFDIO_MOVE(fd fd_uffd, cmd const[UFFDIO_MOVE], arg ptr[in, uffdio_move])
 ioctl$UFFDIO_WRITEPROTECT(fd fd_uffd, cmd const[UFFDIO_WRITEPROTECT], arg ptr[in, uffdio_writeprotect])
 ioctl$UFFDIO_CONTINUE(fd fd_uffd, cmd const[UFFDIO_CONTINUE], arg ptr[in, uffdio_continue])
+ioctl$UFFDIO_POISON(fd fd_uffd, cmd const[UFFDIO_POISON], arg ptr[in, uffdio_poison])
+
+ioctl$USERFAULTFD_IOC_NEW(fd fd_uffd_dev, cmd const[USERFAULTFD_IOC_NEW]) fd_uffd
 
 userfaultfd_flags = O_NONBLOCK, O_CLOEXEC, UFFD_USER_MODE_ONLY
 uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP, UFFDIO_REGISTER_MODE_MINOR
@@ -55,6 +61,16 @@ uffdio_zeropage {
 	zeropg	const[0, int64]
 }
 
+uffdio_move {
+	dst	vma64
+	src	vma64
+	len	len[dst, int64]
+	mode	flags[uffdio_move_mode, int64]
+	move	int64	(out)
+}
+
+uffdio_move_mode = UFFDIO_MOVE_MODE_DONTWAKE, UFFDIO_MOVE_MODE_ALLOW_SRC_HOLES
+
 uffdio_writeprotect {
 	range	uffdio_range
 	mode	flags[uffdio_writeprotect_mode, int64]
@@ -69,3 +85,11 @@ uffdio_continue {
 }
 
 uffdio_continue_mode = UFFDIO_CONTINUE_MODE_DONTWAKE
+
+uffdio_poison {
+	range	uffdio_range
+	mode	flags[uffdio_poison_mode, int64]
+	updated	int64	(out)
+}
+
+uffdio_poison_mode = UFFDIO_POISON_MODE_DONTWAKE
