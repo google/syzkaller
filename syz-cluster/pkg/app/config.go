@@ -13,6 +13,8 @@ import (
 )
 
 type AppConfig struct {
+	// The name that will be shown on the Web UI.
+	Name string `yaml:"name"`
 	// How many workflows are scheduled in parallel.
 	ParallelWorkflows int `yaml:"parallelWorkflows"`
 	// What Lore archives are to be polled for new patch series.
@@ -58,6 +60,7 @@ func loadConfig() {
 		return
 	}
 	obj := AppConfig{
+		Name:              "Syzbot CI",
 		ParallelWorkflows: 1,
 	}
 	err = yaml.Unmarshal(data, &obj)
