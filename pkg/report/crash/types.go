@@ -23,7 +23,10 @@ const (
 	KCSAN                  = Type("KCSAN")
 	KCSANDataRace          = Type("DATARACE")
 	KFENCE                 = Type("KFENCE")
-	KMSAN                  = Type("KMSAN")
+	KMSANInfoLeak          = Type("KMSAN-INFO-LEAK")
+	KMSANUninitValue       = Type("KMSAN-UNINIT-VALUE")
+	KMSANUnknown           = Type("KMSAN-UNKNOWN")
+	KMSANUseAfterFreeRead  = Type("KMSAN-USE-AFTER-FREE-READ")
 	LockdepBug             = Type("LOCKDEP")
 	MemoryLeak             = Type("LEAK")
 	MemorySafetyBUG        = Type("MEMORY_SAFETY_BUG")
@@ -52,7 +55,8 @@ func (t Type) IsKASAN() bool {
 }
 
 func (t Type) IsKMSAN() bool {
-	return t == KMSAN
+	return slices.Contains([]Type{
+		KMSANUninitValue, KMSANInfoLeak, KMSANUseAfterFreeRead, KMSANUnknown}, t)
 }
 
 func (t Type) IsKCSAN() bool {
