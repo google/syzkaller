@@ -13,6 +13,29 @@ var titleToType = []struct {
 }{
 	{
 		includePrefixes: []string{
+			"KMSAN: uninit-value",
+		},
+		crashType: crash.KMSANUninitValue,
+	},
+	{
+		includePrefixes: []string{
+			// keep-sorted start
+			"KMSAN: kernel-infoleak-after-free",
+			"KMSAN: kernel-usb-infoleak-after-free",
+			"KMSAN: use-after-free",
+			// keep-sorted end
+		},
+		crashType: crash.KMSANUseAfterFreeRead,
+	},
+	{
+		includePrefixes: []string{
+			"KMSAN: kernel-infoleak",
+			"KMSAN: kernel-usb-infoleak",
+		},
+		crashType: crash.KMSANInfoLeak,
+	},
+	{
+		includePrefixes: []string{
 			// keep-sorting start
 			"KASAN: global-out-of-bounds Write",
 			"KASAN: null-ptr-deref Write",
@@ -52,7 +75,6 @@ var titleToType = []struct {
 		},
 		crashType: crash.KASANInvalidFree,
 	},
-
 	{
 		includePrefixes: []string{
 			"KASAN: slab-use-after-free Read",
@@ -222,7 +244,7 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{"KMSAN: "},
-		crashType:       crash.KMSAN,
+		crashType:       crash.KMSANUnknown,
 	},
 	{
 		includePrefixes: []string{"UBSAN: "},
