@@ -15,8 +15,8 @@ const (
 	DoS                    = Type("DoS")
 	Hang                   = Type("HANG")
 	KASANInvalidFree       = Type("KASAN-INVALID-FREE")
-	KASANOther             = Type("KASAN-OTHER")
 	KASANRead              = Type("KASAN-READ")
+	KASANUnknown           = Type("KASAN-UNKNOWN")
 	KASANUseAfterFreeRead  = Type("KASAN-USE-AFTER-FREE-READ")
 	KASANUseAfterFreeWrite = Type("KASAN-USE-AFTER-FREE-WRITE")
 	KASANWrite             = Type("KASAN-WRITE")
@@ -51,7 +51,7 @@ type TypeGroupPred func(Type) bool
 
 func (t Type) IsKASAN() bool {
 	return slices.Contains([]Type{
-		KASANRead, KASANWrite, KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANOther}, t)
+		KASANRead, KASANWrite, KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANUnknown}, t)
 }
 
 func (t Type) IsKMSAN() bool {

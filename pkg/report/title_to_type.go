@@ -64,6 +64,7 @@ var titleToType = []struct {
 			"KASAN: user-memory-access Read",
 			"KASAN: vmalloc-out-of-bounds Read",
 			"KASAN: wild-memory-access Read",
+			"KASAN: wild-memory-access ", // Read/Write is not clear. It is at least Read.
 			// keep-sorting end
 		},
 		crashType: crash.KASANRead,
@@ -77,17 +78,18 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{
-			"KASAN: slab-use-after-free Read",
-			"KASAN: use-after-free Read",
-		},
-		crashType: crash.KASANUseAfterFreeRead,
-	},
-	{
-		includePrefixes: []string{
 			"KASAN: slab-use-after-free Write",
 			"KASAN: use-after-free Write",
 		},
 		crashType: crash.KASANUseAfterFreeWrite,
+	},
+	{
+		includePrefixes: []string{
+			"KASAN: slab-use-after-free Read",
+			"KASAN: use-after-free Read",
+			"KASAN: use-after-free ", // Read/Write is not clear. It is at least Read.
+		},
+		crashType: crash.KASANUseAfterFreeRead,
 	},
 	{
 		includePrefixes: []string{
@@ -236,7 +238,7 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{"KASAN: "},
-		crashType:       crash.KASANOther,
+		crashType:       crash.KASANUnknown,
 	},
 	{
 		includePrefixes: []string{"KFENCE: "},
