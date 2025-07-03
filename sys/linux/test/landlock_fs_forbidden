@@ -1,7 +1,4 @@
 # Access denied to whole syscalls, which return EPERM.
-#
-# Manipuling namespaces requires some privileges:
-# requires: -sandbox=setuid
 
 # Makes a private mount point for MS_MOVE.
 

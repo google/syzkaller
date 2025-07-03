@@ -1,7 +1,4 @@
 # Creates a new mount point.
-#
-# Mounting requires some privileges:
-# requires: -sandbox=setuid
 
 mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
 mount$tmpfs(0x0, &AUTO='./file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
