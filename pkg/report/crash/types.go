@@ -20,8 +20,9 @@ const (
 	KASANUseAfterFreeRead  = Type("KASAN-USE-AFTER-FREE-READ")
 	KASANUseAfterFreeWrite = Type("KASAN-USE-AFTER-FREE-WRITE")
 	KASANWrite             = Type("KASAN-WRITE")
-	KCSAN                  = Type("KCSAN")
-	KCSANDataRace          = Type("DATARACE")
+	KCSANAssert            = Type("KCSAN-ASSERT")
+	KCSANDataRace          = Type("KCSAN-DATARACE")
+	KCSANUnknown           = Type("KCSAN-UNKNOWN")
 	KFENCE                 = Type("KFENCE")
 	KMSANInfoLeak          = Type("KMSAN-INFO-LEAK")
 	KMSANUninitValue       = Type("KMSAN-UNINIT-VALUE")
@@ -60,7 +61,7 @@ func (t Type) IsKMSAN() bool {
 }
 
 func (t Type) IsKCSAN() bool {
-	return t == KCSANDataRace || t == KCSAN
+	return t == KCSANDataRace || t == KCSANAssert || t == KCSANUnknown
 }
 
 func (t Type) IsUBSAN() bool {

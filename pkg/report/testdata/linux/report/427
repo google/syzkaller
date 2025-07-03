@@ -1,5 +1,5 @@
 TITLE: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
-TYPE: DATARACE
+TYPE: KCSAN-DATARACE
 FRAME: find_next_bit
 
 [   44.377931][    C4] ==================================================================
