@@ -23,6 +23,11 @@ type AppConfig struct {
 	EmailReporting *EmailConfig `yaml:"emailReporting"`
 }
 
+const (
+	SenderSMTP    = "smtp"
+	SenderDashapi = "dashapi"
+)
+
 type EmailConfig struct {
 	// The public name of the system.
 	Name string `yaml:"name"`
@@ -30,14 +35,37 @@ type EmailConfig struct {
 	DocsLink string `yaml:"docs"`
 	// Contact email.
 	SupportEmail string `yaml:"supportEmail"`
-	// The email from which to send the reports.
+	// The means to send the emails ("smtp", "dashapi").
 	Sender string `yaml:"sender"`
+	// Will be used if Sender is "smtp".
+	SMTP *SMTPConfig `yaml:"smtpConfig"`
+	// Will be used if Sender is "dashapi".
+	Dashapi *DashapiConfig `yaml:"dashapiConfig"`
 	// Moderation requests will be sent there.
 	ModerationList string `yaml:"moderationList"`
 	// The list we listen on.
 	ArchiveList string `yaml:"archiveList"`
 	// Lore git archive to poll for incoming messages.
 	LoreArchiveURL string `yaml:"loreArchiveURL"`
+	// The prefix which will be added to all reports' titles.
+	SubjectPrefix string `yaml:"subjectPrefix"`
+}
+
+type SMTPConfig struct {
+	// The email from which to send the reports.
+	From string `yaml:"from"`
+}
+
+type DashapiConfig struct {
+	// The URI at which the dashboard is accessible.
+	Addr string `yaml:"addr"`
+	// Client name to be used for authorization.
+	// OAuth will be used instead of a key.
+	Client string `yaml:"client"`
+	// The email from which to send the reports.
+	From string `yaml:"from"`
+	// The emails will be sent from "name+" + contextPrefix + ID + "@domain".
+	ContextPrefix string `yaml:"contextPrefix"`
 }
 
 // The project configuration is expected to be mounted at /config/config.yaml.
@@ -92,9 +120,47 @@ func (c EmailConfig) Validate() error {
 	for _, err := range []error{
 		ensureNonEmpty("name", c.Name),
 		ensureEmail("supportEmail", c.SupportEmail),
-		ensureEmail("sender", c.Sender),
 		ensureEmail("moderationList", c.ModerationList),
 		ensureEmail("archiveList", c.ArchiveList),
+	} {
+		if err != nil {
+			return err
+		}
+	}
+	if c.SMTP != nil {
+		if err := c.SMTP.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.Dashapi != nil {
+		if err := c.Dashapi.Validate(); err != nil {
+			return err
+		}
+	}
+	switch c.Sender {
+	case SenderSMTP:
+		if c.SMTP == nil {
+			return fmt.Errorf("sender is %q, but smtpConfig is empty", SenderSMTP)
+		}
+	case SenderDashapi:
+		if c.Dashapi == nil {
+			return fmt.Errorf("sender is %q, but dashapiConfig is empty", SenderDashapi)
+		}
+	default:
+		return fmt.Errorf("invalid sender value, must be %q or %q", SenderSMTP, SenderDashapi)
+	}
+	return nil
+}
+
+func (c SMTPConfig) Validate() error {
+	return ensureEmail("from", c.From)
+}
+
+func (c DashapiConfig) Validate() error {
+	for _, err := range []error{
+		ensureNonEmpty("addr", c.Addr),
+		ensureNonEmpty("client", c.Client),
+		ensureEmail("from", c.From),
 	} {
 		if err != nil {
 			return err

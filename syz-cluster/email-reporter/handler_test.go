@@ -163,7 +163,6 @@ func (f *fakeSender) email() *EmailToSend {
 var testEmailConfig = &app.EmailConfig{
 	Name:           "name",
 	DocsLink:       "docs",
-	Sender:         "a@b.com",
 	ModerationList: "moderation@list.com",
 	ArchiveList:    "archive@list.com",
 }
