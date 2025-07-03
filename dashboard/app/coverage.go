@@ -214,10 +214,11 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, hdr *uiHeader, p *c
 	if err != nil {
 		return err
 	}
-	ssService := getNsConfig(c, hdr.Namespace).Subsystems.Service
 	var subsystems []string
-	for _, ss := range ssService.List() {
-		subsystems = append(subsystems, ss.Name)
+	if ssService := getNsConfig(c, hdr.Namespace).Subsystems.Service; ssService != nil {
+		for _, s := range ssService.List() {
+			subsystems = append(subsystems, s.Name)
+		}
 	}
 	slices.Sort(managers)
 	slices.Sort(subsystems)
