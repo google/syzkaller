@@ -64,7 +64,7 @@ var titleToType = []struct {
 			"KASAN: user-memory-access Read",
 			"KASAN: vmalloc-out-of-bounds Read",
 			"KASAN: wild-memory-access Read",
-			"KASAN: wild-memory-access ", // Read/Write is not clear. It is at least Read.
+			"KASAN: wild-memory-access", // Read/Write is not clear. It is at least Read.
 			// keep-sorting end
 		},
 		crashType: crash.KASANRead,
@@ -87,7 +87,7 @@ var titleToType = []struct {
 		includePrefixes: []string{
 			"KASAN: slab-use-after-free Read",
 			"KASAN: use-after-free Read",
-			"KASAN: use-after-free ", // Read/Write is not clear. It is at least Read.
+			"KASAN: use-after-free", // Read/Write is not clear. It is at least Read.
 		},
 		crashType: crash.KASANUseAfterFreeRead,
 	},
@@ -155,7 +155,7 @@ var titleToType = []struct {
 		includePrefixes: []string{
 			// keep-sorted start
 			"BUG: bad usercopy in",
-			"kernel BUG ",
+			"kernel BUG",
 			// keep-sorted end
 		},
 		crashType: crash.Bug,
@@ -200,7 +200,7 @@ var titleToType = []struct {
 			"general protection fault in",
 			"go runtime error",
 			"invalid opcode in",
-			"kernel panic: ",
+			"kernel panic:",
 			"kernel stack overflow",
 			"panic:",
 			"rust_kernel panicked",
@@ -225,31 +225,31 @@ var titleToType = []struct {
 
 	// DEFAULTS.
 	{
-		includePrefixes: []string{"WARNING: "},
+		includePrefixes: []string{"WARNING:"},
 		crashType:       crash.Warning,
 	},
 	{
-		includePrefixes: []string{"BUG: "},
+		includePrefixes: []string{"BUG:"},
 		crashType:       crash.UnknownType,
 	},
 	{
-		includePrefixes: []string{"INFO: "},
+		includePrefixes: []string{"INFO:"},
 		crashType:       crash.UnknownType,
 	},
 	{
-		includePrefixes: []string{"KASAN: "},
+		includePrefixes: []string{"KASAN:"},
 		crashType:       crash.KASANUnknown,
 	},
 	{
-		includePrefixes: []string{"KFENCE: "},
+		includePrefixes: []string{"KFENCE:"},
 		crashType:       crash.KFENCE,
 	},
 	{
-		includePrefixes: []string{"KMSAN: "},
+		includePrefixes: []string{"KMSAN:"},
 		crashType:       crash.KMSANUnknown,
 	},
 	{
-		includePrefixes: []string{"UBSAN: "},
+		includePrefixes: []string{"UBSAN:"},
 		crashType:       crash.UBSAN,
 	},
 }
