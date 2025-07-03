@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in post_read_mst_fixup
 ALT: bad-access in post_read_mst_fixup
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  355.605345][ T5697] =====================================================
 [  355.612721][ T5697] BUG: KMSAN: uninit-value in post_read_mst_fixup+0xab8/0xb70

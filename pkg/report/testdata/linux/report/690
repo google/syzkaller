@@ -1,6 +1,6 @@
 TITLE: KMSAN: kernel-infoleak in __skb_datagram_iter
 ALT: bad-access in __skb_datagram_iter
-TYPE: KMSAN
+TYPE: KMSAN-INFO-LEAK
 
 [ 2104.495854][ T4311] =====================================================
 [ 2104.503364][ T4311] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x870/0x1fd0

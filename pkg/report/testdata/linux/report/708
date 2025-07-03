@@ -1,6 +1,6 @@
 TITLE: KMSAN: kernel-infoleak in filemap_read
 ALT: bad-access in filemap_read
-TYPE: KMSAN
+TYPE: KMSAN-INFO-LEAK
 
 [  410.433138][ T5348] =====================================================
 [  410.440506][ T5348] BUG: KMSAN: kernel-infoleak in _copy_to_iter+0x376/0x1c60

@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in ieee80211_rx_list
 ALT: bad-access in ieee80211_rx_list
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  338.587187][    C0] BUG: KMSAN: uninit-value in ieee80211_rx_list+0x1839/0x5860
 [  338.594871][    C0]  ieee80211_rx_list+0x1839/0x5860

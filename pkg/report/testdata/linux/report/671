@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in flush_to_ldisc
 ALT: bad-access in flush_to_ldisc
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [ 1725.922949][   T52] =====================================================
 [ 1725.930075][   T52] BUG: KMSAN: uninit-value in flush_to_ldisc+0x95d/0xdf0

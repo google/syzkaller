@@ -1,6 +1,6 @@
 TITLE: KMSAN: uninit-value in net_tx_action
 ALT: bad-access in net_tx_action
-TYPE: KMSAN
+TYPE: KMSAN-UNINIT-VALUE
 
 [  142.141483][    C0] =====================================================
 [  142.148660][    C0] BUG: KMSAN: uninit-value in net_tx_action+0x77c/0x9a0
