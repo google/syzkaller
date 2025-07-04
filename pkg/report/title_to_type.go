@@ -13,6 +13,48 @@ var titleToType = []struct {
 }{
 	{
 		includePrefixes: []string{
+			"KFENCE: use-after-free write",
+		},
+		crashType: crash.KFENCEUseAfterFreeWrite,
+	},
+	{
+		includePrefixes: []string{
+			"KFENCE: use-after-free read",
+			"KFENCE: use-after-free", // Read/Write is not clear. It is at least Read.
+		},
+		crashType: crash.KFENCEUseAfterFreeRead,
+	},
+	{
+		includePrefixes: []string{
+			"KFENCE: invalid write",
+			"KFENCE: out-of-bounds write",
+		},
+		crashType: crash.KFENCEWrite,
+	},
+	{
+		includePrefixes: []string{
+			// keep-sorted start
+			"KFENCE: invalid read",
+			"KFENCE: out-of-bounds read",
+			"KFENCE: out-of-bounds", // Read/Write is not clear. It is at least Read.
+			// keep-sorted end
+		},
+		crashType: crash.KFENCERead,
+	},
+	{
+		includePrefixes: []string{
+			"KFENCE: memory corruption",
+		},
+		crashType: crash.KFENCEMemoryCorruption,
+	},
+	{
+		includePrefixes: []string{
+			"KFENCE: invalid free",
+		},
+		crashType: crash.KFENCEInvalidFree,
+	},
+	{
+		includePrefixes: []string{
 			"KMSAN: uninit-value",
 		},
 		crashType: crash.KMSANUninitValue,
@@ -246,7 +288,7 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{"KFENCE:"},
-		crashType:       crash.KFENCE,
+		crashType:       crash.KFENCEUnknown,
 	},
 	{
 		includePrefixes: []string{"KMSAN:"},
