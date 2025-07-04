@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/corpus"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
@@ -863,9 +864,14 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 
 	var cprogText []byte
 	if repro.CRepro {
-		var err error
-		cprogText, err = repro.CProgram()
-		if err != nil {
+		cprog, err := csource.Write(repro.Prog, repro.Opts)
+		if err == nil {
+			formatted, err := csource.Format(cprog)
+			if err == nil {
+				cprog = formatted
+			}
+			cprogText = cprog
+		} else {
 			log.Logf(0, "failed to write C source: %v", err)
 		}
 	}
@@ -1131,15 +1137,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-			Corpus:         mgr.corpus,
-			Snapshot:       mgr.cfg.Snapshot,
-			Coverage:       mgr.cfg.Cover,
-			FaultInjection: features&flatrpc.FeatureFault != 0,
-			Comparisons:    features&flatrpc.FeatureComparisons != 0,
-			Collide:        true,
-			EnabledCalls:   enabledSyscalls,
-			NoMutateCalls:  mgr.cfg.NoMutateCalls,
-			FetchRawCover:  mgr.cfg.RawCover,
+			Corpus:                    mgr.corpus,
+			Snapshot:                  mgr.cfg.Snapshot,
+			Coverage:                  mgr.cfg.Cover,
+			FaultInjection:            features&flatrpc.FeatureFault != 0,
+			Comparisons:               features&flatrpc.FeatureComparisons != 0,
+			Collide:                   true,
+			EnabledCalls:              enabledSyscalls,
+			NoMutateCalls:             mgr.cfg.NoMutateCalls,
+			FetchRawCover:             mgr.cfg.RawCover,
+			PromoteSyscallsDependency: mgr.cfg.PromoteSyscallsDependency,
 			Logf: func(level int, msg string, args ...interface{}) {
 				if level != 0 {
 					return
@@ -1159,6 +1166,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		go mgr.corpusInputHandler(corpusUpdates)
 		go mgr.corpusMinimization()
 		go mgr.fuzzerLoop(fuzzerObj)
+		go mgr.DependecySwitcheroo(mgr.cfg.DependecySwitcheroo)
 		if mgr.dash != nil {
 			go mgr.dashboardReporter()
 			if mgr.cfg.Reproduce {
@@ -1249,6 +1257,20 @@ func (cr *corpusRunner) Next() *queue.Request {
 	}
 }
 
+func (mgr *Manager) DependecySwitcheroo(mins int64) {
+	if mins <= 0 {
+		return
+	}
+
+	for {
+		time.Sleep(time.Duration(mins) * time.Minute)
+		promoteDeps := prog.IsPromoteDeps()
+		prog.SetPromoteDeps(!promoteDeps)
+
+		log.Logf(0, "promoting Program Dependencies: %t", !promoteDeps)
+	}
+}
+
 func (mgr *Manager) corpusMinimization() {
 	for range time.NewTicker(time.Minute).C {
 		mgr.mu.Lock()
@@ -1271,8 +1293,6 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 			newSignal := fuzzer.Cover.GrabSignalDelta()
 			if len(newSignal) != 0 {
 				log.Logf(3, "distributing %d new signal", len(newSignal))
-			}
-			if len(newSignal) != 0 {
 				mgr.serv.DistributeSignalDelta(newSignal)
 			}
 		}

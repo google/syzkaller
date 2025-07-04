@@ -72,7 +72,7 @@ func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) 
 }
 
 func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
-	if r.patchConditionalDepth > 1 {
+	if r.patchConditionalDepth > 1 && !IsPromoteDeps() {
 		// Some nested patchConditionalFields() calls are fine as we could trigger a resource
 		// constructor via generateArg(). But since nested createResource() calls are prohibited,
 		// patchConditionalFields() should never be nested more than 2 times.
@@ -160,10 +160,25 @@ func checkUnionArg(idx int, typ *UnionType, finder ArgFinder) (ok, calculated bo
 
 func matchingUnionArgs(typ *UnionType, finder ArgFinder) []int {
 	var ret []int
-	for i := range typ.Fields {
+	posDef := -1
+	for i, v := range typ.Fields {
+		if v.Name == "default" {
+			posDef = i
+		}
 		ok, _ := checkUnionArg(i, typ, finder)
 		if ok {
 			ret = append(ret, i)
+		}
+	}
+
+	if len(ret) > 1 && posDef != -1 && IsPromoteDeps() {
+		// if we are to promote deps, we remove the default value, if other values
+		// are present
+		for i, v := range ret {
+			if v == posDef {
+				ret = append(ret[:i], ret[i+1:]...)
+				break
+			}
 		}
 	}
 	return ret
