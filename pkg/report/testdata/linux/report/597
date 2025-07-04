@@ -1,5 +1,5 @@
 TITLE: KFENCE: memory corruption in kunit_try_run_case
-TYPE: KFENCE
+TYPE: KFENCE-MEMORY-CORRUPTION
 
 [   10.396949] ==================================================================
 [   10.397720] BUG: KFENCE: memory corruption in test_kmalloc_aligned_oob_write+0xef/0x184

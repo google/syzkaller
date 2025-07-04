@@ -1,6 +1,6 @@
-TITLE: KFENCE: out-of-bounds in test_out_of_bounds_write
+TITLE: KFENCE: out-of-bounds write in test_out_of_bounds_write
 ALT: bad-access in test_out_of_bounds_write
-TYPE: KFENCE
+TYPE: KFENCE-WRITE
 
 [    3.980910] ==================================================================
 [    3.981709] BUG: KFENCE: out-of-bounds write in test_out_of_bounds_write+0x8e/0x148

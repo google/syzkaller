@@ -1,6 +1,6 @@
 TITLE: KFENCE: invalid free in test_double_free
 ALT: invalid-free in test_double_free
-TYPE: KFENCE
+TYPE: KFENCE-INVALID-FREE
 
 [    4.524933] ==================================================================
 [    4.525732] BUG: KFENCE: invalid free in test_double_free+0xdc/0x171

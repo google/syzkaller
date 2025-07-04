@@ -1,5 +1,5 @@
 TITLE: KFENCE: memory corruption in do_check_common
-TYPE: KFENCE
+TYPE: KFENCE-MEMORY-CORRUPTION
 
 [   98.860898][ T9916] ==================================================================
 [   98.869076][ T9916] BUG: KFENCE: memory corruption in krealloc+0x60/0xd0

@@ -1,6 +1,6 @@
 TITLE: KFENCE: invalid free in test_invalid_addr_free
 ALT: invalid-free in test_invalid_addr_free
-TYPE: KFENCE
+TYPE: KFENCE-INVALID-FREE
 
 [    4.764967] ==================================================================
 [    4.765977] BUG: KFENCE: invalid free in test_invalid_addr_free+0xb4/0x17e
