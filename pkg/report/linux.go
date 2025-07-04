@@ -1526,8 +1526,8 @@ var linuxOopses = append([]*oops{
 				noStackTrace: true,
 			},
 			{
-				title: compile("BUG: KFENCE: (use-after-free|out-of-bounds) ([a-z\\-]+) in {{FUNC}}"),
-				fmt:   "KFENCE: %[1]v in %[4]v",
+				title: compile("BUG: KFENCE: (use-after-free|out-of-bounds) (read|write) in {{FUNC}}"),
+				fmt:   "KFENCE: %[1]v %[2]v in %[4]v",
 				alt:   []string{"bad-access in %[4]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
