@@ -165,4 +165,8 @@ var testEmailConfig = &app.EmailConfig{
 	DocsLink:       "docs",
 	ModerationList: "moderation@list.com",
 	ArchiveList:    "archive@list.com",
+	Sender:         app.SenderSMTP,
+	SMTP: &app.SMTPConfig{
+		From: "a@b.com",
+	},
 }
