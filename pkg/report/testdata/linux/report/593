@@ -1,6 +1,6 @@
-TITLE: KFENCE: use-after-free in test_use_after_free_read
+TITLE: KFENCE: use-after-free read in test_use_after_free_read
 ALT: bad-access in test_use_after_free_read
-TYPE: KFENCE
+TYPE: KFENCE-USE-AFTER-FREE-READ
 
 [    4.252938] ==================================================================
 [    4.253783] BUG: KFENCE: use-after-free read in test_use_after_free_read+0xb3/0x143

@@ -1,6 +1,6 @@
-TITLE: KFENCE: out-of-bounds in test_out_of_bounds_read
+TITLE: KFENCE: out-of-bounds read in test_out_of_bounds_read
 ALT: bad-access in test_out_of_bounds_read
-TYPE: KFENCE
+TYPE: KFENCE-READ
 
 [    3.317089] ==================================================================
 [    3.317855] BUG: KFENCE: out-of-bounds read in test_out_of_bounds_read+0xa6/0x234

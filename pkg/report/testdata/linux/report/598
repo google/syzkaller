@@ -1,6 +1,6 @@
 TITLE: KFENCE: invalid read in test_invalid_access
 ALT: bad-access in test_invalid_access
-TYPE: KFENCE
+TYPE: KFENCE-READ
 
 [   10.613348] ==================================================================
 [   10.614532] BUG: KFENCE: invalid read in test_invalid_access+0x48/0xe0

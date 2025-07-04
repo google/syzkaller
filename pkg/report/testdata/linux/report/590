@@ -1,6 +1,6 @@
-TITLE: KFENCE: use-after-free in find_uprobe
+TITLE: KFENCE: use-after-free read in find_uprobe
 ALT: bad-access in find_uprobe
-TYPE: KFENCE
+TYPE: KFENCE-USE-AFTER-FREE-READ
 
 [  221.211609][ T9991] ==================================================================
 [  221.219706][ T9991] BUG: KFENCE: use-after-free read in memcmp+0x57/0x150
