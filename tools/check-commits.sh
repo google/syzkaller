@@ -33,7 +33,9 @@ for HASH in ${HASHES}; do
 	fi
 	LONGLINE='[^\
 ]{121}'
-	if [[ ${BODY} =~ ${LONGLINE} ]]; then
+	# dependabot may generate descriptions longer than 120 chars
+	DEPENDABOT_SUBJ='^mod:\ bump'
+	if [[ ! ${SUBJECT} =~ ${DEPENDABOT_SUBJ} ]] && [[ ${BODY} =~ ${LONGLINE} ]] ; then
 		echo "##[error]Please limit commit description line length to 120 characters."
 		echo "${BODY}"
 		FAILED="1"
