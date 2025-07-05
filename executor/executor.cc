@@ -72,7 +72,7 @@ const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
 const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
-const int kCoverSize = 512 << 10;
+const int kCoverSize = 8 << 10;
 const int kFailStatus = 67;
 
 // Two approaches of dealing with kcov memory.
@@ -324,6 +324,7 @@ const uint64 no_copyout = -1;
 static int running;
 static uint32 completed;
 static bool is_kernel_64_bit;
+static bool is_uniq_mode = false;
 static bool use_cover_edges;
 
 static uint8* input_data;
@@ -347,9 +348,12 @@ struct call_t {
 struct cover_t {
 	int fd;
 	uint32 size;
+	uint32 size_edge;
 	uint32 mmap_alloc_size;
 	char* data;
 	char* data_end;
+	char* data_edge;
+	char* data_edge_end;
 	// Currently collecting comparisons.
 	bool collect_comps;
 	// Note: On everything but darwin the first value in data is the count of
@@ -367,6 +371,8 @@ struct cover_t {
 	intptr_t pc_offset;
 	// The coverage buffer has overflowed and we have truncated coverage.
 	bool overflow;
+	// kcov mode.
+	unsigned int mode;
 };
 
 struct thread_t {
@@ -1170,36 +1176,51 @@ template <typename cover_data_t>
 uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov, bool all)
 {
 	// Write out feedback signals.
-	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	fbb.StartVector(0, sizeof(uint64));
-	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
-	if ((char*)(cover_data + cov->size) > cov->data_end)
-		failmsg("too much cover", "cov=%u", cov->size);
-	uint32 nsig = 0;
-	cover_data_t prev_pc = 0;
-	bool prev_filter = true;
-	for (uint32 i = 0; i < cov->size; i++) {
-		cover_data_t pc = cover_data[i] + cov->pc_offset;
-		uint64 sig = pc;
-		if (use_cover_edges) {
-			// Only hash the lower 12 bits so the hash is independent of any module offsets.
-			const uint64 mask = (1 << 12) - 1;
-			sig ^= hash(prev_pc & mask) & mask;
+	if (is_uniq_mode) {
+		uint32 nsig = 0;
+		cover_data_t* cover_data = (cover_data_t*)(cov->data_edge + cov->data_offset);
+		if ((char*)(cover_data + cov->size_edge) > cov->data_edge_end)
+			failmsg("too much cover", "cov=%u", cov->size_edge);
+		for (uint32 i = 0; i < cov->size_edge; i++) {
+			cover_data_t sig = cover_data[i] + cov->pc_offset;
+			if (!all && max_signal && max_signal->Contains(sig))
+				continue;
+			fbb.PushElement(uint64(sig));
+			nsig++;
 		}
-		bool filter = coverage_filter(pc);
-		// Ignore the edge only if both current and previous PCs are filtered out
-		// to capture all incoming and outcoming edges into the interesting code.
-		bool ignore = !filter && !prev_filter;
-		prev_pc = pc;
-		prev_filter = filter;
-		if (ignore || dedup(index, sig))
-			continue;
-		if (!all && max_signal && max_signal->Contains(sig))
-			continue;
-		fbb.PushElement(uint64(sig));
-		nsig++;
+		return fbb.EndVector(nsig);
+	} else {
+		// It is code edges computed as xor of two subsequent basic block PCs.
+		cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
+		if ((char*)(cover_data + cov->size) > cov->data_end)
+			failmsg("too much cover", "cov=%u", cov->size);
+		uint32 nsig = 0;
+		cover_data_t prev_pc = 0;
+		bool prev_filter = true;
+		for (uint32 i = 0; i < cov->size; i++) {
+			cover_data_t pc = cover_data[i] + cov->pc_offset;
+			uint64 sig = pc;
+			if (use_cover_edges) {
+				// Only hash the lower 12 bits so the hash is independent of any module offsets.
+				const uint64 mask = (1 << 12) - 1;
+				sig ^= hash(prev_pc & mask) & mask;
+			}
+			bool filter = coverage_filter(pc);
+			// Ignore the edge only if both current and previous PCs are filtered out
+			// to capture all incoming and outcoming edges into the interesting code.
+			bool ignore = !filter && !prev_filter;
+			prev_pc = pc;
+			prev_filter = filter;
+			if (ignore || dedup(index, sig))
+				continue;
+			if (!all && max_signal && max_signal->Contains(sig))
+				continue;
+			fbb.PushElement(uint64(sig));
+			nsig++;
+		}
+		return fbb.EndVector(nsig);
 	}
-	return fbb.EndVector(nsig);
 }
 
 template <typename cover_data_t>
@@ -1532,8 +1553,11 @@ void execute_call(thread_t* th)
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res);
 	if (th->res == (intptr_t)-1)
 		debug(" errno=%d", th->reserrno);
-	if (flag_coverage)
+	if (flag_coverage) {
 		debug(" cover=%u", th->cov.size);
+		if (is_uniq_mode)
+			debug(" edge=%u", th->cov.size_edge);
+	}
 	if (th->call_props.fail_nth > 0)
 		debug(" fault=%d", th->fault_injected);
 	if (th->call_props.rerun > 0)
