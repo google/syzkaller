@@ -39,8 +39,14 @@ func TestEmailStream(t *testing.T) {
 	// Emulate the lore archive and set up the loop.
 	loreArchive := newLoreArchive(t)
 	writeTo := make(chan *email.Email, 16)
-	stream := NewLKMLEmailStream(t.TempDir(), loreArchive.remoteRef(), reporterClient, writeTo)
-
+	emailCfg := &app.EmailConfig{
+		LoreArchiveURL: loreArchive.remoteRef(),
+		Dashapi: &app.DashapiConfig{
+			From:          "bot@syzbot.org",
+			ContextPrefix: "ci_",
+		},
+	}
+	stream := NewLKMLEmailStream(t.TempDir(), reporterClient, emailCfg, writeTo)
 	cancel := startStreamLoop(t, ctx, stream)
 
 	t.Logf("sending a direct reply")
@@ -79,11 +85,24 @@ Content-Type: text/plain
 	msg = <-writeTo
 	assert.Len(t, msg.BugIDs, 0)
 
+	t.Logf("identify by email context")
+	loreArchive.saveMessage(t, `Date: Sun, 7 May 2017 19:55:00 -0700
+Subject: New thread
+Message-ID: <new-thread>
+In-Reply-To: <whatever>
+From: Someone Else <b@syzbot.org>
+Cc: <bot+ci_`+report.ID+`@syzbot.org>
+Content-Type: text/plain
+
+`)
+	msg = <-writeTo
+	assert.Equal(t, []string{report.ID}, msg.BugIDs)
+
 	t.Logf("stopping the loop")
 	cancel()
 
 	// Emulate service restart.
-	stream = NewLKMLEmailStream(t.TempDir(), loreArchive.remoteRef(), reporterClient, writeTo)
+	stream = NewLKMLEmailStream(t.TempDir(), reporterClient, emailCfg, writeTo)
 	cancel = startStreamLoop(t, ctx, stream)
 	defer cancel()
 	// Only the unrelated message is expected to pop up.

@@ -21,7 +21,7 @@ type smtpSender struct {
 	projectName string // needed for querying credentials
 }
 
-func newSender(ctx context.Context, cfg *app.EmailConfig) (*smtpSender, error) {
+func newSMTPSender(ctx context.Context, cfg *app.EmailConfig) (*smtpSender, error) {
 	project, err := gce.ProjectName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query project name: %w", err)
@@ -42,33 +42,13 @@ func (sender *smtpSender) Send(ctx context.Context, item *EmailToSend) (string, 
 	msg := rawEmail(sender.cfg, item, msgID)
 	auth := smtp.PlainAuth("", creds.host, creds.password, creds.host)
 	smtpAddr := fmt.Sprintf("%s:%d", creds.host, creds.port)
-	return msgID, smtp.SendMail(smtpAddr, auth, sender.cfg.Sender, item.recipients(), msg)
-}
-
-func (item *EmailToSend) recipients() []string {
-	var ret []string
-	ret = append(ret, item.To...)
-	ret = append(ret, item.Cc...)
-	return unique(ret)
-}
-
-func unique(list []string) []string {
-	var ret []string
-	seen := map[string]struct{}{}
-	for _, str := range list {
-		if _, ok := seen[str]; ok {
-			continue
-		}
-		seen[str] = struct{}{}
-		ret = append(ret, str)
-	}
-	return ret
+	return msgID, smtp.SendMail(smtpAddr, auth, sender.cfg.SMTP.From, item.recipients(), msg)
 }
 
 func rawEmail(cfg *app.EmailConfig, item *EmailToSend, id string) []byte {
 	var msg bytes.Buffer
 
-	fmt.Fprintf(&msg, "From: %s <%s>\r\n", cfg.Name, cfg.Sender)
+	fmt.Fprintf(&msg, "From: %s <%s>\r\n", cfg.Name, cfg.SMTP.From)
 	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(item.To, ", "))
 	if len(item.Cc) > 0 {
 		fmt.Fprintf(&msg, "Cc: %s\r\n", strings.Join(item.Cc, ", "))

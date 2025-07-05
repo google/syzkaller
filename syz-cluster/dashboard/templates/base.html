@@ -6,11 +6,11 @@
     <link rel="stylesheet" href="/static/bootstrap.min.css">
     <script src="/static/jquery-3.7.1.min.js"></script>
     <script src="/static/bootstrap.bundle.min.js"></script>
-    <title>syz-cluster</title>
+    <title>{{.Title}}</title>
   </head>
   <body>
     <nav class="navbar navbar-light bg-light justify-content-start">
-      <a class="navbar-brand px-3" href="#">Syz-Cluster</a>
+      <a class="navbar-brand px-3" href="#">{{.Title}}</a>
       <div class="">
         <ul class="navbar-nav">
           <li class="nav-item active">
@@ -19,6 +19,6 @@
         </ul>
       </div>
     </nav>
-    {{block "content" .}}{{end}}
+    {{block "content" .Data}}{{end}}
   </body>
 </html>

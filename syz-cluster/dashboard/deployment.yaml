@@ -22,6 +22,9 @@ spec:
         envFrom:
           - configMapRef:
               name: global-config-env
+        volumeMounts:
+          - name: config-volume
+            mountPath: /config
         ports:
         - containerPort: 8081
         resources:
@@ -31,3 +34,7 @@ spec:
           limits:
             cpu: 4
             memory: 8G
+      volumes:
+        - name: config-volume
+          configMap:
+            name: global-config

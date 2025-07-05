@@ -15,14 +15,6 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/report"
 )
 
-type EmailToSend struct {
-	To        []string
-	Cc        []string
-	Subject   string
-	InReplyTo string
-	Body      []byte
-}
-
 type SendEmailCb func(context.Context, *EmailToSend) (string, error)
 
 type Handler struct {
@@ -93,16 +85,19 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to send: %w", err)
 	}
-	// Record MessageID so that we could later trace user replies back to it.
-	_, err = h.apiClient.RecordReply(ctx, &api.RecordReplyReq{
-		// TODO: for Lore emails, set Link = lore.Link(msgID).
-		MessageID: msgID,
-		Time:      time.Now(),
-		ReportID:  rep.ID,
-		Reporter:  h.reporter,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update: %w", err)
+	// Senders may not always know the MessageID of the newly sent messages (that's the case of dashapi).
+	if msgID != "" {
+		// Record MessageID so that we could later trace user replies back to it.
+		_, err = h.apiClient.RecordReply(ctx, &api.RecordReplyReq{
+			// TODO: for Lore emails, set Link = lore.Link(msgID).
+			MessageID: msgID,
+			Time:      time.Now(),
+			ReportID:  rep.ID,
+			Reporter:  h.reporter,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to record the reply: %w", err)
+		}
 	}
 	return nil
 }

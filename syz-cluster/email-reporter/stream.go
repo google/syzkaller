@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -17,8 +18,9 @@ import (
 )
 
 type LKMLEmailStream struct {
+	cfg            *app.EmailConfig
+	ownEmails      []string
 	reporterName   string
-	repoURL        string
 	repoFolder     string
 	client         *api.ReporterClient
 	newMessages    chan *email.Email
@@ -26,11 +28,16 @@ type LKMLEmailStream struct {
 	lastCommit     string
 }
 
-func NewLKMLEmailStream(repoFolder, repoURL string, client *api.ReporterClient,
-	writeTo chan *email.Email) *LKMLEmailStream {
+func NewLKMLEmailStream(repoFolder string, client *api.ReporterClient,
+	cfg *app.EmailConfig, writeTo chan *email.Email) *LKMLEmailStream {
+	var ownEmails []string
+	if cfg.Dashapi != nil {
+		ownEmails = append(ownEmails, cfg.Dashapi.From)
+	}
 	return &LKMLEmailStream{
+		cfg:          cfg,
+		ownEmails:    ownEmails,
 		reporterName: api.LKMLReporter,
-		repoURL:      repoURL,
 		repoFolder:   repoFolder,
 		client:       client,
 		newMessages:  writeTo,
@@ -69,7 +76,7 @@ func (s *LKMLEmailStream) Loop(ctx context.Context, pollPeriod time.Duration) er
 
 func (s *LKMLEmailStream) fetchMessages(ctx context.Context) error {
 	gitRepo := vcs.NewLKMLRepo(s.repoFolder)
-	_, err := gitRepo.Poll(s.repoURL, "master")
+	_, err := gitRepo.Poll(s.cfg.LoreArchiveURL, "master")
 	if err != nil {
 		return err
 	}
@@ -86,7 +93,7 @@ func (s *LKMLEmailStream) fetchMessages(ctx context.Context) error {
 	// From oldest to newest.
 	for i := len(messages) - 1; i >= 0; i-- {
 		msg := messages[i]
-		parsed, err := msg.Parse(nil, nil)
+		parsed, err := msg.Parse(s.ownEmails, nil)
 		if err != nil || parsed == nil {
 			log.Printf("failed to parse the email from hash %q: %v", msg.Hash, err)
 			continue
@@ -104,6 +111,7 @@ func (s *LKMLEmailStream) fetchMessages(ctx context.Context) error {
 		}
 		resp, err := s.client.RecordReply(ctx, &api.RecordReplyReq{
 			MessageID: parsed.MessageID,
+			ReportID:  s.extractMessageID(parsed),
 			InReplyTo: parsed.InReplyTo,
 			Reporter:  s.reporterName,
 			Time:      messageDate,
@@ -124,4 +132,18 @@ func (s *LKMLEmailStream) fetchMessages(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// If the message was sent via the dashapi sender, the report ID wil be a part of the email address.
+func (s *LKMLEmailStream) extractMessageID(msg *email.Email) string {
+	if s.cfg.Dashapi == nil {
+		// The mode is not configured.
+		return ""
+	}
+	for _, id := range msg.BugIDs {
+		if strings.HasPrefix(id, s.cfg.Dashapi.ContextPrefix) {
+			return strings.TrimPrefix(id, s.cfg.Dashapi.ContextPrefix)
+		}
+	}
+	return ""
 }
