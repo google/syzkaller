@@ -43,6 +43,7 @@ BPF_END0 = 13
 BPF_EXIT0 = 9
 BPF_FLOW_DISSECTOR = 17
 BPF_FUNC_INFO_SIZE = 8
+BPF_FUNC_map_lookup_elem = 1
 BPF_FUNC_ringbuf_discard = 133
 BPF_FUNC_ringbuf_output = 130
 BPF_FUNC_ringbuf_query = 134
