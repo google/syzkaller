@@ -12,6 +12,7 @@ var (
 
 func main() {
 	flag.Parse()
+
 	prog, err := kfuzztest.ExtractProg(*vmlinuxPath)
 	if err != nil {
 		panic(err)

@@ -6,12 +6,13 @@ import (
 )
 
 type Builder struct {
-	funcs   []SyzFunc
-	structs []SyzStruct
+	funcs       []SyzFunc
+	structs     []SyzStruct
+	constraints []SyzConstraint
 }
 
-func NewBuilder(funcs []SyzFunc, structs []SyzStruct) *Builder {
-	return &Builder{funcs, structs}
+func NewBuilder(funcs []SyzFunc, structs []SyzStruct, constraints []SyzConstraint) *Builder {
+	return &Builder{funcs, structs, constraints}
 }
 
 func (b *Builder) AddStruct(s SyzStruct) {
@@ -23,10 +24,18 @@ func (b *Builder) AddFunc(f SyzFunc) {
 }
 
 func (b *Builder) EmitSyzlangDescription() string {
+	constraintMap := make(map[string]map[string]SyzConstraint)
+	for _, constraint := range b.constraints {
+		if _, contains := constraintMap[constraint.InputType]; !contains {
+			constraintMap[constraint.InputType] = make(map[string]SyzConstraint)
+		}
+		constraintMap[constraint.InputType][constraint.FieldName] = constraint
+	}
+
 	out := ""
 	sortedStructs := b.topologicalSortDependencyDag()
 	for _, s := range sortedStructs {
-		out += syzStructToSyzlang(s)
+		out += syzStructToSyzlang(s, constraintMap)
 		out += "\n\n"
 	}
 
@@ -38,11 +47,20 @@ func (b *Builder) EmitSyzlangDescription() string {
 	return out
 }
 
-func syzStructToSyzlang(s SyzStruct) string {
+func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzConstraint) string {
 	out := fmt.Sprintf("%s {\n", s.Name)
 	for _, field := range s.Fields {
 		typeName := dwarfToSyzlangType(field.TypeName)
-		out += fmt.Sprintf("\t%s\t%s\n", field.Name, typeName)
+		out += fmt.Sprintf("\t%s\t%s", field.Name, typeName)
+
+		subMap, ok := constraintMap["struct "+s.Name]
+		if ok {
+			constraint, ok := subMap[field.Name]
+			if ok {
+				out += syzConstraintToSyzlang(constraint)
+			}
+		}
+		out += "\n"
 	}
 	out += "}"
 	return out
@@ -57,6 +75,21 @@ func syzFuncToSyzlang(s SyzFunc) string {
 	out += "len bytesize[data])"
 
 	return out
+}
+
+func syzConstraintToSyzlang(c SyzConstraint) string {
+	switch c.ConstraintType {
+	case ExpectEq:
+		return fmt.Sprintf("[%d]", c.Value1)
+	case ExpectLe:
+		return fmt.Sprintf("[:%d]", c.Value1) // this is strictly less than right?
+	case ExpectGt:
+		return fmt.Sprintf("[:%d]", c.Value1)
+	case ExpectInRange:
+		return fmt.Sprintf("[%d:%d]", c.Value1, c.Value2)
+	default:
+		return ""
+	}
 }
 
 // Topologically sorts the builder's struct fields based on dependencies.

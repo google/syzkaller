@@ -32,6 +32,28 @@ type SyzFunc struct {
 	InputStructName string
 }
 
+type ConstraintType uint8
+
+const (
+	ExpectEq ConstraintType = iota
+	ExpectNe
+	ExpectLe
+	ExpectGt
+	ExpectInRange
+)
+
+func (c ConstraintType) String() string {
+	return [...]string{"EXPECT_EQ", "EXPECT_NE", "EXPECT_LE", "EXPECT_GT", "EXPECT_IN_RANGE"}[c]
+}
+
+type SyzConstraint struct {
+	InputType string
+	FieldName string
+	Value1    uintptr
+	Value2    uintptr
+	ConstraintType
+}
+
 // ExtractProg extracts a compiler.Prog from VMLinux containing all of the
 // discovered KFuzzTest target definitions
 func ExtractProg(vmlinuxPath string) (*compiler.Prog, error) {
@@ -39,12 +61,19 @@ func ExtractProg(vmlinuxPath string) (*compiler.Prog, error) {
 	if err != nil {
 		return nil, err
 	}
-	funcs, structs, err := extractor.ExtractAll()
+	funcs, structs, constraints, err := extractor.ExtractAll()
 	if err != nil {
 		return nil, err
 	}
 
-	builder := NewBuilder(funcs, structs)
+	fmt.Printf("dumping constraints...\n")
+	for _, constraint := range constraints {
+		fmt.Printf("\tInputType: %s\n", constraint.InputType)
+		fmt.Printf("\tFieldName: %s\n", constraint.FieldName)
+		fmt.Printf("\tType:      %s\n", constraint.ConstraintType.String())
+	}
+
+	builder := NewBuilder(funcs, structs, constraints)
 	desc := builder.EmitSyzlangDescription()
 
 	fmt.Printf("Syzlang formatted KFuzzTest targets:\n\n")
