@@ -131,7 +131,7 @@ func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.fillArch(target)
-	target.initTarget()
+	target.InitTarget()
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
@@ -157,7 +157,9 @@ func (target *Target) lazyInit() {
 	target.Types = nil
 }
 
-func (target *Target) initTarget() {
+// FIXME: EG: I don't like that this private function is made public, but it
+// should be fine for now since we're trying to get something functional fast
+func (target *Target) InitTarget() {
 	checkMaxCallID(len(target.Syscalls) - 1)
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {

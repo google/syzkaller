@@ -62,10 +62,23 @@ const (
 	execMaxCommands = 1000 // executor knows about this constant (kMaxCommands)
 )
 
+// XXX: It is easy to determine this dynamically in the manager, it's just a
+// question of finding a good place to do this.
+const syz_kfuzztest_run_id int = 7367
+
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
 func (p *Prog) SerializeForExec() ([]byte, error) {
+	// Rewrite all calls for pseudo-syscall syz_kfuzztest_run so that they have
+	// the ID that the executor is expecting, as since these are discovered
+	// dynamically the executor is not aware of their existence.
+	for _, call := range p.Calls {
+		if call.Meta.CallName == "syz_kfuzztest_run" {
+			call.Meta.ID = syz_kfuzztest_run_id
+		}
+	}
+
 	p.debugValidate()
 	w := &execContext{
 		target: p.Target,

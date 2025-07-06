@@ -12,19 +12,20 @@ var (
 
 func main() {
 	flag.Parse()
-
-	extractor, err := kfuzztest.NewExtractor(*vmlinuxPath)
-	if err != nil {
-		panic(err)
-	}
-	funcs, structs, err := extractor.ExtractAll()
+	prog, err := kfuzztest.ExtractProg(*vmlinuxPath)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("len(funcs) = %d, len(structs) = %d\n", len(funcs), len(structs))
+	fmt.Printf("%d syscalls and %d types\n", len(prog.Syscalls), len(prog.Types))
 
-	builder := kfuzztest.NewBuilder(funcs, structs)
-	desc := builder.EmitSyzlangDescription()
-	fmt.Print(desc)
+	fmt.Printf("dumping program syscalls\n")
+	for _, syscall := range prog.Syscalls {
+		fmt.Printf("\t%s, with ID = %d & NR = %d\n", syscall.Name, syscall.ID, syscall.NR)
+	}
+
+	fmt.Printf("dumping program types\n")
+	for _, typ := range prog.Types {
+		fmt.Printf("\t%s\n", typ.TemplateName())
+	}
 }

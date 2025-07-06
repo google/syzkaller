@@ -49,9 +49,11 @@ func syzStructToSyzlang(s SyzStruct) string {
 }
 
 func syzFuncToSyzlang(s SyzFunc) string {
+	typeName := strings.TrimPrefix(s.InputStructName, "struct ")
+
 	out := fmt.Sprintf("syz_kfuzztest_run$%s(", s.Name)
 	out += fmt.Sprintf("name ptr[in, string[\"%s\"]], ", s.Name)
-	out += fmt.Sprintf("data ptr[in, %s], ", s.InputStructName)
+	out += fmt.Sprintf("data ptr[in, %s], ", typeName)
 	out += "len bytesize[data])"
 
 	return out
