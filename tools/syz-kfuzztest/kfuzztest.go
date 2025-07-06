@@ -2,43 +2,29 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"github.com/google/syzkaller/pkg/kfuzztest"
+)
+
+var (
+	vmlinuxPath = flag.String("vmlinux", "", "Path to vmlinux binary.")
 )
 
 func main() {
-	vmlinuxPath := flag.String("vmlinux", "", "Path to vmlinux binary.")
 	flag.Parse()
 
-	dwarfParser, err := newDwarfParser(*vmlinuxPath)
+	extractor, err := kfuzztest.NewExtractor(*vmlinuxPath)
 	if err != nil {
-		log.Fatalf("Failed to create DWARF parser: %v", err)
+		panic(err)
 	}
-
-	log.Printf("Locating KFuzz test cases")
-	fuzzTargets, err := dwarfParser.locateKFuzzTestCases()
+	funcs, structs, err := extractor.ExtractAll()
 	if err != nil {
-		log.Fatalf("Failed to locate KFuzz targets in vmlinux: %v", err)
+		panic(err)
 	}
 
-	for _, target := range fuzzTargets {
-		dwarfParser.addFunc(target.testName, target.argType)
-	}
+	fmt.Printf("len(funcs) = %d, len(structs) = %d\n", len(funcs), len(structs))
 
-	log.Printf("Parsing KFuzz input structs")
-	fuzzInputStructs, err := dwarfParser.locateKFuzzInputStructs(fuzzTargets)
-	if err != nil {
-		log.Fatalf("Failed to parse KFuzz input structs in vmlinux: %v", err)
-	}
-
-	log.Printf("Building dag of input structures")
-	for _, structType := range fuzzInputStructs {
-		err = dwarfParser.dwarfBuildStructDag(structType)
-		if err != nil {
-			log.Fatalf("Failed to traverse dependencies for %s: %v", structType.StructName, err)
-		}
-	}
-
-	log.Printf("Dumping syzlang description of parsed types")
-	description := dwarfParser.syzlangDescription()
-	log.Printf("\n%s\n", description)
+	builder := kfuzztest.NewBuilder(funcs, structs)
+	desc := builder.EmitSyzlangDescription()
+	fmt.Print(desc)
 }
