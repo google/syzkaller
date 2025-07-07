@@ -13,21 +13,13 @@ type Extractor struct {
 	vmlinuxPath string
 	elfFile     *elf.File
 	dwarfData   *dwarf.Data
-}
 
-type kftfTestCase struct {
-	name    uint64
-	argType uint64
-	writeCb uint64
-	readCb  uint64
-}
-
-type kftfConstraint struct {
-	inputType      uint64
-	fieldName      uint64
-	value1         uintptr
-	value2         uintptr
-	constraintType uint8
+	// We use an index to avoid repeated sequential scans of the whole binary,
+	// as this is by far the most expensive operation. We currently need this
+	// index for two things - parsing test cases and parsing constraints. It is
+	// likely that it will be used for object types too.
+	symbolsIndexInitialized bool
+	symbolsIndex            map[string]elf.Symbol
 }
 
 func NewExtractor(vmlinuxPath string) (*Extractor, error) {
@@ -39,7 +31,7 @@ func NewExtractor(vmlinuxPath string) (*Extractor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Extractor{vmlinuxPath, elfFile, dwarfData}, nil
+	return &Extractor{vmlinuxPath, elfFile, dwarfData, false, make(map[string]elf.Symbol)}, nil
 }
 
 func (e *Extractor) ExtractAll() ([]SyzFunc, []SyzStruct, []SyzConstraint, error) {
@@ -73,30 +65,6 @@ func (e *Extractor) elfSection(addr uint64) *elf.Section {
 	return nil
 }
 
-// XXX: this should match up exactly with what the compiler outputs, making
-// this error prone
-func (e *Extractor) kftfTestCaseFromBytes(data []byte) kftfTestCase {
-	return kftfTestCase{
-		name:    e.elfFile.ByteOrder.Uint64(data[0:8]),
-		argType: e.elfFile.ByteOrder.Uint64(data[8:16]),
-		writeCb: e.elfFile.ByteOrder.Uint64(data[16:24]),
-		readCb:  e.elfFile.ByteOrder.Uint64(data[24:32]),
-	}
-}
-
-// XXX: this should match up exactly with what the compiler outputs, making
-// this error prone
-func (e *Extractor) kftfConstraintFromBytes(data []byte) kftfConstraint {
-	constraintTypeBytes := e.elfFile.ByteOrder.Uint64(data[32:40])
-	return kftfConstraint{
-		inputType:      e.elfFile.ByteOrder.Uint64(data[0:8]),
-		fieldName:      e.elfFile.ByteOrder.Uint64(data[8:16]),
-		value1:         uintptr(e.elfFile.ByteOrder.Uint64(data[16:24])),
-		value2:         uintptr(e.elfFile.ByteOrder.Uint64(data[24:32])),
-		constraintType: uint8(constraintTypeBytes & 0xFF),
-	}
-}
-
 // Reads a string of length at most 128 bytes from the Extractor's elf file
 func (e *Extractor) readElfString(offset uint64) string {
 	strSection := e.elfSection(offset)
@@ -118,53 +86,80 @@ func (e *Extractor) readElfString(offset uint64) string {
 	return out
 }
 
-const kftfSectionStart string = "__kftf_test_case_start"
-const kftfSectionEnd string = "__kftf_test_case_end"
-const kfuzzTestSize uint64 = 32
+func (e *Extractor) buildSymbolIndex() error {
+	if e.symbolsIndexInitialized {
+		return nil
+	}
+
+	symbols, err := e.elfFile.Symbols()
+	if err != nil {
+		return err
+	}
+
+	for _, sym := range symbols {
+		e.symbolsIndex[sym.Name] = sym
+	}
+
+	e.symbolsIndexInitialized = true
+	return nil
+}
+
+func (e *Extractor) getSymbol(symbolName string) (elf.Symbol, error) {
+	if !e.symbolsIndexInitialized {
+		err := e.buildSymbolIndex()
+		if err != nil {
+			return elf.Symbol{}, err
+		}
+	}
+
+	symbol, contains := e.symbolsIndex[symbolName]
+	if !contains {
+		return elf.Symbol{}, fmt.Errorf("symbol not found in binary")
+	}
+	return symbol, nil
+}
 
 func (e *Extractor) extractFuncs() ([]SyzFunc, error) {
-	symbols, err := e.elfFile.Symbols()
+	var rawFuncs []*kftfTestCase
+	var err error
+
+	rawFuncs, err = parseKftfObjects[*kftfTestCase](e)
 	if err != nil {
 		return nil, err
 	}
 
-	var startAddr, stopAddr uint64
-	for _, sym := range symbols {
-		if sym.Name == kftfSectionStart {
-			startAddr = sym.Value
+	fuzzTargets := make([]SyzFunc, len(rawFuncs))
+	for i, raw := range rawFuncs {
+		fuzzTargets[i] = SyzFunc{
+			Name:            e.readElfString(raw.name),
+			InputStructName: e.readElfString(raw.argType),
 		}
-		if sym.Name == kftfSectionEnd {
-			stopAddr = sym.Value
-		}
-	}
-
-	if startAddr == 0 || stopAddr == 0 {
-		return nil, fmt.Errorf("Failed to resolve KFTF section in vmlinux file")
-	}
-
-	fuzzTargets := make([]SyzFunc, 0)
-	for addr := startAddr; addr < stopAddr; addr += kfuzzTestSize {
-		section := e.elfSection(addr)
-		if section == nil {
-			return nil, fmt.Errorf("Failed to locate section for addr=0x%x", addr)
-		}
-
-		data := make([]byte, kfuzzTestSize)
-		n, err := section.ReadAt(data, int64(addr-section.Addr))
-		if err != nil || n < int(kfuzzTestSize) {
-			// if n < kfuzzTestSize, then err is non-nil as per the
-			// documentation of ReadAt
-			return nil, err
-		}
-
-		testCase := e.kftfTestCaseFromBytes(data)
-
-		testName := e.readElfString(testCase.name)
-		argType := e.readElfString(testCase.argType)
-		fuzzTargets = append(fuzzTargets, SyzFunc{Name: testName, InputStructName: argType})
 	}
 
 	return fuzzTargets, nil
+}
+
+func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
+	var rawConstraints []*kftfConstraint
+	var err error
+
+	rawConstraints, err = parseKftfObjects[*kftfConstraint](e)
+	if err != nil {
+		return nil, err
+	}
+
+	constraints := make([]SyzConstraint, len(rawConstraints))
+	for i, raw := range rawConstraints {
+		constraints[i] = SyzConstraint{
+			InputType:      e.readElfString(raw.inputType),
+			FieldName:      e.readElfString(raw.fieldName),
+			Value1:         raw.value1,
+			Value2:         raw.value2,
+			ConstraintType: ConstraintType(raw.constraintType),
+		}
+	}
+
+	return constraints, nil
 }
 
 func (e *Extractor) dwarfGetType(entry *dwarf.Entry) (dwarf.Type, error) {
@@ -268,63 +263,48 @@ func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 	return structs, nil
 }
 
-const kftfConstraintStart string = "__kftf_constraint_start"
-const kftfConstraintEnd string = "__kftf_constraint_end"
-const kftfConstraintSize uint64 = 64
+// Parses a slice of kftf objects contained within a dedicated section. This
+// function assumes that all entries are tightly packed, and that each section
+// contains only one type of statically-sized entry types.
+func parseKftfObjects[T interface {
+	*P
+	parsableFromBytes
+}, P any](e *Extractor) ([]T, error) {
+	var typeinfo T = new(P)
 
-func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
-	symbols, err := e.elfFile.Symbols()
+	startSymbol, err := e.getSymbol(typeinfo.startSymbol())
 	if err != nil {
 		return nil, err
+	} else if startSymbol.Value == 0 {
+		return nil, fmt.Errorf("Failed to resolve start symbol")
 	}
 
-	// TODO: some kind of index in the extractor to avoid doing this multiple
-	// times.
-	var startAddr, stopAddr uint64
-	for _, sym := range symbols {
-		if sym.Name == kftfConstraintStart {
-			startAddr = sym.Value
-		}
-		if sym.Name == kftfConstraintEnd {
-			stopAddr = sym.Value
-		}
+	endSymbol, err := e.getSymbol(typeinfo.endSymbol())
+	if err != nil {
+		return nil, err
+	} else if endSymbol.Value == 0 {
+		return nil, fmt.Errorf("Failed to resolve end symbol")
 	}
 
-	if startAddr == 0 || stopAddr == 0 {
-		return nil, fmt.Errorf("Failed to resolve KFTF section in vmlinux file")
-	}
-
-	constraints := make([]SyzConstraint, 0)
-	// Can extract this out into some function instead of copying code from the
-	// function extraction. Could do it with some generics and some interface
-	// that expresses being able to parse something from elf file bytes
-	for addr := startAddr; addr < stopAddr; addr += kftfConstraintSize {
+	out := make([]T, 0)
+	data := make([]byte, typeinfo.size())
+	for addr := startSymbol.Value; addr < endSymbol.Value; addr += typeinfo.size() {
 		section := e.elfSection(addr)
 		if section == nil {
 			return nil, fmt.Errorf("Failed to locate section for addr=0x%x", addr)
 		}
 
-		data := make([]byte, kftfConstraintSize)
 		n, err := section.ReadAt(data, int64(addr-section.Addr))
-		if err != nil || n < int(kftfConstraintSize) {
-			// if n < kftfConstraintSize, then err is non-nil as per the
-			// documentation of ReadAt
+		if err != nil || n < int(typeinfo.size()) {
+			// if n < sizeof(T), then err is non-nil as per the documentation
+			// of section.ReadAt
 			return nil, err
 		}
 
-		constraint := e.kftfConstraintFromBytes(data)
-
-		inputType := e.readElfString(constraint.inputType)
-		fieldName := e.readElfString(constraint.fieldName)
-
-		constraints = append(constraints, SyzConstraint{
-			InputType:      inputType,
-			FieldName:      fieldName,
-			Value1:         constraint.value1,
-			Value2:         constraint.value2,
-			ConstraintType: ConstraintType(constraint.constraintType),
-		})
+		var obj T = new(P)
+		obj.fromBytes(e.elfFile, data)
+		out = append(out, obj)
 	}
 
-	return constraints, nil
+	return out, nil
 }
