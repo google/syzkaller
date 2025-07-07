@@ -7,13 +7,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/emailclient"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -37,7 +37,7 @@ func main() {
 	if cfg.EmailReporting == nil {
 		app.Fatalf("reporting is not configured: %v", err)
 	}
-	sender, err := makeSender(ctx, cfg.EmailReporting)
+	sender, err := emailclient.MakeSender(ctx, cfg.EmailReporting)
 	if err != nil {
 		app.Fatalf("failed to create a sender: %s", err)
 	}
@@ -77,46 +77,4 @@ func main() {
 		return nil
 	})
 	eg.Wait()
-}
-
-func makeSender(ctx context.Context, cfg *app.EmailConfig) (SendEmailCb, error) {
-	if cfg.Sender == app.SenderSMTP {
-		sender, err := newSMTPSender(ctx, cfg)
-		if err != nil {
-			return nil, err
-		}
-		return sender.Send, nil
-	} else if cfg.Sender == app.SenderDashapi {
-		return makeDashapiSender(cfg)
-	}
-	return nil, fmt.Errorf("unsupported sender type: %q", cfg.Sender)
-}
-
-type EmailToSend struct {
-	To        []string
-	Cc        []string
-	Subject   string
-	InReplyTo string
-	Body      []byte
-	BugID     string // In case it's to be included into Sender.
-}
-
-func (item *EmailToSend) recipients() []string {
-	var ret []string
-	ret = append(ret, item.To...)
-	ret = append(ret, item.Cc...)
-	return unique(ret)
-}
-
-func unique(list []string) []string {
-	var ret []string
-	seen := map[string]struct{}{}
-	for _, str := range list {
-		if _, ok := seen[str]; ok {
-			continue
-		}
-		seen[str] = struct{}{}
-		ret = append(ret, str)
-	}
-	return ret
 }

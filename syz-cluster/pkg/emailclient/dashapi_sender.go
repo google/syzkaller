@@ -1,7 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package emailclient
 
 import (
 	"context"
@@ -11,12 +11,12 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
 
-func makeDashapiSender(cfg *app.EmailConfig) (SendEmailCb, error) {
+func makeDashapiSender(cfg *app.EmailConfig) (Sender, error) {
 	dash, err := dashapi.New(cfg.Dashapi.Client, cfg.Dashapi.Addr, "")
 	if err != nil {
 		return nil, err
 	}
-	return func(_ context.Context, item *EmailToSend) (string, error) {
+	return func(_ context.Context, item *Email) (string, error) {
 		sender := cfg.Dashapi.From
 		if item.BugID != "" {
 			var err error
