@@ -31,7 +31,7 @@ func TestModerationReportFlow(t *testing.T) {
 	receivedEmail.Body = nil // for now don't validate the body
 	assert.Equal(t, &emailclient.Email{
 		To:      []string{testEmailConfig.ModerationList},
-		Subject: "Re: " + testSeries.Title,
+		Subject: "[moderation/CI] Re: " + testSeries.Title,
 		// Note that InReplyTo and Cc are nil.
 	}, receivedEmail)
 
@@ -56,7 +56,7 @@ func TestModerationReportFlow(t *testing.T) {
 	assert.Equal(t, &emailclient.Email{
 		To:        testSeries.Cc,
 		Cc:        []string{testEmailConfig.ArchiveList},
-		Subject:   "Re: " + testSeries.Title,
+		Subject:   "[name] Re: " + testSeries.Title,
 		InReplyTo: testSeries.ExtID,
 	}, receivedEmail)
 }

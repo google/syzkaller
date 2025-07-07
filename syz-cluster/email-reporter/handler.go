@@ -75,7 +75,11 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	}
 	if rep.Moderation {
 		toSend.To = []string{h.emailConfig.ModerationList}
+		toSend.Subject = "[moderation/CI] " + toSend.Subject
 	} else {
+		if h.emailConfig.Name != "" {
+			toSend.Subject = fmt.Sprintf("[%s] %s", h.emailConfig.Name, toSend.Subject)
+		}
 		// We assume that email reporting is used for series received over emails.
 		toSend.InReplyTo = rep.Series.ExtID
 		toSend.To = rep.Cc
