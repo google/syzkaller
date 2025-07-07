@@ -1,7 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package emailclient
 
 import (
 	"fmt"
@@ -12,12 +12,12 @@ import (
 
 func TestRawEmail(t *testing.T) {
 	tests := []struct {
-		item   *EmailToSend
+		item   *Email
 		id     string
 		result string
 	}{
 		{
-			item: &EmailToSend{
+			item: &Email{
 				To:        []string{"1@to.com", "2@to.com"},
 				Cc:        []string{"1@cc.com", "2@cc.com"},
 				InReplyTo: "<reply-to@domain>",
@@ -40,7 +40,7 @@ func TestRawEmail(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ret := rawEmail(testEmailConfig, test.item, test.id)
+			ret := rawEmail(TestEmailConfig(), test.item, test.id)
 			assert.Equal(t, test.result, string(ret))
 		})
 	}

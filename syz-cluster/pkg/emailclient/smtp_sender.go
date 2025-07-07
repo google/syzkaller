@@ -1,7 +1,7 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package emailclient
 
 import (
 	"bytes"
@@ -33,7 +33,7 @@ func newSMTPSender(ctx context.Context, cfg *app.EmailConfig) (*smtpSender, erro
 }
 
 // Send constructs a raw email from EmailToSend and sends it over SMTP.
-func (sender *smtpSender) Send(ctx context.Context, item *EmailToSend) (string, error) {
+func (sender *smtpSender) Send(ctx context.Context, item *Email) (string, error) {
 	creds, err := sender.queryCredentials(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to query credentials: %w", err)
@@ -45,7 +45,7 @@ func (sender *smtpSender) Send(ctx context.Context, item *EmailToSend) (string, 
 	return msgID, smtp.SendMail(smtpAddr, auth, sender.cfg.SMTP.From, item.recipients(), msg)
 }
 
-func rawEmail(cfg *app.EmailConfig, item *EmailToSend, id string) []byte {
+func rawEmail(cfg *app.EmailConfig, item *Email, id string) []byte {
 	var msg bytes.Buffer
 
 	fmt.Fprintf(&msg, "From: %s <%s>\r\n", cfg.Name, cfg.SMTP.From)
