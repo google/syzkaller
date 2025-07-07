@@ -1,0 +1,32 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Allow all outbound internet access for the pods that need network access to send emails.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: send-test-email-git-access
+spec:
+  podSelector:
+    matchLabels:
+      app: send-test-email
+  policyTypes:
+  - Egress
+  egress:
+    - {}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: email-reporter-git-access
+spec:
+  podSelector:
+    matchLabels:
+      app: email-reporter
+  policyTypes:
+  - Egress
+  egress:
+    - {}
