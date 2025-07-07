@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in input_register_device
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [  116.957737] ------------[ cut here ]------------
 [  116.963070] refcount_t: increment on 0; use-after-free.

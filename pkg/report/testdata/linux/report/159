@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in l2tp_session_register
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [   40.530345] ------------[ cut here ]------------
 [   40.535205] refcount_t: increment on 0; use-after-free.

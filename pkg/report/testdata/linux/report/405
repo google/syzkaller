@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in cdev_get
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [ 1191.409330][ T6711] ------------[ cut here ]------------
 [ 1191.414962][ T6711] refcount_t: increment on 0; use-after-free.
