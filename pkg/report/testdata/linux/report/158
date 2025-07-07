@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in dev_activate
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [  359.890494] refcount_t: increment on 0; use-after-free.
 [  359.914113] ------------[ cut here ]------------

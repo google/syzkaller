@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in hdm_disconnect
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [   82.955158][  T105] usb 1-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
 [   82.959646][  T105] usb 1-1: config 0 descriptor??

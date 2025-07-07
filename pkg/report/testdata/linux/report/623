@@ -1,6 +1,6 @@
 TITLE: WARNING: refcount bug in sys_memfd_secret
 ALT: WARNING: refcount bug in __x64_sys_memfd_secret
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [   90.146573][ T6540] ------------[ cut here ]------------
 [   90.172091][ T6540] refcount_t: addition on 0; use-after-free.

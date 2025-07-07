@@ -1,5 +1,5 @@
 TITLE: WARNING: refcount bug in sctp_wfree
-TYPE: MEMORY_SAFETY_WARNING
+TYPE: REFCOUNT_WARNING
 
 [   44.461565] refcount_t: underflow; use-after-free.
 [   44.466577] ------------[ cut here ]------------
