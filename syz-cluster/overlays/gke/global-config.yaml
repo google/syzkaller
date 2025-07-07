@@ -11,3 +11,14 @@ data:
     loreArchives:
       - netdev
       - linux-ext4
+    emailReporting:
+      name: "syzbot ci"
+      sender: dashapi
+      supportEmail: syzkaller@googlegroups.com
+      archiveList: syzbot@lists.linux.dev
+      moderationList: syzkaller-upstream-moderation@googlegroups.com
+      dashapiConfig:
+        addr: https://syzkaller.appspot.com
+        client: gke-email-reporter
+        from: syzbot@syzkaller.appspotmail.com
+        contextPrefix: ci
