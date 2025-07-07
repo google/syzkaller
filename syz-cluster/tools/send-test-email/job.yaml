@@ -1,0 +1,31 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: send-test-email-
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: send-test-email
+    spec:
+      serviceAccountName: gke-email-reporter-ksa
+      containers:
+      - name: send-test-email
+        image: ${IMAGE_PREFIX}send-test-email:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: config-volume
+            mountPath: /config
+        envFrom:
+          - configMapRef:
+              name: global-config-env
+      volumes:
+      - name: config-volume
+        configMap:
+          name: global-config
+      restartPolicy: Never
