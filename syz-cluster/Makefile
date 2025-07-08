@@ -31,7 +31,7 @@ $(eval $(call build_image_rules,./workflow/boot-step,boot-step))
 $(eval $(call build_image_rules,./tools/db-mgmt,db-mgmt))
 $(eval $(call build_image_rules,./tools/send-test-email,send-test-email))
 
-IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-step build-step boot-step fuzz-step send-test-email
+IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-step build-step boot-step fuzz-step send-test-email email-reporter
 BUILD_TARGETS := $(addprefix build-, $(IMAGES))
 PUSH_TARGETS := $(addprefix push-, $(IMAGES))
 
