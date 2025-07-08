@@ -82,3 +82,33 @@ func (tc *kftfConstraint) startSymbol() string {
 func (tc *kftfConstraint) endSymbol() string {
 	return kftfConstraintEnd
 }
+
+type kftfAnnotation struct {
+	inputType           uint64
+	fieldName           uint64
+	linkedFieldName     uint64
+	annotationAttribute uint8
+}
+
+func (a *kftfAnnotation) fromBytes(elfFile *elf.File, data []byte) {
+	a.inputType = elfFile.ByteOrder.Uint64(data[0:8])
+	a.fieldName = elfFile.ByteOrder.Uint64(data[8:16])
+	a.linkedFieldName = elfFile.ByteOrder.Uint64(data[16:24])
+	a.annotationAttribute = uint8(data[24])
+}
+
+const kftfAnnotationStart string = "__kftf_annotation_start"
+const kftfAnnotationEnd string = "__kftf_annotation_end"
+const kftfAnnotationSize uint64 = 32
+
+func (attrib *kftfAnnotation) size() uint64 {
+	return kftfAnnotationSize
+}
+
+func (attrib *kftfAnnotation) startSymbol() string {
+	return kftfAnnotationStart
+}
+
+func (attrib *kftfAnnotation) endSymbol() string {
+	return kftfAnnotationEnd
+}

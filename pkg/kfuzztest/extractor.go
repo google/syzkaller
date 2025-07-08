@@ -34,20 +34,36 @@ func NewExtractor(vmlinuxPath string) (*Extractor, error) {
 	return &Extractor{vmlinuxPath, elfFile, dwarfData, false, make(map[string]elf.Symbol)}, nil
 }
 
-func (e *Extractor) ExtractAll() ([]SyzFunc, []SyzStruct, []SyzConstraint, error) {
+type ExtractAllResult struct {
+	Funcs       []SyzFunc
+	Structs     []SyzStruct
+	Constraints []SyzConstraint
+	Annotations []SyzAnnotation
+}
+
+func (e *Extractor) ExtractAll() (ExtractAllResult, error) {
 	funcs, err := e.extractFuncs()
 	if err != nil {
-		return nil, nil, nil, err
+		return ExtractAllResult{}, err
 	}
 	structs, err := e.extractStructs(funcs)
 	if err != nil {
-		return nil, nil, nil, err
+		return ExtractAllResult{}, err
 	}
 	constraints, err := e.extractDomainConstraints()
 	if err != nil {
-		return nil, nil, nil, err
+		return ExtractAllResult{}, err
 	}
-	return funcs, structs, constraints, nil
+	annotations, err := e.extractAnnotations()
+	if err != nil {
+		return ExtractAllResult{}, err
+	}
+	return ExtractAllResult{
+		Funcs:       funcs,
+		Structs:     structs,
+		Constraints: constraints,
+		Annotations: annotations,
+	}, nil
 }
 
 func (e *Extractor) Close() {
@@ -114,7 +130,7 @@ func (e *Extractor) getSymbol(symbolName string) (elf.Symbol, error) {
 
 	symbol, contains := e.symbolsIndex[symbolName]
 	if !contains {
-		return elf.Symbol{}, fmt.Errorf("symbol not found in binary")
+		return elf.Symbol{}, fmt.Errorf("symbol %s not found in binary", symbolName)
 	}
 	return symbol, nil
 }
@@ -160,6 +176,28 @@ func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
 	}
 
 	return constraints, nil
+}
+
+func (e *Extractor) extractAnnotations() ([]SyzAnnotation, error) {
+	var rawAnnotations []*kftfAnnotation
+	var err error
+
+	rawAnnotations, err = parseKftfObjects[*kftfAnnotation](e)
+	if err != nil {
+		return nil, err
+	}
+
+	annotations := make([]SyzAnnotation, len(rawAnnotations))
+	for i, raw := range rawAnnotations {
+		annotations[i] = SyzAnnotation{
+			InputType:       e.readElfString(raw.inputType),
+			FieldName:       e.readElfString(raw.fieldName),
+			LinkedFieldName: e.readElfString(raw.linkedFieldName),
+			Attribute:       AnnotationAttribute(raw.annotationAttribute),
+		}
+	}
+
+	return annotations, nil
 }
 
 func (e *Extractor) dwarfGetType(entry *dwarf.Entry) (dwarf.Type, error) {

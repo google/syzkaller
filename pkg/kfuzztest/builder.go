@@ -9,10 +9,16 @@ type Builder struct {
 	funcs       []SyzFunc
 	structs     []SyzStruct
 	constraints []SyzConstraint
+	annotations []SyzAnnotation
 }
 
-func NewBuilder(funcs []SyzFunc, structs []SyzStruct, constraints []SyzConstraint) *Builder {
-	return &Builder{funcs, structs, constraints}
+func NewBuilder(
+	funcs []SyzFunc,
+	structs []SyzStruct,
+	constraints []SyzConstraint,
+	annotations []SyzAnnotation,
+) *Builder {
+	return &Builder{funcs, structs, constraints, annotations}
 }
 
 func (b *Builder) AddStruct(s SyzStruct) {
@@ -31,11 +37,18 @@ func (b *Builder) EmitSyzlangDescription() string {
 		}
 		constraintMap[constraint.InputType][constraint.FieldName] = constraint
 	}
+	annotationMap := make(map[string]map[string]SyzAnnotation)
+	for _, annotation := range b.annotations {
+		if _, contains := annotationMap[annotation.InputType]; !contains {
+			annotationMap[annotation.InputType] = make(map[string]SyzAnnotation)
+		}
+		annotationMap[annotation.InputType][annotation.FieldName] = annotation
+	}
 
 	out := ""
 	sortedStructs := b.topologicalSortDependencyDag()
 	for _, s := range sortedStructs {
-		out += syzStructToSyzlang(s, constraintMap)
+		out += syzStructToSyzlang(s, constraintMap, annotationMap)
 		out += "\n\n"
 	}
 
@@ -47,11 +60,37 @@ func (b *Builder) EmitSyzlangDescription() string {
 	return out
 }
 
-func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzConstraint) string {
+// FIXME: this function is gross because of the weird logic cases that arises
+// from having annotations that determine the type. I'm sure there's a much
+// nicer way of writing this control flow.
+func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzConstraint,
+	annotationMap map[string]map[string]SyzAnnotation) string {
 	out := fmt.Sprintf("%s {\n", s.Name)
 	for _, field := range s.Fields {
+		out += "\t"
 		typeName := dwarfToSyzlangType(field.TypeName)
-		out += fmt.Sprintf("\t%s\t%s", field.Name, typeName)
+
+		aSubMap, ok := annotationMap["struct "+s.Name]
+		if ok {
+			annotation, ok := aSubMap[field.Name]
+			if !ok {
+				goto append_type
+			}
+
+			// handle these special cases
+			switch annotation.Attribute {
+			case AttributeLen:
+				out += fmt.Sprintf("%s\tlen[%s, %s]", field.Name, annotation.LinkedFieldName, typeName)
+			case AttributeString:
+				out += fmt.Sprintf("%s\tptr[in, string]", field.Name)
+			}
+			out += "\n"
+			continue
+		}
+
+		// just appends the type as it appear in the
+	append_type:
+		out += fmt.Sprintf("%s\t%s", field.Name, typeName)
 
 		subMap, ok := constraintMap["struct "+s.Name]
 		if ok {
@@ -173,6 +212,8 @@ func dwarfToSyzlangType(typeName string) string {
 		return "int8"
 	case "*const char", "*const void", "*const unsigned char":
 		return "ptr[in, array[int8]]" // const pointers are read-only
+	case "*char":
+		return "ptr[inout, array[int8]]"
 	default:
 		return typeName
 	}
