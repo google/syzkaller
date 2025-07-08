@@ -95,8 +95,11 @@ SED_EXPRESSIONS := \
 k8s-config-dev:
 	@kubectl kustomize ./overlays/minikube/ | sed $(SED_EXPRESSIONS)
 
-k8s-config-gke: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
-	@kubectl kustomize ./overlays/gke/ | sed $(SED_EXPRESSIONS)
+k8s-config-gke-prod: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
+	@kubectl kustomize ./overlays/gke/prod/ | sed $(SED_EXPRESSIONS)
+
+k8s-config-gke-staging: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
+	@kubectl kustomize ./overlays/gke/staging/ | sed $(SED_EXPRESSIONS)
 
 migrate-job.yaml:
 	@cat tools/db-mgmt/migrate-job.yaml | sed $(SED_EXPRESSIONS)
