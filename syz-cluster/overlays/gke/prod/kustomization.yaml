@@ -4,3 +4,4 @@
 resources:
   - ../common
   - global-config.yaml
+  - ../../../email-reporter
