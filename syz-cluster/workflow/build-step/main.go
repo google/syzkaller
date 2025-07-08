@@ -91,19 +91,16 @@ func main() {
 		log.Printf("failed to checkout: %v", err)
 		uploadReq.Log = []byte(err.Error())
 	} else {
-		err := buildKernel(tracer, req)
-		if err == nil {
+		finding, err = buildKernel(tracer, req)
+		if err != nil {
+			log.Printf("build process failed: %v", err)
+			uploadReq.Log = []byte(err.Error())
+		} else if finding == nil {
 			uploadReq.BuildSuccess = true
 		} else {
 			log.Printf("%s", output.Bytes())
-			log.Printf("failed to build: %v", err)
-			uploadReq.Log = []byte(err.Error())
-			finding = &api.NewFinding{
-				SessionID: *flagSession,
-				TestName:  *flagTestName,
-				Title:     "failed to build the kernel",
-				Log:       uploadReq.Log,
-			}
+			log.Printf("failed: %s\n%s", finding.Title, finding.Report)
+			uploadReq.Log = finding.Log
 		}
 	}
 	reportResults(ctx, client, req.SeriesID != "",
@@ -200,14 +197,14 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 	return commit, err
 }
 
-func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) error {
+func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*api.NewFinding, error) {
 	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
 	if err != nil {
-		return fmt.Errorf("failed to read the kernel config: %w", err)
+		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
 	}
 	if req.Arch != "amd64" {
 		// TODO: lift this restriction.
-		return fmt.Errorf("only amd64 builds are supported now")
+		return nil, fmt.Errorf("only amd64 builds are supported now")
 	}
 	params := build.Params{
 		TargetOS:     targets.Linux,
@@ -226,17 +223,28 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) error {
 	tracer.Log("compiler: %q", info.CompilerID)
 	tracer.Log("signature: %q", info.Signature)
 	if err != nil {
+		finding := &api.NewFinding{
+			SessionID: *flagSession,
+			TestName:  *flagTestName,
+			Title:     "kernel build error",
+		}
 		var kernelError *build.KernelError
 		var verboseError *osutil.VerboseError
 		switch {
 		case errors.As(err, &kernelError):
 			tracer.Log("kernel error: %q / %s", kernelError.Report, kernelError.Output)
+			finding.Report = kernelError.Report
+			finding.Log = kernelError.Output
+			return finding, nil
 		case errors.As(err, &verboseError):
 			tracer.Log("verbose error: %q / %s", verboseError.Title, verboseError.Output)
+			finding.Report = []byte(verboseError.Title)
+			finding.Log = verboseError.Output
+			return finding, nil
 		default:
 			tracer.Log("other error: %v", err)
 		}
-		return err
+		return nil, err
 	}
 	tracer.Log("build finished successfully")
 	// TODO: capture build logs and the compiler identity.
@@ -246,7 +254,7 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) error {
 	//   |-- kernel.config
 	//   `-- obj
 	//      `-- vmlinux
-	return nil
+	return nil, nil
 }
 
 func ensureFlags(args ...string) {
