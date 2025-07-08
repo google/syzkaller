@@ -1,6 +1,6 @@
-# Makes a regular file.
+# Makes a character device /dev/null
 
-mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x81c0, 0x0)
+mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x21c0, 0x103)
 
 # Creates a ruleset to restrict most filesystem IOCTLs: LANDLOCK_ACCESS_FS_IOCTL_DEV.
 
@@ -17,9 +17,9 @@ landlock_restrict_self(r0, 0x0)
 
 r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x2, 0x0)
 
-# Denied FIOQSIZE IOCTL.
+# Denied FIONREAD (not really but same value) IOCTL.
 
-ioctl(r1, 0x5460, 0x0) # EACCES
+ioctl(r1, 0x541b, 0x0) # EACCES
 
 # Allowed FIOCLEX IOCTL.
 
