@@ -1,0 +1,1 @@
+syz_kfuzztest_run$test_sprint_oid(&(0x7f0000003a80), &(0x7f0000003b80)={&(0x7f0000003ac0), 0x0, 0xBEEF}, 0x18)
