@@ -171,8 +171,8 @@ func dwarfToSyzlangType(typeName string) string {
 		return "int32"
 	case "char":
 		return "int8"
-	case "*const char":
-		return "ptr[inout, array[int8]]" // default to inout
+	case "*const char", "*const void", "*const unsigned char":
+		return "ptr[in, array[int8]]" // const pointers are read-only
 	default:
 		return typeName
 	}
