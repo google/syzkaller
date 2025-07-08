@@ -15,7 +15,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -225,6 +224,7 @@ func main() {
 	}
 
 	if cfg.Experimental.EnableKFuzzTest {
+		log.Logf(0, "KFuzzTests enabled, loading targets from %s", cfg.KernelObj+"/vmlinux")
 		err = kfuzztest.EnableKFuzzTargets(cfg)
 		if err != nil {
 			panic(fmt.Sprintf("Failed to enable KFuzzTest targets: %v\n", err))
