@@ -34,6 +34,9 @@ func NewLKMLEmailStream(repoFolder string, client *api.ReporterClient,
 	if cfg.Dashapi != nil {
 		ownEmails = append(ownEmails, cfg.Dashapi.From)
 	}
+	if cfg.SMTP != nil {
+		ownEmails = append(ownEmails, cfg.SMTP.From)
+	}
 	return &LKMLEmailStream{
 		cfg:          cfg,
 		ownEmails:    ownEmails,
