@@ -13,6 +13,7 @@ resources:
   - network-policy-git-access.yaml
   - network-policy-web-dashboard.yaml
   - network-policy-email-sender.yaml
+  - network-policy-reporter.yaml
 
 patches:
   - target:
