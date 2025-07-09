@@ -78,9 +78,26 @@ var titleToType = []struct {
 	},
 	{
 		includePrefixes: []string{
+			"KASAN: null-ptr-deref Write",
+		},
+		crashType: crash.KASANNullPtrDerefWrite,
+	},
+	{
+		includePrefixes: []string{
+			"KASAN: null-ptr-deref Read",
+		},
+		crashType: crash.KASANNullPtrDerefRead,
+	},
+	{
+		includePrefixes: []string{
+			"BUG: unable to handle kernel NULL pointer dereference in",
+		},
+		crashType: crash.NullPtrDerefBUG,
+	},
+	{
+		includePrefixes: []string{
 			// keep-sorting start
 			"KASAN: global-out-of-bounds Write",
-			"KASAN: null-ptr-deref Write",
 			"KASAN: out-of-bounds Write",
 			"KASAN: slab-out-of-bounds Write",
 			"KASAN: stack-out-of-bounds Write",
@@ -96,7 +113,6 @@ var titleToType = []struct {
 			// keep-sorting start
 			"KASAN: global-out-of-bounds Read",
 			"KASAN: invalid-access Read",
-			"KASAN: null-ptr-deref Read",
 			"KASAN: out-of-bounds Read",
 			"KASAN: slab-out-of-bounds Read",
 			"KASAN: slab-out-of-bounds", // Read/Write is not clear. It is at least Read.

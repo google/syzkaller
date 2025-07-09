@@ -15,6 +15,8 @@ const (
 	DoS                     = Type("DoS")
 	Hang                    = Type("HANG")
 	KASANInvalidFree        = Type("KASAN-INVALID-FREE")
+	KASANNullPtrDerefRead   = Type("KASAN-NULL-POINTER-DEREFERENCE-READ")
+	KASANNullPtrDerefWrite  = Type("KASAN-NULL-POINTER-DEREFERENCE-WRITE")
 	KASANRead               = Type("KASAN-READ")
 	KASANUnknown            = Type("KASAN-UNKNOWN")
 	KASANUseAfterFreeRead   = Type("KASAN-USE-AFTER-FREE-READ")
@@ -38,6 +40,7 @@ const (
 	MemoryLeak              = Type("LEAK")
 	MemorySafetyBUG         = Type("MEMORY_SAFETY_BUG")
 	MemorySafetyUBSAN       = Type("MEMORY_SAFETY_UBSAN")
+	NullPtrDerefBUG         = Type("NULL-POINTER-DEREFERENCE")
 	RefcountWARNING         = Type("REFCOUNT_WARNING")
 	UBSAN                   = Type("UBSAN")
 	Warning                 = Type("WARNING")
@@ -58,7 +61,8 @@ type TypeGroupPred func(Type) bool
 
 func (t Type) IsKASAN() bool {
 	return slices.Contains([]Type{
-		KASANRead, KASANWrite, KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANUnknown}, t)
+		KASANNullPtrDerefRead, KASANNullPtrDerefWrite, KASANRead, KASANWrite,
+		KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANUnknown}, t)
 }
 
 func (t Type) IsKMSAN() bool {
@@ -75,7 +79,7 @@ func (t Type) IsUBSAN() bool {
 }
 
 func (t Type) IsBUG() bool {
-	return t == Bug || t == MemorySafetyBUG
+	return slices.Contains([]Type{Bug, MemorySafetyBUG, NullPtrDerefBUG}, t)
 }
 
 func (t Type) IsWarning() bool {

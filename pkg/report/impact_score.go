@@ -24,6 +24,9 @@ var impactOrder = []crash.Type{
 	crash.MemorySafetyUBSAN, // array-index-out-of-bounds, at least Read.
 	crash.KCSANAssert,
 	crash.RefcountWARNING, // we had a few UAFs in the past
+	crash.KASANNullPtrDerefWrite,
+	crash.KASANNullPtrDerefRead,
+	crash.NullPtrDerefBUG,
 	// Medium Priority (Infoleaks, Uninitialized Memory, Corruptions)
 	crash.KMSANInfoLeak,
 	crash.MemorySafetyBUG,
