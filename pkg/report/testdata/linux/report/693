@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in ni_readpage_cmpr
 ALT: bad-access in ni_readpage_cmpr
+TYPE: NULL-POINTER-DEREFERENCE
 
 Unable to handle kernel NULL pointer dereference at virtual address 0000000000000008
 Mem abort info:

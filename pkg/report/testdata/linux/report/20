@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in corrupted
 ALT: bad-access in corrupted
+TYPE: NULL-POINTER-DEREFERENCE
 CORRUPTED: Y
 
 [  149.188010] BUG: unable to handle kernel NULL pointer dereference at 000000000000058c

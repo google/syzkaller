@@ -1,5 +1,6 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in inet_sendmsg
 ALT: bad-access in inet_sendmsg
+TYPE: NULL-POINTER-DEREFERENCE
 
 [   61.889077] BUG: unable to handle kernel NULL pointer dereference at           (null)
 [   61.890070] IP: [<          (null)>]           (null)
