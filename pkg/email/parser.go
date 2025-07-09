@@ -60,6 +60,8 @@ const (
 	cmdTest5
 )
 
+const ForwardedPrefix = "Forwarded: "
+
 var groupsLinkRe = regexp.MustCompile(`(?m)\nTo view this discussion (?:on the web )?visit` +
 	` (https://groups\.google\.com/.*?)\.(:?$|\n|\r)`)
 

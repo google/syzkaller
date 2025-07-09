@@ -1349,7 +1349,7 @@ func TestSingleListForward(t *testing.T) {
 		EmailOptCC([]string{"some@list.com"}), EmailOptSubject("fix bug title"))
 
 	forwarded := c.pollEmailBug()
-	c.expectEQ(forwarded.Subject, "fix bug title")
+	c.expectEQ(forwarded.Subject, "Forwarded: fix bug title")
 	c.expectEQ(forwarded.Sender, sender)
 	c.expectEQ(forwarded.To, []string{"test@syzkaller.com"})
 	c.expectEQ(len(forwarded.Cc), 0)
@@ -1388,7 +1388,7 @@ func TestTwoListsForward(t *testing.T) {
 		EmailOptCC(nil), EmailOptSubject("fix bug title"))
 
 	forwarded := c.pollEmailBug()
-	c.expectEQ(forwarded.Subject, "fix bug title")
+	c.expectEQ(forwarded.Subject, "Forwarded: fix bug title")
 	c.expectEQ(forwarded.Sender, sender)
 	c.expectEQ(forwarded.To, []string{"some@list.com", "test@syzkaller.com"})
 	c.expectEQ(len(forwarded.Cc), 0)
@@ -1423,12 +1423,14 @@ func TestForwardEmailInbox(t *testing.T) {
 		from := "syzbot+prefixABCD@testapp.appspotmail.com"
 		c.incomingEmail(from,
 			"#syz invalid",
+			EmailOptSubject("test subject"),
 			EmailOptMessageID(1),
 			EmailOptFrom("someone@mail.com"),
 			EmailOptCC([]string{"some@list.com"}))
 		msg := c.pollEmailBug()
 		require.NotNil(t, msg)
 		assert.Equal(t, `"syzbot" <syzbot@testapp.appspotmail.com>`, msg.Sender)
+		assert.Equal(t, "Forwarded: test subject", msg.Subject)
 		assert.ElementsMatch(t, []string{"forward@a.com", "forward@b.com"},
 			msg.To, "must be sent to the author and the missing lists")
 		assert.ElementsMatch(t, []string{"\"syzbot\" <" + from + ">", "someone@mail.com"}, msg.Cc)
@@ -1438,7 +1440,7 @@ forward@a.com, forward@b.com.
 
 ***
 
-Subject: crash1
+Subject: test subject
 Author: someone@mail.com
 
 #syz invalid
