@@ -1442,7 +1442,7 @@ Author: %s
 		Sender:  from,
 		To:      mailingLists,
 		Cc:      cc,
-		Subject: msg.Subject,
+		Subject: email.ForwardedPrefix + msg.Subject,
 		Body:    body,
 		Headers: mail.Header{"In-Reply-To": []string{inReplyTo}},
 	})
