@@ -41,6 +41,9 @@ func TestEmailStream(t *testing.T) {
 	writeTo := make(chan *email.Email, 16)
 	emailCfg := &app.EmailConfig{
 		LoreArchiveURL: loreArchive.remoteRef(),
+		SMTP: &app.SMTPConfig{
+			From: `syzbot@syzkaller.appspotmail.com`,
+		},
 		Dashapi: &app.DashapiConfig{
 			From:          "bot@syzbot.org",
 			ContextPrefix: "ci_",
@@ -97,6 +100,30 @@ Content-Type: text/plain
 `)
 	msg = <-writeTo
 	assert.Equal(t, []string{report.ID}, msg.BugIDs)
+
+	t.Logf("own email (SMTP)")
+	loreArchive.saveMessage(t, `Date: Sun, 7 May 2017 19:55:00 -0700
+Subject: New thread
+Message-ID: <new-thread>
+In-Reply-To: <whatever>
+From: Ourselves <`+emailCfg.SMTP.From+`>
+Content-Type: text/plain
+
+`)
+	msg = <-writeTo
+	assert.True(t, msg.OwnEmail)
+
+	t.Logf("own email (dashapi)")
+	loreArchive.saveMessage(t, `Date: Sun, 7 May 2017 19:55:00 -0700
+Subject: New thread
+Message-ID: <new-thread>
+In-Reply-To: <whatever>
+From: Ourselves <`+emailCfg.Dashapi.From+`>
+Content-Type: text/plain
+
+`)
+	msg = <-writeTo
+	assert.True(t, msg.OwnEmail)
 
 	t.Logf("stopping the loop")
 	cancel()
