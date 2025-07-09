@@ -641,7 +641,7 @@ func matchInbox(c context.Context, myEmail string) *PerInboxConfig {
 }
 
 func processInboxEmail(c context.Context, msg *email.Email, inbox *PerInboxConfig) error {
-	if len(msg.Commands) == 0 || len(msg.BugIDs) == 0 {
+	if len(msg.Commands) == 0 || len(msg.BugIDs) == 0 || msg.OwnEmail {
 		// Do not forward emails with no commands.
 		// Also, we don't care about the emails that don't include any BugIDs.
 		return nil
@@ -657,6 +657,7 @@ func processInboxEmail(c context.Context, msg *email.Email, inbox *PerInboxConfi
 	sort.Strings(missing)
 	if len(missing) == 0 {
 		// Everything's OK.
+		log.Infof(c, "email %q has all necessary lists in Cc", msg.MessageID)
 		return nil
 	}
 	// We don't want to forward from a name+hash@domain address because
@@ -670,7 +671,7 @@ func processInboxEmail(c context.Context, msg *email.Email, inbox *PerInboxConfi
 	if !stringInList(msg.Cc, cc) {
 		msg.Cc = append(msg.Cc, cc)
 	}
-	return forwardEmail(c, msg, missing, "", msg.MessageID, true)
+	return forwardEmail(c, msg, missing, []string{cc, msg.Author}, "", msg.MessageID)
 }
 
 // nolint: gocyclo
@@ -734,7 +735,7 @@ func processIncomingEmail(c context.Context, msg *email.Email) error {
 		}
 		reply := groupEmailReplies(replies)
 		if reply == "" && len(msg.Commands) > 0 && len(missingLists) > 0 && !unCc {
-			return forwardEmail(c, msg, missingLists, bugInfo.bugReporting.ID, bugInfo.bugReporting.ExtID, false)
+			return forwardEmail(c, msg, missingLists, nil, bugInfo.bugReporting.ID, bugInfo.bugReporting.ExtID)
 		}
 		if reply != "" {
 			return replyTo(c, msg, bugInfo.bugReporting.ID, reply)
@@ -1421,8 +1422,8 @@ func missingMailingLists(c context.Context, msg *email.Email, emailConfig *Email
 	return missing
 }
 
-func forwardEmail(c context.Context, msg *email.Email, mailingLists []string,
-	bugID, inReplyTo string, includeAuthor bool) error {
+func forwardEmail(c context.Context, msg *email.Email, mailingLists, cc []string,
+	bugID, inReplyTo string) error {
 	log.Infof(c, "forwarding email: id=%q from=%q to=%q", msg.MessageID, msg.Author, mailingLists)
 	body := fmt.Sprintf(`For archival purposes, forwarding an incoming command email to
 %v.
@@ -1437,10 +1438,14 @@ Author: %s
 	if err != nil {
 		return err
 	}
-	if includeAuthor {
-		mailingLists = append([]string{msg.Author}, mailingLists...)
-	}
-	return sendMailText(c, msg.Subject, from, mailingLists, inReplyTo, body)
+	return sendEmail(c, &aemail.Message{
+		Sender:  from,
+		To:      mailingLists,
+		Cc:      cc,
+		Subject: msg.Subject,
+		Body:    body,
+		Headers: mail.Header{"In-Reply-To": []string{inReplyTo}},
+	})
 }
 
 func sendMailText(c context.Context, subject, from string, to []string, replyTo, body string) error {
