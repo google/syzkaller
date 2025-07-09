@@ -1420,7 +1420,8 @@ func TestForwardEmailInbox(t *testing.T) {
 	}
 
 	t.Run("forwarded", func(t *testing.T) {
-		c.incomingEmail("syzbot+prefixABCD@testapp.appspotmail.com",
+		from := "syzbot+prefixABCD@testapp.appspotmail.com"
+		c.incomingEmail(from,
 			"#syz invalid",
 			EmailOptMessageID(1),
 			EmailOptFrom("someone@mail.com"),
@@ -1428,8 +1429,9 @@ func TestForwardEmailInbox(t *testing.T) {
 		msg := c.pollEmailBug()
 		require.NotNil(t, msg)
 		assert.Equal(t, `"syzbot" <syzbot@testapp.appspotmail.com>`, msg.Sender)
-		assert.ElementsMatch(t, []string{"forward@a.com", "forward@b.com", "someone@mail.com"},
+		assert.ElementsMatch(t, []string{"forward@a.com", "forward@b.com"},
 			msg.To, "must be sent to the author and the missing lists")
+		assert.ElementsMatch(t, []string{"\"syzbot\" <" + from + ">", "someone@mail.com"}, msg.Cc)
 		assert.Equal(t, "<1>", msg.Headers.Get("In-Reply-To"))
 		assert.Equal(t, `For archival purposes, forwarding an incoming command email to
 forward@a.com, forward@b.com.
@@ -1441,6 +1443,14 @@ Author: someone@mail.com
 
 #syz invalid
 `, msg.Body)
+
+		t.Run("no-loop", func(t *testing.T) {
+			// Ensure that we don't react to our own reply.
+			c.incomingEmail(from, msg.Body,
+				EmailOptFrom(msg.Sender),
+				EmailOptCC(append(append([]string{}, msg.Cc...), msg.To...)))
+			c.expectNoEmail()
+		})
 	})
 
 	t.Run("no command", func(t *testing.T) {
