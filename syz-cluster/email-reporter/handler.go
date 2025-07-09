@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -110,6 +111,10 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 	if len(msg.BugIDs) == 0 {
 		// Unrelated email.
+		return nil
+	}
+	if msg.OwnEmail && !strings.HasPrefix(msg.Subject, email.ForwardedPrefix) {
+		// We normally ignore our own emails, with the exception of the emails forwarded from the dashboard.
 		return nil
 	}
 	reportID := msg.BugIDs[0]

@@ -118,6 +118,40 @@ Unknown command
 `),
 		}, reply)
 	})
+
+	t.Run("own email", func(t *testing.T) {
+		err = handler.IncomingEmail(ctx, &email.Email{
+			OwnEmail: true,
+			BugIDs:   []string{report.ID},
+			Commands: []*email.SingleCommand{
+				{
+					Command: email.CmdUpstream,
+				},
+			},
+		})
+		assert.NoError(t, err)
+		_, err = handler.PollAndReport(ctx)
+		assert.NoError(t, err)
+		// No email must be sent in reply.
+		assert.Nil(t, emailServer.email())
+	})
+
+	t.Run("forwarded email", func(t *testing.T) {
+		err = handler.IncomingEmail(ctx, &email.Email{
+			Subject:  email.ForwardedPrefix + "abcd",
+			OwnEmail: true,
+			BugIDs:   []string{report.ID},
+			Commands: []*email.SingleCommand{
+				{
+					Command: email.CmdUpstream,
+				},
+			},
+		})
+		assert.NoError(t, err)
+		_, err = handler.PollAndReport(ctx)
+		assert.NoError(t, err)
+		assert.NotNil(t, emailServer.email())
+	})
 }
 
 func setupHandlerTest(t *testing.T, env *app.AppEnvironment, ctx context.Context,
