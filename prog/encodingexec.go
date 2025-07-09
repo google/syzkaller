@@ -22,6 +22,7 @@
 package prog
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"reflect"
@@ -73,11 +74,11 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 	// Rewrite all calls for pseudo-syscall syz_kfuzztest_run so that they have
 	// the ID that the executor is expecting, as since these are discovered
 	// dynamically the executor is not aware of their existence.
-	for _, call := range p.Calls {
-		if call.Meta.CallName == "syz_kfuzztest_run" {
-			call.Meta.ID = syz_kfuzztest_run_id
-		}
-	}
+	// for _, call := range p.Calls {
+	// 	if call.Meta.CallName == "syz_kfuzztest_run" {
+	// 		call.Meta.ID = syz_kfuzztest_run_id
+	// 	}
+	// }
 
 	p.debugValidate()
 	w := &execContext{
@@ -101,6 +102,14 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 }
 
 func (w *execContext) serializeCall(c *Call) {
+	// we introduce special serialization logic for kfuzztest targets, which
+	// require special handling due to their use of relocation tables to copy
+	// entire blobs of data into the kenrel.
+	if c.Meta.CallName == "syz_kfuzztest_run" {
+		w.serializeKFuzzTestCall(c)
+		return
+	}
+
 	// Calculate arg offsets within structs.
 	// Generate copyin instructions that fill in data into pointer arguments.
 	w.writeCopyin(c)
@@ -130,6 +139,53 @@ func (w *execContext) serializeCall(c *Call) {
 
 	// Generate copyout instructions that persist interesting return values.
 	w.writeCopyout(c)
+}
+
+// KFuzzTest targets require special handling due to their use of relocation
+// tables for serializing all data (including pointed-to data) into a
+// continuous blob that can be passed into the kernel.
+func (w *execContext) serializeKFuzzTestCall(c *Call) {
+	if c.Meta.CallName != "syz_kfuzztest_run" {
+		// This is a specialized function that shouldn't be called on anything
+		// other than an instance of a syz_kfuzztest_run$* syscall
+		panic("serializeKFuzzTestCall called on an invalid syscall")
+	}
+
+	// Write the initial string argument (test name) normally
+	w.writeCopyin(&Call{Meta: c.Meta, Args: []Arg{c.Args[0]}})
+
+	// Args[1] is the second argument to syz_kfuzztest_run, which is a pointer
+	// to some struct input. This is the data that must be flattened and sent
+	// to the fuzzing driver with a relocation table.
+	dataArg := c.Args[1].(*PointerArg)
+	finalBlob := marshallKFuzztestArg(dataArg.Res)
+
+	// Reuse the memory address that was pre-allocated for the original struct
+	// argument. This avoids needing to hook into the memory allocation which
+	// is done at a higher level than the serialization. This relies on the
+	// original buffer being large enough
+	blobAddress := w.target.PhysicalAddr(dataArg) - w.target.DataOffset
+
+	// Write the entire marshalled blob as a raw byte array.
+	w.write(execInstrCopyin)
+	w.write(blobAddress)
+	w.write(execArgData)
+	w.write(uint64(len(finalBlob)))
+	w.buf = append(w.buf, finalBlob...)
+
+	// Update the value of the length arg which should now match the length of
+	// the byte array that we created. Previously, it contained the bytesize
+	// of the struct argument passed into the pseudo-syscall
+	lenArg := c.Args[2].(*ConstArg)
+	lenArg.Val = uint64(len(finalBlob))
+
+	// Generate the final syscall instruction with the update arguments.
+	w.write(uint64(c.Meta.ID))
+	w.write(ExecNoCopyout)
+	w.write(uint64(len(c.Args)))
+	for _, arg := range c.Args {
+		w.writeArg(arg)
+	}
 }
 
 type execContext struct {
@@ -188,6 +244,124 @@ func (w *execContext) writeCopyin(c *Call) {
 		w.write(addr)
 		w.writeArg(arg)
 	})
+}
+
+// marshallKFuzztestArg serializes a top-level struct argument (`topLevel`) into
+// a single binary blob that can be consumed by the kernel. The output format,
+// defined in `linux/include/kftf.h`, is designed for position-independent data
+// transfer and consists of a relocation table followed by a raw data payload.
+//
+// The function serializes the tree-like Arg structure using a level-order
+// traversal. This approach ensures that nested structures are
+// ensuring that nested structures are laid out contiguously in memory. If
+// pointer arguments are found, the pointed-to data will be laid out directly
+// after the structure that the pointer is found in.
+//
+// The process works as follows:
+//  1. All non-pointer fields of the input struct are processed first from a
+//     queue, and their raw data is written sequentially into the main `payload`
+//     buffer.
+//  2. When a pointer is encountered, a placeholder is written into the payload,
+//     and a `relocationEntry` is created and deferred to a separate pointer
+//     queue. The `entry.pointer` field is set to the current offset within the
+//     payload.
+//  3. After all primary struct data is serialized, the pointer queue is
+//     processed. The data pointed to by each deferred entry is serialized at
+//     the end of the payload, and the `entry.value` is calculated as the
+//     relative offset between the pointer's location and its target data.
+//  4. Finally, the completed `relocation_table` is serialized and prepended to
+//     the `payload` buffer to form the complete binary blob.
+func marshallKFuzztestArg(topLevel Arg) []byte {
+	type deferredPtr struct {
+		pointedToArg Arg
+		pointer      uint64
+	}
+	// see `linux/include/kftf.h`
+	type relocationEntry struct {
+		pointer uint64
+		value   uint64
+	}
+	// Two-levels of queuing - those that must be handled directly (constants,
+	// nested structures) and those that must be handled afterwards. This
+	// implements a level-order traversal starting at `topLevel` such that we
+	// only expand pointed-to data after all constants in the current structure
+	// have already been laid out in the payload.
+	layoutQueue := []Arg{topLevel}
+	deferredPointers := make([]deferredPtr, 0)
+
+	relocationTableEntries := make([]relocationEntry, 0)
+	var payload bytes.Buffer
+	for {
+		if len(layoutQueue) == 0 && len(deferredPointers) == 0 {
+			break
+		}
+		// Pop from layoutQueue if anything is available, else pop from the
+		// deferredPointers which contains pointed-to data that we must handle
+		var arg Arg
+		if len(layoutQueue) > 0 {
+			arg = layoutQueue[0]
+			layoutQueue = layoutQueue[1:]
+		} else if len(deferredPointers) > 0 {
+			// pop from deferredPointers and create a relocation table entry
+			dp := deferredPointers[0]
+			deferredPointers = deferredPointers[1:]
+
+			currOffset := uint64(payload.Len())
+			value := currOffset - dp.pointer
+			relocationTableEntries = append(relocationTableEntries,
+				relocationEntry{pointer: dp.pointer, value: value})
+			arg = dp.pointedToArg
+		} else {
+			panic("at least one queue should have remaining entries at this point")
+		}
+
+		switch a := arg.(type) {
+		case *PointerArg:
+			ptrOffset := payload.Len()
+			// We write a placeholder value. It doesn't matter what is written
+			// here because the kernel will patch these pointers based only on
+			// the relocation table.
+			binary.Write(&payload, binary.LittleEndian, uint64(0xBFACE))
+			// NOTE: No support for VMA yet, but shouldn't be too hard to
+			// handle
+			if a.Res != nil {
+				deferred := deferredPtr{
+					pointedToArg: a.Res,
+					pointer:      uint64(ptrOffset),
+				}
+				deferredPointers = append(deferredPointers, deferred)
+			}
+		// handle non-pointer arguments by writing them into the payload buffer
+		case *GroupArg:
+			for _, inner := range a.Inner {
+				layoutQueue = append(layoutQueue, inner)
+			}
+		case *DataArg:
+			data := a.Data()
+			payload.Write(data)
+		case *ConstArg:
+			val, _ := a.Value()
+			binary.Write(&payload, binary.LittleEndian, val)
+		default:
+			panic(fmt.Sprintf("tried to serialize unsupported type: %s", a.Type().Name()))
+		}
+	}
+
+	var relocationTable bytes.Buffer
+	numEntries := int32(len(relocationTableEntries))
+	binary.Write(&relocationTable, binary.LittleEndian, numEntries)
+	// 12 bytes of padding in the C-struct definition
+	binary.Write(&relocationTable, binary.LittleEndian, make([]byte, 12))
+
+	// loop over relocation entries
+	for _, entry := range relocationTableEntries {
+		binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.pointer))
+		binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.value))
+	}
+
+	out := append(relocationTable.Bytes(), payload.Bytes()...)
+	fmt.Printf("kftf: output len = %d\n", len(out))
+	return out
 }
 
 func (w *execContext) willBeUsed(arg Arg) bool {

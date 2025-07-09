@@ -1,63 +1,7 @@
-sprint_oid_arg {
-        data    ptr[inout, array[int8]]
-        datasize        int64
-        bufsize int64[16:4096]
+my_fun_func_arg {
+        string          ptr[in, string]
+        buffer          ptr[inout, array[int8]]
+        buffer_size     len[buffer, int64]
 }
-syz_kfuzztest_run$test_sprint_oid(name ptr[in, string["test_sprint_oid"]], data ptr[in, sprint_oid_arg], len bytesize[data])
 
-bitmap_parselist_arg {
-        buf             ptr[in, string]
-        nmaskbits       int32[16:10240]
-}
-syz_kfuzztest_run$test_bitmap_parselist(name ptr[in, string["test_bitmap_parselist"]], data ptr[in, bitmap_parselist_arg], len bytesize[data])
-
-cmdline_find_option_arg {
-        cmdline ptr[in, string]
-        option  ptr[in, string]
-}
-syz_kfuzztest_run$test_cmdline_find_option(name ptr[in, string["test_cmdline_find_option"]], data ptr[in, cmdline_find_option_arg], len bytesize[data])
-
-asn1_ber_decoder_arg {
-        data    ptr[in, array[int8]]
-        datalen len[data, int64]
-}
-syz_kfuzztest_run$test_asn1_ber_decoder(name ptr[in, string["test_asn1_ber_decoder"]], data ptr[in, asn1_ber_decoder_arg], len bytesize[data])
-
-x509_cert_parse_arg {
-        data    ptr[in, array[int8]]
-        datalen len[data, int64]
-}
-syz_kfuzztest_run$test_x509_cert_parse(name ptr[in, string["test_x509_cert_parse"]], data ptr[in, x509_cert_parse_arg], len bytesize[data])
-
-
-pkcs8_parse_arg {
-        data    ptr[in, array[int8]]
-        datalen len[data, int64]
-}
-syz_kfuzztest_run$test_pkcs8_parse(name ptr[in, string["test_pkcs8_parse"]], data ptr[in, pkcs8_parse_arg], len bytesize[data])
-
-pkcs7_parse_message_arg {
-        data    ptr[in, array[int8]]
-        datalen len[data, int64]
-}
-syz_kfuzztest_run$test_pkcs7_parse_message(name ptr[in, string["test_pkcs7_parse_message"]], data ptr[in, pkcs7_parse_message_arg], len bytesize[data])
-
-rsa_parse_priv_key_arg {
-        key    ptr[in, array[int8]]
-        key_len len[key, int64]
-}
-syz_kfuzztest_run$test_rsa_parse_priv_key(name ptr[in, string["test_rsa_parse_priv_key"]], data ptr[in, rsa_parse_priv_key_arg], len bytesize[data])
-
-rsa_parse_pub_key_arg {
-        key    ptr[in, array[int8]]
-        key_len len[key, int64]
-}
-syz_kfuzztest_run$test_rsa_parse_pub_key(name ptr[in, string["test_rsa_parse_pub_key"]], data ptr[in, rsa_parse_pub_key_arg], len bytesize[data])
-
-match_number_arg {
-        str     ptr[in, string]
-        from    int64
-        to      int64
-        base    int32
-}
-syz_kfuzztest_run$test_match_number(name ptr[in, string["test_match_number"]], data ptr[in, match_number_arg], len bytesize[data])
+syz_kfuzztest_run$my_memncpy(name ptr[in, string["my_memncpy"]], data ptr[in, my_fun_func_arg], len bytesize[data])
