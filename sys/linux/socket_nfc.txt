@@ -14,6 +14,7 @@ resource sock_nfc_llcp[sock]
 
 syz_init_net_socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) sock_nfc_llcp
 bind$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
+bind$nfc(fd sock, addr ptr[in, sockaddr_nfc], addrlen len[addr])
 connect$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
 accept$nfc_llcp(fd sock_nfc_llcp, peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]]) sock_nfc_llcp
 accept4$nfc_llcp(fd sock_nfc_llcp, peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_nfc_llcp

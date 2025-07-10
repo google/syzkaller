@@ -81,6 +81,7 @@ sockaddr [
 ] [size[SOCKADDR_SIZE]]
 
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
+# Note: nfc is not included here to avoid making everything dependent on it (see #6171).
 sockaddr_storage [
 	un		sockaddr_un
 	in		sockaddr_in
@@ -104,8 +105,6 @@ sockaddr_storage [
 	hci		sockaddr_hci
 	rc		sockaddr_rc
 	alg		sockaddr_alg
-	nfc		sockaddr_nfc
-	nfc_llcp	sockaddr_nfc_llcp
 	vsock		sockaddr_vm
 	xdp		sockaddr_xdp
 	tipc		sockaddr_tipc
