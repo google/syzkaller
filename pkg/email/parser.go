@@ -30,8 +30,9 @@ type Email struct {
 	Author      string
 	OwnEmail    bool
 	Cc          []string
-	Body        string // text/plain part
-	Patch       string // attached patch, if any
+	RawCc       []string // unstripped emails
+	Body        string   // text/plain part
+	Patch       string   // attached patch, if any
 	Commands    []*SingleCommand
 }
 
@@ -178,7 +179,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	}
 	date, _ := mail.ParseDate(msg.Header.Get("Date"))
 	email := &Email{
-		BugIDs:      dedupBugIDs(bugIDs),
+		BugIDs:      unique(bugIDs),
 		MessageID:   msg.Header.Get("Message-ID"),
 		InReplyTo:   extractInReplyTo(msg.Header),
 		Date:        date,
@@ -188,6 +189,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		MailingList: mailingList,
 		Subject:     subject,
 		Cc:          ccList,
+		RawCc:       mergeRawAddresses(from, originalFroms, to, cc),
 		Body:        bodyStr,
 		Patch:       patch,
 		Commands:    cmds,
@@ -500,8 +502,8 @@ func extractBodyBugIDs(body string, ownEmailMap map[string]bool, domains []strin
 	return ids
 }
 
-func dedupBugIDs(list []string) []string {
-	// We should preserve the original order of IDs.
+func unique(list []string) []string {
+	// We preserve the original order since it's necessary for bug IDs.
 	var ret []string
 	dup := map[string]struct{}{}
 	for _, v := range list {
@@ -539,6 +541,18 @@ func MergeEmailLists(lists ...[]string) []string {
 		result = result[:maxEmails]
 	}
 	return result
+}
+
+func mergeRawAddresses(lists ...[]*mail.Address) []string {
+	var emails []string
+	for _, list := range lists {
+		for _, item := range list {
+			emails = append(emails, item.Address)
+		}
+	}
+	emails = unique(emails)
+	sort.Strings(emails)
+	return emails
 }
 
 func RemoveFromEmailList(list []string, toRemove string) []string {
