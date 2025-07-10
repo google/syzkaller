@@ -220,6 +220,7 @@ Bug report`,
 			t.Fatal(err)
 		}
 		msg.Body = ""
+		msg.RawCc = nil
 		emails = append(emails, msg)
 	}
 
