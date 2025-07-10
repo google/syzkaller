@@ -33,6 +33,7 @@ func TestModerationReportFlow(t *testing.T) {
 		To:      []string{testEmailConfig.ModerationList},
 		Cc:      []string{testEmailConfig.ArchiveList},
 		Subject: "[moderation/CI] Re: " + testSeries.Title,
+		BugID:   report.ID,
 		// Note that InReplyTo and Cc are nil.
 	}, receivedEmail)
 
@@ -48,7 +49,7 @@ func TestModerationReportFlow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// The report must be sent upstream.
-	_, err = handler.PollAndReport(ctx)
+	report, err = handler.PollAndReport(ctx)
 	assert.NoError(t, err)
 
 	receivedEmail = emailServer.email()
@@ -59,6 +60,7 @@ func TestModerationReportFlow(t *testing.T) {
 		Cc:        []string{testEmailConfig.ArchiveList},
 		Subject:   "[name] Re: " + testSeries.Title,
 		InReplyTo: testSeries.ExtID,
+		BugID:     report.ID,
 	}, receivedEmail)
 }
 
