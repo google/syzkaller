@@ -74,6 +74,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 		To:      rep.Cc,
 		Body:    body,
 		Cc:      []string{h.emailConfig.ArchiveList},
+		BugID:   rep.ID,
 	}
 	if rep.Moderation {
 		toSend.To = []string{h.emailConfig.ModerationList}
