@@ -167,7 +167,10 @@ type Config struct {
 	// By default it is true, as this is the desired behavior when executing syzkaller
 	// locally.
 	PreserveCorpus bool `json:"preserve_corpus"`
-
+	// the following fields force the IOCTLs dependencies (expressed through resources)
+	// to be respected in every generated program
+	PromoteSyscallsDependency bool  `json:"promote_syscalls_dependency,omitempty"`
+	DependecySwitcheroo       int64 `json:"dynamic_promote_syscalls_dependency,omitempty"`
 	// List of syscalls to test (optional). For example:
 	//	"enable_syscalls": [ "mmap", "openat$ashmem", "ioctl$ASHMEM*" ]
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`
