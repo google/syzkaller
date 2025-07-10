@@ -1447,9 +1447,9 @@ Author: someone@mail.com
 `, msg.Body)
 
 		t.Run("no-loop", func(t *testing.T) {
-			// Ensure that we don't react to our own reply.
-			c.incomingEmail(from, msg.Body,
-				EmailOptFrom(msg.Sender),
+			// Ensure that we don't react to replies.
+			c.incomingEmail("syzbot@testapp.appspotmail.com", msg.Body,
+				EmailOptFrom("syzbot@testapp.appspotmail.com"),
 				EmailOptCC(append(append([]string{}, msg.Cc...), msg.To...)))
 			c.expectNoEmail()
 		})

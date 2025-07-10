@@ -600,7 +600,7 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	source := matchDiscussionEmail(c, myEmail)
-	inbox := matchInbox(c, myEmail)
+	inbox := matchInbox(c, msg)
 	log.Infof(c, "received email at %q, source %q, matched ignored inbox=%v",
 		myEmail, source, inbox != nil)
 	if inbox != nil {
@@ -631,10 +631,16 @@ func matchDiscussionEmail(c context.Context, myEmail string) dashapi.DiscussionS
 	return dashapi.NoDiscussion
 }
 
-func matchInbox(c context.Context, myEmail string) *PerInboxConfig {
+func matchInbox(c context.Context, msg *email.Email) *PerInboxConfig {
+	// We look at all raw addresses in To or Cc because, after forwarding, someone's reply
+	// will arrive to us both via the email through which we have forwarded and through the
+	// address that matched InboxRe.
 	for _, item := range getConfig(c).MonitoredInboxes {
-		if ok, _ := regexp.MatchString(item.InboxRe, myEmail); ok {
-			return item
+		rg := regexp.MustCompile(item.InboxRe)
+		for _, cc := range msg.RawCc {
+			if rg.MatchString(cc) {
+				return item
+			}
 		}
 	}
 	return nil
