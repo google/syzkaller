@@ -22,6 +22,7 @@ import (
 
 type dashboardHandler struct {
 	title           string
+	buildRepo       *db.BuildRepository
 	seriesRepo      *db.SeriesRepository
 	sessionRepo     *db.SessionRepository
 	sessionTestRepo *db.SessionTestRepository
@@ -37,19 +38,17 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 	perFile := map[string]*template.Template{}
 	var err error
 	for _, name := range []string{"index.html", "series.html"} {
-		perFile[name], err = template.ParseFS(templates, "templates/base.html", "templates/"+name)
+		perFile[name], err = template.ParseFS(templates,
+			"templates/base.html", "templates/templates.html", "templates/"+name)
 		if err != nil {
 			return nil, err
 		}
 	}
-	cfg, err := app.Config()
-	if err != nil {
-		return nil, err
-	}
 	return &dashboardHandler{
-		title:           cfg.Name,
+		title:           env.Config.Name,
 		templates:       perFile,
 		blobStorage:     env.BlobStorage,
+		buildRepo:       db.NewBuildRepository(env.Spanner),
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
 		sessionRepo:     db.NewSessionRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
@@ -69,6 +68,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
+	mux.HandleFunc("/builds/{id}/{key}", errToStatus(h.buildInfo))
 	mux.HandleFunc("/", errToStatus(h.seriesList))
 	staticFiles, err := fs.Sub(staticFs, "static")
 	if err != nil {
@@ -192,7 +192,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		if err != nil {
 			return fmt.Errorf("failed to query session tests: %w", err)
 		}
-		findings, err := h.findingRepo.ListForSession(ctx, session.ID)
+		findings, err := h.findingRepo.ListForSession(ctx, session.ID, 0)
 		if err != nil {
 			return fmt.Errorf("failed to query session findings: %w", err)
 		}
@@ -289,6 +289,23 @@ func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) e
 		return err
 	case "c_repro":
 		return h.streamBlob(w, finding.CReproURI)
+	default:
+		return fmt.Errorf("%w: unknown key value", errBadRequest)
+	}
+}
+
+func (h *dashboardHandler) buildInfo(w http.ResponseWriter, r *http.Request) error {
+	build, err := h.buildRepo.GetByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return err
+	} else if build == nil {
+		return fmt.Errorf("%w: build", errNotFound)
+	}
+	switch r.PathValue("key") {
+	case "log":
+		return h.streamBlob(w, build.LogURI)
+	case "config":
+		return h.streamBlob(w, build.ConfigURI)
 	default:
 		return fmt.Errorf("%w: unknown key value", errBadRequest)
 	}

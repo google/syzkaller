@@ -45,7 +45,9 @@ type Build struct {
 	Arch       string             `spanner:"Arch"`
 	ConfigName string             `spanner:"ConfigName"`
 	ConfigURI  string             `spanner:"ConfigURI"`
+	LogURI     string             `spanner:"LogURI"`
 	Status     string             `spanner:"Status"`
+	Compiler   string             `spanner:"Compiler"`
 }
 
 func (b *Build) SetSeriesID(val string) {

@@ -16,14 +16,14 @@ import (
 func TestAPIGetSeries(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)
-	seriesID, sessionID := UploadTestSeries(t, ctx, client, testSeries)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
 
-	ret, err := client.GetSessionSeries(ctx, sessionID)
+	ret, err := client.GetSessionSeries(ctx, ids.SessionID)
 	assert.NoError(t, err)
 	ret.ID = ""
 	assert.Equal(t, testSeries, ret)
 
-	ret, err = client.GetSeries(ctx, seriesID)
+	ret, err = client.GetSeries(ctx, ids.SeriesID)
 	assert.NoError(t, err)
 	ret.ID = ""
 	assert.Equal(t, testSeries, ret)
@@ -47,10 +47,10 @@ func TestAPISaveFinding(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)
 
-	_, sessionID := UploadTestSeries(t, ctx, client, testSeries)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
 	buildResp := UploadTestBuild(t, ctx, client, testBuild)
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   sessionID,
+		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
 		Result:      api.TestRunning,
@@ -60,7 +60,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("not existing test", func(t *testing.T) {
 		err = client.UploadFinding(ctx, &api.NewFinding{
-			SessionID: sessionID,
+			SessionID: ids.SessionID,
 			TestName:  "unknown test",
 		})
 		assert.Error(t, err)
@@ -68,7 +68,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("must succeed", func(t *testing.T) {
 		finding := &api.NewFinding{
-			SessionID:    sessionID,
+			SessionID:    ids.SessionID,
 			TestName:     "test",
 			Report:       []byte("report"),
 			Log:          []byte("log"),
@@ -88,17 +88,17 @@ func TestAPIUploadTestArtifacts(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)
 
-	_, sessionID := UploadTestSeries(t, ctx, client, testSeries)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
 	buildResp := UploadTestBuild(t, ctx, client, testBuild)
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   sessionID,
+		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
 		Result:      api.TestRunning,
 		Log:         []byte("some log"),
 	})
 	assert.NoError(t, err)
-	err = client.UploadTestArtifacts(ctx, sessionID, "test", bytes.NewReader([]byte("artifacts content")))
+	err = client.UploadTestArtifacts(ctx, ids.SessionID, "test", bytes.NewReader([]byte("artifacts content")))
 	assert.NoError(t, err)
 }
 

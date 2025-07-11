@@ -18,6 +18,8 @@ import (
 type AppEnvironment struct {
 	Spanner     *spanner.Client
 	BlobStorage blob.Storage
+	Config      *AppConfig
+	URLs        *api.URLGenerator
 }
 
 func Environment(ctx context.Context) (*AppEnvironment, error) {
@@ -29,9 +31,15 @@ func Environment(ctx context.Context) (*AppEnvironment, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up the blob storage: %w", err)
 	}
+	cfg, err := Config()
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the config: %w", err)
+	}
 	return &AppEnvironment{
 		Spanner:     spanner,
 		BlobStorage: storage,
+		Config:      cfg,
+		URLs:        api.NewURLGenerator(cfg.URL),
 	}, nil
 }
 
@@ -40,6 +48,10 @@ func TestEnvironment(t *testing.T) (*AppEnvironment, context.Context) {
 	return &AppEnvironment{
 		Spanner:     client,
 		BlobStorage: blob.NewLocalStorage(t.TempDir()),
+		Config: &AppConfig{
+			Name: "Test",
+		},
+		URLs: api.NewURLGenerator("http://dashboard"),
 	}, ctx
 }
 
