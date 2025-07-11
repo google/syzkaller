@@ -66,6 +66,8 @@ func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.Upstr
 	return nil
 }
 
+const maxFindingsPerReport = 5
+
 func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextReportResp, error) {
 	list, err := rs.reportRepo.ListNotReported(ctx, reporter, 1)
 	if err != nil {
@@ -78,7 +80,7 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
-	findings, err := rs.findingService.List(ctx, report.SessionID)
+	findings, err := rs.findingService.List(ctx, report.SessionID, maxFindingsPerReport)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query findings: %w", err)
 	}

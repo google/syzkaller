@@ -128,8 +128,6 @@ type SessionReport struct {
 	ID         string     `json:"id"`
 	Cc         []string   `json:"cc"`
 	Moderation bool       `json:"moderation"`
-	BaseRepo   string     `json:"base_repo"`
-	BaseCommit string     `json:"base_commit"`
 	Series     *Series    `json:"series"`
 	Findings   []*Finding `json:"findings"`
 	Link       string     `json:"link"` // URL to the web dashboard.
@@ -145,6 +143,8 @@ type Finding struct {
 }
 
 type BuildInfo struct {
+	Repo       string `json:"repo"`
+	BaseCommit string `json:"base_commit"`
 	Arch       string `json:"arch"`
 	Compiler   string `json:"compiler"`
 	ConfigLink string `json:"config_link"`

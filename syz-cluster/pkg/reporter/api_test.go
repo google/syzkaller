@@ -40,6 +40,7 @@ func TestAPIReportFlow(t *testing.T) {
 		Series: &api.Series{
 			ExtID: testSeries.ExtID,
 			Title: testSeries.Title,
+			Link:  "http://link/to/series",
 			Patches: []api.SeriesPatch{
 				{
 					Seq:   1,
@@ -54,11 +55,21 @@ func TestAPIReportFlow(t *testing.T) {
 				Title:  "finding 0",
 				Report: "report 0",
 				LogURL: "TODO", // TODO
+				Build: api.BuildInfo{
+					Repo:       "mainline",
+					BaseCommit: "abcd",
+					Arch:       "amd64",
+				},
 			},
 			{
 				Title:  "finding 1",
 				Report: "report 1",
 				LogURL: "TODO", // TODO
+				Build: api.BuildInfo{
+					Repo:       "mainline",
+					BaseCommit: "abcd",
+					Arch:       "amd64",
+				},
 			},
 		},
 	}, nextResp.Report)
