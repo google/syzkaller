@@ -1,4 +1,4 @@
-{{.Config.Name}} has processed the following series
+{{.Config.Name}} has tested the following series
 
 [v{{.Report.Series.Version}}] {{.Report.Series.Title}}
 {{.Report.Series.Link}}
@@ -11,10 +11,6 @@ and found the following issues:
 * {{.Title}}
 {{- end}}
 
-The series was applied to the following base tree:
-* Tree:   {{.Report.BaseRepo}}
-* Commit: {{.Report.BaseCommit}}
-
 Full report is available here:
 {{.Report.Link}}
 
@@ -23,7 +19,10 @@ Full report is available here:
 ***
 
 {{.Title}}
-{{if .Build.Arch}}
+
+tree:      {{.Build.Repo}}
+base:      {{.Build.BaseCommit}}
+{{- if .Build.Arch}}
 arch:      {{.Build.Arch}}
 {{- end}}
 {{- if .Build.Compiler}}

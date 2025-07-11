@@ -1,4 +1,4 @@
-syzbot has processed the following series
+syzbot has tested the following series
 
 [v2] Series title
 http://link/to/series
@@ -9,10 +9,6 @@ and found the following issues:
 * WARNING in abcd
 * KASAN: use-after-free Write in abcd
 
-The series was applied to the following base tree:
-* Tree:   git://repo
-* Commit: abcd0123
-
 Full report is available here:
 http://some/link/to/report
 
@@ -20,6 +16,8 @@ http://some/link/to/report
 
 WARNING in abcd
 
+tree:      http://kernel/repo1
+base:      base_commit1
 arch:      amd64
 compiler:  clang
 config:    http://link/to/config/1
@@ -34,6 +32,8 @@ Report Line C
 
 KASAN: use-after-free Write in abcd
 
+tree:      http://kernel/repo1
+base:      base_commit1
 arch:      arm64
 compiler:  clang
 config:    http://link/to/config/2

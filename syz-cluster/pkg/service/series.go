@@ -120,6 +120,7 @@ func (s *SeriesService) getSeries(ctx context.Context,
 		Version:     int(series.Version),
 		Cc:          series.Cc,
 		PublishedAt: series.PublishedAt,
+		Link:        series.Link,
 	}
 	for _, patch := range patches {
 		var body []byte

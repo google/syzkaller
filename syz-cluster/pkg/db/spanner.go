@@ -271,8 +271,10 @@ func readEntities[T any](iter *spanner.RowIterator) ([]*T, error) {
 	return ret, nil
 }
 
+const NoLimit = 0
+
 func addLimit(stmt *spanner.Statement, limit int) {
-	if limit > 0 {
+	if limit != NoLimit {
 		stmt.SQL += " LIMIT @limit"
 		stmt.Params["limit"] = limit
 	}
