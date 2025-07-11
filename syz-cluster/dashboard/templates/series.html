@@ -128,8 +128,8 @@
             {{range .Tests}}
                 <tr>
                     <td>{{.TestName}}</td>
-                    <td>{{if .BaseBuild}}{{.BaseBuild.CommitHash}}{{end}}</td>
-                    <td>{{if .PatchedBuild}}{{.PatchedBuild.CommitHash}}[patched]{{end}}</td>
+                    <td>{{if .BaseBuild}}{{template "build_info" .BaseBuild}}{{end}}</td>
+                    <td>{{if .PatchedBuild}}{{template "build_info" .PatchedBuild}}[patched]{{end}}</td>
                     <th>
                         {{.Result}}
                         {{if .LogURI}}

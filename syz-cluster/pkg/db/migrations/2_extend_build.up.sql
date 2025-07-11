@@ -1,0 +1,7 @@
+-- One cannot just add a non null column in spanner.
+
+ALTER TABLE Builds ADD COLUMN Compiler STRING(512) DEFAULT('');
+ALTER TABLE Builds ALTER COLUMN Compiler STRING(512) NOT NULL;
+
+ALTER TABLE Builds ADD COLUMN LogURI STRING(512) DEFAULT('');
+ALTER TABLE Builds ALTER COLUMN LogURI STRING(512) NOT NULL;

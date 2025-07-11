@@ -29,3 +29,11 @@ func (g *URLGenerator) FindingCRepro(findingID string) string {
 func (g *URLGenerator) Series(seriesID string) string {
 	return fmt.Sprintf("%s/series/%s", g.baseURL, seriesID)
 }
+
+func (g *URLGenerator) BuildConfig(buildID string) string {
+	return fmt.Sprintf("%s/builds/%s/config", g.baseURL, buildID)
+}
+
+func (g *URLGenerator) BuildLog(buildID string) string {
+	return fmt.Sprintf("%s/builds/%s/log", g.baseURL, buildID)
+}
