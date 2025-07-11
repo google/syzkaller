@@ -1,6 +1,6 @@
 syzbot has tested the following series
 
-[v2] Series title
+[v2] Series title''
 http://link/to/series
 * first patch
 * second patch

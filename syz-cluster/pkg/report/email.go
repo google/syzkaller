@@ -6,7 +6,7 @@ package report
 import (
 	"bytes"
 	"embed"
-	"html/template"
+	"text/template"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
