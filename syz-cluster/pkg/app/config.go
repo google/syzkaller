@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
+	"strings"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -15,6 +16,8 @@ import (
 type AppConfig struct {
 	// The name that will be shown on the Web UI.
 	Name string `yaml:"name"`
+	// Public URL of the web dashboard (without / at the end).
+	URL string `yaml:"URL"`
 	// How many workflows are scheduled in parallel.
 	ParallelWorkflows int `yaml:"parallelWorkflows"`
 	// What Lore archives are to be polled for new patch series.
@@ -108,6 +111,9 @@ func (c AppConfig) Validate() error {
 	if c.ParallelWorkflows < 0 {
 		return fmt.Errorf("parallelWorkflows must be non-negative")
 	}
+	if err := ensureURL("url", c.URL); err != nil {
+		return err
+	}
 	if c.EmailReporting != nil {
 		if err := c.EmailReporting.Validate(); err != nil {
 			return fmt.Errorf("emailReporting: %w", err)
@@ -172,6 +178,16 @@ func (c DashapiConfig) Validate() error {
 func ensureNonEmpty(name, val string) error {
 	if val == "" {
 		return fmt.Errorf("%v must not be empty", name)
+	}
+	return nil
+}
+
+func ensureURL(name, val string) error {
+	if err := ensureNonEmpty(name, val); err != nil {
+		return err
+	}
+	if strings.HasSuffix(val, "/") {
+		return fmt.Errorf("%v should not contain / at the end", name)
 	}
 	return nil
 }

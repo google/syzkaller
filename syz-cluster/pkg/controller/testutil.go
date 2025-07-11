@@ -16,16 +16,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type EntityIDs struct {
+	SeriesID  string
+	SessionID string
+}
+
 // UploadTestSeries returns a (series ID, session ID) tuple.
 func UploadTestSeries(t *testing.T, ctx context.Context,
-	client *api.Client, series *api.Series) (string, string) {
+	client *api.Client, series *api.Series) EntityIDs {
 	retSeries, err := client.UploadSeries(ctx, series)
 	assert.NoError(t, err)
 	retSession, err := client.UploadSession(ctx, &api.NewSession{
 		ExtID: series.ExtID,
 	})
 	assert.NoError(t, err)
-	return retSeries.ID, retSession.ID
+	return EntityIDs{
+		SeriesID:  retSeries.ID,
+		SessionID: retSession.ID,
+	}
 }
 
 func UploadTestBuild(t *testing.T, ctx context.Context, client *api.Client,
@@ -76,18 +84,21 @@ func DummyFindings() []*api.NewFinding {
 			Title:    fmt.Sprintf("finding %d", i),
 			TestName: "test",
 			Report:   []byte(fmt.Sprintf("report %d", i)),
+			Log:      []byte(fmt.Sprintf("log %d", i)),
+			SyzRepro: []byte(fmt.Sprintf("log %d", i)),
+			CRepro:   []byte(fmt.Sprintf("log %d", i)),
 		})
 	}
 	return findings
 }
 
 func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvironment,
-	client *api.Client, series *api.Series) {
-	_, sessionID := UploadTestSeries(t, ctx, client, series)
+	client *api.Client, series *api.Series) EntityIDs {
+	ids := UploadTestSeries(t, ctx, client, series)
 	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:      sessionID,
+		SessionID:      ids.SessionID,
 		BaseBuildID:    baseBuild.ID,
 		PatchedBuildID: patchedBuild.ID,
 		TestName:       "test",
@@ -97,11 +108,12 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 
 	findings := DummyFindings()
 	for _, finding := range findings {
-		finding.SessionID = sessionID
+		finding.SessionID = ids.SessionID
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
 	}
-	MarkSessionFinished(t, env, sessionID)
+	MarkSessionFinished(t, env, ids.SessionID)
+	return ids
 }
 
 func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {

@@ -97,7 +97,7 @@ func TestFinishRunningSteps(t *testing.T) {
 		ExtID: "ext-id",
 		Title: "title",
 	}
-	_, sessionID := controller.UploadTestSeries(t, ctx, client, series)
+	ids := controller.UploadTestSeries(t, ctx, client, series)
 	buildResp := controller.UploadTestBuild(t, ctx, client, &api.Build{
 		Arch:       "amd64",
 		TreeName:   "mainline",
@@ -105,7 +105,7 @@ func TestFinishRunningSteps(t *testing.T) {
 		CommitHash: "abcd",
 	})
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   sessionID,
+		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
 		Result:      api.TestRunning,
@@ -119,7 +119,7 @@ func TestFinishRunningSteps(t *testing.T) {
 
 	// Verify that the session test is finished.
 	// A bit hacky, but it works.
-	list, err := processor.sessionTestRepo.BySessionRaw(ctx, sessionID)
+	list, err := processor.sessionTestRepo.BySessionRaw(ctx, ids.SessionID)
 	assert.NoError(t, err)
 	assert.Equal(t, api.TestError, list[0].Result)
 }
