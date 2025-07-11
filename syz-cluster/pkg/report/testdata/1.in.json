@@ -1,7 +1,7 @@
 {
   "id": "abcd",
   "series": {
-    "title": "Series title",
+    "title": "Series title''",
     "version": 2,
     "link": "http://link/to/series",
     "patches": [
