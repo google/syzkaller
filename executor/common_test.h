@@ -118,9 +118,13 @@ static long syz_compare_zlib(volatile long data, volatile long size, volatile lo
 	struct stat statbuf;
 	if (fstat(fd, &statbuf))
 		return -1;
-	void* uncompressed = mmap(0, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (uncompressed == MAP_FAILED)
-		return -1;
+	void* uncompressed = NULL;
+	if (statbuf.st_size > 0) {
+		// We cannot mmap 0 bytes.
+		uncompressed = mmap(0, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (uncompressed == MAP_FAILED)
+			return -1;
+	}
 	return syz_compare(data, size, (long)uncompressed, statbuf.st_size);
 }
 #endif
