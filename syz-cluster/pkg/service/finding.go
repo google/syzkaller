@@ -16,14 +16,18 @@ import (
 )
 
 type FindingService struct {
-	findingRepo *db.FindingRepository
-	blobStorage blob.Storage
+	findingRepo     *db.FindingRepository
+	sessionTestRepo *db.SessionTestRepository
+	buildRepo       *db.BuildRepository
+	blobStorage     blob.Storage
 }
 
 func NewFindingService(env *app.AppEnvironment) *FindingService {
 	return &FindingService{
-		findingRepo: db.NewFindingRepository(env.Spanner),
-		blobStorage: env.BlobStorage,
+		findingRepo:     db.NewFindingRepository(env.Spanner),
+		blobStorage:     env.BlobStorage,
+		buildRepo:       db.NewBuildRepository(env.Spanner),
+		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
 	}
 }
 
@@ -67,16 +71,28 @@ func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 	return err
 }
 
-func (s *FindingService) List(ctx context.Context, sessionID string) ([]*api.Finding, error) {
-	list, err := s.findingRepo.ListForSession(ctx, sessionID)
+func (s *FindingService) List(ctx context.Context, sessionID string, limit int) ([]*api.Finding, error) {
+	list, err := s.findingRepo.ListForSession(ctx, sessionID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query the list: %w", err)
+	}
+	tests, err := s.sessionTestRepo.BySession(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query session tests: %w", err)
+	}
+	testPerName := map[string]*db.FullSessionTest{}
+	for _, test := range tests {
+		testPerName[test.TestName] = test
 	}
 	var ret []*api.Finding
 	for _, item := range list {
 		finding := &api.Finding{
 			Title:  item.Title,
 			LogURL: "TODO", // TODO: where to take it from?
+		}
+		build := testPerName[item.TestName].PatchedBuild
+		if build != nil {
+			finding.Build = makeBuildInfo(build)
 		}
 		bytes, err := blob.ReadAllBytes(s.blobStorage, item.ReportURI)
 		if err != nil {

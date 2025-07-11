@@ -71,3 +71,12 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 	}
 	return resp, nil
 }
+
+func makeBuildInfo(build *db.Build) api.BuildInfo {
+	return api.BuildInfo{
+		Repo:       build.TreeName, // TODO: we actually want to use repo URI here.
+		BaseCommit: build.CommitHash,
+		Arch:       build.Arch,
+		ConfigLink: "",
+	}
+}

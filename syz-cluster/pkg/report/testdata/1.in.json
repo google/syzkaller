@@ -1,7 +1,5 @@
 {
   "id": "abcd",
-  "base_repo": "git://repo",
-  "base_commit": "abcd0123",
   "series": {
     "title": "Series title",
     "version": 2,
@@ -22,6 +20,8 @@
       "c_repro": "http://link/to/c/repro",
       "syz_repro": "http://link/to/syz/repro",
       "build": {
+	"repo": "http://kernel/repo1",
+	"base_commit": "base_commit1",
 	"arch": "amd64",
 	"config_link": "http://link/to/config/1",
 	"compiler": "clang"
@@ -32,6 +32,8 @@
       "report": "Report Line D\nReport Line E\nReport Line F",
       "syz_repro": "http://link/to/syz/repro2",
       "build": {
+	"repo": "http://kernel/repo1",
+	"base_commit": "base_commit1",
 	"arch": "arm64",
 	"config_link": "http://link/to/config/2",
 	"compiler": "clang"

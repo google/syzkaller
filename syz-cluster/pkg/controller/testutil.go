@@ -49,6 +49,7 @@ func DummySeries() *api.Series {
 	return &api.Series{
 		ExtID: "ext-id",
 		Title: "test series name",
+		Link:  "http://link/to/series",
 		Patches: []api.SeriesPatch{
 			{
 				Seq:   1,
@@ -83,12 +84,14 @@ func DummyFindings() []*api.NewFinding {
 func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvironment,
 	client *api.Client, series *api.Series) {
 	_, sessionID := UploadTestSeries(t, ctx, client, series)
-	buildResp := UploadTestBuild(t, ctx, client, DummyBuild())
+	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
+	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	err := client.UploadTestResult(ctx, &api.TestResult{
-		SessionID:   sessionID,
-		BaseBuildID: buildResp.ID,
-		TestName:    "test",
-		Result:      api.TestRunning,
+		SessionID:      sessionID,
+		BaseBuildID:    baseBuild.ID,
+		PatchedBuildID: patchedBuild.ID,
+		TestName:       "test",
+		Result:         api.TestRunning,
 	})
 	assert.NoError(t, err)
 
