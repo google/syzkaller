@@ -43,6 +43,8 @@ func TestAPIReportFlow(t *testing.T) {
 		finding.LinkCRepro = ""
 		assert.NotEmpty(t, finding.LinkSyzRepro, "%q's LinkSyzRepro is empty", finding.Title)
 		finding.LinkSyzRepro = ""
+		assert.NotEmpty(t, finding.Build.ConfigLink, "%q's ConfigLink is empty", finding.Title)
+		finding.Build.ConfigLink = ""
 	}
 
 	assert.Equal(t, &api.SessionReport{
@@ -69,6 +71,7 @@ func TestAPIReportFlow(t *testing.T) {
 					Repo:       "mainline",
 					BaseCommit: "abcd",
 					Arch:       "amd64",
+					Compiler:   "compiler",
 				},
 			},
 			{
@@ -78,6 +81,7 @@ func TestAPIReportFlow(t *testing.T) {
 					Repo:       "mainline",
 					BaseCommit: "abcd",
 					Arch:       "amd64",
+					Compiler:   "compiler",
 				},
 			},
 		},

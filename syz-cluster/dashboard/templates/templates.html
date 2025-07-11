@@ -1,0 +1,9 @@
+{{define "build_info"}}
+{{.CommitHash}}
+{{if .ConfigURI}}
+<a href="/builds/{{.ID}}/config" class="modal-link-raw">[Config]</a>
+{{end}}
+{{if .LogURI}}
+<a href="/builds/{{.ID}}/log" class="modal-link-raw">[Log]</a>
+{{end}}
+{{end}}
