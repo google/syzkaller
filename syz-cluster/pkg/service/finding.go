@@ -100,7 +100,7 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 		}
 		build := testPerName[item.TestName].PatchedBuild
 		if build != nil {
-			finding.Build = makeBuildInfo(build)
+			finding.Build = makeBuildInfo(s.urls, build)
 		}
 		bytes, err := blob.ReadAllBytes(s.blobStorage, item.ReportURI)
 		if err != nil {

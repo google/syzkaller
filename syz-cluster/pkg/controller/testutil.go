@@ -39,7 +39,9 @@ func UploadTestSeries(t *testing.T, ctx context.Context,
 func UploadTestBuild(t *testing.T, ctx context.Context, client *api.Client,
 	build *api.Build) *api.UploadBuildResp {
 	ret, err := client.UploadBuild(ctx, &api.UploadBuildReq{
-		Build: *build,
+		Build:  *build,
+		Log:    []byte("build log"),
+		Config: []byte("build config"),
 	})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ret.ID)
@@ -74,6 +76,7 @@ func DummyBuild() *api.Build {
 		TreeName:   "mainline",
 		ConfigName: "config",
 		CommitHash: "abcd",
+		Compiler:   "compiler",
 	}
 }
 
@@ -92,8 +95,14 @@ func DummyFindings() []*api.NewFinding {
 	return findings
 }
 
+type SeriesWithFindingIDs struct {
+	EntityIDs
+	BaseBuildID    string
+	PatchedBuildID string
+}
+
 func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvironment,
-	client *api.Client, series *api.Series) EntityIDs {
+	client *api.Client, series *api.Series) SeriesWithFindingIDs {
 	ids := UploadTestSeries(t, ctx, client, series)
 	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
@@ -113,7 +122,11 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 		assert.NoError(t, err)
 	}
 	MarkSessionFinished(t, env, ids.SessionID)
-	return ids
+	return SeriesWithFindingIDs{
+		EntityIDs:      ids,
+		BaseBuildID:    baseBuild.ID,
+		PatchedBuildID: patchedBuild.ID,
+	}
 }
 
 func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {

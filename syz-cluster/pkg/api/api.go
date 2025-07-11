@@ -57,6 +57,7 @@ type Build struct {
 	CommitDate   time.Time `json:"commit_date"`
 	ConfigName   string    `json:"config_name"`
 	SeriesID     string    `json:"series_id"`
+	Compiler     string    `json:"compiler"`
 	BuildSuccess bool      `json:"build_success"`
 }
 

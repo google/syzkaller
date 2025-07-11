@@ -4,6 +4,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,8 +25,12 @@ func TestURLs(t *testing.T) {
 	handler, baseURL := testServer(t, env)
 	urlGen := api.NewURLGenerator(baseURL)
 
-	var urls []string
-	urls = append(urls, urlGen.Series(ids.SeriesID))
+	urls := []string{urlGen.Series(ids.SeriesID)}
+	for _, buildID := range []string{ids.BaseBuildID, ids.PatchedBuildID} {
+		urls = append(urls, urlGen.BuildConfig(buildID))
+		urls = append(urls, urlGen.BuildLog(buildID))
+	}
+
 	findings, err := handler.findingRepo.ListForSession(ctx, ids.SessionID, 0)
 	require.NoError(t, err)
 	for _, finding := range findings {
@@ -36,9 +41,11 @@ func TestURLs(t *testing.T) {
 	for _, url := range urls {
 		t.Logf("checking %s", url)
 		resp, err := http.Get(url)
-		assert.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		assert.Equal(t, http.StatusOK, resp.StatusCode, "%q was expected to return HTTP 200", url)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode,
+			"%q was expected to return HTTP 200, body: %s", url, string(body))
 	}
 }
 
