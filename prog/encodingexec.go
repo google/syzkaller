@@ -246,6 +246,9 @@ func (w *execContext) writeCopyin(c *Call) {
 	})
 }
 
+// Special value for making null pointers that equals (void *)-1
+const kFuzzTestNilPtrVal uint64 = ^uint64(0)
+
 // marshallKFuzztestArg serializes a top-level struct argument (`topLevel`) into
 // a single binary blob that can be consumed by the kernel. The output format,
 // defined in `linux/include/kftf.h`, is designed for position-independent data
@@ -291,6 +294,24 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 
 	relocationTableEntries := make([]relocationEntry, 0)
 	var payload bytes.Buffer
+
+	// Aligns the current position in the payload to the next alignment border.
+	// Currently we only support aligment up to 8 bytes. This is because
+	// relocation entries are 8-byte-aligned in the kernel, and we don't know
+	// how many entries there are yet.
+	// XXX: do a first pass to count the number of relocation entries?
+	alignPayload := func(alignment uint64) {
+		if alignment > 8 {
+			panic("TODO: not supporting alignment above 8 bytes")
+		}
+		for {
+			if uint64(payload.Len())%alignment == 0 {
+				return
+			}
+			payload.WriteByte(byte(0))
+		}
+	}
+
 	for {
 		if len(layoutQueue) == 0 && len(deferredPointers) == 0 {
 			break
@@ -315,6 +336,8 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			panic("at least one queue should have remaining entries at this point")
 		}
 
+		alignPayload(arg.Type().Alignment())
+
 		switch a := arg.(type) {
 		case *PointerArg:
 			ptrOffset := payload.Len()
@@ -330,6 +353,13 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 					pointer:      uint64(ptrOffset),
 				}
 				deferredPointers = append(deferredPointers, deferred)
+			} else {
+				// NULL pointer. We directly create a relocation table entry
+				// with the reserved value for NULL pointers.
+				relocationTableEntries = append(relocationTableEntries, relocationEntry{
+					pointer: uint64(ptrOffset),
+					value:   kFuzzTestNilPtrVal,
+				})
 			}
 		// handle non-pointer arguments by writing them into the payload buffer
 		case *GroupArg:
