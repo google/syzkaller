@@ -19,6 +19,7 @@ type FindingService struct {
 	findingRepo     *db.FindingRepository
 	sessionTestRepo *db.SessionTestRepository
 	buildRepo       *db.BuildRepository
+	urls            *api.URLGenerator
 	blobStorage     blob.Storage
 }
 
@@ -26,6 +27,7 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 	return &FindingService{
 		findingRepo:     db.NewFindingRepository(env.Spanner),
 		blobStorage:     env.BlobStorage,
+		urls:            env.URLs,
 		buildRepo:       db.NewBuildRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
 	}
@@ -88,7 +90,13 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 	for _, item := range list {
 		finding := &api.Finding{
 			Title:  item.Title,
-			LogURL: "TODO", // TODO: where to take it from?
+			LogURL: s.urls.FindingLog(item.ID),
+		}
+		if item.SyzReproURI != "" {
+			finding.LinkSyzRepro = s.urls.FindingSyzRepro(item.ID)
+		}
+		if item.CReproURI != "" {
+			finding.LinkCRepro = s.urls.FindingCRepro(item.ID)
 		}
 		build := testPerName[item.TestName].PatchedBuild
 		if build != nil {

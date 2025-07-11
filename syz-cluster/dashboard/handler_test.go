@@ -1,0 +1,51 @@
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/controller"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestURLs(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+	testSeries := controller.DummySeries()
+	ids := controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
+
+	handler, baseURL := testServer(t, env)
+	urlGen := api.NewURLGenerator(baseURL)
+
+	var urls []string
+	urls = append(urls, urlGen.Series(ids.SeriesID))
+	findings, err := handler.findingRepo.ListForSession(ctx, ids.SessionID, 0)
+	require.NoError(t, err)
+	for _, finding := range findings {
+		urls = append(urls, urlGen.FindingLog(finding.ID))
+		urls = append(urls, urlGen.FindingCRepro(finding.ID))
+		urls = append(urls, urlGen.FindingSyzRepro(finding.ID))
+	}
+	for _, url := range urls {
+		t.Logf("checking %s", url)
+		resp, err := http.Get(url)
+		assert.NoError(t, err)
+		resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "%q was expected to return HTTP 200", url)
+	}
+}
+
+func testServer(t *testing.T, env *app.AppEnvironment) (*dashboardHandler, string) {
+	handler, err := newHandler(env)
+	require.NoError(t, err)
+	server := httptest.NewServer(handler.Mux())
+	t.Cleanup(server.Close)
+	return handler, server.URL
+}

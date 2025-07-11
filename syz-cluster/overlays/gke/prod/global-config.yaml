@@ -7,6 +7,7 @@ metadata:
   name: global-config
 data:
   config.yaml: |
+    URL: https://ci.syzbot.org
     parallelWorkflows: 7
     loreArchives:
       - netdev

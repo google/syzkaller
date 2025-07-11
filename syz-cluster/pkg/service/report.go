@@ -18,10 +18,12 @@ type ReportService struct {
 	reportRepo     *db.ReportRepository
 	seriesService  *SeriesService
 	findingService *FindingService
+	urls           *api.URLGenerator
 }
 
 func NewReportService(env *app.AppEnvironment) *ReportService {
 	return &ReportService{
+		urls:           env.URLs,
 		reportRepo:     db.NewReportRepository(env.Spanner),
 		seriesService:  NewSeriesService(env),
 		findingService: NewFindingService(env),
@@ -89,6 +91,7 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 			ID:         report.ID,
 			Moderation: report.Moderation,
 			Series:     series,
+			Link:       rs.urls.Series(series.ID),
 			Findings:   findings,
 		},
 	}, nil

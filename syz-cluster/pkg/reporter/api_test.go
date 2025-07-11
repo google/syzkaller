@@ -19,7 +19,7 @@ func TestAPIReportFlow(t *testing.T) {
 
 	// Create series/session/test/findings.
 	testSeries := controller.DummySeries()
-	controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
+	ids := controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
 
 	generator := NewGenerator(env)
 	err := generator.Process(ctx, 1)
@@ -35,8 +35,19 @@ func TestAPIReportFlow(t *testing.T) {
 	// We don't know IDs in advance.
 	nextResp.Report.ID = ""
 	nextResp.Report.Series.ID = ""
+	// For URLs, just check if they are in place.
+	for _, finding := range nextResp.Report.Findings {
+		assert.NotEmpty(t, finding.LogURL, "%q's LogURL is empty", finding.Title)
+		finding.LogURL = ""
+		assert.NotEmpty(t, finding.LinkCRepro, "%q's LinkCRepro is empty", finding.Title)
+		finding.LinkCRepro = ""
+		assert.NotEmpty(t, finding.LinkSyzRepro, "%q's LinkSyzRepro is empty", finding.Title)
+		finding.LinkSyzRepro = ""
+	}
+
 	assert.Equal(t, &api.SessionReport{
 		Moderation: true,
+		Link:       env.URLs.Series(ids.SeriesID),
 		Series: &api.Series{
 			ExtID: testSeries.ExtID,
 			Title: testSeries.Title,
@@ -54,7 +65,6 @@ func TestAPIReportFlow(t *testing.T) {
 			{
 				Title:  "finding 0",
 				Report: "report 0",
-				LogURL: "TODO", // TODO
 				Build: api.BuildInfo{
 					Repo:       "mainline",
 					BaseCommit: "abcd",
@@ -64,7 +74,6 @@ func TestAPIReportFlow(t *testing.T) {
 			{
 				Title:  "finding 1",
 				Report: "report 1",
-				LogURL: "TODO", // TODO
 				Build: api.BuildInfo{
 					Repo:       "mainline",
 					BaseCommit: "abcd",

@@ -42,12 +42,8 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 			return nil, err
 		}
 	}
-	cfg, err := app.Config()
-	if err != nil {
-		return nil, err
-	}
 	return &dashboardHandler{
-		title:           cfg.Name,
+		title:           env.Config.Name,
 		templates:       perFile,
 		blobStorage:     env.BlobStorage,
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
