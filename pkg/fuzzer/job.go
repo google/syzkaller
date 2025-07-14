@@ -57,6 +57,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	if p == nil {
 		return nil
 	}
+	depsValidated := p.ValidateDeps()
 	newP := p.Clone()
 	newP.Mutate(rnd,
 		prog.RecommendedCalls,
@@ -64,6 +65,9 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 		fuzzer.Config.NoMutateCalls,
 		fuzzer.Config.Corpus.Programs(),
 	)
+	if depsValidated && !newP.ValidateDeps() {
+		return nil
+	}
 	return &queue.Request{
 		Prog:     newP,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
@@ -456,6 +460,9 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
+		if !p.ValidateDeps() {
+			continue
+		}
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),

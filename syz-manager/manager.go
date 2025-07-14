@@ -1131,15 +1131,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-			Corpus:         mgr.corpus,
-			Snapshot:       mgr.cfg.Snapshot,
-			Coverage:       mgr.cfg.Cover,
-			FaultInjection: features&flatrpc.FeatureFault != 0,
-			Comparisons:    features&flatrpc.FeatureComparisons != 0,
-			Collide:        true,
-			EnabledCalls:   enabledSyscalls,
-			NoMutateCalls:  mgr.cfg.NoMutateCalls,
-			FetchRawCover:  mgr.cfg.RawCover,
+			Corpus:                    mgr.corpus,
+			Snapshot:                  mgr.cfg.Snapshot,
+			Coverage:                  mgr.cfg.Cover,
+			FaultInjection:            features&flatrpc.FeatureFault != 0,
+			Comparisons:               features&flatrpc.FeatureComparisons != 0,
+			Collide:                   true,
+			EnabledCalls:              enabledSyscalls,
+			NoMutateCalls:             mgr.cfg.NoMutateCalls,
+			FetchRawCover:             mgr.cfg.RawCover,
+			PromoteSyscallsDependency: mgr.cfg.PromoteSyscallsDependency,
 			Logf: func(level int, msg string, args ...interface{}) {
 				if level != 0 {
 					return
@@ -1159,6 +1160,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		go mgr.corpusInputHandler(corpusUpdates)
 		go mgr.corpusMinimization()
 		go mgr.fuzzerLoop(fuzzerObj)
+		go mgr.DependecySwitcheroo(mgr.cfg.DependecySwitcheroo)
 		if mgr.dash != nil {
 			go mgr.dashboardReporter()
 			if mgr.cfg.Reproduce {
@@ -1246,6 +1248,20 @@ func (cr *corpusRunner) Next() *queue.Request {
 	return &queue.Request{
 		Prog:      p,
 		Important: true,
+	}
+}
+
+func (mgr *Manager) DependecySwitcheroo(mins int64) {
+	if mins <= 0 {
+		return
+	}
+
+	for {
+		time.Sleep(time.Duration(mins) * time.Minute)
+		promoteDeps := prog.IsPromoteDeps()
+		prog.SetPromoteDeps(!promoteDeps)
+
+		log.Logf(0, "promoting Program Dependencies: %t", !promoteDeps)
 	}
 }
 

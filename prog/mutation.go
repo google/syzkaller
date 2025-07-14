@@ -50,7 +50,11 @@ type MutateOpts struct {
 }
 
 func (o MutateOpts) weight() int {
-	return o.SquashWeight + o.SpliceWeight + o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
+	w := o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
+	if !IsPromoteDeps() {
+		w += o.SquashWeight + o.SpliceWeight
+	}
+	return w
 }
 
 func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool,
@@ -61,6 +65,9 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	totalWeight := opts.weight()
 	r := newRand(p.Target, rs)
 	ncalls = max(ncalls, len(p.Calls))
+	if IsPromoteDeps() {
+		ncalls = max(ncalls, MaxCalls)
+	}
 	ctx := &mutator{
 		p:        p,
 		r:        r,
@@ -72,17 +79,19 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	}
 	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(opts.ExpectedIterations) {
 		val := r.Intn(totalWeight)
-		val -= opts.SquashWeight
-		if val < 0 {
-			// Not all calls have anything squashable,
-			// so this has lower priority in reality.
-			ok = ctx.squashAny()
-			continue
-		}
-		val -= opts.SpliceWeight
-		if val < 0 {
-			ok = ctx.splice()
-			continue
+		if !IsPromoteDeps() {
+			val -= opts.SquashWeight
+			if val < 0 {
+				// Not all calls have anything squashable,
+				// so this has lower priority in reality.
+				ok = ctx.squashAny()
+				continue
+			}
+			val -= opts.SpliceWeight
+			if val < 0 {
+				ok = ctx.splice()
+				continue
+			}
 		}
 		val -= opts.InsertWeight
 		if val < 0 {
@@ -195,8 +204,12 @@ func (ctx *mutator) insertCall() bool {
 	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p, idx)
 	p.insertBefore(c, calls)
-	for len(p.Calls) > ctx.ncalls {
-		p.RemoveCall(idx)
+	if !IsPromoteDeps() {
+		for len(p.Calls) > ctx.ncalls {
+			p.RemoveCall(idx)
+		}
+	} else {
+		resizeGeneratedCalls(p, ctx.ncalls, nil)
 	}
 	return true
 }
@@ -207,9 +220,26 @@ func (ctx *mutator) removeCall() bool {
 	if len(p.Calls) == 0 {
 		return false
 	}
-	idx := r.Intn(len(p.Calls))
-	p.RemoveCall(idx)
-	return true
+	success := false
+	for i := 0; i < 50; i++ {
+		p1 := p.Clone()
+		idx := r.Intn(len(p1.Calls))
+		p1.RemoveCall(idx)
+		if p1.ValidateDeps() {
+			p.RemoveCall(idx)
+			success = true
+			break
+		}
+	}
+	if !success {
+		// we gotta remove something in any case
+		// so that we don't get stuck keep trying
+		// over and over in successive calls
+		idx := r.Intn(len(p.Calls))
+		p.RemoveCall(idx)
+		success = true
+	}
+	return success
 }
 
 // Mutate an argument of a random call.
@@ -246,13 +276,35 @@ func (ctx *mutator) mutateArg() bool {
 		calls = append(calls, moreCalls...)
 		p.insertBefore(c, calls)
 		idx += len(calls)
-		for len(p.Calls) > ctx.ncalls {
-			idx--
-			p.RemoveCall(idx)
-		}
-		if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
-			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
-				idx, len(calls), len(p.Calls), ctx.ncalls))
+		if !IsPromoteDeps() {
+			for len(p.Calls) > ctx.ncalls {
+				idx--
+				p.RemoveCall(idx)
+			}
+			if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
+				panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
+					idx, len(calls), len(p.Calls), ctx.ncalls))
+			}
+		} else {
+			// if we are to promote dependencies we try to remove calls from new ones first (thus maintaining
+			// origingal behavior). However, if it's not enough, we start from the end of the call slice, and go back
+			// up to 0, skipping the mutated call
+			for len(p.Calls) > ctx.ncalls {
+				idx--
+				if idx < 0 {
+					resizeGeneratedCalls(p, ctx.ncalls, c)
+					if len(p.Calls) > ctx.ncalls {
+						panic(fmt.Sprintf("resizeGeneratedCalls failed: idx=%v calls=%v p.Calls=%v ncalls=%v",
+							idx, len(calls), len(p.Calls), ctx.ncalls))
+					}
+				} else {
+					p1 := p.Clone()
+					p1.RemoveCall(idx)
+					if p1.ValidateDeps() {
+						p.RemoveCall(idx)
+					}
+				}
+			}
 		}
 		if updateSizes || fieldsPatched {
 			p.Target.assignSizesCall(c)
@@ -506,7 +558,7 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*PointerArg)
-	if r.oneOf(1000) {
+	if r.oneOf(1000) && !IsPromoteDeps() {
 		removeArg(a.Res)
 		index := r.rand(len(r.target.SpecialPointers))
 		newArg := MakeSpecialPointerArg(t, a.Dir(), index)
