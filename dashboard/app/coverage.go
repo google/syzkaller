@@ -284,7 +284,7 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	targetDate, err := civil.ParseDate(dateToStr)
 	if err != nil {
-		return fmt.Errorf("civil.ParseDate(%s): %w", dateToStr, err)
+		return fmt.Errorf("%w: civil.ParseDate(%s): %w", ErrClientBadRequest, dateToStr, err)
 	}
 	tp, err := coveragedb.MakeTimePeriod(targetDate, periodType)
 	if err != nil {
