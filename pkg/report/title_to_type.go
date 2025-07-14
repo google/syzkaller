@@ -233,7 +233,7 @@ var titleToType = []struct {
 			"WARNING: corrupted",
 			"WARNING: kernel stack frame pointer has bad value",
 			"WARNING: kernel stack regs has bad",
-			// keep-sorter end
+			// keep-sorted end
 		},
 		crashType: crash.UnknownType, // This is printk().
 	},
