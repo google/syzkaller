@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS email-reporter-builder
+FROM golang:1.24-alpine AS email-reporter-builder
 
 WORKDIR /build
 
