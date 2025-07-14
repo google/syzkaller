@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -20,6 +22,18 @@ import (
 
 func setCoverageDBClient(ctx context.Context, client spannerclient.SpannerClient) context.Context {
 	return context.WithValue(ctx, &keyCoverageDBClient, client)
+}
+
+func TestFileCoverage_BadRequest(t *testing.T) {
+	badURL := "/test2/coverage/file?dateto=2025-01-31'&period=month" +
+		"&commit=c0e75905caf368e19aab585d20151500e750de89&filepath=virt/kvm/kvm_main.c"
+	c := NewCtx(t)
+	defer c.Close()
+	c.setCoverageMocks("test2", nil, nil)
+	_, err := c.GET(badURL)
+	var httpErr *HTTPError
+	assert.True(t, errors.As(err, &httpErr))
+	assert.Equal(t, http.StatusBadRequest, httpErr.Code)
 }
 
 func TestFileCoverage(t *testing.T) {
