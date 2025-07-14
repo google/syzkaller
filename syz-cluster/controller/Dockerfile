@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS controller-builder
+FROM golang:1.24-alpine AS controller-builder
 
 WORKDIR /build
 

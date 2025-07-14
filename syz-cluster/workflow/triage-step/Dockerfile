@@ -1,7 +1,7 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM golang:1.23-alpine AS triage-step-builder
+FROM golang:1.24-alpine AS triage-step-builder
 
 WORKDIR /build
 
