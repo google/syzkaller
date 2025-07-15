@@ -5,10 +5,10 @@ package emailclient
 
 import (
 	"context"
-
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"net/mail"
 )
 
 func makeDashapiSender(cfg *app.EmailConfig) (Sender, error) {
@@ -17,7 +17,10 @@ func makeDashapiSender(cfg *app.EmailConfig) (Sender, error) {
 		return nil, err
 	}
 	return func(_ context.Context, item *Email) (string, error) {
-		sender := cfg.Dashapi.From
+		sender := (&mail.Address{
+			Name:    cfg.Name,
+			Address: cfg.Dashapi.From,
+		}).String()
 		if item.BugID != "" {
 			var err error
 			sender, err = email.AddAddrContext(sender, cfg.Dashapi.ContextPrefix+item.BugID)
