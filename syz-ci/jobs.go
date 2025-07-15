@@ -461,7 +461,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	cfg := &bisect.Config{
 		Trace: &debugtracer.GenericTracer{
 			TraceWriter: io.MultiWriter(trace, log.VerboseWriter(3)),
-			OutDir:      osutil.Abs(filepath.Join("jobs", "debug", strings.Replace(req.ID, "|", "_", -1))),
+			OutDir:      osutil.Abs(filepath.Join("jobs", "debug", strings.ReplaceAll(req.ID, "|", "_"))),
 		},
 		// Out of 1049 cause bisections that we have now:
 		// -  891 finished under  6h (84.9%)
@@ -641,9 +641,9 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	// Testing of patches for these bugs fail now because of the config, so we disable it as a work-around.
 	// Ideally we have a new pahole and then we can remove this hack. That's issue #2096.
 	// pkg/vcs/linux.go also disables it for the bisection process.
-	req.KernelConfig = bytes.Replace(req.KernelConfig,
+	req.KernelConfig = bytes.ReplaceAll(req.KernelConfig,
 		[]byte("CONFIG_DEBUG_INFO_BTF=y"),
-		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
+		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"))
 
 	log.Logf(0, "job: building kernel...")
 	kernelConfig, details, err := env.BuildKernel(buildCfg)

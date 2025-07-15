@@ -125,7 +125,7 @@ func TestAggregateTestResults(t *testing.T) {
 		if rep != nil {
 			gotOutput = rep.rawOutput
 		}
-		if fmt.Sprint(test.rawOut) != fmt.Sprint(gotOutput) {
+		if fmt.Sprint(string(test.rawOut)) != fmt.Sprint(string(gotOutput)) {
 			t.Errorf("test #%v: got raw out: %q, want: %q", i, gotOutput, test.rawOut)
 		}
 	}

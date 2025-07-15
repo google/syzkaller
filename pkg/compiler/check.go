@@ -393,7 +393,8 @@ func (comp *compiler) checkRequiredCallAttrs(call *ast.Call, callAttrNames map[s
 		}
 	}
 
-	if desc == typeStruct {
+	switch desc {
+	case typeStruct:
 		s := comp.structs[t.Ident]
 		// Prune recursion, can happen even on correct tree via opt pointers.
 		if checked[s.Name.Name] {
@@ -404,10 +405,10 @@ func (comp *compiler) checkRequiredCallAttrs(call *ast.Call, callAttrNames map[s
 		for _, fld := range fields {
 			comp.checkRequiredCallAttrs(call, callAttrNames, fld.Type, checked)
 		}
-	} else if desc == typeArray {
+	case typeArray:
 		typ := t.Args[0]
 		comp.checkRequiredCallAttrs(call, callAttrNames, typ, checked)
-	} else if desc == typePtr {
+	case typePtr:
 		typ := t.Args[1]
 		comp.checkRequiredCallAttrs(call, callAttrNames, typ, checked)
 	}
@@ -502,9 +503,10 @@ func (comp *compiler) checkFieldPathsRec(t0, t *ast.Type, parents []parentDesc,
 	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		argDesc := desc.Args[i]
-		if argDesc.Type == typeArgLenTarget {
+		switch argDesc.Type {
+		case typeArgLenTarget:
 			comp.validateFieldPath(arg, t0, t, parents, warned)
-		} else if argDesc.Type == typeArgType {
+		case typeArgType:
 			comp.checkFieldPathsRec(t0, arg, parents, checked, warned, argDesc.IsArg)
 		}
 	}
@@ -1548,13 +1550,14 @@ func (comp *compiler) checkDupConstsCall(n *ast.Call, dups map[string]map[string
 	constArgID := ""
 	for i, arg := range n.Args {
 		desc := comp.getTypeDesc(arg.Type)
-		if desc == typeConst {
+		switch desc {
+		case typeConst:
 			v := arg.Type.Args[0].Value
 			if v != 0 && v != 18446744073709551516 { // AT_FDCWD
 				constArgID += fmt.Sprintf("(%v-%v)", i, fmt.Sprintf("%v", v))
 				hasConsts = true
 			}
-		} else if desc == typeResource {
+		case typeResource:
 			constArgID += fmt.Sprintf("(%v-%v)", i, arg.Type.Ident)
 		}
 	}

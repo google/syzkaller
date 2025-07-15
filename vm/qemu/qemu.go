@@ -335,7 +335,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			return nil, err
 		}
 		initFile := filepath.Join(workdir, "init.sh")
-		if err := osutil.WriteExecFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", sshkey, -1))); err != nil {
+		if err := osutil.WriteExecFile(initFile, []byte(strings.ReplaceAll(initScript, "{{KEY}}", sshkey))); err != nil {
 			return nil, fmt.Errorf("failed to create init file: %w", err)
 		}
 	}

@@ -1315,7 +1315,7 @@ func debugBugSubsystems(c context.Context, w http.ResponseWriter, bug *Bug) erro
 		TraceWriter: w,
 	})
 	if err != nil {
-		w.Write([]byte(fmt.Sprintf("%s", err)))
+		fmt.Fprintf(w, "%s", err)
 	}
 	return nil
 }
@@ -2407,8 +2407,8 @@ func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key, restart bool
 func formatLogLine(line string) string {
 	const maxLineLen = 1000
 
-	line = strings.Replace(line, "\n", " ", -1)
-	line = strings.Replace(line, "\r", "", -1)
+	line = strings.ReplaceAll(line, "\n", " ")
+	line = strings.ReplaceAll(line, "\r", "")
 	if len(line) > maxLineLen {
 		line = line[:maxLineLen]
 		line += "..."

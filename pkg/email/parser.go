@@ -368,9 +368,9 @@ func extractArgsTokens(body string, num int) string {
 		if lineEnd == -1 {
 			lineEnd = len(body) - pos
 		}
-		line := strings.TrimSpace(strings.Replace(body[pos:pos+lineEnd], "\t", " ", -1))
+		line := strings.TrimSpace(strings.ReplaceAll(body[pos:pos+lineEnd], "\t", " "))
 		for {
-			line1 := strings.Replace(line, "  ", " ", -1)
+			line1 := strings.ReplaceAll(line, "  ", " ")
 			if line == line1 {
 				break
 			}

@@ -178,7 +178,7 @@ func normalizeRepo(repo string) string {
 	// and where it isn't. We know that "https:" is supported on kernel.org,
 	// and that's the main case we need to fix up. "https:" is always used
 	// for github.com and googlesource.com.
-	return strings.Replace(repo, "git://git.kernel.org", "https://git.kernel.org", -1)
+	return strings.ReplaceAll(repo, "git://git.kernel.org", "https://git.kernel.org")
 }
 
 func (c *Client) extID(id string) string {

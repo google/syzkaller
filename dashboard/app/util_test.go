@@ -357,9 +357,10 @@ func (c *Ctx) httpRequest(method, url, body, contentType string,
 	}
 	r = registerRequest(r, c)
 	r = r.WithContext(c.transformContext(r.Context()))
-	if access == AccessAdmin {
+	switch access {
+	case AccessAdmin:
 		aetest.Login(makeUser(AuthorizedAdmin), r)
-	} else if access == AccessUser {
+	case AccessUser:
 		aetest.Login(makeUser(AuthorizedUser), r)
 	}
 	w := httptest.NewRecorder()

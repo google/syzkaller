@@ -317,10 +317,10 @@ func main() {
 	http.HandleFunc("/upload_cover", func(w http.ResponseWriter, r *http.Request) {
 		for _, mgr := range managers {
 			if err := mgr.uploadCoverReport(ctx); err != nil {
-				w.Write([]byte(fmt.Sprintf("failed for %v: %v <br>\n", mgr.name, err)))
+				fmt.Fprintf(w, "failed for %v: %v <br>\n", mgr.name, err)
 				return
 			}
-			w.Write([]byte(fmt.Sprintf("upload cover for %v <br>\n", mgr.name)))
+			fmt.Fprintf(w, "upload cover for %v <br>\n", mgr.name)
 		}
 	})
 

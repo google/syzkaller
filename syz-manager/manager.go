@@ -1123,7 +1123,8 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
 
-	if mgr.mode == ModeFuzzing || mgr.mode == ModeCorpusTriage {
+	switch mgr.mode {
+	case ModeFuzzing, ModeCorpusTriage:
 		corpusUpdates := make(chan corpus.NewItemEvent, 128)
 		mgr.corpus = corpus.NewFocusedCorpus(context.Background(),
 			corpusUpdates, mgr.coverFilters.Areas)
@@ -1177,13 +1178,13 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			}), nil
 		}
 		return source, nil
-	} else if mgr.mode == ModeCorpusRun {
+	case ModeCorpusRun:
 		ctx := &corpusRunner{
 			candidates: candidates,
 			rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 		return queue.DefaultOpts(ctx, opts), nil
-	} else if mgr.mode == ModeRunTests {
+	case ModeRunTests:
 		ctx := &runtest.Context{
 			Dir:      filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.Target.OS, "test"),
 			Target:   mgr.cfg.Target,
@@ -1205,7 +1206,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			mgr.exit("tests")
 		}()
 		return ctx, nil
-	} else if mgr.mode == ModeIfaceProbe {
+	case ModeIfaceProbe:
 		exec := queue.Plain()
 		go func() {
 			res, err := ifaceprobe.Run(vm.ShutdownCtx(), mgr.cfg, features, exec)
@@ -1283,7 +1284,8 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 				mgr.exit("corpus triage")
 			}
 			mgr.mu.Lock()
-			if mgr.phase == phaseLoadedCorpus {
+			switch mgr.phase {
+			case phaseLoadedCorpus:
 				if !mgr.cfg.Snapshot {
 					mgr.serv.TriagedCorpus()
 				}
@@ -1294,7 +1296,7 @@ func (mgr *Manager) fuzzerLoop(fuzzer *fuzzer.Fuzzer) {
 				} else {
 					mgr.setPhaseLocked(phaseTriagedHub)
 				}
-			} else if mgr.phase == phaseQueriedHub {
+			case phaseQueriedHub:
 				mgr.setPhaseLocked(phaseTriagedHub)
 			}
 			mgr.mu.Unlock()

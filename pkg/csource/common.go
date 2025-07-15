@@ -56,7 +56,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	}
 
 	for from, to := range replacements {
-		src = bytes.Replace(src, []byte("/*{{{"+from+"}}}*/"), []byte(to), -1)
+		src = bytes.ReplaceAll(src, []byte("/*{{{"+from+"}}}*/"), []byte(to))
 	}
 
 	for from, to := range map[string]string{
@@ -65,7 +65,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 		"uint16": "uint16_t",
 		"uint8":  "uint8_t",
 	} {
-		src = bytes.Replace(src, []byte(from), []byte(to), -1)
+		src = bytes.ReplaceAll(src, []byte(from), []byte(to))
 	}
 	src = regexp.MustCompile("#define SYZ_HAVE_.*").ReplaceAll(src, nil)
 
@@ -149,7 +149,7 @@ func removeSystemDefines(src []byte, defines []string) ([]byte, error) {
 		}
 	}
 	for def, val := range remove {
-		src = bytes.Replace(src, []byte("#define "+def+" "+val+"\n"), nil, -1)
+		src = bytes.ReplaceAll(src, []byte("#define "+def+" "+val+"\n"), nil)
 	}
 	// strip: #define __STDC_VERSION__ 201112L
 	for _, def := range []string{"__STDC_VERSION__"} {
@@ -161,7 +161,7 @@ func removeSystemDefines(src []byte, defines []string) ([]byte, error) {
 		if end == -1 {
 			continue
 		}
-		src = bytes.Replace(src, src[pos:end+1], nil, -1)
+		src = bytes.ReplaceAll(src, src[pos:end+1], nil)
 	}
 	return src, nil
 }

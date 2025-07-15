@@ -49,9 +49,10 @@ func (target *Target) initAnyTypes() {
 }
 
 func (target *Target) getAnyPtrType(size uint64) *PtrType {
-	if size == target.PtrSize {
+	switch size {
+	case target.PtrSize:
 		return target.any.ptrPtr
-	} else if size == 8 {
+	case 8:
 		return target.any.ptr64
 	}
 	panic(fmt.Sprintf("bad pointer size %v", size))

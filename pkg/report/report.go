@@ -438,10 +438,10 @@ type frameExtractor func(frames []string) (string, int)
 var parseStackTrace *regexp.Regexp
 
 func compile(re string) *regexp.Regexp {
-	re = strings.Replace(re, "{{ADDR}}", "0x[0-9a-f]+", -1)
-	re = strings.Replace(re, "{{PC}}", "\\[\\<?(?:0x)?[0-9a-f]+\\>?\\]", -1)
-	re = strings.Replace(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)", -1)
-	re = strings.Replace(re, "{{SRC}}", "([a-zA-Z0-9-_/.]+\\.[a-z]+:[0-9]+)", -1)
+	re = strings.ReplaceAll(re, "{{ADDR}}", "0x[0-9a-f]+")
+	re = strings.ReplaceAll(re, "{{PC}}", "\\[\\<?(?:0x)?[0-9a-f]+\\>?\\]")
+	re = strings.ReplaceAll(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)")
+	re = strings.ReplaceAll(re, "{{SRC}}", "([a-zA-Z0-9-_/.]+\\.[a-z]+:[0-9]+)")
 	return regexp.MustCompile(re)
 }
 

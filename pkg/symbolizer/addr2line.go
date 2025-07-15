@@ -136,10 +136,8 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 		return nil, fmt.Errorf("failed to parse pc '%v' in addr2line output: %w", s.Text(), err)
 	}
 	var frames []Frame
-	for {
-		if !s.Scan() {
-			break
-		}
+	for s.Scan() {
+
 		ln := s.Text()
 		if len(ln) > 3 && ln[0] == '0' && ln[1] == 'x' {
 			break

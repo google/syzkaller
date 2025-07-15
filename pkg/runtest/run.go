@@ -100,10 +100,10 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
-					strings.Replace(req.err.Error(), "\n", "\n\t", -1))
+					strings.ReplaceAll(req.err.Error(), "\n", "\n\t"))
 				if req.result != nil && len(req.result.Output) != 0 {
 					result += fmt.Sprintf("\n\t%s",
-						strings.Replace(string(req.result.Output), "\n", "\n\t", -1))
+						strings.ReplaceAll(string(req.result.Output), "\n", "\n\t"))
 				}
 			} else {
 				ok++
