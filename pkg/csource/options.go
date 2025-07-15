@@ -125,11 +125,11 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == targets.Linux {
 		return nil
 	}
-	if opts.NetInjection && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD) {
+	if opts.NetInjection && (OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD) {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD)) ||
+		(opts.Sandbox == sandboxSetuid && (OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD)) ||
 		opts.Sandbox == sandboxAndroid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
@@ -248,7 +248,7 @@ func deserializeLegacyOptions(data string, opts *Options) (int, error) {
 
 // Support for legacy formats.
 func deserializeLegacyFormats(data []byte, opts *Options) error {
-	data = bytes.Replace(data, []byte("Sandbox: "), []byte("Sandbox:empty "), -1)
+	data = bytes.ReplaceAll(data, []byte("Sandbox: "), []byte("Sandbox:empty "))
 	strData := string(data)
 
 	// We can distinguish between legacy formats by the number

@@ -620,7 +620,7 @@ func checkNetlinkAttr(typ *prog.StructType, policy nlaPolicy) string {
 				// This is a common case that occurs several times: limit on min value of 1.
 				// Not worth fixing (at least not in initial batch), it just crosses out a
 				// single value of 0, which we shuold test anyway.
-				if !(policy.validation == NLA_VALIDATE_MIN && policy.minVal == 1) {
+				if policy.validation != NLA_VALIDATE_MIN || policy.minVal != 1 {
 					return fmt.Sprintf("bad min value %v, expect %v",
 						int64(valMin), policy.minVal)
 				}

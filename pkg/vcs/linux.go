@@ -50,7 +50,8 @@ func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, er
 	}
 
 	cutoff := ""
-	if compilerType == "gcc" {
+	switch compilerType {
+	case "gcc":
 		// Initially we tried to stop at 3.8 because:
 		// v3.8 does not work with modern perl, and as we go further in history
 		// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
@@ -75,7 +76,7 @@ func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, er
 		// This has caused lots of bad bisection results, see #3224. We either need a new
 		// universal image or a kernel version dependant image selection.
 		cutoff = "v4.18"
-	} else if compilerType == "clang" {
+	case "clang":
 		// v5.3 was the first release with solid clang support, however I was able to
 		// compile v5.1..v5.3 using a newer defconfig + make oldconfig. Everything older
 		// would require further cherry-picks.
@@ -139,11 +140,12 @@ func (ctx *linux) EnvForCommit(
 	setLinuxTagConfigs(cf, tags)
 
 	compiler := ""
-	if compilerType == "gcc" {
+	switch compilerType {
+	case "gcc":
 		compiler = linuxGCCPath(tags, binDir, defaultCompiler)
-	} else if compilerType == "clang" {
+	case "clang":
 		compiler = linuxClangPath(tags, binDir, defaultCompiler)
-	} else {
+	default:
 		return nil, fmt.Errorf("unsupported bisect compiler: %v", compilerType)
 	}
 

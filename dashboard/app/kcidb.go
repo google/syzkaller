@@ -69,13 +69,8 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 	if err != nil {
 		return false, err
 	}
-	publish := true
-	if rep.KernelCommit == "" || len(rep.KernelConfig) == 0 {
-		// This should happen only for syzkaller build/test errors, which we don't want to publish.
-		// But if this ever happens for a kernel bug, then we also don't want to publish such bugs
-		// with missing critical info.
-		publish = false
-	}
+	publish := !(rep.KernelCommit == "" || len(rep.KernelConfig) == 0)
+
 	if publish {
 		if err := client.Publish(rep); err != nil {
 			return false, err

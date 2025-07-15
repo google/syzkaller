@@ -156,13 +156,14 @@ type builder interface {
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	if targetOS == targets.Linux {
-		if vmType == targets.GVisor {
+		switch vmType {
+		case targets.GVisor:
 			return gvisor{}, nil
-		} else if vmType == "cuttlefish" {
+		case "cuttlefish":
 			return cuttlefish{}, nil
-		} else if vmType == "proxyapp:android" {
+		case "proxyapp:android":
 			return android{}, nil
-		} else if vmType == targets.Starnix {
+		case targets.Starnix:
 			return starnix{}, nil
 		}
 	}
@@ -266,7 +267,7 @@ func extractCauseInner(s []byte, kernelSrc string) ([]byte, string) {
 	file := ""
 	for i := range lines {
 		if stripPrefix != nil {
-			lines[i] = bytes.Replace(lines[i], stripPrefix, nil, -1)
+			lines[i] = bytes.ReplaceAll(lines[i], stripPrefix, nil)
 		}
 		if file == "" {
 			for _, fileRe := range fileRes {
@@ -292,8 +293,8 @@ func extractCauseInner(s []byte, kernelSrc string) ([]byte, string) {
 	res := bytes.Join(lines, []byte{'\n'})
 	// gcc uses these weird quotes around identifiers, which may be
 	// mis-rendered by systems that don't understand utf-8.
-	res = bytes.Replace(res, []byte("‘"), []byte{'\''}, -1)
-	res = bytes.Replace(res, []byte("’"), []byte{'\''}, -1)
+	res = bytes.ReplaceAll(res, []byte("‘"), []byte{'\''})
+	res = bytes.ReplaceAll(res, []byte("’"), []byte{'\''})
 	return res, file
 }
 

@@ -29,13 +29,14 @@ func (item *Email) recipients() []string {
 type Sender func(context.Context, *Email) (string, error)
 
 func MakeSender(ctx context.Context, cfg *app.EmailConfig) (Sender, error) {
-	if cfg.Sender == app.SenderSMTP {
+	switch cfg.Sender {
+	case app.SenderSMTP:
 		sender, err := newSMTPSender(ctx, cfg)
 		if err != nil {
 			return nil, err
 		}
 		return sender.Send, nil
-	} else if cfg.Sender == app.SenderDashapi {
+	case app.SenderDashapi:
 		return makeDashapiSender(cfg)
 	}
 	return nil, fmt.Errorf("unsupported sender type: %q", cfg.Sender)

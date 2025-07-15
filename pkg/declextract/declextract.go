@@ -419,8 +419,8 @@ func (ctx *context) specialInt4(field, typ string, needBase bool) string {
 }
 
 func (ctx *context) specialIntptr(field, typ string, needBase bool) string {
-	switch {
-	case field == "sigsetsize":
+	switch field {
+	case "sigsetsize":
 		return fmt.Sprintf("const[8 %v]", maybeBaseType("intptr", needBase))
 	}
 	return ""

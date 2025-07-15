@@ -272,7 +272,8 @@ getuid()
 			11,
 			func(p *Prog, callIndex int) bool {
 				pp := strings.TrimSpace(string(p.Serialize()))
-				if attempt == 0 {
+				switch attempt {
+				case 0:
 					if pp == strings.TrimSpace(`
 getpid()
 r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
@@ -289,7 +290,7 @@ fcntl$getflags(r0, 0x0)
 					`) {
 						return false
 					}
-				} else if attempt == 1 {
+				case 1:
 					if pp == strings.TrimSpace(`
 r0 = open(&(0x7f0000000040)='./file0', 0x0, 0x0)
 read(r0, &(0x7f0000000040), 0x10)
@@ -301,7 +302,7 @@ close(r2)
 					`) {
 						return true
 					}
-				} else {
+				default:
 					return false
 				}
 				panic(fmt.Sprintf("unexpected candidate on attempt %v:\n%v", attempt, pp))

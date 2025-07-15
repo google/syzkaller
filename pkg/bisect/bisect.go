@@ -749,9 +749,10 @@ func (env *env) testPredicate() (vcs.BisectResult, error) {
 	}
 	// For fix bisections, results are inverted.
 	if env.cfg.Fix {
-		if testRes1.verdict == vcs.BisectBad {
+		switch testRes1.verdict {
+		case vcs.BisectBad:
 			testRes1.verdict = vcs.BisectGood
-		} else if testRes1.verdict == vcs.BisectGood {
+		case vcs.BisectGood:
 			testRes1.verdict = vcs.BisectBad
 		}
 	}

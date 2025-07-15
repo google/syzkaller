@@ -19,7 +19,7 @@ func TestExtractCommand(t *testing.T) {
 			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
 				t.Fatal(diff)
 			}
-			cmd, _ = extractCommand(strings.Replace(test.body, "\n", "\r\n", -1))
+			cmd, _ = extractCommand(strings.ReplaceAll(test.body, "\n", "\r\n"))
 			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
 				t.Fatal(diff)
 			}
@@ -130,8 +130,8 @@ func TestParse(t *testing.T) {
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
 
-		test.email = strings.Replace(test.email, "\n", "\r\n", -1)
-		test.res.Body = strings.Replace(test.res.Body, "\n", "\r\n", -1)
+		test.email = strings.ReplaceAll(test.email, "\n", "\r\n")
+		test.res.Body = strings.ReplaceAll(test.res.Body, "\n", "\r\n")
 		t.Run(fmt.Sprint(i)+"rn", func(t *testing.T) { body(t, test) })
 	}
 }

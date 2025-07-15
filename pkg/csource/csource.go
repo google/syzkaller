@@ -202,7 +202,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		fmt.Fprintf(buf, "\tswitch (call) {\n")
 		for i, c := range calls {
 			fmt.Fprintf(buf, "\tcase %v:\n", i)
-			fmt.Fprintf(buf, "%s", strings.Replace(c, "\t", "\t\t", -1))
+			fmt.Fprintf(buf, "%s", strings.ReplaceAll(c, "\t", "\t\t"))
 			fmt.Fprintf(buf, "\t\tbreak;\n")
 		}
 		fmt.Fprintf(buf, "\t}\n")
@@ -627,10 +627,10 @@ func (ctx *context) postProcess(result []byte) []byte {
 	if !ctx.opts.HandleSegv {
 		result = regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`).ReplaceAll(result, []byte("$1;\n"))
 	}
-	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
-	result = bytes.Replace(result, []byte("doexit("), []byte("exit("), -1)
+	result = bytes.ReplaceAll(result, []byte("NORETURN"), nil)
+	result = bytes.ReplaceAll(result, []byte("doexit("), []byte("exit("))
 	// TODO: Figure out what would be the right replacement for doexit_thread().
-	result = bytes.Replace(result, []byte("doexit_thread("), []byte("exit("), -1)
+	result = bytes.ReplaceAll(result, []byte("doexit_thread("), []byte("exit("))
 	result = regexp.MustCompile(`PRINTF\(.*?\)`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
@@ -683,9 +683,9 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 // removeEmptyLines removes duplicate new lines.
 func (ctx *context) removeEmptyLines(result []byte) []byte {
 	for {
-		newResult := bytes.Replace(result, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
-		newResult = bytes.Replace(newResult, []byte{'\n', '\n', '\t'}, []byte{'\n', '\t'}, -1)
-		newResult = bytes.Replace(newResult, []byte{'\n', '\n', ' '}, []byte{'\n', ' '}, -1)
+		newResult := bytes.ReplaceAll(result, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'})
+		newResult = bytes.ReplaceAll(newResult, []byte{'\n', '\n', '\t'}, []byte{'\n', '\t'})
+		newResult = bytes.ReplaceAll(newResult, []byte{'\n', '\n', ' '}, []byte{'\n', ' '})
 		if len(newResult) == len(result) {
 			return result
 		}

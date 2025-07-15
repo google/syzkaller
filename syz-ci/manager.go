@@ -1074,7 +1074,7 @@ func uploadFileHTTPPut(ctx context.Context, URL string, file io.Reader) error {
 		return fmt.Errorf("failed to perform HTTP PUT request: %w", err)
 	}
 	defer resp.Body.Close()
-	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("HTTP PUT failed with status code: %v", resp.StatusCode)
 	}
 	return nil

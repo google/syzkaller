@@ -22,7 +22,7 @@ func GitRevisionKnown() bool {
 }
 
 func init() {
-	GitRevisionBase = strings.Replace(GitRevision, "+", "", -1)
+	GitRevisionBase = strings.ReplaceAll(GitRevision, "+", "")
 	if gitRevisionDate != "" {
 		var err error
 		if GitRevisionDate, err = time.Parse("20060102-150405", gitRevisionDate); err != nil {

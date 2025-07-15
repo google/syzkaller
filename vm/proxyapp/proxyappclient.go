@@ -335,7 +335,7 @@ func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
 					return
 				}
 				if log.V(reply.Verbosity) {
-					writer.Write([]byte(fmt.Sprintf("ProxyAppLog: %v", reply.Log)))
+					fmt.Fprintf(writer, "ProxyAppLog: %v", reply.Log)
 				}
 			}
 		}
@@ -591,7 +591,7 @@ type stdInOutCloser struct {
 
 func clientErrorf(writer io.Writer) func(fmt string, s ...interface{}) {
 	return func(f string, s ...interface{}) {
-		writer.Write([]byte(fmt.Sprintf(f, s...)))
+		fmt.Fprintf(writer, f, s)
 		writer.Write([]byte("\nSYZFAIL: proxy app plugin error\n"))
 	}
 }

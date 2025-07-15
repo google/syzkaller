@@ -675,7 +675,7 @@ func init() {
 		// Fix cflags by replacing compiler's -m32 option with -m31
 		if arch == S390x {
 			for i := range target.CFlags {
-				target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
+				target.CFlags[i] = strings.ReplaceAll(target.CFlags[i], "-m32", "-m31")
 			}
 		}
 		if runtime.GOOS == OpenBSD {
@@ -924,7 +924,7 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 		target.BrokenCompiler = "SOURCEDIR is not set"
 		return
 	}
-	*param = strings.Replace(*param, sourceDirVar, sourceDir, -1)
+	*param = strings.ReplaceAll(*param, sourceDirVar, sourceDir)
 }
 
 func (target *Target) lazyInit() {

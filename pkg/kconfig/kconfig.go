@@ -449,9 +449,9 @@ func (kp *kconfigParser) parseDefaultValue() {
 }
 
 func (kp *kconfigParser) expandString(str string) string {
-	str = strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
-	str = strings.Replace(str, "$SRCARCH", kp.target.KernelHeaderArch, -1)
-	str = strings.Replace(str, "$(KCONFIG_EXT_PREFIX)", "", -1)
-	str = strings.Replace(str, "$(MALI_KCONFIG_EXT_PREFIX)", "", -1) // ChromeOS.
+	str = strings.ReplaceAll(str, "$(SRCARCH)", kp.target.KernelHeaderArch)
+	str = strings.ReplaceAll(str, "$SRCARCH", kp.target.KernelHeaderArch)
+	str = strings.ReplaceAll(str, "$(KCONFIG_EXT_PREFIX)", "")
+	str = strings.ReplaceAll(str, "$(MALI_KCONFIG_EXT_PREFIX)", "") // ChromeOS.
 	return str
 }

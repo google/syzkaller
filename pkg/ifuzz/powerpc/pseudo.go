@@ -96,10 +96,11 @@ func (gen *generator) sc(lev uint) {
 	hcrange := gen.r.Intn(3)
 	offset := 4
 	maxhc := MaxHcall
-	if hcrange == 1 {
+	switch hcrange {
+	case 1:
 		offset = 0xf000
 		maxhc = 0xf810
-	} else if hcrange == 2 {
+	case 2:
 		offset = 0xef00
 		maxhc = 0xef20
 	}
