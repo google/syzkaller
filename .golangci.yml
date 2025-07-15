@@ -110,9 +110,6 @@ linters:
   exclusions:
     warn-unused: true # Log a warning if an exclusion path is unused.
     rules:
-      - path: (pkg/csource/generated.go|pkg/build/linux_generated.go)
-        linters:
-        - lll
       - path: (sys/.*/init.*|sys/targets/common.go)
         text: "don't use ALL_CAPS in Go names|should not use ALL_CAPS in Go names"
       - path: (prog/.*)
