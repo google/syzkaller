@@ -281,14 +281,10 @@ tidy: descriptions
 		--extra-arg=-std=c++17 \
 		executor/*.cc
 
-ifdef CI
-  LINT-FLAGS := --out-format github-actions
-endif
-
 lint:
-	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
+	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
-	bin/golangci-lint run $(LINT-FLAGS) ./...
+	bin/golangci-lint run ./...
 
 presubmit:
 	$(MAKE) presubmit_aux
