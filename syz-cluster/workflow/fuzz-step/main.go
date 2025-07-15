@@ -133,6 +133,8 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 			PatchedOnly:   bugs,
 			Store:         store,
 			MaxTriageTime: timeout / 2,
+			// Allow up to 30 minutes after the corpus triage to reach the patched code.
+			FuzzToReachPatched: time.Minute * 30,
 		})
 	})
 	const (

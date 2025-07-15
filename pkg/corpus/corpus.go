@@ -250,3 +250,13 @@ func (corpus *Corpus) CallCover() map[string]*CallCov {
 	}
 	return calls
 }
+
+func (corpus *Corpus) ProgsPerArea() map[string]int {
+	corpus.mu.RLock()
+	defer corpus.mu.RUnlock()
+	ret := map[string]int{}
+	for _, item := range corpus.focusAreas {
+		ret[item.Name] = len(item.progs)
+	}
+	return ret
+}

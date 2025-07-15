@@ -47,6 +47,10 @@ type DiffFuzzerConfig struct {
 	// The option may help find a balance between spending too much time triaging
 	// the corpus and not reaching a proper kernel coverage.
 	MaxTriageTime time.Duration
+	// If non-empty, the fuzzer will spend no more than this amount of time
+	// trying to reach the modified code. The time is counted since the moment
+	// 99% of the corpus is triaged.
+	FuzzToReachPatched time.Duration
 }
 
 type UniqueBug struct {
@@ -108,7 +112,13 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 	eg.Go(func() error {
 		return diffCtx.Loop(ctx)
 	})
-	return eg.Wait()
+	err = eg.Wait()
+	if errors.Is(err, errFocusAreaNotReached) {
+		// The errFocusAreaNotReached error was needed mostly to abort the whole fuzzing process.
+		// Since everything ran as intended, there's no sense to return the error to the caller.
+		return nil
+	}
+	return err
 }
 
 type diffContext struct {
@@ -134,16 +144,22 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 			return dc.http.Serve(ctx)
 		})
 	}
+
 	g.Go(func() error {
-		defer log.Logf(1, "syz-diff: repro loop terminated")
-		// Let both base and patched instances somewhat progress in fuzzing before we take
-		// VMs away for bug reproduction.
-		dc.waitCorpusTriage(ctx)
-		if ctx.Err() != nil {
-			return nil
-		}
-		log.Logf(0, "starting bug reproductions")
-		reproLoop.Loop(ctx)
+		dc.monitorCorpusTriage(ctx, func() {
+			// We have triaged 90% of the corpus, now we can proceed with bug reproductions.
+			g.Go(func() error {
+				log.Logf(0, "starting bug reproductions")
+				reproLoop.Loop(ctx)
+				return nil
+			})
+		}, func() {
+			// We have triaged 99% of the corpus, now let's monitor the corpus that touches
+			// the modified files.
+			g.Go(func() error {
+				return dc.monitorModifiedCorpus(ctx)
+			})
+		})
 		return nil
 	})
 
@@ -224,14 +240,16 @@ loop:
 	return g.Wait()
 }
 
-func (dc *diffContext) waitCorpusTriage(ctx context.Context) {
-	// Wait either until we have triaged 90% of the candidates or
-	// once MaxTriageTime has passed.
+func (dc *diffContext) monitorCorpusTriage(ctx context.Context, done90, done99 func()) {
+	// Monitor the corpus triage progress and fire the callbacks on having triaged 90 and 99%
+	// of the corpus correspondingly.
 	// We don't want to wait for 100% of the candidates because there's usually a long
-	// tail of slow triage jobs + the value of the candidates diminishes over time.
-	const triagedThreshold = 0.9
+	// tail of slow triage jobs, also the value of the candidates diminishes over time.
+	const threshold90 = 0.9
+	const threshold99 = 0.99
 	const backOffTime = 30 * time.Second
 
+	var fired90 bool
 	startedAt := time.Now()
 	for {
 		select {
@@ -240,17 +258,55 @@ func (dc *diffContext) waitCorpusTriage(ctx context.Context) {
 			return
 		}
 		triaged := dc.new.triageProgress()
-		if triaged >= triagedThreshold {
+		if triaged >= threshold90 && !fired90 {
 			log.Logf(0, "triaged %.1f%% of the corpus", triaged*100.0)
+			fired90 = true
+			done90()
+		}
+		if triaged >= threshold99 {
+			log.Logf(0, "triaged %.1f%% of the corpus", triaged*100.0)
+			done99()
 			return
 		}
 		if dc.cfg.MaxTriageTime != 0 &&
 			time.Since(startedAt) >= dc.cfg.MaxTriageTime {
 			log.Logf(0, "timed out waiting for %.1f%% triage (have %.1f%%)",
-				triagedThreshold*100.0, triaged*100.0)
+				threshold99*100.0, triaged*100.0)
+			if !fired90 {
+				done90()
+			}
+			done99()
 			return
 		}
 	}
+}
+
+var errFocusAreaNotReached = errors.New("fuzzer has not reached the modified area")
+
+func (dc *diffContext) monitorModifiedCorpus(ctx context.Context) error {
+	if dc.cfg.FuzzToReachPatched != 0 {
+		// The feature is disabled.
+		return nil
+	}
+	if len(dc.new.cfg.Experimental.FocusAreas) < 2 {
+		// No areas were configured.
+		return nil
+	}
+	select {
+	case <-time.After(dc.cfg.FuzzToReachPatched):
+	case <-ctx.Done():
+		return nil
+	}
+	// Ideally, we should also consider whether the area of interest actually
+	// has any coverage points (e.g. mm/ mostly doesn't), but such patches are only
+	// a tiny minority among the actual changes to the code we cannot reach.
+	focusAreaStats := dc.new.progsPerArea()
+	if focusAreaStats[modifiedArea]+focusAreaStats[includesArea] > 0 {
+		log.Logf(0, "fuzzer has reached the modified code (%d + %d), continuing fuzzing",
+			focusAreaStats[modifiedArea], focusAreaStats[includesArea])
+		return nil
+	}
+	return errFocusAreaNotReached
 }
 
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
@@ -563,6 +619,14 @@ func (kc *kernelContext) triageProgress() float64 {
 	return 1.0 - float64(fuzzer.CandidatesToTriage())/float64(total)
 }
 
+func (kc *kernelContext) progsPerArea() map[string]int {
+	fuzzer := kc.fuzzer.Load()
+	if fuzzer == nil {
+		return nil
+	}
+	return fuzzer.Config.Corpus.ProgsPerArea()
+}
+
 // reproRunner is used to run reproducers on the base kernel to determine whether it is affected.
 type reproRunner struct {
 	done    chan reproRunnerResult
@@ -665,6 +729,11 @@ func (kc *kernelContext) symbolize(rep *report.Report) {
 	}
 }
 
+const (
+	modifiedArea = "modified"
+	includesArea = "included"
+)
+
 func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
 	direct, transitive := affectedFiles(cfg, gitPatches)
 	if len(direct) > 0 {
@@ -672,7 +741,7 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
 		log.Logf(0, "adding directly modified files to focus_order: %q", direct)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
-				Name: "modified",
+				Name: modifiedArea,
 				Filter: mgrconfig.CovFilterCfg{
 					Files: direct,
 				},
@@ -685,7 +754,7 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
 		log.Logf(0, "adding transitively affected to focus_order: %q", transitive)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
-				Name: "included",
+				Name: includesArea,
 				Filter: mgrconfig.CovFilterCfg{
 					Files: transitive,
 				},
