@@ -125,11 +125,11 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == targets.Linux {
 		return nil
 	}
-	if opts.NetInjection && (OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD) {
+	if opts.NetInjection && OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && (OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD)) ||
+		(opts.Sandbox == sandboxSetuid && OS != targets.OpenBSD && OS != targets.FreeBSD && OS != targets.NetBSD) ||
 		opts.Sandbox == sandboxAndroid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
