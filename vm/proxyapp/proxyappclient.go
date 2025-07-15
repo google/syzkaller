@@ -591,7 +591,7 @@ type stdInOutCloser struct {
 
 func clientErrorf(writer io.Writer) func(fmt string, s ...interface{}) {
 	return func(f string, s ...interface{}) {
-		fmt.Fprintf(writer, f, s)
+		fmt.Fprintf(writer, f, s...)
 		writer.Write([]byte("\nSYZFAIL: proxy app plugin error\n"))
 	}
 }

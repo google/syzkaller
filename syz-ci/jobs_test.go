@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"testing"
@@ -125,7 +126,7 @@ func TestAggregateTestResults(t *testing.T) {
 		if rep != nil {
 			gotOutput = rep.rawOutput
 		}
-		if fmt.Sprint(string(test.rawOut)) != fmt.Sprint(string(gotOutput)) {
+		if !bytes.Equal(test.rawOut, gotOutput) {
 			t.Errorf("test #%v: got raw out: %q, want: %q", i, gotOutput, test.rawOut)
 		}
 	}
