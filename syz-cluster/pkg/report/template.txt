@@ -6,10 +6,17 @@
 * {{.Title}}
 {{- end}}
 
+{{- if gt (len .Report.Findings) 1 }}
+
 and found the following issues:
 {{- range .Report.Findings}}
 * {{.Title}}
 {{- end}}
+{{- else }}
+
+and found the following issue:
+{{ (index .Report.Findings 0).Title }}
+{{- end }}
 
 Full report is available here:
 {{.Report.Link}}
