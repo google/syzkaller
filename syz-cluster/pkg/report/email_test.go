@@ -6,14 +6,13 @@ package report
 import (
 	"encoding/json"
 	"flag"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/google/syzkaller/syz-cluster/pkg/api"
-	"github.com/google/syzkaller/syz-cluster/pkg/app"
-	"github.com/stretchr/testify/assert"
 )
 
 var flagWrite = flag.Bool("write", false, "overwrite out.txt files")
@@ -63,7 +62,7 @@ func TestRender(t *testing.T) {
 					} else {
 						expected, err := os.ReadFile(outPath)
 						assert.NoError(t, err)
-						assert.Equal(t, expected, output)
+						assert.Equal(t, string(expected), string(output))
 					}
 				})
 			}
