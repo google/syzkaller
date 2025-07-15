@@ -10,12 +10,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
@@ -25,6 +19,11 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"golang.org/x/sync/errgroup"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 var (
@@ -133,6 +132,8 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 			PatchedOnly:   bugs,
 			Store:         store,
 			MaxTriageTime: timeout / 2,
+			// Allow up to 30 minutes after the corpus triage to reach the patched code.
+			FuzzToReachPatched: time.Minute * 30,
 		})
 	})
 	const (
@@ -159,7 +160,12 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 			}
 		}
 	})
-	return eg.Wait()
+	err = eg.Wait()
+	if errors.Is(err, manager.ErrPatchedAreaNotReached) {
+		// We did not reach the modified parts of the kernel, but that's fine.
+		return nil
+	}
+	return err
 }
 
 func downloadCorpus(ctx context.Context, workdir, url string) error {
