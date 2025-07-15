@@ -252,7 +252,7 @@ make
 
 `$ARCH` is one of `amd64`, `386` `arm64`, `arm`, `ppc64le`, `mips64le`.
 If the subsystem is supported on several architectures, then run `syz-extract` for each arch.
-`$LINUX` should point to kernel source checkout, which is configured for the
+`$KSRC` should point to kernel source checkout, which is configured for the
 corresponding arch (i.e. you need to run `make ARCH=arch someconfig && make ARCH=arch` there first,
 remember to add `CROSS_COMPILE=arm-linux-gnueabi-/aarch64-linux-gnu-/powerpc64le-linux-gnu-` if needed).
 If the kernel was built into a separate directory (with `make O=output_dir`, remember to put .config
