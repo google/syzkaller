@@ -3151,6 +3151,9 @@ static long syz_mount_image(
 		// For xfs we need nouuid because xfs has a global uuids table
 		// and if two parallel executors mounts fs with the same uuid, second mount fails.
 		strcat(opts, ",nouuid");
+	} else if (strncmp(fs, "gfs2", 4) == 0 && (strstr(opts, "errors=panic") || strstr(opts, "debug"))) {
+		// Otherwise ordinary withdrawals turn into kernel panics, see #6189.
+		strcat(opts, ",errors=withdraw");
 	}
 	debug("syz_mount_image: size=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, loopname, target, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
