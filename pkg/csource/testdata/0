@@ -1,0 +1,25 @@
+r0 = socket$netlink(0x10, 0x3, 0x2)
+bind$netlink(r0, &(0x7f0000514ff4)={0x10, 0x0, 0x0, 0x2ffffffff}, 0xc)
+
+//  socket$netlink arguments: [
+//    domain: const = 0x10 (8 bytes)
+//    type: const = 0x3 (8 bytes)
+//    proto: netlink_proto = 0x2 (4 bytes)
+//  ]
+//  returns sock_netlink
+syscall(__NR_socket, /*domain=*/0x10ul, /*type=*/3ul, /*proto=NETLINK_USERSOCK*/2)
+//  bind$netlink arguments: [
+//    fd: sock_netlink (resource)
+//    addr: ptr[in, sockaddr_nl_t[AF_NETLINK, netlink_port_id,
+//    flags[netlink_group_bitmap, int32]]] {
+//      sockaddr_nl_t[AF_NETLINK, netlink_port_id, flags[netlink_group_bitmap,
+//      int32]] {
+//        nl_family: const = 0x10 (2 bytes)
+//        nl_pad: const = 0x0 (2 bytes)
+//        nl_pid: int32 = 0x0 (4 bytes)
+//        nl_groups: netlink_group_bitmap = 0x2ffffffff (4 bytes)
+//      }
+//    }
+//    addrlen: len = 0xc (8 bytes)
+//  ]
+syscall(__NR_bind, /*fd=*/r[0], /*addr=*/0x200000514ff4ul, /*addrlen=*/0xcul)

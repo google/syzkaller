@@ -95,6 +95,7 @@ func main() {
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
 		Trace:         *flagTrace,
+		CallComments:  true,
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {
