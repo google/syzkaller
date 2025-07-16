@@ -5,12 +5,11 @@ package controller
 
 import (
 	"bytes"
-	"testing"
-	"time"
-
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 func TestAPIGetSeries(t *testing.T) {
@@ -124,6 +123,7 @@ var testSeries = &api.Series{
 var testBuild = &api.Build{
 	Arch:         "amd64",
 	TreeName:     "mainline",
+	TreeURL:      "https://git/tree",
 	ConfigName:   "config",
 	CommitHash:   "abcd",
 	CommitDate:   time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),

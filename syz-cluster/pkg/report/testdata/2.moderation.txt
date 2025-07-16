@@ -15,7 +15,8 @@ http://some/link/to/report
 
 WARNING in abcd
 
-tree:      http://kernel/repo1
+tree:      mainline
+URL:       http://kernel/repo1
 base:      base_commit1
 arch:      amd64
 compiler:  clang

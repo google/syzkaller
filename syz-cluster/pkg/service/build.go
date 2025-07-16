@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -33,6 +32,7 @@ func (s *BuildService) Upload(ctx context.Context, req *api.UploadBuildReq) (*ap
 		Arch:       req.Arch,
 		ConfigName: req.ConfigName,
 		TreeName:   req.TreeName,
+		TreeURL:    req.TreeURL,
 		CommitHash: req.CommitHash,
 		CommitDate: req.CommitDate,
 		Compiler:   req.Compiler,
@@ -82,6 +82,7 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 	resp := &api.Build{
 		Arch:         build.Arch,
 		TreeName:     build.TreeName,
+		TreeURL:      build.TreeURL,
 		ConfigName:   build.ConfigName,
 		CommitHash:   build.CommitHash,
 		CommitDate:   build.CommitDate,
@@ -95,7 +96,8 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 
 func makeBuildInfo(url *api.URLGenerator, build *db.Build) api.BuildInfo {
 	return api.BuildInfo{
-		Repo:       build.TreeName, // TODO: we actually want to use repo URI here.
+		TreeName:   build.TreeName,
+		TreeURL:    build.TreeURL,
 		BaseCommit: build.CommitHash,
 		Arch:       build.Arch,
 		Compiler:   build.Compiler,

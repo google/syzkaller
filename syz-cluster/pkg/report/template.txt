@@ -27,7 +27,12 @@ Full report is available here:
 
 {{.Title}}
 
-tree:      {{.Build.Repo}}
+{{if .Build.TreeName -}}
+tree:      {{.Build.TreeName}}
+{{- end}}
+{{- if .Build.TreeURL}}
+URL:       {{.Build.TreeURL}}
+{{- end}}
 base:      {{.Build.BaseCommit}}
 {{- if .Build.Arch}}
 arch:      {{.Build.Arch}}

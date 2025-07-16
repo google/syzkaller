@@ -4,13 +4,12 @@
 package reporter
 
 import (
-	"testing"
-	"time"
-
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
 	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 func TestAPIReportFlow(t *testing.T) {
@@ -68,7 +67,8 @@ func TestAPIReportFlow(t *testing.T) {
 				Title:  "finding 0",
 				Report: "report 0",
 				Build: api.BuildInfo{
-					Repo:       "mainline",
+					TreeName:   "mainline",
+					TreeURL:    "https://git/repo",
 					BaseCommit: "abcd",
 					Arch:       "amd64",
 					Compiler:   "compiler",
@@ -78,7 +78,8 @@ func TestAPIReportFlow(t *testing.T) {
 				Title:  "finding 1",
 				Report: "report 1",
 				Build: api.BuildInfo{
-					Repo:       "mainline",
+					TreeName:   "mainline",
+					TreeURL:    "https://git/repo",
 					BaseCommit: "abcd",
 					Arch:       "amd64",
 					Compiler:   "compiler",
