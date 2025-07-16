@@ -44,7 +44,9 @@ config:
  - CGROUP_DEVICE
  - CGROUP_CPUACCT
  - CGROUP_PERF
- - CGROUP_BPF
+ # It's incredibly difficult/impossible to reliably clean up these bpf links,
+ # so let's only fuzz it on the snapshot-based instances. See #5956.
+ - CGROUP_BPF: [snapshot]
  - CHECKPOINT_RESTORE
  - USERFAULTFD
  - COMPAT_BRK: n
