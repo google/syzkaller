@@ -249,6 +249,9 @@ func (w *execContext) writeCopyin(c *Call) {
 // Special value for making null pointers that equals (void *)-1
 const kFuzzTestNilPtrVal uint64 = ^uint64(0)
 
+// Number of integers of padding
+const relocationTablePaddingInts uint32 = 2
+
 // marshallKFuzztestArg serializes a top-level struct argument (`topLevel`) into
 // a single binary blob that can be consumed by the kernel. The output format,
 // defined in `linux/include/kftf.h`, is designed for position-independent data
@@ -284,6 +287,29 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 		pointer uint64
 		value   uint64
 	}
+	// Given a slice of relocation table entries, encodes them in the binary
+	// format expected by the kernel.
+	generateRelocationTable := func(relocationTableEntries []relocationEntry, maxAlignment uint32) []byte {
+		var relocationTable bytes.Buffer
+		numEntries := int32(len(relocationTableEntries))
+		padding := make([]byte, relocationTablePaddingInts*4)
+		binary.Write(&relocationTable, binary.LittleEndian, numEntries)
+		binary.Write(&relocationTable, binary.LittleEndian, maxAlignment)
+		binary.Write(&relocationTable, binary.LittleEndian, padding)
+		for _, entry := range relocationTableEntries {
+			binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.pointer))
+			binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.value))
+		}
+		return relocationTable.Bytes()
+	}
+
+	// It is possible that the fuzzer will pass an invalid pointer to the
+	// executor. In this case, to maintain compatibility to with the protocol
+	// running on the kernel, we just output an empty relocation table.
+	if topLevel == nil {
+		return generateRelocationTable([]relocationEntry{}, 1)
+	}
+
 	// Two-levels of queuing - those that must be handled directly (constants,
 	// nested structures) and those that must be handled afterwards. This
 	// implements a level-order traversal starting at `topLevel` such that we
@@ -293,16 +319,14 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	deferredPointers := make([]deferredPtr, 0)
 
 	relocationTableEntries := make([]relocationEntry, 0)
+	maxAlignment := uint32(topLevel.Type().Alignment())
 	var payload bytes.Buffer
 
-	// Aligns the current position in the payload to the next alignment border.
-	// Currently we only support aligment up to 8 bytes. This is because
-	// relocation entries are 8-byte-aligned in the kernel, and we don't know
-	// how many entries there are yet.
-	// XXX: do a first pass to count the number of relocation entries?
+	// Aligns the current position in the payload to an alignment threshold.
 	alignPayload := func(alignment uint64) {
-		if alignment > 8 {
-			panic("TODO: not supporting alignment above 8 bytes")
+		// It seems that some types will have 0-alignment
+		if alignment == 0 {
+			return
 		}
 		for {
 			if uint64(payload.Len())%alignment == 0 {
@@ -336,6 +360,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			panic("at least one queue should have remaining entries at this point")
 		}
 
+		maxAlignment = max(maxAlignment, uint32(arg.Type().Alignment()))
 		alignPayload(arg.Type().Alignment())
 
 		switch a := arg.(type) {
@@ -345,9 +370,9 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			// here because the kernel will patch these pointers based only on
 			// the relocation table.
 			binary.Write(&payload, binary.LittleEndian, uint64(0xBFACE))
-			// NOTE: No support for VMA yet, but shouldn't be too hard to
-			// handle
-			if a.Res != nil {
+			// Ignore nil pointers and pointers that point to empty data to
+			// avoid creating a relocation table entry.
+			if a.Res != nil && a.Res.Size() > 0 {
 				deferred := deferredPtr{
 					pointedToArg: a.Res,
 					pointer:      uint64(ptrOffset),
@@ -377,20 +402,9 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 		}
 	}
 
-	var relocationTable bytes.Buffer
-	numEntries := int32(len(relocationTableEntries))
-	binary.Write(&relocationTable, binary.LittleEndian, numEntries)
-	// 12 bytes of padding in the C-struct definition
-	binary.Write(&relocationTable, binary.LittleEndian, make([]byte, 12))
-
 	// loop over relocation entries
-	for _, entry := range relocationTableEntries {
-		binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.pointer))
-		binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.value))
-	}
-
-	out := append(relocationTable.Bytes(), payload.Bytes()...)
-	fmt.Printf("kftf: output len = %d\n", len(out))
+	relocationTableBytes := generateRelocationTable(relocationTableEntries, maxAlignment)
+	out := append(relocationTableBytes, payload.Bytes()...)
 	return out
 }
 
