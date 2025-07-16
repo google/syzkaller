@@ -39,6 +39,7 @@ type Tree struct {
 type BuildRequest struct {
 	Arch       string `json:"arch"`
 	TreeName   string `json:"tree_name"`
+	TreeURL    string `json:"tree_url"`
 	CommitHash string `json:"commit_hash"`
 	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
 	SeriesID   string `json:"series_id"`
@@ -53,6 +54,7 @@ type BuildResult struct {
 type Build struct {
 	Arch         string    `json:"arch"`
 	TreeName     string    `json:"tree_name"`
+	TreeURL      string    `json:"tree_url"`
 	CommitHash   string    `json:"commit_hash"`
 	CommitDate   time.Time `json:"commit_date"`
 	ConfigName   string    `json:"config_name"`
@@ -144,7 +146,8 @@ type Finding struct {
 }
 
 type BuildInfo struct {
-	Repo       string `json:"repo"`
+	TreeName   string `json:"tree_name"`
+	TreeURL    string `json:"tree_url"`
 	BaseCommit string `json:"base_commit"`
 	Arch       string `json:"arch"`
 	Compiler   string `json:"compiler"`

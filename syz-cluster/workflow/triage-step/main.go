@@ -8,14 +8,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
-	"os"
-
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/triage"
+	"io"
+	"os"
 )
 
 var (
@@ -102,6 +101,7 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 	}
 	base := api.BuildRequest{
 		TreeName:   tree.Name,
+		TreeURL:    tree.URL,
 		ConfigName: tree.KernelConfig,
 		CommitHash: result.Commit,
 		Arch:       arch,

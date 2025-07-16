@@ -86,6 +86,7 @@ spec:
           output = {
             "arch": "amd64", # TODO: consider others as well.
             "tree_name": input["name"],
+            "tree_url": input["URL"],
             "commit_hash": input["branch"],
             "config_name": input["kernel_config"]
           }

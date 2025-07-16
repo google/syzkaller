@@ -10,10 +10,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -22,6 +18,9 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/triage"
+	"log"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -63,6 +62,7 @@ func main() {
 			Arch:       req.Arch,
 			ConfigName: req.ConfigName,
 			TreeName:   req.TreeName,
+			TreeURL:    req.TreeURL,
 			SeriesID:   req.SeriesID,
 		},
 	}

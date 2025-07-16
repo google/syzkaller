@@ -6,14 +6,13 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net/http/httptest"
-	"testing"
-	"time"
-
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
+	"net/http/httptest"
+	"testing"
+	"time"
 )
 
 type EntityIDs struct {
@@ -74,6 +73,7 @@ func DummyBuild() *api.Build {
 	return &api.Build{
 		Arch:       "amd64",
 		TreeName:   "mainline",
+		TreeURL:    "https://git/repo",
 		ConfigName: "config",
 		CommitHash: "abcd",
 		Compiler:   "compiler",

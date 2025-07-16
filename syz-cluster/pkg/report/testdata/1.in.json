@@ -20,7 +20,8 @@
       "c_repro": "http://link/to/c/repro",
       "syz_repro": "http://link/to/syz/repro",
       "build": {
-	"repo": "http://kernel/repo1",
+	"tree_name": "mainline",
+	"tree_url": "http://kernel/repo1",
 	"base_commit": "base_commit1",
 	"arch": "amd64",
 	"config_link": "http://link/to/config/1",
@@ -32,7 +33,8 @@
       "report": "Report Line D\nReport Line E\nReport Line F",
       "syz_repro": "http://link/to/syz/repro2",
       "build": {
-	"repo": "http://kernel/repo1",
+	"tree_name": "mainline",
+	"tree_url": "http://kernel/repo1",
 	"base_commit": "base_commit1",
 	"arch": "arm64",
 	"config_link": "http://link/to/config/2",
