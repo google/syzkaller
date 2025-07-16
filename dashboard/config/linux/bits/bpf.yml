@@ -6,7 +6,7 @@ config:
  # JIT is enabled on subset of instances to get coverage for both JIT and interpreter.
  - BPF_JIT: [bpfjit]
  - BPF_JIT_ALWAYS_ON: [bpfjit]
- - BPF_STREAM_PARSER
+ - BPF_STREAM_PARSER: [snapshot]
  # Cross-builds of BPF_PRELOAD fails with missing libelf and zlib.
  # I am not sure why it needs non-host versions of these libs,
  # and it's probably possible to install them somehow, but I did not figure out how,
