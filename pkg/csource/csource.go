@@ -236,7 +236,114 @@ func (ctx *context) generateSyscallDefines() string {
 	return buf.String()
 }
 
+const indent string = "  " // Two spaces.
+
+func generateArgLines(arg prog.Arg, indentLevel int) []string {
+	makeIndent := func(level int) string {
+		return strings.Repeat(indent, level)
+	}
+
+	// Depth-first search starting at initial argument, incrementing the indent
+	// level as we go deeper.
+	var visit func(prog.Arg, int) []string
+	visit = func(arg prog.Arg, depth int) []string {
+		var lines []string
+
+		var lineBuilder strings.Builder
+		lineBuilder.WriteString(makeIndent(depth))
+
+		switch a := arg.(type) {
+		case *prog.GroupArg:
+			fmt.Fprintf(&lineBuilder, "%s {", a.Type().String())
+			lines = append(lines, lineBuilder.String())
+			for _, inner := range a.Inner {
+				lines = append(lines, visit(inner, depth+1)...)
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		case *prog.ConstArg:
+			fmt.Fprintf(&lineBuilder, "%s: 0x%x", a.Type().Name(), a.Val)
+			lines = append(lines, lineBuilder.String())
+		case *prog.DataArg:
+			tpe, ok := a.Type().(*prog.BufferType)
+			if !ok {
+				panic("data args should be a buffer type")
+			}
+
+			fmt.Fprintf(&lineBuilder, "%s: ", a.Type().String())
+
+			// Result buffer - nothing to display.
+			if a.Dir() == prog.DirOut {
+				fmt.Fprint(&lineBuilder, "(DirOut)")
+			} else {
+				// Compressed buffers (e.g., fs images) tend to be very large
+				// and it doesn't make much sense to output their contents.
+				if tpe.Kind == prog.BufferCompressed {
+					fmt.Fprintf(&lineBuilder, "(compressed buffer with length 0x%x)", len(a.Data()))
+				} else {
+					fmt.Fprintf(&lineBuilder, "{% x} (length 0x%x)", a.Data(), len(a.Data()))
+				}
+			}
+			lines = append(lines, lineBuilder.String())
+		case *prog.PointerArg:
+			fmt.Fprintf(&lineBuilder, "*%s: ", a.Type().String())
+			if a.Res != nil {
+				lineBuilder.WriteString("{ ")
+				lines = append(lines, lineBuilder.String())
+				lines = append(lines, visit(a.Res, depth+1)...)
+				lines = append(lines, makeIndent(depth)+"}")
+			} else {
+				if a.VmaSize == 0 {
+					lineBuilder.WriteString("nil")
+				} else {
+					fmt.Fprintf(&lineBuilder, "VMA[0x%x]", a.VmaSize)
+				}
+				lines = append(lines, lineBuilder.String())
+			}
+		case *prog.UnionArg:
+			fmt.Fprintf(&lineBuilder, "union (index=%d) {", a.Index)
+			lines = append(lines, lineBuilder.String())
+			if a.Option != nil {
+				lines = append(lines, visit(a.Option, depth+1)...)
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		}
+		return lines
+	}
+
+	return visit(arg, indentLevel)
+}
+
+const commentPrefix string = "//"
+
+func linesToCStyleComment(lines []string) string {
+	var commentBuilder strings.Builder
+	for i, line := range lines {
+		commentBuilder.WriteString(commentPrefix + indent + line)
+		if i != len(lines)-1 {
+			commentBuilder.WriteString("\n")
+		}
+	}
+	return commentBuilder.String()
+}
+
+func generateComment(call *prog.Call) string {
+	// Header.
+	lines := []string{fmt.Sprintf("%s arguments: [", call.Meta.Name)}
+	for _, arg := range call.Args {
+		const initialIndentLevel int = 1
+		argLines := generateArgLines(arg, initialIndentLevel)
+		lines = append(lines, argLines...)
+	}
+	lines = append(lines, "]")
+	return linesToCStyleComment(lines)
+}
+
 func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
+	comments := make([]string, len(p.Calls))
+	for i, call := range p.Calls {
+		comments[i] = generateComment(call)
+	}
+
 	exec, err := p.SerializeForExec()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
@@ -245,15 +352,16 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uin
 	if err != nil {
 		return nil, nil, err
 	}
-	calls, vars := ctx.generateCalls(decoded, trace)
+	calls, vars := ctx.generateCalls(decoded, trace, comments)
 	return calls, vars, nil
 }
 
-func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint64) {
+func (ctx *context) generateCalls(p prog.ExecProg, trace bool, callComments []string) ([]string, []uint64) {
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
 		w := new(bytes.Buffer)
+		w.WriteString(callComments[ci] + "\n")
 		// Copyin.
 		for _, copyin := range call.Copyin {
 			ctx.copyin(w, &csumSeq, copyin)

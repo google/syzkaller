@@ -1,0 +1,69 @@
+r0 = openat$iommufd(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
+ioctl$IOMMU_IOAS_ALLOC(r0, 0x3b81, &(0x7f00000003c0)={0xc, 0x0, <r1=>0x0})
+ioctl$IOMMU_IOAS_MAP$PAGES(r0, 0x3b85, &(0x7f0000000040)={0x28, 0x7, r1, 0x0, &(0x7f0000800000/0x800000)=nil, 0x800000})
+ioctl$IOMMU_TEST_OP_CREATE_ACCESS(r0, 0x3ba0, &(0x7f0000000340)={0x48, 0x5, r1, 0x0, <r2=>0xffffffffffffffff, 0x1})
+ioctl$IOMMU_TEST_OP_ACCESS_PAGES$syz(r0, 0x3ba0, &(0x7f0000000100)={0x48, 0x7, r2, 0x0, 0x0, 0x0, 0x200000, 0x0, 0x334e8b, 0x200000000000})
+
+//  openat$iommufd arguments: [
+//    const: 0xffffffffffffff9c
+//    *ptr[in, buffer]: {
+//      buffer: {2f 64 65 76 2f 69 6f 6d 6d 75 00} (length 0xb)
+//    }
+//    open_flags: 0x0
+//    const: 0x0
+//  ]
+syscall(__NR_openat, /*fd=*/0xffffffffffffff9cul, /*file=*/0x200000000000ul, /*flags=*/0, /*mode=*/0)
+//  ioctl$IOMMU_IOAS_ALLOC arguments: [
+//    const: 0x3b81
+//    *ptr[in, iommu_ioas_alloc]: {
+//      iommu_ioas_alloc {
+//        len: 0xc
+//        const: 0x0
+//      }
+//    }
+//  ]
+syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x3b81, /*arg=*/0x2000000003c0ul)
+//  ioctl$IOMMU_IOAS_MAP$PAGES arguments: [
+//    const: 0x3b85
+//    *ptr[in, iommu_ioas_map$PAGES]: {
+//      iommu_ioas_map$PAGES {
+//        len: 0x28
+//        iommufd_ioas_map_flags: 0x7
+//        const: 0x0
+//        *vma: VMA[0x800000]
+//        len: 0x800000
+//        int64: 0x0
+//      }
+//    }
+//  ]
+syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x3b85, /*arg=*/0x200000000040ul)
+//  ioctl$IOMMU_TEST_OP_CREATE_ACCESS arguments: [
+//    const: 0x3ba0
+//    *ptr[in, iommu_test_cmd$create_access]: {
+//      iommu_test_cmd$create_access {
+//        len: 0x48
+//        const: 0x5
+//        const: 0x0
+//        iommu_test_cmd_create_access_flags: 0x1
+//        pad: 0x0
+//      }
+//    }
+//  ]
+syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x3ba0, /*arg=*/0x200000000340ul)
+//  ioctl$IOMMU_TEST_OP_ACCESS_PAGES$syz arguments: [
+//    const: 0x3ba0
+//    *ptr[in, iommu_test_cmd$access_pages$syz]: {
+//      iommu_test_cmd$access_pages$syz {
+//        len: 0x48
+//        const: 0x7
+//        const: 0x0
+//        iommu_test_cmd_acess_pages_flags_syz: 0x0
+//        int32: 0x200000
+//        int32: 0x0
+//        int64: 0x334e8b
+//        const: 0x200000000000
+//        pad: 0x0
+//      }
+//    }
+//  ]
+syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x3ba0, /*arg=*/0x200000000100ul)
