@@ -236,7 +236,148 @@ func (ctx *context) generateSyscallDefines() string {
 	return buf.String()
 }
 
+const indent string = "  " // Two spaces.
+
+type namedArg struct {
+	arg prog.Arg
+	// name is an empty string if the argument is unnamed (e.g., an array element).
+	name string
+}
+
+func generateArgLines(arg namedArg, indentLevel int) []string {
+	makeIndent := func(level int) string {
+		return strings.Repeat(indent, level)
+	}
+
+	// Depth-first search starting at initial argument, incrementing the indent
+	// level as we go deeper.
+	var visit func(namedArg, int) []string
+	visit = func(arg namedArg, depth int) []string {
+		var lines []string
+
+		var lineBuilder strings.Builder
+		lineBuilder.WriteString(makeIndent(depth))
+
+		if arg.name != "" {
+			fmt.Fprintf(&lineBuilder, "%s: ", arg.name)
+		}
+
+		switch a := arg.arg.(type) {
+		case *prog.GroupArg:
+			fmt.Fprintf(&lineBuilder, "%s {", a.Type().String())
+			lines = append(lines, lineBuilder.String())
+
+			// A group type is either a structure or an array. In the case that
+			// it is a structure, we want to preserve the names of the structure
+			// fields in the output, which we can do by prepending the name
+			// to the first line of the children's generated lines.
+			if s, ok := a.ArgCommon.Type().(*prog.StructType); ok {
+				for i, inner := range a.Inner {
+					lines = append(lines, visit(namedArg{inner, s.Fields[i].Name}, depth+1)...)
+				}
+			} else {
+				for _, inner := range a.Inner {
+					lines = append(lines, visit(namedArg{inner, ""}, depth+1)...)
+				}
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		case *prog.ConstArg:
+			fmt.Fprintf(&lineBuilder, "%s = 0x%x (%d bytes)", a.Type().Name(), a.Val, a.Size())
+			lines = append(lines, lineBuilder.String())
+		case *prog.DataArg:
+			tpe, ok := a.Type().(*prog.BufferType)
+			if !ok {
+				panic("data args should be a buffer type")
+			}
+
+			fmt.Fprintf(&lineBuilder, "%s: ", a.Type().String())
+
+			// Result buffer - nothing to display.
+			if a.Dir() == prog.DirOut {
+				fmt.Fprint(&lineBuilder, "(DirOut)")
+			} else {
+				// Compressed buffers (e.g., fs images) tend to be very large
+				// and it doesn't make much sense to output their contents.
+				if tpe.Kind == prog.BufferCompressed {
+					fmt.Fprintf(&lineBuilder, "(compressed buffer with length 0x%x)", len(a.Data()))
+				} else {
+					fmt.Fprintf(&lineBuilder, "{% x} (length 0x%x)", a.Data(), len(a.Data()))
+				}
+			}
+			lines = append(lines, lineBuilder.String())
+		case *prog.PointerArg:
+			if a.Res != nil {
+				fmt.Fprintf(&lineBuilder, "%s {", a.Type().String())
+				lines = append(lines, lineBuilder.String())
+				lines = append(lines, visit(namedArg{a.Res, ""}, depth+1)...)
+				lines = append(lines, makeIndent(depth)+"}")
+			} else {
+				if a.VmaSize == 0 {
+					lineBuilder.WriteString("nil")
+				} else {
+					fmt.Fprintf(&lineBuilder, "VMA[0x%x]", a.VmaSize)
+				}
+				lines = append(lines, lineBuilder.String())
+			}
+		case *prog.UnionArg:
+			union, ok := a.ArgCommon.Type().(*prog.UnionType)
+			if !ok {
+				panic("a UnionArg should have an ArgCommon of type UnionType")
+			}
+			fmt.Fprintf(&lineBuilder, "union %s {", a.Type().Name())
+			lines = append(lines, lineBuilder.String())
+			if a.Option != nil {
+				lines = append(lines, visit(namedArg{a.Option, union.Fields[a.Index].Name}, depth+1)...)
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		case *prog.ResultArg:
+			fmt.Fprintf(&lineBuilder, "%s (resource)", a.ArgCommon.Type().String())
+			lines = append(lines, lineBuilder.String())
+		default:
+			// We shouldn't hit this because the switch statements cover every
+			// prog.Arg implementation.
+			panic("Unsupported argument type.")
+		}
+		return lines
+	}
+
+	return visit(arg, indentLevel)
+}
+
+const commentPrefix string = "//"
+
+func linesToCStyleComment(lines []string) string {
+	var commentBuilder strings.Builder
+	for i, line := range lines {
+		commentBuilder.WriteString(commentPrefix + indent + line)
+		if i != len(lines)-1 {
+			commentBuilder.WriteString("\n")
+		}
+	}
+	return commentBuilder.String()
+}
+
+func generateComment(call *prog.Call) string {
+	// Header.
+	lines := []string{fmt.Sprintf("%s arguments: [", call.Meta.Name)}
+	for i, arg := range call.Args {
+		const initialIndentLevel int = 1
+		argLines := generateArgLines(namedArg{arg, call.Meta.Args[i].Name}, initialIndentLevel)
+		lines = append(lines, argLines...)
+	}
+	lines = append(lines, "]")
+	if call.Ret != nil {
+		lines = append(lines, "returns "+call.Ret.Type().Name())
+	}
+	return linesToCStyleComment(lines)
+}
+
 func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
+	comments := make([]string, len(p.Calls))
+	for i, call := range p.Calls {
+		comments[i] = generateComment(call)
+	}
+
 	exec, err := p.SerializeForExec()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
@@ -245,15 +386,16 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uin
 	if err != nil {
 		return nil, nil, err
 	}
-	calls, vars := ctx.generateCalls(decoded, trace)
+	calls, vars := ctx.generateCalls(decoded, trace, comments)
 	return calls, vars, nil
 }
 
-func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint64) {
+func (ctx *context) generateCalls(p prog.ExecProg, trace bool, callComments []string) ([]string, []uint64) {
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
 		w := new(bytes.Buffer)
+		w.WriteString(callComments[ci] + "\n")
 		// Copyin.
 		for _, copyin := range call.Copyin {
 			ctx.copyin(w, &csumSeq, copyin)
