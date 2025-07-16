@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type Prog struct {
@@ -492,6 +493,107 @@ func (p *Prog) sanitizeFix() {
 	if err := p.sanitize(true); err != nil {
 		panic(err)
 	}
+}
+
+// FormatArg returns a string slice representation of an argument with one
+// entry per line in the output. The formatting roughly corresponds to syzlang
+// descriptions and is intended to be human readable.
+func FormatArg(arg Arg, name string) []string {
+	const indent string = "  " // Two spaces.
+	makeIndent := func(level int) string {
+		return strings.Repeat(indent, level)
+	}
+
+	// Depth-first search starting at initial argument, incrementing the indent
+	// level as we go deeper.
+	var visit func(Arg, string, int) []string
+	visit = func(arg Arg, name string, depth int) []string {
+		var lines []string
+
+		var lineBuilder strings.Builder
+		lineBuilder.WriteString(makeIndent(depth))
+
+		if name != "" {
+			fmt.Fprintf(&lineBuilder, "%s: ", name)
+		}
+
+		switch a := arg.(type) {
+		case *GroupArg:
+			fmt.Fprintf(&lineBuilder, "%s {", a.Type().String())
+			lines = append(lines, lineBuilder.String())
+
+			s, isStruct := a.ArgCommon.Type().(*StructType)
+			for i, inner := range a.Inner {
+				// For GroupArgs, only those of type StructType have named
+				// children.
+				childName := ""
+				if isStruct {
+					childName = s.Fields[i].Name
+				}
+				lines = append(lines, visit(inner, childName, depth+1)...)
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		case *ConstArg:
+			fmt.Fprintf(&lineBuilder, "%s = 0x%x (%d bytes)", a.Type().Name(), a.Val, a.Size())
+			lines = append(lines, lineBuilder.String())
+		case *DataArg:
+			tpe, ok := a.Type().(*BufferType)
+			if !ok {
+				panic("data args should be a buffer type")
+			}
+
+			fmt.Fprintf(&lineBuilder, "%s: ", a.Type().String())
+
+			// Result buffer - nothing to display.
+			if a.Dir() == DirOut {
+				fmt.Fprint(&lineBuilder, "(DirOut)")
+			} else {
+				// Compressed buffers (e.g., fs images) tend to be very large
+				// and it doesn't make much sense to output their contents.
+				if tpe.Kind == BufferCompressed {
+					fmt.Fprintf(&lineBuilder, "(compressed buffer with length 0x%x)", len(a.Data()))
+				} else {
+					fmt.Fprintf(&lineBuilder, "{% x} (length 0x%x)", a.Data(), len(a.Data()))
+				}
+			}
+			lines = append(lines, lineBuilder.String())
+		case *PointerArg:
+			if a.Res != nil {
+				fmt.Fprintf(&lineBuilder, "%s {", a.Type().String())
+				lines = append(lines, lineBuilder.String())
+				lines = append(lines, visit(a.Res, "", depth+1)...)
+				lines = append(lines, makeIndent(depth)+"}")
+			} else {
+				if a.VmaSize == 0 {
+					lineBuilder.WriteString("nil")
+				} else {
+					fmt.Fprintf(&lineBuilder, "VMA[0x%x]", a.VmaSize)
+				}
+				lines = append(lines, lineBuilder.String())
+			}
+		case *UnionArg:
+			union, ok := a.ArgCommon.Type().(*UnionType)
+			if !ok {
+				panic("a UnionArg should have an ArgCommon of type UnionType")
+			}
+			fmt.Fprintf(&lineBuilder, "union %s {", a.Type().Name())
+			lines = append(lines, lineBuilder.String())
+			if a.Option != nil {
+				lines = append(lines, visit(a.Option, union.Fields[a.Index].Name, depth+1)...)
+			}
+			lines = append(lines, makeIndent(depth)+"}")
+		case *ResultArg:
+			fmt.Fprintf(&lineBuilder, "%s (resource)", a.ArgCommon.Type().String())
+			lines = append(lines, lineBuilder.String())
+		default:
+			// We shouldn't hit this because the switch statements cover every
+			// prog.Arg implementation.
+			panic("Unsupported argument type.")
+		}
+		return lines
+	}
+
+	return visit(arg, name, 0)
 }
 
 func (p *Prog) sanitize(fix bool) error {

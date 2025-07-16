@@ -74,13 +74,17 @@ func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string
 
 func (ctx *context) generateSource() ([]byte, error) {
 	ctx.filterCalls()
-	calls, vars, err := ctx.generateProgCalls(ctx.p, ctx.opts.Trace)
+	calls, vars, err := ctx.generateProgCalls(ctx.p, ctx.opts.Trace, ctx.opts.CallComments)
 	if err != nil {
 		return nil, err
 	}
 
 	mmapProg := ctx.p.Target.DataMmapProg()
-	mmapCalls, _, err := ctx.generateProgCalls(mmapProg, false)
+	// Disable comments on the mmap calls as they are part of the initial setup
+	// for a program and always very similar. Comments on these provide
+	// little-to-no additional context that can't be inferred from looking at
+	// the call arguments directly, and just make the source longer.
+	mmapCalls, _, err := ctx.generateProgCalls(mmapProg, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +240,47 @@ func (ctx *context) generateSyscallDefines() string {
 	return buf.String()
 }
 
-func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
+const indent string = "  " // Two spaces.
+// clang-format produces nicer comments with '//' prefixing versus '/* ... */' style comments.
+const commentPrefix string = "//"
+
+func linesToCStyleComment(lines []string) string {
+	var commentBuilder strings.Builder
+	for i, line := range lines {
+		commentBuilder.WriteString(commentPrefix + indent + line)
+		if i != len(lines)-1 {
+			commentBuilder.WriteString("\n")
+		}
+	}
+	return commentBuilder.String()
+}
+
+func generateComment(call *prog.Call) string {
+	lines := []string{fmt.Sprintf("%s arguments: [", call.Meta.Name)}
+	for i, arg := range call.Args {
+		argLines := prog.FormatArg(arg, call.Meta.Args[i].Name)
+		// Indent the formatted argument.
+		for i := range argLines {
+			argLines[i] = indent + argLines[i]
+		}
+		lines = append(lines, argLines...)
+	}
+	lines = append(lines, "]")
+	if call.Ret != nil {
+		lines = append(lines, "returns "+call.Ret.Type().Name())
+	}
+	return linesToCStyleComment(lines)
+}
+
+func (ctx *context) generateProgCalls(p *prog.Prog, trace, addComments bool) ([]string, []uint64, error) {
+	var comments []string
+	if addComments {
+		comments = make([]string, len(p.Calls))
+		for i, call := range p.Calls {
+			comments[i] = generateComment(call)
+		}
+	}
+
 	exec, err := p.SerializeForExec()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to serialize program: %w", err)
@@ -245,15 +289,19 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uin
 	if err != nil {
 		return nil, nil, err
 	}
-	calls, vars := ctx.generateCalls(decoded, trace)
+	calls, vars := ctx.generateCalls(decoded, trace, addComments, comments)
 	return calls, vars, nil
 }
 
-func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint64) {
+func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
+	callComments []string) ([]string, []uint64) {
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
 		w := new(bytes.Buffer)
+		if addComments {
+			w.WriteString(callComments[ci] + "\n")
+		}
 		// Copyin.
 		for _, copyin := range call.Copyin {
 			ctx.copyin(w, &csumSeq, copyin)

@@ -50,6 +50,9 @@ type Options struct {
 	HandleSegv bool `json:"segv,omitempty"`
 
 	Trace bool `json:"trace,omitempty"`
+
+	CallComments bool `json:"callcomments,omitempty"`
+
 	LegacyOptions
 }
 
@@ -160,13 +163,14 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:   true,
-		Repeat:     true,
-		Procs:      cfg.Procs,
-		Slowdown:   cfg.Timeouts.Slowdown,
-		Sandbox:    cfg.Sandbox,
-		UseTmpDir:  true,
-		HandleSegv: true,
+		Threaded:     true,
+		Repeat:       true,
+		Procs:        cfg.Procs,
+		Slowdown:     cfg.Timeouts.Slowdown,
+		Sandbox:      cfg.Sandbox,
+		UseTmpDir:    true,
+		HandleSegv:   true,
+		CallComments: true,
 	}
 	if cfg.TargetOS == targets.Linux {
 		opts.NetInjection = true
