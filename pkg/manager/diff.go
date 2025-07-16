@@ -70,11 +70,11 @@ func RunDiffFuzzer(ctx context.Context, baseCfg, newCfg *mgrconfig.Config, cfg D
 	if cfg.PatchedOnly == nil {
 		return fmt.Errorf("you must set up a patched only channel")
 	}
-	base, err := setup(ctx, "base", baseCfg, cfg.Debug)
+	base, err := setup("base", baseCfg, cfg.Debug)
 	if err != nil {
 		return err
 	}
-	new, err := setup(ctx, "new", newCfg, cfg.Debug)
+	new, err := setup("new", newCfg, cfg.Debug)
 	if err != nil {
 		return err
 	}
@@ -167,9 +167,8 @@ func (dc *diffContext) Loop(baseCtx context.Context) error {
 	})
 
 	g.Go(func() error { return dc.monitorPatchedCoverage(ctx) })
-
-	g.Go(dc.base.Loop)
-	g.Go(dc.new.Loop)
+	g.Go(func() error { return dc.base.Loop(ctx) })
+	g.Go(func() error { return dc.new.Loop(ctx) })
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
 	statTimer := time.NewTicker(5 * time.Minute)
@@ -386,13 +385,12 @@ type kernelContext struct {
 	duplicateInto queue.Executor
 }
 
-func setup(ctx context.Context, name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, error) {
+func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, error) {
 	osutil.MkdirAll(cfg.Workdir)
 
 	kernelCtx := &kernelContext{
 		name:            name,
 		debug:           debug,
-		ctx:             ctx,
 		cfg:             cfg,
 		crashes:         make(chan *report.Report, 128),
 		candidates:      make(chan []fuzzer.Candidate),
@@ -425,13 +423,14 @@ func setup(ctx context.Context, name string, cfg *mgrconfig.Config, debug bool) 
 	return kernelCtx, nil
 }
 
-func (kc *kernelContext) Loop() error {
+func (kc *kernelContext) Loop(baseCtx context.Context) error {
 	defer log.Logf(1, "syz-diff (%s): kernel context loop terminated", kc.name)
 
 	if err := kc.serv.Listen(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
-	eg, ctx := errgroup.WithContext(kc.ctx)
+	eg, ctx := errgroup.WithContext(baseCtx)
+	kc.ctx = ctx
 	eg.Go(func() error {
 		return kc.serv.Serve(ctx)
 	})
