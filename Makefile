@@ -239,7 +239,7 @@ generate:
 
 generate_go: format_cpp
 	$(GO) generate ./...
-	$(GO) run github.com/vektra/mockery/v3@v3.5.0 --log-level="error"
+	$(GO) tool mockery --log-level="error"
 
 generate_rpc:
 	flatc -o pkg/flatrpc --warnings-as-errors --gen-object-api --filename-suffix "" --go --gen-onefile --go-namespace flatrpc pkg/flatrpc/flatrpc.fbs
