@@ -26,7 +26,7 @@ ioctl$KVM_GET_VCPU_MMAP_SIZE(fd fd_kvm, cmd const[KVM_GET_VCPU_MMAP_SIZE]) vcpu_
 
 ioctl$KVM_GET_API_VERSION(fd fd_kvm, cmd const[KVM_GET_API_VERSION], type const[0])
 ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr[0:2]) fd_kvmcpu
-ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, kvm_dirty_log])
+ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[inout, kvm_dirty_log])
 ioctl$KVM_CLEAR_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_CLEAR_DIRTY_LOG], arg ptr[in, kvm_clear_dirty_log])
 ioctl$KVM_RESET_DIRTY_RINGS(fd fd_kvmvm, cmd const[KVM_RESET_DIRTY_RINGS])
 ioctl$KVM_CREATE_IRQCHIP(fd fd_kvmvm, cmd const[KVM_CREATE_IRQCHIP])
@@ -75,7 +75,7 @@ ioctl$KVM_SET_ONE_REG(fd fd_kvmcpu, cmd const[KVM_SET_ONE_REG], arg ptr[in, kvm_
 ioctl$KVM_GET_ONE_REG(fd fd_kvmcpu, cmd const[KVM_GET_ONE_REG], arg ptr[in, kvm_one_reg])
 ioctl$KVM_KVMCLOCK_CTRL(fd fd_kvmcpu, cmd const[KVM_KVMCLOCK_CTRL])
 ioctl$KVM_S390_INTERRUPT_CPU(fd fd_kvmcpu, cmd const[KVM_S390_INTERRUPT], arg ptr[in, kvm_s390_interrupt])
-ioctl$KVM_GET_REG_LIST(fd fd_kvmcpu, cmd const[KVM_GET_REG_LIST], arg ptr[in, kvm_reg_list])
+ioctl$KVM_GET_REG_LIST(fd fd_kvmcpu, cmd const[KVM_GET_REG_LIST], arg ptr[inout, kvm_reg_list])
 ioctl$KVM_SET_GUEST_DEBUG(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug])
 
 ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
