@@ -272,8 +272,15 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		// The feature is disabled.
 		return nil
 	}
-	if len(dc.new.cfg.Experimental.FocusAreas) < 2 {
+	focusPCs := 0
+	// The last one is "everything else", so it's not of interest.
+	coverFilters := dc.new.coverFilters
+	for i := 0; i < len(coverFilters.Areas)-1; i++ {
+		focusPCs += len(coverFilters.Areas[i].CoverPCs)
+	}
+	if focusPCs == 0 {
 		// No areas were configured.
+		log.Logf(1, "no PCs in the areas of focused fuzzing, skipping the zero patched coverage check")
 		return nil
 	}
 
@@ -290,9 +297,6 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 	case <-ctx.Done():
 		return nil
 	}
-	// Ideally, we should also consider whether the area of interest actually
-	// has any coverage points (e.g. mm/ mostly doesn't), but such patches are only
-	// a tiny minority among the actual changes to the code we cannot reach.
 	focusAreaStats := dc.new.progsPerArea()
 	if focusAreaStats[modifiedArea]+focusAreaStats[includesArea] > 0 {
 		log.Logf(0, "fuzzer has reached the modified code (%d + %d), continuing fuzzing",
