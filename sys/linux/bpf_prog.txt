@@ -150,6 +150,7 @@ bpf_insn [
 	tail_call	bpf_insn_tail_call
 	ringbuf_query	bpf_insn_ringbuf_query
 	ringbuf_output	bpf_insn_ringbuf_output
+	map_lookup	bpf_insn_map_lookup
 ] [varlen]
 
 bpf_insn_generic {
@@ -171,6 +172,9 @@ type bpf_insn_ldst_t[CLASS, SZ, MODE, DST, SRC, OFF, IMM] {
 }
 
 type bpf_insn_ldst bpf_insn_ldst_t[bpf_ldst_insn, bpf_ldst_size, bpf_ldst_mode, flags[bpf_reg, int8:4], flags[bpf_reg, int8:4], flags[bpf_insn_offsets, int16], flags[bpf_insn_immediates, int32]]
+type bpf_insn_st8_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_B0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
+type bpf_insn_st16_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_H0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
+type bpf_insn_st32_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_W0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
 type bpf_insn_st64_reg[SRC, DST, OFF] bpf_insn_ldst_t[BPF_STX, BPF_DW0, BPF_MEM0, const[DST, int8:4], const[SRC, int8:4], const[OFF, int16], const[0, int32]]
 
 bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
@@ -555,3 +559,26 @@ bpf_insn_ringbuf_output {
 define MAX_BPF_REG	__MAX_BPF_REG
 
 bpf_ringbuf_wakeup_flags = 0, BPF_RB_NO_WAKEUP, BPF_RB_FORCE_WAKEUP
+
+# (18) r1 = map[id:10]
+# (b7) r8 = X
+# (7b) *(u64 *)(r10 -8) = r8
+# (bf) r2 = r10
+# (07) r2 -= 8
+# (85) call bpf_map_lookup_elem
+bpf_insn_map_lookup {
+	insn1	bpf_insn_map_fd_t[const[BPF_REG_1, int8:4], fd_bpf_map]
+	insn2	bpf_insn_mov_imm_any[BPF_REG_8]
+	insn3	bpf_insn_stX_reg
+	insn4	bpf_insn_mov_reg[BPF_REG_10, BPF_REG_2]
+	insn5	bpf_insn_alu_t[BPF_ALU64, BPF_K0, BPF_SUB0, const[BPF_REG_2, int8:4], const[0, int8:4], const[0, int16], map_key_size]
+	insn6	bpf_insn_call_helper_t[const[BPF_FUNC_map_lookup_elem, int32]]
+} [packed]
+
+bpf_insn_stX_reg [
+	st8		bpf_insn_st8_reg[BPF_REG_8, BPF_REG_10, -1]	(if[value[parent:parent:insn5:imm] == 1])
+	st16		bpf_insn_st16_reg[BPF_REG_8, BPF_REG_10, -2]	(if[value[parent:parent:insn5:imm] == 2])
+	st32		bpf_insn_st32_reg[BPF_REG_8, BPF_REG_10, -4]	(if[value[parent:parent:insn5:imm] == 4])
+	st64		bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]	(if[value[parent:parent:insn5:imm] == 8])
+	fallback	bpf_insn_st64_reg[BPF_REG_8, BPF_REG_10, -8]
+]
