@@ -129,7 +129,6 @@ type NewSession struct {
 
 type SessionReport struct {
 	ID         string     `json:"id"`
-	Cc         []string   `json:"cc"`
 	Moderation bool       `json:"moderation"`
 	Series     *Series    `json:"series"`
 	Findings   []*Finding `json:"findings"`
