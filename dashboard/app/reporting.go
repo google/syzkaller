@@ -1288,14 +1288,17 @@ func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 		return nil, nil, fmt.Errorf("no crashes")
 	}
 	crash, key := crashes[0], keys[0]
+	// There seem to be some bugs around HeadReproLevel / queryCrashesForBug consistency.
+	// Let's be strict about it here as the other logic relies on it being correct (see e.g. #5829).
+	hasNeededRepro := true
 	if bug.HeadReproLevel == ReproLevelC {
-		if crash.ReproC == 0 {
-			log.Errorf(c, "bug '%v': has C repro, but crash without C repro", bug.Title)
-		}
+		hasNeededRepro = !crash.ReproIsRevoked && crash.ReproC != 0
 	} else if bug.HeadReproLevel == ReproLevelSyz {
-		if crash.ReproSyz == 0 {
-			log.Errorf(c, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
-		}
+		hasNeededRepro = !crash.ReproIsRevoked && (crash.ReproC != 0 || crash.ReproSyz != 0)
+	}
+	if !hasNeededRepro {
+		return nil, nil, fmt.Errorf("bug has repro level %d, but the 'top' crash %v doesn't",
+			bug.HeadReproLevel, key.IntID())
 	}
 	return crash, key, nil
 }
