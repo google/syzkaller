@@ -473,13 +473,13 @@ iso9660_options [
 
 iso9660_blocks = 512, 1024, 2048
 
+# Note that the "debug" option has been omitted since it's equivalent to "errors=panic".
 gfs2_options [
 	spectator		stringnoz["spectator"]
 	norecovery		stringnoz["norecovery"]
 	ignore_local_fs		stringnoz["ignore_local_fs"]
 	localflocks		stringnoz["localflocks"]
 	localcaching		stringnoz["localcaching"]
-	debug			stringnoz["debug"]
 	nodebug			stringnoz["nodebug"]
 	upgrade			stringnoz["upgrade"]
 	acl			stringnoz["acl"]
