@@ -376,6 +376,7 @@ ioctl$KVM_SET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_SET_NR_MMU_PAGES], arg int
 ioctl$KVM_GET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_GET_NR_MMU_PAGES], arg intptr)
 ioctl$KVM_REINJECT_CONTROL(fd fd_kvmvm, cmd const[KVM_REINJECT_CONTROL], arg ptr[in, kvm_reinject_control])
 ioctl$KVM_HYPERV_EVENTFD(fd fd_kvmvm, cmd const[KVM_HYPERV_EVENTFD], arg ptr[in, kvm_hyperv_eventfd])
+ioctl$KVM_X86_SET_MSR_FILTER(fd fd_kvmvm, cmd const[KVM_X86_SET_MSR_FILTER], arg ptr[in, kvm_msr_filter])
 
 # Defined by include/linux/kvm_host.h, but for some reason wouldn't extract.
 define KVM_MAX_IRQ_ROUTES	4096
@@ -609,6 +610,24 @@ kvm_hyperv_eventfd {
 	fd	fd_event
 	flags	bool32
 	padding	array[const[0, int32], 3]
+}
+
+kvm_msr_filter_range_flags = KVM_MSR_FILTER_READ, KVM_MSR_FILTER_WRITE
+
+kvm_msr_filter_range {
+	flags	flags[kvm_msr_filter_range_flags, int32]
+	nmsrs	bitsize[bitmap, int32]
+	base	int32
+	bitmap	ptr[in, array[int8]]
+}
+
+define KVM_MSR_FILTER_DEFAULT_ALLOW (0 << 0)
+define KVM_MSR_FILTER_DEFAULT_DENY  (1 << 0)
+kvm_msr_filter_flags = KVM_MSR_FILTER_DEFAULT_ALLOW, KVM_MSR_FILTER_DEFAULT_DENY
+
+kvm_msr_filter {
+	flags	flags[kvm_msr_filter_flags, int32]
+	ranges	array[kvm_msr_filter_range, KVM_MSR_FILTER_MAX_RANGES]
 }
 
 kvm_fpu {
