@@ -17,7 +17,9 @@ resource vcpu_mmap_size[int64]
 
 openat$kvm(fd const[AT_FDCWD], file ptr[in, string["/dev/kvm"]], flags flags[open_flags], mode const[0]) fd_kvm
 
-ioctl$KVM_CREATE_VM(fd fd_kvm, cmd const[KVM_CREATE_VM], type const[0]) fd_kvmvm
+# On x86, KVM_CREATE_VM accepts types 0 to 3.
+# On ARM64 it is either 0 (default size of 40 bits) or the guest address space size in bits, from 32 to the platform limit.
+ioctl$KVM_CREATE_VM(fd fd_kvm, cmd const[KVM_CREATE_VM], type intptr[0:64]) fd_kvmvm
 ioctl$KVM_CHECK_EXTENSION(fd fd_kvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
 ioctl$KVM_CHECK_EXTENSION_VM(fd fd_kvmvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
 ioctl$KVM_GET_VCPU_MMAP_SIZE(fd fd_kvm, cmd const[KVM_GET_VCPU_MMAP_SIZE]) vcpu_mmap_size
