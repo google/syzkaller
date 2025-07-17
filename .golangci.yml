@@ -24,66 +24,85 @@ formatters:
 
 linters:
   enable:
-    - lll
-    - govet
-    - revive
-    - unconvert
-    - goconst
-    - unused
-    - misspell
-    - gocyclo
-    - govet
-    - whitespace
-    - nestif
-    - goprintffuncname
-    - godot
-    - gocognit
-    - funlen
+    # keep-sorted start
     - dupl
+    - errorlint
+    - funlen
+    - gocognit
+    - goconst
+    - gocyclo
+    - godot
+    - goprintffuncname
+    - govet
+    - lll
+    - misspell
+    - nestif
+    - recvcheck
+    - revive
     - staticcheck
     - syz-linter
-    - errorlint
-    - recvcheck
+    - unconvert
+    - unused
+    - whitespace
+    # keep-sorted end
   disable:
+    # keep-sorted start
     - bodyclose
     - depguard
     - dogsled
+    # errcheck would be good to enable, but we need to fix existing warnings first.
+    - errcheck
     - gochecknoglobals
     - gochecknoinits
+    - gocritic
     - godox
     - gomodguard
     - gosec
-    - rowserrcheck
-    - testpackage
     - ineffassign
-    # errcheck would be good to enable, but we need to fix existing warnings first.
-    - errcheck
-    - unparam
     - nakedret
     - prealloc
-    - gocritic
+    - rowserrcheck
+    - testpackage
+    - unparam
     - wsl
+    # keep-sorted end
   settings:
+    # keep-sorted start block=yes
+    custom:
+      syz-linter:
+        path: bin/syz-linter.so
+    dupl:
+      threshold: 60
+    errorlint:
+      comparison: false # we want to use "err == iterator.Done"
+    funlen:
+      # TODO: consider reducing these value.
+      lines: 140
+      statements: 80
+    gocognit:
+      # TODO: consider reducing this value.
+      min-complexity: 70
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+      ignore-string-values: ['\.html|^true$']
+    gocyclo:
+      # TODO: consider reducing this value.
+      min-complexity: 24
+    godot:
+      scope: toplevel
+      exclude: ["keep-sorted"]
+    lll:
+      line-length: 120
+    nestif:
+      # TODO: consider reducing this value.
+      min-complexity: 12
     revive:
       rules:
       - name: package-comments
         disabled: true
       - name: argument-limit
         arguments: [ 7 ]
-    lll:
-      line-length: 120
-    gocyclo:
-      # TODO: consider reducing this value.
-      min-complexity: 24
-    dupl:
-      threshold: 60
-    goconst:
-      min-len: 3
-      min-occurrences: 3
-      ignore-string-values: ['\.html|^true$']
-    nestif:
-      # TODO: consider reducing this value.
-      min-complexity: 12
     staticcheck:
       checks:
       - all
@@ -92,21 +111,7 @@ linters:
       - -ST1021 # comment on exported type Foo should be of the form "Foo ..." (with optional leading article)
       - -ST1022 # comment on exported const Foo should be of the form "Foo ..."
       - -QF1008 # could remove embedded field "..." from selector
-    godot:
-      scope: toplevel
-      exclude: ["keep-sorted"]
-    gocognit:
-      # TODO: consider reducing this value.
-      min-complexity: 70
-    funlen:
-      # TODO: consider reducing these value.
-      lines: 140
-      statements: 80
-    custom:
-      syz-linter:
-        path: bin/syz-linter.so
-    errorlint:
-      comparison: false # we want to use "err == iterator.Done"
+    # keep-sorted end
   exclusions:
     warn-unused: true # Log a warning if an exclusion path is unused.
     rules:
