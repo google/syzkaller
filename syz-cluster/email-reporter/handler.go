@@ -71,7 +71,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	}
 	toSend := &emailclient.Email{
 		Subject: "Re: " + rep.Series.Title, // TODO: use the original rather than the stripped title.
-		To:      rep.Cc,
+		To:      rep.Series.Cc,
 		Body:    body,
 		Cc:      []string{h.emailConfig.ArchiveList},
 		BugID:   rep.ID,
@@ -85,7 +85,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 		}
 		// We assume that email reporting is used for series received over emails.
 		toSend.InReplyTo = rep.Series.ExtID
-		toSend.To = rep.Cc
+		toSend.To = rep.Series.Cc
 	}
 	msgID, err := h.sender(ctx, toSend)
 	if err != nil {

@@ -6,13 +6,14 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 type EntityIDs struct {
@@ -59,6 +60,7 @@ func DummySeries() *api.Series {
 		ExtID: "ext-id",
 		Title: "test series name",
 		Link:  "http://link/to/series",
+		Cc:    []string{"first@user.com", "second@user.com"},
 		Patches: []api.SeriesPatch{
 			{
 				Seq:   1,

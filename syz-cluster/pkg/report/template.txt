@@ -63,7 +63,7 @@ See {{.Config.DocsLink}} for more information about {{.Config.Name}}.
 {{- if .Report.Moderation}}
 
 The email will later be sent to:
-{{.Report.Cc}}
+{{.Report.Series.Cc}}
 
 If the report looks fine to you, reply with:
 #syz upstream

@@ -4,6 +4,7 @@
     "title": "Series title",
     "version": 2,
     "link": "http://link/to/series",
+    "cc": ["a@a.com", "b@b.com"],
     "patches": [
       {
 	"title": "first patch"
@@ -29,6 +30,5 @@
       }
     }
   ],
-  "cc": ["a@a.com", "b@b.com"],
   "link": "http://some/link/to/report"
 }
