@@ -201,6 +201,11 @@ ioctl$KVM_SEV_SNP_LAUNCH_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], ar
 ioctl$KVM_SEV_SNP_LAUNCH_UPDATE(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_UPDATE, ptr[in, kvm_sev_snp_launch_update]]])
 ioctl$KVM_SEV_SNP_LAUNCH_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_FINISH, ptr[in, kvm_sev_snp_launch_finish]]])
 
+# Apparently KVM_MEMORY_ENCRYPT_REG_REGION and KVM_MEMORY_ENCRYPT_UNREG_REGION are VM ioctls, despite
+# https://docs.kernel.org/virt/kvm/api.html#kvm-memory-encrypt-reg-region says they are system.
+ioctl$KVM_MEMORY_ENCRYPT_REG_REGION(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_REG_REGION], arg ptr[in, kvm_enc_region])
+ioctl$KVM_MEMORY_ENCRYPT_UNREG_REGION(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_UNREG_REGION], arg ptr[in, kvm_enc_region])
+
 type kvm_memory_encrypt_op[ID, DATA] {
 	id	const[ID, int32]
 	data	DATA
@@ -353,6 +358,11 @@ kvm_sev_snp_launch_finish {
 	pad0		array[const[0, int8], 3]
 	flags		int16
 	pad1		array[const[0, int64], 4]
+}
+
+kvm_enc_region {
+	addr	flags[kvm_guest_addrs, int64]
+	size	flags[kvm_guest_addr_size, int64]
 }
 
 #x86(-64) specific ioctls
@@ -621,8 +631,8 @@ kvm_msr_filter_range {
 	bitmap	ptr[in, array[int8]]
 }
 
-define KVM_MSR_FILTER_DEFAULT_ALLOW (0 << 0)
-define KVM_MSR_FILTER_DEFAULT_DENY  (1 << 0)
+define KVM_MSR_FILTER_DEFAULT_ALLOW	(0 << 0)
+define KVM_MSR_FILTER_DEFAULT_DENY	(1 << 0)
 kvm_msr_filter_flags = KVM_MSR_FILTER_DEFAULT_ALLOW, KVM_MSR_FILTER_DEFAULT_DENY
 
 kvm_msr_filter {
