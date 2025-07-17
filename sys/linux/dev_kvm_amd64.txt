@@ -464,6 +464,11 @@ ioctl$KVM_CAP_SYNC_REGS(fd fd_kvmcpu, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm
 ioctl$KVM_SET_MEMORY_ATTRIBUTES(fd fd_kvmvm, cmd const[KVM_SET_MEMORY_ATTRIBUTES], arg ptr[in, kvm_memory_attributes])
 ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 
+# KVM_GET_SREGS2/KVM_SET_SREGS2 are only supported on x86 - unlike KVM_GET_SREGS/KVM_SET_SREGS.
+# https://docs.kernel.org/virt/kvm/api.html#kvm-get-sregs2
+ioctl$KVM_GET_SREGS2(fd fd_kvmcpu, cmd const[KVM_GET_SREGS2], arg ptr[out, kvm_sregs2])
+ioctl$KVM_SET_SREGS2(fd fd_kvmcpu, cmd const[KVM_SET_SREGS2], arg ptr[in, kvm_sregs2])
+
 kvm_nested_state {
 	flags	flags[kvm_nested_state_flags, int16]
 	format	const[0, int16]
@@ -766,4 +771,29 @@ kvm_memory_attributes {
 	size		flags[kvm_guest_addr_size, int64]
 	attributes	flags[kvm_memory_attribute_flags, int64]
 	flags		const[0, int64]
+}
+
+kvm_sregs2_flags = KVM_SREGS2_FLAGS_PDPTRS_VALID
+
+kvm_sregs2 {
+	cs	kvm_segment
+	ds	kvm_segment
+	es	kvm_segment
+	fs	kvm_segment
+	gs	kvm_segment
+	ss	kvm_segment
+	tr	kvm_segment
+	ldt	kvm_segment
+	gdt	kvm_dtable
+	idt	kvm_dtable
+	cr0	flags[kvm_x86_cr0, int64]
+	cr2	const[0, int64]
+# TODO: this should point to page table
+	cr3	flags[kvm_guest_addrs, int64]
+	cr4	flags[kvm_x86_cr4, int64]
+	cr8	int64[0:15]
+	efer	flags[kvm_x86_efer, int64]
+	apic	flags[kvm_guest_addrs, int64]
+	flags	flags[kvm_sregs2_flags, int64]
+	pdptrs	array[int64, 4]
 }
