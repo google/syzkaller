@@ -13,6 +13,7 @@ include <asm/mce.h>
 resource kvm_syz_vm$x86[int64]
 resource fd_sgx_provision[fd]
 resource fd_sev[fd]
+resource sev_handle[int32]
 
 # Map the given memory into the VM and set up syzos there.
 syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
@@ -203,7 +204,7 @@ ioctl$KVM_SEV_SNP_LAUNCH_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], a
 type kvm_memory_encrypt_op[ID, DATA] {
 	id	const[ID, int32]
 	data	DATA
-	error	int32
+	error	int32	(out)
 	sev_fd	fd_sev	(in)
 }
 
@@ -216,7 +217,7 @@ kvm_sev_init {
 }
 
 kvm_sev_launch_start {
-	handle		int32
+	handle		sev_handle	(inout)
 	policy		int32
 	dh_addr		vma64[1:4]
 	dh_len		len[dh_addr, int32]
@@ -251,9 +252,9 @@ kvm_sev_launch_measure {
 }
 
 kvm_sev_guest_status {
-	handle	int32
+	handle	sev_handle
 	policy	int32
-	state	int32
+	state	int8
 }
 
 kvm_sev_dbg {
@@ -299,7 +300,7 @@ kvm_sev_send_update_data {
 }
 
 kvm_sev_receive_start {
-	handle		int32
+	handle		sev_handle	(inout)
 	policy		int32
 	pdh_addr	vma64[1:4]
 	pdh_len		len[pdh_addr, int32]
