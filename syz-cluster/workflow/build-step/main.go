@@ -10,6 +10,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -18,9 +22,6 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/triage"
-	"log"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -261,13 +262,37 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 		return nil, err
 	}
 	tracer.Log("build finished successfully")
+
+	err = saveSymbolHashes(tracer)
+	if err != nil {
+		tracer.Log("failed to save symbol hashes: %s", err)
+	}
 	// Note: Output directory has the following structure:
 	//   |-- image
+	//   |-- symbol_hashes.json
 	//   |-- kernel
 	//   |-- kernel.config
 	//   `-- obj
 	//      `-- vmlinux
 	return ret, nil
+}
+
+func saveSymbolHashes(tracer debugtracer.DebugTracer) error {
+	hashes, err := build.ElfSymbolHashes(filepath.Join(*flagRepository, "vmlinux.o"))
+	if err != nil {
+		return fmt.Errorf("failed to query symbol hashes: %w", err)
+	}
+	tracer.Log("extracted hashes for %d symbols", len(hashes))
+	file, err := os.Create(filepath.Join(*flagOutput, "symbol_hashes.json"))
+	if err != nil {
+		return fmt.Errorf("failed to open symbol_hashes.json: %w", err)
+	}
+	defer file.Close()
+	err = json.NewEncoder(file).Encode(hashes)
+	if err != nil {
+		return fmt.Errorf("failed to serialize: %w", err)
+	}
+	return nil
 }
 
 func ensureFlags(args ...string) {
