@@ -381,7 +381,7 @@ Content-Type: text/plain
 Some text`,
 		// A series with a cover.
 		`Date: Sun, 7 May 2017 19:55:00 -0700
-Subject: [PATCH v2 00/02] A longer series
+Subject: [PATCH net v2 00/02] A longer series
 Message-ID: <Second>
 From: UserB <b@user.com>
 To: UserA <a@user.com>
@@ -389,7 +389,7 @@ Content-Type: text/plain
 
 Some cover`,
 		`Date: Sun, 7 May 2017 19:56:00 -0700
-Subject: [PATCH v2 01/02] First patch
+Subject: [PATCH net v2 01/02] First patch
 Message-ID: <Second-1>
 From: UserC <c@user.com>
 To: UserA <a@user.com>, UserB <b@user.com>
@@ -399,7 +399,7 @@ In-Reply-To: <Second>
 
 Patch 1/2`,
 		`Date: Sun, 7 May 2017 19:56:00 -0700
-Subject: [PATCH v2 02/02] Second patch
+Subject: [PATCH net v2 02/02] Second patch
 Message-ID: <Second-2>
 From: UserC <c@user.com>
 To: UserA <a@user.com>, UserB <b@user.com>
@@ -444,6 +444,7 @@ Bug report`,
 		"<Second>": {
 			Subject: "A longer series",
 			Version: 2,
+			Tags:    []string{"net"},
 			Patches: []Patch{
 				{
 					Seq:   1,

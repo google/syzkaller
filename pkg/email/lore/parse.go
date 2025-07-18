@@ -29,6 +29,7 @@ type Series struct {
 	MessageID string
 	Version   int
 	Corrupted string // If non-empty, contains a reason why the series better be ignored.
+	Tags      []string
 	Patches   []Patch
 }
 
@@ -74,6 +75,7 @@ func PatchSeries(emails []*email.Email) []*Series {
 			Subject:   patch.Title,
 			MessageID: thread.MessageID,
 			Version:   patch.Version.ValueOr(1),
+			Tags:      patch.Tags,
 		}
 		ret = append(ret, series)
 		if patch.Seq.IsSet() && patch.Seq.Value() > 1 {

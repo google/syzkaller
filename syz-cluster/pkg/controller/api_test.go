@@ -5,11 +5,12 @@ package controller
 
 import (
 	"bytes"
+	"testing"
+	"time"
+
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestAPIGetSeries(t *testing.T) {
@@ -108,6 +109,7 @@ var testSeries = &api.Series{
 	Version:     2,
 	PublishedAt: time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
 	Cc:          []string{"email"},
+	SubjectTags: []string{"tag"},
 	Patches: []api.SeriesPatch{
 		{
 			Seq:  1,

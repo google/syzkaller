@@ -63,6 +63,13 @@ func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*
 		PublishedAt: series.PublishedAt,
 		Cc:          series.Cc,
 	}
+	for _, tag := range series.SubjectTags {
+		const tageSizeLimit = 511
+		if len(tag) > tageSizeLimit {
+			tag = tag[:tageSizeLimit]
+		}
+		seriesObj.SubjectTags = append(seriesObj.SubjectTags, tag)
+	}
 	err := s.seriesRepo.Insert(ctx, seriesObj, func() ([]*db.Patch, error) {
 		var ret []*db.Patch
 		for _, patch := range series.Patches {
@@ -121,6 +128,7 @@ func (s *SeriesService) getSeries(ctx context.Context,
 		Cc:          series.Cc,
 		PublishedAt: series.PublishedAt,
 		Link:        series.Link,
+		SubjectTags: series.SubjectTags,
 	}
 	for _, patch := range patches {
 		var body []byte

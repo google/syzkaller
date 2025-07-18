@@ -1,0 +1,1 @@
+ALTER TABLE Series DROP COLUMN SubjectTags;

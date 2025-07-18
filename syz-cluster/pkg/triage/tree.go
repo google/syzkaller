@@ -14,8 +14,16 @@ func SelectTree(series *api.Series, trees []*api.Tree) *api.Tree {
 	for _, cc := range series.Cc {
 		seriesCc[strings.ToLower(cc)] = true
 	}
+	tagsMap := map[string]bool{}
+	for _, tag := range series.SubjectTags {
+		tagsMap[tag] = true
+	}
 	var best *api.Tree
 	for _, tree := range trees {
+		if tagsMap[tree.Name] {
+			// If the tree was directly mentioned in the patch subject, just return it.
+			return tree
+		}
 		intersects := false
 		for _, cc := range tree.EmailLists {
 			if seriesCc[strings.ToLower(cc)] {

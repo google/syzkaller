@@ -4,18 +4,21 @@
 package db
 
 import (
-	"cloud.google.com/go/spanner"
 	"time"
+
+	"cloud.google.com/go/spanner"
 )
 
 type Series struct {
-	ID          string    `spanner:"ID"`
-	ExtID       string    `spanner:"ExtID"`
-	AuthorName  string    `spanner:"AuthorName"`
-	AuthorEmail string    `spanner:"AuthorEmail"`
-	Title       string    `spanner:"Title"`
-	Link        string    `spanner:"Link"`
-	Version     int64     `spanner:"Version"`
+	ID          string `spanner:"ID"`
+	ExtID       string `spanner:"ExtID"`
+	AuthorName  string `spanner:"AuthorName"`
+	AuthorEmail string `spanner:"AuthorEmail"`
+	Title       string `spanner:"Title"`
+	Link        string `spanner:"Link"`
+	Version     int64  `spanner:"Version"`
+	// In LKML patches, there are often hints at the target tree for the patch.
+	SubjectTags []string  `spanner:"SubjectTags"`
 	PublishedAt time.Time `spanner:"PublishedAt"`
 	// TODO: we could ger rid of the field by using slightly more complicated SQL queries.
 	LatestSessionID spanner.NullString `spanner:"LatestSessionID"`

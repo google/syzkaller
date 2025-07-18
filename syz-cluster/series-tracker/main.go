@@ -155,9 +155,9 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 	apiSeries := &api.Series{
 		ExtID:       series.MessageID,
 		AuthorEmail: first.Author,
-		// TODO: set Cc.
 		Title:       series.Subject,
 		Version:     series.Version,
+		SubjectTags: series.Tags,
 		Link:        "https://lore.kernel.org/all/" + series.MessageID,
 		PublishedAt: date,
 	}

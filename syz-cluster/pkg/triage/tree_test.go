@@ -27,6 +27,10 @@ func TestSelectTree(t *testing.T) {
 			EmailLists: []string{"wireless@list"},
 			Priority:   2,
 		},
+		{
+			Name:     "test",
+			Priority: api.TreePriorityNever,
+		},
 	}
 	tests := []struct {
 		testName string
@@ -47,6 +51,14 @@ func TestSelectTree(t *testing.T) {
 			testName: "fallback",
 			result:   "mainline",
 			series:   &api.Series{Cc: []string{"unknown@list"}},
+		},
+		{
+			testName: "prefer-direct-match",
+			result:   "test",
+			series: &api.Series{
+				Cc:          []string{"net@list", "wireless@list"},
+				SubjectTags: []string{"test"},
+			},
 		},
 	}
 
