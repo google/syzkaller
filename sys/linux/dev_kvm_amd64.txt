@@ -438,7 +438,7 @@ ioctl$KVM_GET_FPU(fd fd_kvmcpu, cmd const[KVM_GET_FPU], arg ptr[out, kvm_fpu])
 ioctl$KVM_SET_FPU(fd fd_kvmcpu, cmd const[KVM_SET_FPU], arg ptr[in, kvm_fpu])
 ioctl$KVM_GET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_GET_DEBUGREGS], arg ptr[out, kvm_debugregs])
 ioctl$KVM_SET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_SET_DEBUGREGS], arg ptr[in, kvm_debugregs])
-ioctl$KVM_GET_XCRS(fd fd_kvmcpu, cmd const[KVM_GET_XCRS], arg ptr[in, kvm_xcrs])
+ioctl$KVM_GET_XCRS(fd fd_kvmcpu, cmd const[KVM_GET_XCRS], arg ptr[out, kvm_xcrs])
 ioctl$KVM_SET_XCRS(fd fd_kvmcpu, cmd const[KVM_SET_XCRS], arg ptr[in, kvm_xcrs])
 ioctl$KVM_GET_XSAVE(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE], arg ptr[out, kvm_xsave])
 ioctl$KVM_SET_XSAVE(fd fd_kvmcpu, cmd const[KVM_SET_XSAVE], arg ptr[in, kvm_xsave])
@@ -581,9 +581,10 @@ kvm_xcr {
 }
 
 kvm_xcrs {
-	nr	len[xcrs, int32]
+	nr	int32[0:KVM_MAX_XCRS]
 	flags	int32
-	xcrs	array[kvm_xcr]
+	xcrs	array[kvm_xcr, KVM_MAX_XCRS]
+	pad	array[const[0, int64], 16]
 }
 
 kvm_xsave {
