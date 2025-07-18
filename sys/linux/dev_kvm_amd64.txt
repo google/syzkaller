@@ -368,7 +368,7 @@ kvm_enc_region {
 #x86(-64) specific ioctls
 ioctl$KVM_GET_MSR_INDEX_LIST(fd fd_kvm, cmd const[KVM_GET_MSR_INDEX_LIST], arg ptr[inout, kvm_msr_list])
 ioctl$KVM_GET_MSR_FEATURE_INDEX_LIST(fd fd_kvm, cmd const[KVM_GET_MSR_FEATURE_INDEX_LIST], arg ptr[inout, kvm_msr_list])
-ioctl$KVM_X86_GET_MCE_CAP_SUPPORTED(fd fd_kvmvm, cmd const[KVM_X86_GET_MCE_CAP_SUPPORTED], arg buffer[out])
+ioctl$KVM_X86_GET_MCE_CAP_SUPPORTED(fd fd_kvm, cmd const[KVM_X86_GET_MCE_CAP_SUPPORTED], arg ptr[out, int64])
 ioctl$KVM_SET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_SET_IRQCHIP], arg ptr[in, kvm_irqchip])
 ioctl$KVM_GET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_GET_IRQCHIP], arg ptr[inout, kvm_irqchip])
 ioctl$KVM_XEN_HVM_CONFIG(fd fd_kvmvm, cmd const[KVM_XEN_HVM_CONFIG], arg ptr[in, kvm_xen_hvm_config])
