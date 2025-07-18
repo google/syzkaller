@@ -103,6 +103,7 @@ type Series struct {
 	Cc          []string      `json:"cc"`
 	Version     int           `json:"version"`
 	Link        string        `json:"link"`
+	SubjectTags []string      `json:"subject_tags"`
 	PublishedAt time.Time     `json:"published_at"`
 	Patches     []SeriesPatch `json:"patches"`
 }
