@@ -447,7 +447,7 @@ ioctl$KVM_SET_TSC_KHZ_cpu(fd fd_kvmcpu, cmd const[KVM_SET_TSC_KHZ], arg intptr)
 ioctl$KVM_SET_TSC_KHZ_vm(fd fd_kvmvm, cmd const[KVM_SET_TSC_KHZ], arg intptr)
 ioctl$KVM_GET_TSC_KHZ_cpu(fd fd_kvmcpu, cmd const[KVM_GET_TSC_KHZ])
 ioctl$KVM_GET_TSC_KHZ_vm(fd fd_kvmvm, cmd const[KVM_GET_TSC_KHZ])
-ioctl$KVM_GET_LAPIC(fd fd_kvmcpu, cmd const[KVM_GET_LAPIC], arg ptr[in, kvm_lapic_state])
+ioctl$KVM_GET_LAPIC(fd fd_kvmcpu, cmd const[KVM_GET_LAPIC], arg ptr[out, kvm_lapic_state])
 ioctl$KVM_SET_LAPIC(fd fd_kvmcpu, cmd const[KVM_SET_LAPIC], arg ptr[in, kvm_lapic_state])
 ioctl$KVM_NMI(fd fd_kvmcpu, cmd const[KVM_NMI])
 ioctl$KVM_SMI(fd fd_kvmcpu, cmd const[KVM_SMI])
@@ -693,7 +693,7 @@ kvm_pit_config {
 }
 
 kvm_lapic_state {
-	regs	array[int8, 1024]
+	regs	array[int8, KVM_APIC_REG_SIZE]
 }
 
 kvm_msr_list {
