@@ -19,7 +19,7 @@ To find out the list of maintainers responsible for a particular kernel subsyste
 **Minimal info** to include in the report:
  - exact kernel branch and revision where the bug occurred
  - exact kernel .config
- - kernel OOPS message (BUG, KASAN report, etc), preferably with source files and line numbers
+ - kernel OOPS message (BUG, KASAN report, etc), **preferably with source files and line numbers**
  - reproducer, if known (see below)
 
 **Properly configure the kernel**.
