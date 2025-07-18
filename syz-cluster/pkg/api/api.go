@@ -36,6 +36,9 @@ type Tree struct {
 	FuzzConfig   string   `json:"fuzz_config"`
 }
 
+// Select only if directly specified in the series subject.
+const TreePriorityNever = -1
+
 type BuildRequest struct {
 	Arch       string `json:"arch"`
 	TreeName   string `json:"tree_name"`
@@ -166,7 +169,7 @@ var DefaultTrees = []*Tree{
 		FuzzConfig:   `all`,
 	},
 	{
-		Name:         `netdev`,
+		Name:         `net`,
 		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
 		Branch:       `main`,
 		Priority:     1,
@@ -174,18 +177,46 @@ var DefaultTrees = []*Tree{
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig:   `net`,
 	},
+	{
+		Name:         `net-next`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
+		Branch:       `main`,
+		Priority:     TreePriorityNever,
+		EmailLists:   []string{`netdev@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `net`,
+	},
+	{
+		Name:         `nf`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf.git`,
+		Branch:       `main`,
+		Priority:     2,
+		EmailLists:   []string{`netfilter-devel@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `net`,
+	},
+	{
+		Name:         `nf-next`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf-next.git`,
+		Branch:       `main`,
+		Priority:     TreePriorityNever,
+		EmailLists:   []string{`netfilter-devel@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `net`,
+	},
 }
+
+const (
+	netCorpusURL      = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
+	corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
+)
 
 // TODO: find a better place for it.
 func (tree *Tree) CorpusURL() string {
-	if url, ok := fuzzToCorpus[tree.FuzzConfig]; ok {
-		return url
+	switch tree.FuzzConfig {
+	case `net`, `net-next`, `nf`, `nf-next`:
+		return netCorpusURL
+	default:
+		return corpusFallbackURL
 	}
-	return corpusFallbackURL
 }
-
-var fuzzToCorpus = map[string]string{
-	`net`: `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`,
-}
-
-const corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
