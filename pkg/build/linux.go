@@ -10,6 +10,7 @@ import (
 	"debug/elf"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -255,6 +256,57 @@ func queryLinuxCompiler(kernelDir string) (string, error) {
 		return "", fmt.Errorf("include/generated/compile.h does not contain build information")
 	}
 	return string(result[1]), nil
+}
+
+// ElfSymbolHashes returns a map of sha256 hashes per a symbol contained in the elf file.
+// It's best to call it on vmlinux.o since PCs in the binary code are not patched yet.
+func ElfSymbolHashes(bin string) (map[string]string, error) {
+	file, err := elf.Open(bin)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	symbols, err := file.Symbols()
+	if err != nil {
+		return nil, err
+	}
+
+	textSection := file.Section(".text")
+	if textSection == nil {
+		return nil, fmt.Errorf(".text section not found")
+	}
+
+	sectionReader, ok := textSection.Open().(io.ReaderAt)
+	if !ok {
+		return nil, fmt.Errorf(".text section reader does not support ReadAt")
+	}
+
+	hashes := make(map[string]string)
+	for _, s := range symbols {
+		if elf.ST_TYPE(s.Info) != elf.STT_FUNC || s.Size == 0 {
+			continue
+		}
+
+		if s.Section >= elf.SHN_LORESERVE || int(s.Section) >= len(file.Sections) ||
+			file.Sections[s.Section] != textSection {
+			continue
+		}
+
+		offset := s.Value - textSection.Addr
+		if offset+s.Size > textSection.Size {
+			continue
+		}
+
+		code := make([]byte, s.Size)
+		_, err := sectionReader.ReadAt(code, int64(offset))
+		if err != nil {
+			continue
+		}
+		hash := sha256.Sum256(code)
+		hashes[s.Name] = hex.EncodeToString(hash[:])
+	}
+	return hashes, nil
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
