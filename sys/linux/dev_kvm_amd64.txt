@@ -420,7 +420,9 @@ ioctl$KVM_CAP_X86_APIC_BUS_CYCLES_NS(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg
 ioctl$KVM_CAP_PMU_CAPABILITY(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_PMU_CAPABILITY, int64]])
 
 ioctl$KVM_TRANSLATE(fd fd_kvmcpu, cmd const[KVM_TRANSLATE], arg ptr[inout, kvm_translation])
-ioctl$KVM_GET_MSRS(fd fd_kvmcpu, cmd const[KVM_GET_MSRS], arg ptr[inout, kvm_msrs])
+# KVM_GET_MSRS can be both a system and a vcpu ioctl: https://docs.kernel.org/virt/kvm/api.html#kvm-get-msrs
+ioctl$KVM_GET_MSRS_sys(fd fd_kvm, cmd const[KVM_GET_MSRS], arg ptr[inout, kvm_msrs])
+ioctl$KVM_GET_MSRS_cpu(fd fd_kvmcpu, cmd const[KVM_GET_MSRS], arg ptr[inout, kvm_msrs])
 ioctl$KVM_SET_MSRS(fd fd_kvmcpu, cmd const[KVM_SET_MSRS], arg ptr[in, kvm_msrs])
 ioctl$KVM_SET_CPUID(fd fd_kvmcpu, cmd const[KVM_SET_CPUID], arg ptr[in, kvm_cpuid])
 # NEED: we should be able to read kvm_cpuid2 with KVM_GET_CPUID2, alter few bits and then call KVM_SET_CPUID2 with that object.
