@@ -46,6 +46,8 @@ ioctl$KVM_PPC_ALLOCATE_HTAB(fd fd_kvmvm, cmd const[KVM_PPC_ALLOCATE_HTAB], arg p
 ioctl$KVM_CREATE_DEVICE(fd fd_kvmvm, cmd const[KVM_CREATE_DEVICE], arg ptr[inout, kvm_create_device])
 ioctl$KVM_REGISTER_COALESCED_MMIO(fd fd_kvmvm, cmd const[KVM_REGISTER_COALESCED_MMIO], arg ptr[in, kvm_coalesced_mmio_zone])
 ioctl$KVM_UNREGISTER_COALESCED_MMIO(fd fd_kvmvm, cmd const[KVM_UNREGISTER_COALESCED_MMIO], arg ptr[in, kvm_coalesced_mmio_zone])
+ioctl$KVM_GET_STATS_FD_vm(fd fd_kvmvm, cmd const[KVM_GET_STATS_FD]) fd
+ioctl$KVM_GET_STATS_FD_cpu(fd fd_kvmcpu, cmd const[KVM_GET_STATS_FD]) fd
 
 ioctl$KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2, flags[kvm_dirty_log_protect, int64]]])
 ioctl$KVM_CAP_HALT_POLL(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap[KVM_CAP_HALT_POLL, int64]])
