@@ -58,6 +58,7 @@ func (e *Extractor) ExtractAll() (ExtractAllResult, error) {
 	if err != nil {
 		return ExtractAllResult{}, err
 	}
+
 	return ExtractAllResult{
 		Funcs:       funcs,
 		Structs:     structs,
@@ -225,6 +226,23 @@ func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 	for _, fn := range funcs {
 		inputStructs[fn.InputStructName] = true
 	}
+	// Unpacks nested types to find an underlying struct type, or return nil
+	// if nothing is found. For example, when called on `struct myStruct **`
+	// we return `struct myStruct`.
+	unpackNested := func(t dwarf.Type) *dwarf.StructType {
+		for {
+			switch concreteType := t.(type) {
+			case *dwarf.StructType:
+				return concreteType
+			case *dwarf.PtrType:
+				t = concreteType.Type
+			case *dwarf.QualType:
+				t = concreteType.Type
+			default:
+				return nil
+			}
+		}
+	}
 
 	structs := make([]SyzStruct, 0)
 
@@ -242,6 +260,16 @@ func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 				if _, contains := (*visited)[childType.StructName]; !contains {
 					(*visited)[childType.StructName] = true
 					visitRecur(childType, visited)
+				}
+			case *dwarf.PtrType, *dwarf.QualType:
+				// If we hit a pointer or a qualifier, we unpack to see if we
+				// find a nested struct type so that we can visit it.
+				maybeStructType := unpackNested(childType)
+				if maybeStructType != nil {
+					if _, contains := (*visited)[maybeStructType.StructName]; !contains {
+						(*visited)[maybeStructType.StructName] = true
+						visitRecur(maybeStructType, visited)
+					}
 				}
 			default:
 				continue

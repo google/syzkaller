@@ -59,6 +59,7 @@ type AnnotationAttribute uint8
 const (
 	AttributeLen AnnotationAttribute = iota
 	AttributeString
+	AttributeArray
 )
 
 func (a AnnotationAttribute) String() string {

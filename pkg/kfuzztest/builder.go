@@ -77,12 +77,14 @@ func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzCons
 				goto append_type
 			}
 
-			// handle these special cases
+			// Annotated fields require special handling.
 			switch annotation.Attribute {
 			case AttributeLen:
 				out += fmt.Sprintf("%s\tlen[%s, %s]", field.Name, annotation.LinkedFieldName, typeName)
 			case AttributeString:
 				out += fmt.Sprintf("%s\tptr[in, string]", field.Name)
+			case AttributeArray:
+				out += fmt.Sprintf("%s\tptr[in, array[%s]]", field.Name, typeName)
 			}
 			out += "\n"
 			continue
@@ -203,6 +205,12 @@ func dwarfToSyzlangType(typeName string) string {
 		return after
 	}
 
+	if after, ok := strings.CutPrefix(typeName, "*const struct"); ok {
+		return fmt.Sprintf("ptr[in, %s]", after)
+	} else if after, ok := strings.CutPrefix(typeName, "*struct"); ok {
+		return fmt.Sprintf("ptr[inout, %s]", after)
+	}
+
 	switch typeName {
 	case "long unsigned int", "size_t":
 		return "int64"
@@ -210,6 +218,8 @@ func dwarfToSyzlangType(typeName string) string {
 		return "int32"
 	case "char":
 		return "int8"
+	case "__u16":
+		return "int16"
 	case "*const char", "*const void", "*const unsigned char":
 		return "ptr[in, array[int8]]" // const pointers are read-only
 	case "*char":
