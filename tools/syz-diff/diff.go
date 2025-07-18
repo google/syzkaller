@@ -43,7 +43,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		manager.PatchFocusAreas(newCfg, [][]byte{data})
+		manager.PatchFocusAreas(newCfg, [][]byte{data}, nil, nil)
 	}
 
 	ctx := vm.ShutdownCtx()

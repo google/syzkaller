@@ -272,6 +272,15 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		// The feature is disabled.
 		return nil
 	}
+
+	// First wait until we have almost triaged all of the corpus.
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-dc.waitCorpusTriage(ctx, corpusTriageToMonitor):
+	}
+
+	// By this moment, we must have coverage filters already filled out.
 	focusPCs := 0
 	// The last one is "everything else", so it's not of interest.
 	coverFilters := dc.new.coverFilters
@@ -284,13 +293,6 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		return nil
 	}
 
-	// First wait until we have almost triaged all of the corpus.
-	select {
-	case <-ctx.Done():
-		return nil
-	case <-dc.waitCorpusTriage(ctx, corpusTriageToMonitor):
-	}
-
 	// Then give the fuzzer some change to get through.
 	select {
 	case <-time.After(dc.cfg.FuzzToReachPatched):
@@ -298,9 +300,9 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		return nil
 	}
 	focusAreaStats := dc.new.progsPerArea()
-	if focusAreaStats[modifiedArea]+focusAreaStats[includesArea] > 0 {
-		log.Logf(0, "fuzzer has reached the modified code (%d + %d), continuing fuzzing",
-			focusAreaStats[modifiedArea], focusAreaStats[includesArea])
+	if focusAreaStats[symbolsArea]+focusAreaStats[filesArea]+focusAreaStats[includesArea] > 0 {
+		log.Logf(0, "fuzzer has reached the modified code (%d + %d + %d), continuing fuzzing",
+			focusAreaStats[symbolsArea], focusAreaStats[filesArea], focusAreaStats[includesArea])
 		return nil
 	}
 	log.Logf(0, "fuzzer has not reached the modified code in %s, aborting",
@@ -543,7 +545,11 @@ func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) ([]uint6
 		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
 	kc.coverFilters = filters
-	log.Logf(0, "cover filter size: %d", len(filters.ExecutorFilter))
+	for _, area := range filters.Areas {
+		log.Logf(0, "area %q: %d PCs in the cover filter",
+			area.Name, len(area.CoverPCs))
+	}
+	log.Logf(0, "executor cover filter: %d PCs", len(filters.ExecutorFilter))
 	if kc.http != nil {
 		kc.http.Cover.Store(&CoverageInfo{
 			Modules:         modules,
@@ -729,18 +735,32 @@ func (kc *kernelContext) symbolize(rep *report.Report) {
 }
 
 const (
-	modifiedArea = "modified"
+	symbolsArea  = "symbols"
+	filesArea    = "files"
 	includesArea = "included"
 )
 
-func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
+func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, patchedHashes map[string]string) {
+	funcs := modifiedSymbols(baseHashes, patchedHashes)
+	if len(funcs) > 0 {
+		log.Logf(0, "adding modified_functions to focus areas: %q", funcs)
+		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
+			mgrconfig.FocusArea{
+				Name: symbolsArea,
+				Filter: mgrconfig.CovFilterCfg{
+					Functions: funcs,
+				},
+				Weight: 6.0,
+			})
+	}
+
 	direct, transitive := affectedFiles(cfg, gitPatches)
 	if len(direct) > 0 {
 		sort.Strings(direct)
-		log.Logf(0, "adding directly modified files to focus_order: %q", direct)
+		log.Logf(0, "adding directly modified files to focus areas: %q", direct)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
-				Name: modifiedArea,
+				Name: filesArea,
 				Filter: mgrconfig.CovFilterCfg{
 					Files: direct,
 				},
@@ -750,7 +770,7 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte) {
 
 	if len(transitive) > 0 {
 		sort.Strings(transitive)
-		log.Logf(0, "adding transitively affected to focus_order: %q", transitive)
+		log.Logf(0, "adding transitively affected to focus areas: %q", transitive)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
 				Name: includesArea,
@@ -815,4 +835,21 @@ func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transiti
 		transitive = append(transitive, name)
 	}
 	return
+}
+
+// Give up when the share of the modified symbols is more than 5%.
+const modifiedSymbolThreshold = 0.05
+
+func modifiedSymbols(baseHashes, patchedHashes map[string]string) []string {
+	var ret []string
+	for name, hash := range patchedHashes {
+		if baseHash, ok := baseHashes[name]; !ok || baseHash != hash {
+			ret = append(ret, name)
+			if float64(len(ret)) > float64(len(patchedHashes))*modifiedSymbolThreshold {
+				return nil
+			}
+		}
+	}
+	sort.Strings(ret)
+	return ret
 }
