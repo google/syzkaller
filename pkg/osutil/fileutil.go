@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // CopyFile atomically copies oldFile to newFile preserving permissions and modification time.
@@ -48,6 +49,21 @@ func Rename(oldFile, newFile string) error {
 		os.Remove(oldFile)
 	}
 	return err
+}
+
+// FillDirectory is used to fill in directory structure for tests.
+func FillDirectory(dir string, fileContent map[string]string) error {
+	for path, content := range fileContent {
+		fullPath := filepath.Join(dir, path)
+		dirPath := filepath.Dir(fullPath)
+		if err := MkdirAll(dirPath); err != nil {
+			return fmt.Errorf("mkdir %q failed: %w", dirPath, err)
+		}
+		if err := WriteFile(fullPath, []byte(content)); err != nil {
+			return fmt.Errorf("write file failed: %w", err)
+		}
+	}
+	return nil
 }
 
 // WriteTempFile writes data to a temp file and returns its name.
