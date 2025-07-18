@@ -544,7 +544,11 @@ func (kc *kernelContext) CoverageFilter(modules []*vminfo.KernelModule) ([]uint6
 		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
 	kc.coverFilters = filters
-	log.Logf(0, "cover filter size: %d", len(filters.ExecutorFilter))
+	for _, area := range filters.Areas {
+		log.Logf(0, "area %q: %d PCs in the cover filter",
+			area.Name, len(area.CoverPCs))
+	}
+	log.Logf(0, "executor cover filter: %d PCs", len(filters.ExecutorFilter))
 	if kc.http != nil {
 		kc.http.Cover.Store(&CoverageInfo{
 			Modules:         modules,
