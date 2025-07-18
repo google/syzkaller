@@ -271,6 +271,15 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		// The feature is disabled.
 		return nil
 	}
+
+	// First wait until we have almost triaged all of the corpus.
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-dc.waitCorpusTriage(ctx, corpusTriageToMonitor):
+	}
+
+	// By this moment, we must have coverage filters already filled out.
 	focusPCs := 0
 	// The last one is "everything else", so it's not of interest.
 	coverFilters := dc.new.coverFilters
@@ -281,13 +290,6 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 		// No areas were configured.
 		log.Logf(1, "no PCs in the areas of focused fuzzing, skipping the zero patched coverage check")
 		return nil
-	}
-
-	// First wait until we have almost triaged all of the corpus.
-	select {
-	case <-ctx.Done():
-		return nil
-	case <-dc.waitCorpusTriage(ctx, corpusTriageToMonitor):
 	}
 
 	// Then give the fuzzer some change to get through.
