@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
 
 var debug = false // enabled in tests and fuzzers
+var PromoteDeps = false
+var mu sync.RWMutex
 
 func init() {
 	// Enable debug checking in all tests.
@@ -18,12 +21,39 @@ func init() {
 	}
 }
 
+func setPromoteDepsProtected(val bool) {
+	mu.Lock()
+	PromoteDeps = val
+	mu.Unlock()
+}
+
+func isPromoteDepsProtected() bool {
+	mu.Lock()
+	toRet := PromoteDeps
+	mu.Unlock()
+	return toRet
+}
+
+func (p *Prog) validateDepsProtected() bool {
+	toRet := true
+
+	if isPromoteDepsProtected() {
+		if err := p.validate(); err != nil {
+			toRet = false
+		}
+	}
+	return toRet
+}
+
 func (p *Prog) debugValidate() {
+	var stopIfDepBroken = isPromoteDepsProtected()
 	if debug {
+		setPromoteDepsProtected(false)
 		if err := p.validate(); err != nil {
 			panic(err)
 		}
 	}
+	setPromoteDepsProtected(stopIfDepBroken)
 }
 
 func (p *Prog) validate() error {
@@ -168,6 +198,9 @@ func (arg *ResultArg) validate(ctx *validCtx, dir Dir) error {
 	if !ok {
 		return fmt.Errorf("result arg %v has bad type %v", arg, arg.Type().Name())
 	}
+	if dir == DirIn && arg.Res == nil && isPromoteDepsProtected() {
+		return fmt.Errorf("result arg %v broken dependency", arg)
+	}
 	for u := range arg.uses {
 		if u == nil {
 			return fmt.Errorf("nil reference in uses for arg %+v", arg)
@@ -279,6 +312,10 @@ func (arg *PointerArg) validate(ctx *validCtx, dir Dir) error {
 		if arg.Res != nil {
 			if err := ctx.validateArg(arg.Res, typ.Elem, typ.ElemDir); err != nil {
 				return err
+			}
+		} else {
+			if isPromoteDepsProtected() {
+				return fmt.Errorf("pointer has a nil Res arg")
 			}
 		}
 		if arg.VmaSize != 0 {
