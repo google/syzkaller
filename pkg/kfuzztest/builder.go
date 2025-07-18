@@ -3,6 +3,8 @@ package kfuzztest
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/ast"
 )
 
 type Builder struct {
@@ -29,7 +31,7 @@ func (b *Builder) AddFunc(f SyzFunc) {
 	b.funcs = append(b.funcs, f)
 }
 
-func (b *Builder) EmitSyzlangDescription() string {
+func (b *Builder) EmitSyzlangDescription() (string, error) {
 	constraintMap := make(map[string]map[string]SyzConstraint)
 	for _, constraint := range b.constraints {
 		if _, contains := constraintMap[constraint.InputType]; !contains {
@@ -45,19 +47,28 @@ func (b *Builder) EmitSyzlangDescription() string {
 		annotationMap[annotation.InputType][annotation.FieldName] = annotation
 	}
 
-	out := ""
+	var descBuilder strings.Builder
 	sortedStructs := b.topologicalSortDependencyDag()
 	for _, s := range sortedStructs {
-		out += syzStructToSyzlang(s, constraintMap, annotationMap)
-		out += "\n\n"
+		descBuilder.WriteString(syzStructToSyzlang(s, constraintMap, annotationMap))
+		descBuilder.WriteString("\n\n")
 	}
 
 	for _, fn := range b.funcs {
-		out += syzFuncToSyzlang(fn)
-		out += "\n"
+		descBuilder.WriteString(syzFuncToSyzlang(fn))
+		descBuilder.WriteString("\n")
 	}
 
-	return out
+	eh := func(pos ast.Pos, msg string) {
+		panic(fmt.Sprintf("Failure: %v: %v\n", pos, msg))
+	}
+	// Format the output syzlang descriptions.
+	descAst := ast.Parse([]byte(descBuilder.String()), "", eh)
+	if descAst == nil {
+		return "", fmt.Errorf("Failed to format generated syzlang. Is it well-formed?")
+	}
+
+	return string(ast.Format(descAst)), nil
 }
 
 // FIXME: this function is gross because of the weird logic cases that arises
