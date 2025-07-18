@@ -444,7 +444,7 @@ ioctl$KVM_SET_XSAVE(fd fd_kvmcpu, cmd const[KVM_SET_XSAVE], arg ptr[in, kvm_xsav
 ioctl$KVM_SET_TSC_KHZ_cpu(fd fd_kvmcpu, cmd const[KVM_SET_TSC_KHZ], arg intptr)
 ioctl$KVM_SET_TSC_KHZ_vm(fd fd_kvmvm, cmd const[KVM_SET_TSC_KHZ], arg intptr)
 ioctl$KVM_GET_TSC_KHZ_cpu(fd fd_kvmcpu, cmd const[KVM_GET_TSC_KHZ])
-ioctl$KVM_GET_TSC_KHZ_vm(fd fd_kvmcpu, cmd const[KVM_GET_TSC_KHZ])
+ioctl$KVM_GET_TSC_KHZ_vm(fd fd_kvmvm, cmd const[KVM_GET_TSC_KHZ])
 ioctl$KVM_GET_LAPIC(fd fd_kvmcpu, cmd const[KVM_GET_LAPIC], arg ptr[in, kvm_lapic_state])
 ioctl$KVM_SET_LAPIC(fd fd_kvmcpu, cmd const[KVM_SET_LAPIC], arg ptr[in, kvm_lapic_state])
 ioctl$KVM_NMI(fd fd_kvmcpu, cmd const[KVM_NMI])
