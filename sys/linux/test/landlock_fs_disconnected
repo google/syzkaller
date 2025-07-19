@@ -1,0 +1,39 @@
+# Test access through disconnected directory.
+
+# Create a tmpfs mount.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+
+# Create directories and a test file in the tmpfs mount.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1/file2\x00', 0x1c0)
+mknodat(0xffffffffffffff9c, &AUTO='./file0/file1/file2/file3\x00', 0x81c0, 0x0)
+
+# Creates target directory for bind mount.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file4\x00', 0x1c0)
+
+# Creates bind mount from file1 to file4.
+
+mount$bind(&AUTO='./file0/file1\x00', &AUTO='./file0/file4\x00', 0x0, 0x1000, 0x0)
+
+# Opens directory from the bind mount.
+
+r0 = openat$dir(0xffffffffffffff9c, &AUTO='./file0/file4/file2\x00', 0x0, 0x0)
+
+# Moves file2 to make it a disconnected directory.
+
+renameat2(0xffffffffffffff9c, &AUTO='./file0/file1/file2\x00', 0xffffffffffffff9c, &AUTO='./file0/file2\x00', 0x0)
+
+# Creates a ruleset with read and refer restrictions.
+
+r1 = landlock_create_ruleset(&AUTO={0x2004, 0x0, 0x0}, AUTO, 0x0)
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r1, 0x0)
+
+# Tries to open and rename a file from the disconnected directory.
+
+openat(r0, &AUTO='file3\x00', 0x0, 0x0)  # EACCES
+renameat2(r0, &AUTO='file3\x00', 0xffffffffffffff9c, &AUTO='./file0/file4/file6\x00', 0x0)  # EXDEV
