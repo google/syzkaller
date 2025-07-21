@@ -28,7 +28,7 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 		return err
 	}
 	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
-	rev := getNsConfig(c, ns).Subsystems.Revision
+	rev := service.Revision
 	for i, bugKey := range keys {
 		if bugs[i].hasUserSubsystems() {
 			// It might be that the user-set subsystem no longer exists.
@@ -54,7 +54,7 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 
 func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []*db.Key, error) {
 	now := timeNow(c)
-	rev := getSubsystemRevision(c, ns)
+	rev := getSubsystemService(c, ns).Revision
 	queries := []*db.Query{
 		// If revision has been updated, first update open bugs.
 		db.NewQuery("Bug").
@@ -192,10 +192,6 @@ func subsystemMaintainers(c context.Context, ns, subsystemName string) []string 
 
 func getSubsystemService(c context.Context, ns string) *subsystem.Service {
 	return getNsConfig(c, ns).Subsystems.Service
-}
-
-func getSubsystemRevision(c context.Context, ns string) int {
-	return getNsConfig(c, ns).Subsystems.Revision
 }
 
 func subsystemListURL(c context.Context, ns string) string {

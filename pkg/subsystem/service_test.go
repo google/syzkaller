@@ -14,6 +14,6 @@ func TestServiceChildren(t *testing.T) {
 	parent := &Subsystem{Name: "parent"}
 	childA := &Subsystem{Name: "childA", Parents: []*Subsystem{parent}}
 	childB := &Subsystem{Name: "childB", Parents: []*Subsystem{parent}}
-	service := MustMakeService([]*Subsystem{unrelated, parent, childA, childB})
+	service := MustMakeService([]*Subsystem{unrelated, parent, childA, childB}, 1)
 	assert.ElementsMatch(t, service.Children(parent), []*Subsystem{childA, childB})
 }

@@ -876,10 +876,13 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		log.Infof(c, "not saving crash for %q", bug.Title)
 	}
 
+	subsystemService := getNsConfig(c, ns).Subsystems.Service
+
 	newSubsystems := []*subsystem.Subsystem{}
 	// Recalculate subsystems on the first saved crash and on the first saved repro,
 	// unless a user has already manually specified them.
-	calculateSubsystems := save &&
+	calculateSubsystems := subsystemService != nil &&
+		save &&
 		!bug.hasUserSubsystems() &&
 		(bug.NumCrashes == 0 ||
 			bug.ReproLevel == ReproLevelNone && reproLevel != ReproLevelNone)
@@ -910,7 +913,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.HasReport = true
 		}
 		if calculateSubsystems {
-			bug.SetAutoSubsystems(c, newSubsystems, now, getNsConfig(c, ns).Subsystems.Revision)
+			bug.SetAutoSubsystems(c, newSubsystems, now, subsystemService.Revision)
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)

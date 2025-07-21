@@ -128,7 +128,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Subsystems: SubsystemsConfig{
-				Service: subsystem.MustMakeService(testSubsystems),
+				Service: subsystem.MustMakeService(testSubsystems, 0),
 			},
 		},
 		"test2": {
@@ -326,7 +326,7 @@ var testConfig = &GlobalConfig{
 			},
 			RetestRepros: true,
 			Subsystems: SubsystemsConfig{
-				Service: subsystem.MustMakeService(testSubsystems),
+				Service: subsystem.MustMakeService(testSubsystems, 0),
 				Redirect: map[string]string{
 					"oldSubsystem": "subsystemA",
 				},
@@ -517,7 +517,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Subsystems: SubsystemsConfig{
-				Service: subsystem.MustMakeService(testSubsystems),
+				Service: subsystem.MustMakeService(testSubsystems, 0),
 				Reminder: &BugListReportingConfig{
 					SourceReporting: "public",
 					BugsInReport:    6,
