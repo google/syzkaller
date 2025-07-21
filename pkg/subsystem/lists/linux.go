@@ -6,7 +6,7 @@ package lists
 import . "github.com/google/syzkaller/pkg/subsystem"
 
 func init() {
-	RegisterList("linux", subsystems_linux())
+	RegisterList("linux", subsystems_linux(), 20250720)
 }
 
 // The subsystem list:

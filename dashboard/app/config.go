@@ -200,8 +200,6 @@ type DiscussionEmailConfig struct {
 type SubsystemsConfig struct {
 	// If Service is set, dashboard will use it to infer and recalculate subsystems.
 	Service *subsystem.Service
-	// If all existing subsystem labels must be recalculated, increase this integer.
-	Revision int
 	// Periodic per-subsystem reminders about open bugs.
 	Reminder *BugListReportingConfig
 	// Maps old subsystem names to new ones.

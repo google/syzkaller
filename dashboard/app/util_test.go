@@ -216,12 +216,7 @@ func (c *Ctx) setSubsystems(ns string, list []*subsystem.Subsystem, rev int) {
 	c.transformContext = func(c context.Context) context.Context {
 		newConfig := replaceNamespaceConfig(c, ns, func(cfg *Config) *Config {
 			ret := *cfg
-			ret.Subsystems.Revision = rev
-			if list == nil {
-				ret.Subsystems.Service = nil
-			} else {
-				ret.Subsystems.Service = subsystem.MustMakeService(list)
-			}
+			ret.Subsystems.Service = subsystem.MustMakeService(list, rev)
 			return &ret
 		})
 		return contextWithConfig(c, newConfig)

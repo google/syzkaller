@@ -15,9 +15,10 @@ import (
 
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
-func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo string) ([]byte, error) {
+func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commit *vcs.Commit) ([]byte, error) {
 	// Set names first -- we'll need them for filling in the Parents array.
 	objToName := map[*subsystem.Subsystem]string{}
 	for _, entry := range list {
@@ -31,7 +32,8 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commitInfo
 	// Prepare the template data.
 	vars := &templateVars{
 		Name:       name,
-		CommitInfo: commitInfo,
+		CommitInfo: fmt.Sprintf(`Commit %s, "%.32s"`, commit.Hash, commit.Title),
+		Version:    commit.Date.Year()*10000 + int(commit.Date.Month())*100 + commit.Date.Day(),
 		Hierarchy:  hierarchyList(list),
 	}
 	for _, entry := range list {
@@ -126,6 +128,7 @@ type templateSubsystem struct {
 
 type templateVars struct {
 	Name       string
+	Version    int
 	CommitInfo string
 	List       []*templateSubsystem
 	Hierarchy  []string
@@ -141,7 +144,7 @@ package lists
 import . "github.com/google/syzkaller/pkg/subsystem"
 
 func init() {
-  RegisterList("{{.Name}}", subsystems_{{.Name}}())
+  RegisterList("{{.Name}}", subsystems_{{.Name}}(), {{.Version}})
 }
 
 // The subsystem list:
