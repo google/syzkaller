@@ -104,6 +104,7 @@ var (
 			"jffs2":   {"JOURNALLING FLASH FILE SYSTEM V2 (JFFS2)"},
 			"smc":     {"SHARED MEMORY COMMUNICATIONS (SMC) SOCKETS"}, // See #5838.
 			"kvm-x86": {"KERNEL VIRTUAL MACHINE FOR X86 (KVM/x86)"},
+			"comedi":  {"COMEDI DRIVERS"},
 		},
 		noReminders: map[string]struct{}{
 			// Many misclassified bugs end up in `kernel`, so there's no sense
