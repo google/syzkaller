@@ -51,7 +51,7 @@ func main() {
 	msgCh := make(chan *email.Email, 16)
 	eg, loopCtx := errgroup.WithContext(ctx)
 	if cfg.EmailReporting.LoreArchiveURL != "" {
-		fetcher := NewLKMLEmailStream("/lore-repo", reporterClient, cfg.EmailReporting, msgCh)
+		fetcher := NewLKMLEmailStream("/lore-repo/checkout", reporterClient, cfg.EmailReporting, msgCh)
 		eg.Go(func() error { return fetcher.Loop(loopCtx, fetcherPollPeriod) })
 	}
 	eg.Go(func() error {
