@@ -53,6 +53,9 @@ const (
 )
 
 func (s *LKMLEmailStream) Loop(ctx context.Context, pollPeriod time.Duration) error {
+	defer log.Printf("lore archive polling aborted")
+	log.Printf("lore archive %s polling started", s.cfg.LoreArchiveURL)
+
 	last, err := s.client.LastReply(ctx, s.reporterName)
 	if err != nil {
 		return fmt.Errorf("failed to query the last reply: %w", err)
