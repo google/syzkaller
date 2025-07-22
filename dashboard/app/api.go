@@ -14,6 +14,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -1936,9 +1937,13 @@ func apiSendEmail(c context.Context, payload io.Reader) (interface{}, error) {
 	if err := json.NewDecoder(payload).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %w", err)
 	}
+	var headers mail.Header
+	if req.InReplyTo != "" {
+		headers = mail.Header{"In-Reply-To": []string{req.InReplyTo}}
+	}
 	return nil, sendEmail(c, &aemail.Message{
 		Sender:  req.Sender,
-		ReplyTo: req.InReplyTo,
+		Headers: headers,
 		To:      req.To,
 		Cc:      req.Cc,
 		Subject: req.Subject,
