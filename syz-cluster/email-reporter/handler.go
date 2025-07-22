@@ -26,6 +26,9 @@ type Handler struct {
 }
 
 func (h *Handler) PollReportsLoop(ctx context.Context, pollPeriod time.Duration) {
+	defer log.Printf("reporter server polling aborted")
+	log.Printf("reporter server polling started")
+
 	for {
 		_, err := h.PollAndReport(ctx)
 		if err != nil {

@@ -76,5 +76,7 @@ func main() {
 		handler.PollReportsLoop(loopCtx, senderPollPeriod)
 		return nil
 	})
-	eg.Wait()
+	if err = eg.Wait(); err != nil {
+		app.Errorf("failed: %s", err)
+	}
 }
