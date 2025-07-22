@@ -175,6 +175,7 @@ func runMake(params Params, extraArgs ...string) error {
 		"KBUILD_BUILD_USER=syzkaller",
 		"KBUILD_BUILD_HOST=syzkaller",
 		"KERNELVERSION=syzkaller",
+		"KERNELRELEASE=syzkaller",
 		"LOCALVERSION=-syzkaller",
 	)
 	output, err := osutil.Run(time.Hour, cmd)
