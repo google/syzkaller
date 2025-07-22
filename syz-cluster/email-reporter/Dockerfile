@@ -18,6 +18,10 @@ RUN go build -o /bin/email-reporter /build/syz-cluster/email-reporter
 
 # Build the container.
 FROM alpine:latest
+
+RUN apk update && \
+    apk add git
+
 WORKDIR /app
 
 COPY --from=email-reporter-builder /bin/email-reporter /bin/email-reporter
