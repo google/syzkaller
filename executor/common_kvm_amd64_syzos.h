@@ -88,6 +88,7 @@ guest_main(uint64 size, uint64 cpu)
 		case SYZOS_API_CPUID: {
 			struct api_call_cpuid* ccmd = (struct api_call_cpuid*)cmd;
 			guest_cpuid(ccmd->eax, ccmd->ecx);
+			break;
 		}
 		}
 		addr += cmd->size;
