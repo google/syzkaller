@@ -63,8 +63,7 @@ spec:
             REPO="{{=jsonpath(inputs.parameters.tree, '$.URL')}}"
             BRANCH="{{=jsonpath(inputs.parameters.tree, '$.branch')}}"
             echo "${NAME}: ${REPO}/${BRANCH}"
-            if ! git config --get remote.${NAME}.url > /dev/null; then
-              git remote add ${NAME} ${REPO}
-            fi
+            git remote remove ${NAME} || true
+            git remote add ${NAME} ${REPO}
             git fetch ${NAME} ${BRANCH} --tags
             git tag -f ${NAME}-head ${NAME}/${BRANCH}
