@@ -158,7 +158,7 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) {
 	// to some struct input. This is the data that must be flattened and sent
 	// to the fuzzing driver with a relocation table.
 	dataArg := c.Args[1].(*PointerArg)
-	finalBlob := marshallKFuzztestArg(dataArg.Res)
+	finalBlob := MarshallKFuzztestArg(dataArg.Res)
 
 	// Reuse the memory address that was pre-allocated for the original struct
 	// argument. This avoids needing to hook into the memory allocation which
@@ -441,7 +441,7 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 //
 // For a concrete example of the final binary layout, see the test cases for this
 // function in `prog/encodingexec_test.go`.
-func marshallKFuzztestArg(topLevel Arg) []byte {
+func MarshallKFuzztestArg(topLevel Arg) []byte {
 	regions := []kFuzzTestRegion{}
 	allRelocations := []kFuzzTestRelocation{}
 	visitedRegions := make(map[Arg]int)

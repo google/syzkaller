@@ -127,11 +127,18 @@ func AllTargets() []*Target {
 	return res
 }
 
+func (target *Target) ApplyKFuzzProg(syscalls []*Syscall, types []Type, resources []*ResourceDesc) {
+	target.Syscalls = append(target.Syscalls, syscalls...)
+	target.Types = append(target.Types, types...)
+	target.Resources = append(target.Resources, resources...)
+	target.initTarget()
+}
+
 func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.fillArch(target)
-	target.InitTarget()
+	target.initTarget()
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
@@ -157,9 +164,7 @@ func (target *Target) lazyInit() {
 	target.Types = nil
 }
 
-// FIXME: EG: I don't like that this private function is made public, but it
-// should be fine for now since we're trying to get something functional fast
-func (target *Target) InitTarget() {
+func (target *Target) initTarget() {
 	checkMaxCallID(len(target.Syscalls) - 1)
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {

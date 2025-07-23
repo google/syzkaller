@@ -903,7 +903,7 @@ func testOne(t *testing.T, tc testCase) {
 	}
 
 	arg := tc.extractArg(p)
-	encoded := marshallKFuzztestArg(arg)
+	encoded := MarshallKFuzztestArg(arg)
 
 	regionArrayLen := len(tc.regionArray)
 	relocTableLen := len(tc.relocationTable)
