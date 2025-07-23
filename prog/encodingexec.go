@@ -396,7 +396,18 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			payload.Write(data)
 		case *ConstArg:
 			val, _ := a.Value()
-			binary.Write(&payload, binary.LittleEndian, val)
+			switch a.Size() {
+			case 1:
+				binary.Write(&payload, binary.LittleEndian, uint8(val))
+			case 2:
+				binary.Write(&payload, binary.LittleEndian, uint16(val))
+			case 4:
+				binary.Write(&payload, binary.LittleEndian, uint32(val))
+			case 8:
+				binary.Write(&payload, binary.LittleEndian, uint64(val))
+			default:
+				panic(fmt.Sprintf("unsupported constant size: %d", a.Size()))
+			}
 		default:
 			panic(fmt.Sprintf("tried to serialize unsupported type: %s", a.Type().Name()))
 		}
