@@ -89,6 +89,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 		// We assume that email reporting is used for series received over emails.
 		toSend.InReplyTo = rep.Series.ExtID
 		toSend.To = rep.Series.Cc
+		toSend.Cc = append(toSend.Cc, h.emailConfig.ReportCC...)
 	}
 	msgID, err := h.sender(ctx, toSend)
 	if err != nil {

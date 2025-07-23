@@ -46,8 +46,10 @@ type EmailConfig struct {
 	Dashapi *DashapiConfig `yaml:"dashapiConfig"`
 	// Moderation requests will be sent there.
 	ModerationList string `yaml:"moderationList"`
-	// The list we listen on.
+	// The list email-reporter listens on.
 	ArchiveList string `yaml:"archiveList"`
+	// The lists/emails to be Cc'd for actual reports (not moderation).
+	ReportCC []string `yaml:"reportCc"`
 	// Lore git archive to poll for incoming messages.
 	LoreArchiveURL string `yaml:"loreArchiveURL"`
 	// The prefix which will be added to all reports' titles.

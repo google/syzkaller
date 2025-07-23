@@ -60,6 +60,7 @@ func TestEmailConfig() *app.EmailConfig {
 		Name:           "name",
 		DocsLink:       "docs",
 		ModerationList: "moderation@list.com",
+		ReportCC:       []string{"reported@list.com"},
 		ArchiveList:    "archive@list.com",
 		Sender:         app.SenderSMTP,
 		SMTP: &app.SMTPConfig{

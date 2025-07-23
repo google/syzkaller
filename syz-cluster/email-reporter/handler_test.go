@@ -57,7 +57,7 @@ func TestModerationReportFlow(t *testing.T) {
 	receivedEmail.Body = nil
 	assert.Equal(t, &emailclient.Email{
 		To:        testSeries.Cc,
-		Cc:        []string{testEmailConfig.ArchiveList},
+		Cc:        append([]string{testEmailConfig.ArchiveList}, testEmailConfig.ReportCC...),
 		Subject:   "[name] Re: " + testSeries.Title,
 		InReplyTo: testSeries.ExtID,
 		BugID:     report.ID,
