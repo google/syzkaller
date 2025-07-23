@@ -38,6 +38,8 @@ type EmailConfig struct {
 	DocsLink string `yaml:"docs"`
 	// Contact email.
 	SupportEmail string `yaml:"supportEmail"`
+	// The address will be suggested for the Tested-by tag.
+	CreditEmail string `yaml:"creditEmail"`
 	// The means to send the emails ("smtp", "dashapi").
 	Sender string `yaml:"sender"`
 	// Will be used if Sender is "smtp".
