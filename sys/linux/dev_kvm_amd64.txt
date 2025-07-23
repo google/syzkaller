@@ -52,8 +52,8 @@ syzos_api_cpuid {
 
 syzos_api_call$x86 [
 	uexit	syzos_api$x86[0, intptr]
-	code	syzos_api$x86[1, syzos_api_code$x86]
-	cpuid	syzos_api$x86[2, syzos_api_cpuid]
+	code	syzos_api$x86[10, syzos_api_code$x86]
+	cpuid	syzos_api$x86[20, syzos_api_cpuid]
 ] [varlen]
 
 kvm_text_x86 [
