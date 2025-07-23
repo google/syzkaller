@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -158,7 +159,7 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		Title:       series.Subject,
 		Version:     series.Version,
 		SubjectTags: series.Tags,
-		Link:        "https://lore.kernel.org/all/" + series.MessageID,
+		Link:        loreLink(series.MessageID),
 		PublishedAt: date,
 	}
 	sp := seriesProcessor{}
@@ -196,6 +197,10 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 	}
 	log.Printf("series %s saved to the DB", series.MessageID)
 	return nil
+}
+
+func loreLink(messageID string) string {
+	return "https://lore.kernel.org/all/" + strings.Trim(messageID, "<>")
 }
 
 type seriesProcessor map[string]struct{}

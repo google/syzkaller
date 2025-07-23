@@ -43,3 +43,12 @@ second body`,
 		"bob@example.com", "d@d.com",
 	}, sp.Emails())
 }
+
+func TestLoreLink(t *testing.T) {
+	for id, link := range map[string]string{
+		"<id@domain>": "https://lore.kernel.org/all/id@domain",
+		"id@domain":   "https://lore.kernel.org/all/id@domain",
+	} {
+		assert.Equal(t, link, loreLink(id), "id=%q", id)
+	}
+}
