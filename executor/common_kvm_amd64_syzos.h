@@ -28,6 +28,7 @@ typedef enum {
 	SYZOS_API_CPUID = 20,
 	SYZOS_API_WRMSR = 30,
 	SYZOS_API_RDMSR = 50,
+	SYZOS_API_WR_CRN = 70,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -67,6 +68,7 @@ static void guest_execute_code(uint8* insns, uint64 size);
 static void guest_handle_cpuid(uint32 eax, uint32 ecx);
 static void guest_handle_wrmsr(uint64 reg, uint64 val);
 static void guest_handle_rdmsr(uint64 reg);
+static void guest_handle_wr_crn(struct api_call_2* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -112,6 +114,10 @@ guest_main(uint64 size, uint64 cpu)
 		case SYZOS_API_RDMSR: {
 			struct api_call_1* ccmd = (struct api_call_1*)cmd;
 			guest_handle_rdmsr(ccmd->arg);
+			break;
+		}
+		case SYZOS_API_WR_CRN: {
+			guest_handle_wr_crn((struct api_call_2*)cmd);
 			break;
 		}
 		}
@@ -173,4 +179,35 @@ GUEST_CODE static noinline void guest_handle_rdmsr(uint64 reg)
 	    : "c"(reg)
 	    : // No explicit clobbers.
 	);
+}
+
+// Write to CRn control register.
+GUEST_CODE static noinline void guest_handle_wr_crn(struct api_call_2* cmd)
+{
+	uint64 value = cmd->args[1];
+	switch (cmd->args[0]) {
+	case 0:
+		// Move value to CR0.
+		asm volatile("movq %0, %%cr0" ::"r"(value) : "memory");
+		break;
+	case 2:
+		// Move value to CR2.
+		asm volatile("movq %0, %%cr2" ::"r"(value) : "memory");
+		break;
+	case 3:
+		// Move value to CR3.
+		asm volatile("movq %0, %%cr3" ::"r"(value) : "memory");
+		break;
+	case 4:
+		// Move value to CR4.
+		asm volatile("movq %0, %%cr4" ::"r"(value) : "memory");
+		break;
+	case 8:
+		// Move value to CR8 (TPR - Task Priority Register).
+		asm volatile("movq %0, %%cr8" ::"r"(value) : "memory");
+		break;
+	default:
+		// Do nothing.
+		break;
+	}
 }

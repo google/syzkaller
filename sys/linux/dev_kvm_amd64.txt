@@ -59,12 +59,21 @@ syzos_api_rdmsr {
 	arg_reg	flags[msr_index, int64]
 }
 
+# CR1 and CR5-7 are reserved.
+x86_cr_reg_ids = 0, 2, 3, 4, 8
+
+syzos_api_wr_crn {
+	arg_reg		flags[x86_cr_reg_ids, int64]
+	arg_value	int64
+}
+
 syzos_api_call$x86 [
 	uexit	syzos_api$x86[0, intptr]
 	code	syzos_api$x86[10, syzos_api_code$x86]
 	cpuid	syzos_api$x86[20, syzos_api_cpuid]
 	wrmsr	syzos_api$x86[30, syzos_api_wrmsr]
 	rdmsr	syzos_api$x86[50, syzos_api_rdmsr]
+	wr_crn	syzos_api$x86[70, syzos_api_wr_crn]
 ] [varlen]
 
 kvm_text_x86 [
