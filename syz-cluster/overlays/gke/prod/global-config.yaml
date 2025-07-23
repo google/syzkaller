@@ -18,6 +18,8 @@ data:
       supportEmail: syzkaller@googlegroups.com
       archiveList: syzbot@lists.linux.dev
       moderationList: syzkaller-upstream-moderation@googlegroups.com
+      reportCc:
+        - syzkaller-bugs@googlegroups.com
       loreArchiveURL: https://lore.kernel.org/syzbot/0
       dashapiConfig:
         addr: https://syzkaller.appspot.com
