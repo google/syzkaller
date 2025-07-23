@@ -16,6 +16,7 @@ data:
       name: "syzbot ci"
       sender: dashapi
       supportEmail: syzkaller@googlegroups.com
+      creditEmail: syzbot@syzkaller.appspotmail.com
       archiveList: syzbot@lists.linux.dev
       moderationList: syzkaller-upstream-moderation@googlegroups.com
       reportCc:
