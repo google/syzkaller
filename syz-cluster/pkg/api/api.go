@@ -179,7 +179,7 @@ var DefaultTrees = []*Tree{
 	},
 	{
 		Name:         `net-next`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net-next.git`,
 		Branch:       `main`,
 		Priority:     1,
 		EmailLists:   []string{`netdev@vger.kernel.org`},
