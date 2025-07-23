@@ -26,6 +26,8 @@ typedef enum {
 	SYZOS_API_UEXIT = 0,
 	SYZOS_API_CODE = 10,
 	SYZOS_API_CPUID = 20,
+	SYZOS_API_WRMSR = 30,
+	SYZOS_API_RDMSR = 50,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -50,9 +52,21 @@ struct api_call_cpuid {
 	uint32 ecx;
 };
 
+struct api_call_1 {
+	struct api_call_header header;
+	uint64 arg;
+};
+
+struct api_call_2 {
+	struct api_call_header header;
+	uint64 args[2];
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint8* insns, uint64 size);
 static void guest_cpuid(uint32 eax, uint32 ecx);
+static void guest_wrmsr(uint64 reg, uint64 val);
+static void guest_rdmsr(uint64 reg);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -90,6 +104,16 @@ guest_main(uint64 size, uint64 cpu)
 			guest_cpuid(ccmd->eax, ccmd->ecx);
 			break;
 		}
+		case SYZOS_API_WRMSR: {
+			struct api_call_2* ccmd = (struct api_call_2*)cmd;
+			guest_wrmsr(ccmd->args[0], ccmd->args[1]);
+			break;
+		}
+		case SYZOS_API_RDMSR: {
+			struct api_call_1* ccmd = (struct api_call_1*)cmd;
+			guest_rdmsr(ccmd->arg);
+			break;
+		}
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -119,4 +143,34 @@ GUEST_CODE static noinline void guest_cpuid(uint32 eax, uint32 ecx)
 	    : // Currently ignore outputs
 	    : "a"(eax), "c"(ecx)
 	    : "rbx", "rdx");
+}
+
+// Write val into an MSR register reg.
+GUEST_CODE static noinline void guest_wrmsr(uint64 reg, uint64 val)
+{
+	// The wrmsr instruction takes its arguments in specific registers:
+	// edx:eax contains the 64-bit value to write, ecx contains the MSR address.
+	asm volatile(
+	    "wrmsr"
+	    :
+	    : "c"(reg),
+	      "a"((uint32)val),
+	      "d"((uint32)(val >> 32))
+	    : "memory");
+}
+
+// Read an MSR register, ignore the result.
+GUEST_CODE static noinline void guest_rdmsr(uint64 reg)
+{
+	uint32 low = 0, high = 0;
+	// The rdmsr instruction takes the MSR address in ecx.
+	// It puts the lower 32 bits of the MSR value into eax, and the upper.
+	// 32 bits of the MSR value into edx.
+	asm volatile(
+	    "rdmsr"
+	    : "=a"(low),
+	      "=d"(high)
+	    : "c"(reg)
+	    : // No explicit clobbers.
+	);
 }
