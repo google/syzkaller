@@ -32,18 +32,20 @@ func NewSessionService(env *app.AppEnvironment) *SessionService {
 
 var ErrSessionNotFound = errors.New("session not found")
 
-func (s *SessionService) SkipSession(ctx context.Context, sessionID string, skip *api.SkipRequest) error {
+func (s *SessionService) TriageResult(ctx context.Context, sessionID string, req *api.UploadTriageResultReq) error {
 	var triageLogURI string
-	if len(skip.TriageLog) > 0 {
+	if len(req.Log) > 0 {
 		var err error
-		triageLogURI, err = s.blobStorage.Write(bytes.NewReader(skip.TriageLog), "Session", sessionID, "triage_log")
+		triageLogURI, err = s.blobStorage.Write(bytes.NewReader(req.Log), "Session", sessionID, "triage_log")
 		if err != nil {
 			return fmt.Errorf("failed to save the triage log: %w", err)
 		}
 	}
 	err := s.sessionRepo.Update(ctx, sessionID, func(session *db.Session) error {
 		session.TriageLogURI = triageLogURI
-		session.SetSkipReason(skip.Reason)
+		if req.SkipReason != "" {
+			session.SetSkipReason(req.SkipReason)
+		}
 		return nil
 	})
 	if errors.Is(err, db.ErrEntityNotFound) {

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSelectTree(t *testing.T) {
+func TestSelectTrees(t *testing.T) {
 	trees := []*api.Tree{
 		{
 			Name:       "mainline",
@@ -28,33 +28,39 @@ func TestSelectTree(t *testing.T) {
 			Priority:   2,
 		},
 		{
-			Name:     "test",
-			Priority: api.TreePriorityNever,
+			Name:       "bpf",
+			EmailLists: []string{"bpf@list"},
+			Priority:   3,
+		},
+		{
+			Name:       "test",
+			Priority:   api.TreePriorityNever,
+			EmailLists: []string{"test@list"},
 		},
 	}
 	tests := []struct {
 		testName string
-		result   string
+		result   []string
 		series   *api.Series
 	}{
 		{
 			testName: "only-net",
-			result:   "net",
+			result:   []string{"net", "mainline"},
 			series:   &api.Series{Cc: []string{"net@list"}},
 		},
 		{
 			testName: "prefer-wireless",
-			result:   "wireless",
+			result:   []string{"wireless", "net", "mainline"},
 			series:   &api.Series{Cc: []string{"net@list", "wireless@list"}},
 		},
 		{
 			testName: "fallback",
-			result:   "mainline",
+			result:   []string{"mainline"},
 			series:   &api.Series{Cc: []string{"unknown@list"}},
 		},
 		{
 			testName: "prefer-direct-match",
-			result:   "test",
+			result:   []string{"test", "wireless", "net", "mainline"},
 			series: &api.Series{
 				Cc:          []string{"net@list", "wireless@list"},
 				SubjectTags: []string{"test"},
@@ -64,9 +70,12 @@ func TestSelectTree(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			ret := SelectTree(test.series, trees)
-			assert.NotNil(t, ret)
-			assert.Equal(t, test.result, ret.Name)
+			ret := SelectTrees(test.series, trees)
+			var retNames []string
+			for _, tree := range ret {
+				retNames = append(retNames, tree.Name)
+			}
+			assert.Equal(t, test.result, retNames)
 		})
 	}
 }
