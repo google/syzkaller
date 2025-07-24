@@ -8,13 +8,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/triage"
-	"io"
-	"os"
 )
 
 var (
@@ -35,15 +34,18 @@ func main() {
 		app.Fatalf("failed to initialize the repository: %v", err)
 	}
 	ctx := context.Background()
-	verdict, err := getVerdict(ctx, client, repo)
+	output := new(bytes.Buffer)
+	tracer := &debugtracer.GenericTracer{WithTime: true, TraceWriter: output}
+	verdict, err := getVerdict(ctx, tracer, client, repo)
 	if err != nil {
 		app.Fatalf("failed to get the verdict: %v", err)
 	}
-	if verdict.Skip != nil {
-		err := client.SkipSession(context.Background(), *flagSession, verdict.Skip)
-		if err != nil {
-			app.Fatalf("failed to upload the skip reason: %v", err)
-		}
+	err = client.UploadTriageResult(ctx, *flagSession, &api.UploadTriageResultReq{
+		SkipReason: verdict.SkipReason,
+		Log:        output.Bytes(),
+	})
+	if err != nil {
+		app.Fatalf("failed to upload triage results: %v", err)
 	}
 	if *flagVerdict != "" {
 		osutil.WriteJSON(*flagVerdict, verdict)
@@ -54,7 +56,8 @@ func main() {
 	// 2. What if controller does not reply? Let Argo just restart the step.
 }
 
-func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*api.TriageResult, error) {
+func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api.Client,
+	ops triage.TreeOps) (*api.TriageResult, error) {
 	series, err := client.GetSessionSeries(ctx, *flagSession)
 	if err != nil {
 		// TODO: the workflow step must be retried.
@@ -67,11 +70,10 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 	tree := triage.SelectTree(series, trees.Trees)
 	if tree == nil {
 		return &api.TriageResult{
-			Skip: &api.SkipRequest{
-				Reason: "no suitable base kernel tree found",
-			},
+			SkipReason: "no suitable base kernel tree found",
 		}, nil
 	}
+	tracer.Log("selected tree %q", tree.Name)
 	arch := "amd64"
 	lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
 		Arch:       arch,
@@ -83,22 +85,18 @@ func getVerdict(ctx context.Context, client *api.Client, ops triage.TreeOps) (*a
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query the last build: %w", err)
 	}
-	var buf bytes.Buffer
-	selector := triage.NewCommitSelector(ops, &debugtracer.GenericTracer{
-		TraceWriter: io.MultiWriter(os.Stderr, &buf),
-	})
+	tracer.Log("last build: %q", lastBuild)
+	selector := triage.NewCommitSelector(ops, tracer)
 	result, err := selector.Select(series, tree, lastBuild)
 	if err != nil {
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to run the commit selector: %w", err)
 	} else if result.Commit == "" {
 		return &api.TriageResult{
-			Skip: &api.SkipRequest{
-				Reason:    "failed to find the base commit: " + result.Reason,
-				TriageLog: buf.Bytes(),
-			},
+			SkipReason: "failed to find the base commit: " + result.Reason,
 		}, nil
 	}
+	tracer.Log("selected base commit: %s", result.Commit)
 	base := api.BuildRequest{
 		TreeName:   tree.Name,
 		TreeURL:    tree.URL,

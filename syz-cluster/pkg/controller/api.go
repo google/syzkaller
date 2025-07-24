@@ -42,7 +42,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/sessions/upload", c.uploadSession)
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
-	mux.HandleFunc("/sessions/{session_id}/skip", c.skipSession)
+	mux.HandleFunc("/sessions/{session_id}/triage_result", c.triageResult)
 	mux.HandleFunc("/tests/upload_artifacts", c.uploadTestArtifact)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/trees", c.getTrees)
@@ -61,12 +61,12 @@ func (c APIServer) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON(w, resp)
 }
 
-func (c APIServer) skipSession(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.SkipRequest](w, r)
+func (c APIServer) triageResult(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.UploadTriageResultReq](w, r)
 	if req == nil {
 		return
 	}
-	err := c.sessionService.SkipSession(r.Context(), r.PathValue("session_id"), req)
+	err := c.sessionService.TriageResult(r.Context(), r.PathValue("session_id"), req)
 	if errors.Is(err, service.ErrSessionNotFound) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return

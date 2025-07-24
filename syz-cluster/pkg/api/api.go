@@ -5,16 +5,12 @@ package api
 
 import "time"
 
+// The output passed to other workflow steps.
 type TriageResult struct {
 	// If set, ignore the patch series completely.
-	Skip *SkipRequest `json:"skip"`
+	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
 	Fuzz *FuzzConfig `json:"fuzz"`
-}
-
-type SkipRequest struct {
-	Reason    string `json:"reason"`
-	TriageLog []byte `json:"log"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.

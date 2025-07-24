@@ -30,8 +30,13 @@ func (client Client) GetSeries(ctx context.Context, seriesID string) (*Series, e
 	return getJSON[Series](ctx, client.baseURL+"/series/"+seriesID)
 }
 
-func (client Client) SkipSession(ctx context.Context, sessionID string, req *SkipRequest) error {
-	_, err := postJSON[SkipRequest, any](ctx, client.baseURL+"/sessions/"+sessionID+"/skip", req)
+type UploadTriageResultReq struct {
+	SkipReason string `json:"skip_reason"`
+	Log        []byte `json:"log"`
+}
+
+func (client Client) UploadTriageResult(ctx context.Context, sessionID string, req *UploadTriageResultReq) error {
+	_, err := postJSON[UploadTriageResultReq, any](ctx, client.baseURL+"/sessions/"+sessionID+"/triage_result", req)
 	return err
 }
 
