@@ -11,7 +11,9 @@ data:
     parallelWorkflows: 7
     loreArchives:
       - netdev
+      - bpf
       - linux-ext4
+      - netfilter-devel
     emailReporting:
       name: "syzbot ci"
       sender: dashapi

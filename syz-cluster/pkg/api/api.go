@@ -204,18 +204,39 @@ var DefaultTrees = []*Tree{
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig:   `net`,
 	},
+	{
+		Name:         `bpf`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf.git`,
+		Branch:       `master`,
+		Priority:     TreePriorityNever,
+		EmailLists:   []string{`bpf@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `bpf`,
+	},
+	{
+		Name:         `bpf-next`,
+		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git`,
+		Branch:       `master`,
+		Priority:     2,
+		EmailLists:   []string{`bpf@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig:   `bpf`,
+	},
 }
 
 const (
 	netCorpusURL      = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
+	bpfCorpusURL      = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
 	corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 )
 
 // TODO: find a better place for it.
 func (tree *Tree) CorpusURL() string {
 	switch tree.FuzzConfig {
-	case `net`, `net-next`, `nf`, `nf-next`:
+	case `net`:
 		return netCorpusURL
+	case `bpf`:
+		return bpfCorpusURL
 	default:
 		return corpusFallbackURL
 	}
