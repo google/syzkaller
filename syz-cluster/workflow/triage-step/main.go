@@ -63,55 +63,64 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
-	trees, err := client.GetTrees(ctx)
+	treesResp, err := client.GetTrees(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trees: %w", err)
 	}
-	tree := triage.SelectTree(series, trees.Trees)
-	if tree == nil {
+	selectedTrees := triage.SelectTrees(series, treesResp.Trees)
+	if len(selectedTrees) == 0 {
 		return &api.TriageResult{
-			SkipReason: "no suitable base kernel tree found",
+			SkipReason: "no suitable base kernel trees found",
 		}, nil
 	}
-	tracer.Log("selected tree %q", tree.Name)
-	arch := "amd64"
-	lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
-		Arch:       arch,
-		ConfigName: tree.KernelConfig,
-		TreeName:   tree.Name,
-		Status:     api.BuildSuccess,
-	})
-	if err != nil {
-		// TODO: the workflow step must be retried.
-		return nil, fmt.Errorf("failed to query the last build: %w", err)
+	var triageResult *api.TriageResult
+	for _, tree := range selectedTrees {
+		tracer.Log("considering tree %q", tree.Name)
+		arch := "amd64"
+		lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
+			Arch:       arch,
+			ConfigName: tree.KernelConfig,
+			TreeName:   tree.Name,
+			Status:     api.BuildSuccess,
+		})
+		if err != nil {
+			// TODO: the workflow step must be retried.
+			return nil, fmt.Errorf("failed to query the last build for %q: %w", tree.Name, err)
+		}
+		tracer.Log("%q's last build: %q", tree.Name, lastBuild)
+		selector := triage.NewCommitSelector(ops, tracer)
+		result, err := selector.Select(series, tree, lastBuild)
+		if err != nil {
+			// TODO: the workflow step must be retried.
+			return nil, fmt.Errorf("failed to run the commit selector for %q: %w", tree.Name, err)
+		} else if result.Commit == "" {
+			// If we fail to find a suitable commit for all the trees, return an error just about the first one.
+			if triageResult == nil {
+				triageResult = &api.TriageResult{
+					SkipReason: "failed to find a base commit: " + result.Reason,
+				}
+			}
+			tracer.Log("failed to find a base commit for %q", tree.Name)
+			continue
+		}
+		tracer.Log("selected base commit: %s", result.Commit)
+		base := api.BuildRequest{
+			TreeName:   tree.Name,
+			TreeURL:    tree.URL,
+			ConfigName: tree.KernelConfig,
+			CommitHash: result.Commit,
+			Arch:       arch,
+		}
+		triageResult = &api.TriageResult{
+			Fuzz: &api.FuzzConfig{
+				Base:      base,
+				Patched:   base,
+				Config:    tree.FuzzConfig,
+				CorpusURL: tree.CorpusURL(),
+			},
+		}
+		triageResult.Fuzz.Patched.SeriesID = series.ID
+		break
 	}
-	tracer.Log("last build: %q", lastBuild)
-	selector := triage.NewCommitSelector(ops, tracer)
-	result, err := selector.Select(series, tree, lastBuild)
-	if err != nil {
-		// TODO: the workflow step must be retried.
-		return nil, fmt.Errorf("failed to run the commit selector: %w", err)
-	} else if result.Commit == "" {
-		return &api.TriageResult{
-			SkipReason: "failed to find the base commit: " + result.Reason,
-		}, nil
-	}
-	tracer.Log("selected base commit: %s", result.Commit)
-	base := api.BuildRequest{
-		TreeName:   tree.Name,
-		TreeURL:    tree.URL,
-		ConfigName: tree.KernelConfig,
-		CommitHash: result.Commit,
-		Arch:       arch,
-	}
-	ret := &api.TriageResult{
-		Fuzz: &api.FuzzConfig{
-			Base:      base,
-			Patched:   base,
-			Config:    tree.FuzzConfig,
-			CorpusURL: tree.CorpusURL(),
-		},
-	}
-	ret.Fuzz.Patched.SeriesID = series.ID
-	return ret, nil
+	return triageResult, nil
 }
