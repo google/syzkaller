@@ -96,11 +96,11 @@
                     <th>Status</th>
                     <td>{{.Status}}</td>
                 </tr>
-                {{if not .SkipReason.IsNull}}
+                {{if or (not .SkipReason.IsNull) .TriageLogURI}}
                 <tr>
-                    <th>Skipped</th>
+                    <th>Triaged</th>
                     <td>
-                        {{.SkipReason.StringVal}}
+                        {{if not .SkipReason.IsNull}}Skipped: {{.SkipReason.StringVal}}{{else}}OK{{end}}
                         {{if .TriageLogURI}}
                             <a href="/sessions/{{.ID}}/triage_log">[Log]</a>
                         {{end}}
