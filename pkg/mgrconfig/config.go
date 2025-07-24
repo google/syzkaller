@@ -253,7 +253,7 @@ type Experimental struct {
 	// If FocusAreas is non-empty, by default all kernel code not covered by any filter will be ignored.
 	// To focus fuzzing on some areas, but to consider the rest of the code as well, add a record
 	// with an empty Filter, but non-empty weight.
-	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0"} ].
+	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0} ].
 	FocusAreas []FocusArea `json:"focus_areas,omitempty"`
 }
 
