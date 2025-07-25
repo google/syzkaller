@@ -9,7 +9,6 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/uuid"
-	"google.golang.org/api/iterator"
 )
 
 type FindingRepository struct {
@@ -28,40 +27,84 @@ func NewFindingRepository(client *spanner.Client) *FindingRepository {
 	}
 }
 
-var ErrFindingExists = errors.New("the finding already exists")
+type FindingID struct {
+	SessionID string
+	TestName  string
+	Title     string
+}
 
-// Save either adds the finding to the database or returns ErrFindingExists.
-func (repo *FindingRepository) Save(ctx context.Context, finding *Finding) error {
-	if finding.ID == "" {
-		finding.ID = uuid.NewString()
-	}
+// Store queries the information about the session and the existing finding and then
+// requests a new Finding object to replace the old one.
+// If the callback returns nil, nothing it updated.
+func (repo *FindingRepository) Store(ctx context.Context, id *FindingID,
+	cb func(session *Session, old *Finding) (*Finding, error)) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			// Check if there is still no such finding.
+			// Query the existing finding, if it exists.
 			stmt := spanner.Statement{
 				SQL: "SELECT * from `Findings` WHERE `SessionID`=@sessionID " +
 					"AND `TestName` = @testName AND `Title`=@title",
 				Params: map[string]interface{}{
-					"sessionID": finding.SessionID,
-					"testName":  finding.TestName,
-					"title":     finding.Title,
+					"sessionID": id.SessionID,
+					"testName":  id.TestName,
+					"title":     id.Title,
 				},
 			}
 			iter := txn.Query(ctx, stmt)
-			defer iter.Stop()
-			_, iterErr := iter.Next()
-			if iterErr == nil {
-				return ErrFindingExists
-			} else if iterErr != iterator.Done {
-				return iterErr
+			oldFinding, err := readOne[Finding](iter)
+			iter.Stop()
+			if err != nil {
+				return err
 			}
+			// Query the Session object.
+			stmt = spanner.Statement{
+				SQL:    "SELECT * FROM `Sessions` WHERE `ID`=@id",
+				Params: map[string]interface{}{"id": id.SessionID},
+			}
+			iter = txn.Query(ctx, stmt)
+			session, err := readOne[Session](iter)
+			iter.Stop()
+			if err != nil {
+				return err
+			}
+			// Query the callback.
+			finding, err := cb(session, oldFinding)
+			if err != nil {
+				return err
+			} else if finding == nil {
+				return nil // Just abort.
+			} else if finding.ID == "" {
+				finding.ID = uuid.NewString()
+			}
+			// Insert the finding.
 			m, err := spanner.InsertStruct("Findings", finding)
 			if err != nil {
 				return err
 			}
-			return txn.BufferWrite([]*spanner.Mutation{m})
+			var mutations []*spanner.Mutation
+			if oldFinding != nil {
+				mutations = append(mutations, spanner.Delete("Findings", spanner.Key{oldFinding.ID}))
+			}
+			mutations = append(mutations, m)
+			return txn.BufferWrite(mutations)
 		})
 	return err
+}
+
+var errFindingExists = errors.New("the finding already exists")
+
+// A helper for tests.
+func (repo *FindingRepository) mustStore(ctx context.Context, finding *Finding) error {
+	return repo.Store(ctx, &FindingID{
+		SessionID: finding.SessionID,
+		TestName:  finding.TestName,
+		Title:     finding.Title,
+	}, func(_ *Session, old *Finding) (*Finding, error) {
+		if old != nil {
+			return nil, errFindingExists
+		}
+		return finding, nil
+	})
 }
 
 // nolint: dupl

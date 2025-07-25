@@ -10,7 +10,9 @@ import (
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIGetSeries(t *testing.T) {
@@ -70,6 +72,24 @@ func TestAPISaveFinding(t *testing.T) {
 		finding := &api.NewFinding{
 			SessionID:    ids.SessionID,
 			TestName:     "test",
+			Title:        "title",
+			Report:       []byte("report"),
+			Log:          []byte("log"),
+			SyzRepro:     []byte("syz repro"),
+			SyzReproOpts: []byte("syz_repro_opts"),
+		}
+		err = client.UploadFinding(ctx, finding)
+		assert.NoError(t, err)
+		// Even if the same finding is reported the second time, it must still not fail.
+		err = client.UploadFinding(ctx, finding)
+		assert.NoError(t, err)
+	})
+
+	t.Run("add C repro", func(t *testing.T) {
+		finding := &api.NewFinding{
+			SessionID:    ids.SessionID,
+			TestName:     "test",
+			Title:        "title",
 			Report:       []byte("report"),
 			Log:          []byte("log"),
 			SyzRepro:     []byte("syz repro"),
@@ -78,9 +98,26 @@ func TestAPISaveFinding(t *testing.T) {
 		}
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
-		// Even if the finding is reported the second time, it must still not fail.
+		// Verify that C repro has appeared indeed.
+		findingRepo := db.NewFindingRepository(env.Spanner)
+		findings, err := findingRepo.ListForSession(ctx, ids.SessionID, db.NoLimit)
+		require.NoError(t, err)
+		require.Len(t, findings, 1)
+		assert.NotEmpty(t, findings[0].CReproURI)
+	})
+
+	t.Run("session stopped", func(t *testing.T) {
+		MarkSessionFinished(t, env, ids.SessionID)
+		finding := &api.NewFinding{
+			SessionID: ids.SessionID,
+			TestName:  "test",
+			Title:     "new title",
+			Report:    []byte("report"),
+			Log:       []byte("log"),
+			SyzRepro:  []byte("syz repro"),
+		}
 		err = client.UploadFinding(ctx, finding)
-		assert.NoError(t, err)
+		assert.ErrorContains(t, err, "session is already finished")
 	})
 }
 

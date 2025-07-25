@@ -206,6 +206,17 @@ loop:
 				}:
 				}
 				log.Logf(0, "patched-only: %s", ret.origReport.Title)
+				// Now that we know this bug only affects the patch kernel, we can spend more time
+				// generating a minimalistic repro and a C repro.
+				if !ret.fullRepro {
+					reproLoop.Enqueue(&Crash{
+						Report: &report.Report{
+							Title:  ret.origReport.Title,
+							Output: ret.repro.Prog.Serialize(),
+						},
+						FullRepro: true,
+					})
+				}
 			} else {
 				dc.store.BaseCrashed(ret.origReport.Title, ret.origReport.Report)
 				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
@@ -220,7 +231,7 @@ loop:
 				log.Logf(1, "found repro for %q (orig title: %q, reliability: %2.f), took %.2f minutes",
 					ret.Repro.Report.Title, origTitle, ret.Repro.Reliability, ret.Stats.TotalTime.Minutes())
 				g.Go(func() error {
-					runner.Run(ctx, ret.Repro)
+					runner.Run(ctx, ret.Repro, ret.Crash.FullRepro)
 					return nil
 				})
 			} else {
@@ -313,6 +324,9 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 const maxReproAttempts = 6
 
 func (dc *diffContext) NeedRepro(crash *Crash) bool {
+	if crash.FullRepro {
+		return true
+	}
 	if strings.Contains(crash.Title, "no output") ||
 		strings.Contains(crash.Title, "lost connection") ||
 		strings.Contains(crash.Title, "stall") ||
@@ -341,7 +355,7 @@ func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult 
 		Features: dc.new.features,
 		Reporter: dc.new.reporter,
 		Pool:     dc.new.pool,
-		Fast:     true,
+		Fast:     !crash.FullRepro,
 	})
 	if res != nil && res.Report != nil {
 		dc.mu.Lock()
@@ -642,6 +656,7 @@ type reproRunnerResult struct {
 	origReport  *report.Report
 	crashReport *report.Report
 	repro       *repro.Result
+	fullRepro   bool // whether this was a full reproduction
 }
 
 const (
@@ -658,7 +673,7 @@ const (
 // To avoid reporting false positives, the function does not require the kernel to crash with exactly
 // the same crash title as in the original crash report. Any single crash is accepted.
 // The result is sent back over the rr.done channel.
-func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
+func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool) {
 	if r.Reliability < reliabilityCutOff {
 		log.Logf(1, "%s: repro is too unreliable, skipping", r.Report.Title)
 		return
@@ -676,7 +691,7 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result) {
 		rr.kernel.pool.ReserveForRun(min(cnt, pool.Total()))
 	}()
 
-	ret := reproRunnerResult{origReport: r.Report, repro: r}
+	ret := reproRunnerResult{origReport: r.Report, repro: r, fullRepro: fullRepro}
 	for doneRuns := 0; doneRuns < needRuns; {
 		if ctx.Err() != nil {
 			return

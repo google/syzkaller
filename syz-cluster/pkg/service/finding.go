@@ -34,20 +34,40 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 }
 
 func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
-	finding := &db.Finding{
-		ID:        uuid.NewString(),
+	return s.findingRepo.Store(ctx, &db.FindingID{
 		SessionID: req.SessionID,
 		TestName:  req.TestName,
 		Title:     req.Title,
-	}
-	var err error
+	}, func(session *db.Session, old *db.Finding) (*db.Finding, error) {
+		if !session.FinishedAt.IsNull() {
+			// We may have already sent a report, so the findings must stay as they are.
+			return nil, fmt.Errorf("session is already finished")
+		}
+		if old != nil && (old.CReproURI != "" || len(req.CRepro) == 0) {
+			// The existing finding already has a C reproducer, no reason to update.
+			return nil, nil
+		}
+		finding := &db.Finding{
+			ID:        uuid.NewString(),
+			SessionID: req.SessionID,
+			TestName:  req.TestName,
+			Title:     req.Title,
+		}
+		// TODO: if it's not actually addded, these blobs will be orphaned.
+		err := s.saveAssets(finding, req)
+		if err != nil {
+			return nil, err
+		}
+		return finding, nil
+	})
+}
 
+func (s *FindingService) saveAssets(finding *db.Finding, req *api.NewFinding) error {
 	type saveAsset struct {
 		saveTo *string
 		value  []byte
 		name   string
 	}
-
 	for _, asset := range []saveAsset{
 		{&finding.LogURI, req.Log, "log"},
 		{&finding.ReportURI, req.Report, "report"},
@@ -58,19 +78,13 @@ func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 		if len(asset.value) == 0 {
 			continue
 		}
+		var err error
 		*asset.saveTo, err = s.blobStorage.Write(bytes.NewReader(asset.value), "Finding", finding.ID, asset.name)
 		if err != nil {
 			return fmt.Errorf("failed to save %s: %w", asset.name, err)
 		}
 	}
-
-	// TODO: if it's not actually addded, the blobs above will be orphaned.
-	err = s.findingRepo.Save(ctx, finding)
-	if err == db.ErrFindingExists {
-		// It's ok, just ignore.
-		return nil
-	}
-	return err
+	return nil
 }
 
 func (s *FindingService) List(ctx context.Context, sessionID string, limit int) ([]*api.Finding, error) {
