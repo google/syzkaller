@@ -79,7 +79,7 @@ func TestSessionsWithoutReports(t *testing.T) {
 				Result:    api.TestPassed,
 			}, nil)
 			assert.NoError(t, err)
-			err = findingRepo.Save(ctx, &Finding{
+			err = findingRepo.mustStore(ctx, &Finding{
 				SessionID: session.ID,
 				TestName:  "test",
 				Title:     "A",
