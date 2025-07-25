@@ -16,7 +16,7 @@ RUN GO_FLAGS=$(make go-flags 2>/dev/null) && go build "$GO_FLAGS" -o /bin/fuzz-s
 FROM debian:bookworm
 
 RUN apt-get update && \
-    apt-get install -y qemu-system openssh-client curl
+    apt-get install -y qemu-system openssh-client curl cpp
 
 # Install clang tools.
 RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
