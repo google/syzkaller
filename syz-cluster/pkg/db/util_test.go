@@ -67,7 +67,7 @@ func (d *dummyTestData) finishSession(session *Session) {
 
 func (d *dummyTestData) addFinding(session *Session, title, test string) {
 	findingRepo := NewFindingRepository(d.client)
-	assert.NoError(d.t, findingRepo.Save(d.ctx, &Finding{
+	assert.NoError(d.t, findingRepo.mustStore(d.ctx, &Finding{
 		SessionID: session.ID,
 		Title:     title,
 		TestName:  test,
