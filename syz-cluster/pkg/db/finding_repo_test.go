@@ -44,13 +44,13 @@ func TestFindingRepo(t *testing.T) {
 	}
 	// Insert them all.
 	for _, finding := range toInsert {
-		err := findingRepo.Save(ctx, finding)
+		err := findingRepo.mustStore(ctx, finding)
 		assert.NoError(t, err, "finding=%q", finding)
 	}
 	// Now it should report a duplicate each time.
 	for _, finding := range toInsert {
-		err := findingRepo.Save(ctx, finding)
-		assert.ErrorIs(t, err, ErrFindingExists)
+		err := findingRepo.mustStore(ctx, finding)
+		assert.ErrorIs(t, err, errFindingExists)
 	}
 
 	list, err := findingRepo.ListForSession(ctx, session.ID, NoLimit)
