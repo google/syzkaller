@@ -27,8 +27,8 @@ type kftfTestCase struct {
 	readCb  uint64
 }
 
-const kftfSectionStart string = "__kftf_test_case_start"
-const kftfSectionEnd string = "__kftf_test_case_end"
+const kftfSectionStart string = "__kfuzztest_targets_start"
+const kftfSectionEnd string = "__kfuzztest_targets_end"
 const kfuzzTestSize uint64 = 32
 
 func (tc *kftfTestCase) fromBytes(elfFile *elf.File, data []byte) {
@@ -58,8 +58,8 @@ type kftfConstraint struct {
 	constraintType uint8
 }
 
-const kftfConstraintStart string = "__kftf_constraint_start"
-const kftfConstraintEnd string = "__kftf_constraint_end"
+const kftfConstraintStart string = "__kfuzztest_constraints_start"
+const kftfConstraintEnd string = "__kfuzztest_constraints_end"
 const kftfConstraintSize uint64 = 64
 
 func (c *kftfConstraint) fromBytes(elfFile *elf.File, data []byte) {
@@ -97,8 +97,8 @@ func (a *kftfAnnotation) fromBytes(elfFile *elf.File, data []byte) {
 	a.annotationAttribute = uint8(data[24])
 }
 
-const kftfAnnotationStart string = "__kftf_annotation_start"
-const kftfAnnotationEnd string = "__kftf_annotation_end"
+const kftfAnnotationStart string = "__kfuzztest_annotations_start"
+const kftfAnnotationEnd string = "__kfuzztest_annotations_end"
 const kftfAnnotationSize uint64 = 32
 
 func (attrib *kftfAnnotation) size() uint64 {
