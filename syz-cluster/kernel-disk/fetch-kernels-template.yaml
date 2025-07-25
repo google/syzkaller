@@ -10,6 +10,11 @@ spec:
   podMetadata:
     labels:
       tier: workflow
+  podGC:
+    strategy: OnPodCompletion
+    deleteDelayDuration: 12h
+  ttlStrategy:
+    secondsAfterCompletion: 86400
   serviceAccountName: argo-executor-ksa
   templates:
     - name: main
