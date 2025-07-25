@@ -29,18 +29,23 @@ type Crash struct {
 	FromHub       bool // this crash was created based on a repro from syz-hub
 	FromDashboard bool // .. or from dashboard
 	Manual        bool
+	FullRepro     bool // used by the diff fuzzer to do a full scale reproduction
 	*report.Report
 }
 
 func (c *Crash) FullTitle() string {
+	suffix := ""
+	if c.FullRepro {
+		suffix = " (full)"
+	}
 	if c.Report.Title != "" {
-		return c.Report.Title
+		return c.Report.Title + suffix
 	}
 	// Just use some unique, but stable titles.
 	if c.FromDashboard {
-		return fmt.Sprintf("dashboard crash %p", c)
+		return fmt.Sprintf("dashboard crash %p%s", c, suffix)
 	} else if c.FromHub {
-		return fmt.Sprintf("crash from hub %p", c)
+		return fmt.Sprintf("crash from hub %p%s", c, suffix)
 	}
 	panic("the crash is expected to have a report")
 }
@@ -139,6 +144,10 @@ func (r *ReproLoop) popCrash() *Crash {
 	defer r.mu.Unlock()
 
 	newBetter := func(base, new *Crash) bool {
+		// If diff fuzzed has requested a full reproduction, do it first.
+		if base.FullRepro != new.FullRepro {
+			return new.FullRepro
+		}
 		// The more times we failed, the less likely we are to actually
 		// find a reproducer. Give preference to not yet attempted repro runs.
 		baseTitle, newTitle := base.FullTitle(), new.FullTitle()
