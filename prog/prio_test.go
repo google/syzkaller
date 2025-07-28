@@ -23,7 +23,7 @@ func TestNormalizePrios(t *testing.T) {
 		{10, 20, 0},
 	}
 	t.Logf("had:  %+v", prios)
-	normalizePrios(prios)
+	normalizePrios(prios, len(prios))
 	if !reflect.DeepEqual(prios, want) {
 		t.Logf("got:  %+v", prios)
 		t.Errorf("want: %+v", want)
