@@ -48,8 +48,6 @@ spec:
         volumeMounts:
         - name: workdir
           mountPath: /workdir
-        - name: output
-          mountPath: /output
         - name: dev-kvm
           mountPath: /dev/kvm
         # Needed for /dev/kvm.
@@ -65,8 +63,3 @@ spec:
           hostPath:
             path: /dev/kvm
             type: CharDevice
-      outputs:
-        parameters:
-          - name: result
-            valueFrom:
-              path: /output/result.json
