@@ -1,0 +1,104 @@
+[
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "the time following data was captured"
+  },
+  {
+    "name": "version",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "the record version to simplify future changes"
+  },
+  {
+    "name": "fuzzing_minutes",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "how many fuzzing hours are represented in the record"
+  },
+  {
+    "name": "arch",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "build_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "manager",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "kernel_repo",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "kernel_branch",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "kernel_commit",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "file_path",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "func_name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "sl",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Callback position frame StartLine."
+  },
+  {
+    "name": "sc",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Callback position frame StarCol."
+  },
+  {
+    "name": "el",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Callback position frame EndLine."
+  },
+  {
+    "name": "ec",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Callback position frame EndCol."
+  },
+  {
+    "name": "hit_count",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Coverage point hit count."
+  },
+  {
+    "name": "inline",
+    "type": "BOOLEAN",
+    "mode": "REQUIRED",
+    "description": "TRUE if the coverage signal was received from inline function"
+  },
+  {
+    "name": "pc",
+    "type": "NUMERIC",
+    "mode": "REQUIRED",
+    "description": "single callback generates many coverage signals if inlined",
+    "precision": "20",
+    "scale": "0"
+  }
+]
