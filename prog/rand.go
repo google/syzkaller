@@ -21,6 +21,10 @@ const (
 	// "Recommended" max number of calls in programs.
 	// If we receive longer programs from hub/corpus we discard them.
 	MaxCalls = 40
+	// Maximum number of times we can call the same IOCTL while resolving/creating a resource.
+	MaxResSameSyscall = 3
+	// Number of times we try to avoid reusing an IOCTL that's already in the stack while resolving/creating a resource.
+	AvoidSameSyscallAttempts = 20
 )
 
 type randGen struct {
@@ -29,6 +33,7 @@ type randGen struct {
 	inGenerateResource    bool
 	patchConditionalDepth int
 	recDepth              map[string]int
+	EnforceDeps           bool
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
@@ -426,17 +431,26 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 	var precise []*Syscall
 	for _, info := range ctors {
 		if info.Precise {
+			if r.EnforceDeps && isSyscallInStack(s, info.Call.Name) {
+				continue
+			}
 			precise = append(precise, info.Call)
 		}
 	}
-	if len(precise) > 0 {
-		// If the argument is optional, it's not guaranteed that there'd be a
-		// precise constructor.
-		meta = precise[r.Intn(len(precise))]
-	}
-	if meta == nil || r.oneOf(3) {
-		// Sometimes just take a random one.
-		meta = ctors[r.Intn(len(ctors))].Call
+	for i := 0; i < AvoidSameSyscallAttempts; i++ {
+		if len(precise) > 0 {
+			// If the argument is optional, it's not guaranteed that there'd be a
+			// precise constructor.
+			meta = precise[r.Intn(len(precise))]
+		}
+		if meta == nil || r.oneOf(3) {
+			// Sometimes just take a random one.
+			meta = ctors[r.Intn(len(ctors))].Call
+		}
+
+		if !r.EnforceDeps || !isSyscallInStack(s, meta.Name) {
+			break
+		}
 	}
 
 	calls := r.generateParticularCall(s, meta)
@@ -457,6 +471,11 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 			res.Desc.Kind[0], kind, meta.Name))
 	}
 	arg := MakeResultArg(res, dir, allres[r.Intn(len(allres))], 0)
+	for _, rRes := range allres {
+		if rRes.Dir() != DirIn {
+			s.resources[kind] = append(s.resources[kind], rRes)
+		}
+	}
 	return arg, calls
 }
 
@@ -609,7 +628,9 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
 	c := MakeCall(meta, nil)
+	pushSyscallToStack(s, meta.Name)
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
+	popSyscallFromStack(s)
 	moreCalls, _ := r.patchConditionalFields(c, s)
 	r.target.assignSizesCall(c)
 	return append(append(calls, moreCalls...), c)
@@ -685,10 +706,12 @@ func (r *randGen) generateArgs(s *state, fields []Field, dir Dir) ([]Arg, []*Cal
 
 	// Generate all args. Size args have the default value 0 for now.
 	for i, field := range fields {
+		pushFieldToStack(s, field.Name)
 		arg, calls1 := r.generateArg(s, field.Type, field.Dir(dir))
 		if arg == nil {
 			panic(fmt.Sprintf("generated arg is nil for field '%v', fields: %+v", field.Type.Name(), fields))
 		}
+		popFieldFromStack(s)
 		args[i] = arg
 		calls = append(calls, calls1...)
 	}
@@ -742,12 +765,17 @@ func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls [
 		defer func() { r.inGenerateResource = false }()
 		canRecurse = true
 	}
-	if canRecurse && r.nOutOf(8, 10) ||
-		!canRecurse && r.nOutOf(19, 20) {
+	if (canRecurse && r.nOutOf(8, 10)) ||
+		(!canRecurse && r.nOutOf(19, 20)) ||
+		r.EnforceDeps {
 		arg = r.existingResource(s, a, dir)
 		if arg != nil {
 			return
 		}
+	}
+	if r.EnforceDeps && !canRecurse {
+		recCounter := getSyscallFieldLoopIterations(s)
+		canRecurse = (recCounter < MaxResSameSyscall)
 	}
 	if canRecurse {
 		if r.oneOf(4) {
@@ -756,7 +784,7 @@ func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls [
 				return
 			}
 		}
-		if r.nOutOf(4, 5) {
+		if r.nOutOf(4, 5) || r.EnforceDeps {
 			// If we could not reuse a resource, let's prefer resource creation over
 			// random int substitution.
 			arg, calls = r.createResource(s, a, dir)
@@ -911,7 +939,7 @@ func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Cal
 	}
 	// The resource we are trying to generate may be in the pointer,
 	// so don't try to create an empty special pointer during resource generation.
-	if !r.inGenerateResource && r.oneOf(1000) {
+	if !r.EnforceDeps && !r.inGenerateResource && r.oneOf(1000) {
 		index := r.rand(len(r.target.SpecialPointers))
 		return MakeSpecialPointerArg(a, dir, index), nil
 	}
