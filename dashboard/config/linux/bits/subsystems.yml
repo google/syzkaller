@@ -24,8 +24,8 @@ config:
  - LOG_BUF_SHIFT: 18
  - NUMA: [-arm]
  - NUMA_EMU: [x86_64]
- - NUMA_BALANCING: [-arm]
- - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
+ - NUMA_BALANCING: [-arm, -preempt_rt]
+ - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -preempt_rt]
  # Starting from v6.13, depends on !CPU_MITIGATIONS.
  - ADDRESS_MASKING: [x86_64, v6.4, -v6.12, -stable-6.6]
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
@@ -106,8 +106,8 @@ config:
  - MEMORY_HOTREMOVE: [-arm]
  - ANON_VMA_NAME: [v5.17]
  - KSM
- - TRANSPARENT_HUGEPAGE: [-arm]
- - TRANSPARENT_HUGEPAGE_MADVISE: [-arm]
+ - TRANSPARENT_HUGEPAGE: [-arm, -preempt_rt]
+ - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -preempt_rt]
  - FRONTSWAP: [-v6.6]
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
@@ -118,7 +118,7 @@ config:
  - ZONE_DEVICE: [-arm, -riscv, -s390]
  - DEVICE_PRIVATE: [-arm, -riscv, -s390]
  - PERCPU_STATS
- - READ_ONLY_THP_FOR_FS: [-arm, -riscv]
+ - READ_ONLY_THP_FOR_FS: [-arm, -riscv, -preempt_rt]
  - PCI
  - PCIEPORTBUS
  - HOTPLUG_PCI_PCIE
@@ -151,7 +151,7 @@ config:
  - NVDIMM_DAX: [x86_64]
  - OF_PMEM: [x86_64]
  - DAX: [x86_64]
- - DEV_DAX: [x86_64]
+ - DEV_DAX: [x86_64, -preempt_rt]
  - BLK_DEV_NULL_BLK
  - BLK_DEV_NULL_BLK_FAULT_INJECTION
  - ZRAM
@@ -294,7 +294,7 @@ config:
  - DRM_DISPLAY_DP_AUX_BUS: [v6.10, -s390]
  - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
  - DRM_DEBUG_MM
- - DRM_I915: [x86_64]
+ - DRM_I915: [x86_64, -preempt_rt]
  - DRM_VGEM
  - DRM_VKMS
  - DRM_VMWGFX: [x86_64]
@@ -599,6 +599,7 @@ config:
  - ZSWAP_DEFAULT_ON: [v5.7]
  - SMB_SERVER: [v5.15]
  - SYSFS_SYSCALL
+ - PREEMPT_RT: [v6.16, preempt_rt]
 
  # For testing of core dumping functionality itself.
  - COREDUMP

@@ -4,7 +4,7 @@
 instances:
  - upstream-apparmor-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, apparmor, kasan, kfence]
  - upstream-selinux-kasan:	[linux-next, x86_64, timeouts_native, gcc, lsm, selinux, kasan, kfence]
- - upstream-smack-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence]
+ - upstream-smack-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence, preempt_rt]
  - upstream-kasan-badwrites:	[linux-next, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan, kasan_panic_on_write, kfence]
  - upstream-unmaintained:	[upstream, x86_64, timeouts_native, clang, baseline, unmaintained, kasan, kfence]
  - upstream-kmsan:		[upstream, timeouts_native, x86_64, clang, lsm, apparmor, nonoise, kmsan]
