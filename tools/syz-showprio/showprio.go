@@ -45,7 +45,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to read corpus: %v\n", err)
 		os.Exit(1)
 	}
-	showPriorities(enabled, target.CalculatePriorities(corpus), target)
+	matrix, _ := target.CalculatePriorities(corpus, nil)
+	showPriorities(enabled, matrix, target)
 }
 
 func showPriorities(calls []string, prios [][]int32, target *prog.Target) {
