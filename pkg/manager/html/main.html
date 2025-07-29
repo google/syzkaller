@@ -35,6 +35,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td class="time {{if not $c.New}}inactive{{end}}">{{formatTime $c.FirstTime}}</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
 		<td>
+			{{if $c.ReproAttempts}}[{{$c.ReproAttempts}} repro attempts]{{end}}
 			{{if $c.Triaged}}
 				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
 			{{end}}
