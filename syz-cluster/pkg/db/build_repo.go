@@ -67,7 +67,5 @@ func (repo *BuildRepository) LastBuiltTree(ctx context.Context, params *LastBuil
 		stmt.Params["commit"] = params.Commit
 	}
 	stmt.SQL += " ORDER BY `CommitDate` DESC LIMIT 1"
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readOne[Build](iter)
+	return readEntity[Build](ctx, repo.client.Single(), stmt)
 }

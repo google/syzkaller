@@ -21,7 +21,10 @@ func NewReportReplyRepository(client *spanner.Client) *ReportReplyRepository {
 }
 
 func (repo *ReportReplyRepository) FindParentReportID(ctx context.Context, reporter, messageID string) (string, error) {
-	stmt := spanner.Statement{
+	type result struct {
+		ReportID string `spanner:"ReportID"`
+	}
+	ret, err := readEntity[result](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT `ReportReplies`.ReportID FROM `ReportReplies` " +
 			"JOIN `SessionReports` ON `SessionReports`.ID = `ReportReplies`.ReportID " +
 			"WHERE `ReportReplies`.MessageID = @messageID " +
@@ -30,14 +33,7 @@ func (repo *ReportReplyRepository) FindParentReportID(ctx context.Context, repor
 			"reporter":  reporter,
 			"messageID": messageID,
 		},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	type result struct {
-		ReportID string `spanner:"ReportID"`
-	}
-	ret, err := readOne[result](iter)
+	})
 	if err != nil {
 		return "", err
 	} else if ret != nil {
@@ -51,17 +47,14 @@ var ErrReportReplyExists = errors.New("the reply has already been recorded")
 func (repo *ReportReplyRepository) Insert(ctx context.Context, reply *ReportReply) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			stmt := spanner.Statement{
+			entity, err := readEntity[ReportReply](ctx, txn, spanner.Statement{
 				SQL: "SELECT * from `ReportReplies` " +
 					"WHERE `ReportID`=@reportID AND `MessageID`=@messageID",
 				Params: map[string]interface{}{
 					"reportID":  reply.ReportID,
 					"messageID": reply.MessageID,
 				},
-			}
-			iter := txn.Query(ctx, stmt)
-			entity, err := readOne[ReportReply](iter)
-			iter.Stop()
+			})
 			if err != nil {
 				return err
 			} else if entity != nil {
@@ -77,7 +70,7 @@ func (repo *ReportReplyRepository) Insert(ctx context.Context, reply *ReportRepl
 }
 
 func (repo *ReportReplyRepository) LastForReporter(ctx context.Context, reporter string) (*ReportReply, error) {
-	stmt := spanner.Statement{
+	return readEntity[ReportReply](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT `ReportReplies`.* FROM `ReportReplies` " +
 			"JOIN `SessionReports` ON `SessionReports`.ID=`ReportReplies`.ReportID " +
 			"WHERE `SessionReports`.Reporter=@reporter " +
@@ -85,8 +78,5 @@ func (repo *ReportReplyRepository) LastForReporter(ctx context.Context, reporter
 		Params: map[string]interface{}{
 			"reporter": reporter,
 		},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readOne[ReportReply](iter)
+	})
 }

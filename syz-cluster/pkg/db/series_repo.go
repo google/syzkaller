@@ -36,24 +36,18 @@ func NewSeriesRepository(client *spanner.Client) *SeriesRepository {
 // TODO: move to SeriesPatchesRepository?
 // nolint:dupl
 func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch, error) {
-	stmt := spanner.Statement{
+	return readEntity[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Patches WHERE ID=@id",
 		Params: map[string]interface{}{"id": id},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readOne[Patch](iter)
+	})
 }
 
 // nolint:dupl
 func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Series, error) {
-	stmt := spanner.Statement{
+	return readEntity[Series](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Series WHERE ExtID=@extID",
 		Params: map[string]interface{}{"extID": extID},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readOne[Series](iter)
+	})
 }
 
 var ErrSeriesExists = errors.New("the series already exists")
@@ -191,10 +185,7 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 		stmt.SQL += " OFFSET @offset"
 		stmt.Params["offset"] = filter.Offset
 	}
-	iter := ro.Query(ctx, stmt)
-	defer iter.Stop()
-
-	seriesList, err := readEntities[Series](iter)
+	seriesList, err := readEntities[Series](ctx, ro, stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -232,14 +223,12 @@ func (repo *SeriesRepository) querySessions(ctx context.Context, ro *spanner.Rea
 	if len(keys) == 0 {
 		return nil
 	}
-	iter := ro.Query(ctx, spanner.Statement{
+	sessions, err := readEntities[Session](ctx, ro, spanner.Statement{
 		SQL: "SELECT * FROM Sessions WHERE ID IN UNNEST(@ids)",
 		Params: map[string]interface{}{
 			"ids": keys,
 		},
 	})
-	defer iter.Stop()
-	sessions, err := readEntities[Session](iter)
 	if err != nil {
 		return err
 	}
@@ -271,18 +260,13 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 		SessionID string `spanner:"SessionID"`
 		Count     int64  `spanner:"Count"`
 	}
-
-	stmt := spanner.Statement{
+	list, err := readEntities[findingCount](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT `SessionID`, COUNT(`ID`) as `Count` FROM `Findings` " +
 			"WHERE `SessionID` IN UNNEST(@ids) GROUP BY `SessionID`",
 		Params: map[string]interface{}{
 			"ids": keys,
 		},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	list, err := readEntities[findingCount](iter)
+	})
 	if err != nil {
 		return err
 	}
@@ -295,13 +279,10 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.
 // nolint:dupl
 func (repo *SeriesRepository) ListPatches(ctx context.Context, series *Series) ([]*Patch, error) {
-	stmt := spanner.Statement{
+	return readEntities[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT * FROM `Patches` WHERE `SeriesID` = @seriesID ORDER BY `Seq`",
 		Params: map[string]interface{}{
 			"seriesID": series.ID,
 		},
-	}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readEntities[Patch](iter)
+	})
 }

@@ -33,12 +33,10 @@ var ErrSessionAlreadyStarted = errors.New("the session already started")
 func (repo *SessionRepository) Start(ctx context.Context, sessionID string) error {
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-			iter := txn.Query(ctx, spanner.Statement{
+			session, err := readEntity[Session](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `Sessions` WHERE `ID`=@id",
 				Params: map[string]interface{}{"id": sessionID},
 			})
-			session, err := readOne[Session](iter)
-			iter.Stop()
 			if err != nil {
 				return err
 			}
@@ -50,12 +48,10 @@ func (repo *SessionRepository) Start(ctx context.Context, sessionID string) erro
 			if err != nil {
 				return err
 			}
-			iter = txn.Query(ctx, spanner.Statement{
+			series, err := readEntity[Series](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `Series` WHERE `ID`=@id",
 				Params: map[string]interface{}{"id": session.SeriesID},
 			})
-			series, err := readOne[Series](iter)
-			iter.Stop()
 			if err != nil {
 				return err
 			}
@@ -77,11 +73,9 @@ func (repo *SessionRepository) Insert(ctx context.Context, session *Session) err
 }
 
 func (repo *SessionRepository) ListRunning(ctx context.Context) ([]*Session, error) {
-	stmt := spanner.Statement{SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NOT NULL " +
-		"AND `FinishedAt` IS NULL"}
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readEntities[Session](iter)
+	return repo.readEntities(ctx, spanner.Statement{
+		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NOT NULL AND `FinishedAt` IS NULL",
+	})
 }
 
 type NextSession struct {

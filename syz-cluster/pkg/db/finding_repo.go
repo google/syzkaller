@@ -41,7 +41,7 @@ func (repo *FindingRepository) Store(ctx context.Context, id *FindingID,
 	_, err := repo.client.ReadWriteTransaction(ctx,
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			// Query the existing finding, if it exists.
-			stmt := spanner.Statement{
+			oldFinding, err := readEntity[Finding](ctx, txn, spanner.Statement{
 				SQL: "SELECT * from `Findings` WHERE `SessionID`=@sessionID " +
 					"AND `TestName` = @testName AND `Title`=@title",
 				Params: map[string]interface{}{
@@ -49,21 +49,15 @@ func (repo *FindingRepository) Store(ctx context.Context, id *FindingID,
 					"testName":  id.TestName,
 					"title":     id.Title,
 				},
-			}
-			iter := txn.Query(ctx, stmt)
-			oldFinding, err := readOne[Finding](iter)
-			iter.Stop()
+			})
 			if err != nil {
 				return err
 			}
 			// Query the Session object.
-			stmt = spanner.Statement{
+			session, err := readEntity[Session](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * FROM `Sessions` WHERE `ID`=@id",
 				Params: map[string]interface{}{"id": id.SessionID},
-			}
-			iter = txn.Query(ctx, stmt)
-			session, err := readOne[Session](iter)
-			iter.Stop()
+			})
 			if err != nil {
 				return err
 			}
@@ -114,7 +108,5 @@ func (repo *FindingRepository) ListForSession(ctx context.Context, sessionID str
 		Params: map[string]interface{}{"session": sessionID},
 	}
 	addLimit(&stmt, limit)
-	iter := repo.client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-	return readEntities[Finding](iter)
+	return repo.readEntities(ctx, stmt)
 }
