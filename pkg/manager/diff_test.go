@@ -107,3 +107,16 @@ func TestModifiedSymbols(t *testing.T) {
 		assert.Equal(t, []string{"function", "function2"}, modifiedSymbols(base, patched))
 	})
 }
+
+func TestSkipDiffRepro(t *testing.T) {
+	for title, skip := range map[string]bool{
+		"no output from test machine":                          true,
+		"SYZFAIL: read failed":                                 true,
+		"lost connection to test machine":                      true,
+		"INFO: rcu detected stall in clone":                    true,
+		"WARNING in arch_install_hw_breakpoint":                false,
+		"KASAN: slab-out-of-bounds Write in __bpf_get_stackid": false,
+	} {
+		assert.Equal(t, skip, skipDiffRepro(title), "title=%q", title)
+	}
+}
