@@ -323,16 +323,23 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 // TODO: instead of this limit, consider expotentially growing delays between reproduction attempts.
 const maxReproAttempts = 6
 
+func skipDiffRepro(title string) bool {
+	if strings.Contains(title, "no output") ||
+		strings.Contains(title, "lost connection") ||
+		strings.Contains(title, "detected stall") ||
+		strings.Contains(title, "SYZ") {
+		// Don't waste time reproducing these.
+		return true
+	}
+	return false
+}
+
 func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	if crash.FullRepro {
 		return true
 	}
-	if strings.Contains(crash.Title, "no output") ||
-		strings.Contains(crash.Title, "lost connection") ||
-		strings.Contains(crash.Title, "stall") ||
-		strings.Contains(crash.Title, "SYZ") {
-		// Don't waste time reproducing these.
-		return false
+	if skipDiffRepro(crash.Title) {
+		return true
 	}
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
