@@ -10,11 +10,11 @@ type TriageResult struct {
 	// If set, ignore the patch series completely.
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
-	Fuzz *FuzzConfig `json:"fuzz"`
+	Fuzz *FuzzTask `json:"fuzz"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.
-type FuzzConfig struct {
+type FuzzTask struct {
 	Base      BuildRequest `json:"base"`
 	Patched   BuildRequest `json:"patched"`
 	Config    string       `json:"config"` // Refers to workflow/configs/{}.
@@ -23,17 +23,18 @@ type FuzzConfig struct {
 
 // The triage step of the workflow will request these from controller.
 type Tree struct {
-	Name         string   `json:"name"` // Primary key.
-	URL          string   `json:"URL"`
-	Branch       string   `json:"branch"`
-	EmailLists   []string `json:"email_lists"`
-	Priority     int64    `json:"priority"` // Higher numbers mean higher priority.
-	KernelConfig string   `json:"kernel_config"`
-	FuzzConfig   string   `json:"fuzz_config"`
+	Name       string   `json:"name"` // Primary key.
+	URL        string   `json:"URL"`
+	Branch     string   `json:"branch"`
+	EmailLists []string `json:"email_lists"`
 }
 
-// Select only if directly specified in the series subject.
-const TreePriorityNever = -1
+type FuzzConfig struct {
+	Name         string   `json:"name"` // Primary key.
+	EmailLists   []string `json:"email_lists"`
+	KernelConfig string   `json:"kernel_config"`
+	CorpusURL    string   `json:"corpus_url"`
+}
 
 type BuildRequest struct {
 	Arch       string `json:"arch"`
@@ -154,86 +155,76 @@ type BuildInfo struct {
 }
 
 // Let them stay here until we find a better place.
+// The list is ordered by decreasing importance.
 var DefaultTrees = []*Tree{
 	{
-		Name:         `torvalds`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
-		Branch:       `master`,
-		Priority:     0,
-		EmailLists:   []string{},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `all`,
+		Name:       `bpf-next`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git`,
+		Branch:     `master`,
+		EmailLists: []string{`bpf@vger.kernel.org`},
 	},
 	{
-		Name:         `net`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
-		Branch:       `main`,
-		Priority:     TreePriorityNever,
-		EmailLists:   []string{`netdev@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `net`,
+		Name:       `bpf`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf.git`,
+		Branch:     `master`,
+		EmailLists: []string{`bpf@vger.kernel.org`},
 	},
 	{
-		Name:         `net-next`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net-next.git`,
-		Branch:       `main`,
-		Priority:     1,
-		EmailLists:   []string{`netdev@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `net`,
+		Name:       `nf-next`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf-next.git`,
+		Branch:     `main`,
+		EmailLists: []string{`netfilter-devel@vger.kernel.org`},
 	},
 	{
-		Name:         `nf`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf.git`,
-		Branch:       `main`,
-		Priority:     TreePriorityNever,
-		EmailLists:   []string{`netfilter-devel@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `net`,
+		Name:       `nf`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf.git`,
+		Branch:     `main`,
+		EmailLists: []string{`netfilter-devel@vger.kernel.org`},
 	},
 	{
-		Name:         `nf-next`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf-next.git`,
-		Branch:       `main`,
-		Priority:     2,
-		EmailLists:   []string{`netfilter-devel@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `net`,
+		Name:       `net-next`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net-next.git`,
+		Branch:     `main`,
+		EmailLists: []string{`netdev@vger.kernel.org`},
 	},
 	{
-		Name:         `bpf`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf.git`,
-		Branch:       `master`,
-		Priority:     TreePriorityNever,
-		EmailLists:   []string{`bpf@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `bpf`,
+		Name:       `net`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git`,
+		Branch:     `main`,
+		EmailLists: []string{`netdev@vger.kernel.org`},
 	},
 	{
-		Name:         `bpf-next`,
-		URL:          `https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git`,
-		Branch:       `master`,
-		Priority:     2,
-		EmailLists:   []string{`bpf@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig:   `bpf`,
+		Name:       `torvalds`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
+		Branch:     `master`,
+		EmailLists: nil, // A fallback tree.
 	},
 }
 
 const (
-	netCorpusURL      = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
-	bpfCorpusURL      = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
-	corpusFallbackURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
+	netCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
+	bpfCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
+	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 )
 
-// TODO: find a better place for it.
-func (tree *Tree) CorpusURL() string {
-	switch tree.FuzzConfig {
-	case `net`:
-		return netCorpusURL
-	case `bpf`:
-		return bpfCorpusURL
-	default:
-		return corpusFallbackURL
-	}
+// The list is ordered by decreasing importance.
+var FuzzConfigs = []*FuzzConfig{
+	{
+		Name:         `bpf`,
+		EmailLists:   []string{`bpf@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		CorpusURL:    bpfCorpusURL,
+	},
+	{
+		Name:         `net`,
+		EmailLists:   []string{`netdev@vger.kernel.org`, `netfilter-devel@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		CorpusURL:    netCorpusURL,
+	},
+	{
+		Name:         `all`,
+		EmailLists:   nil, // A fallback option.
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		CorpusURL:    allCorpusURL,
+	},
 }
