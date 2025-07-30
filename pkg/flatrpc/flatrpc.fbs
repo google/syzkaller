@@ -16,6 +16,7 @@ enum Feature : uint64 (bit_flags) {
 	Comparisons,
 	ExtraCoverage,
 	DelayKcovMmap,
+	KcovResetIoctl,
 	SandboxNone,
 	SandboxSetuid,
 	SandboxNamespace,
@@ -135,6 +136,7 @@ enum RequestFlag : uint64 (bit_flags) {
 enum ExecEnv : uint64 (bit_flags) {
 	Debug,			// debug output from executor
 	Signal,			// collect feedback signals (coverage)
+	ReadOnlyCoverage,	// map coverage as readonly, use an ioctl to reset it
 	ResetState,    		// fully reset executor state befor executing the test
 	SandboxNone,		// minimal sandboxing
 	SandboxSetuid,		// impersonate nobody user

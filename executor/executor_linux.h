@@ -37,6 +37,7 @@ struct kcov_remote_arg {
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
 #define KCOV_REMOTE_ENABLE _IOW('c', 102, kcov_remote_arg<0>)
+#define KCOV_RESET_TRACE _IO('c', 104)
 
 #define KCOV_SUBSYSTEM_COMMON (0x00ull << 56)
 #define KCOV_SUBSYSTEM_USB (0x01ull << 56)
@@ -142,15 +143,25 @@ static void cover_mmap(cover_t* cov)
 	if (mapped == MAP_FAILED)
 		exitf("failed to preallocate kcov buffer");
 	// Now map the kcov buffer to the file, overwriting the existing mapping above.
+	int prot = flag_read_only_coverage ? PROT_READ : (PROT_READ | PROT_WRITE);
 	cov->data = (char*)mmap(mapped + SYZ_PAGE_SIZE, cov->mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, cov->fd, 0);
+				prot, MAP_SHARED | MAP_FIXED, cov->fd, 0);
 	if (cov->data == MAP_FAILED)
 		exitf("cover mmap failed");
-	if (pkeys_enabled && pkey_mprotect(cov->data, cov->mmap_alloc_size, PROT_READ | PROT_WRITE, RESERVED_PKEY))
+	if (pkeys_enabled && pkey_mprotect(cov->data, cov->mmap_alloc_size, prot, RESERVED_PKEY))
 		exitf("failed to pkey_mprotect kcov buffer");
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	cov->pc_offset = 0;
+}
+
+static void cover_munmap(cover_t* cov)
+{
+	if (cov->data == NULL)
+		fail("cover_munmap invoked on a non-mmapped cover_t object");
+	if (munmap(cov->data - SYZ_PAGE_SIZE, cov->mmap_alloc_size + 2 * SYZ_PAGE_SIZE))
+		fail("cover_munmap failed");
+	cov->data = NULL;
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
@@ -186,9 +197,14 @@ static void cover_reset(cover_t* cov)
 			fail("cover_reset: current_thread == 0");
 		cov = &current_thread->cov;
 	}
-	cover_unprotect(cov);
-	*(uint64*)cov->data = 0;
-	cover_protect(cov);
+	if (flag_read_only_coverage) {
+		if (ioctl(cov->fd, KCOV_RESET_TRACE, 0))
+			fail("KCOV_RESET_TRACE failed");
+	} else {
+		cover_unprotect(cov);
+		*(uint64*)cov->data = 0;
+		cover_protect(cov);
+	}
 	cov->overflow = false;
 }
 
@@ -307,9 +323,34 @@ static const char* setup_delay_kcov()
 	return error;
 }
 
+static const char* setup_kcov_reset_ioctl()
+{
+	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
+	if (fd == -1)
+		return "open of /sys/kernel/debug/kcov failed";
+	cover_t cov = {};
+	cov.fd = kCoverFd;
+	cover_open(&cov, false);
+	cover_mmap(&cov);
+	const char* error = NULL;
+	cover_enable(&cov, false, false);
+	int ret;
+	if ((ret = ioctl(cov.fd, KCOV_RESET_TRACE, 0))) {
+		if (errno != ENOTTY) {
+			fprintf(stderr, "ret: %d, errno: %d\n", ret, errno);
+			fail("ioctl(KCOV_RESET_TRACE) failed");
+		}
+		error = "kernel does not support ioctl(KCOV_RESET_TRACE)";
+	}
+	cover_munmap(&cov);
+	close(cov.fd);
+	return error;
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {rpc::Feature::DelayKcovMmap, setup_delay_kcov},
+    {rpc::Feature::KcovResetIoctl, setup_kcov_reset_ioctl},
     {rpc::Feature::Fault, setup_fault},
     {rpc::Feature::Leak, setup_leak},
     {rpc::Feature::KCSAN, setup_kcsan},

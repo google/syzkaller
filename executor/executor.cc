@@ -257,6 +257,7 @@ static uint64 start_time_ms = 0;
 static bool flag_debug;
 static bool flag_snapshot;
 static bool flag_coverage;
+static bool flag_read_only_coverage;
 static bool flag_sandbox_none;
 static bool flag_sandbox_setuid;
 static bool flag_sandbox_namespace;
@@ -777,6 +778,7 @@ void parse_handshake(const handshake_req& req)
 	slowdown_scale = req.slowdown_scale;
 	flag_debug = (bool)(req.flags & rpc::ExecEnv::Debug);
 	flag_coverage = (bool)(req.flags & rpc::ExecEnv::Signal);
+	flag_read_only_coverage = (bool)(req.flags & rpc::ExecEnv::ReadOnlyCoverage);
 	flag_sandbox_none = (bool)(req.flags & rpc::ExecEnv::SandboxNone);
 	flag_sandbox_setuid = (bool)(req.flags & rpc::ExecEnv::SandboxSetuid);
 	flag_sandbox_namespace = (bool)(req.flags & rpc::ExecEnv::SandboxNamespace);
