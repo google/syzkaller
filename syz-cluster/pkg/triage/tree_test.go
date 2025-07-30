@@ -13,29 +13,24 @@ import (
 func TestSelectTrees(t *testing.T) {
 	trees := []*api.Tree{
 		{
-			Name:       "mainline",
-			EmailLists: nil,
-			Priority:   0,
-		},
-		{
-			Name:       "net",
-			EmailLists: []string{"net@list"},
-			Priority:   1,
+			Name:       "bpf",
+			EmailLists: []string{"bpf@list"},
 		},
 		{
 			Name:       "wireless",
 			EmailLists: []string{"wireless@list"},
-			Priority:   2,
 		},
 		{
-			Name:       "bpf",
-			EmailLists: []string{"bpf@list"},
-			Priority:   3,
+			Name:       "net",
+			EmailLists: []string{"net@list"},
 		},
 		{
 			Name:       "test",
-			Priority:   api.TreePriorityNever,
 			EmailLists: []string{"test@list"},
+		},
+		{
+			Name:       "mainline",
+			EmailLists: nil,
 		},
 	}
 	tests := []struct {

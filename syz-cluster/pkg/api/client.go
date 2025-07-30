@@ -41,7 +41,8 @@ func (client Client) UploadTriageResult(ctx context.Context, sessionID string, r
 }
 
 type TreesResp struct {
-	Trees []*Tree `json:"trees"`
+	Trees       []*Tree       `json:"trees"`
+	FuzzConfigs []*FuzzConfig `json:"fuzz_configs"`
 }
 
 func (client Client) GetTrees(ctx context.Context) (*TreesResp, error) {

@@ -40,11 +40,8 @@ func SelectTrees(series *api.Series, trees []*api.Tree) []*api.Tree {
 		result = append(result, tree)
 	}
 	sort.SliceStable(result, func(i, j int) bool {
-		a, b := result[i], result[j]
-		if tagsMap[a.Name] != tagsMap[b.Name] {
-			return tagsMap[a.Name]
-		}
-		return a.Priority > b.Priority
+		// First the trees from the patch subject, then everything else.
+		return tagsMap[result[i].Name] && !tagsMap[result[j].Name]
 	})
 	return result
 }

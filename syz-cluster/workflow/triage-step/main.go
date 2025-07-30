@@ -73,13 +73,19 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 			SkipReason: "no suitable base kernel trees found",
 		}, nil
 	}
+	fuzzConfig := triage.SelectFuzzConfig(series, treesResp.FuzzConfigs)
+	if fuzzConfig == nil {
+		return &api.TriageResult{
+			SkipReason: "no suitable fuzz config found",
+		}, nil
+	}
 	var triageResult *api.TriageResult
 	for _, tree := range selectedTrees {
 		tracer.Log("considering tree %q", tree.Name)
 		arch := "amd64"
 		lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
 			Arch:       arch,
-			ConfigName: tree.KernelConfig,
+			ConfigName: fuzzConfig.KernelConfig,
 			TreeName:   tree.Name,
 			Status:     api.BuildSuccess,
 		})
@@ -107,16 +113,16 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 		base := api.BuildRequest{
 			TreeName:   tree.Name,
 			TreeURL:    tree.URL,
-			ConfigName: tree.KernelConfig,
+			ConfigName: fuzzConfig.KernelConfig,
 			CommitHash: result.Commit,
 			Arch:       arch,
 		}
 		triageResult = &api.TriageResult{
-			Fuzz: &api.FuzzConfig{
+			Fuzz: &api.FuzzTask{
 				Base:      base,
 				Patched:   base,
-				Config:    tree.FuzzConfig,
-				CorpusURL: tree.CorpusURL(),
+				Config:    fuzzConfig.Name,
+				CorpusURL: fuzzConfig.CorpusURL,
 			},
 		}
 		triageResult.Fuzz.Patched.SeriesID = series.ID
