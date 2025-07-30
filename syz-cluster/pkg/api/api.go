@@ -210,6 +210,12 @@ const (
 // The list is ordered by decreasing importance.
 var FuzzConfigs = []*FuzzConfig{
 	{
+		Name:         `kvm`,
+		EmailLists:   []string{`kvm@vger.kernel.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		CorpusURL:    allCorpusURL,
+	},
+	{
 		Name:         `bpf`,
 		EmailLists:   []string{`bpf@vger.kernel.org`},
 		KernelConfig: `upstream-apparmor-kasan.config`,
