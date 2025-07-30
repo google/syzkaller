@@ -1081,6 +1081,7 @@ type UIInput struct {
 }
 
 type UIPageHeader struct {
+	Name      string
 	PageTitle string
 	// Relative page URL w/o GET parameters (e.g. "/stats").
 	URLPath string
@@ -1104,6 +1105,7 @@ func (serv *HTTPServer) pageHeader(r *http.Request, title string) UIPageHeader {
 	url.Host = ""
 	url.User = nil
 	return UIPageHeader{
+		Name:            serv.Cfg.Name,
 		PageTitle:       title,
 		URLPath:         r.URL.Path,
 		CurrentURL:      url.String(),
