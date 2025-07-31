@@ -816,25 +816,21 @@ func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transiti
 	for _, file := range allFiles {
 		directMap[file] = struct{}{}
 		if strings.HasSuffix(file, ".h") && cfg.KernelSrc != "" {
+			// For .h files, we want to determine all the .c files that include them.
 			// Ideally, we should combine this with the recompilation process - then we know
 			// exactly which files were affected by the patch.
-			out, err := osutil.RunCmd(time.Minute, cfg.KernelSrc, "/usr/bin/grep",
-				"-rl", "--include", `*.c`, `<`+strings.TrimPrefix(file, "include/")+`>`)
+			matching, err := osutil.GrepFiles(cfg.KernelSrc, `.c`,
+				[]byte(`<`+strings.TrimPrefix(file, "include/")+`>`))
 			if err != nil {
-				log.Logf(0, "failed to grep for the header usages: %v", err)
+				log.Logf(0, "failed to grep for includes: %s", err)
 				continue
 			}
-			lines := strings.Split(string(out), "\n")
-			if len(lines) >= maxAffectedByHeader {
+			if len(matching) >= maxAffectedByHeader {
 				// It's too widespread. It won't help us focus on anything.
-				log.Logf(0, "the header %q is included in too many files (%d)", file, len(lines))
+				log.Logf(0, "the header %q is included in too many files (%d)", file, len(matching))
 				continue
 			}
-			for _, name := range lines {
-				name = strings.TrimSpace(name)
-				if name == "" {
-					continue
-				}
+			for _, name := range matching {
 				transitiveMap[name] = struct{}{}
 			}
 		}

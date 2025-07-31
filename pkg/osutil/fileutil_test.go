@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProcessTempDir(t *testing.T) {
@@ -59,4 +62,18 @@ func TestProcessTempDir(t *testing.T) {
 			}
 		}()
 	}
+}
+
+func TestGrepFiles(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, FillDirectory(dir, map[string]string{
+		"a.c":     `must be found`,
+		"a/b.c":   `nested`,
+		"a/b/c.c": `even more nested, must be found`,
+		"a.txt":   `must be found, but has a different extension`,
+	}))
+
+	ret, err := GrepFiles(dir, ".c", []byte(`must be found`))
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"a.c", "a/b/c.c"}, ret)
 }
