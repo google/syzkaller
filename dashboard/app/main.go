@@ -88,6 +88,7 @@ func initHTTPHandlers() {
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
 	http.HandleFunc("/cron/subsystem_reports", handleSubsystemReports)
+	http.HandleFunc("/cron/update_coverdb_subsystems", handleUpdateCoverDBSubsystems)
 }
 
 func handleMovedPermanently(dest string) http.HandlerFunc {

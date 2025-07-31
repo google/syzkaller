@@ -1963,12 +1963,7 @@ func apiSaveCoverage(c context.Context, payload io.Reader) (interface{}, error) 
 	if err := jsonDec.Decode(descr); err != nil {
 		return 0, fmt.Errorf("json.NewDecoder(coveragedb.HistoryRecord).Decode: %w", err)
 	}
-	var sss []*subsystem.Subsystem
-	if service := getNsConfig(c, descr.Namespace).Subsystems.Service; service != nil {
-		sss = service.List()
-		log.Infof(c, "found %d subsystems for %s namespace", len(sss), descr.Namespace)
-	}
-	rowsCreated, err := coveragedb.SaveMergeResult(c, getCoverageDBClient(c), descr, jsonDec, sss)
+	rowsCreated, err := coveragedb.SaveMergeResult(c, getCoverageDBClient(c), descr, jsonDec)
 	if err != nil {
 		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
 			descr.Namespace, descr.DateTo.String(), err)

@@ -36,3 +36,6 @@ cron:
 # We use 15 for convenience here.
 - url: /cron/email_coverage_reports
   schedule: 15 of month 00:00
+# Weekly update the kernel-file -> subsystems relationship
+- url: /cron/update_coverdb_subsystems
+  schedule: every monday
