@@ -4,8 +4,10 @@
 package osutil
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -80,4 +82,29 @@ func WriteTempFile(data []byte) (string, error) {
 	}
 	f.Close()
 	return f.Name(), nil
+}
+
+// GrepFiles returns the list of files (relative to root) that include target.
+// If ext is not empty, the files will be filtered by the extension.
+// The function assumes that the files are not too big and may fit in memory.
+func GrepFiles(root, ext string, target []byte) ([]string, error) {
+	var ret []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || filepath.Ext(path) != ext {
+			return nil
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to open %s: %w", path, err)
+		}
+		if bytes.Contains(content, target) {
+			rel, _ := filepath.Rel(root, path)
+			ret = append(ret, rel)
+		}
+		return nil
+	})
+	return ret, err
 }
