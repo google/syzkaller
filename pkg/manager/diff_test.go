@@ -4,8 +4,10 @@
 package manager
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -14,6 +16,13 @@ import (
 )
 
 func TestPatchFocusAreas(t *testing.T) {
+	if data, err := osutil.RunCmd(time.Minute, "", "grep", "--help"); err != nil ||
+		!bytes.Contains(data, []byte("--include")) {
+		// Not all grep implementation support --include (e.g. it's the case
+		// with our OpenBSD fuzzing setup).
+		// Don't let it fail the test.
+		t.Skipf("grep not found / doesn't support --include: error %s", err)
+	}
 	cfg := &mgrconfig.Config{
 		KernelSrc: t.TempDir(),
 	}
