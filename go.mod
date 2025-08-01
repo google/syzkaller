@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20250625212726-86fd2c0a1a74
 	github.com/prometheus/client_golang v1.22.0
-	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
+	github.com/sergi/go-diff v1.4.0
 	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
