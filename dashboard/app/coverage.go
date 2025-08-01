@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/urlutil"
 	"github.com/google/syzkaller/pkg/validator"
 	"google.golang.org/appengine/v2"
+	"google.golang.org/appengine/v2/log"
 )
 
 var coverageDBClient spannerclient.SpannerClient
@@ -392,4 +393,24 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 		},
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
+}
+
+func handleUpdateCoverDBSubsystems(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	for ns, nsConfig := range getConfig(ctx).Namespaces {
+		service := nsConfig.Subsystems.Service
+		if service == nil {
+			continue
+		}
+		sss := service.List()
+		updatedRecords, err := coveragedb.RegenerateSubsystems(ctx, ns, sss, coverageDBClient)
+		if err != nil {
+			httpErr := fmt.Errorf("ns %s: %w", ns, err)
+			log.Errorf(ctx, "%s", httpErr.Error())
+			http.Error(w, httpErr.Error(), http.StatusInternalServerError)
+			return
+		}
+		log.Infof(ctx, "%s: %v records updated\n", ns, updatedRecords)
+		fmt.Fprintf(w, "%s: %v records updated\n", ns, updatedRecords)
+	}
 }

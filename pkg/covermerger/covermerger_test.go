@@ -55,8 +55,8 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		spannerMock := mocks.NewSpannerClient(t)
 		spannerMock.
 			On("Apply", mock.Anything, mock.MatchedBy(func(ms []*spanner.Mutation) bool {
-				// 1 file * (5 managers + 1 manager total) x 2 (to update files and subsystems) + 1 merge_history + 18 functions
-				return len(ms) == 13+18
+				// 1 file * (5 managers + 1 manager total) x 1 (to update files) + 1 merge_history + 18 functions
+				return len(ms) == 1*(5+1)*1+1+18
 			})).
 			Return(time.Now(), nil).
 			Once()
@@ -67,7 +67,7 @@ func TestMergeCSVWriteJSONL_and_coveragedb_SaveMergeResult(t *testing.T) {
 		descr := new(coveragedb.HistoryRecord)
 		assert.NoError(t, decoder.Decode(descr))
 
-		_, err = coveragedb.SaveMergeResult(context.Background(), spannerMock, descr, decoder, nil)
+		_, err = coveragedb.SaveMergeResult(context.Background(), spannerMock, descr, decoder)
 		return err
 	})
 	assert.NoError(t, eg.Wait())
