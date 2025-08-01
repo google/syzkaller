@@ -348,8 +348,16 @@ struct call_t {
 struct cover_t {
 	int fd;
 	uint32 size;
+	// mmap_alloc_ptr is the internal pointer to KCOV mapping, possibly with guard pages.
+	// It is only used to allocate/deallocate the buffer of mmap_alloc_size.
+	char* mmap_alloc_ptr;
 	uint32 mmap_alloc_size;
+	// data is the pointer to the kcov buffer containing the recorded PCs.
+	// data may differ from mmap_alloc_ptr.
 	char* data;
+	// data_size is set by cover_open(). This is the requested kcov buffer size.
+	uint32 data_size;
+	// data_end is simply data + data_size.
 	char* data_end;
 	// Currently collecting comparisons.
 	bool collect_comps;

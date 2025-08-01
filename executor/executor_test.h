@@ -75,7 +75,7 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 
 static void cover_open(cover_t* cov, bool extra)
 {
-	cov->mmap_alloc_size = kCoverSize * sizeof(unsigned long);
+	cov->data_size = kCoverSize * sizeof(unsigned long);
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
@@ -102,14 +102,16 @@ static void cover_protect(cover_t* cov)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->mmap_alloc_ptr != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
-	if (cov->mmap_alloc_size == 0)
+	if (cov->data_size == 0)
 		fail("cover_t structure is corrupted");
-	cov->data = (char*)mmap(NULL, cov->mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-	if (cov->data == MAP_FAILED)
+	cov->mmap_alloc_size = cov->data_size;
+	cov->mmap_alloc_ptr = (char*)mmap(NULL, cov->mmap_alloc_size,
+					  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	if (cov->mmap_alloc_ptr == MAP_FAILED)
 		exitf("cover mmap failed");
+	cov->data = cov->mmap_alloc_ptr;
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
 	// We don't care about the specific PC values for now.
@@ -125,9 +127,9 @@ static long inject_cover(cover_t* cov, long a, long b)
 {
 	if (cov->data == nullptr)
 		return ENOENT;
-	uint32 size = std::min((uint32)b, cov->mmap_alloc_size);
+	uint32 size = std::min((uint32)b, cov->data_size);
 	memcpy(cov->data, (void*)a, size);
-	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->mmap_alloc_size - size));
+	memset(cov->data + size, 0xcd, std::min<uint64>(100, cov->data_size - size));
 	return 0;
 }
 

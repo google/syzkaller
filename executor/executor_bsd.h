@@ -71,7 +71,7 @@ static void cover_open(cover_t* cov, bool extra)
 #if GOOS_freebsd
 	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize))
 		fail("ioctl init trace write failed");
-	cov->mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
+	cov->data_size = kCoverSize * KCOV_ENTRY_SIZE;
 #elif GOOS_openbsd
 	unsigned long cover_size = kCoverSize;
 	if (ioctl(cov->fd, KIOSETBUFSIZE, &cover_size))
@@ -83,7 +83,7 @@ static void cover_open(cover_t* cov, bool extra)
 		if (ioctl(cov->fd, KIOREMOTEATTACH, &args))
 			fail("ioctl remote attach failed");
 	}
-	cov->mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
+	cov->data_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
 #elif GOOS_netbsd
 	uint64_t cover_size;
 	if (extra) {
@@ -100,18 +100,20 @@ static void cover_open(cover_t* cov, bool extra)
 		if (ioctl(cov->fd, KCOV_IOC_SETBUFSIZE, &cover_size))
 			fail("ioctl init trace write failed");
 	}
-	cov->mmap_alloc_size = cover_size * KCOV_ENTRY_SIZE;
+	cov->data_size = cover_size * KCOV_ENTRY_SIZE;
 #endif
 }
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->mmap_alloc_ptr != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
+	cov->mmap_alloc_size = cov->data_size;
 	void* mmap_ptr = mmap(NULL, cov->mmap_alloc_size, PROT_READ | PROT_WRITE,
 			      MAP_SHARED, cov->fd, 0);
 	if (mmap_ptr == MAP_FAILED)
 		fail("cover mmap failed");
+	cov->mmap_alloc_ptr = (char*)mmap_ptr;
 	cov->data = (char*)mmap_ptr;
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
@@ -120,13 +122,13 @@ static void cover_mmap(cover_t* cov)
 
 static void cover_protect(cover_t* cov)
 {
-	if (cov->data == NULL)
+	if (cov->mmap_alloc_ptr == NULL)
 		fail("cover_protect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	long page_size = sysconf(_SC_PAGESIZE);
 	if (page_size > 0)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
+		mprotect(cov->mmap_alloc_ptr + page_size, mmap_alloc_size - page_size,
 			 PROT_READ);
 #elif GOOS_openbsd
 	int mib[2], page_size;
@@ -135,20 +137,20 @@ static void cover_protect(cover_t* cov)
 	mib[1] = HW_PAGESIZE;
 	size_t len = sizeof(page_size);
 	if (sysctl(mib, ARRAY_SIZE(mib), &page_size, &len, NULL, 0) != -1)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size, PROT_READ);
+		mprotect(cov->mmap_alloc_ptr + page_size, mmap_alloc_size - page_size, PROT_READ);
 #endif
 }
 
 static void cover_unprotect(cover_t* cov)
 {
-	if (cov->data == NULL)
+	if (cov->mmap_alloc_ptr == NULL)
 		fail("cover_unprotect invoked on an unmapped cover_t object");
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
-	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	mprotect(cov->mmap_alloc_ptr, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #elif GOOS_openbsd
 	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
-	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+	mprotect(cov->mmap_alloc_ptr, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #endif
 }
 
