@@ -73,7 +73,7 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_mmap(cover_t* cov)
 {
-	if (cov->data != NULL)
+	if (cov->mmap_alloc_ptr != NULL)
 		fail("cover_mmap invoked on an already mmapped cover_t object");
 	uintptr_t mmap_ptr = 0;
 	if (ksancov_map(cov->fd, &mmap_ptr, &cov->mmap_alloc_size))
@@ -84,6 +84,7 @@ static void cover_mmap(cover_t* cov)
 	if (cov->mmap_alloc_size > kCoverSize)
 		fail("mmap allocation size larger than anticipated");
 
+	cov->mmap_alloc_ptr = (char*)mmap_ptr;
 	cov->data = (char*)mmap_ptr;
 	cov->data_end = cov->data + cov->mmap_alloc_size;
 }
