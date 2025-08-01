@@ -26,6 +26,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 )
 
 type Context struct {
@@ -61,12 +62,10 @@ func NewContext(customZoneID string) (*Context, error) {
 		return nil, fmt.Errorf("failed to get a token source: %w", err)
 	}
 	httpClient := oauth2.NewClient(background, tokenSource)
-	// nolint
-	// compute.New is deprecated: please use NewService instead.
-	// To provide a custom HTTP client, use option.WithHTTPClient.
-	// If you are using google.golang.org/api/googleapis/transport.APIKey,
-	// use option.WithAPIKey with NewService instead.
-	ctx.computeService, _ = compute.New(httpClient)
+	ctx.computeService, err = compute.NewService(background, option.WithHTTPClient(httpClient))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compute service: %w", err)
+	}
 	// Obtain project name, zone and current instance IP address.
 	ctx.ProjectID, err = ctx.getMeta("project/project-id")
 	if err != nil {
