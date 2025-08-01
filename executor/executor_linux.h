@@ -330,6 +330,8 @@ static const char* setup_kcov_reset_ioctl()
 	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
 	if (fd == -1)
 		return "open of /sys/kernel/debug/kcov failed";
+	close(fd);
+
 	cover_t cov = {};
 	cov.fd = kCoverFd;
 	cover_open(&cov, false);
