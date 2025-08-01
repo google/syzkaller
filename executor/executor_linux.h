@@ -119,6 +119,19 @@ static void cover_open(cover_t* cov, bool extra)
 		debug("pkey protection enabled\n");
 }
 
+static void cover_close(cover_t* cov)
+{
+	if (cov->fd == -1)
+		fail("attempting to close an invalid cover fd");
+	if (cov->enabled) {
+		if (ioctl(cov->fd, KCOV_DISABLE, 0))
+			fail("KCOV_DISABLE failed");
+		cov->enabled = false;
+	}
+	close(cov->fd);
+	cov->fd = -1;
+}
+
 static void cover_protect(cover_t* cov)
 {
 	if (pkeys_enabled && pkey_set(RESERVED_PKEY, PKEY_DISABLE_WRITE))
@@ -175,6 +188,7 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	if (!extra) {
 		if (ioctl(cov->fd, KCOV_ENABLE, kcov_mode))
 			exitf("cover enable write trace failed, mode=%d", kcov_mode);
+		cov->enabled = true;
 		return;
 	}
 	kcov_remote_arg<1> arg = {
@@ -187,6 +201,7 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	arg.handles[0] = kcov_remote_handle(KCOV_SUBSYSTEM_USB, procid + 1);
 	if (ioctl(cov->fd, KCOV_REMOTE_ENABLE, &arg))
 		exitf("remote cover enable write trace failed");
+	cov->enabled = true;
 }
 
 static void cover_reset(cover_t* cov)
@@ -321,7 +336,7 @@ static const char* setup_delay_kcov()
 		munmap(cov.mmap_alloc_ptr, cov.mmap_alloc_size);
 	}
 	munmap(first, cov.mmap_alloc_size);
-	close(cov.fd);
+	cover_close(&cov);
 	return error;
 }
 
@@ -347,7 +362,7 @@ static const char* setup_kcov_reset_ioctl()
 		error = "kernel does not support ioctl(KCOV_RESET_TRACE)";
 	}
 	cover_munmap(&cov);
-	close(cov.fd);
+	cover_close(&cov);
 	return error;
 }
 

@@ -376,6 +376,8 @@ struct cover_t {
 	intptr_t pc_offset;
 	// The coverage buffer has overflowed and we have truncated coverage.
 	bool overflow;
+	// True if cover_enable() was called for this object.
+	bool enabled;
 };
 
 struct thread_t {
