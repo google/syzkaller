@@ -21,8 +21,9 @@ func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
 		panic("cloning of unsafe programs is not supposed to be done")
 	}
 	p1 := &Prog{
-		Target: p.Target,
-		Calls:  cloneCalls(p.Calls, newargs),
+		Target:      p.Target,
+		Calls:       cloneCalls(p.Calls, newargs),
+		EnforceDeps: p.EnforceDeps,
 	}
 	p1.debugValidate()
 	return p1
