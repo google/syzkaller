@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/logging v1.13.0
 	cloud.google.com/go/profiler v0.4.3
 	cloud.google.com/go/pubsub v1.49.0
-	cloud.google.com/go/secretmanager v1.14.7
+	cloud.google.com/go/secretmanager v1.15.0
 	cloud.google.com/go/spanner v1.82.0
 	cloud.google.com/go/storage v1.55.0
 	github.com/VividCortex/gohistogram v1.0.0
