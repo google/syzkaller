@@ -281,7 +281,7 @@ tidy: descriptions
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
 		-extra-arg=-DHOSTGOOS_$(HOSTOS)=1 -extra-arg=-DGIT_REVISION=\"$(REV)\" \
 		--extra-arg=-I. --extra-arg=-Iexecutor/_include \
-		--extra-arg=-std=c++17 \
+		--extra-arg=-std=c++12 \
 		executor/*.cc
 
 lint:
