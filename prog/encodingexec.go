@@ -449,7 +449,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			// here because the kernel will patch these pointers based only on
 			// the relocation table and region array.
 			binary.Write(&payload, binary.LittleEndian, uint64(0xBFACE))
-			if a.Res != nil && a.Res.Size() > 0 {
+			if a.Res != nil {
 				reg, contains := visited[a.Res]
 				// Allocate a new region for the pointee and queue it for
 				// expansion if we haven't visited it yet.

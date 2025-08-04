@@ -760,3 +760,143 @@ func TestSerializeForExecOverflow(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshallKFuzzTestArg(t *testing.T) {
+	testOne(t)
+}
+
+func testOne(t *testing.T) {
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// syz_kfuzztest_run targets are not built into syzkaller by design. We
+	// choose a system call that we know to have a struct input in order
+	// to test marshallKFuzzTestArg, which takes a structure as input.
+	// In this case, sendmsg$nl_xfrm takes a pointer to a struct msghdr_netlink
+	// as second argument. This program generates the following struct:
+	//      msghdr_netlink[netlink_msg_xfrm] {
+	//        addr: nil
+	//        addrlen: len = 0x0 (4 bytes)
+	//        pad = 0x0 (4 bytes)
+	//        vec: ptr[in, iovec[in, netlink_msg_xfrm]] {
+	//          iovec[in, netlink_msg_xfrm] {
+	//            addr: ptr[inout, array[ANYUNION]] {
+	//              array[ANYUNION] {
+	//              }
+	//            }
+	//            len: len = 0x33fe0 (8 bytes)
+	//          }
+	//        }
+	//        vlen: const = 0x1 (8 bytes)
+	//        ctrl: const = 0x0 (8 bytes)
+	//        ctrllen: const = 0x0 (8 bytes)
+	//        f: send_flags = 0x0 (4 bytes)
+	//        pad = 0x0 (4 bytes)
+	//      }
+	progStr := `r0 = openat$cgroup_ro(0xffffffffffffff9c, &(0x7f00000003c0)='cpuacct.stat\x00', 0x26e1, 0x0)
+sendmsg$nl_xfrm(r0, &(0x7f0000000240)={0x0, 0x0, &(0x7f0000000080)={&(0x7f00000001c0)=ANY=[], 0x33fe0}}, 0x0)`
+
+	p, err := target.Deserialize([]byte(progStr), NonStrict)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sanity checks in case the underlying description for this program changes.
+	if len(p.Calls) != 2 {
+		t.Fatal("deserialized program has incorrect number of calls")
+	}
+	if len(p.Calls[1].Args) != 3 {
+		t.Fatalf("a call in the deserialized program has an incorrect number of arguments")
+	}
+
+	sendMsgCall := p.Calls[1]
+	msgHdr := sendMsgCall.Args[1].(*PointerArg).Res
+
+	// More sanity checks.
+	if structArg, ok := msgHdr.(*GroupArg); !ok {
+		t.Fatal("top level argument is not a struct")
+	} else if len(structArg.Inner) != 9 {
+		t.Fatal("struct type has incorret number of fields")
+	}
+
+	encoded := marshallKFuzztestArg(msgHdr)
+
+	expectedRelocationTable := []byte{
+		// Header: nentries = 3.
+		0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Num entries.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 3 x Padding.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+		// entries[0]: nil pointer at offset 0 of region 0.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region ID.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset.
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // Null pointer.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Padding.
+
+		// entries[1]: pointer to vec (region 1) at offset 16 of region 0.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region ID.
+		0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset.
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 1.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Padding.
+
+		// entries[2]: pointer to array (region 2) at offset 0 of region 1.
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region ID.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset.
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 1.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Padding.
+	}
+	expectedRegionArray := []byte{
+		// Header: nentries = 3.
+		0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Num regions.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 3 x Padding.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+		// region 0: the top-level struct msghdr.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 0.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset 0 in payload.
+		0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Size = 56 bytes.
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 8-byte-aligned.
+
+		// region 1: iovec
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 1.
+		0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset 56 in payload.
+		0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Size = 16 bytes (one pointer, one len).
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 8-byte-aligned.
+
+		// region 2: array[ANYUNION]
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 2.
+		0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Offset 72 in payload.
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Size = 0 bytes (empty array).
+		0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 8-byte-aligned.
+	}
+
+	headerLen := len(expectedRelocationTable) + len(expectedRegionArray)
+	if len(encoded) < headerLen {
+		t.Fatalf("encoded data was too short")
+	}
+
+	for i := range expectedRelocationTable {
+		if encoded[i] != expectedRelocationTable[i] {
+			t.Logf("encoded[%d] incorrect: got 0x%02x want 0x%02x", i, encoded[i], expectedRelocationTable[i])
+			t.Fail()
+		}
+	}
+	for i := range expectedRegionArray {
+		offset := len(expectedRelocationTable)
+		if encoded[i+offset] != expectedRegionArray[i] {
+			t.Logf("encoded[%d] incorrect: got 0x%02x want 0x%02x", i+offset, encoded[i+offset], expectedRegionArray[i])
+			t.Fail()
+		}
+	}
+
+	payloadLen := len(encoded) - headerLen
+	expectedPayloadLen := 0x48
+
+	if payloadLen != expectedPayloadLen {
+		t.Fatalf("incorrect payload length: got 0x%02x wanted 0x%02x", payloadLen, expectedPayloadLen)
+	}
+}
