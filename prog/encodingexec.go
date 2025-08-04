@@ -247,13 +247,13 @@ func (w *execContext) writeCopyin(c *Call) {
 }
 
 // Special value for making null pointers that equals (void *)-1
-const kFuzzTestNilPtrVal uint64 = ^uint64(0)
+const kFuzzTestNilPtrVal uint32 = ^uint32(0)
 
 // Number of integers of padding.
-const relocationTablePaddingInts uint32 = 7
+const relocationTablePaddingInts uint32 = 3
 
 // Number of uint64s of padding.
-const regionArrayPaddingLongs uint32 = 3
+const regionArrayPaddingInts uint32 = 2
 
 // marshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
 // understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
@@ -294,43 +294,43 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	// see `linux/include/kftf.h`
 	type relocationEntry struct {
 		// Region that a pointer belongs to.
-		regionID uint64
+		regionID uint32
 		// Offset within its own region.
-		regionOffset uint64
+		regionOffset uint32
 		// Contains a region identifier, or kfuzzTestNilPtrVal if nil.
-		value uint64
+		value uint32
 	}
 	// Defines a unit of allocation made by the KFuzzTest parser.
 	type relocRegion struct {
 		// Identifier for this region, corresponding to its index in the
 		// resulting relocation region array. See `include/linux/kftf.h`
-		id uint64
+		id uint32
 		// Offset of the start of the region in the payload.
-		start uint64
+		start uint32
 		// Size of the region in bytes.
-		size uint64
+		size uint32
 		// Alignment of this region (not important for now, as every allocation
 		// in the kernel will be 8-byte aligned which should suffice for now).
-		alignment uint64
+		alignment uint32
 	}
 	// Argument bundled with the memory region that it belongs to.
 	type argWithRegionID struct {
 		arg      Arg
-		regionID uint64
+		regionID uint32
 	}
 	// Given a slice of relocation table entries, encodes them in the binary
 	// format expected by the kernel.
 	generateRelocationTable := func(relocationTableEntries []relocationEntry) []byte {
 		var relocationTable bytes.Buffer
-		numEntries := int32(len(relocationTableEntries))
+		numEntries := uint32(len(relocationTableEntries))
 		padding := make([]byte, relocationTablePaddingInts*4)
 		binary.Write(&relocationTable, binary.LittleEndian, numEntries)
 		binary.Write(&relocationTable, binary.LittleEndian, padding)
 		for _, entry := range relocationTableEntries {
-			binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.regionID))
-			binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.regionOffset))
-			binary.Write(&relocationTable, binary.LittleEndian, uint64(entry.value))
-			binary.Write(&relocationTable, binary.LittleEndian, uint64(0)) // Padding.
+			binary.Write(&relocationTable, binary.LittleEndian, entry.regionID)
+			binary.Write(&relocationTable, binary.LittleEndian, entry.regionOffset)
+			binary.Write(&relocationTable, binary.LittleEndian, entry.value)
+			binary.Write(&relocationTable, binary.LittleEndian, uint32(0)) // Padding.
 		}
 		return relocationTable.Bytes()
 	}
@@ -345,16 +345,17 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			// is monotonically increasing.
 			arr[region.id] = region
 		}
-		numEntries := uint64(len(arr))
-		padding := make([]byte, regionArrayPaddingLongs*8)
+		numEntries := uint32(len(arr))
+		padding := make([]byte, regionArrayPaddingInts*4)
 		binary.Write(&regionArray, binary.LittleEndian, numEntries)
+		binary.Write(&regionArray, binary.LittleEndian, uint32(0)) // TODO: handle mode.
 		binary.Write(&regionArray, binary.LittleEndian, padding)
 
 		for _, region := range arr {
-			binary.Write(&regionArray, binary.LittleEndian, region.id)
 			binary.Write(&regionArray, binary.LittleEndian, region.start)
 			binary.Write(&regionArray, binary.LittleEndian, region.size)
 			binary.Write(&regionArray, binary.LittleEndian, region.alignment)
+			binary.Write(&regionArray, binary.LittleEndian, uint32(0))
 		}
 		return regionArray.Bytes()
 	}
@@ -375,8 +376,8 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	}
 
 	// Allocates a new logical heap region with strictly increasing IDs.
-	regionCtr := uint64(0)
-	allocRegion := func(size uint64, alignment uint64) relocRegion {
+	regionCtr := uint32(0)
+	allocRegion := func(size uint32, alignment uint32) relocRegion {
 		reg := relocRegion{id: regionCtr, size: size, alignment: alignment}
 		regionCtr++
 		return reg
@@ -385,7 +386,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	// Allocate a region for the top-level argument. This is always region 0,
 	// irrespective on whether there are other regions or not. We currently
 	// set the alignment to 0x8. TODO: handle this alignment in kernel.
-	regionForTopLevel := allocRegion(topLevel.Size(), 0x8)
+	regionForTopLevel := allocRegion(uint32(topLevel.Size()), 0x8)
 
 	// Two-levels of queuing - those that must be handled directly (constants,
 	// nested structures) and pointee arguments whose handling should be
@@ -419,7 +420,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 
 	// XXX: it feels error prone to deal with this type of mutable state. It
 	// may be better to pass the offset in with the regionID.
-	offsetInRegion := uint64(0)
+	offsetInRegion := uint32(0)
 	for {
 		if len(layoutQueue) == 0 && len(deferredPointers) == 0 {
 			break
@@ -431,9 +432,13 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			argWithReg = layoutQueue[0]
 			layoutQueue = layoutQueue[1:]
 		} else if len(deferredPointers) > 0 {
+			// Insert 8 bytes of padding between every region so that it can
+			// be poisoned if necessary.
+			binary.Write(&payload, binary.LittleEndian, uint64(0))
+
 			// Expanding a pointee. This indicates the start of a new region.
 			offsetInRegion = 0
-			// pop from deferredPointers and create a relocation table entry
+			// Pop from deferredPointers and create a relocation table entry.
 			argWithReg = deferredPointers[0]
 			deferredPointers = deferredPointers[1:]
 			// We now know the start of the region, and thereore can update
@@ -442,7 +447,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			if !ok {
 				panic("tried to visit a pointee without having allocated a region for it")
 			}
-			reg.start = uint64(payload.Len())
+			reg.start = uint32(payload.Len())
 			visited[argWithReg.arg] = reg
 		} else {
 			panic("at least one queue should have remaining entries at this point")
@@ -460,9 +465,10 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			if a.Res != nil {
 				reg, contains := visited[a.Res]
 				// Allocate a new region for the pointee and queue it for
-				// expansion if we haven't visited it yet.
+				// expansion if we haven't visited it yet. We always align to
+				// 8 bytes.
 				if !contains {
-					reg = allocRegion(a.Res.Size(), 8)
+					reg = allocRegion(uint32(a.Res.Size()), 0x8)
 					visited[a.Res] = reg
 					// Visit the new region, marking the offset as 0.
 					deferred := argWithRegionID{arg: a.Res, regionID: reg.id}
@@ -517,8 +523,11 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 		sizeAfterWrite := payload.Len()
 		// Update the offset within the region. Ensures that we maintain the
 		// correct relative offset.
-		offsetInRegion += uint64(sizeAfterWrite) - uint64(sizeBeforeWrite)
+		offsetInRegion += uint32(sizeAfterWrite) - uint32(sizeBeforeWrite)
 	}
+
+	// Pad the end of the payload.
+	binary.Write(&payload, binary.LittleEndian, uint64(0))
 
 	relocationTableBytes := generateRelocationTable(relocationTableEntries)
 	regionArrayBytes := generateRegionArray(visited)
