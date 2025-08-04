@@ -255,33 +255,41 @@ const relocationTablePaddingInts uint32 = 7
 // Number of uint64s of padding.
 const regionArrayPaddingLongs uint32 = 3
 
-// marshallKFuzztestArg serializes a top-level struct argument (`topLevel`) into
-// a single binary blob that can be consumed by the kernel. The output format,
-// defined in `linux/include/kftf.h`, is designed for position-independent data
-// transfer and consists of a relocation table followed by a raw data payload.
+// marshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
+// understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
 //
-// The function serializes the tree-like Arg structure using a level-order
-// traversal. This approach ensures that nested structures are
-// ensuring that nested structures are laid out contiguously in memory. If
-// pointer arguments are found, the pointed-to data will be laid out directly
-// after the structure that the pointer is found in.
+// The goal is to represent a tree-like structure of arguments (which may contain
+// pointers and cycles) as a single byte slice that the kernel can deserialize
+// into a set of distinct heap allocations.
 //
-// TODO: update comments as they are outdated.
-
-// The process works as follows:
-//  1. All non-pointer fields of the input struct are processed first from a
-//     queue, and their raw data is written sequentially into the main `payload`
-//     buffer.
-//  2. When a pointer is encountered, a placeholder is written into the payload,
-//     and a `relocationEntry` is created and deferred to a separate pointer
-//     queue. The `entry.pointer` field is set to the current offset within the
-//     payload.
-//  3. After all primary struct data is serialized, the pointer queue is
-//     processed. The data pointed to by each deferred entry is serialized at
-//     the end of the payload, and the `entry.value` is calculated as the
-//     relative offset between the pointer's location and its target data.
-//  4. Finally, the completed `relocation_table` is serialized and prepended to
-//     the `payload` buffer to form the complete binary blob.
+// The binary format consists of three contiguous parts, in this order:
+//
+//  1. Relocation Table: A header containing a list of `relocationEntry` structs.
+//     Each entry identifies the location of a pointer field within the payload
+//     (via a `regionID` and `regionOffset`) and maps it to the logical region
+//     it points to (via a `value` which holds the pointee's `regionID`).
+//     A NULL pointer is identified by the special value `kFuzzTestNilPtrVal`.
+//
+//  2. Region Array: A header describing all logical memory regions that will be
+//     allocated by the kernel. Each `relocRegion` defines a region's unique `id`,
+//     its `size`, its `alignment`, and its `start` offset within the payload.
+//     The kernel uses this table to create one distinct heap allocation per region.
+//
+//  3. Payload: The raw, serialized data for all arguments, laid out as a single
+//     contiguous block of memory.
+//
+// The serialization algorithm performs a multi-level, level-order traversal of the
+// argument graph, starting from the `topLevel` argument. This traversal is managed
+// by two queues: one for the immediate fields of a struct, and a second "deferred"
+// queue for the pointees of any pointer arguments. This ensures that when a
+// pointer is encountered, its pointee is only expanded after the entire
+// structure containing the pointer has been serialized into the payload.
+//
+// Cycles are handled by tracking visited arguments, ensuring that a region for a
+// given pointee is allocated only once.
+//
+// For a concrete example of the final binary layout, see the test cases for this
+// function in `prog/encodingexec_test.go`.
 func marshallKFuzztestArg(topLevel Arg) []byte {
 	// see `linux/include/kftf.h`
 	type relocationEntry struct {
@@ -366,7 +374,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 		panic("top-level argument was not a GroupArg")
 	}
 
-	// Allocates a new heap region.
+	// Allocates a new logical heap region with strictly increasing IDs.
 	regionCtr := uint64(0)
 	allocRegion := func(size uint64, alignment uint64) relocRegion {
 		reg := relocRegion{id: regionCtr, size: size, alignment: alignment}
