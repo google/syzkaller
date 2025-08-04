@@ -800,8 +800,8 @@ func checkSection(t *testing.T, sectionName string, got, want []byte) {
 type testCase struct {
 	prog            string
 	extractArg      func(*Prog) Arg
-	relocationTable []byte
 	regionArray     []byte
+	relocationTable []byte
 	payload         []byte
 }
 
@@ -814,22 +814,6 @@ sendmsg$nl_xfrm(r0, &(0x7f0000000240)={0x0, 0x0, &(0x7f0000000080)={&(0x7f000000
 				sendMsgCall := p.Calls[1]
 				msgHdr := sendMsgCall.Args[1].(*PointerArg).Res
 				return msgHdr
-			},
-			[]byte{ // Header: nentries = 3.
-				0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Num entries | Padding.
-				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 2x Padding.
-
-				// entries[0]: nil pointer at offset 0 of region 0.
-				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RegionID | Offset.
-				0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, // Null pointer | padding.
-
-				// entries[1]: pointer to vec (region 1) at offset 16 of region 0.
-				0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, // RegionID | Offset.
-				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 1 | padding.
-
-				// entries[2]: pointer to array (region 2) at offset 0 of region 1.
-				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RegionID | Offset.
-				0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 2 | padding.
 			},
 			[]byte{
 				0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Nentries | Mode = DISTINCT.
@@ -846,6 +830,22 @@ sendmsg$nl_xfrm(r0, &(0x7f0000000240)={0x0, 0x0, &(0x7f0000000080)={&(0x7f000000
 				// region 2: array[ANYUNION]
 				0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Start = 0x58 | size = 0 bytes.
 				0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Alignment = 8 | padding.
+			},
+			[]byte{ // Header: nentries = 3.
+				0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Num entries | Padding.
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 2x Padding.
+
+				// entries[0]: nil pointer at offset 0 of region 0.
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RegionID | Offset.
+				0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, // Null pointer | padding.
+
+				// entries[1]: pointer to vec (region 1) at offset 16 of region 0.
+				0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, // RegionID | Offset.
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 1 | padding.
+
+				// entries[2]: pointer to array (region 2) at offset 0 of region 1.
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RegionID | Offset.
+				0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Region 2 | padding.
 			},
 			[]byte{
 				// Payload for region 0 (msghdr_netlink)
@@ -893,19 +893,19 @@ func testOne(t *testing.T, tc testCase) {
 	}
 
 	arg := tc.extractArg(p)
-	encoded := marshallKFuzztestArg(arg)
+	encoded := marshallKFuzztestArg(arg, relocationModeDistinct)
 
-	relocTableLen := len(tc.relocationTable)
 	regionArrayLen := len(tc.regionArray)
+	relocTableLen := len(tc.relocationTable)
 	payloadLen := len(tc.payload)
 
-	if len(encoded) != relocTableLen+regionArrayLen+payloadLen {
+	if len(encoded) != regionArrayLen+relocTableLen+payloadLen {
 		t.Fatalf("encoded output has wrong total length: got %d, want %d",
-			len(encoded), relocTableLen+regionArrayLen+payloadLen)
+			len(encoded), regionArrayLen+relocTableLen+payloadLen)
 	}
 
-	gotRelocTable := encoded[:relocTableLen]
-	gotRegionArray := encoded[relocTableLen : relocTableLen+regionArrayLen]
+	gotRegionArray := encoded[:regionArrayLen]
+	gotRelocTable := encoded[regionArrayLen : regionArrayLen+relocTableLen]
 	gotPayload := encoded[relocTableLen+regionArrayLen:]
 
 	checkSection(t, "Relocation Table", gotRelocTable, tc.relocationTable)

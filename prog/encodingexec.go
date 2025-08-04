@@ -158,7 +158,7 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) {
 	// to some struct input. This is the data that must be flattened and sent
 	// to the fuzzing driver with a relocation table.
 	dataArg := c.Args[1].(*PointerArg)
-	finalBlob := marshallKFuzztestArg(dataArg.Res)
+	finalBlob := marshallKFuzztestArg(dataArg.Res, relocationModeDistinct)
 
 	// Reuse the memory address that was pre-allocated for the original struct
 	// argument. This avoids needing to hook into the memory allocation which
@@ -255,6 +255,13 @@ const relocationTablePaddingInts uint32 = 3
 // Number of uint64s of padding.
 const regionArrayPaddingInts uint32 = 2
 
+type relocationMode uint32
+
+const (
+	relocationModeDistinct relocationMode = iota
+	relocationModePoisoned
+)
+
 // marshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
 // understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
 //
@@ -264,16 +271,16 @@ const regionArrayPaddingInts uint32 = 2
 //
 // The binary format consists of three contiguous parts, in this order:
 //
-//  1. Relocation Table: A header containing a list of `relocationEntry` structs.
+//  1. Region Array: A header describing all logical memory regions that will be
+//     allocated by the kernel. Each `relocRegion` defines a region's unique `id`,
+//     its `size`, its `alignment`, and its `start` offset within the payload.
+//     The kernel uses this table to create one distinct heap allocation per region.
+//
+//  2. Relocation Table: A header containing a list of `relocationEntry` structs.
 //     Each entry identifies the location of a pointer field within the payload
 //     (via a `regionID` and `regionOffset`) and maps it to the logical region
 //     it points to (via a `value` which holds the pointee's `regionID`).
 //     A NULL pointer is identified by the special value `kFuzzTestNilPtrVal`.
-//
-//  2. Region Array: A header describing all logical memory regions that will be
-//     allocated by the kernel. Each `relocRegion` defines a region's unique `id`,
-//     its `size`, its `alignment`, and its `start` offset within the payload.
-//     The kernel uses this table to create one distinct heap allocation per region.
 //
 //  3. Payload: The raw, serialized data for all arguments, laid out as a single
 //     contiguous block of memory.
@@ -290,7 +297,7 @@ const regionArrayPaddingInts uint32 = 2
 //
 // For a concrete example of the final binary layout, see the test cases for this
 // function in `prog/encodingexec_test.go`.
-func marshallKFuzztestArg(topLevel Arg) []byte {
+func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 	// see `linux/include/kftf.h`
 	type relocationEntry struct {
 		// Region that a pointer belongs to.
@@ -348,7 +355,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 		numEntries := uint32(len(arr))
 		padding := make([]byte, regionArrayPaddingInts*4)
 		binary.Write(&regionArray, binary.LittleEndian, numEntries)
-		binary.Write(&regionArray, binary.LittleEndian, uint32(0)) // TODO: handle mode.
+		binary.Write(&regionArray, binary.LittleEndian, mode)
 		binary.Write(&regionArray, binary.LittleEndian, padding)
 
 		for _, region := range arr {
@@ -529,9 +536,9 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	// Pad the end of the payload.
 	binary.Write(&payload, binary.LittleEndian, uint64(0))
 
-	relocationTableBytes := generateRelocationTable(relocationTableEntries)
 	regionArrayBytes := generateRegionArray(visited)
-	out := append(relocationTableBytes, regionArrayBytes...)
+	relocationTableBytes := generateRelocationTable(relocationTableEntries)
+	out := append(regionArrayBytes, relocationTableBytes...)
 	return append(out, payload.Bytes()...)
 }
 
