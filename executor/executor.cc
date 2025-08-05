@@ -492,8 +492,6 @@ static flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id,
 static void parse_execute(const execute_req& req);
 static void parse_handshake(const handshake_req& req);
 
-static void mmap_input();
-
 #include "syscalls.h"
 
 #if GOOS_linux
@@ -614,7 +612,11 @@ int main(int argc, char** argv)
 	if (argc > 2 && strcmp(argv[2], "snapshot") == 0) {
 		SnapshotSetup(argv, argc);
 	} else {
-		mmap_input();
+		void* mmap_out = mmap(NULL, kMaxInput, PROT_READ, MAP_SHARED, kInFd, 0);
+		if (mmap_out == MAP_FAILED)
+			fail("mmap of input file failed");
+		input_data = static_cast<uint8*>(mmap_out);
+
 		mmap_output(kInitialOutput);
 
 		// Prevent test programs to mess with these fds.
@@ -708,50 +710,6 @@ int main(int argc, char** argv)
 #endif
 }
 
-static uint32* input_base_address()
-{
-	if (kAddressSanitizer) {
-		// ASan conflicts with -static, so we end up having a dynamically linked syz-executor binary.
-		// It's often the case that the libraries are mapped shortly after 0x7f0000000000, so we cannot
-		// blindly set some HighMemory address and hope it's free.
-		// Since we only run relatively safe (or fake) syscalls under tests, it should be fine to
-		// just use whatever address mmap() returns us.
-		return 0;
-	}
-	// It's the first time we map output region - generate its location.
-	// The output region is the only thing in executor process for which consistency matters.
-	// If it is corrupted ipc package will fail to parse its contents and panic.
-	// But fuzzer constantly invents new ways of how to corrupt the region,
-	// so we map the region at a (hopefully) hard to guess address with random offset,
-	// surrounded by unmapped pages.
-	// The address chosen must also work on 32-bit kernels with 1GB user address space.
-	const uint64 kOutputBase = 0x1b2bc20000ull;
-	return (uint32*)(kOutputBase + (1 << 20) * (getpid() % 128));
-}
-
-static void mmap_input()
-{
-	uint32* mmap_at = input_base_address();
-	int flags = MAP_SHARED;
-	if (mmap_at != 0)
-		// If we map at a specific address, ensure it's not overlapping with anything else.
-		flags = flags | MAP_FIXED_EXCLUSIVE;
-	void* result = mmap(mmap_at, kMaxInput, PROT_READ, flags, kInFd, 0);
-	if (result == MAP_FAILED)
-		fail("mmap of input file failed");
-	input_data = static_cast<uint8*>(result);
-}
-
-static uint32* output_base_address()
-{
-	if (kAddressSanitizer) {
-		// See the comment in input_base_address();
-		return 0;
-	}
-	// Leave some unmmapped area after the input data.
-	return input_base_address() + kMaxInput + SYZ_PAGE_SIZE;
-}
-
 // This method can be invoked as many times as one likes - MMAP_FIXED can overwrite the previous
 // mapping without any problems. The only precondition - kOutFd must not be closed.
 static void mmap_output(uint32 size)
@@ -760,28 +718,34 @@ static void mmap_output(uint32 size)
 		return;
 	if (size % SYZ_PAGE_SIZE != 0)
 		failmsg("trying to mmap output area that is not divisible by page size", "page=%d,area=%d", SYZ_PAGE_SIZE, size);
-	uint32* mmap_at = output_base_address();
-	int flags = MAP_SHARED;
-	if (mmap_at == NULL) {
-		// We map at an address chosen by the kernel, so if there was any previous mapping, just unmap it.
-		if (output_data != NULL) {
-			int ret = munmap(output_data, output_size);
-			if (ret != 0)
-				fail("munmap failed");
-			output_size = 0;
+	uint32* mmap_at = NULL;
+	if (output_data == NULL) {
+		if (kAddressSanitizer) {
+			// ASan allows user mappings only at some specific address ranges,
+			// so we don't randomize. But we also assume 64-bits and that we are running tests.
+			mmap_at = (uint32*)0x7f0000000000ull;
+		} else {
+			// It's the first time we map output region - generate its location.
+			// The output region is the only thing in executor process for which consistency matters.
+			// If it is corrupted ipc package will fail to parse its contents and panic.
+			// But fuzzer constantly invents new ways of how to corrupt the region,
+			// so we map the region at a (hopefully) hard to guess address with random offset,
+			// surrounded by unmapped pages.
+			// The address chosen must also work on 32-bit kernels with 1GB user address space.
+			const uint64 kOutputBase = 0x1b2bc20000ull;
+			mmap_at = (uint32*)(kOutputBase + (1 << 20) * (getpid() % 128));
 		}
 	} else {
-		// We are possibly expanding the mmapped region. Adjust the parameters to avoid mmapping already
+		// We are expanding the mmapped region. Adjust the parameters to avoid mmapping already
 		// mmapped area as much as possible.
 		// There exists a mremap call that could have helped, but it's purely Linux-specific.
-		mmap_at = (uint32*)((char*)(mmap_at) + output_size);
-		// Ensure we don't overwrite anything.
-		flags = flags | MAP_FIXED_EXCLUSIVE;
+		mmap_at = (uint32*)((char*)(output_data) + output_size);
 	}
-	void* result = mmap(mmap_at, size - output_size, PROT_READ | PROT_WRITE, flags, kOutFd, output_size);
+	void* result = mmap(mmap_at, size - output_size,
+			    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, output_size);
 	if (result == MAP_FAILED || (mmap_at && result != mmap_at))
 		failmsg("mmap of output file failed", "want %p, got %p", mmap_at, result);
-	if (output_size == 0)
+	if (output_data == NULL)
 		output_data = static_cast<OutputData*>(result);
 	output_size = size;
 }
