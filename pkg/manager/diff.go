@@ -464,6 +464,23 @@ func (kc *kernelContext) Loop(baseCtx context.Context) error {
 		kc.pool.Loop(ctx)
 		return nil
 	})
+	eg.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case err := <-kc.pool.BootErrors:
+				title := "unknown"
+				var bootErr vm.BootErrorer
+				if errors.As(err, &bootErr) {
+					title, _ = bootErr.BootError()
+				}
+				// Boot errors are not useful for patch fuzzing (at least yet).
+				// Fetch them to not block the channel and print them to the logs.
+				log.Logf(0, "%s: boot error: %s", kc.name, title)
+			}
+		}
+	})
 	return eg.Wait()
 }
 
