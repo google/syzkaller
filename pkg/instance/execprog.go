@@ -120,13 +120,16 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
 		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
 	}
-	opts := []any{exitCondition}
+	optionalBeforeContext := func(*vm.RunOptions) {}
 	if inst.BeforeContextLen != 0 {
-		opts = append(opts, vm.OutputSize(inst.BeforeContextLen))
+		optionalBeforeContext = vm.WithBeforeContext(inst.BeforeContextLen)
 	}
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
-	output, rep, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command, opts...)
+	output, rep, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command,
+		vm.WithExitCondition(exitCondition),
+		optionalBeforeContext,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}

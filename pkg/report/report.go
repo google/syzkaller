@@ -74,7 +74,7 @@ type Report struct {
 	Executor *ExecutorInfo
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
-	// symbolized is set if the report is symbolized.
+	// symbolized is set if the report is symbolized. It prevents double symbolization.
 	symbolized bool
 }
 
