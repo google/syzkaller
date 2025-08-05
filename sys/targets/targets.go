@@ -209,8 +209,10 @@ var List = map[string]map[string]*Target{
 		TestArch64Fuzz: {
 			PtrSize:  8,
 			PageSize: 8 << 10,
-			// -fsanitize=address causes SIGSEGV.
-			CFlags: []string{"-no-pie"},
+			CFlags: []string{
+				"-fsanitize=address",
+				"-no-pie",
+			},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
