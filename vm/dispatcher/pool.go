@@ -40,6 +40,8 @@ type Pool[T Instance] struct {
 	paused    bool
 }
 
+const bootErrorChanCap = 16
+
 func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *Pool[T] {
 	instances := make([]*poolInstance[T], count)
 	for i := 0; i < count; i++ {
@@ -52,7 +54,7 @@ func NewPool[T Instance](count int, creator CreateInstance[T], def Runner[T]) *P
 	}
 	mu := new(sync.Mutex)
 	return &Pool[T]{
-		BootErrors: make(chan error, 16),
+		BootErrors: make(chan error, bootErrorChanCap),
 		creator:    creator,
 		defaultJob: def,
 		instances:  instances,
@@ -125,7 +127,18 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 
 	obj, err := p.creator(inst.idx)
 	if err != nil {
-		p.BootErrors <- err
+		select {
+		case p.BootErrors <- err:
+			return
+		default:
+			// Print some log message to make it visible.
+			log.Logf(0, "WARNING: boot error channel is full!")
+		}
+		select {
+		case p.BootErrors <- err:
+		case <-ctx.Done():
+			// On context cancellation, no one might be listening on the channel.
+		}
 		return
 	}
 	defer obj.Close()
