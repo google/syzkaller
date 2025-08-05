@@ -164,8 +164,9 @@ func (f *testFuzzer) run() {
 		Config: rpcserver.Config{
 			Config: vminfo.Config{
 				Debug:    true,
+				Cover:    true,
 				Target:   f.target,
-				Features: flatrpc.FeatureSandboxNone,
+				Features: flatrpc.FeatureSandboxNone | flatrpc.FeatureCoverage,
 				Sandbox:  flatrpc.ExecEnvSandboxNone,
 			},
 			Procs:    4,
@@ -176,7 +177,6 @@ func (f *testFuzzer) run() {
 		OutputWriter: &output,
 	}
 	cfg.MachineChecked = func(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) queue.Source {
-		cfg.Cover = true
 		return f
 	}
 	if err := rpcserver.RunLocal(ctx, cfg); err != nil {
@@ -184,6 +184,8 @@ func (f *testFuzzer) run() {
 		f.t.Fatal(err)
 	}
 	assert.Equal(f.t, len(f.expectedCrashes), len(f.crashes), "not all expected crashes were found")
+	assert.NotEmpty(f.t, f.fuzzer.Config.Corpus.StatProgs.Val(), "must have non-empty corpus")
+	assert.NotEmpty(f.t, f.fuzzer.Config.Corpus.StatSignal.Val(), "must have non-empty signal")
 }
 
 func (f *testFuzzer) Next() *queue.Request {
@@ -218,12 +220,16 @@ func (f *testFuzzer) OnDone(req *queue.Request, res *queue.Result) bool {
 		f.crashes[crash]++
 	}
 	f.iter++
+	corpusProgs := f.fuzzer.Config.Corpus.StatProgs.Val()
+	signal := f.fuzzer.Config.Corpus.StatSignal.Val()
 	if f.iter%100 == 0 {
 		f.t.Logf("<iter %d>: corpus %d, signal %d, max signal %d, crash types %d, running jobs %d",
-			f.iter, f.fuzzer.Config.Corpus.StatProgs.Val(), f.fuzzer.Config.Corpus.StatSignal.Val(),
-			len(f.fuzzer.Cover.maxSignal), len(f.crashes), f.fuzzer.statJobs.Val())
+			f.iter, corpusProgs, signal, len(f.fuzzer.Cover.maxSignal),
+			len(f.crashes), f.fuzzer.statJobs.Val())
 	}
-	if f.iter > f.iterLimit || len(f.crashes) == len(f.expectedCrashes) {
+	criteriaMet := len(f.crashes) == len(f.expectedCrashes) &&
+		corpusProgs > 0 && signal > 0
+	if f.iter > f.iterLimit || criteriaMet {
 		f.done()
 		f.finished.Store(true)
 	}
