@@ -379,6 +379,9 @@ private:
 
 		debug("proc %d: start executing request %llu\n", id_, static_cast<uint64>(msg_->id));
 
+		// Executor expects the output_data memory to be already zeroed.
+		resp_mem_->Reset();
+
 		rpc::ExecutingMessageRawT exec;
 		exec.id = msg_->id;
 		exec.proc_id = id_;
@@ -447,7 +450,6 @@ private:
 		auto data = finish_output(resp_mem_, id_, msg_->id, num_calls, elapsed, freshness_++, status, hanged, output);
 		conn_.Send(data.data(), data.size());
 
-		resp_mem_->Reset();
 		msg_.reset();
 		output_.clear();
 		debug_output_pos_ = 0;
