@@ -76,10 +76,7 @@ func (inst *testInstance) Close() error {
 }
 
 func init() {
-	beforeContextDefault = maxErrorLength + 100
-	tickerPeriod = 1 * time.Second
 	vmimpl.WaitForOutputTimeout = 3 * time.Second
-
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return &testPool{}, nil
 	}
@@ -87,6 +84,13 @@ func init() {
 		Ctor:        ctor,
 		Preemptible: true,
 	})
+}
+
+func withTestRunOptionsDefaults() func(*RunOptions) {
+	return func(opts *RunOptions) {
+		opts.beforeContext = maxErrorLength + 100
+		opts.tickerPeriod = 1 * time.Second
+	}
 }
 
 type Test struct {
@@ -278,7 +282,7 @@ var tests = []*Test{
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
-				outc <- append(executingProgram, '\n')
+				outc <- []byte(executedProgramsStart + "\n")
 			}
 			errc <- nil
 		},
@@ -307,7 +311,7 @@ var tests = []*Test{
 		Name: "split-line",
 		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
-			// "ODEBUG:" lines should be ignored, however the matchPos logic
+			// "ODEBUG:" lines should be ignored, however the curPos logic
 			// used to trim the lines so that we could see just "BUG:" later
 			// and detect it as crash.
 			buf := new(bytes.Buffer)
@@ -381,12 +385,11 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
 	done := make(chan bool)
 	finishCalled := 0
-	finishCb := EarlyFinishCb(func() { finishCalled++ })
-	opts := []any{test.Exit, finishCb}
 	var inject chan bool
+	injectExecuting := func(opts *RunOptions) {}
 	if test.BodyExecuting != nil {
 		inject = make(chan bool, 10)
-		opts = append(opts, InjectExecuting(inject))
+		injectExecuting = WithInjectExecuting(inject)
 	} else {
 		test.BodyExecuting = func(outc chan []byte, errc chan error, inject chan<- bool) {
 			test.Body(outc, errc)
@@ -396,7 +399,12 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.BodyExecuting(testInst.outc, testInst.errc, inject)
 		done <- true
 	}()
-	_, rep, err := inst.Run(context.Background(), reporter, "", opts...)
+	_, rep, err := inst.Run(context.Background(), reporter, "",
+		withTestRunOptionsDefaults(),
+		WithExitCondition(test.Exit),
+		WithEarlyFinishCb(func() { finishCalled++ }),
+		injectExecuting,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -636,9 +636,10 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	ctxTimeout, cancel := context.WithTimeout(ctx, kc.cfg.Timeouts.VMRunningTime)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, kc.reporter, cmd, vm.ExitTimeout,
-		vm.InjectExecuting(injectExec),
-		vm.EarlyFinishCb(func() {
+	_, rep, err := inst.Run(ctxTimeout, kc.reporter, cmd,
+		vm.WithExitCondition(vm.ExitTimeout),
+		vm.WithInjectExecuting(injectExec),
+		vm.WithEarlyFinishCb(func() {
 			// Depending on the crash type and kernel config, fuzzing may continue
 			// running for several seconds even after kernel has printed a crash report.
 			// This litters the log and we want to prevent it.
