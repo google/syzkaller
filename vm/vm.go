@@ -408,6 +408,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 				continue
 			}
 			mon.inst.pool.statOutputReceived.Add(len(out))
+			mon.checkLastExecuted(out)
 			if rep, done := mon.appendOutput(out); done {
 				return rep
 			}
@@ -426,11 +427,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 }
 
 func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
-	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
-	if bytes.Contains(mon.output[lastPos:], []byte(executedProgramsStart)) {
-		mon.lastExecuteTime = time.Now()
-	}
 	if mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
 		return mon.extractError("unknown error"), true
 	}
@@ -453,6 +450,12 @@ func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
 	}
 	mon.curPos = max(mon.curPos, 0)
 	return nil, false
+}
+
+func (mon *monitor) checkLastExecuted(out []byte) {
+	if bytes.Contains(out, []byte(executedProgramsStart)) {
+		mon.lastExecuteTime = time.Now()
+	}
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
