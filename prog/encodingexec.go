@@ -158,7 +158,7 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) {
 	// to some struct input. This is the data that must be flattened and sent
 	// to the fuzzing driver with a relocation table.
 	dataArg := c.Args[1].(*PointerArg)
-	finalBlob := marshallKFuzztestArg(dataArg.Res, relocationModeDistinct)
+	finalBlob := marshallKFuzztestArg(dataArg.Res)
 
 	// Reuse the memory address that was pre-allocated for the original struct
 	// argument. This avoids needing to hook into the memory allocation which
@@ -250,17 +250,39 @@ func (w *execContext) writeCopyin(c *Call) {
 const kFuzzTestNilPtrVal uint32 = ^uint32(0)
 
 // Number of integers of padding.
-const relocationTablePaddingInts uint32 = 3
+const relocationTablePaddingInts uint32 = 2
 
 // Number of uint64s of padding.
-const regionArrayPaddingInts uint32 = 2
+const regionArrayPaddingInts uint32 = 3
 
-type relocationMode uint32
+const poisonMinSize uint64 = 0x8
 
-const (
-	relocationModeDistinct relocationMode = iota
-	relocationModePoisoned
-)
+func isPowerOfTwo(n uint64) bool {
+	return n > 0 && (n&(n-1) == 0)
+}
+
+func roundToNearestMultiple(x, n uint64) uint64 {
+	if !isPowerOfTwo(n) {
+		panic("n was not a power of 2")
+	}
+	return (x + (n >> 1)) &^ (n - 1)
+}
+
+// Pad b so that it's length is a multiple of alignment, with at least
+// minPadding bytes of padding, where alignment is a power of 2.
+func padWithAlignment(b *bytes.Buffer, alignment, minPadding uint64) {
+	var newSize uint64
+	if alignment == 0 {
+		newSize = uint64(b.Len()) + minPadding
+	} else {
+		newSize = roundToNearestMultiple(uint64(b.Len())+minPadding, alignment)
+	}
+
+	paddingBytes := newSize - uint64(b.Len())
+	for range paddingBytes {
+		b.WriteByte(byte(0))
+	}
+}
 
 // marshallKFuzzTestArg serializes a syzkaller Arg into a flat binary format
 // understood by the KFuzzTest kernel interface (see `include/linux/kfuzztest.h`).
@@ -297,7 +319,7 @@ const (
 //
 // For a concrete example of the final binary layout, see the test cases for this
 // function in `prog/encodingexec_test.go`.
-func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
+func marshallKFuzztestArg(topLevel Arg) []byte {
 	// see `linux/include/kftf.h`
 	type relocationEntry struct {
 		// Region that a pointer belongs to.
@@ -316,9 +338,6 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 		start uint32
 		// Size of the region in bytes.
 		size uint32
-		// Alignment of this region (not important for now, as every allocation
-		// in the kernel will be 8-byte aligned which should suffice for now).
-		alignment uint32
 	}
 	// Argument bundled with the memory region that it belongs to.
 	type argWithRegionID struct {
@@ -327,11 +346,12 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 	}
 	// Given a slice of relocation table entries, encodes them in the binary
 	// format expected by the kernel.
-	generateRelocationTable := func(relocationTableEntries []relocationEntry) []byte {
+	generateRelocationTable := func(relocationTableEntries []relocationEntry, paddingBytes uint32) []byte {
 		var relocationTable bytes.Buffer
 		numEntries := uint32(len(relocationTableEntries))
 		padding := make([]byte, relocationTablePaddingInts*4)
 		binary.Write(&relocationTable, binary.LittleEndian, numEntries)
+		binary.Write(&relocationTable, binary.LittleEndian, paddingBytes)
 		binary.Write(&relocationTable, binary.LittleEndian, padding)
 		for _, entry := range relocationTableEntries {
 			binary.Write(&relocationTable, binary.LittleEndian, entry.regionID)
@@ -355,13 +375,13 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 		numEntries := uint32(len(arr))
 		padding := make([]byte, regionArrayPaddingInts*4)
 		binary.Write(&regionArray, binary.LittleEndian, numEntries)
-		binary.Write(&regionArray, binary.LittleEndian, mode)
+		// binary.Write(&regionArray, binary.LittleEndian, mode)
 		binary.Write(&regionArray, binary.LittleEndian, padding)
 
 		for _, region := range arr {
 			binary.Write(&regionArray, binary.LittleEndian, region.start)
 			binary.Write(&regionArray, binary.LittleEndian, region.size)
-			binary.Write(&regionArray, binary.LittleEndian, region.alignment)
+			binary.Write(&regionArray, binary.LittleEndian, uint32(0))
 			binary.Write(&regionArray, binary.LittleEndian, uint32(0))
 		}
 		return regionArray.Bytes()
@@ -371,7 +391,7 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 	// executor. In this case, we send an empty relocation table and region
 	// array.
 	if topLevel == nil {
-		return append(generateRelocationTable([]relocationEntry{}), generateRegionArray(make(map[Arg]relocRegion))...)
+		return append(generateRelocationTable([]relocationEntry{}, 0), generateRegionArray(make(map[Arg]relocRegion))...)
 	}
 
 	// The top-level argument should always be a struct, and therefore of type
@@ -384,8 +404,8 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 
 	// Allocates a new logical heap region with strictly increasing IDs.
 	regionCtr := uint32(0)
-	allocRegion := func(size uint32, alignment uint32) relocRegion {
-		reg := relocRegion{id: regionCtr, size: size, alignment: alignment}
+	allocRegion := func(size uint32) relocRegion {
+		reg := relocRegion{id: regionCtr, size: size}
 		regionCtr++
 		return reg
 	}
@@ -393,7 +413,7 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 	// Allocate a region for the top-level argument. This is always region 0,
 	// irrespective on whether there are other regions or not. We currently
 	// set the alignment to 0x8. TODO: handle this alignment in kernel.
-	regionForTopLevel := allocRegion(uint32(topLevel.Size()), 0x8)
+	regionForTopLevel := allocRegion(uint32(topLevel.Size()))
 
 	// Two-levels of queuing - those that must be handled directly (constants,
 	// nested structures) and pointee arguments whose handling should be
@@ -406,27 +426,12 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 	relocationTableEntries := make([]relocationEntry, 0)
 	var payload bytes.Buffer
 
-	// Aligns the current position in the payload to an alignment threshold.
-	alignPayload := func(alignment uint64) {
-		// It seems that some types will have 0-alignment.
-		if alignment == 0 {
-			return
-		}
-		for {
-			if uint64(payload.Len())%alignment == 0 {
-				return
-			}
-			payload.WriteByte(byte(0))
-		}
-	}
-
 	// Handle cycles created by pointer arguments, and maps a pointee to its
 	// dedicated heap allocation.
 	visited := make(map[Arg]relocRegion)
 	visited[topLevel] = regionForTopLevel
 
-	// XXX: it feels error prone to deal with this type of mutable state. It
-	// may be better to pass the offset in with the regionID.
+	maxAlignment := uint64(0)
 	offsetInRegion := uint32(0)
 	for {
 		if len(layoutQueue) == 0 && len(deferredPointers) == 0 {
@@ -439,10 +444,6 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 			argWithReg = layoutQueue[0]
 			layoutQueue = layoutQueue[1:]
 		} else if len(deferredPointers) > 0 {
-			// Insert 8 bytes of padding between every region so that it can
-			// be poisoned if necessary.
-			binary.Write(&payload, binary.LittleEndian, uint64(0))
-
 			// Expanding a pointee. This indicates the start of a new region.
 			offsetInRegion = 0
 			// Pop from deferredPointers and create a relocation table entry.
@@ -454,28 +455,35 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 			if !ok {
 				panic("tried to visit a pointee without having allocated a region for it")
 			}
+			// Pad the space between regions, aligning to this region's
+			// alignment.
+			padWithAlignment(&payload, argWithReg.arg.Type().Alignment(), poisonMinSize)
+
 			reg.start = uint32(payload.Len())
 			visited[argWithReg.arg] = reg
 		} else {
 			panic("at least one queue should have remaining entries at this point")
 		}
 
-		alignPayload(argWithReg.arg.Type().Alignment())
+		padWithAlignment(&payload, argWithReg.arg.Type().Alignment(), 0)
+
+		maxAlignment = max(maxAlignment, argWithReg.arg.Type().Alignment())
 
 		sizeBeforeWrite := payload.Len()
 		switch a := argWithReg.arg.(type) {
 		case *PointerArg:
 			// We write a placeholder value. It doesn't matter what is written
 			// here because the kernel will patch these pointers based only on
-			// the relocation table and region array.
-			binary.Write(&payload, binary.LittleEndian, uint64(0xBFACE))
+			// the relocation table and region array. We write a value that is
+			// easily identifiable in the output byte-stream.
+			binary.Write(&payload, binary.LittleEndian, uint64(0xFFFFFFFFFFFFFFFF))
 			if a.Res != nil {
 				reg, contains := visited[a.Res]
 				// Allocate a new region for the pointee and queue it for
 				// expansion if we haven't visited it yet. We always align to
 				// 8 bytes.
 				if !contains {
-					reg = allocRegion(uint32(a.Res.Size()), 0x8)
+					reg = allocRegion(uint32(a.Res.Size()))
 					visited[a.Res] = reg
 					// Visit the new region, marking the offset as 0.
 					deferred := argWithRegionID{arg: a.Res, regionID: reg.id}
@@ -533,13 +541,25 @@ func marshallKFuzztestArg(topLevel Arg, mode relocationMode) []byte {
 		offsetInRegion += uint32(sizeAfterWrite) - uint32(sizeBeforeWrite)
 	}
 
-	// Pad the end of the payload.
+	// Pad the end of the payload so that it can be poisoned.
 	binary.Write(&payload, binary.LittleEndian, uint64(0))
 
-	regionArrayBytes := generateRegionArray(visited)
-	relocationTableBytes := generateRelocationTable(relocationTableEntries)
-	out := append(regionArrayBytes, relocationTableBytes...)
-	return append(out, payload.Bytes()...)
+	var out bytes.Buffer
+
+	regionArray := generateRegionArray(visited)
+	relocationTableNumBytes := len(generateRelocationTable(relocationTableEntries, 0x0))
+	headerLen := len(regionArray) + relocationTableNumBytes
+
+	// Round up the current total length to the nearest multiple of maxAlignment.
+	paddingBytes := roundToNearestMultiple(uint64(headerLen), maxAlignment) - uint64(headerLen)
+
+	out.Write(regionArray)
+	out.Write(generateRelocationTable(relocationTableEntries, uint32(paddingBytes)))
+	out.Write(make([]byte, paddingBytes))
+
+	out.Write(payload.Bytes())
+
+	return out.Bytes()
 }
 
 func (w *execContext) willBeUsed(arg Arg) bool {
