@@ -5,6 +5,7 @@ package dispatcher
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -284,6 +285,38 @@ func TestPoolCancelRun(t *testing.T) {
 
 	// Everything must really stop.
 	wg.Wait()
+}
+
+// Check that the loop terminates even if no one reads from the boot error channel.
+func TestPoolBootErrors(t *testing.T) {
+	var failCount atomic.Int64
+
+	mgr := NewPool[*testInstance](
+		3,
+		func(idx int) (*testInstance, error) {
+			failCount.Add(1)
+			return nil, fmt.Errorf("boot error")
+		},
+		func(ctx context.Context, _ *testInstance, _ UpdateInfo) {
+			<-ctx.Done()
+		},
+	)
+
+	done := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		mgr.Loop(ctx)
+		close(done)
+	}()
+
+	// Wait till the boot error channel saturates.
+	for failCount.Load() < bootErrorChanCap {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Now terminate the loop.
+	cancel()
+	<-done
 }
 
 func makePool(count int) []testInstance {
