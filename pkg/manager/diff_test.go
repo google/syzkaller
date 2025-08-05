@@ -108,15 +108,15 @@ func TestModifiedSymbols(t *testing.T) {
 	})
 }
 
-func TestSkipDiffRepro(t *testing.T) {
+func TestNeedReproForTitle(t *testing.T) {
 	for title, skip := range map[string]bool{
-		"no output from test machine":                          true,
-		"SYZFAIL: read failed":                                 true,
-		"lost connection to test machine":                      true,
-		"INFO: rcu detected stall in clone":                    true,
-		"WARNING in arch_install_hw_breakpoint":                false,
-		"KASAN: slab-out-of-bounds Write in __bpf_get_stackid": false,
+		"no output from test machine":                          false,
+		"SYZFAIL: read failed":                                 false,
+		"lost connection to test machine":                      false,
+		"INFO: rcu detected stall in clone":                    false,
+		"WARNING in arch_install_hw_breakpoint":                true,
+		"KASAN: slab-out-of-bounds Write in __bpf_get_stackid": true,
 	} {
-		assert.Equal(t, skip, skipDiffRepro(title), "title=%q", title)
+		assert.Equal(t, skip, needReproForTitle(title), "title=%q", title)
 	}
 }
