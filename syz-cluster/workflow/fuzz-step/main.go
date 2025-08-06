@@ -78,6 +78,9 @@ func main() {
 	}
 }
 
+// Do more frequent proc restarts to facilitate a higher reproducation rate.
+const procMaxExecs = 100
+
 func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	store *manager.DiffFuzzerStore) error {
 	series, err := client.GetSessionSeries(baseCtx, *flagSession)
@@ -94,6 +97,8 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	if err != nil {
 		return fmt.Errorf("failed to load configs: %w", err)
 	}
+	base.Experimental.ProcMaxExecs = procMaxExecs
+	patched.Experimental.ProcMaxExecs = procMaxExecs
 
 	baseSymbols, patchedSymbols, err := readSymbolHashes()
 	if err != nil {
