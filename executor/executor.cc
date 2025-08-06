@@ -748,6 +748,13 @@ static uint32* output_base_address()
 		// See the comment in input_base_address();
 		return 0;
 	}
+	if (output_data != NULL) {
+		// If output_data was already mapped, use the old base address
+		// since we could be extending the area from a different pid:
+		// realloc_output_data() may be called from a fork, which would cause
+		// input_base_address() to return a different address.
+		return (uint32*)output_data;
+	}
 	// Leave some unmmapped area after the input data.
 	return input_base_address() + kMaxInput + SYZ_PAGE_SIZE;
 }
