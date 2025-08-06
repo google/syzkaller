@@ -64,12 +64,13 @@ type runnerStats struct {
 }
 
 type handshakeConfig struct {
-	VMLess     bool
-	Timeouts   targets.Timeouts
-	LeakFrames []string
-	RaceFrames []string
-	Files      []string
-	Features   flatrpc.Feature
+	VMLess          bool
+	Timeouts        targets.Timeouts
+	LeakFrames      []string
+	RaceFrames      []string
+	Files           []string
+	Features        flatrpc.Feature
+	ProcRestartFreq int
 
 	// Callback() is called in the middle of the handshake process.
 	// The return arguments are the coverage filter and the (possible) error.
@@ -100,6 +101,7 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (hands
 		Slowdown:         int32(cfg.Timeouts.Slowdown),
 		SyscallTimeoutMs: int32(cfg.Timeouts.Syscall / time.Millisecond),
 		ProgramTimeoutMs: int32(cfg.Timeouts.Program / time.Millisecond),
+		ProcRestartFreq:  int32(cfg.ProcRestartFreq),
 		LeakFrames:       cfg.LeakFrames,
 		RaceFrames:       cfg.RaceFrames,
 		Files:            cfg.Files,
