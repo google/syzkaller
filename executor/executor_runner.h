@@ -82,13 +82,34 @@ private:
 	ProcIDPool& operator=(const ProcIDPool&) = delete;
 };
 
+class ProcOpts
+{
+public:
+	bool use_cover_edges = false;
+	bool is_kernel_64_bit = false;
+	uint32 slowdown = 0;
+	uint32 syscall_timeout_ms = 0;
+	uint32 program_timeout_ms = 0;
+
+private:
+	friend std::ostream& operator<<(std::ostream& ss, const ProcOpts& opts)
+	{
+		ss << "use_cover_edges=" << opts.use_cover_edges
+		   << " is_kernel_64_bit=" << opts.is_kernel_64_bit
+		   << " slowdown=" << opts.slowdown
+		   << " syscall_timeout_ms=" << opts.syscall_timeout_ms
+		   << " program_timeout_ms=" << opts.program_timeout_ms;
+		return ss;
+	}
+};
+
 // Proc represents one subprocess that runs tests (re-execed syz-executor with 'exec' argument).
 // The object is persistent and re-starts subprocess when it crashes.
 class Proc
 {
 public:
-	Proc(Connection& conn, const char* bin, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd, int cover_filter_fd,
-	     bool use_cover_edges, bool is_kernel_64_bit, uint32 slowdown, uint32 syscall_timeout_ms, uint32 program_timeout_ms)
+	Proc(Connection& conn, const char* bin, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd,
+	     int cover_filter_fd, ProcOpts opts)
 	    : conn_(conn),
 	      bin_(bin),
 	      proc_id_pool_(proc_id_pool),
@@ -97,11 +118,7 @@ public:
 	      corpus_triaged_(corpus_triaged),
 	      max_signal_fd_(max_signal_fd),
 	      cover_filter_fd_(cover_filter_fd),
-	      use_cover_edges_(use_cover_edges),
-	      is_kernel_64_bit_(is_kernel_64_bit),
-	      slowdown_(slowdown),
-	      syscall_timeout_ms_(syscall_timeout_ms),
-	      program_timeout_ms_(program_timeout_ms),
+	      opts_(opts),
 	      req_shmem_(kMaxInput),
 	      resp_shmem_(kMaxOutput),
 	      resp_mem_(static_cast<OutputData*>(resp_shmem_.Mem()))
@@ -158,7 +175,7 @@ public:
 #endif
 			// Sandbox setup can take significant time.
 			if (state_ == State::Handshaking)
-				timeout = 60 * 1000 * slowdown_;
+				timeout = 60 * 1000 * opts_.slowdown;
 			if (now > exec_start_ + timeout) {
 				Restart();
 				return;
@@ -200,11 +217,7 @@ private:
 	const bool& corpus_triaged_;
 	const int max_signal_fd_;
 	const int cover_filter_fd_;
-	const bool use_cover_edges_;
-	const bool is_kernel_64_bit_;
-	const uint32 slowdown_;
-	const uint32 syscall_timeout_ms_;
-	const uint32 program_timeout_ms_;
+	const ProcOpts opts_;
 	State state_ = State::Started;
 	std::optional<Subprocess> process_;
 	ShmemFile req_shmem_;
@@ -357,14 +370,14 @@ private:
 		sandbox_arg_ = msg_->exec_opts->sandbox_arg();
 		handshake_req req = {
 		    .magic = kInMagic,
-		    .use_cover_edges = use_cover_edges_,
-		    .is_kernel_64_bit = is_kernel_64_bit_,
+		    .use_cover_edges = opts_.use_cover_edges,
+		    .is_kernel_64_bit = opts_.is_kernel_64_bit,
 		    .flags = exec_env_,
 		    .pid = static_cast<uint64>(id_),
 		    .sandbox_arg = static_cast<uint64>(sandbox_arg_),
-		    .syscall_timeout_ms = syscall_timeout_ms_,
+		    .syscall_timeout_ms = opts_.syscall_timeout_ms,
 		    .program_timeout_ms = ProgramTimeoutMs(),
-		    .slowdown_scale = slowdown_,
+		    .slowdown_scale = opts_.slowdown,
 		};
 		if (write(req_pipe_, &req, sizeof(req)) != sizeof(req)) {
 			debug("request pipe write failed (errno=%d)\n", errno);
@@ -526,7 +539,7 @@ private:
 	uint32 ProgramTimeoutMs() const
 	{
 		// Glob requests can expand to >10K files and can take a while to run.
-		return program_timeout_ms_ * (req_type_ == rpc::RequestType::Program ? 1 : 10);
+		return opts_.program_timeout_ms * (req_type_ == rpc::RequestType::Program ? 1 : 10);
 	}
 };
 
@@ -545,8 +558,7 @@ public:
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
 		for (int i = 0; i < num_procs; i++)
 			procs_.emplace_back(new Proc(conn, bin, *proc_id_pool_, restarting_, corpus_triaged_,
-						     max_signal_fd, cover_filter_fd, use_cover_edges_, is_kernel_64_bit_, slowdown_,
-						     syscall_timeout_ms_, program_timeout_ms_));
+						     max_signal_fd, cover_filter_fd, proc_opts_));
 
 		for (;;)
 			Loop();
@@ -563,11 +575,7 @@ private:
 	std::vector<std::string> leak_frames_;
 	int restarting_ = 0;
 	bool corpus_triaged_ = false;
-	bool use_cover_edges_ = false;
-	bool is_kernel_64_bit_ = false;
-	uint32 slowdown_ = 0;
-	uint32 syscall_timeout_ms_ = 0;
-	uint32 program_timeout_ms_ = 0;
+	ProcOpts proc_opts_{};
 
 	friend std::ostream& operator<<(std::ostream& ss, const Runner& runner)
 	{
@@ -576,11 +584,7 @@ private:
 		   << " cover_filter=" << !!runner.cover_filter_
 		   << " restarting=" << runner.restarting_
 		   << " corpus_triaged=" << runner.corpus_triaged_
-		   << " use_cover_edges=" << runner.use_cover_edges_
-		   << " is_kernel_64_bit=" << runner.is_kernel_64_bit_
-		   << " slowdown=" << runner.slowdown_
-		   << " syscall_timeout_ms=" << runner.syscall_timeout_ms_
-		   << " program_timeout_ms=" << runner.program_timeout_ms_
+		   << " " << runner.proc_opts_
 		   << "\n";
 		ss << "procs:\n";
 		for (const auto& proc : runner.procs_)
@@ -663,11 +667,12 @@ private:
 		      conn_reply.slowdown, conn_reply.syscall_timeout_ms,
 		      conn_reply.program_timeout_ms, static_cast<uint64>(conn_reply.features));
 		leak_frames_ = conn_reply.leak_frames;
-		use_cover_edges_ = conn_reply.cover_edges;
-		is_kernel_64_bit_ = is_kernel_64_bit = conn_reply.kernel_64_bit;
-		slowdown_ = conn_reply.slowdown;
-		syscall_timeout_ms_ = conn_reply.syscall_timeout_ms;
-		program_timeout_ms_ = conn_reply.program_timeout_ms;
+
+		proc_opts_.use_cover_edges = conn_reply.cover_edges;
+		proc_opts_.is_kernel_64_bit = is_kernel_64_bit = conn_reply.kernel_64_bit;
+		proc_opts_.slowdown = conn_reply.slowdown;
+		proc_opts_.syscall_timeout_ms = conn_reply.syscall_timeout_ms;
+		proc_opts_.program_timeout_ms = conn_reply.program_timeout_ms;
 		if (conn_reply.cover)
 			max_signal_.emplace();
 
@@ -836,7 +841,7 @@ private:
 		close(stdin_pipe[0]);
 		close(stdout_pipe[1]);
 
-		int status = process.WaitAndKill(5 * program_timeout_ms_);
+		int status = process.WaitAndKill(5 * proc_opts_.program_timeout_ms);
 
 		std::vector<uint8_t> output;
 		for (;;) {
