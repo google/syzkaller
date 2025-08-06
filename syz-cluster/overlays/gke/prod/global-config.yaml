@@ -16,6 +16,7 @@ data:
       - netfilter-devel
       - kvm
       - io-uring
+      - linux-wireless
     emailReporting:
       name: "syzbot ci"
       sender: dashapi
