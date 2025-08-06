@@ -30,8 +30,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
-		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
-		<td class="stat {{if not $c.Active}}inactive{{end}}">{{$c.Count}}</td>
+		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Title}}</a></td>
+		<td class="stat {{if not $c.Active}}inactive{{end}}">{{len $c.Crashes}}</td>
 		<td class="time {{if not $c.New}}inactive{{end}}">{{formatTime $c.FirstTime}}</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
 		<td>
@@ -39,8 +39,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $c.Triaged}}
 				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
 			{{end}}
-			{{if $c.Strace}}
-				<a href="/file?name={{$c.Strace}}">Strace</a>
+			{{if $c.StraceFile}}
+				<a href="/file?name={{$c.StraceFile}}">Strace</a>
 			{{end}}
 		</td>
 	</tr>

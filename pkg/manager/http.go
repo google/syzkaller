@@ -355,17 +355,11 @@ func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool)
 	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
 		info.ReproAttempts >= MaxReproAttempts)
 	return UICrashType{
-		Description:   info.Title,
-		FirstTime:     info.FirstTime,
-		LastTime:      info.LastTime,
-		New:           info.FirstTime.After(startTime),
-		Active:        info.LastTime.After(startTime),
-		ID:            info.ID,
-		Count:         len(info.Crashes),
-		Triaged:       triaged,
-		Strace:        info.StraceFile,
-		Crashes:       crashes,
-		ReproAttempts: info.ReproAttempts,
+		BugInfo: *info,
+		New:     info.FirstTime.After(startTime),
+		Active:  info.LastTime.After(startTime),
+		Triaged: triaged,
+		Crashes: crashes,
 	}
 }
 
@@ -1029,17 +1023,11 @@ type UICrashPage struct {
 }
 
 type UICrashType struct {
-	Description   string
-	FirstTime     time.Time
-	LastTime      time.Time
-	New           bool // was first found in the current run
-	Active        bool // was found in the current run
-	ID            string
-	Count         int
-	Triaged       string
-	Strace        string
-	ReproAttempts int
-	Crashes       []UICrash
+	BugInfo
+	New     bool // was first found in the current run
+	Active  bool // was found in the current run
+	Triaged string
+	Crashes []UICrash
 }
 
 type UICrash struct {
