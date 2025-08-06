@@ -713,6 +713,7 @@ type ConnectReplyRawT struct {
 	Slowdown         int32    `json:"slowdown"`
 	SyscallTimeoutMs int32    `json:"syscall_timeout_ms"`
 	ProgramTimeoutMs int32    `json:"program_timeout_ms"`
+	ProcMaxExecs     int32    `json:"proc_max_execs"`
 	LeakFrames       []string `json:"leak_frames"`
 	RaceFrames       []string `json:"race_frames"`
 	Features         Feature  `json:"features"`
@@ -771,6 +772,7 @@ func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 	ConnectReplyRawAddSlowdown(builder, t.Slowdown)
 	ConnectReplyRawAddSyscallTimeoutMs(builder, t.SyscallTimeoutMs)
 	ConnectReplyRawAddProgramTimeoutMs(builder, t.ProgramTimeoutMs)
+	ConnectReplyRawAddProcMaxExecs(builder, t.ProcMaxExecs)
 	ConnectReplyRawAddLeakFrames(builder, leakFramesOffset)
 	ConnectReplyRawAddRaceFrames(builder, raceFramesOffset)
 	ConnectReplyRawAddFeatures(builder, t.Features)
@@ -787,6 +789,7 @@ func (rcv *ConnectReplyRaw) UnPackTo(t *ConnectReplyRawT) {
 	t.Slowdown = rcv.Slowdown()
 	t.SyscallTimeoutMs = rcv.SyscallTimeoutMs()
 	t.ProgramTimeoutMs = rcv.ProgramTimeoutMs()
+	t.ProcMaxExecs = rcv.ProcMaxExecs()
 	leakFramesLength := rcv.LeakFramesLength()
 	t.LeakFrames = make([]string, leakFramesLength)
 	for j := 0; j < leakFramesLength; j++ {
@@ -937,8 +940,20 @@ func (rcv *ConnectReplyRaw) MutateProgramTimeoutMs(n int32) bool {
 	return rcv._tab.MutateInt32Slot(18, n)
 }
 
-func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
+func (rcv *ConnectReplyRaw) ProcMaxExecs() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConnectReplyRaw) MutateProcMaxExecs(n int32) bool {
+	return rcv._tab.MutateInt32Slot(20, n)
+}
+
+func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -947,7 +962,7 @@ func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) LeakFramesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -955,7 +970,7 @@ func (rcv *ConnectReplyRaw) LeakFramesLength() int {
 }
 
 func (rcv *ConnectReplyRaw) RaceFrames(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -964,7 +979,7 @@ func (rcv *ConnectReplyRaw) RaceFrames(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) RaceFramesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -972,7 +987,7 @@ func (rcv *ConnectReplyRaw) RaceFramesLength() int {
 }
 
 func (rcv *ConnectReplyRaw) Features() Feature {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
 	}
@@ -980,11 +995,11 @@ func (rcv *ConnectReplyRaw) Features() Feature {
 }
 
 func (rcv *ConnectReplyRaw) MutateFeatures(n Feature) bool {
-	return rcv._tab.MutateUint64Slot(24, uint64(n))
+	return rcv._tab.MutateUint64Slot(26, uint64(n))
 }
 
 func (rcv *ConnectReplyRaw) Files(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -993,7 +1008,7 @@ func (rcv *ConnectReplyRaw) Files(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) FilesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -1001,7 +1016,7 @@ func (rcv *ConnectReplyRaw) FilesLength() int {
 }
 
 func ConnectReplyRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(12)
+	builder.StartObject(13)
 }
 func ConnectReplyRawAddDebug(builder *flatbuffers.Builder, debug bool) {
 	builder.PrependBoolSlot(0, debug, false)
@@ -1027,23 +1042,26 @@ func ConnectReplyRawAddSyscallTimeoutMs(builder *flatbuffers.Builder, syscallTim
 func ConnectReplyRawAddProgramTimeoutMs(builder *flatbuffers.Builder, programTimeoutMs int32) {
 	builder.PrependInt32Slot(7, programTimeoutMs, 0)
 }
+func ConnectReplyRawAddProcMaxExecs(builder *flatbuffers.Builder, procMaxExecs int32) {
+	builder.PrependInt32Slot(8, procMaxExecs, 0)
+}
 func ConnectReplyRawAddLeakFrames(builder *flatbuffers.Builder, leakFrames flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(leakFrames), 0)
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(leakFrames), 0)
 }
 func ConnectReplyRawStartLeakFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ConnectReplyRawAddRaceFrames(builder *flatbuffers.Builder, raceFrames flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(raceFrames), 0)
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(raceFrames), 0)
 }
 func ConnectReplyRawStartRaceFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ConnectReplyRawAddFeatures(builder *flatbuffers.Builder, features Feature) {
-	builder.PrependUint64Slot(10, uint64(features), 0)
+	builder.PrependUint64Slot(11, uint64(features), 0)
 }
 func ConnectReplyRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(files), 0)
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(files), 0)
 }
 func ConnectReplyRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)

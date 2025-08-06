@@ -50,6 +50,7 @@ type Config struct {
 	DebugTimeouts bool
 	Procs         int
 	Slowdown      int
+	ProcMaxExecs  int
 	pcBase        uint64
 	localModules  []*vminfo.KernelModule
 
@@ -181,6 +182,7 @@ func New(cfg *RemoteConfig) (Server, error) {
 		PrintMachineCheck: true,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
+		ProcMaxExecs:      cfg.Experimental.ProcMaxExecs,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
 	}, cfg.Manager), nil
@@ -326,12 +328,18 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	return nil
 }
 
+const defaultProcMaxExecs = 600
+
 func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *flatrpc.Conn) error {
 	opts := &handshakeConfig{
-		VMLess:   serv.cfg.VMLess,
-		Files:    serv.checker.RequiredFiles(),
-		Timeouts: serv.timeouts,
-		Callback: serv.handleMachineInfo,
+		VMLess:       serv.cfg.VMLess,
+		Files:        serv.checker.RequiredFiles(),
+		Timeouts:     serv.timeouts,
+		Callback:     serv.handleMachineInfo,
+		ProcMaxExecs: defaultProcMaxExecs,
+	}
+	if serv.cfg.ProcMaxExecs != 0 {
+		opts.ProcMaxExecs = serv.cfg.ProcMaxExecs
 	}
 	opts.LeakFrames, opts.RaceFrames = serv.mgr.BugFrames()
 	if serv.checkDone.Load() {

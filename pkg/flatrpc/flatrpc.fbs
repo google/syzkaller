@@ -57,6 +57,7 @@ table ConnectReplyRaw {
 	slowdown		:int32;
 	syscall_timeout_ms	:int32;
 	program_timeout_ms	:int32;
+	proc_max_execs		:int32;
 	leak_frames		:[string];
 	race_frames		:[string];
 	// Fuzzer sets up these features and returns results in InfoRequest.features.
