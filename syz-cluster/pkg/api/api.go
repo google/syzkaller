@@ -228,8 +228,12 @@ var FuzzConfigs = []*FuzzConfig{
 		CorpusURL:    bpfCorpusURL,
 	},
 	{
-		Name:         `net`,
-		EmailLists:   []string{`netdev@vger.kernel.org`, `netfilter-devel@vger.kernel.org`},
+		Name: `net`,
+		EmailLists: []string{
+			`netdev@vger.kernel.org`,
+			`netfilter-devel@vger.kernel.org`,
+			`linux-wireless@vger.kernel.org`,
+		},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		CorpusURL:    netCorpusURL,
 	},
