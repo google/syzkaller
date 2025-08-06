@@ -338,15 +338,15 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	if crash.FullRepro {
 		return true
 	}
-	if !needReproForTitle(crash.Title) {
+	if !needReproForTitle(crash.Report.Title) {
 		return false
 	}
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
-	if dc.store.EverCrashedBase(crash.Title) {
+	if dc.store.EverCrashedBase(crash.Report.Title) {
 		return false
 	}
-	if dc.reproAttempts[crash.Title] > maxReproAttempts {
+	if dc.reproAttempts[crash.Report.Title] > maxReproAttempts {
 		return false
 	}
 	return true
@@ -354,10 +354,10 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 
 func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult {
 	dc.mu.Lock()
-	dc.reproAttempts[crash.Title]++
+	dc.reproAttempts[crash.Report.Title]++
 	dc.mu.Unlock()
 
-	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
+	res, stats, err := repro.Run(ctx, crash.Report.Output, repro.Environment{
 		Config:   dc.new.cfg,
 		Features: dc.new.features,
 		Reporter: dc.new.reporter,
@@ -636,7 +636,7 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	ctxTimeout, cancel := context.WithTimeout(ctx, kc.cfg.Timeouts.VMRunningTime)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, kc.reporter, cmd,
+	_, reps, err := inst.Run(ctxTimeout, kc.reporter, cmd,
 		vm.WithExitCondition(vm.ExitTimeout),
 		vm.WithInjectExecuting(injectExec),
 		vm.WithEarlyFinishCb(func() {
@@ -646,7 +646,10 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 			kc.serv.StopFuzzing(inst.Index())
 		}),
 	)
-	return rep, err
+	if len(reps) > 0 {
+		return reps[0], err
+	}
+	return nil, err
 }
 
 func (kc *kernelContext) triageProgress() float64 {

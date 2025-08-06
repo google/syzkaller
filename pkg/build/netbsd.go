@@ -158,13 +158,13 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, reporter, strings.Join(commands, ";"))
+	_, reps, err := inst.Run(ctxTimeout, reporter, strings.Join(commands, ";"))
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %w", err)
 	}
 	// Make sure that the command has executed properly.
-	if rep != nil {
-		return fmt.Errorf("error executing sync: %v", rep.Title)
+	if len(reps) > 0 {
+		return fmt.Errorf("error executing sync: %v", reps[0].Title)
 	}
 	return nil
 }

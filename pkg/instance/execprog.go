@@ -126,24 +126,24 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 	}
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
-	output, rep, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command,
+	output, reps, err := inst.VMInstance.Run(ctxTimeout, inst.reporter, command,
 		vm.WithExitCondition(exitCondition),
 		optionalBeforeContext,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %w", err)
 	}
-	if rep == nil {
+	if len(reps) == 0 {
 		inst.Logf(2, "program did not crash")
 	} else {
-		if err := inst.reporter.Symbolize(rep); err != nil {
+		if err := inst.reporter.Symbolize(reps[0]); err != nil {
 			inst.Logf(0, "failed to symbolize report: %v", err)
 		}
-		inst.Logf(2, "program crashed: %v", rep.Title)
+		inst.Logf(2, "program crashed: %v", reps[0].Title)
 	}
 	return &RunResult{
 		Output:   append(prefixOutput, output...),
-		Report:   rep,
+		Report:   reps[0],
 		Duration: time.Since(start),
 	}, nil
 }

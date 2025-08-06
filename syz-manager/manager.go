@@ -505,7 +505,7 @@ func reportReproError(err error) {
 }
 
 func (mgr *Manager) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
-	res, stats, err := repro.Run(ctx, crash.Output, repro.Environment{
+	res, stats, err := repro.Run(ctx, crash.Report.Output, repro.Environment{
 		Config:   mgr.cfg,
 		Features: mgr.enabledFeatures,
 		Reporter: mgr.reporter,
@@ -543,11 +543,11 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 		reportReproError(res.Err)
 	}
 	if res.Repro == nil {
-		if res.Crash.Title == "" {
+		if res.Crash.Report.Title == "" {
 			log.Logf(1, "repro '%v' not from dashboard, so not reporting the failure",
 				res.Crash.FullTitle())
 		} else {
-			log.Logf(1, "report repro failure of '%v'", res.Crash.Title)
+			log.Logf(1, "report repro failure of '%v'", res.Crash.Report.Title)
 			mgr.saveFailedRepro(res.Crash.Report, res.Stats)
 		}
 	} else {
@@ -597,7 +597,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	injectExec := make(chan bool, 10)
 	serv.CreateInstance(inst.Index(), injectExec, updInfo)
 
-	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst,
+	reps, vmInfo, err := mgr.runInstanceInner(ctx, inst,
 		vm.WithExitCondition(vm.ExitTimeout),
 		vm.WithInjectExecuting(injectExec),
 		vm.WithEarlyFinishCb(func() {
@@ -607,21 +607,23 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 			serv.StopFuzzing(inst.Index())
 		}))
 	var extraExecs []report.ExecutorInfo
-	if rep != nil && rep.Executor != nil {
-		extraExecs = []report.ExecutorInfo{*rep.Executor}
+	repsAvailable := len(reps) != 0
+	if repsAvailable && reps[0].Executor != nil {
+		extraExecs = []report.ExecutorInfo{*reps[0].Executor}
 	}
-	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), rep != nil, extraExecs...)
-	if rep != nil {
-		rpcserver.PrependExecuting(rep, lastExec)
+	lastExec, machineInfo := serv.ShutdownInstance(inst.Index(), repsAvailable, extraExecs...)
+	if repsAvailable {
+		rpcserver.PrependExecuting(reps[0], lastExec)
 		if len(vmInfo) != 0 {
 			machineInfo = append(append(vmInfo, '\n'), machineInfo...)
 		}
-		rep.MachineInfo = machineInfo
+		reps[0].MachineInfo = machineInfo
 	}
-	if err == nil && rep != nil {
+	if err == nil && repsAvailable {
 		mgr.crashes <- &manager.Crash{
 			InstanceIndex: inst.Index(),
-			Report:        rep,
+			Report:        reps[0],
+			TailReports:   reps[1:],
 		}
 	}
 	if err != nil {
@@ -630,7 +632,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 }
 
 func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opts ...func(*vm.RunOptions),
-) (*report.Report, []byte, error) {
+) ([]*report.Report, []byte, error) {
 	fwdAddr, err := inst.Forward(mgr.serv.Port())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
@@ -656,11 +658,11 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	ctxTimeout, cancel := context.WithTimeout(ctx, mgr.cfg.Timeouts.VMRunningTime)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
+	_, reps, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
-	if rep == nil {
+	if len(reps) == 0 {
 		// This is the only "OK" outcome.
 		log.Logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
 		return nil, nil, nil
@@ -669,14 +671,14 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 	if err != nil {
 		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
 	}
-	return rep, vmInfo, nil
+	return reps, vmInfo, nil
 }
 
 func (mgr *Manager) emailCrash(crash *manager.Crash) {
 	if len(mgr.cfg.EmailAddrs) == 0 {
 		return
 	}
-	args := []string{"-s", "syzkaller: " + crash.Title}
+	args := []string{"-s", "syzkaller: " + crash.Report.Title}
 	args = append(args, mgr.cfg.EmailAddrs...)
 	log.Logf(0, "sending email to %v", mgr.cfg.EmailAddrs)
 
@@ -691,24 +693,24 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Errorf("failed to symbolize report: %v", err)
 	}
-	if crash.Type == crash_pkg.MemoryLeak {
+	if crash.Report.Type == crash_pkg.MemoryLeak {
 		mgr.mu.Lock()
-		mgr.memoryLeakFrames[crash.Frame] = true
+		mgr.memoryLeakFrames[crash.Report.Frame] = true
 		mgr.mu.Unlock()
 	}
-	if crash.Type == crash_pkg.KCSANDataRace {
+	if crash.Report.Type == crash_pkg.KCSANDataRace {
 		mgr.mu.Lock()
-		mgr.dataRaceFrames[crash.Frame] = true
+		mgr.dataRaceFrames[crash.Report.Frame] = true
 		mgr.mu.Unlock()
 	}
 	flags := ""
-	if crash.Corrupted {
+	if crash.Report.Corrupted {
 		flags += " [corrupted]"
 	}
-	if crash.Suppressed {
+	if crash.Report.Suppressed {
 		flags += " [suppressed]"
 	}
-	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
+	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Report.Title, flags)
 
 	if mgr.mode.FailOnCrashes {
 		path := filepath.Join(mgr.cfg.Workdir, "report.json")
@@ -718,35 +720,35 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		log.Fatalf("kernel crashed in smoke testing mode, exiting")
 	}
 
-	if crash.Suppressed {
+	if crash.Report.Suppressed {
 		// Collect all of them into a single bucket so that it's possible to control and assess them,
 		// e.g. if there are some spikes in suppressed reports.
-		crash.Title = "suppressed report"
+		crash.Report.Title = "suppressed report"
 		mgr.statSuppressed.Add(1)
 	}
 
 	mgr.statCrashes.Add(1)
 	mgr.mu.Lock()
-	if !mgr.crashTypes[crash.Title] {
-		mgr.crashTypes[crash.Title] = true
+	if !mgr.crashTypes[crash.Report.Title] {
+		mgr.crashTypes[crash.Report.Title] = true
 		mgr.statCrashTypes.Add(1)
 	}
 	mgr.mu.Unlock()
 
 	if mgr.dash != nil {
-		if crash.Type == crash_pkg.MemoryLeak {
+		if crash.Report.Type == crash_pkg.MemoryLeak {
 			return true
 		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
-			Title:       crash.Title,
-			AltTitles:   crash.AltTitles,
-			Corrupted:   crash.Corrupted,
-			Suppressed:  crash.Suppressed,
-			Recipients:  crash.Recipients.ToDash(),
-			Log:         crash.Output,
+			Title:       crash.Report.Title,
+			AltTitles:   crash.Report.AltTitles,
+			Corrupted:   crash.Report.Corrupted,
+			Suppressed:  crash.Report.Suppressed,
+			Recipients:  crash.Report.Recipients.ToDash(),
+			Log:         crash.Report.Output,
 			Report:      crash.Report.Report,
-			MachineInfo: crash.MachineInfo,
+			MachineInfo: crash.Report.MachineInfo,
 		}
 		setGuiltyFiles(dc, crash.Report)
 		resp, err := mgr.dash.ReportCrash(dc)
@@ -769,13 +771,13 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 }
 
 func (mgr *Manager) needLocalRepro(crash *manager.Crash) bool {
-	if !mgr.cfg.Reproduce || crash.Corrupted || crash.Suppressed {
+	if !mgr.cfg.Reproduce || crash.Report.Corrupted || crash.Report.Suppressed {
 		return false
 	}
-	if mgr.crashStore.HasRepro(crash.Title) {
+	if mgr.crashStore.HasRepro(crash.Report.Title) {
 		return false
 	}
-	return mgr.crashStore.MoreReproAttempts(crash.Title)
+	return mgr.crashStore.MoreReproAttempts(crash.Report.Title)
 }
 
 func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
@@ -789,7 +791,7 @@ func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	phase, features := mgr.phase, mgr.enabledFeatures
 	mgr.mu.Unlock()
 	if phase < phaseLoadedCorpus || (features&flatrpc.FeatureLeak != 0 &&
-		crash.Type != crash_pkg.MemoryLeak) {
+		crash.Report.Type != crash_pkg.MemoryLeak) {
 		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
 		return false
 	}
@@ -798,12 +800,12 @@ func (mgr *Manager) NeedRepro(crash *manager.Crash) bool {
 	}
 	cid := &dashapi.CrashID{
 		BuildID:    mgr.cfg.Tag,
-		Title:      crash.Title,
-		Corrupted:  crash.Corrupted,
-		Suppressed: crash.Suppressed,
+		Title:      crash.Report.Title,
+		Corrupted:  crash.Report.Corrupted,
+		Suppressed: crash.Report.Suppressed,
 		// When cfg.DashboardOnlyRepro is enabled, we don't sent any reports to dashboard.
 		// We also don't send leak reports w/o reproducers to dashboard, so they may be missing.
-		MayBeMissing: mgr.dash == nil || crash.Type == crash_pkg.MemoryLeak,
+		MayBeMissing: mgr.dash == nil || crash.Report.Type == crash_pkg.MemoryLeak,
 	}
 	needRepro, err := mgr.dashRepro.NeedRepro(cid)
 	if err != nil {
@@ -903,7 +905,7 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 			ReproC:        cprogText,
 			ReproLog:      truncateReproLog(res.Stats.FullLog()),
 			Assets:        mgr.uploadReproAssets(repro),
-			OriginalTitle: res.Crash.Title,
+			OriginalTitle: res.Crash.Report.Title,
 		}
 		setGuiltyFiles(dc, report)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
