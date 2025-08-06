@@ -249,12 +249,6 @@ func (w *execContext) writeCopyin(c *Call) {
 // Special value for making null pointers that equals (void *)-1
 const kFuzzTestNilPtrVal uint32 = ^uint32(0)
 
-// Number of integers of padding.
-const relocationTablePaddingInts uint32 = 2
-
-// Number of uint64s of padding.
-const regionArrayPaddingInts uint32 = 3
-
 const poisonMinSize uint64 = 0x8
 
 func isPowerOfTwo(n uint64) bool {
@@ -349,15 +343,12 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	generateRelocationTable := func(relocationTableEntries []relocationEntry, paddingBytes uint32) []byte {
 		var relocationTable bytes.Buffer
 		numEntries := uint32(len(relocationTableEntries))
-		padding := make([]byte, relocationTablePaddingInts*4)
 		binary.Write(&relocationTable, binary.LittleEndian, numEntries)
 		binary.Write(&relocationTable, binary.LittleEndian, paddingBytes)
-		binary.Write(&relocationTable, binary.LittleEndian, padding)
 		for _, entry := range relocationTableEntries {
 			binary.Write(&relocationTable, binary.LittleEndian, entry.regionID)
 			binary.Write(&relocationTable, binary.LittleEndian, entry.regionOffset)
 			binary.Write(&relocationTable, binary.LittleEndian, entry.value)
-			binary.Write(&relocationTable, binary.LittleEndian, uint32(0)) // Padding.
 		}
 		return relocationTable.Bytes()
 	}
@@ -373,16 +364,11 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			arr[region.id] = region
 		}
 		numEntries := uint32(len(arr))
-		padding := make([]byte, regionArrayPaddingInts*4)
 		binary.Write(&regionArray, binary.LittleEndian, numEntries)
-		// binary.Write(&regionArray, binary.LittleEndian, mode)
-		binary.Write(&regionArray, binary.LittleEndian, padding)
 
 		for _, region := range arr {
 			binary.Write(&regionArray, binary.LittleEndian, region.start)
 			binary.Write(&regionArray, binary.LittleEndian, region.size)
-			binary.Write(&regionArray, binary.LittleEndian, uint32(0))
-			binary.Write(&regionArray, binary.LittleEndian, uint32(0))
 		}
 		return regionArray.Bytes()
 	}
