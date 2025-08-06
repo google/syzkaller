@@ -127,18 +127,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 
 	obj, err := p.creator(inst.idx)
 	if err != nil {
-		select {
-		case p.BootErrors <- err:
-			return
-		default:
-			// Print some log message to make it visible.
-			log.Logf(0, "WARNING: boot error channel is full!")
-		}
-		select {
-		case p.BootErrors <- err:
-		case <-ctx.Done():
-			// On context cancellation, no one might be listening on the channel.
-		}
+		p.reportBootError(ctx, err)
 		return
 	}
 	defer obj.Close()
@@ -164,6 +153,21 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 
 	inst.status(StateRunning)
 	job(ctx, obj, inst.updateInfo)
+}
+
+func (p *Pool[T]) reportBootError(ctx context.Context, err error) {
+	select {
+	case p.BootErrors <- err:
+		return
+	default:
+		// Print some log message to make it visible.
+		log.Logf(0, "WARNING: boot error channel is full!")
+	}
+	select {
+	case p.BootErrors <- err:
+	case <-ctx.Done():
+		// On context cancellation, no one might be listening on the channel.
+	}
 }
 
 // ReserveForRun specifies the size of the sub-pool for the execution of custom runners.
