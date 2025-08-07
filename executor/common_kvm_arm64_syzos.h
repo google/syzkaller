@@ -571,8 +571,7 @@ GUEST_CODE static void gicv3_cpu_init(uint32 cpu)
 	// Enable the GIC system register (ICC_*) access.
 	uint64 icc_sre_el1 = 0;
 	asm volatile("mrs %0, " ICC_SRE_EL1
-		     :
-		     : "r"(icc_sre_el1));
+		     : "=r"(icc_sre_el1));
 	icc_sre_el1 |= ICC_SRE_EL1_SRE;
 	asm volatile("msr " ICC_SRE_EL1 ", %0"
 		     :
