@@ -78,20 +78,20 @@ func main() {
 		uploadReq.CommitHash = commit.Hash
 		uploadReq.CommitDate = commit.CommitDate
 	}
-	if *flagSmokeBuild {
-		skip, err := alreadyBuilt(ctx, client, uploadReq)
-		if err != nil {
-			app.Fatalf("failed to query known builds: %v", err)
-		} else if skip {
-			log.Printf("%s already built, skipping", uploadReq.CommitHash)
-			return
-		}
-	}
 	ret := &BuildResult{}
 	if err != nil {
 		log.Printf("failed to checkout: %v", err)
 		uploadReq.Log = []byte(err.Error())
 	} else {
+		if *flagSmokeBuild {
+			skip, err := alreadyBuilt(ctx, client, uploadReq)
+			if err != nil {
+				app.Fatalf("failed to query known builds: %v", err)
+			} else if skip {
+				log.Printf("%s already built, skipping", uploadReq.CommitHash)
+				return
+			}
+		}
 		ret, err = buildKernel(tracer, req)
 		if err != nil {
 			log.Printf("build process failed: %v", err)
