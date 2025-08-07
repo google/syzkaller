@@ -24,32 +24,66 @@ spec:
     - name: main
       parallelism: 1
       steps:
-        - - name: query-trees
-            template: query-trees-template
-        - - name: iterate-trees
-            template: process-tree
+        - - name: query-data
+            template: query-data-template
+        - - name: prepare-build-requests
+            template: prepare-build-requests-template
             arguments:
               parameters:
-                - name: tree
+              - name: response
+                value: "{{steps.query-data.outputs.result}}"
+        - - name: iterate-builds
+            template: process-build-request
+            arguments:
+              parameters:
+                - name: request-json
                   value: "{{item}}"
-            withParam: "{{=jsonpath(steps['query-trees'].outputs.result, '$.trees')}}"
+            withParam: "{{steps.prepare-build-requests.outputs.result}}"
             continueOn:
               failed: true
-    - name: query-trees-template
+    - name: query-data-template
       http:
         url: "http://controller-service:8080/trees"
         method: "GET"
-    - name: process-tree
+    - name: prepare-build-requests-template
       inputs:
         parameters:
-          - name: tree
+          - name: response
+      script:
+        image: python:3.9
+        command: [python]
+        source: |
+          import json
+          import sys
+
+          data = json.loads('''{{inputs.parameters.response}}''')
+          unique_kernel_configs = sorted(list(set(
+              config["kernel_config"] for config in data.get("fuzz_configs", [])
+          )))
+          build_requests = []
+          for tree in data.get("trees", []):
+              for config_name in unique_kernel_configs:
+                  build_request = {
+                      "arch": "amd64", # TODO: consider others as well.
+                      "tree_name": tree["name"],
+                      "tree_url": tree["URL"],
+                      "commit_hash": tree["branch"],
+                      "config_name": config_name
+                  }
+                  build_requests.append(build_request)
+          print(json.dumps(build_requests))
+
+    - name: process-build-request
+      inputs:
+        parameters:
+          - name: request-json
       steps:
-        - - name: convert-json
-            template: convert-to-request
+        - - name: create-request-artifact
+            template: request-to-artifact
             arguments:
               parameters:
-                - name: tree
-                  value: "{{inputs.parameters.tree}}"
+                - name: data
+                  value: "{{inputs.parameters.request-json}}"
         - - name: run-build
             templateRef:
               name: build-step-template
@@ -60,35 +94,17 @@ spec:
                   value: "true"
               artifacts:
                 - name: request
-                  from: "{{steps.convert-json.outputs.artifacts.request}}"
-    - name: convert-to-request
+                  from: "{{steps.create-request-artifact.outputs.artifacts.request}}"
+    - name: request-to-artifact
       inputs:
         parameters:
-          - name: tree
+          - name: data
       outputs:
         artifacts:
           - name: request
-            path: /output/request.json
-      volumes:
-      - name: output-volume
-        emptyDir: {}
+            path: /tmp/request.json
       script:
-        image: python:3.9
-        command: [python]
-        volumeMounts:
-          - name: output-volume
-            mountPath: /output
+        image: alpine:latest
+        command: [sh, -c]
         source: |
-          import json
-          import sys
-
-          input = {{inputs.parameters.tree}}
-          output = {
-            "arch": "amd64", # TODO: consider others as well.
-            "tree_name": input["name"],
-            "tree_url": input["URL"],
-            "commit_hash": input["branch"],
-            "config_name": input["kernel_config"]
-          }
-          with open('/output/request.json', 'w') as f:
-            json.dump(output, f)
+          printf '%s' '{{inputs.parameters.data}}' > /tmp/request.json
