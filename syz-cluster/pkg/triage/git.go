@@ -30,7 +30,15 @@ func NewGitTreeOps(dir string, sandbox bool) (*GitTreeOps, error) {
 
 func (ops *GitTreeOps) HeadCommit(tree *api.Tree) (*vcs.Commit, error) {
 	// See kernel-disk/cron.yaml.
-	return ops.Commit(tree.Name + "-head")
+	return ops.Git.Commit(tree.Name + "-head")
+}
+
+func (ops *GitTreeOps) Commit(treeName, commitOrBranch string) (*vcs.Commit, error) {
+	// See kernel-disk/cron.yaml.
+	if vcs.CheckCommitHash(commitOrBranch) {
+		return ops.Git.Commit(commitOrBranch)
+	}
+	return ops.Git.Commit(treeName + "/" + commitOrBranch)
 }
 
 func (ops *GitTreeOps) ApplySeries(commit string, patches [][]byte) error {
