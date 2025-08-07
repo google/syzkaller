@@ -255,11 +255,11 @@ func isPowerOfTwo(n uint64) bool {
 	return n > 0 && (n&(n-1) == 0)
 }
 
-func roundToNearestMultiple(x, n uint64) uint64 {
+func roundUpPowerOfTwo(x, n uint64) uint64 {
 	if !isPowerOfTwo(n) {
 		panic("n was not a power of 2")
 	}
-	return (x + (n >> 1)) &^ (n - 1)
+	return (x + n - 1) &^ (n - 1)
 }
 
 // Pad b so that it's length is a multiple of alignment, with at least
@@ -269,7 +269,7 @@ func padWithAlignment(b *bytes.Buffer, alignment, minPadding uint64) {
 	if alignment == 0 {
 		newSize = uint64(b.Len()) + minPadding
 	} else {
-		newSize = roundToNearestMultiple(uint64(b.Len())+minPadding, alignment)
+		newSize = roundUpPowerOfTwo(uint64(b.Len())+minPadding, alignment)
 	}
 
 	paddingBytes := newSize - uint64(b.Len())
@@ -451,9 +451,12 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 			panic("at least one queue should have remaining entries at this point")
 		}
 
-		padWithAlignment(&payload, argWithReg.arg.Type().Alignment(), 0)
-
 		maxAlignment = max(maxAlignment, argWithReg.arg.Type().Alignment())
+
+		sizeBefore := payload.Len()
+		padWithAlignment(&payload, argWithReg.arg.Type().Alignment(), 0)
+		sizeAfter := payload.Len()
+		offsetInRegion += uint32(sizeAfter - sizeBefore)
 
 		sizeBeforeWrite := payload.Len()
 		switch a := argWithReg.arg.(type) {
@@ -486,6 +489,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 				// with the reserved value.
 				relocationTableEntries = append(relocationTableEntries, relocationEntry{
 					regionOffset: offsetInRegion,
+					regionID:     argWithReg.regionID,
 					value:        kFuzzTestNilPtrVal,
 				})
 			}
@@ -537,7 +541,7 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	headerLen := len(regionArray) + relocationTableNumBytes
 
 	// Round up the current total length to the nearest multiple of maxAlignment.
-	paddingBytes := roundToNearestMultiple(uint64(headerLen), maxAlignment) - uint64(headerLen)
+	paddingBytes := roundUpPowerOfTwo(uint64(headerLen), maxAlignment) - uint64(headerLen)
 
 	out.Write(regionArray)
 	out.Write(generateRelocationTable(relocationTableEntries, uint32(paddingBytes)))

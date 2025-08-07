@@ -805,6 +805,18 @@ type testCase struct {
 	payload         []byte
 }
 
+func TestRoundUpPowerOfTwo(t *testing.T) {
+	if res := roundUpPowerOfTwo(9, 8); res != 16 {
+		t.Fatalf("expected 16, got %d", res)
+	}
+	if res := roundUpPowerOfTwo(21, 4); res != 24 {
+		t.Fatalf("expected 24, got %d", res)
+	}
+	if res := roundUpPowerOfTwo(113, 16); res != 128 {
+		t.Fatalf("expected 24, got %d", res)
+	}
+}
+
 func TestMarshallKFuzzTestArg(t *testing.T) {
 	testCases := []testCase{
 		{
@@ -828,7 +840,7 @@ sendmsg$nl_xfrm(r0, &(0x7f0000000240)={0x0, 0x0, &(0x7f0000000080)={&(0x7f000000
 				0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Start = 0x58 | size = 0 bytes.
 			},
 			[]byte{ // Header: nentries = 3.
-				0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Num entries | Offset to payload = 0x0.
+				0x03, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, // Num entries | Offset to payload = 0x0.
 
 				// entries[0]: nil pointer at offset 0 of region 0.
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RegionID | Offset.
