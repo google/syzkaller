@@ -540,8 +540,10 @@ func marshallKFuzztestArg(topLevel Arg) []byte {
 	relocationTableNumBytes := len(generateRelocationTable(relocationTableEntries, 0x0))
 	headerLen := len(regionArray) + relocationTableNumBytes
 
-	// Round up the current total length to the nearest multiple of maxAlignment.
-	paddingBytes := roundUpPowerOfTwo(uint64(headerLen), maxAlignment) - uint64(headerLen)
+	// The payload needs to be aligned to max alignment to ensure that all
+	// nested structs are properly aligned, and there should be enough padding
+	// so that the region before the payload can be poisoned with a redzone.
+	paddingBytes := roundUpPowerOfTwo(uint64(headerLen)+poisonMinSize, maxAlignment) - uint64(headerLen)
 
 	out.Write(regionArray)
 	out.Write(generateRelocationTable(relocationTableEntries, uint32(paddingBytes)))
