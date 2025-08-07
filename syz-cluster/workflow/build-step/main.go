@@ -186,7 +186,7 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 	if err != nil {
 		return nil, err
 	}
-	commit, err := ops.Commit(req.CommitHash)
+	commit, err := ops.Commit(req.TreeName, req.CommitHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit info: %w", err)
 	}
@@ -197,7 +197,7 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 	if len(patches) > 0 {
 		tracer.Log("applying %d patches", len(patches))
 	}
-	err = ops.ApplySeries(req.CommitHash, patches)
+	err = ops.ApplySeries(commit.Hash, patches)
 	return commit, err
 }
 
