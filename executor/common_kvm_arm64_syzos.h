@@ -193,8 +193,38 @@ guest_main(uint64 size, uint64 cpu)
 	guest_uexit((uint64)-1);
 }
 
+// Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
+#define MAX_CACHE_LINE_SIZE 256
+
+GUEST_CODE static noinline void
+flush_cache_range(void* addr, uint64 size)
+{
+	uint64 start = (uint64)addr;
+	uint64 end = start + size;
+
+	// For self-modifying code, we must clean the D-cache and invalidate the
+	// I-cache for the memory range that was modified. This is the sequence
+	// mandated by the ARMv8-A architecture.
+
+	// 1. Clean D-cache over the whole range to the Point of Unification.
+	for (uint64 i = start; i < end; i += MAX_CACHE_LINE_SIZE)
+		asm volatile("dc cvau, %[addr]" : : [addr] "r"(i) : "memory");
+	// 2. Wait for the D-cache clean to complete.
+	asm volatile("dsb sy" : : : "memory");
+
+	// 3. Invalidate I-cache over the whole range.
+	for (uint64 i = start; i < end; i += MAX_CACHE_LINE_SIZE)
+		asm volatile("ic ivau, %[addr]" : : [addr] "r"(i) : "memory");
+	// 4. Wait for the I-cache invalidate to complete.
+	asm volatile("dsb sy" : : : "memory");
+
+	// 5. Flush pipeline to force re-fetch of new instruction.
+	asm volatile("isb" : : : "memory");
+}
+
 GUEST_CODE static noinline void guest_execute_code(uint32* insns, uint64 size)
 {
+	flush_cache_range(insns, size);
 	volatile void (*fn)() = (volatile void (*)())insns;
 	fn();
 }
@@ -236,9 +266,6 @@ GUEST_CODE static uint32 get_cpu_id()
 	return (uint32)val;
 }
 
-// Some ARM chips use 128-byte cache lines. Pick 256 to be on the safe side.
-#define MAX_CACHE_LINE_SIZE 256
-
 // Read the value from a system register using an MRS instruction.
 GUEST_CODE static noinline void
 guest_handle_mrs(uint64 reg)
@@ -249,6 +276,7 @@ guest_handle_mrs(uint64 reg)
 	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = mrs;
 	insn[1] = 0xd65f03c0; // RET
+	flush_cache_range(insn, 8);
 	// Make a call to the generated MSR instruction and clobber x0.
 	asm("blr %[pc]\n"
 	    :
@@ -273,6 +301,7 @@ guest_handle_msr(uint64 reg, uint64 val)
 	uint32* insn = (uint32*)((uint64)ARM64_ADDR_SCRATCH_CODE + cpu_id * MAX_CACHE_LINE_SIZE);
 	insn[0] = msr;
 	insn[1] = 0xd65f03c0; // RET
+	flush_cache_range(insn, 8);
 	// Put `val` into x0 and make a call to the generated MSR instruction.
 	asm("mov x0, %[val]\nblr %[pc]\n"
 	    :
