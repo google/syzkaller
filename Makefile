@@ -32,35 +32,6 @@ $(warning $(RED)run command via tools/syz-env for best compatibility, see:$(RESE
 $(warning $(RED)https://github.com/google/syzkaller/blob/master/docs/contributing.md#using-syz-env$(RESET))
 endif
 
-ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
-	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
-	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
-	SYZ_CLANG=$(SYZ_CLANG) \
-	go run tools/syz-make/make.go))
-# Uncomment in case of emergency.
-# $(info $(ENV))
-$(eval $(ENV))
-ifneq ("$(SYZERROR)", "")
-$(error $(SYZERROR))
-endif
-ifeq ("$(NCORES)", "")
-$(error syz-make failed)
-endif
-ifeq ("$(MAKELEVEL)", "0")
-	MAKEFLAGS += -j$(NCORES) --no-print-directory
-endif
-
-GO := go
-HOSTGO := go
-# By default, build all Go binaries as static. We don't need cgo and it is
-# known to cause problems at least on Android emulator.
-CGO_ENABLED ?= 0
-export CGO_ENABLED
-TARGETGOOS := $(TARGETOS)
-TARGETGOARCH := $(TARGETVMARCH)
-export GO111MODULE=on
-export GOBIN=$(shell pwd -P)/bin
-
 GITREV=$(shell git rev-parse HEAD)
 ifeq ("$(shell git diff --shortstat)", "")
 	REV=$(GITREV)
@@ -87,6 +58,35 @@ endif
 
 GOHOSTFLAGS ?= $(GOFLAGS)
 GOTARGETFLAGS ?= $(GOFLAGS)
+
+ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
+	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
+	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
+	SYZ_CLANG=$(SYZ_CLANG) \
+	go run $(GOHOSTFLAGS) tools/syz-make/make.go))
+# Uncomment in case of emergency.
+# $(info $(ENV))
+$(eval $(ENV))
+ifneq ("$(SYZERROR)", "")
+$(error $(SYZERROR))
+endif
+ifeq ("$(NCORES)", "")
+$(error syz-make failed)
+endif
+ifeq ("$(MAKELEVEL)", "0")
+	MAKEFLAGS += -j$(NCORES) --no-print-directory
+endif
+
+GO := go
+HOSTGO := go
+# By default, build all Go binaries as static. We don't need cgo and it is
+# known to cause problems at least on Android emulator.
+CGO_ENABLED ?= 0
+export CGO_ENABLED
+TARGETGOOS := $(TARGETOS)
+TARGETGOARCH := $(TARGETVMARCH)
+export GO111MODULE=on
+export GOBIN=$(shell pwd -P)/bin
 
 ifeq ("$(TARGETOS)", "test")
 	TARGETGOOS := $(HOSTOS)
@@ -150,7 +150,7 @@ endif
 # syz-sysgen generates them all at once, so we can't make each of them an independent target.
 .PHONY: descriptions
 descriptions:
-	go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
+	go list -f '{{.Stale}}' $(GOHOSTFLAGS) ./sys/syz-sysgen | grep -q false || go install $(GOHOSTFLAGS) ./sys/syz-sysgen
 	$(MAKE) .descriptions
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
