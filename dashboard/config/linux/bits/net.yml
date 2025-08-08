@@ -433,7 +433,6 @@ config:
  - E100: [-s390]
  - E1000E: [-s390]
  - NET_VENDOR_GOOGLE
- - GVE: [-arm, -riscv, -s390]
  - NET_VENDOR_3COM: n
  - NET_VENDOR_ADAPTEC: n
  - NET_VENDOR_AGERE: n
