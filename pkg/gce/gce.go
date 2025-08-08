@@ -131,6 +131,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 				AutoDelete: true,
 				Boot:       true,
 				Type:       "PERSISTENT",
+				DiskSizeGb: int64(diskSizeGB(machineType)),
 				InitializeParams: &compute.AttachedDiskInitializeParams{
 					DiskName:    name,
 					SourceImage: prefix + "/global/images/" + image,
@@ -208,6 +209,16 @@ retry:
 		return "", fmt.Errorf("didn't find instance internal IP address")
 	}
 	return ip, nil
+}
+
+func diskSizeGB(machineType string) int {
+	if strings.HasPrefix(machineType, "c4a-") {
+		// For C4A machines, the only available disk type is "Hyperdisk Balanced",
+		// which must be >= 10GB.
+		return 10
+	}
+	// Use the default value.
+	return 0
 }
 
 func (ctx *Context) DeleteInstance(name string, wait bool) error {
