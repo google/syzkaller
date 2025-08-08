@@ -135,7 +135,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
 		}
-		if err := GCE.CreateImage(cfg.GCEImage, gcsImage); err != nil {
+		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS); err != nil {
 			return nil, fmt.Errorf("failed to create GCE image: %w", err)
 		}
 	}
