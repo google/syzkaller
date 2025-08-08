@@ -49,8 +49,12 @@ type MutateOpts struct {
 	RemoveCallWeight   int
 }
 
-func (o MutateOpts) weight() int {
-	return o.SquashWeight + o.SpliceWeight + o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
+func (o MutateOpts) weight(EnforceDeps bool) int {
+	w := o.InsertWeight + o.MutateArgWeight + o.RemoveCallWeight
+	if !EnforceDeps {
+		w += o.SquashWeight + o.SpliceWeight
+	}
+	return w
 }
 
 func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool,
@@ -58,8 +62,12 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	if p.isUnsafe {
 		panic("mutation of unsafe programs is not supposed to be done")
 	}
-	totalWeight := opts.weight()
 	r := newRand(p.Target, rs)
+	if p.EnforceDeps {
+		p.EnforceDeps = r.nOutOf(2, 3)
+	}
+	r.EnforceDeps = p.EnforceDeps
+	totalWeight := opts.weight(p.EnforceDeps)
 	ncalls = max(ncalls, len(p.Calls))
 	ctx := &mutator{
 		p:        p,
@@ -72,17 +80,19 @@ func (p *Prog) MutateWithOpts(rs rand.Source, ncalls int, ct *ChoiceTable, noMut
 	}
 	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(opts.ExpectedIterations) {
 		val := r.Intn(totalWeight)
-		val -= opts.SquashWeight
-		if val < 0 {
-			// Not all calls have anything squashable,
-			// so this has lower priority in reality.
-			ok = ctx.squashAny()
-			continue
-		}
-		val -= opts.SpliceWeight
-		if val < 0 {
-			ok = ctx.splice()
-			continue
+		if !p.EnforceDeps {
+			val -= opts.SquashWeight
+			if val < 0 {
+				// Not all calls have anything squashable,
+				// so this has lower priority in reality.
+				ok = ctx.squashAny()
+				continue
+			}
+			val -= opts.SpliceWeight
+			if val < 0 {
+				ok = ctx.splice()
+				continue
+			}
 		}
 		val -= opts.InsertWeight
 		if val < 0 {
@@ -195,8 +205,12 @@ func (ctx *mutator) insertCall() bool {
 	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p, idx)
 	p.insertBefore(c, calls)
-	for len(p.Calls) > ctx.ncalls {
-		p.RemoveCall(idx)
+	if !p.EnforceDeps {
+		for len(p.Calls) > ctx.ncalls {
+			p.RemoveCall(idx)
+		}
+	} else {
+		resizeGeneratedCalls(p, ctx.ncalls, nil)
 	}
 	return true
 }
@@ -207,8 +221,22 @@ func (ctx *mutator) removeCall() bool {
 	if len(p.Calls) == 0 {
 		return false
 	}
-	idx := r.Intn(len(p.Calls))
-	p.RemoveCall(idx)
+	success := false
+	for i := 0; i < 50; i++ {
+		idx := r.Intn(len(p.Calls))
+		if !callHasDependents(p, idx) {
+			p.RemoveCall(idx)
+			success = true
+			break
+		}
+	}
+	if !success {
+		// we gotta remove something in any case
+		// so that we don't get stuck keep trying
+		// over and over in successive calls
+		idx := r.Intn(len(p.Calls))
+		p.RemoveCall(idx)
+	}
 	return true
 }
 
@@ -246,13 +274,17 @@ func (ctx *mutator) mutateArg() bool {
 		calls = append(calls, moreCalls...)
 		p.insertBefore(c, calls)
 		idx += len(calls)
-		for len(p.Calls) > ctx.ncalls {
-			idx--
-			p.RemoveCall(idx)
-		}
-		if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
-			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
-				idx, len(calls), len(p.Calls), ctx.ncalls))
+		if !p.EnforceDeps {
+			for len(p.Calls) > ctx.ncalls {
+				idx--
+				p.RemoveCall(idx)
+			}
+			if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
+				panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
+					idx, len(calls), len(p.Calls), ctx.ncalls))
+			}
+		} else {
+			resizeGeneratedCalls(p, ctx.ncalls, c)
 		}
 		if updateSizes || fieldsPatched {
 			p.Target.assignSizesCall(c)
@@ -506,7 +538,7 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*PointerArg)
-	if r.oneOf(1000) {
+	if r.oneOf(1000) && !r.EnforceDeps {
 		removeArg(a.Res)
 		index := r.rand(len(r.target.SpecialPointers))
 		newArg := MakeSpecialPointerArg(t, a.Dir(), index)

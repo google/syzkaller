@@ -286,7 +286,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 	if req == nil {
 		req = genProgRequest(fuzzer, rnd)
 	}
-	if fuzzer.Config.Collide && rnd.Intn(3) == 0 {
+	if !req.Prog.EnforceDeps && fuzzer.Config.Collide && rnd.Intn(3) == 0 {
 		req = &queue.Request{
 			Prog: randomCollide(req.Prog, rnd),
 			Stat: fuzzer.statExecCollide,
