@@ -19,3 +19,8 @@ func TestZoneToRegion(t *testing.T) {
 	assert.Equal(t, "us-west1", zoneToRegion("us-west1-b"))
 	assert.Equal(t, "northamerica-northeast2", zoneToRegion("northamerica-northeast2-a"))
 }
+
+func TestDiskSizeGB(t *testing.T) {
+	assert.Equal(t, 10, diskSizeGB("c4a-standard-2"))
+	assert.Equal(t, 0, diskSizeGB("e2-standard-2"))
+}
