@@ -907,12 +907,12 @@ func testOne(t *testing.T, tc testCase) {
 
 	regionArrayLen := len(tc.regionArray)
 	relocTableLen := len(tc.relocationTable)
-	// payloadLen := len(tc.payload)
+	payloadLen := len(tc.payload)
 
-	// if len(encoded) != regionArrayLen+relocTableLen+payloadLen {
-	// 	t.Fatalf("encoded output has wrong total length: got %d, want %d",
-	// 		len(encoded), regionArrayLen+relocTableLen+payloadLen)
-	// }
+	if len(encoded) != regionArrayLen+relocTableLen+payloadLen {
+		t.Fatalf("encoded output has wrong total length: got %d, want %d",
+			len(encoded), regionArrayLen+relocTableLen+payloadLen)
+	}
 
 	gotRegionArray := encoded[:regionArrayLen]
 	gotRelocTable := encoded[regionArrayLen : regionArrayLen+relocTableLen]
