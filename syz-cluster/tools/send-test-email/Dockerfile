@@ -8,9 +8,9 @@ COPY go.sum ./
 RUN go mod download
 COPY dashboard/dashapi/ dashboard/dashapi/
 COPY pkg/gcs/ pkg/gcs/
-COPY pkg/gce/ pkg/gce/
 COPY pkg/email/ pkg/email/
 COPY pkg/auth/ pkg/auth/
+COPY pkg/gcpsecret/ pkg/gcpsecret/
 
 # Build the tool.
 COPY syz-cluster/tools/send-test-email/*.go syz-cluster/tools/send-test-email/
