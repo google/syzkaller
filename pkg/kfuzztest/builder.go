@@ -48,15 +48,17 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 	}
 
 	var descBuilder strings.Builder
-	sortedStructs := b.topologicalSortDependencyDag()
-	for _, s := range sortedStructs {
+	descBuilder.WriteString("# This description was automatically generated with tools/kfuzztest-gen\n")
+	for _, s := range b.structs {
 		descBuilder.WriteString(syzStructToSyzlang(s, constraintMap, annotationMap))
 		descBuilder.WriteString("\n\n")
 	}
 
-	for _, fn := range b.funcs {
+	for i, fn := range b.funcs {
 		descBuilder.WriteString(syzFuncToSyzlang(fn))
-		descBuilder.WriteString("\n")
+		if i < len(b.funcs)-1 {
+			descBuilder.WriteString("\n")
+		}
 	}
 
 	eh := func(pos ast.Pos, msg string) {
@@ -142,73 +144,6 @@ func syzConstraintToSyzlang(c SyzConstraint) string {
 	default:
 		return ""
 	}
-}
-
-// Topologically sorts the builder's struct fields based on dependencies.
-// This implementation assumes that the graph is acyclic which we can't assume
-// in general but it will suffice for the time being.
-func (b *Builder) topologicalSortDependencyDag() []SyzStruct {
-	// maps type name to type name
-	edges := make(map[string][]string)
-	// map type name to SyzStruct instance so that we can output these more
-	// easily
-	nameToStruct := make(map[string]SyzStruct)
-	for _, s := range b.structs {
-		nameToStruct[s.Name] = s
-	}
-
-	for _, s := range b.structs {
-		if _, ok := edges[s.Name]; !ok {
-			edges[s.Name] = make([]string, 0)
-		}
-
-		for _, f := range s.Fields {
-			edges[s.Name] = append(edges[s.Name], f.TypeName)
-		}
-	}
-
-	// Assemble list of start nodes which are those with no incoming edges
-	startNodes := make(map[string]bool)
-	for _, node := range b.structs {
-		startNodes[node.Name] = true
-	}
-	for _, nodes := range edges {
-		for _, node := range nodes {
-			if startNodes[node] {
-				delete(startNodes, node)
-			}
-		}
-	}
-
-	sortedNames := make([]string, 0)
-	var visit func(string, *map[string]bool)
-	visit = func(node string, visited *map[string]bool) {
-		sortedNames = append([]string{node}, sortedNames...)
-		for _, child := range edges[node] {
-			// this child is not a structure, so we don't need to visit
-			if _, contained := nameToStruct[child]; !contained {
-				continue
-			}
-			if _, ok := (*visited)[child]; !ok {
-				(*visited)[child] = true
-				visit(child, visited)
-			}
-		}
-	}
-
-	visited := make(map[string]bool)
-	for node := range startNodes {
-		if _, contains := visited[node]; !contains {
-			visit(node, &visited)
-		}
-	}
-
-	sortedStructs := make([]SyzStruct, len(sortedNames))
-	for i, name := range sortedNames {
-		sortedStructs[i] = nameToStruct[name]
-	}
-
-	return sortedStructs
 }
 
 func dwarfToSyzlangType(typeName string) string {
