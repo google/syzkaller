@@ -146,6 +146,8 @@ spec:
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: corpus-url
                   value: "{{=jsonpath(inputs.parameters.element, '$.corpus_url')}}"
+                - name: skip-cover-check
+                  value: "{{=jsonpath(inputs.parameters.element, '$.skip_cover_check')}}"
               artifacts:
                 - name: base-kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"

@@ -18,6 +18,8 @@ spec:
             value: ""
           - name: corpus-url
             value: ""
+          - name: skip-cover-check
+            value: "false"
         artifacts:
           - name: base-kernel
             path: /base
@@ -34,6 +36,7 @@ spec:
           "--base_build", "{{inputs.parameters.base-build-id}}",
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
           "--corpus_url", "{{inputs.parameters.corpus-url}}",
+          "--skip_cover_check={{inputs.parameters.skip-cover-check}}",
           "--time", "3h",
           "--workdir", "/workdir",
           "--vv", "1"
