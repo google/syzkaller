@@ -253,6 +253,16 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		},
 	},
 	{
+		EmailLists:   []string{`linux-mm@kvack.org`},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig: FuzzConfig{
+			Config:    `all`,
+			CorpusURL: allCorpusURL,
+			// Not all mm/ code is instrumented with KCOV.
+			SkipCoverCheck: true,
+		},
+	},
+	{
 		EmailLists:   nil, // A fallback option.
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
