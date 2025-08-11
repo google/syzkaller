@@ -17,6 +17,7 @@ data:
       - kvm
       - io-uring
       - linux-wireless
+      - linux-mm
     emailReporting:
       name: "syzbot ci"
       sender: dashapi
