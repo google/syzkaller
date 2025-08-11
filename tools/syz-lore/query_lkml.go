@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -29,7 +28,6 @@ import (
 // The syz-lore tool can parse Lore archives and extract syzbot-related conversations from there.
 
 var (
-	flagArchives  = flag.String("archives", "", "path to the folder with git archives")
 	flagEmails    = flag.String("emails", "", "comma-separated list of own emails")
 	flagDomains   = flag.String("domains", "", "comma-separated list of own domains")
 	flagOutDir    = flag.String("out_dir", "", "a directory to save discussions as JSON files")
@@ -41,12 +39,12 @@ var (
 
 func main() {
 	defer tool.Init()()
-	if !osutil.IsDir(*flagArchives) {
-		tool.Failf("the arhives parameter must be a valid directory")
+	if len(flag.Args()) == 0 {
+		tool.Failf("format: syz-lore [flags] dir1 [dir2 ...]")
 	}
 	emails := strings.Split(*flagEmails, ",")
 	domains := strings.Split(*flagDomains, ",")
-	threads := processArchives(*flagArchives, emails, domains)
+	threads := processArchives(flag.Args(), emails, domains)
 	for i, thread := range threads {
 		messages := []dashapi.DiscussionMessage{}
 		for _, m := range thread.Messages {
@@ -102,22 +100,14 @@ func saveDiscussion(d *dashapi.Discussion) error {
 	return nil
 }
 
-func processArchives(dir string, emails, domains []string) []*lore.Thread {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		tool.Failf("failed to read directory: %v", err)
-	}
+func processArchives(paths, emails, domains []string) []*lore.Thread {
 	threads := runtime.NumCPU()
 	messages := make(chan lore.EmailReader, threads*2)
 	wg := sync.WaitGroup{}
 	g, _ := errgroup.WithContext(context.Background())
 
 	// Generate per-email jobs.
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		path := filepath.Join(dir, entry.Name())
+	for _, path := range paths {
 		log.Printf("reading %s", path)
 		wg.Add(1)
 		g.Go(func() error {
