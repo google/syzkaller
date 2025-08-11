@@ -11,18 +11,18 @@ import (
 )
 
 func TestSelectFuzzConfig(t *testing.T) {
-	configs := []*api.FuzzConfig{
+	configs := []*api.TriageFuzzConfig{
 		{
-			Name:       "bpf",
 			EmailLists: []string{"bpf@list"},
+			FuzzConfig: api.FuzzConfig{Config: "bpf"},
 		},
 		{
-			Name:       "net",
 			EmailLists: []string{"net@list"},
+			FuzzConfig: api.FuzzConfig{Config: "net"},
 		},
 		{
-			Name:       "mainline",
 			EmailLists: nil,
+			FuzzConfig: api.FuzzConfig{Config: "mainline"},
 		},
 	}
 	tests := []struct {
@@ -45,7 +45,7 @@ func TestSelectFuzzConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			ret := SelectFuzzConfig(test.series, configs)
-			assert.Equal(t, test.result, ret.Name)
+			assert.Equal(t, test.result, ret.Config)
 		})
 	}
 }
