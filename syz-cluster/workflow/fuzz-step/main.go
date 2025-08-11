@@ -28,13 +28,14 @@ import (
 )
 
 var (
-	flagConfig       = flag.String("config", "", "syzkaller config")
-	flagSession      = flag.String("session", "", "session ID")
-	flagBaseBuild    = flag.String("base_build", "", "base build ID")
-	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
-	flagTime         = flag.String("time", "1h", "how long to fuzz")
-	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
-	flagCorpusURL    = flag.String("corpus_url", "", "an URL to download corpus from")
+	flagConfig         = flag.String("config", "", "syzkaller config")
+	flagSession        = flag.String("session", "", "session ID")
+	flagBaseBuild      = flag.String("base_build", "", "base build ID")
+	flagPatchedBuild   = flag.String("patched_build", "", "patched build ID")
+	flagTime           = flag.String("time", "1h", "how long to fuzz")
+	flagWorkdir        = flag.String("workdir", "/workdir", "base workdir path")
+	flagCorpusURL      = flag.String("corpus_url", "", "an URL to download corpus from")
+	flagSkipCoverCheck = flag.Bool("skip_cover_check", false, "don't check whether we reached the patched code")
 )
 
 const testName = "Fuzzing"
@@ -134,12 +135,11 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	eg.Go(func() error {
 		defer log.Logf(0, "diff fuzzing terminated")
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
-			Debug:         false,
-			PatchedOnly:   bugs,
-			Store:         store,
-			MaxTriageTime: timeout / 2,
-			// Allow up to 30 minutes after the corpus triage to reach the patched code.
-			FuzzToReachPatched: time.Minute * 30,
+			Debug:              false,
+			PatchedOnly:        bugs,
+			Store:              store,
+			MaxTriageTime:      timeout / 2,
+			FuzzToReachPatched: fuzzToReachPatched(),
 		})
 	})
 	const (
@@ -315,6 +315,14 @@ func readJSONMap(file string) (map[string]string, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func fuzzToReachPatched() time.Duration {
+	if *flagSkipCoverCheck {
+		return 0
+	}
+	// Allow up to 30 minutes after the corpus triage to reach the patched code.
+	return time.Minute * 30
 }
 
 func compressArtifacts(dir string) (io.Reader, error) {

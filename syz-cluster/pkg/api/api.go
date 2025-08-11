@@ -24,6 +24,8 @@ type FuzzTask struct {
 type FuzzConfig struct {
 	Config    string `json:"config"` // Refers to workflow/configs/{}.
 	CorpusURL string `json:"corpus_url"`
+	// Don't expect kernel coverage for the patched area.
+	SkipCoverCheck bool `json:"skip_cover_check"`
 }
 
 // The triage step of the workflow will request these from controller.
