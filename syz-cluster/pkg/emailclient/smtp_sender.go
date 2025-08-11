@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/gce"
+	"github.com/google/syzkaller/pkg/gcpsecret"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/uuid"
 )
@@ -22,7 +22,7 @@ type smtpSender struct {
 }
 
 func newSMTPSender(ctx context.Context, cfg *app.EmailConfig) (*smtpSender, error) {
-	project, err := gce.ProjectName(ctx)
+	project, err := gcpsecret.ProjectName(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query project name: %w", err)
 	}
@@ -117,7 +117,7 @@ func (sender *smtpSender) querySecret(ctx context.Context, key string) (string, 
 	var err error
 	for i := 0; i < retries; i++ {
 		var val []byte
-		val, err := gce.LatestGcpSecret(ctx, sender.projectName, key)
+		val, err := gcpsecret.LatestGcpSecret(ctx, sender.projectName, key)
 		if err == nil {
 			return string(val), nil
 		}
