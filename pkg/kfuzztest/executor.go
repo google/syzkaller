@@ -76,7 +76,7 @@ func (kfe *KFuzzTestExecutor) workerLoop(tid int) {
 			res := ExecResult{Call: call, Success: true}
 
 			// Trace each individual call, collecting the covered PCs.
-			coverage, err := kcovSt.Trace(func() error { return ExecKFuzzTestCallLocal(call) })
+			coverage, err := ExecKFuzzTestCallLocal(kcovSt, call)
 			if err != nil {
 				// Set this call info as a failure. -1 is a placeholder.
 				callInfo.Error = -1

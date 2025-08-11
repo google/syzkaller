@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/kcov"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -170,17 +171,18 @@ func ActivateKFuzzTargets(vmLinuxPath string, target *prog.Target, enabledCalls 
 	return nil
 }
 
-func ExecKFuzzTestCallLocal(call *prog.Call) error {
+func ExecKFuzzTestCallLocal(st *kcov.KCOVState, call *prog.Call) ([]uintptr, error) {
 	testName, isKFuzzTest := GetTestName(call.Meta)
 	if !isKFuzzTest {
-		return fmt.Errorf("tried to execute a syscall that wasn't syz_kfuzztest_run")
+		return []uintptr{}, fmt.Errorf("tried to execute a syscall that wasn't syz_kfuzztest_run")
 	}
 
 	dataArg, ok := call.Args[1].(*prog.PointerArg)
 	if !ok {
-		return fmt.Errorf("second arg for syz_kfuzztest_run should be a pointer")
+		return []uintptr{}, fmt.Errorf("second arg for syz_kfuzztest_run should be a pointer")
 	}
 	finalBlob := prog.MarshallKFuzztestArg(dataArg.Res)
 	inputPath := path.Join("/sys/kernel/debug/kfuzztest/", testName, "input")
-	return os.WriteFile(inputPath, finalBlob, 0644)
+
+	return st.Trace(func() error { return os.WriteFile(inputPath, finalBlob, 0644) })
 }
