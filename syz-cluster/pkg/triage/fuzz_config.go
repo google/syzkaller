@@ -9,7 +9,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
-func SelectFuzzConfig(series *api.Series, fuzzConfigs []*api.FuzzConfig) *api.FuzzConfig {
+func SelectFuzzConfig(series *api.Series, fuzzConfigs []*api.TriageFuzzConfig) *api.TriageFuzzConfig {
 	seriesCc := map[string]bool{}
 	for _, cc := range series.Cc {
 		seriesCc[strings.ToLower(cc)] = true

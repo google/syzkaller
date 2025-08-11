@@ -119,10 +119,9 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 		}
 		triageResult = &api.TriageResult{
 			Fuzz: &api.FuzzTask{
-				Base:      base,
-				Patched:   base,
-				Config:    fuzzConfig.Name,
-				CorpusURL: fuzzConfig.CorpusURL,
+				Base:       base,
+				Patched:    base,
+				FuzzConfig: fuzzConfig.FuzzConfig,
 			},
 		}
 		triageResult.Fuzz.Patched.SeriesID = series.ID
