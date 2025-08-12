@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -34,7 +34,7 @@ type annotatedCall struct {
 func TestGenerateSyscalls(t *testing.T) {
 	flag.Parse()
 
-	testCases, err := readTestCases("./testdata")
+	testCases, err := readTestCases("testdata/**")
 	assert.NoError(t, err)
 
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
@@ -55,17 +55,13 @@ func TestGenerateSyscalls(t *testing.T) {
 func readTestCases(dir string) ([]testData, error) {
 	var testCases []testData
 
-	testFiles, err := os.ReadDir(dir)
+	testFiles, err := filepath.Glob(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, testFile := range testFiles {
-		if testFile.IsDir() {
-			continue
-		}
-
-		testCase, err := readTestData(path.Join(dir, testFile.Name()))
+		testCase, err := readTestData(testFile)
 		if err != nil {
 			return nil, err
 		}
