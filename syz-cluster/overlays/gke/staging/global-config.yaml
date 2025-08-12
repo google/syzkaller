@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     URL: http://unknown
-    parallelWorkflows: 3
+    parallelWorkflows: 2
     loreArchives:
       - netdev
       - linux-ext4
