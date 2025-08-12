@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     URL: https://ci.syzbot.org
-    parallelWorkflows: 7
+    parallelWorkflows: 8
     loreArchives:
       - netdev
       - bpf
