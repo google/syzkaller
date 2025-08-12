@@ -62,7 +62,7 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 		p.debugValidate()
 		id := hash.String(p.Serialize())
 		if _, ok := dedup[id]; !ok {
-			dedup[id] = pred0(p, callIndex)
+			dedup[id] = p.ValidateDeps() && pred0(p, callIndex)
 		}
 		return dedup[id]
 	}
