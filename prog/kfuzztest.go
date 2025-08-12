@@ -7,9 +7,18 @@ import (
 )
 
 // Special value for making null pointers that equals (void *)-1
-const kFuzzTestNilPtrVal uint32 = ^uint32(0)
+const (
+	kFuzzTestNilPtrVal  uint32 = ^uint32(0)
+	kFuzzTestPoisonSize uint64 = 0x8
 
-const kFuzzTestPoisonSize uint64 = 0x8
+	kFuzzTestVersion uint32 = 0
+	kFuzzTestMagic   uint32 = 0xBFACE
+)
+
+func kFuzzTestWritePrefix(buf *bytes.Buffer) {
+	prefix := (uint64(kFuzzTestVersion) << 32) | uint64(kFuzzTestMagic)
+	binary.Write(buf, binary.LittleEndian, prefix)
+}
 
 func isPowerOfTwo(n uint64) bool {
 	return n > 0 && (n&(n-1) == 0)
@@ -212,6 +221,10 @@ func MarshallKFuzztestArg(topLevel Arg) []byte {
 	queue.push(topLevel)
 	maxAlignment := uint64(8)
 
+	if topLevel == nil {
+		return []byte{}
+	}
+
 Loop:
 	for {
 		if queue.isEmpty() {
@@ -245,9 +258,10 @@ Loop:
 		payload.Write(make([]byte, kFuzzTestPoisonSize)) // 8 bytes of padding.
 	}
 
+	prefixSize := 0x8 // Prefix is always 8-bytes.
 	regionArraySize := kFuzzTestRegionArraySize(len(regions))
 	relocTableSize := kFuzzTestRelocTableSize(len(allRelocations))
-	headerLen := regionArraySize + relocTableSize
+	headerLen := prefixSize + regionArraySize + relocTableSize
 
 	// The payload needs to be aligned to max alignment to ensure that all
 	// nested structs are properly aligned, and there should be enough padding
@@ -255,6 +269,7 @@ Loop:
 	paddingBytes := roundUpPowerOfTwo(uint64(headerLen)+kFuzzTestPoisonSize, maxAlignment) - uint64(headerLen)
 
 	var out bytes.Buffer
+	kFuzzTestWritePrefix(&out)
 	kFuzzTestWriteRegionArray(&out, regions)
 	kFuzzTestWriteRelocTable(&out, &visitedRegions, allRelocations, paddingBytes)
 	out.Write(payload.Bytes())
