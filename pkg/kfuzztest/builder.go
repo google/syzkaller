@@ -135,10 +135,14 @@ func syzConstraintToSyzlang(c SyzConstraint) string {
 	switch c.ConstraintType {
 	case ExpectEq:
 		return fmt.Sprintf("[%d]", c.Value1)
+	case ExpectLt:
+		return fmt.Sprintf("[0:%d]", c.Value1-1)
 	case ExpectLe:
-		return fmt.Sprintf("[:%d]", c.Value1) // this is strictly less than right?
+		return fmt.Sprintf("[0:%d]", c.Value1)
 	case ExpectGt:
-		return fmt.Sprintf("[:%d]", c.Value1)
+		return fmt.Sprintf("[%d]", c.Value1+1)
+	case ExpectGe:
+		return fmt.Sprintf("[%d]", c.Value1)
 	case ExpectInRange:
 		return fmt.Sprintf("[%d:%d]", c.Value1, c.Value2)
 	default:

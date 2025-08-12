@@ -39,13 +39,15 @@ type ConstraintType uint8
 const (
 	ExpectEq ConstraintType = iota
 	ExpectNe
+	ExpectLt
 	ExpectLe
 	ExpectGt
+	ExpectGe
 	ExpectInRange
 )
 
 func (c ConstraintType) String() string {
-	return [...]string{"EXPECT_EQ", "EXPECT_NE", "EXPECT_LE", "EXPECT_GT", "EXPECT_IN_RANGE"}[c]
+	return [...]string{"EXPECT_EQ", "EXPECT_NE", "EXPECT_LT", "EXPECT_LE", "EXPECT_GT", "EXPECT_GE", "EXPECT_IN_RANGE"}[c]
 }
 
 type SyzConstraint struct {
