@@ -9,6 +9,7 @@ import (
 	"embed"
 	"encoding/gob"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/google/syzkaller/prog"
@@ -42,7 +43,7 @@ func Register(os, arch, revision string, init func(*prog.Target), files embed.FS
 }
 
 func fill(target *prog.Target, files embed.FS) {
-	data, err := files.ReadFile(FileName(target.OS, target.Arch))
+	data, err := os.ReadFile(FileName(target.OS, target.Arch))
 	if err != nil {
 		panic(err)
 	}
@@ -82,7 +83,7 @@ func Glob() string {
 }
 
 func fileName(name string) string {
-	return filepath.Join("gen", fmt.Sprintf("%v.gob.flate", name))
+	return filepath.Join("sys", "gen", fmt.Sprintf("%v.gob.flate", name))
 }
 
 func init() {
