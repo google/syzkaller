@@ -1,0 +1,114 @@
+{{define "content"}}
+    <main class="container-fluid my-4">
+      <div class="chart-wrapper mb-5">
+        <h2 class="h4">Processed Series (weekly)</h2>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <div id="processed_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
+        <h2 class="h4">Findings (weekly)</h2>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <div id="findings_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
+        <h2 class="h4">Wait Time before Fuzzing (avg hours, weekly)</h2>
+        <p class="text-muted small">How many hours have passed since the moment the series was published and the moment we started fuzzing it.</p>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <div id="avg_wait_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
+        <h2 class="h4">Status Distribution (weekly)</h2>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <div id="distribution_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+    </main>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawAllCharts);
+
+      const processedData = [
+        {{range .Processed}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Count}}],
+        {{end}}
+      ];
+
+      const findingsData = [
+        {{range .Findings}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Count}}],
+        {{end}}
+      ];
+
+      const delayData = [
+        {{range .Delay}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.DelayHours}}],
+        {{end}}
+      ];
+
+      const distributionData = [
+        {{range .Distribution}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Finished}}, {{.Skipped}}],
+        {{end}}
+      ];
+
+      function drawAllCharts() {
+        drawChart('processed_chart_div', processedData, '#007bff');
+        drawChart('findings_chart_div', findingsData, '#dc3545');
+        drawChart('avg_wait_chart_div', delayData, 'black');
+        drawDistributionChart();
+      }
+
+      function drawChart(chartDivId, chartData, chartColor) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'Count');
+        data.addRows(chartData);
+        const options = {
+          legend: { position: 'none' },
+          hAxis: { title: 'Date', format: 'MMM dd, yyyy', gridlines: { color: 'transparent' } },
+          vAxis: { title: 'Count', minValue: 0 },
+          colors: [chartColor],
+          curveType: 'function',
+          explorer: {
+            actions: ['dragToZoom', 'rightClickToReset'],
+            axis: 'horizontal',
+            keepInBounds: true,
+            maxZoomIn: 4.0
+          }
+        };
+
+        const chart = new google.visualization.LineChart(document.getElementById(chartDivId));
+        chart.draw(data, options);
+      }
+
+      function drawDistributionChart() {
+        const data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'Processed');
+        data.addColumn('number', 'Skipped');
+        data.addRows(distributionData);
+        const options = {
+          isStacked: 'percent',
+          legend: { position: 'top', maxLines: 2 },
+          hAxis: { title: 'Date', format: 'MMM dd, yyyy', gridlines: { color: 'transparent' } },
+          vAxis: {
+            minValue: 0,
+            format: '#%'
+          },
+          colors: ['#28a745', '#ffc107'],
+          areaOpacity: 0.8
+        };
+        const chart = new google.visualization.AreaChart(document.getElementById('distribution_chart_div'));
+        chart.draw(data, options);
+    }
+    </script>
+{{end}}

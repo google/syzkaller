@@ -27,6 +27,7 @@ type dashboardHandler struct {
 	sessionRepo     *db.SessionRepository
 	sessionTestRepo *db.SessionTestRepository
 	findingRepo     *db.FindingRepository
+	statsRepo       *db.StatsRepository
 	blobStorage     blob.Storage
 	templates       map[string]*template.Template
 }
@@ -37,7 +38,7 @@ var templates embed.FS
 func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 	perFile := map[string]*template.Template{}
 	var err error
-	for _, name := range []string{"index.html", "series.html"} {
+	for _, name := range []string{"index.html", "series.html", "graphs.html"} {
 		perFile[name], err = template.ParseFS(templates,
 			"templates/base.html", "templates/templates.html", "templates/"+name)
 		if err != nil {
@@ -53,6 +54,7 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 		sessionRepo:     db.NewSessionRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
 		findingRepo:     db.NewFindingRepository(env.Spanner),
+		statsRepo:       db.NewStatsRepository(env.Spanner),
 	}, nil
 }
 
@@ -69,6 +71,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
 	mux.HandleFunc("/builds/{id}/{key}", errToStatus(h.buildInfo))
+	mux.HandleFunc("/stats", errToStatus(h.statsPage))
 	mux.HandleFunc("/", errToStatus(h.seriesList))
 	staticFiles, err := fs.Sub(staticFs, "static")
 	if err != nil {
@@ -211,6 +214,34 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 	return h.renderTemplate(w, "series.html", data)
 }
 
+func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) error {
+	type StatsPageData struct {
+		Processed    []*db.CountPerWeek
+		Findings     []*db.CountPerWeek
+		Delay        []*db.DelayPerWeek
+		Distribution []*db.StatusPerWeek
+	}
+	var data StatsPageData
+	var err error
+	data.Processed, err = h.statsRepo.ProcessedSeriesPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query processed series data: %w", err)
+	}
+	data.Findings, err = h.statsRepo.FindingsPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query findings data: %w", err)
+	}
+	data.Delay, err = h.statsRepo.DelayPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query delay data: %w", err)
+	}
+	data.Distribution, err = h.statsRepo.SessionStatusPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query distribution data: %w", err)
+	}
+	return h.renderTemplate(w, "graphs.html", data)
+}
+
 func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
 	ret := map[string][]*db.Finding{}
 	for _, finding := range findings {
@@ -221,12 +252,14 @@ func groupFindings(findings []*db.Finding) map[string][]*db.Finding {
 
 func (h *dashboardHandler) renderTemplate(w http.ResponseWriter, name string, data any) error {
 	type page struct {
-		Title string
-		Data  any
+		Title    string
+		Template string
+		Data     any
 	}
 	return h.templates[name].ExecuteTemplate(w, "base.html", page{
-		Title: h.title,
-		Data:  data,
+		Title:    h.title,
+		Template: name,
+		Data:     data,
 	})
 }
 
