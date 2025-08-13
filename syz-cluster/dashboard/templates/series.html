@@ -27,7 +27,7 @@
               body.html("")
               body.load(url, function(response, status, xhr){
                   if (status == "success") {
-                      body.html("<pre>" + response + "</pre>")
+                      body.html($('<pre></pre>').text(response))
                   }
                   $('#contentModal').modal('show');
               });
