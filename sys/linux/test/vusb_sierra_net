@@ -1,0 +1,21 @@
+# This seed helps syzkaller to reliably pass the probe() checks for sierra_net driver.
+# As some CTRL requests occur during the probe, a few syz_usb_control_io() calls may
+# be in a weird order or even duplicate.
+
+# Ensure that we pass driver-specific basic usb interface and endpoint checks during initial probe() stages.
+
+r0 = syz_usb_connect$sierra_net(0x0, 0x3f, &(0x7f0000000080)={{0x12, 0x1, 0x200, 0xff, 0xff, 0xff, 0x40, 0x1199, 0x68a3, 0x0, 0x1, 0x2, 0x3, 0x1, [{{0x9, 0x2, 0x2d, 0x1, 0x1, 0x0, 0x80, 0xfa, {{0x9, 0x4, 0x7, 0x0, 0x3, 0xff, 0x0, 0x0, 0x0, "", {{0x9, 0x5, 0x43978451d8f6fedb, 0x2, 0x40, 0x2, 0x1b, 0xfe, ""}, {0x9, 0x5, 0x7, 0x2, 0x200, 0xc, 0x77, 0x3, ""}, {0x9, 0x5, 0x81, 0x3, 0x20, 0x0, 0xfd, 0x32, ""}}}}}}]}}, 0x0)
+
+# To pass the probe, at the minumum one has to make the crafted device write to the driver in sierra_net_get_fw_attr(), see:
+# https://elixir.bootlin.com/linux/v6.16/source/drivers/net/usb/sierra_net.c#L636
+# Technically, there are other CTRL requests, such as the ones in sierra_net_dosync() - however, they are allowed to fail, so we can ignore them.
+
+# Seemingly, this call is only here to keep the timing right. 
+# TODO: fix the expected delay with sleep/nanosleep.
+
+syz_usb_control_io$sierra_net(r0, 0x0, 0x0)
+
+# Send a CTRL request to driver concerning firmware data. See:
+# https://elixir.bootlin.com/linux/v6.16/source/drivers/net/usb/sierra_net.c#L743
+
+syz_usb_control_io$sierra_net(r0, &(0x7f0000000100)={0x14, &(0x7f0000000000)={0x20, 0x21, 0x8, {0x8, 0x11, "e4ff14eca81f"}}, 0x0}, 0x0)

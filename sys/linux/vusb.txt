@@ -1438,3 +1438,175 @@ htc_frame_flags = HTC_FLAGS_RECV_TRAILER
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Assorted driver-specific descriptions of generic syz_* calls' variants.
+
+# Generic calls such as syz_usb_connect() and syz_usb_control_io() should be enough
+# (in theory) to emulate a proper device and finish driver probes without a hitch.
+# However, there are cases when syzkaller fails to come up with correct inputs to achieve it.
+# Use fixed descriptors to quickly pass through probe() to access select drivers' post-probe functionality.
+
+# It is important to note that, one way or another, drivers in question require multiple control requests
+# between a driver and a device processed during probe(). Descriptions below do not deal with specific
+# CTRL requests as such (except for basic information included in vusb_responses_XXX). Instead, rely on
+# seeds, created both manually and with syzkaller's help. For examples, see sys/linux/test/vusb_XXX.
+
+# Common constants for endpoint descriptors.
+define USB_ENDPOINT_BULK_ATTR	(USB_ENDPOINT_XFER_BULK)
+define USB_ENDPOINT_INT_ATTR	(USB_ENDPOINT_XFER_INT)
+
+define USB_FIXED_ENDPOINT_BULK_IN_ADDR	(1 | USB_DIR_IN)
+define USB_FIXED_ENDPOINT_BULK_OUT_ADDR	(2)
+define USB_FIXED_ENDPOINT_INT_IN_ADDR	(3 | USB_DIR_IN)
+
+define USB_RECIP_DEVICE	0x00
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# rtl8150 driver specific descriptions.
+
+resource fd_usb_rtl8150[fd_usb]
+
+syz_usb_connect$rtl8150(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_rtl8150], conn_descs const[0]) fd_usb_rtl8150 (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$rtl8150(fd fd_usb_rtl8150, descs ptr[in, vusb_descriptors_rtl8150], resps ptr[in, vusb_responses_rtl8150]) (timeout[300], remote_cover)
+
+usb_device_descriptor_rtl8150 {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0xbda, 0x8150, 0, array[usb_config_descriptor_rtl8150, 1]]
+} [packed]
+
+usb_config_descriptor_rtl8150 {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_rtl8150]
+} [packed]
+
+usb_interface_descriptor_rtl8150 {
+	iface	usb_interface_descriptor_fixed_t[0, 0, 3, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_rtl8150]
+} [packed]
+
+usb_endpoint_descriptors_rtl8150 {
+	bulk_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_IN_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	bulk_out	usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_OUT_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	int_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_INT_IN_ADDR, USB_ENDPOINT_INT_ATTR, 64, 1, void]
+} [packed]
+
+vusb_descriptors_rtl8150 {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+} [packed]
+
+vusb_responses_rtl8150 {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+	RTL8150_REQ_GET_REGS		ptr[in, vusb_response_t[RTL8150_REQT_READ, RTL8150_REQ_GET_REGS, array[int8, 0:6]]]
+	RTL8150_REQ_SET_REGS		ptr[in, vusb_response_t[RTL8150_REQT_WRITE, RTL8150_REQ_SET_REGS, array[int8, 0:6]]]
+} [packed]
+
+define RTL8150_REQ_GET_REGS	0x05
+define RTL8150_REQ_SET_REGS	0x05
+define RTL8150_REQT_READ	0xc0
+define RTL8150_REQT_WRITE	0x40
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# sierra_net driver specific descriptions.
+
+resource fd_usb_sierra_net[fd_usb]
+
+syz_usb_connect$sierra_net(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_sierra_net], conn_descs const[0]) fd_usb_sierra_net (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$sierra_net(fd fd_usb_sierra_net, descs ptr[in, vusb_descriptors_sierra_net], resps ptr[in, vusb_responses_sierra_net]) (timeout[300], remote_cover)
+
+usb_device_descriptor_sierra_net {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0x1199, 0x68a3, 0, array[usb_config_descriptor_sierra_net, 1]]
+} [packed]
+
+usb_config_descriptor_sierra_net {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_sierra_net]
+} [packed]
+
+usb_interface_descriptor_sierra_net {
+	iface	usb_interface_descriptor_fixed_t[7, 0, 3, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_sierra_net]
+} [packed]
+
+# sierra_net driver does not expect fixed ep addresses, so refrain from being too specific here.
+# As long as we ensure there are 3 endpoints, 2 bulk and 1 int, syzkaller should figure it out.
+usb_endpoint_descriptors_sierra_net {
+	bulk_in		usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], const[USB_ENDPOINT_BULK_ATTR, int8], void]
+	bulk_out	usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], const[USB_ENDPOINT_BULK_ATTR, int8], void]
+	status		usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], const[USB_ENDPOINT_INT_ATTR, int8], void]
+} [packed]
+
+vusb_descriptors_sierra_net {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+} [packed]
+
+vusb_responses_sierra_net {
+	len					len[parent, int32]
+	generic					ptr[in, vusb_response_generic]
+
+	USB_CDC_GET_ENCAPSULATED_RESPONSE	ptr[in, vusb_response_t[SIERRA_CMD_TYPE_IN, USB_CDC_GET_ENCAPSULATED_RESPONSE, array[int8, 1024]]]
+	USB_CDC_SEND_ENCAPSULATED_COMMANDT	ptr[in, vusb_response_t[SIERRA_CMD_TYPE_OUT, USB_CDC_SEND_ENCAPSULATED_COMMAND, array[int8, 0:4]]]
+} [packed]
+
+define SIERRA_CMD_TYPE_IN	(USB_DIR_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+define SIERRA_CMD_TYPE_OUT	(USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# lan78xx driver specific descriptions.
+# While these syz_* variants noticably help with the probe() process, they are not enough.
+# This is due to a high number of control requests expected between the driver and the device.
+
+include <drivers/net/usb/smsc95xx.h>
+
+resource fd_usb_lan78xx[fd_usb]
+
+syz_usb_connect$lan78xx(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_lan78xx], conn_descs const[0]) fd_usb_lan78xx (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$lan78xx(fd fd_usb_lan78xx, descs ptr[in, vusb_descriptors_lan78xx], resps ptr[in, vusb_responses_lan78xx]) (timeout[300], remote_cover)
+
+usb_device_descriptor_lan78xx {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0x424, 0x7850, 0, array[usb_config_descriptor_lan78xx, 1]]
+} [packed]
+
+usb_config_descriptor_lan78xx {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_lan78xx]
+} [packed]
+
+usb_interface_descriptor_lan78xx {
+	iface	usb_interface_descriptor_fixed_t[0, 0, 3, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_lan78xx]
+} [packed]
+
+usb_endpoint_descriptors_lan78xx {
+	bulk_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_IN_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	bulk_out	usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_OUT_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	int_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_INT_IN_ADDR, USB_ENDPOINT_INT_ATTR, 64, 1, void]
+} [packed]
+
+vusb_descriptors_lan78xx {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+} [packed]
+
+vusb_responses_lan78xx {
+	len					len[parent, int32]
+	generic					ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE			ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+	USB_VENDOR_REQUEST_READ_REGISTER	ptr[in, vusb_response_t[LAN78XX_REG_TYPE_IN, USB_VENDOR_REQUEST_READ_REGISTER, int32]]
+	USB_VENDOR_REQUEST_WRITE_REGISTER	ptr[in, vusb_response_t[LAN78XX_REG_TYPE_OUT, USB_VENDOR_REQUEST_WRITE_REGISTER, int32]]
+	USB_VENDOR_REQUEST_GET_STATS		ptr[in, vusb_response_t[LAN78XX_REG_TYPE_IN, USB_VENDOR_REQUEST_GET_STATS, array[int8, 47]]]
+} [packed]
+
+define LAN78XX_REG_TYPE_IN	(USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE)
+define LAN78XX_REG_TYPE_OUT	(USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE)
