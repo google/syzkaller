@@ -173,4 +173,15 @@ var gvisorOopses = append([]*oops{
 		},
 		[]*regexp.Regexp{},
 	},
+	{
+		[]byte("WARNING: BUG on"),
+		[]oopsFormat{
+			{
+				title:        compile("WARNING: BUG on (.*)"),
+				fmt:          "WARNING: BUG on %[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 }, commonOopses...)
