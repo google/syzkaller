@@ -483,7 +483,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 	if optionalFlags {
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
-			{Name: "sandboxArg", Value: fmt.Sprint(opts.SandboxArg)},
+			{Name: "sandbox_arg", Value: fmt.Sprint(opts.SandboxArg)},
 			{Name: "type", Value: fmt.Sprint(vmType)},
 		})
 	}
