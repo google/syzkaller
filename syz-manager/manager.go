@@ -31,6 +31,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/image"
+	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -221,6 +222,15 @@ func main() {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
 	}
+
+	if cfg.Experimental.EnableKFuzzTest {
+		log.Logf(0, "KFuzzTests enabled, loading targets from %s", cfg.KernelObj+"/vmlinux")
+		err = kfuzztest.EnableKFuzzTargets(cfg)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to enable KFuzzTest targets: %v\n", err))
+		}
+	}
+
 	var mode *Mode
 	for _, m := range modes {
 		if *flagMode == m.Name {

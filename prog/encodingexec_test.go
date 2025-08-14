@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/VividCortex/gohistogram"
@@ -758,5 +759,40 @@ func TestSerializeForExecOverflow(t *testing.T) {
 				t.Fatalf("want no overflow but got %v", err)
 			}
 		})
+	}
+}
+
+// Produces a side-by-side hex dump string for two byte slices, making it easier
+// to spot differences in binary data.
+func hexDiff(got, want []byte) string {
+	var b strings.Builder
+	b.WriteString("\n") // Start with a newline for better formatting in test logs.
+	b.WriteString(fmt.Sprintf("       | %-23s | %-23s |\n", "GOT", "WANT"))
+	b.WriteString("-------+-------------------------+-------------------------|\n")
+	for i := 0; i < max(len(got), len(want)); i++ {
+		b.WriteString(fmt.Sprintf("%04x   |", i))
+		if i < len(got) {
+			b.WriteString(fmt.Sprintf(" %02x                      |", got[i]))
+		} else {
+			b.WriteString("                         |")
+		}
+		if i < len(want) {
+			b.WriteString(fmt.Sprintf(" %02x                      |", want[i]))
+		} else {
+			b.WriteString("                         |")
+		}
+		if i < len(got) && i < len(want) && got[i] != want[i] {
+			b.WriteString(" <<< MISMATCH")
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func checkSection(t *testing.T, sectionName string, got, want []byte) {
+	t.Helper()
+	if !bytes.Equal(got, want) {
+		t.Errorf("Mismatch in %s: lengths got=%d, want=%d. Diff:%s",
+			sectionName, len(got), len(want), hexDiff(got, want))
 	}
 }
