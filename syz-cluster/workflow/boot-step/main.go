@@ -76,9 +76,15 @@ func main() {
 // the test must fail 3 times in a row.
 const retryCount = 3
 
+// The base config may have more VMs, but we don't need that many.
+const vmCount = 3
+
 func runTest(ctx context.Context, client *api.Client) (bool, error) {
 	cfg, err := mgrconfig.LoadFile(filepath.Join("/configs", *flagConfig, "base.cfg"))
 	if err != nil {
+		return false, err
+	}
+	if err := instance.OverrideVMCount(cfg, vmCount); err != nil {
 		return false, err
 	}
 	cfg.Workdir = "/tmp/test-workdir"
