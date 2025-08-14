@@ -29,7 +29,7 @@ patches:
       - op: replace
         path: /spec/templates/0/nodeSelector
         value:
-          cloud.google.com/gke-nodepool: nested-vm-pool
+          amd64-nested-virtualization: "true"
   - target:
       kind: Service
       name: web-dashboard-service
