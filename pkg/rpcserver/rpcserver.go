@@ -47,11 +47,12 @@ type Config struct {
 	FilterSignal      bool
 	PrintMachineCheck bool
 	// Abort early on syz-executor not replying to requests and print extra debugging information.
-	DebugTimeouts bool
-	Procs         int
-	Slowdown      int
-	pcBase        uint64
-	localModules  []*vminfo.KernelModule
+	DebugTimeouts   bool
+	Procs           int
+	Slowdown        int
+	ProcRestartFreq int
+	pcBase          uint64
+	localModules    []*vminfo.KernelModule
 
 	// RPCServer closes the channel once the machine check has begun. Used for fault injection during testing.
 	machineCheckStarted chan struct{}
@@ -181,6 +182,7 @@ func New(cfg *RemoteConfig) (Server, error) {
 		PrintMachineCheck: true,
 		Procs:             cfg.Procs,
 		Slowdown:          cfg.Timeouts.Slowdown,
+		ProcRestartFreq:   cfg.Experimental.ProcRestartFreq,
 		pcBase:            pcBase,
 		localModules:      cfg.LocalModules,
 	}, cfg.Manager), nil
@@ -326,12 +328,18 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 	return nil
 }
 
+const defaultProcRestartFreq = 600
+
 func (serv *server) handleRunnerConn(ctx context.Context, runner *Runner, conn *flatrpc.Conn) error {
 	opts := &handshakeConfig{
-		VMLess:   serv.cfg.VMLess,
-		Files:    serv.checker.RequiredFiles(),
-		Timeouts: serv.timeouts,
-		Callback: serv.handleMachineInfo,
+		VMLess:          serv.cfg.VMLess,
+		Files:           serv.checker.RequiredFiles(),
+		Timeouts:        serv.timeouts,
+		Callback:        serv.handleMachineInfo,
+		ProcRestartFreq: defaultProcRestartFreq,
+	}
+	if serv.cfg.ProcRestartFreq != 0 {
+		opts.ProcRestartFreq = serv.cfg.ProcRestartFreq
 	}
 	opts.LeakFrames, opts.RaceFrames = serv.mgr.BugFrames()
 	if serv.checkDone.Load() {

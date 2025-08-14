@@ -255,6 +255,11 @@ type Experimental struct {
 	// with an empty Filter, but non-empty weight.
 	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0} ].
 	FocusAreas []FocusArea `json:"focus_areas,omitempty"`
+
+	// The number of executions per proc before it's restarted.
+	// Lower values may improve bug reproduction rates, but they slow down fuzzing considerably.
+	// The default value is 600.
+	ProcRestartFreq int `json:"proc_restart_freq,omitempty"`
 }
 
 type FocusArea struct {

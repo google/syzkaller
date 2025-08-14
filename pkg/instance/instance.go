@@ -485,6 +485,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
 			{Name: "sandboxArg", Value: fmt.Sprint(opts.SandboxArg)},
 			{Name: "type", Value: fmt.Sprint(vmType)},
+			{Name: "restart_freq", Value: fmt.Sprint(opts.ProcRestartFreq)},
 		})
 	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
