@@ -44,9 +44,9 @@ spec:
         resources:
           requests:
             cpu: 24
-            memory: 64G
+            memory: 48G
           limits:
-            cpu: 32
+            cpu: 30
             memory: 64G
         volumeMounts:
         - name: workdir
