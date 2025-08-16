@@ -35,14 +35,14 @@ func TestReproManager(t *testing.T) {
 
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "A"}})
 	called := <-mock.run
-	assert.Equal(t, "A", called.crash.Title)
+	assert.Equal(t, "A", called.crash.Report.Title)
 
 	// One reproducer is running -- we can take one more.
 	assert.True(t, obj.CanReproMore())
 	assert.EqualValues(t, 2, mock.reserved.Load())
 	obj.Enqueue(&Crash{Report: &report.Report{Title: "B"}})
 	called2 := <-mock.run
-	assert.Equal(t, "B", called2.crash.Title)
+	assert.Equal(t, "B", called2.crash.Report.Title)
 
 	assert.False(t, obj.CanReproMore())
 	assert.Len(t, obj.Reproducing(), 2)

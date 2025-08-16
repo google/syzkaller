@@ -94,7 +94,7 @@ func (s *DiffFuzzerStore) SaveRepro(result *ReproResult) {
 
 	now := time.Now().Unix()
 	crashLog := fmt.Sprintf("%v.crash.log", now)
-	s.saveFile(title, crashLog, result.Crash.Output)
+	s.saveFile(title, crashLog, result.Crash.Report.Output)
 	log.Logf(0, "%q: saved crash log into %s", title, crashLog)
 
 	s.patch(title, func(obj *DiffBug) {

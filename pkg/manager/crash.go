@@ -50,10 +50,10 @@ func ReadCrashStore(workdir string) *CrashStore {
 
 // Returns whether it was the first crash of a kind.
 func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
-	dir := cs.path(crash.Title)
+	dir := cs.path(crash.Report.Title)
 	osutil.MkdirAll(dir)
 
-	err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.Title+"\n"))
+	err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.Report.Title+"\n"))
 	if err != nil {
 		return false, fmt.Errorf("failed to write crash: %w", err)
 	}
@@ -85,10 +85,10 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 		}
 		osutil.WriteFile(filename, data)
 	}
-	writeOrRemove("log", crash.Output)
+	writeOrRemove("log", crash.Report.Output)
 	writeOrRemove("tag", []byte(cs.Tag))
 	writeOrRemove("report", crash.Report.Report)
-	writeOrRemove("machineInfo", crash.MachineInfo)
+	writeOrRemove("machineInfo", crash.Report.MachineInfo)
 
 	return first, nil
 }
