@@ -92,9 +92,9 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir p
 }
 
 func randUsbDeviceID(g *prog.Gen) UsbDeviceID {
-	totalIds := len(usbIds) / BytesPerUsbID
+	totalIds := len(usbIdsAll) / BytesPerUsbID
 	idNum := g.Rand().Intn(totalIds)
-	base := usbIds[idNum*BytesPerUsbID : (idNum+1)*BytesPerUsbID]
+	base := usbIdsAll[idNum*BytesPerUsbID : (idNum+1)*BytesPerUsbID]
 
 	p := strings.NewReader(base)
 	var id UsbDeviceID
@@ -151,9 +151,9 @@ func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, di
 		return
 	}
 
-	totalIds := len(hidIds) / BytesPerHidID
+	totalIds := len(hidIdsAll) / BytesPerHidID
 	idNum := g.Rand().Intn(totalIds)
-	base := hidIds[idNum*BytesPerHidID : (idNum+1)*BytesPerHidID]
+	base := hidIdsAll[idNum*BytesPerHidID : (idNum+1)*BytesPerHidID]
 
 	p := strings.NewReader(base)
 	var id HidDeviceID
