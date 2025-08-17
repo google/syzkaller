@@ -45,48 +45,83 @@ package linux
 	}
 }
 
-func extractIds(syslog []byte, prefix string, size int) []string {
-	re := fmt.Sprintf("%s: [0-9a-f]{%d}", prefix, size)
+func extractIds(syslog []byte, prefix string, size int) map[string][]string {
+	re := fmt.Sprintf("%s: ([0-9a-f]{%d}) \\((.+)\\)", prefix, size)
 	r := regexp.MustCompile(re)
-	matches := r.FindAll(syslog, -1)
-	uniqueMatches := make(map[string]bool)
+	matches := r.FindAllSubmatch(syslog, -1)
+	// Map from matching substring to capture groups.
+	uniqueMatches := make(map[string][][]byte)
 	for _, match := range matches {
-		uniqueMatches[string(match)] = true
+		uniqueMatches[string(match[0])] = match[1:]
 	}
-	sortedMatches := make([]string, 0)
-	for match := range uniqueMatches {
-		match = match[len(prefix+": "):]
-		match = match[:size]
-		sortedMatches = append(sortedMatches, match)
+	// Map from driver name to slice of USB IDs.
+	driverIDs := make(map[string][]string, 0)
+	for _, groups := range uniqueMatches {
+		id := string(groups[0])
+		driver := string(groups[1])
+		driverIDs[driver] = append(driverIDs[driver], id)
 	}
-	sort.Strings(sortedMatches)
-	return sortedMatches
+	// Keep IDs sorted for consistent output between runs.
+	for driver := range driverIDs {
+		sort.Strings(driverIDs[driver])
+	}
+	return driverIDs
 }
 
-func generateIdsVar(ids []string, name string) []byte {
-	output := []byte(fmt.Sprintf("var %s = ", name))
-	for i, id := range ids {
-		decodedID, err := hex.DecodeString(id)
-		if err != nil {
-			tool.Failf("failed to decode hex string %v: %v", id, err)
+func generateIdsVar(driverIDs map[string][]string, name string) []byte {
+	// Sort driver names for consistent output between runs.
+	drivers := make([]string, 0, len(driverIDs))
+	for driver := range driverIDs {
+		drivers = append(drivers, driver)
+	}
+	sort.Strings(drivers)
+
+	// Generate a map variable that stores USB IDs for each driver.
+	totalIDs := 0
+	output := []byte(fmt.Sprintf("var %s = map[string]string{\n", name))
+	for _, driver := range drivers {
+		ids := driverIDs[driver]
+		outputDriver := fmt.Sprintf("\t\"%s\": ", driver)
+		output = append(output, []byte(outputDriver)...)
+		for i, id := range ids {
+			decodedID, err := hex.DecodeString(id)
+			if err != nil {
+				tool.Failf("failed to decode hex string %v: %v", id, err)
+			}
+			prefix := "\t\t"
+			suffix := " +"
+			if i == 0 {
+				prefix = ""
+			}
+			if i == len(ids)-1 {
+				suffix = ","
+			}
+			outputID := fmt.Sprintf("%v%#v%v\n", prefix, string(decodedID), suffix)
+			output = append(output, []byte(outputID)...)
 		}
+		totalIDs += len(ids)
+	}
+	output = append(output, []byte("}\n\n")...)
+
+	// Generate a variable that stores all USB IDs together.
+	output = append(output, []byte(fmt.Sprintf("var %sAll = ", name))...)
+	for i, driver := range drivers {
 		prefix := "\t"
 		suffix := " +"
 		if i == 0 {
 			prefix = ""
 		}
-		if i == len(ids)-1 {
+		if i == len(drivers)-1 {
 			suffix = ""
 		}
-		outputID := fmt.Sprintf("%v%#v%v\n", prefix, string(decodedID), suffix)
-		output = append(output, []byte(outputID)...)
+		outputDriver := fmt.Sprintf("%v%s[\"%s\"]%v\n", prefix, name, driver, suffix)
+		output = append(output, []byte(outputDriver)...)
 	}
-
-	if len(ids) == 0 {
+	if len(drivers) == 0 {
 		output = append(output, []byte("\"\"")...)
 	}
 
-	fmt.Printf("%v %s ids written\n", len(ids), name)
+	fmt.Printf("%v %s ids written\n", totalIDs, name)
 
 	return output
 }
