@@ -175,9 +175,6 @@ func runMake(params Params, extraArgs ...string) error {
 		"KBUILD_BUILD_TIMESTAMP=now",
 		"KBUILD_BUILD_USER=syzkaller",
 		"KBUILD_BUILD_HOST=syzkaller",
-		"KERNELVERSION=syzkaller",
-		"KERNELRELEASE=syzkaller",
-		"LOCALVERSION=-syzkaller",
 	)
 	output, err := osutil.Run(time.Hour, cmd)
 	params.Tracer.Log("Build log:\n%s", output)
@@ -186,6 +183,11 @@ func runMake(params Params, extraArgs ...string) error {
 
 func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string, jobs int) []string {
 	args := []string{
+		// Make still overrides these if they are passed as env variables.
+		// Let's pass them directly as make arguments.
+		"KERNELVERSION=syzkaller",
+		"KERNELRELEASE=syzkaller",
+		"LOCALVERSION=-syzkaller",
 		"-j", fmt.Sprint(jobs),
 		"ARCH=" + target.KernelArch,
 	}
