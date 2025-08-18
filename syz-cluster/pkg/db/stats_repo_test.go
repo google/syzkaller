@@ -15,19 +15,26 @@ func TestStatsSQLs(t *testing.T) {
 	// That already brings a lot of value.
 	client, ctx := NewTransientDB(t)
 
-	// Add some data to test field decoding as well.
+	checkStats := func() {
+		statsRepo := NewStatsRepository(client)
+		_, err := statsRepo.ProcessedSeriesPerWeek(ctx)
+		assert.NoError(t, err)
+		_, err = statsRepo.FindingsPerWeek(ctx)
+		assert.NoError(t, err)
+		_, err = statsRepo.SessionStatusPerWeek(ctx)
+		assert.NoError(t, err)
+		_, err = statsRepo.DelayPerWeek(ctx)
+		assert.NoError(t, err)
+	}
+
 	dtd := &dummyTestData{t, ctx, client}
 	session := dtd.dummySession(dtd.dummySeries())
+	checkStats()
 	dtd.startSession(session)
+	dtd.addSessionTest(session, "test")
+	checkStats()
+	dtd.addFinding(session, "test", "test")
+	checkStats()
 	dtd.finishSession(session)
-
-	statsRepo := NewStatsRepository(client)
-	_, err := statsRepo.ProcessedSeriesPerWeek(ctx)
-	assert.NoError(t, err)
-	_, err = statsRepo.FindingsPerWeek(ctx)
-	assert.NoError(t, err)
-	_, err = statsRepo.SessionStatusPerWeek(ctx)
-	assert.NoError(t, err)
-	_, err = statsRepo.DelayPerWeek(ctx)
-	assert.NoError(t, err)
+	checkStats()
 }

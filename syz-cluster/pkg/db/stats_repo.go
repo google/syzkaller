@@ -46,7 +46,7 @@ func (repo *StatsRepository) FindingsPerWeek(ctx context.Context) (
   TIMESTAMP_TRUNC(Sessions.FinishedAt, WEEK) as Date,
   COUNT(*) as Count
 FROM Findings
-JOIN Sessions ON Sessions.ID = Findings.SessionID
+JOIN Sessions ON Sessions.ID = Findings.SessionID AND Sessions.FinishedAt IS NOT NULL
 GROUP BY Date
 ORDER BY Date`,
 	})
