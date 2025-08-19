@@ -187,7 +187,7 @@ foo {
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
 
-- `packed`: the struct does not have paddings between fields and has alignment 1; this is similar to GNU C `__attribute__((packed))`; struct alignment can be overriden with `align` attribute
+- `packed`: the struct does not have paddings between fields and has alignment 1; this is similar to GNU C `__attribute__((packed))`; struct alignment can be overridden with `align` attribute
 - `align[N]`: the struct has alignment N and padded up to multiple of `N`; contents of the padding are unspecified (though, frequently are zeros); similar to GNU C `__attribute__((aligned(N)))`
 - `size[N]`: the struct is padded up to the specified size `N`; contents of the padding are unspecified (though, frequently are zeros)
 

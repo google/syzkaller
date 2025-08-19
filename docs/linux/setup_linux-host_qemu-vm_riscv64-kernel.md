@@ -25,7 +25,7 @@ make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- -j $(nproc)
 
 # OpenSBI
 
-Clone the OpenSBI repository and build the bootable OpenSBI image containg the kernel:
+Clone the OpenSBI repository and build the bootable OpenSBI image containing the kernel:
 
 ```shell
 git clone https://github.com/riscv/opensbi

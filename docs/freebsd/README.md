@@ -227,4 +227,4 @@ If something does not work, try adding the `-debug` flag to `syz-manager`.
 - We should provide instructions for fuzzing a FreeBSD system on ZFS
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
 - KASAN and KCSAN for FreeBSD would be useful.
-- On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for FreeBSD could uncover a number of high-profile bugs.
+- On Linux we have emission of external networking/USB traffic into kernel using tun/gadgetfs. Implementing these for FreeBSD could uncover a number of high-profile bugs.
