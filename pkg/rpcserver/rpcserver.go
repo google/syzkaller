@@ -140,7 +140,7 @@ func NewNamedStats(name string) Stats {
 			stat.Rate{}, stat.NoGraph),
 		StatModules: stat.New("modules"+suffix, "Number of loaded kernel modules",
 			stat.NoGraph, stat.Link("/modules"+linkSuffix)),
-		StatExecutorRestarts: stat.New("executor restarts",
+		StatExecutorRestarts: stat.New("executor restarts"+suffix,
 			"Number of times executor process was restarted", stat.Rate{}, stat.Graph("executor")),
 	}
 }
