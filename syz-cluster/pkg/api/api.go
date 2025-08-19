@@ -73,6 +73,7 @@ type Build struct {
 const (
 	TestRunning string = "running"
 	TestPassed  string = "passed"
+	TestSkipped string = "skipped"
 	TestFailed  string = "failed" // TODO: drop it? only mark completion?
 	TestError   string = "error"
 )
