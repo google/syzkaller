@@ -68,7 +68,9 @@ func main() {
 	defer cancel()
 	err = run(runCtx, client, d, store)
 	status := api.TestPassed // TODO: what about TestFailed?
-	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, errSkipFuzzing) {
+		status = api.TestSkipped
+	} else if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		app.Errorf("the step failed: %v", err)
 		status = api.TestError
 	}
@@ -78,6 +80,8 @@ func main() {
 		app.Fatalf("failed to update the test: %v", err)
 	}
 }
+
+var errSkipFuzzing = errors.New("skip")
 
 func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	store *manager.DiffFuzzerStore) error {
@@ -99,6 +103,10 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	baseSymbols, patchedSymbols, err := readSymbolHashes()
 	if err != nil {
 		app.Errorf("failed to read symbol hashes: %v", err)
+	}
+
+	if shouldSkipFuzzing(baseSymbols, patchedSymbols) {
+		return errSkipFuzzing
 	}
 	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols, patchedSymbols)
 
@@ -286,6 +294,24 @@ func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueB
 		}
 	}
 	return client.UploadFinding(ctx, finding)
+}
+
+func shouldSkipFuzzing(baseSymbols, patchedSymbols map[string]string) bool {
+	if len(baseSymbols) == 0 || len(patchedSymbols) == 0 {
+		// Likely, something went wrong during the kernel build step.
+		log.Logf(0, "skipped the binary equality check because some of them have 0 symbols")
+		return false
+	}
+	if len(baseSymbols) == len(patchedSymbols) {
+		for name, hash := range baseSymbols {
+			if patchedSymbols[name] != hash {
+				log.Logf(0, "binaries are different, continuing fuzzing")
+				return false
+			}
+		}
+	}
+	log.Logf(0, "binaries are the same, no sense to do fuzzing")
+	return true
 }
 
 func readSymbolHashes() (base, patched map[string]string, err error) {

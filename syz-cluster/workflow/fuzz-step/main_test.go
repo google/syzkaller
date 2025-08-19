@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigLoad(t *testing.T) {
@@ -24,5 +26,23 @@ func TestConfigLoad(t *testing.T) {
 			t.Fatalf("error proessing %q: %v", path, err)
 		}
 		return nil
+	})
+}
+
+func TestShouldSkipFuzzing(t *testing.T) {
+	t.Run("one empty", func(t *testing.T) {
+		assert.False(t, shouldSkipFuzzing(nil, map[string]string{"A": "1"}))
+	})
+	t.Run("equal", func(t *testing.T) {
+		assert.True(t, shouldSkipFuzzing(
+			map[string]string{"A": "1", "B": "2"},
+			map[string]string{"A": "1", "B": "2"},
+		))
+	})
+	t.Run("different", func(t *testing.T) {
+		assert.False(t, shouldSkipFuzzing(
+			map[string]string{"A": "1", "B": "2"},
+			map[string]string{"A": "1", "B": "different"},
+		))
 	})
 }
