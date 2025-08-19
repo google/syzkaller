@@ -67,7 +67,7 @@ func (repo *StatsRepository) SessionStatusPerWeek(ctx context.Context) (
 		SQL: `WITH SessionTestAggregates AS (
   SELECT
     SessionID,
-    COUNTIF(Result = 'failed') > 0 AS HasFailedSteps,
+    COUNTIF(Result = 'error') > 0 AS HasFailedSteps,
     COUNTIF(Result = 'skipped') > 0 AS HasSkippedSteps
   FROM SessionTests
   GROUP BY SessionID
