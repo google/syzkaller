@@ -302,16 +302,19 @@ func shouldSkipFuzzing(baseSymbols, patchedSymbols map[string]string) bool {
 		log.Logf(0, "skipped the binary equality check because some of them have 0 symbols")
 		return false
 	}
-	if len(baseSymbols) == len(patchedSymbols) {
-		for name, hash := range baseSymbols {
-			if patchedSymbols[name] != hash {
-				log.Logf(0, "binaries are different, continuing fuzzing")
-				return false
-			}
+	same := len(baseSymbols) == len(patchedSymbols)
+	for name, hash := range baseSymbols {
+		if patchedSymbols[name] != hash {
+			same = false
+			break
 		}
 	}
-	log.Logf(0, "binaries are the same, no sense to do fuzzing")
-	return true
+	if same {
+		log.Logf(0, "binaries are the same, no sense to do fuzzing")
+		return true
+	}
+	log.Logf(0, "binaries are different, continuing fuzzing")
+	return false
 }
 
 func readSymbolHashes() (base, patched map[string]string, err error) {

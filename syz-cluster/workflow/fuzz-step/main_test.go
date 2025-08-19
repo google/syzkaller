@@ -39,10 +39,16 @@ func TestShouldSkipFuzzing(t *testing.T) {
 			map[string]string{"A": "1", "B": "2"},
 		))
 	})
-	t.Run("different", func(t *testing.T) {
+	t.Run("same len, different hashes", func(t *testing.T) {
 		assert.False(t, shouldSkipFuzzing(
 			map[string]string{"A": "1", "B": "2"},
 			map[string]string{"A": "1", "B": "different"},
+		))
+	})
+	t.Run("different len, same hashes", func(t *testing.T) {
+		assert.False(t, shouldSkipFuzzing(
+			map[string]string{"A": "1", "B": "2", "C": "3"},
+			map[string]string{"A": "1", "B": "2"},
 		))
 	})
 }
