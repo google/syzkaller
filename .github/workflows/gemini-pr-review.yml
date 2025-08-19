@@ -6,10 +6,11 @@
 name: '🧐 Gemini Pull Request Review'
 
 on:
-  pull_request:
-    types:
-      - 'opened'
-      - 'reopened'
+# Pull requests created from the forks doesn't have access to secrets. Disabling this trigger.
+#  pull_request:
+#    types:
+#      - 'opened'
+#      - 'reopened'
   issue_comment:
     types:
       - 'created'
