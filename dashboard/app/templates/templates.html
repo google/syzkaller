@@ -631,7 +631,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="stat">{{link $item.KernelCommitLink (formatTagHash $item.KernelCommit)}}</td>
 			<td>
 				{{if $item.ReproCLink}}<a href="{{$item.ReproCLink}}">C</a>
-				{{else if $item.ReproSyzLink}}<a href="{{$item.ReproSyzLink}}">C</a>{{end}}
+				{{else if $item.ReproSyzLink}}<a href="{{$item.ReproSyzLink}}">syz</a>{{end}}
 			</td>
 			{{if ne $item.CrashTitle ""}}
 			<td class="status-crashed">
