@@ -139,6 +139,46 @@ func TestAPIUploadTestArtifacts(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestAPIBaseFindings(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+	buildResp := UploadTestBuild(t, ctx, client, testBuild)
+
+	err := client.UploadBaseFinding(ctx, &api.BaseFindingInfo{
+		BuildID: buildResp.ID,
+		Title:   "title 1",
+	})
+	assert.NoError(t, err)
+
+	// Let's upload a different build for the same revision.
+	buildResp2 := UploadTestBuild(t, ctx, client, testBuild)
+	assert.NotEqual(t, buildResp.ID, buildResp2.ID)
+
+	resp, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
+		BuildID: buildResp2.ID,
+		Title:   "title 1",
+	})
+	assert.NoError(t, err)
+	assert.True(t, resp.Observed)
+
+	t.Run("unseen title", func(t *testing.T) {
+		resp, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
+			BuildID: buildResp2.ID,
+			Title:   "title 2",
+		})
+		assert.NoError(t, err)
+		assert.False(t, resp.Observed)
+	})
+
+	t.Run("invalid build id", func(t *testing.T) {
+		_, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
+			BuildID: "unknown id",
+			Title:   "title 1",
+		})
+		assert.Error(t, err)
+	})
+}
+
 var testSeries = &api.Series{
 	ExtID:       "ext-id",
 	AuthorEmail: "some@email.com",
