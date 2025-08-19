@@ -19,7 +19,7 @@ red labels indicate corresponding configuration options.
 It runs on a host with a stable kernel which does not experience white-noise fuzzer load.
 
 `syz-manager` starts `syz-executor` processes (one inside each VM).
-`syz-executor`s comminucate with `syz-manager` over RPC to receive the programs
+`syz-executor`s communicate with `syz-manager` over RPC to receive the programs
 that must be executed and to report back the results (error statuses, collected coverage, etc.).
 
 To execute programs, `syz-executor` starts transient subprocesses.

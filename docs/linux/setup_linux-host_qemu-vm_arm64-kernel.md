@@ -32,7 +32,7 @@ Choose the following options.
 
 Run `make`. After the build, confirm that `output/images/rootfs.ext3` exists.
 
-If you're expreriencing a very slow sshd start up time with arm64 qemu running on x86, the reason is probably low entropy and it be "fixed" with installing `haveged`. It can be found in the buildroot `menuconfig`:
+If you're experiencing a very slow sshd start up time with arm64 qemu running on x86, the reason is probably low entropy and it be "fixed" with installing `haveged`. It can be found in the buildroot `menuconfig`:
 
 ```
     Target packages

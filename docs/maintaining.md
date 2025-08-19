@@ -18,7 +18,7 @@ Pull requests (PR) have only 2 options:
 `cla/google` check needs to pass before merging.
 
 CI testing generally needs to pass before merging.\
-Exceptions may be infrastrcture flakes (especially in external services: `codecov`, `ci/fuzzit`);
+Exceptions may be infrastructure flakes (especially in external services: `codecov`, `ci/fuzzit`);
 one-off timeouts/OOMs (but not if this PR itself makes them much more frequent).
 All static checking warnings and testing errors are considered hard errors.
 
@@ -28,12 +28,12 @@ Adding tests for new code and bug fixes is generally encouraged. Ask contributor
 
 However, some code is easier to test, while some is harder. Some examples of cases where
 it's easier to add tests (should be added): abstract functionalities without external dependencies
-(e.g. parsers, data transformations, calculations); code with established testing infrastrcture
+(e.g. parsers, data transformations, calculations); code with established testing infrastructure
 (adding new tests is just adding one more of the same). Examples of cases where it's harder
 to add tests (may be not added, but still welcome if one wants to go above and beyond):
-code with external dependancies that are not easy to fake out (qemu, kernel, image, etc);
-code without established testing infrastrcture where adding one test would require building
-the whole infrastrcture first.
+code with external dependencies that are not easy to fake out (qemu, kernel, image, etc);
+code without established testing infrastructure where adding one test would require building
+the whole infrastructure first.
 
 ## Use your judgement
 
