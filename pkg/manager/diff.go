@@ -40,6 +40,7 @@ import (
 type DiffFuzzerConfig struct {
 	Debug        bool
 	PatchedOnly  chan *UniqueBug
+	BaseCrashes  chan string
 	Store        *DiffFuzzerStore
 	ArtifactsDir string // Where to store the artifacts that supplement the logs.
 	// The fuzzer waits no more than MaxTriageTime time until it starts taking VMs away
@@ -51,6 +52,11 @@ type DiffFuzzerConfig struct {
 	// trying to reach the modified code. The time is counted since the moment
 	// 99% of the corpus is triaged.
 	FuzzToReachPatched time.Duration
+	// The callback may be used to consult external systems on whether the
+	// base kernel has ever crashed with the given title.
+	// It may help reduce the false positive rate and prevent unnecessary
+	// bug reproductions.
+	BaseCrashKnown func(context.Context, string) (bool, error)
 }
 
 func (cfg *DiffFuzzerConfig) TriageDeadline() <-chan time.Time {
@@ -186,13 +192,13 @@ loop:
 			log.Logf(0, "STAT %s", data)
 		case rep := <-dc.base.crashes:
 			log.Logf(1, "base crash: %v", rep.Title)
-			dc.store.BaseCrashed(rep.Title, rep.Report)
+			dc.reportBaseCrash(ctx, rep)
 		case ret := <-runner.done:
 			// We have run the reproducer on the base instance.
 
 			// A sanity check: the base kernel might have crashed with the same title
 			// since the moment we have stared the reproduction / running on the repro base.
-			crashesOnBase := dc.store.EverCrashedBase(ret.origReport.Title)
+			crashesOnBase := dc.everCrashedBase(ctx, ret.origReport.Title)
 			if ret.crashReport == nil && crashesOnBase {
 				// Report it as error so that we could at least find it in the logs.
 				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
@@ -218,7 +224,7 @@ loop:
 					})
 				}
 			} else {
-				dc.store.BaseCrashed(ret.origReport.Title, ret.origReport.Report)
+				dc.reportBaseCrash(ctx, ret.origReport)
 				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
@@ -252,6 +258,36 @@ loop:
 		}
 	}
 	return g.Wait()
+}
+
+func (dc *diffContext) everCrashedBase(ctx context.Context, title string) bool {
+	if dc.store.EverCrashedBase(title) {
+		return true
+	}
+	// Let's try to ask the external systems about it as well.
+	if dc.cfg.BaseCrashKnown != nil {
+		known, err := dc.cfg.BaseCrashKnown(ctx, title)
+		if err != nil {
+			log.Logf(0, "a call to BaseCrashKnown failed: %v", err)
+		} else {
+			if known {
+				log.Logf(0, "base crash %q is already known", title)
+			}
+			return known
+		}
+	}
+	return false
+}
+
+func (dc *diffContext) reportBaseCrash(ctx context.Context, rep *report.Report) {
+	dc.store.BaseCrashed(rep.Title, rep.Report)
+	if dc.cfg.BaseCrashes == nil {
+		return
+	}
+	select {
+	case dc.cfg.BaseCrashes <- rep.Title:
+	case <-ctx.Done():
+	}
 }
 
 func (dc *diffContext) waitCorpusTriage(ctx context.Context, threshold float64) chan struct{} {
@@ -343,7 +379,10 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	}
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
-	if dc.store.EverCrashedBase(crash.Title) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if dc.everCrashedBase(ctx, crash.Title) {
 		return false
 	}
 	if dc.reproAttempts[crash.Title] > maxReproAttempts {
