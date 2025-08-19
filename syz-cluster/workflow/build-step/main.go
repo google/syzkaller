@@ -81,7 +81,8 @@ func main() {
 	ret := &BuildResult{}
 	if err != nil {
 		log.Printf("failed to checkout: %v", err)
-		uploadReq.Log = []byte(err.Error())
+		reportResults(ctx, client, nil, nil, []byte(err.Error()))
+		return
 	} else {
 		if *flagSmokeBuild {
 			skip, err := alreadyBuilt(ctx, client, uploadReq)
@@ -95,7 +96,8 @@ func main() {
 		ret, err = buildKernel(tracer, req)
 		if err != nil {
 			log.Printf("build process failed: %v", err)
-			uploadReq.Log = []byte(err.Error())
+			reportResults(ctx, client, nil, nil, []byte(err.Error()))
+			return
 		} else {
 			uploadReq.Compiler = ret.Compiler
 			uploadReq.Config = ret.Config
@@ -108,19 +110,29 @@ func main() {
 			}
 		}
 	}
-	reportResults(ctx, client, req.SeriesID != "", uploadReq, ret.Finding, output.Bytes())
+	reportResults(ctx, client, uploadReq, ret.Finding, output.Bytes())
 }
 
-func reportResults(ctx context.Context, client *api.Client, patched bool,
+func reportResults(ctx context.Context, client *api.Client,
 	uploadReq *api.UploadBuildReq, finding *api.NewFinding, output []byte) {
-	buildInfo, err := client.UploadBuild(ctx, uploadReq)
-	if err != nil {
-		app.Fatalf("failed to upload build: %v", err)
+	var buildID string
+	status := api.TestPassed
+	if uploadReq != nil {
+		if !uploadReq.BuildSuccess {
+			status = api.TestFailed
+		}
+		buildInfo, err := client.UploadBuild(ctx, uploadReq)
+		if err != nil {
+			app.Fatalf("failed to upload build: %v", err)
+		}
+		log.Printf("uploaded build, reply: %q", buildInfo)
+		buildID = buildInfo.ID
+	} else {
+		status = api.TestError
 	}
-	log.Printf("uploaded build, reply: %q", buildInfo)
 	osutil.WriteJSON(filepath.Join(*flagOutput, "result.json"), &api.BuildResult{
-		BuildID: buildInfo.ID,
-		Success: uploadReq.BuildSuccess,
+		BuildID: buildID,
+		Success: status == api.TestPassed,
 	})
 	if *flagSmokeBuild {
 		return
@@ -128,18 +140,15 @@ func reportResults(ctx context.Context, client *api.Client, patched bool,
 	testResult := &api.TestResult{
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
-		Result:    api.TestFailed,
+		Result:    status,
 		Log:       output,
 	}
-	if uploadReq.BuildSuccess {
-		testResult.Result = api.TestPassed
-	}
-	if patched {
-		testResult.PatchedBuildID = buildInfo.ID
+	if uploadReq.SeriesID != "" {
+		testResult.PatchedBuildID = buildID
 	} else {
-		testResult.BaseBuildID = buildInfo.ID
+		testResult.BaseBuildID = buildID
 	}
-	err = client.UploadTestResult(ctx, testResult)
+	err := client.UploadTestResult(ctx, testResult)
 	if err != nil {
 		app.Fatalf("failed to report the test result: %v", err)
 	}
