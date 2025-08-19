@@ -114,6 +114,24 @@ func (client Client) UploadSession(ctx context.Context, req *NewSession) (*Uploa
 	return postJSON[NewSession, UploadSessionResp](ctx, client.baseURL+"/sessions/upload", req)
 }
 
+type BaseFindingInfo struct {
+	BuildID string `json:"buildID"`
+	Title   string `json:"title"`
+}
+
+func (client Client) UploadBaseFinding(ctx context.Context, req *BaseFindingInfo) error {
+	_, err := postJSON[BaseFindingInfo, any](ctx, client.baseURL+"/base_findings/upload", req)
+	return err
+}
+
+type BaseFindingStatus struct {
+	Observed bool `json:"observed"`
+}
+
+func (client Client) BaseFindingStatus(ctx context.Context, req *BaseFindingInfo) (*BaseFindingStatus, error) {
+	return postJSON[BaseFindingInfo, BaseFindingStatus](ctx, client.baseURL+"/base_findings/status", req)
+}
+
 const requestTimeout = time.Minute
 
 func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {
