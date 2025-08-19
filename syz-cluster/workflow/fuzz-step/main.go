@@ -121,33 +121,48 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 
 	eg, ctx := errgroup.WithContext(baseCtx)
 	bugs := make(chan *manager.UniqueBug)
+	baseCrashes := make(chan string, 16)
 	eg.Go(func() error {
 		defer log.Logf(0, "bug reporting terminated")
 		for {
-			var bug *manager.UniqueBug
 			select {
-			case bug = <-bugs:
+			case title := <-baseCrashes:
+				err := client.UploadBaseFinding(ctx, &api.BaseFindingInfo{
+					BuildID: *flagBaseBuild,
+					Title:   title,
+				})
+				if err != nil {
+					app.Errorf("failed to report a base kernel crash %q: %v", title, err)
+				}
+			case bug := <-bugs:
+				err := reportFinding(ctx, client, bug)
+				if err != nil {
+					app.Errorf("failed to report a finding %q: %v", bug.Report.Title, err)
+				}
 			case <-ctx.Done():
-			}
-			if bug == nil {
-				break
-			}
-			// TODO: filter out all INFO: bugs?
-			err := reportFinding(ctx, client, bug)
-			if err != nil {
-				app.Errorf("failed to report a finding %s: %v", bug.Report.Title, err)
+				return nil
 			}
 		}
-		return nil
 	})
 	eg.Go(func() error {
 		defer log.Logf(0, "diff fuzzing terminated")
 		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
 			Debug:              false,
 			PatchedOnly:        bugs,
+			BaseCrashes:        baseCrashes,
 			Store:              store,
 			MaxTriageTime:      timeout / 2,
 			FuzzToReachPatched: fuzzToReachPatched(),
+			BaseCrashKnown: func(ctx context.Context, title string) (bool, error) {
+				ret, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
+					BuildID: *flagBaseBuild,
+					Title:   title,
+				})
+				if err != nil {
+					return false, err
+				}
+				return ret.Observed, nil
+			},
 		})
 	})
 	const (
