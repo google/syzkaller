@@ -56,7 +56,7 @@
 
       const distributionData = [
         {{range .Distribution}}
-          [new Date({{.Date.Format "2006-01-02"}}), {{.Finished}}, {{.Skipped}}],
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Finished}}, {{.Skipped}}, {{.WithFailedSteps}}, {{.WithSkippedSteps}}],
         {{end}}
       ];
 
@@ -94,6 +94,8 @@
         data.addColumn('date', 'Date');
         data.addColumn('number', 'Processed');
         data.addColumn('number', 'Skipped');
+        data.addColumn('number', 'Some steps failed');
+        data.addColumn('number', 'Some steps skipped');
         data.addRows(distributionData);
         const options = {
           isStacked: 'percent',
@@ -103,7 +105,7 @@
             minValue: 0,
             format: '#%'
           },
-          colors: ['#28a745', '#ffc107'],
+          colors: ['#28a745', '#ffc107', '#ffcccb', '#d5f0c0'],
           areaOpacity: 0.8
         };
         const chart = new google.visualization.AreaChart(document.getElementById('distribution_chart_div'));
