@@ -36,6 +36,7 @@ func init() {
 type Config struct {
 	// Number of VMs to run in parallel (1 by default).
 	Count int `json:"count"`
+	SELinux bool `json:"selinux"`
 }
 
 type Pool struct {
@@ -49,8 +50,10 @@ type instance struct {
 	fuchsiaDir   string
 	ffxBinary    string
 	ffxLogBinary string
+	ffxStarnixBinary string
 	ffxDir       string
 	name         string
+	adbSerialNum string
 	index        int
 	cfg          *Config
 	version      string
@@ -127,6 +130,10 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err != nil {
 		return nil, err
 	}
+	inst.ffxStarnixBinary, err = GetToolPath(inst.fuchsiaDir, "ffx-starnix")
+	if err != nil {
+		return nil, err
+	}
 
 	inst.rpipe, inst.wpipe, err = osutil.LongPipe()
 	if err != nil {
@@ -139,17 +146,19 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			inst.fuchsiaDir,
 			err)
 	}
-	pubkey, err := inst.getFfxConfigValue("ssh.pub")
-	if err != nil {
-		return nil, err
+	if !inst.cfg.SELinux {
+		pubkey, err := inst.getFfxConfigValue("ssh.pub")
+		if err != nil {
+			return nil, err
+		}
+		inst.sshPubKey = pubkey
+	
+		privkey, err := inst.getFfxConfigValue("ssh.priv")
+		if err != nil {
+			return nil, err
+		}
+		inst.sshPrivKey = privkey
 	}
-	inst.sshPubKey = pubkey
-
-	privkey, err := inst.getFfxConfigValue("ssh.priv")
-	if err != nil {
-		return nil, err
-	}
-	inst.sshPrivKey = privkey
 
 	// Copy auto-detected paths from in-tree ffx to isolated ffx.
 	err = inst.copyFfxConfigValuesToIsolate(
@@ -186,13 +195,15 @@ func (inst *instance) boot() error {
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
 
-	inst.runFfx(5*time.Minute, true, "emu", "stop", inst.name)
-
-	if err := inst.startFuchsiaVM(); err != nil {
+	if err := inst.restartFuchsiaVM(); err != nil {
 		return fmt.Errorf("instance %s: could not start Fuchsia VM: %w", inst.name, err)
 	}
-	if err := inst.startSshdAndConnect(); err != nil {
-		return fmt.Errorf("instance %s: could not start sshd: %w", inst.name, err)
+	if inst.cfg.SELinux {
+		if err := inst.bootWithAdb(); err != nil {
+			return fmt.Errorf("instance %s: could not start Fuchsia VM: %w", inst.name, err)
+		}
+	} else if err := inst.bootWithoutAdb(); err != nil {
+		return fmt.Errorf("instance %s: could not start Fuchsia VM: %w", inst.name, err)
 	}
 	if inst.debug {
 		log.Logf(0, "instance %s: setting up...", inst.name)
@@ -206,13 +217,108 @@ func (inst *instance) boot() error {
 	return nil
 }
 
+func (inst *instance) bootWithoutAdb() error {
+	if err := inst.startSshdAndConnect(); err != nil {
+		return fmt.Errorf("instance %s: could not start sshd: %w", inst.name, err)
+	}
+	return nil
+}
+
+func (inst *instance) bootWithAdb() error {
+	if err := inst.connectAdb(); err != nil {
+		return fmt.Errorf("instance %s: could not start sshd: %w", inst.name, err)
+	}
+	return nil
+}
+
+func (inst *instance) connectAdb() error {
+	adbConnMsg := []byte("This connection's \"serial number\" for adb is '")
+
+	cmd := inst.ffxCommand(
+		true,
+		inst.ffxStarnixBinary,
+		"starnix",
+		"adb",
+		"connect",
+	)
+	out, err := osutil.Run(15 * time.Second, cmd)
+	if err != nil {
+		if inst.debug {
+			log.Logf(0, "failed to find serial number for adb on instance %s", inst.name)
+		}
+		return err
+	}
+
+	_, after, found := bytes.Cut(out, adbConnMsg);
+	if !found {
+		return fmt.Errorf("failed to find serial number for adb on instance %s", inst.name)
+	}
+	before, _, found := bytes.Cut(after, []byte("'"))
+	if !found {
+		return fmt.Errorf("failed to find serial number for adb on instance %s", inst.name)
+	}
+	inst.adbSerialNum = string(before)
+	if inst.debug {
+		log.Logf(0, "instance %s: found adb serial number %s", inst.name, inst.adbSerialNum)
+	}
+	inst.adbWithTimeout(time.Minute * 2, "wait-for-device")
+	inst.adbWaitBoot()
+	inst.adb("root")
+
+	return nil
+}
+
+func (inst *instance) adbWaitBoot() {
+	sleepTime := 10
+	sleepDuration := time.Duration(sleepTime) * time.Second
+	maxWaitTime := 60 * 1 // 1 minute to wait until boot completion
+	maxRetries := maxWaitTime / sleepTime
+	i := 0
+	for ; i < maxRetries; i++ {
+		if out, err := inst.adb("shell", "pgrep systemui | wc -l"); err == nil {
+			if count, err := strconv.Atoi(strings.TrimSpace(string(out))); err == nil {
+				if count != 0 {
+					log.Logf(0, "boot completed")
+					break
+				}
+				time.Sleep(sleepDuration)
+			}
+		} else {
+			log.Logf(0, "failed to execute command 'pgrep systemui | wc -l', %v", err)
+			break
+		}
+	}
+	if i == maxRetries {
+		log.Logf(0, "failed to determine boot completion, can't find 'com.android.systemui' process")
+	}
+}
+
+func (inst *instance) adb(args ...string) ([]byte, error) {
+	return inst.adbWithTimeout(time.Minute, args...)
+}
+
+func (inst *instance) adbWithTimeout(timeout time.Duration, args ...string) ([]byte, error) {
+	if inst.debug {
+		log.Logf(0, "executing adb %+v", args)
+	}
+	args = append([]string{"-s", inst.adbSerialNum}, args...)
+	out, err := osutil.RunCmd(timeout, "", "adb", args...)
+	if inst.debug {
+		log.Logf(0, "adb returned")
+	}
+	if err != nil {
+		log.Logf(0, "%s", err.Error())
+	}
+	return out, err
+}
+
 func (inst *instance) Close() error {
 	inst.runFfx(5*time.Minute, true, "emu", "stop", inst.name)
 	if inst.fuchsiaLogs != nil {
 		inst.fuchsiaLogs.Process.Kill()
 		inst.fuchsiaLogs.Wait()
 	}
-	if inst.sshBridge != nil {
+	if !inst.cfg.SELinux && inst.sshBridge != nil {
 		inst.sshBridge.Process.Kill()
 		inst.sshBridge.Wait()
 	}
@@ -228,7 +334,8 @@ func (inst *instance) Close() error {
 	return nil
 }
 
-func (inst *instance) startFuchsiaVM() error {
+func (inst *instance) restartFuchsiaVM() error {
+	inst.runFfx(5*time.Minute, true, "emu", "stop", inst.name)
 	if _, err := inst.runFfx(
 		5*time.Minute,
 		true,
@@ -432,6 +539,13 @@ func (inst *instance) runCommand(cmd string, args ...string) error {
 }
 
 func (inst *instance) Forward(port int) (string, error) {
+	if inst.cfg.SELinux {
+		return inst.ForwardWithAdb(port)
+	}
+	return inst.ForwardWithoutAdb(port)
+}
+
+func (inst *instance) ForwardWithoutAdb(port int) (string, error) {
 	if port == 0 {
 		return "", fmt.Errorf("vm/starnix: forward port is zero")
 	}
@@ -442,7 +556,27 @@ func (inst *instance) Forward(port int) (string, error) {
 	return fmt.Sprintf("localhost:%v", port), nil
 }
 
+func (inst *instance) ForwardWithAdb(port int) (string, error) {
+	var err error
+	for range 100 {
+		devicePort := vmimpl.RandomPort()
+		_, err = inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port))
+		if err == nil {
+			return fmt.Sprintf("127.0.0.1:%v", devicePort), nil
+		}
+		time.Sleep(10 * time.Second)
+	}
+	return "", err
+}
+
 func (inst *instance) Copy(hostSrc string) (string, error) {
+	if inst.cfg.SELinux {
+		return inst.CopyWithAdb(hostSrc)
+	}
+	return inst.CopyWithoutAdb(hostSrc)
+}
+
+func (inst *instance) CopyWithoutAdb(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join(targetDir, base)
 	if inst.debug {
@@ -463,7 +597,24 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, fmt.Errorf("instance %s: can't push binary %s to instance over scp", inst.name, base)
 }
 
+func (inst *instance) CopyWithAdb(hostSrc string) (string, error) {
+	vmDst := filepath.Join("/data", filepath.Base(hostSrc))
+	if _, err := inst.adb("push", hostSrc, vmDst); err != nil {
+		return "", err
+	}
+	inst.adb("shell", "chmod", "+x", vmDst)
+	return vmDst, nil
+}
+
 func (inst *instance) Run(ctx context.Context, command string) (
+	<-chan []byte, <-chan error, error) {
+	if inst.cfg.SELinux {
+		return inst.RunWithAdb(ctx, command)
+	}
+	return inst.RunWithoutAdb(ctx, command)
+}
+
+func (inst *instance) RunWithoutAdb(ctx context.Context, command string) (
 	<-chan []byte, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
@@ -493,6 +644,38 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,
+	})
+}
+
+func (inst *instance) RunWithAdb(ctx context.Context, command string) (
+	<-chan []byte, <-chan error, error) {
+	adbRpipe, adbWpipe, err := osutil.LongPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	if inst.debug {
+		log.Logf(0, "starting: adb shell %v", command)
+	}
+	adb := osutil.Command("adb", "-s", inst.adbSerialNum, "shell", "cd /data; " + command)
+	adb.Stdout = adbWpipe
+	adb.Stderr = adbWpipe
+	if err := adb.Start(); err != nil {
+		adbRpipe.Close()
+		adbWpipe.Close()
+		return nil, nil, fmt.Errorf("failed to start adb: %w", err)
+	}
+	adbWpipe.Close()
+
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	merger := vmimpl.NewOutputMerger(tee)
+	merger.Add("adb", adbRpipe)
+
+	return vmimpl.Multiplex(ctx, adb, merger, vmimpl.MultiplexConfig{
+		Debug:   inst.debug,
+		Scale:   inst.timeouts.Scale,
 	})
 }
 
