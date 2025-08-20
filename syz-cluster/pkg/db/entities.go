@@ -102,6 +102,13 @@ func (s *Session) Status() SessionStatus {
 	return SessionStatusFinished
 }
 
+func (s *Session) Duration() time.Duration {
+	if s.FinishedAt.IsNull() {
+		return 0
+	}
+	return s.FinishedAt.Time.Sub(s.StartedAt.Time).Truncate(time.Minute)
+}
+
 func (s *Session) SetStartedAt(t time.Time) {
 	s.StartedAt = spanner.NullTime{Time: t, Valid: true}
 }
