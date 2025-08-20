@@ -79,16 +79,34 @@ func (arch *arch) generateUsbPrinterDeviceDescriptor(g *prog.Gen, typ0 prog.Type
 		return
 	}
 
-	// syzlang descriptions already contain passable IDs.
-	// Roll the dice to decide if we want to patch them.
-	if g.Rand().Intn(2) == 0 {
+	// Roll the dice to decide if and how we want to patch printer USB IDs.
+	switch {
+	case g.Rand().Intn(3) == 0:
+		// Syzlang descriptions already contain passable IDs, leave them as is.
 		return
-	}
-
-	// Patch in IDs specific to the USB printer class.
-	// Only patch IDs that are used in the driver matching rules.
-	if ids, ok := usbIds["usblp"]; ok {
-		patchUsbDeviceID(g, &arg, calls, ids, false)
+	case g.Rand().Intn(2) == 0:
+		// Patch in quirk IDs that are hardcoded in the USB printer class driver
+		// (and thus are not auto-extractable) to allow exercising driver quirks;
+		// see quirk_printers in drivers/usb/class/usblp.c.
+		var idVendor int16
+		var idProduct int16
+		if g.Rand().Intn(2) == 0 { // USBLP_QUIRK_BIDIR
+			idVendor = 0x03f0
+			idProduct = 0x0004
+		} else { // USBLP_QUIRK_BAD_CLASS
+			idVendor = 0x04b8
+			idProduct = 0x0202
+		}
+		devArg := arg.(*prog.GroupArg).Inner[0]
+		patchGroupArg(devArg, 7, "idVendor", uint64(idVendor))
+		patchGroupArg(devArg, 8, "idProduct", uint64(idProduct))
+	default:
+		// Patch in IDs auto-extracted from the matching rules for the USB printer class.
+		// Do not patch IDs that are not used in the matching rules to avoid subverting
+		// the kernel into matching the device to a different driver.
+		if ids, ok := usbIds["usblp"]; ok {
+			patchUsbDeviceID(g, &arg, calls, ids, false)
+		}
 	}
 
 	return
