@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -85,9 +86,10 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 		}
 		osutil.WriteFile(filename, data)
 	}
+	reps := append([]*report.Report{crash.Report}, crash.TailReports...)
 	writeOrRemove("log", crash.Output)
 	writeOrRemove("tag", []byte(cs.Tag))
-	writeOrRemove("report", crash.Report.Report)
+	writeOrRemove("report", report.MergeReportBytes(reps))
 	writeOrRemove("machineInfo", crash.MachineInfo)
 
 	return first, nil

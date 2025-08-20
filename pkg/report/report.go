@@ -943,3 +943,18 @@ func TitleToCrashType(title string) crash.Type {
 	}
 	return crash.UnknownType
 }
+
+const reportSeparator = "\n<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>\n\n"
+
+func MergeReportBytes(reps []*Report) []byte {
+	var res []byte
+	for _, rep := range reps {
+		res = append(res, rep.Report...)
+		res = append(res, []byte(reportSeparator)...)
+	}
+	return res
+}
+
+func SplitReportBytes(data []byte) [][]byte {
+	return bytes.Split(data, []byte(reportSeparator))
+}
