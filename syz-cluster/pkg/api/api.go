@@ -213,6 +213,7 @@ const (
 	netCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
 	bpfCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
 	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
+	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
 )
 
 // The list is ordered by decreasing importance.
@@ -251,6 +252,18 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		FuzzConfig: FuzzConfig{
 			Config:    `net`,
 			CorpusURL: netCorpusURL,
+		},
+	},
+	{
+		EmailLists: []string{
+			`linux-fsdevel@vger.kernel.org`,
+			`linux-unionfs@vger.kernel.org`,
+			`linux-ext4@vger.kernel.org`,
+		},
+		KernelConfig: `upstream-apparmor-kasan.config`,
+		FuzzConfig: FuzzConfig{
+			Config:    `fs`,
+			CorpusURL: fsCorpusURL,
 		},
 	},
 	{
