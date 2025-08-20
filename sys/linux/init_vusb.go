@@ -62,22 +62,62 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir p
 		return
 	}
 
-	patchUsbDeviceID(g, &arg, calls, usbIdsAll)
+	patchUsbDeviceID(g, &arg, calls, usbIdsAll, true)
 
 	return
 }
 
-func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string) {
-	id := randUsbDeviceID(g, ids)
-	bcdDevice := id.BcdDeviceLo + uint16(g.Rand().Intn(int(id.BcdDeviceHi-id.BcdDeviceLo)+1))
+func (arch *arch) generateUsbPrinterDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
+	arg prog.Arg, calls []*prog.Call) {
+	if old == nil {
+		arg = g.GenerateSpecialArg(typ0, dir, &calls)
+	} else {
+		arg = prog.CloneArg(old)
+		calls = g.MutateArg(arg)
+	}
+	if g.Target().ArgContainsAny(arg) {
+		return
+	}
+
+	// syzlang descriptions already contain passable IDs.
+	// Roll the dice to decide if we want to patch them.
+	if g.Rand().Intn(2) == 0 {
+		return
+	}
+
+	// Patch in IDs specific to the USB printer class.
+	// Only patch IDs that are used in the driver matching rules.
+	if ids, ok := usbIds["usblp"]; ok {
+		patchUsbDeviceID(g, &arg, calls, ids, false)
+	}
+
+	return
+}
+
+func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string, patchNonMatching bool) {
+	id := randUsbDeviceID(g, ids, patchNonMatching)
 
 	devArg := (*arg).(*prog.GroupArg).Inner[0]
-	patchGroupArg(devArg, 7, "idVendor", uint64(id.IDVendor))
-	patchGroupArg(devArg, 8, "idProduct", uint64(id.IDProduct))
-	patchGroupArg(devArg, 9, "bcdDevice", uint64(bcdDevice))
-	patchGroupArg(devArg, 3, "bDeviceClass", uint64(id.BDeviceClass))
-	patchGroupArg(devArg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
-	patchGroupArg(devArg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_VENDOR) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 7, "idVendor", uint64(id.IDVendor))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_PRODUCT) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 8, "idProduct", uint64(id.IDProduct))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_LO) != 0 ||
+		(id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_HI) != 0 || patchNonMatching {
+		bcdDevice := id.BcdDeviceLo + uint16(g.Rand().Intn(int(id.BcdDeviceHi-id.BcdDeviceLo)+1))
+		patchGroupArg(devArg, 9, "bcdDevice", uint64(bcdDevice))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_CLASS) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 3, "bDeviceClass", uint64(id.BDeviceClass))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_SUBCLASS) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_PROTOCOL) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
+	}
 
 	configArg := devArg.(*prog.GroupArg).Inner[14].(*prog.GroupArg).Inner[0].(*prog.GroupArg).Inner[0]
 	interfacesArg := configArg.(*prog.GroupArg).Inner[8]
@@ -86,16 +126,24 @@ func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string
 		interfaceArg = interfaceArg.(*prog.GroupArg).Inner[0]
 		if i > 0 {
 			// Generate new IDs for every interface after the first one.
-			id = randUsbDeviceID(g, ids)
+			id = randUsbDeviceID(g, ids, patchNonMatching)
 		}
-		patchGroupArg(interfaceArg, 5, "bInterfaceClass", uint64(id.BInterfaceClass))
-		patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
-		patchGroupArg(interfaceArg, 7, "bInterfaceProtocol", uint64(id.BInterfaceProtocol))
-		patchGroupArg(interfaceArg, 2, "bInterfaceNumber", uint64(id.BInterfaceNumber))
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_CLASS) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 5, "bInterfaceClass", uint64(id.BInterfaceClass))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_SUBCLASS) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_PROTOCOL) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 7, "bInterfaceProtocol", uint64(id.BInterfaceProtocol))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_INT_NUMBER) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 2, "bInterfaceNumber", uint64(id.BInterfaceNumber))
+		}
 	}
 }
 
-func randUsbDeviceID(g *prog.Gen, ids string) UsbDeviceID {
+func randUsbDeviceID(g *prog.Gen, ids string, patchNonMatching bool) UsbDeviceID {
 	totalIds := len(ids) / BytesPerUsbID
 	idNum := g.Rand().Intn(totalIds)
 	base := ids[idNum*BytesPerUsbID : (idNum+1)*BytesPerUsbID]
@@ -104,6 +152,11 @@ func randUsbDeviceID(g *prog.Gen, ids string) UsbDeviceID {
 	var id UsbDeviceID
 	if binary.Read(p, binary.LittleEndian, &id) != nil {
 		panic("not enough data to read")
+	}
+
+	// Don't generate values for IDs that won't be patched in.
+	if !patchNonMatching {
+		return id
 	}
 
 	if (id.MatchFlags & USB_DEVICE_ID_MATCH_VENDOR) == 0 {
