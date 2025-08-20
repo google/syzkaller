@@ -753,7 +753,7 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 			Suppressed:  crash.Suppressed,
 			Recipients:  crash.Recipients.ToDash(),
 			Log:         crash.Output,
-			Report:      crash.Report.Report,
+			Report:      report.SplitReportBytes(crash.Report.Report)[0],
 			MachineInfo: crash.MachineInfo,
 		}
 		setGuiltyFiles(dc, crash.Report)
@@ -885,27 +885,27 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 		//    so maybe corrupted report detection is broken.
 		// 3. Reproduction is expensive so it's good to persist the result.
 
-		report := repro.Report
-		output := report.Output
+		reproReport := repro.Report
+		output := reproReport.Output
 
 		var crashFlags dashapi.CrashFlags
 		if res.Strace != nil {
 			// If syzkaller managed to successfully run the repro with strace, send
 			// the report and the output generated under strace.
-			report = res.Strace.Report
+			reproReport = res.Strace.Report
 			output = res.Strace.Output
 			crashFlags = dashapi.CrashUnderStrace
 		}
 
 		dc := &dashapi.Crash{
 			BuildID:       mgr.cfg.Tag,
-			Title:         report.Title,
-			AltTitles:     report.AltTitles,
-			Suppressed:    report.Suppressed,
-			Recipients:    report.Recipients.ToDash(),
+			Title:         reproReport.Title,
+			AltTitles:     reproReport.AltTitles,
+			Suppressed:    reproReport.Suppressed,
+			Recipients:    reproReport.Recipients.ToDash(),
 			Log:           output,
 			Flags:         crashFlags,
-			Report:        report.Report,
+			Report:        report.SplitReportBytes(reproReport.Report)[0],
 			ReproOpts:     repro.Opts.Serialize(),
 			ReproSyz:      progText,
 			ReproC:        cprogText,
@@ -913,7 +913,7 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 			Assets:        mgr.uploadReproAssets(repro),
 			OriginalTitle: res.Crash.Title,
 		}
-		setGuiltyFiles(dc, report)
+		setGuiltyFiles(dc, reproReport)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			log.Logf(0, "failed to report repro to dashboard: %v", err)
 		} else {

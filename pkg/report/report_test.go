@@ -510,3 +510,38 @@ BCDEF`), Truncate([]byte(`0123456789ABCDEF`), 0, 5))
 
 DEF`), Truncate([]byte(`0123456789ABCDEF`), 4, 3))
 }
+
+func TestSplitReportBytes(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []byte
+		wantFirst string
+	}{
+		{
+			name:      "empty",
+			input:     nil,
+			wantFirst: "",
+		},
+		{
+			name:      "single",
+			input:     []byte("report1"),
+			wantFirst: "report1",
+		},
+		{
+			name:      "split in the middle",
+			input:     []byte("report1" + reportSeparator + "report2"),
+			wantFirst: "report1",
+		},
+		{
+			name:      "split in the middle, save new line",
+			input:     []byte("report1\n" + reportSeparator + "report2"),
+			wantFirst: "report1\n",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			splitted := SplitReportBytes(test.input)
+			assert.Equal(t, test.wantFirst, string(splitted[0]))
+		})
+	}
+}
