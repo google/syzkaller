@@ -17,9 +17,11 @@ on:
   pull_request_review_comment:
     types:
       - 'created'
-  pull_request_review:
-    types:
-      - 'submitted'
+# Let's disable pull_request_review trigger to reduce the number of "skipped" notifications.
+# The majority of these events will not be asking gemini for review.
+#  pull_request_review:
+#    types:
+#      - 'submitted'
   workflow_dispatch:
     inputs:
       pr_number:
