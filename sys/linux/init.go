@@ -50,19 +50,20 @@ func InitTarget(target *prog.Target) {
 	target.Neutralize = arch.neutralize
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 		prog.Arg, []*prog.Call){
-		"timespec":                  arch.generateTimespec,
-		"timeval":                   arch.generateTimespec,
-		"sockaddr_alg":              arch.generateSockaddrAlg,
-		"alg_name":                  arch.generateAlgName,
-		"alg_aead_name":             arch.generateAlgAeadName,
-		"alg_hash_name":             arch.generateAlgHashName,
-		"alg_skcipher_name":         arch.generateAlgSkcipherhName,
-		"ipt_replace":               arch.generateIptables,
-		"ip6t_replace":              arch.generateIptables,
-		"arpt_replace":              arch.generateArptables,
-		"ebt_replace":               arch.generateEbtables,
-		"usb_device_descriptor":     arch.generateUsbDeviceDescriptor,
-		"usb_device_descriptor_hid": arch.generateUsbHidDeviceDescriptor,
+		"timespec":                      arch.generateTimespec,
+		"timeval":                       arch.generateTimespec,
+		"sockaddr_alg":                  arch.generateSockaddrAlg,
+		"alg_name":                      arch.generateAlgName,
+		"alg_aead_name":                 arch.generateAlgAeadName,
+		"alg_hash_name":                 arch.generateAlgHashName,
+		"alg_skcipher_name":             arch.generateAlgSkcipherhName,
+		"ipt_replace":                   arch.generateIptables,
+		"ip6t_replace":                  arch.generateIptables,
+		"arpt_replace":                  arch.generateArptables,
+		"ebt_replace":                   arch.generateEbtables,
+		"usb_device_descriptor":         arch.generateUsbDeviceDescriptor,
+		"usb_device_descriptor_printer": arch.generateUsbPrinterDeviceDescriptor,
+		"usb_device_descriptor_hid":     arch.generateUsbHidDeviceDescriptor,
 	}
 
 	target.AuxResources = map[string]bool{
