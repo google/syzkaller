@@ -61,7 +61,9 @@
           <td>{{.Series.AuthorEmail}}</td>
           <td>
             {{if .Session}}
-              {{.Session.Status}} {{if gt .Findings 0}}<b>[{{.Findings}} findings]</b>{{end}}
+              {{.Session.Status}}
+              {{if eq .Session.Status "finished"}}in {{.Session.Duration}}{{end}}
+              {{if gt .Findings 0}}<br /><b>[{{.Findings}} findings]</b>{{end}}
             {{else}}
               -
             {{end}}
