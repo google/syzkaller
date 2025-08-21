@@ -675,7 +675,7 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	ctxTimeout, cancel := context.WithTimeout(ctx, kc.cfg.Timeouts.VMRunningTime)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, kc.reporter, cmd,
+	_, reps, err := inst.Run(ctxTimeout, kc.reporter, cmd,
 		vm.WithExitCondition(vm.ExitTimeout),
 		vm.WithInjectExecuting(injectExec),
 		vm.WithEarlyFinishCb(func() {
@@ -685,7 +685,10 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 			kc.serv.StopFuzzing(inst.Index())
 		}),
 	)
-	return rep, err
+	if len(reps) > 0 {
+		return reps[0], err
+	}
+	return nil, err
 }
 
 func (kc *kernelContext) triageProgress() float64 {

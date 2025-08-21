@@ -31,6 +31,7 @@ type Crash struct {
 	Manual        bool
 	FullRepro     bool // used by the diff fuzzer to do a full scale reproduction
 	*report.Report
+	TailReports []*report.Report
 }
 
 func (c *Crash) FullTitle() string {

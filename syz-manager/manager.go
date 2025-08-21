@@ -597,7 +597,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 	injectExec := make(chan bool, 10)
 	serv.CreateInstance(inst.Index(), injectExec, updInfo)
 
-	rep, vmInfo, err := mgr.runInstanceInner(ctx, inst,
+	reps, vmInfo, err := mgr.runInstanceInner(ctx, inst,
 		vm.WithExitCondition(vm.ExitTimeout),
 		vm.WithInjectExecuting(injectExec),
 		vm.WithEarlyFinishCb(func() {
@@ -607,6 +607,10 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 			serv.StopFuzzing(inst.Index())
 		}))
 	var extraExecs []report.ExecutorInfo
+	var rep *report.Report
+	if len(reps) != 0 {
+		rep = reps[0]
+	}
 	if rep != nil && rep.Executor != nil {
 		extraExecs = []report.ExecutorInfo{*rep.Executor}
 	}
@@ -622,6 +626,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 		mgr.crashes <- &manager.Crash{
 			InstanceIndex: inst.Index(),
 			Report:        rep,
+			TailReports:   reps[1:],
 		}
 	}
 	if err != nil {
@@ -630,7 +635,7 @@ func (mgr *Manager) fuzzerInstance(ctx context.Context, inst *vm.Instance, updIn
 }
 
 func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opts ...func(*vm.RunOptions),
-) (*report.Report, []byte, error) {
+) ([]*report.Report, []byte, error) {
 	fwdAddr, err := inst.Forward(mgr.serv.Port())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup port forwarding: %w", err)
@@ -656,11 +661,11 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
 	ctxTimeout, cancel := context.WithTimeout(ctx, mgr.cfg.Timeouts.VMRunningTime)
 	defer cancel()
-	_, rep, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
+	_, reps, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %w", err)
 	}
-	if rep == nil {
+	if len(reps) == 0 {
 		// This is the only "OK" outcome.
 		log.Logf(0, "VM %v: running for %v, restarting", inst.Index(), time.Since(start))
 		return nil, nil, nil
@@ -669,7 +674,7 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 	if err != nil {
 		vmInfo = []byte(fmt.Sprintf("error getting VM info: %v\n", err))
 	}
-	return rep, vmInfo, nil
+	return reps, vmInfo, nil
 }
 
 func (mgr *Manager) emailCrash(crash *manager.Crash) {
@@ -708,7 +713,10 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 	if crash.Suppressed {
 		flags += " [suppressed]"
 	}
-	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Title, flags)
+	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Report.Title, flags)
+	for i, report := range crash.TailReports {
+		log.Logf(0, "VM %v: crash(tail%d): %v%v", crash.InstanceIndex, i, report.Title, flags)
+	}
 
 	if mgr.mode.FailOnCrashes {
 		path := filepath.Join(mgr.cfg.Workdir, "report.json")
