@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -355,12 +356,33 @@ func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool)
 	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
 		info.ReproAttempts >= MaxReproAttempts)
 	return UICrashType{
-		BugInfo: *info,
-		New:     info.FirstTime.After(startTime),
-		Active:  info.LastTime.After(startTime),
-		Triaged: triaged,
-		Crashes: crashes,
+		BugInfo:     *info,
+		RankTooltip: higherRankTooltip(info.Title, info.TailTitles),
+		New:         info.FirstTime.After(startTime),
+		Active:      info.LastTime.After(startTime),
+		Triaged:     triaged,
+		Crashes:     crashes,
 	}
+}
+
+// higherRankTooltip generates the prioritized list of the titles with higher Rank
+// than the firstTitle has.
+func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
+	baseRank := report.TitlesToImpact(firstTitle)
+	res := ""
+	for _, ti := range titlesInfo {
+		if ti.Rank <= baseRank {
+			continue
+		}
+		res += fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
+			ti.Rank,
+			100*float32(ti.Count)/float32(ti.Total),
+			ti.Title)
+	}
+	if res != "" {
+		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res)
+	}
+	return res
 }
 
 var crashIDRe = regexp.MustCompile(`^\w+$`)
@@ -1024,10 +1046,11 @@ type UICrashPage struct {
 
 type UICrashType struct {
 	BugInfo
-	New     bool // was first found in the current run
-	Active  bool // was found in the current run
-	Triaged string
-	Crashes []UICrash
+	RankTooltip string
+	New         bool // was first found in the current run
+	Active      bool // was found in the current run
+	Triaged     string
+	Crashes     []UICrash
 }
 
 type UICrash struct {

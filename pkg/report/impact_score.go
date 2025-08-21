@@ -4,6 +4,8 @@
 package report
 
 import (
+	"sort"
+
 	"github.com/google/syzkaller/pkg/report/crash"
 )
 
@@ -61,4 +63,46 @@ func TitlesToImpact(title string, otherTitles ...string) int {
 		}
 	}
 	return maxImpact
+}
+
+type TitleFreqRank struct {
+	Title string
+	Count int
+	Total int
+	Rank  int
+}
+
+func ExplainTitleStat(ts *titleStat) []*TitleFreqRank {
+	titleCount := map[string]int{}
+	var totalCount int
+	ts.visit(func(count int, titles ...string) {
+		uniq := map[string]bool{}
+		for _, title := range titles {
+			uniq[title] = true
+		}
+		for title := range uniq {
+			titleCount[title] += count
+		}
+		totalCount += count
+	})
+	var res []*TitleFreqRank
+	for title, count := range titleCount {
+		res = append(res, &TitleFreqRank{
+			Title: title,
+			Count: count,
+			Total: totalCount,
+			Rank:  TitlesToImpact(title),
+		})
+	}
+	sort.Slice(res, func(l, r int) bool {
+		if res[l].Rank != res[r].Rank {
+			return res[l].Rank > res[r].Rank
+		}
+		lTitle, rTitle := res[l].Title, res[r].Title
+		if titleCount[lTitle] != titleCount[rTitle] {
+			return titleCount[lTitle] > titleCount[rTitle]
+		}
+		return lTitle < rTitle
+	})
+	return res
 }

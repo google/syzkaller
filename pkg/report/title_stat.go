@@ -16,9 +16,9 @@ func AddTitleStat(file string, reps []*Report) error {
 	for _, rep := range reps {
 		titles = append(titles, rep.Title)
 	}
-	stat, err := readStatFile(file)
+	stat, err := ReadStatFile(file)
 	if err != nil {
-		return fmt.Errorf("readStatFile: %w", err)
+		return fmt.Errorf("report.ReadStatFile: %w", err)
 	}
 	stat.add(titles)
 	if err := writeStatFile(file, stat); err != nil {
@@ -27,7 +27,7 @@ func AddTitleStat(file string, reps []*Report) error {
 	return nil
 }
 
-func readStatFile(file string) (*titleStat, error) {
+func ReadStatFile(file string) (*titleStat, error) {
 	stat := &titleStat{}
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
 		return stat, nil

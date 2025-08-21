@@ -216,6 +216,7 @@ type CrashInfo struct {
 type BugInfo struct {
 	ID            string
 	Title         string
+	TailTitles    []*report.TitleFreqRank
 	FirstTime     time.Time
 	LastTime      time.Time
 	HasRepro      bool
@@ -223,6 +224,7 @@ type BugInfo struct {
 	StraceFile    string // relative to the workdir
 	ReproAttempts int
 	Crashes       []*CrashInfo
+	Rank          int
 }
 
 func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
@@ -238,6 +240,16 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		return nil, err
 	}
 	ret.Title = strings.TrimSpace(string(desc))
+
+	// Bug rank may go up over time if we observe higher ranked bugs as a consequence of the first failure.
+	ret.Rank = report.TitlesToImpact(ret.Title)
+	if titleStat, err := report.ReadStatFile(filepath.Join(dir, "title-stat")); err == nil {
+		ret.TailTitles = report.ExplainTitleStat(titleStat)
+		for _, ti := range ret.TailTitles {
+			ret.Rank = max(ret.Rank, ti.Rank)
+		}
+	}
+
 	ret.FirstTime = osutil.CreationTime(stat)
 	ret.LastTime = stat.ModTime()
 	files, err := osutil.ListDir(dir)
