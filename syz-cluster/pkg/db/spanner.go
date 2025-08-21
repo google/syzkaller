@@ -153,7 +153,7 @@ func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	err = CreateSpannerInstance(ctx, uri)
 	if err != nil {
 		t.Fatal(err)
