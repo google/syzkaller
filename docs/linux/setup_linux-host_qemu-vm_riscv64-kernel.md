@@ -40,7 +40,7 @@ for more information.
 # Image
 
 We will use buildroot to create the disk image. You can obtain buildroot
-[here](https://buildroot.uclibc.org/download.html). The following instructions
+[here](https://buildroot.org/download.html). The following instructions
 were tested with buildroot version 2020.05. First run:
 
 ```shell
