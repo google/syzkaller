@@ -91,6 +91,9 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 	writeOrRemove("tag", []byte(cs.Tag))
 	writeOrRemove("report", report.MergeReportBytes(reps))
 	writeOrRemove("machineInfo", crash.MachineInfo)
+	if err := report.AddTitleStat(filepath.Join(dir, "title-stat"), reps); err != nil {
+		return false, fmt.Errorf("report.AddTitleStat: %w", err)
+	}
 
 	return first, nil
 }
