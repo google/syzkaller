@@ -198,34 +198,34 @@ loop:
 
 			// A sanity check: the base kernel might have crashed with the same title
 			// since the moment we have stared the reproduction / running on the repro base.
-			crashesOnBase := dc.everCrashedBase(ctx, ret.origReport.Title)
+			crashesOnBase := dc.everCrashedBase(ctx, ret.reproReport.Title)
 			if ret.crashReport == nil && crashesOnBase {
 				// Report it as error so that we could at least find it in the logs.
-				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.origReport.Title)
+				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.reproReport.Title)
 			} else if ret.crashReport == nil {
-				dc.store.BaseNotCrashed(ret.origReport.Title)
+				dc.store.BaseNotCrashed(ret.reproReport.Title)
 				select {
 				case <-ctx.Done():
 				case dc.patchedOnly <- &UniqueBug{
-					Report: ret.origReport,
+					Report: ret.reproReport,
 					Repro:  ret.repro,
 				}:
 				}
-				log.Logf(0, "patched-only: %s", ret.origReport.Title)
+				log.Logf(0, "patched-only: %s", ret.reproReport.Title)
 				// Now that we know this bug only affects the patch kernel, we can spend more time
 				// generating a minimalistic repro and a C repro.
 				if !ret.fullRepro {
 					reproLoop.Enqueue(&Crash{
 						Report: &report.Report{
-							Title:  ret.origReport.Title,
+							Title:  ret.reproReport.Title,
 							Output: ret.repro.Prog.Serialize(),
 						},
 						FullRepro: true,
 					})
 				}
 			} else {
-				dc.reportBaseCrash(ctx, ret.origReport)
-				log.Logf(0, "crashes both: %s / %s", ret.origReport.Title, ret.crashReport.Title)
+				dc.reportBaseCrash(ctx, ret.crashReport)
+				log.Logf(0, "crashes both: %s / %s", ret.reproReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
 			// We have finished reproducing a crash from the patched instance.
@@ -717,7 +717,7 @@ type reproRunner struct {
 }
 
 type reproRunnerResult struct {
-	origReport  *report.Report
+	reproReport *report.Report
 	crashReport *report.Report
 	repro       *repro.Result
 	fullRepro   bool // whether this was a full reproduction
@@ -755,7 +755,7 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 		rr.kernel.pool.ReserveForRun(min(cnt, pool.Total()))
 	}()
 
-	ret := reproRunnerResult{origReport: r.Report, repro: r, fullRepro: fullRepro}
+	ret := reproRunnerResult{reproReport: r.Report, repro: r, fullRepro: fullRepro}
 	for doneRuns := 0; doneRuns < needRuns; {
 		if ctx.Err() != nil {
 			return
@@ -781,7 +781,7 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 				Opts:     opts,
 			})
 		})
-		logPrefix := fmt.Sprintf("attempt #%d to run %q on base", doneRuns, ret.origReport.Title)
+		logPrefix := fmt.Sprintf("attempt #%d to run %q on base", doneRuns, ret.reproReport.Title)
 		if errors.Is(runErr, context.Canceled) {
 			// Just exit without sending anything over the channel.
 			log.Logf(1, "%s: aborting due to context cancelation", logPrefix)
