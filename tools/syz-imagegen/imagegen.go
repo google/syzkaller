@@ -16,6 +16,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -40,16 +41,18 @@ import (
 // FileSystem represents one file system.
 // Each FileSystem produces multiple images, see MkfsFlagCombinations and Image type.
 type FileSystem struct {
-	// Name of the file system. Needs to match syz_mount_image$NAME name.
-	Name string
+	// Name of the file system. Needs to match the name passed to mount().
+	Name string `json:"name"`
+	// By default, syz_mount_image$NAME are generated. SyscallSuffix overrides the part after $.
+	SyscallSuffix string `json:"syscall_suffix"`
 	// Imagegen autodetects size for images starting from MinSize and then repeatedly doubling it if mkfs fails.
-	MinSize int
+	MinSize int `json:"min_size"`
 	// Don't populate this image with files (can't mount read-write).
-	ReadOnly bool
+	ReadOnly bool `json:"read_only"`
 	// These flags are always appended to mkfs as is.
-	MkfsFlags []string
+	MkfsFlags []string `json:"mkfs_flags"`
 	// Generate images for all possible permutations of these flag combinations.
-	MkfsFlagCombinations [][]string
+	MkfsFlagCombinations [][]string `json:"mkfs_flag_combinations"`
 	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
 	Mkfs func(img *Image) error
 }
@@ -552,7 +555,14 @@ func (fs FileSystem) filePrefix() string {
 	if fs.Name == parttable {
 		return syzReadPartTable
 	}
-	return syzMountImage + "_" + fs.Name
+	return syzMountImage + "_" + fs.suffix()
+}
+
+func (fs FileSystem) suffix() string {
+	if fs.SyscallSuffix != "" {
+		return fs.SyscallSuffix
+	}
+	return fs.Name
 }
 
 // Image represents one image we generate for a file system.
@@ -586,6 +596,7 @@ func main() {
 		flagPopulate  = flag.String("populate", "", "populate the specified image with files (for internal use)")
 		flagKeepImage = flag.Bool("keep", false, "save disk images as .img files")
 		flagFS        = flag.String("fs", "", "comma-separated list of filesystems to generate, all if empty")
+		flagFromJSON  = flag.String("from_json", "", "load the fs config from the file and generate seeds for it")
 	)
 	flag.Parse()
 	if *flagDebug {
@@ -600,6 +611,12 @@ func main() {
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
 		tool.Fail(err)
+	}
+	if *flagFromJSON != "" {
+		fs := loadFilesystem(*flagFromJSON)
+		fileSystems = append(fileSystems, fs)
+		// Generate seeds only for the specific filesystem.
+		*flagFS = fs.suffix()
 	}
 	addEmptyImages(target)
 	images, err := generateImages(target, *flagFS, *flagList)
@@ -655,7 +672,10 @@ func addEmptyImages(target *prog.Target) {
 		if call.CallName != syzMountImage {
 			continue
 		}
-		name := strings.TrimPrefix(call.Name, syzMountImage+"$")
+		name := call.Attrs.Filesystem
+		if name == "" {
+			name = strings.TrimPrefix(call.Name, syzMountImage+"$")
+		}
 		if have[name] {
 			continue
 		}
@@ -735,7 +755,7 @@ func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bo
 func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, error) {
 	var images []*Image
 	for _, fs := range fileSystems {
-		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.Name+",") {
+		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.suffix()+",") {
 			continue
 		}
 		index := 0
@@ -910,10 +930,24 @@ func writeImage(img *Image, data []byte) ([]byte, error) {
 		fmt.Fprintf(buf, `%s(AUTO, &AUTO="$`, syzReadPartTable)
 	} else {
 		fmt.Fprintf(buf, `%s$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
-			syzMountImage, img.fs.Name, img.fs.Name)
+			syzMountImage, img.fs.suffix(), img.fs.Name)
 	}
 	buf.Write(b64Data)
 	fmt.Fprintf(buf, "\")\n")
 
 	return buf.Bytes(), nil
+}
+
+func loadFilesystem(fileName string) FileSystem {
+	file, err := os.Open(fileName)
+	if err != nil {
+		tool.Fail(err)
+	}
+	defer file.Close()
+	var fs FileSystem
+	err = json.NewDecoder(file).Decode(&fs)
+	if err != nil {
+		tool.Failf("failed to parse JSON: %v", err)
+	}
+	return fs
 }
