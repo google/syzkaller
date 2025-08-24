@@ -47,6 +47,7 @@ type SyscallAttrs struct {
 	RemoteCover     bool
 	Automatic       bool
 	AutomaticHelper bool
+	KFuzzTest       bool
 	Fsck            string
 }
 
