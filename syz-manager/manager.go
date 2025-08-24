@@ -31,6 +31,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/image"
+	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -221,6 +222,18 @@ func main() {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
 	}
+
+	if cfg.Experimental.EnableKFuzzTest {
+		log.Logf(0, "KFuzzTests enabled, loading targets from %s", cfg.KernelObj+"/vmlinux")
+		newCalls, err := kfuzztest.EnableKFuzzTargets(cfg)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to enable KFuzzTest targets: %v\n", err))
+		}
+		for _, call := range newCalls {
+			log.Logf(0, "enabled %s", call.Name)
+		}
+	}
+
 	var mode *Mode
 	for _, m := range modes {
 		if *flagMode == m.Name {
@@ -1122,6 +1135,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	candidates := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
+
+	if mgr.cfg.Experimental.EnableKFuzzTest {
+		// TODO: this adds syz_kfuzztest_run, the base variant. We need to
+		// figure out how to disable this as the call is useless.
+		for _, call := range mgr.target.Syscalls {
+			if call.Attrs.KFuzzTest {
+				enabledSyscalls[call] = true
+			}
+		}
+	}
 
 	switch mgr.mode {
 	case ModeFuzzing, ModeCorpusTriage:

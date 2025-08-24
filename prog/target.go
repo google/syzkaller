@@ -532,3 +532,14 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	pg.p = nil
 	return p, nil
 }
+
+// KFuzzTestRunID returns the ID for the syz_kfuzztest_run pseudo-syscall,
+// or an error if it is not found in the target.
+func (t *Target) KFuzzTestRunID() (int, error) {
+	for _, call := range t.Syscalls {
+		if call.Name == "syz_kfuzztest_run" {
+			return call.ID, nil
+		}
+	}
+	return -1, fmt.Errorf("target: did not find ID for syz_kfuzztest_run")
+}
