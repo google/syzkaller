@@ -4166,7 +4166,12 @@ static void drop_caps(void)
 	// which could be used to enfore safe limits without droppping CAP_SYS_NICE, but we don't have it yet.
 	// See the following bug for details:
 	// https://groups.google.com/forum/#!topic/syzkaller-bugs/G6Wl_PKPIWI
-	const int drop = (1 << CAP_SYS_PTRACE) | (1 << CAP_SYS_NICE);
+	//
+	// CAP_SYS_RAWIO gives direct access to various low level interfaces
+	// like iopl, ioperm, /proc/kcore, FIBMAP, MSRs, mmap_min_addr, pci,
+	// /dev/mem, /dev/kmem, low level SCSI operations, or various other
+	// interfaces that can directly corrupt low level kernel states.
+	const int drop = (1 << CAP_SYS_PTRACE) | (1 << CAP_SYS_NICE) | (1 << CAP_SYS_RAWIO);
 	cap_data[0].effective &= ~drop;
 	cap_data[0].permitted &= ~drop;
 	cap_data[0].inheritable &= ~drop;

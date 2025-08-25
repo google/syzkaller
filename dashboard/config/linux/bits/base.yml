@@ -190,14 +190,6 @@ config:
  # We use GVNIC on Google Cloud.
  - GVE: [-arm, -riscv, -s390, -timeouts_emu]
 
- # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
- # It managed to do so with some mount's, chdir's and bogus file names.
- # These are not needed for fuzzing, so completely disabling them is
- # the simplest and the most reliable option.
- - DEVMEM: n
- - DEVKMEM: n
- - DEVPORT: n
-
  # Disable magic SysRq completely, as it can be reached over USB and through tty.
  - MAGIC_SYSRQ: n
  # We don't need it and it enables MAGIC_SYSRQ and KPROBES.
