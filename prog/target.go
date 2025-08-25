@@ -164,7 +164,7 @@ func (target *Target) lazyInit() {
 		}
 	}
 	// These are used only during lazyInit.
-	target.Types = nil
+	// target.Types = nil
 }
 
 func (target *Target) initTarget() {

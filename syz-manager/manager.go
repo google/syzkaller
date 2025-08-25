@@ -1118,6 +1118,17 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.exit(mgr.mode.Name)
 	}
 
+	if mgr.cfg.Experimental.EnableKFuzzTest {
+		// TODO: this adds syz_kfuzztest_run, the base variant. We need to
+		// figure out how to disable this as the call is useless.
+		for _, call := range mgr.target.Syscalls {
+			if call.Attrs.KFuzzTest {
+				fmt.Printf("enabled %s\n", call.Name)
+				enabledSyscalls[call] = true
+			}
+		}
+	}
+
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.phase != phaseInit {
@@ -1135,16 +1146,6 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	candidates := mgr.loadCorpus(enabledSyscalls)
 	mgr.setPhaseLocked(phaseLoadedCorpus)
 	opts := fuzzer.DefaultExecOpts(mgr.cfg, features, *flagDebug)
-
-	if mgr.cfg.Experimental.EnableKFuzzTest {
-		// TODO: this adds syz_kfuzztest_run, the base variant. We need to
-		// figure out how to disable this as the call is useless.
-		for _, call := range mgr.target.Syscalls {
-			if call.Attrs.KFuzzTest {
-				enabledSyscalls[call] = true
-			}
-		}
-	}
 
 	switch mgr.mode {
 	case ModeFuzzing, ModeCorpusTriage:
