@@ -66,19 +66,6 @@ const (
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
 func (p *Prog) SerializeForExec() ([]byte, error) {
-	syzKFuzzTestRunID, err := p.Target.KFuzzTestRunID()
-	if err != nil {
-		return []byte{}, err
-	}
-	// Rewrite all KFuzzTest pseudo-syscalls so that they have the ID that the
-	// executor is expecting, as since these are discovered dynamically the
-	// executor is not aware of their existence.
-	for _, call := range p.Calls {
-		if call.Meta.Attrs.KFuzzTest {
-			call.Meta.ID = syzKFuzzTestRunID
-		}
-	}
-
 	p.debugValidate()
 	w := &execContext{
 		target: p.Target,
@@ -179,7 +166,11 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) {
 	lenArg.Val = uint64(len(finalBlob))
 
 	// Generate the final syscall instruction with the update arguments.
-	w.write(uint64(c.Meta.ID))
+	kFuzzTestRunId, err := w.target.KFuzzTestRunID()
+	if err != nil {
+		panic(err)
+	}
+	w.write(uint64(kFuzzTestRunId))
 	w.write(ExecNoCopyout)
 	w.write(uint64(len(c.Args)))
 	for _, arg := range c.Args {
