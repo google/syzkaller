@@ -119,8 +119,8 @@ func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
 
 	target := targets.Get(targets.Linux, targets.AMD64)
 	program := compiler.Compile(descAst, make(map[string]uint64), target, eh)
-	if program == nil {
-		return KFuzzTestData{}, fmt.Errorf("failed to compile extracted KFuzzTest target")
+	if astError != nil {
+		return KFuzzTestData{}, fmt.Errorf("failed to compile extracted KFuzzTest target: %v", astError)
 	}
 
 	kFuzzTestCalls := []*prog.Syscall{}
