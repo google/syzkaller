@@ -140,9 +140,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
         </div>
     </div>
 </nav>
-	<br>
 {{end}}
 
+<main style="margin-top: 80px;">
 {{/* List of enabled filters, invoked with *uiBugFilter */}}
 {{define "bug_filter"}}
 {{if .Filter.Any}}
@@ -160,7 +160,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{range .Filter.Labels}}
 		Label={{.}} ({{link (call $drop "label" .) "drop"}})
 	{{end}}
-	<br>
+
 {{end}}
 {{end}}
 
@@ -168,7 +168,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "bug_list"}}
 {{if .}}
 {{if .Bugs}}
-<main style="margin-top: 80px;">
         <!-- First Row and table -->
 		 <div class="container row justify-content-start">
             <div class="col col-md-12 mt-5">
