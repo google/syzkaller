@@ -134,6 +134,7 @@ func (target *Target) Extend(syscalls []*Syscall, types []Type, resources []*Res
 	target.Syscalls = append(target.Syscalls, syscalls...)
 	target.Types = append(target.Types, types...)
 	target.Resources = append(target.Resources, resources...)
+	// Updates the system call map and restores any links.
 	target.initTarget()
 }
 
@@ -145,6 +146,14 @@ func (target *Target) lazyInit() {
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
+	// Fetch the ID for syz_kfuzztest_run, which is built-in for Linux amd64.
+	if target.OS == "linux" && target.Arch == "amd64" {
+		_, err := target.KFuzzTestRunID()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
 		0x0000000000000000, // NULL pointer (keep this first because code uses special index=0 as NULL)
@@ -533,13 +542,23 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	return p, nil
 }
 
+var kFuzzTestIDCache struct {
+	sync.Once
+	id  int
+	err error
+}
+
 // KFuzzTestRunID returns the ID for the syz_kfuzztest_run pseudo-syscall,
 // or an error if it is not found in the target.
 func (t *Target) KFuzzTestRunID() (int, error) {
-	for _, call := range t.Syscalls {
-		if call.Name == "syz_kfuzztest_run" {
-			return call.ID, nil
+	kFuzzTestIDCache.Do(func() {
+		for _, call := range t.Syscalls {
+			if call.Attrs.KFuzzTest {
+				kFuzzTestIDCache.id = call.ID
+				return
+			}
 		}
-	}
-	return -1, fmt.Errorf("target: did not find ID for syz_kfuzztest_run")
+		kFuzzTestIDCache.err = fmt.Errorf("could not find ID for syz_kfuzztest_run - does it exist?")
+	})
+	return kFuzzTestIDCache.id, kFuzzTestIDCache.err
 }
