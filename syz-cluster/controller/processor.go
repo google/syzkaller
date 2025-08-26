@@ -161,7 +161,7 @@ func (sp *SeriesProcessor) handleSession(ctx context.Context, session *db.Sessio
 				app.Errorf("failed to start a workflow: %v", err)
 			}
 		case workflow.StatusFinished, workflow.StatusFailed:
-			log.Printf("workflow for %q completed, mark the session finished", session.ID)
+			log.Printf("workflow for %q completed (status=%q), mark the session finished", session.ID, status)
 			err := sp.stopRunningTests(ctx, session.ID)
 			if err != nil {
 				app.Errorf("failed to check running tests for %s: %v", session.ID, err)
