@@ -224,6 +224,8 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 	c := p.Calls[idx]
+	r.currCall = c
+	defer func() { r.currCall = nil }()
 	if ctx.noMutate[c.Meta.ID] {
 		return false
 	}
