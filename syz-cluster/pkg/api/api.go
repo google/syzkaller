@@ -257,6 +257,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 	{
 		EmailLists: []string{
 			`linux-fsdevel@vger.kernel.org`,
+			`linux-block@vger.kernel.org`,
 			`linux-unionfs@vger.kernel.org`,
 			`linux-ext4@vger.kernel.org`,
 		},

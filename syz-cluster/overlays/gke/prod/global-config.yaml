@@ -19,6 +19,7 @@ data:
       - linux-wireless
       - linux-mm
       - linux-unionfs
+      - linux-block
     emailReporting:
       name: "syzbot ci"
       sender: dashapi
