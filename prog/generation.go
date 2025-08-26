@@ -15,11 +15,19 @@ func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Pro
 	}
 	r := newRand(target, rs)
 	s := newState(target, ct, nil)
+Loop:
 	for len(p.Calls) < ncalls {
 		calls := r.generateCall(s, p, len(p.Calls))
 		for _, c := range calls {
 			s.analyze(c)
 			p.Calls = append(p.Calls, c)
+			// Stop generating calls as soon as we have hit a KFuzzTest call,
+			// as there isn't must point in chaining these together. These
+			// are designed to be enabled in isolation, so we expect to generate
+			// programs consisting of exactly one KFuzzTest call.
+			if c.Meta.Attrs.KFuzzTest {
+				break Loop
+			}
 		}
 	}
 	// For the last generated call we could get additional calls that create
