@@ -244,6 +244,7 @@ var fileSystems = []FileSystem{
 	{
 		Name:      "ext4",
 		MinSize:   64 << 10,
+		MaxSeeds:  64,
 		MkfsFlags: []string{"-L", "syzkaller", "-U", "clear", "-E", "test_fs"},
 		MkfsFlagCombinations: [][]string{
 			{"-t ext2", "-t ext3", "-t ext4"},
@@ -251,29 +252,36 @@ var fileSystems = []FileSystem{
 			// so we create just few permutations generated with fair dice rolls.
 			// TODO: We also need to give some combination of -E encoding=utf8/utf8-12.1 and -E encoding_flags=strict,
 			// but mounting such fs on my host fails with "Filesystem with casefold feature cannot be mounted without CONFIG_UNICODE".
-			{
-				"-b 1024 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 1024 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 1024 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 1024 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 2048 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity",
-				"-b 2048 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 2048 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 2048 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 2048 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 2048 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 2048 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O ^encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 4096 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 4096 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O verity",
-				"-b 4096 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 4096 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O verity -j -J size=1024",
-				"-b 4096 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 4096 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O ^encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O verity -j -J size=1024",
-				"-b 4096 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-			},
+			{"-b 1024", "-b 2048", "-b 4096"},
+			{"-I 128", "-I 256", "-I 512", "-I 1024"},
+			{"-E lazy_itable_init=0", "-E lazy_itable_init=1"},
+			{"-E packed_meta_blocks=0", "-E packed_meta_blocks=1"},
+			// Otherwise we get: invalid blocks '^64bit' on device 'num_backup_sb=0'.
+			// And: "Extents MUST be enabled for a 64-bit filesystem. Pass -O extents to rectify".
+			{"-O ^64bit -E num_backup_sb=0", "-O 64bit -E num_backup_sb=1 -O extents"},
+			// Can't support bigalloc feature without extents feature.
+			{"-O ^bigalloc", "-O bigalloc -O extents"},
+			{"-O ^dir_index", "-O dir_index"},
+			{"-O ^dir_nlink", "-O dir_nlink"},
+			{"-O ^ea_inode", "-O ea_inode"},
+			{"-O ^encrypt", "-O encrypt"},
+			{"-O ^ext_attr", "-O ext_attr"},
+			{"-O ^extra_isize", "-O extra_isize"},
+			{"-O ^flex_bg", "-O flex_bg"},
+			{"-O ^huge_file", "-O huge_file"},
+			// 128 byte inodes are too small for inline data; specify larger size.
+			{"-O ^inline_data", "-O inline_data -I 512"},
+			{"-O ^large_dir", "-O large_dir"},
+			{"-O ^metadata_csum", "-O metadata_csum"},
+			{"", "-O ^sparse_super"},
+			// Otherwise we get: The resize_inode and meta_bg features are not compatible.
+			// Another dependency: reserved online resize blocks not supported on non-sparse filesystem.
+			{"-O ^meta_bg -O ^resize_inode", "-O meta_bg -O ^resize_inode", "-O ^meta_bg -O resize_inode -O sparse_super"},
+			{"-O ^mmp", "-O mmp"},
+			{"-O ^quota", "-O quota"},
+			{"-O ^uninit_bg", "-O uninit_bg"},
+			{"-O ^verity", "-O verity -O extents"},
+			{"-O ^has_journal", "-O has_journal  -J size=1024"},
 		},
 	},
 	{
