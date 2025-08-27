@@ -10,6 +10,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 {{end}}
 
 <table class="list_table">
+	<thead>
 	<tr>
 		<th>#</th>
 		<th>Log</th>
@@ -17,6 +18,8 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 		<th>Time</th>
 		<th>Tag</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td>{{$c.Index}}</td>
@@ -30,4 +33,5 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatTagHash $c.Tag}}</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>
