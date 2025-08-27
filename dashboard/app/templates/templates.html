@@ -31,7 +31,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 {{/* Common page header, invoked with *uiHeader */}}
 {{define "header"}}
-	<!-- <nav class="navbar navbar-expand-xxl fixed-top" style="background-color: #b7d9f1;">
+	<nav class="navbar navbar-expand-xxl fixed-top" style="background-color: #b7d9f1;">
     <div class="container-fluid"> <a class="navbar-brand" href="/{{$.Namespace}}">syzbot</a> <button
             class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
             aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation"> <span
@@ -139,7 +139,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
             </span>
         </div>
     </div>
-</nav> -->
+</nav>
 {{end}}
 
 <main style="margin-top: 80px;">
@@ -170,7 +170,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .Bugs}}
         <!-- First Row / 2nd Table (open [qty]) -->
 		 <div class="container row justify-content-start">
-			<h6>Templates Row 1</h6>
             <div class="col col-md-12 mt-5">
                 <div class="table-responsive">
 					<table class="table table-striped table-hover small caption-top">
