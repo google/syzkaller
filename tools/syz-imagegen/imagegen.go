@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -53,6 +54,8 @@ type FileSystem struct {
 	MkfsFlags []string `json:"mkfs_flags"`
 	// Generate images for all possible permutations of these flag combinations.
 	MkfsFlagCombinations [][]string `json:"mkfs_flag_combinations"`
+	// Limit the resulting number of seeds (in case there are too many possible combinations).
+	MaxSeeds int `json:"max_seeds"`
 	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
 	Mkfs func(img *Image) error
 }
@@ -758,10 +761,13 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.suffix()+",") {
 			continue
 		}
-		index := 0
-		enumerateFlags(target, &images, &index, fs, fs.MkfsFlags, 0)
+		newImages := enumerateFlags(target, fs)
+		images = append(images, newImages...)
 		if list {
-			fmt.Printf("%v [%v images]\n", fs.Name, index)
+			fmt.Printf("%v [%v images]\n", fs.Name, len(newImages))
+			for i, image := range newImages {
+				fmt.Printf("#%d: %q\n", i, image.flags)
+			}
 			continue
 		}
 		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", fs.filePrefix()+"_*"))
@@ -774,30 +780,32 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 			}
 		}
 	}
+	for i, image := range images {
+		image.index = i
+	}
 	return images, nil
 }
 
-func enumerateFlags(target *prog.Target, images *[]*Image, index *int, fs FileSystem, flags []string, flagsIndex int) {
-	if flagsIndex == len(fs.MkfsFlagCombinations) {
-		*images = append(*images, &Image{
-			target: target,
-			fs:     fs,
-			flags:  append([]string{}, flags...),
-			index:  *index,
-			done:   make(chan error, 1),
-		})
-		*index++
-		return
-	}
-	for _, flag := range fs.MkfsFlagCombinations[flagsIndex] {
-		flags1 := flags
-		for _, f := range strings.Split(flag, " ") {
-			if f != "" {
-				flags1 = append(flags1, f)
+func enumerateFlags(target *prog.Target, fs FileSystem) []*Image {
+	var images []*Image
+	for _, flags := range CoveringArray(fs.MkfsFlagCombinations, fs.MaxSeeds) {
+		imageFlags := slices.Clone(fs.MkfsFlags)
+		for _, rawFlag := range flags {
+			for _, f := range strings.Split(rawFlag, " ") {
+				if f == "" {
+					continue
+				}
+				imageFlags = append(imageFlags, f)
 			}
 		}
-		enumerateFlags(target, images, index, fs, flags1, flagsIndex+1)
+		images = append(images, &Image{
+			target: target,
+			fs:     fs,
+			flags:  imageFlags,
+			done:   make(chan error, 1),
+		})
 	}
+	return images
 }
 
 func (img *Image) generate() error {
