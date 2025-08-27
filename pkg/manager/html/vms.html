@@ -5,6 +5,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 <table class="list_table">
 	<caption>VM Info:</caption>
+	<thead>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
 		<th><a onclick="return sortTable(this, 'State', textSort)" href="#">State</a></th>
@@ -12,6 +13,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'Machine Info', timeSort)" href="#">Machine Info</a></th>
 		<th><a onclick="return sortTable(this, 'Status', timeSort)" href="#">Status</a></th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $vm := $.VMs}}
 	<tr>
 		<td>{{$vm.Name}}</td>
@@ -21,4 +24,5 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{optlink $vm.DetailedStatus "status"}}</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>

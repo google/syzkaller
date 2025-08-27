@@ -5,11 +5,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 <table class="list_table">
 	<caption>{{.PageTitle}} ({{len .Jobs}}):</caption>
+	<thead>
 	<tr>
 		<th>Program</th>
 		<th>Calls</th>
 		<th>Execs</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $job := $.Jobs}}
 	<tr>
 		<td class="job_description"><a href='/jobs?id={{$job.ID}}'>{{$job.Short}}</a></td>
@@ -17,4 +20,5 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td class="job_description">{{$job.Execs}}</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>

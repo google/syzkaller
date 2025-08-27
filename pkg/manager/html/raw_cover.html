@@ -5,18 +5,22 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 <table class="list_table">
 	<caption>Raw cover</caption>
+	<thead>
 	<tr>
 		<th>Line</th>
 		<th>Links</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $line := .Calls}}
 	<tr>
 		<td>{{$line.Call}}</td>
 		<td>
-		{{range $id := $line.UpdateIDs}}
-		<a href="/rawcover?input={{$line.Sig}}&update_id={{$id}}">[{{$id}}]</a>
-		{{end}}
-</td>
+			{{range $id := $line.UpdateIDs}}
+			<a href="/rawcover?input={{$line.Sig}}&update_id={{$id}}">[{{$id}}]</a>
+			{{end}}
+		</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>
