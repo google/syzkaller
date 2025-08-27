@@ -26,6 +26,9 @@ type Options struct {
 	Slowdown    int    `json:"slowdown"`
 	Sandbox     string `json:"sandbox"`
 	SandboxArg  int    `json:"sandbox_arg"`
+	// ProcRestartFreq is how often syz-executor should restart its procs.
+	// ProcRestartFreq=0 corresponds to its default value.
+	ProcRestartFreq int `json:"proc_restart_freq"`
 
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
@@ -163,14 +166,15 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:     true,
-		Repeat:       true,
-		Procs:        cfg.Procs,
-		Slowdown:     cfg.Timeouts.Slowdown,
-		Sandbox:      cfg.Sandbox,
-		UseTmpDir:    true,
-		HandleSegv:   true,
-		CallComments: true,
+		Threaded:        true,
+		Repeat:          true,
+		Procs:           cfg.Procs,
+		Slowdown:        cfg.Timeouts.Slowdown,
+		Sandbox:         cfg.Sandbox,
+		UseTmpDir:       true,
+		HandleSegv:      true,
+		CallComments:    true,
+		ProcRestartFreq: cfg.Experimental.ProcRestartFreq,
 	}
 	if cfg.TargetOS == targets.Linux {
 		opts.NetInjection = true

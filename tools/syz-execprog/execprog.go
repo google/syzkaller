@@ -35,25 +35,26 @@ import (
 )
 
 var (
-	flagOS         = flag.String("os", runtime.GOOS, "target os")
-	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
-	flagType       = flag.String("type", "", "target VM type")
-	flagCoverFile  = flag.String("coverfile", "", "write coverage to the file")
-	flagRepeat     = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
-	flagProcs      = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes to execute programs")
-	flagOutput     = flag.Bool("output", false, "write programs and results to stdout")
-	flagHints      = flag.Bool("hints", false, "do a hints-generation run")
-	flagEnable     = flag.String("enable", "none", "enable only listed additional features")
-	flagDisable    = flag.String("disable", "none", "enable all additional features except listed")
-	flagExecutor   = flag.String("executor", "./syz-executor", "path to executor binary")
-	flagThreaded   = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagSignal     = flag.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox    = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
-	flagSandboxArg = flag.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
-	flagDebug      = flag.Bool("debug", false, "debug output from executor")
-	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
-	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
-	flagGlob       = flag.String("glob", "", "run glob expansion request")
+	flagOS          = flag.String("os", runtime.GOOS, "target os")
+	flagArch        = flag.String("arch", runtime.GOARCH, "target arch")
+	flagType        = flag.String("type", "", "target VM type")
+	flagCoverFile   = flag.String("coverfile", "", "write coverage to the file")
+	flagRepeat      = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
+	flagProcs       = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes to execute programs")
+	flagOutput      = flag.Bool("output", false, "write programs and results to stdout")
+	flagHints       = flag.Bool("hints", false, "do a hints-generation run")
+	flagEnable      = flag.String("enable", "none", "enable only listed additional features")
+	flagDisable     = flag.String("disable", "none", "enable all additional features except listed")
+	flagExecutor    = flag.String("executor", "./syz-executor", "path to executor binary")
+	flagThreaded    = flag.Bool("threaded", true, "use threaded mode in executor")
+	flagSignal      = flag.Bool("cover", false, "collect feedback signals (coverage)")
+	flagSandbox     = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
+	flagSandboxArg  = flag.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
+	flagDebug       = flag.Bool("debug", false, "debug output from executor")
+	flagSlowdown    = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
+	flagUnsafe      = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
+	flagGlob        = flag.String("glob", "", "run glob expansion request")
+	flagRestartFreq = flag.Int("restart_freq", 0, "restart procs every X executions")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
@@ -175,8 +176,9 @@ func main() {
 				Sandbox:    sandbox,
 				SandboxArg: int64(*flagSandboxArg),
 			},
-			Procs:    *flagProcs,
-			Slowdown: *flagSlowdown,
+			Procs:           *flagProcs,
+			Slowdown:        *flagSlowdown,
+			ProcRestartFreq: *flagRestartFreq,
 		},
 		Executor:         *flagExecutor,
 		HandleInterrupts: true,

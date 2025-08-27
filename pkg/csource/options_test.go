@@ -267,6 +267,11 @@ func enumerateField(OS string, opt Options, field int) []Options {
 			fld.SetInt(val)
 			opts = append(opts, opt)
 		}
+	} else if fldName == "ProcRestartFreq" {
+		for _, val := range []int64{0, 100} {
+			fld.SetInt(val)
+			opts = append(opts, opt)
+		}
 	} else if fldName == "LegacyOptions" {
 		opts = append(opts, opt)
 	} else if fld.Kind() == reflect.Bool {
