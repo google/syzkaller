@@ -61,9 +61,12 @@ RUN apt-get install -y -q --no-install-recommends clang-15
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
 
-# Install bazel
-# Download the official bazel binary. The APT repository isn't used because there is not packages for arm64.
-RUN sh -c 'curl -o /usr/local/bin/bazel https://releases.bazel.build/7.1.2/release/bazel-7.1.2-linux-$(uname -m | sed s/aarch64/arm64/) && chmod ugo+x /usr/local/bin/bazel'
+# Install bazelisk
+RUN curl -s https://api.github.com/repos/bazelbuild/bazelisk/releases/latest \
+        | sed -n '/browser_download_url/s/[^:]*:[^"]*\("[^"]*"\).*/url = \1/p' \
+        | grep bazelisk-linux-$(uname -m | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) \
+        | curl -L -o /usr/local/bin/bazel -K - \
+        && chmod +x /usr/local/bin/bazel
 
 # Install qemu from the backports.
 # The currently stable version (7.2) cannot properly run arm64-MTE kernels.
