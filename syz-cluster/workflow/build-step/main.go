@@ -143,10 +143,12 @@ func reportResults(ctx context.Context, client *api.Client,
 		Result:    status,
 		Log:       output,
 	}
-	if uploadReq.SeriesID != "" {
-		testResult.PatchedBuildID = buildID
-	} else {
-		testResult.BaseBuildID = buildID
+	if uploadReq != nil {
+		if uploadReq.SeriesID != "" {
+			testResult.PatchedBuildID = buildID
+		} else {
+			testResult.BaseBuildID = buildID
+		}
 	}
 	err := client.UploadTestResult(ctx, testResult)
 	if err != nil {
