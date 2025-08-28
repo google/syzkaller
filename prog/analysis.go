@@ -12,19 +12,95 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/image"
 )
 
 type state struct {
-	target    *Target
-	ct        *ChoiceTable
-	corpus    []*Prog
-	files     map[string]bool
-	resources map[string][]*ResultArg
-	strings   map[string]bool
-	ma        *memAlloc
-	va        *vmaAlloc
+	target       *Target
+	ct           *ChoiceTable
+	corpus       []*Prog
+	files        map[string]bool
+	resources    map[string][]*ResultArg
+	strings      map[string]bool
+	ma           *memAlloc
+	va           *vmaAlloc
+	syscallStack []string
+}
+
+// pushFieldToStack pushes a new argument field onto the syscall stack,
+// next to the syscall it belongs to, so we can keep track of the
+// generated fields and prevent infinite recursion while generating a
+// new call with enforced dependencies.
+func pushFieldToStack(s *state, fName string) {
+	if len(s.syscallStack) > 0 {
+		index := len(s.syscallStack) - 1
+		s.syscallStack[index] = s.syscallStack[index] + "-" + fName
+	}
+}
+
+// popFieldFromStack pops the latest argument field from the syscall stack.
+func popFieldFromStack(s *state) {
+	if len(s.syscallStack) > 0 {
+		index := len(s.syscallStack) - 1
+		lastIndex := strings.LastIndex(s.syscallStack[index], "-")
+		s.syscallStack[index] = s.syscallStack[index][:lastIndex]
+	}
+}
+
+// pushSyscallToStack pushes a syscall name onto the syscall stack.
+// This is used to prevent infinite recursion when
+// creating new syscall calls for programs with
+// unbroken dependencies.
+func pushSyscallToStack(s *state, Syscall string) {
+	s.syscallStack = append(s.syscallStack, Syscall)
+}
+
+// popSyscallFromStack pops a syscall name from the syscall stack.
+func popSyscallFromStack(s *state) {
+	if len(s.syscallStack) > 0 {
+		s.syscallStack = s.syscallStack[:len(s.syscallStack)-1]
+	}
+}
+
+// getSyscallFieldLoopIterations returns the number
+// of times we looped through the current syscall and
+// set of arguments. This is used to detect infinite recursion
+// when generating a new call with enforced dependencies.
+func getSyscallFieldLoopIterations(s *state) int {
+	recCounter := 0
+	indexLastEl := len(s.syscallStack) - 1
+	if indexLastEl >= 0 {
+		for _, v := range s.syscallStack[:indexLastEl] {
+			if v == s.syscallStack[indexLastEl] {
+				recCounter++
+			}
+		}
+	}
+	return recCounter
+}
+
+// isSyscallInStack checks whether a given syscall is already on the stack.
+func isSyscallInStack(s *state, syscall string) bool {
+	currentSyscalls := []string{}
+	for _, v := range s.syscallStack {
+		parts := strings.Split(v, "-")
+		currentSyscalls = append(currentSyscalls, parts[0])
+	}
+
+	for _, v := range currentSyscalls {
+		if v == syscall {
+			return true
+		}
+	}
+
+	return false
+}
+
+// clearSyscallStack clears the current syscall stack.
+func clearSyscallStack(s *state) {
+	s.syscallStack = []string{}
 }
 
 // analyze analyzes the program p up to but not including call c.
