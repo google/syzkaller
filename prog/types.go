@@ -47,6 +47,7 @@ type SyscallAttrs struct {
 	RemoteCover     bool
 	Automatic       bool
 	AutomaticHelper bool
+	KFuzzTest       bool
 	Fsck            string
 }
 
@@ -189,7 +190,7 @@ type Type interface {
 	isDefaultArg(arg Arg) bool
 	generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call)
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
-	getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool)
+	getMutationPrio(target *Target, arg Arg, ignoreSpecial, ignoreLengths bool) (prio float64, stopRecursion bool)
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 	ref() Ref
 	setRef(ref Ref)
@@ -219,7 +220,7 @@ func (ti Ref) generate(r *randGen, s *state, dir Dir) (Arg, []*Call) { panic("pr
 func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
 	panic("prog.Ref method called")
 }
-func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (float64, bool) {
+func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial, ignoreLengths bool) (float64, bool) {
 	panic("prog.Ref method called")
 }
 func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {

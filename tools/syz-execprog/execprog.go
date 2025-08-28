@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -54,6 +55,8 @@ var (
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
 	flagGlob       = flag.String("glob", "", "run glob expansion request")
+	flagVmlinux    = flag.String("vmlinux", "vmlinux", "path to vmlinux binary (required for dynamically discovered calls")
+	flagKFuzzTest  = flag.Bool("kfuzztest", false, "search for kfuzztest targets in vmlinux binary (depends on flag vmlinux)")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
@@ -94,6 +97,10 @@ func main() {
 		tool.Fail(err)
 	}
 
+	if *flagKFuzzTest {
+		kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+	}
+
 	featureFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -112,7 +119,7 @@ func main() {
 		if *flagSyscalls == "" {
 			syscallList = nil
 		}
-		requestedSyscalls, err = mgrconfig.ParseEnabledSyscalls(target, syscallList, nil, mgrconfig.AnyDescriptions)
+		requestedSyscalls, err = mgrconfig.ParseEnabledSyscalls(target, syscallList, nil, mgrconfig.AnyDescriptions, *flagKFuzzTest)
 		if err != nil {
 			tool.Failf("failed to parse enabled syscalls: %v", err)
 		}

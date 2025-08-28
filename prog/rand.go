@@ -28,6 +28,7 @@ type randGen struct {
 	target                *Target
 	inGenerateResource    bool
 	patchConditionalDepth int
+	currCall              *Call
 	recDepth              map[string]int
 }
 
@@ -337,12 +338,20 @@ func (r *randGen) randFromMap(m map[string]bool) string {
 
 func (r *randGen) randString(s *state, t *BufferType) []byte {
 	if len(t.Values) != 0 {
-		return []byte(t.Values[r.Intn(len(t.Values))])
+		res := []byte(t.Values[r.Intn(len(t.Values))])
+		if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
+			res = append(res, 0)
+		}
+		return res
 	}
 	if len(s.strings) != 0 && r.bin() {
 		// Return an existing string.
 		// TODO(dvyukov): make s.strings indexed by string SubKind.
-		return []byte(r.randFromMap(s.strings))
+		res := []byte(r.randFromMap(s.strings))
+		if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
+			res = append(res, 0)
+		}
+		return res
 	}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
@@ -355,6 +364,13 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 		}
 	}
 	if r.oneOf(100) == t.NoZ {
+		buf.Write([]byte{0})
+	}
+
+	// KFuzzTest: forcibly null-terminate strings to avoid false positive buffer
+	// overflows. If the string is already null-terminated, this introduces one
+	// byte of redundancy, but in the case of the string this is a non-issue.
+	if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
@@ -609,6 +625,8 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
 	c := MakeCall(meta, nil)
+	r.currCall = c
+	defer func() { r.currCall = nil }()
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
 	moreCalls, _ := r.patchConditionalFields(c, s)
 	r.target.assignSizesCall(c)
@@ -789,6 +807,9 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 		data := r.randString(s, a)
 		if dir == DirOut {
 			return MakeOutDataArg(a, dir, uint64(len(data))), nil
+		}
+		if r.currCall.Meta.Attrs.KFuzzTest && data[len(data)-1] != 0 {
+			panic("generated a non-null-terminated string")
 		}
 		return MakeDataArg(a, dir, data), nil
 	case BufferFilename:

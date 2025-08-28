@@ -213,7 +213,7 @@ func main() {
 		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
 	}
 	log.EnableLogCaching(1000, 1<<20)
-	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	cfg, err := mgrconfig.LoadFile(*flagConfig, func(s string) { log.Log(0, s) })
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -221,6 +221,7 @@ func main() {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
 	}
+
 	var mode *Mode
 	for _, m := range modes {
 		if *flagMode == m.Name {
@@ -1111,6 +1112,17 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 	}
 	if mgr.mode.ExitAfterMachineCheck {
 		mgr.exit(mgr.mode.Name)
+	}
+
+	// XXX: this doesn't seem like the best place to put this. Investigate
+	// to see if it can be moved higher up.
+	if mgr.cfg.Experimental.EnableKFuzzTest {
+		for _, call := range mgr.target.Syscalls {
+			if call.Attrs.KFuzzTest {
+				log.Logf(0, "enabled KFuzzTest target: %s", call.Name)
+				enabledSyscalls[call] = true
+			}
+		}
 	}
 
 	mgr.mu.Lock()
