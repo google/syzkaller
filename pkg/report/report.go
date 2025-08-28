@@ -955,6 +955,10 @@ func MergeReportBytes(reps []*Report) []byte {
 	return res
 }
 
-func SplitReportBytes(data []byte) [][]byte {
-	return bytes.Split(data, []byte(reportSeparator))
+func firstReportBytes(data []byte) []byte {
+	reps := bytes.Split(data, []byte(reportSeparator))
+	if len(reps) == 0 {
+		return nil
+	}
+	return reps[0]
 }

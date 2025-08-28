@@ -51,6 +51,22 @@ func (c *Crash) FullTitle() string {
 	panic("the crash is expected to have a report")
 }
 
+func (c *Crash) TailTitles() []string {
+	res := make([]string, len(c.TailReports))
+	for i, r := range c.TailReports {
+		res[i] = r.Title
+	}
+	return res
+}
+
+func (c *Crash) TailReportsBytes() [][]byte {
+	res := make([][]byte, len(c.TailReports))
+	for i, r := range c.TailReports {
+		res[i] = r.Report
+	}
+	return res
+}
+
 type ReproManagerView interface {
 	RunRepro(ctx context.Context, crash *Crash) *ReproResult
 	NeedRepro(crash *Crash) bool

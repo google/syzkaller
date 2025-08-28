@@ -368,6 +368,7 @@ type uiBug struct {
 	Namespace      string
 	Title          string
 	ImpactScore    int
+	RankTooltip    string
 	NumCrashes     int64
 	NumCrashesBad  bool
 	BisectCause    BisectStatus
@@ -398,19 +399,21 @@ type uiBugLabel struct {
 }
 
 type uiCrash struct {
-	Title           string
-	Manager         string
-	Time            time.Time
-	Maintainers     string
-	LogLink         string
-	LogHasStrace    bool
-	ReportLink      string
-	ReproSyzLink    string
-	ReproCLink      string
-	ReproIsRevoked  bool
-	ReproLogLink    string
-	MachineInfoLink string
-	Assets          []*uiAsset
+	Title            string
+	TailTitles       []string
+	Manager          string
+	Time             time.Time
+	Maintainers      string
+	LogLink          string
+	LogHasStrace     bool
+	ReportLink       string
+	TailReportsLinks []string
+	ReproSyzLink     string
+	ReproCLink       string
+	ReproIsRevoked   bool
+	ReproLogLink     string
+	MachineInfoLink  string
+	Assets           []*uiAsset
 	*uiBuild
 }
 
@@ -1938,10 +1941,16 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 			log.Errorf(c, "failed to generate credit email: %v", err)
 		}
 	}
+
+	titleStat, err := report.TitleStatFromBytes([]byte(bug.TitleStat))
+	if err != nil {
+		log.Errorf(c, "report.TitleStatFromBytes: %v", err)
+	}
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
 		ImpactScore:    report.TitlesToImpact(bug.Title, bug.AltTitles...),
+		RankTooltip:    report.HigherRankTooltip(bug.Title, titleStat.Explain()),
 		BisectCause:    bug.BisectCause,
 		BisectFix:      bug.BisectFix,
 		NumCrashes:     bug.NumCrashes,
@@ -2076,20 +2085,26 @@ func makeUIAssets(c context.Context, build *Build, crash *Crash, forReport bool)
 }
 
 func makeUICrash(c context.Context, crash *Crash, build *Build) *uiCrash {
+	var tailReportsLinks []string
+	for _, tailReportID := range crash.TailReports {
+		tailReportsLinks = append(tailReportsLinks, textLink(textCrashReport, tailReportID))
+	}
 	ui := &uiCrash{
-		Title:           crash.Title,
-		Manager:         crash.Manager,
-		Time:            crash.Time,
-		Maintainers:     strings.Join(crash.Maintainers, ", "),
-		LogLink:         textLink(textCrashLog, crash.Log),
-		LogHasStrace:    dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
-		ReportLink:      textLink(textCrashReport, crash.Report),
-		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
-		ReproCLink:      textLink(textReproC, crash.ReproC),
-		ReproLogLink:    textLink(textReproLog, crash.ReproLog),
-		ReproIsRevoked:  crash.ReproIsRevoked,
-		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
-		Assets:          makeUIAssets(c, build, crash, true),
+		Title:            crash.Title,
+		TailTitles:       crash.TailTitles,
+		Manager:          crash.Manager,
+		Time:             crash.Time,
+		Maintainers:      strings.Join(crash.Maintainers, ", "),
+		LogLink:          textLink(textCrashLog, crash.Log),
+		LogHasStrace:     dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
+		ReportLink:       textLink(textCrashReport, crash.Report),
+		TailReportsLinks: tailReportsLinks,
+		ReproSyzLink:     textLink(textReproSyz, crash.ReproSyz),
+		ReproCLink:       textLink(textReproC, crash.ReproC),
+		ReproLogLink:     textLink(textReproLog, crash.ReproLog),
+		ReproIsRevoked:   crash.ReproIsRevoked,
+		MachineInfoLink:  textLink(textMachineInfo, crash.MachineInfo),
+		Assets:           makeUIAssets(c, build, crash, true),
 	}
 	if build != nil {
 		ui.uiBuild = makeUIBuild(c, build, true)

@@ -91,8 +91,10 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 	writeOrRemove("tag", []byte(cs.Tag))
 	writeOrRemove("report", report.MergeReportBytes(reps))
 	writeOrRemove("machineInfo", crash.MachineInfo)
-	if err := report.AddTitleStat(filepath.Join(dir, "title-stat"), reps); err != nil {
-		return false, fmt.Errorf("report.AddTitleStat: %w", err)
+	titleStatPath := filepath.Join(dir, "title-stat")
+	titles := append([]string{crash.Title}, crash.TailTitles()...)
+	if err := report.AddTitlesToStatFile(titleStatPath, titles); err != nil {
+		return false, fmt.Errorf("report.AddTitlesToStatFile: %w", err)
 	}
 
 	return first, nil
@@ -243,11 +245,13 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 
 	// Bug rank may go up over time if we observe higher ranked bugs as a consequence of the first failure.
 	ret.Rank = report.TitlesToImpact(ret.Title)
-	if titleStat, err := report.ReadStatFile(filepath.Join(dir, "title-stat")); err == nil {
-		ret.TailTitles = report.ExplainTitleStat(titleStat)
-		for _, ti := range ret.TailTitles {
-			ret.Rank = max(ret.Rank, ti.Rank)
-		}
+	titleStat, err := report.ReadStatFile(filepath.Join(dir, "title-stat"))
+	if err != nil {
+		return nil, err
+	}
+	ret.TailTitles = titleStat.Explain()
+	for _, ti := range ret.TailTitles {
+		ret.Rank = max(ret.Rank, ti.Rank)
 	}
 
 	ret.FirstTime = osutil.CreationTime(stat)
