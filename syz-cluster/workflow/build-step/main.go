@@ -293,7 +293,8 @@ func saveSymbolHashes(tracer debugtracer.DebugTracer) error {
 	if err != nil {
 		return fmt.Errorf("failed to query symbol hashes: %w", err)
 	}
-	tracer.Log("extracted hashes for %d symbols", len(hashes))
+	tracer.Log("extracted hashes for %d text symbols and %d data symbols",
+		len(hashes.Text), len(hashes.Data))
 	file, err := os.Create(filepath.Join(*flagOutput, "symbol_hashes.json"))
 	if err != nil {
 		return fmt.Errorf("failed to open symbol_hashes.json: %w", err)
