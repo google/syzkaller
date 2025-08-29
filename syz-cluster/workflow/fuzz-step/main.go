@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
@@ -108,7 +109,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	if shouldSkipFuzzing(baseSymbols, patchedSymbols) {
 		return errSkipFuzzing
 	}
-	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols, patchedSymbols)
+	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
 	if *flagCorpusURL != "" {
 		err := downloadCorpus(baseCtx, patched.Workdir, *flagCorpusURL)
@@ -311,15 +312,32 @@ func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueB
 	return client.UploadFinding(ctx, finding)
 }
 
-func shouldSkipFuzzing(baseSymbols, patchedSymbols map[string]string) bool {
-	if len(baseSymbols) == 0 || len(patchedSymbols) == 0 {
+var ignoreLinuxVariables = map[string]bool{
+	"raw_data": true, // from arch/x86/entry/vdso/vdso-image
+	// Build versions / timestamps.
+	"linux_banner": true,
+	"vermagic":     true,
+	"init_uts_ns":  true,
+}
+
+func shouldSkipFuzzing(base, patched build.SectionHashes) bool {
+	if len(base.Text) == 0 || len(patched.Text) == 0 {
 		// Likely, something went wrong during the kernel build step.
 		log.Logf(0, "skipped the binary equality check because some of them have 0 symbols")
 		return false
 	}
-	same := len(baseSymbols) == len(patchedSymbols)
-	for name, hash := range baseSymbols {
-		if patchedSymbols[name] != hash {
+	same := len(base.Text) == len(patched.Text) && len(base.Data) == len(patched.Data)
+	// For .text, demand all symbols to be equal.
+	for name, hash := range base.Text {
+		if patched.Text[name] != hash {
+			same = false
+			break
+		}
+	}
+	// For data sections ignore some of them.
+	for name, hash := range base.Data {
+		if !ignoreLinuxVariables[name] && patched.Data[name] != hash {
+			log.Logf(1, "symbol %q has different values in base vs patch", name)
 			same = false
 			break
 		}
@@ -332,31 +350,31 @@ func shouldSkipFuzzing(baseSymbols, patchedSymbols map[string]string) bool {
 	return false
 }
 
-func readSymbolHashes() (base, patched map[string]string, err error) {
+func readSymbolHashes() (base, patched build.SectionHashes, err error) {
 	// These are saved by the build step.
-	base, err = readJSONMap("/base/symbol_hashes.json")
+	base, err = readSectionHashes("/base/symbol_hashes.json")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read base hashes: %w", err)
+		return build.SectionHashes{}, build.SectionHashes{}, fmt.Errorf("failed to read base hashes: %w", err)
 	}
-	patched, err = readJSONMap("/patched/symbol_hashes.json")
+	patched, err = readSectionHashes("/patched/symbol_hashes.json")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read patched hashes: %w", err)
+		return build.SectionHashes{}, build.SectionHashes{}, fmt.Errorf("failed to read patched hashes: %w", err)
 	}
-	log.Logf(0, "extracted %d symbol hashes for base and %d for patched", len(base), len(patched))
+	log.Logf(0, "extracted %d text symbol hashes for base and %d for patched", len(base.Text), len(patched.Text))
 	return
 }
 
-func readJSONMap(file string) (map[string]string, error) {
+func readSectionHashes(file string) (build.SectionHashes, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return build.SectionHashes{}, err
 	}
 	defer f.Close()
 
-	var data map[string]string
+	var data build.SectionHashes
 	err = json.NewDecoder(f).Decode(&data)
 	if err != nil {
-		return nil, err
+		return build.SectionHashes{}, err
 	}
 	return data, nil
 }
