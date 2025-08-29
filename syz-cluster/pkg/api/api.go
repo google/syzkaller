@@ -202,6 +202,12 @@ var DefaultTrees = []*Tree{
 		EmailLists: []string{`netdev@vger.kernel.org`},
 	},
 	{
+		Name:       `kvm-next`,
+		URL:        `https://kernel.googlesource.com/pub/scm/virt/kvm/kvm/`,
+		Branch:     `next`,
+		EmailLists: []string{`kvm@vger.kernel.org`},
+	},
+	{
 		Name:       `torvalds`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
 		Branch:     `master`,
