@@ -76,9 +76,23 @@ func main() {
 		status = api.TestError
 	}
 	log.Logf(0, "fuzzing is finished")
-	log.Logf(0, "status at the end:\n%s", store.PlainTextDump())
+	logFinalState(store)
 	if err := reportStatus(ctx, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
+	}
+}
+
+func logFinalState(store *manager.DiffFuzzerStore) {
+	log.Logf(0, "status at the end:\n%s", store.PlainTextDump())
+
+	// There can be findings that we did not report only because we failed
+	// to come up with a reproducer.
+	// Let's log such cases so that it's easier to find and manually review them.
+	const countCutOff = 10
+	for _, bug := range store.List() {
+		if bug.Base.Crashes == 0 && bug.Patched.Crashes >= countCutOff {
+			log.Logf(0, "possibly patched-only: %s", bug.Title)
+		}
 	}
 }
 
