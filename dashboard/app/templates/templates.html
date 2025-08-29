@@ -206,7 +206,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<span class="bug-label">{{link .Link .Name}}</span>
 				{{- end}}
 			</td>
-			<td class="stat">{{$b.ImpactScore}}</td>
+			<td class="rank">
+				{{if $b.RankTooltip}}
+					<b>{{$b.ImpactScore}}</b>
+					<pre class="tooltiptext">{{$b.RankTooltip}}</pre>
+				{{else}}
+					{{$b.ImpactScore}}
+				{{end}}
+			</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
 			<td class="bisect_status">{{print $b.BisectCause}}</td>
 			<td class="bisect_status">{{print $b.BisectFix}}</td>
@@ -456,7 +463,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="tag">{{link $b.SyzkallerCommitLink (formatShortHash $b.SyzkallerCommit)}}</td>
 			<td class="config">{{if $b.KernelConfigLink}}<a href="{{$b.KernelConfigLink}}">.config</a>{{end}}</td>
 			<td class="repro">{{if $b.LogLink}}<a href="{{$b.LogLink}}">{{if $b.LogHasStrace}}strace{{else}}console{{end}} log</a>{{end}}</td>
-			<td class="repro">{{if $b.ReportLink}}<a href="{{$b.ReportLink}}">report</a>{{end}}</td>
+			<td class="repro">
+				{{- if $b.ReportLink -}}
+					<a href="{{$b.ReportLink}}">report</a>
+				{{- end -}}
+				{{- range $i, $trl := $b.TailReportsLinks -}}
+					<br><a href="{{$trl}}">tail report {{add $i 1}}</a>
+				{{- end -}}
+			</td>
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}{{if $b.ReproLogLink}} / <a href="{{$b.ReproLogLink}}">log</a>{{end}}</td>
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
 			<td class="repro">{{if $b.MachineInfoLink}}<a href="{{$b.MachineInfoLink}}">info</a>{{end}}</td>
@@ -464,7 +478,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<span class="no-break">[<a href="{{$asset.DownloadURL}}">{{$asset.Title}}</a>{{if $asset.FsckLogURL}} (<a href="{{$asset.FsckLogURL}}">{{if $asset.FsIsClean}}clean{{else}}corrupt{{end}} fs</a>){{end}}]</span>
 			{{end}}</td>
 			<td class="manager">{{$b.Manager}}</td>
-			<td class="manager">{{$b.Title}}</td>
+			<td class="manager">
+				{{- $b.Title}}
+				{{- range $tt := $b.TailTitles -}}
+				<br>{{$tt}}
+				{{- end -}}
+			</td>
 		</tr>
 		{{end}}
 		</tbody>

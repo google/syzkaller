@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -1137,5 +1138,44 @@ kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/i
 	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
 	if diff := cmp.Diff(output, string(got)); diff != "" {
 		t.Fatal(diff)
+	}
+}
+
+func TestTailReports(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	err := c.client.UploadBuild(build)
+	assert.NoError(t, err)
+
+	crash := testCrash(build, 1)
+	_, err = c.client.ReportCrash(crash)
+	assert.NoError(t, err)
+	c.client.pollBug()
+
+	crash.TailTitles = []string{"KASAN: slab-out-of-bounds Write in foo"}
+	crash.TailReports = [][]byte{[]byte("tail report")}
+	_, err = c.client.ReportCrash(crash)
+	assert.NoError(t, err)
+
+	res, _ := c.GET("/test1")
+	wantRank := "[rank 23, freq  50.0%] KASAN: slab-out-of-bounds Write in foo"
+	if !strings.Contains(string(res), wantRank) {
+		t.Logf("%s", res)
+		t.Errorf("can't find rank string %q", wantRank)
+	}
+
+	res, _ = c.GET("/bug?extid=decf42d66dced481afc1")
+
+	// Bug page crash table has 2 lines. Checking the most complex only.
+	wantTitles := fmt.Sprintf(">%s<br>%s<", crash.Title, crash.TailTitles[0])
+	if !strings.Contains(string(res), wantTitles) {
+		t.Logf("%s", res)
+		t.Errorf("can't find titles string %q", wantTitles)
+	}
+	if !strings.Contains(string(res), ">tail report 1<") {
+		t.Logf("%s", res)
+		t.Error("can't find tail report string")
 	}
 }
