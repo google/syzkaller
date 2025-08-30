@@ -26,6 +26,7 @@ resource bpf_frozen_const_str[fd_bpf_const_str]
 resource tail_call_map_fd[fd_bpf_map]
 resource tail_call_map[tail_call_map_fd]
 resource ringbuf_map_fd[fd_bpf_map]
+resource map_key_size[int32]: 1, 2, 4, 8
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -99,6 +100,8 @@ bpf_map_const_str_freeze {
 	out	bpf_frozen_const_str	(out_overlay)
 }
 
+syz_create_resource$map_key_size(ksize int32) map_key_size
+
 bpf_map_create_arg [
 	base		bpf_map_create_arg_base
 	bloom_filter	bpf_map_create_arg_bf
@@ -126,8 +129,8 @@ type bpf_map_create_arg_t[TYPE, KSIZE, VSIZE, MAX, FLAGS, MAP_EXTRA] {
 	pad2			const[0, int32]	(if[value[flags] & BPF_F_TOKEN_FD == 0])
 } [packed]
 
-type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], int32, int32, int32, flags[map_flags, int32], const[0, int64]]
-type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], int32, int32, int32, flags[map_flags, int32], int64[0:15]]
+type bpf_map_create_arg_base bpf_map_create_arg_t[flags[bpf_map_type, int32], map_key_size, int32, int32, flags[map_flags, int32], const[0, int64]]
+type bpf_map_create_arg_bf bpf_map_create_arg_t[const[BPF_MAP_TYPE_BLOOM_FILTER, int32], map_key_size, int32, int32, flags[map_flags, int32], int64[0:15]]
 type bpf_map_create_arg_ringbuf bpf_map_create_arg_t[const[BPF_MAP_TYPE_RINGBUF, int32], const[0, int32], const[0, int32], int32, const[0, int32], const[0, int64]]
 type bpf_map_create_arg_const_str bpf_map_create_arg_t[const[BPF_MAP_TYPE_ARRAY, int32], const[4, int32], const[8, int32], const[1, int32], const[BPF_F_RDONLY_PROG, int32], const[0, int64]]
 type bpf_map_create_arg_tail_call bpf_map_create_arg_t[const[BPF_MAP_TYPE_PROG_ARRAY, int32], const[4, int32], const[4, int32], const[10, int32], const[0, int32], const[0, int64]]
