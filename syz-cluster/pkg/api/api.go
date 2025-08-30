@@ -211,7 +211,13 @@ var DefaultTrees = []*Tree{
 		Name:       `torvalds`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
 		Branch:     `master`,
-		EmailLists: nil, // A fallback tree.
+		EmailLists: nil, // First fallback tree.
+	},
+	{
+		Name:       `linux-next`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next`,
+		Branch:     `master`,
+		EmailLists: nil, // Second fallback tree. It's less stable, but more series can be applied.
 	},
 }
 
