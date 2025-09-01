@@ -146,13 +146,9 @@ func (target *Target) lazyInit() {
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
-	// Fetch the ID for syz_kfuzztest_run, which is built-in for Linux amd64.
-	if target.OS == "linux" && target.Arch == "amd64" {
-		_, err := target.KFuzzTestRunID()
-		if err != nil {
-			panic(err)
-		}
-	}
+	// We ignore the return value here as they are cached, and it makes more
+	// sense to react to them when we attempt to execute a KFuzzTest call.
+	_, _ = target.KFuzzTestRunID()
 
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
@@ -172,8 +168,6 @@ func (target *Target) lazyInit() {
 			panic(fmt.Sprintf("bad special file length %v", ln))
 		}
 	}
-	// These are used only during lazyInit.
-	// target.Types = nil
 }
 
 func (target *Target) initTarget() {
