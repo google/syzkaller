@@ -12,6 +12,8 @@ package kfuzztest
 import (
 	"fmt"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -190,4 +192,23 @@ func ExecKFuzzTestCallLocal(st *kcov.KCOVState, call *prog.Call) ([]uintptr, err
 
 	res := st.Trace(func() error { return os.WriteFile(inputPath, finalBlob, 0644) })
 	return res.Coverage, res.Result
+}
+
+const syzKfuzzTestRun string = "syz_kfuzztest_run"
+
+// Common prefix that all discriminated syz_kfuzztest_run pseudo-syscalls share.
+const KfuzzTestTargetPrefix string = syzKfuzzTestRun + "$"
+
+func GetTestName(syscall *prog.Syscall) (string, bool) {
+	if syscall.CallName != syzKfuzzTestRun {
+		return "", false
+	}
+	return strings.CutPrefix(syscall.Name, KfuzzTestTargetPrefix)
+}
+
+const kFuzzTestDir string = "/sys/kernel/debug/kfuzztest"
+const inputFile string = "input"
+
+func GetInputFilepath(testName string) string {
+	return path.Join(kFuzzTestDir, testName, inputFile)
 }
