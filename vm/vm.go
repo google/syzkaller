@@ -389,10 +389,14 @@ func (mon *monitor) monitorExecution() []*report.Report {
 				}
 				return mon.extractErrors(crash)
 			case ErrTimeout:
+				// ErrTimeout frequently happens during bug reproduction,
+				// let's also wait a bit more there after the repro was killed.
+				// This may be helpful for smaller timeouts (e.g. 30 seconds).
+				crash := ""
 				if mon.exitCondition&ExitTimeout == 0 {
-					return mon.extractErrors(timeoutCrash)
+					crash = timeoutCrash
 				}
-				return nil
+				return mon.extractErrors(crash)
 			default:
 				// Note: connection lost can race with a kernel oops message.
 				// In such case we want to return the kernel oops.
