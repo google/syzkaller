@@ -7,8 +7,6 @@ import (
 	"debug/elf"
 	"fmt"
 	"strings"
-
-	"github.com/google/syzkaller/pkg/log"
 )
 
 // Extractor's job is to extract all information relevant to KFuzzTest from a
