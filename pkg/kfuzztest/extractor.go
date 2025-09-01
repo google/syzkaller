@@ -413,7 +413,10 @@ func parseKftfObjects[T interface {
 		}
 
 		var obj T = new(P)
-		obj.fromBytes(e.elfFile, data)
+		err = obj.fromBytes(e.elfFile, data)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, obj)
 	}
 
