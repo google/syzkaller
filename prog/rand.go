@@ -338,20 +338,12 @@ func (r *randGen) randFromMap(m map[string]bool) string {
 
 func (r *randGen) randString(s *state, t *BufferType) []byte {
 	if len(t.Values) != 0 {
-		res := []byte(t.Values[r.Intn(len(t.Values))])
-		if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
-			res = append(res, 0)
-		}
-		return res
+		return []byte(t.Values[r.Intn(len(t.Values))])
 	}
 	if len(s.strings) != 0 && r.bin() {
 		// Return an existing string.
 		// TODO(dvyukov): make s.strings indexed by string SubKind.
-		res := []byte(r.randFromMap(s.strings))
-		if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
-			res = append(res, 0)
-		}
-		return res
+		return []byte(r.randFromMap(s.strings))
 	}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
@@ -363,14 +355,9 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 			buf.Write([]byte{byte(r.Intn(256))})
 		}
 	}
-	if r.oneOf(100) == t.NoZ {
-		buf.Write([]byte{0})
-	}
-
-	// KFuzzTest: forcibly null-terminate strings to avoid false positive buffer
-	// overflows. If the string is already null-terminated, this introduces one
-	// byte of redundancy, but in the case of the string this is a non-issue.
-	if r.currCall != nil && r.currCall.Meta.Attrs.KFuzzTest && t.Kind == BufferString {
+	// We always null-terminate strings that are inputs to KFuzzTest calls to
+	// avoid false-positive buffer overflow reports.
+	if r.oneOf(100) == t.NoZ || r.currCall.Meta.Attrs.KFuzzTest {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
