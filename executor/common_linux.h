@@ -5891,7 +5891,7 @@ static long syz_kfuzztest_run(volatile long test_name_ptr, volatile long input_d
 	}
 
 	ssize_t bytes_written = write(fd, (void*)input_data, (size_t)input_data_size);
-	if (bytes_written < 0) {
+	if (bytes_written != input_data_size) {
 		debug("syz_kfuzztest_run: failed to write to %s, reason: %s\n", buf, strerror(errno));
 		close(fd);
 		return -1;
