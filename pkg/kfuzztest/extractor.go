@@ -6,6 +6,9 @@ import (
 	"debug/dwarf"
 	"debug/elf"
 	"fmt"
+	"strings"
+
+	"github.com/google/syzkaller/pkg/log"
 )
 
 // Extractor's job is to extract all information relevant to KFuzzTest from a
@@ -93,24 +96,28 @@ func (e *Extractor) elfSection(addr uint64) *elf.Section {
 }
 
 // Reads a string of length at most 128 bytes from the Extractor's elf file.
-func (e *Extractor) readElfString(offset uint64) string {
+func (e *Extractor) readElfString(offset uint64) (string, error) {
 	strSection := e.elfSection(offset)
 	if strSection == nil {
-		fmt.Printf("unable to find section for offset 0x%X\n", offset)
-		return ""
+		return "", fmt.Errorf("unable to find section for offset 0x%X\n", offset)
 	}
 
+	// 128 bytes is longer than we expect to see in KFuzzTest metadata.
 	buffer := make([]byte, 128)
-	strSection.ReadAt(buffer, int64(offset-strSection.Addr))
+	_, err := strSection.ReadAt(buffer, int64(offset-strSection.Addr))
+	if err != nil {
+		return "", err
+	}
 
-	out := ""
+	var builder strings.Builder
 	for _, chr := range buffer {
 		if chr == 0 {
-			break
+			return builder.String(), nil
 		}
-		out += string(chr)
+		builder.WriteByte(chr)
 	}
-	return out
+
+	return "", fmt.Errorf("could not find null-terminated string with length < 128")
 }
 
 func (e *Extractor) buildSymbolIndex() error {
@@ -157,9 +164,17 @@ func (e *Extractor) extractFuncs() ([]SyzFunc, error) {
 
 	fuzzTargets := make([]SyzFunc, len(rawFuncs))
 	for i, raw := range rawFuncs {
+		name, err := e.readElfString(raw.name)
+		if err != nil {
+			return []SyzFunc{}, err
+		}
+		argType, err := e.readElfString(raw.argType)
+		if err != nil {
+			return []SyzFunc{}, err
+		}
 		fuzzTargets[i] = SyzFunc{
-			Name:            e.readElfString(raw.name),
-			InputStructName: e.readElfString(raw.argType),
+			Name:            name,
+			InputStructName: argType,
 		}
 	}
 
@@ -177,9 +192,18 @@ func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
 
 	constraints := make([]SyzConstraint, len(rawConstraints))
 	for i, raw := range rawConstraints {
+		typeName, err := e.readElfString(raw.inputType)
+		if err != nil {
+			return []SyzConstraint{}, err
+		}
+		fieldName, err := e.readElfString(raw.fieldName)
+		if err != nil {
+			return []SyzConstraint{}, err
+		}
+
 		constraints[i] = SyzConstraint{
-			InputType:      e.readElfString(raw.inputType),
-			FieldName:      e.readElfString(raw.fieldName),
+			InputType:      typeName,
+			FieldName:      fieldName,
 			Value1:         raw.value1,
 			Value2:         raw.value2,
 			ConstraintType: ConstraintType(raw.constraintType),
@@ -200,10 +224,23 @@ func (e *Extractor) extractAnnotations() ([]SyzAnnotation, error) {
 
 	annotations := make([]SyzAnnotation, len(rawAnnotations))
 	for i, raw := range rawAnnotations {
+		typeName, err := e.readElfString(raw.inputType)
+		if err != nil {
+			return []SyzAnnotation{}, err
+		}
+		fieldName, err := e.readElfString(raw.fieldName)
+		if err != nil {
+			return []SyzAnnotation{}, err
+		}
+		linkedFieldName, err := e.readElfString(raw.linkedFieldName)
+		if err != nil {
+			return []SyzAnnotation{}, err
+		}
+
 		annotations[i] = SyzAnnotation{
-			InputType:       e.readElfString(raw.inputType),
-			FieldName:       e.readElfString(raw.fieldName),
-			LinkedFieldName: e.readElfString(raw.linkedFieldName),
+			InputType:       typeName,
+			FieldName:       fieldName,
+			LinkedFieldName: linkedFieldName,
 			Attribute:       AnnotationAttribute(raw.annotationAttribute),
 		}
 	}
