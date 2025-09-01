@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/corpus"
@@ -16,25 +17,25 @@ import (
 	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type kFuzzTestManager struct {
 	ctx    context.Context
-	fuzzer *fuzzer.Fuzzer
+	fuzzer atomic.Pointer[fuzzer.Fuzzer]
 	source queue.Source
 	target *prog.Target
-	stats  *stats
 	config config
 }
 
 type config struct {
-	vmlinuxPath         string
-	timeoutMilliseconds uint32
-	displayInterval     uint32
-	numThreads          int
-	enabledTargets      []string
+	vmlinuxPath     string
+	timeout         uint32
+	displayInterval uint32
+	numThreads      int
+	enabledTargets  []string
 }
 
 func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, error) {
@@ -116,10 +117,9 @@ func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, er
 
 	mgr.ctx = ctx
 	mgr.target = target
-	mgr.fuzzer = fuzzerObj
+	mgr.fuzzer.Store(fuzzerObj)
 	mgr.source = queue.DefaultOpts(fuzzerObj, execOpts)
 	mgr.config = cfg
-	mgr.stats = newStats(cfg.enabledTargets)
 
 	return &mgr, nil
 }
@@ -129,26 +129,15 @@ func (mgr *kFuzzTestManager) Run() {
 
 	statChan := make(chan kfuzztest.ExecResult, 1024)
 	// Launches the executor threads.
-	executor := kfuzztest.NewKFuzzTestExecutor(mgr.ctx, mgr.config.numThreads, statChan)
+	executor := kfuzztest.NewKFuzzTestExecutor(mgr.ctx, mgr.config.numThreads, mgr.config.timeout, statChan)
 
 	// Display logs periodically.
 	display := func() {
 		defer wg.Done()
 		mgr.displayLoop()
 	}
-	// Collect stats.
-	collectStats := func() {
-		defer wg.Done()
-		for res := range statChan {
-			err := mgr.stats.Report(res)
-			if err != nil {
-				log.Logf(1, "%v", err)
-			}
-		}
-	}
 
-	wg.Add(2)
-	go collectStats()
+	wg.Add(1)
 	go display()
 
 FuzzLoop:
@@ -181,7 +170,7 @@ FuzzLoop:
 }
 
 func (mgr *kFuzzTestManager) writePCs(filepath string) error {
-	sigs := mgr.fuzzer.Cover.CopyMaxSignal()
+	sigs := mgr.fuzzer.Load().Cover.CopyMaxSignal()
 	pcs := []uint64{}
 	for sig := range sigs {
 		pcs = append(pcs, uint64(sig))
@@ -197,19 +186,16 @@ func (mgr *kFuzzTestManager) writePCs(filepath string) error {
 func (mgr *kFuzzTestManager) displayLoop() {
 	ticker := time.NewTicker(time.Duration(mgr.config.displayInterval) * time.Second)
 	defer ticker.Stop()
-
-	prevTotal := uint64(0)
 	for {
+		var buf strings.Builder
 		select {
 		case <-mgr.ctx.Done():
 			return
 		case <-ticker.C:
-			currTotal, failures := mgr.stats.Poll()
-			callsPerSec := (currTotal - prevTotal) / uint64(mgr.config.displayInterval)
-			prevTotal = currTotal
-
-			coverage := len(mgr.fuzzer.Cover.CopyMaxSignal())
-			log.Logf(0, "%d execs (%d/sec), %d failures, covered PCs = %d", currTotal, callsPerSec, failures, coverage)
+			for _, stat := range stat.Collect(stat.Console) {
+				fmt.Fprintf(&buf, "%v=%v ", stat.Name, stat.Value)
+			}
+			log.Log(0, buf.String())
 		}
 	}
 }

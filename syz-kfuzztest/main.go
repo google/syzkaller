@@ -13,10 +13,9 @@ import (
 
 var (
 	flagVmlinux         = flag.String("vmlinux", "vmlinux", "Path to vmlinux binary")
-	flagTimeout         = flag.Int("timeout", 0, "Timeout in milliseconds")
+	flagTimeout         = flag.Int("timeout", 0, "Timeout between program executions in seconds")
 	flagThreads         = flag.Int("threads", 2, "Number of threads")
-	flagDisplayInterval = flag.Int("display", 5, "Display interval")
-	flagDisplayProgs    = flag.Bool("display-progs", false, "If enabled, display the last executed prog for each target")
+	flagDisplayInterval = flag.Int("display", 5, "Number of seconds between console outputs")
 )
 
 func main() {
@@ -36,11 +35,11 @@ func main() {
 	enabledTargets := flag.Args()
 
 	cfg := config{
-		vmlinuxPath:         *flagVmlinux,
-		timeoutMilliseconds: uint32(*flagTimeout),
-		displayInterval:     uint32(*flagDisplayInterval),
-		numThreads:          *flagThreads,
-		enabledTargets:      enabledTargets,
+		vmlinuxPath:     *flagVmlinux,
+		timeout:         uint32(*flagTimeout),
+		displayInterval: uint32(*flagDisplayInterval),
+		numThreads:      *flagThreads,
+		enabledTargets:  enabledTargets,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -38,14 +38,14 @@ func (kfe *KFuzzTestExecutor) Shutdown() {
 	kfe.wg.Wait()
 }
 
-func NewKFuzzTestExecutor(ctx context.Context, numWorkers int, statChan chan ExecResult) *KFuzzTestExecutor {
+func NewKFuzzTestExecutor(ctx context.Context, numWorkers int, timeout uint32, statChan chan ExecResult) *KFuzzTestExecutor {
 	jobChan := make(chan *queue.Request)
 
 	kfe := &KFuzzTestExecutor{
 		ctx:      ctx,
 		jobChan:  jobChan,
 		statChan: statChan,
-		timeout:  0, // 500 * time.Millisecond,
+		timeout:  time.Duration(timeout) * time.Second,
 	}
 
 	kfe.wg.Add(numWorkers)
