@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/kfuzztest"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -59,7 +60,11 @@ func main() {
 	}
 	if *flagKFuzzTest {
 		log.Print("enabling KFuzzTest targets")
-		kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		err = kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
 	}
 	data, err := os.ReadFile(*flagProg)
 	if err != nil {

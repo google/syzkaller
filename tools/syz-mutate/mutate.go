@@ -43,7 +43,11 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagKFuzzTest {
-		kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		err = kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
 	}
 	var syscalls map[*prog.Syscall]bool
 	if *flagEnable != "" {

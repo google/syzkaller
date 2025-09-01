@@ -98,7 +98,10 @@ func main() {
 	}
 
 	if *flagKFuzzTest {
-		kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		err = kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		if err != nil {
+			tool.Fail(err)
+		}
 	}
 
 	featureFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
