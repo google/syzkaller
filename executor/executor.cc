@@ -864,11 +864,11 @@ void parse_execute(const execute_req& req)
 {
 	request_id = req.id;
 	request_type = req.type;
-	flag_collect_signal = req.exec_flags & (1 << 0);
-	flag_collect_cover = req.exec_flags & (1 << 1);
-	flag_dedup_cover = req.exec_flags & (1 << 2);
-	flag_comparisons = req.exec_flags & (1 << 3);
-	flag_threaded = req.exec_flags & (1 << 4);
+	flag_collect_signal = req.exec_flags & (uint64)rpc::ExecFlag::CollectSignal;
+	flag_collect_cover = req.exec_flags & (uint64)rpc::ExecFlag::CollectCover;
+	flag_dedup_cover = req.exec_flags & (uint64)rpc::ExecFlag::DedupCover;
+	flag_comparisons = req.exec_flags & (uint64)rpc::ExecFlag::CollectComps;
+	flag_threaded = req.exec_flags & (uint64)rpc::ExecFlag::Threaded;
 	all_call_signal = req.all_call_signal;
 	all_extra_signal = req.all_extra_signal;
 
