@@ -38,6 +38,7 @@ func NewExtractor(vmlinuxPath string) (*Extractor, error) {
 }
 
 type ExtractAllResult struct {
+	VMLinuxPath string
 	Funcs       []SyzFunc
 	Structs     []SyzStruct
 	Constraints []SyzConstraint
@@ -71,6 +72,7 @@ func (e *Extractor) ExtractAll() (ExtractAllResult, error) {
 	}
 
 	return ExtractAllResult{
+		VMLinuxPath: e.vmlinuxPath,
 		Funcs:       funcs,
 		Structs:     structs,
 		Constraints: constraints,
@@ -80,6 +82,19 @@ func (e *Extractor) ExtractAll() (ExtractAllResult, error) {
 
 func (e *Extractor) Close() {
 	e.elfFile.Close()
+}
+
+func (e *ExtractAllResult) String() string {
+	var builder strings.Builder
+
+	fmt.Fprint(&builder, "extraction result:\n")
+	fmt.Fprintf(&builder, "\tVMLinux image:   %s\n", e.VMLinuxPath)
+	fmt.Fprintf(&builder, "\tnum targets:     %d\n", len(e.Funcs))
+	fmt.Fprintf(&builder, "\tnum struct:      %d\n", len(e.Structs))
+	fmt.Fprintf(&builder, "\tnum constraints: %d\n", len(e.Constraints))
+	fmt.Fprintf(&builder, "\tnum annotations: %d\n", len(e.Annotations))
+
+	return builder.String()
 }
 
 // Given an address, returns the elf section that this address belongs to in
