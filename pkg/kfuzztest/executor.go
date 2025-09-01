@@ -9,20 +9,13 @@ import (
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/kcov"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/prog"
 )
-
-type ExecResult struct {
-	Call    *prog.Call
-	Success bool
-}
 
 // KFuzzTestExecutor is an executor that when receives requests, will execute a
 // a KFuzzTest target.
 type KFuzzTestExecutor struct {
-	ctx      context.Context
-	jobChan  chan *queue.Request
-	statChan chan ExecResult
+	ctx     context.Context
+	jobChan chan *queue.Request
 	// Timeout between processing requests.
 	timeout time.Duration
 	wg      sync.WaitGroup
@@ -38,14 +31,13 @@ func (kfe *KFuzzTestExecutor) Shutdown() {
 	kfe.wg.Wait()
 }
 
-func NewKFuzzTestExecutor(ctx context.Context, numWorkers int, timeout uint32, statChan chan ExecResult) *KFuzzTestExecutor {
+func NewKFuzzTestExecutor(ctx context.Context, numWorkers int, timeout uint32) *KFuzzTestExecutor {
 	jobChan := make(chan *queue.Request)
 
 	kfe := &KFuzzTestExecutor{
-		ctx:      ctx,
-		jobChan:  jobChan,
-		statChan: statChan,
-		timeout:  time.Duration(timeout) * time.Second,
+		ctx:     ctx,
+		jobChan: jobChan,
+		timeout: time.Duration(timeout) * time.Second,
 	}
 
 	kfe.wg.Add(numWorkers)
@@ -73,24 +65,21 @@ func (kfe *KFuzzTestExecutor) workerLoop(tid int) {
 		for _, call := range req.Prog.Calls {
 			callInfo := new(flatrpc.CallInfo)
 
-			res := ExecResult{Call: call, Success: true}
-
 			// Trace each individual call, collecting the covered PCs.
 			coverage, err := ExecKFuzzTestCallLocal(kcovSt, call)
 			if err != nil {
 				// Set this call info as a failure. -1 is a placeholder.
 				callInfo.Error = -1
 				callInfo.Flags |= flatrpc.CallFlagBlocked
-				res.Success = false
 			} else {
 				for _, pc := range coverage {
 					callInfo.Signal = append(callInfo.Signal, uint64(pc))
+					callInfo.Cover = append(callInfo.Cover, uint64(pc))
 				}
 				callInfo.Flags |= flatrpc.CallFlagExecuted
 			}
 
 			info.Calls = append(info.Calls, callInfo)
-			kfe.statChan <- res
 		}
 
 		req.Done(&queue.Result{Info: info, Executor: queue.ExecutorID{VM: 0, Proc: tid}})

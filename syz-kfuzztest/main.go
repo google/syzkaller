@@ -56,5 +56,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	mgr.Run()
+	mgr.Run(ctx)
 }

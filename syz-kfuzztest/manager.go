@@ -23,7 +23,6 @@ import (
 )
 
 type kFuzzTestManager struct {
-	ctx    context.Context
 	fuzzer atomic.Pointer[fuzzer.Fuzzer]
 	source queue.Source
 	target *prog.Target
@@ -115,7 +114,6 @@ func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, er
 	// manager config here. Cleaning this up may require pkg/fuzzer.
 	execOpts := fuzzer.DefaultExecOpts(&mgrconfig.Config{Sandbox: "none"}, 0, false)
 
-	mgr.ctx = ctx
 	mgr.target = target
 	mgr.fuzzer.Store(fuzzerObj)
 	mgr.source = queue.DefaultOpts(fuzzerObj, execOpts)
@@ -124,17 +122,16 @@ func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, er
 	return &mgr, nil
 }
 
-func (mgr *kFuzzTestManager) Run() {
+func (mgr *kFuzzTestManager) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 
-	statChan := make(chan kfuzztest.ExecResult, 1024)
 	// Launches the executor threads.
-	executor := kfuzztest.NewKFuzzTestExecutor(mgr.ctx, mgr.config.numThreads, mgr.config.timeout, statChan)
+	executor := kfuzztest.NewKFuzzTestExecutor(ctx, mgr.config.numThreads, mgr.config.timeout)
 
 	// Display logs periodically.
 	display := func() {
 		defer wg.Done()
-		mgr.displayLoop()
+		mgr.displayLoop(ctx)
 	}
 
 	wg.Add(1)
@@ -143,7 +140,7 @@ func (mgr *kFuzzTestManager) Run() {
 FuzzLoop:
 	for {
 		select {
-		case <-mgr.ctx.Done():
+		case <-ctx.Done():
 			break FuzzLoop
 		default:
 		}
@@ -158,7 +155,6 @@ FuzzLoop:
 
 	log.Log(0, "fuzzing finished, shutting down executor")
 	executor.Shutdown()
-	close(statChan)
 	wg.Wait()
 
 	log.Log(0, "writing PCs out to \"./pc.out\"")
@@ -183,13 +179,13 @@ func (mgr *kFuzzTestManager) writePCs(filepath string) error {
 	return os.WriteFile(filepath, []byte(builder.String()), 0644)
 }
 
-func (mgr *kFuzzTestManager) displayLoop() {
+func (mgr *kFuzzTestManager) displayLoop(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(mgr.config.displayInterval) * time.Second)
 	defer ticker.Stop()
 	for {
 		var buf strings.Builder
 		select {
-		case <-mgr.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			for _, stat := range stat.Collect(stat.Console) {
