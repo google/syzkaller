@@ -1,3 +1,6 @@
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 // Package kfuzztest exposes functions discovering KFuzzTest test cases from a
 // vmlinux binary and parsing them into syzkaller-compatible formats.
 // The general flow includes:
