@@ -36,7 +36,7 @@ func main() {
 	if len(flag.Args()) != 1 || *flagConfig == "" {
 		log.Fatalf("usage: syz-repro -config=manager.cfg execution.log")
 	}
-	cfg, err := mgrconfig.LoadFile(*flagConfig, nil)
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		log.Fatalf("%v: %v", *flagConfig, err)
 	}

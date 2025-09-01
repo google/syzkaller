@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/kfuzztest"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -48,8 +49,8 @@ type Derived struct {
 	LocalModules []*vminfo.KernelModule
 }
 
-func LoadData(data []byte, logFunc func(string)) (*Config, error) {
-	cfg, err := LoadPartialData(data, logFunc)
+func LoadData(data []byte) (*Config, error) {
+	cfg, err := LoadPartialData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +60,8 @@ func LoadData(data []byte, logFunc func(string)) (*Config, error) {
 	return cfg, nil
 }
 
-func LoadFile(filename string, logFunc func(string)) (*Config, error) {
-	cfg, err := LoadPartialFile(filename, logFunc)
+func LoadFile(filename string) (*Config, error) {
+	cfg, err := LoadPartialFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -70,23 +71,23 @@ func LoadFile(filename string, logFunc func(string)) (*Config, error) {
 	return cfg, nil
 }
 
-func LoadPartialData(data []byte, logFunc func(string)) (*Config, error) {
+func LoadPartialData(data []byte) (*Config, error) {
 	cfg := defaultValues()
 	if err := config.LoadData(data, cfg); err != nil {
 		return nil, err
 	}
-	if err := SetTargets(cfg, logFunc); err != nil {
+	if err := SetTargets(cfg); err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
-func LoadPartialFile(filename string, logFunc func(string)) (*Config, error) {
+func LoadPartialFile(filename string) (*Config, error) {
 	cfg := defaultValues()
 	if err := config.LoadFile(filename, cfg); err != nil {
 		return nil, err
 	}
-	if err := SetTargets(cfg, logFunc); err != nil {
+	if err := SetTargets(cfg); err != nil {
 		return nil, err
 	}
 	return cfg, nil
@@ -130,7 +131,7 @@ var (
 	}
 )
 
-func enableKFuzzTestTargets(cfg *Config, logFunc func(string)) error {
+func enableKFuzzTestTargets(cfg *Config) error {
 	if !kfuzztest.SupportsKFuzzTest(cfg.Target) {
 		return fmt.Errorf("target doesn't support KFuzzTest")
 	}
@@ -140,10 +141,7 @@ func enableKFuzzTestTargets(cfg *Config, logFunc func(string)) error {
 		return err
 	}
 
-	// Optional: log the description.
-	if logFunc != nil {
-		logFunc(fmt.Sprintf("KFuzzTest descriptions:\n%s", kfd.Description))
-	}
+	log.Logf(1, "KFuzzTest descriptions:\n%s", kfd.Description)
 
 	cfg.Target.Extend(kfd.Calls, kfd.Types, kfd.Resources)
 	for _, call := range kfd.Calls {
@@ -153,7 +151,7 @@ func enableKFuzzTestTargets(cfg *Config, logFunc func(string)) error {
 	return nil
 }
 
-func SetTargets(cfg *Config, logFunc func(string)) error {
+func SetTargets(cfg *Config) error {
 	var err error
 	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.RawTarget)
 	if err != nil {
@@ -164,7 +162,7 @@ func SetTargets(cfg *Config, logFunc func(string)) error {
 		return err
 	}
 	if cfg.Experimental.EnableKFuzzTest {
-		err := enableKFuzzTestTargets(cfg, logFunc)
+		err := enableKFuzzTestTargets(cfg)
 		if err != nil {
 			return err
 		}

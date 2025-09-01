@@ -188,7 +188,7 @@ func (mgr *kFuzzTestManager) displayLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			for _, stat := range stat.Collect(stat.Console) {
+			for _, stat := range stat.Collect(stat.All) {
 				fmt.Fprintf(&buf, "%v=%v ", stat.Name, stat.Value)
 			}
 			log.Log(0, buf.String())
