@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/syzkaller/pkg/kfuzztest-manager"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -34,12 +35,12 @@ func main() {
 	flag.Parse()
 	enabledTargets := flag.Args()
 
-	cfg := config{
-		vmlinuxPath:     *flagVmlinux,
-		timeout:         uint32(*flagTimeout),
-		displayInterval: uint32(*flagDisplayInterval),
-		numThreads:      *flagThreads,
-		enabledTargets:  enabledTargets,
+	cfg := kfuzztest_manager.Config{
+		VmlinuxPath:     *flagVmlinux,
+		Timeout:         uint32(*flagTimeout),
+		DisplayInterval: uint32(*flagDisplayInterval),
+		NumThreads:      *flagThreads,
+		EnabledTargets:  enabledTargets,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -52,7 +53,7 @@ func main() {
 		cancel()
 	}()
 
-	mgr, err := newKFuzzTestManager(ctx, cfg)
+	mgr, err := kfuzztest_manager.NewKFuzzTestManager(ctx, cfg)
 	if err != nil {
 		panic(err)
 	}

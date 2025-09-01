@@ -1,4 +1,6 @@
-package main
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+package kfuzztest_manager
 
 import (
 	"context"
@@ -26,18 +28,18 @@ type kFuzzTestManager struct {
 	fuzzer atomic.Pointer[fuzzer.Fuzzer]
 	source queue.Source
 	target *prog.Target
-	config config
+	config Config
 }
 
-type config struct {
-	vmlinuxPath     string
-	timeout         uint32
-	displayInterval uint32
-	numThreads      int
-	enabledTargets  []string
+type Config struct {
+	VmlinuxPath     string
+	Timeout         uint32
+	DisplayInterval uint32
+	NumThreads      int
+	EnabledTargets  []string
 }
 
-func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, error) {
+func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, error) {
 	var mgr kFuzzTestManager
 
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
@@ -45,17 +47,17 @@ func newKFuzzTestManager(ctx context.Context, cfg config) (*kFuzzTestManager, er
 		return nil, err
 	}
 
-	log.Logf(0, "extracting KFuzzTest targets from \"%s\" (this will take a few seconds)", *flagVmlinux)
+	log.Logf(0, "extracting KFuzzTest targets from \"%s\" (this will take a few seconds)", cfg.VmlinuxPath)
 	enabledCalls := make(map[*prog.Syscall]bool)
-	err = kfuzztest.ActivateKFuzzTargets(cfg.vmlinuxPath, target, &enabledCalls)
+	err = kfuzztest.ActivateKFuzzTargets(cfg.VmlinuxPath, target, &enabledCalls)
 	if err != nil {
 		return nil, err
 	}
 
 	// Disable all calls that weren't explicitly enabled.
-	if len(cfg.enabledTargets) > 0 {
+	if len(cfg.EnabledTargets) > 0 {
 		enabledMap := make(map[string]bool)
-		for _, enabled := range cfg.enabledTargets {
+		for _, enabled := range cfg.EnabledTargets {
 			enabledMap[enabled] = true
 		}
 		for syscall := range enabledCalls {
@@ -126,7 +128,7 @@ func (mgr *kFuzzTestManager) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 
 	// Launches the executor threads.
-	executor := kfuzztest.NewKFuzzTestExecutor(ctx, mgr.config.numThreads, mgr.config.timeout)
+	executor := kfuzztest.NewKFuzzTestExecutor(ctx, mgr.config.NumThreads, mgr.config.Timeout)
 
 	// Display logs periodically.
 	display := func() {
@@ -180,7 +182,7 @@ func (mgr *kFuzzTestManager) writePCs(filepath string) error {
 }
 
 func (mgr *kFuzzTestManager) displayLoop(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(mgr.config.displayInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(mgr.config.DisplayInterval) * time.Second)
 	defer ticker.Stop()
 	for {
 		var buf strings.Builder
