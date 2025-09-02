@@ -67,7 +67,7 @@ func (e *Extractor) ExtractAll() (ExtractAllResult, error) {
 	// We should have found at least one KFuzzTest target, and the number of
 	// discovered structs should equal that of the number of targets as each
 	// target takes a struct as input.
-	if len(funcs) == 0 || len(structs) != len(funcs) {
+	if len(funcs) == 0 || len(structs) < len(funcs) {
 		return ExtractAllResult{}, fmt.Errorf("inconsistent KFuzzTest metadata found in vmlinux")
 	}
 

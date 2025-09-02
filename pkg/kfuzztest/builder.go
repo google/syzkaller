@@ -103,7 +103,10 @@ func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzCons
 			case AttributeString:
 				out += fmt.Sprintf("%s\tptr[in, string]", field.Name)
 			case AttributeArray:
-				out += fmt.Sprintf("%s\tptr[in, array[%s]]", field.Name, typeName)
+				// An array type is prefixed with a leading "*", which we remove
+				// to resolve the underlying type.
+				arrayType := typeName[1:]
+				out += fmt.Sprintf("%s\tptr[in, array[%s]]", field.Name, arrayType)
 			}
 			out += "\n"
 			continue
