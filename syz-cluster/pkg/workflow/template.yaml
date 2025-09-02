@@ -80,6 +80,24 @@ spec:
               parameters:
                 - name: data
                   value: "{{=jsonpath(inputs.parameters.element, '$.patched')}}"
+        - - name: boot-test-base
+            templateRef:
+              name: boot-step-template
+              template: boot-step
+            arguments:
+              artifacts:
+                - name: kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: test-name
+                  value: "Boot test: Base"
+        - - name: abort-if-base-boot-failed
+            template: exit-workflow
+            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
         - - name: patched-build
             templateRef:
               name: build-step-template
@@ -98,22 +116,7 @@ spec:
         - - name: abort-if-patched-build-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
-        - - name: boot-test-base
-            templateRef:
-              name: boot-step-template
-              template: boot-step
-            arguments:
-              artifacts:
-                - name: kernel
-                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
-              parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
-                - name: base-build-id
-                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
-                - name: test-name
-                  value: "Boot test: Base"
-          - name: boot-test-patched
+        - - name: boot-test-patched
             templateRef:
               name: boot-step-template
               template: boot-step
@@ -130,12 +133,13 @@ spec:
                   value: "true"
                 - name: test-name
                   value: "Boot test: Patched"
+        - - name: abort-if-patched-boot-failed
+            template: exit-workflow
+            when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
         - - name: fuzz
             templateRef:
               name: fuzz-step-template
               template: fuzz-step
-            # Proceed only if both boot tests succeeded.
-            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == true && jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == true}}"
             arguments:
               parameters:
                 - name: config
