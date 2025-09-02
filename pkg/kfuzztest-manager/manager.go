@@ -93,7 +93,6 @@ func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, er
 
 	corpus := corpus.NewCorpus(ctx)
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	emptyNoMutateCalls := make(map[int]bool)
 	fuzzerObj := fuzzer.NewFuzzer(ctx, &fuzzer.Config{
 		Corpus:         corpus,
 		Snapshot:       false,
@@ -102,7 +101,7 @@ func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, er
 		Comparisons:    false,
 		Collide:        false,
 		EnabledCalls:   enabledCalls,
-		NoMutateCalls:  emptyNoMutateCalls,
+		NoMutateCalls:  make(map[int]bool),
 		FetchRawCover:  false,
 		Logf: func(level int, msg string, args ...any) {
 			if level != 0 {
@@ -111,13 +110,14 @@ func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, er
 			log.Logf(level, msg, args...)
 		},
 		NewInputFilter: func(call string) bool {
-			// Returning false on everything should suffice for now.
-			return false
+			// Don't filter anything.
+			return true
 		},
 	}, rnd, target)
 
 	// TODO: Sufficient for startup, but not ideal that we are passing a
-	// manager config here. Cleaning this up may require pkg/fuzzer.
+	// manager config here. Would require changes to pkg/fuzzer if we wanted to
+	// avoid the dependency.
 	execOpts := fuzzer.DefaultExecOpts(&mgrconfig.Config{Sandbox: "none"}, 0, false)
 
 	mgr.target = target
@@ -163,9 +163,10 @@ FuzzLoop:
 	executor.Shutdown()
 	wg.Wait()
 
-	log.Log(0, "writing PCs out to \"./pc.out\"")
-	if err := mgr.writePCs("pcs.out"); err != nil {
-		log.Logf(0, "failed to write PCs")
+	const filepath string = "pcs.out"
+	log.Logf(0, "writing PCs out to \"%s\"", filepath)
+	if err := mgr.writePCs(filepath); err != nil {
+		log.Logf(0, "failed to write PCs: %v", err)
 	}
 
 	log.Log(0, "KFuzzTest manager exited")
@@ -194,7 +195,7 @@ func (mgr *kFuzzTestManager) displayLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			for _, stat := range stat.Collect(stat.All) {
+			for _, stat := range stat.Collect(stat.Console) {
 				fmt.Fprintf(&buf, "%v=%v ", stat.Name, stat.Value)
 			}
 			log.Log(0, buf.String())
