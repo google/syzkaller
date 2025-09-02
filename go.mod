@@ -26,7 +26,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/speakeasy-api/git-diff-parser v0.0.3
 	github.com/stretchr/testify v1.10.0
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.14
 	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/perf v0.0.0-20230221235046-aebcfb61e84c
