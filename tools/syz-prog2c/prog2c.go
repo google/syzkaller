@@ -58,7 +58,6 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagKFuzzTest {
-		log.Print("enabling KFuzzTest targets")
 		_, err = kfuzztest.ActivateKFuzzTargets(target, *flagVmlinux)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
