@@ -169,10 +169,6 @@ func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
 	return extractState.data, extractState.err
 }
 
-func SupportsKFuzzTest(target *prog.Target) bool {
-	return target.OS == targets.Linux && target.Arch == targets.AMD64
-}
-
 // ActivateKFuzzTargets extracts all KFuzzTest targets from a vmlinux binary
 // and extends a target with the discovered pseudo-syscalls.
 func ActivateKFuzzTargets(target *prog.Target, vmlinuxPath string) ([]*prog.Syscall, error) {
