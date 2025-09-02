@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -102,76 +103,88 @@ type KFuzzTestData struct {
 	Types       []prog.Type
 }
 
-// ExtractData extracts a compiler.Prog from VMLinux containing all of the
-// discovered KFuzzTest target definitions, resources, and types.
+type extractKFuzzTestDataState struct {
+	once sync.Once
+	data KFuzzTestData
+	err  error
+}
+
+var extractState extractKFuzzTestDataState
+
+// ExtractData extracts KFuzzTest data from a vmlinux binary. The return value
+// of this call is cached so that it can be safely called multiple times
+// without incurring a new scan of a vmlinux image.
+// NOTE: the implementation assumes the existence of only one vmlinux image
+// per process, i.e. no attempt is made to distinguish different vmlinux images
+// based on their path.
 func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
-	desc, err := ExtractDescription(vmlinuxPath)
-	if err != nil {
-		return KFuzzTestData{}, err
-	}
-
-	var astError error
-	eh := func(pos ast.Pos, msg string) {
-		astError = fmt.Errorf("AST error: %v: %v\n", pos, msg)
-	}
-	descAst := ast.Parse([]byte(desc), "kfuzztest-autogen", eh)
-	if astError != nil {
-		return KFuzzTestData{}, astError
-	}
-	if descAst == nil {
-		return KFuzzTestData{}, fmt.Errorf("failed to build AST for program")
-	}
-
-	target := targets.Get(targets.Linux, targets.AMD64)
-	program := compiler.Compile(descAst, make(map[string]uint64), target, eh)
-	if astError != nil {
-		return KFuzzTestData{}, fmt.Errorf("failed to compile extracted KFuzzTest target: %v", astError)
-	}
-
-	kFuzzTestCalls := []*prog.Syscall{}
-	for _, call := range program.Syscalls {
-		// The generated descriptions contain some number of built-ins, which
-		// we want to filter out.
-		if call.Attrs.KFuzzTest {
-			kFuzzTestCalls = append(kFuzzTestCalls, call)
+	extractState.once.Do(func() {
+		desc, err := ExtractDescription(vmlinuxPath)
+		if err != nil {
+			extractState.err = err
+			return
 		}
-	}
 
-	// We restore links on all restored system calls for completeness, but we
-	// only return the filtered slice.
-	prog.RestoreLinks(program.Syscalls, program.Resources, program.Types)
+		var astError error
+		eh := func(pos ast.Pos, msg string) {
+			astError = fmt.Errorf("AST error: %v: %v\n", pos, msg)
+		}
+		descAst := ast.Parse([]byte(desc), "kfuzztest-autogen", eh)
+		if astError != nil {
+			extractState.err = astError
+			return
+		}
+		if descAst == nil {
+			extractState.err = fmt.Errorf("failed to build AST for program")
+			return
+		}
 
-	return KFuzzTestData{
-		Description: desc,
-		Calls:       kFuzzTestCalls,
-		Resources:   program.Resources,
-		Types:       program.Types,
-	}, nil
+		target := targets.Get(targets.Linux, targets.AMD64)
+		program := compiler.Compile(descAst, make(map[string]uint64), target, eh)
+		if astError != nil {
+			extractState.err = fmt.Errorf("failed to compile extracted KFuzzTest target: %v", astError)
+		}
+
+		kFuzzTestCalls := []*prog.Syscall{}
+		for _, call := range program.Syscalls {
+			// The generated descriptions contain some number of built-ins, which
+			// we want to filter out.
+			if call.Attrs.KFuzzTest {
+				kFuzzTestCalls = append(kFuzzTestCalls, call)
+			}
+		}
+
+		// We restore links on all restored system calls for completeness, but we
+		// only return the filtered slice.
+		prog.RestoreLinks(program.Syscalls, program.Resources, program.Types)
+
+		extractState.data = KFuzzTestData{
+			Description: desc,
+			Calls:       kFuzzTestCalls,
+			Resources:   program.Resources,
+			Types:       program.Types,
+		}
+	})
+
+	return extractState.data, extractState.err
 }
 
 func SupportsKFuzzTest(target *prog.Target) bool {
 	return target.OS == targets.Linux && target.Arch == targets.AMD64
 }
 
-func ActivateKFuzzTargets(vmLinuxPath string, target *prog.Target, enabledCalls *map[*prog.Syscall]bool) error {
-	data, err := ExtractData(vmLinuxPath)
-	// If newProg is nil, then err is always non-nil.
+// ActivateKFuzzTargets extracts all KFuzzTest targets from a vmlinux binary
+// and extends a target with the discovered pseudo-syscalls.
+func ActivateKFuzzTargets(target *prog.Target, vmlinuxPath string) ([]*prog.Syscall, error) {
+	data, err := ExtractData(vmlinuxPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// We can only enable the new syscalls if the ID was found as this
-	// description as well as it's corresponding pseudo-syscall need to
-	// be built into syzkaller.
+	// TODO: comment this properly. It's important to note here that despite
+	// extending the target, correct encoding relies on syz_kfuzztest_run being
+	// compiled into the target, and its ID being available.
 	target.Extend(data.Calls, data.Types, data.Resources)
-
-	if enabledCalls != nil {
-		// Enable discovered syscalls.
-		for _, call := range data.Calls {
-			(*enabledCalls)[call] = true
-		}
-	}
-	return nil
+	return data.Calls, nil
 }
 
 func ExecKFuzzTestCallLocal(st *kcov.KCOVState, call *prog.Call) ([]uintptr, error) {

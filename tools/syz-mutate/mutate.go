@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagKFuzzTest {
-		err = kfuzztest.ActivateKFuzzTargets(*flagVmlinux, target, nil)
+		_, err = kfuzztest.ActivateKFuzzTargets(target, *flagVmlinux)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
@@ -52,7 +52,7 @@ func main() {
 	var syscalls map[*prog.Syscall]bool
 	if *flagEnable != "" {
 		enabled := strings.Split(*flagEnable, ",")
-		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil, mgrconfig.AnyDescriptions, *flagKFuzzTest)
+		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil, mgrconfig.AnyDescriptions)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 			os.Exit(1)

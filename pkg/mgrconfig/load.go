@@ -7,15 +7,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/kfuzztest"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
@@ -131,26 +128,6 @@ var (
 	}
 )
 
-func enableKFuzzTestTargets(cfg *Config) error {
-	if !kfuzztest.SupportsKFuzzTest(cfg.Target) {
-		return fmt.Errorf("target doesn't support KFuzzTest")
-	}
-	vmLinuxPath := path.Join(cfg.KernelObj, "vmlinux")
-	kfd, err := kfuzztest.ExtractData(vmLinuxPath)
-	if err != nil {
-		return err
-	}
-
-	log.Logf(1, "KFuzzTest descriptions:\n%s", kfd.Description)
-
-	cfg.Target.Extend(kfd.Calls, kfd.Types, kfd.Resources)
-	for _, call := range kfd.Calls {
-		cfg.EnabledSyscalls = append(cfg.EnabledSyscalls, call.Name)
-		cfg.Syscalls = append(cfg.Syscalls, call.ID)
-	}
-	return nil
-}
-
 func SetTargets(cfg *Config) error {
 	var err error
 	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.RawTarget)
@@ -160,12 +137,6 @@ func SetTargets(cfg *Config) error {
 	cfg.Target, err = prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 	if err != nil {
 		return err
-	}
-	if cfg.Experimental.EnableKFuzzTest {
-		err := enableKFuzzTestTargets(cfg)
-		if err != nil {
-			return err
-		}
 	}
 	cfg.SysTarget = targets.Get(cfg.TargetOS, cfg.TargetVMArch)
 	if cfg.SysTarget == nil {
@@ -225,7 +196,7 @@ func Complete(cfg *Config) error {
 
 	var err error
 	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls,
-		strToDescriptionsMode[cfg.Experimental.DescriptionsMode], cfg.Experimental.EnableKFuzzTest)
+		strToDescriptionsMode[cfg.Experimental.DescriptionsMode])
 	if err != nil {
 		return err
 	}
@@ -444,7 +415,7 @@ func splitTarget(target string) (string, string, string, error) {
 }
 
 func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
-	descriptionsMode DescriptionsMode, allowEmpty bool) ([]int, error) {
+	descriptionsMode DescriptionsMode) ([]int, error) {
 	if descriptionsMode == invalidDescriptions {
 		return nil, fmt.Errorf("config param descriptions_mode must contain one of auto/manual/any")
 	}
@@ -463,7 +434,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 				return nil, fmt.Errorf("unknown enabled syscall: %v", c)
 			}
 		}
-	} else if !allowEmpty {
+	} else {
 		for _, call := range target.Syscalls {
 			syscalls[call.ID] = true
 		}
@@ -489,7 +460,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
-	if len(syscalls) == 0 && !allowEmpty {
+	if len(syscalls) == 0 {
 		return nil, fmt.Errorf("all syscalls are disabled by disable_syscalls in config")
 	}
 	var arr []int

@@ -48,10 +48,14 @@ func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, er
 	}
 
 	log.Logf(0, "extracting KFuzzTest targets from \"%s\" (this will take a few seconds)", cfg.VmlinuxPath)
-	enabledCalls := make(map[*prog.Syscall]bool)
-	err = kfuzztest.ActivateKFuzzTargets(cfg.VmlinuxPath, target, &enabledCalls)
+	calls, err := kfuzztest.ActivateKFuzzTargets(target, cfg.VmlinuxPath)
 	if err != nil {
 		return nil, err
+	}
+
+	enabledCalls := make(map[*prog.Syscall]bool)
+	for _, call := range calls {
+		enabledCalls[call] = true
 	}
 
 	// Disable all calls that weren't explicitly enabled.
