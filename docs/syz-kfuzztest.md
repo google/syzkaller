@@ -56,13 +56,11 @@ Example:
   ./syz-kfuzztest -vmlinux ~/kernel/vmlinux fuzz_target_0 fuzz_target_1
 Flags:
   -display int
-        Display interval (default 5)
-  -display-progs
-        If enabled, display the last executed prog for each target
+        Number of seconds between console outputs (default 5)
   -threads int
         Number of threads (default 2)
   -timeout int
-        Timeout in milliseconds
+        Timeout between program executions in seconds (default 0)
   -vmlinux string
         Path to vmlinux binary (default "vmlinux")
   -vv int
