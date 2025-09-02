@@ -6,20 +6,25 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/tool"
 )
 
-var vmlinuxPath = flag.String("vmlinux", "./vmlinux", "path to vmlinux")
-
 func main() {
-	flag.Parse()
+	usage := func(w io.Writer) {
+		fmt.Fprintln(w, "usage: ./kfuzztest-gen /path/to/vmlinux")
+	}
+	if len(os.Args) != 2 {
+		usage(os.Stderr)
+		os.Exit(1)
+	}
 
-	extractor, err := kfuzztest.NewExtractor(*vmlinuxPath)
+	extractor, err := kfuzztest.NewExtractor(os.Args[1])
 	if err != nil {
 		tool.Fail(err)
 	}
