@@ -7,9 +7,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 var vmlinuxPath = flag.String("vmlinux", "./vmlinux", "path to vmlinux")
@@ -19,21 +21,22 @@ func main() {
 
 	extractor, err := kfuzztest.NewExtractor(*vmlinuxPath)
 	if err != nil {
-		panic(err)
+		tool.Fail(err)
 	}
 	defer extractor.Close()
 
 	log.Log(0, "extracting ELF data")
 	res, err := extractor.ExtractAll()
 	if err != nil {
-		panic(err)
+		tool.Fail(err)
 	}
 	log.Log(0, res.String())
 
 	builder := kfuzztest.NewBuilder(res.Funcs, res.Structs, res.Constraints, res.Annotations)
 	desc, err := builder.EmitSyzlangDescription()
 	if err != nil {
-		panic(err)
+		tool.Fail(err)
 	}
-	log.Logf(0, "emitting syzlang description:\n\n%s", desc)
+	log.Logf(0, "emitting syzlang description")
+	fmt.Println(desc)
 }
