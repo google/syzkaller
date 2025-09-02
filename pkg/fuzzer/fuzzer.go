@@ -39,6 +39,8 @@ type Fuzzer struct {
 	ctMu         sync.Mutex // TODO: use RWLock.
 	ctRegenerate chan struct{}
 
+	modeKFuzzTest bool
+
 	execQueues
 }
 
@@ -70,6 +72,13 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 		go f.logCurrentStats()
 	}
 	return f
+}
+
+func (f *Fuzzer) RecommendedCalls() int {
+	if f.modeKFuzzTest {
+		return prog.RecommendedCallsKFuzzTest
+	}
+	return prog.RecommendedCalls
 }
 
 type execQueues struct {
@@ -214,6 +223,7 @@ type Config struct {
 	FetchRawCover  bool
 	NewInputFilter func(call string) bool
 	PatchTest      bool
+	ModeKFuzzTest  bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
