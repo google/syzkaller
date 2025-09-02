@@ -173,11 +173,7 @@ FuzzLoop:
 }
 
 func (mgr *kFuzzTestManager) writePCs(filepath string) error {
-	sigs := mgr.fuzzer.Load().Cover.CopyMaxSignal()
-	pcs := []uint64{}
-	for sig := range sigs {
-		pcs = append(pcs, uint64(sig))
-	}
+	pcs := mgr.fuzzer.Load().Config.Corpus.Cover()
 	slices.Sort(pcs)
 	var builder strings.Builder
 	for _, pc := range pcs {
