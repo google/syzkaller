@@ -44,7 +44,8 @@ spec:
             arguments:
               parameters:
                 - name: element
-                  value: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
+                  value: "{{item}}"
+            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
             continueOn:
               failed: true
     - name: process-fuzz
