@@ -155,7 +155,20 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 				queue.push(inner)
 			}
 		case *DataArg:
-			encoded.Write(a.data)
+			data := a.data
+			buffer, ok := a.ArgCommon.Type().(*BufferType)
+			if !ok {
+				panic("DataArg should be a BufferType")
+			}
+			// Unlike length fields whose incorrectness can be prevented easily,
+			// it is an invasive change to prevent generation of
+			// non-null-terminated strings. Forcibly null-terminating them
+			// during encoding allows us to centralize this easily and prevent
+			// false positive buffer overflows in KFuzzTest targets.
+			if buffer.Kind == BufferString && (len(data) == 0 || data[len(data)-1] != byte(0)) {
+				data = append(data, byte(0))
+			}
+			encoded.Write(data)
 		case *ConstArg:
 			val, _ := a.Value()
 			switch a.Size() {

@@ -800,9 +800,6 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 		if dir == DirOut {
 			return MakeOutDataArg(a, dir, uint64(len(data))), nil
 		}
-		if r.currCall.Meta.Attrs.KFuzzTest && data[len(data)-1] != 0 {
-			panic("generated a non-null-terminated string")
-		}
 		return MakeDataArg(a, dir, data), nil
 	case BufferFilename:
 		if dir == DirOut {
