@@ -292,12 +292,15 @@ func reportStatus(ctx context.Context, client *api.Client, status string, store 
 		return nil
 	}
 	tarGzReader, err := compressArtifacts(store.BasePath)
-	if err != nil {
+	if errors.Is(err, errWriteOverLimit) {
+		app.Errorf("the artifacts archive is too big to upload")
+	} else if err != nil {
 		return fmt.Errorf("failed to compress the artifacts dir: %w", err)
-	}
-	err = client.UploadTestArtifacts(ctx, *flagSession, testName, tarGzReader)
-	if err != nil {
-		return fmt.Errorf("failed to upload the status: %w", err)
+	} else {
+		err = client.UploadTestArtifacts(ctx, *flagSession, testName, tarGzReader)
+		if err != nil {
+			return fmt.Errorf("failed to upload the status: %w", err)
+		}
 	}
 	return nil
 }
