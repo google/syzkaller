@@ -343,7 +343,7 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 	http.SetCookie(w, cookie)
 }
 
-var templates = html.CreateGlob("*.html", "layouts/*.html", "partials/*.html")
+var templates = html.CreateGlob("*.html")
 
 // gzipResponseWriterCloser accumulates the gzipped result.
 // In case of error during the handler processing, we'll drop this gzipped data.
