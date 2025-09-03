@@ -117,14 +117,15 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 			CommitHash: result.Commit,
 			Arch:       arch,
 		}
-		triageResult = &api.TriageResult{
-			Fuzz: &api.FuzzTask{
-				Base:       base,
-				Patched:    base,
-				FuzzConfig: fuzzConfig.FuzzConfig,
-			},
+		fuzz := &api.FuzzTask{
+			Base:       base,
+			Patched:    base,
+			FuzzConfig: fuzzConfig.FuzzConfig,
 		}
-		triageResult.Fuzz.Patched.SeriesID = series.ID
+		fuzz.Patched.SeriesID = series.ID
+		triageResult = &api.TriageResult{
+			Fuzz: []*api.FuzzTask{fuzz},
+		}
 		break
 	}
 	return triageResult, nil
