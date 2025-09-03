@@ -54,7 +54,7 @@ spec:
           - name: element
       steps:
         - - name: save-base-req
-            template: extract-request
+            template: convert-artifact
             arguments:
               parameters:
                 - name: data
@@ -71,12 +71,12 @@ spec:
                   value: "{{workflow.parameters.session-id}}"
               artifacts:
                 - name: request
-                  from: "{{steps.save-base-req.outputs.artifacts.request}}"
+                  from: "{{steps.save-base-req.outputs.artifacts.artifact}}"
         - - name: abort-if-base-build-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: save-patched-req
-            template: extract-request
+            template: convert-artifact
             arguments:
               parameters:
                 - name: data
@@ -113,7 +113,7 @@ spec:
                   value: "{{workflow.parameters.session-id}}"
               artifacts:
                 - name: request
-                  from: "{{steps.save-patched-req.outputs.artifacts.request}}"
+                  from: "{{steps.save-patched-req.outputs.artifacts.artifact}}"
         - - name: abort-if-patched-build-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.success') == false}}"
@@ -137,39 +137,41 @@ spec:
         - - name: abort-if-patched-boot-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
+        - - name: save-fuzz-config
+            template: convert-artifact
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{=jsonpath(inputs.parameters.element, '$')}}"
         - - name: fuzz
             templateRef:
               name: fuzz-step-template
               template: fuzz-step
             arguments:
               parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
-                - name: corpus-url
-                  value: "{{=jsonpath(inputs.parameters.element, '$.corpus_url')}}"
-                - name: skip-cover-check
-                  value: "{{=jsonpath(inputs.parameters.element, '$.skip_cover_check')}}"
               artifacts:
                 - name: base-kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
                 - name: patched-kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
-    - name: extract-request
+                - name: config
+                  from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
+    - name: convert-artifact
       inputs:
         parameters:
           - name: data
       outputs:
         artifacts:
-          - name: request
-            path: /tmp/request.json
+          - name: artifact
+            path: /tmp/artifact
       container:
         image: alpine:latest
         command: [sh, -c]
-        args: ["echo '{{inputs.parameters.data}}' > /tmp/request.json"]
+        args: ["echo '{{inputs.parameters.data}}' > /tmp/artifact"]
     - name: exit-workflow
       inputs:
         parameters:
