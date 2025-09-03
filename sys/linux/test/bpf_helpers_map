@@ -1,0 +1,8 @@
+# Create a BPF map
+
+r0 = syz_create_resource$map_key_size(0x4)
+r1 = bpf$MAP_CREATE(AUTO, &AUTO=@base={0x1, r0, 0x8, 0x1, 0x0, 0x0, 0x0, "00000000000000000000000000000000", 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, @void, @value=AUTO, @void, @value=AUTO}, 0x48)
+
+# Lookup an element from the map
+
+r2 = bpf$PROG_LOAD(AUTO, &AUTO={0x3, AUTO, &AUTO=@framed={{AUTO, AUTO, AUTO, AUTO, 0x0, AUTO, AUTO, AUTO, 0x0}, [@map_lookup={{AUTO, AUTO, AUTO, AUTO, r1, AUTO, AUTO, AUTO, AUTO}, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, 0x1234}, @st32=AUTO, AUTO, {AUTO, AUTO, AUTO, AUTO, AUTO, AUTO, r0}, AUTO}], AUTO}, &AUTO='GPL\x00', 0x0, 0x0, 0x0, 0x0, 0x0, "00000000000000000000000000000000", 0x0, @sched_cls=0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, @void, @value=AUTO}, 0xa0)
