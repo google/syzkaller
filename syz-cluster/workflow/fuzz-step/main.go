@@ -29,14 +29,12 @@ import (
 )
 
 var (
-	flagConfig         = flag.String("config", "", "syzkaller config")
-	flagSession        = flag.String("session", "", "session ID")
-	flagBaseBuild      = flag.String("base_build", "", "base build ID")
-	flagPatchedBuild   = flag.String("patched_build", "", "patched build ID")
-	flagTime           = flag.String("time", "1h", "how long to fuzz")
-	flagWorkdir        = flag.String("workdir", "/workdir", "base workdir path")
-	flagCorpusURL      = flag.String("corpus_url", "", "an URL to download corpus from")
-	flagSkipCoverCheck = flag.Bool("skip_cover_check", false, "don't check whether we reached the patched code")
+	flagConfig       = flag.String("config", "", "path to the fuzz config")
+	flagSession      = flag.String("session", "", "session ID")
+	flagBaseBuild    = flag.String("base_build", "", "base build ID")
+	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
+	flagTime         = flag.String("time", "1h", "how long to fuzz")
+	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
 )
 
 const testName = "Fuzzing"
@@ -54,6 +52,8 @@ func main() {
 	if !prog.GitRevisionKnown() {
 		log.Fatalf("the binary is built without the git revision information")
 	}
+
+	config := readFuzzConfig()
 	ctx := context.Background()
 	if err := reportStatus(ctx, client, api.TestRunning, nil); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
@@ -67,7 +67,7 @@ func main() {
 	// the final test result back.
 	runCtx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	err = run(runCtx, client, d, store)
+	err = run(runCtx, config, client, d, store)
 	status := api.TestPassed // TODO: what about TestFailed?
 	if errors.Is(err, errSkipFuzzing) {
 		status = api.TestSkipped
@@ -80,6 +80,21 @@ func main() {
 	if err := reportStatus(ctx, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
+}
+
+func readFuzzConfig() *api.FuzzConfig {
+	raw, err := os.ReadFile(*flagConfig)
+	if err != nil {
+		app.Fatalf("failed to read config: %v", err)
+		return nil
+	}
+	var req api.FuzzConfig
+	err = json.Unmarshal(raw, &req)
+	if err != nil {
+		app.Fatalf("failed to unmarshal request: %v, %s", err, raw)
+		return nil
+	}
+	return &req
 }
 
 func logFinalState(store *manager.DiffFuzzerStore) {
@@ -98,8 +113,8 @@ func logFinalState(store *manager.DiffFuzzerStore) {
 
 var errSkipFuzzing = errors.New("skip")
 
-func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
-	store *manager.DiffFuzzerStore) error {
+func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
+	timeout time.Duration, store *manager.DiffFuzzerStore) error {
 	series, err := client.GetSessionSeries(baseCtx, *flagSession)
 	if err != nil {
 		return fmt.Errorf("failed to query the series info: %w", err)
@@ -110,7 +125,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	const MB = 1000000
 	log.EnableLogCaching(100000, 10*MB)
 
-	base, patched, err := loadConfigs("/configs", *flagConfig, true)
+	base, patched, err := loadConfigs("/configs", config.Config, true)
 	if err != nil {
 		return fmt.Errorf("failed to load configs: %w", err)
 	}
@@ -125,12 +140,12 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 	}
 	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
-	if *flagCorpusURL != "" {
-		err := downloadCorpus(baseCtx, patched.Workdir, *flagCorpusURL)
+	if config.CorpusURL != "" {
+		err := downloadCorpus(baseCtx, patched.Workdir, config.CorpusURL)
 		if err != nil {
 			return fmt.Errorf("failed to download the corpus: %w", err)
 		} else {
-			log.Logf(0, "downloaded the corpus from %s", *flagCorpusURL)
+			log.Logf(0, "downloaded the corpus from %s", config.CorpusURL)
 		}
 	}
 
@@ -167,7 +182,7 @@ func run(baseCtx context.Context, client *api.Client, timeout time.Duration,
 			BaseCrashes:        baseCrashes,
 			Store:              store,
 			MaxTriageTime:      timeout / 2,
-			FuzzToReachPatched: fuzzToReachPatched(),
+			FuzzToReachPatched: fuzzToReachPatched(config),
 			BaseCrashKnown: func(ctx context.Context, title string) (bool, error) {
 				ret, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
 					BuildID: *flagBaseBuild,
@@ -396,8 +411,8 @@ func readSectionHashes(file string) (build.SectionHashes, error) {
 	return data, nil
 }
 
-func fuzzToReachPatched() time.Duration {
-	if *flagSkipCoverCheck {
+func fuzzToReachPatched(config *api.FuzzConfig) time.Duration {
+	if config.SkipCoverCheck {
 		return 0
 	}
 	// Allow up to 30 minutes after the corpus triage to reach the patched code.
