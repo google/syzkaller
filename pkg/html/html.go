@@ -21,7 +21,7 @@ import (
 // the recommended folder structure (my best guess).
 // When you run the dashboard/app tests, CWD is syzkaller/dashboard/app.
 // When you deploy AppEngine in the GOPATH mode, CWD is syzkaller/dashboard/app.
-// When you deploy AppEngine in the GOMOD, CWD is syzkaller/.
+// When you deploy AppEngine in the  GOMOD, CWD is syzkaller/.
 var globSearchPath = func() string {
 	if appengine.IsAppEngine() {
 		return "dashboard/app/templates/"
@@ -36,16 +36,16 @@ func SetGlobSearchPath(path string) {
 }
 
 func CreateGlob(glob string) *template.Template {
-	if strings.Contains(glob, "..") || filepath.IsAbs(glob) {
-		panic("glob must be a relative path and not contain '..'")
+	if strings.Contains(glob, string(filepath.Separator)) {
+		panic("glob can't be a path, the files mask is expected")
 	}
 	return template.Must(
 		template.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
 }
 
 func CreateTextGlob(glob string) *texttemplate.Template {
-	if strings.Contains(glob, "..") || filepath.IsAbs(glob) {
-		panic("glob must be a relative path and not contain '..'")
+	if strings.Contains(glob, string(filepath.Separator)) {
+		panic("glob can't be a path, the files mask is expected")
 	}
 	return texttemplate.Must(
 		texttemplate.New("").Funcs(Funcs).ParseGlob(filepath.Join(globSearchPath, glob)))
@@ -132,8 +132,8 @@ func formatDuration(d time.Duration) string {
 		return ""
 	}
 	days := int(d / (24 * time.Hour))
-	hours := int(d/time.Hour) % 24
-	mins := int(d/time.Minute) % 60
+	hours := int(d / time.Hour % 24)
+	mins := int(d / time.Minute % 60)
 	if days >= 10 {
 		return fmt.Sprintf("%vd", days)
 	} else if days != 0 {
