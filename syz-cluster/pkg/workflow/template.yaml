@@ -66,7 +66,7 @@ spec:
             arguments:
               parameters:
                 - name: test-name
-                  value: "Build Base"
+                  value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Build Base"
                 - name: session-id
                   value: "{{workflow.parameters.session-id}}"
               artifacts:
@@ -95,7 +95,7 @@ spec:
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
-                  value: "Boot test: Base"
+                  value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Boot test: Base"
         - - name: abort-if-base-boot-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
@@ -106,7 +106,7 @@ spec:
             arguments:
               parameters:
                 - name: test-name
-                  value: "Build Patched"
+                  value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Build Patched"
                 - name: findings
                   value: "true"
                 - name: session-id
@@ -133,7 +133,7 @@ spec:
                 - name: report-findings
                   value: "true"
                 - name: test-name
-                  value: "Boot test: Patched"
+                  value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Boot test: Patched"
         - - name: abort-if-patched-boot-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
