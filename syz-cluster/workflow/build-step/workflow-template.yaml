@@ -24,7 +24,7 @@ spec:
             path: /tmp/request.json
       initContainers:
       - name: setup-overlays
-        image: bitnami/git:latest
+        image: alpine/git:latest
         imagePullPolicy: IfNotPresent
         command:
           - sh
