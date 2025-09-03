@@ -22,6 +22,7 @@ type FuzzTask struct {
 
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 type FuzzConfig struct {
+	Suffix    string `json:"suffix"` // E.g. KASAN.
 	Config    string `json:"config"` // Refers to workflow/configs/{}.
 	CorpusURL string `json:"corpus_url"`
 	// Don't expect kernel coverage for the patched area.
@@ -228,12 +229,15 @@ const (
 	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
 )
 
+const kasanSuffix = " [KASAN]"
+
 // The list is ordered by decreasing importance.
 var FuzzConfigs = []*TriageFuzzConfig{
 	{
 		EmailLists:   []string{`kvm@vger.kernel.org`},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `kvm`,
 			CorpusURL: allCorpusURL,
 		},
@@ -242,6 +246,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		EmailLists:   []string{`io-uring@vger.kernel.org`},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `io-uring`,
 			CorpusURL: allCorpusURL,
 		},
@@ -250,6 +255,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		EmailLists:   []string{`bpf@vger.kernel.org`},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `bpf`,
 			CorpusURL: bpfCorpusURL,
 		},
@@ -262,6 +268,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `net`,
 			CorpusURL: netCorpusURL,
 		},
@@ -275,6 +282,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `fs`,
 			CorpusURL: fsCorpusURL,
 		},
@@ -283,6 +291,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		EmailLists:   []string{`linux-mm@kvack.org`},
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `all`,
 			CorpusURL: allCorpusURL,
 			// Not all mm/ code is instrumented with KCOV.
@@ -293,6 +302,7 @@ var FuzzConfigs = []*TriageFuzzConfig{
 		EmailLists:   nil, // A fallback option.
 		KernelConfig: `upstream-apparmor-kasan.config`,
 		FuzzConfig: FuzzConfig{
+			Suffix:    kasanSuffix,
 			Config:    `all`,
 			CorpusURL: allCorpusURL,
 		},
