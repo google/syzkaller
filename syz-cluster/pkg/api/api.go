@@ -10,7 +10,7 @@ type TriageResult struct {
 	// If set, ignore the patch series completely.
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
-	Fuzz *FuzzTask `json:"fuzz"`
+	Fuzz []*FuzzTask `json:"fuzz"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.
