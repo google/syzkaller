@@ -10,7 +10,7 @@ spec:
     - name: triage-step
       initContainers:
         - name: setup-overlays
-          image: bitnami/git:latest
+          image: alpine/git:latest
           imagePullPolicy: IfNotPresent
           command:
             - sh
