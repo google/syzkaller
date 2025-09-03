@@ -38,8 +38,6 @@ var (
 	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
 )
 
-const testName = "Fuzzing"
-
 func main() {
 	flag.Parse()
 	if *flagConfig == "" || *flagSession == "" || *flagTime == "" {
@@ -56,7 +54,7 @@ func main() {
 
 	config := readFuzzConfig()
 	ctx := context.Background()
-	if err := reportStatus(ctx, client, api.TestRunning, nil); err != nil {
+	if err := reportStatus(ctx, config, client, api.TestRunning, nil); err != nil {
 		app.Fatalf("failed to report the test: %v", err)
 	}
 
@@ -78,7 +76,7 @@ func main() {
 	}
 	log.Logf(0, "fuzzing is finished")
 	logFinalState(store)
-	if err := reportStatus(ctx, client, status, store); err != nil {
+	if err := reportStatus(ctx, config, client, status, store); err != nil {
 		app.Fatalf("failed to update the test: %v", err)
 	}
 }
@@ -166,7 +164,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 					app.Errorf("failed to report a base kernel crash %q: %v", title, err)
 				}
 			case bug := <-bugs:
-				err := reportFinding(ctx, client, bug)
+				err := reportFinding(ctx, config, client, bug)
 				if err != nil {
 					app.Errorf("failed to report a finding %q: %v", bug.Report.Title, err)
 				}
@@ -221,7 +219,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 				lastArtifactUpdate = time.Now()
 				useStore = store
 			}
-			err := reportStatus(ctx, client, api.TestRunning, useStore)
+			err := reportStatus(ctx, config, client, api.TestRunning, useStore)
 			if err != nil {
 				app.Errorf("failed to update status: %v", err)
 			}
@@ -298,7 +296,9 @@ func loadConfigs(configFolder, configName string, complete bool) (*mgrconfig.Con
 	return base, patched, nil
 }
 
-func reportStatus(ctx context.Context, client *api.Client, status string, store *manager.DiffFuzzerStore) error {
+func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Client,
+	status string, store *manager.DiffFuzzerStore) error {
+	testName := getTestName(config)
 	testResult := &api.TestResult{
 		SessionID:      *flagSession,
 		TestName:       testName,
@@ -328,10 +328,10 @@ func reportStatus(ctx context.Context, client *api.Client, status string, store 
 	return nil
 }
 
-func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueBug) error {
+func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *manager.UniqueBug) error {
 	finding := &api.NewFinding{
 		SessionID: *flagSession,
-		TestName:  testName,
+		TestName:  getTestName(config),
 		Title:     bug.Report.Title,
 		Report:    bug.Report.Report,
 		Log:       bug.Report.Output,
@@ -350,6 +350,10 @@ func reportFinding(ctx context.Context, client *api.Client, bug *manager.UniqueB
 		}
 	}
 	return client.UploadFinding(ctx, finding)
+}
+
+func getTestName(config *api.FuzzConfig) string {
+	return fmt.Sprintf("[%s] Fuzzing", config.Track)
 }
 
 var ignoreLinuxVariables = map[string]bool{
