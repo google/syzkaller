@@ -37,10 +37,16 @@ type Tree struct {
 	EmailLists []string `json:"email_lists"`
 }
 
-// TriageFuzzConfig is a single record in the list of supported fuzz configs.
-type TriageFuzzConfig struct {
-	EmailLists   []string `json:"email_lists"`
-	KernelConfig string   `json:"kernel_config"`
+// FuzzTriageTarget is a single record in the list of supported fuzz configs.
+type FuzzTriageTarget struct {
+	EmailLists []string            `json:"email_lists"`
+	Campaigns  []*KernelFuzzConfig `json:"campaigns"`
+}
+
+// KernelFuzzConfig is a specific fuzzing assignment.
+// Based on it, the triage step will construct FuzzTasks.
+type KernelFuzzConfig struct {
+	KernelConfig string `json:"kernel_config"`
 	FuzzConfig
 }
 
@@ -232,32 +238,44 @@ const (
 const kasanSuffix = " [KASAN]"
 
 // The list is ordered by decreasing importance.
-var FuzzConfigs = []*TriageFuzzConfig{
+var FuzzTargets = []*FuzzTriageTarget{
 	{
-		EmailLists:   []string{`kvm@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `kvm`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`kvm@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `kvm`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`io-uring@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `io-uring`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`io-uring@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `io-uring`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`bpf@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `bpf`,
-			CorpusURL: bpfCorpusURL,
+		EmailLists: []string{`bpf@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `bpf`,
+					CorpusURL: bpfCorpusURL,
+				},
+			},
 		},
 	},
 	{
@@ -266,11 +284,15 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`netfilter-devel@vger.kernel.org`,
 			`linux-wireless@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `net`,
-			CorpusURL: netCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `net`,
+					CorpusURL: netCorpusURL,
+				},
+			},
 		},
 	},
 	{
@@ -280,31 +302,43 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`linux-unionfs@vger.kernel.org`,
 			`linux-ext4@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `fs`,
-			CorpusURL: fsCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `fs`,
+					CorpusURL: fsCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`linux-mm@kvack.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
-			// Not all mm/ code is instrumented with KCOV.
-			SkipCoverCheck: true,
+		EmailLists: []string{`linux-mm@kvack.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `all`,
+					CorpusURL: allCorpusURL,
+					// Not all mm/ code is instrumented with KCOV.
+					SkipCoverCheck: true,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   nil, // A fallback option.
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Suffix:    kasanSuffix,
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
+		EmailLists: nil, // A fallback option.
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `all`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 }
