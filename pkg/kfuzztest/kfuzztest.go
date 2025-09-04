@@ -10,6 +10,7 @@
 package kfuzztest
 
 import (
+	"debug/dwarf"
 	"fmt"
 	"os"
 	"path"
@@ -19,18 +20,20 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/kcov"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type SyzField struct {
-	Name     string
-	TypeName string
+	Name      string
+	dwarfType dwarf.Type
 }
 
 type SyzStruct struct {
-	Name   string
-	Fields []SyzField
+	dwarfType *dwarf.StructType
+	Name      string
+	Fields    []SyzField
 }
 
 type SyzFunc struct {

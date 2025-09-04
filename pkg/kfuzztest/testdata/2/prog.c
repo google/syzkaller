@@ -10,11 +10,11 @@ struct bar {
 };
 
 struct foo {
-	struct bar *b;
-	const char *str;
-	const char *data;
+	struct bar* b;
+	const char* str;
+	const char* data;
 	size_t datalen;
-	uint64_t *numbers;
+	uint64_t* numbers;
 };
 
 DEFINE_FUZZ_TARGET(some_target, struct foo);
@@ -26,6 +26,8 @@ DEFINE_CONSTRAINT(foo, str, NULL, NULL, EXPECT_NE);
 DEFINE_ANNOTATION(foo, str, , ATTRIBUTE_STRING);
 /* Expect foo.data != NULL. */
 DEFINE_CONSTRAINT(foo, data, NULL, NULL, EXPECT_NE);
+/* Annotate foo.data as an array. */
+DEFINE_ANNOTATION(foo, data, , ATTRIBUTE_ARRAY);
 /* Annotate foo.datalen == len(foo.data). */
 DEFINE_ANNOTATION(foo, datalen, data, ATTRIBUTE_LEN);
 /* Annotate foo.numbers as an array. */

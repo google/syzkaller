@@ -3,8 +3,8 @@
 package kfuzztest
 
 import (
+	"debug/dwarf"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -53,7 +53,11 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 	var descBuilder strings.Builder
 	descBuilder.WriteString("# This description was automatically generated with tools/kfuzztest-gen\n")
 	for _, s := range b.structs {
-		descBuilder.WriteString(syzStructToSyzlang(s, constraintMap, annotationMap))
+		structDesc, err := syzStructToSyzlang(s, constraintMap, annotationMap)
+		if err != nil {
+			return "", err
+		}
+		descBuilder.WriteString(structDesc)
 		descBuilder.WriteString("\n\n")
 	}
 
@@ -64,9 +68,7 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 		}
 	}
 
-	fmt.Println(descBuilder.String())
-
-	// Format the output syzlang descriptions.
+	// Format the output syzlang descriptions for consistency.
 	var astError error
 	eh := func(pos ast.Pos, msg string) {
 		astError = fmt.Errorf("Failure: %v: %v\n", pos, msg)
@@ -76,135 +78,181 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 		return "", astError
 	}
 	if descAst == nil {
-		return "", fmt.Errorf("Failed to format generated syzlang. Is it well-formed?")
+		return "", fmt.Errorf("failed to format generated syzkaller description - is it well-formed?")
 	}
-
 	return string(ast.Format(descAst)), nil
 }
 
-// FIXME: this function is gross because of the weird logic cases that arises
-// from having annotations that determine the type. I'm sure there's a much
-// nicer way of writing this control flow.
 func syzStructToSyzlang(s SyzStruct, constraintMap map[string]map[string]SyzConstraint,
-	annotationMap map[string]map[string]SyzAnnotation) string {
-	out := fmt.Sprintf("%s {\n", s.Name)
+	annotationMap map[string]map[string]SyzAnnotation) (string, error) {
+	var builder strings.Builder
+
+	fmt.Fprintf(&builder, "%s {\n", s.Name)
+	structAnnotations := annotationMap["struct "+s.Name]
+	structConstraints := constraintMap["struct "+s.Name]
 	for _, field := range s.Fields {
-		out += "\t"
-		typeName := dwarfToSyzlangType(field.TypeName)
-
-		aSubMap, ok := annotationMap["struct "+s.Name]
-		if ok {
-			annotation, ok := aSubMap[field.Name]
-			if !ok {
-				goto append_type
-			}
-
-			// Annotated fields require special handling.
-			switch annotation.Attribute {
-			case AttributeLen:
-				out += fmt.Sprintf("%s\tlen[%s, %s]", field.Name, annotation.LinkedFieldName, typeName)
-			case AttributeString:
-				out += fmt.Sprintf("%s\tptr[in, string]", field.Name)
-			case AttributeArray:
-				// An array type is prefixed with a leading "*", which we remove
-				// to resolve the underlying type.
-				arrayType := typeName[1:]
-				out += fmt.Sprintf("%s\tptr[in, array[%s]]", field.Name, arrayType)
-			}
-			out += "\n"
-			continue
+		line, err := syzFieldToSyzLang(field, structConstraints, structAnnotations)
+		if err != nil {
+			return "", err
 		}
-
-		// just appends the type as it appear in the
-	append_type:
-		out += fmt.Sprintf("%s\t%s", field.Name, typeName)
-
-		subMap, ok := constraintMap["struct "+s.Name]
-		if ok {
-			constraint, ok := subMap[field.Name]
-			if ok {
-				out += syzConstraintToSyzlang(constraint)
-			}
-		}
-		out += "\n"
+		fmt.Fprintf(&builder, "\t%s\n", line)
 	}
-	out += "}"
-	return out
+	fmt.Fprint(&builder, "}")
+	return builder.String(), nil
+}
+
+func syzFieldToSyzLang(field SyzField, constraintMap map[string]SyzConstraint,
+	annotationMap map[string]SyzAnnotation) (string, error) {
+	constraint, hasConstraint := constraintMap[field.Name]
+	annotation, hasAnnotation := annotationMap[field.Name]
+
+	var typeDesc string
+	var err error
+	if hasAnnotation {
+		// Annotations override the existing type definitions.
+		typeDesc, err = processAnnotation(field, annotation)
+	} else {
+		typeDesc, err = dwarfToSyzlangType(field.dwarfType, false)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	if hasConstraint {
+		constraint, err := processConstraint(constraint)
+		if err != nil {
+			return "", err
+		}
+		typeDesc += constraint
+	}
+	return fmt.Sprintf("%s %s", field.Name, typeDesc), nil
+}
+
+func processConstraint(c SyzConstraint) (string, error) {
+	switch c.ConstraintType {
+	case ExpectEq:
+		return fmt.Sprintf("[%d]", c.Value1), nil
+	case ExpectNe:
+		// syzkaller does not have a built-in way to support an inequality
+		// constraint AFAIK.
+		return "", nil
+	case ExpectLt:
+		return fmt.Sprintf("[0:%d]", c.Value1-1), nil
+	case ExpectLe:
+		return fmt.Sprintf("[0:%d]", c.Value1), nil
+	case ExpectGt:
+		return fmt.Sprintf("[%d]", c.Value1+1), nil
+	case ExpectGe:
+		return fmt.Sprintf("[%d]", c.Value1), nil
+	case ExpectInRange:
+		return fmt.Sprintf("[%d:%d]", c.Value1, c.Value2), nil
+	default:
+		fmt.Printf("c = %d\n", c.ConstraintType)
+		return "", fmt.Errorf("unsupported constraint type")
+	}
+}
+
+func processAnnotation(field SyzField, annotation SyzAnnotation) (string, error) {
+	switch annotation.Attribute {
+	case AttributeLen:
+		underlyingType, err := dwarfToSyzlangType(field.dwarfType, false)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("len[%s, %s]", annotation.LinkedFieldName, underlyingType), nil
+	case AttributeString:
+		return "ptr[in, string]", nil
+	case AttributeArray:
+		pointeeType, isPtr := resolvesToPtr(field.dwarfType)
+		if !isPtr {
+			return "", fmt.Errorf("can only annotate pointer fields are arrays")
+		}
+		// TODO: discards const qualifier.
+		typeDesc, err := dwarfToSyzlangType(pointeeType, false)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("ptr[in, array[%s]]", typeDesc), nil
+	default:
+		return "", fmt.Errorf("unsupported attribute type")
+	}
+}
+
+// Returns true iff `dwarfType` resolved down to a pointer. For example,
+// a `const *void` which isn't directly a pointer.
+func resolvesToPtr(dwarfType dwarf.Type) (dwarf.Type, bool) {
+	switch t := dwarfType.(type) {
+	case *dwarf.QualType:
+		return resolvesToPtr(t.Type)
+	case *dwarf.PtrType:
+		return t.Type, true
+	}
+	return nil, false
 }
 
 func syzFuncToSyzlang(s SyzFunc) string {
+	var builder strings.Builder
 	typeName := strings.TrimPrefix(s.InputStructName, "struct ")
 
-	out := fmt.Sprintf("syz_kfuzztest_run$%s(", s.Name)
-	out += fmt.Sprintf("name ptr[in, string[\"%s\"]], ", s.Name)
-	out += fmt.Sprintf("data ptr[in, %s], ", typeName)
-	out += "len bytesize[data])"
+	fmt.Fprintf(&builder, "syz_kfuzztest_run$%s(", s.Name)
+	fmt.Fprintf(&builder, "name ptr[in, string[\"%s\"]], ", s.Name)
+	fmt.Fprintf(&builder, "data ptr[in, %s], ", typeName)
+	builder.WriteString("len bytesize[data])")
 	// TODO:(ethangraham) The only other way I can think of getting this name
 	// would involve using the "reflect" package and matching against the
 	// KFuzzTest name, which isn't much better than hardcoding this.
-	out += "(kfuzz_test)"
-
-	return out
+	builder.WriteString("(kfuzz_test)")
+	return builder.String()
 }
 
-func syzConstraintToSyzlang(c SyzConstraint) string {
-	switch c.ConstraintType {
-	case ExpectEq:
-		return fmt.Sprintf("[%d]", c.Value1)
-	case ExpectLt:
-		return fmt.Sprintf("[0:%d]", c.Value1-1)
-	case ExpectLe:
-		return fmt.Sprintf("[0:%d]", c.Value1)
-	case ExpectGt:
-		return fmt.Sprintf("[%d]", c.Value1+1)
-	case ExpectGe:
-		return fmt.Sprintf("[%d]", c.Value1)
-	case ExpectInRange:
-		return fmt.Sprintf("[%d:%d]", c.Value1, c.Value2)
+// Given a dwarf type, returns a syzlang string representation of this type.
+func dwarfToSyzlangType(dwarfType dwarf.Type, isConst bool) (string, error) {
+	var dir string
+	if isConst {
+		dir = "in"
+	} else {
+		dir = "inout"
+	}
+	switch t := dwarfType.(type) {
+	case *dwarf.PtrType:
+		underlyingType, err := dwarfToSyzlangType(t.Type, false)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("ptr[%s, %s]", dir, underlyingType), nil
+	case *dwarf.QualType:
+		if t.Qual == "const" {
+			return dwarfToSyzlangType(t.Type, true)
+		} else {
+			return "", fmt.Errorf("no support for %s qualifier", t.Qual)
+		}
+	case *dwarf.ArrayType:
+		underlyingType, err := dwarfToSyzlangType(t.Type, false)
+		if err != nil {
+			return "", err
+		}
+		// If t.Count == -1 then this is a varlen array as per debug/dwarf
+		// documentation.
+		if t.Count == -1 {
+			return fmt.Sprintf("array[%s]", underlyingType), nil
+		} else {
+			return fmt.Sprintf("array[%s, %d]", underlyingType, t.Count), nil
+		}
+	case *dwarf.TypedefType:
+		return dwarfToSyzlangType(t.Type, isConst)
+	case *dwarf.IntType, *dwarf.UintType:
+		numBits := t.Size() * 8
+		return fmt.Sprintf("int%d", numBits), nil
+	case *dwarf.CharType, *dwarf.UcharType:
+		return "int8", nil
+	// `void` isn't a valid type by itself, so we know that it would have
+	// been wrapped in a pointer, e.g., `void *`. For this reason, we can return
+	// just interpret it as a byte, i.e., int8.
+	case *dwarf.VoidType:
+		return "int8", nil
+	case *dwarf.StructType:
+		return strings.TrimPrefix(t.StructName, "struct "), nil
 	default:
-		return ""
-	}
-}
-
-func isArray(typeName string) (bool, string) {
-	re := regexp.MustCompile(`^\[(\d+)\]([a-zA-Z]+)$`)
-	matches := re.FindStringSubmatch(typeName)
-	if len(matches) == 0 {
-		return false, ""
-	}
-	return true, fmt.Sprintf("array[%s, %s]", dwarfToSyzlangType(matches[2]), matches[1])
-}
-
-func dwarfToSyzlangType(typeName string) string {
-	if after, ok := strings.CutPrefix(typeName, "struct "); ok {
-		return after
-	}
-
-	if after, ok := strings.CutPrefix(typeName, "*const struct"); ok {
-		return fmt.Sprintf("ptr[in, %s]", after)
-	} else if after, ok := strings.CutPrefix(typeName, "*struct"); ok {
-		return fmt.Sprintf("ptr[inout, %s]", after)
-	}
-
-	isArr, arr := isArray(typeName)
-	if isArr {
-		return arr
-	}
-
-	switch typeName {
-	case "long unsigned int", "long int", "size_t":
-		return "int64"
-	case "int", "unsigned int":
-		return "int32"
-	case "char":
-		return "int8"
-	case "__u16":
-		return "int16"
-	case "*const char", "*const void", "*const unsigned char":
-		return "ptr[in, array[int8]]" // const pointers are read-only
-	case "*char", "*void":
-		return "ptr[inout, array[int8]]"
-	default:
-		return typeName
+		return "", fmt.Errorf("unsupported type %s", dwarfType.String())
 	}
 }

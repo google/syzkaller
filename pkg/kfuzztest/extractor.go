@@ -279,6 +279,10 @@ func (e *Extractor) dwarfGetType(entry *dwarf.Entry) (dwarf.Type, error) {
 	return e.dwarfData.Type(typeOffset)
 }
 
+// extractStructs extracts input structure metadata from discovered KFuzzTest
+// targets (funcs).
+// Performs a tree-traversal as all struct types need to be defined in the
+// resulting description that is emitted by the builder.
 func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 	// Set of input map names so that we can skip over entries that aren't
 	// interesting.
@@ -311,9 +315,9 @@ func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 	var visitRecur func(*dwarf.StructType, *map[string]bool)
 	visited := make(map[string]bool)
 	visitRecur = func(start *dwarf.StructType, visited *map[string]bool) {
-		newStruct := SyzStruct{Name: start.StructName, Fields: make([]SyzField, 0)}
+		newStruct := SyzStruct{dwarfType: start, Name: start.StructName, Fields: make([]SyzField, 0)}
 		for _, child := range start.Field {
-			newField := SyzField{Name: child.Name, TypeName: child.Type.String()}
+			newField := SyzField{Name: child.Name, dwarfType: child.Type}
 			newStruct.Fields = append(newStruct.Fields, newField)
 			switch childType := child.Type.(type) {
 			case *dwarf.StructType:
@@ -344,14 +348,14 @@ func (e *Extractor) extractStructs(funcs []SyzFunc) ([]SyzStruct, error) {
 		if err != nil {
 			return nil, err
 		}
-		// EOF
+		// EOF.
 		if entry == nil {
 			break
 		}
 		if entry.Tag != dwarf.TagStructType {
 			continue
 		}
-		// skip over unnamed structures
+		// Skip over unnamed structures.
 		nameField := entry.AttrField(dwarf.AttrName)
 		if nameField == nil {
 			continue
