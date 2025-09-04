@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -181,13 +182,20 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 			Store:              store,
 			MaxTriageTime:      timeout / 2,
 			FuzzToReachPatched: fuzzToReachPatched(config),
-			BaseCrashKnown: func(ctx context.Context, title string) (bool, error) {
+			IgnoreCrash: func(ctx context.Context, title string) (bool, error) {
+				if !titleMatchesFilter(config, title) {
+					log.Logf(1, "crash %q doesn't match the filter", title)
+					return true, nil
+				}
 				ret, err := client.BaseFindingStatus(ctx, &api.BaseFindingInfo{
 					BuildID: *flagBaseBuild,
 					Title:   title,
 				})
 				if err != nil {
 					return false, err
+				}
+				if ret.Observed {
+					log.Logf(1, "crash %q is already known", title)
 				}
 				return ret.Observed, nil
 			},
@@ -386,6 +394,18 @@ func shouldSkipFuzzing(base, patched build.SectionHashes) bool {
 	}
 	log.Logf(0, "binaries are different, continuing fuzzing")
 	return false
+}
+
+func titleMatchesFilter(config *api.FuzzConfig, title string) bool {
+	if config.BugTitleRe == "" {
+		// No filter configured, so accept everything.
+		return true
+	}
+	matched, err := regexp.MatchString(config.BugTitleRe, title)
+	if err != nil {
+		app.Fatalf("invalid BugTitleRe regexp: %v", err)
+	}
+	return matched
 }
 
 func readSymbolHashes() (base, patched build.SectionHashes, err error) {
