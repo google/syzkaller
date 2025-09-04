@@ -90,6 +90,7 @@ public:
 	uint32 slowdown = 0;
 	uint32 syscall_timeout_ms = 0;
 	uint32 program_timeout_ms = 0;
+	uint32 proc_restart_freq = 0;
 
 private:
 	friend std::ostream& operator<<(std::ostream& ss, const ProcOpts& opts)
@@ -98,7 +99,8 @@ private:
 		   << " is_kernel_64_bit=" << opts.is_kernel_64_bit
 		   << " slowdown=" << opts.slowdown
 		   << " syscall_timeout_ms=" << opts.syscall_timeout_ms
-		   << " program_timeout_ms=" << opts.program_timeout_ms;
+		   << " program_timeout_ms=" << opts.program_timeout_ms
+		   << " proc_restart_freq=" << opts.proc_restart_freq;
 		return ss;
 	}
 };
@@ -140,8 +142,7 @@ public:
 			wait_end_ = current_time_ms();
 		// Restart every once in a while to not let too much state accumulate.
 		// Also request if request type differs as it affects program timeout.
-		constexpr uint64 kRestartEvery = 600;
-		if (state_ == State::Idle && ((corpus_triaged_ && restarting_ == 0 && freshness_ >= kRestartEvery) ||
+		if (state_ == State::Idle && ((corpus_triaged_ && restarting_ == 0 && freshness_ >= opts_.proc_restart_freq) ||
 					      req_type_ != msg.type ||
 					      exec_env_ != msg.exec_opts->env_flags() || sandbox_arg_ != msg.exec_opts->sandbox_arg()))
 			Restart();
@@ -662,10 +663,10 @@ private:
 		if (conn_reply.debug)
 			flag_debug = true;
 		debug("connected to manager: procs=%d cover_edges=%d kernel_64_bit=%d slowdown=%d syscall_timeout=%u"
-		      " program_timeout=%u features=0x%llx\n",
+		      " program_timeout=%u proc_restart_freq=%d features=0x%llx\n",
 		      conn_reply.procs, conn_reply.cover_edges, conn_reply.kernel_64_bit,
 		      conn_reply.slowdown, conn_reply.syscall_timeout_ms,
-		      conn_reply.program_timeout_ms, static_cast<uint64>(conn_reply.features));
+		      conn_reply.program_timeout_ms, conn_reply.proc_restart_freq, static_cast<uint64>(conn_reply.features));
 		leak_frames_ = conn_reply.leak_frames;
 
 		proc_opts_.use_cover_edges = conn_reply.cover_edges;
@@ -673,6 +674,9 @@ private:
 		proc_opts_.slowdown = conn_reply.slowdown;
 		proc_opts_.syscall_timeout_ms = conn_reply.syscall_timeout_ms;
 		proc_opts_.program_timeout_ms = conn_reply.program_timeout_ms;
+		proc_opts_.proc_restart_freq = conn_reply.proc_restart_freq;
+		if (proc_opts_.proc_restart_freq == 0)
+			fail("invalid proc_restart_freq value");
 		if (conn_reply.cover)
 			max_signal_.emplace();
 

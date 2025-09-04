@@ -875,6 +875,13 @@ var progSimplifies = []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
+		if opts.ProcRestartFreq == 0 {
+			return false
+		}
+		opts.ProcRestartFreq = 0
+		return true
+	},
+	func(opts *csource.Options) bool {
 		if opts.Procs == 1 {
 			return false
 		}
