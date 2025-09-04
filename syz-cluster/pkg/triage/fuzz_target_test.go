@@ -11,33 +11,23 @@ import (
 )
 
 func TestSelectFuzzConfig(t *testing.T) {
-	configs := []*api.TriageFuzzConfig{
-		{
-			EmailLists: []string{"bpf@list"},
-			FuzzConfig: api.FuzzConfig{Config: "bpf"},
-		},
-		{
-			EmailLists: []string{"net@list"},
-			FuzzConfig: api.FuzzConfig{Config: "net"},
-		},
-		{
-			EmailLists: nil,
-			FuzzConfig: api.FuzzConfig{Config: "mainline"},
-		},
-	}
+	bpf := &api.FuzzTriageTarget{EmailLists: []string{"bpf@list"}}
+	net := &api.FuzzTriageTarget{EmailLists: []string{"net@list"}}
+	mainline := &api.FuzzTriageTarget{EmailLists: nil}
+	configs := []*api.FuzzTriageTarget{bpf, net, mainline}
 	tests := []struct {
 		testName string
-		result   string
+		result   *api.FuzzTriageTarget
 		series   *api.Series
 	}{
 		{
 			testName: "select-first",
-			result:   "bpf",
+			result:   bpf,
 			series:   &api.Series{Cc: []string{"bpf@list", "net@list"}},
 		},
 		{
 			testName: "fallback",
-			result:   "mainline",
+			result:   mainline,
 			series:   &api.Series{Cc: []string{"unknown@list"}},
 		},
 	}
@@ -45,7 +35,7 @@ func TestSelectFuzzConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			ret := SelectFuzzConfig(test.series, configs)
-			assert.Equal(t, test.result, ret.Config)
+			assert.Equal(t, test.result, ret)
 		})
 	}
 }
