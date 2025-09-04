@@ -52,11 +52,11 @@ type DiffFuzzerConfig struct {
 	// trying to reach the modified code. The time is counted since the moment
 	// 99% of the corpus is triaged.
 	FuzzToReachPatched time.Duration
-	// The callback may be used to consult external systems on whether the
-	// base kernel has ever crashed with the given title.
-	// It may help reduce the false positive rate and prevent unnecessary
-	// bug reproductions.
-	BaseCrashKnown func(context.Context, string) (bool, error)
+	// The callback may be used to consult external systems on whether
+	// the crash should be ignored. E.g. because it doesn't match the filter or
+	// the particular base kernel has already been seen to crash with the given title.
+	// It helps reduce the number of unnecessary reproductions.
+	IgnoreCrash func(context.Context, string) (bool, error)
 }
 
 func (cfg *DiffFuzzerConfig) TriageDeadline() <-chan time.Time {
@@ -198,10 +198,11 @@ loop:
 
 			// A sanity check: the base kernel might have crashed with the same title
 			// since the moment we have stared the reproduction / running on the repro base.
-			crashesOnBase := dc.everCrashedBase(ctx, ret.reproReport.Title)
-			if ret.crashReport == nil && crashesOnBase {
+			ignored := dc.ignoreCrash(ctx, ret.reproReport.Title)
+			if ret.crashReport == nil && ignored {
 				// Report it as error so that we could at least find it in the logs.
-				log.Errorf("repro didn't crash base, but base itself crashed: %s", ret.reproReport.Title)
+				log.Errorf("resulting crash of an approved repro result is to be ignored: %s",
+					ret.reproReport.Title)
 			} else if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.reproReport.Title)
 				select {
@@ -260,20 +261,20 @@ loop:
 	return g.Wait()
 }
 
-func (dc *diffContext) everCrashedBase(ctx context.Context, title string) bool {
+func (dc *diffContext) ignoreCrash(ctx context.Context, title string) bool {
 	if dc.store.EverCrashedBase(title) {
 		return true
 	}
 	// Let's try to ask the external systems about it as well.
-	if dc.cfg.BaseCrashKnown != nil {
-		known, err := dc.cfg.BaseCrashKnown(ctx, title)
+	if dc.cfg.IgnoreCrash != nil {
+		ignore, err := dc.cfg.IgnoreCrash(ctx, title)
 		if err != nil {
-			log.Logf(0, "a call to BaseCrashKnown failed: %v", err)
+			log.Logf(0, "a call to IgnoreCrash failed: %v", err)
 		} else {
-			if known {
-				log.Logf(0, "base crash %q is already known", title)
+			if ignore {
+				log.Logf(0, "base crash %q is to be ignored", title)
 			}
-			return known
+			return ignore
 		}
 	}
 	return false
@@ -382,7 +383,7 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	if dc.everCrashedBase(ctx, crash.Title) {
+	if dc.ignoreCrash(ctx, crash.Title) {
 		return false
 	}
 	if dc.reproAttempts[crash.Title] > maxReproAttempts {
