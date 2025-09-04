@@ -63,7 +63,9 @@ spec:
 
           data = json.loads('''{{inputs.parameters.response}}''')
           unique_kernel_configs = sorted(list(set(
-              config["kernel_config"] for config in data.get("fuzz_configs", [])
+              campaign["kernel_config"]
+              for fuzz_config in data.get("fuzz_targets", [])
+              for campaign in fuzz_config.get("campaigns", [])
           )))
           build_requests = []
           for tree in data.get("trees", []):
