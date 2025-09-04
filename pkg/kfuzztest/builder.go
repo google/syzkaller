@@ -4,6 +4,7 @@ package kfuzztest
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -62,6 +63,8 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 			descBuilder.WriteString("\n")
 		}
 	}
+
+	fmt.Println(descBuilder.String())
 
 	// Format the output syzlang descriptions.
 	var astError error
@@ -163,6 +166,15 @@ func syzConstraintToSyzlang(c SyzConstraint) string {
 	}
 }
 
+func isArray(typeName string) (bool, string) {
+	re := regexp.MustCompile(`^\[(\d+)\]([a-zA-Z]+)$`)
+	matches := re.FindStringSubmatch(typeName)
+	if len(matches) == 0 {
+		return false, ""
+	}
+	return true, fmt.Sprintf("array[%s, %s]", dwarfToSyzlangType(matches[2]), matches[1])
+}
+
 func dwarfToSyzlangType(typeName string) string {
 	if after, ok := strings.CutPrefix(typeName, "struct "); ok {
 		return after
@@ -174,10 +186,15 @@ func dwarfToSyzlangType(typeName string) string {
 		return fmt.Sprintf("ptr[inout, %s]", after)
 	}
 
+	isArr, arr := isArray(typeName)
+	if isArr {
+		return arr
+	}
+
 	switch typeName {
-	case "long unsigned int", "size_t":
+	case "long unsigned int", "long int", "size_t":
 		return "int64"
-	case "int":
+	case "int", "unsigned int":
 		return "int32"
 	case "char":
 		return "int8"
@@ -185,7 +202,7 @@ func dwarfToSyzlangType(typeName string) string {
 		return "int16"
 	case "*const char", "*const void", "*const unsigned char":
 		return "ptr[in, array[int8]]" // const pointers are read-only
-	case "*char":
+	case "*char", "*void":
 		return "ptr[inout, array[int8]]"
 	default:
 		return typeName
