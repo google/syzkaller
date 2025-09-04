@@ -10,7 +10,7 @@ type TriageResult struct {
 	// If set, ignore the patch series completely.
 	SkipReason string `json:"skip_reason"`
 	// Fuzzing configuration to try (NULL if nothing).
-	Fuzz *FuzzTask `json:"fuzz"`
+	Fuzz []*FuzzTask `json:"fuzz"`
 }
 
 // The data layout faclitates the simplicity of the workflow definition.
@@ -22,10 +22,13 @@ type FuzzTask struct {
 
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 type FuzzConfig struct {
+	Suffix    string `json:"suffix"` // E.g. KASAN.
 	Config    string `json:"config"` // Refers to workflow/configs/{}.
 	CorpusURL string `json:"corpus_url"`
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check"`
+	// Only report the bugs that match the regexp.
+	BugTitleRe string `json:"bug_title_re"`
 }
 
 // The triage step of the workflow will request these from controller.
@@ -36,10 +39,16 @@ type Tree struct {
 	EmailLists []string `json:"email_lists"`
 }
 
-// TriageFuzzConfig is a single record in the list of supported fuzz configs.
-type TriageFuzzConfig struct {
-	EmailLists   []string `json:"email_lists"`
-	KernelConfig string   `json:"kernel_config"`
+// FuzzTriageTarget is a single record in the list of supported fuzz configs.
+type FuzzTriageTarget struct {
+	EmailLists []string            `json:"email_lists"`
+	Campaigns  []*KernelFuzzConfig `json:"campaigns"`
+}
+
+// KernelFuzzConfig is a specific fuzzing assignment.
+// Based on it, the triage step will construct FuzzTasks.
+type KernelFuzzConfig struct {
+	KernelConfig string `json:"kernel_config"`
 	FuzzConfig
 }
 
@@ -228,30 +237,50 @@ const (
 	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
 )
 
+const (
+	kasanSuffix = " [KASAN]"
+	kmsanSuffix = " [KMSAN]"
+)
+
 // The list is ordered by decreasing importance.
-var FuzzConfigs = []*TriageFuzzConfig{
+var FuzzTargets = []*FuzzTriageTarget{
 	{
-		EmailLists:   []string{`kvm@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `kvm`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`kvm@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `kvm`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`io-uring@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `io-uring`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`io-uring@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `io-uring`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`bpf@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `bpf`,
-			CorpusURL: bpfCorpusURL,
+		EmailLists: []string{`bpf@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `bpf`,
+					CorpusURL: bpfCorpusURL,
+				},
+			},
 		},
 	},
 	{
@@ -260,10 +289,24 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`netfilter-devel@vger.kernel.org`,
 			`linux-wireless@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `net`,
-			CorpusURL: netCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `net`,
+					CorpusURL: netCorpusURL,
+				},
+			},
+			{
+				KernelConfig: `upstream-kmsan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:     kmsanSuffix,
+					Config:     `net`,
+					CorpusURL:  netCorpusURL,
+					BugTitleRe: `^KMSAN:`,
+				},
+			},
 		},
 	},
 	{
@@ -273,28 +316,43 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`linux-unionfs@vger.kernel.org`,
 			`linux-ext4@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `fs`,
-			CorpusURL: fsCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `fs`,
+					CorpusURL: fsCorpusURL,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`linux-mm@kvack.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
-			// Not all mm/ code is instrumented with KCOV.
-			SkipCoverCheck: true,
+		EmailLists: []string{`linux-mm@kvack.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `all`,
+					CorpusURL: allCorpusURL,
+					// Not all mm/ code is instrumented with KCOV.
+					SkipCoverCheck: true,
+				},
+			},
 		},
 	},
 	{
-		EmailLists:   nil, // A fallback option.
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
+		EmailLists: nil, // A fallback option.
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:    kasanSuffix,
+					Config:    `all`,
+					CorpusURL: allCorpusURL,
+				},
+			},
 		},
 	},
 }

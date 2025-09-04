@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -116,4 +117,14 @@ func TestShouldSkipFuzzing(t *testing.T) {
 			},
 		))
 	})
+}
+
+func TestBugTitleRe(t *testing.T) {
+	assert.True(t, titleMatchesFilter(&api.FuzzConfig{}, "any title must match"))
+	assert.True(t, titleMatchesFilter(&api.FuzzConfig{
+		BugTitleRe: `^Prefix:`,
+	}, "Prefix: must pass"))
+	assert.False(t, titleMatchesFilter(&api.FuzzConfig{
+		BugTitleRe: `^Prefix:`,
+	}, "Without prefix"))
 }
