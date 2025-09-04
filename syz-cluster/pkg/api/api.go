@@ -237,7 +237,10 @@ const (
 	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
 )
 
-const kasanSuffix = " [KASAN]"
+const (
+	kasanSuffix = " [KASAN]"
+	kmsanSuffix = " [KMSAN]"
+)
 
 // The list is ordered by decreasing importance.
 var FuzzTargets = []*FuzzTriageTarget{
@@ -293,6 +296,15 @@ var FuzzTargets = []*FuzzTriageTarget{
 					Suffix:    kasanSuffix,
 					Config:    `net`,
 					CorpusURL: netCorpusURL,
+				},
+			},
+			{
+				KernelConfig: `upstream-kmsan.config`,
+				FuzzConfig: FuzzConfig{
+					Suffix:     kmsanSuffix,
+					Config:     `net`,
+					CorpusURL:  netCorpusURL,
+					BugTitleRe: `^KMSAN:`,
 				},
 			},
 		},
