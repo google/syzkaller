@@ -508,7 +508,10 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*PointerArg)
-	if r.oneOf(1000) {
+	// Do not generate special pointers for KFuzzTest calls, as they are
+	// difficult to identify in the kernel and can lead to false positive
+	// crash reports.
+	if r.oneOf(1000) && !r.currCall.Meta.Attrs.KFuzzTest {
 		removeArg(a.Res)
 		index := r.rand(len(r.target.SpecialPointers))
 		newArg := MakeSpecialPointerArg(t, a.Dir(), index)
