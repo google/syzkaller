@@ -59,6 +59,7 @@ type KernelFuzzConfig struct {
 	CorpusURL      string   `json:"corpus_url"`
 	SkipCoverCheck bool     `json:"skip_cover_check"`
 	BugTitleRe     string   `json:"bug_title_re"`
+	KMSAN          bool     `json:"kmsan"` // Trigger the config changes necessary for KMSAN.
 }
 
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
@@ -252,7 +253,10 @@ const (
 	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 )
 
-const kasanTrack = "KASAN"
+const (
+	kasanTrack = "KASAN"
+	kmsanTrack = "KMSAN"
+)
 
 // The list is ordered by decreasing importance.
 var FuzzTargets = []*FuzzTriageTarget{
@@ -301,6 +305,13 @@ var FuzzTargets = []*FuzzTriageTarget{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				Focus:        FocusNet,
 				CorpusURL:    netCorpusURL,
+			},
+			{
+				Track:        kmsanTrack,
+				KernelConfig: `upstream-kmsan.config`,
+				Focus:        FocusNet,
+				CorpusURL:    netCorpusURL,
+				KMSAN:        true,
 			},
 		},
 	},
