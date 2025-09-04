@@ -26,6 +26,8 @@ type FuzzConfig struct {
 	CorpusURL string `json:"corpus_url"`
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check"`
+	// Only report the bugs that match the regexp.
+	BugTitleRe string `json:"bug_title_re"`
 }
 
 // The triage step of the workflow will request these from controller.
