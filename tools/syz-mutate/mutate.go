@@ -14,22 +14,25 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
 
 var (
-	flagOS       = flag.String("os", runtime.GOOS, "target os")
-	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
-	flagSeed     = flag.Int("seed", -1, "prng seed")
-	flagLen      = flag.Int("len", prog.RecommendedCalls, "number of calls in programs")
-	flagEnable   = flag.String("enable", "", "comma-separated list of enabled syscalls")
-	flagCorpus   = flag.String("corpus", "", "name of the corpus file")
-	flagHintCall = flag.Int("hint-call", -1, "mutate the specified call with hints in hint-src/cmp flags")
-	flagHintSrc  = flag.Uint64("hint-src", 0, "compared value in the program")
-	flagHintCmp  = flag.Uint64("hint-cmp", 0, "compare operand in the kernel")
-	flagStrict   = flag.Bool("strict", true, "parse input program in strict mode")
+	flagOS        = flag.String("os", runtime.GOOS, "target os")
+	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
+	flagSeed      = flag.Int("seed", -1, "prng seed")
+	flagLen       = flag.Int("len", prog.RecommendedCalls, "number of calls in programs")
+	flagEnable    = flag.String("enable", "", "comma-separated list of enabled syscalls")
+	flagCorpus    = flag.String("corpus", "", "name of the corpus file")
+	flagHintCall  = flag.Int("hint-call", -1, "mutate the specified call with hints in hint-src/cmp flags")
+	flagHintSrc   = flag.Uint64("hint-src", 0, "compared value in the program")
+	flagHintCmp   = flag.Uint64("hint-cmp", 0, "compare operand in the kernel")
+	flagStrict    = flag.Bool("strict", true, "parse input program in strict mode")
+	flagVmlinux   = flag.String("vmlinux", "vmlinux", "path to vmlinux binary (required for dynamically discovered calls")
+	flagKFuzzTest = flag.Bool("kfuzztest", false, "extract KFuzzTest targets from vmlinux (depends on flagVmlinux)")
 )
 
 func main() {
@@ -38,6 +41,13 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
+	}
+	if *flagKFuzzTest {
+		_, err = kfuzztest.ActivateKFuzzTargets(target, *flagVmlinux)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
 	}
 	var syscalls map[*prog.Syscall]bool
 	if *flagEnable != "" {

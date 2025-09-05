@@ -88,6 +88,14 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 }
 
 func (w *execContext) serializeCall(c *Call) {
+	// We introduce special serialization logic for kfuzztest targets, which
+	// require special handling due to their use of relocation tables to copy
+	// entire blobs of data into the kenrel.
+	if c.Meta.Attrs.KFuzzTest {
+		w.serializeKFuzzTestCall(c)
+		return
+	}
+
 	// Calculate arg offsets within structs.
 	// Generate copyin instructions that fill in data into pointer arguments.
 	w.writeCopyin(c)
@@ -117,6 +125,57 @@ func (w *execContext) serializeCall(c *Call) {
 
 	// Generate copyout instructions that persist interesting return values.
 	w.writeCopyout(c)
+}
+
+// KFuzzTest targets require special handling due to their use of relocation
+// tables for serializing all data (including pointed-to data) into a
+// continuous blob that can be passed into the kernel.
+func (w *execContext) serializeKFuzzTestCall(c *Call) {
+	if !c.Meta.Attrs.KFuzzTest {
+		// This is a specialized function that shouldn't be called on anything
+		// other than an instance of a syz_kfuzztest_run$* syscall
+		panic("serializeKFuzzTestCall called on an invalid syscall")
+	}
+
+	// Write the initial string argument (test name) normally.
+	w.writeCopyin(&Call{Meta: c.Meta, Args: []Arg{c.Args[0]}})
+
+	// Args[1] is the second argument to syz_kfuzztest_run, which is a pointer
+	// to some struct input. This is the data that must be flattened and sent
+	// to the fuzzing driver with a relocation table.
+	dataArg := c.Args[1].(*PointerArg)
+	finalBlob := MarshallKFuzztestArg(dataArg.Res)
+
+	// Reuse the memory address that was pre-allocated for the original struct
+	// argument. This avoids needing to hook into the memory allocation which
+	// is done at a higher level than the serialization. This relies on the
+	// original buffer being large enough
+	blobAddress := w.target.PhysicalAddr(dataArg) - w.target.DataOffset
+
+	// Write the entire marshalled blob as a raw byte array.
+	w.write(execInstrCopyin)
+	w.write(blobAddress)
+	w.write(execArgData)
+	w.write(uint64(len(finalBlob)))
+	w.buf = append(w.buf, finalBlob...)
+
+	// Update the value of the length arg which should now match the length of
+	// the byte array that we created. Previously, it contained the bytesize
+	// of the struct argument passed into the pseudo-syscall.
+	lenArg := c.Args[2].(*ConstArg)
+	lenArg.Val = uint64(len(finalBlob))
+
+	// Generate the final syscall instruction with the update arguments.
+	kFuzzTestRunID, err := w.target.KFuzzTestRunID()
+	if err != nil {
+		panic(err)
+	}
+	w.write(uint64(kFuzzTestRunID))
+	w.write(ExecNoCopyout)
+	w.write(uint64(len(c.Args)))
+	for _, arg := range c.Args {
+		w.writeArg(arg)
+	}
 }
 
 type execContext struct {

@@ -105,6 +105,7 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_socket_connect_nvme_tcp": linuxSyzSocketConnectNvmeTCPSupported,
 	"syz_pidfd_open":              alwaysSupported,
 	"syz_create_resource":         alwaysSupported,
+	"syz_kfuzztest_run":           linuxSyzKFuzzTestRunSupported,
 }
 
 func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
@@ -313,6 +314,13 @@ func linuxBtfVmlinuxSupported(ctx *checkContext, call *prog.Syscall) string {
 
 func linuxSyzUsbIPSupported(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.canWrite("/sys/devices/platform/vhci_hcd.0/attach")
+}
+
+func linuxSyzKFuzzTestRunSupported(ctx *checkContext, call *prog.Syscall) string {
+	if ctx.target.Arch == targets.AMD64 && ctx.target.OS == targets.Linux {
+		return ""
+	}
+	return "arch doesn't support syz_kfuzztest_run"
 }
 
 func linuxWifiEmulationSupported(ctx *checkContext, call *prog.Syscall) string {

@@ -127,6 +127,17 @@ func AllTargets() []*Target {
 	return res
 }
 
+// Extend extends a target with a new set of syscalls, types, and resources.
+// It is assumed that all new syscalls, types, and resources do not conflict
+// with those already present in the target.
+func (target *Target) Extend(syscalls []*Syscall, types []Type, resources []*ResourceDesc) {
+	target.Syscalls = append(target.Syscalls, syscalls...)
+	target.Types = append(target.Types, types...)
+	target.Resources = append(target.Resources, resources...)
+	// Updates the system call map and restores any links.
+	target.initTarget()
+}
+
 func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
@@ -135,6 +146,10 @@ func (target *Target) lazyInit() {
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
+	// We ignore the return value here as they are cached, and it makes more
+	// sense to react to them when we attempt to execute a KFuzzTest call.
+	_, _ = target.KFuzzTestRunID()
+
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
 		0x0000000000000000, // NULL pointer (keep this first because code uses special index=0 as NULL)
@@ -153,8 +168,6 @@ func (target *Target) lazyInit() {
 			panic(fmt.Sprintf("bad special file length %v", ln))
 		}
 	}
-	// These are used only during lazyInit.
-	target.Types = nil
 }
 
 func (target *Target) initTarget() {
@@ -521,4 +534,25 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	p := pg.p
 	pg.p = nil
 	return p, nil
+}
+
+var kFuzzTestIDCache struct {
+	sync.Once
+	id  int
+	err error
+}
+
+// KFuzzTestRunID returns the ID for the syz_kfuzztest_run pseudo-syscall,
+// or an error if it is not found in the target.
+func (t *Target) KFuzzTestRunID() (int, error) {
+	kFuzzTestIDCache.Do(func() {
+		for _, call := range t.Syscalls {
+			if call.Attrs.KFuzzTest {
+				kFuzzTestIDCache.id = call.ID
+				return
+			}
+		}
+		kFuzzTestIDCache.err = fmt.Errorf("could not find ID for syz_kfuzztest_run - does it exist?")
+	})
+	return kFuzzTestIDCache.id, kFuzzTestIDCache.err
 }

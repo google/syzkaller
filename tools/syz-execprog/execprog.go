@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
+	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -54,6 +55,8 @@ var (
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
 	flagGlob       = flag.String("glob", "", "run glob expansion request")
+	flagVmlinux    = flag.String("vmlinux", "vmlinux", "path to vmlinux binary (required for dynamically discovered calls")
+	flagKFuzzTest  = flag.Bool("kfuzztest", false, "extract KFuzzTest targets from vmlinux (depends on flagVmlinux)")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,
@@ -92,6 +95,13 @@ func main() {
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		tool.Fail(err)
+	}
+
+	if *flagKFuzzTest {
+		_, err = kfuzztest.ActivateKFuzzTargets(target, *flagVmlinux)
+		if err != nil {
+			tool.Fail(err)
+		}
 	}
 
 	featureFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
