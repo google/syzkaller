@@ -20,7 +20,6 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/kcov"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
