@@ -72,7 +72,7 @@ func makeArgFinder(t *Target, c *Call, unionArg *UnionArg, parents parentStack) 
 }
 
 func (r *randGen) patchConditionalFields(c *Call, s *state) (extra []*Call, changed bool) {
-	if r.patchConditionalDepth > 1 {
+	if r.patchConditionalDepth > 1 && !r.EnforceDeps {
 		// Some nested patchConditionalFields() calls are fine as we could trigger a resource
 		// constructor via generateArg(). But since nested createResource() calls are prohibited,
 		// patchConditionalFields() should never be nested more than 2 times.
