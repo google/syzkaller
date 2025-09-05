@@ -56,7 +56,7 @@ var (
 	flagUnsafe     = flag.Bool("unsafe", false, "use unsafe program deserialization mode")
 	flagGlob       = flag.String("glob", "", "run glob expansion request")
 	flagVmlinux    = flag.String("vmlinux", "vmlinux", "path to vmlinux binary (required for dynamically discovered calls")
-	flagKFuzzTest  = flag.Bool("kfuzztest", false, "search for kfuzztest targets in vmlinux binary (depends on flag vmlinux)")
+	flagKFuzzTest  = flag.Bool("kfuzztest", false, "extract KFuzzTest targets from vmlinux (depends on flagVmlinux)")
 
 	// The in the stress mode resembles simple unguided fuzzer.
 	// This mode can be used as an intermediate step when porting syzkaller to a new OS,

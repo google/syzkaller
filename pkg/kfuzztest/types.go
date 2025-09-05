@@ -25,45 +25,45 @@ type parsableFromBytes interface {
 	endSymbol() string
 }
 
-type kftfTestCase struct {
+type kfuzztestTarget struct {
 	name    uint64
 	argType uint64
 	writeCb uint64
 	readCb  uint64
 }
 
-const kftfSectionStart string = "__kfuzztest_targets_start"
-const kftfSectionEnd string = "__kfuzztest_targets_end"
-const kfuzzTestSize uint64 = 32
+const kfuzztestTargetStart string = "__kfuzztest_targets_start"
+const kfuzztestTargetEnd string = "__kfuzztest_targets_end"
+const kfuzztestTargetSize uint64 = 32
 
 func incorrectByteSizeErr(expected, actual uint64) error {
 	return fmt.Errorf("incorrect number of bytes: expected %d, got %d", expected, actual)
 }
 
-func (tc *kftfTestCase) fromBytes(elfFile *elf.File, data []byte) error {
-	if tc.size() != uint64(len(data)) {
-		return incorrectByteSizeErr(tc.size(), uint64(len(data)))
+func (targ *kfuzztestTarget) fromBytes(elfFile *elf.File, data []byte) error {
+	if targ.size() != uint64(len(data)) {
+		return incorrectByteSizeErr(targ.size(), uint64(len(data)))
 	}
-	tc.name = elfFile.ByteOrder.Uint64(data[0:8])
-	tc.argType = elfFile.ByteOrder.Uint64(data[8:16])
-	tc.writeCb = elfFile.ByteOrder.Uint64(data[16:24])
-	tc.readCb = elfFile.ByteOrder.Uint64(data[24:32])
+	targ.name = elfFile.ByteOrder.Uint64(data[0:8])
+	targ.argType = elfFile.ByteOrder.Uint64(data[8:16])
+	targ.writeCb = elfFile.ByteOrder.Uint64(data[16:24])
+	targ.readCb = elfFile.ByteOrder.Uint64(data[24:32])
 	return nil
 }
 
-func (tc *kftfTestCase) size() uint64 {
-	return kfuzzTestSize
+func (targ *kfuzztestTarget) size() uint64 {
+	return kfuzztestTargetSize
 }
 
-func (tc *kftfTestCase) startSymbol() string {
-	return kftfSectionStart
+func (targ *kfuzztestTarget) startSymbol() string {
+	return kfuzztestTargetStart
 }
 
-func (tc *kftfTestCase) endSymbol() string {
-	return kftfSectionEnd
+func (targ *kfuzztestTarget) endSymbol() string {
+	return kfuzztestTargetEnd
 }
 
-type kftfConstraint struct {
+type kfuzztestConstraint struct {
 	inputType      uint64
 	fieldName      uint64
 	value1         uintptr
@@ -71,11 +71,11 @@ type kftfConstraint struct {
 	constraintType uint8
 }
 
-const kftfConstraintStart string = "__kfuzztest_constraints_start"
-const kftfConstraintEnd string = "__kfuzztest_constraints_end"
-const kftfConstraintSize uint64 = 64
+const kfuzztestConstraintStart string = "__kfuzztest_constraints_start"
+const kfuzztestConstraintEnd string = "__kfuzztest_constraints_end"
+const kfuzztestConstraintSize uint64 = 64
 
-func (c *kftfConstraint) fromBytes(elfFile *elf.File, data []byte) error {
+func (c *kfuzztestConstraint) fromBytes(elfFile *elf.File, data []byte) error {
 	if c.size() != uint64(len(data)) {
 		return incorrectByteSizeErr(c.size(), uint64(len(data)))
 	}
@@ -88,33 +88,33 @@ func (c *kftfConstraint) fromBytes(elfFile *elf.File, data []byte) error {
 	return nil
 }
 
-func (tc *kftfConstraint) size() uint64 {
-	return kftfConstraintSize
+func (c *kfuzztestConstraint) size() uint64 {
+	return kfuzztestConstraintSize
 }
 
-func (tc *kftfConstraint) startSymbol() string {
-	return kftfConstraintStart
+func (c *kfuzztestConstraint) startSymbol() string {
+	return kfuzztestConstraintStart
 }
 
-func (tc *kftfConstraint) endSymbol() string {
-	return kftfConstraintEnd
+func (c *kfuzztestConstraint) endSymbol() string {
+	return kfuzztestConstraintEnd
 }
 
-type kftfAnnotation struct {
+type kfuzztestAnnotation struct {
 	inputType           uint64
 	fieldName           uint64
 	linkedFieldName     uint64
 	annotationAttribute uint8
 }
 
-func (a *kftfAnnotation) fromBytes(elfFile *elf.File, data []byte) error {
+func (a *kfuzztestAnnotation) fromBytes(elfFile *elf.File, data []byte) error {
 	if a.size() != uint64(len(data)) {
 		return incorrectByteSizeErr(a.size(), uint64(len(data)))
 	}
 	a.inputType = elfFile.ByteOrder.Uint64(data[0:8])
 	a.fieldName = elfFile.ByteOrder.Uint64(data[8:16])
 	a.linkedFieldName = elfFile.ByteOrder.Uint64(data[16:24])
-	a.annotationAttribute = uint8(data[24])
+	a.annotationAttribute = data[24]
 	return nil
 }
 
@@ -122,14 +122,14 @@ const kftfAnnotationStart string = "__kfuzztest_annotations_start"
 const kftfAnnotationEnd string = "__kfuzztest_annotations_end"
 const kftfAnnotationSize uint64 = 32
 
-func (attrib *kftfAnnotation) size() uint64 {
+func (a *kfuzztestAnnotation) size() uint64 {
 	return kftfAnnotationSize
 }
 
-func (attrib *kftfAnnotation) startSymbol() string {
+func (a *kfuzztestAnnotation) startSymbol() string {
 	return kftfAnnotationStart
 }
 
-func (attrib *kftfAnnotation) endSymbol() string {
+func (a *kfuzztestAnnotation) endSymbol() string {
 	return kftfAnnotationEnd
 }

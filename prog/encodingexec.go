@@ -166,11 +166,11 @@ func (w *execContext) serializeKFuzzTestCall(c *Call) {
 	lenArg.Val = uint64(len(finalBlob))
 
 	// Generate the final syscall instruction with the update arguments.
-	kFuzzTestRunId, err := w.target.KFuzzTestRunID()
+	kFuzzTestRunID, err := w.target.KFuzzTestRunID()
 	if err != nil {
 		panic(err)
 	}
-	w.write(uint64(kFuzzTestRunId))
+	w.write(uint64(kFuzzTestRunID))
 	w.write(ExecNoCopyout)
 	w.write(uint64(len(c.Args)))
 	for _, arg := range c.Args {

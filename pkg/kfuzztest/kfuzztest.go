@@ -129,7 +129,7 @@ func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
 
 		var astError error
 		eh := func(pos ast.Pos, msg string) {
-			astError = fmt.Errorf("AST error: %v: %v\n", pos, msg)
+			astError = fmt.Errorf("ast error: %v: %v", pos, msg)
 		}
 		descAst := ast.Parse([]byte(desc), "kfuzztest-autogen", eh)
 		if astError != nil {
@@ -144,7 +144,7 @@ func ExtractData(vmlinuxPath string) (KFuzzTestData, error) {
 		target := targets.Get(targets.Linux, targets.AMD64)
 		program := compiler.Compile(descAst, make(map[string]uint64), target, eh)
 		if astError != nil {
-			extractState.err = fmt.Errorf("failed to compile extracted KFuzzTest target: %v", astError)
+			extractState.err = fmt.Errorf("failed to compile extracted KFuzzTest target: %w", astError)
 		}
 
 		kFuzzTestCalls := []*prog.Syscall{}

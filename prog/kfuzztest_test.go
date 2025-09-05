@@ -52,6 +52,7 @@ func createPrefix() []byte {
 	return prefix.Bytes()
 }
 
+//nolint:all
 func TestMarshallKFuzzTestArg(t *testing.T) {
 	testCases := []testCase{
 		// This test case validates the encoding of the following structure:
@@ -169,7 +170,7 @@ ioctl$LOOP_SET_STATUS64(r0, 0x4c04, &(0x7f0000000540)={0x0, 0x0, 0x0, 0x1, 0x800
 				uint32(0), uint32(0xe8),
 			},
 			[]any{
-				uint32(0),        // Num entries
+				uint32(0),        // Num entries.
 				uint32(12),       // Number of bytes of padding.
 				make([]byte, 12), // Padding.
 			},

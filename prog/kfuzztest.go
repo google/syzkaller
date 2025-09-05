@@ -108,22 +108,22 @@ func kFuzzTestRelocTableSize(numRelocs int) int {
 	return 8 + kFuzzTestRelocationSize*numRelocs
 }
 
-func kFuzzTestWriteReloc(buf *bytes.Buffer, regToId *map[Arg]int, reloc kFuzzTestRelocation) {
-	binary.Write(buf, binary.LittleEndian, uint32((*regToId)[reloc.srcRegion]))
+func kFuzzTestWriteReloc(buf *bytes.Buffer, regToID *map[Arg]int, reloc kFuzzTestRelocation) {
+	binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.srcRegion]))
 	binary.Write(buf, binary.LittleEndian, reloc.offset)
 	if reloc.dstRegion == nil {
 		binary.Write(buf, binary.LittleEndian, kFuzzTestRegionIDNull)
 	} else {
-		binary.Write(buf, binary.LittleEndian, uint32((*regToId)[reloc.dstRegion]))
+		binary.Write(buf, binary.LittleEndian, uint32((*regToID)[reloc.dstRegion]))
 	}
 }
 
-func kFuzzTestWriteRelocTable(buf *bytes.Buffer, regToId *map[Arg]int,
+func kFuzzTestWriteRelocTable(buf *bytes.Buffer, regToID *map[Arg]int,
 	relocations []kFuzzTestRelocation, paddingBytes uint64) {
 	binary.Write(buf, binary.LittleEndian, uint32(len(relocations)))
 	binary.Write(buf, binary.LittleEndian, uint32(paddingBytes))
 	for _, reloc := range relocations {
-		kFuzzTestWriteReloc(buf, regToId, reloc)
+		kFuzzTestWriteReloc(buf, regToID, reloc)
 	}
 	buf.Write(make([]byte, paddingBytes))
 }
@@ -137,11 +137,7 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 	queue := newSliceQueue[Arg]()
 	queue.push(reg)
 
-	for {
-		if queue.isEmpty() {
-			break
-		}
-
+	for !queue.isEmpty() {
 		arg := queue.pop()
 		padWithAlignment(&encoded, arg.Type().Alignment(), 0)
 
@@ -179,7 +175,7 @@ func kFuzzTestExpandRegion(reg Arg) ([]byte, []kFuzzTestRelocation) {
 			case 4:
 				binary.Write(&encoded, binary.LittleEndian, uint32(val))
 			case 8:
-				binary.Write(&encoded, binary.LittleEndian, uint64(val))
+				binary.Write(&encoded, binary.LittleEndian, val)
 			default:
 				panic(fmt.Sprintf("unsupported constant size: %d", a.Size()))
 			}

@@ -12,7 +12,7 @@ import (
 // Extractor's job is to extract all information relevant to KFuzzTest from a
 // VMlinux binary.
 type Extractor struct {
-	// Path to the `vmlinux` being parsed
+	// Path to the `vmlinux` being parsed.
 	vmlinuxPath string
 	elfFile     *elf.File
 	dwarfData   *dwarf.Data
@@ -112,7 +112,7 @@ func (e *Extractor) elfSection(addr uint64) *elf.Section {
 func (e *Extractor) readElfString(offset uint64) (string, error) {
 	strSection := e.elfSection(offset)
 	if strSection == nil {
-		return "", fmt.Errorf("unable to find section for offset 0x%X\n", offset)
+		return "", fmt.Errorf("unable to find section for offset 0x%X", offset)
 	}
 
 	// 128 bytes is longer than we expect to see in KFuzzTest metadata.
@@ -167,10 +167,10 @@ func (e *Extractor) getSymbol(symbolName string) (elf.Symbol, error) {
 }
 
 func (e *Extractor) extractFuncs() ([]SyzFunc, error) {
-	var rawFuncs []*kftfTestCase
+	var rawFuncs []*kfuzztestTarget
 	var err error
 
-	rawFuncs, err = parseKftfObjects[*kftfTestCase](e)
+	rawFuncs, err = parseKftfObjects[*kfuzztestTarget](e)
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +195,10 @@ func (e *Extractor) extractFuncs() ([]SyzFunc, error) {
 }
 
 func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
-	var rawConstraints []*kftfConstraint
+	var rawConstraints []*kfuzztestConstraint
 	var err error
 
-	rawConstraints, err = parseKftfObjects[*kftfConstraint](e)
+	rawConstraints, err = parseKftfObjects[*kfuzztestConstraint](e)
 	if err != nil {
 		return nil, err
 	}
@@ -227,10 +227,10 @@ func (e *Extractor) extractDomainConstraints() ([]SyzConstraint, error) {
 }
 
 func (e *Extractor) extractAnnotations() ([]SyzAnnotation, error) {
-	var rawAnnotations []*kftfAnnotation
+	var rawAnnotations []*kfuzztestAnnotation
 	var err error
 
-	rawAnnotations, err = parseKftfObjects[*kftfAnnotation](e)
+	rawAnnotations, err = parseKftfObjects[*kfuzztestAnnotation](e)
 	if err != nil {
 		return nil, err
 	}
@@ -400,20 +400,20 @@ func parseKftfObjects[T interface {
 	*P
 	parsableFromBytes
 }, P any](e *Extractor) ([]T, error) {
-	var typeinfo T = new(P)
+	var typeinfo T
 
 	startSymbol, err := e.getSymbol(typeinfo.startSymbol())
 	if err != nil {
 		return nil, err
 	} else if startSymbol.Value == 0 {
-		return nil, fmt.Errorf("Failed to resolve start symbol")
+		return nil, fmt.Errorf("failed to resolve %s", typeinfo.startSymbol())
 	}
 
 	endSymbol, err := e.getSymbol(typeinfo.endSymbol())
 	if err != nil {
 		return nil, err
 	} else if endSymbol.Value == 0 {
-		return nil, fmt.Errorf("Failed to resolve end symbol")
+		return nil, fmt.Errorf("failed to resolve %s", typeinfo.endSymbol())
 	}
 
 	out := make([]T, 0)
@@ -421,7 +421,7 @@ func parseKftfObjects[T interface {
 	for addr := startSymbol.Value; addr < endSymbol.Value; addr += typeinfo.size() {
 		section := e.elfSection(addr)
 		if section == nil {
-			return nil, fmt.Errorf("Failed to locate section for addr=0x%x", addr)
+			return nil, fmt.Errorf("failed to locate section for addr=0x%x", addr)
 		}
 
 		n, err := section.ReadAt(data, int64(addr-section.Addr))
@@ -431,7 +431,7 @@ func parseKftfObjects[T interface {
 			return nil, err
 		}
 
-		var obj T = new(P)
+		var obj T
 		err = obj.fromBytes(e.elfFile, data)
 		if err != nil {
 			return nil, err

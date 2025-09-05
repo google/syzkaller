@@ -71,7 +71,7 @@ func (b *Builder) EmitSyzlangDescription() (string, error) {
 	// Format the output syzlang descriptions for consistency.
 	var astError error
 	eh := func(pos ast.Pos, msg string) {
-		astError = fmt.Errorf("Failure: %v: %v\n", pos, msg)
+		astError = fmt.Errorf("ast failure: %v: %v", pos, msg)
 	}
 	descAst := ast.Parse([]byte(descBuilder.String()), "", eh)
 	if astError != nil {

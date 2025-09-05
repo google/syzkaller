@@ -1,43 +1,45 @@
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 package kcov
+
+// This file defines values required for KCOV ioctl calls. More information on
+// the values and their semantics can be found in the kernel documentation under
+// /Documentation/dev-tools/kcov.rst, or at docs.kernel.org/dev-tools/kcov.html.
 
 import "unsafe"
 
 const (
 	sizeofUintPtr = int(unsafe.Sizeof((*int)(nil)))
 
-	_IOC_NRBITS   = 8
-	_IOC_TYPEBITS = 8
-	_IOC_SIZEBITS = 14
-	_IOC_DIRBITS  = 2
+	iocNrBits   = 8
+	iocTypeBits = 8
+	iocSizeBits = 14
+	iocDirBits  = 2
 
-	_IOC_NRSHIFT   = 0
-	_IOC_TYPESHIFT = _IOC_NRSHIFT + _IOC_NRBITS
-	_IOC_SIZESHIFT = _IOC_TYPESHIFT + _IOC_TYPEBITS
-	_IOC_DIRSHIFT  = _IOC_SIZESHIFT + _IOC_SIZEBITS
+	iocNrShift   = 0
+	iocTypeshift = iocNrShift + iocNrBits
+	iocSizeShift = iocTypeshift + iocTypeBits
+	iocDirShift  = iocSizeShift + iocSizeBits
 
-	_IOC_NONE  = 0
-	_IOC_WRITE = 1
-	_IOC_READ  = 2
-)
+	iocNone  = 0
+	iocWrite = 1
+	iocRead  = 2
 
-// KCOV ioctl commands for Linux.
-const (
-	// KCOV_INIT_TRACE initializes kcov tracing.
-	// #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long)
-	// On amd64, unsigned long is 8 bytes.
-	KCOV_INIT_TRACE uintptr = (_IOC_READ << _IOC_DIRSHIFT) |
-		(uintptr(unsafe.Sizeof(uint64(0))) << _IOC_SIZESHIFT) | ('c' << _IOC_TYPESHIFT) | (1 << _IOC_NRSHIFT) // 0x80086301.
+	// kcovInitTrace initializes KCOV tracing.
+	// #define kcovInitTrace _IOR('c', 1, unsigned long)
+	kcovInitTrace uintptr = (iocRead << iocDirShift) |
+		(unsafe.Sizeof(uint64(0)) << iocSizeShift) | ('c' << iocTypeshift) | (1 << iocNrShift) // 0x80086301.
 
-	// KCOV_ENABLE enables kcov for the current thread.
-	// #define KCOV_ENABLE _IO('c', 100)
-	KCOV_ENABLE uintptr = (_IOC_NONE << _IOC_DIRSHIFT) |
-		(0 << _IOC_SIZESHIFT) | ('c' << _IOC_TYPESHIFT) | (100 << _IOC_NRSHIFT) // 0x6364.
+	// kcovEnable enables kcov for the current thread.
+	// #define kcovEnable _IO('c', 100)
+	kcovEnable uintptr = (iocNone << iocDirShift) |
+		(0 << iocSizeShift) | ('c' << iocTypeshift) | (100 << iocNrShift) // 0x6364.
 
-	// KCOV_DISABLE disables kcov for the current thread.
-	// #define KCOV_DISABLE _IO('c', 101)
-	KCOV_DISABLE uintptr = (_IOC_NONE << _IOC_DIRSHIFT) |
-		(0 << _IOC_SIZESHIFT) | ('c' << _IOC_TYPESHIFT) | (101 << _IOC_NRSHIFT) // 0x6365.
+	// kcovDisable disables kcov for the current thread.
+	// #define kcovDisable _IO('c', 101)
+	kcovDisable uintptr = (iocNone << iocDirShift) |
+		(0 << iocSizeShift) | ('c' << iocTypeshift) | (101 << iocNrShift) // 0x6365.
 
-	KCOV_TRACE_PC  = 0
-	KCOV_TRACE_CMP = 1
+	kcovTracePC  = 0
+	kcovTraceCMP = 1
 )

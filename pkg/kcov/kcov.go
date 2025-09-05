@@ -1,4 +1,8 @@
-// Package kcov provides Go native code for reading kernel coverage.
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+// Package kcov provides Go native code for collecting kernel coverage (KCOV)
+// information.
 package kcov
 
 import (
@@ -46,7 +50,16 @@ func (st *KCOVState) Trace(f func() error) KCOVTraceResult {
 
 // EnableTracingForCurrentGoroutine prepares the current goroutine for kcov tracing.
 // It must be paired with a call to DisableTracing.
-func EnableTracingForCurrentGoroutine() (*KCOVState, error) {
+func EnableTracingForCurrentGoroutine() (st *KCOVState, err error) {
+	st = &KCOVState{}
+	defer func() {
+		if err != nil {
+			// The original error is more important, so we ignore any potential
+			// errors that result from cleaning up.
+			_ = st.DisableTracing()
+		}
+	}()
+
 	// KCOV is per-thread, so lock goroutine to its current OS thread.
 	runtime.LockOSThread()
 
@@ -54,42 +67,46 @@ func EnableTracingForCurrentGoroutine() (*KCOVState, error) {
 	if err != nil {
 		return nil, err
 	}
-	st := KCOVState{
-		file: file,
-	}
-	fd := file.Fd()
+	st.file = file
 
 	// Setup trace mode and size.
-	if err := unix.IoctlSetInt(int(fd), uint(KCOV_INIT_TRACE), kcovCoverSize); err != nil {
-		st.DisableTracing()
+	if err := unix.IoctlSetInt(int(st.file.Fd()), uint(kcovInitTrace), kcovCoverSize); err != nil {
 		return nil, err
 	}
 
 	// Mmap buffer shared between kernel- and user-space. For more information,
 	// see the Linux KCOV documentation: https://docs.kernel.org/dev-tools/kcov.html.
 	st.cover, err = unix.Mmap(
-		int(fd),
+		int(st.file.Fd()),
 		0, // Offset.
 		kcovCoverSize*sizeofUintPtr,
 		unix.PROT_READ|unix.PROT_WRITE,
 		unix.MAP_SHARED,
 	)
 	if err != nil {
-		st.DisableTracing()
 		return nil, err
 	}
 
 	// Enable coverage collection on the current thread.
-	if err := unix.IoctlSetInt(int(fd), uint(KCOV_ENABLE), KCOV_TRACE_PC); err != nil {
-		st.DisableTracing()
+	if err := unix.IoctlSetInt(int(st.file.Fd()), uint(kcovEnable), kcovTracePC); err != nil {
 		return nil, err
 	}
-
-	return &st, nil
+	return st, nil
 }
 
-func (st *KCOVState) DisableTracing() {
+// DisableTracing disables KCOV tracing for the current Go routine. On failure,
+// it returns the first error that occurred during cleanup.
+func (st *KCOVState) DisableTracing() error {
+	var firstErr error
+	if err := unix.IoctlSetInt(int(st.file.Fd()), uint(kcovDisable), kcovTracePC); err != nil {
+		firstErr = err
+	}
+	if err := unix.Munmap(st.cover); err != nil && firstErr == nil {
+		firstErr = err
+	}
+	if err := st.file.Close(); err != nil && firstErr == nil {
+		firstErr = err
+	}
 	runtime.UnlockOSThread()
-	st.file.Close()
-	unix.Munmap(st.cover)
+	return firstErr
 }

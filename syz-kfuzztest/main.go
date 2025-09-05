@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/syzkaller/pkg/kfuzztest-manager"
+	manager "github.com/google/syzkaller/pkg/kfuzztest-manager"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
 var (
-	flagVmlinux         = flag.String("vmlinux", "vmlinux", "Path to vmlinux binary")
-	flagTimeout         = flag.Int("timeout", 0, "Timeout between program executions in seconds")
-	flagThreads         = flag.Int("threads", 2, "Number of threads")
-	flagDisplayInterval = flag.Int("display", 5, "Number of seconds between console outputs")
+	flagVmlinux         = flag.String("vmlinux", "vmlinux", "path to vmlinux binary")
+	flagTimeout         = flag.Int("timeout", 0, "timeout between program executions in seconds")
+	flagThreads         = flag.Int("threads", 2, "number of threads")
+	flagDisplayInterval = flag.Int("display", 5, "number of seconds between console outputs")
 )
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 	enabledTargets := flag.Args()
 
-	cfg := kfuzztest_manager.Config{
+	cfg := manager.Config{
 		VmlinuxPath:     *flagVmlinux,
 		Timeout:         uint32(*flagTimeout),
 		DisplayInterval: uint32(*flagDisplayInterval),
@@ -53,7 +53,7 @@ func main() {
 		cancel()
 	}()
 
-	mgr, err := kfuzztest_manager.NewKFuzzTestManager(ctx, cfg)
+	mgr, err := manager.NewKFuzzTestManager(ctx, cfg)
 	if err != nil {
 		panic(err)
 	}

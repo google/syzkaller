@@ -74,8 +74,8 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	return f
 }
 
-func (f *Fuzzer) RecommendedCalls() int {
-	if f.modeKFuzzTest {
+func (fuzzer *Fuzzer) RecommendedCalls() int {
+	if fuzzer.modeKFuzzTest {
 		return prog.RecommendedCallsKFuzzTest
 	}
 	return prog.RecommendedCalls
