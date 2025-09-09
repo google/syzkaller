@@ -145,6 +145,9 @@ func (ctx *mutator) squashAny() bool {
 	if ctx.noMutate[ptr.call.Meta.ID] {
 		return false
 	}
+	if ptr.call.Meta.Attrs.NoSquash {
+		return false
+	}
 	if !p.Target.isAnyPtr(ptr.arg.Type()) {
 		p.Target.squashPtr(ptr.arg)
 	}

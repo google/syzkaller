@@ -103,6 +103,9 @@ Call attributes are:
 "breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
 "no_generate": do not try to generate this syscall, i.e. use only seed descriptions to produce it.
 "no_minimize": do not modify instances of this syscall when trying to minimize a crashing program.
+"no_squash": do not attempt to pass squashed arguments to this syscall.
+	Without that, the fuzzer will sometimes attempt to replace complex structures with arrays of bytes,
+	possibly triggering interesting mutations, but also making programs hard to reason about.
 "fsck": the content of the compressed buffer argument for this syscall is a file system and the
     string argument is a fsck-like command that will be called to verify the filesystem
 "remote_cover": wait longer to collect remote coverage for this call.

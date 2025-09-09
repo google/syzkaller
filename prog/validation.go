@@ -31,11 +31,12 @@ func (p *Prog) validate() error {
 }
 
 type validCtx struct {
-	target   *Target
-	isUnsafe bool
-	opts     validationOptions
-	args     map[Arg]bool
-	uses     map[Arg]Arg
+	target      *Target
+	isUnsafe    bool
+	opts        validationOptions
+	args        map[Arg]bool
+	uses        map[Arg]Arg
+	currentCall *Call
 }
 
 type validationOptions struct {
@@ -54,10 +55,12 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 		if c.Meta == nil {
 			return fmt.Errorf("call does not have meta information")
 		}
+		ctx.currentCall = c
 		if err := ctx.validateCall(c); err != nil {
 			return fmt.Errorf("call #%d %v: %w", i, c.Meta.Name, err)
 		}
 	}
+	ctx.currentCall = nil
 	for u, orig := range ctx.uses {
 		if !ctx.args[u] {
 			return fmt.Errorf("use of %+v referes to an out-of-tree arg\narg: %#v", orig, u)
@@ -127,6 +130,9 @@ func (ctx *validCtx) validateArg(arg Arg, typ Type, dir Dir) error {
 	}
 	if !ctx.target.isAnyPtr(arg.Type()) && arg.Type() != typ {
 		return fmt.Errorf("bad arg type %#v, expect %#v", arg.Type(), typ)
+	}
+	if ctx.currentCall.Meta.Attrs.NoSquash && ctx.target.isAnyPtr(arg.Type()) {
+		return fmt.Errorf("ANY argument for no_squash call %v", ctx.currentCall.Meta.Name)
 	}
 	ctx.args[arg] = true
 	return arg.validate(ctx, dir)

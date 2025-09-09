@@ -44,6 +44,7 @@ type SyscallAttrs struct {
 	BreaksReturns   bool
 	NoGenerate      bool
 	NoMinimize      bool
+	NoSquash        bool
 	RemoteCover     bool
 	Automatic       bool
 	AutomaticHelper bool

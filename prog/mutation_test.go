@@ -165,6 +165,32 @@ func TestMutateArgument(t *testing.T) {
 	}
 }
 
+func TestMutateNoSquash(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	p, err := target.Deserialize([]byte(`mutate_no_squash(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, "5e9ce23b"})`), Strict)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs := rand.NewSource(0)
+	r := newRand(target, rs)
+	ctx := &mutator{
+		p:      p,
+		r:      r,
+		ncalls: 1,
+		ct:     target.DefaultChoiceTable(),
+		opts:   DefaultMutateOpts,
+	}
+
+	// squashAny should not mutate the program.
+	for i := 0; i < 100; i++ {
+		p1 := p.Clone()
+		ctx.p = p1
+		if ctx.squashAny() {
+			t.Fatalf("squashAny mutated a no_squash call: %s", p1.Serialize())
+		}
+	}
+}
+
 func TestSizeMutateArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
