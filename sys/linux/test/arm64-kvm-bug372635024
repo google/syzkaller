@@ -4,7 +4,12 @@
 r0 = openat$kvm(0x0, &(0x7f0000000040), 0x0, 0x0)
 r1 = ioctl$KVM_CREATE_VM(r0, 0xae01, 0x0)
 r2 = syz_kvm_setup_syzos_vm$arm64(r1, &(0x7f0000c00000/0x400000)=nil)
-r3 = syz_kvm_add_vcpu$arm64(r2, &(0x7f0000000080)={0x0, &(0x7f0000000240)=ANY=[@ANYBLOB="05000000000000001800000000000000010000005002"], 0x18}, 0x0, 0x0)
+#
+# The line used to look as follows, but syz_kvm_add_vcpu() does not support ANY anymore.
+# r3 = syz_kvm_add_vcpu$arm64(r2, &(0x7f0000000080)={0x0, &(0x7f0000000240)=ANY=[@ANYBLOB="05000000000000001800000000000000010000005002"], 0x18}, 0x0, 0x0)
+# Just replaced it with something relevant.
+#
+r3 = syz_kvm_add_vcpu$arm64(r2, &(0x7f0000000080)={0x0, &(0x7f0000000240)=[@irq_setup={0x5, 0x18, {0x0, 0x0}}], 0x18}, 0x0, 0x0)
 ioctl$KVM_RUN(r3, 0xae80, 0x0)
 ioctl$KVM_SET_VCPU_EVENTS(r3, 0x4040aea0, &(0x7f0000000000)=@arm64={0x0, 0x1, 0xf, '\x00', 0xfffffffffffff105, ""})
 ioctl$KVM_RUN(r3, 0xae80, 0x0)
