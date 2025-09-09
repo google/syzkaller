@@ -18,7 +18,8 @@ resource kvm_syz_vm$arm64[int64]
 syz_kvm_setup_syzos_vm$arm64(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$arm64
 
 # Create a VCPU inside a kvm_syz_vm VM.
-syz_kvm_add_vcpu$arm64(vm kvm_syz_vm$arm64, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
+# Prohibit flattening the input arguments, so that it is easier to reason about them.
+syz_kvm_add_vcpu$arm64(vm kvm_syz_vm$arm64, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu (no_squash)
 
 kvm_num_irqs = 32, 64, 128, 256, 512
 
