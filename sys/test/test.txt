@@ -799,6 +799,15 @@ hint_ints {
 }
 
 # Mutation tests.
+no_squash_struct {
+	f0	int32
+	f1	int32
+	f2	int32
+	f3	int32
+	f4	array[int8]
+} [packed]
+
+mutate_no_squash(a ptr[in, no_squash_struct]) (no_squash)
 
 mutate0()
 mutate1()

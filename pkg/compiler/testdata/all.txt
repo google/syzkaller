@@ -339,6 +339,7 @@ flags_with_one_value = 0
 # Syscall attributes.
 
 fsck_test() (fsck["fsck.test -n"])
+foo_no_squash() (no_squash)
 
 # Compressed images.
 
