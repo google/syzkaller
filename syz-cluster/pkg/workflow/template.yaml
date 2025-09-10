@@ -27,10 +27,10 @@ spec:
 #    strategy: OnWorkflowCompletion
   templates:
     - name: main
+      # Note that failFast and parallelism only affect this template's steps.
       # Don't schedule new steps if any of the previous steps failed.
       failFast: true
-      # Note that failFast and parallelism only affect this template's steps.
-      parallelism: 1
+      parallelism: 2
       steps:
         - - name: run-triage
             templateRef:
