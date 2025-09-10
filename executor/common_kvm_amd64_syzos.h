@@ -3,20 +3,10 @@
 
 // This file provides guest code running inside the AMD64 KVM.
 
+#include "common_kvm_syzos.h"
 #include "kvm.h"
 #include <linux/kvm.h>
 #include <stdbool.h>
-
-// Host will map the code in this section into the guest address space.
-#define GUEST_CODE __attribute__((section("guest")))
-
-// Prevent function inlining. This attribute is applied to every guest_handle_* function,
-// making sure they remain small so that the compiler does not attempt to be too clever
-// (e.g. generate switch tables).
-#define noinline __attribute__((noinline))
-
-// Start/end of the guest section.
-extern char *__start_guest, *__stop_guest;
 
 // Compilers will eagerly try to transform the switch statement in guest_main()
 // into a jump table, unless the cases are sparse enough.
