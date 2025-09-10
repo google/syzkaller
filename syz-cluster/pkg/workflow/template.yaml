@@ -28,9 +28,9 @@ spec:
   templates:
     - name: main
       # Don't schedule new steps if any of the previous steps failed.
-      failFast: true
       # Note that failFast and parallelism only affect this template's steps.
-      parallelism: 1
+      failFast: true
+      parallelism: 2
       steps:
         - - name: run-triage
             templateRef:
