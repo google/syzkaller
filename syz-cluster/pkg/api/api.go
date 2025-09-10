@@ -22,7 +22,7 @@ type FuzzTask struct {
 
 // FuzzConfig represents a set of parameters passed to the fuzz step.
 type FuzzConfig struct {
-	Suffix    string `json:"suffix"` // E.g. KASAN.
+	Prefix    string `json:"prefix"` // E.g. KASAN.
 	Config    string `json:"config"` // Refers to workflow/configs/{}.
 	CorpusURL string `json:"corpus_url"`
 	// Don't expect kernel coverage for the patched area.
@@ -238,8 +238,8 @@ const (
 )
 
 const (
-	kasanSuffix = " [KASAN]"
-	kmsanSuffix = " [KMSAN]"
+	kasanPrefix = "[KASAN] "
+	kmsanPrefix = "[KMSAN] "
 )
 
 // The list is ordered by decreasing importance.
@@ -250,7 +250,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `kvm`,
 					CorpusURL: allCorpusURL,
 				},
@@ -263,7 +263,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `io-uring`,
 					CorpusURL: allCorpusURL,
 				},
@@ -276,7 +276,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `bpf`,
 					CorpusURL: bpfCorpusURL,
 				},
@@ -293,7 +293,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `net`,
 					CorpusURL: netCorpusURL,
 				},
@@ -301,7 +301,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-kmsan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:     kmsanSuffix,
+					Prefix:     kmsanPrefix,
 					Config:     `net`,
 					CorpusURL:  netCorpusURL,
 					BugTitleRe: `^KMSAN:`,
@@ -320,7 +320,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `fs`,
 					CorpusURL: fsCorpusURL,
 				},
@@ -333,7 +333,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `all`,
 					CorpusURL: allCorpusURL,
 					// Not all mm/ code is instrumented with KCOV.
@@ -348,7 +348,7 @@ var FuzzTargets = []*FuzzTriageTarget{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
 				FuzzConfig: FuzzConfig{
-					Suffix:    kasanSuffix,
+					Prefix:    kasanPrefix,
 					Config:    `all`,
 					CorpusURL: allCorpusURL,
 				},
