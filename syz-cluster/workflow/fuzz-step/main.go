@@ -352,10 +352,10 @@ func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Clie
 	return client.UploadFinding(ctx, finding)
 }
 
-const testNamePrefix = "Fuzzing"
+const testNameSuffix = "Fuzzing"
 
 func testName(config *api.FuzzConfig) string {
-	return testNamePrefix + config.Suffix
+	return config.Prefix + testNameSuffix
 }
 
 var ignoreLinuxVariables = map[string]bool{
