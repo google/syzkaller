@@ -185,29 +185,31 @@ GUEST_CODE static noinline void guest_handle_rdmsr(uint64 reg)
 GUEST_CODE static noinline void guest_handle_wr_crn(struct api_call_2* cmd)
 {
 	uint64 value = cmd->args[1];
-	switch (cmd->args[0]) {
-	case 0:
+	// Prevent the compiler from generating a switch table.
+	volatile uint64 reg = cmd->args[0];
+	if (reg == 0) {
 		// Move value to CR0.
 		asm volatile("movq %0, %%cr0" ::"r"(value) : "memory");
-		break;
-	case 2:
+		return;
+	}
+	if (reg == 2) {
 		// Move value to CR2.
 		asm volatile("movq %0, %%cr2" ::"r"(value) : "memory");
-		break;
-	case 3:
+		return;
+	}
+	if (reg == 3) {
 		// Move value to CR3.
 		asm volatile("movq %0, %%cr3" ::"r"(value) : "memory");
-		break;
-	case 4:
+		return;
+	}
+	if (reg == 4) {
 		// Move value to CR4.
 		asm volatile("movq %0, %%cr4" ::"r"(value) : "memory");
-		break;
-	case 8:
+		return;
+	}
+	if (reg == 8) {
 		// Move value to CR8 (TPR - Task Priority Register).
 		asm volatile("movq %0, %%cr8" ::"r"(value) : "memory");
-		break;
-	default:
-		// Do nothing.
-		break;
+		return;
 	}
 }
