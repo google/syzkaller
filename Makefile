@@ -118,7 +118,7 @@ endif
 
 all: host target
 host: manager repro mutate prog2c db upgrade
-target: execprog executor
+target: execprog executor check_syzos
 
 executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
@@ -426,6 +426,9 @@ check_links:
 
 check_html:
 	./tools/check-html.sh
+
+check_syzos: executor
+	./tools/check-syzos.sh 2>/dev/null
 
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.
