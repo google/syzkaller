@@ -69,6 +69,12 @@ syzos_api_wr_crn {
 	arg_value	int64
 }
 
+# Depending on CR4.DE, registers DR4 and DR5 either alias DR6 and DR7, or generate an #UD.
+syzos_api_wr_drn {
+	arg_reg		int64[0:7]
+	arg_value	int64
+}
+
 syzos_api_call$x86 [
 	uexit	syzos_api$x86[0, intptr]
 	code	syzos_api$x86[10, syzos_api_code$x86]
@@ -76,6 +82,7 @@ syzos_api_call$x86 [
 	wrmsr	syzos_api$x86[30, syzos_api_wrmsr]
 	rdmsr	syzos_api$x86[50, syzos_api_rdmsr]
 	wr_crn	syzos_api$x86[70, syzos_api_wr_crn]
+	wr_drn	syzos_api$x86[110, syzos_api_wr_drn]
 ] [varlen]
 
 kvm_text_x86 [

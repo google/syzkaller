@@ -19,6 +19,7 @@ typedef enum {
 	SYZOS_API_WRMSR = 30,
 	SYZOS_API_RDMSR = 50,
 	SYZOS_API_WR_CRN = 70,
+	SYZOS_API_WR_DRN = 110,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -59,6 +60,7 @@ static void guest_handle_cpuid(uint32 eax, uint32 ecx);
 static void guest_handle_wrmsr(uint64 reg, uint64 val);
 static void guest_handle_rdmsr(uint64 reg);
 static void guest_handle_wr_crn(struct api_call_2* cmd);
+static void guest_handle_wr_drn(struct api_call_2* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -108,6 +110,10 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_WR_CRN: {
 			guest_handle_wr_crn((struct api_call_2*)cmd);
+			break;
+		}
+		case SYZOS_API_WR_DRN: {
+			guest_handle_wr_drn((struct api_call_2*)cmd);
 			break;
 		}
 		}
@@ -200,6 +206,45 @@ GUEST_CODE static noinline void guest_handle_wr_crn(struct api_call_2* cmd)
 	if (reg == 8) {
 		// Move value to CR8 (TPR - Task Priority Register).
 		asm volatile("movq %0, %%cr8" ::"r"(value) : "memory");
+		return;
+	}
+}
+
+// Write to DRn debug register.
+GUEST_CODE static noinline void guest_handle_wr_drn(struct api_call_2* cmd)
+{
+	uint64 value = cmd->args[1];
+	volatile uint64 reg = cmd->args[0];
+	if (reg == 0) {
+		asm volatile("movq %0, %%dr0" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 1) {
+		asm volatile("movq %0, %%dr1" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 2) {
+		asm volatile("movq %0, %%dr2" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 3) {
+		asm volatile("movq %0, %%dr3" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 4) {
+		asm volatile("movq %0, %%dr4" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 5) {
+		asm volatile("movq %0, %%dr5" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 6) {
+		asm volatile("movq %0, %%dr6" ::"r"(value) : "memory");
+		return;
+	}
+	if (reg == 7) {
+		asm volatile("movq %0, %%dr7" ::"r"(value) : "memory");
 		return;
 	}
 }
