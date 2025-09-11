@@ -109,10 +109,10 @@ setsockopt$inet6_tcp_TCP_REPAIR_WINDOW(fd sock_tcp6, level const[IPPROTO_TCP], o
 setsockopt$inet_tcp_TCP_FASTOPEN_KEY(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
 setsockopt$inet6_tcp_TCP_FASTOPEN_KEY(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
 
-setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
-setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
-setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
-setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[SOL_TLS], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[SOL_TLS], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[SOL_TLS], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[SOL_TLS], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
 
 tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr"
 
