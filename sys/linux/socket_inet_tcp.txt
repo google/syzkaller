@@ -76,11 +76,11 @@ tcp_zerocopy_receive_flags = TCP_RECEIVE_ZEROCOPY_FLAG_TLB_CLEAN_HINT
 
 # TODO: use TCP_SAVED_SYN to extract sequence numbers
 
-setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
-setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
+setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, stringnoz[tcp_congestion_control_alg_names]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, stringnoz[tcp_congestion_control_alg_names]], optlen len[optval])
 
-setsockopt$inet_tcp_TCP_ULP(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, string[tcp_ulp_names]], optlen len[optval])
-setsockopt$inet6_tcp_TCP_ULP(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, string[tcp_ulp_names]], optlen len[optval])
+setsockopt$inet_tcp_TCP_ULP(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz[tcp_ulp_names]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_ULP(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, stringnoz[tcp_ulp_names]], optlen len[optval])
 
 setsockopt$inet_tcp_TCP_MD5SIG(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
 setsockopt$inet6_tcp_TCP_MD5SIG(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
