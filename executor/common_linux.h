@@ -5852,3 +5852,64 @@ static long syz_pidfd_open(volatile long pid, volatile long flags)
 }
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_ksmbd_send_req
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#define KSMBD_BUF_SIZE 16000
+
+static long syz_ksmbd_send_req(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	int sockfd;
+	int packet_reqlen;
+	int errno;
+	struct sockaddr_in serv_addr;
+	char packet_req[KSMBD_BUF_SIZE]; // max frame size
+
+	debug("[*]{syz_ksmbd_send_req} entered ksmbd send...\n");
+
+	if (a0 == 0 || a1 == 0) {
+		debug("[!]{syz_ksmbd_send_req} param empty\n");
+		return -7;
+	}
+
+	sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sockfd < 0) {
+		debug("[!]{syz_ksmbd_send_req} failed to create socket\n");
+		return -1;
+	}
+
+	memset(&serv_addr, '\0', sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	serv_addr.sin_port = htons(445);
+
+	errno = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+	if (errno < 0) {
+		debug("[!]{syz_ksmbd_send_req} failed to connect (err: %d)\n", errno);
+		return errno ^ 0xff80000;
+	}
+
+	// prepend kcov handle to packet
+	packet_reqlen = a1 + 8 > KSMBD_BUF_SIZE ? KSMBD_BUF_SIZE - 8 : a1;
+	*(unsigned long*)packet_req = procid + 1;
+	memcpy(packet_req + 8, (char*)a0, packet_reqlen);
+
+	if (write(sockfd, (char*)packet_req, packet_reqlen + 8) < 0)
+		return -4;
+
+	if (read(sockfd, (char*)a2, a3) < 0)
+		return -5;
+
+	if (close(sockfd) < 0)
+		return -6;
+
+	debug("[+]{syz_ksmbd_send_req} successfully returned\n");
+
+	return 0;
+}
+#endif
