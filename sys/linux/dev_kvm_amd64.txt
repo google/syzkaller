@@ -75,6 +75,20 @@ syzos_api_wr_drn {
 	arg_value	int64
 }
 
+x86_in_out_size = 1, 2, 4
+
+syzos_api_in_dx {
+	arg_port	int64[0:65535]
+	arg_size	flags[x86_in_out_size, int64]
+}
+
+# In fact the accepted value always fit into int32.
+syzos_api_out_dx {
+	arg_port	int64[0:65535]
+	arg_size	flags[x86_in_out_size, int64]
+	arg_val		int64
+}
+
 syzos_api_call$x86 [
 	uexit	syzos_api$x86[0, intptr]
 	code	syzos_api$x86[10, syzos_api_code$x86]
@@ -83,6 +97,8 @@ syzos_api_call$x86 [
 	rdmsr	syzos_api$x86[50, syzos_api_rdmsr]
 	wr_crn	syzos_api$x86[70, syzos_api_wr_crn]
 	wr_drn	syzos_api$x86[110, syzos_api_wr_drn]
+	in_dx	syzos_api$x86[130, syzos_api_in_dx]
+	out_dx	syzos_api$x86[170, syzos_api_out_dx]
 ] [varlen]
 
 kvm_text_x86 [

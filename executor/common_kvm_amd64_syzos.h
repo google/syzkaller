@@ -20,6 +20,8 @@ typedef enum {
 	SYZOS_API_RDMSR = 50,
 	SYZOS_API_WR_CRN = 70,
 	SYZOS_API_WR_DRN = 110,
+	SYZOS_API_IN_DX = 130,
+	SYZOS_API_OUT_DX = 170,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -54,6 +56,11 @@ struct api_call_2 {
 	uint64 args[2];
 };
 
+struct api_call_3 {
+	struct api_call_header header;
+	uint64 args[3];
+};
+
 static void guest_uexit(uint64 exit_code);
 static void guest_execute_code(uint8* insns, uint64 size);
 static void guest_handle_cpuid(uint32 eax, uint32 ecx);
@@ -61,6 +68,8 @@ static void guest_handle_wrmsr(uint64 reg, uint64 val);
 static void guest_handle_rdmsr(uint64 reg);
 static void guest_handle_wr_crn(struct api_call_2* cmd);
 static void guest_handle_wr_drn(struct api_call_2* cmd);
+static void guest_handle_in_dx(struct api_call_2* cmd);
+static void guest_handle_out_dx(struct api_call_3* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -114,6 +123,14 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_WR_DRN: {
 			guest_handle_wr_drn((struct api_call_2*)cmd);
+			break;
+		}
+		case SYZOS_API_IN_DX: {
+			guest_handle_in_dx((struct api_call_2*)cmd);
+			break;
+		}
+		case SYZOS_API_OUT_DX: {
+			guest_handle_out_dx((struct api_call_3*)cmd);
 			break;
 		}
 		}
@@ -245,6 +262,56 @@ GUEST_CODE static noinline void guest_handle_wr_drn(struct api_call_2* cmd)
 	}
 	if (reg == 7) {
 		asm volatile("movq %0, %%dr7" ::"r"(value) : "memory");
+		return;
+	}
+}
+
+// Read data from an I/O port, should result in KVM_EXIT_IO.
+GUEST_CODE static noinline void guest_handle_in_dx(struct api_call_2* cmd)
+{
+	uint16 port = cmd->args[0];
+	volatile int size = cmd->args[1];
+
+	if (size == 1) {
+		uint8 unused;
+		// Reads 1 byte from the port in DX into AL.
+		asm volatile("inb %1, %0" : "=a"(unused) : "d"(port));
+		return;
+	}
+	if (size == 2) {
+		uint16 unused;
+		// Reads 2 bytes from the port in DX into AX.
+		asm volatile("inw %1, %0" : "=a"(unused) : "d"(port));
+		return;
+	}
+	if (size == 4) {
+		uint32 unused;
+		// Reads 4 bytes from the port in DX into EAX.
+		asm volatile("inl %1, %0" : "=a"(unused) : "d"(port));
+	}
+	return;
+}
+
+// Write data to an I/O port, should result in KVM_EXIT_IO.
+GUEST_CODE static noinline void guest_handle_out_dx(struct api_call_3* cmd)
+{
+	uint16 port = cmd->args[0];
+	volatile int size = cmd->args[1];
+	uint32 data = (uint32)cmd->args[2];
+
+	if (size == 1) {
+		// Writes 1 byte from AL to the port in DX.
+		asm volatile("outb %b0, %w1" ::"a"(data), "d"(port));
+		return;
+	}
+	if (size == 2) {
+		// Writes 2 bytes from AX to the port in DX.
+		asm volatile("outw %w0, %w1" ::"a"(data), "d"(port));
+		return;
+	}
+	if (size == 4) {
+		// Writes 4 bytes from EAX to the port in DX.
+		asm volatile("outl %k0, %w1" ::"a"(data), "d"(port));
 		return;
 	}
 }
