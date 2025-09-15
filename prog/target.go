@@ -127,6 +127,17 @@ func AllTargets() []*Target {
 	return res
 }
 
+// Extend extends a target with a new set of syscalls, types, and resources.
+// It is assumed that all new syscalls, types, and resources do not conflict
+// with those already present in the target.
+func (target *Target) Extend(syscalls []*Syscall, types []Type, resources []*ResourceDesc) {
+	target.Syscalls = append(target.Syscalls, syscalls...)
+	target.Types = append(target.Types, types...)
+	target.Resources = append(target.Resources, resources...)
+	// Updates the system call map and restores any links.
+	target.initTarget()
+}
+
 func (target *Target) lazyInit() {
 	target.Neutralize = func(c *Call, fixStructure bool) error { return nil }
 	target.AnnotateCall = func(c ExecCall) string { return "" }
@@ -153,8 +164,6 @@ func (target *Target) lazyInit() {
 			panic(fmt.Sprintf("bad special file length %v", ln))
 		}
 	}
-	// These are used only during lazyInit.
-	target.Types = nil
 }
 
 func (target *Target) initTarget() {
