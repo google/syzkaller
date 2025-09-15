@@ -28,6 +28,7 @@ type randGen struct {
 	target                *Target
 	inGenerateResource    bool
 	patchConditionalDepth int
+	genKFuzzTest          bool
 	recDepth              map[string]int
 }
 
@@ -354,7 +355,9 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 			buf.Write([]byte{byte(r.Intn(256))})
 		}
 	}
-	if r.oneOf(100) == t.NoZ {
+	// We always null-terminate strings that are inputs to KFuzzTest calls to
+	// avoid false-positive buffer overflow reports.
+	if r.oneOf(100) == t.NoZ || r.genKFuzzTest {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
@@ -609,6 +612,16 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
 	c := MakeCall(meta, nil)
+	// KFuzzTest calls restrict mutation and generation. Since calls to
+	// generateParticularCall can be recursive, we save the previous value, and
+	// set it true.
+	if c.Meta.Attrs.KFuzzTest {
+		tmp := r.genKFuzzTest
+		r.genKFuzzTest = true
+		defer func() {
+			r.genKFuzzTest = tmp
+		}()
+	}
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
 	moreCalls, _ := r.patchConditionalFields(c, s)
 	r.target.assignSizesCall(c)
