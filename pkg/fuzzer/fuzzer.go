@@ -72,6 +72,13 @@ func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
 	return f
 }
 
+func (fuzzer *Fuzzer) RecommendedCalls() int {
+	if fuzzer.Config.ModeKFuzzTest {
+		return prog.RecommendedCallsKFuzzTest
+	}
+	return prog.RecommendedCalls
+}
+
 type execQueues struct {
 	triageCandidateQueue *queue.DynamicOrderer
 	candidateQueue       *queue.PlainQueue
@@ -214,6 +221,7 @@ type Config struct {
 	FetchRawCover  bool
 	NewInputFilter func(call string) bool
 	PatchTest      bool
+	ModeKFuzzTest  bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
