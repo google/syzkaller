@@ -21,6 +21,10 @@ const (
 	// "Recommended" max number of calls in programs.
 	// If we receive longer programs from hub/corpus we discard them.
 	MaxCalls = 40
+	// "Recommended" number of calls in KFuzzTest mode. These targets test the behavior
+	// of internal kernel functions rather than system behavior, and for this reason
+	// it is more sensible to generate a smaller number of calls instead of long chains.
+	RecommendedCallsKFuzzTest = 5
 )
 
 type randGen struct {
