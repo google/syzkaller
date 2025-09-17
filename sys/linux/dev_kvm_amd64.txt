@@ -483,6 +483,7 @@ ioctl$KVM_GET_FPU(fd fd_kvmcpu, cmd const[KVM_GET_FPU], arg ptr[out, kvm_fpu])
 ioctl$KVM_SET_FPU(fd fd_kvmcpu, cmd const[KVM_SET_FPU], arg ptr[in, kvm_fpu])
 ioctl$KVM_GET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_GET_DEBUGREGS], arg ptr[out, kvm_debugregs])
 ioctl$KVM_SET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_SET_DEBUGREGS], arg ptr[in, kvm_debugregs])
+ioctl$KVM_SET_GUEST_DEBUG_x86(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_x86]])
 ioctl$KVM_GET_XCRS(fd fd_kvmcpu, cmd const[KVM_GET_XCRS], arg ptr[out, kvm_xcrs])
 ioctl$KVM_SET_XCRS(fd fd_kvmcpu, cmd const[KVM_SET_XCRS], arg ptr[in, kvm_xcrs])
 ioctl$KVM_GET_XSAVE(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE], arg ptr[out, kvm_xsave])
@@ -518,6 +519,10 @@ ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 # https://docs.kernel.org/virt/kvm/api.html#kvm-get-sregs2
 ioctl$KVM_GET_SREGS2(fd fd_kvmcpu, cmd const[KVM_GET_SREGS2], arg ptr[out, kvm_sregs2])
 ioctl$KVM_SET_SREGS2(fd fd_kvmcpu, cmd const[KVM_SET_SREGS2], arg ptr[in, kvm_sregs2])
+
+kvm_guest_debug_arch_x86 {
+	reg	array[int64, 8]
+}
 
 kvm_nested_state {
 	flags	flags[kvm_nested_state_flags, int16]

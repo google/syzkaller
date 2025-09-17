@@ -58,6 +58,15 @@ kvm_arm_device_addr {
 	addr	flags[kvm_guest_addrs, int64]
 }
 
+kvm_guest_debug_arch_arm64 {
+	dbg_bcr	array[int64, 16]
+	dbg_bvr	array[int64, 16]
+	dbg_wcr	array[int64, 16]
+	dbg_wvr	array[int64, 16]
+}
+
+ioctl$KVM_SET_GUEST_DEBUG_arm64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_arm64]])
+
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
 ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET], arg ptr[out, kvm_vcpu_init])
 # KVM_ARM_VCPU_FINALIZE accepts a single CPU feature encoded as a bit number: https://docs.kernel.org/virt/kvm/api.html#kvm-arm-vcpu-finalize.
