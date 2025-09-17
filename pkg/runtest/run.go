@@ -556,7 +556,7 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.Pro
 	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
 		callName := req.Prog.Calls[call].Meta.CallName
 		// Pseudo-syscalls that might not provide any coverage when invoked.
-		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit"}
+		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit", "syz_kvm_assert_syzos_kvm_exit"}
 		isNoCov := slices.Contains(noCovSyscalls, callName)
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
