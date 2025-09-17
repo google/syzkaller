@@ -11,7 +11,11 @@ r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@cpuid={AUTO, AUTO, {0x1, 0x0}}
 r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
 r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 
-# Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
+# Run till the end of guest_main().
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
+
+# Ensure that exit reason is KVM_EXIT_MMIO and uexit code is UEXIT_END.
+#
+syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x6)
 syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffffffffffff)
