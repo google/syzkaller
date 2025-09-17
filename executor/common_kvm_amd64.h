@@ -7,6 +7,7 @@
 // See Intel Software Developer’s Manual Volume 3: System Programming Guide
 // for details on what happens here.
 
+#include "common_kvm.h"
 #include "common_kvm_amd64_syzos.h"
 #include "kvm.h"
 #include "kvm_amd64.S.h"

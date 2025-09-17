@@ -6,6 +6,7 @@
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
 #include <sys/mman.h>
 
+#include "common_kvm.h"
 #include "kvm.h"
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_syzos_vm

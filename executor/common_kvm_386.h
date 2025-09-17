@@ -24,6 +24,13 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_uexit
+static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
+{
+	return 0;
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {

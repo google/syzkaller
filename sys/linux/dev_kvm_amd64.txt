@@ -24,6 +24,7 @@ syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu (n
 
 # Test assertions, will not be used by the fuzzer.
 syz_kvm_assert_syzos_uexit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
+syz_kvm_assert_syzos_kvm_exit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
 
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
