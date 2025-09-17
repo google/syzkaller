@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -553,27 +554,20 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.Pro
 		return nil
 	}
 	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
+		callName := req.Prog.Calls[call].Meta.CallName
+		// Pseudo-syscalls that might not provide any coverage when invoked.
+		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit"}
+		isNoCov := slices.Contains(noCovSyscalls, callName)
 		// Signal is always deduplicated, so we may not get any signal
 		// on a second invocation of the same syscall.
 		// For calls that are not meant to collect synchronous coverage we
 		// allow the signal to be empty as long as the extra signal is not.
-		callName := req.Prog.Calls[call].Meta.CallName
-		if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
+		if !isNoCov && len(inf.Signal) < 2 && !calls[callName] &&
+			len(info.Extra.Signal) == 0 {
 			return fmt.Errorf("run %v: call %v: no signal", run, call)
 		}
-		// Pseudo-syscalls that might not provide any coverage when invoked.
-		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit"}
-		if len(inf.Cover) == 0 {
-			found := true
-			for _, s := range noCovSyscalls {
-				if callName == s {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return fmt.Errorf("run %v: call %v: no cover", run, call)
-			}
+		if !isNoCov && len(inf.Cover) == 0 {
+			return fmt.Errorf("run %v: call %v: no cover", run, call)
 		}
 		calls[callName] = true
 	} else {
