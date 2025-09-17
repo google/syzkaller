@@ -78,8 +78,6 @@ ioctl$KVM_GET_ONE_REG(fd fd_kvmcpu, cmd const[KVM_GET_ONE_REG], arg ptr[in, kvm_
 ioctl$KVM_KVMCLOCK_CTRL(fd fd_kvmcpu, cmd const[KVM_KVMCLOCK_CTRL])
 ioctl$KVM_S390_INTERRUPT_CPU(fd fd_kvmcpu, cmd const[KVM_S390_INTERRUPT], arg ptr[in, kvm_s390_interrupt])
 ioctl$KVM_GET_REG_LIST(fd fd_kvmcpu, cmd const[KVM_GET_REG_LIST], arg ptr[inout, kvm_reg_list])
-ioctl$KVM_SET_GUEST_DEBUG(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug])
-
 ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_HAS_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
@@ -108,7 +106,7 @@ kvm_ioeventfd_flags = KVM_IOEVENTFD_FLAG_DATAMATCH, KVM_IOEVENTFD_FLAG_PIO, KVM_
 kvm_ioeventfd_len = 0, 1, 2, 4, 8
 kvm_device_type = KVM_DEV_TYPE_FSL_MPIC_20, KVM_DEV_TYPE_FSL_MPIC_42, KVM_DEV_TYPE_XICS, KVM_DEV_TYPE_VFIO, KVM_DEV_TYPE_ARM_VGIC_V2, KVM_DEV_TYPE_FLIC, KVM_DEV_TYPE_ARM_VGIC_V3, KVM_DEV_TYPE_ARM_VGIC_ITS, KVM_DEV_TYPE_XIVE, KVM_DEV_TYPE_ARM_PV_TIME, KVM_DEV_TYPE_RISCV_AIA
 kvm_device_flags = 0, KVM_CREATE_DEVICE_TEST
-kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTDBG_USE_SW_BP, KVM_GUESTDBG_USE_HW_BP, KVM_GUESTDBG_INJECT_DB, KVM_GUESTDBG_INJECT_BP, KVM_GUESTDBG_EXIT_PENDING, KVM_GUESTDBG_BLOCKIRQ
+kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTDBG_USE_SW_BP, KVM_GUESTDBG_USE_HW_BP, KVM_GUESTDBG_USE_HW, KVM_GUESTDBG_INJECT_DB, KVM_GUESTDBG_INJECT_BP, KVM_GUESTDBG_EXIT_PENDING, KVM_GUESTDBG_BLOCKIRQ
 kvm_guest_selector = 0, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16
 kvm_dirty_log_protect = KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE, KVM_DIRTY_LOG_INITIALLY_SET
 kvm_dirty_log_sizes = 4096, 8192, 16384, 32768, 65536
@@ -166,10 +164,10 @@ define KVM_SETUP_PPC64_PR	(1<<3)
 # Set PID=1 i.e. not kernel's PID
 define KVM_SETUP_PPC64_PID1	(1<<4)
 
-kvm_guest_debug {
+type kvm_guest_debug[ARCH] {
 	ctrl	flags[kvm_guest_debug_flags, int32]
 	pad	const[0, int32]
-	reg	array[int64, 8]
+	arch	ARCH
 }
 
 kvm_reg_list {
