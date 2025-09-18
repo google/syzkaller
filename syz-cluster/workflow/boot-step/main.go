@@ -8,14 +8,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/fuzzconfig"
 )
 
 var (
@@ -80,7 +79,7 @@ const retryCount = 3
 const vmCount = 3
 
 func runTest(ctx context.Context, client *api.Client) (bool, error) {
-	cfg, err := mgrconfig.LoadFile(filepath.Join("/configs", *flagConfig, "base.cfg"))
+	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
 	if err != nil {
 		return false, err
 	}
