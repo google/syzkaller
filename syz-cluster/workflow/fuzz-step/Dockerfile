@@ -33,6 +33,5 @@ RUN useradd --create-home syzkaller
 
 COPY --from=fuzz-step-builder /build/bin/ /syzkaller/bin/
 COPY --from=fuzz-step-builder /bin/fuzz-step /bin/fuzz-step
-COPY syz-cluster/workflow/configs/ /configs/
 
 ENTRYPOINT ["/bin/fuzz-step"]

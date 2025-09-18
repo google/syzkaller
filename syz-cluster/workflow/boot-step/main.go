@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -16,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/fuzzconfig"
 )
 
 var (
@@ -80,7 +80,7 @@ const retryCount = 3
 const vmCount = 3
 
 func runTest(ctx context.Context, client *api.Client) (bool, error) {
-	cfg, err := mgrconfig.LoadFile(filepath.Join("/configs", *flagConfig, "base.cfg"))
+	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
 	if err != nil {
 		return false, err
 	}
@@ -88,6 +88,9 @@ func runTest(ctx context.Context, client *api.Client) (bool, error) {
 		return false, err
 	}
 	cfg.Workdir = "/tmp/test-workdir"
+	if err := mgrconfig.Complete(cfg); err != nil {
+		return false, fmt.Errorf("failed to complete the config: %w", err)
+	}
 
 	var rep *report.Report
 	for i := 0; i < retryCount; i++ {
