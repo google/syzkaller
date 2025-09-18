@@ -199,7 +199,8 @@ func syzFuncToSyzlang(s SyzFunc) string {
 	fmt.Fprintf(&builder, "syz_kfuzztest_run$%s(", s.Name)
 	fmt.Fprintf(&builder, "name ptr[in, string[\"%s\"]], ", s.Name)
 	fmt.Fprintf(&builder, "data ptr[in, %s], ", typeName)
-	builder.WriteString("len bytesize[data])")
+	builder.WriteString("len bytesize[data], ")
+	builder.WriteString("buf ptr[in, array[int8, 65536]]) ")
 	// TODO:(ethangraham) The only other way I can think of getting this name
 	// would involve using the "reflect" package and matching against the
 	// KFuzzTest name, which isn't much better than hardcoding this.
