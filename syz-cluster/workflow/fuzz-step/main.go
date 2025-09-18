@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
-	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
+	"github.com/google/syzkaller/syz-cluster/pkg/fuzzconfig"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -124,7 +125,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 	const MB = 1000000
 	log.EnableLogCaching(100000, 10*MB)
 
-	base, patched, err := loadConfigs("/configs", config.Config, true)
+	base, patched, err := generateConfigs(config)
 	if err != nil {
 		return fmt.Errorf("failed to load configs: %w", err)
 	}
@@ -139,12 +140,10 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 	}
 	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
-	if config.CorpusURL != "" {
-		err := downloadCorpus(baseCtx, patched.Workdir, config.CorpusURL)
+	if len(config.CorpusURLs) > 0 {
+		err := prepareCorpus(baseCtx, patched.Workdir, config.CorpusURLs, patched.Target)
 		if err != nil {
-			return fmt.Errorf("failed to download the corpus: %w", err)
-		} else {
-			log.Logf(0, "downloaded the corpus from %s", config.CorpusURL)
+			app.Errorf("failed to download the corpus: %v", err)
 		}
 	}
 
@@ -233,65 +232,70 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 	return err
 }
 
-func downloadCorpus(ctx context.Context, workdir, url string) error {
-	out, err := os.Create(filepath.Join(workdir, "corpus.db"))
-	if err != nil {
-		return err
+func prepareCorpus(ctx context.Context, workdir string, urls []string, target *prog.Target) error {
+	corpusFile := filepath.Join(workdir, "corpus.db")
+	var otherFiles []string
+	for i, url := range urls {
+		log.Logf(0, "downloading corpus #%d: %q", i+1, url)
+		downloadTo := corpusFile
+		if i > 0 {
+			downloadTo = fmt.Sprintf("%s.%d", corpusFile, i)
+			otherFiles = append(otherFiles, downloadTo)
+		}
+		out, err := os.Create(corpusFile)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := (&http.Client{}).Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("status is not 200: %s", resp.Status)
+		}
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
 	}
-	defer out.Close()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
+	if len(otherFiles) > 0 {
+		log.Logf(0, "merging corpuses")
+		skipped, err := db.Merge(corpusFile, otherFiles, target)
+		if err != nil {
+			return err
+		} else if len(skipped) > 0 {
+			log.Logf(0, "skipped %d entries", len(skipped))
+		}
 	}
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("status is not 200: %s", resp.Status)
-	}
-	_, err = io.Copy(out, resp.Body)
-	return err
+	return nil
 }
 
-// To reduce duplication, patched configs are stored as a delta to their corresponding base.cfg version.
-// loadConfigs performs all the necessary merging and parsing and returns two ready to use configs.
-func loadConfigs(configFolder, configName string, complete bool) (*mgrconfig.Config, *mgrconfig.Config, error) {
-	var baseRaw, deltaRaw json.RawMessage
-	err := config.LoadFile(filepath.Join(configFolder, configName, "base.cfg"), &baseRaw)
+func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Config, error) {
+	base, err := fuzzconfig.GenerateBase(config)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read the base config: %w", err)
+		return nil, nil, fmt.Errorf("failed to prepare base config: %w", err)
 	}
-	err = config.LoadFile(filepath.Join(configFolder, configName, "patched.cfg"), &deltaRaw)
+	patched, err := fuzzconfig.GeneratePatched(config)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read the patched config: %w", err)
+		return nil, nil, fmt.Errorf("failed to prepare patched config: %w", err)
 	}
-	patchedRaw, err := config.MergeJSONs(baseRaw, deltaRaw)
+	base.Workdir = filepath.Join(*flagWorkdir, "base")
+	osutil.MkdirAll(base.Workdir)
+	patched.Workdir = filepath.Join(*flagWorkdir, "patched")
+	osutil.MkdirAll(patched.Workdir)
+	err = mgrconfig.Complete(base)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to merge the configs: %w", err)
+		return nil, nil, fmt.Errorf("failed to complete the base config: %w", err)
 	}
-	base, err := mgrconfig.LoadPartialData(baseRaw)
+	err = mgrconfig.Complete(patched)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse the base config: %w", err)
-	}
-	patched, err := mgrconfig.LoadPartialData(patchedRaw)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse the patched config: %w", err)
-	}
-	if complete {
-		base.Workdir = filepath.Join(*flagWorkdir, "base")
-		osutil.MkdirAll(base.Workdir)
-		patched.Workdir = filepath.Join(*flagWorkdir, "patched")
-		osutil.MkdirAll(patched.Workdir)
-		err = mgrconfig.Complete(base)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to complete the base config: %w", err)
-		}
-		err = mgrconfig.Complete(patched)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to complete the patched config: %w", err)
-		}
+		return nil, nil, fmt.Errorf("failed to complete the patched config: %w", err)
 	}
 	return base, patched, nil
 }

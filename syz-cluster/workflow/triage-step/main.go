@@ -85,14 +85,14 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 			SkipReason: "no suitable base kernel trees found",
 		}, nil
 	}
-	fuzzConfig := triage.SelectFuzzConfig(series, treesResp.FuzzTargets)
-	if fuzzConfig == nil {
+	fuzzConfigs := triage.MergeKernelFuzzConfigs(triage.SelectFuzzConfigs(series, treesResp.FuzzTargets))
+	if len(fuzzConfigs) == 0 {
 		return &api.TriageResult{
-			SkipReason: "no suitable fuzz config found",
+			SkipReason: "no suitable fuzz configs found",
 		}, nil
 	}
 	ret := &api.TriageResult{}
-	for _, campaign := range fuzzConfig.Campaigns {
+	for _, campaign := range fuzzConfigs {
 		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, selectedTrees, campaign)
 		var skipErr *SkipTriageError
 		if errors.As(err, &skipErr) {
@@ -111,7 +111,7 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 }
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
-	target *api.KernelFuzzConfig) (*api.FuzzTask, error) {
+	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
 	var skipErr error
 	for _, tree := range trees {
 		triager.Log("considering tree %q", tree.Name)
@@ -151,7 +151,7 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		fuzz := &api.FuzzTask{
 			Base:       base,
 			Patched:    base,
-			FuzzConfig: target.FuzzConfig,
+			FuzzConfig: *target.FuzzConfig,
 		}
 		fuzz.Patched.SeriesID = series.ID
 		return fuzz, nil

@@ -169,30 +169,15 @@ func unpack(file, dir string) {
 }
 
 func merge(file string, adds []string, target *prog.Target) {
-	dstDB, err := db.Open(file, false)
+	failures, err := db.Merge(file, adds, target)
 	if err != nil {
-		tool.Failf("failed to open database: %v", err)
+		tool.Failf("%s", err)
 	}
-	for _, add := range adds {
-		if addDB, err := db.Open(add, false); err == nil {
-			for key, rec := range addDB.Records {
-				dstDB.Save(key, rec.Val, rec.Seq)
-			}
-			continue
-		} else if target == nil {
-			tool.Failf("failed to open db %v: %v", add, err)
+	if len(failures) > 0 {
+		for _, fail := range failures {
+			fmt.Printf("failed to deserialize a record from %s: %s\n", fail.File, fail.Err)
 		}
-		data, err := os.ReadFile(add)
-		if err != nil {
-			tool.Fail(err)
-		}
-		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
-			tool.Failf("failed to deserialize %v: %v", add, err)
-		}
-		dstDB.Save(hash.String(data), data, 0)
-	}
-	if err := dstDB.Flush(); err != nil {
-		tool.Failf("failed to save db: %v", err)
+		tool.Failf("there have been deserialization errors")
 	}
 }
 

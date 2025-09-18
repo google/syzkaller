@@ -20,11 +20,20 @@ type FuzzTask struct {
 	FuzzConfig
 }
 
+const (
+	FocusNet     = "net"
+	FocusKVM     = "kvm"
+	FocusIoUring = "io_uring"
+	FocusBPF     = "bpf"
+	FocusFS      = "fs"
+)
+
 // FuzzConfig represents a set of parameters passed to the fuzz step.
+// The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
-	Prefix    string `json:"prefix"` // E.g. KASAN.
-	Config    string `json:"config"` // Refers to workflow/configs/{}.
-	CorpusURL string `json:"corpus_url"`
+	Prefix     string   `json:"prefix"`
+	Focus      []string `json:"focus"`
+	CorpusURLs []string `json:"corpus_urls"`
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
@@ -39,17 +48,22 @@ type Tree struct {
 	EmailLists []string `json:"email_lists"`
 }
 
+// KernelFuzzConfig is a specific fuzzing assignment.
+// Based on it, the triage step will construct FuzzTasks.
+type KernelFuzzConfig struct {
+	EmailLists     []string `json:"email_lists"`
+	Prefix         string   `json:"prefix"` // E.g. KASAN.
+	KernelConfig   string   `json:"kernel_config"`
+	Focus          string   `json:"focus"`
+	CorpusURL      string   `json:"corpus_url"`
+	SkipCoverCheck bool     `json:"skip_cover_check"`
+	BugTitleRe     string   `json:"bug_title_re"`
+}
+
 // FuzzTriageTarget is a single record in the list of supported fuzz configs.
 type FuzzTriageTarget struct {
 	EmailLists []string            `json:"email_lists"`
 	Campaigns  []*KernelFuzzConfig `json:"campaigns"`
-}
-
-// KernelFuzzConfig is a specific fuzzing assignment.
-// Based on it, the triage step will construct FuzzTasks.
-type KernelFuzzConfig struct {
-	KernelConfig string `json:"kernel_config"`
-	FuzzConfig
 }
 
 type BuildRequest struct {
@@ -233,8 +247,8 @@ var DefaultTrees = []*Tree{
 const (
 	netCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
 	bpfCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
-	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
+	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 )
 
 const (
@@ -248,12 +262,10 @@ var FuzzTargets = []*FuzzTriageTarget{
 		EmailLists: []string{`kvm@vger.kernel.org`},
 		Campaigns: []*KernelFuzzConfig{
 			{
+				Prefix:       kasanPrefix,
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `kvm`,
-					CorpusURL: allCorpusURL,
-				},
+				Focus:        FocusKVM,
+				CorpusURL:    allCorpusURL,
 			},
 		},
 	},
@@ -261,12 +273,10 @@ var FuzzTargets = []*FuzzTriageTarget{
 		EmailLists: []string{`io-uring@vger.kernel.org`},
 		Campaigns: []*KernelFuzzConfig{
 			{
+				Prefix:       kasanPrefix,
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `io-uring`,
-					CorpusURL: allCorpusURL,
-				},
+				Focus:        FocusIoUring,
+				CorpusURL:    allCorpusURL,
 			},
 		},
 	},
@@ -274,12 +284,10 @@ var FuzzTargets = []*FuzzTriageTarget{
 		EmailLists: []string{`bpf@vger.kernel.org`},
 		Campaigns: []*KernelFuzzConfig{
 			{
+				Prefix:       kasanPrefix,
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `bpf`,
-					CorpusURL: bpfCorpusURL,
-				},
+				Focus:        FocusBPF,
+				CorpusURL:    bpfCorpusURL,
 			},
 		},
 	},
@@ -291,21 +299,17 @@ var FuzzTargets = []*FuzzTriageTarget{
 		},
 		Campaigns: []*KernelFuzzConfig{
 			{
+				Prefix:       kasanPrefix,
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `net`,
-					CorpusURL: netCorpusURL,
-				},
+				Focus:        FocusNet,
+				CorpusURL:    netCorpusURL,
 			},
 			{
+				Prefix:       kmsanPrefix,
 				KernelConfig: `upstream-kmsan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:     kmsanPrefix,
-					Config:     `net`,
-					CorpusURL:  netCorpusURL,
-					BugTitleRe: `^KMSAN:`,
-				},
+				Focus:        FocusNet,
+				CorpusURL:    netCorpusURL,
+				BugTitleRe:   `^KMSAN:`,
 			},
 		},
 	},
@@ -319,11 +323,9 @@ var FuzzTargets = []*FuzzTriageTarget{
 		Campaigns: []*KernelFuzzConfig{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `fs`,
-					CorpusURL: fsCorpusURL,
-				},
+				Prefix:       kasanPrefix,
+				Focus:        FocusFS,
+				CorpusURL:    fsCorpusURL,
 			},
 		},
 	},
@@ -332,13 +334,10 @@ var FuzzTargets = []*FuzzTriageTarget{
 		Campaigns: []*KernelFuzzConfig{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `all`,
-					CorpusURL: allCorpusURL,
-					// Not all mm/ code is instrumented with KCOV.
-					SkipCoverCheck: true,
-				},
+				Prefix:       kasanPrefix,
+				CorpusURL:    allCorpusURL,
+				// Not all mm/ code is instrumented with KCOV.
+				SkipCoverCheck: true,
 			},
 		},
 	},
@@ -347,11 +346,8 @@ var FuzzTargets = []*FuzzTriageTarget{
 		Campaigns: []*KernelFuzzConfig{
 			{
 				KernelConfig: `upstream-apparmor-kasan.config`,
-				FuzzConfig: FuzzConfig{
-					Prefix:    kasanPrefix,
-					Config:    `all`,
-					CorpusURL: allCorpusURL,
-				},
+				Prefix:       kasanPrefix,
+				CorpusURL:    allCorpusURL,
 			},
 		},
 	},

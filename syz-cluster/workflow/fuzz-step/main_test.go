@@ -5,9 +5,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -16,24 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestConfigLoad(t *testing.T) {
-	root := filepath.Join("..", "configs")
-	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() || path == root {
-			return nil
-		}
-		t.Logf("checking %v", path)
-		_, _, err = loadConfigs(root, d.Name(), false)
-		if err != nil {
-			t.Fatalf("error proessing %q: %v", path, err)
-		}
-		return nil
-	})
-}
 
 func TestReadSectionHashes(t *testing.T) {
 	hashes := build.SectionHashes{
