@@ -22,6 +22,9 @@ const (
 	// x86_64, so we hardcode it for now. A more robust solution would involve
 	// reading this from the debugfs entry at boot before fuzzing begins.
 	kFuzzTestMinalign uint64 = 8
+
+	// Maximum input size accepted by the KFuzzTest kernel module.
+	KFuzzTestMaxInputSize uint64 = 64 << 10
 )
 
 func kFuzzTestWritePrefix(buf *bytes.Buffer) {
