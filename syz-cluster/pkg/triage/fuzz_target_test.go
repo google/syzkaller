@@ -10,32 +10,126 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSelectFuzzConfig(t *testing.T) {
-	bpf := &api.FuzzTriageTarget{EmailLists: []string{"bpf@list"}}
-	net := &api.FuzzTriageTarget{EmailLists: []string{"net@list"}}
-	mainline := &api.FuzzTriageTarget{EmailLists: nil}
-	configs := []*api.FuzzTriageTarget{bpf, net, mainline}
+func TestSelectFuzzConfigs(t *testing.T) {
+	bpf, bpfKmsan, net, mainline := &api.KernelFuzzConfig{},
+		&api.KernelFuzzConfig{},
+		&api.KernelFuzzConfig{},
+		&api.KernelFuzzConfig{}
+	configs := []*api.FuzzTriageTarget{
+		{
+			EmailLists: []string{"bpf@list"},
+			Campaigns:  []*api.KernelFuzzConfig{bpf, bpfKmsan},
+		},
+		{
+			EmailLists: []string{"net@list"},
+			Campaigns:  []*api.KernelFuzzConfig{net},
+		},
+		{
+			EmailLists: nil,
+			Campaigns:  []*api.KernelFuzzConfig{mainline},
+		},
+	}
 	tests := []struct {
 		testName string
-		result   *api.FuzzTriageTarget
+		result   []*api.KernelFuzzConfig
 		series   *api.Series
 	}{
 		{
-			testName: "select-first",
-			result:   bpf,
+			testName: "select-one",
+			result:   []*api.KernelFuzzConfig{net},
+			series:   &api.Series{Cc: []string{"net@list"}},
+		},
+		{
+			testName: "select-both",
+			result:   []*api.KernelFuzzConfig{bpf, bpfKmsan, net},
 			series:   &api.Series{Cc: []string{"bpf@list", "net@list"}},
 		},
 		{
 			testName: "fallback",
-			result:   mainline,
+			result:   []*api.KernelFuzzConfig{mainline},
 			series:   &api.Series{Cc: []string{"unknown@list"}},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			ret := SelectFuzzConfig(test.series, configs)
+			ret := SelectFuzzConfigs(test.series, configs)
 			assert.Equal(t, test.result, ret)
 		})
 	}
+}
+
+func TestMergeKernelFuzzConfigs(t *testing.T) {
+	t.Run("split", func(t *testing.T) {
+		assert.Equal(t, []*MergedFuzzConfig{
+			{
+				KernelConfig: "kasan_config",
+				FuzzConfig: &api.FuzzConfig{
+					Track: "KASAN",
+					Focus: []string{"net"},
+				},
+			},
+			{
+				KernelConfig: "kmsan_config",
+				FuzzConfig: &api.FuzzConfig{
+					Track: "KMSAN",
+					Focus: []string{"net"},
+				},
+			},
+		}, MergeKernelFuzzConfigs([]*api.KernelFuzzConfig{
+			{
+				Track:        "KASAN",
+				KernelConfig: "kasan_config",
+				Focus:        "net",
+			},
+			{
+				Track:        "KMSAN",
+				KernelConfig: "kmsan_config",
+				Focus:        "net",
+			},
+		}))
+	})
+	t.Run("merge", func(t *testing.T) {
+		assert.Equal(t, []*MergedFuzzConfig{
+			{
+				KernelConfig: "kasan_config",
+				FuzzConfig: &api.FuzzConfig{
+					Track: "KASAN",
+					Focus: []string{"bpf", "net"},
+				},
+			},
+		}, MergeKernelFuzzConfigs([]*api.KernelFuzzConfig{
+			{
+				Track:        "KASAN",
+				KernelConfig: "kasan_config",
+				Focus:        "net",
+			},
+			{
+				Track:        "KASAN",
+				KernelConfig: "kasan_config",
+				Focus:        "bpf",
+			},
+		}))
+	})
+}
+
+func TestMergeFuzzConfigs(t *testing.T) {
+	assert.Equal(t, &api.FuzzConfig{
+		Focus:          []string{"bpf", "net"},
+		CorpusURLs:     []string{"url1", "url2"},
+		SkipCoverCheck: true,
+		BugTitleRe:     "regexp",
+	}, mergeFuzzConfigs([]*api.KernelFuzzConfig{
+		{
+			Focus:      "net",
+			CorpusURL:  "url2",
+			BugTitleRe: "regexp",
+		},
+		{
+			Focus:          "bpf",
+			CorpusURL:      "url1",
+			BugTitleRe:     "regexp",
+			SkipCoverCheck: true,
+		},
+	}))
 }
