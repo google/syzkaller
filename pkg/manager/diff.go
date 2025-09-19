@@ -494,9 +494,11 @@ func (kc *kernelContext) Loop(baseCtx context.Context) error {
 	eg, ctx := errgroup.WithContext(baseCtx)
 	kc.ctx = ctx
 	eg.Go(func() error {
+		defer log.Logf(1, "syz-diff (%s): rpc server terminaled", kc.name)
 		return kc.serv.Serve(ctx)
 	})
 	eg.Go(func() error {
+		defer log.Logf(1, "syz-diff (%s): pool terminated", kc.name)
 		kc.pool.Loop(ctx)
 		return nil
 	})
