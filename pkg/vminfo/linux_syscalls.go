@@ -106,6 +106,7 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_socket_connect_nvme_tcp":   linuxSyzSocketConnectNvmeTCPSupported,
 	"syz_pidfd_open":                alwaysSupported,
 	"syz_create_resource":           alwaysSupported,
+	"syz_kfuzztest_run":             alwaysSupported,
 }
 
 func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {

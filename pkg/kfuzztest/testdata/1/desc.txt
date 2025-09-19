@@ -1,0 +1,7 @@
+# This description was automatically generated with tools/kfuzztest-gen
+pkcs7_parse_message_arg {
+	data	ptr[in, array[int8]]
+	datalen	len[data, int64]
+}
+
+syz_kfuzztest_run$test_pkcs7_parse_message(name ptr[in, string["test_pkcs7_parse_message"]], data ptr[in, pkcs7_parse_message_arg], len bytesize[data], buf ptr[in, array[int8, 65536]]) (kfuzz_test)

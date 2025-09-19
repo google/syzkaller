@@ -1,0 +1,15 @@
+# This description was automatically generated with tools/kfuzztest-gen
+bar {
+	a	int32
+	b	int32
+}
+
+foo {
+	b	ptr[in, bar]
+	str	ptr[in, string]
+	data	ptr[in, array[int8]]
+	datalen	len[data, int64]
+	numbers	ptr[in, array[int64]]
+}
+
+syz_kfuzztest_run$some_target(name ptr[in, string["some_target"]], data ptr[in, foo], len bytesize[data], buf ptr[in, array[int8, 65536]]) (kfuzz_test)

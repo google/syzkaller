@@ -255,6 +255,9 @@ type Experimental struct {
 	// with an empty Filter, but non-empty weight.
 	// E.g. "focus_areas": [ {"filter": {"files": ["^net"]}, "weight": 10.0}, {"weight": 1.0} ].
 	FocusAreas []FocusArea `json:"focus_areas,omitempty"`
+
+	// Enable dynamic discovery and fuzzing of KFuzzTest targets.
+	EnableKFuzzTest bool `json:"enable_kfuzztest"`
 }
 
 type FocusArea struct {

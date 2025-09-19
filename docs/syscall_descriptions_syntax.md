@@ -109,6 +109,7 @@ Call attributes are:
 "fsck": the content of the compressed buffer argument for this syscall is a file system and the
     string argument is a fsck-like command that will be called to verify the filesystem
 "remote_cover": wait longer to collect remote coverage for this call.
+"kfuzz_test": the call is a kfuzztest target
 ```
 
 ## Ints
