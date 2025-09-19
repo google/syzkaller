@@ -378,18 +378,14 @@ func (dc *diffContext) NeedRepro(crash *Crash) bool {
 	if !needReproForTitle(crash.Title) {
 		return false
 	}
-	dc.mu.Lock()
-	defer dc.mu.Unlock()
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	if dc.ignoreCrash(ctx, crash.Title) {
 		return false
 	}
-	if dc.reproAttempts[crash.Title] > maxReproAttempts {
-		return false
-	}
-	return true
+	dc.mu.Lock()
+	defer dc.mu.Unlock()
+	return dc.reproAttempts[crash.Title] <= maxReproAttempts
 }
 
 func (dc *diffContext) RunRepro(ctx context.Context, crash *Crash) *ReproResult {
