@@ -486,7 +486,7 @@ func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, erro
 }
 
 func (kc *kernelContext) Loop(baseCtx context.Context) error {
-	defer log.Logf(1, "syz-diff (%s): kernel context loop terminated", kc.name)
+	defer log.Logf(1, "%s: kernel context loop terminated", kc.name)
 
 	if err := kc.serv.Listen(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
@@ -494,9 +494,11 @@ func (kc *kernelContext) Loop(baseCtx context.Context) error {
 	eg, ctx := errgroup.WithContext(baseCtx)
 	kc.ctx = ctx
 	eg.Go(func() error {
+		defer log.Logf(1, "%s: rpc server terminaled", kc.name)
 		return kc.serv.Serve(ctx)
 	})
 	eg.Go(func() error {
+		defer log.Logf(1, "%s: pool terminated", kc.name)
 		kc.pool.Loop(ctx)
 		return nil
 	})
