@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,6 +31,13 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+// Pseudo-syscalls that might not provide any coverage when invoked.
+var noCovSyscalls = map[string]struct{}{
+	"syz_btf_id_by_name":            {},
+	"syz_kvm_assert_syzos_uexit":    {},
+	"syz_kvm_assert_syzos_kvm_exit": {},
+}
 
 type runRequest struct {
 	*queue.Request
@@ -521,17 +527,24 @@ func checkResult(req *runRequest) error {
 func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.ProgInfo, calls map[string]bool) error {
 	inf := info.Calls[call]
 	want := req.results.Calls[call]
+	if err := checkCallStatus(req, isC, run, call, inf, want); err != nil {
+		return err
+	}
+	if isC || inf.Flags&flatrpc.CallFlagExecuted == 0 {
+		return nil
+	}
+	// We check coverage only for syz-executor.
+	return checkCallCoverage(req, run, call, info, calls)
+}
+
+func checkCallStatus(req *runRequest, isC bool, run, call int, inf, want *flatrpc.CallInfo) error {
+	// In non-threaded mode blocked syscalls will block the main thread
+	// and we won't detect blocked/unfinished syscalls.
+	// C code also does not detect blocked/non-finished calls.
+	ignoreFlags := isC || req.ExecOpts.ExecFlags&flatrpc.ExecFlagThreaded == 0
 	for flag, what := range flatrpc.EnumNamesCallFlag {
-		if flag != flatrpc.CallFlagFinished {
-			if isC {
-				// C code does not detect blocked/non-finished calls.
-				continue
-			}
-			if req.ExecOpts.ExecFlags&flatrpc.ExecFlagThreaded == 0 {
-				// In non-threaded mode blocked syscalls will block main thread
-				// and we won't detect blocked/unfinished syscalls.
-				continue
-			}
+		if ignoreFlags && flag != flatrpc.CallFlagFinished {
+			continue
 		}
 		if runtime.GOOS == targets.FreeBSD && flag == flatrpc.CallFlagBlocked {
 			// Blocking detection is flaky on freebsd.
@@ -539,42 +552,47 @@ func checkCallResult(req *runRequest, isC bool, run, call int, info *flatrpc.Pro
 			continue
 		}
 		if (inf.Flags^want.Flags)&flag != 0 {
-			not := " not"
-			if inf.Flags&flag != 0 {
-				not = ""
-			}
-			return fmt.Errorf("run %v: call %v is%v %v", run, call, not, what)
+			return fmt.Errorf("run %v: call %v %v %v, want %v",
+				run, call, flagStatus(inf.Flags, flag), what, flagStatus(want.Flags, flag))
 		}
 	}
 	if inf.Flags&flatrpc.CallFlagFinished != 0 && inf.Error != want.Error {
 		return fmt.Errorf("run %v: wrong call %v result %v, want %v",
 			run, call, inf.Error, want.Error)
 	}
-	if isC || inf.Flags&flatrpc.CallFlagExecuted == 0 {
-		return nil
+	return nil
+}
+
+func flagStatus(flags, flag flatrpc.CallFlag) string {
+	if flags&flag != 0 {
+		return "is"
 	}
-	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal != 0 {
-		callName := req.Prog.Calls[call].Meta.CallName
-		// Pseudo-syscalls that might not provide any coverage when invoked.
-		noCovSyscalls := []string{"syz_btf_id_by_name", "syz_kvm_assert_syzos_uexit", "syz_kvm_assert_syzos_kvm_exit"}
-		isNoCov := slices.Contains(noCovSyscalls, callName)
-		// Signal is always deduplicated, so we may not get any signal
-		// on a second invocation of the same syscall.
-		// For calls that are not meant to collect synchronous coverage we
-		// allow the signal to be empty as long as the extra signal is not.
-		if !isNoCov && len(inf.Signal) < 2 && !calls[callName] &&
-			len(info.Extra.Signal) == 0 {
-			return fmt.Errorf("run %v: call %v: no signal", run, call)
-		}
-		if !isNoCov && len(inf.Cover) == 0 {
-			return fmt.Errorf("run %v: call %v: no cover", run, call)
-		}
-		calls[callName] = true
-	} else {
+	return "is not"
+}
+
+func checkCallCoverage(req *runRequest, run, call int, info *flatrpc.ProgInfo, calls map[string]bool) error {
+	inf := info.Calls[call]
+	if req.ExecOpts.EnvFlags&flatrpc.ExecEnvSignal == 0 {
 		if len(inf.Signal) != 0 {
 			return fmt.Errorf("run %v: call %v: got %v unwanted signal", run, call, len(inf.Signal))
 		}
+		return nil
 	}
+	callName := req.Prog.Calls[call].Meta.CallName
+	_, isNoCov := noCovSyscalls[callName]
+	// Signal is always deduplicated, so we may not get any signal
+	// on a second invocation of the same syscall.
+	// For calls that are not meant to collect synchronous coverage we
+	// allow the signal to be empty as long as the extra signal is not.
+	if !isNoCov && !calls[callName] {
+		if len(inf.Signal) < 2 && len(info.Extra.Signal) == 0 {
+			return fmt.Errorf("run %v: call %v: no signal", run, call)
+		}
+	}
+	if !isNoCov && len(inf.Cover) == 0 {
+		return fmt.Errorf("run %v: call %v: no cover", run, call)
+	}
+	calls[callName] = true
 	return nil
 }
 
