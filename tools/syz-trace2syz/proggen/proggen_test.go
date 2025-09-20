@@ -153,46 +153,11 @@ socket(17, 2, 768) = 3
 socket$packet(0x11, 0x2, 0x300)
 `,
 		}, {`
-socket(2, 1, 0) = 3
-connect(3, {sa_family=2, sin_port=17812, sin_addr=0x0}, 16) = 0
-`, `
-r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-connect$inet(r0, &(0x7f0000000000)={0x2, 0x4594}, 0x10)
-`,
-		}, {`
 open("\x2f\x64\x65\x76\x2f\x73\x6e\x64\x2f\x73\x65\x71", 0) = 3
 fsetxattr(3, "\x73\x65\x63\x75\x72\x69\x74\x79\x2e\x73\x65\x6c\x69\x6e\x75\x78","\x73\x79\x73", 4, 0) = 0
 `, `
 r0 = openat$sndseq(0xffffffffffffff9c, &(0x7f0000000000), 0x0)
 fsetxattr(r0, &(0x7f0000000040)=@known='security.selinux\x00', &(0x7f0000000080)='sys\x00', 0x4, 0x0)
-`,
-		}, {`
-socket(0x2, 0x1, 0) = 3
-connect(3, {sa_family=0x2, sin_port="\x1f\x90", sin_addr="\x7f\x00\x00\x01"}, 16) = -1
-`, `
-r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-connect$inet(r0, &(0x7f0000000000)={0x2, 0x1f90, @rand_addr=0x7f000001}, 0x10)
-`,
-		}, {`
-socket(0x2, 0x1, 0) = 3
-connect(3, {sa_family=0x2, sin_port="\x1f\x90", sin_addr="\x00\x00\x00\x00\x7f\x00\x00\x01"}, 16) = -1
-`, `
-r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-connect$inet(r0, &(0x7f0000000000)={0x2, 0x1f90, @rand_addr=0x7f000001}, 0x10)
-`,
-		}, {`
-socket(0x2, 0x1, 0) = 3
-connect(3, {sa_family=0x2, sin_port="\x1f\x90", sin_addr="\x00"}, 16) = -1
-`, `
-r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-connect$inet(r0, &(0x7f0000000000)={0x2, 0x1f90}, 0x10)
-`,
-		}, {`
-socket(0x2, 0x1, 0) = 3
-connect(3, {sa_family=0x2, sin_port="\x1f\x90", sin_addr="\x00"}, 16) = -1
-`, `
-r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-connect$inet(r0, &(0x7f0000000000)={0x2, 0x1f90}, 0x10)
 `,
 		}, {`
 connect(-1, {sa_family=0xa, sin6_port="\x30\x39",` +
@@ -264,6 +229,8 @@ ioctl(3, 0x4028700f, {enabled=0, pending=0, time={tm_sec=0, tm_min=0, tm_hour=0,
 			`
 r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
 ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
+			// TODO: many socket$inet tests have been dropped because of using syz_create_resource.
+			// Once we support non-int64 resources, the (useful) tests may be recovered from the git history.
 		},
 	}
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
