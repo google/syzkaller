@@ -1036,6 +1036,7 @@ struct ConnectReplyRawT : public flatbuffers::NativeTable {
   int32_t slowdown = 0;
   int32_t syscall_timeout_ms = 0;
   int32_t program_timeout_ms = 0;
+  int32_t proc_restart_freq = 0;
   std::vector<std::string> leak_frames{};
   std::vector<std::string> race_frames{};
   rpc::Feature features = static_cast<rpc::Feature>(0);
@@ -1054,10 +1055,11 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_SLOWDOWN = 14,
     VT_SYSCALL_TIMEOUT_MS = 16,
     VT_PROGRAM_TIMEOUT_MS = 18,
-    VT_LEAK_FRAMES = 20,
-    VT_RACE_FRAMES = 22,
-    VT_FEATURES = 24,
-    VT_FILES = 26
+    VT_PROC_RESTART_FREQ = 20,
+    VT_LEAK_FRAMES = 22,
+    VT_RACE_FRAMES = 24,
+    VT_FEATURES = 26,
+    VT_FILES = 28
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
@@ -1083,6 +1085,9 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t program_timeout_ms() const {
     return GetField<int32_t>(VT_PROGRAM_TIMEOUT_MS, 0);
   }
+  int32_t proc_restart_freq() const {
+    return GetField<int32_t>(VT_PROC_RESTART_FREQ, 0);
+  }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_LEAK_FRAMES);
   }
@@ -1105,6 +1110,7 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_SLOWDOWN, 4) &&
            VerifyField<int32_t>(verifier, VT_SYSCALL_TIMEOUT_MS, 4) &&
            VerifyField<int32_t>(verifier, VT_PROGRAM_TIMEOUT_MS, 4) &&
+           VerifyField<int32_t>(verifier, VT_PROC_RESTART_FREQ, 4) &&
            VerifyOffset(verifier, VT_LEAK_FRAMES) &&
            verifier.VerifyVector(leak_frames()) &&
            verifier.VerifyVectorOfStrings(leak_frames()) &&
@@ -1150,6 +1156,9 @@ struct ConnectReplyRawBuilder {
   void add_program_timeout_ms(int32_t program_timeout_ms) {
     fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROGRAM_TIMEOUT_MS, program_timeout_ms, 0);
   }
+  void add_proc_restart_freq(int32_t proc_restart_freq) {
+    fbb_.AddElement<int32_t>(ConnectReplyRaw::VT_PROC_RESTART_FREQ, proc_restart_freq, 0);
+  }
   void add_leak_frames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames) {
     fbb_.AddOffset(ConnectReplyRaw::VT_LEAK_FRAMES, leak_frames);
   }
@@ -1183,6 +1192,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     int32_t slowdown = 0,
     int32_t syscall_timeout_ms = 0,
     int32_t program_timeout_ms = 0,
+    int32_t proc_restart_freq = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> leak_frames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> race_frames = 0,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -1192,6 +1202,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
   builder_.add_files(files);
   builder_.add_race_frames(race_frames);
   builder_.add_leak_frames(leak_frames);
+  builder_.add_proc_restart_freq(proc_restart_freq);
   builder_.add_program_timeout_ms(program_timeout_ms);
   builder_.add_syscall_timeout_ms(syscall_timeout_ms);
   builder_.add_slowdown(slowdown);
@@ -1213,6 +1224,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     int32_t slowdown = 0,
     int32_t syscall_timeout_ms = 0,
     int32_t program_timeout_ms = 0,
+    int32_t proc_restart_freq = 0,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *leak_frames = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *race_frames = nullptr,
     rpc::Feature features = static_cast<rpc::Feature>(0),
@@ -1230,6 +1242,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
       slowdown,
       syscall_timeout_ms,
       program_timeout_ms,
+      proc_restart_freq,
       leak_frames__,
       race_frames__,
       features,
@@ -3052,6 +3065,7 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::r
   { auto _e = slowdown(); _o->slowdown = _e; }
   { auto _e = syscall_timeout_ms(); _o->syscall_timeout_ms = _e; }
   { auto _e = program_timeout_ms(); _o->program_timeout_ms = _e; }
+  { auto _e = proc_restart_freq(); _o->proc_restart_freq = _e; }
   { auto _e = leak_frames(); if (_e) { _o->leak_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->leak_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = race_frames(); if (_e) { _o->race_frames.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->race_frames[_i] = _e->Get(_i)->str(); } } }
   { auto _e = features(); _o->features = _e; }
@@ -3074,6 +3088,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   auto _slowdown = _o->slowdown;
   auto _syscall_timeout_ms = _o->syscall_timeout_ms;
   auto _program_timeout_ms = _o->program_timeout_ms;
+  auto _proc_restart_freq = _o->proc_restart_freq;
   auto _leak_frames = _o->leak_frames.size() ? _fbb.CreateVectorOfStrings(_o->leak_frames) : 0;
   auto _race_frames = _o->race_frames.size() ? _fbb.CreateVectorOfStrings(_o->race_frames) : 0;
   auto _features = _o->features;
@@ -3088,6 +3103,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
       _slowdown,
       _syscall_timeout_ms,
       _program_timeout_ms,
+      _proc_restart_freq,
       _leak_frames,
       _race_frames,
       _features,
