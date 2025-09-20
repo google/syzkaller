@@ -184,6 +184,8 @@ func (r *ReproLoop) popCrash() *Crash {
 }
 
 func (r *ReproLoop) Loop(ctx context.Context) {
+	defer log.Logf(1, "repro loop terminated")
+
 	count := 0
 	for ; r.calculateReproVMs(count+1) <= r.reproVMs; count++ {
 		r.parallel <- struct{}{}

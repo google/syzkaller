@@ -5,34 +5,15 @@ package main
 
 import (
 	"encoding/json"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestConfigLoad(t *testing.T) {
-	root := filepath.Join("..", "configs")
-	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() || path == root {
-			return nil
-		}
-		t.Logf("checking %v", path)
-		_, _, err = loadConfigs(root, d.Name(), false)
-		if err != nil {
-			t.Fatalf("error proessing %q: %v", path, err)
-		}
-		return nil
-	})
-}
 
 func TestReadSectionHashes(t *testing.T) {
 	hashes := build.SectionHashes{
@@ -116,4 +97,14 @@ func TestShouldSkipFuzzing(t *testing.T) {
 			},
 		))
 	})
+}
+
+func TestBugTitleRe(t *testing.T) {
+	assert.True(t, titleMatchesFilter(&api.FuzzConfig{}, "any title must match"))
+	assert.True(t, titleMatchesFilter(&api.FuzzConfig{
+		BugTitleRe: `^Prefix:`,
+	}, "Prefix: must pass"))
+	assert.False(t, titleMatchesFilter(&api.FuzzConfig{
+		BugTitleRe: `^Prefix:`,
+	}, "Without prefix"))
 }
