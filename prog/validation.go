@@ -18,6 +18,32 @@ func init() {
 	}
 }
 
+func (p *Prog) doValidateDeps() bool {
+	toRet := true
+	if p.EnforceDeps {
+		for _, c := range p.Calls {
+			ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+				if a, ok := arg.(*ResultArg); ok {
+					if a.Dir() == DirIn && a.Res == nil {
+						toRet = false
+						return
+					}
+				}
+
+				if p, ok := arg.(*PointerArg); ok {
+					if _, okPtr := p.Type().(*PtrType); okPtr {
+						if p.Res == nil {
+							toRet = false
+							return
+						}
+					}
+				}
+			})
+		}
+	}
+	return toRet
+}
+
 func (p *Prog) debugValidate() {
 	if debug {
 		if err := p.validate(); err != nil {

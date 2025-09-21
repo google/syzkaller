@@ -44,7 +44,8 @@ func (ji *JobInfo) ID() string {
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		prog.RecommendedCalls,
-		fuzzer.ChoiceTable())
+		fuzzer.ChoiceTable(),
+	)
 	return &queue.Request{
 		Prog:     p,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
@@ -64,6 +65,9 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 		fuzzer.Config.NoMutateCalls,
 		fuzzer.Config.Corpus.Programs(),
 	)
+	if !newP.ValidateDeps() {
+		return nil
+	}
 	return &queue.Request{
 		Prog:     newP,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
@@ -456,6 +460,9 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 			fuzzer.ChoiceTable(),
 			fuzzer.Config.NoMutateCalls,
 			fuzzer.Config.Corpus.Programs())
+		if !p.ValidateDeps() {
+			continue
+		}
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),

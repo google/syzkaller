@@ -10,15 +10,20 @@ import (
 )
 
 type Prog struct {
-	Target   *Target
-	Calls    []*Call
-	Comments []string
+	Target      *Target
+	Calls       []*Call
+	Comments    []string
+	EnforceDeps bool
 
 	// Was deserialized using Unsafe mode, so can do unsafe things.
 	isUnsafe bool
 }
 
 const ExtraCallName = ".extra"
+
+func (p *Prog) ValidateDeps() bool {
+	return p.doValidateDeps()
+}
 
 func (p *Prog) CallName(call int) string {
 	if call >= len(p.Calls) || call < -1 {
