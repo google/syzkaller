@@ -116,6 +116,9 @@ func runTest(ctx context.Context, client *api.Client) (bool, error) {
 		if findingErr != nil {
 			return false, fmt.Errorf("failed to report the finding: %w", findingErr)
 		}
+	} else {
+		log.Printf("report:\n%s", rep.Report)
+		log.Printf("output:\n%s", rep.Output)
 	}
 	return false, nil
 }
