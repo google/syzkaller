@@ -7,19 +7,24 @@ Main page.
 
 <!doctype html>
 <html>
+
 <head>
 	{{template "head" .Header}}
 	<title>syzbot</title>
 </head>
+
 <body>
 	{{template "header" .Header}}
-	{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
-	{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
+	<div class="container py-4">
+		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
+		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		{{template "manager_list" $.Managers}}
-	{{end}}
-	{{template "bug_filter" $.BugFilter}}
-	{{range $group := $.Groups}}
+		{{end}}
+		{{template "bug_filter" $.BugFilter}}
+		{{range $group := $.Groups}}
 		{{template "bug_list" $group}}
-	{{end}}
+		{{end}}
+	</div>
 </body>
+
 </html>
