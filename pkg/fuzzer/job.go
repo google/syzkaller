@@ -45,17 +45,7 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		fuzzer.RecommendedCalls(),
 		fuzzer.ChoiceTable())
-	p.SecContext = ""
-	if fuzzer.Config.AttachSecContext {
-		p.SecContext = "user_u:user_r:user_t:s0"
-		if fuzzer.Config.Sandbox == "android" {
-			if fuzzer.Config.SandboxArg == 0 {
-				p.SecContext = "u:r:untrusted_app:s0:c512,c768"
-			} else {
-				p.SecContext = ""
-			}
-		}
-	}
+	p.SecContext = fuzzer.SecContextGen.getSecLabel()
 	return &queue.Request{
 		Prog:     p,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),

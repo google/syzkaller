@@ -1176,8 +1176,6 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			NoMutateCalls:    mgr.cfg.NoMutateCalls,
 			FetchRawCover:    mgr.cfg.RawCover,
 			AttachSecContext: mgr.cfg.Experimental.AttachSecContexts,
-			Sandbox:          mgr.cfg.Sandbox,
-			SandboxArg:       mgr.cfg.SandboxArg,
 			Logf: func(level int, msg string, args ...interface{}) {
 				if level != 0 {
 					return
@@ -1190,7 +1188,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 				return !mgr.saturatedCalls[call]
 			},
 			ModeKFuzzTest: mgr.cfg.Experimental.EnableKFuzzTest,
-		}, rnd, mgr.target)
+		}, rnd, mgr.target, &fuzzer.SecContextGenerator{ Sandbox: mgr.cfg.Sandbox, SandboxArg: mgr.cfg.SandboxArg, AttachSecLabels: mgr.cfg.Experimental.AttachSecContexts })
 		fuzzerObj.AddCandidates(candidates)
 		mgr.fuzzer.Store(fuzzerObj)
 		mgr.http.Fuzzer.Store(fuzzerObj)
