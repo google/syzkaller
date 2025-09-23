@@ -114,7 +114,7 @@ func NewKFuzzTestManager(ctx context.Context, cfg Config) (*kFuzzTestManager, er
 			// Don't filter anything.
 			return true
 		},
-	}, rnd, target)
+	}, rnd, target, nil)
 
 	// TODO: Sufficient for startup, but not ideal that we are passing a
 	// manager config here. Would require changes to pkg/fuzzer if we wanted to

@@ -24,8 +24,9 @@ import (
 
 type Fuzzer struct {
 	Stats
-	Config *Config
-	Cover  *Cover
+	Config        *Config
+	Cover         *Cover
+	SecContextGen *SecContextGenerator
 
 	ctx          context.Context
 	mu           sync.Mutex
@@ -43,16 +44,17 @@ type Fuzzer struct {
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
-	target *prog.Target) *Fuzzer {
+	target *prog.Target, seclabelgen *SecContextGenerator) *Fuzzer {
 	if cfg.NewInputFilter == nil {
 		cfg.NewInputFilter = func(call string) bool {
 			return true
 		}
 	}
 	f := &Fuzzer{
-		Stats:  newStats(target),
-		Config: cfg,
-		Cover:  newCover(),
+		Stats:         newStats(target),
+		Config:        cfg,
+		Cover:         newCover(),
+		SecContextGen: seclabelgen,
 
 		ctx:         ctx,
 		rnd:         rnd,
@@ -219,8 +221,6 @@ type Config struct {
 	EnabledCalls     map[*prog.Syscall]bool
 	NoMutateCalls    map[int]bool
 	FetchRawCover    bool
-	Sandbox          string
-	SandboxArg       int64
 	SecContexts      []string
 	NewInputFilter   func(call string) bool
 	PatchTest        bool
@@ -374,9 +374,8 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			Stat:      fuzzer.statExecCandidate,
 			Important: true,
 		}
-		req.Prog.SecContext = ""
-		if len(fuzzer.Config.SecContexts) != 0 {
-			req.Prog.SecContext = fuzzer.Config.SecContexts[0]
+		if fuzzer.SecContextGen != nil {
+			req.Prog.SecContext = fuzzer.SecContextGen.getSecLabel()
 		}
 		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}
