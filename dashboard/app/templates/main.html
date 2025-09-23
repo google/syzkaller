@@ -15,7 +15,7 @@ Main page.
 
 <body>
 	{{template "header" .Header}}
-	<div class="container py-4">
+	<div class="row justify-content-start">
 		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		{{template "manager_list" $.Managers}}
