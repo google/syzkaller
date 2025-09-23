@@ -566,23 +566,24 @@ enum class ExecEnv : uint64_t {
   SandboxSetuid = 32ULL,
   SandboxNamespace = 64ULL,
   SandboxAndroid = 128ULL,
-  ExtraCover = 256ULL,
-  EnableTun = 512ULL,
-  EnableNetDev = 1024ULL,
-  EnableNetReset = 2048ULL,
-  EnableCgroups = 4096ULL,
-  EnableCloseFds = 8192ULL,
-  EnableDevlinkPCI = 16384ULL,
-  EnableVhciInjection = 32768ULL,
-  EnableWifi = 65536ULL,
-  DelayKcovMmap = 131072ULL,
-  EnableNicVF = 262144ULL,
+  EnforcePolicy = 256ULL,
+  ExtraCover = 512ULL,
+  EnableTun = 1024ULL,
+  EnableNetDev = 2048ULL,
+  EnableNetReset = 4096ULL,
+  EnableCgroups = 8192ULL,
+  EnableCloseFds = 16384ULL,
+  EnableDevlinkPCI = 32768ULL,
+  EnableVhciInjection = 65536ULL,
+  EnableWifi = 131072ULL,
+  DelayKcovMmap = 262144ULL,
+  EnableNicVF = 524288ULL,
   NONE = 0,
-  ANY = 524287ULL
+  ANY = 1048575ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(ExecEnv, uint64_t)
 
-inline const ExecEnv (&EnumValuesExecEnv())[19] {
+inline const ExecEnv (&EnumValuesExecEnv())[20] {
   static const ExecEnv values[] = {
     ExecEnv::Debug,
     ExecEnv::Signal,
@@ -592,6 +593,7 @@ inline const ExecEnv (&EnumValuesExecEnv())[19] {
     ExecEnv::SandboxSetuid,
     ExecEnv::SandboxNamespace,
     ExecEnv::SandboxAndroid,
+    ExecEnv::EnforcePolicy,
     ExecEnv::ExtraCover,
     ExecEnv::EnableTun,
     ExecEnv::EnableNetDev,
@@ -617,6 +619,7 @@ inline const char *EnumNameExecEnv(ExecEnv e) {
     case ExecEnv::SandboxSetuid: return "SandboxSetuid";
     case ExecEnv::SandboxNamespace: return "SandboxNamespace";
     case ExecEnv::SandboxAndroid: return "SandboxAndroid";
+    case ExecEnv::EnforcePolicy: return "EnforcePolicy";
     case ExecEnv::ExtraCover: return "ExtraCover";
     case ExecEnv::EnableTun: return "EnableTun";
     case ExecEnv::EnableNetDev: return "EnableNetDev";

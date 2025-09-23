@@ -142,6 +142,7 @@ enum ExecEnv : uint64 (bit_flags) {
 	SandboxSetuid,		// impersonate nobody user
 	SandboxNamespace,	// use namespaces for sandboxing
 	SandboxAndroid,		// use Android sandboxing for the untrusted_app domain
+	EnforcePolicy,		// enforce the loaded SELinux policy
 	ExtraCover,		// collect extra coverage
 	EnableTun,		// setup and use /dev/tun for packet injection
 	EnableNetDev,		// setup more network devices for testing

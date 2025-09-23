@@ -4455,7 +4455,7 @@ static void getcon(char* context, size_t context_size)
 // - Uses fail() instead of returning an error code
 static void setcon(const char* context)
 {
-	char new_context[512];
+	char new_context[512] = {0};
 
 	// Attempt to write the new context
 	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
@@ -4470,7 +4470,7 @@ static void setcon(const char* context)
 	close(fd);
 
 	if (bytes_written != (ssize_t)strlen(context))
-		failmsg("setcon: could not write entire context", "wrote=%zi, expected=%zu", bytes_written, strlen(context));
+		failmsg("setcon: could not write entire context", "context: %s, wrote=%zi, expected=%zu", context, bytes_written, strlen(context));
 
 	// Validate the transition by checking the context
 	getcon(new_context, sizeof(new_context));

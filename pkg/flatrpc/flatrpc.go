@@ -322,17 +322,18 @@ const (
 	ExecEnvSandboxSetuid       ExecEnv = 32
 	ExecEnvSandboxNamespace    ExecEnv = 64
 	ExecEnvSandboxAndroid      ExecEnv = 128
-	ExecEnvExtraCover          ExecEnv = 256
-	ExecEnvEnableTun           ExecEnv = 512
-	ExecEnvEnableNetDev        ExecEnv = 1024
-	ExecEnvEnableNetReset      ExecEnv = 2048
-	ExecEnvEnableCgroups       ExecEnv = 4096
-	ExecEnvEnableCloseFds      ExecEnv = 8192
-	ExecEnvEnableDevlinkPCI    ExecEnv = 16384
-	ExecEnvEnableVhciInjection ExecEnv = 32768
-	ExecEnvEnableWifi          ExecEnv = 65536
-	ExecEnvDelayKcovMmap       ExecEnv = 131072
-	ExecEnvEnableNicVF         ExecEnv = 262144
+	ExecEnvEnforcePolicy       ExecEnv = 256
+	ExecEnvExtraCover          ExecEnv = 512
+	ExecEnvEnableTun           ExecEnv = 1024
+	ExecEnvEnableNetDev        ExecEnv = 2048
+	ExecEnvEnableNetReset      ExecEnv = 4096
+	ExecEnvEnableCgroups       ExecEnv = 8192
+	ExecEnvEnableCloseFds      ExecEnv = 16384
+	ExecEnvEnableDevlinkPCI    ExecEnv = 32768
+	ExecEnvEnableVhciInjection ExecEnv = 65536
+	ExecEnvEnableWifi          ExecEnv = 131072
+	ExecEnvDelayKcovMmap       ExecEnv = 262144
+	ExecEnvEnableNicVF         ExecEnv = 524288
 )
 
 var EnumNamesExecEnv = map[ExecEnv]string{
@@ -344,6 +345,7 @@ var EnumNamesExecEnv = map[ExecEnv]string{
 	ExecEnvSandboxSetuid:       "SandboxSetuid",
 	ExecEnvSandboxNamespace:    "SandboxNamespace",
 	ExecEnvSandboxAndroid:      "SandboxAndroid",
+	ExecEnvEnforcePolicy:       "EnforcePolicy",
 	ExecEnvExtraCover:          "ExtraCover",
 	ExecEnvEnableTun:           "EnableTun",
 	ExecEnvEnableNetDev:        "EnableNetDev",
@@ -366,6 +368,7 @@ var EnumValuesExecEnv = map[string]ExecEnv{
 	"SandboxSetuid":       ExecEnvSandboxSetuid,
 	"SandboxNamespace":    ExecEnvSandboxNamespace,
 	"SandboxAndroid":      ExecEnvSandboxAndroid,
+	"EnforcePolicy":       ExecEnvEnforcePolicy,
 	"ExtraCover":          ExecEnvExtraCover,
 	"EnableTun":           ExecEnvEnableTun,
 	"EnableNetDev":        ExecEnvEnableNetDev,

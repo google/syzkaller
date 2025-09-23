@@ -208,20 +208,23 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 }
 
 type Config struct {
-	Debug          bool
-	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...interface{})
-	Snapshot       bool
-	Coverage       bool
-	FaultInjection bool
-	Comparisons    bool
-	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(call string) bool
-	PatchTest      bool
-	ModeKFuzzTest  bool
+	Debug            bool
+	Corpus           *corpus.Corpus
+	Logf             func(level int, msg string, args ...interface{})
+	Snapshot         bool
+	Coverage         bool
+	FaultInjection   bool
+	Comparisons      bool
+	Collide          bool
+	EnabledCalls     map[*prog.Syscall]bool
+	NoMutateCalls    map[int]bool
+	FetchRawCover    bool
+	Sandbox          string
+	SandboxArg       int64
+	AttachSecContext bool
+	NewInputFilter   func(call string) bool
+	PatchTest        bool
+	ModeKFuzzTest    bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -371,6 +374,17 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			Stat:      fuzzer.statExecCandidate,
 			Important: true,
 		}
+		req.Prog.SecContext = ""
+		if fuzzer.Config.AttachSecContext {
+			req.Prog.SecContext = "user_u:user_r:user_t:s0"
+			if fuzzer.Config.Sandbox == "android" {
+				if fuzzer.Config.SandboxArg == 0 {
+					req.Prog.SecContext = "u:r:untrusted_app:s0:c512,c768"
+				} else {
+					req.Prog.SecContext = ""
+				}
+			}
+		}
 		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}
 }
@@ -471,6 +485,9 @@ func DefaultExecOpts(cfg *mgrconfig.Config, features flatrpc.Feature, debug bool
 	}
 	if cfg.Cover {
 		env |= flatrpc.ExecEnvSignal
+	}
+	if cfg.Experimental.EnforcePolicy {
+		env |= flatrpc.ExecEnvEnforcePolicy
 	}
 	sandbox, err := flatrpc.SandboxToFlags(cfg.Sandbox)
 	if err != nil {
