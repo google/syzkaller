@@ -318,8 +318,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 							<th scope="col">Last active</th>
 							<th scope="col">Uptime</th>
 							<th scope="col">Corpus</th>
-							<th scope="col" class="small">Coverage {{template "info_link"
-								"https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
+							<th scope="col" class="small">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
 							<th scope="col">Crashes</th>
 							<th scope="col">Execs</th>
 							<th scope="col" colspan="4">Kernel build</th>
@@ -350,8 +349,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						{{range $mgr := .List}}
 						<tr>
 							<td>{{link $mgr.PageLink $mgr.Name}}</td>
-							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness
-								$mgr.Now $mgr.LastActive}}</td>
+							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 							<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
 							<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
 							<td class="stat">
