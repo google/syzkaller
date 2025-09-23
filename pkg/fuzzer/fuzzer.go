@@ -208,20 +208,23 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 }
 
 type Config struct {
-	Debug          bool
-	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...interface{})
-	Snapshot       bool
-	Coverage       bool
-	FaultInjection bool
-	Comparisons    bool
-	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(call string) bool
-	PatchTest      bool
-	ModeKFuzzTest  bool
+	Debug            bool
+	Corpus           *corpus.Corpus
+	Logf             func(level int, msg string, args ...interface{})
+	Snapshot         bool
+	Coverage         bool
+	FaultInjection   bool
+	Comparisons      bool
+	Collide          bool
+	EnabledCalls     map[*prog.Syscall]bool
+	NoMutateCalls    map[int]bool
+	FetchRawCover    bool
+	Sandbox          string
+	SandboxArg       int64
+	SecContexts      []string
+	NewInputFilter   func(call string) bool
+	PatchTest        bool
+	ModeKFuzzTest    bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -370,6 +373,10 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:      fuzzer.statExecCandidate,
 			Important: true,
+		}
+		req.Prog.SecContext = ""
+		if len(fuzzer.Config.SecContexts) != 0 {
+			req.Prog.SecContext = fuzzer.Config.SecContexts[0]
 		}
 		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}

@@ -45,6 +45,10 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		fuzzer.RecommendedCalls(),
 		fuzzer.ChoiceTable())
+	p.SecContext = ""
+	if len(fuzzer.Config.SecContexts) != 0 {
+		p.SecContext = fuzzer.Config.SecContexts[0]
+	}
 	return &queue.Request{
 		Prog:     p,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),

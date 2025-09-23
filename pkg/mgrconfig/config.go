@@ -258,6 +258,9 @@ type Experimental struct {
 
 	// Enable dynamic discovery and fuzzing of KFuzzTest targets.
 	EnableKFuzzTest bool `json:"enable_kfuzztest"`
+
+	// List of security contexts that can be attached to programs.
+	SecContexts []string `json:"seccontexts"`
 }
 
 type FocusArea struct {
