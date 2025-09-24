@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -110,7 +111,6 @@ func (inst *instance) clone() error {
 	}
 	return nil
 }
-
 func (inst *instance) boot() error {
 	if inst.debug {
 		log.Logf(0, "starting %v", inst.vmx)
@@ -121,11 +121,21 @@ func (inst *instance) boot() error {
 	if inst.debug {
 		log.Logf(0, "getting IP of %v", inst.vmx)
 	}
-	ip, err := osutil.RunCmd(5*time.Minute, "", "vmrun", "getGuestIPAddress", inst.vmx, "-wait")
+	ipCmd := exec.Command("vmrun", "getGuestIPAddress", inst.vmx, "-wait")
+	ipOutput, err := ipCmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get IP address: %v", err)
 	}
-	inst.ipAddr = strings.TrimSuffix(string(ip), "\n")
+
+	// Extract IP address from the output, ignoring the warning message
+	ipRegex := regexp.MustCompile(`(\d+\.\d+\.\d+\.\d+)`)
+	ipMatches := ipRegex.FindStringSubmatch(string(ipOutput))
+	if len(ipMatches) < 2 {
+		return fmt.Errorf("failed to extract IP address from vmrun output")
+	}
+	ip := strings.TrimSpace(ipMatches[1])
+
+	inst.ipAddr = ip
 	if inst.debug {
 		log.Logf(0, "VM %v has IP: %v", inst.vmx, inst.ipAddr)
 	}
