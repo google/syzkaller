@@ -165,8 +165,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 	for questionable := false; ; questionable = true {
 		rep := &Report{
-			Output:   output,
-			StartPos: startPos,
+			Output:    output,
+			StartPos:  startPos,
+			ContextID: context,
 		}
 		endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context, questionable)
 		rep.EndPos = endPos
