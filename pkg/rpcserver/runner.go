@@ -32,6 +32,7 @@ type Runner struct {
 	coverEdges    bool
 	filterSignal  bool
 	debug         bool
+	audit         bool
 	debugTimeouts bool
 	sysTarget     *targets.Target
 	stats         *runnerStats
@@ -93,6 +94,7 @@ func (runner *Runner) Handshake(conn *flatrpc.Conn, cfg *handshakeConfig) (hands
 
 	connectReply := &flatrpc.ConnectReply{
 		Debug:            runner.debug,
+		Audit:            runner.audit,
 		Cover:            runner.cover,
 		CoverEdges:       runner.coverEdges,
 		Kernel64Bit:      runner.sysTarget.PtrSize == 8,
@@ -279,6 +281,9 @@ func (runner *Runner) sendRequest(req *queue.Request) error {
 	var flags flatrpc.RequestFlag
 	if req.ReturnOutput {
 		flags |= flatrpc.RequestFlagReturnOutput
+	}
+	if req.ReturnAudit {
+		flags |= flatrpc.RequestFlagReturnAudit
 	}
 	if req.ReturnError {
 		flags |= flatrpc.RequestFlagReturnError

@@ -11,10 +11,12 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
@@ -188,6 +190,14 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		}
 		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
 	}
+	if req.ReturnAudit {
+		audit_output := string(res.Output)
+		index := strings.Index(audit_output, "Audit messages:")
+		if index != -1 {
+			log.Logf(0, "Security context: %s", req.Prog.SecContext)
+			log.Logf(0, "\n%s\n", audit_output[index:])
+		}
+	}
 
 	// Corpus candidates may have flaky coverage, so we give them a second chance.
 	maxCandidateAttempts := 3
@@ -222,6 +232,7 @@ type Config struct {
 	NoMutateCalls    map[int]bool
 	FetchRawCover    bool
 	SecContexts      []string
+	Audit            bool
 	NewInputFilter   func(call string) bool
 	PatchTest        bool
 	ModeKFuzzTest    bool
@@ -372,6 +383,7 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			Prog:      candidate.Prog,
 			ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:      fuzzer.statExecCandidate,
+			ReturnAudit: fuzzer.Config.Audit,
 			Important: true,
 		}
 		if fuzzer.SecContextGen != nil {
