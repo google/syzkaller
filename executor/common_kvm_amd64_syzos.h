@@ -83,7 +83,7 @@ __attribute__((used))
 GUEST_CODE static void
 guest_main(uint64 size, uint64 cpu)
 {
-	uint64 addr = X86_ADDR_USER_CODE + cpu * KVM_PAGE_SIZE;
+	uint64 addr = X86_SYZOS_ADDR_USER_CODE + cpu * KVM_PAGE_SIZE;
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
@@ -151,7 +151,7 @@ GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
 // and can handle the call depending on the data passed as exit code.
 GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
 {
-	volatile uint64* ptr = (volatile uint64*)X86_ADDR_UEXIT;
+	volatile uint64* ptr = (volatile uint64*)X86_SYZOS_ADDR_UEXIT;
 	*ptr = exit_code;
 }
 

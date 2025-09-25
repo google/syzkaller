@@ -890,8 +890,8 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 
 	regs.rflags |= 2; // bit 1 is always set
 	// PC points to the relative offset of guest_main() within the guest code.
-	regs.rip = X86_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest);
-	regs.rsp = X86_ADDR_STACK0;
+	regs.rip = X86_SYZOS_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest);
+	regs.rsp = X86_SYZOS_ADDR_STACK0;
 	// Pass parameters to guest_main().
 	regs.rdi = text_size;
 	regs.rsi = cpu_id;
@@ -973,29 +973,29 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_SMRAM, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SMRAM, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, X86_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, X86_SYZOS_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_SYZOS_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
 	if (text_slot)
 		*text_slot = next.addr;
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
 	install_syzos_code(host_text.addr, host_text.size);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_IOAPIC, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_IOAPIC, next.size, (uintptr_t)next.addr);
 
 	// Map the remaining pages at an unused address.
 	next = alloc_guest_mem(&allocator, allocator.size);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_ADDR_UNUSED, next.size, (uintptr_t)next.addr);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_UNUSED, next.size, (uintptr_t)next.addr);
 }
 #endif
 
@@ -1059,7 +1059,7 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1)
 	struct kvm_run* run = (struct kvm_run*)a0;
 	uint64 expect = a1;
 
-	if (!run || (run->exit_reason != KVM_EXIT_MMIO) || (run->mmio.phys_addr != X86_ADDR_UEXIT)) {
+	if (!run || (run->exit_reason != KVM_EXIT_MMIO) || (run->mmio.phys_addr != X86_SYZOS_ADDR_UEXIT)) {
 		errno = EINVAL;
 		return -1;
 	}
