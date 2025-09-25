@@ -35,6 +35,7 @@ type Request struct {
 	ReturnAllSignal []int
 	ReturnError     bool
 	ReturnOutput    bool
+	ReturnAudit     bool
 
 	// This stat will be incremented on request completion.
 	Stat *stat.Val

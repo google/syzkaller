@@ -11,10 +11,12 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
@@ -187,6 +189,14 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 			fuzzer.handleCallInfo(req, info, call)
 		}
 		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
+	}
+	if req.ReturnAudit {
+		audit_output := string(res.Output)
+		index := strings.Index(audit_output, "Audit messages:")
+		if index != -1 {
+			log.Logf(0, "Security context: %s", req.Prog.SecContext)
+			log.Logf(0, "\n%s\n", audit_output[index:])
+		}
 	}
 
 	// Corpus candidates may have flaky coverage, so we give them a second chance.

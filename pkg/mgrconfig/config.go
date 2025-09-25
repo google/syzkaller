@@ -264,6 +264,8 @@ type Experimental struct {
 
 	// Allows the fuzzer to attach a security label to each program.
 	AttachSecContexts bool `json:"attach_seccontexts"`
+
+	AuditProgs bool `json:"audit"`
 }
 
 type FocusArea struct {

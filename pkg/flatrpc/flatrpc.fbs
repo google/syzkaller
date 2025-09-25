@@ -50,6 +50,7 @@ table ConnectRequestRaw {
 
 table ConnectReplyRaw {
 	debug			:bool;
+	audit			:bool;
 	cover			:bool;
 	cover_edges		:bool;
 	kernel_64_bit		:bool;
@@ -128,6 +129,8 @@ enum RequestType : uint64 {
 enum RequestFlag : uint64 (bit_flags) {
 	// If set, collect program output and return in output field.
 	ReturnOutput,
+	// If set, collect audit logs produced by the program at the end of the output.
+	ReturnAudit,
 	// If set, don't fail on program failures, instead return the error in error field.
 	ReturnError,
 }
