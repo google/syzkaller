@@ -76,7 +76,8 @@ config:
  - BTRFS_FS
  - BTRFS_FS_POSIX_ACL
  - BTRFS_ASSERT
- - BTRFS_FS_REF_VERIFY
+ # Moved by "btrfs: move ref-verify under CONFIG_BTRFS_DEBUG"
+ - BTRFS_FS_REF_VERIFY: [-v6.17]
 
  - F2FS_FS
  - F2FS_FS_SECURITY
@@ -165,9 +166,10 @@ config:
  - 9P_FS_POSIX_ACL
  - 9P_FS_SECURITY
 
- - EXT3_FS
- - EXT3_FS_POSIX_ACL
- - EXT3_FS_SECURITY
+ # Removed by "ext4: remove obsolete EXT3 config options".
+ - EXT3_FS: [-linux-next]
+ - EXT3_FS_POSIX_ACL: [-linux-next]
+ - EXT3_FS_SECURITY: [-linux-next]
 
  - REISERFS_FS: [-v6.12]
  - REISERFS_FS_XATTR: [-v6.12]
