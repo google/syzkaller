@@ -77,7 +77,7 @@ func (pool *Pool) Count() int {
 	return pool.cfg.Count
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	createTime := strconv.FormatInt(time.Now().UnixNano(), 10)
 	vmx := filepath.Join(workdir, createTime, "syzkaller.vmx")
 	sshkey := pool.env.SSHKey

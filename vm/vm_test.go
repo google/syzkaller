@@ -26,7 +26,7 @@ func (pool *testPool) Count() int {
 	return 1
 }
 
-func (pool *testPool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *testPool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	return &testInstance{
 		outc: make(chan []byte, 10),
 		errc: make(chan error, 1),
@@ -376,7 +376,7 @@ func makeLinuxAMD64Futex(t *testing.T) (*Instance, *report.Reporter) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	inst, err := pool.Create(0)
+	inst, err := pool.Create(t.Context(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
