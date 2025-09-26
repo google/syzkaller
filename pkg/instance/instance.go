@@ -568,7 +568,7 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 			var verboseErr *osutil.VerboseError
 			if errors.As(retErr, &verboseErr) {
 				// Include more details into the report.
-				prefix := fmt.Sprintf("%s, exit code %d\n\n", verboseErr.Title, verboseErr.ExitCode)
+				prefix := fmt.Sprintf("%s, exit code %d\n\n", verboseErr, verboseErr.ExitCode)
 				output = append([]byte(prefix), output...)
 			}
 			rep := &report.Report{

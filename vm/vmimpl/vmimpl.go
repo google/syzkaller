@@ -104,7 +104,7 @@ func MakeBootError(err error, output []byte) error {
 	}
 	var verboseError *osutil.VerboseError
 	if errors.As(err, &verboseError) {
-		return BootError{verboseError.Title, append(verboseError.Output, output...)}
+		return BootError{verboseError.Error(), append(verboseError.Output, output...)}
 	}
 	return BootError{err.Error(), output}
 }

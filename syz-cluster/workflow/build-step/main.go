@@ -263,8 +263,8 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 			ret.Finding.Log = kernelError.Output
 			return ret, nil
 		case errors.As(err, &verboseError):
-			tracer.Log("verbose error: %q / %s", verboseError.Title, verboseError.Output)
-			ret.Finding.Report = []byte(verboseError.Title)
+			tracer.Log("verbose error: %s / %s", verboseError, verboseError.Output)
+			ret.Finding.Report = []byte(verboseError.Error())
 			ret.Finding.Log = verboseError.Output
 			return ret, nil
 		default:

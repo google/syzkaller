@@ -257,7 +257,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return osutil.PrependContext("make host failed", err)
+		return fmt.Errorf("make host failed: %w", err)
 	}
 	for target := range upd.targets {
 		parts := strings.Split(target, "/")
@@ -271,7 +271,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			"TARGETARCH="+parts[2],
 		)
 		if _, err := osutil.Run(time.Hour, cmd); err != nil {
-			return osutil.PrependContext("make target failed", err)
+			return fmt.Errorf("make target failed: %w", err)
 		}
 	}
 	cmd = osutil.Command("go", "test", "-short", "./...")
@@ -281,7 +281,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 		"SYZ_DISABLE_SANDBOXING=yes",
 	}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return osutil.PrependContext("testing failed", err)
+		return fmt.Errorf("testing failed: %w", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
@@ -294,14 +294,11 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 }
 
 func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
-	var title string
 	var output []byte
 	var verbose *osutil.VerboseError
+	title := buildErr.Error()
 	if errors.As(buildErr, &verbose) {
-		title = verbose.Title
 		output = verbose.Output
-	} else {
-		title = buildErr.Error()
 	}
 	title = "syzkaller: " + title
 	for _, mgrcfg := range upd.cfg.Managers {
