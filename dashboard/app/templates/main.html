@@ -15,7 +15,7 @@ Main page.
 
 <body>
 	{{template "header" .Header}}
-	<div class="row justify-content-start">
+	<main class="container" style="margin-top: 80px;">
 		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		{{template "manager_list" $.Managers}}
@@ -24,7 +24,7 @@ Main page.
 		{{range $group := $.Groups}}
 		{{template "bug_list" $group}}
 		{{end}}
-	</div>
+	</main>
 </body>
 
 </html>
