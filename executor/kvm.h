@@ -34,6 +34,24 @@
 #define X86_ADDR_VAR_USER_CODE2 0x9120
 
 // x86 SYZOS definitions.
+// Zero page (0x0 - 0xfff) is deliberately unused.
+#define X86_SYZOS_ADDR_ZERO 0x0
+#define X86_SYZOS_ADDR_GDT 0x1000
+// PML4 for GPAs 0x0 - 0xffffffffffff.
+#define X86_SYZOS_ADDR_PML4 0x2000
+// PDP for GPAs 0x0 - 0x7fffffffff.
+#define X86_SYZOS_ADDR_PDP 0x3000
+// Lowmem PD for GPAs 0x0 - 0x3fffffff.
+#define X86_SYZOS_ADDR_PD 0x4000
+// IOAPIC PD for GPAs 0xc0000000 - 0xffffffff.
+#define X86_SYZOS_ADDR_PD_IOAPIC 0x5000
+// Lowmem PT for GPAs 0x000000 - 0x1fffff.
+#define X86_SYZOS_ADDR_PT_LOW_MEM 0x6000
+// Two PTs for unused memory for GPAs 0x200000 - 0x3fffff.
+#define X86_SYZOS_ADDR_PT_UNUSED_MEM 0x7000
+// IOAPIC PT for GPAs 0xfed00000 - 0xfedfffff.
+#define X86_SYZOS_ADDR_PT_IOAPIC 0x9000
+
 #define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
 #define X86_SYZOS_ADDR_EXIT 0x40000
@@ -43,8 +61,8 @@
 #define X86_SYZOS_ADDR_USER_CODE 0x50000
 #define X86_SYZOS_ADDR_EXECUTOR_CODE 0x54000
 #define X86_SYZOS_ADDR_SCRATCH_CODE 0x58000
-#define X86_SYZOS_ADDR_STACK_BOTTOM 0x0
-#define X86_SYZOS_ADDR_STACK0 0xf80
+#define X86_SYZOS_ADDR_STACK_BOTTOM 0x90000
+#define X86_SYZOS_ADDR_STACK0 0x90f80
 #define X86_SYZOS_ADDR_UNUSED 0x200000
 #define X86_SYZOS_ADDR_IOAPIC 0xfec00000
 

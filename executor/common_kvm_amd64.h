@@ -220,21 +220,101 @@ struct kvm_opt {
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 #define PAGE_MASK GENMASK_ULL(51, 12)
 
+static void map_4k_page(void* host_mem, uint64 gpa)
+{
+	uint64* pml4 = (uint64*)((uint64)host_mem + X86_SYZOS_ADDR_PML4);
+
+	// PML4 Entry (Level 4).
+	uint64 pml4_idx = (gpa >> 39) & 0x1FF;
+	// We assume all GPAs are < 512GB, so pml4_idx is always 0 - link it to the PDPT.
+	if (pml4[pml4_idx] == 0)
+		pml4[pml4_idx] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_SYZOS_ADDR_PDP & PAGE_MASK);
+	uint64* pdpt = (uint64*)((uint64)host_mem + (pml4[0] & PAGE_MASK));
+
+	// PDPT Entry (Level 3).
+	uint64 pdpt_idx = (gpa >> 30) & 0x1FF;
+	uint64* pd_addr_ptr = &pdpt[pdpt_idx];
+	uint64 pd_phys_addr = 0;
+
+	// Determine which Page Directory (PD) to use based on the address
+	if (gpa >= X86_SYZOS_ADDR_IOAPIC) {
+		// High-memory IOAPIC region (0xfec00000).
+		// PDPT index will be 3 (for 0xC0000000 - 0xFFFFFFFFF).
+		pd_phys_addr = X86_SYZOS_ADDR_PD_IOAPIC;
+	} else {
+		// Low-memory region (< 1GB).
+		// PDPT index will be 0 (for 0x0 - 0x3FFFFFFF).
+		pd_phys_addr = X86_SYZOS_ADDR_PD;
+	}
+	if (*pd_addr_ptr == 0)
+		*pd_addr_ptr = X86_PDE64_PRESENT | X86_PDE64_RW | (pd_phys_addr & PAGE_MASK);
+
+	uint64* pd = (uint64*)((uint64)host_mem + (*pd_addr_ptr & PAGE_MASK));
+
+	// PD Entry (Level 2).
+	uint64 pd_idx = (gpa >> 21) & 0x1FF;
+	uint64* pt_addr_ptr = &pd[pd_idx];
+	uint64 pt_phys_addr = 0;
+
+	// Determine which Page Table (PT) to use.
+	if (gpa >= X86_SYZOS_ADDR_IOAPIC) {
+		pt_phys_addr = X86_SYZOS_ADDR_PT_IOAPIC;
+	} else if (gpa >= X86_SYZOS_ADDR_UNUSED) {
+		const uint64 unused_base_pd_idx = (X86_SYZOS_ADDR_UNUSED >> 21) & 0x1FF;
+		const uint64 gpa_pd_idx = (gpa >> 21) & 0x1FF;
+		pt_phys_addr = X86_SYZOS_ADDR_PT_UNUSED_MEM + (gpa_pd_idx - unused_base_pd_idx) * KVM_PAGE_SIZE;
+	} else {
+		pt_phys_addr = X86_SYZOS_ADDR_PT_LOW_MEM;
+	}
+	if (*pt_addr_ptr == 0)
+		*pt_addr_ptr = X86_PDE64_PRESENT | X86_PDE64_RW | (pt_phys_addr & PAGE_MASK);
+
+	uint64* pt = (uint64*)((uint64)host_mem + (*pt_addr_ptr & PAGE_MASK));
+
+	// PT Entry (Level 1).
+	uint64 pt_idx = (gpa >> 12) & 0x1FF;
+
+	// Set the final 4KB page table entry to map the GPA
+	// This is an identity map: GPA -> GPA
+	pt[pt_idx] = (gpa & PAGE_MASK) | X86_PDE64_PRESENT | X86_PDE64_RW;
+}
+
+static int map_4k_region(void* host_mem, uint64 gpa_start, int num_pages)
+{
+	for (int i = 0; i < num_pages; i++)
+		map_4k_page(host_mem, gpa_start + (i * KVM_PAGE_SIZE));
+	return num_pages;
+}
+
 // We assume a 4-level page table, in the future we could add support for
 // n-level if needed.
+// Assuming host_mem is mapped at GPA 0x0.
 static void setup_pg_table(void* host_mem)
 {
-	uint64* pml4 = (uint64*)((uint64)host_mem + X86_ADDR_PML4);
-	uint64* pdp = (uint64*)((uint64)host_mem + X86_ADDR_PDP);
-	uint64* pd = (uint64*)((uint64)host_mem + X86_ADDR_PD);
-	uint64* pd_ioapic = (uint64*)((uint64)host_mem + X86_ADDR_PD_IOAPIC);
+	int total = 1024;
+	// Zero-out all page table memory.
+	// This includes the 4 levels (PML4, PDPT, PDs) and 3 PTs
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PML4), 0, KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PDP), 0, KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PD), 0, KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PD_IOAPIC), 0, KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PT_LOW_MEM), 0, KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PT_UNUSED_MEM), 0, 2 * KVM_PAGE_SIZE);
+	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PT_IOAPIC), 0, KVM_PAGE_SIZE);
 
-	pml4[0] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PDP & PAGE_MASK);
-	pdp[0] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PD & PAGE_MASK);
-	pdp[3] = X86_PDE64_PRESENT | X86_PDE64_RW | (X86_ADDR_PD_IOAPIC & PAGE_MASK);
-
-	pd[0] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_PS;
-	pd_ioapic[502] = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_PS;
+	// Map all the regions defined in setup_vm()
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_ZERO, 20);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_SMRAM, 10);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_DIRTY_PAGES, 2);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_USER_CODE, KVM_MAX_VCPU);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_EXECUTOR_CODE, 4);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_SCRATCH_CODE, 1);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_STACK_BOTTOM, 1);
+	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_IOAPIC, 1);
+	map_4k_region(host_mem, X86_SYZOS_ADDR_UNUSED, total);
+	// Mapping for MMIO region should be present even though there is no
+	// corresponding physical memory.
+	map_4k_region(host_mem, X86_SYZOS_ADDR_EXIT, 1);
 }
 
 // This only sets up a 64-bit VCPU.
@@ -966,7 +1046,7 @@ static void install_syzos_code(void* host_mem, size_t mem_size)
 static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 {
 	// Guest virtual memory layout (must be in sync with executor/kvm.h):
-	// 0x00000000 - AMD64 data structures (10 pages, see kvm.h)
+	// 0x00000000 - AMD64 data structures (20 pages, see kvm.h)
 	// 0x00030000 - SMRAM (10 pages)
 	// 0x00040000 - unmapped region to trigger a page faults for uexits etc. (1 page)
 	// 0x00041000 - writable region with KVM_MEM_LOG_DIRTY_PAGES to fuzz dirty ring (2 pages)
@@ -979,8 +1059,8 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 
 	// This *needs* to be the first allocation to avoid passing pointers
 	// around for the gdt/ldt/page table setup.
-	struct addr_size next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, 0, next.size, (uintptr_t)next.addr);
+	struct addr_size next = alloc_guest_mem(&allocator, 20 * KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_ZERO, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SMRAM, next.size, (uintptr_t)next.addr);
@@ -999,6 +1079,9 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
+
+	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
+	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
 
 	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_IOAPIC, next.size, (uintptr_t)next.addr);
