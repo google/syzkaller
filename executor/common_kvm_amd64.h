@@ -80,8 +80,8 @@ struct tss64 {
 	uint64 reserved1;
 	uint64 ist[7];
 	uint64 reserved2;
-	uint32 reserved3;
-	uint32 io_bitmap;
+	uint16 reserved3;
+	uint16 io_bitmap;
 } __attribute__((packed));
 
 static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* seg)
