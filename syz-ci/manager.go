@@ -401,7 +401,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 			rep.Output = kernelError.Output
 			rep.Recipients = kernelError.Recipients
 		case errors.As(err, &verboseError):
-			rep.Report = []byte(verboseError.Title)
+			rep.Report = []byte(verboseError.Error())
 			rep.Output = verboseError.Output
 		case errors.As(err, &build.InfraError{}):
 			return err

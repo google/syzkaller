@@ -65,9 +65,9 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	err := cmd.Wait()
 	close(done)
 	if err != nil {
-		text := fmt.Sprintf("failed to run %q: %v", cmd.Args, err)
+		retErr := fmt.Errorf("failed to run %q: %w", cmd.Args, err)
 		if <-timedout {
-			text = fmt.Sprintf("timedout after %v %q", timeout, cmd.Args)
+			retErr = fmt.Errorf("timedout after %v %q", timeout, cmd.Args)
 		}
 		exitCode := cmd.ProcessState.ExitCode()
 		var exitErr *exec.ExitError
@@ -77,7 +77,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 			}
 		}
 		return output.Bytes(), &VerboseError{
-			Title:    text,
+			Err:      retErr,
 			Output:   output.Bytes(),
 			ExitCode: exitCode,
 		}
@@ -111,27 +111,17 @@ func GraciousCommand(bin string, args ...string) *exec.Cmd {
 }
 
 type VerboseError struct {
-	Title    string
+	Err      error
 	Output   []byte
 	ExitCode int
 }
 
 func (err *VerboseError) Error() string {
-	if len(err.Output) == 0 {
-		return err.Title
-	}
-	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
+	return err.Err.Error()
 }
 
-func PrependContext(ctx string, err error) error {
-	var verboseError *VerboseError
-	switch {
-	case errors.As(err, &verboseError):
-		verboseError.Title = fmt.Sprintf("%v: %v", ctx, verboseError.Title)
-		return verboseError
-	default:
-		return fmt.Errorf("%v: %w", ctx, err)
-	}
+func (err *VerboseError) Unwrap() error {
+	return err.Err
 }
 
 func IsDir(name string) bool {
