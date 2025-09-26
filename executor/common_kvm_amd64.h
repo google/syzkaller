@@ -208,6 +208,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 #define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
 #define MEM_REGION_FLAG_READONLY (1 << 2)
 #define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
+#define MEM_REGION_FLAG_GOT (1 << 4)
 
 struct mem_region {
 	uint64 gpa;
@@ -222,9 +223,48 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_ADDR_USER_CODE, KVM_MAX_VCPU, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_USER_CODE},
     {X86_SYZOS_ADDR_EXECUTOR_CODE, 4, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_EXECUTOR_CODE},
     {X86_SYZOS_ADDR_SCRATCH_CODE, 1, 0},
+    {X86_SYZOS_ADDR_GOT, 1, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_GOT},
     {X86_SYZOS_ADDR_STACK_BOTTOM, 1, 0},
     {X86_SYZOS_ADDR_IOAPIC, 1, 0},
 };
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+// See https://wiki.osdev.org/Interrupt_Descriptor_Table#Gate_Descriptor_2.
+struct idt_entry_64 {
+	uint16 offset_low;
+	uint16 selector;
+	// Interrupt Stack Table offset in bits 0..2
+	uint8 ist;
+	// Gate Type, P and DPL.
+	uint8 type_attr;
+	uint16 offset_mid;
+	uint32 offset_high;
+	uint32 reserved;
+} __attribute__((packed));
+
+#define EXECUTOR_FN_GUEST_ADDRESS(f) arch_executor_fn_guest_address((uintptr_t)(f), X86_SYZOS_ADDR_EXECUTOR_CODE)
+
+#define X86_NUM_IDT_ENTRIES 256
+static void syzos_setup_idt(struct kvm_sregs* sregs, char* host_mem,
+			    void* got_mem)
+{
+	sregs->idt.base = X86_SYZOS_ADDR_VAR_IDT;
+	sregs->idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
+	volatile struct idt_entry_64* idt =
+	    (volatile struct idt_entry_64*)(host_mem + sregs->idt.base);
+	uint64 handler_addr = EXECUTOR_FN_GUEST_ADDRESS(dummy_null_handler);
+	for (int i = 0; i < X86_NUM_IDT_ENTRIES; i++) {
+		idt[i].offset_low = (uint16)(handler_addr & 0xFFFF);
+		idt[i].selector = X86_SYZOS_SEL_CODE;
+		idt[i].ist = 0;
+		// 0x8E is a 64-bit interrupt gate: P=1, DPL=0, type=0xE.
+		idt[i].type_attr = 0x8E;
+		idt[i].offset_mid = (uint16)((handler_addr >> 16) & 0xFFFF);
+		idt[i].offset_high = (uint32)((handler_addr >> 32) & 0xFFFFFFFF);
+		idt[i].reserved = 0;
+	}
+}
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
@@ -375,7 +415,7 @@ static void setup_gdt_64(struct gdt_entry* gdt)
 
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
-static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
+static void setup_gdt_ldt_pg(int cpufd, void* host_mem, void* got_mem)
 {
 	struct kvm_sregs sregs;
 	ioctl(cpufd, KVM_GET_SREGS, &sregs);
@@ -415,6 +455,7 @@ static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
 
 	setup_gdt_64(gdt);
 
+	syzos_setup_idt(&sregs, (char*)host_mem, got_mem);
 	setup_pg_table(host_mem);
 
 	sregs.cr0 = X86_CR0_PE | X86_CR0_NE | X86_CR0_PG;
@@ -989,13 +1030,15 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 
-#define EXECUTOR_FN_GUEST_ADDRESS(f) arch_executor_fn_guest_address((uintptr_t)(f), X86_SYZOS_ADDR_EXECUTOR_CODE)
+#define RFLAGS_1_BIT (1ULL << 1)
+#define RFLAGS_IF_BIT (1ULL << 9)
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
 
-	regs.rflags |= 2; // bit 1 is always set
+	// RFLAGS.1 must be 1, RFLAGS.IF enables interrupts.
+	regs.rflags |= RFLAGS_1_BIT | RFLAGS_IF_BIT;
 	// PC points to the relative offset of guest_main() within the guest code.
 	regs.rip = EXECUTOR_FN_GUEST_ADDRESS(guest_main);
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
@@ -1005,7 +1048,7 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 	ioctl(cpufd, KVM_SET_REGS, &regs);
 }
 
-static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const void* text, size_t text_size, void* host_mem)
+static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const void* text, size_t text_size, void* host_mem, void* got_mem)
 {
 	if ((cpu_id < 0) || (cpu_id >= KVM_MAX_VCPU))
 		return;
@@ -1015,7 +1058,7 @@ static void install_user_code(int cpufd, void* user_text_slot, int cpu_id, const
 		text_size = KVM_PAGE_SIZE;
 	void* target = (void*)((uint64)user_text_slot + (KVM_PAGE_SIZE * cpu_id));
 	memcpy(target, text, text_size);
-	setup_gdt_ldt_pg(cpufd, host_mem);
+	setup_gdt_ldt_pg(cpufd, host_mem, got_mem);
 	setup_cpuid(cpufd);
 	reset_cpu_regs(cpufd, cpu_id, text_size);
 }
@@ -1060,7 +1103,13 @@ static void install_syzos_code(void* host_mem, size_t mem_size)
 	memcpy(host_mem, &__start_guest, size);
 }
 
-static void setup_vm(int vmfd, void* host_mem, void** text_slot)
+static void install_syzos_got(void* host_got, size_t got_size)
+{
+	uint64* got = (uint64*)host_got;
+	got[SYZOS_GOT_X86_NULL_HANDLER] = EXECUTOR_FN_GUEST_ADDRESS(dummy_null_handler);
+}
+
+static void setup_vm(int vmfd, void* host_mem, void** text_slot, void** got_mem)
 {
 	// Guest virtual memory layout (must be in sync with executor/kvm.h):
 	// 0x00000000 - AMD64 data structures (20 pages, see kvm.h)
@@ -1074,8 +1123,6 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	struct addr_size allocator = {.addr = host_mem, .size = KVM_GUEST_MEM_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
-	// This *needs* to be the first allocation to avoid passing pointers
-	// around for the gdt/ldt/page table setup.
 	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++) {
 		const struct mem_region* r = &syzos_mem_regions[i];
 		struct addr_size next = alloc_guest_mem(&allocator, r->pages * KVM_PAGE_SIZE);
@@ -1087,6 +1134,11 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 		if (r->flags & MEM_REGION_FLAG_USER_CODE) {
 			if (text_slot)
 				*text_slot = next.addr;
+		}
+		if (r->flags & MEM_REGION_FLAG_GOT) {
+			install_syzos_got(next.addr, next.size);
+			if (got_mem)
+				*got_mem = next.addr;
 		}
 		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
 			install_syzos_code(next.addr, next.size);
@@ -1105,6 +1157,7 @@ struct kvm_syz_vm {
 	int next_cpu_id;
 	void* user_text;
 	void* host_mem;
+	void* got_mem;
 };
 #endif
 
@@ -1114,13 +1167,14 @@ static long syz_kvm_setup_syzos_vm(volatile long a0, volatile long a1)
 	const int vmfd = a0;
 	void* host_mem = (void*)a1;
 
-	void* user_text_slot = NULL;
+	void *user_text_slot = NULL, *got_mem = NULL;
 	struct kvm_syz_vm* ret = (struct kvm_syz_vm*)host_mem;
 	host_mem = (void*)((uint64)host_mem + KVM_PAGE_SIZE);
-	setup_vm(vmfd, host_mem, &user_text_slot);
+	setup_vm(vmfd, host_mem, &user_text_slot, &got_mem);
 	ret->vmfd = vmfd;
 	ret->next_cpu_id = 0;
 	ret->user_text = user_text_slot;
+	ret->got_mem = got_mem;
 	ret->host_mem = host_mem;
 	return (long)ret;
 }
@@ -1148,7 +1202,7 @@ static long syz_kvm_add_vcpu(volatile long a0, volatile long a1)
 		return -1;
 	// Only increment next_cpu_id if CPU creation succeeded.
 	vm->next_cpu_id++;
-	install_user_code(cpufd, vm->user_text, cpu_id, text, text_size, vm->host_mem);
+	install_user_code(cpufd, vm->user_text, cpu_id, text, text_size, vm->host_mem, vm->got_mem);
 	return cpufd;
 }
 #endif

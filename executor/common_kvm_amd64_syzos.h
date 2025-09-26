@@ -25,6 +25,10 @@ typedef enum {
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
+typedef enum {
+	SYZOS_GOT_X86_NULL_HANDLER,
+} syzos_got_records;
+
 struct api_call_header {
 	uint64 call;
 	uint64 size;
@@ -76,6 +80,13 @@ typedef enum {
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
 } uexit_code;
+
+__attribute__((naked))
+GUEST_CODE static void
+dummy_null_handler()
+{
+	asm("iretq");
+}
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
