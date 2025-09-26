@@ -73,7 +73,7 @@ struct tss32 {
 } __attribute__((packed));
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct tss64 {
 	uint32 reserved0;
 	uint64 rsp[3];
@@ -336,6 +336,43 @@ static void setup_pg_table(void* host_mem)
 	map_4k_region(host_mem, X86_SYZOS_ADDR_EXIT, 1);
 }
 
+// A 64-bit GDT entry for a code or data segment.
+// System segments (like TSS) are different and use a 128-bit format.
+struct gdt_entry {
+	uint16 limit_low;
+	uint16 base_low;
+	uint8 base_mid;
+	uint8 access;
+	uint8 limit_high_and_flags;
+	uint8 base_high;
+} __attribute__((packed));
+
+static void setup_gdt_64(struct gdt_entry* gdt)
+{
+	// Entry 0: Null
+	gdt[0] = (struct gdt_entry){0};
+
+	// Entry 1 (selector 0x08): 64-bit Code Segment
+	// P=1, DPL=0, S=1, Type=Execute/Read, L=1, G=1
+	gdt[X86_SYZOS_SEL_CODE >> 3] = (struct gdt_entry){
+	    .limit_low = 0xFFFF,
+	    .base_low = 0,
+	    .base_mid = 0,
+	    .access = 0x9A, // Present, DPL=0, S=1, Type=Execute/Read, Accessed
+	    .limit_high_and_flags = 0xAF, // Granularity=1, L=1, Limit=0xF
+	    .base_high = 0};
+
+	// Entry 2 (selector 0x10): 64-bit Data Segment
+	// P=1, DPL=0, S=1, Type=Read/Write, DB=1, G=1
+	gdt[X86_SYZOS_SEL_DATA >> 3] = (struct gdt_entry){
+	    .limit_low = 0xFFFF,
+	    .base_low = 0,
+	    .base_mid = 0,
+	    .access = 0x92, // Present, DPL=0, S=1, Type=Read/Write, Accessed
+	    .limit_high_and_flags = 0xCF, // Granularity=1, DB=1, Limit=0xF
+	    .base_high = 0};
+}
+
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
 static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
@@ -343,28 +380,13 @@ static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
 	struct kvm_sregs sregs;
 	ioctl(cpufd, KVM_GET_SREGS, &sregs);
 
-	sregs.gdt.base = X86_ADDR_GDT;
-	sregs.gdt.limit = 256 * sizeof(uint64) - 1;
-	uint64* gdt = (uint64*)((uint64)host_mem + sregs.gdt.base);
-
-	struct kvm_segment seg_ldt;
-	memset(&seg_ldt, 0, sizeof(seg_ldt));
-	seg_ldt.selector = X86_SEL_LDT;
-	seg_ldt.type = 2;
-	seg_ldt.base = X86_ADDR_LDT;
-	seg_ldt.limit = 256 * sizeof(uint64) - 1;
-	seg_ldt.present = 1;
-	seg_ldt.dpl = 0;
-	seg_ldt.s = 0;
-	seg_ldt.g = 0;
-	seg_ldt.db = 1;
-	seg_ldt.l = 0;
-	sregs.ldt = seg_ldt;
-	uint64* ldt = (uint64*)((uint64)host_mem + sregs.ldt.base);
+	sregs.gdt.base = X86_SYZOS_ADDR_GDT;
+	sregs.gdt.limit = 3 * sizeof(struct gdt_entry) - 1;
+	struct gdt_entry* gdt = (struct gdt_entry*)((uint64)host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_cs64;
 	memset(&seg_cs64, 0, sizeof(seg_cs64));
-	seg_cs64.selector = X86_SEL_CS64;
+	seg_cs64.selector = X86_SYZOS_SEL_CODE;
 	seg_cs64.type = 11;
 	seg_cs64.base = 0;
 	seg_cs64.limit = 0xFFFFFFFFu;
@@ -377,37 +399,21 @@ static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
 
 	struct kvm_segment seg_ds64;
 	memset(&seg_ds64, 0, sizeof(struct kvm_segment));
-	seg_ds64.selector = X86_SEL_DS64;
+	seg_ds64.selector = X86_SYZOS_SEL_DATA;
 	seg_ds64.type = 3;
 	seg_ds64.limit = 0xFFFFFFFFu;
 	seg_ds64.present = 1;
 	seg_ds64.s = 1;
 	seg_ds64.g = 1;
+	seg_ds64.db = 1;
 
 	sregs.ds = seg_ds64;
 	sregs.es = seg_ds64;
+	sregs.fs = seg_ds64;
+	sregs.gs = seg_ds64;
+	sregs.ss = seg_ds64;
 
-	struct kvm_segment seg_tss64;
-	memset(&seg_tss64, 0, sizeof(seg_tss64));
-	seg_tss64.selector = X86_SEL_TSS64;
-	seg_tss64.base = X86_ADDR_VAR_TSS64;
-	seg_tss64.limit = 0x1ff;
-	seg_tss64.type = 9;
-	seg_tss64.present = 1;
-
-	struct tss64 tss64;
-	memset(&tss64, 0, sizeof(tss64));
-	tss64.rsp[0] = X86_ADDR_STACK0;
-	tss64.rsp[1] = X86_ADDR_STACK0;
-	tss64.rsp[2] = X86_ADDR_STACK0;
-	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
-	struct tss64* tss64_addr = (struct tss64*)((uint64)host_mem + seg_tss64.base);
-	memcpy(tss64_addr, &tss64, sizeof(tss64));
-
-	fill_segment_descriptor(gdt, ldt, &seg_ldt);
-	fill_segment_descriptor(gdt, ldt, &seg_cs64);
-	fill_segment_descriptor(gdt, ldt, &seg_ds64);
-	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64);
+	setup_gdt_64(gdt);
 
 	setup_pg_table(host_mem);
 

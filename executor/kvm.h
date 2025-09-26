@@ -66,6 +66,10 @@
 #define X86_SYZOS_ADDR_UNUSED 0x200000
 #define X86_SYZOS_ADDR_IOAPIC 0xfec00000
 
+// SYZOS segment selectors
+#define X86_SYZOS_SEL_CODE 0x8
+#define X86_SYZOS_SEL_DATA 0x10
+
 #define X86_CR0_PE 1ULL
 #define X86_CR0_MP (1ULL << 1)
 #define X86_CR0_EM (1ULL << 2)
