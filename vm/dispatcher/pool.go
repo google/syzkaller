@@ -19,7 +19,7 @@ type Instance interface {
 
 type UpdateInfo func(cb func(info *Info))
 type Runner[T Instance] func(ctx context.Context, inst T, updInfo UpdateInfo)
-type CreateInstance[T Instance] func(int) (T, error)
+type CreateInstance[T Instance] func(context.Context, int) (T, error)
 
 // Pool[T] provides the functionality of a generic pool of instances.
 // The instance is assumed to boot, be controlled by one Runner and then be re-created.
@@ -125,7 +125,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 	inst.status(StateBooting)
 	defer inst.status(StateOffline)
 
-	obj, err := p.creator(inst.idx)
+	obj, err := p.creator(ctx, inst.idx)
 	if err != nil {
 		p.reportBootError(ctx, err)
 		return

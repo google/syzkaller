@@ -21,7 +21,7 @@ func TestPoolDefault(t *testing.T) {
 
 	mgr := NewPool[*testInstance](
 		count,
-		func(idx int) (*testInstance, error) {
+		func(_ context.Context, idx int) (*testInstance, error) {
 			pool[idx].reset()
 			return &pool[idx], nil
 		},
@@ -62,7 +62,7 @@ func TestPoolSplit(t *testing.T) {
 
 	mgr := NewPool[*testInstance](
 		count,
-		func(idx int) (*testInstance, error) {
+		func(_ context.Context, idx int) (*testInstance, error) {
 			pool[idx].reset()
 			return &pool[idx], nil
 		},
@@ -131,7 +131,7 @@ func TestPoolStress(t *testing.T) {
 	// The test to aid the race detector.
 	mgr := NewPool[*nilInstance](
 		10,
-		func(idx int) (*nilInstance, error) {
+		func(_ context.Context, idx int) (*nilInstance, error) {
 			return &nilInstance{}, nil
 		},
 		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
@@ -166,7 +166,7 @@ func TestPoolNewDefault(t *testing.T) {
 	// The test to aid the race detector.
 	mgr := NewPool[*nilInstance](
 		10,
-		func(idx int) (*nilInstance, error) {
+		func(_ context.Context, idx int) (*nilInstance, error) {
 			return &nilInstance{}, nil
 		},
 		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
@@ -205,7 +205,7 @@ func TestPoolNewDefault(t *testing.T) {
 func TestPoolPause(t *testing.T) {
 	mgr := NewPool[*nilInstance](
 		10,
-		func(idx int) (*nilInstance, error) {
+		func(_ context.Context, idx int) (*nilInstance, error) {
 			return &nilInstance{}, nil
 		},
 		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
@@ -242,7 +242,7 @@ func TestPoolCancelRun(t *testing.T) {
 	// The test to aid the race detector.
 	mgr := NewPool[*nilInstance](
 		10,
-		func(idx int) (*nilInstance, error) {
+		func(_ context.Context, idx int) (*nilInstance, error) {
 			return &nilInstance{}, nil
 		},
 		func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {
@@ -293,7 +293,7 @@ func TestPoolBootErrors(t *testing.T) {
 
 	mgr := NewPool[*testInstance](
 		3,
-		func(idx int) (*testInstance, error) {
+		func(_ context.Context, idx int) (*testInstance, error) {
 			failCount.Add(1)
 			return nil, fmt.Errorf("boot error")
 		},

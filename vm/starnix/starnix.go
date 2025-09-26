@@ -100,7 +100,7 @@ func (pool *Pool) Count() int {
 	return pool.count
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		fuchsiaDir: pool.env.KernelSrc,
 		ffxDir:     pool.ffxDir,

@@ -92,7 +92,7 @@ func (pool *Pool) Count() int {
 	return len(pool.cfg.Targets)
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	targetAddr, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
 	inst := &instance{
 		cfg: pool.cfg,
