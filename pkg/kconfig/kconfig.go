@@ -337,6 +337,7 @@ func (kp *kconfigParser) parseProperty(prop string) {
 		kp.ConsumeLine()
 	case "modules":
 	case "optional":
+	case "transitional":
 	case "default":
 		kp.parseDefaultValue()
 	case "range":

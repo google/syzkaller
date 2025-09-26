@@ -76,7 +76,9 @@ config:
  - BTRFS_FS
  - BTRFS_FS_POSIX_ACL
  - BTRFS_ASSERT
- - BTRFS_FS_REF_VERIFY
+ # Moved by "btrfs: move ref-verify under CONFIG_BTRFS_DEBUG"
+ - BTRFS_FS_REF_VERIFY: [-v6.17]
+ - BTRFS_DEBUG: [v6.17]
 
  - F2FS_FS
  - F2FS_FS_SECURITY
