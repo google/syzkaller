@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -348,10 +349,8 @@ func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl
 		if err == nil {
 			return inst, nil
 		}
-		if strings.Contains(err.Error(), "can't ssh into the instance") {
-			// If there was a boot error, immediately return it.
-			// In this case, the string search below also matches against boot time output,
-			// and e.g. "Device or resource busy" is quite often in there.
+		if errors.Is(err, vmimpl.ErrCantSSH) {
+			// It is most likely a boot crash, just return the error as is.
 			return nil, err
 		}
 		// Older qemu prints "could", newer -- "Could".
