@@ -337,6 +337,10 @@ func (kp *kconfigParser) parseProperty(prop string) {
 		kp.ConsumeLine()
 	case "modules":
 	case "optional":
+	// transitional is used for the configs backward compatibility.
+	// We can ignore them. After the config final removal we'll see the kconf error.
+	// https://www.phoronix.com/news/Linux-6.18-Transitional
+	case "transitional":
 	case "default":
 		kp.parseDefaultValue()
 	case "range":
