@@ -20,8 +20,8 @@ This document introduces how syzkaller integrates with KFuzzTest.
 Firstly, ensure that the KFuzzTest patch series has been applied to your Linux
 tree.
 
-As of the 22nd of August 2025, the most up-to-date version can be found in
-[this Linux Kernel RFC](https://lore.kernel.org/all/20250813133812.926145-1-ethan.w.s.graham@gmail.com/).
+As of the 26th of Semptember 2025, the most up-to-date version can be found in
+[this Linux Kernel patch series](https://lore.kernel.org/all/20250919145750.3448393-1-ethan.w.s.graham@gmail.com/).
 
 Once this is done, KFuzzTest targets can be defined on arbitrary kernel
 functions using the `FUZZ_TEST` macro as described in the kernel docs in
@@ -66,7 +66,7 @@ some_buffer {
         buflen  len[buf, int64]
 }
 
-kfuzztest_underflow_on_buffer(name ptr[in, string["test_underflow_on_buffer"]], data ptr[in, some_buffer], len bytesize[data]) (kfuzz_test)
+kfuzztest_underflow_on_buffer(name ptr[in, string["test_underflow_on_buffer"]], data ptr[in, some_buffer], len bytesize[data], buf ptr[in, array[int8, 65536]]) (kfuzz_test)
 ```
 
 Where:
@@ -77,6 +77,11 @@ Where:
   target accepts as input.
 - The third should be the size in bytes of the input argument.
 - The call is annotated with attribute `kfuzz_test`.
+
+The final `buf` argument is a buffer of size
+`KFUZZTEST_MAX_INPUT_SIZE = 16 * PAGE_SIZE` and is used internally to ensure
+that enough space is available in a program for the entire flattened input that
+is sent into a KFuzzTest target.
 
 For more information on writing syzkaller descriptions attributes, consult the
 [syscall description](syscall_descriptions.md) and [syscall description syntax](syscall_descriptions_syntax.md)
