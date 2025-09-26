@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -283,7 +284,8 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 	}
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, ldflags...); err != nil {
 		// Arm linker in the env image has a bug when linking a clang-produced files.
-		if regexp.MustCompile(`arm-linux-gnueabi.* assertion fail`).MatchString(err.Error()) {
+		var vErr *osutil.VerboseError
+		if errors.As(err, &vErr) && regexp.MustCompile(`arm-linux-gnueabi.* assertion fail`).Match(vErr.Output) {
 			t.Skipf("skipping test, broken arm linker (%v)", err)
 		}
 		t.Fatal(err)
