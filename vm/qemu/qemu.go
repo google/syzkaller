@@ -348,6 +348,12 @@ func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl
 		if err == nil {
 			return inst, nil
 		}
+		if strings.Contains(err.Error(), "can't ssh into the instance") {
+			// If there was a boot error, immediately return it.
+			// In this case, the string search below also matches against boot time output,
+			// and e.g. "Device or resource busy" is quite often in there.
+			return nil, err
+		}
 		// Older qemu prints "could", newer -- "Could".
 		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
 			continue
@@ -358,6 +364,7 @@ func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl
 		if i < 1000 && strings.Contains(err.Error(), "Address already in use") {
 			continue
 		}
+
 		return nil, err
 	}
 }
