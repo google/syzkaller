@@ -129,7 +129,7 @@ func (pool *Pool) Count() int {
 	return len(pool.cfg.Devices)
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	device, err := loadDevice(pool.cfg.Devices[index])
 	if err != nil {
 		return nil, err

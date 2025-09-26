@@ -33,7 +33,7 @@ type Pool interface {
 	Count() int
 
 	// Create creates and boots a new VM instance.
-	Create(workdir string, index int) (Instance, error)
+	Create(ctx context.Context, workdir string, index int) (Instance, error)
 }
 
 // Instance represents a single VM.

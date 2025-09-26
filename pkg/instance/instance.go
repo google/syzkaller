@@ -6,6 +6,7 @@
 package instance
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -314,7 +315,7 @@ type EnvTestResult struct {
 }
 
 func (inst *inst) test() EnvTestResult {
-	vmInst, err := inst.vmPool.Create(inst.vmIndex)
+	vmInst, err := inst.vmPool.Create(context.Background(), inst.vmIndex)
 	if err != nil {
 		testErr := &TestError{
 			Boot:  true,

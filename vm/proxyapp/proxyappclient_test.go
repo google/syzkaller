@@ -239,7 +239,7 @@ func TestPool_Create_Ok(t *testing.T) {
 		On("CreateInstance", mock.Anything, mock.Anything).
 		Return(nil)
 
-	inst, err := p.Create("workdir", 0)
+	inst, err := p.Create(t.Context(), "workdir", 0)
 	assert.NotNil(t, inst)
 	assert.Nil(t, err)
 }
@@ -257,7 +257,7 @@ func TestPool_Create_ProxyNilError(t *testing.T) {
 
 	p.(io.Closer).Close()
 
-	inst, err := p.Create("workdir", 0)
+	inst, err := p.Create(t.Context(), "workdir", 0)
 	assert.Nil(t, inst)
 	assert.NotNil(t, err)
 }
@@ -272,7 +272,7 @@ func TestPool_Create_OutOfPoolError(t *testing.T) {
 		}).
 		Return(fmt.Errorf("out of pool size"))
 
-	inst, err := p.Create("workdir", p.Count())
+	inst, err := p.Create(t.Context(), "workdir", p.Count())
 	assert.Nil(t, inst)
 	assert.NotNil(t, err)
 }
@@ -283,7 +283,7 @@ func TestPool_Create_ProxyFailure(t *testing.T) {
 		On("CreateInstance", mock.Anything, mock.Anything).
 		Return(fmt.Errorf("create instance failure"))
 
-	inst, err := p.Create("workdir", 0)
+	inst, err := p.Create(t.Context(), "workdir", 0)
 	assert.Nil(t, inst)
 	assert.NotNil(t, err)
 }
@@ -300,7 +300,7 @@ func createInstanceFixture(t *testing.T) (*mock.Mock, vmimpl.Instance) {
 		}).
 		Return(nil)
 
-	inst, err := p.Create("workdir", 0)
+	inst, err := p.Create(t.Context(), "workdir", 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, inst)
 
