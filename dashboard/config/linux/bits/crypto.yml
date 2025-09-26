@@ -6,7 +6,8 @@ config:
  - CRYPTO_USER_API_ENABLE_OBSOLETE: [v5.10]
  - CRYPTO_PCRYPT
  - CRYPTO_ECRDSA
- - CRYPTO_CURVE25519: [v5.6]
+ # Removed in "crypto: curve25519 - Remove unused kpp support"
+ - CRYPTO_CURVE25519: [v5.6, -linux-next]
  - CRYPTO_CHACHA20POLY1305
  - CRYPTO_AEGIS128
  - CRYPTO_CFB: [-v5.8]
@@ -21,7 +22,8 @@ config:
  # Removed in "crypto: vmac - remove unused VMAC algorithm".
  - CRYPTO_VMAC: [-v6.14]
  - CRYPTO_BLAKE2S: [v5.6, -v5.15]
- - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan]
+ # Moved by "lib/crypto: blake2s: Consolidate into single C translation unit"
+ - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan, -linux-next]
  - CRYPTO_BLAKE2S_ARM: [v6.1, arm]
  - CRYPTO_MICHAEL_MIC
  - CRYPTO_RMD160
@@ -92,11 +94,14 @@ config:
  - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan, -v6.14]
  # Removed in "x86/crc-t10dif: expose CRC-T10DIF function through lib".
  - CRYPTO_CRCT10DIF_PCLMUL: [x86_64, -kmsan, -v6.14]
- - CRYPTO_SHA1_SSSE3: [x86_64, -kmsan]
+ # Moved by "lib/crypto: x86/sha1: Migrate optimized code into library"
+ - CRYPTO_SHA1_SSSE3: [x86_64, -kmsan, -v6.17]
  # Replaced in v6.16 "crypto: x86/sha256 - implement library instead of shash".
  - CRYPTO_SHA256_SSSE3: [x86_64, -kmsan, -v6.16]
- - CRYPTO_SHA256_X86_64: [x86_64, -kmsan, v6.16]
- - CRYPTO_SHA512_SSSE3: [x86_64, -kmsan]
+ # Moved in "lib/crypto: sha256: Consolidate into single module"
+ - CRYPTO_SHA256_X86_64: [x86_64, -kmsan, v6.16, -v6.17]
+ # Moved in v6.17 "lib/crypto: x86/sha512: Migrate optimized SHA-512 code to library".
+ - CRYPTO_SHA512_SSSE3: [x86_64, -kmsan, -v6.17]
  - CRYPTO_DEV_PADLOCK: [x86_64]
  - CRYPTO_DEV_PADLOCK_AES: [x86_64]
  - CRYPTO_DEV_PADLOCK_SHA: [x86_64]
@@ -108,14 +113,19 @@ config:
  - CRYPTO_DEV_QAT_C62XVF: [x86_64]
 
  - ARM_CRYPTO: [arm, -v6.1]
- - CRYPTO_SHA1_ARM: [arm]
- - CRYPTO_SHA256_ARM: [arm]
- - CRYPTO_SHA512_ARM: [arm]
+ # Moved by "lib/crypto: arm64/sha1: Migrate optimized code into library".
+ - CRYPTO_SHA1_ARM: [arm, -v6.17]
+ # Moved by "lib/crypto: sha256: Consolidate into single module".
+ - CRYPTO_SHA256_ARM: [arm, -v6.17]
+ # Moved by "lib/crypto: arm64/sha512: Migrate optimized SHA-512 code to library".
+ - CRYPTO_SHA512_ARM: [arm, -v6.17]
  - CRYPTO_AES_ARM: [arm]
  - CRYPTO_CHACHA20_NEON: [arm, arm64]
  - CRYPTO_POLY1305_ARM: [arm]
- - CRYPTO_SHA1_ARM_NEON: [arm]
- - CRYPTO_SHA1_ARM_CE: [arm]
+ # Moved by "lib/crypto: arm/sha1: Migrate optimized code into library".
+ - CRYPTO_SHA1_ARM_NEON: [arm, -v6.17]
+ # Moded by "lib/crypto: arm/sha1: Migrate optimized code into library".
+ - CRYPTO_SHA1_ARM_CE: [arm, -v6.17]
  # Removed in crypto: "arm/sha256 - implement library instead of shash".
  - CRYPTO_SHA2_ARM_CE: [arm, -v6.16]
  - CRYPTO_AES_ARM_BS: [arm]
@@ -125,9 +135,12 @@ config:
  - CRYPTO_CRC32_ARM_CE: [arm, -v6.14]
  - CRYPTO_NHPOLY1305_NEON: [arm, arm64]
  - CRYPTO_CURVE25519_NEON: [arm]
- - CRYPTO_SHA256_ARM64: [arm64]
- - CRYPTO_SHA512_ARM64: [arm64]
- - CRYPTO_SHA1_ARM64_CE: [arm64]
+ # Moved by "lib/crypto: sha256: Consolidate into single module"
+ - CRYPTO_SHA256_ARM64: [arm64, -v6.17]
+ # Moved by "lib/crypto: arm64/sha512: Migrate optimized SHA-512 code to library"
+ - CRYPTO_SHA512_ARM64: [arm64, -v6.17]
+ # Moved by "lib/crypto: arm64/sha1: Migrate optimized code into library"
+ - CRYPTO_SHA1_ARM64_CE: [arm64, -v6.17]
  # Removed in "crypto: arm64/sha256 - implement library instead of shash".
  - CRYPTO_SHA2_ARM64_CE: [arm64, -v6.16]
  - CRYPTO_SHA512_ARM64_CE: [arm64, -v6.16]
@@ -144,5 +157,5 @@ config:
  - CRYPTO_AES_ARM64_CE_CCM: [arm64]
  - CRYPTO_AES_ARM64_CE_BLK: [arm64]
  - CRYPTO_AES_ARM64_NEON_BLK: [arm64]
- - CRYPTO_POLY1305_NEON: [arm64]
+ - CRYPTO_POLY1305_NEON: [arm64, -linux-next]
  - CRYPTO_AES_ARM64_BS: [arm64]

@@ -49,6 +49,7 @@ config:
  - KMSAN: n
  - UBSAN: n
  - CFI_CLANG: n
+ - CFI: n
  - STACKPROTECTOR: n
  - AUTOFDO_CLANG: n
  - PROPELLER_CLANG: n
