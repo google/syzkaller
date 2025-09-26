@@ -33,7 +33,7 @@ type Pool interface {
 	Count() int
 
 	// Create creates and boots a new VM instance.
-	Create(workdir string, index int) (Instance, error)
+	Create(ctx context.Context, workdir string, index int) (Instance, error)
 }
 
 // Instance represents a single VM.
@@ -104,7 +104,7 @@ func MakeBootError(err error, output []byte) error {
 	}
 	var verboseError *osutil.VerboseError
 	if errors.As(err, &verboseError) {
-		return BootError{verboseError.Title, append(verboseError.Output, output...)}
+		return BootError{verboseError.Error(), append(verboseError.Output, output...)}
 	}
 	return BootError{err.Error(), output}
 }

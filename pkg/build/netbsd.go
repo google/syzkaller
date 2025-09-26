@@ -130,7 +130,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 		return fmt.Errorf("failed to create a Reporter: %w", err)
 	}
 	// Create a VM instance (we need only one).
-	inst, err := pool.Create(0)
+	inst, err := pool.Create(context.Background(), 0)
 	if err != nil {
 		return fmt.Errorf("failed to create the VM Instance: %w", err)
 	}

@@ -157,7 +157,7 @@ func (pool *Pool) Count() int {
 	return pool.count
 }
 
-func (pool *Pool) Create(index int) (*Instance, error) {
+func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
 	if index < 0 || index >= pool.count {
 		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.count)
 	}
@@ -170,7 +170,7 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 			return nil, err
 		}
 	}
-	impl, err := pool.impl.Create(workdir, index)
+	impl, err := pool.impl.Create(ctx, workdir, index)
 	if err != nil {
 		os.RemoveAll(workdir)
 		return nil, err

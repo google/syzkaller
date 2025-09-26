@@ -91,7 +91,7 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 
 func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Config,
 	reporter *report.Reporter, opt *OptionalConfig) (*ExecProgInstance, error) {
-	vmInst, err := vmPool.Create(vmIndex)
+	vmInst, err := vmPool.Create(context.Background(), vmIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM: %w", err)
 	}

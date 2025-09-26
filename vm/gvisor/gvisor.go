@@ -88,7 +88,7 @@ func (pool *Pool) Count() int {
 	return pool.cfg.Count
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	rootDir := filepath.Clean(filepath.Join(workdir, "..", "gvisor_root"))
 	imageDir := filepath.Join(workdir, "image")
 	bundleDir := filepath.Join(workdir, "bundle")

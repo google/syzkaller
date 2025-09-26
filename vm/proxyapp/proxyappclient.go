@@ -154,7 +154,7 @@ func (p *pool) Count() int {
 	return p.count
 }
 
-func (p *pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (p *pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	p.mu.Lock()
 	proxy := p.proxy
 	p.mu.Unlock()

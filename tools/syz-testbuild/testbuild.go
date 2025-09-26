@@ -157,7 +157,7 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 	if err != nil {
 		var verr *osutil.VerboseError
 		if errors.As(err, &verr) {
-			log.Printf("BUILD BROKEN: %v", verr.Title)
+			log.Printf("BUILD BROKEN: %s", verr)
 			saveLog(com.Hash, 0, verr.Output)
 		} else {
 			log.Printf("BUILD BROKEN: %v", err)

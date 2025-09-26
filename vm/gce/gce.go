@@ -176,7 +176,7 @@ func (pool *Pool) Count() int {
 	return pool.cfg.Count
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	// Create SSH key for the instance.
 	gceKey := filepath.Join(workdir, "key")
