@@ -181,7 +181,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 			coveragePageLink(ns, period[1].Type, period[1].DateTo.String(), minDrop, 2, true)),
 		Table: table,
 	}
-	title := fmt.Sprintf("%s coverage regression (%s)->(%s)", ns, periodFrom, periodTo)
+	title := fmt.Sprintf("%s coverage regression in %s", ns, periodTo)
 	err = sendMailTemplate(ctx, &mailSendParams{
 		templateName: "mail_ns_coverage.txt",
 		templateArg:  args,
