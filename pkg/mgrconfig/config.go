@@ -258,6 +258,14 @@ type Experimental struct {
 
 	// Enable dynamic discovery and fuzzing of KFuzzTest targets.
 	EnableKFuzzTest bool `json:"enable_kfuzztest"`
+
+	// Enables the policy enforcement for programs that request this before running syscalls.
+	EnforcePolicy bool `json:"enforce_policy"`
+
+	// Allows the fuzzer to attach a security label to each program.
+	AttachSecContexts bool `json:"attach_seccontexts"`
+
+	AuditProgs bool `json:"audit"`
 }
 
 type FocusArea struct {
