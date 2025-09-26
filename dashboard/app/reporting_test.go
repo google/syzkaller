@@ -1406,7 +1406,7 @@ func TestCoverageRegression(t *testing.T) {
 	assert.Equal(t, 1, len(c.emailSink))
 	msg := <-c.emailSink
 	assert.Equal(t, []string{"test@test.test"}, msg.To)
-	assert.Equal(t, "coverage-tests coverage regression (November 1999)->(December 1999)", msg.Subject)
+	assert.Equal(t, "coverage-tests coverage regression in December 1999", msg.Subject)
 	wantLink := "https://testapp.appspot.com/coverage-tests/coverage?" +
 		"dateto=1999-12-31&min-cover-lines-drop=1&order-by-cover-lines-drop=1&period=month&period_count=2"
 	assert.Equal(t, `Regressions happened in 'coverage-tests' from November 1999 (30 days) to December 1999 (31 days).
