@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <cstring>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -16,6 +17,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "pkg/flatrpc/flatrpc.h"
 
 inline std::ostream& operator<<(std::ostream& ss, const rpc::ExecRequestRawT& req)
 {
@@ -197,7 +200,6 @@ public:
 		return;
 	}
 
-private:
 	enum State : uint8 {
 		// The process has just started.
 		Started,
@@ -209,6 +211,12 @@ private:
 		Executing,
 	};
 
+	State GetState() const
+	{
+		return state_;
+	}
+
+private:
 	Connection& conn_;
 	const char* const bin_;
 	ProcIDPool& proc_id_pool_;
@@ -575,6 +583,11 @@ private:
 	std::vector<std::string> leak_frames_;
 	int restarting_ = 0;
 	bool corpus_triaged_ = false;
+#if GOOS_linux
+	bool is_leak_enabled_ = false;
+	uint64 execs_since_leak_check_ = 0;
+	std::vector<char*> char_leak_frames_;
+#endif
 	ProcOpts proc_opts_{};
 
 	friend std::ostream& operator<<(std::ostream& ss, const Runner& runner)
@@ -621,17 +634,52 @@ private:
 				failmsg("unknown host message type", "type=%d", static_cast<int>(raw.msg.type));
 		}
 
+#if GOOS_linux
+		if (IsScheduledForLeakCheck() && AreProcsIdle()) {
+			debug("Running leak check...\n");
+			check_leaks(char_leak_frames_.data(), char_leak_frames_.size());
+			debug("Done running leak check\n");
+			execs_since_leak_check_ = 0;
+		}
+#endif
+
 		for (auto& proc : procs_) {
 			proc->Ready(select, now, requests_.empty());
-			if (!requests_.empty()) {
-				if (proc->Execute(requests_.front()))
+			if (!IsScheduledForLeakCheck() && !requests_.empty()) {
+				if (proc->Execute(requests_.front())) {
 					requests_.pop_front();
+#if GOOS_linux
+					++execs_since_leak_check_;
+#endif
+				}
 			}
 		}
 
 		if (restarting_ < 0 || restarting_ > static_cast<int>(procs_.size()))
 			failmsg("bad restarting", "restarting=%d", restarting_);
 	}
+
+#if GOOS_linux
+	bool IsScheduledForLeakCheck()
+	{
+		const uint64 kRunLeakCheckEvery = 2 * procs_.size();
+		return is_leak_enabled_ &&
+		       corpus_triaged_ &&
+		       execs_since_leak_check_ >= kRunLeakCheckEvery;
+	}
+
+	bool AreProcsIdle()
+	{
+		return std::all_of(procs_.begin(), procs_.end(), [](const std::unique_ptr<Proc>& proc) {
+			return proc->GetState() == Proc::State::Idle;
+		});
+	}
+#else
+	constexpr bool IsScheduledForLeakCheck()
+	{
+		return false;
+	}
+#endif
 
 	// Implementation must match that in pkg/rpcserver/rpcserver.go.
 	uint64 HashAuthCookie(uint64 cookie)
@@ -703,6 +751,13 @@ private:
 				debug("failed: %s\n", reason);
 				res->reason = reason;
 			}
+#if GOOS_linux
+			if (feat.id == rpc::Feature::Leak && !reason) {
+				is_leak_enabled_ = true;
+				for (auto& s : leak_frames_)
+					char_leak_frames_.push_back(s.data());
+			}
+#endif
 			info_req.features.push_back(std::move(res));
 		}
 		for (auto id : rpc::EnumValuesFeature()) {
@@ -746,9 +801,11 @@ private:
 			ExecuteBinary(msg);
 			return;
 		}
-		for (auto& proc : procs_) {
-			if (proc->Execute(msg))
-				return;
+		if (!IsScheduledForLeakCheck()) {
+			for (auto& proc : procs_) {
+				if (proc->Execute(msg))
+					return;
+			}
 		}
 		requests_.push_back(std::move(msg));
 	}
