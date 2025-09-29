@@ -20,7 +20,13 @@ Main page.
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		{{template "manager_list" $.Managers}}
 		{{end}}
-		{{template "bug_filter" $.BugFilter}}
+		<div class="row justify-content-start">
+			<div class="col col-md-12 mt-3">
+				<div class="table-responsive">
+					{{template "bug_filter" $.BugFilter}}
+				</div>
+			</div>
+		</div>
 		{{range $group := $.Groups}}
 		{{template "bug_list" $group}}
 		{{end}}
