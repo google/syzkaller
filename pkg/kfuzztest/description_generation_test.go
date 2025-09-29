@@ -25,6 +25,9 @@ func TestBuildDescriptions(t *testing.T) {
 	require.NoError(t, err)
 
 	target := targets.Get(targets.Linux, targets.AMD64)
+	if target.BrokenCompiler != "" {
+		t.Skip("skipping the test due to broken cross-compiler:\n" + target.BrokenCompiler)
+	}
 	for _, tc := range testCases {
 		t.Run(tc.dir, func(t *testing.T) {
 			runTest(t, target, tc)
