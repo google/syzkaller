@@ -101,7 +101,7 @@ The `baseline` config has `-base` suffix and has `baseline` and `base-config` fe
 config is meant to not contain majority of subsystem configs enabled (should just boot and have debugging
 configs enabled), however, that is fully controlled by config fragments based on the presence of the `baseline`
 feature. In order to facilitate even smaller `-base.config` files, the `base-config` feature is automatically
-set for them. Such configs are intended to be used by the config minization procedure.
+set for them. Such configs are intended to be used by the config minimization procedure.
 
 The only exception to the declarative nature of the process is USB configs. They are added procedurally, see
 `addUSBConfigs` function for details.
@@ -112,7 +112,7 @@ The only exception to the declarative nature of the process is USB configs. They
 To update kernel configs:
  - change config fragments as necessary (e.g. add additional configs to [subsystems.yml](bits/subsystems.yml) along
    with minimal kernel version)
- - run `syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout`
+ - run `./tools/syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout`
    (note: it will be mrproper-ed and a number of remotes will be added)
    (see [this](/docs/contributing.md#using-syz-env) on how to setup/use `syz-env`)
  - check in config fragments and changed kernel configs and send a PR
