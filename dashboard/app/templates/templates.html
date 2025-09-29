@@ -311,7 +311,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{define "manager_list"}}
 				{{if .}}
 				<table class="table table-striped table-hover small caption-top">
-					<caption id="managers">Instances <a class="btn btn-secondary btn-sm">{{link .RepoLink "tested repos"}}</a>:</caption>
+					<!-- <caption id="managers">Instances <a class="btn btn-secondary btn-sm">{{link .RepoLink "tested repos"}}</a>:</caption> -->
+					<caption id="managers">
+						Instances 
+						<a href="{{.RepoLink}}" class="btn btn-secondary btn-sm rounded shadow-sm">
+							tested repos
+						</a>:
+					</caption>
 					<thead class="table-primary">
 						<tr>
 							<th scope="col">Name</th>
