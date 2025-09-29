@@ -18,7 +18,13 @@ Main page.
 	<main class="container justify-content-start" style="margin-top: 80px;">
 		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
-		{{template "manager_list" $.Managers}}
+		<div class="row justify-content-start">
+			<div class="col col-md-12 mt-3">
+				<div class="table-responsive">
+				{{template "manager_list" $.Managers}}
+				</div>
+			</div>
+		</div>
 		{{end}}
 		<div class="row justify-content-start">
 			<div class="col col-md-12 mt-3">
@@ -28,9 +34,14 @@ Main page.
 			</div>
 		</div>
 		{{range $group := $.Groups}}
-		{{template "bug_list" $group}}
+		<div class="row justify-content-start">
+			<div class="col col-md-12 mt-3">
+				<div class="table-responsive">
+					{{template "bug_list" $group}}
+				</div>
+			</div>
+		</div>
 		{{end}}
 	</main>
 </body>
-
 </html>
