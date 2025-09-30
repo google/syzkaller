@@ -41,17 +41,9 @@
 #define X86_SYZOS_ADDR_PML4 0x2000
 // PDP for GPAs 0x0 - 0x7fffffffff.
 #define X86_SYZOS_ADDR_PDP 0x3000
-// Lowmem PD for GPAs 0x0 - 0x3fffffff.
-#define X86_SYZOS_ADDR_PD 0x4000
-// IOAPIC PD for GPAs 0xc0000000 - 0xffffffff.
-#define X86_SYZOS_ADDR_PD_IOAPIC 0x5000
-// Lowmem PT for GPAs 0x000000 - 0x1fffff.
-#define X86_SYZOS_ADDR_PT_LOW_MEM 0x6000
-// Two PTs for unused memory for GPAs 0x200000 - 0x3fffff.
-#define X86_SYZOS_ADDR_PT_UNUSED_MEM 0x7000
-// IOAPIC PT for GPAs 0xfed00000 - 0xfedfffff.
-#define X86_SYZOS_ADDR_PT_IOAPIC 0x9000
-#define X86_SYZOS_ADDR_VAR_IDT 0x10000
+// Pool of 32 pages for dynamic PT/PD allocations.
+#define X86_SYZOS_ADDR_PT_POOL 0x5000
+#define X86_SYZOS_ADDR_VAR_IDT 0x25000
 
 #define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
