@@ -15,10 +15,10 @@ Main page.
 
 <body>
 	{{template "header" .Header}}
-	<main class="container" style="margin-top: 80px;">
+	<main style="margin-top: 80px;">
 		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
-		<div class="row justify-content-start">
+		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
 				<div class="table-responsive">
 				{{template "manager_list" $.Managers}}
@@ -26,7 +26,7 @@ Main page.
 			</div>
 		</div>
 		{{end}}
-		<div class="row justify-content-start">
+		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
 				<div class="table-responsive">
 					{{template "bug_filter" $.BugFilter}}
@@ -34,7 +34,7 @@ Main page.
 			</div>
 		</div>
 		{{range $group := $.Groups}}
-		<div class="row justify-content-start">
+		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
 				<div class="table-responsive">
 					{{template "bug_list" $group}}
