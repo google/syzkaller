@@ -306,9 +306,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<!-- <caption id="managers">Instances <a class="btn btn-secondary btn-sm">{{link .RepoLink "tested repos"}}</a>:</caption> -->
 					<caption id="managers">
 						Instances 
-						<a href="{{.RepoLink}}" class="btn btn-secondary btn-sm rounded shadow-sm">
+						<a href="{{.RepoLink}}" class="btn btn-outline-primary btn-sm">
 							tested repos
-						</a>:
+						</a>
 					</caption>
 					<thead class="table-primary">
 						<tr>
@@ -346,7 +346,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<tbody>
 						{{range $mgr := .List}}
 						<tr>
-							<td>{{link $mgr.PageLink $mgr.Name}}</td>
+							<td class="d-inline-block text-nowrap text-truncate" style="width: 190px;">{{link $mgr.PageLink $mgr.Name}}</td>
 							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 							<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
 							<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
