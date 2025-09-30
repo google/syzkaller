@@ -84,6 +84,24 @@ func (c *Client) Publish(bug *dashapi.BugReport) error {
 	return err
 }
 
+func (c *Client) PublishToFile(bug *dashapi.BugReport, filename string) error {
+	target := targets.List[bug.OS][bug.VMArch]
+	if target == nil {
+		return fmt.Errorf("unsupported OS/arch %v/%v", bug.OS, bug.VMArch)
+	}
+	data, err := json.MarshalIndent(c.convert(target, bug), "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal kcidb json: %w", err)
+	}
+	if err := kcidbValidate(data); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("failed to write kcidb json to file: %w", err)
+	}
+	return nil
+}
+
 var Validate bool
 
 func kcidbValidate(data []byte) error {
