@@ -313,13 +313,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<thead class="table-primary">
 						<tr>
 							<th scope="col">Name</th>
-							<th scope="col">Last active</th>
+							<th scope="col">Active</th>
 							<th scope="col">Uptime</th>
 							<th scope="col">Corpus</th>
-							<th scope="col" class="small">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
+							<th scope="col" class="small" style="width: 90px;">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
 							<th scope="col">Crashes</th>
 							<th scope="col">Execs</th>
-							<th scope="col" colspan="4">Kernel build</th>
+							<th class="text-center" scope="col" colspan="4">Kernel build</th>
 							<th scope="col" colspan="3">syzkaller build</th>
 							<th scope="col" colspan="2" title="Show subset of bugs that happened on this instance">Bugs
 							</th>
@@ -348,9 +348,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						<tr>
 							<td class="d-inline-block text-nowrap text-truncate" style="width: 190px;">{{link $mgr.PageLink $mgr.Name}}</td>
 							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
-							<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
-							<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
-							<td class="stat">
+							<td class="font-monospace text-end">{{formatDuration $mgr.CurrentUpTime}}</td>
+							<td class="font-monospace text-end">{{formatStat $mgr.MaxCorpus}}</td>
+							<td class="font-monospace text-end">
 								{{if $mgr.CoverLink}}
 								<a href="{{$mgr.CoverLink}}" target="_blank">
 									{{end}}
@@ -359,27 +359,27 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 								</a>
 								{{end}}
 							</td>
-							<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
+							<td class="font-monospace text-end">{{formatStat $mgr.TotalCrashes}}</td>
 							{{if $mgr.TotalExecsBad}}
 							<td class="font-monospace text-end bad">broken</td>
 							{{else}}
-							<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
+							<td class="font-monospace text-end">{{formatStat $mgr.TotalExecs}}</td>
 							{{end}}
 							{{with $build := $mgr.CurrentBuild}}
-							<td class="stat" title="[{{$build.KernelAlias}}] {{$build.KernelCommitTitle}}">{{link
+							<td class="font-monospace text-end" title="[{{$build.KernelAlias}}] {{$build.KernelCommitTitle}}">{{link
 								$build.KernelCommitLink (formatTagHash $build.KernelCommit)}}</td>
-							<td class="stat">{{link $build.KernelConfigLink ".config"}}</td>
-							<td class="stat" title="{{formatTime $build.KernelCommitDate}}" {{if
+							<td class="font-monospace text-end">{{link $build.KernelConfigLink ".config"}}</td>
+							<td class="font-monospace text-end" title="{{formatTime $build.KernelCommitDate}}" {{if
 								$mgr.FailedBuildBugLink}}class="bad" {{end}}>{{formatLateness $mgr.Now
 								$build.KernelCommitDate}}</td>
-							<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}"
+							<td class="font-monospace text-end">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}"
 									class="bad">failing</a>{{end}}</td>
-							<td class="stat">{{link $build.SyzkallerCommitLink (formatShortHash
+							<td class="font-monospace text-end">{{link $build.SyzkallerCommitLink (formatShortHash
 								$build.SyzkallerCommit)}}</td>
-							<td class="stat" title="{{formatTime $build.SyzkallerCommitDate}}" {{if
+							<td class="font-monospace text-end" title="{{formatTime $build.SyzkallerCommitDate}}" {{if
 								$mgr.FailedSyzBuildBugLink}}class="bad" {{end}}>{{formatLateness $mgr.Now
 								$build.SyzkallerCommitDate}}</td>
-							<td class="stat">{{if $mgr.FailedSyzBuildBugLink}}<a href="{{$mgr.FailedSyzBuildBugLink}}"
+							<td class="font-monospace text-end">{{if $mgr.FailedSyzBuildBugLink}}<a href="{{$mgr.FailedSyzBuildBugLink}}"
 									class="bad">failing</a>{{end}}</td>
 							{{else}}
 							<td></td>
