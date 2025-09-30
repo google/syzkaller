@@ -20,7 +20,7 @@ Main page.
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive">
+				<div class="table-responsive" style="max-width: 1500px;">
 				{{template "manager_list" $.Managers}}
 				</div>
 			</div>
@@ -28,7 +28,7 @@ Main page.
 		{{end}}
 		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive">
+				<div class="table-responsive" style="max-width: 1500px;">
 					{{template "bug_filter" $.BugFilter}}
 				</div>
 			</div>
@@ -36,7 +36,7 @@ Main page.
 		{{range $group := $.Groups}}
 		<div class="container row justify-content-start">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive">
+				<div class="table-responsive" style="max-width: 1500px;">
 					{{template "bug_list" $group}}
 				</div>
 			</div>
