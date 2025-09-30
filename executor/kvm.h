@@ -174,7 +174,8 @@
 
 #define KVM_MAX_VCPU 4
 #define KVM_PAGE_SIZE (1 << 12)
-#define KVM_GUEST_MEM_SIZE (1024 * KVM_PAGE_SIZE)
+#define KVM_GUEST_PAGES 1024
+#define KVM_GUEST_MEM_SIZE (KVM_GUEST_PAGES * KVM_PAGE_SIZE)
 #define SZ_4K 0x00001000
 #define SZ_64K 0x00010000
 #define GENMASK_ULL(h, l)                   \
