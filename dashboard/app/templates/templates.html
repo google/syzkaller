@@ -169,9 +169,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .}}
 	{{if .Bugs}}
 	<!-- First Row / 2nd Table (open [qty]) -->
-	<div class="row justify-content-start">
-		<div class="col col-md-12 mt-5">
-			<div class="table-responsive">
 				<table class="table table-striped table-hover small caption-top">
 					{{if $.Caption}}
 					{{if $.Fragment}}
@@ -297,9 +294,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						{{end}}
 					</tbody>
 				</table>
-			</div>
-		</div>
-	</div>
 	{{end}}
 	{{end}}
 	{{end}}
@@ -408,9 +402,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 
 <!-- Third Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* List of fixing commits, invoked with []*uiCommit */}}
 			{{define "fix_commits"}}
 			{{range $com := .}}
@@ -553,14 +544,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<i>* <s>Struck through</s> repros no longer work on HEAD.</i>
 			{{end}}
 			{{end}}
-		</div>
-	</div>
-</div>
 
 <!-- Fourth Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* List of jobs, invoked with *uiJobList */}}
 			{{define "job_list"}}
 			{{if and $ $.Jobs}}
@@ -636,14 +621,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</table>
 			{{end}}
 			{{end}}
-		</div>
-	</div>
-</div>
 
 <!-- Fifth Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* Checkbox input, invoked with *uiCheckbox */}}
 			{{define "input-checkbox"}}
 			<div class="panel">
@@ -686,15 +665,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</div>
 			</div>
 			{{end}}
-		</div>
-	</div>
-</div>
 
 
 <!-- Fifth Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* List of discussions, invoked with []*uiBugDiscussion */}}
 			{{define "discussion_list"}}
 			{{if .}}
@@ -718,13 +691,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</table>
 			{{end}}
 			{{end}}
-		</div>
-	</div>
-</div>
 <!-- Sixth Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* List of test results, invoked with []*dashapi.JobInfo */}}
 			{{define "test_results"}}
 			{{if .}}
@@ -765,14 +732,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</table>
 			{{end}}
 			{{end}}
-		</div>
-	</div>
-</div>
 
 <!-- Seventh Row and table -->
-<div class="row justify-content-start">
-	<div class="col col-md-12 mt-3">
-		<div class="table-responsive">
 			{{/* List of failed repro attempts, invoked with []*uiReproAttempt */}}
 			{{define "repro_attempts"}}
 			{{if .}}
@@ -796,6 +757,3 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</table>
 			{{end}}
 			{{end}}
-		</div>
-	</div>
-</div>
