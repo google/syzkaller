@@ -110,8 +110,8 @@ The only exception to the declarative nature of the process is USB configs. They
 [syz-env](/docs/contributing.md#using-syz-env), which provides correct versions of the compilers.
 
 To update kernel configs:
- - change config fragments as necessary (e.g. add additional configs to [subsystems.yml](bits/subsystems.yml) along
-   with minimal kernel version)
+ - update kernel version in [linux-next.yml](bits/linux-next.yml) and [linux-upstream.yml](bits/linux-upstream.yml)
+ - change config fragments as necessary (e.g. add additional configs to [subsystems.yml](bits/subsystems.yml))
  - run `./tools/syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout`
    (note: it will be mrproper-ed and a number of remotes will be added)
    (see [this](/docs/contributing.md#using-syz-env) on how to setup/use `syz-env`)
