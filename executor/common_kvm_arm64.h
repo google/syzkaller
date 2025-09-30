@@ -144,11 +144,12 @@ static void vcpu_set_reg(int vcpu_fd, uint64 id, uint64 val)
 	ioctl(vcpu_fd, KVM_SET_ONE_REG, &reg);
 }
 
+#define EXECUTOR_FN_GUEST_ADDRESS(f) arch_executor_fn_guest_address((uintptr_t)(f), ARM64_ADDR_EXECUTOR_CODE)
 // Set up CPU registers.
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	// PC points to the relative offset of guest_main() within the guest code.
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, EXECUTOR_FN_GUEST_ADDRESS(guest_main));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + KVM_PAGE_SIZE - 128);
 	// Store the CPU ID in TPIDR_EL1.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);

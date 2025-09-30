@@ -883,6 +883,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+
+#define EXECUTOR_FN_GUEST_ADDRESS(f) arch_executor_fn_guest_address((uintptr_t)(f), X86_SYZOS_ADDR_EXECUTOR_CODE)
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	struct kvm_regs regs;
@@ -890,7 +892,7 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 
 	regs.rflags |= 2; // bit 1 is always set
 	// PC points to the relative offset of guest_main() within the guest code.
-	regs.rip = X86_SYZOS_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest);
+	regs.rip = EXECUTOR_FN_GUEST_ADDRESS(guest_main);
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
 	// Pass parameters to guest_main().
 	regs.rdi = text_size;
