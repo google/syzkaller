@@ -202,6 +202,31 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
+// Flags for mem_region
+#define MEM_REGION_FLAG_USER_CODE (1 << 0)
+#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
+#define MEM_REGION_FLAG_READONLY (1 << 2)
+#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
+
+struct mem_region {
+	uint64 gpa;
+	int pages;
+	uint32 flags;
+};
+
+static const struct mem_region syzos_mem_regions[] = {
+    {X86_SYZOS_ADDR_ZERO, 20, 0},
+    {X86_SYZOS_ADDR_SMRAM, 10, 0},
+    {X86_SYZOS_ADDR_DIRTY_PAGES, 2, MEM_REGION_FLAG_DIRTY_LOG},
+    {X86_SYZOS_ADDR_USER_CODE, KVM_MAX_VCPU, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_USER_CODE},
+    {X86_SYZOS_ADDR_EXECUTOR_CODE, 4, MEM_REGION_FLAG_READONLY | MEM_REGION_FLAG_EXECUTOR_CODE},
+    {X86_SYZOS_ADDR_SCRATCH_CODE, 1, 0},
+    {X86_SYZOS_ADDR_STACK_BOTTOM, 1, 0},
+    {X86_SYZOS_ADDR_IOAPIC, 1, 0},
+};
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 struct kvm_text {
 	uintptr_t typ;
@@ -303,14 +328,8 @@ static void setup_pg_table(void* host_mem)
 	memset((void*)((uint64)host_mem + X86_SYZOS_ADDR_PT_IOAPIC), 0, KVM_PAGE_SIZE);
 
 	// Map all the regions defined in setup_vm()
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_ZERO, 20);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_SMRAM, 10);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_DIRTY_PAGES, 2);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_USER_CODE, KVM_MAX_VCPU);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_EXECUTOR_CODE, 4);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_SCRATCH_CODE, 1);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_STACK_BOTTOM, 1);
-	total -= map_4k_region(host_mem, X86_SYZOS_ADDR_IOAPIC, 1);
+	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++)
+		total -= map_4k_region(host_mem, syzos_mem_regions[i].gpa, syzos_mem_regions[i].pages);
 	map_4k_region(host_mem, X86_SYZOS_ADDR_UNUSED, total);
 	// Mapping for MMIO region should be present even though there is no
 	// corresponding physical memory.
@@ -1059,35 +1078,25 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 
 	// This *needs* to be the first allocation to avoid passing pointers
 	// around for the gdt/ldt/page table setup.
-	struct addr_size next = alloc_guest_mem(&allocator, 20 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_ZERO, next.size, (uintptr_t)next.addr);
-
-	next = alloc_guest_mem(&allocator, 10 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SMRAM, next.size, (uintptr_t)next.addr);
-
-	next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, X86_SYZOS_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
-
-	next = alloc_guest_mem(&allocator, KVM_MAX_VCPU * KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_SYZOS_ADDR_USER_CODE, next.size, (uintptr_t)next.addr);
-	if (text_slot)
-		*text_slot = next.addr;
-
-	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
-	install_syzos_code(host_text.addr, host_text.size);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, X86_SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
-
-	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_SCRATCH_CODE, next.size, (uintptr_t)next.addr);
-
-	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_STACK_BOTTOM, next.size, (uintptr_t)next.addr);
-
-	next = alloc_guest_mem(&allocator, KVM_PAGE_SIZE);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_IOAPIC, next.size, (uintptr_t)next.addr);
+	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++) {
+		const struct mem_region* r = &syzos_mem_regions[i];
+		struct addr_size next = alloc_guest_mem(&allocator, r->pages * KVM_PAGE_SIZE);
+		uint32 flags = 0;
+		if (r->flags & MEM_REGION_FLAG_DIRTY_LOG)
+			flags |= KVM_MEM_LOG_DIRTY_PAGES;
+		if (r->flags & MEM_REGION_FLAG_READONLY)
+			flags |= KVM_MEM_READONLY;
+		if (r->flags & MEM_REGION_FLAG_USER_CODE) {
+			if (text_slot)
+				*text_slot = next.addr;
+		}
+		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
+			install_syzos_code(next.addr, next.size);
+		vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size, (uintptr_t)next.addr);
+	}
 
 	// Map the remaining pages at an unused address.
-	next = alloc_guest_mem(&allocator, allocator.size);
+	struct addr_size next = alloc_guest_mem(&allocator, allocator.size);
 	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_UNUSED, next.size, (uintptr_t)next.addr);
 }
 #endif
