@@ -312,13 +312,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					</caption>
 					<thead class="table-primary">
 						<tr>
-							<th scope="col">Name</th>
-							<th scope="col">Active</th>
-							<th scope="col">Uptime</th>
-							<th scope="col">Corpus</th>
-							<th scope="col" class="small" style="width: 90px;">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
-							<th scope="col">Crashes</th>
-							<th scope="col">Execs</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Name</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Active</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Uptime</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Corpus</th>
+							<th scope="col" class="text-center align-middle" rowspan="2" style="width: 200px;">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Crashes</th>
+							<th scope="col" class="text-center align-middle" rowspan="2">Execs</th>
 							<th class="text-center" scope="col" colspan="4">Kernel build</th>
 							<th scope="col" colspan="3">syzkaller build</th>
 							<th scope="col" colspan="2" title="Show subset of bugs that happened on this instance">Bugs
@@ -332,21 +332,21 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 							<th scope="col"></th>
 							<th scope="col"></th>
 							<th scope="col"></th>
-							<th scope="col">Commit</th>
-							<th scope="col">Config</th>
-							<th scope="col">Freshness</th>
-							<th scope="col">Status</th>
-							<th scope="col">Commit</th>
-							<th scope="col">Freshness</th>
-							<th scope="col">Status</th>
-							<th scope="col" title="Subset of bugs that happened on this instance">All</th>
-							<th scope="col" title="Subset of bugs that happened only on this instance">Only</th>
+							<th scope="col" class="text-center">Commit</th>
+							<th scope="col" class="text-center">Config</th>
+							<th scope="col" class="text-center">Freshness</th>
+							<th scope="col" class="text-center">Status</th>
+							<th scope="col" class="text-center">Commit</th>
+							<th scope="col" class="text-center">Freshness</th>
+							<th scope="col" class="text-center">Status</th>
+							<th scope="col" class="text-center" title="Subset of bugs that happened on this instance">All</th>
+							<th scope="col" class="text-center" title="Subset of bugs that happened only on this instance">Only</th>
 						</tr>
 					</thead>
 					<tbody>
 						{{range $mgr := .List}}
 						<tr>
-							<td class="d-inline-block text-nowrap text-truncate" style="width: 190px;">{{link $mgr.PageLink $mgr.Name}}</td>
+							<td class="d-inline-block text-nowrap text-truncate">{{link $mgr.PageLink $mgr.Name}}</td>
 							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 							<td class="font-monospace text-end">{{formatDuration $mgr.CurrentUpTime}}</td>
 							<td class="font-monospace text-end">{{formatStat $mgr.MaxCorpus}}</td>
