@@ -22,11 +22,13 @@ typedef enum {
 	SYZOS_API_WR_DRN = 110,
 	SYZOS_API_IN_DX = 130,
 	SYZOS_API_OUT_DX = 170,
+	SYZOS_API_SET_IRQ_HANDLER = 190,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
 typedef enum {
 	SYZOS_GOT_X86_NULL_HANDLER,
+	SYZOS_GOT_X86_UEXIT_HANDLER,
 } syzos_got_records;
 
 struct api_call_header {
@@ -74,6 +76,7 @@ static void guest_handle_wr_crn(struct api_call_2* cmd);
 static void guest_handle_wr_drn(struct api_call_2* cmd);
 static void guest_handle_in_dx(struct api_call_2* cmd);
 static void guest_handle_out_dx(struct api_call_3* cmd);
+static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -85,6 +88,13 @@ __attribute__((naked))
 GUEST_CODE static void
 dummy_null_handler()
 {
+	asm("iretq");
+}
+
+// Can't be naked because we call non-asm functions.
+GUEST_CODE static void uexit_irq_handler()
+{
+	guest_uexit(UEXIT_IRQ);
 	asm("iretq");
 }
 
@@ -142,6 +152,10 @@ guest_main(uint64 size, uint64 cpu)
 		}
 		case SYZOS_API_OUT_DX: {
 			guest_handle_out_dx((struct api_call_3*)cmd);
+			break;
+		}
+		case SYZOS_API_SET_IRQ_HANDLER: {
+			guest_handle_set_irq_handler((struct api_call_2*)cmd);
 			break;
 		}
 		}
@@ -325,4 +339,43 @@ GUEST_CODE static noinline void guest_handle_out_dx(struct api_call_3* cmd)
 		asm volatile("outl %k0, %w1" ::"a"(data), "d"(port));
 		return;
 	}
+}
+
+// See https://wiki.osdev.org/Interrupt_Descriptor_Table#Gate_Descriptor_2.
+struct idt_entry_64 {
+	uint16 offset_low;
+	uint16 selector;
+	// Interrupt Stack Table offset in bits 0..2
+	uint8 ist;
+	// Gate Type, P and DPL.
+	uint8 type_attr;
+	uint16 offset_mid;
+	uint32 offset_high;
+	uint32 reserved;
+} __attribute__((packed));
+
+GUEST_CODE static void set_idt_gate(uint8 vector, void* handler_addr)
+{
+	volatile struct idt_entry_64* idt =
+	    (volatile struct idt_entry_64*)(X86_SYZOS_ADDR_VAR_IDT);
+	volatile struct idt_entry_64* idt_entry = &idt[vector];
+	uint64 handler = (uint64)handler_addr;
+	idt_entry->offset_low = (uint16)handler;
+	idt_entry->offset_mid = (uint16)(handler >> 16);
+	idt_entry->offset_high = (uint32)(handler >> 32);
+}
+
+GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* cmd)
+{
+	uint8 vector = (uint8)cmd->args[0];
+	uint64 type = cmd->args[1];
+	uint64 handler_addr = 0;
+	if (type == 1) {
+		volatile uint64* got = (volatile uint64*)X86_SYZOS_ADDR_GOT;
+		handler_addr = got[SYZOS_GOT_X86_NULL_HANDLER];
+	} else if (type == 2) {
+		volatile uint64* got = (volatile uint64*)X86_SYZOS_ADDR_GOT;
+		handler_addr = got[SYZOS_GOT_X86_UEXIT_HANDLER];
+	}
+	set_idt_gate(vector, (void*)handler_addr);
 }

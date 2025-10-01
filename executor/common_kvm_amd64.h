@@ -256,18 +256,6 @@ struct kvm_syz_vm {
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
-// See https://wiki.osdev.org/Interrupt_Descriptor_Table#Gate_Descriptor_2.
-struct idt_entry_64 {
-	uint16 offset_low;
-	uint16 selector;
-	// Interrupt Stack Table offset in bits 0..2
-	uint8 ist;
-	// Gate Type, P and DPL.
-	uint8 type_attr;
-	uint16 offset_mid;
-	uint32 offset_high;
-	uint32 reserved;
-} __attribute__((packed));
 
 #define EXECUTOR_FN_GUEST_ADDRESS(f) arch_executor_fn_guest_address((uintptr_t)(f), X86_SYZOS_ADDR_EXECUTOR_CODE)
 
@@ -1111,6 +1099,7 @@ static void install_syzos_got(void* host_got, size_t got_size)
 {
 	uint64* got = (uint64*)host_got;
 	got[SYZOS_GOT_X86_NULL_HANDLER] = EXECUTOR_FN_GUEST_ADDRESS(dummy_null_handler);
+	got[SYZOS_GOT_X86_UEXIT_HANDLER] = EXECUTOR_FN_GUEST_ADDRESS(uexit_irq_handler);
 }
 
 static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
