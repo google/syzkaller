@@ -113,7 +113,9 @@ To update kernel configs:
  - update kernel version in [linux-next.yml](bits/linux-next.yml) and [linux-upstream.yml](bits/linux-upstream.yml)
  - change config fragments as necessary (e.g. add additional configs to [subsystems.yml](bits/subsystems.yml))
  - run `./tools/syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout`
-   (note: it will be mrproper-ed and a number of remotes will be added)
-   (see [this](/docs/contributing.md#using-syz-env) on how to setup/use `syz-env`)
+   * note: it will be mrproper-ed and a number of remotes will be added
+   * see [this](/docs/contributing.md#using-syz-env) on how to setup/use `syz-env`
+ - resolve problems. You can iterate faster focusing on the specific instance problem.
+   * `./tools/syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout INSTANCE=PROBLEM_INSTANCE_NAME`
  - check in config fragments and changed kernel configs and send a PR
  - changes will be deployed to `syzbot` within a day after merging
