@@ -22,6 +22,7 @@ typedef enum {
 	SYZOS_API_WR_DRN = 110,
 	SYZOS_API_IN_DX = 130,
 	SYZOS_API_OUT_DX = 170,
+	SYZOS_API_SET_IRQ_HANDLER = 190,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -61,7 +62,13 @@ struct api_call_3 {
 	uint64 args[3];
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 static void guest_uexit(uint64 exit_code);
+#ifdef __cplusplus
+}
+#endif
 static void guest_execute_code(uint8* insns, uint64 size);
 static void guest_handle_cpuid(uint32 eax, uint32 ecx);
 static void guest_handle_wrmsr(uint64 reg, uint64 val);
@@ -70,6 +77,7 @@ static void guest_handle_wr_crn(struct api_call_2* cmd);
 static void guest_handle_wr_drn(struct api_call_2* cmd);
 static void guest_handle_in_dx(struct api_call_2* cmd);
 static void guest_handle_out_dx(struct api_call_3* cmd);
+static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -82,6 +90,17 @@ GUEST_CODE static void
 dummy_null_handler()
 {
 	asm("iretq");
+}
+
+__attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
+{
+	asm volatile(R"(
+	    // Call guest_uexit(UEXIT_IRQ).
+	    movq $-2, %rdi
+	    call guest_uexit
+
+	    iretq
+	)");
 }
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
@@ -140,6 +159,10 @@ guest_main(uint64 size, uint64 cpu)
 			guest_handle_out_dx((struct api_call_3*)cmd);
 			break;
 		}
+		case SYZOS_API_SET_IRQ_HANDLER: {
+			guest_handle_set_irq_handler((struct api_call_2*)cmd);
+			break;
+		}
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -156,7 +179,12 @@ GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
 // Perform a userspace exit that can be handled by the host.
 // The host returns from ioctl(KVM_RUN) with kvm_run.exit_reason=KVM_EXIT_MMIO,
 // and can handle the call depending on the data passed as exit code.
-GUEST_CODE static noinline void guest_uexit(uint64 exit_code)
+
+// Make sure the compiler does not optimize this function away, it is called from
+// assembly.
+__attribute__((used))
+GUEST_CODE static noinline void
+guest_uexit(uint64 exit_code)
 {
 	volatile uint64* ptr = (volatile uint64*)X86_SYZOS_ADDR_UEXIT;
 	*ptr = exit_code;
@@ -321,4 +349,45 @@ GUEST_CODE static noinline void guest_handle_out_dx(struct api_call_3* cmd)
 		asm volatile("outl %k0, %w1" ::"a"(data), "d"(port));
 		return;
 	}
+}
+
+// See https://wiki.osdev.org/Interrupt_Descriptor_Table#Gate_Descriptor_2.
+struct idt_entry_64 {
+	uint16 offset_low;
+	uint16 selector;
+	// Interrupt Stack Table offset in bits 0..2
+	uint8 ist;
+	// Gate Type, P and DPL.
+	uint8 type_attr;
+	uint16 offset_mid;
+	uint32 offset_high;
+	uint32 reserved;
+} __attribute__((packed));
+
+// IDT gate setup should be similar to syzos_setup_idt() in the host code.
+GUEST_CODE static void set_idt_gate(uint8 vector, uint64 handler)
+{
+	volatile struct idt_entry_64* idt =
+	    (volatile struct idt_entry_64*)(X86_SYZOS_ADDR_VAR_IDT);
+	volatile struct idt_entry_64* idt_entry = &idt[vector];
+	idt_entry->offset_low = (uint16)handler;
+	idt_entry->offset_mid = (uint16)(handler >> 16);
+	idt_entry->offset_high = (uint32)(handler >> 32);
+	idt_entry->selector = X86_SYZOS_SEL_CODE;
+	idt_entry->type_attr = 0x8E;
+	idt_entry->ist = 0;
+	idt_entry->reserved = 0;
+}
+
+DEFINE_GUEST_FN_TO_GPA_FN(syzos_fn_address, X86_SYZOS_ADDR_EXECUTOR_CODE, guest_uexit(UEXIT_ASSERT))
+GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* cmd)
+{
+	uint8 vector = (uint8)cmd->args[0];
+	uint64 type = cmd->args[1];
+	volatile uint64 handler_addr = 0;
+	if (type == 1)
+		handler_addr = syzos_fn_address((uintptr_t)dummy_null_handler);
+	else if (type == 2)
+		handler_addr = syzos_fn_address((uintptr_t)uexit_irq_handler);
+	set_idt_gate(vector, handler_addr);
 }
