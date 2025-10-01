@@ -18,25 +18,25 @@ Main page.
 	<main style="margin-top: 80px;">
 		{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 		{{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
-		<div class="container row justify-content-start">
+		<div class="container row justify-content-start" style="max-width: fit-content;">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive" style="max-width: 1500px;">
+				<div class="table">
 				{{template "manager_list" $.Managers}}
 				</div>
 			</div>
 		</div>
 		{{end}}
-		<div class="container row justify-content-start">
+		<div class="container row justify-content-start" style="max-width: fit-content;">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive" style="max-width: 1500px;">
+				<div class="table">
 					{{template "bug_filter" $.BugFilter}}
 				</div>
 			</div>
 		</div>
 		{{range $group := $.Groups}}
-		<div class="container row justify-content-start">
+		<div class="container row justify-content-start" style="max-width: fit-content;">
 			<div class="col col-md-12 mt-3">
-				<div class="table-responsive" style="max-width: 1500px;">
+				<div class="table">
 					{{template "bug_list" $group}}
 				</div>
 			</div>

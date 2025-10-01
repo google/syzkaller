@@ -316,7 +316,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 							<th scope="col" class="text-center align-middle" rowspan="2">Active</th>
 							<th scope="col" class="text-center align-middle" rowspan="2">Uptime</th>
 							<th scope="col" class="text-center align-middle" rowspan="2">Corpus</th>
-							<th scope="col" class="text-center align-middle" rowspan="2" style="width: 200px;">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
+							<th scope="col" class="text-center align-middle" rowspan="2" style="max-width: fit-content;">Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
 							<th scope="col" class="text-center align-middle" rowspan="2">Crashes</th>
 							<th scope="col" class="text-center align-middle" rowspan="2">Execs</th>
 							<th class="text-center" scope="col" colspan="4">Kernel build</th>
@@ -339,7 +339,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<tbody>
 						{{range $mgr := .List}}
 						<tr>
-							<td class="d-inline-block text-nowrap text-truncate">{{link $mgr.PageLink $mgr.Name}}</td>
+							<td class="text-nowrap text-truncate">{{link $mgr.PageLink $mgr.Name}}</td>
 							<td class="font-monospace text-end {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 							<td class="font-monospace text-end">{{formatDuration $mgr.CurrentUpTime}}</td>
 							<td class="font-monospace text-end">{{formatStat $mgr.MaxCorpus}}</td>
