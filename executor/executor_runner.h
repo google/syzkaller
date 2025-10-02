@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <cstring>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -16,6 +17,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "pkg/flatrpc/flatrpc.h"
 
 inline std::ostream& operator<<(std::ostream& ss, const rpc::ExecRequestRawT& req)
 {
@@ -197,7 +200,6 @@ public:
 		return;
 	}
 
-private:
 	enum State : uint8 {
 		// The process has just started.
 		Started,
@@ -209,6 +211,12 @@ private:
 		Executing,
 	};
 
+	State GetState() const
+	{
+		return state_;
+	}
+
+private:
 	Connection& conn_;
 	const char* const bin_;
 	ProcIDPool& proc_id_pool_;
@@ -575,6 +583,8 @@ private:
 	std::vector<std::string> leak_frames_;
 	int restarting_ = 0;
 	bool corpus_triaged_ = false;
+	bool is_leak_enabled_ = false;
+	uint64 exec_count_ = 0;
 	ProcOpts proc_opts_{};
 
 	friend std::ostream& operator<<(std::ostream& ss, const Runner& runner)
@@ -621,11 +631,35 @@ private:
 				failmsg("unknown host message type", "type=%d", static_cast<int>(raw.msg.type));
 		}
 
+#if GOOS_linux
+		const uint64 kRunLeakCheckEvery = 2 * procs_.size();
+		constexpr auto IsProcIdle = [](const std::unique_ptr<Proc>& proc) {
+			return proc->GetState() == Proc::State::Idle;
+		};
+		const bool isScheduledForLeakCheck =
+		    is_leak_enabled_ &&
+		    corpus_triaged_ &&
+		    exec_count_ > 0 &&
+		    exec_count_ % kRunLeakCheckEvery == 0;
+
+		if (isScheduledForLeakCheck && std::all_of(procs_.begin(), procs_.end(), IsProcIdle)) {
+			const int len = leak_frames_.size();
+			auto leakFrames = GetArrOfCStr(leak_frames_);
+			check_leaks(leakFrames, len);
+			FreeArrOfCStr(leakFrames, len);
+			++exec_count_;
+		}
+#else
+		constexpr bool isScheduledForLeakCheck = false;
+#endif
+
 		for (auto& proc : procs_) {
 			proc->Ready(select, now, requests_.empty());
-			if (!requests_.empty()) {
-				if (proc->Execute(requests_.front()))
+			if (!isScheduledForLeakCheck && !requests_.empty()) {
+				if (proc->Execute(requests_.front())) {
 					requests_.pop_front();
+					++exec_count_;
+				}
 			}
 		}
 
@@ -667,6 +701,7 @@ private:
 		      conn_reply.slowdown, conn_reply.syscall_timeout_ms,
 		      conn_reply.program_timeout_ms, static_cast<uint64>(conn_reply.features));
 		leak_frames_ = conn_reply.leak_frames;
+		is_leak_enabled_ = static_cast<bool>(conn_reply.features & rpc::Feature::Leak);
 
 		proc_opts_.use_cover_edges = conn_reply.cover_edges;
 		proc_opts_.is_kernel_64_bit = is_kernel_64_bit = conn_reply.kernel_64_bit;
@@ -857,6 +892,27 @@ private:
 
 		return {status == kFailStatus ? "process failed" : "", std::move(output)};
 	}
+
+#if GOOS_linux
+	char** GetArrOfCStr(const std::vector<std::string>& vec)
+	{
+		char** arr = new char*[vec.size()];
+		std::transform(vec.cbegin(), vec.cend(), arr, [](const std::string& str) {
+			char* c_str = new char[str.size() + 1];
+			memcpy(c_str, str.c_str(), str.size() + 1);
+			return c_str;
+		});
+		return arr;
+	}
+
+	void FreeArrOfCStr(char**& arr, int len)
+	{
+		for (int i = 0; i < len; ++i)
+			delete[] arr[i];
+
+		delete[] arr;
+	}
+#endif
 };
 
 static void SigintHandler(int sig)
