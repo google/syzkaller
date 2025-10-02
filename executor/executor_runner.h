@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -16,6 +17,21 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <linux/audit.h>
+#include <linux/netlink.h>
+
+constexpr int NETLINK_BUF_SIZE = 4096;
+
+ssize_t ReceiveNetlinkMessage(int fd, void* buf, size_t len)
+{
+	return recv(fd, buf, len, 0);
+}
+
+ssize_t SendNetlinkMessage(int fd, const void* buf, size_t len)
+{
+	return send(fd, buf, len, 0);
+}
 
 inline std::ostream& operator<<(std::ostream& ss, const rpc::ExecRequestRawT& req)
 {
@@ -109,7 +125,7 @@ class Proc
 {
 public:
 	Proc(Connection& conn, const char* bin, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd,
-	     int cover_filter_fd, ProcOpts opts)
+	     int cover_filter_fd, ProcOpts opts, int audit_sock)
 	    : conn_(conn),
 	      bin_(bin),
 	      proc_id_pool_(proc_id_pool),
@@ -121,7 +137,8 @@ public:
 	      opts_(opts),
 	      req_shmem_(kMaxInput),
 	      resp_shmem_(kMaxOutput),
-	      resp_mem_(static_cast<OutputData*>(resp_shmem_.Mem()))
+	      resp_mem_(static_cast<OutputData*>(resp_shmem_.Mem())),
+		  audit_sock_(audit_sock)
 	{
 		Start();
 	}
@@ -237,6 +254,7 @@ private:
 	uint64 exec_start_ = 0;
 	uint64 wait_start_ = 0;
 	uint64 wait_end_ = 0;
+	int audit_sock_ = 0;
 
 	friend std::ostream& operator<<(std::ostream& ss, const Proc& proc)
 	{
@@ -249,6 +267,63 @@ private:
 		if (proc.msg_)
 			ss << "\tcurrent request: " << *proc.msg_;
 		return ss;
+	}
+
+	ssize_t SendUserAuditMessage(const std::string_view message_text) {
+		const size_t payload_len = message_text.length() + 1;
+		const size_t buf_len = NLMSG_SPACE(payload_len);
+		std::vector<char> buf(buf_len);
+		memset(buf.data(), 0, buf_len);
+
+		auto* nlh = reinterpret_cast<struct nlmsghdr*>(buf.data());
+		nlh->nlmsg_len = NLMSG_LENGTH((int)payload_len);
+		nlh->nlmsg_type = AUDIT_USER_AVC;
+		nlh->nlmsg_flags = NLM_F_REQUEST;
+
+		char* data = static_cast<char*>(NLMSG_DATA(nlh));
+		strncpy(data, message_text.data(), payload_len);
+		return SendNetlinkMessage(audit_sock_, nlh, nlh->nlmsg_len);
+	}
+
+	void drainAuditBacklog(std::vector<uint8_t>* output)
+	{
+		bool prefixed = false;
+		ssize_t slen = 0;
+		char buf[NETLINK_BUF_SIZE];
+		struct nlmsghdr* header;
+
+		if (SendUserAuditMessage("PROC END") < 0)
+			return;
+
+		// Drain the audit backlog until there is no other message
+		do {
+			slen = ReceiveNetlinkMessage(audit_sock_, buf, sizeof(buf));
+			if (errno == EINTR) {
+				continue;
+			}
+			if (slen < NLMSG_LENGTH(0)) {
+				fprintf(stderr, "audit: message too short\n");
+				continue;
+			}
+			header = (struct nlmsghdr*)buf;
+			if (header->nlmsg_type != AUDIT_AVC && header->nlmsg_type != AUDIT_USER_AVC) {
+				continue;
+			}
+			if (header->nlmsg_type == AUDIT_AVC) {
+				if (!prefixed) {
+					char tmp[128];
+					// Add prefix to the audit messages.
+					snprintf(tmp, sizeof(tmp), "\nAudit messages:\n");
+					output->insert(output->end(), tmp, tmp + strlen(tmp));
+					prefixed = true;
+				}
+				std::string message((char*)NLMSG_DATA(header),
+								(char*)NLMSG_DATA(header) +
+								(slen - sizeof(*header)));
+				message.append("\n");
+				output->insert(output->end(), message.c_str(), message.c_str() + strlen(message.c_str()));
+			}
+		} while (header->nlmsg_type != AUDIT_USER_AVC);
 	}
 
 	void ChangeState(State state)
@@ -454,6 +529,10 @@ private:
 				output_.insert(output_.end(), tmp, tmp + strlen(tmp));
 			}
 		}
+		if (IsSet(msg_->flags, rpc::RequestFlag::ReturnAudit)) {
+			output = &output_;
+			drainAuditBacklog(output);
+		}
 		uint32 num_calls = 0;
 		if (msg_->type == rpc::RequestType::Program)
 			num_calls = read_input(&prog_data);
@@ -556,9 +635,13 @@ public:
 		proc_id_pool_.emplace(num_procs);
 		int max_signal_fd = max_signal_ ? max_signal_->FD() : -1;
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
+		int audit_sock = 0;
+		if (audit) {
+			audit_sock = registerForAudit();
+		}
 		for (int i = 0; i < num_procs; i++)
 			procs_.emplace_back(new Proc(conn, bin, *proc_id_pool_, restarting_, corpus_triaged_,
-						     max_signal_fd, cover_filter_fd, proc_opts_));
+						     max_signal_fd, cover_filter_fd, proc_opts_, audit_sock));
 
 		for (;;)
 			Loop();
@@ -574,6 +657,7 @@ private:
 	std::deque<rpc::ExecRequestRawT> requests_;
 	std::vector<std::string> leak_frames_;
 	int restarting_ = 0;
+	bool audit = false;
 	bool corpus_triaged_ = false;
 	ProcOpts proc_opts_{};
 
@@ -593,6 +677,71 @@ private:
 		for (const auto& req : runner.requests_)
 			ss << req;
 		return ss;
+	}
+
+	// Helper function to open a Netlink socket for Audit
+	int OpenNetlinkAuditSocket()
+	{
+		return socket(AF_NETLINK, SOCK_RAW, NETLINK_AUDIT);
+	}
+
+	int registerForAudit()
+	{
+		struct {
+			struct nlmsghdr nlh;
+			struct audit_status status;
+		} req;
+		memset(&req, 0, sizeof(req));
+
+		int fd = OpenNetlinkAuditSocket();
+		if (fd < 0) {
+			return -1;
+		}
+
+		req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct audit_status));
+		req.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+		req.nlh.nlmsg_seq = 1;
+		req.nlh.nlmsg_type = AUDIT_SET;
+		req.status.pid = getpid();
+		req.status.backlog_limit = 0;
+		req.status.rate_limit = 0;
+		req.status.backlog_wait_time = 0;
+		req.status.mask = AUDIT_STATUS_PID | AUDIT_STATUS_BACKLOG_LIMIT | AUDIT_STATUS_RATE_LIMIT | AUDIT_STATUS_BACKLOG_WAIT_TIME;
+
+		ssize_t sent = SendNetlinkMessage(fd, &req, req.nlh.nlmsg_len);
+		if (sent != req.nlh.nlmsg_len) {
+			close(fd);
+			return -1;
+		}
+
+		ssize_t slen = 0;
+		char buf[NETLINK_BUF_SIZE];
+		struct nlmsghdr* header;
+		do {
+			slen = ReceiveNetlinkMessage(fd, buf, sizeof(buf));
+			if (errno == EAGAIN || errno == EINTR) {
+				continue;
+			}
+			if (slen < NLMSG_LENGTH(0)) {
+				fprintf(stderr, "audit: message too short\n");
+				continue;
+			}
+			header = (struct nlmsghdr*)buf;
+		} while (header->nlmsg_type != NLMSG_ERROR); 
+
+		struct nlmsgerr* err;
+		if ((size_t)slen < NLMSG_LENGTH(sizeof(*err))) {
+			fprintf(stderr, "audit_listener: error message too short\n");
+			close(fd);
+			return -1;
+		}
+		err = (struct nlmsgerr*)NLMSG_DATA(header);
+		if (err->error != 0) {
+			fprintf(stderr, "audit_listener: received error %d\n", -err->error);
+			close(fd);
+			return -1;
+		}
+		return fd;
 	}
 
 	void Loop()
@@ -661,6 +810,12 @@ private:
 		conn_.Recv(conn_reply);
 		if (conn_reply.debug)
 			flag_debug = true;
+		if (conn_reply.audit) {
+			if (conn_reply.procs > 1)
+				debug("audit only supported with one proc");
+			audit = conn_reply.procs == 1;
+		}
+
 		debug("connected to manager: procs=%d cover_edges=%d kernel_64_bit=%d slowdown=%d syscall_timeout=%u"
 		      " program_timeout=%u features=0x%llx\n",
 		      conn_reply.procs, conn_reply.cover_edges, conn_reply.kernel_64_bit,

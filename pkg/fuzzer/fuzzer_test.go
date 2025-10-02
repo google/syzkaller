@@ -59,7 +59,7 @@ func TestFuzz(t *testing.T) {
 		EnabledCalls: map[*prog.Syscall]bool{
 			target.SyscallMap["syz_test_fuzzer1"]: true,
 		},
-	}, rand.New(testutil.RandSource(t)), target)
+	}, rand.New(testutil.RandSource(t)), target, nil)
 
 	go func() {
 		for {
@@ -108,7 +108,7 @@ func BenchmarkFuzzer(b *testing.B) {
 		Corpus:       corpus.NewCorpus(ctx),
 		Coverage:     true,
 		EnabledCalls: calls,
-	}, rand.New(rand.NewSource(time.Now().UnixNano())), target)
+	}, rand.New(rand.NewSource(time.Now().UnixNano())), target, nil)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {

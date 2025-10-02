@@ -34,6 +34,7 @@ typedef signed int ssize_t;
 #else
 #include <endian.h> // for htobe*.
 #endif
+#include <fstream>
 #include <stdint.h>
 #include <stdio.h> // for fmt arguments
 #include <stdlib.h>
@@ -601,6 +602,15 @@ static void execute_one(void);
 #define WAIT_FLAGS 0
 #endif
 
+void enforce_policy(bool enforce)
+{
+	std::ofstream outFile("/sys/fs/selinux/enforce");
+	if (outFile.is_open()) {
+		outFile << (enforce ? "1" : "0");
+		outFile.close();
+	}
+}
+
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -636,6 +646,7 @@ static void loop(void)
 		if (!flag_snapshot)
 			receive_execute();
 #endif
+		enforce_policy(flag_enforce_policy);
 		int pid = fork();
 		if (pid < 0)
 			fail("clone failed");
@@ -737,6 +748,7 @@ static void loop(void)
 			errno = 0;
 			fail("child failed");
 		}
+		enforce_policy(false);
 		reply_execute(0);
 #endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
