@@ -32,7 +32,7 @@ func handleKcidbPoll(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleKcidbNamespce(c context.Context, ns string, cfg *KcidbConfig) error {
-	client, err := kcidb.NewClient(c, cfg.Origin, cfg.Project, cfg.Topic, cfg.Credentials)
+	client, err := kcidb.NewClient(c, cfg.Origin, cfg.RestURI, cfg.Token)
 	if err != nil {
 		return err
 	}
