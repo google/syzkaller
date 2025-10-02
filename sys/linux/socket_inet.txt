@@ -13,25 +13,30 @@ include <uapi/linux/in.h>
 
 resource sock_in[sock]
 
+define SOCKADDR_IN_SIZE	sizeof(struct sockaddr_in)
+
 sockaddr_in {
 	family	const[AF_INET, int16]
 	port	sock_port
 	addr	ipv4_addr
-} [size[16]]
+} [size[SOCKADDR_IN_SIZE]]
+
+resource ptr_sockaddr_in[intptr]
+syz_create_resource$ptr_sockaddr_in(sockaddr ptr[in, sockaddr_in]) ptr_sockaddr_in
 
 sockaddr_storage_in {
 	addr	sockaddr_in
 } [size[SOCKADDR_STORAGE_SIZE], align[PTR_SIZE]]
 
 socket$inet(domain const[AF_INET], type flags[socket_type], proto int32) sock_in
-accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
-accept4$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in
-bind$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
-connect$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
+accept$inet(fd sock_in, peer ptr_sockaddr_in, peerlen ptr[inout, const[SOCKADDR_IN_SIZE, int32]])
+accept4$inet(fd sock_in, peer ptr_sockaddr_in, peerlen ptr[inout, const[SOCKADDR_IN_SIZE, int32]], flags flags[accept_flags]) sock_in
+bind$inet(fd sock_in, addr ptr_sockaddr_in, addrlen const[SOCKADDR_IN_SIZE])
+connect$inet(fd sock_in, addr ptr_sockaddr_in, addrlen const[SOCKADDR_IN_SIZE])
 sendto$inet(fd sock_in, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
 recvfrom$inet(fd sock_in, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
-getsockname$inet(fd sock_in, addr ptr[out, sockaddr_in], addrlen ptr[inout, len[addr, int32]])
-getpeername$inet(fd sock_in, peer ptr[out, sockaddr_in], peerlen ptr[inout, len[peer, int32]])
+getsockname$inet(fd sock_in, addr ptr_sockaddr_in, addrlen ptr[inout, const[SOCKADDR_IN_SIZE, int32]])
+getpeername$inet(fd sock_in, peer ptr_sockaddr_in, peerlen ptr[inout, const[SOCKADDR_IN_SIZE, int32]])
 
 # Generic IP options
 
