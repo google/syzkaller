@@ -20,11 +20,20 @@ type FuzzTask struct {
 	FuzzConfig
 }
 
+const (
+	FocusNet     = "net"
+	FocusKVM     = "kvm"
+	FocusIoUring = "io_uring"
+	FocusBPF     = "bpf"
+	FocusFS      = "fs"
+)
+
 // FuzzConfig represents a set of parameters passed to the fuzz step.
+// The triage step aggregates multiple KernelFuzzConfig to construct FuzzConfig.
 type FuzzConfig struct {
-	Track     string `json:"track"`  // E.g. KASAN.
-	Config    string `json:"config"` // Refers to workflow/configs/{}.
-	CorpusURL string `json:"corpus_url"`
+	Track      string   `json:"track"` // E.g. KASAN.
+	Focus      []string `json:"focus"`
+	CorpusURLs []string `json:"corpus_urls"`
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
@@ -39,11 +48,22 @@ type Tree struct {
 	EmailLists []string `json:"email_lists"`
 }
 
-// TriageFuzzConfig is a single record in the list of supported fuzz configs.
-type TriageFuzzConfig struct {
-	EmailLists   []string `json:"email_lists"`
-	KernelConfig string   `json:"kernel_config"`
-	FuzzConfig
+// KernelFuzzConfig is a specific fuzzing assignment.
+// Based on it, the triage step will construct FuzzTasks.
+type KernelFuzzConfig struct {
+	EmailLists     []string `json:"email_lists"`
+	Track          string   `json:"track"` // E.g. KASAN.
+	KernelConfig   string   `json:"kernel_config"`
+	Focus          string   `json:"focus"`
+	CorpusURL      string   `json:"corpus_url"`
+	SkipCoverCheck bool     `json:"skip_cover_check"`
+	BugTitleRe     string   `json:"bug_title_re"`
+}
+
+// FuzzTriageTarget is a single record in the list of supported fuzz configs.
+type FuzzTriageTarget struct {
+	EmailLists []string            `json:"email_lists"`
+	Campaigns  []*KernelFuzzConfig `json:"campaigns"`
 }
 
 type BuildRequest struct {
@@ -227,39 +247,48 @@ var DefaultTrees = []*Tree{
 const (
 	netCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db`
 	bpfCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db`
-	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 	fsCorpusURL  = `https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db`
+	allCorpusURL = `https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db`
 )
 
-const kasanTrack = "KASAN"
+const (
+	kasanTrack = "KASAN"
+	kmsanTrack = "KMSAN"
+)
 
 // The list is ordered by decreasing importance.
-var FuzzConfigs = []*TriageFuzzConfig{
+var FuzzTargets = []*FuzzTriageTarget{
 	{
-		EmailLists:   []string{`kvm@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `kvm`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`kvm@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				Track:        kasanTrack,
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Focus:        FocusKVM,
+				CorpusURL:    allCorpusURL,
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`io-uring@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `io-uring`,
-			CorpusURL: allCorpusURL,
+		EmailLists: []string{`io-uring@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				Track:        kasanTrack,
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Focus:        FocusIoUring,
+				CorpusURL:    allCorpusURL,
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`bpf@vger.kernel.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `bpf`,
-			CorpusURL: bpfCorpusURL,
+		EmailLists: []string{`bpf@vger.kernel.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				Track:        kasanTrack,
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Focus:        FocusBPF,
+				CorpusURL:    bpfCorpusURL,
+			},
 		},
 	},
 	{
@@ -268,11 +297,20 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`netfilter-devel@vger.kernel.org`,
 			`linux-wireless@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `net`,
-			CorpusURL: netCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				Track:        kasanTrack,
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Focus:        FocusNet,
+				CorpusURL:    netCorpusURL,
+			},
+			{
+				Track:        kmsanTrack,
+				KernelConfig: `upstream-kmsan.config`,
+				Focus:        FocusNet,
+				CorpusURL:    netCorpusURL,
+				BugTitleRe:   `^KMSAN:`,
+			},
 		},
 	},
 	{
@@ -282,31 +320,35 @@ var FuzzConfigs = []*TriageFuzzConfig{
 			`linux-unionfs@vger.kernel.org`,
 			`linux-ext4@vger.kernel.org`,
 		},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `fs`,
-			CorpusURL: fsCorpusURL,
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Track:        kasanTrack,
+				Focus:        FocusFS,
+				CorpusURL:    fsCorpusURL,
+			},
 		},
 	},
 	{
-		EmailLists:   []string{`linux-mm@kvack.org`},
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
-			// Not all mm/ code is instrumented with KCOV.
-			SkipCoverCheck: true,
+		EmailLists: []string{`linux-mm@kvack.org`},
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Track:        kasanTrack,
+				CorpusURL:    allCorpusURL,
+				// Not all mm/ code is instrumented with KCOV.
+				SkipCoverCheck: true,
+			},
 		},
 	},
 	{
-		EmailLists:   nil, // A fallback option.
-		KernelConfig: `upstream-apparmor-kasan.config`,
-		FuzzConfig: FuzzConfig{
-			Track:     kasanTrack,
-			Config:    `all`,
-			CorpusURL: allCorpusURL,
+		EmailLists: nil, // A fallback option.
+		Campaigns: []*KernelFuzzConfig{
+			{
+				KernelConfig: `upstream-apparmor-kasan.config`,
+				Track:        kasanTrack,
+				CorpusURL:    allCorpusURL,
+			},
 		},
 	},
 }
