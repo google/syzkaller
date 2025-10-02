@@ -764,6 +764,7 @@ func initTarget(target *Target, OS, arch string) {
 	if runtime.GOOS != target.BuildOS {
 		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
 		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
+		target.BrokenCompiler = target.CCompiler
 		target.CxxCompiler = target.CCompiler
 		target.CPP = target.CCompiler
 	}
