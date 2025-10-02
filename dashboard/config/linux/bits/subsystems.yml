@@ -10,6 +10,7 @@ config:
  - POSIX_MQUEUE
  - NO_HZ
  - HIGH_RES_TIMERS
+ - POSIX_AUX_CLOCKS: [v6.17]
  - PREEMPT
  - IRQ_TIME_ACCOUNTING: [-riscv, -s390]
  - BSD_PROCESS_ACCT
@@ -333,6 +334,7 @@ config:
  - SND_PCI
  - SND_OSSEMUL
  - SND_MIXER_OSS
+ - SND_PCM
  - SND_PCM_OSS
  - SND_PCM_OSS_PLUGINS
  - SND_HRTIMER
@@ -358,7 +360,8 @@ config:
  - SND_HDA_CODEC_CA0132
  - SND_HDA_CODEC_CMEDIA
  - SND_HDA_CODEC_SI3054
- - SND_HDA_PREALLOC_SIZE: 0
+ # SND_HDA_INTEL is disabled by kmsan.yml because of some compatibility problems.
+ - SND_HDA_PREALLOC_SIZE: [0, -kmsan]
  - SND_USB_AUDIO
  - SND_FIREWORKS: n
  - SND_FIREWIRE_TASCAM: n
@@ -604,3 +607,5 @@ config:
  # For testing of core dumping functionality itself.
  - COREDUMP
  - ELF_CORE
+
+ - IO_URING_MOCK_FILE: [v6.17]
