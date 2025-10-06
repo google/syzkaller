@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"testing"
 	"time"
 
@@ -25,6 +26,9 @@ func TestBuildDescriptions(t *testing.T) {
 	require.NoError(t, err)
 
 	target := targets.Get(targets.Linux, targets.AMD64)
+	if runtime.GOOS != target.BuildOS {
+		t.Skip("we cannot build Linux on this target")
+	}
 	if target.BrokenCompiler != "" {
 		t.Skip("skipping the test due to broken cross-compiler:\n" + target.BrokenCompiler)
 	}
