@@ -217,8 +217,13 @@ syz-build:
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
 
+ifeq ($(HOSTOS), linux)
 kfuzztest: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-kfuzztest github.com/google/syzkaller/syz-kfuzztest
+else
+kfuzztest:
+	@echo "Skipping kfuzztest build (it's Linux-only)"
+endif
 
 verifier: descriptions
 	# TODO: switch syz-verifier to use syz-executor.
