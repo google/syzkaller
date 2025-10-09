@@ -46,6 +46,13 @@ func TestMultipleFocus(t *testing.T) {
 	}, filepath.Join("testdata", "mixed", "bpf_io_uring"))
 }
 
+func TestKMSANConfig(t *testing.T) {
+	runTest(t, &api.FuzzConfig{
+		Focus: []string{api.FocusBPF},
+		KMSAN: true,
+	}, filepath.Join("testdata", "mixed", "bpf_kmsan"))
+}
+
 func runTest(t *testing.T, cfg *api.FuzzConfig, baseName string) {
 	base, err := GenerateBase(cfg)
 	require.NoError(t, err)

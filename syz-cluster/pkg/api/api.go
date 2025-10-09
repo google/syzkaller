@@ -34,6 +34,7 @@ type FuzzConfig struct {
 	Track      string   `json:"track"` // E.g. KASAN.
 	Focus      []string `json:"focus"`
 	CorpusURLs []string `json:"corpus_urls"`
+	KMSAN      bool     `json:"kmsan"` // Needed for some temporary workarounds.
 	// Don't expect kernel coverage for the patched area.
 	SkipCoverCheck bool `json:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
