@@ -218,6 +218,7 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	type StatsPageData struct {
 		Processed    []*db.CountPerWeek
 		Findings     []*db.CountPerWeek
+		Reports      []*db.CountPerWeek
 		Delay        []*db.DelayPerWeek
 		Distribution []*db.StatusPerWeek
 	}
@@ -230,6 +231,10 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	data.Findings, err = h.statsRepo.FindingsPerWeek(r.Context())
 	if err != nil {
 		return fmt.Errorf("failed to query findings data: %w", err)
+	}
+	data.Reports, err = h.statsRepo.ReportsPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query reports data: %w", err)
 	}
 	data.Delay, err = h.statsRepo.DelayPerWeek(r.Context())
 	if err != nil {

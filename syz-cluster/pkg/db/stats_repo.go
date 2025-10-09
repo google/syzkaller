@@ -39,6 +39,20 @@ ORDER BY Date`,
 	})
 }
 
+func (repo *StatsRepository) ReportsPerWeek(ctx context.Context) (
+	[]*CountPerWeek, error) {
+	return readEntities[CountPerWeek](ctx, repo.client.Single(), spanner.Statement{
+		SQL: `SELECT
+  TIMESTAMP_TRUNC(SessionReports.ReportedAt, WEEK) as Date,
+  COUNT(*) as Count
+FROM Findings
+JOIN SessionReports ON SessionReports.SessionID = Findings.SessionID
+WHERE SessionReports.Moderation = FALSE AND SessionReports.ReportedAt IS NOT NULL
+GROUP BY Date
+ORDER BY Date`,
+	})
+}
+
 func (repo *StatsRepository) FindingsPerWeek(ctx context.Context) (
 	[]*CountPerWeek, error) {
 	return readEntities[CountPerWeek](ctx, repo.client.Single(), spanner.Statement{
