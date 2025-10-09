@@ -393,6 +393,9 @@ func errToStatus(f func(http.ResponseWriter, *http.Request) error) http.HandlerF
 		} else if errors.Is(err, errBadRequest) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else if err != nil {
+			// TODO: if the error happened in the template, likely we've already printed
+			// something to w. Unless we're in streamBlob(), it makes sense to first collect
+			// the output in some buffer and only dump it after the exit from the handler.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
