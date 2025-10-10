@@ -1750,7 +1750,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "memory leak in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile("backtrace:"),
+						compile("backtrace(?: \\(crc [[:xdigit:]]*\\))?:"),
 						parseStackTrace,
 					},
 					skip: []string{"kmemleak", "mmap", "kmem", "slab", "alloc", "create_object",
