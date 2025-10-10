@@ -66,13 +66,14 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "#syz test: repo",
 		EmailOptFrom("test@requester.com"), EmailOptSubject("my-subject"), EmailOptCC([]string{mailingList}))
 	msg := c.pollEmailBug()
-	c.expectEQ(strings.Contains(msg.Body, "want either no args or 2 args"), true)
+
+	c.expectEQ(strings.Contains(msg.Body, replyMalformedSyzTest), true)
 	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch commit",
 		EmailOptFrom("test@requester.com"), EmailOptSubject("Re: my-subject"), EmailOptCC([]string{mailingList}))
 	msg = c.pollEmailBug()
-	c.expectEQ(strings.Contains(msg.Body, "want either no args or 2 args"), true)
+	c.expectEQ(strings.Contains(msg.Body, replyMalformedSyzTest), true)
 	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch",
