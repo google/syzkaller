@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -38,7 +38,7 @@ func TestEmailStream(t *testing.T) {
 
 	// Emulate the lore archive and set up the loop.
 	loreArchive := newLoreArchive(t)
-	writeTo := make(chan *email.Email, 16)
+	writeTo := make(chan *lore.Email, 16)
 	emailCfg := &app.EmailConfig{
 		LoreArchiveURL: loreArchive.remoteRef(),
 		SMTP: &app.SMTPConfig{
