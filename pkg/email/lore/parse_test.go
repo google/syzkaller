@@ -6,7 +6,6 @@ package lore
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -116,29 +115,35 @@ Bug report`,
 			Subject:   "Thread A",
 			MessageID: "<A-Base>",
 			Type:      dashapi.DiscussionMention,
-			Messages: []*email.Email{
+			Messages: []*Email{
 				{
-					MessageID: "<A-Base>",
-					Subject:   "Thread A",
-					Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, zone),
-					Author:    "a@user.com",
-					Cc:        []string{"a@user.com"},
+					Email: &email.Email{
+						MessageID: "<A-Base>",
+						Subject:   "Thread A",
+						Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, zone),
+						Author:    "a@user.com",
+						Cc:        []string{"a@user.com"},
+					},
 				},
 				{
-					MessageID: "<A-Child-1>",
-					Subject:   "Re: Thread A",
-					Date:      time.Date(2017, time.May, 7, 19, 55, 0, 0, zone),
-					Author:    "b@user.com",
-					Cc:        []string{"a@user.com", "b@user.com"},
-					InReplyTo: "<A-Base>",
+					Email: &email.Email{
+						MessageID: "<A-Child-1>",
+						Subject:   "Re: Thread A",
+						Date:      time.Date(2017, time.May, 7, 19, 55, 0, 0, zone),
+						Author:    "b@user.com",
+						Cc:        []string{"a@user.com", "b@user.com"},
+						InReplyTo: "<A-Base>",
+					},
 				},
 				{
-					MessageID: "<A-Child-1-1>",
-					Subject:   "Re: Re: Thread A",
-					Date:      time.Date(2017, time.May, 7, 19, 56, 0, 0, zone),
-					Author:    "c@user.com",
-					Cc:        []string{"a@user.com", "b@user.com", "c@user.com"},
-					InReplyTo: "<A-Child-1>",
+					Email: &email.Email{
+						MessageID: "<A-Child-1-1>",
+						Subject:   "Re: Re: Thread A",
+						Date:      time.Date(2017, time.May, 7, 19, 56, 0, 0, zone),
+						Author:    "c@user.com",
+						Cc:        []string{"a@user.com", "b@user.com", "c@user.com"},
+						InReplyTo: "<A-Child-1>",
+					},
 				},
 			},
 		},
@@ -147,32 +152,38 @@ Bug report`,
 			MessageID: "<Bug>",
 			Type:      dashapi.DiscussionReport,
 			BugIDs:    []string{"4564456"},
-			Messages: []*email.Email{
+			Messages: []*Email{
 				{
-					MessageID: "<Bug>",
-					BugIDs:    []string{"4564456"},
-					Subject:   "[syzbot] Some bug",
-					Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
-					Author:    "syzbot@bar.com",
-					OwnEmail:  true,
+					Email: &email.Email{
+						MessageID: "<Bug>",
+						BugIDs:    []string{"4564456"},
+						Subject:   "[syzbot] Some bug",
+						Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
+						Author:    "syzbot@bar.com",
+						OwnEmail:  true,
+					},
 				},
 				{
-					MessageID: "<Bug-Reply1>",
-					BugIDs:    []string{"4564456"},
-					Subject:   "Re: [syzbot] Some bug",
-					Date:      time.Date(2017, time.May, 7, 19, 58, 0, 0, zone),
-					Author:    "c@user.com",
-					Cc:        []string{"c@user.com"},
-					InReplyTo: "<Bug>",
+					Email: &email.Email{
+						MessageID: "<Bug-Reply1>",
+						BugIDs:    []string{"4564456"},
+						Subject:   "Re: [syzbot] Some bug",
+						Date:      time.Date(2017, time.May, 7, 19, 58, 0, 0, zone),
+						Author:    "c@user.com",
+						Cc:        []string{"c@user.com"},
+						InReplyTo: "<Bug>",
+					},
 				},
 				{
-					MessageID: "<Bug-Reply2>",
-					BugIDs:    []string{"4564456"},
-					Subject:   "Re: [syzbot] Some bug",
-					Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
-					Author:    "d@user.com",
-					Cc:        []string{"d@user.com"},
-					InReplyTo: "<Bug>",
+					Email: &email.Email{
+						MessageID: "<Bug-Reply2>",
+						BugIDs:    []string{"4564456"},
+						Subject:   "Re: [syzbot] Some bug",
+						Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
+						Author:    "d@user.com",
+						Cc:        []string{"d@user.com"},
+						InReplyTo: "<Bug>",
+					},
 				},
 			},
 		},
@@ -181,14 +192,16 @@ Bug report`,
 			MessageID: "<Patch>",
 			Type:      dashapi.DiscussionPatch,
 			BugIDs:    []string{"12345"},
-			Messages: []*email.Email{
+			Messages: []*Email{
 				{
-					MessageID: "<Patch>",
-					BugIDs:    []string{"12345"},
-					Subject:   "[PATCH] Some bug fixed",
-					Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
-					Author:    "e@user.com",
-					Cc:        []string{"e@user.com"},
+					Email: &email.Email{
+						MessageID: "<Patch>",
+						BugIDs:    []string{"12345"},
+						Subject:   "[PATCH] Some bug fixed",
+						Date:      time.Date(2017, time.May, 7, 19, 58, 1, 0, zone),
+						Author:    "e@user.com",
+						Cc:        []string{"e@user.com"},
+					},
 				},
 			},
 		},
@@ -197,29 +210,29 @@ Bug report`,
 			MessageID: "<Sub-Discussion>",
 			Type:      dashapi.DiscussionMention,
 			BugIDs:    []string{"4564456"},
-			Messages: []*email.Email{
+			Messages: []*Email{
 				{
-					MessageID: "<Sub-Discussion>",
-					InReplyTo: "<Unknown>",
-					Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
-					BugIDs:    []string{"4564456"},
-					Cc:        []string{"person@email.com"},
-					Subject:   "Another bug discussion",
-					Author:    "person@email.com",
+					Email: &email.Email{
+						MessageID: "<Sub-Discussion>",
+						InReplyTo: "<Unknown>",
+						Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
+						BugIDs:    []string{"4564456"},
+						Cc:        []string{"person@email.com"},
+						Subject:   "Another bug discussion",
+						Author:    "person@email.com",
+					},
 				},
 			},
 		},
 		"<Sub-Discussion-Bot>": nil,
 	}
 
-	emails := []*email.Email{}
+	var emails []*Email
 	for _, m := range messages {
-		msg, err := email.Parse(strings.NewReader(m), []string{"syzbot@bar.com"},
-			[]string{}, []string{"bar.com"})
+		msg, err := emailFromRaw([]byte(m), []string{"syzbot@bar.com"}, []string{"bar.com"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		msg.Body = ""
 		msg.RawCc = nil
 		emails = append(emails, msg)
 	}
@@ -418,9 +431,9 @@ Content-Type: text/plain
 Bug report`,
 	}
 
-	emails := []*email.Email{}
+	var emails []*Email
 	for _, m := range messages {
-		msg, err := email.Parse(strings.NewReader(m), nil, nil, nil)
+		msg, err := emailFromRaw([]byte(m), nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -437,7 +450,7 @@ Bug report`,
 			Patches: []Patch{
 				{
 					Seq:   1,
-					Email: &email.Email{Subject: "[PATCH] Small patch"},
+					Email: &Email{Email: &email.Email{Subject: "[PATCH] Small patch"}},
 				},
 			},
 		},
@@ -448,11 +461,11 @@ Bug report`,
 			Patches: []Patch{
 				{
 					Seq:   1,
-					Email: &email.Email{Subject: "[PATCH v2 01/02] First patch"},
+					Email: &Email{Email: &email.Email{Subject: "[PATCH v2 01/02] First patch"}},
 				},
 				{
 					Seq:   2,
-					Email: &email.Email{Subject: "[PATCH v2 02/02] Second patch"},
+					Email: &Email{Email: &email.Email{Subject: "[PATCH v2 02/02] Second patch"}},
 				},
 			},
 		},
@@ -463,7 +476,7 @@ Bug report`,
 			Patches: []Patch{
 				{
 					Seq:   1,
-					Email: &email.Email{Subject: "[PATCH 01/03] Series"},
+					Email: &Email{Email: &email.Email{Subject: "[PATCH 01/03] Series"}},
 				},
 			},
 		},

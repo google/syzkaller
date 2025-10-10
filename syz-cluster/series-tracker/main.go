@@ -111,7 +111,7 @@ func (sf *SeriesFetcher) Update(ctx context.Context, from time.Time) error {
 		list = append(list, repoList...)
 	}
 
-	var emails []*email.Email
+	var emails []*lore.Email
 	idToReader := map[string]lore.EmailReader{}
 	for _, item := range list {
 		// TODO: this could be done in several threads.
