@@ -17,6 +17,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 
 ioctl$KVM_RUN(r3, AUTO, 0x0)
 
-# Ensure that exit reason is KVM_EXIT_SHUTDOWN, because the exception is unhandled.
+# Ensure that the exception is handled by the guest, and the program finishes normally.
 #
-syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x8)
+syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x6)
+syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffffffffffff)

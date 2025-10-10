@@ -18,6 +18,11 @@ echoerr() {
     echo "$@" >&2
 }
 
+AWK_CMD="awk"
+if command -v gawk > /dev/null; then
+    AWK_CMD="gawk"
+fi
+
 if [ "$TARGETOS" != "linux" ]; then
     echo "[INFO] TARGETOS is '$TARGETOS', not 'linux'. Skipping check."
     exit 0
@@ -40,7 +45,6 @@ OBJDUMP_CMD=""
 
 if [ "$TARGETARCH" = "amd64" ]; then
     ARCH="x86_64"
-    PATTERNS_TO_FIND='\\(%rip\\)'
     if command -v x86_64-linux-gnu-objdump > /dev/null; then
         OBJDUMP_CMD="x86_64-linux-gnu-objdump"
     fi
@@ -76,7 +80,7 @@ if ! "$OBJDUMP_CMD" -h --section="$SECTION_TO_CHECK" "$BINARY" >/dev/null 2>&1; 
     exit 0
 fi
 
-echoerr "--> Disassembling section '$SECTION_TO_CHECK' and scanning for patterns ('$PATTERNS_TO_FIND')..."
+echoerr "--> Disassembling section '$SECTION_TO_CHECK' and scanning for problematic instructions..."
 
 DISASSEMBLY_STATUS=0
 DISASSEMBLY_OUTPUT=$("$OBJDUMP_CMD" -d --section="$SECTION_TO_CHECK" "$BINARY" 2>/dev/null) || DISASSEMBLY_STATUS=$?
@@ -88,7 +92,46 @@ if [ $DISASSEMBLY_STATUS -ne 0 ]; then
     exit 1
 fi
 
-FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | awk -v pattern="$PATTERNS_TO_FIND" '
+if [ "$TARGETARCH" = "amd64" ]; then
+    echoerr "--> Getting guest section boundaries..."
+    SECTION_INFO=$("$OBJDUMP_CMD" -h "$BINARY" | grep " $SECTION_TO_CHECK ")
+    if [ -z "$SECTION_INFO" ]; then
+        echoerr "Error: Could not get section info for '$SECTION_TO_CHECK'"
+        exit 1
+    fi
+    GUEST_VMA=$(echo "$SECTION_INFO" | $AWK_CMD '{print "0x"$4}')
+    GUEST_SIZE=$(echo "$SECTION_INFO" | $AWK_CMD '{print "0x"$3}')
+    GUEST_START=$(printf "%d" "$GUEST_VMA")
+    GUEST_END=$((GUEST_START + $(printf "%d" "$GUEST_SIZE")))
+    echoerr "--> Guest section range (hex): [$(printf "0x%x" "$GUEST_START"), $(printf "0x%x" "$GUEST_END"))"
+
+    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | {
+        current_func=""
+        problematic_lines=""
+        while IFS= read -r line; do
+            if echo "$line" | grep -q -E '^[0-9a-f]+ <.*>:$'; then
+                current_func=$(echo "$line" | sed -n 's/.*<\(.*\)>:/\1/p')
+                continue
+            fi
+            if echo "$line" | grep -q '(%rip)'; then
+                target_addr_hex=$(echo "$line" | sed -n 's/.*# \([0-9a-f]\+\).*/\1/p')
+                if [ -z "$target_addr_hex" ]; then
+                    continue
+                fi
+                target_addr_dec=$(printf "%d" "0x$target_addr_hex")
+                if [ "$target_addr_dec" -lt "$GUEST_START" ] || [ "$target_addr_dec" -gt "$GUEST_END" ]; then
+                    if [ -n "$current_func" ]; then
+                        problematic_lines="${problematic_lines}In function <${current_func}>:\n"
+                    fi
+                    problematic_lines="${problematic_lines}\t${line}\n"
+                fi
+            fi
+        done
+        printf "%b" "$problematic_lines"
+    })
+else
+    # The original logic for other architectures (e.g. arm64)
+    FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | $AWK_CMD -v pattern="$PATTERNS_TO_FIND" '
     # Match a function header, e.g., "0000000000401136 <my_func>:"
     /^[0-9a-f]+ <.*>:$/ {
         match($0, /<.*>/)
@@ -102,6 +145,7 @@ FOUND_INSTRUCTIONS=$(echo "$DISASSEMBLY_OUTPUT" | awk -v pattern="$PATTERNS_TO_F
         print "\t" $0
     }
 ' || true)
+fi
 
 if [ -n "$FOUND_INSTRUCTIONS" ]; then
     echo

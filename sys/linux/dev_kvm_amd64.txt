@@ -89,16 +89,22 @@ syzos_api_out_dx {
 	arg_val		int64
 }
 
+syzos_api_set_irq_handler {
+	arg_vector		int64[0:255]
+	arg_handler_type	int64[0:2]
+}
+
 syzos_api_call$x86 [
-	uexit	syzos_api$x86[0, intptr]
-	code	syzos_api$x86[10, syzos_api_code$x86]
-	cpuid	syzos_api$x86[20, syzos_api_cpuid]
-	wrmsr	syzos_api$x86[30, syzos_api_wrmsr]
-	rdmsr	syzos_api$x86[50, syzos_api_rdmsr]
-	wr_crn	syzos_api$x86[70, syzos_api_wr_crn]
-	wr_drn	syzos_api$x86[110, syzos_api_wr_drn]
-	in_dx	syzos_api$x86[130, syzos_api_in_dx]
-	out_dx	syzos_api$x86[170, syzos_api_out_dx]
+	uexit		syzos_api$x86[0, intptr]
+	code		syzos_api$x86[10, syzos_api_code$x86]
+	cpuid		syzos_api$x86[20, syzos_api_cpuid]
+	wrmsr		syzos_api$x86[30, syzos_api_wrmsr]
+	rdmsr		syzos_api$x86[50, syzos_api_rdmsr]
+	wr_crn		syzos_api$x86[70, syzos_api_wr_crn]
+	wr_drn		syzos_api$x86[110, syzos_api_wr_drn]
+	in_dx		syzos_api$x86[130, syzos_api_in_dx]
+	out_dx		syzos_api$x86[170, syzos_api_out_dx]
+	set_irq_handler	syzos_api$x86[190, syzos_api_set_irq_handler]
 ] [varlen]
 
 kvm_text_x86 [
