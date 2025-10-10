@@ -10,7 +10,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/emailclient"
@@ -48,7 +48,7 @@ func main() {
 		emailConfig: cfg.EmailReporting,
 		sender:      sender,
 	}
-	msgCh := make(chan *email.Email, 16)
+	msgCh := make(chan *lore.Email, 16)
 	eg, loopCtx := errgroup.WithContext(ctx)
 	if cfg.EmailReporting.LoreArchiveURL != "" {
 		fetcher := NewLKMLEmailStream("/lore-repo/checkout", reporterClient, cfg.EmailReporting, msgCh)
@@ -56,14 +56,14 @@ func main() {
 	}
 	eg.Go(func() error {
 		for {
-			var newEmail *email.Email
+			var newEmail *lore.Email
 			select {
 			case newEmail = <-msgCh:
 			case <-loopCtx.Done():
 				return nil
 			}
 			log.Printf("received email %q", newEmail.MessageID)
-			err := handler.IncomingEmail(loopCtx, newEmail)
+			err := handler.IncomingEmail(loopCtx, newEmail.Email)
 			if err != nil {
 				// Note that we just print an error and go on instead of retrying.
 				// Some retrying may be reasonable, but it also comes with a risk of flooding
