@@ -105,6 +105,20 @@ __attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
+// The inner loop uses a complex if-statement, because Clang is eager to insert a jump table into
+// a switch statement.
+
+// TODO(glider): executor/style_test.go insists that single-line compound statements should not
+// be used e.g. in the following case:
+//   if (call == SYZOS_API_UEXIT) {
+//     struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
+//     guest_uexit(ucmd->exit_code);
+//   } else if (call == SYZOS_API_WR_CRN) {
+//     guest_handle_wr_crn((struct api_call_2*)cmd);  // Style check fails here
+//   }
+// , i.e. when the braces are consistent with the rest of the code, even despite this violates the
+// Google C++ style guide.
+// We add single-line comments to justify having the compound statements below.
 __attribute__((used))
 GUEST_CODE static void
 guest_main(uint64 size, uint64 cpu)
@@ -117,52 +131,42 @@ guest_main(uint64 size, uint64 cpu)
 			return;
 		if (cmd->size > size)
 			return;
-		switch (cmd->call) {
-		case SYZOS_API_UEXIT: {
+		volatile uint64 call = cmd->call;
+		if (call == SYZOS_API_UEXIT) {
+			// Issue a user exit.
 			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
 			guest_uexit(ucmd->exit_code);
-			break;
-		}
-		case SYZOS_API_CODE: {
+		} else if (call == SYZOS_API_CODE) {
+			// Execute an instruction blob.
 			struct api_call_code* ccmd = (struct api_call_code*)cmd;
 			guest_execute_code(ccmd->insns, cmd->size - sizeof(struct api_call_header));
-			break;
-		}
-		case SYZOS_API_CPUID: {
+		} else if (call == SYZOS_API_CPUID) {
+			// Issue CPUID.
 			struct api_call_cpuid* ccmd = (struct api_call_cpuid*)cmd;
 			guest_handle_cpuid(ccmd->eax, ccmd->ecx);
-			break;
-		}
-		case SYZOS_API_WRMSR: {
+		} else if (call == SYZOS_API_WRMSR) {
+			// Write an MSR register.
 			struct api_call_2* ccmd = (struct api_call_2*)cmd;
 			guest_handle_wrmsr(ccmd->args[0], ccmd->args[1]);
-			break;
-		}
-		case SYZOS_API_RDMSR: {
+		} else if (call == SYZOS_API_RDMSR) {
+			// Read an MSR register.
 			struct api_call_1* ccmd = (struct api_call_1*)cmd;
 			guest_handle_rdmsr(ccmd->arg);
-			break;
-		}
-		case SYZOS_API_WR_CRN: {
+		} else if (call == SYZOS_API_WR_CRN) {
+			// Write value to a control register.
 			guest_handle_wr_crn((struct api_call_2*)cmd);
-			break;
-		}
-		case SYZOS_API_WR_DRN: {
+		} else if (call == SYZOS_API_WR_DRN) {
+			// Write value to a debug register.
 			guest_handle_wr_drn((struct api_call_2*)cmd);
-			break;
-		}
-		case SYZOS_API_IN_DX: {
+		} else if (call == SYZOS_API_IN_DX) {
+			// Read data from an I/O port.
 			guest_handle_in_dx((struct api_call_2*)cmd);
-			break;
-		}
-		case SYZOS_API_OUT_DX: {
+		} else if (call == SYZOS_API_OUT_DX) {
+			// Write data to an I/O port.
 			guest_handle_out_dx((struct api_call_3*)cmd);
-			break;
-		}
-		case SYZOS_API_SET_IRQ_HANDLER: {
+		} else if (call == SYZOS_API_SET_IRQ_HANDLER) {
+			// Set the handler for a particular IRQ.
 			guest_handle_set_irq_handler((struct api_call_2*)cmd);
-			break;
-		}
 		}
 		addr += cmd->size;
 		size -= cmd->size;
