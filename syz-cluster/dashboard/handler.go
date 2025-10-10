@@ -218,6 +218,7 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	type StatsPageData struct {
 		Processed    []*db.CountPerWeek
 		Findings     []*db.CountPerWeek
+		Reports      []*db.CountPerWeek
 		Delay        []*db.DelayPerWeek
 		Distribution []*db.StatusPerWeek
 	}
@@ -230,6 +231,10 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	data.Findings, err = h.statsRepo.FindingsPerWeek(r.Context())
 	if err != nil {
 		return fmt.Errorf("failed to query findings data: %w", err)
+	}
+	data.Reports, err = h.statsRepo.ReportsPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query reports data: %w", err)
 	}
 	data.Delay, err = h.statsRepo.DelayPerWeek(r.Context())
 	if err != nil {
@@ -388,6 +393,9 @@ func errToStatus(f func(http.ResponseWriter, *http.Request) error) http.HandlerF
 		} else if errors.Is(err, errBadRequest) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else if err != nil {
+			// TODO: if the error happened in the template, likely we've already printed
+			// something to w. Unless we're in streamBlob(), it makes sense to first collect
+			// the output in some buffer and only dump it after the exit from the handler.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

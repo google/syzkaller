@@ -19,6 +19,15 @@
       <hr class="my-4">
 
       <div class="chart-wrapper mb-4">
+        <h2 class="h4">Reports (weekly)</h2>
+        <p class="text-muted small">How many reports with findings have been published.</p>
+        <div id="reports_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
         <h2 class="h4">Wait Time before Fuzzing (avg hours, weekly)</h2>
         <p class="text-muted small">How many hours have passed since the moment the series was published and the moment we started fuzzing it.</p>
         <div id="avg_wait_chart_div" style="width: 100%; height: 400px;"></div>
@@ -67,9 +76,16 @@
         {{end}}
       ];
 
+      const reportsData = [
+        {{range .Reports}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Count}}],
+        {{end}}
+      ];
+
       function drawAllCharts() {
         drawChart('processed_chart_div', processedData, '#007bff');
         drawChart('findings_chart_div', findingsData, '#dc3545');
+        drawChart('reports_chart_div', reportsData, '#dc3545');
         drawChart('avg_wait_chart_div', delayData, 'black');
         drawDistributionChart();
       }

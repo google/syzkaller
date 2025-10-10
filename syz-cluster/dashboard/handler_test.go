@@ -26,7 +26,11 @@ func TestURLs(t *testing.T) {
 	handler, baseURL := testServer(t, env)
 	urlGen := api.NewURLGenerator(baseURL)
 
-	urls := []string{urlGen.Series(ids.SeriesID)}
+	urls := []string{
+		baseURL,
+		baseURL + "/stats",
+		urlGen.Series(ids.SeriesID),
+	}
 	for _, buildID := range []string{ids.BaseBuildID, ids.PatchedBuildID} {
 		urls = append(urls, urlGen.BuildConfig(buildID))
 		urls = append(urls, urlGen.BuildLog(buildID))
