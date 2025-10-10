@@ -462,7 +462,9 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd)
 
 	ioctl(cpufd, KVM_SET_SREGS, &sregs);
 }
+#endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 static void setup_cpuid(int cpufd)
 {
 	int kvmfd = open("/dev/kvm", O_RDWR);
