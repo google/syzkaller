@@ -19,50 +19,59 @@ var baseConfigJSON []byte
 //go:embed patched.cfg
 var patchedConfigJSON []byte
 
+//go:embed kmsan.cfg
+var kmsanConfigJSON []byte
+
 // GenerateBase produces a syz-manager config for the base kernel.
 // The caller must still invoke mgrconfig.Complete.
 func GenerateBase(cfg *api.FuzzConfig) (*mgrconfig.Config, error) {
-	var baseRaw json.RawMessage
-	err := config.LoadData(baseConfigJSON, &baseRaw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the base config: %w", err)
-	}
-	base, err := mgrconfig.LoadPartialData(baseRaw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load the config: %w", err)
-	}
-	err = applyFuzzConfig(base, cfg)
-	if err != nil {
-		return nil, err
-	}
-	return base, nil
+	return generateConfig(cfg, false)
 }
 
-// GeneratePatched produces a syz-manager config for the base kernel.
+// GeneratePatched produces a syz-manager config for the patched kernel.
 // The caller must still invoke mgrconfig.Complete.
 func GeneratePatched(cfg *api.FuzzConfig) (*mgrconfig.Config, error) {
-	var baseRaw, deltaRaw json.RawMessage
-	err := config.LoadData(baseConfigJSON, &baseRaw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the base config: %w", err)
+	return generateConfig(cfg, true)
+}
+
+func generateConfig(cfg *api.FuzzConfig, patched bool) (*mgrconfig.Config, error) {
+	type patchItem struct {
+		name  string
+		patch []byte
 	}
-	err = config.LoadData(patchedConfigJSON, &deltaRaw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the patched config: %w", err)
+	patchesList := []patchItem{{name: "base", patch: baseConfigJSON}}
+	if patched {
+		patchesList = append(patchesList, patchItem{name: "patched", patch: patchedConfigJSON})
 	}
-	patchedRaw, err := config.MergeJSONs(baseRaw, deltaRaw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to merge the configs: %w", err)
+	if cfg.KMSAN {
+		patchesList = append(patchesList, patchItem{name: "kmsan", patch: kmsanConfigJSON})
 	}
-	patched, err := mgrconfig.LoadPartialData(patchedRaw)
+	var raw json.RawMessage
+	for i, patch := range patchesList {
+		var next json.RawMessage
+		err := config.LoadData(patch.patch, &next)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read the %s config: %w", patch.name, err)
+		}
+		if i == 0 {
+			raw = next
+		} else {
+			var err error
+			raw, err = config.MergeJSONs(raw, next)
+			if err != nil {
+				return nil, fmt.Errorf("failed to merge the configs with %s: %w", patch.name, err)
+			}
+		}
+	}
+	mgrConfig, err := mgrconfig.LoadPartialData(raw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load the config: %w", err)
 	}
-	err = applyFuzzConfig(patched, cfg)
+	err = applyFuzzConfig(mgrConfig, cfg)
 	if err != nil {
 		return nil, err
 	}
-	return patched, nil
+	return mgrConfig, nil
 }
 
 func applyFuzzConfig(mgrCfg *mgrconfig.Config, cfg *api.FuzzConfig) error {
