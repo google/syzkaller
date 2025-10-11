@@ -72,6 +72,10 @@ type Report struct {
 	MachineInfo []byte
 	// If the crash happened in the context of the syz-executor process, Executor will hold more info.
 	Executor *ExecutorInfo
+	// On Linux systems ContextID may be the ThreadID(enabled by CONFIG_PRINTK_CALLER)
+	// or alternatively CpuID.
+	ContextID string
+
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized. It prevents double symbolization.
@@ -277,9 +281,9 @@ func IsSuppressed(reporter *Reporter, output []byte) bool {
 		bytes.Contains(output, gceConsoleHangup)
 }
 
-// ParseAll returns all successive reports in output.
-func ParseAll(reporter *Reporter, output []byte) (reports []*Report) {
-	skipPos := 0
+// ParseAll returns all successive reports in output starting from startFrom.
+func ParseAll(reporter *Reporter, output []byte, startFrom int) (reports []*Report) {
+	skipPos := startFrom
 	for {
 		rep := reporter.ParseFrom(output, skipPos)
 		if rep == nil {
@@ -957,4 +961,12 @@ func MergeReportBytes(reps []*Report) []byte {
 
 func SplitReportBytes(data []byte) [][]byte {
 	return bytes.Split(data, []byte(reportSeparator))
+}
+
+func mergeReportContextIDs(reps []*Report) string {
+	var ids []string
+	for _, rep := range reps {
+		ids = append(ids, rep.ContextID)
+	}
+	return strings.Join(ids, ", ")
 }
