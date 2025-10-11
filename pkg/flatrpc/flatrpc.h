@@ -528,23 +528,27 @@ inline const char *EnumNameRequestType(RequestType e) {
 
 enum class RequestFlag : uint64_t {
   ReturnOutput = 1ULL,
-  ReturnError = 2ULL,
+  ReturnAudit = 2ULL,
+  ReturnError = 4ULL,
   NONE = 0,
-  ANY = 3ULL
+  ANY = 7ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(RequestFlag, uint64_t)
 
-inline const RequestFlag (&EnumValuesRequestFlag())[2] {
+inline const RequestFlag (&EnumValuesRequestFlag())[3] {
   static const RequestFlag values[] = {
     RequestFlag::ReturnOutput,
+    RequestFlag::ReturnAudit,
     RequestFlag::ReturnError
   };
   return values;
 }
 
 inline const char * const *EnumNamesRequestFlag() {
-  static const char * const names[3] = {
+  static const char * const names[5] = {
     "ReturnOutput",
+    "ReturnAudit",
+    "",
     "ReturnError",
     nullptr
   };
@@ -566,23 +570,24 @@ enum class ExecEnv : uint64_t {
   SandboxSetuid = 32ULL,
   SandboxNamespace = 64ULL,
   SandboxAndroid = 128ULL,
-  ExtraCover = 256ULL,
-  EnableTun = 512ULL,
-  EnableNetDev = 1024ULL,
-  EnableNetReset = 2048ULL,
-  EnableCgroups = 4096ULL,
-  EnableCloseFds = 8192ULL,
-  EnableDevlinkPCI = 16384ULL,
-  EnableVhciInjection = 32768ULL,
-  EnableWifi = 65536ULL,
-  DelayKcovMmap = 131072ULL,
-  EnableNicVF = 262144ULL,
+  EnforcePolicy = 256ULL,
+  ExtraCover = 512ULL,
+  EnableTun = 1024ULL,
+  EnableNetDev = 2048ULL,
+  EnableNetReset = 4096ULL,
+  EnableCgroups = 8192ULL,
+  EnableCloseFds = 16384ULL,
+  EnableDevlinkPCI = 32768ULL,
+  EnableVhciInjection = 65536ULL,
+  EnableWifi = 131072ULL,
+  DelayKcovMmap = 262144ULL,
+  EnableNicVF = 524288ULL,
   NONE = 0,
-  ANY = 524287ULL
+  ANY = 1048575ULL
 };
 FLATBUFFERS_DEFINE_BITMASK_OPERATORS(ExecEnv, uint64_t)
 
-inline const ExecEnv (&EnumValuesExecEnv())[19] {
+inline const ExecEnv (&EnumValuesExecEnv())[20] {
   static const ExecEnv values[] = {
     ExecEnv::Debug,
     ExecEnv::Signal,
@@ -592,6 +597,7 @@ inline const ExecEnv (&EnumValuesExecEnv())[19] {
     ExecEnv::SandboxSetuid,
     ExecEnv::SandboxNamespace,
     ExecEnv::SandboxAndroid,
+    ExecEnv::EnforcePolicy,
     ExecEnv::ExtraCover,
     ExecEnv::EnableTun,
     ExecEnv::EnableNetDev,
@@ -617,6 +623,7 @@ inline const char *EnumNameExecEnv(ExecEnv e) {
     case ExecEnv::SandboxSetuid: return "SandboxSetuid";
     case ExecEnv::SandboxNamespace: return "SandboxNamespace";
     case ExecEnv::SandboxAndroid: return "SandboxAndroid";
+    case ExecEnv::EnforcePolicy: return "EnforcePolicy";
     case ExecEnv::ExtraCover: return "ExtraCover";
     case ExecEnv::EnableTun: return "EnableTun";
     case ExecEnv::EnableNetDev: return "EnableNetDev";
@@ -1029,6 +1036,7 @@ flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(flatbuffers::Flat
 struct ConnectReplyRawT : public flatbuffers::NativeTable {
   typedef ConnectReplyRaw TableType;
   bool debug = false;
+  bool audit = false;
   bool cover = false;
   bool cover_edges = false;
   bool kernel_64_bit = false;
@@ -1047,20 +1055,24 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConnectReplyRawBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DEBUG = 4,
-    VT_COVER = 6,
-    VT_COVER_EDGES = 8,
-    VT_KERNEL_64_BIT = 10,
-    VT_PROCS = 12,
-    VT_SLOWDOWN = 14,
-    VT_SYSCALL_TIMEOUT_MS = 16,
-    VT_PROGRAM_TIMEOUT_MS = 18,
-    VT_LEAK_FRAMES = 20,
-    VT_RACE_FRAMES = 22,
-    VT_FEATURES = 24,
-    VT_FILES = 26
+    VT_AUDIT = 6,
+    VT_COVER = 8,
+    VT_COVER_EDGES = 10,
+    VT_KERNEL_64_BIT = 12,
+    VT_PROCS = 14,
+    VT_SLOWDOWN = 16,
+    VT_SYSCALL_TIMEOUT_MS = 18,
+    VT_PROGRAM_TIMEOUT_MS = 20,
+    VT_LEAK_FRAMES = 22,
+    VT_RACE_FRAMES = 24,
+    VT_FEATURES = 26,
+    VT_FILES = 28
   };
   bool debug() const {
     return GetField<uint8_t>(VT_DEBUG, 0) != 0;
+  }
+  bool audit() const {
+    return GetField<uint8_t>(VT_AUDIT, 0) != 0;
   }
   bool cover() const {
     return GetField<uint8_t>(VT_COVER, 0) != 0;
@@ -1098,6 +1110,7 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
+           VerifyField<uint8_t>(verifier, VT_AUDIT, 1) &&
            VerifyField<uint8_t>(verifier, VT_COVER, 1) &&
            VerifyField<uint8_t>(verifier, VT_COVER_EDGES, 1) &&
            VerifyField<uint8_t>(verifier, VT_KERNEL_64_BIT, 1) &&
@@ -1128,6 +1141,9 @@ struct ConnectReplyRawBuilder {
   flatbuffers::uoffset_t start_;
   void add_debug(bool debug) {
     fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_DEBUG, static_cast<uint8_t>(debug), 0);
+  }
+  void add_audit(bool audit) {
+    fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_AUDIT, static_cast<uint8_t>(audit), 0);
   }
   void add_cover(bool cover) {
     fbb_.AddElement<uint8_t>(ConnectReplyRaw::VT_COVER, static_cast<uint8_t>(cover), 0);
@@ -1176,6 +1192,7 @@ struct ConnectReplyRawBuilder {
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
+    bool audit = false,
     bool cover = false,
     bool cover_edges = false,
     bool kernel_64_bit = false,
@@ -1199,6 +1216,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
   builder_.add_kernel_64_bit(kernel_64_bit);
   builder_.add_cover_edges(cover_edges);
   builder_.add_cover(cover);
+  builder_.add_audit(audit);
   builder_.add_debug(debug);
   return builder_.Finish();
 }
@@ -1206,6 +1224,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(
 inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     bool debug = false,
+    bool audit = false,
     bool cover = false,
     bool cover_edges = false,
     bool kernel_64_bit = false,
@@ -1223,6 +1242,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRawDirect(
   return rpc::CreateConnectReplyRaw(
       _fbb,
       debug,
+      audit,
       cover,
       cover_edges,
       kernel_64_bit,
@@ -3045,6 +3065,7 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const flatbuffers::r
   (void)_o;
   (void)_resolver;
   { auto _e = debug(); _o->debug = _e; }
+  { auto _e = audit(); _o->audit = _e; }
   { auto _e = cover(); _o->cover = _e; }
   { auto _e = cover_edges(); _o->cover_edges = _e; }
   { auto _e = kernel_64_bit(); _o->kernel_64_bit = _e; }
@@ -3067,6 +3088,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _debug = _o->debug;
+  auto _audit = _o->audit;
   auto _cover = _o->cover;
   auto _cover_edges = _o->cover_edges;
   auto _kernel_64_bit = _o->kernel_64_bit;
@@ -3081,6 +3103,7 @@ inline flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(flatbuffers::F
   return rpc::CreateConnectReplyRaw(
       _fbb,
       _debug,
+      _audit,
       _cover,
       _cover_edges,
       _kernel_64_bit,
