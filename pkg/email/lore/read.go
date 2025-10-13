@@ -55,7 +55,7 @@ func emailFromRaw(body []byte, emails, domains []string) (*Email, error) {
 		return nil, err
 	}
 	// Keep memory consumption low.
-	ret := &Email{Email: msg}
+	ret := &Email{Email: msg, HasPatch: msg.Patch != ""}
 	ret.Body = ""
 	msg.Patch = ""
 	// TODO: We definitely don't care about the patch here. Add an option to avoid extracting it?

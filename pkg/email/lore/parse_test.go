@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestThreadsCollection(t *testing.T) {
@@ -381,6 +382,17 @@ func TestDiscussionType(t *testing.T) {
 	}
 }
 
+const dummyPatch = `diff --git a/kernel/kcov.c b/kernel/kcov.c
+index 85e5546cd791..949ea4574412 100644
+--- a/kernel/kcov.c
++++ b/kernel/kcov.c
+@@ -127,7 +127,6 @@ void kcov_task_exit(struct task_struct *t)
+ 	if (kcov == NULL)
+ 		return;
+-	spin_lock(&kcov->lock);
+ 	if (WARN_ON(kcov->t != t)) {
+`
+
 func TestParseSeries(t *testing.T) {
 	messages := []string{
 		// A simple patch series.
@@ -390,8 +402,7 @@ Message-ID: <First>
 From: UserA <a@user.com>
 Content-Type: text/plain
 
-
-Some text`,
+` + dummyPatch,
 		// A series with a cover.
 		`Date: Sun, 7 May 2017 19:55:00 -0700
 Subject: [PATCH net v2 00/02] A longer series
@@ -409,8 +420,7 @@ To: UserA <a@user.com>, UserB <b@user.com>
 Content-Type: text/plain
 In-Reply-To: <Second>
 
-
-Patch 1/2`,
+` + dummyPatch,
 		`Date: Sun, 7 May 2017 19:56:00 -0700
 Subject: [PATCH net v2 02/02] Second patch
 Message-ID: <Second-2>
@@ -419,16 +429,24 @@ To: UserA <a@user.com>, UserB <b@user.com>
 Content-Type: text/plain
 In-Reply-To: <Second>
 
-
-Patch 2/2`,
-		// Missing patches.
+` + dummyPatch,
+		// Some missing patches.
 		`Date: Sun, 7 May 2017 19:57:00 -0700
 Subject: [PATCH 01/03] Series
 Message-ID: <Third>
 From: Someone <a@b.com>
 Content-Type: text/plain
 
-Bug report`,
+` + dummyPatch,
+		// Reply with a patch subject.
+		`Date: Sun, 7 May 2017 19:57:00 -0700
+Subject: [PATCH] Series
+Message-ID: <Fourth>
+From: Someone <a@b.com>
+Content-Type: text/plain
+In-Reply-To: <Something>
+
+No patch, just text`,
 	}
 
 	var emails []*Email
@@ -441,7 +459,7 @@ Bug report`,
 	}
 
 	series := PatchSeries(emails)
-	assert.Len(t, series, 3)
+	assert.Len(t, series, 4)
 
 	expectPerID := map[string]*Series{
 		"<First>": {
@@ -480,6 +498,12 @@ Bug report`,
 				},
 			},
 		},
+		"<Fourth>": {
+			Subject:   "Series",
+			Version:   1,
+			Corrupted: "the subject mentions 1 patches, 0 are found",
+			Patches:   nil,
+		},
 	}
 	for _, s := range series {
 		expect := expectPerID[s.MessageID]
@@ -491,7 +515,7 @@ Bug report`,
 			assert.Equal(t, expect.Corrupted, s.Corrupted, "corrupted differs")
 			assert.Equal(t, expect.Subject, s.Subject, "subject differs")
 			assert.Equal(t, expect.Version, s.Version, "version differs")
-			assert.Len(t, s.Patches, len(expect.Patches), "patch count differs")
+			require.Len(t, s.Patches, len(expect.Patches), "patch count differs")
 			for i, expectPatch := range expect.Patches {
 				got := s.Patches[i]
 				assert.Equal(t, expectPatch.Seq, got.Seq, "seq differs")
