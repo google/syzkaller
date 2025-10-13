@@ -1,5 +1,5 @@
-TITLE: KMSAN: uninit-value in aes_encrypt
-ALT: bad-access in aes_encrypt
+TITLE: KMSAN: uninit-value in fscrypt_crypt_block
+ALT: bad-access in fscrypt_crypt_block
 TYPE: KMSAN-UNINIT-VALUE
 
 [  311.903743][ T5388] =====================================================
