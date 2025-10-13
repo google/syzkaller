@@ -54,7 +54,7 @@ func emailFromRaw(body []byte, emails, domains []string) (*Email, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := &Email{Email: msg}
+	ret := &Email{Email: msg, HasPatch: msg.Patch != ""}
 	// Keep memory consumption low.
 	ret.Body = ""
 	ret.Patch = ""

@@ -93,6 +93,11 @@ func PatchSeries(emails []*Email) []*Series {
 				// The cover email is not of interest.
 				continue
 			}
+			if !email.HasPatch {
+				// Sometimes users reply to the series keeping the original subject.
+				// Ignore such messages.
+				continue
+			}
 			if hasSeq[seq] {
 				// It's weird if that really happens, but let's skip for now.
 				continue
