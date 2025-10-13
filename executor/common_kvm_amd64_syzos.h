@@ -77,6 +77,13 @@ typedef enum {
 	UEXIT_ASSERT = (uint64)-3,
 } uexit_code;
 
+__attribute__((naked))
+GUEST_CODE static void
+dummy_null_handler()
+{
+	asm("iretq");
+}
+
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
 __attribute__((used))

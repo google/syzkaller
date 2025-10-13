@@ -73,7 +73,7 @@ struct tss32 {
 } __attribute__((packed));
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 struct tss64 {
 	uint32 reserved0;
 	uint64 rsp[3];
@@ -227,6 +227,50 @@ static const struct mem_region syzos_mem_regions[] = {
 };
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
+// See https://wiki.osdev.org/Interrupt_Descriptor_Table#Gate_Descriptor_2.
+struct idt_entry_64 {
+	uint16 offset_low;
+	uint16 selector;
+	// Interrupt Stack Table offset in bits 0..2
+	uint8 ist;
+	// Gate Type, P and DPL.
+	uint8 type_attr;
+	uint16 offset_mid;
+	uint32 offset_high;
+	uint32 reserved;
+} __attribute__((packed));
+
+// Post-processing code in pkg/csource/csource.go is very picky and won't let us directly pass
+// fail() to DEFINE_GUEST_FN_TO_GPA_FN.
+static inline void error_in_executor_fn_guest_addr()
+{
+	fail("SYZOS: executor_fn_guest_addr: invalid guest address");
+}
+
+DEFINE_GUEST_FN_TO_GPA_FN(executor_fn_guest_addr, X86_SYZOS_ADDR_EXECUTOR_CODE, error_in_executor_fn_guest_addr());
+
+#define X86_NUM_IDT_ENTRIES 256
+static void syzos_setup_idt(struct kvm_sregs* sregs, char* host_mem)
+{
+	sregs->idt.base = X86_SYZOS_ADDR_VAR_IDT;
+	sregs->idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
+	volatile struct idt_entry_64* idt =
+	    (volatile struct idt_entry_64*)(host_mem + sregs->idt.base);
+	uint64 handler_addr = executor_fn_guest_addr((uintptr_t)dummy_null_handler);
+	for (int i = 0; i < X86_NUM_IDT_ENTRIES; i++) {
+		idt[i].offset_low = (uint16)(handler_addr & 0xFFFF);
+		idt[i].selector = X86_SYZOS_SEL_CODE;
+		idt[i].ist = 0;
+		// 0x8E is a 64-bit interrupt gate: P=1, DPL=0, type=0xE.
+		idt[i].type_attr = 0x8E;
+		idt[i].offset_mid = (uint16)((handler_addr >> 16) & 0xFFFF);
+		idt[i].offset_high = (uint32)((handler_addr >> 32) & 0xFFFFFFFF);
+		idt[i].reserved = 0;
+	}
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu
 struct kvm_text {
 	uintptr_t typ;
@@ -336,6 +380,43 @@ static void setup_pg_table(void* host_mem)
 	map_4k_region(host_mem, X86_SYZOS_ADDR_EXIT, 1);
 }
 
+// A 64-bit GDT entry for a code or data segment.
+// System segments (like TSS) are different and use a 128-bit format.
+struct gdt_entry {
+	uint16 limit_low;
+	uint16 base_low;
+	uint8 base_mid;
+	uint8 access;
+	uint8 limit_high_and_flags;
+	uint8 base_high;
+} __attribute__((packed));
+
+static void setup_gdt_64(struct gdt_entry* gdt)
+{
+	// Entry 0: Null
+	gdt[0] = (struct gdt_entry){0};
+
+	// Entry 1 (selector 0x08): 64-bit Code Segment
+	// P=1, DPL=0, S=1, Type=Execute/Read, L=1, G=1
+	gdt[X86_SYZOS_SEL_CODE >> 3] = (struct gdt_entry){
+	    .limit_low = 0xFFFF,
+	    .base_low = 0,
+	    .base_mid = 0,
+	    .access = 0x9A, // Present, DPL=0, S=1, Type=Execute/Read, Accessed
+	    .limit_high_and_flags = 0xAF, // Granularity=1, L=1, Limit=0xF
+	    .base_high = 0};
+
+	// Entry 2 (selector 0x10): 64-bit Data Segment
+	// P=1, DPL=0, S=1, Type=Read/Write, DB=1, G=1
+	gdt[X86_SYZOS_SEL_DATA >> 3] = (struct gdt_entry){
+	    .limit_low = 0xFFFF,
+	    .base_low = 0,
+	    .base_mid = 0,
+	    .access = 0x92, // Present, DPL=0, S=1, Type=Read/Write, Accessed
+	    .limit_high_and_flags = 0xCF, // Granularity=1, DB=1, Limit=0xF
+	    .base_high = 0};
+}
+
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
 static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
@@ -343,28 +424,13 @@ static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
 	struct kvm_sregs sregs;
 	ioctl(cpufd, KVM_GET_SREGS, &sregs);
 
-	sregs.gdt.base = X86_ADDR_GDT;
-	sregs.gdt.limit = 256 * sizeof(uint64) - 1;
-	uint64* gdt = (uint64*)((uint64)host_mem + sregs.gdt.base);
-
-	struct kvm_segment seg_ldt;
-	memset(&seg_ldt, 0, sizeof(seg_ldt));
-	seg_ldt.selector = X86_SEL_LDT;
-	seg_ldt.type = 2;
-	seg_ldt.base = X86_ADDR_LDT;
-	seg_ldt.limit = 256 * sizeof(uint64) - 1;
-	seg_ldt.present = 1;
-	seg_ldt.dpl = 0;
-	seg_ldt.s = 0;
-	seg_ldt.g = 0;
-	seg_ldt.db = 1;
-	seg_ldt.l = 0;
-	sregs.ldt = seg_ldt;
-	uint64* ldt = (uint64*)((uint64)host_mem + sregs.ldt.base);
+	sregs.gdt.base = X86_SYZOS_ADDR_GDT;
+	sregs.gdt.limit = 3 * sizeof(struct gdt_entry) - 1;
+	struct gdt_entry* gdt = (struct gdt_entry*)((uint64)host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_cs64;
 	memset(&seg_cs64, 0, sizeof(seg_cs64));
-	seg_cs64.selector = X86_SEL_CS64;
+	seg_cs64.selector = X86_SYZOS_SEL_CODE;
 	seg_cs64.type = 11;
 	seg_cs64.base = 0;
 	seg_cs64.limit = 0xFFFFFFFFu;
@@ -377,38 +443,23 @@ static void setup_gdt_ldt_pg(int cpufd, void* host_mem)
 
 	struct kvm_segment seg_ds64;
 	memset(&seg_ds64, 0, sizeof(struct kvm_segment));
-	seg_ds64.selector = X86_SEL_DS64;
+	seg_ds64.selector = X86_SYZOS_SEL_DATA;
 	seg_ds64.type = 3;
 	seg_ds64.limit = 0xFFFFFFFFu;
 	seg_ds64.present = 1;
 	seg_ds64.s = 1;
 	seg_ds64.g = 1;
+	seg_ds64.db = 1;
 
 	sregs.ds = seg_ds64;
 	sregs.es = seg_ds64;
+	sregs.fs = seg_ds64;
+	sregs.gs = seg_ds64;
+	sregs.ss = seg_ds64;
 
-	struct kvm_segment seg_tss64;
-	memset(&seg_tss64, 0, sizeof(seg_tss64));
-	seg_tss64.selector = X86_SEL_TSS64;
-	seg_tss64.base = X86_ADDR_VAR_TSS64;
-	seg_tss64.limit = 0x1ff;
-	seg_tss64.type = 9;
-	seg_tss64.present = 1;
+	setup_gdt_64(gdt);
 
-	struct tss64 tss64;
-	memset(&tss64, 0, sizeof(tss64));
-	tss64.rsp[0] = X86_ADDR_STACK0;
-	tss64.rsp[1] = X86_ADDR_STACK0;
-	tss64.rsp[2] = X86_ADDR_STACK0;
-	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
-	struct tss64* tss64_addr = (struct tss64*)((uint64)host_mem + seg_tss64.base);
-	memcpy(tss64_addr, &tss64, sizeof(tss64));
-
-	fill_segment_descriptor(gdt, ldt, &seg_ldt);
-	fill_segment_descriptor(gdt, ldt, &seg_cs64);
-	fill_segment_descriptor(gdt, ldt, &seg_ds64);
-	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64);
-
+	syzos_setup_idt(&sregs, (char*)host_mem);
 	setup_pg_table(host_mem);
 
 	sregs.cr0 = X86_CR0_PE | X86_CR0_NE | X86_CR0_PG;
@@ -983,21 +1034,15 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 
-// Post-processing code in pkg/csource/csource.go is very picky and won't let us directly pass
-// fail() to DEFINE_GUEST_FN_TO_GPA_FN.
-static inline void error_in_executor_fn_guest_addr()
-{
-	fail("SYZOS: executor_fn_guest_addr: invalid guest address");
-}
-
-DEFINE_GUEST_FN_TO_GPA_FN(executor_fn_guest_addr, X86_SYZOS_ADDR_EXECUTOR_CODE, error_in_executor_fn_guest_addr());
-
+#define RFLAGS_1_BIT (1ULL << 1)
+#define RFLAGS_IF_BIT (1ULL << 9)
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
 
-	regs.rflags |= 2; // bit 1 is always set
+	// RFLAGS.1 must be 1, RFLAGS.IF enables interrupts.
+	regs.rflags |= RFLAGS_1_BIT | RFLAGS_IF_BIT;
 	// PC points to the relative offset of guest_main() within the guest code.
 	regs.rip = executor_fn_guest_addr((uintptr_t)guest_main);
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
@@ -1076,8 +1121,6 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 	struct addr_size allocator = {.addr = host_mem, .size = KVM_GUEST_MEM_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
 
-	// This *needs* to be the first allocation to avoid passing pointers
-	// around for the gdt/ldt/page table setup.
 	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++) {
 		const struct mem_region* r = &syzos_mem_regions[i];
 		struct addr_size next = alloc_guest_mem(&allocator, r->pages * KVM_PAGE_SIZE);
