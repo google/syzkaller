@@ -1511,7 +1511,11 @@ var linuxOopses = append([]*oops{
 						compile("(Local variable .* created at:|Uninit was created at:)"),
 						parseStackTrace,
 					},
-					skip: []string{"alloc_skb", "netlink_ack", "netlink_rcv_skb"},
+					skip: []string{
+						"alloc_skb", "netlink_ack", "netlink_rcv_skb",
+						// Encryption routines are the place where we hit the bug, but
+						// the generic code is a bad candidate for bug titles.
+						"_encrypt$", "^(?:crypto|cipher|drbg|rng)_"},
 				},
 				noStackTrace: true,
 			},
