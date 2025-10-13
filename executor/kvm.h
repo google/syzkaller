@@ -51,6 +51,7 @@
 #define X86_SYZOS_ADDR_PT_UNUSED_MEM 0x7000
 // IOAPIC PT for GPAs 0xfed00000 - 0xfedfffff.
 #define X86_SYZOS_ADDR_PT_IOAPIC 0x9000
+#define X86_SYZOS_ADDR_VAR_IDT 0x10000
 
 #define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
@@ -65,6 +66,10 @@
 #define X86_SYZOS_ADDR_STACK0 0x90f80
 #define X86_SYZOS_ADDR_UNUSED 0x200000
 #define X86_SYZOS_ADDR_IOAPIC 0xfec00000
+
+// SYZOS segment selectors
+#define X86_SYZOS_SEL_CODE 0x8
+#define X86_SYZOS_SEL_DATA 0x10
 
 #define X86_CR0_PE 1ULL
 #define X86_CR0_MP (1ULL << 1)
