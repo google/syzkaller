@@ -65,19 +65,19 @@ struct api_call_3 {
 #ifdef __cplusplus
 extern "C" {
 #endif
-static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void guest_uexit(uint64 exit_code);
 #ifdef __cplusplus
 }
 #endif
-static void guest_execute_code(uint8* insns, uint64 size);
-static void guest_handle_cpuid(uint32 eax, uint32 ecx);
-static void guest_handle_wrmsr(uint64 reg, uint64 val);
-static void guest_handle_rdmsr(uint64 reg);
-static void guest_handle_wr_crn(struct api_call_2* cmd);
-static void guest_handle_wr_drn(struct api_call_2* cmd);
-static void guest_handle_in_dx(struct api_call_2* cmd);
-static void guest_handle_out_dx(struct api_call_3* cmd);
-static void guest_handle_set_irq_handler(struct api_call_2* cmd);
+GUEST_CODE static void guest_execute_code(uint8* insns, uint64 size);
+GUEST_CODE static void guest_handle_cpuid(uint32 eax, uint32 ecx);
+GUEST_CODE static void guest_handle_wrmsr(uint64 reg, uint64 val);
+GUEST_CODE static void guest_handle_rdmsr(uint64 reg);
+GUEST_CODE static void guest_handle_wr_crn(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_wr_drn(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_in_dx(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_out_dx(struct api_call_3* cmd);
+GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -383,15 +383,14 @@ GUEST_CODE static void set_idt_gate(uint8 vector, uint64 handler)
 	idt_entry->reserved = 0;
 }
 
-DEFINE_GUEST_FN_TO_GPA_FN(syzos_fn_address, X86_SYZOS_ADDR_EXECUTOR_CODE, guest_uexit(UEXIT_ASSERT))
 GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* cmd)
 {
 	uint8 vector = (uint8)cmd->args[0];
 	uint64 type = cmd->args[1];
 	volatile uint64 handler_addr = 0;
 	if (type == 1)
-		handler_addr = syzos_fn_address((uintptr_t)dummy_null_handler);
+		handler_addr = executor_fn_guest_addr(dummy_null_handler);
 	else if (type == 2)
-		handler_addr = syzos_fn_address((uintptr_t)uexit_irq_handler);
+		handler_addr = executor_fn_guest_addr(uexit_irq_handler);
 	set_idt_gate(vector, handler_addr);
 }

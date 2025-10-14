@@ -144,20 +144,11 @@ static void vcpu_set_reg(int vcpu_fd, uint64 id, uint64 val)
 	ioctl(vcpu_fd, KVM_SET_ONE_REG, &reg);
 }
 
-// Post-processing code in pkg/csource/csource.go is very picky and won't let us directly pass
-// fail() to DEFINE_GUEST_FN_TO_GPA_FN.
-static inline void error_in_executor_fn_guest_addr()
-{
-	fail("SYZOS: executor_fn_guest_addr: invalid guest address");
-}
-
-DEFINE_GUEST_FN_TO_GPA_FN(executor_fn_guest_addr, ARM64_ADDR_EXECUTOR_CODE, error_in_executor_fn_guest_addr());
-
 // Set up CPU registers.
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	// PC points to the relative offset of guest_main() within the guest code.
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, executor_fn_guest_addr((uintptr_t)guest_main));
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, executor_fn_guest_addr(guest_main));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + KVM_PAGE_SIZE - 128);
 	// Store the CPU ID in TPIDR_EL1.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);
