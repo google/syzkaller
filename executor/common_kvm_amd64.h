@@ -253,15 +253,6 @@ struct kvm_syz_vm {
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu
 
-// Post-processing code in pkg/csource/csource.go is very picky and won't let us directly pass
-// fail() to DEFINE_GUEST_FN_TO_GPA_FN.
-static inline void error_in_executor_fn_guest_addr()
-{
-	fail("SYZOS: executor_fn_guest_addr: invalid guest address");
-}
-
-DEFINE_GUEST_FN_TO_GPA_FN(executor_fn_guest_addr, X86_SYZOS_ADDR_EXECUTOR_CODE, error_in_executor_fn_guest_addr());
-
 #define X86_NUM_IDT_ENTRIES 256
 static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
 {
@@ -269,7 +260,7 @@ static void syzos_setup_idt(struct kvm_syz_vm* vm, struct kvm_sregs* sregs)
 	sregs->idt.limit = (X86_NUM_IDT_ENTRIES * sizeof(struct idt_entry_64)) - 1;
 	volatile struct idt_entry_64* idt =
 	    (volatile struct idt_entry_64*)((uint64)vm->host_mem + sregs->idt.base);
-	uint64 handler_addr = executor_fn_guest_addr((uintptr_t)dummy_null_handler);
+	uint64 handler_addr = executor_fn_guest_addr(dummy_null_handler);
 	for (int i = 0; i < X86_NUM_IDT_ENTRIES; i++) {
 		idt[i].offset_low = (uint16)(handler_addr & 0xFFFF);
 		idt[i].selector = X86_SYZOS_SEL_CODE;
@@ -1031,6 +1022,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 #define RFLAGS_1_BIT (1ULL << 1)
 #define RFLAGS_IF_BIT (1ULL << 9)
+
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	struct kvm_regs regs;
@@ -1039,7 +1031,7 @@ static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 	// RFLAGS.1 must be 1, RFLAGS.IF enables interrupts.
 	regs.rflags |= RFLAGS_1_BIT | RFLAGS_IF_BIT;
 	// PC points to the relative offset of guest_main() within the guest code.
-	regs.rip = executor_fn_guest_addr((uintptr_t)guest_main);
+	regs.rip = executor_fn_guest_addr(guest_main);
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
 	// Pass parameters to guest_main().
 	regs.rdi = text_size;

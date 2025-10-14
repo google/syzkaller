@@ -89,18 +89,18 @@ struct api_call_its_send_cmd {
 	uint32 cpuid2;
 };
 
-static void guest_uexit(uint64 exit_code);
-static void guest_execute_code(uint32* insns, uint64 size);
-static void guest_handle_mrs(uint64 reg);
-static void guest_handle_msr(uint64 reg, uint64 val);
-static void guest_handle_smc(struct api_call_smccc* cmd);
-static void guest_handle_hvc(struct api_call_smccc* cmd);
-static void guest_handle_svc(struct api_call_smccc* cmd);
-static void guest_handle_eret(uint64 unused);
-static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
-static void guest_handle_memwrite(struct api_call_memwrite* cmd);
-static void guest_handle_its_setup(struct api_call_3* cmd);
-static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
+GUEST_CODE static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
+GUEST_CODE static void guest_handle_mrs(uint64 reg);
+GUEST_CODE static void guest_handle_msr(uint64 reg, uint64 val);
+GUEST_CODE static void guest_handle_smc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_hvc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_svc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_eret(uint64 unused);
+GUEST_CODE static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
+GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd);
+GUEST_CODE static void guest_handle_its_setup(struct api_call_3* cmd);
+GUEST_CODE static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
