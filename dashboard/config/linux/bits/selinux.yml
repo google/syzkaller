@@ -10,4 +10,5 @@ config:
  - DEFAULT_SECURITY_SELINUX
  # Otherwise we get the "SELinux: (dev *, type ext4) has no security xattr handler" error.
  - EXT4_FS_SECURITY
+ - EXT4_FS: [v6.18]
  - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,selinux,bpf"
