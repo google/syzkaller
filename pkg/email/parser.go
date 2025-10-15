@@ -137,7 +137,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		return nil, err
 	}
 	bodyStr := string(body)
-	subject := msg.Header.Get("Subject")
+	subject := decodeSubject(msg.Header.Get("Subject"))
 	var cmds []*SingleCommand
 	var patch string
 	if !fromMe {
@@ -564,4 +564,14 @@ func RemoveFromEmailList(list []string, toRemove string) []string {
 		}
 	}
 	return result
+}
+
+// Decode RFC 2047-encoded subjects.
+func decodeSubject(rawSubject string) string {
+	decoder := new(mime.WordDecoder)
+	decodedSubject, err := decoder.DecodeHeader(rawSubject)
+	if err != nil {
+		return rawSubject
+	}
+	return decodedSubject
 }
