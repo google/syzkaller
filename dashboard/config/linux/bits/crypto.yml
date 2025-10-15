@@ -7,7 +7,7 @@ config:
  - CRYPTO_PCRYPT
  - CRYPTO_ECRDSA
  # Removed in "crypto: curve25519 - Remove unused kpp support"
- - CRYPTO_CURVE25519: [v5.6, -linux-next]
+ - CRYPTO_CURVE25519: [v5.6, -v6.18]
  - CRYPTO_CHACHA20POLY1305
  - CRYPTO_AEGIS128
  - CRYPTO_CFB: [-v5.8]
@@ -23,8 +23,8 @@ config:
  - CRYPTO_VMAC: [-v6.14]
  - CRYPTO_BLAKE2S: [v5.6, -v5.15]
  # Moved by "lib/crypto: blake2s: Consolidate into single C translation unit"
- - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan, -linux-next]
- - CRYPTO_BLAKE2S_ARM: [v6.1, arm]
+ - CRYPTO_BLAKE2S_X86: [v6.1, x86_64, -kmsan, -v6.18]
+ - CRYPTO_BLAKE2S_ARM: [v6.1, arm, -v6.18]
  - CRYPTO_MICHAEL_MIC
  - CRYPTO_RMD160
  # Removed in b21b9a5e0aef "crypto: rmd128 - remove RIPE-MD 128 hash algorithm".
@@ -121,7 +121,7 @@ config:
  - CRYPTO_SHA512_ARM: [arm, -v6.17]
  - CRYPTO_AES_ARM: [arm]
  - CRYPTO_CHACHA20_NEON: [arm, arm64]
- - CRYPTO_POLY1305_ARM: [arm]
+ - CRYPTO_POLY1305_ARM: [arm, -v6.18]
  # Moved by "lib/crypto: arm/sha1: Migrate optimized code into library".
  - CRYPTO_SHA1_ARM_NEON: [arm, -v6.17]
  # Moded by "lib/crypto: arm/sha1: Migrate optimized code into library".
@@ -134,7 +134,7 @@ config:
  - CRYPTO_CRCT10DIF_ARM_CE: [arm, -v6.14]
  - CRYPTO_CRC32_ARM_CE: [arm, -v6.14]
  - CRYPTO_NHPOLY1305_NEON: [arm, arm64]
- - CRYPTO_CURVE25519_NEON: [arm]
+ - CRYPTO_CURVE25519_NEON: [arm, -v6.18]
  # Moved by "lib/crypto: sha256: Consolidate into single module"
  - CRYPTO_SHA256_ARM64: [arm64, -v6.17]
  # Moved by "lib/crypto: arm64/sha512: Migrate optimized SHA-512 code to library"
@@ -157,5 +157,5 @@ config:
  - CRYPTO_AES_ARM64_CE_CCM: [arm64]
  - CRYPTO_AES_ARM64_CE_BLK: [arm64]
  - CRYPTO_AES_ARM64_NEON_BLK: [arm64]
- - CRYPTO_POLY1305_NEON: [arm64, -linux-next]
+ - CRYPTO_POLY1305_NEON: [arm64, -v6.18]
  - CRYPTO_AES_ARM64_BS: [arm64]

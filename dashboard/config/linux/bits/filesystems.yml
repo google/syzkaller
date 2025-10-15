@@ -167,9 +167,13 @@ config:
  - 9P_FS_SECURITY
 
  # Removed by "ext4: remove obsolete EXT3 config options".
- - EXT3_FS: [-linux-next]
- - EXT3_FS_POSIX_ACL: [-linux-next]
- - EXT3_FS_SECURITY: [-linux-next]
+ - EXT3_FS: [-v6.18]
+ - EXT3_FS_POSIX_ACL: [-v6.18]
+ - EXT3_FS_SECURITY: [-v6.18]
+
+ - EXT4_FS: [v6.18]
+ - EXT4_FS_POSIX_ACL: [v6.18]
+ - EXT4_FS_SECURITY: [v6.18]
 
  - REISERFS_FS: [-v6.12]
  - REISERFS_FS_XATTR: [-v6.12]
@@ -197,12 +201,12 @@ config:
  - ROMFS_ON_BLOCK
  - ROMFS_ON_MTD
 
- - BCACHEFS_FS: [v6.7]
- - BCACHEFS_ERASURE_CODING: [v6.7]
- - BCACHEFS_POSIX_ACL: [v6.7]
- - BCACHEFS_QUOTA: [v6.7]
- - BCACHEFS_DEBUG: [v6.7]
- - BCACHEFS_SIX_OPTIMISTIC_SPIN: [v6.8]
+ - BCACHEFS_FS: [v6.7, -v6.18]
+ - BCACHEFS_ERASURE_CODING: [v6.7, -v6.18]
+ - BCACHEFS_POSIX_ACL: [v6.7, -v6.18]
+ - BCACHEFS_QUOTA: [v6.7, -v6.18]
+ - BCACHEFS_DEBUG: [v6.7, -v6.18]
+ - BCACHEFS_SIX_OPTIMISTIC_SPIN: [v6.8, -v6.18]
 
  - FSCACHE
  - CACHEFILES

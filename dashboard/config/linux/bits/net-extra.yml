@@ -13,7 +13,8 @@ config:
 
  - IP_SCTP
  # See "sctp: Convert cookie authentication to use HMAC-SHA256".
- - SCTP_COOKIE_HMAC_SHA1: [-linux-next]
+ - SCTP_COOKIE_HMAC_SHA1: [-v6.18]
+ - SCTP_DEFAULT_COOKIE_HMAC_SHA256: [v6.18]
  - NF_CT_PROTO_SCTP
  - NETFILTER_XT_MATCH_SCTP
 
@@ -26,7 +27,7 @@ config:
 
  - BATMAN_ADV
  # Removed by "batman-adv: remove network coding support".
- - BATMAN_ADV_NC: [-linux-next]
+ - BATMAN_ADV_NC: [-v6.18]
  - BATMAN_ADV_SYSFS: [-v5.11]
  - BATMAN_ADV_BATMAN_V
  - BATMAN_ADV_BLA
