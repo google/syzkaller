@@ -1117,4 +1117,25 @@ Content-Transfer-Encoding: quoted-printable
 			},
 		},
 	}},
+	{`Sender: foo@foobar.com
+Subject: [PATCH] =?UTF-8?q?Add=20a=20new=20test=20'migrate.cow=5Fafter=5Ff?= =?UTF-8?q?ork'=20that=20verifies=20correct=20RMAP=20handling=20of=20Copy-?= =?UTF-8?q?On-Write=20pages=20after=20fork().=20Before=20a=20write,=20pare?= =?UTF-8?q?nt=20and=20child=20share=20the=20same=20PFN;?=
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Body
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+		Subject:   "[PATCH] Add a new test 'migrate.cow_after_fork' that verifies correct RMAP handling of Copy-On-Write pages after fork(). Before a write, parent and child share the same PFN;",
+		Author:    "foo@foobar.com",
+		Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+		RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+		Body: `Body
+`,
+	}},
 }
