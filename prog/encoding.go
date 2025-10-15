@@ -26,21 +26,30 @@ func (p *Prog) String() string {
 	return buf.String()
 }
 
-func (p *Prog) Serialize() []byte {
-	return p.serialize(false)
-}
+type SerializeFlag int
 
-func (p *Prog) SerializeVerbose() []byte {
-	return p.serialize(true)
-}
+const (
+	// Include all field values, even if they have default values.
+	Verbose SerializeFlag = 0
+	// Don't serialize compressed fs images.
+	// This is used in coverage report generation to prevent the bloating of the resulting HTML file.
+	SkipImages SerializeFlag = 1
+)
 
-func (p *Prog) serialize(verbose bool) []byte {
+func (p *Prog) Serialize(flags ...SerializeFlag) []byte {
 	p.debugValidate()
 	ctx := &serializer{
-		target:  p.Target,
-		buf:     new(bytes.Buffer),
-		vars:    make(map[*ResultArg]int),
-		verbose: verbose,
+		target: p.Target,
+		buf:    new(bytes.Buffer),
+		vars:   make(map[*ResultArg]int),
+	}
+	for _, flag := range flags {
+		switch flag {
+		case Verbose:
+			ctx.verbose = true
+		case SkipImages:
+			ctx.skipImages = true
+		}
 	}
 	for _, c := range p.Calls {
 		ctx.call(c)
@@ -48,12 +57,17 @@ func (p *Prog) serialize(verbose bool) []byte {
 	return ctx.buf.Bytes()
 }
 
+func (p *Prog) SerializeVerbose() []byte {
+	return p.Serialize(Verbose)
+}
+
 type serializer struct {
-	target  *Target
-	buf     *bytes.Buffer
-	vars    map[*ResultArg]int
-	varSeq  int
-	verbose bool
+	target     *Target
+	buf        *bytes.Buffer
+	vars       map[*ResultArg]int
+	varSeq     int
+	verbose    bool
+	skipImages bool
 }
 
 func (ctx *serializer) print(text string) {
@@ -154,7 +168,11 @@ func (a *DataArg) serialize(ctx *serializer) {
 	}
 	data := a.Data()
 	if typ.IsCompressed() {
-		serializeCompressedData(ctx.buf, data)
+		if ctx.skipImages {
+			ctx.printf(`"<<IMAGE>>"`)
+		} else {
+			serializeCompressedData(ctx.buf, data)
+		}
 	} else {
 		// Statically typed data will be padded with 0s during deserialization,
 		// so we can strip them here for readability always. For variable-size
