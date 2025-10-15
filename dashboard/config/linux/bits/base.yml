@@ -228,3 +228,6 @@ config:
  - USB_GADGET_TARGET: n
  - USB_MIDI_GADGET: n
  - USB_CDC_COMPOSITE: n
+
+ # Don't need samples
+ - SAMPLES: n

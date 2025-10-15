@@ -20,9 +20,9 @@ config:
  - NET_KEY
  - NET_KEY_MIGRATE
  # SMC requires DIBS (Direct Internal Buffer Sharing).
- - DIBS: [linux-next]
+ - DIBS: [v6.18]
  # DIBS_LO enables the creation of HW independent testing client.
- - DIBS_LO: [linux-next]
+ - DIBS_LO: [v6.18]
  - SMC
  - SMC_DIAG
  - XDP_SOCKETS
@@ -50,6 +50,7 @@ config:
  - NET_FOU_IP_TUNNELS
  - INET_AH
  - INET_ESP
+ - INET_PSP: [v6.18]
  - INET_ESP_OFFLOAD
  - INET_ESPINTCP: [v5.6]
  - INET_IPCOMP
