@@ -570,7 +570,7 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 			}
 			log.Logf(level, msg, args...)
 		},
-	}, rnd, kc.cfg.Target)
+	}, rnd, kc.cfg.Target, nil)
 
 	if kc.http != nil {
 		kc.http.Fuzzer.Store(fuzzerObj)

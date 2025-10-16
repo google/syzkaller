@@ -1166,15 +1166,16 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-			Corpus:         mgr.corpus,
-			Snapshot:       mgr.cfg.Snapshot,
-			Coverage:       mgr.cfg.Cover,
-			FaultInjection: features&flatrpc.FeatureFault != 0,
-			Comparisons:    features&flatrpc.FeatureComparisons != 0,
-			Collide:        true,
-			EnabledCalls:   enabledSyscalls,
-			NoMutateCalls:  mgr.cfg.NoMutateCalls,
-			FetchRawCover:  mgr.cfg.RawCover,
+			Corpus:           mgr.corpus,
+			Snapshot:         mgr.cfg.Snapshot,
+			Coverage:         mgr.cfg.Cover,
+			FaultInjection:   features&flatrpc.FeatureFault != 0,
+			Comparisons:      features&flatrpc.FeatureComparisons != 0,
+			Collide:          true,
+			EnabledCalls:     enabledSyscalls,
+			NoMutateCalls:    mgr.cfg.NoMutateCalls,
+			Audit:            mgr.cfg.Experimental.AuditProgs,
+			FetchRawCover:    mgr.cfg.RawCover,
 			Logf: func(level int, msg string, args ...interface{}) {
 				if level != 0 {
 					return
@@ -1187,7 +1188,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 				return !mgr.saturatedCalls[call]
 			},
 			ModeKFuzzTest: mgr.cfg.Experimental.EnableKFuzzTest,
-		}, rnd, mgr.target)
+		}, rnd, mgr.target, &fuzzer.SecContextGenerator{ Sandbox: mgr.cfg.Sandbox, SandboxArg: mgr.cfg.SandboxArg, SecContexts: mgr.cfg.Experimental.SecContexts })
 		fuzzerObj.AddCandidates(candidates)
 		mgr.fuzzer.Store(fuzzerObj)
 		mgr.http.Fuzzer.Store(fuzzerObj)
