@@ -108,7 +108,7 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
 	install_syzos_code(host_text.addr, host_text.size);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
