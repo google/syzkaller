@@ -185,7 +185,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	if (kvm_vcpu_enable_cap(cpufd, KVM_CAP_PPC_PAPR))
 		return -1;
 
-	if (kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_NESTED_HV, true, 0))
+	if (kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_NESTED_HV, 1, 0))
 		return -1;
 
 	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
