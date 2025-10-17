@@ -36,19 +36,29 @@ func ReadArchive(repo vcs.Repo, afterCommit string, afterTime time.Time) ([]Emai
 	return ret, nil
 }
 
-func (er *EmailReader) Parse(emails, domains []string) (*email.Email, error) {
+type Email struct {
+	*email.Email
+	HasPatch bool
+}
+
+func (er *EmailReader) Parse(emails, domains []string) (*Email, error) {
 	body, err := er.Read()
 	if err != nil {
 		return nil, err
 	}
+	return emailFromRaw(body, emails, domains)
+}
+
+func emailFromRaw(body []byte, emails, domains []string) (*Email, error) {
 	msg, err := email.Parse(bytes.NewReader(body), emails, nil, domains)
 	if err != nil {
 		return nil, err
 	}
 	// Keep memory consumption low.
-	msg.Body = ""
+	ret := &Email{Email: msg, HasPatch: msg.Patch != ""}
+	ret.Body = ""
 	msg.Patch = ""
 	// TODO: We definitely don't care about the patch here. Add an option to avoid extracting it?
 	// TODO: If emails/domains are nil, we also don't need to parse the body at all.
-	return msg, nil
+	return ret, nil
 }
