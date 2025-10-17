@@ -73,12 +73,6 @@
 // Available with KVM_CAP_PPC_RADIX_MMU or KVM_CAP_PPC_HASH_MMU_V3
 #define KVM_PPC_CONFIGURE_V3_MMU _IOW(KVMIO, 0xaf, struct kvm_ppc_mmuv3_cfg)
 
-// For KVM_PPC_CONFIGURE_V3_MMU
-struct kvm_ppc_mmuv3_cfg {
-	__u64 flags;
-	__u64 process_table; // second doubleword of partition table entry
-};
-
 // Flag values for KVM_PPC_CONFIGURE_V3_MMU
 #define KVM_PPC_MMUV3_RADIX 1 // 1 = radix mode, 0 = HPT
 #define KVM_PPC_MMUV3_GTSE 2 // global translation shootdown enb
