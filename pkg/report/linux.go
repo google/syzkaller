@@ -1148,7 +1148,8 @@ var linuxStackParams = &stackParams{
 		regexp.MustCompile(`Freed:`),
 		regexp.MustCompile(`Freed by task [0-9]+:`),
 		// Match 'backtrace:', but exclude 'stack backtrace:'
-		regexp.MustCompile(`[^k] backtrace:`),
+		// Also match optional crc hash for KMEMLEAK reports.
+		regexp.MustCompile(`[^k] backtrace(?: \(crc [[:xdigit:]]*\))?:`),
 		regexp.MustCompile(`Backtrace:`),
 		regexp.MustCompile(`Uninit was stored to memory at`),
 	},
@@ -1754,7 +1755,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "memory leak in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile("backtrace:"),
+						compile("backtrace(?: \\(crc [[:xdigit:]]*\\))?:"),
 						parseStackTrace,
 					},
 					skip: []string{"kmemleak", "mmap", "kmem", "slab", "alloc", "create_object",
