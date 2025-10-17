@@ -231,6 +231,12 @@ var DefaultTrees = []*Tree{
 		EmailLists: []string{`kvm@vger.kernel.org`},
 	},
 	{
+		Name:       `mm-new`,
+		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/akpm/mm.git`,
+		Branch:     `mm-new`,
+		EmailLists: []string{`linux-mm@kvack.org`},
+	},
+	{
 		Name:       `torvalds`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
 		Branch:     `master`,
