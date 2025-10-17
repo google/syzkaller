@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/subsystem"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -91,6 +92,7 @@ type Bug struct {
 	Title        string
 	MergedTitles []string // crash titles that we already merged into this bug
 	AltTitles    []string // alternative crash titles that we may merge into this bug
+	TitleStat    string   `datastore:",noindex"` // serialized report.TitleStat
 	Status       int
 	StatusReason dashapi.BugStatusReason // e.g. if the bug status is "invalid", here's the reason why
 	DupOf        string
@@ -348,6 +350,7 @@ type Crash struct {
 	// May be different from bug.Title due to AltTitles.
 	// May be empty for old bugs, in such case bug.Title is the right title.
 	Title           string
+	TailTitles      []string
 	Manager         string
 	BuildID         string
 	Time            time.Time
@@ -357,6 +360,7 @@ type Crash struct {
 	Log             int64               // reference to CrashLog text entity
 	Flags           int64               // properties of the Crash
 	Report          int64               // reference to CrashReport text entity
+	TailReports     []int64             // references to CrashReport text entity
 	ReportElements  CrashReportElements // parsed parts of the crash report
 	ReproOpts       []byte              `datastore:",noindex"`
 	ReproSyz        int64               // reference to ReproSyz text entity
@@ -983,6 +987,20 @@ func (bug *Bug) increaseCrashStats(now time.Time) {
 	if len(bug.DailyStats) > maxBugHistoryDays {
 		bug.DailyStats = bug.DailyStats[len(bug.DailyStats)-maxBugHistoryDays:]
 	}
+}
+
+func (bug *Bug) addTitleStat(titles []string) error {
+	ts, err := report.TitleStatFromBytes([]byte(bug.TitleStat))
+	if err != nil {
+		return err
+	}
+	ts.Add(append([]string{bug.Title}, titles...))
+	bytes, err := ts.ToBytes()
+	if err != nil {
+		return err
+	}
+	bug.TitleStat = string(bytes)
+	return nil
 }
 
 func (bug *Bug) dailyStatsTail(from time.Time) []BugDailyStats {
