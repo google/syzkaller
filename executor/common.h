@@ -66,9 +66,10 @@ NORETURN void doexit_thread(int status)
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||                      \
-    SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table ||              \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usbip_server_init || \
+#if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||                         \
+    SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table ||                 \
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted || \
+    __NR_syz_usbip_server_init ||                                                          \
     (GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 static unsigned long long procid;
 #endif
@@ -177,9 +178,9 @@ static void kill_and_wait(int pid, int* status)
 #endif
 
 #if !GOOS_windows
-#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_sleep_ms ||     \
-    __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write ||    \
+#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER ||                   \
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted ||           \
+    __NR_syz_sleep_ms || __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write || \
     __NR_syz_usb_disconnect
 static void sleep_ms(uint64 ms)
 {
