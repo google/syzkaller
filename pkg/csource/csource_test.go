@@ -43,11 +43,11 @@ func TestGenerate(t *testing.T) {
 			continue
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
+			if err := sysTarget.BrokenCompiler; err != "" {
+				t.Skipf("target compiler is broken: %v", err)
+			}
 			full := !checked[target.OS]
 			if full || !testing.Short() {
-				if err := sysTarget.BrokenCompiler; err != "" {
-					t.Skipf("target compiler is broken: %v", err)
-				}
 				checked[target.OS] = true
 				t.Parallel()
 				testTarget(t, target, full)
