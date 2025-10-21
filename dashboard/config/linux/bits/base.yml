@@ -231,3 +231,6 @@ config:
 
  # Don't need samples
  - SAMPLES: n
+
+ # Disable Rust by default
+ - RUST: n
