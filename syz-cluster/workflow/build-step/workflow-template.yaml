@@ -8,6 +8,10 @@ metadata:
 spec:
   templates:
     - name: build-step
+      retryStrategy:
+        limit: "3"
+        backoff:
+          duration: "5m"
       inputs:
         parameters:
           - name: findings
