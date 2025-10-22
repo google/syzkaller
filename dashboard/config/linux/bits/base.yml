@@ -234,3 +234,8 @@ config:
 
  # Disable Rust by default
  - RUST: n
+
+ # Ext4 is necessary for normal boot.
+ - EXT4_FS
+ - EXT4_FS_POSIX_ACL
+ - EXT4_FS_SECURITY
