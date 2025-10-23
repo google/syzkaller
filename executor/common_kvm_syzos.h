@@ -1,6 +1,9 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_SYZOS_H
+#define EXECUTOR_COMMON_KVM_SYZOS_H
+
 // Common SYZOS definitions.
 
 // Prevent function inlining. This attribute is applied to every guest_handle_* function,
@@ -37,3 +40,5 @@
 
 // Start/end of the guest section.
 extern char *__start_guest, *__stop_guest;
+
+#endif // EXECUTOR_COMMON_KVM_SYZOS_H
