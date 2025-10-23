@@ -1,6 +1,9 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_KVM_H
+#define EXECUTOR_KVM_H
+
 // x86-specific definitions.
 #if GOARCH_amd64
 #define X86_ADDR_TEXT 0x0000
@@ -209,3 +212,5 @@
 #define ARM64_ADDR_ITS_PEND_TABLES (ARM64_ADDR_ITS_PROP_TABLE + SZ_64K)
 
 #endif // ARM64 SYZOS definitions
+
+#endif // EXECUTOR_KVM_H

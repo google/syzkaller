@@ -140,6 +140,11 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Logf("opts: %+v\nprogram:\n%s", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
+	// Executor headers are embedded into the C source. Make sure there are no leftover include guards.
+	if matches := regexp.MustCompile(`(?m)^#define\s+\S+_H\s*\n`).FindAllString(string(src), -1); len(matches) > 0 {
+		t.Fatalf("source contains leftover include guards: %v\nopts: %+v\nprogram:\n%s",
+			matches, opts, p.Serialize())
+	}
 	bin, err := Build(p.Target, src)
 	if err != nil {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {

@@ -1,3 +1,6 @@
+#ifndef EXECUTOR_COMMON_KVM_ARM64_H
+#define EXECUTOR_COMMON_KVM_ARM64_H
+
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -395,3 +398,5 @@ static long syz_kvm_assert_reg(volatile long a0, volatile long a1, volatile long
 	return 0;
 }
 #endif
+
+#endif // EXECUTOR_COMMON_KVM_ARM64_H

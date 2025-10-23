@@ -1,6 +1,9 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_ARM64_SYZOS_H
+#define EXECUTOR_COMMON_KVM_ARM64_SYZOS_H
+
 // This file provides guest code running inside the ARM64 KVM.
 
 #include "common_kvm_syzos.h"
@@ -1348,3 +1351,5 @@ GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_eve
 	guest_setup_its_mappings(ARM64_ADDR_ITS_CMDQ_BASE, ARM64_ADDR_ITS_ITT_TABLES, nr_events, nr_devices, nr_cpus);
 	guest_invalidate_all_rdists(ARM64_ADDR_ITS_CMDQ_BASE, nr_cpus);
 }
+
+#endif // EXECUTOR_COMMON_KVM_ARM64_SYZOS_H

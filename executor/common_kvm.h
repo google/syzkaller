@@ -1,6 +1,9 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_H
+#define EXECUTOR_COMMON_KVM_H
+
 // This file is shared between executor and csource package.
 
 // Common KVM-related definitions.
@@ -52,3 +55,5 @@ static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 	return 0;
 }
 #endif
+
+#endif // EXECUTOR_COMMON_KVM_H

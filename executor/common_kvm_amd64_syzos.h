@@ -1,6 +1,9 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
+#define EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
+
 // This file provides guest code running inside the AMD64 KVM.
 
 #include "common_kvm_syzos.h"
@@ -394,3 +397,5 @@ GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* 
 		handler_addr = executor_fn_guest_addr(uexit_irq_handler);
 	set_idt_gate(vector, handler_addr);
 }
+
+#endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
