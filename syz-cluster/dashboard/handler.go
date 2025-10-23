@@ -67,6 +67,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/{id}/triage_log", errToStatus(h.sessionTriageLog))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
+	mux.HandleFunc("/series/{id}/all_patches", errToStatus(h.allPatches))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
@@ -299,6 +300,28 @@ func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 		return fmt.Errorf("%w: patch", errNotFound)
 	}
 	return h.streamBlob(w, patch.BodyURI)
+}
+
+// nolint:dupl
+func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	series, err := h.seriesRepo.GetByID(ctx, r.PathValue("id"))
+	if err != nil {
+		return fmt.Errorf("failed to query series: %w", err)
+	} else if series == nil {
+		return fmt.Errorf("%w: series", errNotFound)
+	}
+	patches, err := h.seriesRepo.ListPatches(ctx, series)
+	if err != nil {
+		return fmt.Errorf("failed to query patches: %w", err)
+	}
+	for _, patch := range patches {
+		err = h.streamBlob(w, patch.BodyURI)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) error {
