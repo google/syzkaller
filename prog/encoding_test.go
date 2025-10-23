@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setToArray(s map[string]struct{}) []string {
@@ -569,4 +570,16 @@ func TestHasNext(t *testing.T) {
 				testCase.input, testCase.expected, result)
 		}
 	}
+}
+
+// nolint: lll
+func TestDeserializeSkipImage(t *testing.T) {
+	target := initTargetTest(t, "linux", "amd64")
+	p, err := target.Deserialize([]byte(`
+syz_mount_image$ext4(&(0x7f0000000080)='ext4\x00', &(0x7f00000000c0)='./file0\x00', 0x0, &(0x7f0000000100), 0x1, 0x71, &(0x7f0000000140)="$eJzszrENAVAUBdDrLyASnUIYwA5GESWdiljJDiYwgg0UWs1XfArfABI5J3kvue827/I4Tc6zpA6T2tntD5vVtu3wl0qSUZJxkum85duydYNXf70f1+/59b8AAAAAAAAAwLeSRZ8/Ds8AAAD//9ZiI98=")
+`), Strict)
+	require.NoError(t, err)
+	assert.Equal(t, `syz_mount_image$ext4(&(0x7f0000000080)='ext4\x00', &(0x7f00000000c0)='./file0\x00', 0x0, &(0x7f0000000100), 0x1, 0x71, &(0x7f0000000140)="<<IMAGE>>")
+`,
+		string(p.Serialize(SkipImages)))
 }
