@@ -1,5 +1,3 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Package cover provides types for working with coverage information (arrays of covered PCs).
 package cover

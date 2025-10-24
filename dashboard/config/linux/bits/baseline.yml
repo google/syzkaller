@@ -1,5 +1,3 @@
-# Copyright 2023 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # Baseline is defconfig by default, but even that is bigger than we actually need.
 # baseline.yml disables more configs for Linux baseline configs.

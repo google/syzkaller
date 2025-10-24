@@ -1,5 +1,3 @@
-# Copyright 2020 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 instances:
  - upstream-apparmor-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, apparmor, kasan, kfence]

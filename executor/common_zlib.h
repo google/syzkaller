@@ -1,5 +1,3 @@
-// Copyright 2022 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 //% This code is derived from puff.{c,h}, found in the zlib development. The
 //% original files come with the following copyright notice:

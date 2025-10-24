@@ -1,5 +1,3 @@
-// Copyright 2018 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-cover generates coverage HTML report from raw coverage files.
 // Raw coverage files are text files with one PC in hex form per line, e.g.:

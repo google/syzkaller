@@ -1,5 +1,3 @@
-// Copyright 2021 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Relies on tokeninfo because it is properly documented:
 // https://developers.google.com/identity/protocols/oauth2/openid-connect#validatinganidtoken

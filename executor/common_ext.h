@@ -1,5 +1,3 @@
-// Copyright 2022 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file is included into executor and C reproducers and can be used to add
 // non-mainline pseudo-syscalls and to provide some other extension points

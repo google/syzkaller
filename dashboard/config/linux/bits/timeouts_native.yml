@@ -1,5 +1,3 @@
-# Copyright 2022 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
  - CMDLINE: [append, "smp.csd_lock_timeout=100000 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140 dummy_hcd.num=32 max_loop=32 nbds_max=32"]

@@ -1,5 +1,3 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // execprog executes a single program or a set of programs
 // and optionally prints information about execution.

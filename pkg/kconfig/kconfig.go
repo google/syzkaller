@@ -1,5 +1,3 @@
-// Copyright 2020 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Package kconfig implements parsing of the Linux kernel Kconfig and .config files
 // and provides some algorithms to work with these files. For Kconfig reference see:

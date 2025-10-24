@@ -1,5 +1,3 @@
-// Copyright 2019 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-testbuild tests kernel build/boot on releases as it will be done by pkg/bisect.
 // This allows to ensure that, for example, a change to kernel config won't break

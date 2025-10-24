@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Copyright 2021 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # This script builds a buildroot-based Linux amd64 image.
 # It should be run from a buildroot checkout (git://git.buildroot.net/buildroot) as:

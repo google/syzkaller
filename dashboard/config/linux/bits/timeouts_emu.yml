@@ -1,5 +1,3 @@
-# Copyright 2022 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
  # We reduce number of vivid/netrom/rose/hcd devices to 2 because we use at most 2 procs

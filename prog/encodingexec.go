@@ -1,5 +1,3 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file does serialization of programs for executor binary.
 // The format aims at simple parsing: binary and irreversible.

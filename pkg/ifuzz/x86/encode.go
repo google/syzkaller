@@ -1,5 +1,3 @@
-// Copyright 2017 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // See Intel Software Developer’s Manual Volume 2: Instruction Set Reference
 // and AMD64 Architecture Programmer’s Manual Volume 3: General-Purpose and System Instructions

@@ -1,5 +1,3 @@
-// Copyright 2018 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Package instance provides helper functions for creation of temporal instances
 // used for testing of images, patches and bisection.

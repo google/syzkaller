@@ -1,5 +1,3 @@
-// Copyright 2023 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // TODO: on the bug page, add a [debug subsystem assignment] link.
 // Only show it for admins.
