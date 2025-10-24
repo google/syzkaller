@@ -17,10 +17,7 @@
 
 #include <atomic>
 #include <optional>
-
-#if !GOOS_windows
 #include <unistd.h>
-#endif
 
 #include "defs.h"
 
@@ -90,9 +87,7 @@ static NORETURN PRINTF(2, 3) void failmsg(const char* err, const char* msg, ...)
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
-#if !GOOS_fuchsia
 static NORETURN void doexit_thread(int status);
-#endif
 
 // Print debug output that is visible when running syz-manager/execprog with -debug flag.
 // Debug output is supposed to be relatively high-level (syscalls executed, return values, timing, etc)
@@ -495,32 +490,12 @@ static void mmap_input();
 
 #include "syscalls.h"
 
-#if GOOS_linux
 #ifndef MAP_FIXED_NOREPLACE
 #define MAP_FIXED_NOREPLACE 0x100000
 #endif
 #define MAP_FIXED_EXCLUSIVE MAP_FIXED_NOREPLACE
-#elif GOOS_freebsd
-#define MAP_FIXED_EXCLUSIVE (MAP_FIXED | MAP_EXCL)
-#else
-#define MAP_FIXED_EXCLUSIVE MAP_FIXED // The check is not supported.
-#endif
 
-#if GOOS_linux
 #include "executor_linux.h"
-#elif GOOS_fuchsia
-#include "executor_fuchsia.h"
-#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
-#include "executor_bsd.h"
-#elif GOOS_darwin
-#include "executor_darwin.h"
-#elif GOOS_windows
-#include "executor_windows.h"
-#elif GOOS_test
-#include "executor_test.h"
-#else
-#error "unknown OS"
-#endif
 
 class CoverAccessScope final
 {
@@ -1585,14 +1560,11 @@ void execute_call(thread_t* th)
 
 static uint32 hash(uint32 a)
 {
-	// For test OS we disable hashing for determinism and testability.
-#if !GOOS_test
 	a = (a ^ 61) ^ (a >> 16);
 	a = a + (a << 3);
 	a = a ^ (a >> 4);
 	a = a * 0x27d4eb2d;
 	a = a ^ (a >> 15);
-#endif
 	return a;
 }
 

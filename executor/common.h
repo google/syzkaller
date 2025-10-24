@@ -15,25 +15,7 @@
 #define _GNU_SOURCE
 #endif
 
-#if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
-#include <sys/endian.h> // for htobe*.
-#elif GOOS_darwin
-#include <libkern/OSByteOrder.h>
-#define htobe16(x) OSSwapHostToBigInt16(x)
-#define htobe32(x) OSSwapHostToBigInt32(x)
-#define htobe64(x) OSSwapHostToBigInt64(x)
-#define le16toh(x) OSSwapLittleToHostInt16(x)
-#define htole16(x) OSSwapHostToLittleInt16(x)
-#elif GOOS_windows
-#define htobe16 _byteswap_ushort
-#define htobe32 _byteswap_ulong
-#define htobe64 _byteswap_uint64
-#define le16toh(x) x
-#define htole16(x) x
-typedef signed int ssize_t;
-#else
 #include <endian.h> // for htobe*.
-#endif
 #include <stdint.h>
 #include <stdio.h> // for fmt arguments
 #include <stdlib.h>
@@ -47,33 +29,13 @@ typedef signed int ssize_t;
 /*{{{SYSCALL_DEFINES}}}*/
 #endif
 
-#if SYZ_EXECUTOR && !GOOS_linux
-#if !GOOS_windows
-#include <unistd.h>
-#endif
-NORETURN void doexit(int status)
-{
-	_exit(status); // prevent linter warning: doexit()
-	for (;;) {
-	}
-}
-#if !GOOS_fuchsia
-NORETURN void doexit_thread(int status)
-{
-	// For BSD systems, _exit seems to do exactly what's needed.
-	doexit(status);
-}
-#endif
-#endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||                      \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table ||              \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usbip_server_init || \
-    (GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usbip_server_init
 static unsigned long long procid;
 #endif
 
-#if !GOOS_fuchsia && !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 #include <setjmp.h>
 #include <signal.h>
@@ -111,15 +73,6 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	const uintptr_t prog_end = 100 << 20;
 	int skip = __atomic_load_n(&skip_segv, __ATOMIC_RELAXED) != 0;
 	int valid = addr < prog_start || addr > prog_end;
-#if GOOS_freebsd || (GOOS_test && HOSTGOOS_freebsd)
-	// FreeBSD delivers SIGBUS in response to any fault that isn't a page
-	// fault.  In this case it tries to be helpful and sets si_addr to the
-	// address of the faulting instruction rather than zero as other
-	// operating systems seem to do.  However, such faults should always be
-	// ignored.
-	if (sig == SIGBUS)
-		valid = 1;
-#endif
 	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
 		_longjmp(segv_env, 1);
@@ -161,22 +114,6 @@ static void install_segv_handler(void)
 #endif
 #endif
 
-#if !GOOS_linux
-#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-static void kill_and_wait(int pid, int* status)
-{
-	kill(pid, SIGKILL);
-	while (waitpid(-1, status, 0) != pid) {
-	}
-}
-#endif
-#endif
-
-#if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
     __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_sleep_ms ||     \
     __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write ||    \
@@ -207,11 +144,7 @@ static uint64 current_time_ms(void)
 
 static void use_temporary_dir(void)
 {
-#if GOOS_fuchsia
-	char tmpdir_template[] = "/tmp/syzkaller.XXXXXX";
-#else
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
-#endif
 	char* tmpdir = mkdtemp(tmpdir_template);
 	if (!tmpdir)
 		fail("failed to mkdtemp");
@@ -223,115 +156,6 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR && SYZ_EXECUTOR_USES_FORK_SERVER
-#include <dirent.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#if GOOS_freebsd
-// Unset file flags which might inhibit unlinking.
-static void reset_flags(const char* filename)
-{
-	struct stat st;
-	if (lstat(filename, &st))
-		exitf("lstat(%s) failed", filename);
-	st.st_flags &= ~(SF_NOUNLINK | UF_NOUNLINK | SF_IMMUTABLE | UF_IMMUTABLE | SF_APPEND | UF_APPEND);
-	if (lchflags(filename, st.st_flags))
-		exitf("lchflags(%s) failed", filename);
-}
-#endif
-
-// We need to prevent the compiler from unrolling the while loop by using the gcc's noinline attribute
-// because otherwise it could trigger the compiler warning about a potential format truncation
-// when a filename is constructed with help of snprintf. This warning occurs because by unrolling
-// the while loop, the snprintf call will try to concatenate 2 buffers of length FILENAME_MAX and put
-// the result into a buffer of length FILENAME_MAX which is apparently not possible. But this is no
-// problem in our case because file and directory names should be short enough and fit into a buffer
-// of length FILENAME_MAX.
-static void __attribute__((noinline)) remove_dir(const char* dir)
-{
-	DIR* dp = opendir(dir);
-	if (dp == NULL) {
-		if (errno == EACCES) {
-			// We could end up here in a recursive call to remove_dir() below.
-			// One of executed syscall could end up creating a directory rooted
-			// in the current working directory created by loop() with zero
-			// permissions. Try to perform a best effort removal of the
-			// directory.
-			if (rmdir(dir))
-				exitf("rmdir(%s) failed", dir);
-			return;
-		}
-		exitf("opendir(%s) failed", dir);
-	}
-	struct dirent* ep = 0;
-	while ((ep = readdir(dp))) {
-		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
-			continue;
-		char filename[FILENAME_MAX];
-		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
-		struct stat st;
-		if (lstat(filename, &st))
-			exitf("lstat(%s) failed", filename);
-		if (S_ISDIR(st.st_mode)) {
-			remove_dir(filename);
-			continue;
-		}
-		if (unlink(filename)) {
-#if GOOS_freebsd
-			if (errno == EPERM) {
-				reset_flags(filename);
-				reset_flags(dir);
-				if (unlink(filename) == 0)
-					continue;
-			}
-#endif
-			exitf("unlink(%s) failed", filename);
-		}
-	}
-	closedir(dp);
-	while (rmdir(dir)) {
-#if GOOS_freebsd
-		if (errno == EPERM) {
-			reset_flags(dir);
-			if (rmdir(dir) == 0)
-				break;
-		}
-#endif
-		exitf("rmdir(%s) failed", dir);
-	}
-}
-#endif
-#endif
-
-#if !GOOS_linux && !GOOS_netbsd
-#if SYZ_EXECUTOR || SYZ_FAULT
-static int inject_fault(int nth)
-{
-	return 0;
-}
-#endif
-
-#if SYZ_FAULT
-static const char* setup_fault()
-{
-	return NULL;
-}
-#endif
-
-#if SYZ_EXECUTOR
-static int fault_injected(int fail_fd)
-{
-	return 0;
-}
-#endif
-#endif
-
-#if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED
 #include <errno.h>
 #include <pthread.h>
@@ -360,82 +184,6 @@ static void thread_start(void* (*fn)(void*), void* arg)
 	exitf("pthread_create failed");
 }
 
-#endif
-#endif
-
-#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_test
-#if SYZ_EXECUTOR || SYZ_THREADED
-
-#include <pthread.h>
-#include <time.h>
-
-typedef struct {
-	pthread_mutex_t mu;
-	pthread_cond_t cv;
-	int state;
-} event_t;
-
-static void event_init(event_t* ev)
-{
-	if (pthread_mutex_init(&ev->mu, 0))
-		exitf("pthread_mutex_init failed");
-	if (pthread_cond_init(&ev->cv, 0))
-		exitf("pthread_cond_init failed");
-	ev->state = 0;
-}
-
-static void event_reset(event_t* ev)
-{
-	ev->state = 0;
-}
-
-static void event_set(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	if (ev->state)
-		exitf("event already set");
-	ev->state = 1;
-	pthread_mutex_unlock(&ev->mu);
-	pthread_cond_broadcast(&ev->cv);
-}
-
-static void event_wait(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	while (!ev->state)
-		pthread_cond_wait(&ev->cv, &ev->mu);
-	pthread_mutex_unlock(&ev->mu);
-}
-
-static int event_isset(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	int res = ev->state;
-	pthread_mutex_unlock(&ev->mu);
-	return res;
-}
-
-static int event_timedwait(event_t* ev, uint64 timeout)
-{
-	uint64 start = current_time_ms();
-	uint64 now = start;
-	pthread_mutex_lock(&ev->mu);
-	for (;;) {
-		if (ev->state)
-			break;
-		uint64 remain = timeout - (now - start);
-		struct timespec ts;
-		ts.tv_sec = remain / 1000;
-		ts.tv_nsec = (remain % 1000) * 1000 * 1000;
-		pthread_cond_timedwait(&ev->cv, &ev->mu, &ts);
-		now = current_time_ms();
-		if (now - start > timeout)
-			break;
-	}
-	int res = ev->state;
-	pthread_mutex_unlock(&ev->mu);
-	return res;
-}
 #endif
 #endif
 
@@ -478,21 +226,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
-#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd
-#include "common_bsd.h"
-#elif GOOS_openbsd
-#include "common_openbsd.h"
-#elif GOOS_fuchsia
-#include "common_fuchsia.h"
-#elif GOOS_linux
 #include "common_linux.h"
-#elif GOOS_test
-#include "common_test.h"
-#elif GOOS_windows
-#include "common_windows.h"
-#else
-#error "unknown OS"
-#endif
 
 #if SYZ_TEST_COMMON_EXT_EXAMPLE
 #include "common_ext_example.h"
