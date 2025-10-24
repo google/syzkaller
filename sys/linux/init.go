@@ -77,13 +77,9 @@ func InitTarget(target *prog.Target) {
 		"time_nsec": true,
 	}
 
-	if target.Arch == targets.AMD64 {
-		target.SpecialPointers = []uint64{
-			0xffffffff81000000, // kernel text
-			0xffffffffff600000, // VSYSCALL_ADDR
-		}
-	} else {
-		panic("unknown arch")
+	target.SpecialPointers = []uint64{
+		0xffffffff81000000, // kernel text
+		0xffffffffff600000, // VSYSCALL_ADDR
 	}
 
 	target.SpecialFileLenghts = []int{

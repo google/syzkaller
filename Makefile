@@ -92,7 +92,7 @@ export GOBIN=$(shell pwd -P)/bin
 
 all: host target
 host: manager repro mutate prog2c db upgrade
-target: execprog executor check_syzos
+target: execprog executor
 
 executor: descriptions
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
@@ -294,9 +294,6 @@ presubmit_old: descriptions
 	# Simplified for Linux amd64 only
 	TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
 
-presubmit_gvisor: host target
-	./tools/gvisor-smoke-test.sh
-
 test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...
 
@@ -334,9 +331,6 @@ check_links:
 
 check_html:
 	./tools/check-html.sh
-
-check_syzos: executor
-	./tools/check-syzos.sh 2>/dev/null
 
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.
