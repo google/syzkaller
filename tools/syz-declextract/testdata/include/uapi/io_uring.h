@@ -1,7 +1,0 @@
-
-enum io_uring_op {
-	IORING_OP_NOP,
-	IORING_OP_READV,
-	IORING_OP_WRITEV,
-	IORING_OP_NOT_SUPPORTED,
-};

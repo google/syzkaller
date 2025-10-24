@@ -1,9 +1,0 @@
-TITLE: 
-
-[   49.650190][  T126] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
-[   49.658919][  T126] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
-[   49.668016][    T5] IPv6: ADDRCONF(NETDEV_CHANGE): wlan1: link becomes ready
-[   49.679506][ T8428] ======================================================
-[   49.679506][ T8428] WARNING: the mand mount option is being deprecated and
-[   49.679506][ T8428]          will be removed in v5.15!
-[   49.679506][ T8428] ======================================================

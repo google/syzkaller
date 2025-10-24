@@ -1,6 +1,0 @@
-TITLE: SYZFATAL: executor NUM failed NUM times: failed to create temp dir: mkdir ./syzkaller-testdirNUM: read-only file system
-ALT: SYZFATAL
-TYPE: SYZ_FAILURE
-
-2022/10/02 11:34:15 SYZFATAL: executor 4 failed 11 times: failed to create temp dir: mkdir ./syzkaller-testdir264563108: read-only file system
-

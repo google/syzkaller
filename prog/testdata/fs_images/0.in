@@ -1,1 +1,0 @@
-syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, 0x46, &(0x7f0000000200)="$eJzsykEJACAABEEL2D+FFQxgCCtoAvEr10CY+S1sCbP19fY4u+YDAAAAAAAAAMA/bgAAAP//84oF/g==")

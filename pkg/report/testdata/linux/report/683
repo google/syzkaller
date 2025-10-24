@@ -1,4 +1,0 @@
-TITLE: VFS: Close: file count is zero (use-after-free)
-TYPE: DoS
-
-VFS: Close: file count is 0
