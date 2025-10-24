@@ -34,7 +34,7 @@ func TestExecprogCmd(t *testing.T) {
 	// sets this flag and never relies on the default value.
 	flagCollide := flags.Bool("collide", false, "collide syscalls to provoke data races")
 	flagSignal := flags.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
+	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagSlowdown := flags.Int("slowdown", 1, "")
 	flagSandboxArg := flags.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
 	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.Linux, targets.AMD64, "vmtype",

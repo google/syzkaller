@@ -54,7 +54,7 @@ func TestParseOptionsCanned(t *testing.T) {
 				FaultNth:  2,
 			},
 		},
-		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android",
+		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
@@ -62,7 +62,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Repeat:       true,
 			Procs:        10,
 			Slowdown:     1,
-			Sandbox:      "android",
+			Sandbox:      "namespace",
 			NetInjection: true,
 			NetDevices:   true,
 			NetReset:     true,
@@ -78,7 +78,7 @@ func TestParseOptionsCanned(t *testing.T) {
 				FaultNth:  2,
 			},
 		},
-		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android",
+		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace",
 		"sandbox_arg":9,"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
@@ -86,7 +86,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Repeat:       true,
 			Procs:        10,
 			Slowdown:     1,
-			Sandbox:      "android",
+			Sandbox:      "namespace",
 			SandboxArg:   9,
 			NetInjection: true,
 			NetDevices:   true,
@@ -243,7 +243,7 @@ func enumerateField(OS string, opt Options, field int) []Options {
 	fldName := s.Type().Field(field).Name
 	fld := s.Field(field)
 	if fldName == "Sandbox" {
-		for _, sandbox := range []string{"", "none", "setuid", "namespace", "android"} {
+		for _, sandbox := range []string{"", "none", "setuid", "namespace"} {
 			fld.SetString(sandbox)
 			opts = append(opts, opt)
 		}

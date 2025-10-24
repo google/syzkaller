@@ -69,7 +69,7 @@ type LegacyOptions struct {
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check(OS string) error {
 	switch opts.Sandbox {
-	case "", sandboxNone, sandboxNamespace, sandboxSetuid, sandboxAndroid:
+	case "", sandboxNone, sandboxNamespace, sandboxSetuid:
 	default:
 		return fmt.Errorf("unknown sandbox %v", opts.Sandbox)
 	}
@@ -131,7 +131,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.NetInjection {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
-	if opts.Sandbox == sandboxNamespace || opts.Sandbox == sandboxSetuid || opts.Sandbox == sandboxAndroid {
+	if opts.Sandbox == sandboxNamespace || opts.Sandbox == sandboxSetuid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
 	for name, opt := range map[string]*bool{

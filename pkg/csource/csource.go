@@ -65,11 +65,7 @@ func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string
 		return "loop();"
 	}
 
-	arguments := "();"
-	if sandboxName == "android" {
-		arguments = "(" + strconv.Itoa(sandboxArg) + ");"
-	}
-	return "do_sandbox_" + sandboxName + arguments
+	return "do_sandbox_" + sandboxName + "();"
 }
 
 func (ctx *context) generateSource() ([]byte, error) {

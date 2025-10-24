@@ -48,7 +48,7 @@ var (
 	flagExecutor   = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded   = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagSignal     = flag.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox    = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
+	flagSandbox    = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagSandboxArg = flag.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
 	flagDebug      = flag.Bool("debug", false, "debug output from executor")
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")

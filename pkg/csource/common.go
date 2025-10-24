@@ -21,7 +21,6 @@ const (
 	sandboxNone      = "none"
 	sandboxSetuid    = "setuid"
 	sandboxNamespace = "namespace"
-	sandboxAndroid   = "android"
 )
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
@@ -100,7 +99,6 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,
 		"SYZ_SANDBOX_SETUID":            opts.Sandbox == sandboxSetuid,
 		"SYZ_SANDBOX_NAMESPACE":         opts.Sandbox == sandboxNamespace,
-		"SYZ_SANDBOX_ANDROID":           opts.Sandbox == sandboxAndroid,
 		"SYZ_THREADED":                  opts.Threaded,
 		"SYZ_ASYNC":                     features.Async,
 		"SYZ_REPEAT":                    opts.Repeat,

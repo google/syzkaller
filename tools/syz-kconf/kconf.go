@@ -36,8 +36,6 @@ const (
 	featModules    = "modules"
 	featReduced    = "reduced"
 	featClang      = "clang"
-	featAndroid    = "android"
-	featChromeos   = "chromeos"
 )
 
 func main() {
@@ -335,17 +333,10 @@ func (ctx *Context) verifyConfigs(cf *kconfig.ConfigFile) error {
 }
 
 func (ctx *Context) addUSBConfigs(cf *kconfig.ConfigFile) error {
-	prefix := ""
-	switch {
-	case ctx.Inst.Features[featAndroid]:
-		prefix = "android"
-	case ctx.Inst.Features[featChromeos]:
-		prefix = "chromeos"
-	}
-	distroConfig := filepath.Join(ctx.ConfigDir, "distros", prefix+"*")
+	// distros directory was removed (no vendor kernels), so this is now a no-op
 	// Some USB drivers don't depend on any USB related symbols, but rather on a generic symbol
 	// for some input subsystem (e.g. HID), so include it as well.
-	return ctx.addDependentConfigs(cf, []string{"USB_SUPPORT", "HID"}, distroConfig)
+	return ctx.addDependentConfigs(cf, []string{"USB_SUPPORT", "HID"}, "")
 }
 
 func (ctx *Context) addDependentConfigs(dst *kconfig.ConfigFile, include []string, configGlob string) error {

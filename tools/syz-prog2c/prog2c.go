@@ -23,7 +23,7 @@ var (
 	flagRepeat     = flag.Int("repeat", 1, "repeat program that many times (<=0 - infinitely)")
 	flagProcs      = flag.Int("procs", 1, "number of parallel processes")
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
-	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace, android)")
+	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace)")
 	flagSandboxArg = flag.Int("sandbox_arg", 0, "argument for executor to customize its behavior")
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
