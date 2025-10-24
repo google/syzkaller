@@ -555,12 +555,6 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	case TextX86bit64:
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchX86
-	case TextPpc64:
-		cfg.Mode = ifuzz.ModeLong64
-		cfg.Arch = ifuzz.ArchPowerPC
-	case TextArm64:
-		cfg.Mode = ifuzz.ModeLong64
-		cfg.Arch = ifuzz.ArchArm64
 	default:
 		panic(fmt.Sprintf("unknown text kind: %v", kind))
 	}

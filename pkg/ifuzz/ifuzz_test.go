@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
-var allArches = []string{ArchX86, ArchPowerPC, ArchArm64}
+var allArches = []string{ArchX86}
 
 func TestMode(t *testing.T) {
 	for _, arch := range allArches {
