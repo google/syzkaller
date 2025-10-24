@@ -136,11 +136,6 @@ type Timeouts struct {
 
 const (
 	Linux = "linux"
-
-	// These are VM types, but we put them here to prevent string duplication.
-	GVisor  = "gvisor"
-	Starnix = "starnix"
-
 	AMD64 = "amd64"
 )
 

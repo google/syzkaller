@@ -447,8 +447,8 @@ func TestVMType(t *testing.T) {
 		in   string
 		want string
 	}{
-		{targets.GVisor, targets.GVisor},
 		{"proxyapp:android", "proxyapp"},
+		{"qemu", "qemu"},
 	}
 
 	for _, tc := range testCases {

@@ -70,12 +70,8 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 	kernelDirs := cfg.KernelDirs()
 	target := cfg.SysTarget
 	moduleObj := cfg.ModuleObj
-	vm := cfg.Type
 	if kernelDirs.Obj == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
-	}
-	if vm == targets.GVisor {
-		return makeGvisor(target, kernelDirs, modules)
 	}
 	var delimiters []string
 	if cfg.AndroidSplitBuild {
@@ -88,7 +84,7 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 }
 
 func GetPCBase(cfg *mgrconfig.Config) (uint64, error) {
-	if cfg.Target.OS == targets.Linux && cfg.Type != targets.GVisor && cfg.Type != targets.Starnix {
+	if cfg.Target.OS == targets.Linux {
 		return getLinuxPCBase(cfg)
 	}
 	return 0, nil

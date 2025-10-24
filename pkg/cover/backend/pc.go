@@ -10,18 +10,11 @@ import (
 )
 
 func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
-	if vm == targets.GVisor {
-		// gVisor coverage returns real PCs that don't need adjustment.
-		return pc
-	}
 	// AMD64 call instruction is 5 bytes
 	return pc - 5
 }
 
 func NextInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {
-	if vm == targets.GVisor {
-		return pc
-	}
 	// AMD64 call instruction is 5 bytes
 	return pc + 5
 }

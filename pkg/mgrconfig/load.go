@@ -246,20 +246,8 @@ func (cfg *Config) completeServices() error {
 
 func (cfg *Config) initTimeouts() {
 	slowdown := 1
-	switch {
-	case cfg.Type == "qemu" && (runtime.GOARCH == cfg.SysTarget.Arch || runtime.GOARCH == cfg.SysTarget.VMArch):
-		// If TCG is enabled for QEMU, increase the slowdown.
-		if bytes.Contains(cfg.VM, []byte("-accel tcg")) {
-			slowdown = 10
-		}
-	case cfg.Type == "qemu" && runtime.GOARCH != cfg.SysTarget.Arch && runtime.GOARCH != cfg.SysTarget.VMArch:
-		// Assuming qemu emulation.
-		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
-		slowdown = 10
-	case cfg.Type == targets.GVisor && cfg.Cover && strings.Contains(cfg.Name, "-race"):
-		// Go coverage+race has insane slowdown of ~350x. We can't afford such large value,
-		// but a smaller value should be enough to finish at least some syscalls.
-		// Note: the name check is a hack.
+	// For Linux amd64, we only check if TCG is enabled for QEMU
+	if cfg.Type == "qemu" && bytes.Contains(cfg.VM, []byte("-accel tcg")) {
 		slowdown = 10
 	}
 	// Note: we could also consider heavy debug tools (KASAN/KMSAN/KCSAN/KMEMLEAK) if necessary.

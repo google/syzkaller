@@ -47,9 +47,6 @@ func (linux) machineInfos() []machineInfoFunc {
 }
 
 func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
-	if linux.vmType == targets.GVisor || linux.vmType == targets.Starnix {
-		return nil, nil
-	}
 	var modules []*KernelModule
 	re := regexp.MustCompile(`(\w+) ([0-9]+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	modulesText, _ := files.ReadFile("/proc/modules")
