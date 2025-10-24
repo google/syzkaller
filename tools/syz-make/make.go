@@ -32,11 +32,14 @@ type Var struct {
 }
 
 func impl() ([]Var, error) {
-	hostOS := or(os.Getenv("HOSTOS"), runtime.GOOS)
-	hostArch := or(os.Getenv("HOSTARCH"), runtime.GOARCH)
-	targetOS := or(os.Getenv("TARGETOS"), hostOS)
-	targetArch := or(os.Getenv("TARGETARCH"), hostArch)
-	targetVMArch := or(os.Getenv("TARGETVMARCH"), targetArch)
+	// Simplified for Linux amd64 only - always use these values
+	const (
+		hostOS       = "linux"
+		hostArch     = "amd64"
+		targetOS     = "linux"
+		targetArch   = "amd64"
+		targetVMArch = "amd64"
+	)
 	target := targets.Get(targetOS, targetArch)
 	if target == nil {
 		return nil, fmt.Errorf("unknown target %v/%v", targetOS, targetArch)
@@ -64,8 +67,8 @@ func impl() ([]Var, error) {
 		}
 	}
 	vars := []Var{
-		{"BUILDOS", runtime.GOOS},
-		{"NATIVEBUILDOS", target.BuildOS},
+		{"BUILDOS", "linux"},
+		{"NATIVEBUILDOS", "linux"},
 		{"HOSTOS", hostOS},
 		{"HOSTARCH", hostArch},
 		{"TARGETOS", targetOS},
@@ -76,16 +79,8 @@ func impl() ([]Var, error) {
 		{"ADDCFLAGS", strings.Join(target.CFlags, " ")},
 		{"ADDCXXFLAGS", strings.Join(target.CxxFlags, " ")},
 		{"NCORES", strconv.Itoa(parallelism)},
-		{"EXE", target.ExeExtension},
-		{"NATIVEBUILDOS", target.BuildOS},
-		{"NO_CROSS_COMPILER", target.BrokenCompiler},
+		{"EXE", ""},                // Always empty on Linux
+		{"NO_CROSS_COMPILER", ""},  // Always empty (we use clang)
 	}
 	return vars, nil
-}
-
-func or(s1, s2 string) string {
-	if s1 != "" {
-		return s1
-	}
-	return s2
 }
