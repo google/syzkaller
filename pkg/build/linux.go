@@ -222,27 +222,11 @@ func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir st
 }
 
 func LinuxKernelImage(arch string) string {
-	// We build only zImage/bzImage as we currently don't use modules.
-	switch arch {
-	case targets.AMD64:
+	// We build only bzImage as we currently don't use modules.
+	if arch == targets.AMD64 {
 		return "arch/x86/boot/bzImage"
-	case targets.I386:
-		return "arch/x86/boot/bzImage"
-	case targets.S390x:
-		return "arch/s390/boot/bzImage"
-	case targets.PPC64LE:
-		return "arch/powerpc/boot/zImage.pseries"
-	case targets.ARM:
-		return "arch/arm/boot/zImage"
-	case targets.ARM64:
-		return "arch/arm64/boot/Image.gz"
-	case targets.RiscV64:
-		return "arch/riscv/boot/Image"
-	case targets.MIPS64LE:
-		return "vmlinux"
-	default:
-		panic(fmt.Sprintf("pkg/build: unsupported arch %v", arch))
 	}
+	panic(fmt.Sprintf("pkg/build: unsupported arch %v", arch))
 }
 
 var linuxCompilerRegexp = regexp.MustCompile(`#define\s+LINUX_COMPILER\s+"(.*)"`)

@@ -177,22 +177,9 @@ const unsupportedArch = "unsupported arch"
 
 func linuxSyzKvmSupported(ctx *checkContext, call *prog.Syscall) string {
 	switch call.Name {
-	case "syz_kvm_setup_cpu$x86":
-		if ctx.target.Arch == targets.AMD64 || ctx.target.Arch == targets.I386 {
-			return ""
-		}
-	case "syz_kvm_setup_syzos_vm$x86", "syz_kvm_add_vcpu$x86", "syz_kvm_assert_syzos_uexit$x86",
-		"syz_kvm_assert_syzos_kvm_exit$x86":
+	case "syz_kvm_setup_cpu$x86", "syz_kvm_setup_syzos_vm$x86", "syz_kvm_add_vcpu$x86",
+		"syz_kvm_assert_syzos_uexit$x86", "syz_kvm_assert_syzos_kvm_exit$x86":
 		if ctx.target.Arch == targets.AMD64 {
-			return ""
-		}
-	case "syz_kvm_setup_cpu$arm64", "syz_kvm_setup_syzos_vm$arm64", "syz_kvm_add_vcpu$arm64",
-		"syz_kvm_assert_syzos_uexit$arm64", "syz_kvm_assert_syzos_kvm_exit$arm64":
-		if ctx.target.Arch == targets.ARM64 {
-			return ""
-		}
-	case "syz_kvm_setup_cpu$ppc64":
-		if ctx.target.Arch == targets.PPC64LE {
 			return ""
 		}
 	}
@@ -200,9 +187,6 @@ func linuxSyzKvmSupported(ctx *checkContext, call *prog.Syscall) string {
 }
 
 func linuxSyzSupportedOnArm64(ctx *checkContext, call *prog.Syscall) string {
-	if ctx.target.Arch == targets.ARM64 {
-		return ""
-	}
 	return unsupportedArch
 }
 
