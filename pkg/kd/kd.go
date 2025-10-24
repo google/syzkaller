@@ -1,6 +1,6 @@
 
 // Minimal KD protocol decoder.
-// KD protocol is used by windows to talk to debuggers. Here are some links:
+// KD protocol is used for kernel debugging. Here are some links:
 // https://github.com/radare/radare2/issues/1246#issuecomment-135565901
 // http://articles.sysprogs.org/kdvmware/kdcom/
 // https://doxygen.reactos.org/df/de3/windbgkd_8h_source.html

@@ -20,7 +20,7 @@ import (
 type extractParams struct {
 	AddSource      string
 	DeclarePrintf  bool
-	DefineGlibcUse bool // workaround for incorrect flags to clang for fuchsia.
+	DefineGlibcUse bool // unused for Linux, kept for compatibility
 	ExtractFromELF bool
 	TargetEndian   binary.ByteOrder
 }
