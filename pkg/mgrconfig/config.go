@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	// Instance name (used for identification and as GCE instance prefix).
+	// Instance name (used for identification and as VM instance prefix).
 	Name string `json:"name"`
 	// Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process).
 	RawTarget string `json:"target"`
@@ -209,7 +209,7 @@ type Config struct {
 	// Enabled by default.
 	RunFsck bool `json:"run_fsck"`
 
-	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
+	// Type of virtual machine to use, e.g. "qemu", "isolated", etc.
 	Type string `json:"type"`
 	// VM-type-specific parameters.
 	// Parameters for concrete types are in Config type in vm/TYPE/TYPE.go, e.g. vm/qemu/qemu.go.

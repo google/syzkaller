@@ -23,7 +23,7 @@
 // from the IAP docs agrees to trust sub.
 
 // Package auth contains authentication related code supporting secret
-// passwords and oauth2 tokens on GCE.
+// passwords and oauth2 tokens.
 package auth
 
 import (

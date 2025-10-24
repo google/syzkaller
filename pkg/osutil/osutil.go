@@ -103,7 +103,7 @@ func Command(bin string, args ...string) *exec.Cmd {
 
 // Command is similar to os/exec.Command, but also sets PDEATHSIG to SIGTERM on linux,
 // i.e. the child has a chance to exit gracefully. This may be important when running
-// e.g. syz-manager. If it is killed immediately, it can leak GCE instances.
+// e.g. syz-manager. If it is killed immediately, it can leak VM instances.
 func GraciousCommand(bin string, args ...string) *exec.Cmd {
 	cmd := exec.Command(bin, args...)
 	setPdeathsig(cmd, false)
