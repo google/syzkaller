@@ -371,11 +371,7 @@ func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""
 	}
-	switch url {
-	case "https://fuchsia.googlesource.com":
-		// We collect hashes from the fuchsia repo.
-		return link(url+"/fuchsia", hash, file, line, typ)
-	}
+	// Linux only - GitHub repositories
 	if strings.HasPrefix(url, "https://github.com/") {
 		url = strings.TrimSuffix(url, ".git")
 		switch typ {

@@ -320,7 +320,7 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 }
 
 // Regexps to parse compiler version string in isKcovBrokenInCompiler.
-// Some targets (e.g. NetBSD) use g++ instead of gcc.
+// Support both gcc and g++ compilers.
 var gccRE = regexp.MustCompile(`gcc|GCC|g\+\+`)
 var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[0-9]+`)
 
@@ -618,7 +618,7 @@ func nextCallTarget(arch *Arch, textAddr uint64, data []byte, pos *int) (uint64,
 }
 
 // readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_*) in the object file.
-// Currently it is [amd64|arm64]-specific: looks for opcode and correct offset.
+// amd64-specific: looks for opcode and correct offset.
 // Running objdump on the whole object file is too slow.
 func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2][]uint64, error) {
 	var pcs [2][]uint64

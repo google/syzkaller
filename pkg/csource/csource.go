@@ -498,18 +498,8 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 }
 
 func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool) {
-	if ctx.sysTarget.OS == targets.Fuchsia {
-		// On fuchsia we have real system calls that return ZX_OK on success,
-		// and libc calls that are casted to function returning intptr_t,
-		// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
-		if strings.HasPrefix(call.Meta.CallName, "zx_") {
-			fmt.Fprintf(w, "\tif (res == ZX_OK)")
-		} else {
-			fmt.Fprintf(w, "\tif ((int)res != -1)")
-		}
-	} else {
-		fmt.Fprintf(w, "\tif (res != -1)")
-	}
+	// Linux only - syscalls return -1 on error
+	fmt.Fprintf(w, "\tif (res != -1)")
 	copyoutMultiple := len(call.Copyout) > 1 || resCopyout && len(call.Copyout) > 0
 	if copyoutMultiple {
 		fmt.Fprintf(w, " {")
@@ -612,8 +602,7 @@ func (ctx *context) literalSuffix(arg prog.ExecArgConst) string {
 		// promoted. Otherwise the compiler is free to leave garbage in the
 		// upper 32 bits of the argument value. In practice this can happen
 		// on amd64 with arguments that are passed on the stack, i.e.,
-		// arguments beyond the first six. For example, on freebsd/amd64,
-		// syscall(SYS_mmap, ..., 0) causes clang to emit a 32-bit store of
+		// arguments beyond the first six. The compiler may emit a 32-bit store of
 		// 0 to the stack, but the kernel expects a 64-bit value.
 		//
 		// syzkaller's argument type representations do not always match

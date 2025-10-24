@@ -256,10 +256,8 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 	// Don't print warnings, they are printed in syz-check.
 	job.Errors = nil
 	// But let's fail on always actionable errors.
-	if job.Target.OS != targets.Fuchsia {
-		// There are too many broken consts on Fuchsia.
-		constsAreAllDefined(constFile, job.ConstInfo, eh)
-	}
+	// Linux only - always check that consts are defined.
+	constsAreAllDefined(constFile, job.ConstInfo, eh)
 	job.OK = len(job.Errors) == 0
 }
 

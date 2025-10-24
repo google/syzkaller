@@ -68,7 +68,7 @@ type osCommon struct {
 	// If not set, defaults to itself (i.e. native build).
 	// Later we can extend this to be a list, but so far we don't have more than one OS.
 	BuildOS string
-	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
+	// Linux uses syscall numbers (always true for Linux).
 	SyscallNumbers bool
 	// Syscalls accept int64 arguments (>sizeof(void*)).
 	Int64SyscallArgs bool
@@ -86,7 +86,7 @@ type osCommon struct {
 	// this command instead.
 	ExecprogBin string
 	ExecutorBin string
-	// Extension of executable files (notably, .exe for windows).
+	// Extension of executable files (empty for Linux).
 	ExeExtension string
 	// Name of the kernel object file.
 	KernelObject string

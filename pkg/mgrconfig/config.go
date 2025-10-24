@@ -125,9 +125,9 @@ type Config struct {
 	//      but the test process still has access to all /dev/ nodes owned by root,
 	//      this is a compromise between coverage and bug impact,
 	//	requires building kernel with CONFIG_USER_NS
-	// "setuid": impersonate into user nobody (65534) (supported on Linux, FreeBSD, NetBSD, OpenBSD)
+	// "setuid": impersonate into user nobody (65534) (Linux only)
 	//      this is the most restrictive sandbox
-	// "android": emulate permissions of an untrusted Android app (supported only on Linux)
+	// "android": emulate permissions of an untrusted Android app (Linux only)
 	Sandbox string `json:"sandbox"`
 
 	// This value is passed as an argument to executor and allows to adjust sandbox behavior

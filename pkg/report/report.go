@@ -200,8 +200,7 @@ func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
 	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
 		rep.SkipPos = rep.StartPos + pos
 	}
-	// This generally should not happen.
-	// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
+	// This generally should not happen, but handle edge cases with line endings.
 	rep.EndPos = max(rep.EndPos, rep.SkipPos)
 	return rep
 }
@@ -851,8 +850,7 @@ var (
 	deeperPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_\-\./]+/[a-zA-Z0-9_\-]+\.(c|h)$`)
 )
 
-// These are produced by syzkaller itself.
-// But also catches crashes in Go programs in gvisor/fuchsia.
+// These are produced by syzkaller itself and also catches crashes in Go programs.
 var commonOopses = []*oops{
 	{
 		// Errors produced by executor's fail function.
