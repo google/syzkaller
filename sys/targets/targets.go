@@ -536,10 +536,9 @@ func processMergedFlags(flags []string) []string {
 }
 
 func getSourceDir(target *Target) string {
-	// First try the most granular env option.
-	name := fmt.Sprintf("SOURCEDIR_%s_%s_%s_%s",
+	// First try the most granular env option (hardcoded for linux/amd64).
+	name := fmt.Sprintf("SOURCEDIR_%s_%s_LINUX_AMD64",
 		strings.ToUpper(target.OS), strings.ToUpper(target.Arch),
-		strings.ToUpper(runtime.GOOS), strings.ToUpper(runtime.GOARCH),
 	)
 	if ret := os.Getenv(name); ret != "" {
 		return ret

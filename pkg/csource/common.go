@@ -91,7 +91,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 	return map[string]bool{
 		"GOOS_" + p.Target.OS:           true,
 		"GOARCH_" + p.Target.Arch:       true,
-		"HOSTGOOS_" + runtime.GOOS:      true,
+		"HOSTGOOS_linux":                true,
 		"SYZ_USE_BITMASKS":              features.Bitmasks,
 		"SYZ_USE_CHECKSUMS":             features.Csums,
 		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,

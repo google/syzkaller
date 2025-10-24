@@ -1,6 +1,3 @@
-
-// +build
-
 #include <algorithm>
 #include <errno.h>
 #include <limits.h>

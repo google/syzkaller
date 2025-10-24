@@ -1,14 +1,6 @@
 # How to set up syzkaller
 
-Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
-
-For other kernels see:
-[FreeBSD](freebsd/README.md),
-[Darwin/XNU](darwin/README.md),
-[Fuchsia](fuchsia/README.md),
-[NetBSD](netbsd/README.md),
-[OpenBSD](openbsd/setup.md),
-[Windows](windows/README.md).
+Setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
 
 After following these instructions you should be able to run `syz-manager`, see it executing programs, and be able to access statistics exposed at `http://127.0.0.1:56741` (or whatever address you've specified in the manager config).
 If everything is working properly, a typical execution log would look like:

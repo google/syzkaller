@@ -58,7 +58,7 @@ func build(target *prog.Target, src []byte, dir, file string, cflags ...string) 
 		"-o", bin,
 		"-DGOOS_" + target.OS + "=1",
 		"-DGOARCH_" + target.Arch + "=1",
-		"-DHOSTGOOS_" + runtime.GOOS + "=1",
+		"-DHOSTGOOS_linux=1",
 	}
 	if file == "" {
 		flags = append(flags, "-x", "c", "-")
