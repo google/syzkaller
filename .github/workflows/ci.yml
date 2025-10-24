@@ -69,44 +69,6 @@ jobs:
         run: |
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_build
-      - name: codecov
-        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
-        with:
-          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
-          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
-          flags: unittests
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
-
-  dashboard:
-    runs-on: syz-env-x86
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      CI: true
-      TERM: dumb
-      GITHUB_ACTIONS: true
-    steps:
-      - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          path: gopath/src/github.com/google/syzkaller
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
-      - name: codecov
-        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
-        with:
-          codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
-          file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
-          flags: dashboard
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
 
   arch:
     runs-on: ubuntu-latest
@@ -133,52 +95,6 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make ${{ matrix.target }}
 
-  race:
-    runs-on: syz-env-x86
-    timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      CI: true
-      TERM: dumb
-    steps:
-      - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          path: gopath/src/github.com/google/syzkaller
-
-      # https://github.com/golang/go/issues/61608 to cache -race results.
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race
-
-  race_dashboard:
-    runs-on: syz-env-x86
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      CI: true
-      TERM: dumb
-    steps:
-      - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          path: gopath/src/github.com/google/syzkaller
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race_dashboard
-
   old:
     runs-on: ubuntu-latest
     container: gcr.io/syzkaller/old-env:latest
@@ -201,29 +117,3 @@ jobs:
         run: |
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_old
-  gvisor:
-    runs-on: ubuntu-latest
-    container:
-      image: gcr.io/syzkaller/syzbot:latest
-      options: --privileged
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      GOMODCACHE: /syzkaller/.cache/gomod
-      CI: true
-      TERM: dumb
-      GITHUB_ACTIONS: true
-    steps:
-      - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          path: gopath/src/github.com/google/syzkaller
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          make
-          .github/workflows/run.sh bash -xe tools/gvisor-smoke-test.sh

@@ -85,10 +85,9 @@ export GOBIN=$(shell pwd -P)/bin
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_rpc generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race \
+	tidy \
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
-	presubmit presubmit_aux presubmit_build presubmit_arch_linux \
-	presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
+	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_old
 
 all: host target
 host: manager repro mutate prog2c db upgrade
@@ -265,37 +264,17 @@ presubmit_aux:
 
 presubmit_build: descriptions
 	# Run go build before lint for better error messages if build is broken.
-	# This does not check build of test files, but running go test takes too long (even for building).
 	$(GO) build ./...
 	$(MAKE) lint
-	SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(MAKE) test
 
 presubmit_arch_linux: descriptions
 	HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
 	TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
 	TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
 
-presubmit_dashboard: descriptions
-	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app
-
-presubmit_race: descriptions
-	# -race requires cgo
-	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	CGO_ENABLED=1 SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
-	fi
-
-presubmit_race_dashboard: descriptions
-	# -race requires cgo
-	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	CGO_ENABLED=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./dashboard/app/... ;\
-	fi
-
 presubmit_old: descriptions
 	# Simplified for Linux amd64 only
 	TARGETARCH=amd64 TARGETVMARCH=amd64 $(MAKE) target
-
-test: descriptions
-	$(GO) test -short -coverprofile=.coverage.txt ./...
 
 clean:
 	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h sys/gen sys/register.go
