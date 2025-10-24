@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	flagOS            = flag.String("os", runtime.GOOS, "OS to build")
-	flagArch          = flag.String("arch", runtime.GOARCH, "arch to build")
+	flagOS            = flag.String("os", "linux", "OS to build (always linux)")
+	flagArch          = flag.String("arch", "amd64", "arch to build (always amd64)")
 	flagVM            = flag.String("vm", "gce", "VM type to build")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
 	flagMake          = flag.String("make", "", "non-default make")

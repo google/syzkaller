@@ -711,13 +711,10 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 		return parsedOpcodes{}, fmt.Errorf("invalid opcodes string: no trapping instructions")
 	}
 
-	var flags DecompilerFlagMask
-	if ctx.target.Arch == targets.ARM && width == 2 {
-		flags |= FlagForceArmThumbMode
-	}
+	// Linux amd64 only - no special decompiler flags needed
 	return parsedOpcodes{
 		rawBytes:       bytes,
-		decompileFlags: flags,
+		decompileFlags: 0,
 		offset:         trapOffset,
 	}, nil
 }

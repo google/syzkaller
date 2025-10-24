@@ -20,8 +20,8 @@ import (
 
 func main() {
 	var (
-		flagOS          = flag.String("os", runtime.GOOS, "target OS")
-		flagArch        = flag.String("arch", runtime.GOARCH, "target Arch")
+		flagOS          = flag.String("os", "linux", "target OS (always linux)")
+		flagArch        = flag.String("arch", "amd64", "target Arch (always amd64)")
 		flagHubAddress  = flag.String("addr", "", "hub address")
 		flagHubClient   = flag.String("client", "", "hub API client")
 		flagHubKey      = flag.String("key", "", "hub API key")

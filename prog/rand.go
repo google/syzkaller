@@ -512,12 +512,9 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 			Start: p & ^target.PageSize, Size: p & ^target.PageSize + target.PageSize,
 		})
 	}
-	if target.Arch == "amd64" {
-		cfg.Mode = ifuzz.ModeLong64
-		cfg.Arch = ifuzz.ArchX86
-	} else {
-		return nil
-	}
+	// Linux amd64 only
+	cfg.Mode = ifuzz.ModeLong64
+	cfg.Arch = ifuzz.ArchX86
 	return cfg
 }
 

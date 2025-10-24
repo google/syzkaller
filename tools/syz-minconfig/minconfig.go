@@ -26,7 +26,7 @@ func main() {
 		flagBase      = flag.String("base", "", "baseline config")
 		flagFull      = flag.String("full", "", "full config")
 		flagConfigs   = flag.String("configs", "", "comma-separated list of configs for the crash predicate")
-		flagArch      = flag.String("arch", runtime.GOARCH, "kernel arch")
+		flagArch      = flag.String("arch", "amd64", "kernel arch (always amd64)")
 	)
 	flag.Parse()
 	kconf, err := kconfig.Parse(targets.Get("linux", *flagArch), filepath.Join(*flagSourceDir, "Kconfig"))

@@ -160,7 +160,8 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 				resources = append(resources, typ1.Desc)
 			}
 		case *StructType:
-			if target.OS == "linux" && !dedup[timespecRes] && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
+			// Linux only - always handle timespec/timeval
+			if !dedup[timespecRes] && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
 				dedup[timespecRes] = true
 				resources = append(resources, timespecRes)
 			}

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	flagOS     = flag.String("os", runtime.GOOS, "target os")
-	flagArch   = flag.String("arch", runtime.GOARCH, "target arch")
+	flagOS     = flag.String("os", "linux", "target os (always linux)")
+	flagArch   = flag.String("arch", "amd64", "target arch (always amd64)")
 	flagProg   = flag.String("prog", "", "file with program to expand")
 	flagStrict = flag.Bool("strict", false, "parse input program in strict mode")
 )

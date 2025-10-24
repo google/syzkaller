@@ -578,10 +578,9 @@ func (inst *instance) Info() ([]byte, error) {
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
-	if inst.target.OS == targets.Linux {
-		if output, wait, handled := vmimpl.DiagnoseLinux(rep, inst.ssh); handled {
-			return output, wait
-		}
+	// Linux only - always use DiagnoseLinux
+	if output, wait, handled := vmimpl.DiagnoseLinux(rep, inst.ssh); handled {
+		return output, wait
 	}
 	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
 	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).

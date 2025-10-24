@@ -36,8 +36,8 @@ import (
 )
 
 var (
-	flagOS            = flag.String("os", runtime.GOOS, "OS to test")
-	flagArch          = flag.String("arch", runtime.GOARCH, "arch to test")
+	flagOS            = flag.String("os", "linux", "OS to test (always linux)")
+	flagArch          = flag.String("arch", "amd64", "arch to test (always amd64)")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
 	flagKernelConfig  = flag.String("config", "", "kernel config")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")

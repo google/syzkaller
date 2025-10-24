@@ -24,8 +24,8 @@ import (
 func main() {
 	var (
 		flagVersion = flag.Uint64("version", 0, "database version")
-		flagOS      = flag.String("os", runtime.GOOS, "target OS")
-		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
+		flagOS      = flag.String("os", "linux", "target OS (always linux)")
+		flagArch    = flag.String("arch", "amd64", "target arch (always amd64)")
 	)
 	flag.Parse()
 	args := flag.Args()

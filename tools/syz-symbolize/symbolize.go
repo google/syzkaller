@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	flagOS        = flag.String("os", runtime.GOOS, "target os")
-	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
+	flagOS        = flag.String("os", "linux", "target os (always linux)")
+	flagArch      = flag.String("arch", "amd64", "target arch (always amd64)")
 	flagKernelObj = flag.String("kernel_obj", ".", "path to kernel build/obj dir")
 	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources (defaults to kernel_obj)")
 	flagOutDir    = flag.String("outdir", "", "output directory")

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	flagOS         = flag.String("os", runtime.GOOS, "target os")
-	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
+	flagOS         = flag.String("os", "linux", "target os (always linux)")
+	flagArch       = flag.String("arch", "amd64", "target arch (always amd64)")
 	flagBuild      = flag.Bool("build", false, "also build the generated program")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagRepeat     = flag.Int("repeat", 1, "repeat program that many times (<=0 - infinitely)")

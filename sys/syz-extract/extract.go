@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	flagOS        = flag.String("os", runtime.GOOS, "target OS")
+	flagOS        = flag.String("os", "linux", "target OS (always linux)")
 	flagBuild     = flag.Bool("build", false, "regenerate arch-specific kernel headers")
 	flagSourceDir = flag.String("sourcedir", "", "path to kernel source checkout dir")
 	flagIncludes  = flag.String("includedirs", "", "path to other kernel source include dirs separated by commas")

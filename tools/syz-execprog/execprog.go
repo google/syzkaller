@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	flagOS         = flag.String("os", runtime.GOOS, "target os")
-	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
+	flagOS         = flag.String("os", "linux", "target os (always linux)")
+	flagArch       = flag.String("arch", "amd64", "target arch (always amd64)")
 	flagType       = flag.String("type", "", "target VM type")
 	flagCoverFile  = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat     = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
