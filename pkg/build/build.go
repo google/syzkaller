@@ -156,28 +156,7 @@ type builder interface {
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	if targetOS == targets.Linux {
-		switch vmType {
-		case targets.GVisor:
-			return gvisor{}, nil
-		case "cuttlefish":
-			return cuttlefish{}, nil
-		case "proxyapp:android":
-			return android{}, nil
-		case targets.Starnix:
-			return starnix{}, nil
-		}
-	}
-	builders := map[string]builder{
-		targets.Linux:   linux{},
-		targets.Fuchsia: fuchsia{},
-		targets.OpenBSD: openbsd{},
-		targets.NetBSD:  netbsd{},
-		targets.FreeBSD: freebsd{},
-		targets.Darwin:  darwin{},
-		targets.TestOS:  test{},
-	}
-	if builder, ok := builders[targetOS]; ok {
-		return builder, nil
+		return linux{}, nil
 	}
 	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 }

@@ -50,10 +50,6 @@ func impl() ([]Var, error) {
 		// to avoid OOM kills.
 		parallelism = 1
 	}
-	if runtime.GOOS == targets.OpenBSD {
-		// Avoids too much concurrency on OpenBSD which can't handle this much.
-		parallelism = 1
-	}
 	if mem := osutil.SystemMemorySize(); mem != 0 {
 		// Ensure that we have at least 1GB per Go compiler/linker invocation.
 		// Go compiler/linker can consume significant amount of memory

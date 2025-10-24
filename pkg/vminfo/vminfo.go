@@ -60,10 +60,6 @@ func New(cfg *Config) *Checker {
 	switch cfg.Target.OS {
 	case targets.Linux:
 		impl = &linux{vmType: cfg.VMType}
-	case targets.NetBSD:
-		impl = new(netbsd)
-	case targets.OpenBSD:
-		impl = new(openbsd)
 	default:
 		impl = new(nopChecker)
 	}

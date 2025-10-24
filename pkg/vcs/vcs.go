@@ -202,22 +202,11 @@ const (
 )
 
 func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
-	switch os {
-	case targets.Linux:
+	if os == targets.Linux {
 		if vmType == targets.Starnix {
 			return newFuchsia(dir, opts), nil
 		}
 		return newLinux(dir, opts, vmType), nil
-	case targets.Fuchsia:
-		return newFuchsia(dir, opts), nil
-	case targets.OpenBSD:
-		return newGitRepo(dir, nil, opts), nil
-	case targets.NetBSD:
-		return newGitRepo(dir, nil, opts), nil
-	case targets.FreeBSD:
-		return newGitRepo(dir, nil, opts), nil
-	case targets.TestOS:
-		return newTestos(dir, opts), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }

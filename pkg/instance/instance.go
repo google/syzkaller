@@ -495,12 +495,7 @@ func ExecprogCmd(execprog, executor, OS, arch, vmType string, opts csource.Optio
 		optionalArg, progFile)
 }
 
-var MakeBin = func() string {
-	if runtime.GOOS == targets.FreeBSD || runtime.GOOS == targets.OpenBSD {
-		return "gmake"
-	}
-	return "make"
-}()
+var MakeBin = "make"
 
 // nolint:revive
 func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, newEnv bool) string {

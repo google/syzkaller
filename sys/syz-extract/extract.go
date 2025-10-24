@@ -58,15 +58,7 @@ type Extractor interface {
 }
 
 var extractors = map[string]Extractor{
-	targets.Linux:   new(linux),
-	targets.FreeBSD: new(freebsd),
-	targets.Darwin:  new(darwin),
-	targets.NetBSD:  new(netbsd),
-	targets.OpenBSD: new(openbsd),
-	"android":       new(linux),
-	targets.Fuchsia: new(fuchsia),
-	targets.Windows: new(windows),
-	targets.Trusty:  new(trusty),
+	targets.Linux: new(linux),
 }
 
 func main() {

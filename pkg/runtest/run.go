@@ -546,11 +546,6 @@ func checkCallStatus(req *runRequest, isC bool, run, call int, inf, want *flatrp
 		if ignoreFlags && flag != flatrpc.CallFlagFinished {
 			continue
 		}
-		if runtime.GOOS == targets.FreeBSD && flag == flatrpc.CallFlagBlocked {
-			// Blocking detection is flaky on freebsd.
-			// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
-			continue
-		}
 		if (inf.Flags^want.Flags)&flag != 0 {
 			return fmt.Errorf("run %v: call %v %v %v, want %v",
 				run, call, flagStatus(inf.Flags, flag), what, flagStatus(want.Flags, flag))

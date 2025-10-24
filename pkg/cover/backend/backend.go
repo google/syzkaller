@@ -74,9 +74,6 @@ func Make(cfg *mgrconfig.Config, modules []*vminfo.KernelModule) (*Impl, error) 
 	if kernelDirs.Obj == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
-	if target.OS == targets.Darwin {
-		return makeMachO(target, kernelDirs, moduleObj, modules)
-	}
 	if vm == targets.GVisor {
 		return makeGvisor(target, kernelDirs, modules)
 	}

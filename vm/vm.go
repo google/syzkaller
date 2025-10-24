@@ -27,21 +27,11 @@ import (
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm/dispatcher"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.
-	_ "github.com/google/syzkaller/vm/adb"
-	_ "github.com/google/syzkaller/vm/bhyve"
-	_ "github.com/google/syzkaller/vm/cuttlefish"
-	_ "github.com/google/syzkaller/vm/gce"
-	_ "github.com/google/syzkaller/vm/gvisor"
 	_ "github.com/google/syzkaller/vm/isolated"
-	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
-	_ "github.com/google/syzkaller/vm/starnix"
-	_ "github.com/google/syzkaller/vm/vmm"
-	_ "github.com/google/syzkaller/vm/vmware"
 )
 
 type Pool struct {
@@ -345,12 +335,6 @@ func (inst *Instance) Close() error {
 	}
 	inst.onClose()
 	return err
-}
-
-type Dispatcher = dispatcher.Pool[*Instance]
-
-func NewDispatcher(pool *Pool, def dispatcher.Runner[*Instance]) *Dispatcher {
-	return dispatcher.NewPool(pool.count, pool.Create, def)
 }
 
 type monitor struct {
