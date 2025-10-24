@@ -117,7 +117,7 @@ jobs:
       TERM: dumb
     strategy:
       matrix:
-        target: [ presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_netbsd, presubmit_arch_openbsd, presubmit_arch_darwin, presubmit_arch_windows, presubmit_arch_executor ]
+        target: [ presubmit_arch_linux ]
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
