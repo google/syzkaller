@@ -230,13 +230,7 @@ func (ctx *context) generateSyscallDefines() string {
 		fmt.Fprintf(buf, "#define %v%v %v\n", prefix, name, ctx.calls[name])
 		fmt.Fprintf(buf, "#endif\n")
 	}
-	if ctx.target.OS == targets.Linux && ctx.target.PtrSize == 4 {
-		// This is a dirty hack.
-		// On 32-bit linux mmap translated to old_mmap syscall which has a different signature.
-		// mmap2 has the right signature. syz-extract translates mmap to mmap2, do the same here.
-		fmt.Fprintf(buf, "#undef __NR_mmap\n")
-		fmt.Fprintf(buf, "#define __NR_mmap __NR_mmap2\n")
-	}
+	// No 32-bit mmap hack needed on amd64 (PtrSize == 8)
 	return buf.String()
 }
 
@@ -409,11 +403,7 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 			}
 			com := ctx.argComment(call.Meta.Args[i], arg)
 			val := ctx.resultArgToStr(arg)
-			if native && ctx.target.PtrSize == 4 {
-				// syscall accepts args as ellipsis, resources are uint64
-				// and take 2 slots without the cast, which would be wrong.
-				val = "(intptr_t)" + val
-			}
+			// No cast needed on amd64 (PtrSize == 8, not 4)
 			argsStrs = append(argsStrs, com+val)
 		default:
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
@@ -637,13 +627,9 @@ func (ctx *context) literalSuffix(arg prog.ExecArgConst) string {
 		// platforms, but is a 32-bit value ("unsigned int" or so) in many
 		// cases. Thus, we assume here that passing a 64-bit argument where
 		// a 32-bit argument is expected won't break anything. On amd64
-		// this should be fine: arguments are passed in 64-bit registers or
-		// at 64 bit-aligned addresses on the stack.
-		if ctx.target.PtrSize == 4 {
-			return "ull"
-		} else {
-			return "ul"
-		}
+		// On amd64 (64-bit), arguments are passed in 64-bit registers or
+		// at 64 bit-aligned addresses on the stack. Use "ul" suffix.
+		return "ul"
 	}
 	return ""
 }

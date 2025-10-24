@@ -781,45 +781,7 @@ func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
 }
 
 func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
-	callName := [][]byte{[]byte(" <__sanitizer_cov_trace_pc>")}
-	switch target.Arch {
-	case targets.I386:
-		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tcall ")}, callName
-	case targets.ARM64:
-		// ffff0000080d9cc0:       bl      ffff00000820f478 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tbl ")}, [][]byte{
-			[]byte("<__sanitizer_cov_trace_pc>"),
-			[]byte("<____sanitizer_cov_trace_pc_veneer>"),
-		}
-
-	case targets.ARM:
-		// 8010252c:       bl      801c3280 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tbl\t")}, callName
-	case targets.PPC64LE:
-		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
-		// This is only known to occur in the test:
-		// 838:   bl      824 <__sanitizer_cov_trace_pc+0x8>
-		// This occurs on PPC64LE:
-		// c0000000001c21a8:       bl      c0000000002df4a0 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tbl ")}, [][]byte{
-			[]byte("<__sanitizer_cov_trace_pc>"),
-			[]byte("<__sanitizer_cov_trace_pc+0x8>"),
-			[]byte(" <.__sanitizer_cov_trace_pc>"),
-		}
-	case targets.MIPS64LE:
-		// ffffffff80100420:       jal     ffffffff80205880 <__sanitizer_cov_trace_pc>
-		// This is only known to occur in the test:
-		// b58:   bal     b30 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tjal\t"), []byte("\tbal\t")}, callName
-	case targets.S390x:
-		// 1001de:       brasl   %r14,2bc090 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tbrasl\t")}, callName
-	case targets.RiscV64:
-		// ffffffe000200018:       jal     ra,ffffffe0002935b0 <__sanitizer_cov_trace_pc>
-		// ffffffe0000010da:       jalr    1242(ra) # ffffffe0002935b0 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tjal\t"), []byte("\tjalr\t")}, callName
-	default:
-		panic(fmt.Sprintf("unknown arch %q", target.Arch))
-	}
+	// AMD64 call instruction
+	// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
+	return [][]byte{[]byte("\tcall ")}, [][]byte{[]byte(" <__sanitizer_cov_trace_pc>")}
 }

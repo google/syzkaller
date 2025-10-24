@@ -95,31 +95,6 @@ func objdumpParseOutput(rawOutput []byte) []DecompiledOpcode {
 
 func objdumpBuildArgs(flags DecompilerFlagMask, target *targets.Target) ([]string, error) {
 	// objdump won't be able to decompile a raw binary file unless we specify the exact
-	// architecture through the -m parameter.
-	ret := []string{"-b", "binary", "-D"}
-	switch target.Arch {
-	case targets.ARM64:
-		ret = append(ret, "-maarch64")
-	case targets.ARM:
-		ret = append(ret, "-marm")
-		if flags&FlagForceArmThumbMode != 0 {
-			ret = append(ret, "-M", "force-thumb")
-		}
-	case targets.I386:
-		ret = append(ret, "-mi386")
-	case targets.AMD64:
-		ret = append(ret, "-mi386", "-Mx86-64")
-	case targets.MIPS64LE:
-		ret = append(ret, "-mmips")
-	case targets.PPC64LE:
-		ret = append(ret, "-mppc")
-	case targets.S390x:
-		ret = append(ret, "-m", "s390:64-bit")
-	case targets.RiscV64:
-		ret = append(ret, "-mriscv")
-	default:
-		return nil, fmt.Errorf("cannot build objdump args for %#v", target.Arch)
-	}
-
-	return ret, nil
+	// AMD64 objdump args
+	return []string{"-b", "binary", "-D", "-mi386", "-Mx86-64"}, nil
 }
