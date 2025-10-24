@@ -1,9 +1,0 @@
-# requires: -sandbox=namespace
-
-# Join IBSSS network.
-
-syz_80211_join_ibss(&AUTO='wlan0\x00', &AUTO=@default_ibss_ssid, 0x6, 0x0)
-
-# Inject an arbitrary packet.
-
-syz_80211_inject_frame(&AUTO=@device_a, &AUTO=@mgmt_frame=@beacon={{{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0}, @void}, 0x0, @default, 0x1, @val={AUTO, AUTO, @default_ap_ssid}, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0x0}, {0x12,0x0}, {0x18,0x0}, {0x24, 0x0}]}, @void, @void, @void, @void, @void, @void, @void, @void, @void, @void, @void, []}, AUTO)

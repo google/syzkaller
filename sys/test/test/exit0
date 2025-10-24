@@ -1,3 +1,0 @@
-syz_errno(0x0)
-syz_exit(0x0)	# unexecuted
-syz_errno(0x0)	# unexecuted

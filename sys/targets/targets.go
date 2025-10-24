@@ -135,33 +135,13 @@ type Timeouts struct {
 }
 
 const (
-	FreeBSD = "freebsd"
-	Darwin  = "darwin"
-	Fuchsia = "fuchsia"
-	Linux   = "linux"
-	NetBSD  = "netbsd"
-	OpenBSD = "openbsd"
-	TestOS  = "test"
-	Trusty  = "trusty"
-	Windows = "windows"
+	Linux = "linux"
 
 	// These are VM types, but we put them here to prevent string duplication.
 	GVisor  = "gvisor"
 	Starnix = "starnix"
 
-	AMD64          = "amd64"
-	ARM64          = "arm64"
-	ARM            = "arm"
-	I386           = "386"
-	MIPS64LE       = "mips64le"
-	PPC64LE        = "ppc64le"
-	S390x          = "s390x"
-	RiscV64        = "riscv64"
-	TestArch64     = "64"
-	TestArch64Fuzz = "64_fuzz"
-	TestArch64Fork = "64_fork"
-	TestArch32     = "32"
-	TestArch32Fork = "32_fork"
+	AMD64 = "amd64"
 )
 
 func Get(OS, arch string) *Target {
@@ -189,77 +169,6 @@ func GetEx(OS, arch string, clang bool) *Target {
 
 // nolint: lll
 var List = map[string]map[string]*Target{
-	TestOS: {
-		TestArch64: {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CFlags: []string{
-				"-fsanitize=address",
-				// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-				"-no-pie",
-				// Otherwise it conflicts with -fsanitize-coverage=trace-pc.
-				"-fno-exceptions",
-			},
-			osCommon: osCommon{
-				SyscallNumbers:         true,
-				SyscallPrefix:          "SYS_",
-				ExecutorUsesForkServer: false,
-			},
-		},
-		TestArch64Fuzz: {
-			PtrSize:  8,
-			PageSize: 8 << 10,
-			CFlags: []string{
-				"-fsanitize=address",
-				"-no-pie",
-			},
-			osCommon: osCommon{
-				SyscallNumbers:         true,
-				SyscallPrefix:          "SYS_",
-				ExecutorUsesForkServer: true,
-			},
-		},
-		TestArch64Fork: {
-			PtrSize:  8,
-			PageSize: 8 << 10,
-			CFlags: []string{
-				"-fsanitize=address",
-				// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-				"-no-pie",
-				// Otherwise it conflicts with -fsanitize-coverage=trace-pc.
-				"-fno-exceptions",
-			},
-			osCommon: osCommon{
-				SyscallNumbers:         true,
-				SyscallPrefix:          "SYS_",
-				ExecutorUsesForkServer: true,
-			},
-		},
-		TestArch32: {
-			PtrSize:        4,
-			PageSize:       8 << 10,
-			Int64Alignment: 4,
-			CFlags:         []string{"-m32", "-static"},
-			osCommon: osCommon{
-				SyscallNumbers:         true,
-				Int64SyscallArgs:       true,
-				SyscallPrefix:          "SYS_",
-				ExecutorUsesForkServer: false,
-			},
-		},
-		TestArch32Fork: {
-			PtrSize:  4,
-			PageSize: 4 << 10,
-			CFlags:   []string{"-m32", "-static-pie"},
-			osCommon: osCommon{
-				SyscallNumbers:         true,
-				Int64SyscallArgs:       true,
-				SyscallPrefix:          "SYS_",
-				ExecutorUsesForkServer: true,
-				HostFuzzer:             true,
-			},
-		},
-	},
 	Linux: {
 		AMD64: {
 			PtrSize:          8,
@@ -283,217 +192,6 @@ var List = map[string]map[string]*Target{
 				DataEnd:   0xffff890000000000,
 			},
 		},
-		I386: {
-			VMArch:           AMD64,
-			PtrSize:          4,
-			PageSize:         4 << 10,
-			Int64Alignment:   4,
-			CFlags:           []string{"-m32"},
-			Triple:           "x86_64-linux-gnu",
-			KernelArch:       "i386",
-			KernelHeaderArch: "x86",
-		},
-		ARM64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			Triple:           "aarch64-linux-gnu",
-			KernelArch:       "arm64",
-			KernelHeaderArch: "arm64",
-		},
-		ARM: {
-			VMArch:           ARM64,
-			PtrSize:          4,
-			PageSize:         4 << 10,
-			Triple:           "arm-linux-gnueabi",
-			KernelArch:       "arm",
-			KernelHeaderArch: "arm",
-		},
-		MIPS64LE: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
-			Triple:           "mips64el-linux-gnuabi64",
-			KernelArch:       "mips",
-			KernelHeaderArch: "mips",
-		},
-		PPC64LE: {
-			PtrSize:          8,
-			PageSize:         64 << 10,
-			CFlags:           []string{"-D__powerpc64__"},
-			Triple:           "powerpc64le-linux-gnu",
-			KernelArch:       "powerpc",
-			KernelHeaderArch: "powerpc",
-		},
-		S390x: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			DataOffset:       0xfffff000,
-			CFlags:           []string{"-fPIE"},
-			BigEndian:        true,
-			Triple:           "s390x-linux-gnu",
-			KernelArch:       "s390",
-			KernelHeaderArch: "s390",
-			SyscallTrampolines: map[string]string{
-				// The s390x Linux syscall ABI allows for upto 5 input parameters passed in registers, and this is not enough
-				// for the mmap syscall. Therefore, all input parameters for the mmap syscall are packed into a struct
-				// on user stack and the pointer to the struct is passed as an input parameter to the syscall.
-				// To work around this problem we therefore reroute the mmap syscall to the glibc mmap wrapper.
-				"mmap": "mmap",
-			},
-		},
-		RiscV64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			Triple:           "riscv64-linux-gnu",
-			KernelArch:       "riscv",
-			KernelHeaderArch: "riscv",
-		},
-	},
-	FreeBSD: {
-		AMD64: {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "clang",
-			CFlags:    []string{"-m64", "--target=x86_64-unknown-freebsd14.0"},
-			NeedSyscallDefine: func(nr uint64) bool {
-				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
-				return nr == 482 || nr >= 569
-			},
-			KernelAddresses: KernelAddresses{
-				// On amd64 the kernel and KLDs are loaded into the top
-				// 2GB of the kernel address space.
-				TextStart: 0xffffffff80000000,
-				TextEnd:   0xffffffffffffffff,
-			},
-		},
-		ARM64: {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "clang",
-			CFlags:    []string{"-m64", "--target=aarch64-unknown-freebsd14.0"},
-			NeedSyscallDefine: func(nr uint64) bool {
-				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
-				return nr == 482 || nr >= 569
-			},
-		},
-		I386: {
-			VMArch:   AMD64,
-			PtrSize:  4,
-			PageSize: 4 << 10,
-			// The default DataOffset doesn't work with 32-bit
-			// FreeBSD and using ld.lld due to collisions.
-			DataOffset:     256 << 20,
-			Int64Alignment: 4,
-			CCompiler:      "clang",
-			CFlags:         []string{"-m32", "--target=i386-unknown-freebsd14.0"},
-			NeedSyscallDefine: func(nr uint64) bool {
-				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
-				return nr == 482 || nr >= 569
-			},
-		},
-		RiscV64: {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "clang",
-			CFlags:    []string{"-m64", "--target=riscv64-unknown-freebsd14.0"},
-			NeedSyscallDefine: func(nr uint64) bool {
-				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
-				return nr == 482 || nr >= 569
-			},
-		},
-	},
-	Darwin: {
-		AMD64: {
-			PtrSize:    8,
-			PageSize:   4 << 10,
-			DataOffset: 512 << 24,
-			CCompiler:  "clang",
-			CFlags: []string{
-				"-m64",
-				"-I", sourceDirVar + "/san",
-				// FIXME(HerrSpace): syscall was marked as deprecated on macos
-				"-Wno-deprecated-declarations",
-			},
-			NeedSyscallDefine: dontNeedSyscallDefine,
-		},
-	},
-	NetBSD: {
-		AMD64: {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CFlags: []string{
-				"-m64",
-				"-static-pie",
-				"--sysroot", sourceDirVar + "/dest/",
-			},
-			CCompiler: sourceDirVar + "/tools/bin/x86_64--netbsd-g++",
-		},
-	},
-	OpenBSD: {
-		AMD64: {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "c++",
-			// PIE is enabled on OpenBSD by default, so no need for -static-pie.
-			CFlags: []string{"-m64", "-static", "-lutil"},
-			NeedSyscallDefine: func(nr uint64) bool {
-				switch nr {
-				case 8: // SYS___tfork
-					return true
-				case 94: // SYS___thrsleep
-					return true
-				case 198: // SYS___syscall
-					return true
-				case 295: // SYS___semctl
-					return true
-				case 301: // SYS___thrwakeup
-					return true
-				case 302: // SYS___threxit
-					return true
-				case 303: // SYS___thrsigdivert
-					return true
-				case 304: // SYS___getcwd
-					return true
-				case 329: // SYS___set_tcb
-					return true
-				case 330: // SYS___get_tcb
-					return true
-				}
-				return false
-			},
-		},
-	},
-	Fuchsia: {
-		AMD64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			KernelHeaderArch: "x64",
-			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
-			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
-			CFlags:           fuchsiaCFlags("x64", "x86_64"),
-		},
-		ARM64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			KernelHeaderArch: ARM64,
-			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
-			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
-			CFlags:           fuchsiaCFlags(ARM64, "aarch64"),
-		},
-	},
-	Windows: {
-		AMD64: {
-			PtrSize: 8,
-			// TODO(dvyukov): what should we do about 4k vs 64k?
-			PageSize: 4 << 10,
-		},
-	},
-	Trusty: {
-		ARM: {
-			PtrSize:           4,
-			PageSize:          4 << 10,
-			NeedSyscallDefine: dontNeedSyscallDefine,
-		},
 	},
 }
 
@@ -512,75 +210,6 @@ var oses = map[string]osCommon{
 			"syz_pidfd_open":      {"pidfd_open"},
 		},
 		cflags: []string{"-static-pie"},
-	},
-	FreeBSD: {
-		SyscallNumbers:         true,
-		Int64SyscallArgs:       true,
-		SyscallPrefix:          "SYS_",
-		ExecutorUsesForkServer: true,
-		KernelObject:           "kernel.full",
-		CPP:                    "g++",
-		// FreeBSD is missing toolchain support for static PIEs.
-		cflags: []string{
-			"-static",
-			"-lc++",
-			// For some configurations -no-pie is passed to the compiler,
-			// which is not used by clang.
-			// Ensure clang does not complain about it.
-			"-Wno-unused-command-line-argument",
-		},
-	},
-	Darwin: {
-		SyscallNumbers:   true,
-		Int64SyscallArgs: true,
-		SyscallPrefix:    "SYS_",
-		// FIXME(HerrSpace): ForkServer is b0rked in a peculiar way. I did some
-		// printf debugging in parseOutput in ipc.go. It usually works for a
-		// few executions. Eventually the reported ncmd stops making sense and
-		// the resulting replies are partially garbage. I also looked at the
-		// executor side of things, but that's harder to track as we are just
-		// banging bytes in the shmem there and don't use structs like on the
-		// go side.
-		ExecutorUsesForkServer: false,
-		KernelObject:           "kernel.kasan",
-		// Note: We need a real g++ here, not the symlink to clang++ common on
-		// macOS systems. Homebrews gcc package suffixes these with the gcc
-		// version to avoid conflicting with the macOS symlink. Currently -11.
-		CPP:    "g++-11",
-		cflags: []string{"-lc++"},
-	},
-	NetBSD: {
-		BuildOS:                Linux,
-		SyscallNumbers:         true,
-		SyscallPrefix:          "SYS_",
-		ExecutorUsesForkServer: true,
-		KernelObject:           "netbsd.gdb",
-	},
-	OpenBSD: {
-		SyscallNumbers:         false,
-		SyscallPrefix:          "SYS_",
-		ExecutorUsesForkServer: true,
-		KernelObject:           "bsd.gdb",
-		CPP:                    "ecpp",
-	},
-	Fuchsia: {
-		BuildOS:                Linux,
-		SyscallNumbers:         false,
-		ExecutorUsesForkServer: false,
-		HostFuzzer:             true,
-		ExecutorBin:            "syz-executor",
-		KernelObject:           "zircon.elf",
-	},
-	Windows: {
-		SyscallNumbers:         false,
-		ExecutorUsesForkServer: false,
-		ExeExtension:           ".exe",
-		KernelObject:           "vmlinux",
-	},
-	Trusty: {
-		SyscallNumbers:   true,
-		Int64SyscallArgs: true,
-		SyscallPrefix:    "__NR_",
 	},
 }
 
@@ -622,76 +251,11 @@ var (
 	}
 )
 
-func fuchsiaCFlags(arch, clangArch string) []string {
-	out := sourceDirVar + "/out/" + arch
-	return []string{
-		"-Wno-deprecated",
-		"-target", clangArch + "-fuchsia",
-		"-ldriver",
-		"-lfdio",
-		"-lzircon",
-		"--sysroot", out + "/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
-		"-I", sourceDirVar + "/sdk/lib/fdio/include",
-		"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
-		"-I", sourceDirVar + "/src/lib/ddk/include",
-		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.device",
-		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.device.manager",
-		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.hardware.nand",
-		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.hardware.power.statecontrol",
-		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.hardware.usb.peripheral",
-		"-I", out + "/fidling/gen/zircon/vdso/zx",
-		"-L", out + "/" + arch + "-shared",
-	}
-}
-
 func init() {
 	for OS, archs := range List {
 		for arch, target := range archs {
 			initTarget(target, OS, arch)
 		}
-	}
-	arch32, arch64 := splitArch(runtime.GOARCH)
-	goos := runtime.GOOS
-	for _, target := range List[TestOS] {
-		if List[goos] == nil {
-			continue
-		}
-		arch := arch64
-		if target.PtrSize == 4 {
-			arch = arch32
-		}
-		host := List[goos][arch]
-		if host == nil {
-			target.BrokenCompiler = fmt.Sprintf("TestOS %v unsupported", target.PtrSize*8)
-			continue
-		}
-		target.CCompiler = host.CCompiler
-		target.CxxCompiler = host.CxxCompiler
-		target.CPP = host.CPP
-		target.CFlags = append(append([]string{}, host.CFlags...), target.CFlags...)
-		target.CFlags = processMergedFlags(target.CFlags)
-		// At least FreeBSD/386 requires a non-default DataOffset value.
-		target.DataOffset = host.DataOffset
-		// In ESA/390 mode, the CPU is able to address only 31bit of memory but
-		// arithmetic operations are still 32bit
-		// Fix cflags by replacing compiler's -m32 option with -m31
-		if arch == S390x {
-			for i := range target.CFlags {
-				target.CFlags[i] = strings.ReplaceAll(target.CFlags[i], "-m32", "-m31")
-			}
-		}
-		if runtime.GOOS == OpenBSD {
-			target.BrokenCompiler = "can't build TestOS on OpenBSD due to missing syscall function."
-		}
-		// These are used only for pkg/runtest tests, executor also knows about these values.
-		target.KernelAddresses.TextStart = 0xc0dec0dec0000000
-		target.KernelAddresses.TextEnd = 0xc0dec0dec1000000
-		if target.PtrSize == 4 {
-			target.KernelAddresses.TextStart = uint64(uint32(target.KernelAddresses.TextStart))
-			target.KernelAddresses.TextEnd = uint64(uint32(target.KernelAddresses.TextEnd))
-		}
-		target.KernelAddresses.DataStart = 0xda1a0000
-		target.KernelAddresses.DataEnd = 0xda1a1000
 	}
 }
 
@@ -755,11 +319,7 @@ func initTarget(target *Target, OS, arch string) {
 		}
 	}
 	if target.BuildOS == "" {
-		if OS == TestOS {
-			target.BuildOS = runtime.GOOS
-		} else {
-			target.BuildOS = OS
-		}
+		target.BuildOS = OS
 	}
 	if runtime.GOOS != target.BuildOS {
 		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
@@ -770,35 +330,15 @@ func initTarget(target *Target, OS, arch string) {
 	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
 		target.CFlags = append(target.CFlags, flags...)
 	}
-	if OS == TestOS {
-		if runtime.GOARCH == S390x {
-			target.BigEndian = true
-		}
-	}
 	target.HostEndian = binary.LittleEndian
-	if target.BigEndian {
-		target.HostEndian = binary.BigEndian
-	}
 	target.initAddr2Line()
 }
 
 func (target *Target) defaultDataOffset() uint64 {
-	if target.Arch == ARM64 || target.Arch == ARM {
-		// On ARM/ARM64, in many cases we can't use many enough bits of the address space.
-		// Let's use the old value for now. It's also problematic (see #5770), but it's
-		// lesser of the two evils.
-		return 0x20000000
-	}
-	if target.PtrSize == 8 {
-		// An address from ASAN's 64-bit HighMem area.
-		// 0x200000000000 works both for arm64 and amd64. We don't run syzkaller tests on any other platform.
-		// During real fuzzing, we don't build with ASAN, so the address should not matter much as long as
-		// it's far enough from the area allocated by malloc().
-		// Another restriction is that on Starnix the available memory space ends at 0x400000000000.
-		return 0x200000000000
-	}
-	// From 32-bit HighMem area.
-	return 0x80000000
+	// An address from ASAN's 64-bit HighMem area for amd64.
+	// During real fuzzing, we don't build with ASAN, so the address should not matter much as long as
+	// it's far enough from the area allocated by malloc().
+	return 0x200000000000
 }
 
 func (target *Target) initAddr2Line() {
@@ -817,31 +357,12 @@ func (target *Target) initAddr2Line() {
 
 func (target *Target) findAddr2Line() (string, error) {
 	// Try llvm-addr2line first as it's significantly faster on large binaries.
-	// But it's unclear if it works for darwin binaries.
-	if target.OS != Darwin {
-		if path, err := exec.LookPath("llvm-addr2line"); err == nil {
-			return path, nil
-		}
+	if path, err := exec.LookPath("llvm-addr2line"); err == nil {
+		return path, nil
 	}
 	bin := "addr2line"
 	if target.Triple != "" {
 		bin = target.Triple + "-" + bin
-	}
-	if target.OS != Darwin || target.Arch != AMD64 {
-		return bin, nil
-	}
-	// A special check for darwin kernel to produce a more useful error.
-	cmd := exec.Command(bin, "--help")
-	cmd.Env = append(os.Environ(), "LC_ALL=C")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("addr2line execution failed: %w", err)
-	}
-	if !bytes.Contains(out, []byte("supported targets:")) {
-		return "", fmt.Errorf("addr2line output didn't contain supported targets")
-	}
-	if !bytes.Contains(out, []byte("mach-o-x86-64")) {
-		return "", fmt.Errorf("addr2line was built without mach-o-x86-64 support")
 	}
 	return bin, nil
 }
@@ -1023,25 +544,6 @@ func checkFlagSupported(target *Target, targetCFlags []string, flag string) bool
 	cmd := exec.Command(target.CCompiler, args...)
 	cmd.Stdin = strings.NewReader(simpleCProg)
 	return cmd.Run() == nil
-}
-
-// Split an arch into a pair of related 32 and 64 bit arch names.
-// If the arch is unknown, we assume that the arch is 64 bit.
-func splitArch(arch string) (string, string) {
-	type pair struct {
-		name32 string
-		name64 string
-	}
-	pairs := []pair{
-		{I386, AMD64},
-		{ARM, ARM64},
-	}
-	for _, p := range pairs {
-		if p.name32 == arch || p.name64 == arch {
-			return p.name32, p.name64
-		}
-	}
-	return "", arch
 }
 
 func processMergedFlags(flags []string) []string {

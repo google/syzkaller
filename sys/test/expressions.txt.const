@@ -1,3 +1,0 @@
-arches = 32, 32_fork, 64, 64_fork, 64_fuzz
-FIELD_FLAG1 = 2
-FIELD_FLAG2 = 4

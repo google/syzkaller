@@ -1,1 +1,0 @@
-compiler: unsupported syscall: ioctl$X86_IOC_RDMSR_REGS due to missing const X86_IOC_RDMSR_REGS [arm,arm64]

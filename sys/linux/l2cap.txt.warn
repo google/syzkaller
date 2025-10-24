@@ -1,9 +1,0 @@
-no-such-struct: l2cap_cmd_hdr_t
-bad-struct-size: l2cap_conf_opt: syz=11 kernel=2
-bad-struct-size: l2cap_conf_opt: syz=18 kernel=2
-bad-struct-size: l2cap_conf_opt: syz=3 kernel=2
-bad-struct-size: l2cap_conf_opt: syz=4 kernel=2
-bad-field-size: l2cap_conf_opt.val: syz=1 kernel=0
-bad-field-size: l2cap_conf_opt.val: syz=16 kernel=0
-bad-field-size: l2cap_conf_opt.val: syz=2 kernel=0
-bad-field-size: l2cap_conf_opt.val: syz=9 kernel=0

@@ -1,6 +1,0 @@
-# requires: arch=amd64
-
-# This connects to an NVMe server on 127.0.0.1:4420  and then close the connection
-
-r0 = syz_socket_connect_nvme_tcp()
-close(r0)

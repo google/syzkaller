@@ -1,5 +1,0 @@
-bad-netlink-attr: nl802154_dev_policy.NL802154_DEV_ATTR_FRAME_COUNTER: bad size 2, expect 4
-bad-netlink-attr: nl802154_policy$DEL_SEC_DEV: missing attributes: [2 22 24 25]
-no-such-struct: ieee802154_addr_sa_t
-no-such-struct: ieee802154_hwaddr
-no-such-struct: msghdr_802154

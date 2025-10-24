@@ -1,5 +1,0 @@
-# This badly crashes kernel, so for now sendmsg call is disabled.
-
-r0 = socket$nl_generic(0x10, 0x3, 0x10)
-r1 = syz_genetlink_get_family_id$tipc2(&(0x7f0000000000)='TIPCv2\x00', 0xffffffffffffffff)
-#sendmsg$TIPC_NL_BEARER_ENABLE(r0, &AUTO={0x0, 0x0, &AUTO={&AUTO={AUTO, r1, 0x1, 0x123, 0x234, {0x3, 0x0, 0x0}, [@TIPC_NLA_BEARER={AUTO, AUTO, [@TIPC_NLA_BEARER_NAME={AUTO, AUTO, @udp='udp:syz0'}, @TIPC_NLA_BEARER_UDP_OPTS={AUTO, AUTO, {{AUTO, AUTO, @in={AUTO, 0x4e20, @loopback=AUTO}}, {AUTO, AUTO, @in={AUTO, 0x4e20, @loopback=AUTO}}}}]}]}, AUTO}, 0x1, 0x0, 0x0, 0x0}, 0x0)

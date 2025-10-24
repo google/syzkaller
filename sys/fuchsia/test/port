@@ -1,5 +1,0 @@
-zx_port_create(0x0, &AUTO=<r0=>0x0)
-zx_port_wait(r0, 0x0, &AUTO) # ZX_ERR_TIMED_OUT
-zx_port_queue(r0, &AUTO)
-zx_port_wait(r0, 0x0, &AUTO)
-zx_handle_close(r0)

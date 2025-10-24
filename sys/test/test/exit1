@@ -1,3 +1,0 @@
-syz_errno(0x1)	# EPERM
-syz_exit(0x1)	# unexecuted
-syz_errno(0x1)	# unexecuted

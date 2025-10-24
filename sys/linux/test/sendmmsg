@@ -1,4 +1,0 @@
-# Regression test for https://github.com/torvalds/linux/commit/1c5950fc6fe996235f1d18539b9c6b64b597f50f
-
-r0 = socket$inet6(AUTO, 0x2, 0x0)
-sendmmsg$inet6(r0, &AUTO=[{{&AUTO={AUTO, 0x4e20, 0x0, @ipv4={"00000000000000000000", "ffff", @loopback=AUTO}, 0x0}, AUTO, &AUTO=[{&AUTO="aabbcc", AUTO}], AUTO, 0x0, AUTO, 0x0}, 0x0}, {{&AUTO={AUTO, 0x4e20, 0x0, @ipv4={"00000000000000000000", "ffff", @loopback=AUTO}, 0x0}, AUTO, &AUTO=[{&AUTO="aabbcc", AUTO}], AUTO, 0x0, AUTO, 0x0}, 0x0}], AUTO, 0x0)

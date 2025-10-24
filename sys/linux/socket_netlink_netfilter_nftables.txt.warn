@@ -1,4 +1,0 @@
-no-such-struct: nft_nlmsghdr
-no-such-struct: nfgenmsg_nft
-bad-netlink-attr: nft_rule_compat_policy.NFTA_RULE_COMPAT_PROTO_IPV6: duplicate attribute
-bad-netlink-attr: nft_rule_compat_policy.NFTA_RULE_COMPAT_PROTO_BRIDGE: duplicate attribute

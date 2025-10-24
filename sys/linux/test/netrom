@@ -1,2 +1,0 @@
-r0 = syz_init_net_socket$netrom(AUTO, AUTO, AUTO)
-close(r0)

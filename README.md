@@ -1,43 +1,27 @@
-# syzkaller - kernel fuzzer
+# syzkaller - kernel fuzzer (Linux amd64 fork)
 
-[![CI Status](https://github.com/google/syzkaller/workflows/ci/badge.svg)](https://github.com/google/syzkaller/actions?query=workflow/ci)
-[![OSS-Fuzz](https://oss-fuzz-build-logs.storage.googleapis.com/badges/syzkaller.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?q=label:Proj-syzkaller)
-[![Go Report Card](https://goreportcard.com/badge/github.com/google/syzkaller)](https://goreportcard.com/report/github.com/google/syzkaller)
-[![Coverage Status](https://codecov.io/gh/google/syzkaller/graph/badge.svg)](https://codecov.io/gh/google/syzkaller)
-[![GoDoc](https://godoc.org/github.com/google/syzkaller?status.svg)](https://godoc.org/github.com/google/syzkaller)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-`syzkaller` (`[siːzˈkɔːlə]`) is an unsupervised coverage-guided kernel fuzzer.\
-Supported OSes: `FreeBSD`, `Fuchsia`, `gVisor`, `Linux`, `NetBSD`, `OpenBSD`, `Windows`.
+`syzkaller` (`[siːzˈkɔːlə]`) is an unsupervised coverage-guided kernel fuzzer.
 
-Mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) (join on [web](https://groups.google.com/forum/#!forum/syzkaller) or by [email](mailto:syzkaller+subscribe@googlegroups.com)).
+**This is a simplified fork that only supports Linux on amd64 (x86_64) architecture.**
 
-Found bugs: [Darwin/XNU](docs/darwin/README.md), [FreeBSD](docs/freebsd/found_bugs.md), [Linux](docs/linux/found_bugs.md), [NetBSD](docs/netbsd/found_bugs.md), [OpenBSD](docs/openbsd/found_bugs.md), [Windows](docs/windows/README.md).
+All syscall definitions have been removed and must be written from scratch. This fork eliminates support for:
+- Other operating systems (FreeBSD, NetBSD, OpenBSD, Darwin, Windows, Fuchsia, etc.)
+- Other architectures (arm, arm64, ppc64le, s390x, riscv64, mips64le, 386)
+- 32-bit support
+- Big-endian support
 
 ## Documentation
 
-Initially, syzkaller was developed with Linux kernel fuzzing in mind, but now
-it's being extended to support other OS kernels as well.
-Most of the documentation at this moment is related to the [Linux](docs/linux/setup.md) kernel.
-For other OS kernels check:
-[Darwin/XNU](docs/darwin/README.md),
-[FreeBSD](docs/freebsd/README.md),
-[Fuchsia](docs/fuchsia/README.md),
-[NetBSD](docs/netbsd/README.md),
-[OpenBSD](docs/openbsd/setup.md),
-[Starnix](docs/starnix/README.md),
-[Windows](docs/windows/README.md),
-[gVisor](docs/gvisor/README.md).
-[Akaros](docs/akaros/README.md),
+This fork focuses exclusively on Linux kernel fuzzing on amd64 architecture.
 
 - [How to install syzkaller](docs/setup.md)
 - [How to use syzkaller](docs/usage.md)
 - [How syzkaller works](docs/internals.md)
-- [How to install syzbot](docs/setup_syzbot.md)
-- [How to contribute to syzkaller](docs/contributing.md)
+- [Linux kernel setup](docs/linux/setup.md)
 - [How to report Linux kernel bugs](docs/linux/reporting_kernel_bugs.md)
-- [Tech talks and articles](docs/talks.md)
-- [Research work based on syzkaller](docs/research.md)
+- [Linux kernel found bugs](docs/linux/found_bugs.md)
 
 ## Disclaimer
 

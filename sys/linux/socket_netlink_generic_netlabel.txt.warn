@@ -1,2 +1,0 @@
-bad-netlink-attr: netlbl_mgmt_genl_policy: missing attributes: [3]
-bad-netlink-attr: netlbl_cipsov4_genl_policy: missing attributes: [3 7 11]

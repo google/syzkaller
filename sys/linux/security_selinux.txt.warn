@@ -1,2 +1,0 @@
-bad-field-size: selinux_policy.len/policydb: syz=4 kernel=352 [arm]
-bad-field-offset: selinux_policy.str/map: syz=8 kernel=356 [arm]

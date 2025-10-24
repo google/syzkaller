@@ -1,3 +1,0 @@
-# requires: threaded
-
-syz_sleep_ms(0x1000000) # unfinished

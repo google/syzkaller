@@ -1,7 +1,0 @@
-compiler: len target buf refer to an array with variable-size elements (do you mean bytesize?)
-no-such-struct: damon_schemes
-no-such-struct: damon_target_pid
-no-such-struct: damon_attrs
-no-such-struct: damon_attr
-no-such-struct: damon_init_regions
-no-such-struct: damon_addr

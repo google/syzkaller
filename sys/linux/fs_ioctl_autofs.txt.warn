@@ -1,2 +1,0 @@
-no-such-struct: autofs_dev_ioctl_base
-bad-field-size: autofs_dev_ioctl.base/ver_major: syz=24 kernel=4

@@ -1,8 +1,0 @@
-#
-# requires: arch=ppc64le
-#
-r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
-r1 = ioctl$KVM_CREATE_VM(r0, 0x2000ae01, 0x0)
-r2 = ioctl$KVM_CREATE_VCPU(r1, 0x2000ae41, 0x0)
-syz_kvm_setup_cpu$ppc64(r1, r2, &(0x7f0000fe8000/0x180000)=nil, &(0x7f0000000000)=[{0x0, &(0x7f0000001000)="0000a03c0000a560c607a578ad0ba564dec0a560782ba47c7823837c", 0x1c}], 0x1, 0x7, 0x0, 0x0)
-ioctl$KVM_RUN(r2, 0x2000ae80, 0x0)

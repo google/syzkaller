@@ -1,3 +1,0 @@
-zx_event_create(0x0, &AUTO=<r0=>0x0)
-zx_object_signal(r0, 0x0, 0XFF000000)
-zx_handle_close(r0)

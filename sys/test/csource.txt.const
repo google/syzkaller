@@ -1,4 +1,0 @@
-arches = 32, 32_fork, 64, 64_fork
-BIT_0 = 1
-BIT_1 = 2
-BIT_0_AND_1 = 3

@@ -1,9 +1,0 @@
-# Copyright 2022 syzkaller project authors. All rights reserved.
-# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
-
-# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/ioports.fidl
-
-include <zircon/syscalls.h>
-
-zx_ioports_request(handle zx_resource, io_addr int16, length int32)
-zx_ioports_release(handle zx_resource, io_addr int16, length int32)

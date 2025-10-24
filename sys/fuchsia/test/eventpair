@@ -1,5 +1,0 @@
-zx_eventpair_create(0x0, &AUTO=<r0=>0x0, &AUTO=<r1=>0x0)
-zx_object_signal_peer(r0, 0x0, 0XFF000000)
-zx_object_wait_one(r1, 0X01000000, 0x0, 0x0)
-zx_handle_close(r0)
-zx_handle_close(r1)

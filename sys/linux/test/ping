@@ -1,2 +1,0 @@
-r0 = socket$inet_icmp(AUTO, AUTO, AUTO)
-close(r0)

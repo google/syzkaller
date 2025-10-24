@@ -1,2 +1,0 @@
-no-such-struct: sockaddr_xdp_bind
-no-such-struct: msghdr_xdp
