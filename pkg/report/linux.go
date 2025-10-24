@@ -1696,10 +1696,8 @@ var linuxOopses = append([]*oops{
 				title: compile("BUG: Bad page (state|cache)"),
 				fmt:   "BUG: Bad page %[1]v in %[2]v",
 				stack: &stackFmt{
-					// TODO: on arm64, for some reason we don't see the page origin backtrace.
 					// We see the stack trace where the bug was detected, but we consider it to be
 					// not sufficient to reliably group crashes.
-					// So Bad page reports on arm64 for now will end up marked as corrupted.
 					parts: []*regexp.Regexp{
 						compile(`page last allocated`),
 						parseStackTrace,
