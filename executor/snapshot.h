@@ -87,11 +87,9 @@ static void FindIvshmemDevices()
 			      input, static_cast<uint64>(rpc::Const::MaxInputSize));
 			debug("mapped shmem output at at %p/%llu\n",
 			      output, static_cast<uint64>(rpc::Const::MaxOutputSize));
-#if GOOS_linux
 			if (pkeys_enabled && pkey_mprotect(output, static_cast<uint64>(rpc::Const::MaxOutputSize),
 							   PROT_READ | PROT_WRITE, RESERVED_PKEY))
 				exitf("failed to pkey_mprotect output buffer");
-#endif
 		}
 		close(res2);
 	}
@@ -111,11 +109,9 @@ static void SnapshotSetup(char** argv, int argc)
 	// This allows to see debug output during early setup.
 	// If debug is not actually enabled, it will be turned off in parse_handshake.
 	flag_debug = true;
-#if GOOS_linux
 	// In snapshot mode executor output is redirected to /dev/kmsg.
 	// This is required to turn off rate limiting of writes.
 	write_file("/proc/sys/kernel/printk_devkmsg", "on\n");
-#endif
 	FindIvshmemDevices();
 	// Wait for the host to write handshake_req into input memory.
 	while (ivs.hdr->state != rpc::SnapshotState::Handshake)

@@ -40,10 +40,7 @@ static unsigned long long procid;
 #include <setjmp.h>
 #include <signal.h>
 #include <string.h>
-
-#if GOOS_linux
 #include <sys/syscall.h>
-#endif
 
 static __thread int clone_ongoing;
 static __thread int skip_segv;
@@ -84,7 +81,6 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 static void install_segv_handler(void)
 {
 	struct sigaction sa;
-#if GOOS_linux
 	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
 	// SIGCANCEL sent to main thread causes it to exit
 	// without bringing down the whole group.
@@ -92,7 +88,6 @@ static void install_segv_handler(void)
 	sa.sa_handler = SIG_IGN;
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-#endif
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_sigaction = segv_handler;
 	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
@@ -247,10 +242,8 @@ static long syz_execute_func(volatile long text)
 #if defined(__GNUC__)
 	volatile long p[8] = {0};
 	(void)p;
-#if GOARCH_amd64
 	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
 		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
-#endif
 #endif
 	((void (*)(void))(text))();
 	return 0;
@@ -327,11 +320,7 @@ static void loop(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT
 static void execute_one(void);
 
-#if GOOS_linux
 #define WAIT_FLAGS __WALL
-#else
-#define WAIT_FLAGS 0
-#endif
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>

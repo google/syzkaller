@@ -902,12 +902,10 @@ void execute_one()
 		failmsg("bad request type", "type=%llu", (uint64)request_type);
 
 	in_execute_one = true;
-#if GOOS_linux
 	char buf[64];
 	// Linux TASK_COMM_LEN is only 16, so the name needs to be compact.
 	snprintf(buf, sizeof(buf), "syz.%llu.%llu", procid, request_id);
 	prctl(PR_SET_NAME, buf);
-#endif
 	if (flag_snapshot)
 		SnapshotStart();
 	else

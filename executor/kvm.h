@@ -2,7 +2,6 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // x86-specific definitions.
-#if GOARCH_amd64
 #define X86_ADDR_TEXT 0x0000
 #define X86_ADDR_PD_IOAPIC 0x0000
 #define X86_ADDR_GDT 0x1000
@@ -165,7 +164,6 @@
 
 #define X86_NEXT_INSN $0xbadc0de
 #define X86_PREFIX_SIZE 0xba1d
-#endif // x86-specific definitions.
 
 #define KVM_MAX_VCPU 4
 #define KVM_PAGE_SIZE (1 << 12)
@@ -176,36 +174,3 @@
 #define GENMASK_ULL(h, l)                   \
 	(((~0ULL) - (1ULL << (l)) + 1ULL) & \
 	 (~0ULL >> (63 - (h))))
-
-// ARM64 SYZOS definitions.
-#if GOARCH_arm64
-// GICv3 distributor address.
-#define ARM64_ADDR_GICD_BASE 0x08000000
-// GICv3 ITS address.
-#define ARM64_ADDR_GITS_BASE 0x08080000
-// GICv3 redistributor address.
-#define ARM64_ADDR_GICR_BASE 0x080a0000
-#define ARM64_ADDR_ITS_TABLES 0xc0000000
-// Write to this page to trigger a page fault and stop KVM_RUN.
-#define ARM64_ADDR_EXIT 0xdddd0000
-// Dedicated address within the exit page for the uexit command.
-#define ARM64_ADDR_UEXIT (ARM64_ADDR_EXIT + 256)
-// Two writable pages with KVM_MEM_LOG_DIRTY_PAGES explicitly set.
-#define ARM64_ADDR_DIRTY_PAGES 0xdddd1000
-#define ARM64_ADDR_USER_CODE 0xeeee0000
-// Location of the SYZOS guest code. Name shared with x86 SYZOS.
-#define SYZOS_ADDR_EXECUTOR_CODE 0xeeee8000
-#define ARM64_ADDR_SCRATCH_CODE 0xeeef0000
-#define ARM64_ADDR_EL1_STACK_BOTTOM 0xffff1000
-
-// GICv3 ITS tables.
-#define ITS_MAX_DEVICES 16
-#define ARM64_ADDR_ITS_DEVICE_TABLE (ARM64_ADDR_ITS_TABLES)
-#define ARM64_ADDR_ITS_COLL_TABLE (ARM64_ADDR_ITS_DEVICE_TABLE + SZ_64K)
-#define ARM64_ADDR_ITS_CMDQ_BASE (ARM64_ADDR_ITS_COLL_TABLE + SZ_64K)
-// 16 slots for ITT tables, typically used by devices 0-15.
-#define ARM64_ADDR_ITS_ITT_TABLES (ARM64_ADDR_ITS_CMDQ_BASE + SZ_64K)
-#define ARM64_ADDR_ITS_PROP_TABLE (ARM64_ADDR_ITS_ITT_TABLES + SZ_64K * ITS_MAX_DEVICES)
-#define ARM64_ADDR_ITS_PEND_TABLES (ARM64_ADDR_ITS_PROP_TABLE + SZ_64K)
-
-#endif // ARM64 SYZOS definitions

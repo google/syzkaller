@@ -874,15 +874,9 @@ static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 {
 	// Print minimal debugging info we can extract reasonably easy.
 	uintptr_t pc = 0xdeadbeef;
-#if GOOS_linux
 	auto& mctx = static_cast<ucontext_t*>(ucontext)->uc_mcontext;
 	(void)mctx;
-#if GOARCH_amd64
 	pc = mctx.gregs[REG_RIP];
-#elif GOARCH_arm64
-	pc = mctx.pc;
-#endif
-#endif
 	const char* name = "unknown signal";
 	switch (sig) {
 	case SIGSEGV:
