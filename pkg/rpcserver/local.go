@@ -55,6 +55,7 @@ func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 }
 
 func setupLocal(ctx context.Context, cfg *LocalConfig) (*local, context.Context, error) {
+	// VMArch always equals Arch for amd64
 	if cfg.VMArch == "" {
 		cfg.VMArch = cfg.Target.Arch
 	}

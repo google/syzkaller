@@ -508,12 +508,11 @@ func (inst *instance) Forward(port int) (string, error) {
 	if port == 0 {
 		return "", fmt.Errorf("vm/qemu: forward port is zero")
 	}
-	if !inst.target.HostFuzzer {
-		if inst.forwardPort != 0 {
-			return "", fmt.Errorf("vm/qemu: forward port already set")
-		}
-		inst.forwardPort = port
+	// HostFuzzer is always false for Linux amd64
+	if inst.forwardPort != 0 {
+		return "", fmt.Errorf("vm/qemu: forward port already set")
 	}
+	inst.forwardPort = port
 	return fmt.Sprintf("localhost:%v", port), nil
 }
 
@@ -530,15 +529,7 @@ func (inst *instance) targetDir() string {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.targetDir(), base)
-	if inst.target.HostFuzzer {
-		if base == "syz-execprog" {
-			return hostSrc, nil // we will run these on host
-		}
-		if inst.files == nil {
-			inst.files = make(map[string]string)
-		}
-		inst.files[vmDst] = hostSrc
-	}
+	// HostFuzzer is always false for Linux amd64, so always copy via SCP
 
 	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
 		hostSrc, inst.User+"@localhost:"+vmDst)
@@ -561,25 +552,10 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	inst.merger.Add("ssh", rpipe)
 
 	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, false)
-	args := strings.Split(command, " ")
-	if bin := filepath.Base(args[0]); inst.target.HostFuzzer && bin == "syz-execprog" {
-		// Weird mode for Fuchsia.
-		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
-		// but we will also wrap executor with ssh invocation.
-		for i, arg := range args {
-			if strings.HasPrefix(arg, "-executor=") {
-				args[i] = "-executor=" + "/usr/bin/ssh " + strings.Join(sshArgs, " ") +
-					" " + inst.User + "@localhost " + arg[len("-executor="):]
-			}
-			if host := inst.files[arg]; host != "" {
-				args[i] = host
-			}
-		}
-	} else {
-		args = []string{"ssh"}
-		args = append(args, sshArgs...)
-		args = append(args, inst.User+"@localhost", "cd "+inst.targetDir()+" && "+command)
-	}
+	// HostFuzzer is always false for Linux amd64, so always run via SSH
+	args := []string{"ssh"}
+	args = append(args, sshArgs...)
+	args = append(args, inst.User+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	if inst.debug {
 		log.Logf(0, "running command: %#v", args)
 	}

@@ -296,13 +296,9 @@ func initTarget(target *Target, OS, arch string) {
 		target.CxxFlags = append(target.CxxFlags, strings.Fields(cxx)[1:]...)
 	}
 
-	if OS == Linux && arch == runtime.GOARCH {
-		// Don't use cross-compiler for native compilation, there are cases when this does not work:
-		// https://github.com/google/syzkaller/pull/619
-		// https://github.com/google/syzkaller/issues/387
-		// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
-		target.Triple = ""
-	}
+	// Always native compilation (linux/amd64 on linux/amd64)
+	// Don't use cross-compiler for native compilation
+	target.Triple = ""
 	if target.CCompiler == "" {
 		target.setCompiler(useClang)
 	}
@@ -318,14 +314,9 @@ func initTarget(target *Target, OS, arch string) {
 			target.Objdump = target.Triple + "-objdump"
 		}
 	}
+	// BuildOS defaults to OS (always linux)
 	if target.BuildOS == "" {
 		target.BuildOS = OS
-	}
-	if runtime.GOOS != target.BuildOS {
-		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
-		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
-		target.CxxCompiler = target.CCompiler
-		target.CPP = target.CCompiler
 	}
 	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
 		target.CFlags = append(target.CFlags, flags...)
@@ -451,13 +442,12 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 }
 
 func (target *Target) lazyInit() {
-	if runtime.GOOS != target.BuildOS || target.BrokenCompiler != "" {
+	// Always native build (linux on linux)
+	if target.BrokenCompiler != "" {
 		return
 	}
-	// Only fail on CI for native build.
-	// On CI we want to fail loudly if cross-compilation breaks.
-	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
-	if (target.OS != runtime.GOOS || !runningOnCI) && getSourceDir(target) == "" {
+	// Only fail on CI for native build, or if SOURCEDIR is set
+	if !runningOnCI && getSourceDir(target) == "" {
 		for _, comp := range []string{target.CCompiler, target.CxxCompiler} {
 			if _, err := exec.LookPath(comp); err != nil {
 				target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", comp, err)

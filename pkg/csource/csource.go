@@ -456,13 +456,12 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				panic("bitfield+string format")
 			}
 			htobe := ""
-			if !ctx.target.BigEndian && arg.Format == prog.FormatBigEndian {
+			// Always little-endian (amd64), so only apply htobe for BigEndian format
+			if arg.Format == prog.FormatBigEndian {
 				htobe = fmt.Sprintf("htobe%v", arg.Size*8)
 			}
+			// Always little-endian, so bitfieldOffset is always as-is
 			bitfieldOffset := arg.BitfieldOffset
-			if ctx.target.BigEndian {
-				bitfieldOffset = arg.Size*8 - arg.BitfieldOffset - arg.BitfieldLength
-			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
 				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false),
 				bitfieldOffset, arg.BitfieldLength)
