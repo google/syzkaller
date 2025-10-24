@@ -182,6 +182,7 @@ func main() {
 		HandleInterrupts: true,
 		GDB:              *flagGDB,
 		MachineChecked:   ctx.machineChecked,
+		OutputWriter:     os.Stderr,
 	}
 	if err := rpcserver.RunLocal(rpcCtx, cfg); err != nil {
 		tool.Fail(err)
