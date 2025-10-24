@@ -29,10 +29,8 @@ import (
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/image"
-	"github.com/google/syzkaller/pkg/kfuzztest"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -242,14 +240,6 @@ func main() {
 	if !mode.UseDashboard {
 		cfg.DashboardClient = ""
 		cfg.HubClient = ""
-	}
-	if cfg.Experimental.EnableKFuzzTest {
-		vmLinuxPath := path.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
-		log.Log(0, "enabling KFuzzTest targets")
-		_, err := kfuzztest.ActivateKFuzzTargets(cfg.Target, vmLinuxPath)
-		if err != nil {
-			log.Fatalf("failed to enable KFuzzTest targets: %v", err)
-		}
 	}
 	RunManager(mode, cfg)
 }
@@ -1123,22 +1113,6 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		mgr.exit(mgr.mode.Name)
 	}
 
-	// If KFuzzTest is enabled, we exclusively fuzz KFuzzTest targets - so
-	// delete any existing entries in enabled syscalls, and enable all
-	// discovered KFuzzTest targets explicitly.
-	if mgr.cfg.Experimental.EnableKFuzzTest {
-		for call := range enabledSyscalls {
-			delete(enabledSyscalls, call)
-		}
-		data, err := kfuzztest.ExtractData(path.Join(mgr.cfg.KernelObj, "vmlinux"))
-		if err != nil {
-			return nil, err
-		}
-		for _, call := range data.Calls {
-			enabledSyscalls[call] = true
-		}
-	}
-
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.phase != phaseInit {
@@ -1186,7 +1160,6 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 				defer mgr.mu.Unlock()
 				return !mgr.saturatedCalls[call]
 			},
-			ModeKFuzzTest: mgr.cfg.Experimental.EnableKFuzzTest,
 		}, rnd, mgr.target)
 		fuzzerObj.AddCandidates(candidates)
 		mgr.fuzzer.Store(fuzzerObj)

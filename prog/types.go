@@ -48,7 +48,6 @@ type SyscallAttrs struct {
 	RemoteCover     bool
 	Automatic       bool
 	AutomaticHelper bool
-	KFuzzTest       bool
 	Fsck            string
 	// Filesystem is used in tools/syz-imagegen when fs name cannot be deduced from
 	// the part after $.

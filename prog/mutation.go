@@ -227,20 +227,13 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 	c := p.Calls[idx]
-	if c.Meta.Attrs.KFuzzTest {
-		tmp := r.genKFuzzTest
-		r.genKFuzzTest = true
-		defer func() {
-			r.genKFuzzTest = tmp
-		}()
-	}
 	if ctx.noMutate[c.Meta.ID] {
 		return false
 	}
 	updateSizes := true
 	for stop, ok := false, false; !stop; stop = ok && r.oneOf(ctx.opts.MutateArgCount) {
 		ok = true
-		ma := &mutationArgs{target: p.Target, ignoreLengths: c.Meta.Attrs.KFuzzTest}
+		ma := &mutationArgs{target: p.Target, ignoreLengths: false}
 		ForeachArg(c, ma.collectArg)
 		if len(ma.args) == 0 {
 			return false
@@ -278,7 +271,7 @@ func chooseCall(p *Prog, r *randGen) int {
 	for _, c := range p.Calls {
 		var totalPrio float64
 		ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
-			prio, stopRecursion := arg.Type().getMutationPrio(p.Target, arg, false, c.Meta.Attrs.KFuzzTest)
+			prio, stopRecursion := arg.Type().getMutationPrio(p.Target, arg, false, false)
 			totalPrio += prio
 			ctx.Stop = stopRecursion
 		})
@@ -516,10 +509,7 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*PointerArg)
-	// Do not generate special pointers for KFuzzTest calls, as they are
-	// difficult to identify in the kernel and can lead to false positive
-	// crash reports.
-	if r.oneOf(1000) && !r.genKFuzzTest {
+	if r.oneOf(1000) {
 		removeArg(a.Res)
 		index := r.rand(len(r.target.SpecialPointers))
 		newArg := MakeSpecialPointerArg(t, a.Dir(), index)

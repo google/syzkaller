@@ -146,9 +146,6 @@ func (target *Target) lazyInit() {
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
-	// We ignore the return value here as they are cached, and it makes more
-	// sense to react to them when we attempt to execute a KFuzzTest call.
-	_, _ = target.KFuzzTestRunID()
 
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
@@ -536,23 +533,3 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	return p, nil
 }
 
-var kFuzzTestIDCache struct {
-	sync.Once
-	id  int
-	err error
-}
-
-// KFuzzTestRunID returns the ID for the syz_kfuzztest_run pseudo-syscall,
-// or an error if it is not found in the target.
-func (t *Target) KFuzzTestRunID() (int, error) {
-	kFuzzTestIDCache.Do(func() {
-		for _, call := range t.Syscalls {
-			if call.Attrs.KFuzzTest {
-				kFuzzTestIDCache.id = call.ID
-				return
-			}
-		}
-		kFuzzTestIDCache.err = fmt.Errorf("could not find ID for syz_kfuzztest_run - does it exist?")
-	})
-	return kFuzzTestIDCache.id, kFuzzTestIDCache.err
-}
