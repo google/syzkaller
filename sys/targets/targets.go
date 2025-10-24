@@ -154,17 +154,8 @@ func GetEx(OS, arch string, clang bool) *Target {
 		return nil
 	}
 	target.init.Do(target.lazyInit)
-	if clang == useClang {
-		return target
-	}
-	target.initOther.Do(func() {
-		other := new(Target)
-		*other = *target
-		other.setCompiler(clang)
-		other.lazyInit()
-		target.other = other
-	})
-	return target.other
+	// Always use clang (ignore clang parameter)
+	return target
 }
 
 // nolint: lll
@@ -395,30 +386,11 @@ const (
 )
 
 func (target *Target) setCompiler(clang bool) {
-	// setCompiler may be called effectively twice for target.other,
-	// so first we remove flags the previous call may have added.
-	pos := 0
-	for _, flag := range target.CFlags {
-		if flag == "-ferror-limit=0" ||
-			strings.HasPrefix(flag, "--target=") {
-			continue
-		}
-		target.CFlags[pos] = flag
-		pos++
-	}
-	target.CFlags = target.CFlags[:pos]
-	if clang {
-		target.CCompiler = DefaultLLVMCompiler
-		target.KernelCompiler = DefaultLLVMCompiler
-		target.KernelLinker = DefaultLLVMLinker
-		// No --target flag needed (Triple is always "")
-		target.CFlags = append(target.CFlags, "-ferror-limit=0")
-	} else {
-		target.CCompiler = "gcc"
-		target.KernelCompiler = ""
-		target.KernelLinker = ""
-		// No cross-compiler prefix needed (Triple is always "")
-	}
+	// Always use clang (ignore parameter for compatibility)
+	target.CCompiler = DefaultLLVMCompiler
+	target.KernelCompiler = DefaultLLVMCompiler
+	target.KernelLinker = DefaultLLVMLinker
+	target.CFlags = append(target.CFlags, "-ferror-limit=0")
 }
 
 func (target *Target) replaceSourceDir(param *string, sourceDir string) {
@@ -592,7 +564,8 @@ func dontNeedSyscallDefine(nr uint64) bool { return false }
 
 var (
 	runningOnCI = os.Getenv("CI") != ""
-	useClang    = os.Getenv("SYZ_CLANG") != ""
+	// Always use clang for amd64
+	useClang = true
 )
 
 const (
