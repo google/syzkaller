@@ -13,8 +13,8 @@ import (
 	"unsafe"
 
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 	"golang.org/x/sync/errgroup"
 )
 

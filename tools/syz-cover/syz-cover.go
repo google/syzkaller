@@ -33,15 +33,15 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/covermerger"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/covermerger"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
 )
 
 var (

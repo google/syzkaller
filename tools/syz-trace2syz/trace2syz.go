@@ -17,13 +17,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/db"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/tools/syz-trace2syz/proggen"
+	"github.com/VerditeLabs/syzkaller/pkg/db"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/tools/syz-trace2syz/proggen"
 )
 
 var (

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 // Overview of compilation process:

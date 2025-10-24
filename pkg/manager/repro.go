@@ -8,10 +8,10 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/pkg/repro"
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/pkg/repro"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 )
 
 type ReproResult struct {

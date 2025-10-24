@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/db"
-	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	"github.com/VerditeLabs/syzkaller/pkg/db"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys"
 	"golang.org/x/exp/maps"
 )
 

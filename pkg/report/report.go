@@ -9,12 +9,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/report/crash"
-	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/pkg/vminfo"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 	"github.com/ianlancetaylor/demangle"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/VerditeLabs/syzkaller/pkg/gcs"
 )
 
 type objectUploadCallback func(req *uploadRequest) (*uploadResponse, error)

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 // checkContext arranges checking of presence/support of all target syscalls.

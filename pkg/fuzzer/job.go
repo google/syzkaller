@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/corpus"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type job interface {

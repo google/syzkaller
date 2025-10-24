@@ -2,8 +2,8 @@
 package compiler
 
 import (
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func Fuzz(data []byte) int {

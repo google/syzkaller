@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm/dispatcher"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/vm/dispatcher"
 )
 
 type Runner struct {

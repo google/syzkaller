@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
-	_ "github.com/google/syzkaller/pkg/subsystem/lists"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb/spannerclient"
+	_ "github.com/VerditeLabs/syzkaller/pkg/subsystem/lists"
 	"golang.org/x/exp/maps"
 )
 

@@ -4,8 +4,8 @@ package compiler
 import (
 	"path/filepath"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 type Meta struct {

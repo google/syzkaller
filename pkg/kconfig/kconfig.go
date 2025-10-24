@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 // KConfig represents a parsed Kconfig file (including includes).

@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/serializer"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/pkg/serializer"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 const sizeUnassigned = ^uint64(0)

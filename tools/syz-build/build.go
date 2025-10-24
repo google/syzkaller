@@ -8,9 +8,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/google/syzkaller/pkg/build"
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/pkg/build"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
 )
 
 var (

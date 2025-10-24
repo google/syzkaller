@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func FuzzDeserialize(data []byte) int {

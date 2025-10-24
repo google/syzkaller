@@ -1,7 +1,7 @@
 
 package covermerger
 
-import "github.com/google/syzkaller/pkg/log"
+import "github.com/VerditeLabs/syzkaller/pkg/log"
 
 func makeFileLineCoverMerger(fvs FileVersions, base RepoCommit) FileCoverageMerger {
 	baseFile := ""

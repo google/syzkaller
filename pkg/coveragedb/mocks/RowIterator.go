@@ -5,7 +5,7 @@
 package mocks
 
 import (
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb/spannerclient"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
 )
 
 // Fsck runs fsckCmd against a file system image provided in r. It returns the

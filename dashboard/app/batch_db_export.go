@@ -28,7 +28,7 @@ func handleBatchDBExport(w http.ResponseWriter, r *http.Request) {
 
 func exportDBScript(srcNamespace, archivePath string) string {
 	return "\n" +
-		"git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
+		"git clone -q --depth 1 --branch master --single-branch https://github.com/VerditeLabs/syzkaller\n" +
 		"cd syzkaller\n" +
 		"token=$(gcloud auth print-access-token)\n" +
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".

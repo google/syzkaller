@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
 )
 
 type ReportGeneratorWrapper struct {

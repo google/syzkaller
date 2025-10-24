@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/email"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/email"
 	db "google.golang.org/appengine/v2/datastore"
 )
 

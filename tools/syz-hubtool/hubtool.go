@@ -11,11 +11,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/db"
-	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	"github.com/VerditeLabs/syzkaller/pkg/auth"
+	"github.com/VerditeLabs/syzkaller/pkg/db"
+	"github.com/VerditeLabs/syzkaller/pkg/rpctype"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys"
 )
 
 func main() {

@@ -8,9 +8,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	"github.com/VerditeLabs/syzkaller/pkg/csource"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys"
 )
 
 var (

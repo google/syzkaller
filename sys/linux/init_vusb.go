@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 const (

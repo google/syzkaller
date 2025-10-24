@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 )
 
 func StatsHTML() (template.HTML, error) {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
 )
 
 const (

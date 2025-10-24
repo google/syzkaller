@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
 )
 
 // setSubsystemNames assigns unique names to the presented subsystems.

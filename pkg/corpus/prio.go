@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type ProgramsList struct {

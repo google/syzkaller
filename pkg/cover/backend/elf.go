@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/vminfo"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func makeELF(target *targets.Target, kernelDirs *mgrconfig.KernelDirs, splitBuildDelimiters, moduleObj []string,

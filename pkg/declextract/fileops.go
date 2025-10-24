@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
 )
 
 const (

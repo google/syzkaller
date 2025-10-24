@@ -23,12 +23,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/syzkaller/pkg/bisect"
-	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/pkg/bisect"
+	"github.com/VerditeLabs/syzkaller/pkg/config"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
 )
 
 var (

@@ -16,12 +16,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/pkg/vminfo"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/symbolizer"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 type dwarfParams struct {
@@ -326,7 +326,7 @@ var gccVersionRE = regexp.MustCompile(`(gcc|GCC|g\+\+).* ([0-9]{1,2})\.[0-9]+\.[
 
 // GCC < 14 incorrectly tail-calls kcov callbacks, which does not let syzkaller
 // verify that collected coverage points have matching callbacks.
-// See https://github.com/google/syzkaller/issues/4447 for more information.
+// See https://github.com/VerditeLabs/syzkaller/issues/4447 for more information.
 func isKcovBrokenInCompiler(versionStr string) bool {
 	if !gccRE.MatchString(versionStr) {
 		return false

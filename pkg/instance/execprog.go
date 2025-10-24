@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm"
+	"github.com/VerditeLabs/syzkaller/pkg/csource"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/vm"
 )
 
 type ExecutorLogger func(int, string, ...interface{})

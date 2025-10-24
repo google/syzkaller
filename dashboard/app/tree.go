@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
 	"golang.org/x/sync/errgroup"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"

@@ -10,11 +10,11 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/compiler"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/pkg/compiler"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 var (

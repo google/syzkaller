@@ -22,12 +22,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/manager"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/csource"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/manager"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 // Pseudo-syscalls that might not provide any coverage when invoked.

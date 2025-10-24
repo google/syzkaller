@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/email"
-	"github.com/google/syzkaller/pkg/html"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/email"
+	"github.com/VerditeLabs/syzkaller/pkg/html"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )

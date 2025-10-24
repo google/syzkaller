@@ -12,10 +12,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type Request struct {

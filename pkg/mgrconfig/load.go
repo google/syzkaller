@@ -10,12 +10,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/vminfo"
-	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/config"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/prog"
+	_ "github.com/VerditeLabs/syzkaller/sys" // most mgrconfig users want targets too
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 // Derived config values that are handy to keep with the config, filled after reading user config.

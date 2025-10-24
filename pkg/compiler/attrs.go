@@ -4,8 +4,8 @@ package compiler
 import (
 	"reflect"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type attrDescAttrType int

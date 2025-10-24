@@ -2,9 +2,9 @@
 package proggen
 
 import (
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/tools/syz-trace2syz/parser"
 )
 
 type returnCache map[string]prog.Arg

@@ -10,8 +10,8 @@ import (
 	texttemplate "text/template"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
 	"google.golang.org/appengine/v2"
 )
 

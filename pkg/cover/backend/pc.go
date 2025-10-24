@@ -4,7 +4,7 @@ package backend
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func PreviousInstructionPC(target *targets.Target, vm string, pc uint64) uint64 {

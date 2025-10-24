@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
 )
 
 func ListFromRepo(repo string) ([]*subsystem.Subsystem, error) {

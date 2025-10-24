@@ -8,13 +8,13 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/vminfo"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/prog"
 	"golang.org/x/sync/errgroup"
 )
 

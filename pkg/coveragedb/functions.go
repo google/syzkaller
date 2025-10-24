@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb/spannerclient"
 	"google.golang.org/api/iterator"
 )
 

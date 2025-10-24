@@ -1,7 +1,7 @@
 
 package symbolizer
 
-import "github.com/google/syzkaller/sys/targets"
+import "github.com/VerditeLabs/syzkaller/sys/targets"
 
 type Frame struct {
 	PC     uint64

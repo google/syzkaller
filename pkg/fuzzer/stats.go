@@ -4,8 +4,8 @@ package fuzzer
 import (
 	"sync/atomic"
 
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type Stats struct {

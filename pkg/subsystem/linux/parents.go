@@ -1,7 +1,7 @@
 
 package linux
 
-import "github.com/google/syzkaller/pkg/subsystem"
+import "github.com/VerditeLabs/syzkaller/pkg/subsystem"
 
 // parentTransformations applies all subsystem list transformations that have been implemented.
 func parentTransformations(matrix *CoincidenceMatrix,

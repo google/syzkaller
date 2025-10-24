@@ -7,7 +7,7 @@ package x86
 import (
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/iset"
+	"github.com/VerditeLabs/syzkaller/pkg/ifuzz/iset"
 )
 
 type Insn struct {

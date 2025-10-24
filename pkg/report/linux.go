@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report/crash"
-	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/symbolizer"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 	"github.com/ianlancetaylor/demangle"
 )
 

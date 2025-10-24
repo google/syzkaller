@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
 )
 
 // maintainersRecord represents a single raw record in the MAINTAINERS file.

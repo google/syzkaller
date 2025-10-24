@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 )
 
 // Distributor distributes requests to different VMs during input triage

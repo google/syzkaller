@@ -3,7 +3,7 @@
 
 package lists
 
-import . "github.com/google/syzkaller/pkg/subsystem"
+import . "github.com/VerditeLabs/syzkaller/pkg/subsystem"
 
 func init() {
 	RegisterList("linux", subsystems_linux(), 20250720)

@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/vm"
-	"github.com/google/syzkaller/vm/dispatcher"
+	"github.com/VerditeLabs/syzkaller/pkg/instance"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/vm"
+	"github.com/VerditeLabs/syzkaller/vm/dispatcher"
 )
 
 type StraceResult struct {

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/VerditeLabs/syzkaller/pkg/gcs"
 	"github.com/ulikunitz/xz"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
 )
 
 type Storage struct {

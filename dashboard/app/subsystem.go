@@ -8,8 +8,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )

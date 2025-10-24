@@ -10,14 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/corpus"
+	"github.com/VerditeLabs/syzkaller/pkg/csource"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 type Fuzzer struct {

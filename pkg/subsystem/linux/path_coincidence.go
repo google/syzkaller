@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
 )
 
 func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,

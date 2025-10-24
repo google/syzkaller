@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
-	"github.com/google/syzkaller/pkg/covermerger"
-	"github.com/google/syzkaller/pkg/html/urlutil"
-	"github.com/google/syzkaller/pkg/validator"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/VerditeLabs/syzkaller/pkg/covermerger"
+	"github.com/VerditeLabs/syzkaller/pkg/html/urlutil"
+	"github.com/VerditeLabs/syzkaller/pkg/validator"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 )

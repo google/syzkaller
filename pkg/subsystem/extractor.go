@@ -9,7 +9,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
 )
 
 // Extractor deduces the subsystems from the list of crashes.

@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/google/syzkaller/pkg/image"
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 )
 
 type Stats struct {

@@ -1,7 +1,7 @@
 
 package linux
 
-import "github.com/google/syzkaller/pkg/subsystem"
+import "github.com/VerditeLabs/syzkaller/pkg/subsystem"
 
 // CoincidenceMatrix represents a matrix that, for every pair of subsystems
 // A and B, stores the number of times A and B have coincided in the input data.

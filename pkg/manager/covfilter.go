@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/corpus"
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/corpus"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
 )
 
 func CoverageFilter(source *ReportGeneratorWrapper, covCfg mgrconfig.CovFilterCfg,

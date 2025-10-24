@@ -2,8 +2,8 @@
 package asset
 
 import (
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 type TypeDescription struct {

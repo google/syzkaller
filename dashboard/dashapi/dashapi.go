@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/google/syzkaller/pkg/auth"
+	"github.com/VerditeLabs/syzkaller/pkg/auth"
 )
 
 type Dashboard struct {

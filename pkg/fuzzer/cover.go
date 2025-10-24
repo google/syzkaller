@@ -4,8 +4,8 @@ package fuzzer
 import (
 	"sync"
 
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
 )
 
 // Cover keeps track of the signal known to the fuzzer.

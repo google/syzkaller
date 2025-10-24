@@ -9,8 +9,8 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/gcs"
-	"github.com/google/syzkaller/pkg/validator"
+	"github.com/VerditeLabs/syzkaller/pkg/gcs"
+	"github.com/VerditeLabs/syzkaller/pkg/validator"
 	"github.com/google/uuid"
 )
 

@@ -3,7 +3,7 @@ package main
 
 import (
 	"cloud.google.com/go/profiler"
-	"github.com/google/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
 	"google.golang.org/appengine/v2"
 )
 

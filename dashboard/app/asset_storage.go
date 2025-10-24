@@ -9,9 +9,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/asset"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/asset"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/google/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
 )
 
 type state struct {

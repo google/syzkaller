@@ -9,12 +9,12 @@ import (
 	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer/queue"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/manager"
-	"github.com/google/syzkaller/vm"
-	"github.com/google/syzkaller/vm/dispatcher"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/fuzzer/queue"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/manager"
+	"github.com/VerditeLabs/syzkaller/vm"
+	"github.com/VerditeLabs/syzkaller/vm/dispatcher"
 )
 
 func (mgr *Manager) snapshotInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {

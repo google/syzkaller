@@ -4,8 +4,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/pkg/compiler"
 )
 
 // constsAreAllDefined() ensures that for every const there's at least one arch that defines it.

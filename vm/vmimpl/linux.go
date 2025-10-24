@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
 )
 
 // DiagnoseLinux diagnoses some Linux kernel bugs over the provided ssh callback.

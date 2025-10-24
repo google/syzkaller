@@ -10,8 +10,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/memcache"

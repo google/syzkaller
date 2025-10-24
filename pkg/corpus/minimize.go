@@ -4,7 +4,7 @@ package corpus
 import (
 	"sort"
 
-	"github.com/google/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
 )
 
 func (corpus *Corpus) Minimize(cover bool) {

@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/auth"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
 )
 
 type Result struct {

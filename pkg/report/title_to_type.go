@@ -2,7 +2,7 @@
 package report
 
 import (
-	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
 )
 
 var titleToType = []struct {

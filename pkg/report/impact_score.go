@@ -4,7 +4,7 @@ package report
 import (
 	"sort"
 
-	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
 )
 
 // impactOrder represent an ordering of bug impact severity. The earlier

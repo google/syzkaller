@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/rpctype"
-	"github.com/google/syzkaller/syz-hub/state"
+	"github.com/VerditeLabs/syzkaller/pkg/auth"
+	"github.com/VerditeLabs/syzkaller/pkg/config"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/rpctype"
+	"github.com/VerditeLabs/syzkaller/syz-hub/state"
 )
 
 var (

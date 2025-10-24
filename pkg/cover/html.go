@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/cover/backend"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
 )
 
 type HandlerParams struct {
@@ -92,7 +92,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, params HandlerParams) error {
 			// We ignore individual errors of opening/locating source files
 			// because there is a number of reasons when/why it can happen.
 			// We fail only if we can't open/locate any single source file.
-			// syz-ci can mess state of source files (https://github.com/google/syzkaller/issues/1770),
+			// syz-ci can mess state of source files (https://github.com/VerditeLabs/syzkaller/issues/1770),
 			// or bazel lies about location of auto-generated files,
 			// or a used can update source files with git pull/checkout.
 			contents = html.EscapeString(err.Error())

@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report/crash"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 type Repo interface {
@@ -345,7 +345,7 @@ var commitPrefixes = []string{
 	"net-backports:",
 }
 
-const SyzkallerRepo = "https://github.com/google/syzkaller"
+const SyzkallerRepo = "https://github.com/VerditeLabs/syzkaller"
 
 const HEAD = "HEAD"
 

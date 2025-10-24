@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
 )
 
 // String generates a very compact program description (mostly for debug output).

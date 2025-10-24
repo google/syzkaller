@@ -2,7 +2,7 @@
 package subsystem
 
 import (
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 // rawExtractor performs low-level subsystem matching (directly by a path or a syscall).

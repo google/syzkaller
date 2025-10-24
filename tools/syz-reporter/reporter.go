@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/html/pages"
-	"github.com/google/syzkaller/pkg/kconfig"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/html/pages"
+	"github.com/VerditeLabs/syzkaller/pkg/kconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
 )
 
 var (

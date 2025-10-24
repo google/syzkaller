@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/google/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
 )
 
 // Target describes target OS/arch pair.
@@ -235,8 +235,8 @@ func (target *Target) initRelatedFields() {
 	// All cmd args related and we should not try to replace them with each other
 	// (e.g. try to morph ioctl$FOO1 into ioctl$FOO2). This is both unnecessary, leads to confusing reproducers,
 	// and in some cases to badly confused argument types, see e.g.:
-	// https://github.com/google/syzkaller/issues/502
-	// https://github.com/google/syzkaller/issues/4939
+	// https://github.com/VerditeLabs/syzkaller/issues/502
+	// https://github.com/VerditeLabs/syzkaller/issues/4939
 	//
 	// However, notion of related fields is wider and includes e.g. socket syscall family/type/proto,
 	// setsockopt consts, and in some cases even openat flags/mode.

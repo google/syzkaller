@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/VerditeLabs/syzkaller/pkg/html"
 )
 
 func Create(page string) *template.Template {

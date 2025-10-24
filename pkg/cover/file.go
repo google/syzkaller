@@ -7,8 +7,8 @@ import (
 	"html"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/covermerger"
 )
 
 type lineRender func(string, int, *covermerger.MergeResult, *CoverageRenderConfig) string

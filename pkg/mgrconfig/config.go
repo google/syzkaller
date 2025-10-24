@@ -4,7 +4,7 @@ package mgrconfig
 import (
 	"encoding/json"
 
-	"github.com/google/syzkaller/pkg/asset"
+	"github.com/VerditeLabs/syzkaller/pkg/asset"
 )
 
 type Config struct {

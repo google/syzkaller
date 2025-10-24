@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/dashboard/api"
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/dashboard/api"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
 )
 
 func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {

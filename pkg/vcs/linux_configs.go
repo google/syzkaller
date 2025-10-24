@@ -4,9 +4,9 @@ package vcs
 import (
 	"strings"
 
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/kconfig"
-	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/kconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
 )
 
 // setLinuxTagConfigs() disables Linux kernel configurations depending on the Linux kernel version,
@@ -47,7 +47,7 @@ func setLinuxTagConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 		// Setup of network devices is broken before v4.5 with a warning in batadv_tvlv_container_remove.
 		"BATMAN_ADV": "v4.5",
 		// UBSAN is broken in multiple ways before v5.3, see:
-		// https://github.com/google/syzkaller/issues/1523#issuecomment-696514105
+		// https://github.com/VerditeLabs/syzkaller/issues/1523#issuecomment-696514105
 		"UBSAN": "v5.3",
 		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV

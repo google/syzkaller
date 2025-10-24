@@ -1,7 +1,7 @@
 
 package email
 
-import "github.com/google/syzkaller/dashboard/dashapi"
+import "github.com/VerditeLabs/syzkaller/dashboard/dashapi"
 
 type OldThreadInfo struct {
 	ThreadType dashapi.DiscussionType

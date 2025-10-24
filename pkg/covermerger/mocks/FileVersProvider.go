@@ -5,7 +5,7 @@
 package mocks
 
 import (
-	"github.com/google/syzkaller/pkg/covermerger"
+	"github.com/VerditeLabs/syzkaller/pkg/covermerger"
 	mock "github.com/stretchr/testify/mock"
 )
 

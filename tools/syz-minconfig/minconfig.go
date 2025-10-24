@@ -14,10 +14,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/kconfig"
-	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/kconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func main() {

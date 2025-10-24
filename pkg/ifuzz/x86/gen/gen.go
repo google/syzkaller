@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/ifuzz/iset"
-	"github.com/google/syzkaller/pkg/ifuzz/x86"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/serializer"
-	"github.com/google/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/pkg/ifuzz/iset"
+	"github.com/VerditeLabs/syzkaller/pkg/ifuzz/x86"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/serializer"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
 )
 
 // nolint: gocyclo, gocognit, funlen, dupl
@@ -176,7 +176,7 @@ nextInsn:
 
 package generated
 
-import . "github.com/google/syzkaller/pkg/ifuzz/x86"
+import . "github.com/VerditeLabs/syzkaller/pkg/ifuzz/x86"
 
 func init() {
 	Register(insns)

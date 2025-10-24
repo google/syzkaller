@@ -1,7 +1,7 @@
 
 package queue
 
-import "github.com/google/syzkaller/pkg/stat"
+import "github.com/VerditeLabs/syzkaller/pkg/stat"
 
 // Common stats related to fuzzing that are updated/read by different parts of the system.
 var (

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 const AllFeatures = ^Feature(0)

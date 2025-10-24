@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/kconfig"
-	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/pkg/kconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
 	"gopkg.in/yaml.v3"
 )
 

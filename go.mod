@@ -1,4 +1,4 @@
-module github.com/google/syzkaller
+module github.com/VerditeLabs/syzkaller
 
 go 1.24.4
 

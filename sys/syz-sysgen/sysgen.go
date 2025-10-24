@@ -14,14 +14,14 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/compiler"
-	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/generated"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/pkg/compiler"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/generated"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 type SyscallData struct {
@@ -371,9 +371,9 @@ package sys
 import (
 	"embed"
 
-	"github.com/google/syzkaller/sys/generated"
+	"github.com/VerditeLabs/syzkaller/sys/generated"
 	{{range $os := $.OSes}}
-	"github.com/google/syzkaller/sys/{{$os.GOOS}}"{{end}}
+	"github.com/VerditeLabs/syzkaller/sys/{{$os.GOOS}}"{{end}}
 )
 
 //go:embed gen/*.gob.flate

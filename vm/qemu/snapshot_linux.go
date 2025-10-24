@@ -11,7 +11,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/VerditeLabs/syzkaller/pkg/flatrpc"
 	"golang.org/x/sys/unix"
 )
 

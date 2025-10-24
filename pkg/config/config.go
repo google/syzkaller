@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
 )
 
 func LoadFile(filename string, cfg interface{}) error {

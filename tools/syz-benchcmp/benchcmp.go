@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
 )
 
 var (

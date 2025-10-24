@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
 	db "google.golang.org/appengine/v2/datastore"
 )
 

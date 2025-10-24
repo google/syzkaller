@@ -2,8 +2,8 @@
 package linux
 
 import (
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func InitTarget(target *prog.Target) {

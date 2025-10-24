@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/bisect/minimize"
-	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/bisect/minimize"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.

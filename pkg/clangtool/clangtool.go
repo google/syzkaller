@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/declextract"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/declextract"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
 )
 
 type Config struct {

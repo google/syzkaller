@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/VerditeLabs/syzkaller/pkg/debugtracer"
+	"github.com/VerditeLabs/syzkaller/pkg/gcs"
 )
 
 type cloudStorageBackend struct {

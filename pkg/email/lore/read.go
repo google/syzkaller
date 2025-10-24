@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/syzkaller/pkg/email"
-	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/pkg/email"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
 )
 
 type EmailReader struct {

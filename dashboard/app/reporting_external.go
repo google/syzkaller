@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
 	"google.golang.org/appengine/v2/log"
 )
 

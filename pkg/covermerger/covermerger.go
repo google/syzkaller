@@ -12,8 +12,8 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 )

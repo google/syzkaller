@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
 )
 
 type Interface struct {

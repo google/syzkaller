@@ -23,7 +23,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
 )
 
 // CompMap maps comparison operand that could come from the input to the second operand to the PC.

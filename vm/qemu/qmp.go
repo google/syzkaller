@@ -8,7 +8,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
 )
 
 type qmpVersion struct {

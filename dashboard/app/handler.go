@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/VerditeLabs/syzkaller/pkg/html"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/user"
 )

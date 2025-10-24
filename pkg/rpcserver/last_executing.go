@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 // LastExecuting keeps the given number of last executed programs

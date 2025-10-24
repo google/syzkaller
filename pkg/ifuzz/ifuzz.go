@@ -4,8 +4,8 @@ package ifuzz
 import (
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/iset"
-	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated" // pull in generated instruction descriptions
+	"github.com/VerditeLabs/syzkaller/pkg/ifuzz/iset"
+	_ "github.com/VerditeLabs/syzkaller/pkg/ifuzz/x86/generated" // pull in generated instruction descriptions
 )
 
 type (

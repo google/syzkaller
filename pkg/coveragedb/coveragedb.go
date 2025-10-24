@@ -13,9 +13,9 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
-	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
-	"github.com/google/syzkaller/pkg/subsystem"
-	_ "github.com/google/syzkaller/pkg/subsystem/lists"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb/spannerclient"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
+	_ "github.com/VerditeLabs/syzkaller/pkg/subsystem/lists"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"

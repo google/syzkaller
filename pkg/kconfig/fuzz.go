@@ -2,7 +2,7 @@
 package kconfig
 
 import (
-	"github.com/google/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
 )
 
 func FuzzParseKConfig(data []byte) int {

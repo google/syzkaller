@@ -10,7 +10,7 @@ import (
 	"cloud.google.com/go/batch/apiv1/batchpb"
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2/log"
 )
@@ -86,7 +86,7 @@ func batchCoverageScript(ns, repo, branch string, periods []coveragedb.TimePerio
 		clientName = defaultDashboardClientName
 	}
 	script := jobInitScript + "\n"
-	script += "git clone -q --depth 1 --branch master --single-branch https://github.com/google/syzkaller\n" +
+	script += "git clone -q --depth 1 --branch master --single-branch https://github.com/VerditeLabs/syzkaller\n" +
 		"cd syzkaller\n" +
 		"export CI=1\n" +
 		"./tools/syz-env \""

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/vminfo"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/vminfo"
 )
 
 type Canonicalizer struct {

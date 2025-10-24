@@ -9,7 +9,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
 )
 
 type RPCServer struct {

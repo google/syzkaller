@@ -4,7 +4,7 @@ package x86
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/ifuzz/iset"
+	"github.com/VerditeLabs/syzkaller/pkg/ifuzz/iset"
 )
 
 // Decode decodes instruction length for the given mode.

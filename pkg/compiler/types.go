@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/ast"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 // typeDesc is arg/field type descriptor.

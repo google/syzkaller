@@ -10,13 +10,13 @@ import (
 	"strings"
 
 	"cloud.google.com/go/civil"
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/coveragedb"
-	"github.com/google/syzkaller/pkg/covermerger"
-	"github.com/google/syzkaller/pkg/gcs"
-	"github.com/google/syzkaller/pkg/log"
-	_ "github.com/google/syzkaller/pkg/subsystem/lists"
-	"github.com/google/syzkaller/pkg/tool"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/coveragedb"
+	"github.com/VerditeLabs/syzkaller/pkg/covermerger"
+	"github.com/VerditeLabs/syzkaller/pkg/gcs"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	_ "github.com/VerditeLabs/syzkaller/pkg/subsystem/lists"
+	"github.com/VerditeLabs/syzkaller/pkg/tool"
 )
 
 var (

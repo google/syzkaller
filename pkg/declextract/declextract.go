@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/ifaceprobe"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/ifaceprobe"
 )
 
 type Result struct {

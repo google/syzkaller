@@ -5,11 +5,11 @@ import (
 	"flag"
 	"os"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/manager"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/vm"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/manager"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/vm"
 )
 
 var (

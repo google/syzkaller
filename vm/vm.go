@@ -18,18 +18,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/pkg/report/crash"
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm/vmimpl"
+	"github.com/VerditeLabs/syzkaller/pkg/log"
+	"github.com/VerditeLabs/syzkaller/pkg/mgrconfig"
+	"github.com/VerditeLabs/syzkaller/pkg/osutil"
+	"github.com/VerditeLabs/syzkaller/pkg/report"
+	"github.com/VerditeLabs/syzkaller/pkg/report/crash"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/sys/targets"
+	"github.com/VerditeLabs/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.
-	_ "github.com/google/syzkaller/vm/isolated"
-	_ "github.com/google/syzkaller/vm/qemu"
+	_ "github.com/VerditeLabs/syzkaller/vm/isolated"
+	_ "github.com/VerditeLabs/syzkaller/vm/qemu"
 )
 
 type Pool struct {
@@ -175,7 +175,7 @@ func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
 
 // TODO: Integration or end-to-end testing is needed.
 //
-//	https://github.com/google/syzkaller/pull/3269#discussion_r967650801
+//	https://github.com/VerditeLabs/syzkaller/pull/3269#discussion_r967650801
 func (pool *Pool) Close() error {
 	if pool.activeCount != 0 {
 		panic("all the instances should be closed before pool.Close()")

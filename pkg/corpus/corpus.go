@@ -7,11 +7,11 @@ import (
 	"maps"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/stat"
-	"github.com/google/syzkaller/prog"
+	"github.com/VerditeLabs/syzkaller/pkg/cover"
+	"github.com/VerditeLabs/syzkaller/pkg/hash"
+	"github.com/VerditeLabs/syzkaller/pkg/signal"
+	"github.com/VerditeLabs/syzkaller/pkg/stat"
+	"github.com/VerditeLabs/syzkaller/prog"
 )
 
 // Corpus object represents a set of syzkaller-found programs that

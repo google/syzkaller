@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/image"
+	"github.com/VerditeLabs/syzkaller/pkg/image"
 )
 
 // Maximum length of generated binary blobs inserted into the program.

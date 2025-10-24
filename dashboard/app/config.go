@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/email"
-	"github.com/google/syzkaller/pkg/subsystem"
-	"github.com/google/syzkaller/pkg/validator"
-	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/VerditeLabs/syzkaller/dashboard/dashapi"
+	"github.com/VerditeLabs/syzkaller/pkg/email"
+	"github.com/VerditeLabs/syzkaller/pkg/subsystem"
+	"github.com/VerditeLabs/syzkaller/pkg/validator"
+	"github.com/VerditeLabs/syzkaller/pkg/vcs"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
