@@ -17,7 +17,7 @@ type Target struct {
 	osCommon
 	OS               string
 	Arch             string
-	VMArch           string // e.g. amd64 for 386, or arm64 for arm
+	VMArch           string // VM architecture (always amd64 for Linux)
 	PtrSize          uint64
 	PageSize         uint64
 	NumPages         uint64

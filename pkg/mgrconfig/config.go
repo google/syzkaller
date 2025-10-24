@@ -10,7 +10,7 @@ import (
 type Config struct {
 	// Instance name (used for identification and as VM instance prefix).
 	Name string `json:"name"`
-	// Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process).
+	// Target OS/arch, e.g. "linux/amd64".
 	RawTarget string `json:"target"`
 	// URL that will display information about the running syz-manager process (e.g. "localhost:50000").
 	HTTP string `json:"http"`
