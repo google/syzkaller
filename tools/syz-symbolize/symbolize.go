@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to open input file: %v", err)
 	}
-	reps := report.ParseAll(reporter, text)
+	reps := report.ParseAll(reporter, text, 0)
 	if len(reps) == 0 {
 		rep := &report.Report{Report: text}
 		if err := reporter.Symbolize(rep); err != nil {
