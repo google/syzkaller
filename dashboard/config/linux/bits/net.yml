@@ -102,7 +102,7 @@ config:
  - NETFILTER_INGRESS
  - NETFILTER_ADVANCED
  - NETFILTER_XTABLES
- - NETFILTER_XTABLES_COMPAT: [v5.15, -arm]
+ - NETFILTER_XTABLES_COMPAT: [v5.15]
  # Required since "netfilter: Exclude LEGACY TABLES on PREEMPT_RT"
  - NETFILTER_XTABLES_LEGACY: [v6.17, -preempt_rt]
  - NF_CONNTRACK
@@ -285,12 +285,12 @@ config:
  - L2TP_V3
  - L2TP_IP
  - L2TP_ETH
- - NET_DSA: [-s390]
- - NET_DSA_TAG_BRCM: [-s390]
- - NET_DSA_TAG_BRCM_PREPEND: [-s390]
- - NET_DSA_TAG_MTK: [-s390]
- - NET_DSA_TAG_RTL4_A: [v5.10, -s390]
- - NET_DSA_TAG_QCA: [-s390]
+ - NET_DSA: 
+ - NET_DSA_TAG_BRCM: 
+ - NET_DSA_TAG_BRCM_PREPEND: 
+ - NET_DSA_TAG_MTK: 
+ - NET_DSA_TAG_RTL4_A: [v5.10]
+ - NET_DSA_TAG_QCA: 
  - VLAN_8021Q
  - VLAN_8021Q_GVRP
  - VLAN_8021Q_MVRP
@@ -377,7 +377,7 @@ config:
  - NET_TC_SKB_EXT
  # This depends on TRACING, which is enabled because of LOCKDEP,
  # which is currently disabled on arm64.
- - NET_DROP_MONITOR: [-arm64]
+ - NET_DROP_MONITOR: 
  - DCB
  - VSOCKETS
  - VSOCKETS_DIAG
@@ -441,8 +441,8 @@ config:
  - NLMON
  - NET_VRF
  - VSOCKMON: [-onlynet]
- - E100: [-s390]
- - E1000E: [-s390]
+ - E100: 
+ - E1000E: 
  - NET_VENDOR_GOOGLE
  - NET_VENDOR_3COM: n
  - NET_VENDOR_ADAPTEC: n
@@ -523,8 +523,8 @@ config:
  - INFINIBAND_USNIC: n
  - INFINIBAND_RDMAVT: n
  - INFINIBAND_OPA_VNIC: n
- - RDMA_RXE: [-arm]
- - RDMA_SIW: [-arm]
+ - RDMA_RXE: 
+ - RDMA_SIW: 
  - INFINIBAND_IPOIB
  - INFINIBAND_IPOIB_CM
  - INFINIBAND_IPOIB_DEBUG

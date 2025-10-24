@@ -33,9 +33,9 @@ config:
  - CRYPTO_SALSA20: [-v5.12]
  - CRYPTO_SHA3
  # Not used in arm32. On riscv, requires TOOLCHAIN_HAS_VECTOR_CRYPTO.
- - CRYPTO_SM3: [-kmsan, -arm, -riscv, -v6.16]
+ - CRYPTO_SM3: [-kmsan, -v6.16]
  # After 6.15, it will be CRYPTO_LIB_SM3.
- - CRYPTO_LIB_SM3: [linux-next, -kmsan, -arm, -riscv]
+ - CRYPTO_LIB_SM3: [linux-next, -kmsan]
  - CRYPTO_SM3_AVX_X86_64: [v6.1, x86_64, -kmsan]
  - CRYPTO_WP512
  - CRYPTO_AES_TI
@@ -65,8 +65,8 @@ config:
  - CRYPTO_HW
  - CRYPTO_DEV_VIRTIO
  - CRYPTO_SM2: [v5.10, -v6.11]
- - CRYPTO_DEV_CCP: [-arm, -riscv, -s390]
- - CRYPTO_DEV_CCP_DD: [-arm, -riscv, -s390]
+ - CRYPTO_DEV_CCP: 
+ - CRYPTO_DEV_CCP_DD: 
  - CRYPTO_DEV_SP_CCP: n
  - CRYPTO_DEV_SP_PSP: n
  - CRYPTO_ARIA: [v6.1]

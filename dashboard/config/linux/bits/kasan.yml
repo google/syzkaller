@@ -2,14 +2,14 @@
 config:
  - KASAN
  - KASAN_GENERIC: [v4.16]
- - KASAN_INLINE: [-arm, -cuttlefish]
+ - KASAN_INLINE: 
  - KASAN_STACK_ENABLE: [clang, v4.16, -v5.11]
  - KASAN_STACK: [clang, v5.11]
- - KASAN_VMALLOC: [v5.5, -arm, -arm64, -s390]
+ - KASAN_VMALLOC: [v5.5]
  # This was historically enabled in the KASAN section without explanation.
- - SPARSEMEM_VMEMMAP: [-arm, -riscv]
+ - SPARSEMEM_VMEMMAP: 
  # This is required to enable SPARSEMEM_VMEMMAP.
- - SPARSEMEM_MANUAL: [-arm, -arm64, -s390, -v5.17]
+ - SPARSEMEM_MANUAL: 
  # This allows to get alloc/free stacks for UAFs on freed pages.
  # This also needs page_owner=on in cmdline.
  - PAGE_OWNER
@@ -17,7 +17,7 @@ config:
  - SLUB_RCU_DEBUG: [v6.12]
 
  - UBSAN: [v5.8]
- - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv, -v6.9]
+ - UBSAN_SANITIZE_ALL: [v5.8, -v6.9]
  - UBSAN_TRAP: n
  - UBSAN_MISC: n
  - UBSAN_BOUNDS: [v5.8]

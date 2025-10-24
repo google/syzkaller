@@ -212,11 +212,11 @@ config:
  - USBIP_HOST
  - USBIP_VUDC
 
- - ISDN: [-s390]
- - ISDN_CAPI: [-s390]
- - MISDN: [-s390]
- - MISDN_DSP: [-s390]
- - MISDN_L1OIP: [-s390]
+ - ISDN: 
+ - ISDN_CAPI: 
+ - MISDN: 
+ - MISDN_DSP: 
+ - MISDN_L1OIP: 
 
  - AF_RXRPC
  - AF_RXRPC_IPV6

@@ -50,11 +50,11 @@ config:
  # Speeds up randomness initialization.
  - HW_RANDOM
  # Included as a module in Cuttlefish.
- - HW_RANDOM_VIRTIO: [-cuttlefish]
+ - HW_RANDOM_VIRTIO
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
- - RANDOM_TRUST_CPU: [-arm, -riscv, -v6.1]
+ - RANDOM_TRUST_CPU: 
  - RANDOM_TRUST_BOOTLOADER: [v4.16, -v6.1]
 
  # For detection of supported syscalls
@@ -81,7 +81,7 @@ config:
  - PANIC_ON_OOPS
  - PANIC_TIMEOUT: 86400
  - SCHED_STACK_END_CHECK
- - FORTIFY_SOURCE: [-riscv, v5.18]
+ - FORTIFY_SOURCE: 
  - HARDENED_USERCOPY
  - HARDENED_USERCOPY_FALLBACK: [-v5.15]
  - BUG_ON_DATA_CORRUPTION
@@ -94,7 +94,7 @@ config:
  - DEBUG_PI_LIST: [-v5.2]
 
  # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
- - REFCOUNT_FULL: [v4.16, -v5.5, -android-5.4]
+ - REFCOUNT_FULL: [v4.16, -v5.55.4]
  # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
  - PCPU_DEV_REFCNT: [n, v5.13]
 
@@ -125,10 +125,10 @@ config:
  # https://lore.kernel.org/linux-arm-kernel/20210119130010.GA2338@C02TD0UTHF1T.local/T/#m78fdfcc41ae831f91c93ad5dabe63f7ccfb482f0
  # KCOV is not supported on s390 with our toolchain now, config depends on:
  # (!ARCH_WANTS_NO_INSTR [=y] || STACK_VALIDATION [=n] || GCC_VERSION [=110200]>=120000 || CLANG_VERSION [=0]>=130000)
- - KCOV: [-arm, -s390, -nokcov]
- - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
+ - KCOV: 
+ - KCOV_INSTRUMENT_ALL: 
  # Doesn't boot with KCOV_ENABLE_COMPARISONS on Cuttlefish.
- - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov, -cuttlefish]
+ - KCOV_ENABLE_COMPARISONS: 
  # As of Sep 2024, the test does not pass (at least) on gcc-built kernels.
  # https://lore.kernel.org/all/66eb52dc.050a0220.92ef1.0006.GAE@google.com/T/
  # TODO: re-enable the option once the problem is addressed.
@@ -137,7 +137,7 @@ config:
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
  # For s390, it's always enabled after the `s390: always build relocatable kernel` commit.
- - RELOCATABLE: [n, -s390]
+ - RELOCATABLE: [n]
  - RANDOMIZE_BASE: n
 
  # Print thread and CPU ids.
@@ -186,7 +186,7 @@ config:
  - NMI_CHECK_CPU: [x86_64, v6.3]
 
  # We use GVNIC on Google Cloud.
- - GVE: [-arm, -riscv, -s390, -timeouts_emu]
+ - GVE: 
 
  # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
  # It managed to do so with some mount's, chdir's and bogus file names.

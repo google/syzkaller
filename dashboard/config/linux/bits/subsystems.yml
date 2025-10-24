@@ -10,7 +10,7 @@ config:
  - HIGH_RES_TIMERS
  - POSIX_AUX_CLOCKS: [v6.17]
  - PREEMPT
- - IRQ_TIME_ACCOUNTING: [-riscv, -s390]
+ - IRQ_TIME_ACCOUNTING: 
  - BSD_PROCESS_ACCT
  - BSD_PROCESS_ACCT_V3
  - TASKSTATS
@@ -21,10 +21,10 @@ config:
  - IKCONFIG
  - IKCONFIG_PROC
  - LOG_BUF_SHIFT: 18
- - NUMA: [-arm]
+ - NUMA: 
  - NUMA_EMU: [x86_64]
- - NUMA_BALANCING: [-arm, -preempt_rt]
- - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -preempt_rt]
+ - NUMA_BALANCING: 
+ - NUMA_BALANCING_DEFAULT_ENABLED: 
  # Starting from v6.13, depends on !CPU_MITIGATIONS.
  - ADDRESS_MASKING: [x86_64, v6.4, -v6.12, -stable-6.6]
  - X86_USER_SHADOW_STACK: [x86_64, v6.6]
@@ -38,7 +38,7 @@ config:
  - CFS_BANDWIDTH
  - CGROUP_RDMA
  - CGROUP_FREEZER
- - CGROUP_HUGETLB: [-arm]
+ - CGROUP_HUGETLB: 
  - CPUSETS
  - CGROUP_DEVICE
  - CGROUP_CPUACCT
@@ -53,21 +53,21 @@ config:
  - PERF_EVENTS
  - SMP
  - KEXEC
- - HIBERNATION: [-s390]
- - HIBERNATION_SNAPSHOT_DEV: [v5.10, -s390]
- - PM_DEBUG: [-s390]
- - ACPI_DOCK: [-arm, -riscv, -s390]
+ - HIBERNATION: 
+ - HIBERNATION_SNAPSHOT_DEV: [v5.10]
+ - PM_DEBUG: 
+ - ACPI_DOCK: 
  - ACPI_NFIT: [x86_64]
- - CPU_FREQ: [-riscv, -s390]
- - CPU_FREQ_DEFAULT_GOV_USERSPACE: [-riscv, -s390]
- - CPU_FREQ_GOV_ONDEMAND: [-riscv, -s390]
+ - CPU_FREQ: 
+ - CPU_FREQ_DEFAULT_GOV_USERSPACE: 
+ - CPU_FREQ_GOV_ONDEMAND: 
  - GOOGLE_SMI: n
  - GOOGLE_MEMCONSOLE_X86_LEGACY: n
- - GOOGLE_FIRMWARE: [-s390]
- - GOOGLE_COREBOOT_TABLE: [-s390]
- - GOOGLE_MEMCONSOLE_COREBOOT: [-s390]
- - GOOGLE_VPD: [-s390]
- - KVM: [-arm, -riscv]
+ - GOOGLE_FIRMWARE: 
+ - GOOGLE_COREBOOT_TABLE: 
+ - GOOGLE_MEMCONSOLE_COREBOOT: 
+ - GOOGLE_VPD: 
+ - KVM: 
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
@@ -99,15 +99,15 @@ config:
  - BFQ_CGROUP_DEBUG
  - BINFMT_MISC
  - BINFMT_SCRIPT
- - MEMORY_HOTPLUG: [-arm]
+ - MEMORY_HOTPLUG: 
  # Replaced in "mm: add build-time option for hotplug memory default online type".
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -v6.14]
- - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: [-arm, v6.14]
- - MEMORY_HOTREMOVE: [-arm]
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: 
+ - MHP_DEFAULT_ONLINE_TYPE_ONLINE_AUTO: 
+ - MEMORY_HOTREMOVE: 
  - ANON_VMA_NAME: [v5.17]
  - KSM
- - TRANSPARENT_HUGEPAGE: [-arm, -preempt_rt]
- - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -preempt_rt]
+ - TRANSPARENT_HUGEPAGE: 
+ - TRANSPARENT_HUGEPAGE_MADVISE: 
  - FRONTSWAP: [-v6.6]
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
@@ -115,10 +115,10 @@ config:
  - ZSWAP_SHRINKER_DEFAULT_ON: [v6.8]
  - ZSMALLOC
  - IDLE_PAGE_TRACKING: [-v5.15]
- - ZONE_DEVICE: [-arm, -riscv, -s390]
- - DEVICE_PRIVATE: [-arm, -riscv, -s390]
+ - ZONE_DEVICE: 
+ - DEVICE_PRIVATE: 
  - PERCPU_STATS
- - READ_ONLY_THP_FOR_FS: [-arm, -riscv, -preempt_rt]
+ - READ_ONLY_THP_FOR_FS: 
  - PCI
  - PCIEPORTBUS
  - HOTPLUG_PCI_PCIE
@@ -128,7 +128,7 @@ config:
  - FW_LOADER_USER_HELPER
  - FW_LOADER_USER_HELPER_FALLBACK
  - FW_LOADER_COMPRESS
- - FW_CACHE: [v5.10, -riscv, -s390]
+ - FW_CACHE: [v5.10]
  - CONNECTOR
  - MTD
  - MTD_BLOCK
@@ -194,7 +194,7 @@ config:
  - ATA
  - SATA_AHCI
  - ATA_PIIX
- - PATA_AMD: [-s390]
+ - PATA_AMD: 
  - PATA_OLDPIIX
  - PATA_SCH
  - ATA_SFF
@@ -241,15 +241,15 @@ config:
  - INPUT_MISC
  - INPUT_UINPUT
  - USERIO
- - SERIAL_8250: [-s390]
- - SERIAL_8250_CONSOLE: [-s390]
+ - SERIAL_8250: 
+ - SERIAL_8250_CONSOLE: 
  - SERIAL_8250_EXAR: n
- - SERIAL_8250_NR_UARTS: [32, -s390]
- - SERIAL_8250_EXTENDED: [-s390]
- - SERIAL_8250_MANY_PORTS: [-s390]
- - SERIAL_8250_SHARE_IRQ: [-s390]
- - SERIAL_8250_DETECT_IRQ: [-s390]
- - SERIAL_8250_RSA: [-s390]
+ - SERIAL_8250_NR_UARTS: [32]
+ - SERIAL_8250_EXTENDED: 
+ - SERIAL_8250_MANY_PORTS: 
+ - SERIAL_8250_SHARE_IRQ: 
+ - SERIAL_8250_DETECT_IRQ: 
+ - SERIAL_8250_RSA: 
  - SERIAL_NONSTANDARD
  # Removed in "tty: rocket, remove the driver".
  - ROCKETPORT: [-v5.13]
@@ -289,10 +289,10 @@ config:
  - DRM
  # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
- - DRM_PANEL_EDP: [v5.16, -s390]
+ - DRM_PANEL_EDP: [v5.16]
  - DRM_DP_AUX_CHARDEV: [x86_64, -v6.10]
- - DRM_DISPLAY_DP_AUX_BUS: [v6.10, -s390]
- - DRM_DISPLAY_DP_HELPER: [v5.19, -s390]
+ - DRM_DISPLAY_DP_AUX_BUS: [v6.10]
+ - DRM_DISPLAY_DP_HELPER: [v5.19]
  - DRM_DEBUG_MM
  - DRM_I915: [x86_64, -preempt_rt]
  - DRM_VGEM
@@ -364,19 +364,19 @@ config:
  - SND_USB_AUDIO
  - SND_FIREWORKS: n
  - SND_FIREWIRE_TASCAM: n
- - HID_BATTERY_STRENGTH: [-s390]
- - HIDRAW: [-s390]
+ - HID_BATTERY_STRENGTH: 
+ - HIDRAW: 
  - HID_HAPTIC: [v6.18]
- - UHID: [-s390]
- - USB_HIDDEV: [-s390]
+ - UHID: 
+ - USB_HIDDEV: 
  - USB_ANNOUNCE_NEW_DEVICES
- - USB_OTG: [-s390]
+ - USB_OTG: 
  - USB_MON
  - USB_XHCI_HCD
  - USB_EHCI_HCD
  - USB_EHCI_ROOT_HUB_TT
  - USB_OHCI_HCD
- - USB_UHCI_HCD: [-s390]
+ - USB_UHCI_HCD: 
  - USB_ACM
  - USB_PRINTER
  - USB_STORAGE
@@ -415,10 +415,10 @@ config:
  - USB_FEW_INIT_RETRIES: [v5.10]
  - TYPEC
  - TYPEC_TCPM
- - TYPEC_UCSI: [-s390]
- - UCSI_ACPI: [-arm, -riscv, -s390]
- - EDAC: [-s390]
- - RTC_CLASS: [-s390]
+ - TYPEC_UCSI: 
+ - UCSI_ACPI: 
+ - EDAC: 
+ - RTC_CLASS: 
  - RTC_HCTOSYS: n
  - RTC_NVMEM: n
  - DMADEVICES
@@ -435,8 +435,8 @@ config:
  - DMABUF_HEAPS_SYSTEM: [v5.5]
  - DMABUF_HEAPS_CMA: [v5.5]
  - DMA_CMA
- - VFIO: [-arm, -riscv]
- - VFIO_PCI: [-arm, -riscv]
+ - VFIO: 
+ - VFIO_PCI: 
  # This should not be turned on, it will disable some VFIO coverage.
  - VFIO_CONTAINER: n
  - VIRTIO_PCI
@@ -449,9 +449,9 @@ config:
  - VIRTIO_MMIO
  - VIRTIO_MMIO_CMDLINE_DEVICES
  - VDPA: [v5.5]
- - VDPA_SIM: [v6.0, -riscv]
- - VDPA_SIM_NET: [v6.0, -riscv]
- - VDPA_SIM_BLOCK: [v6.0, -riscv]
+ - VDPA_SIM: [v6.0]
+ - VDPA_SIM_NET: [v6.0]
+ - VDPA_SIM_BLOCK: [v6.0]
  # Starting from v6.12, VDPA_USER depends on ARCH_HAS_DMA_OPS, which we don't have.
  - VDPA_USER: [v6.0, -v6.12]
  - VP_VDPA: [v5.13]
@@ -494,7 +494,7 @@ config:
  - PSTORE_COMPRESS
  - PSTORE_DEFLATE_COMPRESS_DEFAULT: [-v6.6]
  # For some architectures, we may only have FS_DAX_LIMITED.
- - FS_DAX: [-arm, -riscv, -s390]
+ - FS_DAX: 
  - FS_DAX_LIMITED: [s390, arm, riscv]
  - FS_ENCRYPTION
  - FS_VERITY
@@ -512,12 +512,12 @@ config:
  - FUSE_DAX: [v5.10, x86_64]
  - CUSE
  - VIRTIO_FS
- - PROC_KCORE: [-arm]
+ - PROC_KCORE: 
  - TMPFS
  - TMPFS_POSIX_ACL
  - TMPFS_XATTR
  - TMPFS_QUOTA: [v6.6]
- - HUGETLBFS: [-arm]
+ - HUGETLBFS: 
  - ECRYPT_FS
  - ECRYPT_FS_MESSAGING
  - NLS_DEFAULT: "utf8"

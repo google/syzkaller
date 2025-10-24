@@ -2,7 +2,7 @@
 shell:
  - make x86_64_defconfig: [-nodefconfig]
  - make allyesconfig: [allyes]
- - make kvm_guest.config: [-cuttlefish]
+ - make kvm_guest.config
 
 config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
@@ -45,7 +45,7 @@ config:
  - ETHERNET
  - NET_VENDOR_INTEL
  # Module in cuttlefish.
- - E1000: [-cuttlefish]
+ - E1000
 
  - X86_ACPI_CPUFREQ
  - CPU_IDLE_GOV_HALTPOLL: [v4.16]
