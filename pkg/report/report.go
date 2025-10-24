@@ -99,9 +99,6 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 		cfg.LocalModules = localModules
 	}
 	typ := cfg.TargetOS
-	if cfg.Type == targets.GVisor || cfg.Type == targets.Starnix {
-		typ = cfg.Type
-	}
 	ctor := ctors[typ]
 	if ctor == nil {
 		return nil, fmt.Errorf("unknown OS: %v", typ)

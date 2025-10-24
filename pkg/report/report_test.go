@@ -402,9 +402,6 @@ func testSymbolizeFile(t *testing.T, reporter *Reporter, fn string) {
 
 func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Reporter, fn string)) {
 	for os := range ctors {
-		if os == targets.Windows {
-			continue // not implemented
-		}
 		cfg := &mgrconfig.Config{
 			Derived: mgrconfig.Derived{
 				TargetOS:   os,
