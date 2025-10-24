@@ -709,8 +709,6 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 			sortedBottom = append(sortedBottom, include)
 		} else if strings.Contains(include, "<netinet/if_ether.h>") {
 			sortedBottom = append(sortedBottom, include)
-		} else if ctx.target.OS == targets.FreeBSD && strings.Contains(include, "<sys/types.h>") {
-			sortedTop = append(sortedTop, include)
 		} else {
 			sorted = append(sorted, include)
 		}
