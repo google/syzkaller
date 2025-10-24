@@ -37,7 +37,7 @@ func TestExecprogCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagSlowdown := flags.Int("slowdown", 1, "")
 	flagSandboxArg := flags.Int("sandbox_arg", 0, "argument for sandbox runner to adjust it via config")
-	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386, "vmtype",
+	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.Linux, targets.AMD64, "vmtype",
 		csource.Options{
 			Sandbox:    "namespace",
 			SandboxArg: 3,
@@ -58,11 +58,11 @@ func TestExecprogCmd(t *testing.T) {
 	if len(flags.Args()) != 1 || flags.Arg(0) != "myprog" {
 		t.Errorf("bad args: %q, want: %q", flags.Args(), "myprog")
 	}
-	if *flagOS != runtime.GOOS {
-		t.Errorf("bad os: %q, want: %q", *flagOS, runtime.GOOS)
+	if *flagOS != targets.Linux {
+		t.Errorf("bad os: %q, want: %q", *flagOS, targets.Linux)
 	}
-	if *flagArch != targets.I386 {
-		t.Errorf("bad arch: %q, want: %q", *flagArch, targets.I386)
+	if *flagArch != targets.AMD64 {
+		t.Errorf("bad arch: %q, want: %q", *flagArch, targets.AMD64)
 	}
 	if *flagRepeat != 0 {
 		t.Errorf("bad repeat: %v, want: %v", *flagRepeat, 0)

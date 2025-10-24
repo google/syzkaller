@@ -217,8 +217,7 @@ func buildTestBinary(t *testing.T, target *targets.Target, test *Test, dir strin
 	}
 
 	aslrDefine := "-DNO_ASLR_BASE"
-	if target.OS == targets.Linux || target.OS == targets.OpenBSD ||
-		target.OS == targets.FreeBSD || target.OS == targets.NetBSD {
+	if target.OS == targets.Linux {
 		aslrDefine = "-DASLR_BASE"
 	}
 	aslrExtraLibs := []string{}

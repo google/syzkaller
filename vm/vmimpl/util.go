@@ -32,9 +32,6 @@ type SSHOptions struct {
 
 func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan error, systemSSHCfg, debug bool) error {
 	pwd := "pwd"
-	if OS == targets.Windows {
-		pwd = "dir"
-	}
 	startTime := time.Now()
 	SleepInterruptible(5 * time.Second)
 	for {
