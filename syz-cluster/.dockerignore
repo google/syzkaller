@@ -1,6 +1,0 @@
-# Ignore temporary files.
-*~
-
-# Ignore Dockerfiles.
-Dockerfile.*
-Dockerfile
