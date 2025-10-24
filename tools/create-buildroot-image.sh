@@ -2,42 +2,21 @@
 # Copyright 2021 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# This script builds a buildroot-based Linux image.
+# This script builds a buildroot-based Linux amd64 image.
 # It should be run from a buildroot checkout (git://git.buildroot.net/buildroot) as:
-# TARGETARCH={amd64,arm64,arm,riscv64,s390x,mips64le,ppc64le} [NOMAKE=yes] create-buildroot-image.sh
+# [NOMAKE=yes] create-buildroot-image.sh
 # If no NOMAKE=yes is specified, then it will just prepare the buildroot config,
 # but will not run the final make.
-# For amd64 and arm64 it creates a bootable image with root partition
-# on /dev/sda1 in output/images/disk.img file.
-# For other architectures it creates a non-bootable disk
-# suitable qemu injected boot with root partition on /dev/sda
-# in output/images/rootfs.ext4 file.
+# It creates a bootable image with root partition on /dev/sda1 in output/images/disk.img file.
 # Note: the image requires at least kernel v4.19
 # (otherwise glibc complains about unsupported kernel version).
 
 set -eux
 
+# Simplified for Linux amd64 only
 NOMAKE="${NOMAKE:-}"
-TARGETARCH="${TARGETARCH:-amd64}"
-case "$TARGETARCH" in
-	amd64)
-		DEFCONFIG="pc_x86_64_bios_defconfig";;
-	arm64)
-		DEFCONFIG="aarch64_efi_defconfig";;
-	arm)
-		DEFCONFIG="qemu_arm_vexpress_defconfig";;
-	riscv64)
-		DEFCONFIG="qemu_riscv64_virt_defconfig";;
-	s390x)
-		DEFCONFIG="qemu_s390x_defconfig";;
-	mips64le)
-		DEFCONFIG="qemu_mips64r6el_malta_defconfig";;
-	ppc64le)
-		DEFCONFIG="qemu_ppc64le_pseries_defconfig";;
-	*)
-		echo "unsupported TARGETARCH=${TARGETARCH}"
-		exit 1;;
-esac
+TARGETARCH="amd64"
+DEFCONFIG="pc_x86_64_bios_defconfig"
 
 git fetch origin
 git checkout 2025.02.1
@@ -102,10 +81,8 @@ BR2_PACKAGE_REFPOLICY_POLICY_STATE_PERMISSIVE=y
 # BR2_PACKAGE_REFPOLICY_POLICY_STATE_DISABLED is not set
 EOF
 
-# Per-arch config fragments.
-case "$TARGETARCH" in
-        amd64)
-		cat >>.config <<EOF
+# amd64 config fragment
+cat >>.config <<EOF
 BR2_TARGET_GENERIC_GETTY_PORT="ttyS0"
 BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="board/qemu/x86_64/linux.config"
@@ -113,47 +90,6 @@ BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="board/qemu/x86_64/linux.config"
 # but this is too slow for emulated architectures.
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV=y
 EOF
-;;
-        arm64)
-                cat >>.config <<EOF
-BR2_cortex_a57=y
-BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
-BR2_LINUX_KERNEL_IMAGEGZ=y
-BR2_LINUX_KERNEL_GZIP=y
-BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_10=y
-BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="5.10.235"
-BR2_ROOTFS_POST_IMAGE_SCRIPT="board/aarch64-efi/post-image.sh ./post_image_script.sh support/scripts/genimage.sh"
-BR2_ROOTFS_POST_SCRIPT_ARGS="-c ./custom-genimage-efi.cfg"
-EOF
-;;
-	arm)
-		cat >>.config <<EOF
-# BR2_LINUX_KERNEL is not set
-BR2_cortex_a15_a7=y
-BR2_TARGET_ROOTFS_EXT2_4=y
-EOF
-;;
-	s390x)
-		cat >>.config <<EOF
-# BR2_LINUX_KERNEL is not set
-EOF
-;;
-	mips64le)
-		cat >>.config <<EOF
-# BR2_LINUX_KERNEL is not set
-EOF
-;;
-	ppc64le)
-		cat >>.config <<EOF
-# BR2_LINUX_KERNEL is not set
-EOF
-;;
-	riscv64)
-		cat >>.config <<EOF
-# BR2_LINUX_KERNEL is not set
-EOF
-;;
-esac
 
 # Set syslogd level to "critical", otherwise we may get too many unrelated logs (see #5452).
 sed -i 's/SYSLOGD_ARGS=""$/SYSLOGD_ARGS="-l 2"/' package/busybox/S01syslogd
@@ -202,9 +138,7 @@ mkdir -p $1/var/db/dhcpcd
 
 EOFEOF
 
-# Per-arch part of the rootfs script.
-case "$TARGETARCH" in
-	amd64)
+# amd64 part of the rootfs script
 cat >>rootfs_script.sh <<'EOFEOF'
 
 # Write udev rules.
@@ -222,33 +156,7 @@ menuentry "syzkaller" {
 }
 EOF
 EOFEOF
-;;
-        arm64)
-cat >post_image_script.sh <<'EOFEOF'
-cat >${BINARIES_DIR}/efi-part/EFI/BOOT/grub.cfg <<EOF
-set default="0"
-set timeout="0"
-menuentry "syzkaller" {
-	linux /Image.gz root=PARTLABEL=root enforcing=0 console=ttyS0
-}
-EOF
-EOFEOF
-;;
-esac
-
-# Adjust consts in buildroot source files.
-case "$TARGETARCH" in
-  arm64)
-    cp board/aarch64-efi/genimage-efi.cfg custom-genimage-efi.cfg
-    # 64 MB is too small for our large images.
-    sed -i 's/size = 64M/size = 256M/g' custom-genimage-efi.cfg
-    # Also, use compressed images.
-    sed -i 's/Image/Image.gz/g' custom-genimage-efi.cfg
-    ;;
-esac
-
-touch post_image_script.sh  # only created for some archs
-chmod u+x rootfs_script.sh post_image_script.sh
+chmod u+x rootfs_script.sh
 
 make olddefconfig
 

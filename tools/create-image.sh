@@ -2,9 +2,13 @@
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# create-image.sh creates a minimal Debian Linux image suitable for syzkaller.
+# create-image.sh creates a minimal Debian Linux amd64 image suitable for syzkaller.
 
 set -eux
+
+# Simplified for Linux amd64 only
+ARCH=x86_64
+DEBARCH=amd64
 
 # Create a minimal Debian distribution in a directory.
 PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,debian-ports-archive-keyring
@@ -15,7 +19,6 @@ if [ -z ${ADD_PACKAGE+x} ]; then
 fi
 
 # Variables affected by options
-ARCH=$(uname -m)
 RELEASE=bullseye
 FEATURE=minimal
 SEEK=2047
@@ -25,7 +28,6 @@ PERF=false
 display_help() {
     echo "Usage: $0 [option...] " >&2
     echo
-    echo "   -a, --arch                 Set architecture"
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
     echo "   -s, --seek                 Image size (MB), default 2048 (2G)"
@@ -43,10 +45,6 @@ while true; do
         -h | --help)
             display_help
             exit 0
-            ;;
-        -a | --arch)
-	    ARCH=$2
-            shift 2
             ;;
         -d | --distribution)
 	    RELEASE=$2
@@ -74,48 +72,6 @@ while true; do
     esac
 done
 
-# Handle cases where qemu and Debian use different arch names
-case "$ARCH" in
-    ppc64le)
-        DEBARCH=ppc64el
-        ;;
-    aarch64)
-        DEBARCH=arm64
-        ;;
-    arm)
-        DEBARCH=armel
-        ;;
-    x86_64)
-        DEBARCH=amd64
-        ;;
-    *)
-        DEBARCH=$ARCH
-        ;;
-esac
-
-# Foreign architecture
-
-FOREIGN=false
-if [ $ARCH != $(uname -m) ]; then
-    # i386 on an x86_64 host is exempted, as we can run i386 binaries natively
-    if [ $ARCH != "i386" -o $(uname -m) != "x86_64" ]; then
-        FOREIGN=true
-    fi
-fi
-
-if [ $FOREIGN = "true" ]; then
-    # Check for according qemu static binary
-    if ! which qemu-$ARCH-static; then
-        echo "Please install qemu static binary for architecture $ARCH (package 'qemu-user-static' on Debian/Ubuntu/Fedora)"
-        exit 1
-    fi
-    # Check for according binfmt entry
-    if [ ! -r /proc/sys/fs/binfmt_misc/qemu-$ARCH ]; then
-        echo "binfmt entry /proc/sys/fs/binfmt_misc/qemu-$ARCH does not exist"
-        exit 1
-    fi
-fi
-
 # Double check KERNEL when PERF is enabled
 if [ $PERF = "true" ] && [ -z ${KERNEL+x} ]; then
     echo "Please set KERNEL environment variable when PERF is enabled"
@@ -132,34 +88,17 @@ sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
 
-# 1. debootstrap stage
-
+# debootstrap stage
 DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=main,contrib,non-free,non-free-firmware $RELEASE $DIR"
-if [ $FOREIGN = "true" ]; then
-    DEBOOTSTRAP_PARAMS="--foreign $DEBOOTSTRAP_PARAMS"
-fi
-
-# riscv64 is hosted in the debian-ports repository
-# debian-ports doesn't include non-free, so we exclude firmware-atheros
-if [ $DEBARCH == "riscv64" ]; then
-    DEBOOTSTRAP_PARAMS="--keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg --exclude firmware-atheros $DEBOOTSTRAP_PARAMS http://deb.debian.org/debian-ports"
-fi
 
 # debootstrap may fail for EoL Debian releases
 RET=0
 sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS || RET=$?
 
-if [ $RET != 0 ] && [ $DEBARCH != "riscv64" ]; then
+if [ $RET != 0 ]; then
     # Try running debootstrap again using the Debian archive
     DEBOOTSTRAP_PARAMS="--keyring /usr/share/keyrings/debian-archive-removed-keys.gpg $DEBOOTSTRAP_PARAMS https://archive.debian.org/debian-archive/debian/"
     sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS
-fi
-
-# 2. debootstrap stage: only necessary if target != host architecture
-
-if [ $FOREIGN = "true" ]; then
-    sudo cp $(which qemu-$ARCH-static) $DIR/$(which qemu-$ARCH-static)
-    sudo chroot $DIR /bin/bash -c "/debootstrap/debootstrap --second-stage"
 fi
 
 # Set some defaults and enable promtless ssh to the machine for root.
