@@ -192,9 +192,7 @@ func generateFlagsType(comp *compiler, base prog.IntTypeCommon, name string) pro
 
 func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
 	align := base.UnitSize()
-	if align == 8 && comp.target.Int64Alignment != 0 {
-		align = comp.target.Int64Alignment
-	}
+	// Int64Alignment is always 0 on amd64 (natural 8-byte alignment)
 	return align
 }
 

@@ -190,9 +190,7 @@ func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir st
 		"-j", fmt.Sprint(jobs),
 		"ARCH=" + target.KernelArch,
 	}
-	if target.Triple != "" {
-		args = append(args, "CROSS_COMPILE="+target.Triple+"-")
-	}
+	// No CROSS_COMPILE needed (Triple is always "")
 	if compiler == "" {
 		compiler = target.KernelCompiler
 		if target.KernelLinker != "" {

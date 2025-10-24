@@ -309,10 +309,8 @@ func initTarget(target *Target, OS, arch string) {
 		target.CPP = "cpp"
 	}
 	if target.Objdump == "" {
+		// Always use native objdump (Triple is always "")
 		target.Objdump = "objdump"
-		if target.Triple != "" {
-			target.Objdump = target.Triple + "-objdump"
-		}
 	}
 	// BuildOS defaults to OS (always linux)
 	if target.BuildOS == "" {
@@ -351,11 +349,8 @@ func (target *Target) findAddr2Line() (string, error) {
 	if path, err := exec.LookPath("llvm-addr2line"); err == nil {
 		return path, nil
 	}
-	bin := "addr2line"
-	if target.Triple != "" {
-		bin = target.Triple + "-" + bin
-	}
-	return bin, nil
+	// Always use native addr2line (Triple is always "")
+	return "addr2line", nil
 }
 
 func (target *Target) Timeouts(slowdown int) Timeouts {
@@ -416,17 +411,13 @@ func (target *Target) setCompiler(clang bool) {
 		target.CCompiler = DefaultLLVMCompiler
 		target.KernelCompiler = DefaultLLVMCompiler
 		target.KernelLinker = DefaultLLVMLinker
-		if target.Triple != "" {
-			target.CFlags = append(target.CFlags, "--target="+target.Triple)
-		}
+		// No --target flag needed (Triple is always "")
 		target.CFlags = append(target.CFlags, "-ferror-limit=0")
 	} else {
 		target.CCompiler = "gcc"
 		target.KernelCompiler = ""
 		target.KernelLinker = ""
-		if target.Triple != "" {
-			target.CCompiler = target.Triple + "-" + target.CCompiler
-		}
+		// No cross-compiler prefix needed (Triple is always "")
 	}
 }
 
