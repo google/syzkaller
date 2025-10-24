@@ -1525,12 +1525,7 @@ func (a bugReportSorter) Less(i, j int) bool {
 }
 
 // kernelArch returns arch as kernel developers know it (rather than Go names).
-// Currently Linux-specific.
+// Currently Linux amd64 only.
 func kernelArch(arch string) string {
-	switch arch {
-	case targets.I386:
-		return "i386"
-	default:
-		return arch
-	}
+	return arch
 }
