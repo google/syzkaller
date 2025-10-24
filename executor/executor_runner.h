@@ -652,7 +652,7 @@ private:
 		rpc::ConnectRequestRawT conn_req;
 		conn_req.cookie = HashAuthCookie(conn_hello.cookie);
 		conn_req.id = vm_index_;
-		conn_req.arch = GOARCH;
+		conn_req.arch = "amd64";
 		conn_req.git_revision = GIT_REVISION;
 		conn_req.syz_revision = SYZ_REVISION;
 		conn_.Send(conn_req);
