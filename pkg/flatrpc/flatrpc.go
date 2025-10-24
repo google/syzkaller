@@ -49,20 +49,19 @@ const (
 	FeatureSandboxNone      Feature = 32
 	FeatureSandboxSetuid    Feature = 64
 	FeatureSandboxNamespace Feature = 128
-	FeatureSandboxAndroid   Feature = 256
-	FeatureFault            Feature = 512
-	FeatureLeak             Feature = 1024
-	FeatureNetInjection     Feature = 2048
-	FeatureNetDevices       Feature = 4096
-	FeatureKCSAN            Feature = 8192
-	FeatureDevlinkPCI       Feature = 16384
-	FeatureNicVF            Feature = 32768
-	FeatureUSBEmulation     Feature = 65536
-	FeatureVhciInjection    Feature = 131072
-	FeatureWifiEmulation    Feature = 262144
-	FeatureLRWPANEmulation  Feature = 524288
-	FeatureBinFmtMisc       Feature = 1048576
-	FeatureSwap             Feature = 2097152
+	FeatureFault            Feature = 256
+	FeatureLeak             Feature = 512
+	FeatureNetInjection     Feature = 1024
+	FeatureNetDevices       Feature = 2048
+	FeatureKCSAN            Feature = 4096
+	FeatureDevlinkPCI       Feature = 8192
+	FeatureNicVF            Feature = 16384
+	FeatureUSBEmulation     Feature = 32768
+	FeatureVhciInjection    Feature = 65536
+	FeatureWifiEmulation    Feature = 131072
+	FeatureLRWPANEmulation  Feature = 262144
+	FeatureBinFmtMisc       Feature = 524288
+	FeatureSwap             Feature = 1048576
 )
 
 var EnumNamesFeature = map[Feature]string{
@@ -74,7 +73,6 @@ var EnumNamesFeature = map[Feature]string{
 	FeatureSandboxNone:      "SandboxNone",
 	FeatureSandboxSetuid:    "SandboxSetuid",
 	FeatureSandboxNamespace: "SandboxNamespace",
-	FeatureSandboxAndroid:   "SandboxAndroid",
 	FeatureFault:            "Fault",
 	FeatureLeak:             "Leak",
 	FeatureNetInjection:     "NetInjection",
@@ -99,7 +97,6 @@ var EnumValuesFeature = map[string]Feature{
 	"SandboxNone":      FeatureSandboxNone,
 	"SandboxSetuid":    FeatureSandboxSetuid,
 	"SandboxNamespace": FeatureSandboxNamespace,
-	"SandboxAndroid":   FeatureSandboxAndroid,
 	"Fault":            FeatureFault,
 	"Leak":             FeatureLeak,
 	"NetInjection":     FeatureNetInjection,
@@ -321,18 +318,17 @@ const (
 	ExecEnvSandboxNone         ExecEnv = 16
 	ExecEnvSandboxSetuid       ExecEnv = 32
 	ExecEnvSandboxNamespace    ExecEnv = 64
-	ExecEnvSandboxAndroid      ExecEnv = 128
-	ExecEnvExtraCover          ExecEnv = 256
-	ExecEnvEnableTun           ExecEnv = 512
-	ExecEnvEnableNetDev        ExecEnv = 1024
-	ExecEnvEnableNetReset      ExecEnv = 2048
-	ExecEnvEnableCgroups       ExecEnv = 4096
-	ExecEnvEnableCloseFds      ExecEnv = 8192
-	ExecEnvEnableDevlinkPCI    ExecEnv = 16384
-	ExecEnvEnableVhciInjection ExecEnv = 32768
-	ExecEnvEnableWifi          ExecEnv = 65536
-	ExecEnvDelayKcovMmap       ExecEnv = 131072
-	ExecEnvEnableNicVF         ExecEnv = 262144
+	ExecEnvExtraCover          ExecEnv = 128
+	ExecEnvEnableTun           ExecEnv = 256
+	ExecEnvEnableNetDev        ExecEnv = 512
+	ExecEnvEnableNetReset      ExecEnv = 1024
+	ExecEnvEnableCgroups       ExecEnv = 2048
+	ExecEnvEnableCloseFds      ExecEnv = 4096
+	ExecEnvEnableDevlinkPCI    ExecEnv = 8192
+	ExecEnvEnableVhciInjection ExecEnv = 16384
+	ExecEnvEnableWifi          ExecEnv = 32768
+	ExecEnvDelayKcovMmap       ExecEnv = 65536
+	ExecEnvEnableNicVF         ExecEnv = 131072
 )
 
 var EnumNamesExecEnv = map[ExecEnv]string{
@@ -343,7 +339,6 @@ var EnumNamesExecEnv = map[ExecEnv]string{
 	ExecEnvSandboxNone:         "SandboxNone",
 	ExecEnvSandboxSetuid:       "SandboxSetuid",
 	ExecEnvSandboxNamespace:    "SandboxNamespace",
-	ExecEnvSandboxAndroid:      "SandboxAndroid",
 	ExecEnvExtraCover:          "ExtraCover",
 	ExecEnvEnableTun:           "EnableTun",
 	ExecEnvEnableNetDev:        "EnableNetDev",
@@ -365,7 +360,6 @@ var EnumValuesExecEnv = map[string]ExecEnv{
 	"SandboxNone":         ExecEnvSandboxNone,
 	"SandboxSetuid":       ExecEnvSandboxSetuid,
 	"SandboxNamespace":    ExecEnvSandboxNamespace,
-	"SandboxAndroid":      ExecEnvSandboxAndroid,
 	"ExtraCover":          ExecEnvExtraCover,
 	"EnableTun":           ExecEnvEnableTun,
 	"EnableNetDev":        ExecEnvEnableNetDev,

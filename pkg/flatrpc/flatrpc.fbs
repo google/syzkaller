@@ -20,7 +20,6 @@ enum Feature : uint64 (bit_flags) {
 	SandboxNone,
 	SandboxSetuid,
 	SandboxNamespace,
-	SandboxAndroid,
 	Fault,
 	Leak,
 	NetInjection,
@@ -141,7 +140,6 @@ enum ExecEnv : uint64 (bit_flags) {
 	SandboxNone,		// minimal sandboxing
 	SandboxSetuid,		// impersonate nobody user
 	SandboxNamespace,	// use namespaces for sandboxing
-	SandboxAndroid,		// use Android sandboxing for the untrusted_app domain
 	ExtraCover,		// collect extra coverage
 	EnableTun,		// setup and use /dev/tun for packet injection
 	EnableNetDev,		// setup more network devices for testing

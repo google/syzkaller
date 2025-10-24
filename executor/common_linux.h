@@ -71,7 +71,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
-    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
+    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE ||                                      \
     SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
     ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
     __NR_syz_usbip_server_init
@@ -2301,7 +2301,6 @@ static void flush_tun()
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
-#ifndef __ANDROID__
 // Can't include <linux/ipv6.h>, since it causes
 // conflicts due to some structs redefinition.
 struct ipv6hdr {
@@ -2316,7 +2315,6 @@ struct ipv6hdr {
 	struct in6_addr saddr;
 	struct in6_addr daddr;
 };
-#endif
 
 struct tcp_resources {
 	uint32 seq;
@@ -2472,7 +2470,7 @@ static long syz_open_pts(volatile long a0, volatile long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #include <fcntl.h>
 #include <sched.h>
 #include <sys/stat.h>
@@ -3704,7 +3702,7 @@ static void reset_net_namespace(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
+#if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE))
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -3918,8 +3916,8 @@ static void setup_fusectl();
 // See https://github.com/google/syzkaller/issues/4939 for more details.
 static void sandbox_common_mount_tmpfs(void)
 {
-	// Android systems set fs.mount-max to a very low value, causing ENOSPC when doing the mounts below
-	// (see https://github.com/google/syzkaller/issues/4972). 100K mounts should be enough for everyone.
+	// Set fs.mount-max to a high value to avoid ENOSPC when doing the mounts below.
+	// 100K mounts should be enough for everyone.
 	write_file("/proc/sys/fs/mount-max", "100000");
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
@@ -4007,7 +4005,7 @@ static void setup_gadgetfs()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #include <errno.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -4144,7 +4142,7 @@ static int wait_for_loop(int pid)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
 #include <linux/capability.h>
 
 static void drop_caps(void)
@@ -4355,226 +4353,6 @@ static int do_sandbox_namespace(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID
-// seccomp only supported for Arm, Arm64, X86, and X86_64 archs
-#if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
-#include <assert.h>
-#include <errno.h>
-#include <linux/audit.h>
-#include <linux/filter.h>
-#include <linux/seccomp.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <sys/prctl.h>
-#include <sys/syscall.h>
-
-#include "android/android_seccomp.h"
-
-#if GOARCH_amd64 || GOARCH_386
-// Syz-executor is linked against glibc when fuzzing runs on Cuttlefish x86-x64.
-// However Android blocks calls into mkdir, rmdir, symlink which causes
-// syz-executor to crash. When fuzzing runs on Android device this issue
-// is not observed, because syz-executor is linked against Bionic. Under
-// the hood Bionic invokes mkdirat, inlinkat and symlinkat, which are
-// allowed by seccomp-bpf.
-// This issue may exist not only in Android, but also in Linux in general
-// where seccomp filtering is enforced.
-//
-// This trick makes linker believe it matched the correct version of mkdir,
-// rmdir, symlink. So now behavior is the same across ARM and non-ARM builds.
-inline int mkdir(const char* path, mode_t mode)
-{
-	return mkdirat(AT_FDCWD, path, mode);
-}
-
-inline int rmdir(const char* path)
-{
-	return unlinkat(AT_FDCWD, path, AT_REMOVEDIR);
-}
-
-inline int symlink(const char* old_path, const char* new_path)
-{
-	return symlinkat(old_path, AT_FDCWD, new_path);
-}
-#endif
-
-#endif
-#include <fcntl.h> // open(2)
-#include <grp.h> // setgroups
-#include <sys/xattr.h> // setxattr, getxattr
-
-#define AID_NET_BT_ADMIN 3001
-#define AID_NET_BT 3002
-#define AID_INET 3003
-#define AID_EVERYBODY 9997
-#define AID_APP 10000
-
-#define UNTRUSTED_APP_UID (AID_APP + 999)
-#define UNTRUSTED_APP_GID (AID_APP + 999)
-
-#define SYSTEM_UID 1000
-#define SYSTEM_GID 1000
-
-const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
-const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
-const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
-const char* const SELINUX_XATTR_NAME = "security.selinux";
-
-const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
-const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
-
-const gid_t SYSTEM_GROUPS[] = {SYSTEM_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
-const size_t SYSTEM_NUM_GROUPS = sizeof(SYSTEM_GROUPS) / sizeof(SYSTEM_GROUPS[0]);
-
-// Similar to libselinux getcon(3), but:
-// - No library dependency
-// - No dynamic memory allocation
-// - Uses fail() instead of returning an error code
-static void getcon(char* context, size_t context_size)
-{
-	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
-	if (fd < 0)
-		fail("getcon: couldn't open context file");
-
-	ssize_t nread = read(fd, context, context_size);
-
-	close(fd);
-
-	if (nread <= 0)
-		fail("getcon: failed to read context file");
-
-	// The contents of the context file MAY end with a newline
-	// and MAY not have a null terminator.  Handle this here.
-	if (context[nread - 1] == '\n')
-		context[nread - 1] = '\0';
-}
-
-// Similar to libselinux setcon(3), but:
-// - No library dependency
-// - No dynamic memory allocation
-// - Uses fail() instead of returning an error code
-static void setcon(const char* context)
-{
-	char new_context[512];
-
-	// Attempt to write the new context
-	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
-
-	if (fd < 0)
-		fail("setcon: could not open context file");
-
-	ssize_t bytes_written = write(fd, context, strlen(context));
-
-	// N.B.: We cannot reuse this file descriptor, since the target SELinux context
-	//       may not be able to read from it.
-	close(fd);
-
-	if (bytes_written != (ssize_t)strlen(context))
-		failmsg("setcon: could not write entire context", "wrote=%zi, expected=%zu", bytes_written, strlen(context));
-
-	// Validate the transition by checking the context
-	getcon(new_context, sizeof(new_context));
-
-	if (strcmp(context, new_context) != 0)
-		failmsg("setcon: failed to change", "want=%s, context=%s", context, new_context);
-}
-
-// Similar to libselinux setfilecon(3), but:
-// - No library dependency
-// - No dynamic memory allocation
-// - Uses fail() instead of returning an error code
-static void setfilecon(const char* path, const char* context)
-{
-	char new_context[512];
-
-	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
-		fail("setfilecon: setxattr failed");
-	if (getxattr(path, SELINUX_XATTR_NAME, new_context, sizeof(new_context)) < 0)
-		fail("setfilecon: getxattr failed");
-	if (strcmp(context, new_context) != 0)
-		failmsg("setfilecon: could not set context", "want=%s, got=%s", context, new_context);
-}
-
-#define SYZ_HAVE_SANDBOX_ANDROID 1
-
-static int do_sandbox_android(uint64 sandbox_arg)
-{
-	setup_fusectl();
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-	initialize_vhci();
-#endif
-	sandbox_common();
-	drop_caps();
-
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES
-	initialize_netdevices_init();
-#endif
-	// CLONE_NEWNET must always happen before tun setup, because we want the tun
-	// device in the test namespace. If we don't do this, executor will crash with
-	// SYZFATAL: executor NUM failed NUM times: executor NUM: EOF
-	if (unshare(CLONE_NEWNET)) {
-		debug("unshare(CLONE_NEWNET): %d\n", errno);
-	}
-	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
-	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
-#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
-	initialize_devlink_pci();
-#endif
-#if SYZ_EXECUTOR || SYZ_NET_INJECTION
-	initialize_tun();
-#endif
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES
-	initialize_netdevices();
-#endif
-	uid_t uid = UNTRUSTED_APP_UID;
-	size_t num_groups = UNTRUSTED_APP_NUM_GROUPS;
-	const gid_t* groups = UNTRUSTED_APP_GROUPS;
-	gid_t gid = UNTRUSTED_APP_GID;
-	debug("executor received sandbox_arg=%llu\n", sandbox_arg);
-	if (sandbox_arg == 1) {
-		uid = SYSTEM_UID;
-		num_groups = SYSTEM_NUM_GROUPS;
-		groups = SYSTEM_GROUPS;
-		gid = SYSTEM_GID;
-
-		debug("fuzzing under SYSTEM account\n");
-	}
-	if (chown(".", uid, uid) != 0)
-		failmsg("do_sandbox_android: chmod failed", "sandbox_arg=%llu", sandbox_arg);
-
-	if (setgroups(num_groups, groups) != 0)
-		failmsg("do_sandbox_android: setgroups failed", "sandbox_arg=%llu", sandbox_arg);
-
-	if (setresgid(gid, gid, gid) != 0)
-		failmsg("do_sandbox_android: setresgid failed", "sandbox_arg=%llu", sandbox_arg);
-
-	setup_binderfs();
-
-#if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
-	// Will fail() if anything fails.
-	// Must be called when the new process still has CAP_SYS_ADMIN, in this case,
-	// before changing uid from 0, which clears capabilities.
-	int account = SCFS_RestrictedApp;
-	if (sandbox_arg == 1)
-		account = SCFS_SystemAccount;
-	set_app_seccomp_filter(account);
-#endif
-
-	if (setresuid(uid, uid, uid) != 0)
-		failmsg("do_sandbox_android: setresuid failed", "sandbox_arg=%llu", sandbox_arg);
-
-	// setresuid and setresgid clear the parent-death signal.
-	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-
-	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
-	if (uid == UNTRUSTED_APP_UID)
-		setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
-
-	loop();
-	doexit(1);
-}
-#endif
-
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
@@ -4594,7 +4372,6 @@ static void remove_dir(const char* dir)
 	int iter = 0;
 	DIR* dp = 0;
 
-#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
 	// Starting from v6.9, it does no longer make sense to use MNT_DETACH, because
 	// a loop device may only be reused in RW mode if no mounted filesystem keeps a
 	// reference to it. So we have to umount them synchronously.
@@ -4603,17 +4380,11 @@ static void remove_dir(const char* dir)
 	// This declaration should not be moved under retry label, since label followed by a declaration
 	// is not supported by old compilers.
 	const int umount_flags = MNT_FORCE | UMOUNT_NOFOLLOW;
-#endif
 
 retry:
-#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
-#if SYZ_EXECUTOR
-	if (!flag_sandbox_android)
-#endif
-		while (umount2(dir, umount_flags) == 0) {
-			debug("umount(%s)\n", dir);
-		}
-#endif
+	while (umount2(dir, umount_flags) == 0) {
+		debug("umount(%s)\n", dir);
+	}
 	dp = opendir(dir);
 	if (dp == NULL) {
 		if (errno == EMFILE) {
@@ -4632,14 +4403,9 @@ retry:
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
 		// If it's 9p mount with broken transport, lstat will fail.
 		// So try to umount first.
-#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
-#if SYZ_EXECUTOR
-		if (!flag_sandbox_android)
-#endif
-			while (umount2(filename, umount_flags) == 0) {
-				debug("umount(%s)\n", filename);
-			}
-#endif
+		while (umount2(filename, umount_flags) == 0) {
+			debug("umount(%s)\n", filename);
+		}
 		struct stat st;
 		if (lstat(filename, &st))
 			exitf("lstat(%s) failed", filename);
@@ -4669,17 +4435,9 @@ retry:
 			}
 			if (errno != EBUSY || i > 100)
 				exitf("unlink(%s) failed", filename);
-#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
-#if SYZ_EXECUTOR
-			if (!flag_sandbox_android) {
-#endif
-				debug("umount(%s)\n", filename);
-				if (umount2(filename, umount_flags))
-					exitf("umount(%s) failed", filename);
-#if SYZ_EXECUTOR
-			}
-#endif
-#endif
+			debug("umount(%s)\n", filename);
+			if (umount2(filename, umount_flags))
+				exitf("umount(%s) failed", filename);
 		}
 	}
 	closedir(dp);
@@ -4704,17 +4462,9 @@ retry:
 				break;
 			}
 			if (errno == EBUSY) {
-#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
-#if SYZ_EXECUTOR
-				if (!flag_sandbox_android) {
-#endif
-					debug("umount(%s)\n", dir);
-					if (umount2(dir, umount_flags))
-						exitf("umount(%s) failed", dir);
-#if SYZ_EXECUTOR
-				}
-#endif
-#endif
+				debug("umount(%s)\n", dir);
+				if (umount2(dir, umount_flags))
+					exitf("umount(%s) failed", dir);
 				continue;
 			}
 			if (errno == ENOTEMPTY) {

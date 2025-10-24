@@ -128,7 +128,7 @@ func (r *Request) Validate() error {
 			return fmt.Errorf("program is not set")
 		}
 		sandboxes := flatrpc.ExecEnvSandboxNone | flatrpc.ExecEnvSandboxSetuid |
-			flatrpc.ExecEnvSandboxNamespace | flatrpc.ExecEnvSandboxAndroid
+			flatrpc.ExecEnvSandboxNamespace
 		if r.ExecOpts.EnvFlags&sandboxes == 0 {
 			return fmt.Errorf("no sandboxes set")
 		}

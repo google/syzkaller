@@ -149,9 +149,6 @@ func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (flatrpc.ExecEnv, 
 	case flatrpc.FeatureSandboxNamespace:
 		envFlags &= ^ctx.cfg.Sandbox
 		envFlags |= flatrpc.ExecEnvSandboxNamespace
-	case flatrpc.FeatureSandboxAndroid:
-		envFlags &= ^ctx.cfg.Sandbox
-		envFlags |= flatrpc.ExecEnvSandboxAndroid
 	case flatrpc.FeatureFault:
 	case flatrpc.FeatureLeak:
 	case flatrpc.FeatureNetInjection:

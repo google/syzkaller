@@ -94,10 +94,8 @@ func SandboxToFlags(sandbox string) (ExecEnv, error) {
 		return ExecEnvSandboxSetuid, nil
 	case "namespace":
 		return ExecEnvSandboxNamespace, nil
-	case "android":
-		return ExecEnvSandboxAndroid, nil
 	default:
-		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android")
+		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace")
 	}
 }
 

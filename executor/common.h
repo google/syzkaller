@@ -200,16 +200,14 @@ static uint64 current_time_ms(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID || SYZ_USE_TMP_DIR
+#if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 static void use_temporary_dir(void)
 {
-#if SYZ_SANDBOX_ANDROID
-	char tmpdir_template[] = "/data/local/tmp/syzkaller.XXXXXX";
-#elif GOOS_fuchsia
+#if GOOS_fuchsia
 	char tmpdir_template[] = "/tmp/syzkaller.XXXXXX";
 #else
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
@@ -761,7 +759,7 @@ static void loop(void)
 
 /*{{{RESULTS}}}*/
 
-#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
+#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #if SYZ_THREADED
 void execute_call(int call)
 #elif SYZ_REPEAT
@@ -828,12 +826,12 @@ int main(void)
 	for (procid = 0; procid < /*{{{PROCS}}}*/; procid++) {
 		if (fork() == 0) {
 #endif
-#if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID
+#if SYZ_USE_TMP_DIR
 			use_temporary_dir();
 #endif
 			/*{{{SANDBOX_FUNC}}}*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT && !SYZ_SANDBOX_NONE && \
-    !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID
+    !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE
 			close_fds();
 #endif
 #if SYZ_MULTI_PROC

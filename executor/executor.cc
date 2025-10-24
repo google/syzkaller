@@ -261,7 +261,6 @@ static bool flag_read_only_coverage;
 static bool flag_sandbox_none;
 static bool flag_sandbox_setuid;
 static bool flag_sandbox_namespace;
-static bool flag_sandbox_android;
 static bool flag_extra_coverage;
 static bool flag_net_injection;
 static bool flag_net_devices;
@@ -574,10 +573,6 @@ static feature_t features[] = {};
 static std::optional<CoverFilter> max_signal;
 static std::optional<CoverFilter> cover_filter;
 
-#if SYZ_HAVE_SANDBOX_ANDROID
-static uint64 sandbox_arg = 0;
-#endif
-
 int main(int argc, char** argv)
 {
 	if (argc == 1) {
@@ -684,10 +679,6 @@ int main(int argc, char** argv)
 #if SYZ_HAVE_SANDBOX_NAMESPACE
 	else if (flag_sandbox_namespace)
 		status = do_sandbox_namespace();
-#endif
-#if SYZ_HAVE_SANDBOX_ANDROID
-	else if (flag_sandbox_android)
-		status = do_sandbox_android(sandbox_arg);
 #endif
 	else
 		fail("unknown sandbox type");
@@ -820,9 +811,6 @@ void parse_handshake(const handshake_req& req)
 {
 	if (req.magic != kInMagic)
 		failmsg("bad handshake magic", "magic=0x%llx", req.magic);
-#if SYZ_HAVE_SANDBOX_ANDROID
-	sandbox_arg = req.sandbox_arg;
-#endif
 	is_kernel_64_bit = req.is_kernel_64_bit;
 	use_cover_edges = req.use_cover_edges;
 	procid = req.pid;
@@ -835,7 +823,6 @@ void parse_handshake(const handshake_req& req)
 	flag_sandbox_none = (bool)(req.flags & rpc::ExecEnv::SandboxNone);
 	flag_sandbox_setuid = (bool)(req.flags & rpc::ExecEnv::SandboxSetuid);
 	flag_sandbox_namespace = (bool)(req.flags & rpc::ExecEnv::SandboxNamespace);
-	flag_sandbox_android = (bool)(req.flags & rpc::ExecEnv::SandboxAndroid);
 	flag_extra_coverage = (bool)(req.flags & rpc::ExecEnv::ExtraCover);
 	flag_net_injection = (bool)(req.flags & rpc::ExecEnv::EnableTun);
 	flag_net_devices = (bool)(req.flags & rpc::ExecEnv::EnableNetDev);
@@ -873,10 +860,10 @@ void parse_execute(const execute_req& req)
 	all_extra_signal = req.all_extra_signal;
 
 	debug("[%llums] exec opts: reqid=%llu type=%llu procid=%llu threaded=%d cover=%d comps=%d dedup=%d signal=%d "
-	      " sandbox=%d/%d/%d/%d timeouts=%llu/%llu/%llu kernel_64_bit=%d\n",
+	      " sandbox=%d/%d/%d timeouts=%llu/%llu/%llu kernel_64_bit=%d\n",
 	      current_time_ms() - start_time_ms, request_id, (uint64)request_type, procid, flag_threaded, flag_collect_cover,
 	      flag_comparisons, flag_dedup_cover, flag_collect_signal, flag_sandbox_none, flag_sandbox_setuid,
-	      flag_sandbox_namespace, flag_sandbox_android, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
+	      flag_sandbox_namespace, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
 	      is_kernel_64_bit);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
 		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
