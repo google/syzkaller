@@ -81,7 +81,7 @@ struct usb_raw_eps_info {
 #define USB_RAW_IOCTL_EP_CLEAR_HALT _IOW('U', 14, __u32)
 #define USB_RAW_IOCTL_EP_SET_WEDGE _IOW('U', 15, __u32)
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
 static int usb_raw_open()
 {
 	return open("/dev/raw-gadget", O_RDWR);
@@ -100,7 +100,7 @@ static int usb_raw_run(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
 
 #if SYZ_EXECUTOR || __NR_syz_usb_ep_write
 static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
@@ -116,7 +116,7 @@ static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_ep_read
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
 
 static int usb_raw_configure(int fd)
 {
@@ -128,9 +128,9 @@ static int usb_raw_vbus_draw(int fd, uint32 power)
 	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
 }
 
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted || __NR_syz_usb_control_io
 static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
@@ -160,9 +160,9 @@ static int usb_raw_ep0_stall(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_STALL, 0);
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted || __NR_syz_usb_control_io
 
-#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_control_io || __NR_syz_usb_connect_scripted
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -207,7 +207,7 @@ struct usb_raw_ep_io_data {
 	char data[USB_MAX_PACKET_SIZE];
 };
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted || __NR_syz_usb_control_io
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -241,9 +241,9 @@ static void set_interface(int fd, int n)
 		index->iface_cur = n;
 	}
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted || __NR_syz_usb_control_io
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
 static int configure_device(int fd)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -264,6 +264,9 @@ static int configure_device(int fd)
 	set_interface(fd, 0);
 	return 0;
 }
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_connect_scripted
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
 					  const struct vusb_connect_descriptors* descs,
@@ -405,6 +408,179 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
 #endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect_scripted
+// Essentially, a copy of syz_usb_connect_impl that takes a set of expected responses
+// (found in vusb.txt as vusb_responses struct) and uses modified
+// helper functions like lookup_connect_response_[in/out]_scripted() to track processing of
+// required CTRL requests.
+
+// TODO: In the future, either incorporate changes into generic syz_usb_connect_impl()
+// or keep it separate and enable it to work with non-CTRL requests during probe.
+// Some drivers (like ar5523) require early BULK/INT requests.
+static volatile long syz_usb_connect_scripted_impl(uint64 speed, uint64 dev_len, const char* dev,
+						   const struct vusb_connect_descriptors* descs,
+						   const struct vusb_responses* resps)
+{
+	debug("syz_usb_connect_scripted: dev: %p\n", dev);
+	if (!dev) {
+		debug("syz_usb_connect_scripted: dev is null\n");
+		return -1;
+	}
+
+	debug("syz_usb_connect_scripted: device data:\n");
+	debug_dump_data(dev, dev_len);
+
+	int fd = usb_raw_open();
+	if (fd < 0) {
+		debug("syz_usb_connect_scripted: usb_raw_open failed with %d\n", fd);
+		return fd;
+	}
+	if (fd >= MAX_FDS) {
+		close(fd);
+		debug("syz_usb_connect_scripted: too many open fds\n");
+		return -1;
+	}
+	debug("syz_usb_connect_scripted: usb_raw_open success\n");
+
+	struct usb_device_index* index = add_usb_index(fd, dev, dev_len);
+	if (!index) {
+		debug("syz_usb_connect_scripted: add_usb_index failed\n");
+		return -1;
+	}
+	debug("syz_usb_connect_scripted: add_usb_index success\n");
+
+#if USB_DEBUG
+	analyze_usb_device(index);
+#endif
+
+	// TODO: consider creating two dummy_udc's per proc to increace the chance of
+	// triggering interaction between multiple USB devices within the same program.
+	char device[32];
+	sprintf(&device[0], "dummy_udc.%llu", procid);
+	int rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
+	if (rv < 0) {
+		debug("syz_usb_connect_scripted: usb_raw_init failed with %d\n", rv);
+		return rv;
+	}
+	debug("syz_usb_connect_scripted: usb_raw_init success\n");
+
+	rv = usb_raw_run(fd);
+	if (rv < 0) {
+		debug("syz_usb_connect_scripted: usb_raw_run failed with %d\n", rv);
+		return rv;
+	}
+	debug("syz_usb_connect_scripted: usb_raw_run success\n");
+
+	// Calculate the total number of expected CTRL requests to process during probe to properly finish it.
+	// Start with 1 to account for a universally required SET_CONFIGURATION request.
+	int done = 1;
+	if (resps) {
+		int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+		for (int i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (resp->expected != 0)
+				done += resp->expected;
+		}
+	}
+	debug("syz_usb_connect_scripted: total number of control requests to process: %d", done);
+
+	while (done > 0) {
+		struct usb_raw_control_event event;
+		event.inner.type = 0;
+		event.inner.length = sizeof(event.ctrl);
+		rv = usb_raw_event_fetch(fd, (struct usb_raw_event*)&event);
+		if (rv < 0) {
+			debug("syz_usb_connect_scripted: usb_raw_event_fetch failed with %d\n", rv);
+			return rv;
+		}
+		if (event.inner.type != USB_RAW_EVENT_CONTROL)
+			continue;
+
+		debug("syz_usb_connect_scripted: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
+		      event.ctrl.bRequestType, (event.ctrl.bRequestType & USB_DIR_IN) ? "IN" : "OUT",
+		      event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
+
+#if USB_DEBUG
+		analyze_control_request(fd, &event.ctrl);
+#endif
+
+		char* response_data = NULL;
+		uint32 response_length = 0;
+		struct usb_qualifier_descriptor qual;
+
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			if (!lookup_connect_response_in_scripted(fd, descs, resps, &event.ctrl, &qual, &response_data, &response_length, &done)) {
+				debug("syz_usb_connect_scripted: unknown request (IN), stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
+			}
+		} else {
+			if (!lookup_connect_response_out_scripted(fd, descs, resps, &event.ctrl, &done)) {
+				debug("syz_usb_connect_scripted: unknown request (OUT), stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
+			}
+			response_data = NULL;
+			response_length = event.ctrl.wLength;
+		}
+
+		if ((event.ctrl.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
+		    event.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
+			rv = configure_device(fd);
+			if (rv < 0) {
+				debug("syz_usb_connect_scripted: configure_device failed with %d\n", rv);
+				return rv;
+			}
+		} else if ((event.ctrl.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
+			   event.ctrl.bRequest == USB_REQ_SET_INTERFACE) {
+			int iface_num = event.ctrl.wIndex;
+			int alt_set = event.ctrl.wValue;
+			debug("syz_usb_connect_scripted: setting interface (%d, %d)\n", iface_num, alt_set);
+			int iface_index = lookup_interface(fd, iface_num, alt_set);
+			if (iface_index < 0) {
+				debug("syz_usb_connect_scripted: interface (%d, %d) not found\n", iface_num, alt_set);
+			} else {
+				set_interface(fd, iface_index);
+				debug("syz_usb_connect_scripted: interface (%d, %d) set\n", iface_num, alt_set);
+			}
+		}
+
+		struct usb_raw_ep_io_data response;
+		response.inner.ep = 0;
+		response.inner.flags = 0;
+		if (response_length > sizeof(response.data))
+			response_length = 0;
+		if (event.ctrl.wLength < response_length)
+			response_length = event.ctrl.wLength;
+		response.inner.length = response_length;
+		if (response_data)
+			memcpy(&response.data[0], response_data, response_length);
+		else
+			memset(&response.data[0], 0, response_length);
+
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			debug("syz_usb_connect_scripted: writing %d bytes\n", response.inner.length);
+			rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io*)&response);
+		} else {
+			rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io*)&response);
+			debug("syz_usb_connect_scripted: read %d bytes\n", response.inner.length);
+			debug_dump_data(&event.data[0], response.inner.length);
+		}
+		if (rv < 0) {
+			debug("syz_usb_connect_scripted: usb_raw_ep0_read/write failed with %d\n", rv);
+			return rv;
+		}
+	}
+
+	sleep_ms(200);
+
+	debug("syz_usb_connect_scripted: configured\n");
+
+	return fd;
+}
+
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect_scripted
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
@@ -428,6 +604,19 @@ static volatile long syz_usb_connect_ath9k(volatile long a0, volatile long a1, v
 	return syz_usb_connect_impl(speed, dev_len, dev, descs, &lookup_connect_response_out_ath9k);
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect_scripted
+static volatile long syz_usb_connect_scripted(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	uint64 speed = a0;
+	uint64 dev_len = a1;
+	const char* dev = (const char*)a2;
+	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
+	const struct vusb_responses* resps = (const struct vusb_responses*)a4;
+
+	return syz_usb_connect_scripted_impl(speed, dev_len, dev, descs, resps);
+}
+#endif // SYZ_EXECUTOR || __NR_syz_usb_connect_scripted
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)
