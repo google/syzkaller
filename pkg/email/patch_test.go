@@ -25,6 +25,40 @@ var tests = []struct {
 }{
 	{
 		text: `
+So that's my patch
+diff --git a/foo/bar/foobar.c b/foo/bar/foobar.c
+--- a/foo/bar/foobar.c
++++ b/foo/bar/foobar.c
+@@ -2,7 +2,7 @@
+         u32 chars = len;
+         int not_chars;
+
+-        if (!len)
++        if (!len || !ln)
+                 return 1;
+
+         return 0;
+ 
+Watch out for the empty lines!
+`,
+		title: ``,
+		diff: `diff --git a/foo/bar/foobar.c b/foo/bar/foobar.c
+--- a/foo/bar/foobar.c
++++ b/foo/bar/foobar.c
+@@ -2,7 +2,7 @@
+         u32 chars = len;
+         int not_chars;
+
+-        if (!len)
++        if (!len || !ln)
+                 return 1;
+
+         return 0;
+ 
+`,
+	},
+	{
+		text: `
 commit 7bdb59aaaaaa4bd7161adc8f923cdef10f2638d1
 Author: Some foo-bar áš <foo@bar.com>
 Date:   Tue Feb 7 17:44:54 2017 +0100
