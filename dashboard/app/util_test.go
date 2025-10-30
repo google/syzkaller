@@ -63,6 +63,7 @@ func NewCtx(t *testing.T) *Ctx {
 	}
 	t.Parallel()
 	inst, err := aetest.NewInstance(&aetest.Options{
+		StartupTimeout: 120 * time.Second,
 		// Without this option datastore queries return data with slight delay,
 		// which fails reporting tests.
 		StronglyConsistentDatastore: true,

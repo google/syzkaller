@@ -21,17 +21,21 @@ func ParsePatch(message []byte) (diff string) {
 			continue
 		}
 		if diffStarted {
-			if ln == "" || ln == "--" || ln == "-- " || ln[0] == '>' {
+			if ln == "--" || ln == "-- " || ln != "" && ln[0] == '>' {
 				diffStarted = false
 				continue
 			}
-			if strings.HasPrefix(ln, " ") || strings.HasPrefix(ln, "+") ||
+			if ln == "" || strings.HasPrefix(ln, " ") || strings.HasPrefix(ln, "+") ||
 				strings.HasPrefix(ln, "-") || strings.HasPrefix(ln, "@") ||
 				strings.HasPrefix(ln, "================") {
 				diff += ln + "\n"
 				continue
 			}
+			diffStarted = false
 		}
+	}
+	if diff != "" {
+		diff = strings.TrimRight(diff, "\n") + "\n"
 	}
 	err := s.Err()
 	if err == bufio.ErrTooLong {
