@@ -13,6 +13,7 @@ Instructions for a particular VM type or kernel architecture can be found on the
 - [Setup: Linux host, Android virtual device, x86-64 kernel](setup_linux-host_android-virtual-device_x86-64-kernel.md)
 - [Setup: Linux isolated host](setup_linux-host_isolated.md)
 - [Setup: Ubuntu host, VMware vm, x86-64 kernel](setup_ubuntu-host_vmware-vm_x86-64-kernel.md)
+- [Setup: Ubuntu host, VirtualBox vm, x86-64 kernel](setup_ubuntu-host_virtualbox-vm_x86-64-kernel.md)
 
 ## Install
 
