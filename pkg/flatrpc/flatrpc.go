@@ -291,16 +291,19 @@ type RequestFlag uint64
 
 const (
 	RequestFlagReturnOutput RequestFlag = 1
-	RequestFlagReturnError  RequestFlag = 2
+	RequestFlagReturnAudit  RequestFlag = 2
+	RequestFlagReturnError  RequestFlag = 4
 )
 
 var EnumNamesRequestFlag = map[RequestFlag]string{
 	RequestFlagReturnOutput: "ReturnOutput",
+	RequestFlagReturnAudit:  "ReturnAudit",
 	RequestFlagReturnError:  "ReturnError",
 }
 
 var EnumValuesRequestFlag = map[string]RequestFlag{
 	"ReturnOutput": RequestFlagReturnOutput,
+	"ReturnAudit":  RequestFlagReturnAudit,
 	"ReturnError":  RequestFlagReturnError,
 }
 
@@ -706,6 +709,7 @@ func ConnectRequestRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 
 type ConnectReplyRawT struct {
 	Debug            bool     `json:"debug"`
+	Audit            bool     `json:"audit"`
 	Cover            bool     `json:"cover"`
 	CoverEdges       bool     `json:"cover_edges"`
 	Kernel64Bit      bool     `json:"kernel_64_bit"`
@@ -764,6 +768,7 @@ func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 	}
 	ConnectReplyRawStart(builder)
 	ConnectReplyRawAddDebug(builder, t.Debug)
+	ConnectReplyRawAddAudit(builder, t.Audit)
 	ConnectReplyRawAddCover(builder, t.Cover)
 	ConnectReplyRawAddCoverEdges(builder, t.CoverEdges)
 	ConnectReplyRawAddKernel64Bit(builder, t.Kernel64Bit)
@@ -780,6 +785,7 @@ func (t *ConnectReplyRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffse
 
 func (rcv *ConnectReplyRaw) UnPackTo(t *ConnectReplyRawT) {
 	t.Debug = rcv.Debug()
+	t.Audit = rcv.Audit()
 	t.Cover = rcv.Cover()
 	t.CoverEdges = rcv.CoverEdges()
 	t.Kernel64Bit = rcv.Kernel64Bit()
@@ -853,7 +859,7 @@ func (rcv *ConnectReplyRaw) MutateDebug(n bool) bool {
 	return rcv._tab.MutateBoolSlot(4, n)
 }
 
-func (rcv *ConnectReplyRaw) Cover() bool {
+func (rcv *ConnectReplyRaw) Audit() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -861,11 +867,11 @@ func (rcv *ConnectReplyRaw) Cover() bool {
 	return false
 }
 
-func (rcv *ConnectReplyRaw) MutateCover(n bool) bool {
+func (rcv *ConnectReplyRaw) MutateAudit(n bool) bool {
 	return rcv._tab.MutateBoolSlot(6, n)
 }
 
-func (rcv *ConnectReplyRaw) CoverEdges() bool {
+func (rcv *ConnectReplyRaw) Cover() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -873,11 +879,11 @@ func (rcv *ConnectReplyRaw) CoverEdges() bool {
 	return false
 }
 
-func (rcv *ConnectReplyRaw) MutateCoverEdges(n bool) bool {
+func (rcv *ConnectReplyRaw) MutateCover(n bool) bool {
 	return rcv._tab.MutateBoolSlot(8, n)
 }
 
-func (rcv *ConnectReplyRaw) Kernel64Bit() bool {
+func (rcv *ConnectReplyRaw) CoverEdges() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -885,23 +891,23 @@ func (rcv *ConnectReplyRaw) Kernel64Bit() bool {
 	return false
 }
 
-func (rcv *ConnectReplyRaw) MutateKernel64Bit(n bool) bool {
+func (rcv *ConnectReplyRaw) MutateCoverEdges(n bool) bool {
 	return rcv._tab.MutateBoolSlot(10, n)
 }
 
-func (rcv *ConnectReplyRaw) Procs() int32 {
+func (rcv *ConnectReplyRaw) Kernel64Bit() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
 	}
-	return 0
+	return false
 }
 
-func (rcv *ConnectReplyRaw) MutateProcs(n int32) bool {
-	return rcv._tab.MutateInt32Slot(12, n)
+func (rcv *ConnectReplyRaw) MutateKernel64Bit(n bool) bool {
+	return rcv._tab.MutateBoolSlot(12, n)
 }
 
-func (rcv *ConnectReplyRaw) Slowdown() int32 {
+func (rcv *ConnectReplyRaw) Procs() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -909,11 +915,11 @@ func (rcv *ConnectReplyRaw) Slowdown() int32 {
 	return 0
 }
 
-func (rcv *ConnectReplyRaw) MutateSlowdown(n int32) bool {
+func (rcv *ConnectReplyRaw) MutateProcs(n int32) bool {
 	return rcv._tab.MutateInt32Slot(14, n)
 }
 
-func (rcv *ConnectReplyRaw) SyscallTimeoutMs() int32 {
+func (rcv *ConnectReplyRaw) Slowdown() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -921,11 +927,11 @@ func (rcv *ConnectReplyRaw) SyscallTimeoutMs() int32 {
 	return 0
 }
 
-func (rcv *ConnectReplyRaw) MutateSyscallTimeoutMs(n int32) bool {
+func (rcv *ConnectReplyRaw) MutateSlowdown(n int32) bool {
 	return rcv._tab.MutateInt32Slot(16, n)
 }
 
-func (rcv *ConnectReplyRaw) ProgramTimeoutMs() int32 {
+func (rcv *ConnectReplyRaw) SyscallTimeoutMs() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -933,12 +939,24 @@ func (rcv *ConnectReplyRaw) ProgramTimeoutMs() int32 {
 	return 0
 }
 
-func (rcv *ConnectReplyRaw) MutateProgramTimeoutMs(n int32) bool {
+func (rcv *ConnectReplyRaw) MutateSyscallTimeoutMs(n int32) bool {
 	return rcv._tab.MutateInt32Slot(18, n)
 }
 
-func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
+func (rcv *ConnectReplyRaw) ProgramTimeoutMs() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConnectReplyRaw) MutateProgramTimeoutMs(n int32) bool {
+	return rcv._tab.MutateInt32Slot(20, n)
+}
+
+func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -947,7 +965,7 @@ func (rcv *ConnectReplyRaw) LeakFrames(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) LeakFramesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -955,7 +973,7 @@ func (rcv *ConnectReplyRaw) LeakFramesLength() int {
 }
 
 func (rcv *ConnectReplyRaw) RaceFrames(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -964,7 +982,7 @@ func (rcv *ConnectReplyRaw) RaceFrames(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) RaceFramesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -972,7 +990,7 @@ func (rcv *ConnectReplyRaw) RaceFramesLength() int {
 }
 
 func (rcv *ConnectReplyRaw) Features() Feature {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return Feature(rcv._tab.GetUint64(o + rcv._tab.Pos))
 	}
@@ -980,11 +998,11 @@ func (rcv *ConnectReplyRaw) Features() Feature {
 }
 
 func (rcv *ConnectReplyRaw) MutateFeatures(n Feature) bool {
-	return rcv._tab.MutateUint64Slot(24, uint64(n))
+	return rcv._tab.MutateUint64Slot(26, uint64(n))
 }
 
 func (rcv *ConnectReplyRaw) Files(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -993,7 +1011,7 @@ func (rcv *ConnectReplyRaw) Files(j int) []byte {
 }
 
 func (rcv *ConnectReplyRaw) FilesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -1001,49 +1019,52 @@ func (rcv *ConnectReplyRaw) FilesLength() int {
 }
 
 func ConnectReplyRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(12)
+	builder.StartObject(13)
 }
 func ConnectReplyRawAddDebug(builder *flatbuffers.Builder, debug bool) {
 	builder.PrependBoolSlot(0, debug, false)
 }
+func ConnectReplyRawAddAudit(builder *flatbuffers.Builder, audit bool) {
+	builder.PrependBoolSlot(1, audit, false)
+}
 func ConnectReplyRawAddCover(builder *flatbuffers.Builder, cover bool) {
-	builder.PrependBoolSlot(1, cover, false)
+	builder.PrependBoolSlot(2, cover, false)
 }
 func ConnectReplyRawAddCoverEdges(builder *flatbuffers.Builder, coverEdges bool) {
-	builder.PrependBoolSlot(2, coverEdges, false)
+	builder.PrependBoolSlot(3, coverEdges, false)
 }
 func ConnectReplyRawAddKernel64Bit(builder *flatbuffers.Builder, kernel64Bit bool) {
-	builder.PrependBoolSlot(3, kernel64Bit, false)
+	builder.PrependBoolSlot(4, kernel64Bit, false)
 }
 func ConnectReplyRawAddProcs(builder *flatbuffers.Builder, procs int32) {
-	builder.PrependInt32Slot(4, procs, 0)
+	builder.PrependInt32Slot(5, procs, 0)
 }
 func ConnectReplyRawAddSlowdown(builder *flatbuffers.Builder, slowdown int32) {
-	builder.PrependInt32Slot(5, slowdown, 0)
+	builder.PrependInt32Slot(6, slowdown, 0)
 }
 func ConnectReplyRawAddSyscallTimeoutMs(builder *flatbuffers.Builder, syscallTimeoutMs int32) {
-	builder.PrependInt32Slot(6, syscallTimeoutMs, 0)
+	builder.PrependInt32Slot(7, syscallTimeoutMs, 0)
 }
 func ConnectReplyRawAddProgramTimeoutMs(builder *flatbuffers.Builder, programTimeoutMs int32) {
-	builder.PrependInt32Slot(7, programTimeoutMs, 0)
+	builder.PrependInt32Slot(8, programTimeoutMs, 0)
 }
 func ConnectReplyRawAddLeakFrames(builder *flatbuffers.Builder, leakFrames flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(leakFrames), 0)
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(leakFrames), 0)
 }
 func ConnectReplyRawStartLeakFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ConnectReplyRawAddRaceFrames(builder *flatbuffers.Builder, raceFrames flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(raceFrames), 0)
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(raceFrames), 0)
 }
 func ConnectReplyRawStartRaceFramesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ConnectReplyRawAddFeatures(builder *flatbuffers.Builder, features Feature) {
-	builder.PrependUint64Slot(10, uint64(features), 0)
+	builder.PrependUint64Slot(11, uint64(features), 0)
 }
 func ConnectReplyRawAddFiles(builder *flatbuffers.Builder, files flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(files), 0)
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(files), 0)
 }
 func ConnectReplyRawStartFilesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)

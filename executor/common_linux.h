@@ -4415,7 +4415,6 @@ inline int symlink(const char* old_path, const char* new_path)
 #define SYSTEM_UID 1000
 #define SYSTEM_GID 1000
 
-const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
 const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
 const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
 const char* const SELINUX_XATTR_NAME = "security.selinux";
@@ -4455,7 +4454,7 @@ static void getcon(char* context, size_t context_size)
 // - Uses fail() instead of returning an error code
 static void setcon(const char* context)
 {
-	char new_context[512];
+	char new_context[512] = {0};
 
 	// Attempt to write the new context
 	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
@@ -4470,7 +4469,7 @@ static void setcon(const char* context)
 	close(fd);
 
 	if (bytes_written != (ssize_t)strlen(context))
-		failmsg("setcon: could not write entire context", "wrote=%zi, expected=%zu", bytes_written, strlen(context));
+		failmsg("setcon: could not write entire context", "context: %s, wrote=%zi, expected=%zu", context, bytes_written, strlen(context));
 
 	// Validate the transition by checking the context
 	getcon(new_context, sizeof(new_context));
@@ -4567,8 +4566,6 @@ static int do_sandbox_android(uint64 sandbox_arg)
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
 	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
-	if (uid == UNTRUSTED_APP_UID)
-		setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
 	loop();
 	doexit(1);

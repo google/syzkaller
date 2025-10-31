@@ -33,6 +33,7 @@ const (
 	execInstrCopyin
 	execInstrCopyout
 	execInstrSetProps
+	execInstrSetSecContext
 )
 
 const (
@@ -73,6 +74,10 @@ func (p *Prog) SerializeForExec() ([]byte, error) {
 		args:   make(map[Arg]argInfo),
 	}
 	w.write(uint64(len(p.Calls)))
+	// If the length of the security context is not zero, it means that it must be set on target.
+	if len(p.SecContext) != 0 {
+		w.writeSecLabel(p.SecContext)
+	}
 	for _, c := range p.Calls {
 		w.csumMap, w.csumUses = calcChecksumsCall(c)
 		// TODO: if we propagate this error, something breaks and no coverage
@@ -204,6 +209,13 @@ type argInfo struct {
 	Addr uint64 // physical addr
 	Idx  uint64 // copyout instruction index
 	Ret  bool
+}
+
+// Add a special call for setting the security label of the program.
+func (w *execContext) writeSecLabel(seclabel string) {
+	w.write(execInstrSetSecContext)
+	w.write(uint64(len(seclabel)))
+	w.buf = append(w.buf, []byte(seclabel)...)
 }
 
 func (w *execContext) writeCallProps(props CallProps) {

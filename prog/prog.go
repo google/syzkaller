@@ -10,9 +10,10 @@ import (
 )
 
 type Prog struct {
-	Target   *Target
-	Calls    []*Call
-	Comments []string
+	Target     *Target
+	Calls      []*Call
+	Comments   []string
+	SecContext string
 
 	// Was deserialized using Unsafe mode, so can do unsafe things.
 	isUnsafe bool

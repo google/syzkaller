@@ -50,6 +50,7 @@ type Config struct {
 	// Set of syscalls to check.
 	Syscalls   []int
 	Debug      bool
+	Audit      bool
 	Cover      bool
 	Sandbox    flatrpc.ExecEnv
 	SandboxArg int64

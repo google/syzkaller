@@ -45,8 +45,10 @@ func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
 		fuzzer.RecommendedCalls(),
 		fuzzer.ChoiceTable())
+	p.SecContext = fuzzer.SecContextGen.getSecLabel()
 	return &queue.Request{
 		Prog:     p,
+		ReturnAudit: fuzzer.Config.Audit,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:     fuzzer.statExecGenerate,
 	}
@@ -66,6 +68,7 @@ func mutateProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	)
 	return &queue.Request{
 		Prog:     newP,
+		ReturnAudit: fuzzer.Config.Audit,
 		ExecOpts: setFlags(flatrpc.ExecFlagCollectSignal),
 		Stat:     fuzzer.statExecFuzz,
 	}

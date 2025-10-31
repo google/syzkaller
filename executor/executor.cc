@@ -306,6 +306,7 @@ const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;
 const uint64 instr_copyout = -3;
 const uint64 instr_setprops = -4;
+const uint64 instr_seccontext = -5;
 
 const uint64 arg_const = 0;
 const uint64 arg_addr32 = 1;
@@ -970,10 +971,25 @@ void execute_one()
 	memset(&call_props, 0, sizeof(call_props));
 
 	read_input(&input_pos); // total number of calls
-	for (;;) {
+	for (int index = 0;; index++) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
+#if GOOS_linux
+		if (call_num == instr_seccontext) {
+			if (index) {
+				fail("seclabel instruction is not the first call\n");
+			}
+			uint64 size = read_input(&input_pos);
+			char seclabel[64]{};
+			memcpy(seclabel, input_pos, size);
+			setcon(seclabel);
+			input_pos += size;
+
+			debug_verbose("applied security label: %s\n", seclabel);
+			continue;
+		}
+#endif
 		if (call_num == instr_copyin) {
 			char* addr = (char*)(read_input(&input_pos) + SYZ_DATA_OFFSET);
 			uint64 typ = read_input(&input_pos);

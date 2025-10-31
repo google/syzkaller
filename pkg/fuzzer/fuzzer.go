@@ -11,10 +11,12 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/corpus"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/signal"
@@ -24,8 +26,9 @@ import (
 
 type Fuzzer struct {
 	Stats
-	Config *Config
-	Cover  *Cover
+	Config        *Config
+	Cover         *Cover
+	SecContextGen *SecContextGenerator
 
 	ctx          context.Context
 	mu           sync.Mutex
@@ -43,16 +46,17 @@ type Fuzzer struct {
 }
 
 func NewFuzzer(ctx context.Context, cfg *Config, rnd *rand.Rand,
-	target *prog.Target) *Fuzzer {
+	target *prog.Target, seclabelgen *SecContextGenerator) *Fuzzer {
 	if cfg.NewInputFilter == nil {
 		cfg.NewInputFilter = func(call string) bool {
 			return true
 		}
 	}
 	f := &Fuzzer{
-		Stats:  newStats(target),
-		Config: cfg,
-		Cover:  newCover(),
+		Stats:         newStats(target),
+		Config:        cfg,
+		Cover:         newCover(),
+		SecContextGen: seclabelgen,
 
 		ctx:         ctx,
 		rnd:         rnd,
@@ -186,6 +190,14 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		}
 		fuzzer.handleCallInfo(req, res.Info.Extra, -1)
 	}
+	if req.ReturnAudit {
+		audit_output := string(res.Output)
+		index := strings.Index(audit_output, "Audit messages:")
+		if index != -1 {
+			log.Logf(0, "Security context: %s", req.Prog.SecContext)
+			log.Logf(0, "\n%s\n", audit_output[index:])
+		}
+	}
 
 	// Corpus candidates may have flaky coverage, so we give them a second chance.
 	maxCandidateAttempts := 3
@@ -208,20 +220,22 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 }
 
 type Config struct {
-	Debug          bool
-	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...interface{})
-	Snapshot       bool
-	Coverage       bool
-	FaultInjection bool
-	Comparisons    bool
-	Collide        bool
-	EnabledCalls   map[*prog.Syscall]bool
-	NoMutateCalls  map[int]bool
-	FetchRawCover  bool
-	NewInputFilter func(call string) bool
-	PatchTest      bool
-	ModeKFuzzTest  bool
+	Debug            bool
+	Corpus           *corpus.Corpus
+	Logf             func(level int, msg string, args ...interface{})
+	Snapshot         bool
+	Coverage         bool
+	FaultInjection   bool
+	Comparisons      bool
+	Collide          bool
+	EnabledCalls     map[*prog.Syscall]bool
+	NoMutateCalls    map[int]bool
+	FetchRawCover    bool
+	SecContexts      []string
+	Audit            bool
+	NewInputFilter   func(call string) bool
+	PatchTest        bool
+	ModeKFuzzTest    bool
 }
 
 func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call int, triage *map[int]*triageCall) {
@@ -369,7 +383,11 @@ func (fuzzer *Fuzzer) AddCandidates(candidates []Candidate) {
 			Prog:      candidate.Prog,
 			ExecOpts:  setFlags(flatrpc.ExecFlagCollectSignal),
 			Stat:      fuzzer.statExecCandidate,
+			ReturnAudit: fuzzer.Config.Audit,
 			Important: true,
+		}
+		if fuzzer.SecContextGen != nil {
+			req.Prog.SecContext = fuzzer.SecContextGen.getSecLabel()
 		}
 		fuzzer.enqueue(fuzzer.candidateQueue, req, candidate.Flags|progCandidate, 0)
 	}
