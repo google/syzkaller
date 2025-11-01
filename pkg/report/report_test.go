@@ -44,6 +44,7 @@ type ParseTest struct {
 	HasReport  bool
 	Report     []byte
 	Executor   string
+	ContextIDs string
 	// Only used in report parsing:
 	corruptedReason string
 }
@@ -88,6 +89,9 @@ func (test *ParseTest) Headers() []byte {
 	if test.Executor != "" {
 		fmt.Fprintf(buf, "EXECUTOR: %s\n", test.Executor)
 	}
+	if test.ContextIDs != "" {
+		fmt.Fprintf(buf, "CONTEXTS: %s\n", test.ContextIDs)
+	}
 	return buf.Bytes()
 }
 
@@ -96,8 +100,8 @@ func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 	testParseImpl(t, reporter, test)
 }
 
-func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
-	data, err := os.ReadFile(fn)
+func parseReport(t *testing.T, reporter *Reporter, testFileName string) *ParseTest {
+	data, err := os.ReadFile(testFileName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +114,7 @@ func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 	)
 	phase := phaseHeaders
 	test := &ParseTest{
-		FileName: fn,
+		FileName: testFileName,
 	}
 	prevEmptyLine := false
 	s := bufio.NewScanner(bytes.NewReader(data))
@@ -158,6 +162,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		corruptedPrefix  = "CORRUPTED: "
 		suppressedPrefix = "SUPPRESSED: "
 		executorPrefix   = "EXECUTOR: "
+		contextidPrefix  = "CONTEXTS: "
 	)
 	switch {
 	case strings.HasPrefix(ln, "#"):
@@ -193,6 +198,8 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		}
 	case strings.HasPrefix(ln, executorPrefix):
 		test.Executor = ln[len(executorPrefix):]
+	case strings.HasPrefix(ln, contextidPrefix):
+		test.ContextIDs = ln[len(contextidPrefix):]
 	default:
 		t.Fatalf("unknown header field %q", ln)
 	}
@@ -543,5 +550,28 @@ func TestSplitReportBytes(t *testing.T) {
 			splitted := SplitReportBytes(test.input)
 			assert.Equal(t, test.wantFirst, string(splitted[0]))
 		})
+	}
+}
+
+// TestParseAll's focus points are the ability to:
+// 1. parse multiple reports
+// 2. extract correct ThreadID/CpuID.
+func TestParseAll(t *testing.T) {
+	forEachFile(t, "parse_all", testParseAll)
+}
+
+func testParseAll(t *testing.T, reporter *Reporter, testFileName string) {
+	test := parseReport(t, reporter, testFileName)
+	gotReports := ParseAll(reporter, test.Log, 0)
+	gotIDs := mergeReportContextIDs(gotReports)
+	mergedReport := MergeReportBytes(gotReports)
+	if !bytes.Equal(mergedReport, test.Report) || gotIDs != test.ContextIDs {
+		if *flagUpdate {
+			updateReportTest(t, test, &ParseTest{
+				ContextIDs: gotIDs,
+				Report:     mergedReport})
+		}
+		assert.Equal(t, test.ContextIDs, gotIDs, "extracted wrong Thread or CPU ids")
+		assert.Equal(t, string(test.Report), string(mergedReport), "extracted wrong reports")
 	}
 }
