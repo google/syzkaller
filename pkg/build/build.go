@@ -345,6 +345,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`FAILED unresolved symbol`)},
 	{pattern: regexp.MustCompile(`No rule to make target`)},
 	{pattern: regexp.MustCompile(`^Killed$`)},
+	{pattern: regexp.MustCompile(`error\[.*?\]: `)},
 	{weak: true, pattern: regexp.MustCompile(`: not found`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
