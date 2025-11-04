@@ -209,6 +209,11 @@ func Complete(cfg *Config) error {
 	}
 	cfg.initTimeouts()
 	cfg.VMLess = cfg.Type == "none"
+
+	if cfg.VMLess && cfg.Reproduce {
+		return fmt.Errorf("if config param type is none, reproduce must be false")
+	}
+
 	return nil
 }
 
