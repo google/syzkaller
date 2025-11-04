@@ -6,7 +6,6 @@ package build
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 )
 
 type gvisor struct{}
-
-var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 
 func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	if params.Compiler == "" {
@@ -31,66 +28,34 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	if err != nil {
 		return ImageDetails{}, fmt.Errorf("cannot parse gVisor configuration: %w", err)
 	}
-	args := []string{}
+	bazelOpts := "--verbose_failures"
 
 	target := "//runsc:runsc"
-	if config.Race {
-		args = append(args, "--config=race")
+	if config.Coverage {
+		if config.Race {
+			target = "//runsc:runsc_race_coverage"
+		} else {
+			target = "//runsc:runsc_coverage"
+		}
+	} else if config.Race {
+		bazelOpts += " --config=race "
 		target = "//runsc:runsc-race"
 	}
-	if config.Coverage {
-		coverageFiles := "//pkg/..."
-		exclusions := []string{
-			"//pkg/sentry/platform", "//pkg/ring0", // Breaks kvm.
-			"//pkg/coverage:coverage", // Too slow.
-		}
-		if config.Race {
-			// These targets use go:norace, which is not
-			// respected by coverage instrumentation. Race builds
-			// will be instrumented with atomic coverage (using
-			// sync/atomic.AddInt32), which will not work.
-			exclusions = append(exclusions, []string{
-				"//pkg/sleep:sleep",
-				"//pkg/sync:sync",
-				"//pkg/syncevent:syncevent",
-			}...)
-		}
-		for _, f := range exclusions {
-			coverageFiles += ",-" + f
-		}
-		args = append(args, []string{
-			"--collect_code_coverage",
-			"--instrumentation_filter=" + coverageFiles}...)
-	}
-	buildArgs := []string{"build", "--verbose_failures"}
-	buildArgs = append(buildArgs, args...)
-	buildArgs = append(buildArgs, target)
-	log.Logf(0, "bazel: %v", buildArgs)
-	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
-	// on the first build after bazel/deps update. Also other gvisor instances running
-	// on the same machine contribute to longer build times.
-	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, buildArgs...); err != nil {
+
+	outBinary := filepath.Join(params.OutputDir, "image")
+	cmd := osutil.Command("make", "copy",
+		"DOCKER_BUILD=0",
+		fmt.Sprintf("BAZEL_OPTIONS=%s", bazelOpts),
+		fmt.Sprintf("TARGETS=%s", target),
+		fmt.Sprintf("DESTINATION=%s", outBinary),
+	)
+	cmd.Dir = params.KernelDir
+
+	log.Logf(0, "bazel copy: %v", cmd.Env)
+	if _, err := osutil.Run(60*time.Minute, cmd); err != nil {
 		return ImageDetails{}, err
 	}
 
-	// Find out a path to the runsc binary.
-	aqueryArgs := append([]string{"aquery"}, args...)
-	aqueryArgs = append(aqueryArgs, fmt.Sprintf("mnemonic(\"GoLink\", %s)", target))
-	log.Logf(0, "bazel: %v", aqueryArgs)
-	out, err := osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
-	if err != nil {
-		return ImageDetails{}, err
-	}
-
-	match := bazelTargetPath.FindSubmatch(out)
-	if match == nil {
-		return ImageDetails{}, fmt.Errorf("failed to find the runsc binary")
-	}
-	outBinary := filepath.Join(params.KernelDir, filepath.FromSlash(string(match[1])))
-
-	if err := osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
-		return ImageDetails{}, err
-	}
 	sysTarget := targets.Get(params.TargetOS, params.TargetArch)
 	return ImageDetails{}, osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
 }
