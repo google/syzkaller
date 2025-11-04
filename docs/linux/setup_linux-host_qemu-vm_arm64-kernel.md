@@ -5,7 +5,7 @@ This document will detail the steps involved in setting up a Syzkaller instance 
 ## Create a disk image
 
 We will use buildroot to create the disk image.
-You can obtain buildroot from [here](https://buildroot.uclibc.org/download.html).
+You can obtain buildroot from [here](https://buildroot.org/download.html).
 Extract the tarball and perform a `make menuconfig` inside it.
 Choose the following options.
 
