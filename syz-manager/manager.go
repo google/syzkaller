@@ -1343,7 +1343,8 @@ func (mgr *Manager) setPhaseLocked(newPhase int) {
 	if mgr.phase == newPhase {
 		panic("repeated phase update")
 	}
-	if newPhase == phaseTriagedHub {
+	// In VMLess mode, mgr.reproLoop is nil.
+	if newPhase == phaseTriagedHub && mgr.reproLoop != nil {
 		// Start reproductions.
 		go mgr.reproLoop.Loop(vm.ShutdownCtx())
 	}
