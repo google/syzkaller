@@ -104,9 +104,9 @@ type Kernel struct {
 
 	serv      rpcserver.Server
 	servStats rpcserver.Stats
-
-	pool    *vm.Dispatcher
-	crashes chan *report.Report
+	vmPool    *vm.Pool
+	pool      *vm.Dispatcher
+	crashes   chan *report.Report
 
 	features        chan flatrpc.Feature
 	enabledSyscalls chan map[*prog.Syscall]bool
@@ -115,6 +115,7 @@ type Kernel struct {
 	reqMaxSignal    chan int
 	maxSignal       chan signal.Signal
 	optsChan        chan flatrpc.ExecOpts
+	coverFilters    manager.CoverageFilters
 
 	corpus *corpus.Corpus
 	http   *manager.HTTPServer
@@ -141,7 +142,6 @@ func (vrf *Verifier) RunVerifierFuzzer(ctx context.Context) error {
 		// Initialize verifier notification channel for each kernel
 		kernel.corpusUpdates = vrf.corpusUpdates
 	}
-
 	for idx, kernel := range vrf.kernels {
 		if idx == 0 {
 			if kernel.cfg.HTTP != "" {
@@ -189,89 +189,24 @@ func (vrf *Verifier) loadCorpus(enabledSyscalls map[*prog.Syscall]bool) []fuzzer
 	sort.SliceStable(ret.Candidates, func(i, j int) bool {
 		return len(ret.Candidates[i].Prog.Calls) < len(ret.Candidates[j].Prog.Calls)
 	})
-	reminimized := ret.ReminimizeSubset()
-	resmashed := ret.ResmashSubset()
-	log.Logf(0, "%-24v: %v (%v seeds), %d to be reminimized, %d to be resmashed",
-		"corpus", len(ret.Candidates), ret.SeedCount, reminimized, resmashed)
 	return ret.Candidates
-}
-
-func (vrf *Verifier) corpusMinimization() {
-	for range time.NewTicker(time.Minute).C {
-		vrf.mu.Lock()
-		vrf.minimizeCorpusLocked()
-		vrf.mu.Unlock()
-	}
-}
-
-func (vrf *Verifier) minimizeCorpusLocked() {
-	// Don't minimize corpus until we have triaged all inputs from it.
-	// During corpus triage it would happen very often since we are actively adding inputs,
-	// and presumably the persistent corpus was reasonably minimial, and we don't use it for fuzzing yet.
-	// if vrf.phase < phaseTriagedCorpus {
-	// 	return
-	// }
-	currSize := vrf.corpus.StatProgs.Val()
-	if currSize <= vrf.lastMinCorpus*103/100 {
-		return
-	}
-	vrf.corpus.Minimize(vrf.cfg.Cover)
-	newSize := vrf.corpus.StatProgs.Val()
-
-	log.Logf(1, "minimized corpus: %v -> %v", currSize, newSize)
-	vrf.lastMinCorpus = newSize
-
-	// From time to time we get corpus explosion due to different reason:
-	// generic bugs, per-OS bugs, problems with fallback coverage, kcov bugs, etc.
-	// This has bad effect on the instance and especially on instances
-	// connected via hub. Do some per-syscall sanity checking to prevent this.
-	for call, info := range vrf.corpus.CallCover() {
-		if vrf.cfg.Cover {
-			// If we have less than 1K inputs per this call,
-			// accept all new inputs unconditionally.
-			if info.Count < 1000 {
-				continue
-			}
-			// If we have more than 3K already, don't accept any more.
-			// Between 1K and 3K look at amount of coverage we are getting from these programs.
-			// Empirically, real coverage for the most saturated syscalls is ~30-60
-			// per program (even when we have a thousand of them). For explosion
-			// case coverage tend to be much lower (~0.3-5 per program).
-			if info.Count < 3000 && len(info.Cover)/info.Count >= 10 {
-				continue
-			}
-		} else {
-			// If we don't have real coverage, signal is weak.
-			// If we have more than several hundreds, there is something wrong.
-			if info.Count < 300 {
-				continue
-			}
-		}
-		if vrf.saturatedCalls[call] {
-			continue
-		}
-		vrf.saturatedCalls[call] = true
-		log.Logf(0, "coverage for %v has saturated, not accepting more inputs", call)
-	}
-
-	vrf.corpusDBMu.Lock()
-	defer vrf.corpusDBMu.Unlock()
-	for key := range vrf.corpusDB.Records {
-		ok1 := vrf.corpus.Item(key) != nil
-		_, ok2 := vrf.disabledHashes[key]
-		if !ok1 && !ok2 {
-			vrf.corpusDB.Delete(key)
-		}
-	}
-	if err := vrf.corpusDB.Flush(); err != nil {
-		log.Fatalf("failed to save corpus database: %v", err)
-	}
-	vrf.corpusDB.BumpVersion(manager.CurrentDBVersion)
 }
 
 func (vrf *Verifier) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	for update := range updates {
-		//TODO : add filtering logic here
+		coverFilters := vrf.kernels[0].coverFilters
+		if len(update.NewCover) != 0 && coverFilters.ExecutorFilter != nil {
+			filtered := 0
+			for _, pc := range update.NewCover {
+				if _, ok := coverFilters.ExecutorFilter[pc]; ok {
+					filtered++
+				}
+			}
+		}
+		if update.Exists {
+			// We only save new progs into the corpus.db file.
+			continue
+		}
 		vrf.corpusDBMu.Lock()
 		vrf.corpusDB.Save(update.Sig, update.ProgData, 0)
 		if err := vrf.corpusDB.Flush(); err != nil {
@@ -281,48 +216,23 @@ func (vrf *Verifier) corpusInputHandler(updates <-chan corpus.NewItemEvent) {
 	}
 }
 
-func (vrf *Verifier) NeedRepro(crash *manager.Crash) bool {
-	//TODO: implement this
-	return true
-}
-func (vrf *Verifier) ResizeReproPool(size int) {
-	// No-op implementation for syz-verifier
-}
-
-func (vrf *Verifier) RunRepro(ctx context.Context, crash *manager.Crash) *manager.ReproResult {
-	// Minimal implementation for syz-verifier
-	return &manager.ReproResult{
-		Crash: crash,
-		Repro: nil,
-		Stats: nil,
-		Err:   fmt.Errorf("reproduction not implemented in syz-verifier"),
-	}
-}
-
 // Loop starts the main verifier execution loop.
-// It initializes the reproduction loop, HTTP server, and starts the fuzzing process.
 func (vrf *Verifier) Loop(ctx context.Context) error {
 	log.Logf(0, "starting programs analysis")
 	g, ctx := errgroup.WithContext(ctx)
-	// 1 vm for repro for each kernel
-	reproLoop := manager.NewReproLoop(vrf, len(vrf.kernels), false)
 	if vrf.http != nil {
-		vrf.http.ReproLoop = reproLoop
 		g.Go(func() error {
 			return vrf.http.Serve(ctx)
 		})
 	}
 	log.Logf(0, "starting corpus handler")
 	go vrf.corpusInputHandler(vrf.corpusUpdates)
-	// TODO: start corpus minimization loop
 	g.Go(func() error {
 		select {
 		case <-ctx.Done():
 			return nil
 		default: // need to make sure this is right
 		}
-		log.Logf(0, "starting bug reproductions")
-		reproLoop.Loop(ctx)
 		return nil
 	})
 	log.Logf(0, "starting corpus synchronization loop")
@@ -360,174 +270,155 @@ func (vrf *Verifier) maxSignalLoop(ctx context.Context) {
 }
 func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 	log.Logf(0, "starting fuzzing loop")
-	for {
+	log.Logf(0, "waiting for enabled syscalls and features")
+	totalEnabledSyscalls := make(map[*prog.Syscall]bool)
+	compariosonFeature := false
+	for _, kernel := range vrf.kernels {
+		log.Logf(0, "waiting for kernel %s to be ready", kernel.cfg.Name)
+		enabledSyscalls := <-kernel.enabledSyscalls
+		for k, v := range enabledSyscalls {
+			totalEnabledSyscalls[k] = v && totalEnabledSyscalls[k] // merge enabled syscalls
+		}
+		kernelFeatures := <-kernel.features
+		compariosonFeature = ((kernelFeatures & flatrpc.FeatureComparisons) == 1) && compariosonFeature
+	}
+	log.Logf(0, "all kernels are ready, enabled syscalls: %v", totalEnabledSyscalls)
+	vrf.http.EnabledSyscalls.Store(vrf.cfg.EnabledSyscalls)
+	vrf.firstConnect.Store(time.Now().Unix())
+	statSyscalls := stat.New("syscalls", "Number of enabled syscalls", stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
+	statSyscalls.Add(len(totalEnabledSyscalls))
+	candidates := vrf.loadCorpus(totalEnabledSyscalls)
+	corpusUpdates := make(chan corpus.NewItemEvent, 128)
+	vrf.corpus = corpus.NewFocusedCorpus(context.Background(),
+		corpusUpdates, vrf.coverFilters.Areas)
+	vrf.http.Corpus.Store(vrf.corpus)
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
+		Corpus:         vrf.corpus,
+		Coverage:       vrf.cfg.Cover,
+		FaultInjection: false,
+		Comparisons:    false,
+		Collide:        false,
+		EnabledCalls:   totalEnabledSyscalls,
+		NoMutateCalls:  vrf.cfg.NoMutateCalls,
+		FetchRawCover:  false,
+		Logf: func(level int, msg string, args ...interface{}) {
+			if level != 0 {
+				return
+			}
+			log.Logf(level, msg, args...)
+		},
+		NewInputFilter: func(call string) bool {
+			vrf.mu.Lock()
+			defer vrf.mu.Unlock()
+			return !vrf.saturatedCalls[call]
+		},
+	}, rnd, vrf.target)
+	fuzzerObj.AddCandidates(candidates)
+	vrf.fuzzer.Store(fuzzerObj)
+	vrf.http.Fuzzer.Store(fuzzerObj)
+	go vrf.corpusInputHandler(corpusUpdates)
+	vrf.phase = vrfPhaseFuzzing
+	log.Logf(0, "fuzzer started with %d candidates", len(candidates))
+
+	req := vrf.fuzzer.Load().Next()
+	if req == nil {
+		log.Logf(0, "no more candidates to fuzz, waiting for new candidates")
+		// Wait for new candidates to be added.
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-time.After(time.Second):
+			continue
 		}
+	}
 
-		if vrf.phase < vrfPhaseFuzzing {
-			log.Logf(0, "waiting for enabled syscalls and features")
-			totalEnabledSyscalls := make(map[*prog.Syscall]bool)
-			faultFeature := false
-			compariosonFeature := false
-			for _, kernel := range vrf.kernels {
-				if kernel.phase <= kPhaseAwaitingQueue {
-					log.Logf(0, "waiting for kernel %s to be ready", kernel.cfg.Name)
-					enabledSyscalls := <-kernel.enabledSyscalls
-					for k, v := range enabledSyscalls {
-						totalEnabledSyscalls[k] = v && totalEnabledSyscalls[k] // merge enabled syscalls
-					}
-					kernelFeatures := <-kernel.features
-					faultFeature = ((kernelFeatures & flatrpc.FeatureFault) == 1) && faultFeature
-					compariosonFeature = ((kernelFeatures & flatrpc.FeatureComparisons) == 1) && compariosonFeature
-				}
-			}
-
-			vrf.http.EnabledSyscalls.Store(vrf.cfg.EnabledSyscalls)
-			vrf.firstConnect.Store(time.Now().Unix())
-			statSyscalls := stat.New("syscalls", "Number of enabled syscalls", stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
-			statSyscalls.Add(len(totalEnabledSyscalls))
-			candidates := vrf.loadCorpus(totalEnabledSyscalls)
-			corpusUpdates := make(chan corpus.NewItemEvent, 128)
-			vrf.corpus = corpus.NewFocusedCorpus(context.Background(),
-				corpusUpdates, vrf.coverFilters.Areas)
-			vrf.http.Corpus.Store(vrf.corpus)
-
-			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-			fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
-				Corpus:         vrf.corpus,
-				Snapshot:       vrf.cfg.Snapshot,
-				Coverage:       vrf.cfg.Cover,
-				FaultInjection: false,
-				Comparisons:    false,
-				Collide:        false,
-				EnabledCalls:   totalEnabledSyscalls,
-				NoMutateCalls:  vrf.cfg.NoMutateCalls,
-				FetchRawCover:  vrf.cfg.RawCover,
-				Logf: func(level int, msg string, args ...interface{}) {
-					if level != 0 {
-						return
-					}
-					log.Logf(level, msg, args...)
-				},
-				NewInputFilter: func(call string) bool {
-					vrf.mu.Lock()
-					defer vrf.mu.Unlock()
-					return !vrf.saturatedCalls[call]
-				},
-			}, rnd, vrf.target)
-			fuzzerObj.AddCandidates(candidates)
-			vrf.fuzzer.Store(fuzzerObj)
-			vrf.http.Fuzzer.Store(fuzzerObj)
-			go vrf.corpusInputHandler(corpusUpdates)
-			go vrf.corpusMinimization()
-			vrf.phase = vrfPhaseFuzzing
-			log.Logf(0, "fuzzer started with %d candidates", len(candidates))
+	// Distribute the same request to all kernel queues
+	var wg sync.WaitGroup
+	wg.Add(len(vrf.sources))
+	distributed := 0
+	responses := make([]*queue.Result, len(vrf.sources))
+	log.Logf(3, "distributing program: %s to %d kernels", req.Prog.String(), len(vrf.sources))
+	for kernelID, source := range vrf.sources {
+		log.Logf(3, "distributing program to kernel %d: %s", kernelID, req.Prog.String())
+		reqCopy := &queue.Request{
+			Type:            req.Type,
+			ExecOpts:        req.ExecOpts,
+			Prog:            req.Prog,
+			BinaryFile:      req.BinaryFile,
+			GlobPattern:     req.GlobPattern,
+			ReturnAllSignal: req.ReturnAllSignal,
+			ReturnError:     req.ReturnError,
+			ReturnOutput:    req.ReturnOutput,
+			Stat:            req.Stat,
+			Important:       req.Important,
+			Avoid:           req.Avoid,
 		}
-		if vrf.phase == vrfPhaseFuzzing {
-			req := vrf.fuzzer.Load().Next()
-			if req == nil {
-				log.Logf(0, "no more candidates to fuzz, waiting for new candidates")
-				// Wait for new candidates to be added.
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(time.Second):
-					continue
+		reqCopy.OnDone(func(req *queue.Request, res *queue.Result) bool {
+			log.Logf(3, "got result for kernel:%d %s: %+v with info: %+v", kernelID, reqCopy.Prog.String(), res, res.Info)
+			responses[kernelID] = res
+			wg.Done()
+			return true
+		})
+		source.Submit(reqCopy)
+		distributed++
+	}
+	log.Logf(2, "distributed program to %d kernels", distributed)
+	wg.Wait()
+	log.Logf(3, "all %d kernels finished execution", len(vrf.sources))
+	log.Logf(3, "comparing results for %d kernels", len(vrf.sources))
+
+	opts := []cmp.Option{
+		cmpopts.IgnoreFields(queue.Result{}, "Executor"),
+		cmpopts.IgnoreFields(flatrpc.ProgInfoRawT{}, "Elapsed", "MemoryHash"),
+		cmpopts.IgnoreFields(flatrpc.CallInfoRawT{}, "Signal", "Cover", "Comps"),
+		cmp.Transformer("NormalizeFlags", func(call flatrpc.CallInfoRawT) flatrpc.CallInfoRawT {
+			// Keep only behavioral flags (Executed + Finished), filter out noise
+			const behavioralFlags = flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished
+			call.Flags = call.Flags & behavioralFlags
+			return call
+		}),
+	}
+	for i, res := range responses {
+		if !cmp.Equal(responses[0], res, opts...) {
+			log.Logf(0, "=== MISMATCH DETECTED between kernel 0 and kernel %d ===", i)
+			log.Logf(0, "Program: %s", req.Prog.String())
+
+			// Compare each syscall individually
+			for callIdx := 0; callIdx < len(responses[0].Info.Calls) && callIdx < len(res.Info.Calls); callIdx++ {
+				call0 := responses[0].Info.Calls[callIdx]
+				call1 := res.Info.Calls[callIdx]
+
+				// Extract syscall name and format from program
+				syscallName := "unknown"
+				syscallStr := ""
+				if callIdx < len(req.Prog.Calls) {
+					progCall := req.Prog.Calls[callIdx]
+					syscallName = progCall.Meta.Name
+					// Simple formatting - just syscall name and arg count
+					syscallStr = fmt.Sprintf("%s(...%d args)", progCall.Meta.Name, len(progCall.Args))
+				}
+
+				if !cmp.Equal(call0, call1, opts...) {
+					log.Logf(0, "  [DIFF] Call %d (%s):", callIdx, syscallName)
+					log.Logf(0, "    %s", syscallStr)
+					log.Logf(0, "    Kernel 0: Error=%d, Flags=%d", call0.Error, call0.Flags)
+					log.Logf(0, "    Kernel %d: Error=%d, Flags=%d", i, call1.Error, call1.Flags)
+				} else {
+					log.Logf(0, "  [SAME] Call %d (%s): Error=%d, Flags=%d", callIdx, syscallName, call0.Error, call0.Flags)
+					log.Logf(0, "    %s", syscallStr)
 				}
 			}
-
-			// Distribute the same request to all kernel queues
-			var wg sync.WaitGroup
-			wg.Add(len(vrf.sources))
-			distributed := 0
-			responses := make([]*queue.Result, len(vrf.sources))
-			log.Logf(3, "distributing program: %s to %d kernels", req.Prog.String(), len(vrf.sources))
-			for kernelID, source := range vrf.sources {
-				log.Logf(3, "distributing program to kernel %d: %s", kernelID, req.Prog.String())
-				reqCopy := &queue.Request{
-					Type:            req.Type,
-					ExecOpts:        req.ExecOpts,
-					Prog:            req.Prog,
-					BinaryFile:      req.BinaryFile,
-					GlobPattern:     req.GlobPattern,
-					ReturnAllSignal: req.ReturnAllSignal,
-					ReturnError:     req.ReturnError,
-					ReturnOutput:    req.ReturnOutput,
-					Stat:            req.Stat,
-					Important:       req.Important,
-					Avoid:           req.Avoid,
-				}
-				reqCopy.OnDone(func(req *queue.Request, res *queue.Result) bool {
-					log.Logf(3, "got result for kernel:%d %s: %+v with info: %+v", kernelID, reqCopy.Prog.String(), res, res.Info)
-					responses[kernelID] = res
-					wg.Done()
-					return true
-				})
-				source.Submit(reqCopy)
-				distributed++
-			}
-			log.Logf(2, "distributed program to %d kernels", distributed)
-			wg.Wait()
-			log.Logf(3, "all %d kernels finished execution", len(vrf.sources))
-			log.Logf(3, "comparing results for %d kernels", len(vrf.sources))
-
-			opts := []cmp.Option{
-				cmpopts.IgnoreFields(queue.Result{}, "Executor"),
-				cmpopts.IgnoreFields(flatrpc.ProgInfoRawT{}, "Elapsed", "MemoryHash"),
-				cmpopts.IgnoreFields(flatrpc.CallInfoRawT{}, "Signal", "Cover", "Comps"),
-				cmp.Transformer("NormalizeFlags", func(call flatrpc.CallInfoRawT) flatrpc.CallInfoRawT {
-					// Keep only behavioral flags (Executed + Finished), filter out noise
-					const behavioralFlags = flatrpc.CallFlagExecuted | flatrpc.CallFlagFinished
-					call.Flags = call.Flags & behavioralFlags
-					return call
-				}),
-			}
-			for i, res := range responses {
-				if !cmp.Equal(responses[0], res, opts...) {
-					log.Logf(0, "=== MISMATCH DETECTED between kernel 0 and kernel %d ===", i)
-					log.Logf(0, "Program: %s", req.Prog.String())
-
-					// Compare each syscall individually
-					for callIdx := 0; callIdx < len(responses[0].Info.Calls) && callIdx < len(res.Info.Calls); callIdx++ {
-						call0 := responses[0].Info.Calls[callIdx]
-						call1 := res.Info.Calls[callIdx]
-
-						// Extract syscall name and format from program
-						syscallName := "unknown"
-						syscallStr := ""
-						if callIdx < len(req.Prog.Calls) {
-							progCall := req.Prog.Calls[callIdx]
-							syscallName = progCall.Meta.Name
-							// Simple formatting - just syscall name and arg count
-							syscallStr = fmt.Sprintf("%s(...%d args)", progCall.Meta.Name, len(progCall.Args))
-						}
-
-						if !cmp.Equal(call0, call1, opts...) {
-							log.Logf(0, "  [DIFF] Call %d (%s):", callIdx, syscallName)
-							log.Logf(0, "    %s", syscallStr)
-							log.Logf(0, "    Kernel 0: Error=%d, Flags=%d", call0.Error, call0.Flags)
-							log.Logf(0, "    Kernel %d: Error=%d, Flags=%d", i, call1.Error, call1.Flags)
-						} else {
-							log.Logf(0, "  [SAME] Call %d (%s): Error=%d, Flags=%d", callIdx, syscallName, call0.Error, call0.Flags)
-							log.Logf(0, "    %s", syscallStr)
-						}
-					}
-					log.Logf(0, "Kernel 0: output: %s", responses[0].Output)
-					log.Logf(0, "Kernel %d: output: %s", i, res.Output)
-					log.Logf(0, "Kernel 0: error: %s", responses[0].Err)
-					log.Logf(0, "Kernel %d: error: %s", i, res.Err)
-					log.Logf(0, "Kernel 0: info: %+v", responses[0].Info)
-					log.Logf(0, "Kernel %d: info: %+v", i, res.Info)
-					// log.Logf(0, "Kernel 0: memHash: %x", responses[0].Info.MemoryHash)
-					// log.Logf(0, "Kernel %d: memHash: %x", i, res.Info.MemoryHash)
-					log.Logf(0, "==========================================")
-					// TODO: send to repro
-				}
-			}
-
+			log.Logf(0, "Kernel 0: output: %s", responses[0].Output)
+			log.Logf(0, "Kernel %d: output: %s", i, res.Output)
+			log.Logf(0, "Kernel 0: error: %s", responses[0].Err)
+			log.Logf(0, "Kernel %d: error: %s", i, res.Err)
+			log.Logf(0, "Kernel 0: info: %+v", responses[0].Info)
+			log.Logf(0, "Kernel %d: info: %+v", i, res.Info)
+			// log.Logf(0, "Kernel 0: memHash: %x", responses[0].Info.MemoryHash)
+			// log.Logf(0, "Kernel %d: memHash: %x", i, res.Info.MemoryHash)
+			log.Logf(0, "==========================================")
 		}
 	}
 }
@@ -599,7 +490,6 @@ func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
 		kernel.http.EnabledSyscalls.Store(enabledSyscalls)
 		kernel.http.Corpus.Store(kernel.corpus)
 	}
-	// TODO: Aggregate to main HTTP server instead of per-kernel
 	if kernel.cfg.Snapshot {
 		log.Logf(0, "restarting VMs for snapshot mode")
 		// kernel.snapshotSource = queue.Distribute(source)
@@ -640,7 +530,12 @@ func (kernel *Kernel) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
-	// kernel.coverFilters = filters. TODO: aggregate to manager
+	kernel.coverFilters = filters
+	kernel.http.Cover.Store(&manager.CoverageInfo{
+		Modules:         modules,
+		ReportGenerator: kernel.reportGenerator,
+		CoverFilter:     filters.ExecutorFilter,
+	})
 	for _, area := range filters.Areas {
 		log.Logf(0, "area %q: %d PCs in the cover filter",
 			area.Name, len(area.CoverPCs))

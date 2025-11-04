@@ -66,6 +66,7 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 	}
 
 	kernel.pool = vm.NewDispatcher(vmPool, kernel.FuzzerInstance)
+	kernel.vmPool = vmPool
 	return kernel, nil
 }
 
