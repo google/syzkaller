@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -734,8 +735,11 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 			return output, wait
 		}
 	}
-	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
-	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).
+
+	if !needsRegisterInfo(rep) {
+		return nil, false
+	}
+
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
 	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
 		regs, err := inst.hmp("info registers", cpu)
@@ -748,6 +752,33 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 		}
 	}
 	return ret, false
+}
+
+func needsRegisterInfo(rep *report.Report) bool {
+	// Do not collect register dump for the listed below report types.
+	// By default collect as crash (for unknown types too).
+	switch rep.Type {
+	case crash.Warning,
+		crash.AtomicSleep,
+		crash.Hang,
+		crash.DoS,
+		crash.KCSANAssert,
+		crash.KCSANDataRace,
+		crash.KCSANUnknown,
+		crash.KMSANInfoLeak,
+		crash.KMSANUninitValue,
+		crash.KMSANUnknown,
+		crash.KMSANUseAfterFreeRead,
+		crash.LockdepBug,
+		crash.MemoryLeak,
+		crash.RefcountWARNING,
+		crash.LostConnection,
+		crash.SyzFailure,
+		crash.UnexpectedReboot:
+		return false
+	default:
+		return true
+	}
 }
 
 func (inst *instance) ssh(args ...string) ([]byte, error) {
