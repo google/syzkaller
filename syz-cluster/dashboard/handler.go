@@ -67,6 +67,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/{id}/triage_log", errToStatus(h.sessionTriageLog))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
+	mux.HandleFunc("/series/{id}/all_patches", errToStatus(h.allPatches))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
@@ -218,6 +219,7 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	type StatsPageData struct {
 		Processed    []*db.CountPerWeek
 		Findings     []*db.CountPerWeek
+		Reports      []*db.CountPerWeek
 		Delay        []*db.DelayPerWeek
 		Distribution []*db.StatusPerWeek
 	}
@@ -230,6 +232,10 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	data.Findings, err = h.statsRepo.FindingsPerWeek(r.Context())
 	if err != nil {
 		return fmt.Errorf("failed to query findings data: %w", err)
+	}
+	data.Reports, err = h.statsRepo.ReportsPerWeek(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query reports data: %w", err)
 	}
 	data.Delay, err = h.statsRepo.DelayPerWeek(r.Context())
 	if err != nil {
@@ -294,6 +300,28 @@ func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 		return fmt.Errorf("%w: patch", errNotFound)
 	}
 	return h.streamBlob(w, patch.BodyURI)
+}
+
+// nolint:dupl
+func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	series, err := h.seriesRepo.GetByID(ctx, r.PathValue("id"))
+	if err != nil {
+		return fmt.Errorf("failed to query series: %w", err)
+	} else if series == nil {
+		return fmt.Errorf("%w: series", errNotFound)
+	}
+	patches, err := h.seriesRepo.ListPatches(ctx, series)
+	if err != nil {
+		return fmt.Errorf("failed to query patches: %w", err)
+	}
+	for _, patch := range patches {
+		err = h.streamBlob(w, patch.BodyURI)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (h *dashboardHandler) findingInfo(w http.ResponseWriter, r *http.Request) error {
@@ -388,6 +416,9 @@ func errToStatus(f func(http.ResponseWriter, *http.Request) error) http.HandlerF
 		} else if errors.Is(err, errBadRequest) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else if err != nil {
+			// TODO: if the error happened in the template, likely we've already printed
+			// something to w. Unless we're in streamBlob(), it makes sense to first collect
+			// the output in some buffer and only dump it after the exit from the handler.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

@@ -43,7 +43,7 @@ func (ji *JobInfo) ID() string {
 
 func genProgRequest(fuzzer *Fuzzer, rnd *rand.Rand) *queue.Request {
 	p := fuzzer.target.Generate(rnd,
-		prog.RecommendedCalls,
+		fuzzer.RecommendedCalls(),
 		fuzzer.ChoiceTable())
 	return &queue.Request{
 		Prog:     p,

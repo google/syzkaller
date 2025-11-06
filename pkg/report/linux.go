@@ -1148,7 +1148,8 @@ var linuxStackParams = &stackParams{
 		regexp.MustCompile(`Freed:`),
 		regexp.MustCompile(`Freed by task [0-9]+:`),
 		// Match 'backtrace:', but exclude 'stack backtrace:'
-		regexp.MustCompile(`[^k] backtrace:`),
+		// Also match optional crc hash for KMEMLEAK reports.
+		regexp.MustCompile(`[^k] backtrace(?: \(crc [[:xdigit:]]*\))?:`),
 		regexp.MustCompile(`Backtrace:`),
 		regexp.MustCompile(`Uninit was stored to memory at`),
 	},
@@ -1511,7 +1512,11 @@ var linuxOopses = append([]*oops{
 						compile("(Local variable .* created at:|Uninit was created at:)"),
 						parseStackTrace,
 					},
-					skip: []string{"alloc_skb", "netlink_ack", "netlink_rcv_skb"},
+					skip: []string{
+						"alloc_skb", "netlink_ack", "netlink_rcv_skb",
+						// Encryption routines are the place where we hit the bug, but
+						// the generic code is a bad candidate for bug titles.
+						"_encrypt$", "^(?:crypto|cipher|drbg|rng)_"},
 				},
 				noStackTrace: true,
 			},
@@ -1750,7 +1755,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "memory leak in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile("backtrace:"),
+						compile("backtrace(?: \\(crc [[:xdigit:]]*\\))?:"),
 						parseStackTrace,
 					},
 					skip: []string{"kmemleak", "mmap", "kmem", "slab", "alloc", "create_object",

@@ -1,13 +1,13 @@
-commit 0b9540c5b3cb5e34af4cdc1f6828314a041f8d1a
+commit ea2ac1d4c7632717bac2410cfde8a2971aac65af
 Author: Andrey Konovalov <andreyknvl@gmail.com>
-Date:   Thu Jul 25 00:26:01 2024 +0200
+Date:   Sun Aug 17 14:49:51 2025 +0000
 
-    usb: dump usb and hid device ids on hid enumeration
+    usb: dump USB and HID device IDs on HID enumeration
     
     Signed-off-by: Andrey Konovalov <andreyknvl@gmail.com>
 
 diff --git a/drivers/hid/hid-core.c b/drivers/hid/hid-core.c
-index 74efda212c55f..d2f1f9243638e 100644
+index b31b8a2fd..4893fcb4a 100644
 --- a/drivers/hid/hid-core.c
 +++ b/drivers/hid/hid-core.c
 @@ -27,6 +27,8 @@
@@ -19,11 +19,11 @@ index 74efda212c55f..d2f1f9243638e 100644
  
  #include <linux/hid.h>
  #include <linux/hiddev.h>
-@@ -2544,11 +2546,112 @@ static void hid_free_dynids(struct hid_driver *hdrv)
+@@ -2632,11 +2634,112 @@ static void hid_free_dynids(struct hid_driver *hdrv)
  	spin_unlock(&hdrv->dyn_lock);
  }
  
-+static void hid_device_id_dump_one(const struct hid_device_id *id)
++static void hid_device_id_dump_one(const struct hid_device_id *id, const char *driver_name)
 +{
 +	char buffer[128];
 +	int size = (char *)&id->product + sizeof(id->product) - (char *)id;
@@ -33,7 +33,7 @@ index 74efda212c55f..d2f1f9243638e 100644
 +
 +	bin2hex((char *)&buffer[0], (const char *)id, size);
 +	buffer[size * 2] = 0;
-+	pr_err("HIDID: %s\n", &buffer[0]);
++	pr_err("HIDID: %s (%s)\n", &buffer[0], driver_name);
 +}
 +
 +static void hid_device_id_dump_static(struct hid_driver *hdrv)
@@ -41,7 +41,7 @@ index 74efda212c55f..d2f1f9243638e 100644
 +	const struct hid_device_id *id = hdrv->id_table;
 +
 +	for (; id->bus; id++)
-+		hid_device_id_dump_one(id);
++		hid_device_id_dump_one(id, hdrv->name);
 +}
 +
 +static void hid_device_id_dump_dynamic(struct hid_driver *hdrv)
@@ -50,7 +50,7 @@ index 74efda212c55f..d2f1f9243638e 100644
 +
 +	spin_lock(&hdrv->dyn_lock);
 +	list_for_each_entry(dynid, &hdrv->dyn_list, list)
-+		hid_device_id_dump_one(&dynid->id);
++		hid_device_id_dump_one(&dynid->id, hdrv->name);
 +	spin_unlock(&hdrv->dyn_lock);
 +}
 +
@@ -64,7 +64,7 @@ index 74efda212c55f..d2f1f9243638e 100644
 +	return 0;
 +}
 +
-+static void usb_device_id_dump_one(const struct usb_device_id *id)
++static void usb_device_id_dump_one(const struct usb_device_id *id, const char *driver_name)
 +{
 +	char buffer[128];
 +	int size = (char *)&id->bInterfaceNumber + sizeof(id->bInterfaceNumber)
@@ -72,7 +72,7 @@ index 74efda212c55f..d2f1f9243638e 100644
 +
 +	bin2hex((char *)&buffer[0], (const char *)id, size);
 +	buffer[size * 2] = 0;
-+	pr_err("USBID: %s\n", &buffer[0]);
++	pr_err("USBID: %s (%s)\n", &buffer[0], driver_name);
 +}
 +
 +static void usb_device_id_dump_static(struct usb_driver *drv)
@@ -84,17 +84,17 @@ index 74efda212c55f..d2f1f9243638e 100644
 +
 +	for (; id->idVendor || id->idProduct || id->bDeviceClass ||
 +	       id->bInterfaceClass || id->driver_info; id++)
-+		usb_device_id_dump_one(id);
++		usb_device_id_dump_one(id, drv->name);
 +}
 +
 +static void usb_device_id_dump_dynamic(struct usb_driver *drv)
 +{
 +	struct usb_dynid *dynid;
 +
-+	spin_lock(&drv->dynids.lock);
++	mutex_lock(&usb_dynids_lock);
 +	list_for_each_entry(dynid, &drv->dynids.list, node)
-+		usb_device_id_dump_one(&dynid->id);
-+	spin_unlock(&drv->dynids.lock);
++		usb_device_id_dump_one(&dynid->id, drv->name);
++	mutex_unlock(&usb_dynids_lock);
 +}
 +
 +static int usb_device_id_dump_driver(struct device_driver *drv, void *data)

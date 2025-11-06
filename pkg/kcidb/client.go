@@ -8,22 +8,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/sys/targets"
-	"google.golang.org/api/option"
 )
 
 type Client struct {
-	ctx    context.Context
-	origin string
-	client *pubsub.Client
-	topic  *pubsub.Topic
+	ctx     context.Context
+	origin  string
+	resturi string
+	token   string
 }
 
 // NewClient creates a new client to send pubsub messages to Kcidb.
@@ -31,23 +30,40 @@ type Client struct {
 // Project is Kcidb GCE project name, e.g. "kernelci-production".
 // Topic is pubsub topic to publish messages to, e.g. "playground_kernelci_new".
 // Credentials is Google application credentials file contents to use for authorization.
-func NewClient(ctx context.Context, origin, project, topic string, credentials []byte) (*Client, error) {
-	client, err := pubsub.NewClient(ctx, project, option.WithCredentialsJSON(credentials))
-	if err != nil {
-		return nil, err
-	}
+func NewClient(ctx context.Context, origin, resturi, token string) (*Client, error) {
 	c := &Client{
-		ctx:    ctx,
-		origin: origin,
-		client: client,
-		topic:  client.Topic(topic),
+		ctx:     ctx,
+		origin:  origin,
+		resturi: resturi,
+		token:   token,
 	}
-	return c, err
+	return c, nil
 }
 
 func (c *Client) Close() error {
-	c.topic.Stop()
-	return c.client.Close()
+	return nil
+}
+
+func (c *Client) RESTSubmit(data []byte) error {
+	if c.resturi == "" {
+		return fmt.Errorf("resturi is not set")
+	}
+	req, err := http.NewRequest("POST", c.resturi, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected response status: %s", resp.Status)
+	}
+	return nil
 }
 
 func (c *Client) Publish(bug *dashapi.BugReport) error {
@@ -62,8 +78,28 @@ func (c *Client) Publish(bug *dashapi.BugReport) error {
 	if err := kcidbValidate(data); err != nil {
 		return err
 	}
-	_, err = c.topic.Publish(c.ctx, &pubsub.Message{Data: data}).Get(c.ctx)
+	if err := c.RESTSubmit(data); err != nil {
+		return fmt.Errorf("failed to submit kcidb json: %w", err)
+	}
 	return err
+}
+
+func (c *Client) PublishToFile(bug *dashapi.BugReport, filename string) error {
+	target := targets.List[bug.OS][bug.VMArch]
+	if target == nil {
+		return fmt.Errorf("unsupported OS/arch %v/%v", bug.OS, bug.VMArch)
+	}
+	data, err := json.MarshalIndent(c.convert(target, bug), "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal kcidb json: %w", err)
+	}
+	if err := kcidbValidate(data); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("failed to write kcidb json to file: %w", err)
+	}
+	return nil
 }
 
 var Validate bool
@@ -90,19 +126,18 @@ func kcidbValidate(data []byte) error {
 func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb {
 	res := &Kcidb{
 		Version: &Version{
-			Major: 3,
-			Minor: 0,
+			Major: 5,
+			Minor: 3,
 		},
-		Revisions: []*Revision{
+		Checkouts: []*Checkout{
 			{
 				Origin:              c.origin,
-				ID:                  bug.KernelCommit,
+				ID:                  c.extID(bug.KernelCommit),
 				GitRepositoryURL:    normalizeRepo(bug.KernelRepo),
 				GitCommitHash:       bug.KernelCommit,
 				GitRepositoryBranch: bug.KernelBranch,
-				Description:         bug.KernelCommitTitle,
-				PublishingTime:      bug.KernelCommitDate.Format(time.RFC3339),
-				DiscoveryTime:       bug.BuildTime.Format(time.RFC3339),
+				Comment:             bug.KernelCommitTitle,
+				StartTime:           bug.BuildTime.Format(time.RFC3339),
 				Valid:               true,
 			},
 		},
@@ -110,18 +145,18 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 			{
 				Origin:       c.origin,
 				ID:           c.extID(bug.BuildID),
-				RevisionID:   bug.KernelCommit,
+				CheckoutID:   c.extID(bug.KernelCommit),
 				Architecture: target.KernelArch,
 				Compiler:     bug.CompilerID,
 				StartTime:    bug.BuildTime.Format(time.RFC3339),
 				ConfigURL:    bug.KernelConfigLink,
-				Valid:        true,
+				Status:       "PASS",
 			},
 		},
 	}
 	if strings.Contains(bug.Title, "build error") {
 		build := res.Builds[0]
-		build.Valid = false
+		build.Status = "FAIL"
 		build.LogURL = bug.LogLink
 		build.Misc = &BuildMisc{
 			OriginURL:  bug.Link,
@@ -156,9 +191,8 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 				Path:        "syzkaller",
 				StartTime:   bug.CrashTime.Format(time.RFC3339),
 				OutputFiles: outputFiles,
-				Description: bug.Title,
+				Comment:     bug.Title,
 				Status:      "FAIL",
-				Waived:      false,
 				Misc: &TestMisc{
 					OriginURL:       bug.Link,
 					ReportedBy:      bug.CreditEmail,

@@ -8,9 +8,13 @@ metadata:
 spec:
   templates:
     - name: triage-step
+      retryStrategy:
+        limit: "3"
+        backoff:
+          duration: "5m"
       initContainers:
         - name: setup-overlays
-          image: bitnami/git:latest
+          image: alpine/git:latest
           imagePullPolicy: IfNotPresent
           command:
             - sh

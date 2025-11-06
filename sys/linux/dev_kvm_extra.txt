@@ -1,0 +1,12 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This file is used for non-x86, non-ARM definitions.
+
+meta arches["mips64le", "ppc64le", "s390x"]
+
+ioctl$KVM_SET_GUEST_DEBUG_generic(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_generic]])
+
+kvm_guest_debug_arch_generic {
+	reg	array[int64, 8]
+}

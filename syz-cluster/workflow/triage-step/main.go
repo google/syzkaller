@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 
@@ -36,7 +37,13 @@ func main() {
 	ctx := context.Background()
 	output := new(bytes.Buffer)
 	tracer := &debugtracer.GenericTracer{WithTime: true, TraceWriter: output}
-	verdict, err := getVerdict(ctx, tracer, client, repo)
+
+	triager := &seriesTriager{
+		DebugTracer: tracer,
+		client:      client,
+		ops:         repo,
+	}
+	verdict, err := triager.GetVerdict(ctx, *flagSession)
 	if err != nil {
 		app.Fatalf("failed to get the verdict: %v", err)
 	}
@@ -56,14 +63,19 @@ func main() {
 	// 2. What if controller does not reply? Let Argo just restart the step.
 }
 
-func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api.Client,
-	ops triage.TreeOps) (*api.TriageResult, error) {
-	series, err := client.GetSessionSeries(ctx, *flagSession)
+type seriesTriager struct {
+	debugtracer.DebugTracer
+	client *api.Client
+	ops    triage.TreeOps
+}
+
+func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) (*api.TriageResult, error) {
+	series, err := triager.client.GetSessionSeries(ctx, sessionID)
 	if err != nil {
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
-	treesResp, err := client.GetTrees(ctx)
+	treesResp, err := triager.client.GetTrees(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trees: %w", err)
 	}
@@ -73,19 +85,40 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 			SkipReason: "no suitable base kernel trees found",
 		}, nil
 	}
-	fuzzConfig := triage.SelectFuzzConfig(series, treesResp.FuzzConfigs)
-	if fuzzConfig == nil {
+	fuzzConfigs := triage.MergeKernelFuzzConfigs(triage.SelectFuzzConfigs(series, treesResp.FuzzTargets))
+	if len(fuzzConfigs) == 0 {
 		return &api.TriageResult{
-			SkipReason: "no suitable fuzz config found",
+			SkipReason: "no suitable fuzz configs found",
 		}, nil
 	}
-	var triageResult *api.TriageResult
-	for _, tree := range selectedTrees {
-		tracer.Log("considering tree %q", tree.Name)
+	ret := &api.TriageResult{}
+	for _, campaign := range fuzzConfigs {
+		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, selectedTrees, campaign)
+		var skipErr *SkipTriageError
+		if errors.As(err, &skipErr) {
+			ret.SkipReason = skipErr.Reason.Error()
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		ret.Fuzz = append(ret.Fuzz, fuzzTask)
+	}
+	if len(ret.Fuzz) > 0 {
+		// If we have prepared at least one fuzzing task, the series was not skipped.
+		ret.SkipReason = ""
+	}
+	return ret, nil
+}
+
+func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
+	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
+	var skipErr error
+	for _, tree := range trees {
+		triager.Log("considering tree %q", tree.Name)
 		arch := "amd64"
-		lastBuild, err := client.LastBuild(ctx, &api.LastBuildReq{
+		lastBuild, err := triager.client.LastBuild(ctx, &api.LastBuildReq{
 			Arch:       arch,
-			ConfigName: fuzzConfig.KernelConfig,
+			ConfigName: target.KernelConfig,
 			TreeName:   tree.Name,
 			Status:     api.BuildSuccess,
 		})
@@ -93,39 +126,51 @@ func getVerdict(ctx context.Context, tracer debugtracer.DebugTracer, client *api
 			// TODO: the workflow step must be retried.
 			return nil, fmt.Errorf("failed to query the last build for %q: %w", tree.Name, err)
 		}
-		tracer.Log("%q's last build: %q", tree.Name, lastBuild)
-		selector := triage.NewCommitSelector(ops, tracer)
+		triager.Log("%q's last build: %q", tree.Name, lastBuild)
+		selector := triage.NewCommitSelector(triager.ops, triager.DebugTracer)
 		result, err := selector.Select(series, tree, lastBuild)
 		if err != nil {
 			// TODO: the workflow step must be retried.
 			return nil, fmt.Errorf("failed to run the commit selector for %q: %w", tree.Name, err)
 		} else if result.Commit == "" {
 			// If we fail to find a suitable commit for all the trees, return an error just about the first one.
-			if triageResult == nil {
-				triageResult = &api.TriageResult{
-					SkipReason: "failed to find a base commit: " + result.Reason,
-				}
+			if skipErr == nil {
+				skipErr = SkipError("failed to find a base commit: " + result.Reason)
 			}
-			tracer.Log("failed to find a base commit for %q", tree.Name)
+			triager.Log("failed to find a base commit for %q", tree.Name)
 			continue
 		}
-		tracer.Log("selected base commit: %s", result.Commit)
+		triager.Log("selected base commit: %s", result.Commit)
 		base := api.BuildRequest{
 			TreeName:   tree.Name,
 			TreeURL:    tree.URL,
-			ConfigName: fuzzConfig.KernelConfig,
+			ConfigName: target.KernelConfig,
 			CommitHash: result.Commit,
 			Arch:       arch,
 		}
-		triageResult = &api.TriageResult{
-			Fuzz: &api.FuzzTask{
-				Base:       base,
-				Patched:    base,
-				FuzzConfig: fuzzConfig.FuzzConfig,
-			},
+		fuzz := &api.FuzzTask{
+			Base:       base,
+			Patched:    base,
+			FuzzConfig: *target.FuzzConfig,
 		}
-		triageResult.Fuzz.Patched.SeriesID = series.ID
-		break
+		fuzz.Patched.SeriesID = series.ID
+		return fuzz, nil
 	}
-	return triageResult, nil
+	return nil, skipErr
+}
+
+type SkipTriageError struct {
+	Reason error
+}
+
+func SkipError(reason string) *SkipTriageError {
+	return &SkipTriageError{Reason: errors.New(reason)}
+}
+
+func (e *SkipTriageError) Error() string {
+	return fmt.Sprintf("series must be skipped: %s", e.Reason)
+}
+
+func (e *SkipTriageError) Unwrap() error {
+	return e.Reason
 }

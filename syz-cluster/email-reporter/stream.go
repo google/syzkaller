@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -23,13 +22,13 @@ type LKMLEmailStream struct {
 	reporterName   string
 	repoFolder     string
 	client         *api.ReporterClient
-	newMessages    chan *email.Email
+	newMessages    chan *lore.Email
 	lastCommitDate time.Time
 	lastCommit     string
 }
 
 func NewLKMLEmailStream(repoFolder string, client *api.ReporterClient,
-	cfg *app.EmailConfig, writeTo chan *email.Email) *LKMLEmailStream {
+	cfg *app.EmailConfig, writeTo chan *lore.Email) *LKMLEmailStream {
 	var ownEmails []string
 	if cfg.Dashapi != nil {
 		ownEmails = append(ownEmails, cfg.Dashapi.From)
@@ -141,7 +140,7 @@ func (s *LKMLEmailStream) fetchMessages(ctx context.Context) error {
 }
 
 // If the message was sent via the dashapi sender, the report ID wil be a part of the email address.
-func (s *LKMLEmailStream) extractMessageID(msg *email.Email) string {
+func (s *LKMLEmailStream) extractMessageID(msg *lore.Email) string {
 	if s.cfg.Dashapi == nil {
 		// The mode is not configured.
 		return ""

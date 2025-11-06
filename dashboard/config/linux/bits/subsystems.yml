@@ -10,6 +10,7 @@ config:
  - POSIX_MQUEUE
  - NO_HZ
  - HIGH_RES_TIMERS
+ - POSIX_AUX_CLOCKS: [v6.17]
  - PREEMPT
  - IRQ_TIME_ACCOUNTING: [-riscv, -s390]
  - BSD_PROCESS_ACCT
@@ -75,6 +76,7 @@ config:
  - KVM_PROVE_MMU: [x86_64, v6.6]
  - KVM_SW_PROTECTED_VM: [x86_64, v6.8]
  - KVM_HYPERV: [x86_64, v6.8]
+ - KVM_IOAPIC: [x86_64, v6.17]
  # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
  # which is required to enable this.
  - X86_SGX: [x86_64, v5.11, -kmsan]
@@ -333,6 +335,7 @@ config:
  - SND_PCI
  - SND_OSSEMUL
  - SND_MIXER_OSS
+ - SND_PCM
  - SND_PCM_OSS
  - SND_PCM_OSS_PLUGINS
  - SND_HRTIMER
@@ -358,12 +361,14 @@ config:
  - SND_HDA_CODEC_CA0132
  - SND_HDA_CODEC_CMEDIA
  - SND_HDA_CODEC_SI3054
- - SND_HDA_PREALLOC_SIZE: 0
+ # SND_HDA_INTEL is disabled by kmsan.yml because of some compatibility problems.
+ - SND_HDA_PREALLOC_SIZE: [0, -kmsan]
  - SND_USB_AUDIO
  - SND_FIREWORKS: n
  - SND_FIREWIRE_TASCAM: n
  - HID_BATTERY_STRENGTH: [-s390]
  - HIDRAW: [-s390]
+ - HID_HAPTIC: [v6.18]
  - UHID: [-s390]
  - USB_HIDDEV: [-s390]
  - USB_ANNOUNCE_NEW_DEVICES
@@ -381,6 +386,7 @@ config:
  - USB_UAS
  - USB_DWC3
  - USB_DWC3_GADGET
+ - USB_DWC3_GENERIC_PLAT: [v6.18]
  - USB_CHIPIDEA
  - USB_CHIPIDEA_UDC
  - USB_SERIAL
@@ -604,3 +610,5 @@ config:
  # For testing of core dumping functionality itself.
  - COREDUMP
  - ELF_CORE
+
+ - IO_URING_MOCK_FILE: [v6.17]

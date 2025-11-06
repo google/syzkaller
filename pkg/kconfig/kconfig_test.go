@@ -23,6 +23,13 @@ config FOO
 	default "$(shell,$(srctree)/scripts/gcc-plugin.sh "$(preferred-plugin-hostcc)" "$(HOSTCXX)" "$(CC)")" if CC_IS_GCC
 `,
 		},
+		{
+			in: `
+mainmenu "test_transitional"
+config FOO
+	transitional
+`,
+		},
 	}
 	target := targets.Get("linux", "amd64")
 	for i, test := range tests {

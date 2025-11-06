@@ -74,6 +74,12 @@ const (
 		"The email is sent to  %[1]v address\n" +
 		"but the HASH does not correspond to any known bug.\n" +
 		"Please double check the address."
+	replyMalformedSyzTest = "I've failed to parse your command.\n" +
+		"Did you perhaps forget to provide the branch name, or added an extra ':'?\n" +
+		"Please use one of the two supported formats:\n" +
+		"1. #syz test\n" +
+		"2. #syz test: repo branch-or-commit-hash\n" +
+		"Note the lack of ':' in option 1."
 )
 
 var mailingLists map[string]bool
@@ -181,7 +187,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 			coveragePageLink(ns, period[1].Type, period[1].DateTo.String(), minDrop, 2, true)),
 		Table: table,
 	}
-	title := fmt.Sprintf("%s coverage regression (%s)->(%s)", ns, periodFrom, periodTo)
+	title := fmt.Sprintf("%s coverage regression in %s", ns, periodTo)
 	err = sendMailTemplate(ctx, &mailSendParams{
 		templateName: "mail_ns_coverage.txt",
 		templateArg:  args,
@@ -897,7 +903,7 @@ func handleTestCommand(c context.Context, info *bugInfoResult,
 	msg *email.Email, command *email.SingleCommand) string {
 	args := strings.Fields(command.Args)
 	if len(args) != 0 && len(args) != 2 {
-		return fmt.Sprintf("want either no args or 2 args (repo, branch), got %v", len(args))
+		return replyMalformedSyzTest
 	}
 	repo, branch := "", ""
 	if len(args) == 2 {

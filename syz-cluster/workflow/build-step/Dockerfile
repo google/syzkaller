@@ -23,6 +23,7 @@ RUN gzip -d /disk-images/buildroot_amd64_2024.09.gz
 # Download base kernel configs.
 RUN mkdir -p /kernel-configs
 ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-apparmor-kasan.config /kernel-configs/upstream-apparmor-kasan.config
+ADD https://raw.githubusercontent.com/google/syzkaller/refs/heads/master/dashboard/config/linux/upstream-kmsan.config /kernel-configs/upstream-kmsan.config
 
 COPY --from=build-step-builder /build/build-step-bin /bin/build-step
 

@@ -1,0 +1,4 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+syz_kfuzztest_run(name ptr[in, string], data ptr[in, array[int8]], len bytesize[data], buf ptr[in, array[int8, 65536]]) (kfuzz_test, no_generate)

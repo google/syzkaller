@@ -9,7 +9,12 @@ ioctl$KVM_CREATE_VCPU(r2, 0xae41, 0x2)
 ioctl$KVM_IRQ_LINE(r2, 0x4008ae61, &(0x7f0000000240)={0x200002f, 0x0}) (async)
 r3 = ioctl$KVM_CREATE_VM(r0, 0xae01, 0x0)
 r4 = syz_kvm_setup_syzos_vm$arm64(r3, &(0x7f0000c00000/0x400000)=nil)
-r5 = syz_kvm_add_vcpu$arm64(r4, &(0x7f0000000080)={0x0, &(0x7f0000000000)=ANY=[@ANYBLOB="054c0f0000000060b47892001800000000003b67ed394d2d53cb"], 0x18}, 0x0, 0x0) (async, rerun: 64)
+#
+# The line used to look as follows, but syz_kvm_add_vcpu() does not support ANY anymore.
+# r5 = syz_kvm_add_vcpu$arm64(r4, &(0x7f0000000080)={0x0, &(0x7f0000000000)=ANY=[@ANYBLOB="054c0f0000000060b47892001800000000003b67ed394d2d53cb"], 0x18}, 0x0, 0x0) (async, rerun: 64)
+# Just replaced it with something relevant.
+#
+r5 = syz_kvm_add_vcpu$arm64(r4, &(0x7f0000000080)={0x0, &(0x7f0000000000)=[@irq_setup={0x5, 0x18, {0x1, 0x20}}], 0x18}, 0x0, 0x0) (async, rerun: 64)
 syz_kvm_vgic_v3_setup(r3, 0x1, 0x100)
 ioctl$KVM_RUN(r5, 0xae80, 0x0) (async)
 ioctl$KVM_IRQ_LINE(r3, 0x4008ae61, &(0x7f0000000100)={0x1000020, 0x1}) (async, rerun: 32)

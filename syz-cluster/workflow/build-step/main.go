@@ -143,10 +143,12 @@ func reportResults(ctx context.Context, client *api.Client,
 		Result:    status,
 		Log:       output,
 	}
-	if uploadReq.SeriesID != "" {
-		testResult.PatchedBuildID = buildID
-	} else {
-		testResult.BaseBuildID = buildID
+	if uploadReq != nil {
+		if uploadReq.SeriesID != "" {
+			testResult.PatchedBuildID = buildID
+		} else {
+			testResult.BaseBuildID = buildID
+		}
 	}
 	err := client.UploadTestResult(ctx, testResult)
 	if err != nil {
@@ -261,8 +263,8 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 			ret.Finding.Log = kernelError.Output
 			return ret, nil
 		case errors.As(err, &verboseError):
-			tracer.Log("verbose error: %q / %s", verboseError.Title, verboseError.Output)
-			ret.Finding.Report = []byte(verboseError.Title)
+			tracer.Log("verbose error: %s / %s", verboseError, verboseError.Output)
+			ret.Finding.Report = []byte(verboseError.Error())
 			ret.Finding.Log = verboseError.Output
 			return ret, nil
 		default:
@@ -291,7 +293,8 @@ func saveSymbolHashes(tracer debugtracer.DebugTracer) error {
 	if err != nil {
 		return fmt.Errorf("failed to query symbol hashes: %w", err)
 	}
-	tracer.Log("extracted hashes for %d symbols", len(hashes))
+	tracer.Log("extracted hashes for %d text symbols and %d data symbols",
+		len(hashes.Text), len(hashes.Data))
 	file, err := os.Create(filepath.Join(*flagOutput, "symbol_hashes.json"))
 	if err != nil {
 		return fmt.Errorf("failed to open symbol_hashes.json: %w", err)

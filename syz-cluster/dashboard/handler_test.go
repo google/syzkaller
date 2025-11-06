@@ -26,7 +26,11 @@ func TestURLs(t *testing.T) {
 	handler, baseURL := testServer(t, env)
 	urlGen := api.NewURLGenerator(baseURL)
 
-	urls := []string{urlGen.Series(ids.SeriesID)}
+	urls := []string{
+		baseURL,
+		baseURL + "/stats",
+		urlGen.Series(ids.SeriesID),
+	}
 	for _, buildID := range []string{ids.BaseBuildID, ids.PatchedBuildID} {
 		urls = append(urls, urlGen.BuildConfig(buildID))
 		urls = append(urls, urlGen.BuildLog(buildID))
@@ -48,6 +52,36 @@ func TestURLs(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode,
 			"%q was expected to return HTTP 200, body: %s", url, string(body))
 	}
+}
+
+func TestAllPatches(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+	testSeries := &api.Series{
+		ExtID: "ext-id",
+		Title: "test series name",
+		Link:  "http://link/to/series",
+		Patches: []api.SeriesPatch{
+			{
+				Seq:   1,
+				Title: "first patch title",
+				Body:  []byte("first content\n"),
+			},
+			{
+				Seq:   2,
+				Title: "second patch title",
+				Body:  []byte("second content\n"),
+			},
+		},
+	}
+	ids := controller.UploadTestSeries(t, ctx, client, testSeries)
+	_, baseURL := testServer(t, env)
+
+	resp, err := http.Get(baseURL + "/series/" + ids.SeriesID + "/all_patches")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	assert.NoError(t, err)
+	assert.Equal(t, "first content\nsecond content\n", string(body))
 }
 
 func testServer(t *testing.T, env *app.AppEnvironment) (*dashboardHandler, string) {

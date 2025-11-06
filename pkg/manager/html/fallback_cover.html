@@ -4,11 +4,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 */}}
 
 <table class="list_table">
+	<thead>
 	<tr>
 		<th>Call</th>
 		<th>Successful</th>
 		<th>Errnos</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $c := $.Calls}}
 	<tr>
 		<td>{{$c.Name}}</td>
@@ -16,4 +19,5 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td>{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>

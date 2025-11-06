@@ -54,7 +54,7 @@ options 	DIAGNOSTIC
 		// because FreeBSD's build doesn't correctly order the two
 		// targets. Its output is useful for debugging though, so
 		// include it here.
-		return ImageDetails{}, osutil.PrependContext(string(output), err)
+		return ImageDetails{}, fmt.Errorf("%s: %w", string(output), err)
 	}
 
 	kernelObjDir := filepath.Join(objPrefix, params.KernelDir,

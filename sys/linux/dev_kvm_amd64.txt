@@ -19,10 +19,12 @@ resource sev_handle[int32]
 syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
 
 # Create a VCPU inside a kvm_syz_vm VM.
-syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu
+# Prohibit flattening the input arguments, so that it is easier to reason about them.
+syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu (no_squash)
 
 # Test assertions, will not be used by the fuzzer.
 syz_kvm_assert_syzos_uexit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
+syz_kvm_assert_syzos_kvm_exit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
 
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
@@ -67,13 +69,42 @@ syzos_api_wr_crn {
 	arg_value	int64
 }
 
+# Depending on CR4.DE, registers DR4 and DR5 either alias DR6 and DR7, or generate an #UD.
+syzos_api_wr_drn {
+	arg_reg		int64[0:7]
+	arg_value	int64
+}
+
+x86_in_out_size = 1, 2, 4
+
+syzos_api_in_dx {
+	arg_port	int64[0:65535]
+	arg_size	flags[x86_in_out_size, int64]
+}
+
+# In fact the accepted value always fit into int32.
+syzos_api_out_dx {
+	arg_port	int64[0:65535]
+	arg_size	flags[x86_in_out_size, int64]
+	arg_val		int64
+}
+
+syzos_api_set_irq_handler {
+	arg_vector		int64[0:255]
+	arg_handler_type	int64[0:2]
+}
+
 syzos_api_call$x86 [
-	uexit	syzos_api$x86[0, intptr]
-	code	syzos_api$x86[10, syzos_api_code$x86]
-	cpuid	syzos_api$x86[20, syzos_api_cpuid]
-	wrmsr	syzos_api$x86[30, syzos_api_wrmsr]
-	rdmsr	syzos_api$x86[50, syzos_api_rdmsr]
-	wr_crn	syzos_api$x86[70, syzos_api_wr_crn]
+	uexit		syzos_api$x86[0, intptr]
+	code		syzos_api$x86[10, syzos_api_code$x86]
+	cpuid		syzos_api$x86[20, syzos_api_cpuid]
+	wrmsr		syzos_api$x86[30, syzos_api_wrmsr]
+	rdmsr		syzos_api$x86[50, syzos_api_rdmsr]
+	wr_crn		syzos_api$x86[70, syzos_api_wr_crn]
+	wr_drn		syzos_api$x86[110, syzos_api_wr_drn]
+	in_dx		syzos_api$x86[130, syzos_api_in_dx]
+	out_dx		syzos_api$x86[170, syzos_api_out_dx]
+	set_irq_handler	syzos_api$x86[190, syzos_api_set_irq_handler]
 ] [varlen]
 
 kvm_text_x86 [
@@ -458,6 +489,7 @@ ioctl$KVM_GET_FPU(fd fd_kvmcpu, cmd const[KVM_GET_FPU], arg ptr[out, kvm_fpu])
 ioctl$KVM_SET_FPU(fd fd_kvmcpu, cmd const[KVM_SET_FPU], arg ptr[in, kvm_fpu])
 ioctl$KVM_GET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_GET_DEBUGREGS], arg ptr[out, kvm_debugregs])
 ioctl$KVM_SET_DEBUGREGS(fd fd_kvmcpu, cmd const[KVM_SET_DEBUGREGS], arg ptr[in, kvm_debugregs])
+ioctl$KVM_SET_GUEST_DEBUG_x86(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_x86]])
 ioctl$KVM_GET_XCRS(fd fd_kvmcpu, cmd const[KVM_GET_XCRS], arg ptr[out, kvm_xcrs])
 ioctl$KVM_SET_XCRS(fd fd_kvmcpu, cmd const[KVM_SET_XCRS], arg ptr[in, kvm_xcrs])
 ioctl$KVM_GET_XSAVE(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE], arg ptr[out, kvm_xsave])
@@ -493,6 +525,10 @@ ioctl$KVM_GET_XSAVE2(fd fd_kvmcpu, cmd const[KVM_GET_XSAVE2], arg vma)
 # https://docs.kernel.org/virt/kvm/api.html#kvm-get-sregs2
 ioctl$KVM_GET_SREGS2(fd fd_kvmcpu, cmd const[KVM_GET_SREGS2], arg ptr[out, kvm_sregs2])
 ioctl$KVM_SET_SREGS2(fd fd_kvmcpu, cmd const[KVM_SET_SREGS2], arg ptr[in, kvm_sregs2])
+
+kvm_guest_debug_arch_x86 {
+	reg	array[int64, 8]
+}
 
 kvm_nested_state {
 	flags	flags[kvm_nested_state_flags, int16]

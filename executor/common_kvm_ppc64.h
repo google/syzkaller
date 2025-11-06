@@ -1,6 +1,9 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_PPC64_H
+#define EXECUTOR_COMMON_KVM_PPC64_H
+
 // This file is shared between executor and csource package.
 
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
@@ -72,12 +75,6 @@
 #ifndef KVM_PPC_CONFIGURE_V3_MMU
 // Available with KVM_CAP_PPC_RADIX_MMU or KVM_CAP_PPC_HASH_MMU_V3
 #define KVM_PPC_CONFIGURE_V3_MMU _IOW(KVMIO, 0xaf, struct kvm_ppc_mmuv3_cfg)
-
-// For KVM_PPC_CONFIGURE_V3_MMU
-struct kvm_ppc_mmuv3_cfg {
-	__u64 flags;
-	__u64 process_table; // second doubleword of partition table entry
-};
 
 // Flag values for KVM_PPC_CONFIGURE_V3_MMU
 #define KVM_PPC_MMUV3_RADIX 1 // 1 = radix mode, 0 = HPT
@@ -185,7 +182,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	if (kvm_vcpu_enable_cap(cpufd, KVM_CAP_PPC_PAPR))
 		return -1;
 
-	if (kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_NESTED_HV, true, 0))
+	if (kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_NESTED_HV, 1, 0))
 		return -1;
 
 	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
@@ -415,3 +412,5 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 
 	return 0;
 }
+
+#endif // EXECUTOR_COMMON_KVM_PPC64_H

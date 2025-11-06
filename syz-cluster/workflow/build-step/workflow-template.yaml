@@ -8,6 +8,10 @@ metadata:
 spec:
   templates:
     - name: build-step
+      retryStrategy:
+        limit: "3"
+        backoff:
+          duration: "5m"
       inputs:
         parameters:
           - name: findings
@@ -24,7 +28,7 @@ spec:
             path: /tmp/request.json
       initContainers:
       - name: setup-overlays
-        image: bitnami/git:latest
+        image: alpine/git:latest
         imagePullPolicy: IfNotPresent
         command:
           - sh

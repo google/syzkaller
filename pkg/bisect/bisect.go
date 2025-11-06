@@ -658,7 +658,7 @@ func (env *env) test() (*testResult, error) {
 		var verr *osutil.VerboseError
 		var kerr *build.KernelError
 		if errors.As(err, &verr) {
-			errInfo += verr.Title
+			errInfo += verr.Error()
 			env.saveDebugFile(current.Hash, 0, verr.Output)
 		} else if errors.As(err, &kerr) {
 			errInfo += string(kerr.Report)

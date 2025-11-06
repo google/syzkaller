@@ -10,7 +10,6 @@ import (
 	"debug/elf"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -260,55 +259,80 @@ func queryLinuxCompiler(kernelDir string) (string, error) {
 	return string(result[1]), nil
 }
 
-// ElfSymbolHashes returns a map of sha256 hashes per a symbol contained in the elf file.
+type SectionHashes struct {
+	Text map[string]string `json:"text"`
+	Data map[string]string `json:"data"` // Merged .data and .rodata.
+}
+
+// ElfSymbolHashes returns a map of sha256 hashes per section per symbol contained in the elf file.
 // It's best to call it on vmlinux.o since PCs in the binary code are not patched yet.
-func ElfSymbolHashes(bin string) (map[string]string, error) {
+func ElfSymbolHashes(bin string) (SectionHashes, error) {
+	result := SectionHashes{
+		Text: make(map[string]string),
+		Data: make(map[string]string),
+	}
+
 	file, err := elf.Open(bin)
 	if err != nil {
-		return nil, err
+		return SectionHashes{}, err
 	}
 	defer file.Close()
 
 	symbols, err := file.Symbols()
 	if err != nil {
-		return nil, err
+		return SectionHashes{}, err
 	}
 
-	textSection := file.Section(".text")
-	if textSection == nil {
-		return nil, fmt.Errorf(".text section not found")
+	rawFile, err := os.Open(bin)
+	if err != nil {
+		return SectionHashes{}, err
+	}
+	defer rawFile.Close()
+
+	sections := make(map[elf.SectionIndex]*elf.Section)
+	for i, s := range file.Sections {
+		sections[elf.SectionIndex(i)] = s
 	}
 
-	sectionReader, ok := textSection.Open().(io.ReaderAt)
-	if !ok {
-		return nil, fmt.Errorf(".text section reader does not support ReadAt")
-	}
-
-	hashes := make(map[string]string)
 	for _, s := range symbols {
-		if elf.ST_TYPE(s.Info) != elf.STT_FUNC || s.Size == 0 {
+		if s.Name == "" || s.Size == 0 || s.Section >= elf.SHN_LORESERVE {
 			continue
 		}
 
-		if s.Section >= elf.SHN_LORESERVE || int(s.Section) >= len(file.Sections) ||
-			file.Sections[s.Section] != textSection {
+		symbolSection, ok := sections[s.Section]
+		if !ok || symbolSection.Type == elf.SHT_NOBITS {
 			continue
 		}
 
-		offset := s.Value - textSection.Addr
-		if offset+s.Size > textSection.Size {
+		var targetMap map[string]string
+
+		symbolType := elf.ST_TYPE(s.Info)
+		sectionFlags := symbolSection.Flags
+		switch {
+		case symbolType == elf.STT_FUNC && (sectionFlags&elf.SHF_EXECINSTR) != 0:
+			targetMap = result.Text
+		case symbolType == elf.STT_OBJECT && (sectionFlags&elf.SHF_ALLOC) != 0 &&
+			(sectionFlags&elf.SHF_EXECINSTR) == 0:
+			targetMap = result.Data
+		default:
 			continue
 		}
 
-		code := make([]byte, s.Size)
-		_, err := sectionReader.ReadAt(code, int64(offset))
+		offset := s.Value - symbolSection.Addr
+		if offset+s.Size > symbolSection.Size {
+			continue
+		}
+
+		data := make([]byte, s.Size)
+		_, err := rawFile.ReadAt(data, int64(symbolSection.Offset+offset))
 		if err != nil {
 			continue
 		}
-		hash := sha256.Sum256(code)
-		hashes[s.Name] = hex.EncodeToString(hash[:])
+
+		hash := sha256.Sum256(data)
+		targetMap[s.Name] = hex.EncodeToString(hash[:])
 	}
-	return hashes, nil
+	return result, nil
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior

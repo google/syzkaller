@@ -177,6 +177,12 @@ table td, table th {
 	text-align: right;
 }
 
+.list_table .rank {
+	width: 55pt;
+	font-family: monospace;
+	text-align: right;
+}
+
 .list_table .discussions {
 	font-family: monospace;
 	text-align: left;
@@ -493,3 +499,19 @@ aside {
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
 .dropdown:hover .dropbtn {background-color: #ddd;}
+
+.rank .tooltiptext {
+	visibility: hidden;
+	background-color: black;
+	color: #fff;
+	text-align: left;
+	border-radius: 6px;
+	padding: 5px 0;
+
+	/* Position the tooltip */
+	position: absolute;
+	z-index: 1;
+}
+.rank:hover .tooltiptext {
+	visibility: visible;
+}

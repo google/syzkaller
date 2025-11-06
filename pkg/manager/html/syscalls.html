@@ -5,6 +5,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 
 <table class="list_table">
 	<caption>Per-syscall coverage:</caption>
+	<thead>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Syscall', textSort)" href="#">Syscall</a></th>
 		<th><a onclick="return sortTable(this, 'Inputs', numSort)" href="#" title="Number of inputs in the corpus added because of this syscall">Inputs</a></th>
@@ -14,6 +15,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'Comps overflows', numSort)" href="#" title="Number of times comparisons buffer has overflowed on this syscall">Comps overflows</a></th>
 		<th>Prio</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $c := $.Calls}}
 	<tr>
 		<td>{{$c.Name}}{{if $c.ID }} [{{$c.ID}}]{{end}}</td>
@@ -25,4 +28,5 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>

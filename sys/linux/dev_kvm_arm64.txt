@@ -18,7 +18,8 @@ resource kvm_syz_vm$arm64[int64]
 syz_kvm_setup_syzos_vm$arm64(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$arm64
 
 # Create a VCPU inside a kvm_syz_vm VM.
-syz_kvm_add_vcpu$arm64(vm kvm_syz_vm$arm64, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu
+# Prohibit flattening the input arguments, so that it is easier to reason about them.
+syz_kvm_add_vcpu$arm64(vm kvm_syz_vm$arm64, text ptr[in, kvm_text_arm64], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts]) fd_kvmcpu (no_squash)
 
 kvm_num_irqs = 32, 64, 128, 256, 512
 
@@ -28,6 +29,7 @@ syz_kvm_vgic_v3_setup(fd fd_kvmvm, ncpus intptr[0:4], nirqs flags[kvm_num_irqs])
 # Test assertions, will not be used by the fuzzer.
 syz_kvm_assert_syzos_uexit$arm64(run kvm_run_ptr, exitcode int64) (no_generate)
 syz_kvm_assert_reg(fd fd_kvmcpu, reg int64, value int64) (no_generate)
+syz_kvm_assert_syzos_kvm_exit$arm64(run kvm_run_ptr, exitcode int64) (no_generate)
 
 # Old-style way to set up a CPU inside a KVM VM.
 syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[1024], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
@@ -55,6 +57,15 @@ kvm_arm_device_addr {
 	id	int64
 	addr	flags[kvm_guest_addrs, int64]
 }
+
+kvm_guest_debug_arch_arm64 {
+	dbg_bcr	array[int64, 16]
+	dbg_bvr	array[int64, 16]
+	dbg_wcr	array[int64, 16]
+	dbg_wvr	array[int64, 16]
+}
+
+ioctl$KVM_SET_GUEST_DEBUG_arm64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_arm64]])
 
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
 ioctl$KVM_ARM_PREFERRED_TARGET(fd fd_kvmcpu, cmd const[KVM_ARM_PREFERRED_TARGET], arg ptr[out, kvm_vcpu_init])

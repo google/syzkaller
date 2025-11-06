@@ -6,6 +6,7 @@
 package instance
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -314,7 +315,7 @@ type EnvTestResult struct {
 }
 
 func (inst *inst) test() EnvTestResult {
-	vmInst, err := inst.vmPool.Create(inst.vmIndex)
+	vmInst, err := inst.vmPool.Create(context.Background(), inst.vmIndex)
 	if err != nil {
 		testErr := &TestError{
 			Boot:  true,
@@ -564,6 +565,12 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 	reportData, err := os.ReadFile(filepath.Join(cfg.Workdir, "report.json"))
 	if err != nil {
 		if os.IsNotExist(err) {
+			var verboseErr *osutil.VerboseError
+			if errors.As(retErr, &verboseErr) {
+				// Include more details into the report.
+				prefix := fmt.Sprintf("%s, exit code %d\n\n", verboseErr, verboseErr.ExitCode)
+				output = append([]byte(prefix), output...)
+			}
 			rep := &report.Report{
 				Title:  "SYZFATAL: image testing failed w/o kernel bug",
 				Output: output,

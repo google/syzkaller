@@ -157,7 +157,7 @@ func (pool *Pool) Count() int {
 	return pool.count
 }
 
-func (pool *Pool) Create(index int) (*Instance, error) {
+func (pool *Pool) Create(ctx context.Context, index int) (*Instance, error) {
 	if index < 0 || index >= pool.count {
 		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.count)
 	}
@@ -170,7 +170,7 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 			return nil, err
 		}
 	}
-	impl, err := pool.impl.Create(workdir, index)
+	impl, err := pool.impl.Create(ctx, workdir, index)
 	if err != nil {
 		os.RemoveAll(workdir)
 		return nil, err
@@ -294,7 +294,7 @@ func WithEarlyFinishCb(cb func()) func(*RunOptions) {
 // and the kernel console output. It detects kernel oopses in output, lost connections, hangs, etc.
 // Returns command+kernel output and a non-symbolized crash report (nil if no error happens).
 func (inst *Instance) Run(ctx context.Context, reporter *report.Reporter, command string, opts ...func(*RunOptions)) (
-	[]byte, *report.Report, error) {
+	[]byte, []*report.Report, error) {
 	runOptions := &RunOptions{
 		beforeContext: 128 << 10,
 		afterContext:  128 << 10,
@@ -316,8 +316,8 @@ func (inst *Instance) Run(ctx context.Context, reporter *report.Reporter, comman
 		reporter:        reporter,
 		lastExecuteTime: time.Now(),
 	}
-	rep := mon.monitorExecution()
-	return mon.output, rep, nil
+	reps := mon.monitorExecution()
+	return mon.output, reps, nil
 }
 
 func (inst *Instance) Info() ([]byte, error) {
@@ -327,11 +327,11 @@ func (inst *Instance) Info() ([]byte, error) {
 	return nil, nil
 }
 
-func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
-	if rep == nil {
-		panic("rep is nil")
+func (inst *Instance) diagnose(reps []*report.Report) ([]byte, bool) {
+	if len(reps) == 0 {
+		panic("reps is empty")
 	}
-	return inst.impl.Diagnose(rep)
+	return inst.impl.Diagnose(reps[0])
 }
 
 func (inst *Instance) Index() int {
@@ -368,7 +368,7 @@ type monitor struct {
 	extractCalled bool
 }
 
-func (mon *monitor) monitorExecution() *report.Report {
+func (mon *monitor) monitorExecution() []*report.Report {
 	ticker := time.NewTicker(mon.tickerPeriod * mon.inst.pool.timeouts.Scale)
 	defer ticker.Stop()
 	defer func() {
@@ -387,10 +387,10 @@ func (mon *monitor) monitorExecution() *report.Report {
 				if mon.exitCondition&ExitNormal == 0 {
 					crash = lostConnectionCrash
 				}
-				return mon.extractError(crash)
+				return mon.extractErrors(crash)
 			case ErrTimeout:
 				if mon.exitCondition&ExitTimeout == 0 {
-					return mon.extractError(timeoutCrash)
+					return mon.extractErrors(timeoutCrash)
 				}
 				return nil
 			default:
@@ -400,7 +400,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 				if mon.exitCondition&ExitError == 0 {
 					crash = lostConnectionCrash
 				}
-				return mon.extractError(crash)
+				return mon.extractErrors(crash)
 			}
 		case out, ok := <-mon.outc:
 			if !ok {
@@ -417,7 +417,7 @@ func (mon *monitor) monitorExecution() *report.Report {
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
 			if time.Since(mon.lastExecuteTime) > mon.inst.pool.timeouts.NoOutput {
-				return mon.extractError(noOutputCrash)
+				return mon.extractErrors(noOutputCrash)
 			}
 		case <-Shutdown:
 			return nil
@@ -425,14 +425,14 @@ func (mon *monitor) monitorExecution() *report.Report {
 	}
 }
 
-func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
+func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool) {
 	lastPos := len(mon.output)
 	mon.output = append(mon.output, out...)
 	if bytes.Contains(mon.output[lastPos:], []byte(executedProgramsStart)) {
 		mon.lastExecuteTime = time.Now()
 	}
 	if mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
-		return mon.extractError("unknown error"), true
+		return mon.extractErrors("unknown error"), true
 	}
 	if len(mon.output) > 2*mon.beforeContext {
 		copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
@@ -455,7 +455,7 @@ func (mon *monitor) appendOutput(out []byte) (*report.Report, bool) {
 	return nil, false
 }
 
-func (mon *monitor) extractError(defaultError string) *report.Report {
+func (mon *monitor) extractErrors(defaultError string) []*report.Report {
 	if mon.extractCalled {
 		panic("extractError called twice")
 	}
@@ -466,7 +466,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	}
 	diagOutput, diagWait := []byte{}, false
 	if defaultError != "" {
-		diagOutput, diagWait = mon.inst.diagnose(mon.createReport(defaultError))
+		diagOutput, diagWait = mon.inst.diagnose(mon.createReports(defaultError))
 	}
 	// Give it some time to finish writing the error message.
 	// But don't wait for "no output", we already waited enough.
@@ -480,45 +480,52 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	}
 	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.curPos:]) {
 		// We did not call Diagnose above because we thought there is no error, so call it now.
-		diagOutput, diagWait = mon.inst.diagnose(mon.createReport(defaultError))
+		diagOutput, diagWait = mon.inst.diagnose(mon.createReports(defaultError))
 		if diagWait {
 			mon.waitForOutput()
 		}
 	}
-	rep := mon.createReport(defaultError)
-	if rep == nil {
+	reps := mon.createReports(defaultError)
+	if len(reps) == 0 {
 		return nil
 	}
 	if len(diagOutput) > 0 {
-		rep.Output = append(rep.Output, vmDiagnosisStart...)
-		rep.Output = append(rep.Output, diagOutput...)
+		reps[0].Output = append(reps[0].Output, vmDiagnosisStart...)
+		reps[0].Output = append(reps[0].Output, diagOutput...)
 	}
-	return rep
+	return reps
 }
 
-func (mon *monitor) createReport(defaultError string) *report.Report {
-	rep := mon.reporter.ParseFrom(mon.output, mon.curPos)
-	if rep == nil {
-		if defaultError == "" {
-			return nil
+func (mon *monitor) createReports(defaultError string) []*report.Report {
+	curPos := mon.curPos
+	var res []*report.Report
+	for {
+		rep := mon.reporter.ParseFrom(mon.output, curPos)
+		if rep == nil {
+			if defaultError == "" || len(res) > 0 {
+				return res
+			}
+			typ := crash.UnknownType
+			if defaultError == lostConnectionCrash {
+				typ = crash.LostConnection
+			}
+			return []*report.Report{{
+				Title:      defaultError,
+				Output:     mon.output,
+				Suppressed: report.IsSuppressed(mon.reporter, mon.output),
+				Type:       typ,
+			}}
 		}
-		typ := crash.UnknownType
-		if defaultError == lostConnectionCrash {
-			typ = crash.LostConnection
-		}
-		return &report.Report{
-			Title:      defaultError,
-			Output:     mon.output,
-			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
-			Type:       typ,
+		curPos = rep.SkipPos
+		start := max(rep.StartPos-mon.beforeContext, 0)
+		end := min(rep.EndPos+mon.afterContext, len(rep.Output))
+		rep.Output = rep.Output[start:end]
+		rep.StartPos -= start
+		rep.EndPos -= start
+		if len(res) == 0 || (len(res) > 0 && !rep.Corrupted && !rep.Suppressed) {
+			res = append(res, rep)
 		}
 	}
-	start := max(rep.StartPos-mon.beforeContext, 0)
-	end := min(rep.EndPos+mon.afterContext, len(rep.Output))
-	rep.Output = rep.Output[start:end]
-	rep.StartPos -= start
-	rep.EndPos -= start
-	return rep
 }
 
 func (mon *monitor) waitForOutput() {

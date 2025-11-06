@@ -42,7 +42,7 @@ func (client Client) UploadTriageResult(ctx context.Context, sessionID string, r
 
 type TreesResp struct {
 	Trees       []*Tree             `json:"trees"`
-	FuzzConfigs []*TriageFuzzConfig `json:"fuzz_configs"`
+	FuzzTargets []*FuzzTriageTarget `json:"fuzz_targets"`
 }
 
 func (client Client) GetTrees(ctx context.Context) (*TreesResp, error) {
@@ -112,6 +112,24 @@ type UploadSessionResp struct {
 
 func (client Client) UploadSession(ctx context.Context, req *NewSession) (*UploadSessionResp, error) {
 	return postJSON[NewSession, UploadSessionResp](ctx, client.baseURL+"/sessions/upload", req)
+}
+
+type BaseFindingInfo struct {
+	BuildID string `json:"buildID"`
+	Title   string `json:"title"`
+}
+
+func (client Client) UploadBaseFinding(ctx context.Context, req *BaseFindingInfo) error {
+	_, err := postJSON[BaseFindingInfo, any](ctx, client.baseURL+"/base_findings/upload", req)
+	return err
+}
+
+type BaseFindingStatus struct {
+	Observed bool `json:"observed"`
+}
+
+func (client Client) BaseFindingStatus(ctx context.Context, req *BaseFindingInfo) (*BaseFindingStatus, error) {
+	return postJSON[BaseFindingInfo, BaseFindingStatus](ctx, client.baseURL+"/base_findings/status", req)
 }
 
 const requestTimeout = time.Minute

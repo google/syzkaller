@@ -1,17 +1,28 @@
 {{define "content"}}
     <main class="container-fluid my-4">
       <div class="chart-wrapper mb-5">
-        <h2 class="h4">Processed Series (weekly)</h2>
-        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <h2 class="h4">Processed Patch Series (weekly)</h2>
+        <p class="text-muted small">How many patch series have been extracted/triaged/built/fuzzed each week.</p>
         <div id="processed_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
       </div>
 
       <hr class="my-4">
 
       <div class="chart-wrapper mb-4">
         <h2 class="h4">Findings (weekly)</h2>
-        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <p class="text-muted small">How many kernel crashes or kernel build/boot errors have been detected each week.</p>
         <div id="findings_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
+        <h2 class="h4">Reports (weekly)</h2>
+        <p class="text-muted small">How many reports with findings have been published.</p>
+        <div id="reports_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
       </div>
 
       <hr class="my-4">
@@ -19,16 +30,21 @@
       <div class="chart-wrapper mb-4">
         <h2 class="h4">Wait Time before Fuzzing (avg hours, weekly)</h2>
         <p class="text-muted small">How many hours have passed since the moment the series was published and the moment we started fuzzing it.</p>
-        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
         <div id="avg_wait_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
       </div>
 
       <hr class="my-4">
 
       <div class="chart-wrapper mb-4">
         <h2 class="h4">Status Distribution (weekly)</h2>
-        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+        <p class="text-muted small">
+          <b>Processed:</b> Among the processed series, how many have been actually fuzzed.<br />
+          <b>Skipped:</b> Among the processed series, how many were skipped during triage (e.g. because no proper base commit was found).<br />
+          <b>Some steps skipped:</b> Among the processed series, how often did we skip the fuzzing step (e.g. because the patch/patch series did not modify the code we compile).
+        </p>
         <div id="distribution_chart_div" style="width: 100%; height: 400px;"></div>
+        <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
       </div>
     </main>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -60,9 +76,16 @@
         {{end}}
       ];
 
+      const reportsData = [
+        {{range .Reports}}
+          [new Date({{.Date.Format "2006-01-02"}}), {{.Count}}],
+        {{end}}
+      ];
+
       function drawAllCharts() {
         drawChart('processed_chart_div', processedData, '#007bff');
         drawChart('findings_chart_div', findingsData, '#dc3545');
+        drawChart('reports_chart_div', reportsData, '#dc3545');
         drawChart('avg_wait_chart_div', delayData, 'black');
         drawDistributionChart();
       }

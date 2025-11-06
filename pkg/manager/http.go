@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/pkg/vminfo"
@@ -355,12 +356,33 @@ func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool)
 	triaged := reproStatus(info.HasRepro, info.HasCRepro, repros[info.Title],
 		info.ReproAttempts >= MaxReproAttempts)
 	return UICrashType{
-		BugInfo: *info,
-		New:     info.FirstTime.After(startTime),
-		Active:  info.LastTime.After(startTime),
-		Triaged: triaged,
-		Crashes: crashes,
+		BugInfo:     *info,
+		RankTooltip: higherRankTooltip(info.Title, info.TailTitles),
+		New:         info.FirstTime.After(startTime),
+		Active:      info.LastTime.After(startTime),
+		Triaged:     triaged,
+		Crashes:     crashes,
 	}
+}
+
+// higherRankTooltip generates the prioritized list of the titles with higher Rank
+// than the firstTitle has.
+func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
+	baseRank := report.TitlesToImpact(firstTitle)
+	res := ""
+	for _, ti := range titlesInfo {
+		if ti.Rank <= baseRank {
+			continue
+		}
+		res += fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
+			ti.Rank,
+			100*float32(ti.Count)/float32(ti.Total),
+			ti.Title)
+	}
+	if res != "" {
+		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res)
+	}
+	return res
 }
 
 var crashIDRe = regexp.MustCompile(`^\w+$`)
@@ -517,7 +539,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		}()
 	}
 
-	var progs []cover.Prog
+	var progs []coverProgRaw
 	if sig := r.FormValue("input"); sig != "" {
 		inp := corpus.Item(sig)
 		if inp == nil {
@@ -530,16 +552,16 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 				http.Error(w, "bad call_id", http.StatusBadRequest)
 				return
 			}
-			progs = append(progs, cover.Prog{
-				Sig:  sig,
-				Data: string(inp.Prog.Serialize()),
-				PCs:  CoverToPCs(serv.Cfg, inp.Updates[updateID].RawCover),
+			progs = append(progs, coverProgRaw{
+				sig:  sig,
+				prog: inp.Prog,
+				pcs:  CoverToPCs(serv.Cfg, inp.Updates[updateID].RawCover),
 			})
 		} else {
-			progs = append(progs, cover.Prog{
-				Sig:  sig,
-				Data: string(inp.Prog.Serialize()),
-				PCs:  CoverToPCs(serv.Cfg, inp.Cover),
+			progs = append(progs, coverProgRaw{
+				sig:  sig,
+				prog: inp.Prog,
+				pcs:  CoverToPCs(serv.Cfg, inp.Cover),
 			})
 		}
 	} else {
@@ -548,10 +570,10 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 			if call != "" && call != inp.StringCall() {
 				continue
 			}
-			progs = append(progs, cover.Prog{
-				Sig:  inp.Sig,
-				Data: string(inp.Prog.Serialize()),
-				PCs:  CoverToPCs(serv.Cfg, inp.Cover),
+			progs = append(progs, coverProgRaw{
+				sig:  inp.Sig,
+				prog: inp.Prog,
+				pcs:  CoverToPCs(serv.Cfg, inp.Cover),
 			})
 		}
 	}
@@ -566,7 +588,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 	}
 
 	params := cover.HandlerParams{
-		Progs:  progs,
+		Progs:  serv.serializeCoverProgs(progs),
 		Filter: coverFilter,
 		Debug:  r.FormValue("debug") != "",
 		Force:  r.FormValue("force") != "",
@@ -596,6 +618,44 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 	if err := flagToFunc[funcFlag].Do(w, params); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
+	}
+}
+
+type coverProgRaw struct {
+	sig  string
+	prog *prog.Prog
+	pcs  []uint64
+}
+
+// Once the total size of corpus programs exceeds 100MB, skip fs images from it.
+const compactProgsCutOff = 100 * 1000 * 1000
+
+func (serv *HTTPServer) serializeCoverProgs(rawProgs []coverProgRaw) []cover.Prog {
+	skipImages := false
+outerLoop:
+	for {
+		var flags []prog.SerializeFlag
+		if skipImages {
+			flags = append(flags, prog.SkipImages)
+		}
+		totalSize := 0
+		var ret []cover.Prog
+		for _, item := range rawProgs {
+			prog := cover.Prog{
+				Sig:  item.sig,
+				Data: string(item.prog.Serialize(flags...)),
+				PCs:  item.pcs,
+			}
+			totalSize += len(prog.Data)
+			if totalSize > compactProgsCutOff && !skipImages {
+				log.Logf(0, "total size of corpus programs is too big, "+
+					"full fs image won't be included in the cover reports")
+				skipImages = true
+				continue outerLoop
+			}
+			ret = append(ret, prog)
+		}
+		return ret
 	}
 }
 
@@ -1024,10 +1084,11 @@ type UICrashPage struct {
 
 type UICrashType struct {
 	BugInfo
-	New     bool // was first found in the current run
-	Active  bool // was found in the current run
-	Triaged string
-	Crashes []UICrash
+	RankTooltip string
+	New         bool // was first found in the current run
+	Active      bool // was found in the current run
+	Triaged     string
+	Crashes     []UICrash
 }
 
 type UICrash struct {

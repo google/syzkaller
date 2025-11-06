@@ -6,6 +6,8 @@ package queue
 import (
 	"testing"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,4 +51,31 @@ func TestGlobFiles(t *testing.T) {
 	assert.Equal(t, r.GlobFiles(), []string(nil))
 	r.Output = []byte{'a', 'b', 0, 'c', 0}
 	assert.Equal(t, r.GlobFiles(), []string{"ab", "c"})
+}
+
+func TestTee(t *testing.T) {
+	base, dup := Plain(), Plain()
+
+	tee := Tee(base, dup)
+	req := &Request{
+		Prog:        &prog.Prog{},
+		Type:        flatrpc.RequestTypeProgram,
+		ExecOpts:    flatrpc.ExecOpts{SandboxArg: 10},
+		BinaryFile:  "file",
+		GlobPattern: "pattern",
+		// These must be ignored.
+		ReturnOutput: true,
+		Important:    true,
+	}
+	base.Submit(req)
+
+	origReq := tee.Next()
+	assert.Equal(t, req, origReq)
+	copy := dup.Next()
+	assert.Equal(t, req.Type, copy.Type)
+	assert.Equal(t, req.ExecOpts, copy.ExecOpts)
+	assert.Equal(t, req.BinaryFile, copy.BinaryFile)
+	assert.Equal(t, req.GlobPattern, copy.GlobPattern)
+	assert.Empty(t, copy.ReturnOutput)
+	assert.Empty(t, copy.Important)
 }

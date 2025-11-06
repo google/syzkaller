@@ -16,6 +16,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -40,16 +42,20 @@ import (
 // FileSystem represents one file system.
 // Each FileSystem produces multiple images, see MkfsFlagCombinations and Image type.
 type FileSystem struct {
-	// Name of the file system. Needs to match syz_mount_image$NAME name.
-	Name string
+	// Name of the file system. Needs to match the name passed to mount().
+	Name string `json:"name"`
+	// By default, syz_mount_image$NAME are generated. SyscallSuffix overrides the part after $.
+	SyscallSuffix string `json:"syscall_suffix"`
 	// Imagegen autodetects size for images starting from MinSize and then repeatedly doubling it if mkfs fails.
-	MinSize int
+	MinSize int `json:"min_size"`
 	// Don't populate this image with files (can't mount read-write).
-	ReadOnly bool
+	ReadOnly bool `json:"read_only"`
 	// These flags are always appended to mkfs as is.
-	MkfsFlags []string
+	MkfsFlags []string `json:"mkfs_flags"`
 	// Generate images for all possible permutations of these flag combinations.
-	MkfsFlagCombinations [][]string
+	MkfsFlagCombinations [][]string `json:"mkfs_flag_combinations"`
+	// Limit the resulting number of seeds (in case there are too many possible combinations).
+	MaxSeeds int `json:"max_seeds"`
 	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
 	Mkfs func(img *Image) error
 }
@@ -238,6 +244,7 @@ var fileSystems = []FileSystem{
 	{
 		Name:      "ext4",
 		MinSize:   64 << 10,
+		MaxSeeds:  64,
 		MkfsFlags: []string{"-L", "syzkaller", "-U", "clear", "-E", "test_fs"},
 		MkfsFlagCombinations: [][]string{
 			{"-t ext2", "-t ext3", "-t ext4"},
@@ -245,29 +252,36 @@ var fileSystems = []FileSystem{
 			// so we create just few permutations generated with fair dice rolls.
 			// TODO: We also need to give some combination of -E encoding=utf8/utf8-12.1 and -E encoding_flags=strict,
 			// but mounting such fs on my host fails with "Filesystem with casefold feature cannot be mounted without CONFIG_UNICODE".
-			{
-				"-b 1024 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 1024 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 1024 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 1024 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 1024 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 2048 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity",
-				"-b 2048 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity -j -J size=1024",
-				"-b 2048 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 2048 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 2048 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 2048 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 2048 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O ^encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-				"-b 4096 -I 128 -E lazy_itable_init=0 -E num_backup_sb=0 -E packed_meta_blocks=0 -O ^64bit -O extents -O ^bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O mmp -O quota -O ^resize_inode -O ^sparse_super -O ^uninit_bg -O ^verity -j -J size=1024",
-				"-b 4096 -I 256 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O ^inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O verity",
-				"-b 4096 -I 1024 -E lazy_itable_init=0 -E num_backup_sb=1 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O ^dir_nlink -O ^ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O flex_bg -O ^huge_file -O inline_data -O large_dir -O ^metadata_csum -O meta_bg -O ^mmp -O quota -O ^resize_inode -O ^sparse_super -O uninit_bg -O ^verity",
-				"-b 4096 -I 128 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O ^inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O verity -j -J size=1024",
-				"-b 4096 -I 256 -E lazy_itable_init=1 -E num_backup_sb=0 -E packed_meta_blocks=1 -O  64bit -O extents -O bigalloc -O ^dir_index -O dir_nlink -O ea_inode -O ^encrypt -O ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O mmp -O ^quota -O resize_inode -O sparse_super -O ^uninit_bg -O ^verity",
-				"-b 4096 -I 256 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O ^encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O verity -j -J size=1024",
-				"-b 4096 -I 512 -E lazy_itable_init=1 -E num_backup_sb=1 -E packed_meta_blocks=0 -O ^64bit -O ^extents -O ^bigalloc -O dir_index -O ^dir_nlink -O ea_inode -O encrypt -O ^ext_attr -O ^extra_isize -O ^flex_bg -O huge_file -O inline_data -O ^large_dir -O ^metadata_csum -O ^meta_bg -O ^mmp -O ^quota -O ^resize_inode -O sparse_super2 -O uninit_bg -O ^verity",
-			},
+			{"-b 1024", "-b 2048", "-b 4096"},
+			{"-I 128", "-I 256", "-I 512", "-I 1024"},
+			{"-E lazy_itable_init=0", "-E lazy_itable_init=1"},
+			{"-E packed_meta_blocks=0", "-E packed_meta_blocks=1"},
+			// Otherwise we get: invalid blocks '^64bit' on device 'num_backup_sb=0'.
+			// And: "Extents MUST be enabled for a 64-bit filesystem. Pass -O extents to rectify".
+			{"-O ^64bit -E num_backup_sb=0", "-O 64bit -E num_backup_sb=1 -O extents"},
+			// Can't support bigalloc feature without extents feature.
+			{"-O ^bigalloc", "-O bigalloc -O extents"},
+			{"-O ^dir_index", "-O dir_index"},
+			{"-O ^dir_nlink", "-O dir_nlink"},
+			{"-O ^ea_inode", "-O ea_inode"},
+			{"-O ^encrypt", "-O encrypt"},
+			{"-O ^ext_attr", "-O ext_attr"},
+			{"-O ^extra_isize", "-O extra_isize"},
+			{"-O ^flex_bg", "-O flex_bg"},
+			{"-O ^huge_file", "-O huge_file"},
+			// 128 byte inodes are too small for inline data; specify larger size.
+			{"-O ^inline_data", "-O inline_data -I 512"},
+			{"-O ^large_dir", "-O large_dir"},
+			{"-O ^metadata_csum", "-O metadata_csum"},
+			{"", "-O ^sparse_super"},
+			// Otherwise we get: The resize_inode and meta_bg features are not compatible.
+			// Another dependency: reserved online resize blocks not supported on non-sparse filesystem.
+			{"-O ^meta_bg -O ^resize_inode", "-O meta_bg -O ^resize_inode", "-O ^meta_bg -O resize_inode -O sparse_super"},
+			{"-O ^mmp", "-O mmp"},
+			{"-O ^quota", "-O quota"},
+			{"-O ^uninit_bg", "-O uninit_bg"},
+			{"-O ^verity", "-O verity -O extents"},
+			{"-O ^has_journal", "-O has_journal  -J size=1024"},
 		},
 	},
 	{
@@ -552,7 +566,14 @@ func (fs FileSystem) filePrefix() string {
 	if fs.Name == parttable {
 		return syzReadPartTable
 	}
-	return syzMountImage + "_" + fs.Name
+	return syzMountImage + "_" + fs.suffix()
+}
+
+func (fs FileSystem) suffix() string {
+	if fs.SyscallSuffix != "" {
+		return fs.SyscallSuffix
+	}
+	return fs.Name
 }
 
 // Image represents one image we generate for a file system.
@@ -586,6 +607,7 @@ func main() {
 		flagPopulate  = flag.String("populate", "", "populate the specified image with files (for internal use)")
 		flagKeepImage = flag.Bool("keep", false, "save disk images as .img files")
 		flagFS        = flag.String("fs", "", "comma-separated list of filesystems to generate, all if empty")
+		flagFromJSON  = flag.String("from_json", "", "load the fs config from the file and generate seeds for it")
 	)
 	flag.Parse()
 	if *flagDebug {
@@ -600,6 +622,12 @@ func main() {
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
 		tool.Fail(err)
+	}
+	if *flagFromJSON != "" {
+		fs := loadFilesystem(*flagFromJSON)
+		fileSystems = append(fileSystems, fs)
+		// Generate seeds only for the specific filesystem.
+		*flagFS = fs.suffix()
 	}
 	addEmptyImages(target)
 	images, err := generateImages(target, *flagFS, *flagList)
@@ -655,7 +683,10 @@ func addEmptyImages(target *prog.Target) {
 		if call.CallName != syzMountImage {
 			continue
 		}
-		name := strings.TrimPrefix(call.Name, syzMountImage+"$")
+		name := call.Attrs.Filesystem
+		if name == "" {
+			name = strings.TrimPrefix(call.Name, syzMountImage+"$")
+		}
 		if have[name] {
 			continue
 		}
@@ -735,13 +766,16 @@ func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bo
 func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, error) {
 	var images []*Image
 	for _, fs := range fileSystems {
-		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.Name+",") {
+		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.suffix()+",") {
 			continue
 		}
-		index := 0
-		enumerateFlags(target, &images, &index, fs, fs.MkfsFlags, 0)
+		newImages := enumerateFlags(target, fs)
+		images = append(images, newImages...)
 		if list {
-			fmt.Printf("%v [%v images]\n", fs.Name, index)
+			fmt.Printf("%v [%v images]\n", fs.Name, len(newImages))
+			for i, image := range newImages {
+				fmt.Printf("#%d: %q\n", i, image.flags)
+			}
 			continue
 		}
 		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", fs.filePrefix()+"_*"))
@@ -754,30 +788,32 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 			}
 		}
 	}
+	for i, image := range images {
+		image.index = i
+	}
 	return images, nil
 }
 
-func enumerateFlags(target *prog.Target, images *[]*Image, index *int, fs FileSystem, flags []string, flagsIndex int) {
-	if flagsIndex == len(fs.MkfsFlagCombinations) {
-		*images = append(*images, &Image{
-			target: target,
-			fs:     fs,
-			flags:  append([]string{}, flags...),
-			index:  *index,
-			done:   make(chan error, 1),
-		})
-		*index++
-		return
-	}
-	for _, flag := range fs.MkfsFlagCombinations[flagsIndex] {
-		flags1 := flags
-		for _, f := range strings.Split(flag, " ") {
-			if f != "" {
-				flags1 = append(flags1, f)
+func enumerateFlags(target *prog.Target, fs FileSystem) []*Image {
+	var images []*Image
+	for _, flags := range CoveringArray(fs.MkfsFlagCombinations, fs.MaxSeeds) {
+		imageFlags := slices.Clone(fs.MkfsFlags)
+		for _, rawFlag := range flags {
+			for _, f := range strings.Split(rawFlag, " ") {
+				if f == "" {
+					continue
+				}
+				imageFlags = append(imageFlags, f)
 			}
 		}
-		enumerateFlags(target, images, index, fs, flags1, flagsIndex+1)
+		images = append(images, &Image{
+			target: target,
+			fs:     fs,
+			flags:  imageFlags,
+			done:   make(chan error, 1),
+		})
 	}
+	return images
 }
 
 func (img *Image) generate() error {
@@ -910,10 +946,24 @@ func writeImage(img *Image, data []byte) ([]byte, error) {
 		fmt.Fprintf(buf, `%s(AUTO, &AUTO="$`, syzReadPartTable)
 	} else {
 		fmt.Fprintf(buf, `%s$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
-			syzMountImage, img.fs.Name, img.fs.Name)
+			syzMountImage, img.fs.suffix(), img.fs.Name)
 	}
 	buf.Write(b64Data)
 	fmt.Fprintf(buf, "\")\n")
 
 	return buf.Bytes(), nil
+}
+
+func loadFilesystem(fileName string) FileSystem {
+	file, err := os.Open(fileName)
+	if err != nil {
+		tool.Fail(err)
+	}
+	defer file.Close()
+	var fs FileSystem
+	err = json.NewDecoder(file).Decode(&fs)
+	if err != nil {
+		tool.Failf("failed to parse JSON: %v", err)
+	}
+	return fs
 }

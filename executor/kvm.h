@@ -1,6 +1,11 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_KVM_H
+#define EXECUTOR_KVM_H
+
+// x86-specific definitions.
+#if GOARCH_amd64
 #define X86_ADDR_TEXT 0x0000
 #define X86_ADDR_PD_IOAPIC 0x0000
 #define X86_ADDR_GDT 0x1000
@@ -32,17 +37,36 @@
 #define X86_ADDR_VAR_VMEXIT_CODE 0x9000
 #define X86_ADDR_VAR_USER_CODE 0x9100
 #define X86_ADDR_VAR_USER_CODE2 0x9120
-#define X86_ADDR_SMRAM 0x30000
+
+// Zero page (0x0 - 0xfff) is deliberately unused.
+#define X86_SYZOS_ADDR_ZERO 0x0
+#define X86_SYZOS_ADDR_GDT 0x1000
+// PML4 for GPAs 0x0 - 0xffffffffffff.
+#define X86_SYZOS_ADDR_PML4 0x2000
+// PDP for GPAs 0x0 - 0x7fffffffff.
+#define X86_SYZOS_ADDR_PDP 0x3000
+// Pool of 32 pages for dynamic PT/PD allocations.
+#define X86_SYZOS_ADDR_PT_POOL 0x5000
+#define X86_SYZOS_ADDR_VAR_IDT 0x25000
+
+#define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
-#define X86_ADDR_EXIT 0x40000
+#define X86_SYZOS_ADDR_EXIT 0x40000
 // Dedicated address within the exit page for the uexit command.
-#define X86_ADDR_UEXIT (X86_ADDR_EXIT + 256)
-#define X86_ADDR_DIRTY_PAGES 0x41000
-#define X86_ADDR_USER_CODE 0x50000
-#define X86_ADDR_EXECUTOR_CODE 0x54000
-#define X86_ADDR_SCRATCH_CODE 0x58000
-#define X86_ADDR_UNUSED 0x200000
-#define X86_ADDR_IOAPIC 0xfec00000
+#define X86_SYZOS_ADDR_UEXIT (X86_SYZOS_ADDR_EXIT + 256)
+#define X86_SYZOS_ADDR_DIRTY_PAGES 0x41000
+#define X86_SYZOS_ADDR_USER_CODE 0x50000
+// Location of the SYZOS guest code. Name shared with ARM64 SYZOS.
+#define SYZOS_ADDR_EXECUTOR_CODE 0x54000
+#define X86_SYZOS_ADDR_SCRATCH_CODE 0x58000
+#define X86_SYZOS_ADDR_STACK_BOTTOM 0x90000
+#define X86_SYZOS_ADDR_STACK0 0x90f80
+#define X86_SYZOS_ADDR_UNUSED 0x200000
+#define X86_SYZOS_ADDR_IOAPIC 0xfec00000
+
+// SYZOS segment selectors
+#define X86_SYZOS_SEL_CODE 0x8
+#define X86_SYZOS_SEL_DATA 0x10
 
 #define X86_CR0_PE 1ULL
 #define X86_CR0_MP (1ULL << 1)
@@ -144,16 +168,20 @@
 
 #define X86_NEXT_INSN $0xbadc0de
 #define X86_PREFIX_SIZE 0xba1d
+#endif // x86-specific definitions.
 
 #define KVM_MAX_VCPU 4
 #define KVM_PAGE_SIZE (1 << 12)
-#define KVM_GUEST_MEM_SIZE (1024 * KVM_PAGE_SIZE)
+#define KVM_GUEST_PAGES 1024
+#define KVM_GUEST_MEM_SIZE (KVM_GUEST_PAGES * KVM_PAGE_SIZE)
 #define SZ_4K 0x00001000
 #define SZ_64K 0x00010000
 #define GENMASK_ULL(h, l)                   \
 	(((~0ULL) - (1ULL << (l)) + 1ULL) & \
 	 (~0ULL >> (63 - (h))))
 
+// ARM64 SYZOS definitions.
+#if GOARCH_arm64
 // GICv3 distributor address.
 #define ARM64_ADDR_GICD_BASE 0x08000000
 // GICv3 ITS address.
@@ -168,7 +196,8 @@
 // Two writable pages with KVM_MEM_LOG_DIRTY_PAGES explicitly set.
 #define ARM64_ADDR_DIRTY_PAGES 0xdddd1000
 #define ARM64_ADDR_USER_CODE 0xeeee0000
-#define ARM64_ADDR_EXECUTOR_CODE 0xeeee8000
+// Location of the SYZOS guest code. Name shared with x86 SYZOS.
+#define SYZOS_ADDR_EXECUTOR_CODE 0xeeee8000
 #define ARM64_ADDR_SCRATCH_CODE 0xeeef0000
 #define ARM64_ADDR_EL1_STACK_BOTTOM 0xffff1000
 
@@ -181,3 +210,7 @@
 #define ARM64_ADDR_ITS_ITT_TABLES (ARM64_ADDR_ITS_CMDQ_BASE + SZ_64K)
 #define ARM64_ADDR_ITS_PROP_TABLE (ARM64_ADDR_ITS_ITT_TABLES + SZ_64K * ITS_MAX_DEVICES)
 #define ARM64_ADDR_ITS_PEND_TABLES (ARM64_ADDR_ITS_PROP_TABLE + SZ_64K)
+
+#endif // ARM64 SYZOS definitions
+
+#endif // EXECUTOR_KVM_H

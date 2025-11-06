@@ -1,22 +1,15 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#ifndef EXECUTOR_COMMON_KVM_ARM64_SYZOS_H
+#define EXECUTOR_COMMON_KVM_ARM64_SYZOS_H
+
 // This file provides guest code running inside the ARM64 KVM.
 
+#include "common_kvm_syzos.h"
 #include "kvm.h"
 #include <linux/kvm.h>
 #include <stdbool.h>
-
-// Host will map the code in this section into the guest address space.
-#define GUEST_CODE __attribute__((section("guest")))
-
-// Prevent function inlining. This attribute is applied to every guest_handle_* function,
-// making sure they remain small so that the compiler does not attempt to be too clever
-// (e.g. generate switch tables).
-#define noinline __attribute__((noinline))
-
-// Start/end of the guest section.
-extern char *__start_guest, *__stop_guest;
 
 // Compilers will eagerly try to transform the switch statement in guest_main()
 // into a jump table, unless the cases are sparse enough.
@@ -99,18 +92,18 @@ struct api_call_its_send_cmd {
 	uint32 cpuid2;
 };
 
-static void guest_uexit(uint64 exit_code);
-static void guest_execute_code(uint32* insns, uint64 size);
-static void guest_handle_mrs(uint64 reg);
-static void guest_handle_msr(uint64 reg, uint64 val);
-static void guest_handle_smc(struct api_call_smccc* cmd);
-static void guest_handle_hvc(struct api_call_smccc* cmd);
-static void guest_handle_svc(struct api_call_smccc* cmd);
-static void guest_handle_eret(uint64 unused);
-static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
-static void guest_handle_memwrite(struct api_call_memwrite* cmd);
-static void guest_handle_its_setup(struct api_call_3* cmd);
-static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
+GUEST_CODE static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
+GUEST_CODE static void guest_handle_mrs(uint64 reg);
+GUEST_CODE static void guest_handle_msr(uint64 reg, uint64 val);
+GUEST_CODE static void guest_handle_smc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_hvc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_svc(struct api_call_smccc* cmd);
+GUEST_CODE static void guest_handle_eret(uint64 unused);
+GUEST_CODE static void guest_handle_irq_setup(struct api_call_irq_setup* cmd);
+GUEST_CODE static void guest_handle_memwrite(struct api_call_memwrite* cmd);
+GUEST_CODE static void guest_handle_its_setup(struct api_call_3* cmd);
+GUEST_CODE static void guest_handle_its_send_cmd(struct api_call_its_send_cmd* cmd);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -1201,7 +1194,8 @@ GUEST_CODE static void its_send_movall_cmd(uint64 cmdq_base, uint32 vcpu_id, uin
 	its_send_cmd(cmdq_base, &cmd);
 }
 
-GUEST_CODE static void its_send_invall_cmd(uint64 cmdq_base, uint32 collection_id)
+GUEST_CODE static void
+its_send_invall_cmd(uint64 cmdq_base, uint32 collection_id)
 {
 	struct its_cmd_block cmd;
 	guest_memzero(&cmd, sizeof(cmd));
@@ -1357,3 +1351,5 @@ GUEST_CODE static void guest_prepare_its(int nr_cpus, int nr_devices, int nr_eve
 	guest_setup_its_mappings(ARM64_ADDR_ITS_CMDQ_BASE, ARM64_ADDR_ITS_ITT_TABLES, nr_events, nr_devices, nr_cpus);
 	guest_invalidate_all_rdists(ARM64_ADDR_ITS_CMDQ_BASE, nr_cpus);
 }
+
+#endif // EXECUTOR_COMMON_KVM_ARM64_SYZOS_H

@@ -104,7 +104,7 @@ ifeq ("$(TARGETOS)", "trusty")
 endif
 
 .PHONY: all clean host target \
-	manager executor ci hub \
+	manager executor kfuzztest ci hub \
 	execprog mutate prog2c trace2syz repro upgrade db \
 	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
@@ -118,7 +118,7 @@ endif
 
 all: host target
 host: manager repro mutate prog2c db upgrade
-target: execprog executor
+target: execprog executor check_syzos
 
 executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
@@ -217,6 +217,14 @@ syz-build:
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
 
+ifeq ($(HOSTOS), linux)
+kfuzztest: descriptions
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-kfuzztest github.com/google/syzkaller/syz-kfuzztest
+else
+kfuzztest:
+	@echo "Skipping kfuzztest build (it's Linux-only)"
+endif
+
 verifier: descriptions
 	# TODO: switch syz-verifier to use syz-executor.
 	# GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
@@ -273,7 +281,7 @@ bin/syz-fmt:
 	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
 
 configs: kconf
-	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR)
+	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR) -instance=$(INSTANCE)
 
 tidy: descriptions
 	clang-tidy -quiet -header-filter=executor/[^_].* -warnings-as-errors=* \
@@ -426,6 +434,9 @@ check_links:
 
 check_html:
 	./tools/check-html.sh
+
+check_syzos: executor
+	./tools/check-syzos.sh 2>/dev/null
 
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.

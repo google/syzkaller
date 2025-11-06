@@ -57,10 +57,15 @@ func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan err
 			log.Logf(0, "ssh failed: %v", err)
 		}
 		if time.Since(startTime) > timeout {
-			return &osutil.VerboseError{Title: "can't ssh into the instance", Output: []byte(err.Error())}
+			return &osutil.VerboseError{
+				Err:    ErrCantSSH,
+				Output: []byte(err.Error()),
+			}
 		}
 	}
 }
+
+var ErrCantSSH = fmt.Errorf("can't ssh into the instance")
 
 func SSHArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
 	return sshArgs(debug, sshKey, "-p", port, 0, systemSSHCfg)

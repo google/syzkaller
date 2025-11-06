@@ -1,3 +1,6 @@
+#ifndef EXECUTOR_COMMON_KVM_ARM64_H
+#define EXECUTOR_COMMON_KVM_ARM64_H
+
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -6,6 +9,7 @@
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
 #include <sys/mman.h>
 
+#include "common_kvm.h"
 #include "kvm.h"
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_syzos_vm
@@ -107,7 +111,7 @@ static void setup_vm(int vmfd, void* host_mem, void** text_slot)
 
 	struct addr_size host_text = alloc_guest_mem(&allocator, 4 * KVM_PAGE_SIZE);
 	install_syzos_code(host_text.addr, host_text.size);
-	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, ARM64_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
+	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_READONLY, SYZOS_ADDR_EXECUTOR_CODE, host_text.size, (uintptr_t)host_text.addr);
 
 	struct addr_size next = alloc_guest_mem(&allocator, 2 * KVM_PAGE_SIZE);
 	vm_set_user_memory_region(vmfd, slot++, KVM_MEM_LOG_DIRTY_PAGES, ARM64_ADDR_DIRTY_PAGES, next.size, (uintptr_t)next.addr);
@@ -147,7 +151,7 @@ static void vcpu_set_reg(int vcpu_fd, uint64 id, uint64 val)
 static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
 {
 	// PC points to the relative offset of guest_main() within the guest code.
-	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, ARM64_ADDR_EXECUTOR_CODE + ((uint64)guest_main - (uint64)&__start_guest));
+	vcpu_set_reg(cpufd, KVM_ARM64_REGS_PC, executor_fn_guest_addr(guest_main));
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_SP_EL1, ARM64_ADDR_EL1_STACK_BOTTOM + KVM_PAGE_SIZE - 128);
 	// Store the CPU ID in TPIDR_EL1.
 	vcpu_set_reg(cpufd, KVM_ARM64_REGS_TPIDR_EL1, cpu_id);
@@ -394,3 +398,5 @@ static long syz_kvm_assert_reg(volatile long a0, volatile long a1, volatile long
 	return 0;
 }
 #endif
+
+#endif // EXECUTOR_COMMON_KVM_ARM64_H

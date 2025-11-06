@@ -100,7 +100,7 @@ func (pool *Pool) Count() int {
 	return pool.count
 }
 
-func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		fuchsiaDir: pool.env.KernelSrc,
 		ffxDir:     pool.ffxDir,
@@ -320,13 +320,18 @@ func (inst *instance) connect() error {
 	if inst.debug {
 		log.Logf(1, "instance %s: attempting to connect to starnix container over ssh", inst.name)
 	}
+	// Even though the formatting option is called `addresses`, it is guaranteed
+	// to return at most 1 address per target.
 	address, err := inst.runFfx(
 		30*time.Second,
 		true,
 		"--target",
 		inst.name,
 		"target",
-		"get-ssh-address")
+		"list",
+		"--format",
+		"addresses",
+	)
 	if err != nil {
 		return err
 	}

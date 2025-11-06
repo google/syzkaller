@@ -59,6 +59,15 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 	if err := osutil.SandboxChown(localDir); err != nil {
 		return ImageDetails{}, err
 	}
+
+	if _, err := runSandboxed(
+		30*time.Second,
+		params.KernelDir,
+		"scripts/fx", "build-profile", "disable",
+	); err != nil {
+		return ImageDetails{}, err
+	}
+
 	buildSubdir := "out/" + arch
 	if _, err := runSandboxed(
 		time.Hour,

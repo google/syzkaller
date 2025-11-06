@@ -4,6 +4,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 */}}
 
 <table class="list_table">
+	<tbody>
 	{{range $s := $.Stats}}
 	<tr>
 		<td class="stat_name" title="{{$s.Hint}}">{{$s.Name}}</td>
@@ -16,26 +17,39 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>
 
 {{if .Crashes}}
 <table class="list_table">
 	<caption>Crashes:</caption>
+	<thead>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Rank', numSort)" href="#">Rank</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'First Time', textSort, true)" href="#">First Time</a></th>
 		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
 		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
+		<th><a onclick="return sortTable(this, 'Repro Attempt Count', numSort)" href="#">Repro Attempt Count</a></th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Title}}</a></td>
+		<td class="rank {{if not $c.Active}}inactive{{end}}">
+			{{if $c.RankTooltip}}
+				<b>{{$c.Rank}}</b>
+				<pre class="tooltiptext">{{$c.RankTooltip}}</pre>
+			{{else}}
+				{{$c.Rank}}
+			{{end}}
+		</td>
 		<td class="stat {{if not $c.Active}}inactive{{end}}">{{len $c.Crashes}}</td>
 		<td class="time {{if not $c.New}}inactive{{end}}">{{formatTime $c.FirstTime}}</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
 		<td>
-			{{if $c.ReproAttempts}}[{{$c.ReproAttempts}} repro attempts]{{end}}
 			{{if $c.Triaged}}
 				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
 			{{end}}
@@ -43,19 +57,24 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<a href="/file?name={{$c.StraceFile}}">Strace</a>
 			{{end}}
 		</td>
+		<td class="stat">{{if $c.ReproAttempts}}{{$c.ReproAttempts}}{{end}}</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>
 {{end}}
 
 {{define "diff_crashes"}}
 <table class="list_table">
 	<caption>{{.Title}}:</caption>
+	<thead>
 	<tr>
 		<th>Description</th>
 		<th>Base</th>
 		<th>Patched</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $bug := .List}}
 	<tr>
 		<td class="title">{{$bug.Title}}</td>
@@ -89,6 +108,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</td>
 	</tr>
 	{{end}}
+	</tbody>
 </table>
 {{end}}
 

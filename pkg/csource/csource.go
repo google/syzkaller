@@ -685,6 +685,9 @@ func (ctx *context) postProcess(result []byte) []byte {
 	result = regexp.MustCompile(`\t*exitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
 	result = regexp.MustCompile(`\t*fail(msg)?\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
 
+	// Remove executor include guards.
+	result = regexp.MustCompile(`#define\s+[A-Z0-9_]*_H\s*\n`).ReplaceAll(result, nil)
+
 	result = ctx.hoistIncludes(result)
 	result = ctx.removeEmptyLines(result)
 	return result

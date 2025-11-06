@@ -161,3 +161,12 @@ type ReportReply struct {
 	ReportID  string    `spanner:"ReportID"`
 	Time      time.Time `spanner:"Time"`
 }
+
+// BaseFinding collects all crashes observed on the base kernel tree.
+// It will be used to avoid unnecessary bug reproduction attempts.
+type BaseFinding struct {
+	CommitHash string `spanner:"CommitHash"`
+	Config     string `spanner:"Config"`
+	Arch       string `spanner:"Arch"`
+	Title      string `spanner:"Title"`
+}

@@ -62,16 +62,80 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir p
 		return
 	}
 
-	id := randUsbDeviceID(g)
-	bcdDevice := id.BcdDeviceLo + uint16(g.Rand().Intn(int(id.BcdDeviceHi-id.BcdDeviceLo)+1))
+	patchUsbDeviceID(g, &arg, calls, usbIdsAll, true)
 
-	devArg := arg.(*prog.GroupArg).Inner[0]
-	patchGroupArg(devArg, 7, "idVendor", uint64(id.IDVendor))
-	patchGroupArg(devArg, 8, "idProduct", uint64(id.IDProduct))
-	patchGroupArg(devArg, 9, "bcdDevice", uint64(bcdDevice))
-	patchGroupArg(devArg, 3, "bDeviceClass", uint64(id.BDeviceClass))
-	patchGroupArg(devArg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
-	patchGroupArg(devArg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
+	return
+}
+
+func (arch *arch) generateUsbPrinterDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
+	arg prog.Arg, calls []*prog.Call) {
+	if old == nil {
+		arg = g.GenerateSpecialArg(typ0, dir, &calls)
+	} else {
+		arg = prog.CloneArg(old)
+		calls = g.MutateArg(arg)
+	}
+	if g.Target().ArgContainsAny(arg) {
+		return
+	}
+
+	// Roll the dice to decide if and how we want to patch printer USB IDs.
+	switch {
+	case g.Rand().Intn(3) == 0:
+		// Syzlang descriptions already contain passable IDs, leave them as is.
+		return
+	case g.Rand().Intn(2) == 0:
+		// Patch in quirk IDs that are hardcoded in the USB printer class driver
+		// (and thus are not auto-extractable) to allow exercising driver quirks;
+		// see quirk_printers in drivers/usb/class/usblp.c.
+		var idVendor int16
+		var idProduct int16
+		if g.Rand().Intn(2) == 0 { // USBLP_QUIRK_BIDIR
+			idVendor = 0x03f0
+			idProduct = 0x0004
+		} else { // USBLP_QUIRK_BAD_CLASS
+			idVendor = 0x04b8
+			idProduct = 0x0202
+		}
+		devArg := arg.(*prog.GroupArg).Inner[0]
+		patchGroupArg(devArg, 7, "idVendor", uint64(idVendor))
+		patchGroupArg(devArg, 8, "idProduct", uint64(idProduct))
+	default:
+		// Patch in IDs auto-extracted from the matching rules for the USB printer class.
+		// Do not patch IDs that are not used in the matching rules to avoid subverting
+		// the kernel into matching the device to a different driver.
+		if ids, ok := usbIds["usblp"]; ok {
+			patchUsbDeviceID(g, &arg, calls, ids, false)
+		}
+	}
+
+	return
+}
+
+func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string, patchNonMatching bool) {
+	id := randUsbDeviceID(g, ids, patchNonMatching)
+
+	devArg := (*arg).(*prog.GroupArg).Inner[0]
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_VENDOR) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 7, "idVendor", uint64(id.IDVendor))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_PRODUCT) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 8, "idProduct", uint64(id.IDProduct))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_LO) != 0 ||
+		(id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_HI) != 0 || patchNonMatching {
+		bcdDevice := id.BcdDeviceLo + uint16(g.Rand().Intn(int(id.BcdDeviceHi-id.BcdDeviceLo)+1))
+		patchGroupArg(devArg, 9, "bcdDevice", uint64(bcdDevice))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_CLASS) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 3, "bDeviceClass", uint64(id.BDeviceClass))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_SUBCLASS) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
+	}
+	if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_PROTOCOL) != 0 || patchNonMatching {
+		patchGroupArg(devArg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
+	}
 
 	configArg := devArg.(*prog.GroupArg).Inner[14].(*prog.GroupArg).Inner[0].(*prog.GroupArg).Inner[0]
 	interfacesArg := configArg.(*prog.GroupArg).Inner[8]
@@ -80,26 +144,37 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir p
 		interfaceArg = interfaceArg.(*prog.GroupArg).Inner[0]
 		if i > 0 {
 			// Generate new IDs for every interface after the first one.
-			id = randUsbDeviceID(g)
+			id = randUsbDeviceID(g, ids, patchNonMatching)
 		}
-		patchGroupArg(interfaceArg, 5, "bInterfaceClass", uint64(id.BInterfaceClass))
-		patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
-		patchGroupArg(interfaceArg, 7, "bInterfaceProtocol", uint64(id.BInterfaceProtocol))
-		patchGroupArg(interfaceArg, 2, "bInterfaceNumber", uint64(id.BInterfaceNumber))
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_CLASS) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 5, "bInterfaceClass", uint64(id.BInterfaceClass))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_SUBCLASS) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_DEV_PROTOCOL) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 7, "bInterfaceProtocol", uint64(id.BInterfaceProtocol))
+		}
+		if (id.MatchFlags&USB_DEVICE_ID_MATCH_INT_NUMBER) != 0 || patchNonMatching {
+			patchGroupArg(interfaceArg, 2, "bInterfaceNumber", uint64(id.BInterfaceNumber))
+		}
 	}
-
-	return
 }
 
-func randUsbDeviceID(g *prog.Gen) UsbDeviceID {
-	totalIds := len(usbIds) / BytesPerUsbID
+func randUsbDeviceID(g *prog.Gen, ids string, patchNonMatching bool) UsbDeviceID {
+	totalIds := len(ids) / BytesPerUsbID
 	idNum := g.Rand().Intn(totalIds)
-	base := usbIds[idNum*BytesPerUsbID : (idNum+1)*BytesPerUsbID]
+	base := ids[idNum*BytesPerUsbID : (idNum+1)*BytesPerUsbID]
 
 	p := strings.NewReader(base)
 	var id UsbDeviceID
 	if binary.Read(p, binary.LittleEndian, &id) != nil {
 		panic("not enough data to read")
+	}
+
+	// Don't generate values for IDs that won't be patched in.
+	if !patchNonMatching {
+		return id
 	}
 
 	if (id.MatchFlags & USB_DEVICE_ID_MATCH_VENDOR) == 0 {
@@ -151,9 +226,9 @@ func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, di
 		return
 	}
 
-	totalIds := len(hidIds) / BytesPerHidID
+	totalIds := len(hidIdsAll) / BytesPerHidID
 	idNum := g.Rand().Intn(totalIds)
-	base := hidIds[idNum*BytesPerHidID : (idNum+1)*BytesPerHidID]
+	base := hidIdsAll[idNum*BytesPerHidID : (idNum+1)*BytesPerHidID]
 
 	p := strings.NewReader(base)
 	var id HidDeviceID

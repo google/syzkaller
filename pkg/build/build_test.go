@@ -591,4 +591,24 @@ make: *** [Makefile:1231: vmlinux_o] Error 2
 		"",
 		"",
 	},
+	{`
+  RUSTC L rust/kernel.o
+error[E0599]: no method named ` + "`data`" + ` found for struct ` + "`core::pin::Pin<kbox::Box<T, Kmalloc>>`" +
+		` in the current scope
+  --> rust/kernel/usb.rs:92:34
+   |
+92 |         T::disconnect(intf, data.data());
+   |                                  ^^^^ method not found in ` + "`Pin<Box<T, Kmalloc>>`" + `
+
+error: aborting due to 1 previous error
+
+For more information about this error, try ` + "`rustc --explain E0599`" + `.
+make[2]: *** [rust/Makefile:553: rust/kernel.o] Error 1
+make[1]: *** [/syzkaller/managers/ci-upstream-rust-kasan-gce/kernel/Makefile:1308: prepare] Error 2
+make: *** [Makefile:248: __sub-make] Error 2
+`,
+		"error[E0599]: no method named `data` found for struct `core::pin::Pin<kbox::Box<T, Kmalloc>>` in the current scope",
+		"",
+		"",
+	},
 }

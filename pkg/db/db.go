@@ -346,3 +346,42 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	}
 	return progs, nil
 }
+
+type DeserializeFailure struct {
+	File string
+	Err  error
+}
+
+func Merge(into string, other []string, target *prog.Target) ([]DeserializeFailure, error) {
+	dstDB, err := Open(into, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+	var failed []DeserializeFailure
+	for _, add := range other {
+		addDB, err := Open(add, false)
+		if err == nil {
+			// It's a DB file.
+			for key, rec := range addDB.Records {
+				dstDB.Save(key, rec.Val, rec.Seq)
+			}
+			continue
+		}
+		if target == nil {
+			// We were not given a target, so we cannot parse it as a seed file.
+			return nil, fmt.Errorf("failed to open db %v: %w", add, err)
+		}
+		data, err := os.ReadFile(add)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
+			failed = append(failed, DeserializeFailure{add, err})
+		}
+		dstDB.Save(hash.String(data), data, 0)
+	}
+	if err := dstDB.Flush(); err != nil {
+		return nil, fmt.Errorf("failed to save db: %w", err)
+	}
+	return failed, nil
+}
