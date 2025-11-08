@@ -2466,6 +2466,7 @@ struct ExecResultRawT : public flatbuffers::NativeTable {
   bool hanged = false;
   std::string error{};
   std::unique_ptr<rpc::ProgInfoRawT> info{};
+  uint32_t memory_hash = 0;
   ExecResultRawT() = default;
   ExecResultRawT(const ExecResultRawT &o);
   ExecResultRawT(ExecResultRawT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -2481,7 +2482,8 @@ struct ExecResultRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_OUTPUT = 8,
     VT_HANGED = 10,
     VT_ERROR = 12,
-    VT_INFO = 14
+    VT_INFO = 14,
+    VT_MEMORY_HASH = 16
   };
   int64_t id() const {
     return GetField<int64_t>(VT_ID, 0);
@@ -2501,6 +2503,9 @@ struct ExecResultRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const rpc::ProgInfoRaw *info() const {
     return GetPointer<const rpc::ProgInfoRaw *>(VT_INFO);
   }
+  uint32_t memory_hash() const {
+    return GetField<uint32_t>(VT_MEMORY_HASH, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
@@ -2512,6 +2517,7 @@ struct ExecResultRaw FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(error()) &&
            VerifyOffset(verifier, VT_INFO) &&
            verifier.VerifyTable(info()) &&
+           VerifyField<uint32_t>(verifier, VT_MEMORY_HASH, 4) &&
            verifier.EndTable();
   }
   ExecResultRawT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2541,6 +2547,9 @@ struct ExecResultRawBuilder {
   void add_info(flatbuffers::Offset<rpc::ProgInfoRaw> info) {
     fbb_.AddOffset(ExecResultRaw::VT_INFO, info);
   }
+  void add_memory_hash(uint32_t memory_hash) {
+    fbb_.AddElement<uint32_t>(ExecResultRaw::VT_MEMORY_HASH, memory_hash, 0);
+  }
   explicit ExecResultRawBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2559,9 +2568,11 @@ inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> output = 0,
     bool hanged = false,
     flatbuffers::Offset<flatbuffers::String> error = 0,
-    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0) {
+    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0,
+    uint32_t memory_hash = 0) {
   ExecResultRawBuilder builder_(_fbb);
   builder_.add_id(id);
+  builder_.add_memory_hash(memory_hash);
   builder_.add_info(info);
   builder_.add_error(error);
   builder_.add_output(output);
@@ -2577,7 +2588,8 @@ inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRawDirect(
     const std::vector<uint8_t> *output = nullptr,
     bool hanged = false,
     const char *error = nullptr,
-    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0) {
+    flatbuffers::Offset<rpc::ProgInfoRaw> info = 0,
+    uint32_t memory_hash = 0) {
   auto output__ = output ? _fbb.CreateVector<uint8_t>(*output) : 0;
   auto error__ = error ? _fbb.CreateString(error) : 0;
   return rpc::CreateExecResultRaw(
@@ -2587,7 +2599,8 @@ inline flatbuffers::Offset<ExecResultRaw> CreateExecResultRawDirect(
       output__,
       hanged,
       error__,
-      info);
+      info,
+      memory_hash);
 }
 
 flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);

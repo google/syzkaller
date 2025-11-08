@@ -2864,11 +2864,12 @@ func CreateComparisonRaw(builder *flatbuffers.Builder, pc uint64, op1 uint64, op
 }
 
 type ProgInfoRawT struct {
-	Calls     []*CallInfoRawT `json:"calls"`
-	ExtraRaw  []*CallInfoRawT `json:"extra_raw"`
-	Extra     *CallInfoRawT   `json:"extra"`
-	Elapsed   uint64          `json:"elapsed"`
-	Freshness uint64          `json:"freshness"`
+	Calls      []*CallInfoRawT `json:"calls"`
+	ExtraRaw   []*CallInfoRawT `json:"extra_raw"`
+	Extra      *CallInfoRawT   `json:"extra"`
+	Elapsed    uint64          `json:"elapsed"`
+	Freshness  uint64          `json:"freshness"`
+	MemoryHash uint32          `json:"memory_hash"`
 }
 
 func (t *ProgInfoRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -3073,12 +3074,13 @@ func ProgInfoRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 type ExecResultRawT struct {
-	Id     int64         `json:"id"`
-	Proc   int32         `json:"proc"`
-	Output []byte        `json:"output"`
-	Hanged bool          `json:"hanged"`
-	Error  string        `json:"error"`
-	Info   *ProgInfoRawT `json:"info"`
+	Id         int64         `json:"id"`
+	Proc       int32         `json:"proc"`
+	Output     []byte        `json:"output"`
+	Hanged     bool          `json:"hanged"`
+	Error      string        `json:"error"`
+	Info       *ProgInfoRawT `json:"info"`
+	MemoryHash uint32        `json:"memory_hash"`
 }
 
 func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -3098,6 +3100,7 @@ func (t *ExecResultRawT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 	ExecResultRawAddHanged(builder, t.Hanged)
 	ExecResultRawAddError(builder, errorOffset)
 	ExecResultRawAddInfo(builder, infoOffset)
+	ExecResultRawAddMemoryHash(builder, t.MemoryHash)
 	return ExecResultRawEnd(builder)
 }
 
@@ -3108,6 +3111,7 @@ func (rcv *ExecResultRaw) UnPackTo(t *ExecResultRawT) {
 	t.Hanged = rcv.Hanged()
 	t.Error = string(rcv.Error())
 	t.Info = rcv.Info(nil).UnPack()
+	t.MemoryHash = rcv.MemoryHash()
 }
 
 func (rcv *ExecResultRaw) UnPack() *ExecResultRawT {
@@ -3237,8 +3241,20 @@ func (rcv *ExecResultRaw) Info(obj *ProgInfoRaw) *ProgInfoRaw {
 	return nil
 }
 
+func (rcv *ExecResultRaw) MemoryHash() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ExecResultRaw) MutateMemoryHash(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(16, n)
+}
+
 func ExecResultRawStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func ExecResultRawAddId(builder *flatbuffers.Builder, id int64) {
 	builder.PrependInt64Slot(0, id, 0)
@@ -3260,6 +3276,9 @@ func ExecResultRawAddError(builder *flatbuffers.Builder, error flatbuffers.UOffs
 }
 func ExecResultRawAddInfo(builder *flatbuffers.Builder, info flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(info), 0)
+}
+func ExecResultRawAddMemoryHash(builder *flatbuffers.Builder, memoryHash uint32) {
+	builder.PrependUint32Slot(6, memoryHash, 0)
 }
 func ExecResultRawEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

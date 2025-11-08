@@ -50,9 +50,14 @@ typedef signed int ssize_t;
 #if SYZ_EXECUTOR && !GOOS_linux
 #if !GOOS_windows
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>           /* Definition of AT_* constants */
+#include <sys/stat.h>
 #endif
 NORETURN void doexit(int status)
 {
+	debug("doexit: pid:%d is exiting with status %d\n", getpid(), status);
 	_exit(status); // prevent linter warning: doexit()
 	for (;;) {
 	}
@@ -656,11 +661,19 @@ static void loop(void)
 #if SYZ_EXECUTOR
 			close(kOutPipeFd);
 #endif
+			if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1) {
+				perror("ptrace TRACEME");
+				_exit(1);
+			}
+			debug("worker is tracable pid %d\n", getpid());
 			execute_one();
 #if !SYZ_EXECUTOR && SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
 			// Executor's execute_one has already called close_fds.
 			close_fds();
 #endif
+			debug("worker is exiting stopping pid %d\n", getpid());
+			raise(SIGSTOP);
+			debug("worker is exiting pid %d\n", getpid());
 			doexit(0);
 		}
 		debug("spawned worker pid %d\n", pid);
@@ -680,11 +693,53 @@ static void loop(void)
 #if SYZ_EXECUTOR
 		uint64 last_executed = start;
 		uint32 executed_calls = output_data->completed.load(std::memory_order_relaxed);
+		int times_stopped = 0;
 #endif
 		for (;;) {
 			sleep_ms(10);
-			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid)
-				break;
+			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid){
+				if(WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP) {
+					times_stopped++;
+					// Child process has stopped after execution, calculate its memory hash
+					if (times_stopped == 1)
+						debug("child pid %d stopped after snap shot, calculating memory hash\n", pid);
+					if (times_stopped == 2)
+						debug("child pid %d stopped after program, calculating memory hash\n", pid);
+					if (times_stopped > 2) {
+						debug("child pid %d stopped more than twice, ERROR!!!\n", pid);
+					}
+					
+					// Remember time before memory hash calculation to adjust timeout
+					uint64 hash_start_time = current_time_ms();
+					uint32 child_memory_hash = calculate_child_memory_hash(pid);
+					uint64 hash_end_time = current_time_ms();
+					uint64 hash_duration = hash_end_time - hash_start_time;
+					
+					if (times_stopped == 1)
+						debug("child memory hash calculation completed,snapshot hash=0x%x (took %llums)\n", child_memory_hash, hash_duration);
+					else
+						debug("child memory hash calculation completed, hash=0x%x (took %llums)\n", child_memory_hash, hash_duration);
+					
+					// Store the hash in output data for later use in finish_output
+					if (output_data) {
+						output_data->memory_hash = child_memory_hash;
+					}
+					
+					// Continue the child process after calculating memory hash
+					if (ptrace(PTRACE_CONT, pid, NULL, NULL) == -1) {
+						debug("ptrace CONT failed for pid %d: %s\n", pid, strerror(errno));
+					} else {
+						debug("child pid %d resumed after memory hash calculation\n", pid);
+						// Update last_executed time to prevent timeout during memory hash calculation
+						last_executed = current_time_ms();
+						// Extend the program start time to account for memory hash calculation time
+						// This prevents the program timeout from triggering due to hash calculation delay
+						start += hash_duration;
+					}
+				}
+				else
+					break;
+			}
 #if SYZ_EXECUTOR
 			// Even though the test process executes exit at the end
 			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
