@@ -24,7 +24,7 @@ type Desc struct {
 }
 
 func Register(os, arch, revision string, init func(*prog.Target), files embed.FS) {
-	sysTarget := targets.Get(os, arch)
+	sysTarget := targets.List[os][arch]
 	target := &prog.Target{
 		OS:         os,
 		Arch:       arch,

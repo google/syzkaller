@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/profiler v0.4.3
 	cloud.google.com/go/secretmanager v1.15.1
-	cloud.google.com/go/spanner v1.82.0
+	cloud.google.com/go/spanner v1.86.0
 	cloud.google.com/go/storage v1.57.1
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.7.3
@@ -18,6 +18,7 @@ require (
 	github.com/google/flatbuffers v25.9.23+incompatible
 	github.com/google/generative-ai-go v0.20.1
 	github.com/google/go-cmp v0.7.0
+	github.com/google/jsonschema-go v0.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5
@@ -32,9 +33,11 @@ require (
 	golang.org/x/sync v0.17.0
 	golang.org/x/sys v0.37.0
 	golang.org/x/tools v0.38.0
+	google.golang.org/adk v0.1.1-0.20251114033342-7a27c1678e2c
 	google.golang.org/api v0.252.0
 	google.golang.org/appengine/v2 v2.0.6
-	google.golang.org/genproto v0.0.0-20250603155806-513f23925822
+	google.golang.org/genai v1.32.0
+	google.golang.org/genproto v0.0.0-20251014184007-4626949a642f
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
@@ -172,6 +175,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/gordonklaus/ineffassign v0.1.0 // indirect
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.5.0 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.2.0 // indirect
@@ -268,7 +272,7 @@ require (
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
@@ -336,6 +340,8 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	mvdan.cc/gofumpt v0.8.0 // indirect
 	mvdan.cc/unparam v0.0.0-20250301125049-0df0534333a4 // indirect
+	rsc.io/omap v1.2.0 // indirect
+	rsc.io/ordered v1.1.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
@@ -349,3 +355,5 @@ tool (
 	github.com/vektra/mockery/v3
 	golang.org/x/tools/cmd/stringer
 )
+
+// replace google.golang.org/adk => /home/dvyukov/src/adk-go
