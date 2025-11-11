@@ -12,35 +12,27 @@ spec:
         limit: "3"
         backoff:
           duration: "5m"
+      securityContext:
+        runAsUser: 10000
+        fsGroup: 10000
       initContainers:
-        - name: setup-overlays
-          image: alpine/git:latest
+        - name: setup-repo
+          image: ${IMAGE_PREFIX}triage-step:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           command:
             - sh
             - -c
             - |
-              mkdir /data/overlayfs /data/.git
-              mount -t tmpfs -o size=128M tmpfs /data/overlayfs
-              mkdir /data/overlayfs/upper /data/overlayfs/work
-              mount -t overlay overlay -o lowerdir=/kernel-repo,upperdir=/data/overlayfs/upper,workdir=/data/overlayfs/work /data/.git
-              chmod 0777 /data/.git
-              git --git-dir=/data/.git --work-tree=/workdir checkout v3.0
-              chmod -R 0777 /data/.git/logs
-              chmod -R 0777 /workdir
+              git clone --reference /kernel-repo /kernel-repo /workdir
+          env:
+            - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+              value: "1"
           volumeMounts:
-            - name: shared-git-repo
-              mountPath: /data
-              mountPropagation: Bidirectional
             - name: base-kernel-repo
               mountPath: /kernel-repo
               readOnly: true
             - name: workdir
               mountPath: /workdir
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["SYS_ADMIN"]
       container:
           image: ${IMAGE_PREFIX}triage-step:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
@@ -58,17 +50,11 @@ spec:
               cpu: 4
               memory: 16G
           env:
-            - name: GIT_DIR
-              value: "/data/.git"
             - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
               value: "1"
-            - name: GIT_WORK_TREE
-              value: "/workdir"
             - name: HOME # Otherwise it's failing with "warning: unable to access '/root/.config/git/attributes': Permission denied.".
               value: "/home/syzkaller"
           volumeMounts:
-            - name: shared-git-repo
-              mountPath: /data
             - name: base-kernel-repo
               mountPath: /kernel-repo
               readOnly: true
@@ -80,9 +66,6 @@ spec:
         - name: base-kernel-repo
           persistentVolumeClaim:
             claimName: base-kernel-repo-pv-claim
-        - name: shared-git-repo
-          emptyDir:
-            medium: Memory
         - name: workdir
           emptyDir: {}
         - name: output
