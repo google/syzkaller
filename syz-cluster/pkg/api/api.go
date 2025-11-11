@@ -231,6 +231,12 @@ var DefaultTrees = []*Tree{
 		EmailLists: []string{`kvm@vger.kernel.org`},
 	},
 	{
+		Name:       `drm-next`,
+		URL:        `https://gitlab.freedesktop.org/drm/kernel.git`,
+		Branch:     `drm-next`,
+		EmailLists: []string{`dri-devel@lists.freedesktop.org`},
+	},
+	{
 		Name:       `mm-new`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/akpm/mm.git`,
 		Branch:     `mm-new`,
