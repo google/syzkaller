@@ -1654,3 +1654,149 @@ vusb_responses_lan78xx {
 
 define LAN78XX_REG_TYPE_IN	(USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE)
 define LAN78XX_REG_TYPE_OUT	(USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# rtl8152 driver (drivers/net/usb/r8152.c) specific descriptions.
+# Use pseudo-syscall 'syz_usb_finish_probe' to get past USB control requests.
+
+include <linux/usb/r8152.h>
+
+resource fd_usb_r8152[fd_usb]
+
+syz_usb_connect$r8152(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_r8152], conn_descs const[0]) fd_usb_r8152 (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_finish_probe$r8152(fd fd_usb_r8152, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_r8152]) (timeout[3000], prog_timeout[3000], remote_cover)
+
+syz_usb_control_io$r8152(fd fd_usb_r8152, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_r8152]) (timeout[300], remote_cover)
+
+usb_device_descriptor_r8152 {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0xbda, 0x8050, 0, array[usb_config_descriptor_r8152, 1]]
+} [packed]
+
+usb_config_descriptor_r8152 {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_r8152]
+} [packed]
+
+usb_interface_descriptor_r8152 {
+	iface	usb_interface_descriptor_fixed_t[0, 0, 3, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_r8152]
+} [packed]
+
+usb_endpoint_descriptors_r8152 {
+	bulk_out	usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_IN_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	bulk_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_BULK_OUT_ADDR, USB_ENDPOINT_BULK_ATTR, 512, 0, void]
+	int_in		usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_INT_IN_ADDR, USB_ENDPOINT_INT_ATTR, 64, 1, void]
+} [packed]
+
+# While these responses to CTRL requests are enough to finish probing, there are numerous
+# other requests expected during rtl_ops.init() stage, see: https://elixir.bootlin.com/linux/v6.17-rc5/source/drivers/net/usb/r8152.c#L9920.
+# TODO: Figure out the way to account for them too.
+vusb_responses_r8152 {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+# This is the minimal required CTRL request that needs to be processed 2 times,
+# most importantly, here: https://elixir.bootlin.com/linux/v6.17-rc6/source/drivers/net/usb/r8152.c#L9662
+# Mix up correct and incorrect version values to access different error paths along the way.
+	RTL8152_GET_VERSION		ptr[in, vusb_response_expected_t[RTL8152_REQT_READ, RTL8152_REQ_GET_REGS, 2, int32[r8152_versions]]]
+
+	RTL8152_REQ_GET_REGS		ptr[in, vusb_response_t[RTL8152_REQT_READ, RTL8152_REQ_GET_REGS, array[int8, 0:4]]]
+	RTL8152_REQ_SET_REGS		ptr[out, vusb_response_t[RTL8152_REQT_WRITE, RTL8152_REQ_SET_REGS, array[int8, 0:4]]]
+} [packed]
+
+# r8152 encapsulates multiple subdrivers depending on hardware. Try all of them to increase coverage.
+r8152_versions = 0x4c000000, 0x104c0000, 0x5c000000, 0x105c0000, 0x205c0000, 0x305c0000, 0x48000000, 0x60000000, 0x10600000, 0x10700000, 0x20700000, 0x30700000, 0x74000000, 0x10740000, 0x64000000, 0x20740000, 0x0
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# legousbtower driver (drivers/usb/misc/legousbtower.c) specific descriptions
+# Use pseudo-syscall 'syz_usb_finish_probe' to get past USB control requests.
+
+resource fd_usb_legousbtower[fd_usb]
+
+syz_usb_connect$legousbtower(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_legousbtower], conn_descs const[0]) fd_usb_legousbtower (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_finish_probe$legousbtower(fd fd_usb_legousbtower, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_legousbtower]) (timeout[3000], prog_timeout[3000], remote_cover)
+
+syz_usb_control_io$legousbtower(fd fd_usb_legousbtower, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_legousbtower]) (timeout[300], remote_cover)
+
+usb_device_descriptor_legousbtower {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0x694, 0x1, 0, array[usb_config_descriptor_legousbtower, 1]]
+} [packed]
+
+usb_config_descriptor_legousbtower {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_legousbtower]
+} [packed]
+
+usb_interface_descriptor_legousbtower {
+	iface	usb_interface_descriptor_fixed_t[0, 0, 2, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_legousbtower]
+} [packed]
+
+usb_endpoint_descriptors_legousbtower {
+	int_in	usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_INT_IN_ADDR, USB_ENDPOINT_INT_ATTR, 480, 1, void]
+	int_out	usb_endpoint_descriptor_fixed_t[USB_FIXED_ENDPOINT_INT_OUT_ADDR, USB_ENDPOINT_INT_ATTR, 480, 1, void]
+} [packed]
+
+vusb_responses_legousbtower {
+	len					len[parent, int32]
+	generic					ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE			ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+# This request needs to be processed at least 1 time,
+# see https://elixir.bootlin.com/linux/v6.17-rc6/source/drivers/usb/misc/legousbtower.c#L792
+	LEGO_USB_TOWER_REQUEST_GET_VERSION	ptr[in, vusb_response_expected_t[LEGO_USB_TOWER_REQ_TYPE, LEGO_USB_TOWER_REQUEST_GET_VERSION, 1, array[int8, 8]]]
+} [packed]
+
+define LEGO_USB_TOWER_REQ_TYPE	(USB_TYPE_VENDOR | USB_DIR_IN | USB_RECIP_DEVICE)
+define LEGO_USB_TOWER_REQUEST_GET_VERSION	0xfd
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# usbdux driver (drivers/comedi/drivers/usbdux.c) specific descriptions
+# Use pseudo-syscall 'syz_usb_finish_probe' to get past USB control requests.
+
+# Note: this driver requires specific firmware that is a part of 'linux-firmware' package.
+
+resource fd_usb_usbdux[fd_usb]
+
+syz_usb_connect$usbdux(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_usbdux], conn_descs const[0]) fd_usb_usbdux (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_finish_probe$usbdux(fd fd_usb_usbdux, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_usbdux]) (timeout[3000], prog_timeout[3000], remote_cover)
+
+syz_usb_control_io$usbdux(fd fd_usb_usbdux, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_usbdux]) (timeout[300], remote_cover)
+
+usb_device_descriptor_usbdux {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0x13d8, 0x1, 0, array[usb_config_descriptor_usbdux, 1]]
+} [packed]
+
+usb_config_descriptor_usbdux {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_usbdux]
+} [packed]
+
+# probe() expects a successful switch to 3rd interface altsetting. Give that, and more, to syzkaller to try breaking something.
+usb_interface_descriptor_usbdux {
+	alt0	usb_interface_descriptor_fixed_t[0, 0, 2, USB_CLASS_VENDOR_SPEC, 0, 0, void, array[usb_endpoint_descriptor, 0:2]]
+	alt1	usb_interface_descriptor_fixed_t[0, 1, 2, USB_CLASS_VENDOR_SPEC, 0, 0, void, array[usb_endpoint_descriptor, 0:2]]
+	alt2	usb_interface_descriptor_fixed_t[0, 2, 2, USB_CLASS_VENDOR_SPEC, 0, 0, void, array[usb_endpoint_descriptor, 0:2]]
+	alt3	usb_interface_descriptor_fixed_t[0, 3, 2, USB_CLASS_VENDOR_SPEC, 0, 0, void, array[usb_endpoint_descriptor, 0:2]]
+} [packed]
+
+vusb_responses_usbdux {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+# Required switch to a different intf altsetting,
+# see https://elixir.bootlin.com/linux/v6.17-rc5/source/drivers/comedi/drivers/usbdux.c#L1587
+	USB_REQ_SET_INTERFACE		ptr[in, vusb_response_expected_t[USB_RECIP_INTERFACE, USB_REQ_SET_INTERFACE, 1, int8]]
+# 3 firmware related commands during usbdux_firmware_upload(),
+# see https://elixir.bootlin.com/linux/v6.17-rc5/source/drivers/comedi/drivers/usbdux.c#L1396
+	USBDUX_FIRMWARE_CMD		ptr[in, vusb_response_expected_t[USBDUX_VENDOR_DIR_OUT, USBDUX_FIRMWARE_CMD, 3, int8]]
+} [packed]
+
+define USBDUX_FIRMWARE_CMD	0xa0
+define USBDUX_VENDOR_DIR_OUT	0x40
