@@ -228,19 +228,30 @@ vusb_responses {
 } [packed]
 
 vusb_response_generic {
-	type	flags[usb_request_types, int8]
-	req	flags[usb_requests, int8]
-	len	bytesize[data, int32]
-	data	array[int8, 0:256]
+	type		flags[usb_request_types, int8]
+	req		flags[usb_requests, int8]
+	len		bytesize[data, int32]
+	expected	const[0, int32]
+	data		array[int8, 0:256]
 } [packed]
 
 usb_requests = USB_REQ_GET_STATUS, USB_REQ_CLEAR_FEATURE, USB_REQ_SET_FEATURE, USB_REQ_SET_ADDRESS, USB_REQ_GET_DESCRIPTOR, USB_REQ_SET_DESCRIPTOR, USB_REQ_GET_CONFIGURATION, USB_REQ_SET_CONFIGURATION, USB_REQ_GET_INTERFACE, USB_REQ_SET_INTERFACE, USB_REQ_SYNCH_FRAME, USB_REQ_SET_SEL, USB_REQ_SET_ISOCH_DELAY, USB_REQ_SET_ENCRYPTION, USB_REQ_GET_ENCRYPTION, USB_REQ_RPIPE_ABORT, USB_REQ_SET_HANDSHAKE, USB_REQ_RPIPE_RESET, USB_REQ_GET_HANDSHAKE, USB_REQ_SET_CONNECTION, USB_REQ_SET_SECURITY_DATA, USB_REQ_GET_SECURITY_DATA, USB_REQ_SET_WUSB_DATA, USB_REQ_LOOPBACK_DATA_WRITE, USB_REQ_LOOPBACK_DATA_READ, USB_REQ_SET_INTERFACE_DS, USB_REQ_GET_PARTNER_PDO, USB_REQ_GET_BATTERY_STATUS, USB_REQ_SET_PDO, USB_REQ_GET_VDM, USB_REQ_SEND_VDM
 
 type vusb_response_t[CLASS, REQ, DATA] {
-	type	const[CLASS, int8]
-	req	const[REQ, int8]
-	len	bytesize[data, int32]
-	data	DATA
+	type		const[CLASS, int8]
+	req		const[REQ, int8]
+	len		bytesize[data, int32]
+	expected	const[0, int32]
+	data		DATA
+} [packed]
+
+# Response of this type MUST be processed EXP number of times to finish syz_usb_connect_scripted().
+type vusb_response_expected_t[CLASS, REQ, EXP, DATA] {
+	type		const[CLASS, int8]
+	req		const[REQ, int8]
+	len		bytesize[data, int32]
+	expected	const[EXP, int32]
+	data		DATA
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1329,7 +1340,49 @@ vusb_responses_uac1 {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# Assorted driver-specific descriptions of generic syz_* calls' variants.
+
+# Generic calls such as syz_usb_connect() and syz_usb_control_io() should be enough
+# (in theory) to emulate a proper device and finish driver probes without a hitch.
+# However, there are cases when syzkaller fails to come up with correct inputs to achieve it.
+# Use fixed descriptors to quickly pass through probe() to access select drivers' post-probe functionality.
+
+# It is important to note that, one way or another, drivers in question require multiple control requests
+# between a driver and a device processed during probe(). Descriptions below do not deal with specific
+# CTRL requests as such (except for basic information included in vusb_responses_XXX). Instead, rely on
+# seeds, created both manually and with syzkaller's help. For examples, see sys/linux/test/vusb_XXX.
+
+# Another approach for dealing with multiple post-enumeration, post-SET_CONFIGURATION control requests
+# would be to use pseudo-call syz_usb_finish_probe. Provided necessary CTRL-requests are described in
+# vusb_responses_XXX structs (as well as the number of times each request is supposed to be dealt with,
+# see struct vusb_response_expected_t), this call will run after initial usb device setup is done in
+# syz_usb_connect. Then, it will attempt to respond to all expected requests to ensure that driver probe is
+# successful.
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Common constants for endpoint descriptors.
+define USB_ENDPOINT_BULK_ATTR	(USB_ENDPOINT_XFER_BULK)
+define USB_ENDPOINT_INT_ATTR	(USB_ENDPOINT_XFER_INT)
+
+define USB_FIXED_ENDPOINT_BULK_IN_ADDR	(1 | USB_DIR_IN)
+define USB_FIXED_ENDPOINT_BULK_OUT_ADDR	(2)
+define USB_FIXED_ENDPOINT_INT_IN_ADDR	(3 | USB_DIR_IN)
+define USB_FIXED_ENDPOINT_INT_OUT_ADDR	(3)
+
+define USB_RECIP_DEVICE	0x00
+
+vusb_descriptors_common {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 # ath9k driver specific descriptions.
+# Use syz_usb_finish_probe to facilitate ath9k-related firmware setup.
 
 include <drivers/net/wireless/ath/ath9k/htc_hst.h>
 include <drivers/net/wireless/ath/ath9k/hif_usb.h>
@@ -1343,7 +1396,9 @@ define USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS	(6)
 
 resource fd_usb_ath9k[fd_usb]
 
-syz_usb_connect_ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_connect$ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_finish_probe$ath9k(fd fd_usb_ath9k, descs ptr[in, vusb_descriptors_common], resps ptr[in, vusb_responses_ath9k]) (timeout[3000], prog_timeout[3000], remote_cover)
+
 syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS], len bytesize[data], data ptr[in, ath9k_bulk_frame]) (timeout[300], remote_cover)
 syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_INT_IN_ADDRESS], len bytesize[data], data ptr[in, htc_frame]) (timeout[300], remote_cover)
 
@@ -1370,6 +1425,21 @@ usb_endpoint_descriptors_ath9k {
 
 define USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
 define USB_ENDPOINT_ATH9K_INT_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+
+vusb_responses_ath9k {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+# Ensure that syzkaller deals with ath9k-firmware download, otherwise probe fails.
+	FIRMWARE_DOWNLOAD		ptr[in, vusb_response_t[ATH9K_REQ_TYPE, FIRMWARE_DOWNLOAD, int8]]
+	FIRMWARE_DOWNLOAD_COMP		ptr[in, vusb_response_expected_t[ATH9K_REQ_TYPE, FIRMWARE_DOWNLOAD_COMP, 1, int8]]
+} [packed]
+
+define ATH9K_REQ_TYPE	0x40
+define FIRMWARE_DOWNLOAD	0x30
+define FIRMWARE_DOWNLOAD_COMP	0x31
 
 ath9k_bulk_frame {
 	packets	array[ath9k_bulk_packet]
@@ -1434,32 +1504,6 @@ htc_generic_frame {
 } [packed]
 
 htc_frame_flags = HTC_FLAGS_RECV_TRAILER
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# Assorted driver-specific descriptions of generic syz_* calls' variants.
-
-# Generic calls such as syz_usb_connect() and syz_usb_control_io() should be enough
-# (in theory) to emulate a proper device and finish driver probes without a hitch.
-# However, there are cases when syzkaller fails to come up with correct inputs to achieve it.
-# Use fixed descriptors to quickly pass through probe() to access select drivers' post-probe functionality.
-
-# It is important to note that, one way or another, drivers in question require multiple control requests
-# between a driver and a device processed during probe(). Descriptions below do not deal with specific
-# CTRL requests as such (except for basic information included in vusb_responses_XXX). Instead, rely on
-# seeds, created both manually and with syzkaller's help. For examples, see sys/linux/test/vusb_XXX.
-
-# Common constants for endpoint descriptors.
-define USB_ENDPOINT_BULK_ATTR	(USB_ENDPOINT_XFER_BULK)
-define USB_ENDPOINT_INT_ATTR	(USB_ENDPOINT_XFER_INT)
-
-define USB_FIXED_ENDPOINT_BULK_IN_ADDR	(1 | USB_DIR_IN)
-define USB_FIXED_ENDPOINT_BULK_OUT_ADDR	(2)
-define USB_FIXED_ENDPOINT_INT_IN_ADDR	(3 | USB_DIR_IN)
-
-define USB_RECIP_DEVICE	0x00
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
