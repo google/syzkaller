@@ -1,0 +1,56 @@
+# Test access through a disconnected directory.
+
+# Creates a private mount namespace with CLONE_NEWNS.  This avoids a syz-manager
+# error because of a bogus call to umount(./0/file0/file2/file3):
+# none/cover C/repeat C/thr/cover C/repeat C: FAIL
+
+unshare(0x20000)
+
+# Create a tmpfs mount.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+
+# Create directories and a test file in the tmpfs mount.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1/file2\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1/file2/file3\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1/file2/file3/file4\x00', 0x1c0)
+mknodat(0xffffffffffffff9c, &AUTO='./file0/file1/file2/file3/file5\x00', 0x81c0, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file6\x00', 0x1c0)
+
+# Creates first bind mount from file3 to file3.  This is an optional call useful
+# to extend coverage of is_access_to_paths_allowed().
+
+mount$bind(&AUTO='./file0/file1/file2/file3\x00', &AUTO='./file0/file1/file2/file3\x00', 0x0, 0x1000, 0x0)
+
+# Creates second recursive bind mount from file1 to file6.
+
+mount$bind(&AUTO='./file0/file1\x00', &AUTO='./file0/file6\x00', 0x0, 0x5000, 0x0)
+
+# Opens directory from the bind mount.
+
+r0 = openat$dir(0xffffffffffffff9c, &AUTO='./file0/file6/file2\x00', 0x0, 0x0)
+
+# Moves file2 to make it a disconnected directory.
+
+renameat2(0xffffffffffffff9c, &AUTO='./file0/file1/file2\x00', 0xffffffffffffff9c, &AUTO='./file0/file2\x00', 0x0)
+
+# Creates a ruleset with read and refer restrictions.
+
+r1 = landlock_create_ruleset(&AUTO={0x2004, 0x0, 0x0}, AUTO, 0x0)
+
+# Adds a rule to allow read on one side of the rename.  This is an optional call
+# useful to extend coverage of collect_domain_accesses().
+
+r2 = openat$dir(0xffffffffffffff9c, &AUTO='./file0/file2/file3/file4\x00', 0x0, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r1, AUTO, &AUTO={0x4, r2}, 0x0)
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r1, 0x0)
+
+# Tries to open and rename a file from the disconnected directory.
+
+openat(r0, &AUTO='file3/file5\x00', 0x0, 0x0) # EACCES
+renameat2(r0, &AUTO='file3/file5\x00', r0, &AUTO='file3/file4/file5\x00', 0x0) # EXDEV
