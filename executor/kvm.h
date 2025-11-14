@@ -48,6 +48,7 @@
 // Pool of 32 pages for dynamic PT/PD allocations.
 #define X86_SYZOS_ADDR_PT_POOL 0x5000
 #define X86_SYZOS_ADDR_VAR_IDT 0x25000
+#define X86_SYZOS_ADDR_VAR_TSS 0x26000
 
 #define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
@@ -124,6 +125,7 @@
 // SYZOS segment selectors
 #define X86_SYZOS_SEL_CODE 0x8
 #define X86_SYZOS_SEL_DATA 0x10
+#define X86_SYZOS_SEL_TSS64 0x18
 
 #define X86_CR0_PE 1ULL
 #define X86_CR0_MP (1ULL << 1)
