@@ -59,10 +59,67 @@
 // Location of the SYZOS guest code. Name shared with ARM64 SYZOS.
 #define SYZOS_ADDR_EXECUTOR_CODE 0x54000
 #define X86_SYZOS_ADDR_SCRATCH_CODE 0x58000
-#define X86_SYZOS_ADDR_STACK_BOTTOM 0x90000
-#define X86_SYZOS_ADDR_STACK0 0x90f80
+#define X86_SYZOS_ADDR_STACK_BOTTOM 0x60000
+#define X86_SYZOS_ADDR_STACK0 0x60f80
+
+// Base address for all per-L1-VCPU regions.
+#define X86_SYZOS_PER_VCPU_REGIONS_BASE 0x70000
+// Size of the entire memory block allocated for a single L1 VCPU to manage its L2 VMs.
+// We need space for 1 VMXON page + 4 L2 VMs. Let's allocate 256KB per L1 VCPU for ample space.
+#define X86_SYZOS_L1_VCPU_REGION_SIZE 0x40000
+
+// Offsets within a single L1 VCPU's region.
+
+// Shared data for the L1 VCPU itself: 1 page for VMXON/HSAVE
+#define X86_SYZOS_L1_VCPU_OFFSET_VM_ARCH_SPECIFIC 0x0000
+// Base offset for the area containing the 4 L2 VM slots.
+#define X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA 0x1000
+
+// Layout of a single L2 VM's data block.
+
+// Size of the memory block for a single L2 VM.
+#define X86_SYZOS_L2_VM_REGION_SIZE 0x8000
+
+// Offsets within a single L2 VM's region.
+#define X86_SYZOS_L2_VM_OFFSET_VMCS_VMCB 0x0000
+#define X86_SYZOS_L2_VM_OFFSET_VM_STACK 0x1000
+#define X86_SYZOS_L2_VM_OFFSET_VM_CODE 0x2000
+// 4 pages for L2 EPT/NPT.
+#define X86_SYZOS_L2_VM_OFFSET_VM_PGTABLE 0x3000
+#define X86_SYZOS_L2_VM_OFFSET_MSR_BITMAP 0x7000
+
+// Subsequent addresses are shifted to accommodate all L1 VCPU regions.
 #define X86_SYZOS_ADDR_UNUSED 0x200000
 #define X86_SYZOS_ADDR_IOAPIC 0xfec00000
+
+#define X86_SYZOS_ADDR_VMCS_VMCB(cpu, vm)                                            \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE +   \
+	 X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA + (vm) * X86_SYZOS_L2_VM_REGION_SIZE + \
+	 X86_SYZOS_L2_VM_OFFSET_VMCS_VMCB)
+
+#define X86_SYZOS_ADDR_VM_CODE(cpu, vm)                                              \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE +   \
+	 X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA + (vm) * X86_SYZOS_L2_VM_REGION_SIZE + \
+	 X86_SYZOS_L2_VM_OFFSET_VM_CODE)
+
+#define X86_SYZOS_ADDR_VM_STACK(cpu, vm)                                             \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE +   \
+	 X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA + (vm) * X86_SYZOS_L2_VM_REGION_SIZE + \
+	 X86_SYZOS_L2_VM_OFFSET_VM_STACK)
+
+#define X86_SYZOS_ADDR_VM_PGTABLE(cpu, vm)                                           \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE +   \
+	 X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA + (vm) * X86_SYZOS_L2_VM_REGION_SIZE + \
+	 X86_SYZOS_L2_VM_OFFSET_VM_PGTABLE)
+
+#define X86_SYZOS_ADDR_MSR_BITMAP(cpu, vm)                                           \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE +   \
+	 X86_SYZOS_L1_VCPU_OFFSET_L2_VMS_AREA + (vm) * X86_SYZOS_L2_VM_REGION_SIZE + \
+	 X86_SYZOS_L2_VM_OFFSET_MSR_BITMAP)
+
+#define X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu)                                       \
+	(X86_SYZOS_PER_VCPU_REGIONS_BASE + (cpu) * X86_SYZOS_L1_VCPU_REGION_SIZE + \
+	 X86_SYZOS_L1_VCPU_OFFSET_VM_ARCH_SPECIFIC)
 
 // SYZOS segment selectors
 #define X86_SYZOS_SEL_CODE 0x8
