@@ -2422,7 +2422,7 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 			*hash = '0' + (char)(nb % 10); // 10 devices should be enough for everyone.
 			nb /= 10;
 		}
-		return open(buf, a2, 0);
+		return open(buf, a2 & ~O_CREAT, 0);
 	}
 }
 #endif
