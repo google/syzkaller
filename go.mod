@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/profiler v0.4.3
-	cloud.google.com/go/secretmanager v1.15.1
+	cloud.google.com/go/secretmanager v1.16.0
 	cloud.google.com/go/spanner v1.82.0
 	cloud.google.com/go/storage v1.57.1
 	github.com/VividCortex/gohistogram v1.0.0
