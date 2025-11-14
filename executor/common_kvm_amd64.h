@@ -238,6 +238,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_ADDR_SCRATCH_CODE, 1, 0},
     // CPU stack.
     {X86_SYZOS_ADDR_STACK_BOTTOM, 1, 0},
+    // Per-VCPU regions for L2 VMs.
+    {X86_SYZOS_PER_VCPU_REGIONS_BASE, (KVM_MAX_VCPU * X86_SYZOS_L1_VCPU_REGION_SIZE) / KVM_PAGE_SIZE, 0},
     // IOAPIC memory.
     {X86_SYZOS_ADDR_IOAPIC, 1, 0},
 };
