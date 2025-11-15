@@ -357,32 +357,12 @@ func makeUICrashType(info *BugInfo, startTime time.Time, repros map[string]bool)
 		info.ReproAttempts >= MaxReproAttempts)
 	return UICrashType{
 		BugInfo:     *info,
-		RankTooltip: higherRankTooltip(info.Title, info.TailTitles),
+		RankTooltip: report.HigherRankTooltip(info.Title, info.TailTitles),
 		New:         info.FirstTime.After(startTime),
 		Active:      info.LastTime.After(startTime),
 		Triaged:     triaged,
 		Crashes:     crashes,
 	}
-}
-
-// higherRankTooltip generates the prioritized list of the titles with higher Rank
-// than the firstTitle has.
-func higherRankTooltip(firstTitle string, titlesInfo []*report.TitleFreqRank) string {
-	baseRank := report.TitlesToImpact(firstTitle)
-	res := ""
-	for _, ti := range titlesInfo {
-		if ti.Rank <= baseRank {
-			continue
-		}
-		res += fmt.Sprintf("[rank %2v, freq %5.1f%%] %s\n",
-			ti.Rank,
-			100*float32(ti.Count)/float32(ti.Total),
-			ti.Title)
-	}
-	if res != "" {
-		return fmt.Sprintf("[rank %2v,  originally] %s\n%s", baseRank, firstTitle, res)
-	}
-	return res
 }
 
 var crashIDRe = regexp.MustCompile(`^\w+$`)
