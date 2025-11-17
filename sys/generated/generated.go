@@ -24,7 +24,8 @@ type Desc struct {
 }
 
 func Register(os, arch, revision string, init func(*prog.Target), files embed.FS) {
-	sysTarget := targets.Get(os, arch)
+	// Does not call targets.Get b/c it does slow lazy initialization of targets.
+	sysTarget := targets.List[os][arch]
 	target := &prog.Target{
 		OS:         os,
 		Arch:       arch,
