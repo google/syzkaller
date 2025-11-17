@@ -42,12 +42,9 @@ type OutputDataPtr[T any] interface {
 // It always caches results, and optionally reuses previously cached results.
 func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, error) {
 	if cfg.CacheFile != "" {
-		data, err := os.ReadFile(cfg.CacheFile)
+		out, err := osutil.ReadJSON[OutputPtr](cfg.CacheFile)
 		if err == nil {
-			out, err := unmarshal[Output, OutputPtr](data)
-			if err == nil {
-				return out, nil
-			}
+			return out, nil
 		}
 	}
 
@@ -111,7 +108,7 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 		}
 		return nil, err
 	}
-	out, err := unmarshal[Output, OutputPtr](data)
+	out, err := osutil.ParseJSON[OutputPtr](data)
 	if err != nil {
 		return nil, err
 	}
@@ -124,16 +121,6 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 		}
 		return filename
 	})
-	return out, nil
-}
-
-func unmarshal[Output any, OutputPtr OutputDataPtr[Output]](data []byte) (OutputPtr, error) {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	out := OutputPtr(new(Output))
-	if err := dec.Decode(out); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal clang tool output: %w\n%s", err, data)
-	}
 	return out, nil
 }
 
