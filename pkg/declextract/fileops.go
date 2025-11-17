@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/clangtool"
 )
 
 const (
@@ -243,7 +244,7 @@ func (ctx *context) mapFileToFops(funcs map[*Function]bool, funcToFops map[*Func
 			best = append(best, fops)
 		}
 	}
-	best = sortAndDedupSlice(best)
+	best = clangtool.SortAndDedupSlice(best)
 	// Now, filter out some excessive file_operations.
 	// An example of an excessive case is if we have 2 file_operations with just read+write,
 	// currently we emit generic read/write operations, so we would emit completly equal

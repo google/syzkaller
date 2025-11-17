@@ -151,7 +151,7 @@ func prepare(cfg *config) (*declextract.Output, *ifaceprobe.Info, []*cover.FileC
 	var out *declextract.Output
 	eg.Go(func() error {
 		var err error
-		out, err = clangtool.Run(cfg.Config)
+		out, err = clangtool.Run[declextract.Output](cfg.Config)
 		if err != nil {
 			return err
 		}
