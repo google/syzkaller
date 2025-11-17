@@ -241,7 +241,7 @@ func (out *Output) Merge(other *Output) {
 	out.NetlinkPolicies = append(out.NetlinkPolicies, other.NetlinkPolicies...)
 }
 
-func (out *Output) SortAndDedup() {
+func (out *Output) Finalize(v *clangtool.Verifier) {
 	out.Functions = clangtool.SortAndDedupSlice(out.Functions)
 	out.Consts = clangtool.SortAndDedupSlice(out.Consts)
 	out.Enums = clangtool.SortAndDedupSlice(out.Enums)
