@@ -155,7 +155,10 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 		cfg.KernelSrc), cfg.KernelObj), "/")
 	// Suppress warning since we may build the tool on a different clang
 	// version that produces more warnings.
-	data, err := exec.Command(cfg.ToolBin, "-p", dbFile, "--extra-arg=-w", file).Output()
+	// Comments are needed for codesearch tool, but may be useful for declextract
+	// in the future if we try to parse them with LLMs.
+	data, err := exec.Command(cfg.ToolBin, "-p", dbFile,
+		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file).Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {

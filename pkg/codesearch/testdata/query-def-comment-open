@@ -1,0 +1,7 @@
+def-comment source0.c open
+
+function open is defined in source0.c and commented as:
+
+/*
+ * Comment about open.
+ */
