@@ -1,0 +1,8 @@
+def-source source0.c same_name_in_several_files no
+
+function same_name_in_several_files is defined in source2.c:
+
+void same_name_in_several_files()
+{
+	// This is non-static version in in source2.c.
+}

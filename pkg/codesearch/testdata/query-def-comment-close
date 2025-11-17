@@ -1,0 +1,3 @@
+def-comment source0.c close
+
+function close is defined in source0.c and is not commented

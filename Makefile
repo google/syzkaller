@@ -273,7 +273,8 @@ format_cpp:
 		executor/android/android_seccomp.h \
 		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc \
 		tools/clang/*.h \
-		tools/clang/declextract/*.h tools/clang/declextract/*.cpp
+		tools/clang/declextract/*.h tools/clang/declextract/*.cpp \
+		tools/clang/codesearch/*.h tools/clang/codesearch/*.cpp
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all

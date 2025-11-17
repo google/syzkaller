@@ -1,0 +1,8 @@
+def-source source0.c function_with_comment_in_header yes
+
+function function_with_comment_in_header is defined in source0.c:
+
+  18:	void function_with_comment_in_header()
+  19:	{
+  20:		same_name_in_several_files();
+  21:	}
