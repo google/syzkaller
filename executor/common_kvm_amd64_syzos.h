@@ -26,6 +26,7 @@ typedef enum {
 	SYZOS_API_IN_DX = 130,
 	SYZOS_API_OUT_DX = 170,
 	SYZOS_API_SET_IRQ_HANDLER = 190,
+	SYZOS_API_ENABLE_NESTED = 230,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -81,12 +82,18 @@ GUEST_CODE static void guest_handle_wr_drn(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_in_dx(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_out_dx(struct api_call_3* cmd);
 GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
+GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
 } uexit_code;
+
+typedef enum {
+	CPU_VENDOR_INTEL,
+	CPU_VENDOR_AMD,
+} cpu_vendor_id;
 
 __attribute__((naked))
 GUEST_CODE static void
@@ -170,6 +177,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_SET_IRQ_HANDLER) {
 			// Set the handler for a particular IRQ.
 			guest_handle_set_irq_handler((struct api_call_2*)cmd);
+		} else if (call == SYZOS_API_ENABLE_NESTED) {
+			// Enable nested virtualization.
+			guest_handle_enable_nested((struct api_call_1*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -396,6 +406,114 @@ GUEST_CODE static noinline void guest_handle_set_irq_handler(struct api_call_2* 
 	else if (type == 2)
 		handler_addr = executor_fn_guest_addr(uexit_irq_handler);
 	set_idt_gate(vector, handler_addr);
+}
+
+GUEST_CODE static cpu_vendor_id get_cpu_vendor(void)
+{
+	uint32 ebx, eax = 0;
+
+	asm volatile(
+	    "cpuid"
+	    : "+a"(eax), "=b"(ebx)
+	    : // No explicit inputs, EAX is handled by +a.
+	    : "ecx", "edx");
+
+	if (ebx == 0x756e6547) { // "Genu[ineIntel]".
+		return CPU_VENDOR_INTEL;
+	} else if (ebx == 0x68747541) { // "Auth[enticAMD]".
+		return CPU_VENDOR_AMD;
+	} else {
+		// Should not happen on AMD64, but for completeness.
+		guest_uexit(UEXIT_ASSERT);
+		return CPU_VENDOR_INTEL; // Default to Intel if unknown.
+	}
+}
+
+GUEST_CODE static inline uint64 read_cr4(void)
+{
+	uint64 val;
+	asm volatile("mov %%cr4, %0" : "=r"(val));
+	return val;
+}
+
+GUEST_CODE static inline void write_cr4(uint64 val)
+{
+	asm volatile("mov %0, %%cr4" : : "r"(val));
+}
+
+GUEST_CODE static noinline void wrmsr(uint64 reg, uint64 val)
+{
+	asm volatile(
+	    "wrmsr"
+	    :
+	    : "c"(reg),
+	      "a"((uint32)val),
+	      "d"((uint32)(val >> 32))
+	    : "memory");
+}
+
+GUEST_CODE static noinline uint64 rdmsr(uint32 msr_id)
+{
+	uint64 msr_value;
+	asm volatile("rdmsr" : "=A"(msr_value) : "c"(msr_id));
+	return msr_value;
+}
+
+GUEST_CODE static noinline void
+nested_enable_vmx_intel(uint64 cpu_id)
+{
+	uint64 vmxon_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
+	uint64 cr4 = read_cr4();
+	cr4 |= X86_CR4_VMXE;
+	write_cr4(cr4);
+
+	uint64 feature_control = rdmsr(X86_MSR_IA32_FEATURE_CONTROL);
+	// Check if Lock bit (bit 0) is clear.
+	if ((feature_control & 1) == 0) {
+		// If unlocked, set Lock bit (bit 0) and Enable VMX outside SMX bit (bit 2).
+		feature_control |= 0b101;
+		asm volatile("wrmsr" : : "d"(0x0), "c"(X86_MSR_IA32_FEATURE_CONTROL), "A"(feature_control));
+	}
+
+	// Store revision ID at the beginning of VMXON.
+	*(uint32*)vmxon_addr = rdmsr(X86_MSR_IA32_VMX_BASIC);
+	uint8 error;
+	// Can't use enter_vmx_operation() yet, because VMCS is not valid.
+	asm volatile("vmxon %1; setna %0"
+		     : "=q"(error)
+		     : "m"(vmxon_addr)
+		     : "memory", "cc");
+	if (error) {
+		guest_uexit(0xE2BAD0);
+		return;
+	}
+}
+
+GUEST_CODE static noinline void
+nested_enable_svm_amd(uint64 cpu_id)
+{
+	// Get the Host Save Area (HSAVE) physical address for this CPU.
+	// The HSAVE area stores the host processor's state on VMRUN and is restored on VMEXIT.
+	uint64 hsave_addr = X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id);
+
+	// Set the SVM Enable (SVME) bit in EFER. This enables SVM operations.
+	uint64 efer = rdmsr(X86_MSR_IA32_EFER);
+	efer |= X86_EFER_SVME;
+	wrmsr(X86_MSR_IA32_EFER, efer);
+
+	// Write the physical address of the HSAVE area to the VM_HSAVE_PA MSR.
+	// This MSR tells the CPU where to save/restore host state during VMRUN/VMEXIT.
+	wrmsr(X86_MSR_VM_HSAVE_PA, hsave_addr);
+}
+
+GUEST_CODE static noinline void
+guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		nested_enable_vmx_intel(cpu_id);
+	} else {
+		nested_enable_svm_amd(cpu_id);
+	}
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
