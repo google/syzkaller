@@ -29,7 +29,7 @@ target_link_libraries(syz-declextract PRIVATE clangTooling)
 ```
 mkdir $LLVM/clang/syz-declextract
 ```
-Copy `tools/syz-declextract/clangtool/*.{cpp,h}` files to `$LLVM/clang/syz-declextract/` directory.
+Copy `tools/clang/declextract/*.{cpp,h}` and `tools/clang/*.h` files to `$LLVM/clang/syz-declextract/` directory.
 ```
 LLVM_BUILD=$PWD/syz
 mkdir $LLVM_BUILD && cd $LLVM_BUILD
