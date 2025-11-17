@@ -281,6 +281,8 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
     assert(!StructDedup[BackupName]);
     Name = BackupName;
   }
+  if (Name.find("struct ") == 0)
+    Name = Name.substr(strlen("struct "));
   if (StructDedup[Name])
     return Name;
   StructDedup[Name] = true;
@@ -336,12 +338,9 @@ std::string Extractor::extractEnum(QualType QT, const EnumDecl* Decl) {
   if (Name.empty()) {
     // This is an unnamed enum declared with a typedef:
     //   typedef enum {...} enum_name;
-    auto Elaborated = dyn_cast<ElaboratedType>(QT.getTypePtr());
-    if (Elaborated) {
-      auto Typedef = dyn_cast<TypedefType>(Elaborated->getNamedType().getTypePtr());
-      if (Typedef)
-        Name = Typedef->getDecl()->getNameAsString();
-    }
+    auto Typedef = dyn_cast<TypedefType>(QT.getTypePtr());
+    if (Typedef)
+      Name = Typedef->getDecl()->getNameAsString();
     if (Name.empty()) {
       QT.dump();
       llvm::report_fatal_error("enum with empty name");
