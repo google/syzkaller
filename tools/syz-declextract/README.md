@@ -17,7 +17,7 @@ make CC=clang -j`nproc` # kernel has to be built at least once for the script to
 LLVM=$PWD/llvm-project
 git clone https://github.com/llvm/llvm-project.git $LLVM
 cd $LLVM
-git checkout d28b4d89166fb705577a2d3a329006f0c0e0aacc # In case of any breaking changes, this commit works
+git checkout d9dfe7540f81663f75350bb5ceb66d2f94dac078 # In case of any breaking changes, this commit works
 echo '
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++20-designator -Wno-missing-designated-field-initializers")
 add_clang_executable(syz-declextract syz-declextract/declextract.cpp)
