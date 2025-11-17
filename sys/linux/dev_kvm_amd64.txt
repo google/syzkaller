@@ -105,6 +105,7 @@ syzos_api_call$x86 [
 	in_dx		syzos_api$x86[130, syzos_api_in_dx]
 	out_dx		syzos_api$x86[170, syzos_api_out_dx]
 	set_irq_handler	syzos_api$x86[190, syzos_api_set_irq_handler]
+	enable_nested	syzos_api$x86[230, const[0, intptr]]
 ] [varlen]
 
 kvm_text_x86 [
