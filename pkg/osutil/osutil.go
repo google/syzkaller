@@ -268,6 +268,25 @@ func WriteJSON[T any](filename string, obj T) error {
 	return WriteFile(filename, jsonData)
 }
 
+func ReadJSON[T any](filename string) (T, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		var v T
+		return v, err
+	}
+	return ParseJSON[T](data)
+}
+
+func ParseJSON[T any](data []byte) (T, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	var v T
+	if err := dec.Decode(&v); err != nil {
+		return v, fmt.Errorf("failed to unmarshal %T: %w", v, err)
+	}
+	return v, nil
+}
+
 func WriteGzipStream(filename string, reader io.Reader) error {
 	f, err := os.Create(filename)
 	if err != nil {
