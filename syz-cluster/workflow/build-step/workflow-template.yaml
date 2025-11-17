@@ -37,7 +37,7 @@ spec:
           - sh
           - -c
           - |
-            git clone --reference /kernel-repo /kernel-repo ./workdir
+            git clone --reference /kernel-repo -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo ./workdir
         env:
         - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
           value: "1"
