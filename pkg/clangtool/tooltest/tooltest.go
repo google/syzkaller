@@ -48,7 +48,9 @@ func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testin
 		}
 		out.Merge(tmp)
 	})
-	out.SortAndDedup()
+	if err := clangtool.Finalize(out, []string{"testdata"}); err != nil {
+		t.Fatal(err)
+	}
 	return out
 }
 

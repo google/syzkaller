@@ -34,7 +34,7 @@ type OutputDataPtr[T any] interface {
 	*T
 	Merge(*T)
 	SetSourceFile(string, func(filename string) string)
-	SortAndDedup()
+	Finalize(*Verifier)
 }
 
 // Run runs the clang tool on all files in the compilation database
@@ -81,7 +81,15 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 		}
 		out.Merge(res.out)
 	}
-	out.SortAndDedup()
+	// Finalize the output (sort, dedup, etc), and let the output verify
+	// that all source file names, line numbers, etc are valid/present.
+	// If there are any bogus entries, it's better to detect them early,
+	// than to crash/error much later when the info is used.
+	// Some of the source files (generated) may be in the obj dir.
+	srcDirs := []string{cfg.KernelSrc, cfg.KernelObj}
+	if err := Finalize(out, srcDirs); err != nil {
+		return nil, err
+	}
 	if cfg.CacheFile != "" {
 		osutil.MkdirAll(filepath.Dir(cfg.CacheFile))
 		data, err := json.MarshalIndent(out, "", "\t")
@@ -93,6 +101,53 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 		}
 	}
 	return out, nil
+}
+
+func Finalize[Output any, OutputPtr OutputDataPtr[Output]](out OutputPtr, srcDirs []string) error {
+	v := &Verifier{
+		srcDirs:   srcDirs,
+		fileCache: make(map[string]int),
+	}
+	out.Finalize(v)
+	if v.err.Len() == 0 {
+		return nil
+	}
+	return errors.New(v.err.String())
+}
+
+type Verifier struct {
+	srcDirs   []string
+	fileCache map[string]int // file->line count (-1 is cached for missing files)
+	err       strings.Builder
+}
+
+func (v *Verifier) Filename(file string) {
+	if _, ok := v.fileCache[file]; ok {
+		return
+	}
+	for _, srcDir := range v.srcDirs {
+		data, err := os.ReadFile(filepath.Join(srcDir, file))
+		if err != nil {
+			continue
+		}
+		v.fileCache[file] = len(bytes.Split(data, []byte{'\n'}))
+		return
+	}
+	v.fileCache[file] = -1
+	fmt.Fprintf(&v.err, "missing file: %v\n", file)
+}
+
+func (v *Verifier) LineRange(file string, start, end int) {
+	v.Filename(file)
+	lines, ok := v.fileCache[file]
+	if !ok || lines < 0 {
+		return
+	}
+	// Line numbers produced by clang are 1-based.
+	if start <= 0 || end < start || end > lines {
+		fmt.Fprintf(&v.err, "bad line range [%v-%v] for file %v with %v lines\n",
+			start, end, file, lines)
+	}
 }
 
 func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, file string) (OutputPtr, error) {
