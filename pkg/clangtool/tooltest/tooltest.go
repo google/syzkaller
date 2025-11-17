@@ -39,6 +39,19 @@ func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *tes
 	})
 }
 
+func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T) OutputPtr {
+	out := OutputPtr(new(Output))
+	forEachTestFile(t, func(t *testing.T, file string) {
+		tmp, err := osutil.ReadJSON[OutputPtr](file + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		out.Merge(tmp)
+	})
+	out.SortAndDedup()
+	return out
+}
+
 func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, file string)) {
 	forEachTestFile(t, func(t *testing.T, file string) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
