@@ -5,6 +5,7 @@ package clangtool
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -30,14 +30,21 @@ type Config struct {
 	DebugTrace io.Writer
 }
 
+type OutputDataPtr[T any] interface {
+	*T
+	Merge(*T)
+	SetSourceFile(string, func(filename string) string)
+	SortAndDedup()
+}
+
 // Run runs the clang tool on all files in the compilation database
 // in the kernel build dir and returns combined output for all files.
 // It always caches results, and optionally reuses previously cached results.
-func Run(cfg *Config) (*declextract.Output, error) {
+func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, error) {
 	if cfg.CacheFile != "" {
 		data, err := os.ReadFile(cfg.CacheFile)
 		if err == nil {
-			out, err := unmarshal(data)
+			out, err := unmarshal[Output, OutputPtr](data)
 			if err == nil {
 				return out, nil
 			}
@@ -51,7 +58,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	}
 
 	type result struct {
-		out *declextract.Output
+		out OutputPtr
 		err error
 	}
 	results := make(chan *result, 10)
@@ -59,7 +66,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go func() {
 			for file := range files {
-				out, err := runTool(cfg, dbFile, file)
+				out, err := runTool[Output, OutputPtr](cfg, dbFile, file)
 				results <- &result{out, err}
 			}
 		}()
@@ -69,7 +76,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	}
 	close(files)
 
-	out := new(declextract.Output)
+	out := OutputPtr(new(Output))
 	for range cmds {
 		res := <-results
 		if res.err != nil {
@@ -91,7 +98,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	return out, nil
 }
 
-func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
+func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, file string) (OutputPtr, error) {
 	relFile := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(filepath.Clean(file),
 		cfg.KernelSrc), cfg.KernelObj), "/")
 	// Suppress warning since we may build the tool on a different clang
@@ -104,33 +111,30 @@ func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
 		}
 		return nil, err
 	}
-	out, err := unmarshal(data)
+	out, err := unmarshal[Output, OutputPtr](data)
 	if err != nil {
 		return nil, err
 	}
-	fixupFileNames(cfg, out, relFile)
+	// All includes in the tool output are relative to the build dir.
+	// Make them relative to the source dir.
+	out.SetSourceFile(relFile, func(filename string) string {
+		rel, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, filename))
+		if err == nil && filename != "" {
+			return rel
+		}
+		return filename
+	})
 	return out, nil
 }
 
-func unmarshal(data []byte) (*declextract.Output, error) {
+func unmarshal[Output any, OutputPtr OutputDataPtr[Output]](data []byte) (OutputPtr, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
-	out := new(declextract.Output)
+	out := OutputPtr(new(Output))
 	if err := dec.Decode(out); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal clang tool output: %w\n%s", err, data)
 	}
 	return out, nil
-}
-
-func fixupFileNames(cfg *Config, out *declextract.Output, file string) {
-	// All includes in the tool output are relative to the build dir.
-	// Make them relative to the source dir.
-	out.SetSourceFile(file, func(filename string) string {
-		if res, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, filename)); err == nil {
-			return res
-		}
-		return filename
-	})
 }
 
 type compileCommand struct {
@@ -169,4 +173,22 @@ func loadCompileCommands(dbFile string) ([]compileCommand, error) {
 			" (was the kernel compiled with gcc?)")
 	}
 	return cmds, nil
+}
+
+func SortAndDedupSlice[Slice ~[]E, E comparable](s Slice) Slice {
+	dedup := make(map[[sha256.Size]byte]E)
+	text := make(map[E][]byte)
+	for _, e := range s {
+		t, _ := json.Marshal(e)
+		dedup[sha256.Sum256(t)] = e
+		text[e] = t
+	}
+	s = make([]E, 0, len(dedup))
+	for _, e := range dedup {
+		s = append(s, e)
+	}
+	slices.SortFunc(s, func(a, b E) int {
+		return bytes.Compare(text[a], text[b])
+	})
+	return s
 }

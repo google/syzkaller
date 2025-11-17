@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/clangtool"
 )
 
 // Argument/field type inference based on data flow analysis.
@@ -346,7 +348,7 @@ func (ctx *context) inferCommandVariants(name, file string, arg int) []string {
 		visited := make(map[*typingNode]bool)
 		ctx.walkCommandVariants(n, &variants, visited, 0)
 	}
-	return sortAndDedupSlice(variants)
+	return clangtool.SortAndDedupSlice(variants)
 }
 
 func (ctx *context) collectCommandVariants(fn *Function, arg int, variants *[]string) {

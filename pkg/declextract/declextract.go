@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 )
@@ -136,8 +137,8 @@ func (ctx *context) processConsts() map[string]string {
 			Value: fmt.Sprint(ci.Value),
 		})
 	}
-	ctx.includes = sortAndDedupSlice(ctx.includes)
-	ctx.defines = sortAndDedupSlice(ctx.defines)
+	ctx.includes = clangtool.SortAndDedupSlice(ctx.includes)
+	ctx.defines = clangtool.SortAndDedupSlice(ctx.defines)
 	// These additional includes must be at the top, because other kernel headers
 	// are broken and won't compile without these additional ones included first.
 	ctx.includes = append([]string{
@@ -194,7 +195,7 @@ func (ctx *context) processSyscalls() {
 		}
 		ctx.emitSyscall(&syscalls, call, "", "", -1, "")
 	}
-	ctx.Syscalls = sortAndDedupSlice(syscalls)
+	ctx.Syscalls = clangtool.SortAndDedupSlice(syscalls)
 }
 
 func (ctx *context) emitSyscall(syscalls *[]*Syscall, call *Syscall,

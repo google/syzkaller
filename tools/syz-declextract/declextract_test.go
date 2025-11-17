@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/ifaceprobe"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
@@ -30,7 +31,7 @@ func TestClangTool(t *testing.T) {
 		t.Skipf("syz-declextract path is not specified, run with -bin=syz-declextract flag")
 	}
 	testEachFile(t, func(t *testing.T, cfg *clangtool.Config, file string) {
-		out, err := clangtool.Run(cfg)
+		out, err := clangtool.Run[declextract.Output](cfg)
 		if err != nil {
 			t.Fatal(err)
 		}
