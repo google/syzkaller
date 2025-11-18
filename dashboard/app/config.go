@@ -131,7 +131,7 @@ type Config struct {
 	Kcidb *KcidbConfig
 	// Subsystems config.
 	Subsystems SubsystemsConfig
-	// Instead of Last acitivity, display Discussions on the main page.
+	// Instead of Last activity, display Discussions on the main page.
 	DisplayDiscussions bool
 	// Cache what we display on the web dashboard.
 	CacheUIPages bool
@@ -234,7 +234,7 @@ type BugListReportingConfig struct {
 
 // ObsoletingConfig describes how bugs should be obsoleted.
 // First, for each bug we conservatively estimate period since the last crash
-// when we consider it stopped happenning. This estimation is based on the first/last time
+// when we consider it stopped happening. This estimation is based on the first/last time
 // and number and rate of crashes. Then this period is capped by MinPeriod/MaxPeriod.
 // Then if the period has elapsed since the last crash, we obsolete the bug.
 // NonFinalMinPeriod/NonFinalMaxPeriod (if specified) are used to cap bugs in non-final reportings.
@@ -333,7 +333,7 @@ type KernelRepo struct {
 	// LabelIntroduced is assigned to a bug if it was supposedly introduced
 	// in this particular tree (i.e. no other tree from CommitInflow has it).
 	LabelIntroduced string
-	// LabelReached is assiged to a bug if it's the latest tree so far to which
+	// LabelReached is assigned to a bug if it's the latest tree so far to which
 	// the bug has spread (i.e. no other tree to which commits flow from this one
 	// has this bug).
 	LabelReached string
@@ -457,7 +457,7 @@ func getConfig(c context.Context) *GlobalConfig {
 	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
 		return val
 	}
-	return configDontUse // The base config was not overwriten.
+	return configDontUse // The base config was not overwritten.
 }
 
 func validateGlobalConfig() {
