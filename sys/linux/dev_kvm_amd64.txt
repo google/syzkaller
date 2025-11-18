@@ -96,6 +96,11 @@ syzos_api_set_irq_handler {
 
 type syzos_api_vm_id int64[0:3]
 
+syzos_api_nested_load_code {
+	vm_id	syzos_api_vm_id
+	insns	text[x86_64]
+} [packed]
+
 # IDs here must match those in executor/common_kvm_amd64_syzos.h.
 syzos_api_call$x86 [
 	uexit			syzos_api$x86[0, intptr]
@@ -110,6 +115,7 @@ syzos_api_call$x86 [
 	set_irq_handler		syzos_api$x86[200, syzos_api_set_irq_handler]
 	enable_nested		syzos_api$x86[300, const[0, intptr]]
 	nested_create_vm	syzos_api$x86[301, syzos_api_vm_id]
+	nested_load_code	syzos_api$x86[302, syzos_api_nested_load_code]
 ] [varlen]
 
 kvm_text_x86 [

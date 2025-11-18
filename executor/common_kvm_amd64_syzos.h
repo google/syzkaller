@@ -28,6 +28,7 @@ typedef enum {
 	SYZOS_API_SET_IRQ_HANDLER = 200,
 	SYZOS_API_ENABLE_NESTED = 300,
 	SYZOS_API_NESTED_CREATE_VM = 301,
+	SYZOS_API_NESTED_LOAD_CODE = 302,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -43,6 +44,12 @@ struct api_call_uexit {
 
 struct api_call_code {
 	struct api_call_header header;
+	uint8 insns[];
+};
+
+struct api_call_nested_load_code {
+	struct api_call_header header;
+	uint64 vm_id;
 	uint8 insns[];
 };
 
@@ -85,6 +92,7 @@ GUEST_CODE static void guest_handle_out_dx(struct api_call_3* cmd);
 GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -185,6 +193,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_CREATE_VM) {
 			// Create a nested VM.
 			guest_handle_nested_create_vm((struct api_call_1*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_LOAD_CODE) {
+			// Load code into the nested VM.
+			guest_handle_nested_load_code((struct api_call_nested_load_code*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -532,6 +543,14 @@ GUEST_CODE static void guest_memset(void* s, uint8 c, int size)
 	volatile uint8* p = (volatile uint8*)s;
 	for (int i = 0; i < size; i++)
 		p[i] = c;
+}
+
+GUEST_CODE static void guest_memcpy(void* dst, void* src, int size)
+{
+	volatile uint8* d = (volatile uint8*)dst;
+	volatile uint8* s = (volatile uint8*)src;
+	for (int i = 0; i < size; i++)
+		d[i] = s[i];
 }
 
 GUEST_CODE static noinline void
@@ -925,6 +944,28 @@ guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id)
 		nested_create_vm_intel(cmd, cpu_id);
 	} else {
 		nested_create_vm_amd(cmd, cpu_id);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->vm_id;
+	uint64 l2_code_addr = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+	uint64 l2_stack_addr = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
+	// Code size = command size - header size - vm_id size.
+	uint64 l2_code_size = cmd->header.size - sizeof(struct api_call_header) - sizeof(uint64);
+	if (l2_code_size > KVM_PAGE_SIZE)
+		l2_code_size = KVM_PAGE_SIZE;
+	guest_memcpy((void*)l2_code_addr, (void*)cmd->insns,
+		     l2_code_size);
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		nested_vmptrld(cpu_id, vm_id);
+		vmwrite(VMCS_GUEST_RIP, l2_code_addr);
+		vmwrite(VMCS_GUEST_RSP, l2_stack_addr + KVM_PAGE_SIZE - 8);
+	} else {
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_addr);
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, l2_stack_addr + KVM_PAGE_SIZE - 8);
 	}
 }
 
