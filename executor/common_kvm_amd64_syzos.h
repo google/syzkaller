@@ -11,23 +11,23 @@
 #include <linux/kvm.h>
 #include <stdbool.h>
 
-// Compilers will eagerly try to transform the switch statement in guest_main()
-// into a jump table, unless the cases are sparse enough.
-// We use prime numbers multiplied by 10 to prevent this behavior.
+// There are no particular rules to assign numbers here, but changing them will
+// result in losing some existing reproducers. Therefore, we try to leave spaces
+// between unrelated IDs.
 // Remember these constants must match those in sys/linux/dev_kvm_amd64.txt.
 typedef enum {
 	SYZOS_API_UEXIT = 0,
 	SYZOS_API_CODE = 10,
-	SYZOS_API_CPUID = 20,
-	SYZOS_API_WRMSR = 30,
-	SYZOS_API_RDMSR = 50,
-	SYZOS_API_WR_CRN = 70,
-	SYZOS_API_WR_DRN = 110,
-	SYZOS_API_IN_DX = 130,
-	SYZOS_API_OUT_DX = 170,
-	SYZOS_API_SET_IRQ_HANDLER = 190,
-	SYZOS_API_ENABLE_NESTED = 230,
-	SYZOS_API_NESTED_CREATE_VM = 290,
+	SYZOS_API_CPUID = 100,
+	SYZOS_API_WRMSR = 101,
+	SYZOS_API_RDMSR = 102,
+	SYZOS_API_WR_CRN = 103,
+	SYZOS_API_WR_DRN = 104,
+	SYZOS_API_IN_DX = 105,
+	SYZOS_API_OUT_DX = 106,
+	SYZOS_API_SET_IRQ_HANDLER = 200,
+	SYZOS_API_ENABLE_NESTED = 300,
+	SYZOS_API_NESTED_CREATE_VM = 301,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
