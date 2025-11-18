@@ -29,6 +29,7 @@ typedef enum {
 	SYZOS_API_ENABLE_NESTED = 300,
 	SYZOS_API_NESTED_CREATE_VM = 301,
 	SYZOS_API_NESTED_LOAD_CODE = 302,
+	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -74,10 +75,17 @@ struct api_call_3 {
 	uint64 args[3];
 };
 
+// This struct must match the push/pop order in nested_vm_exit_handler_intel_asm().
+struct l2_guest_regs {
+	uint64 rax, rbx, rcx, rdx, rsi, rdi, rbp;
+	uint64 r8, r9, r10, r11, r12, r13, r14, r15;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 GUEST_CODE static void guest_uexit(uint64 exit_code);
+GUEST_CODE static void nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs);
 #ifdef __cplusplus
 }
 #endif
@@ -93,11 +101,13 @@ GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
+	UEXIT_STOP_L2 = (uint64)-4,
 } uexit_code;
 
 typedef enum {
@@ -196,6 +206,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_LOAD_CODE) {
 			// Load code into the nested VM.
 			guest_handle_nested_load_code((struct api_call_nested_load_code*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_VMLAUNCH) {
+			// Launch the nested VM.
+			guest_handle_nested_vmlaunch((struct api_call_1*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -538,6 +551,11 @@ GUEST_CODE static noinline void vmcb_write64(uint64 vmcb, uint16 offset, uint64 
 	*((volatile uint64*)(vmcb + offset)) = val;
 }
 
+GUEST_CODE static noinline uint64 vmcb_read64(volatile uint8* vmcb, uint16 offset)
+{
+	return *((volatile uint64*)(vmcb + offset));
+}
+
 GUEST_CODE static void guest_memset(void* s, uint8 c, int size)
 {
 	volatile uint8* p = (volatile uint8*)s;
@@ -713,9 +731,100 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	vmwrite(VMCS_TPR_THRESHOLD, 0);
 }
 
-// Empty for now.
+// Common L2 exit reasons for Intel and AMD.
+typedef enum {
+	SYZOS_NESTED_EXIT_REASON_HLT = 1,
+	SYZOS_NESTED_EXIT_REASON_UNKNOWN = 0xFF,
+} syz_nested_exit_reason;
+
+GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason mapped_reason,
+				      cpu_vendor_id vendor)
+{
+	if (mapped_reason != SYZOS_NESTED_EXIT_REASON_UNKNOWN) {
+		guest_uexit(0xe2e20000 | mapped_reason);
+	} else if (vendor == CPU_VENDOR_INTEL) {
+		guest_uexit(0xe2110000 | exit_reason);
+	} else {
+		guest_uexit(0xe2aa0000 | exit_reason);
+	}
+}
+
+GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 reason)
+{
+	volatile uint64 basic_reason = reason & 0xFFFF;
+	// EXIT_REASON_HLT.
+	if (basic_reason == 0xc)
+		return SYZOS_NESTED_EXIT_REASON_HLT;
+	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
+}
+
+// This function is called from inline assembly.
+__attribute__((used))
+GUEST_CODE static void
+nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
+{
+	syz_nested_exit_reason mapped_reason = map_intel_exit_reason(exit_reason);
+	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_INTEL);
+}
+
+extern char after_vmentry_label;
 __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(void)
 {
+	asm volatile(R"(
+      // Save L2's GPRs. This creates the 'struct l2_guest_regs' on the stack.
+      // The order MUST match the struct.
+      push %%rax
+      push %%rbx
+      push %%rcx
+      push %%rdx
+      push %%rsi
+      push %%rdi
+      push %%rbp
+      push %%r8
+      push %%r9
+      push %%r10
+      push %%r11
+      push %%r12
+      push %%r13
+      push %%r14
+      push %%r15
+
+      // Prepare arguments for the C handler:
+      //    arg1 (RDI) = exit_reason
+      //    arg2 (RSI) = pointer to the saved registers
+      mov %%rsp, %%rsi
+      mov %[vm_exit_reason], %%rbx
+      vmread %%rbx, %%rdi
+
+      // Call the C handler.
+      call nested_vm_exit_handler_intel
+
+      // The C handler has processed the exit. Now, return to the L1 command
+      // processing loop. VMX remains enabled.
+      add %[stack_cleanup_size], %%rsp
+
+      // Jump to L1 main flow
+      jmp after_vmentry_label
+	)"
+
+		     : : [stack_cleanup_size] "i"(sizeof(struct l2_guest_regs)),
+			 [vm_exit_reason] "i"(VMCS_VM_EXIT_REASON) : "memory", "cc", "rbx", "rdi", "rsi");
+}
+
+GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 reason)
+{
+	volatile uint64 basic_reason = reason & 0xFFFF;
+	// #VMEXIT_HLT.
+	if (basic_reason == 0x78)
+		return SYZOS_NESTED_EXIT_REASON_HLT;
+	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
+}
+
+__attribute__((used)) GUEST_CODE static void
+nested_vm_exit_handler_amd(uint64 exit_reason, uint64 cpu_id, uint64 vm_id)
+{
+	syz_nested_exit_reason mapped_reason = map_amd_exit_reason(exit_reason);
+	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_AMD);
 }
 
 GUEST_CODE static noinline void init_vmcs_host_state(void)
@@ -966,6 +1075,96 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 	} else {
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_addr);
 		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, l2_stack_addr + KVM_PAGE_SIZE - 8);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_vmentry_intel(struct api_call_1* cmd, uint64 cpu_id, bool is_launch)
+{
+	uint64 vm_id = cmd->arg;
+	uint64 vmx_error_code = 0;
+	uint8 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
+
+	nested_vmptrld(cpu_id, vm_id);
+
+	if (is_launch) {
+		asm volatile(R"(
+	// Attempt to launch the L2 guest.
+	vmlaunch
+	// Set AL to 1 if CF=1 (VMfailValid)
+	setc %%al
+	// Set BL to 1 if ZF=1 (VMfailInvalid)
+	setz %%bl
+	or %%bl, %%al)"
+			     : "=a"(fail_flag)
+			     :
+			     : "rbx", "cc", "memory");
+	} else {
+		asm volatile(R"(
+	// Attempt to resume the L2 guest.
+	vmresume
+	// Set AL to 1 if CF=1 (VMfailValid)
+	setc %%al
+	// Set BL to 1 if ZF=1 (VMfailInvalid)
+	setz %%bl
+	or %%bl, %%al)"
+			     : "=a"(fail_flag)
+			     :
+			     : "rbx", "cc", "memory");
+	}
+	asm volatile(".globl after_vmentry_label\nafter_vmentry_label:");
+	if (fail_flag) {
+		// VMLAUNCH/VMRESUME failed, so VMCS is still valid and can be read.
+		vmx_error_code = vmread(VMCS_VM_INSTRUCTION_ERROR);
+		guest_uexit(0xE2E10000 | (uint32)vmx_error_code);
+	} else {
+		// This path is only taken if VMLAUNCH/VMRESUME truly succeeded (CF=0 and ZF=0)
+		// and the L2 guest has run and exited.
+		guest_uexit(UEXIT_STOP_L2);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
+{
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+	volatile uint8* vmcb_ptr = (volatile uint8*)vmcb_addr;
+	uint8 fail_flag = 0;
+
+	asm volatile(
+	    "mov %1, %%rax\n\t" // Load VMCB physical address into RAX
+	    "vmrun\n\t" // Launch or resume L2 guest
+	    "setc %0\n\t"
+	    : "=q"(fail_flag)
+	    : "m"(vmcb_addr)
+	    : "rax", "cc", "memory");
+
+	if (fail_flag) {
+		// VMRUN failed.
+		guest_uexit(0xE2E10000 | 0xFFFF);
+		return;
+	}
+
+	// VMRUN succeeded and we have a VM-exit.
+	uint64 exit_reason = vmcb_read64(vmcb_ptr, VMCB_EXIT_CODE);
+	nested_vm_exit_handler_amd(exit_reason, cpu_id, vm_id);
+	guest_uexit(UEXIT_STOP_L2);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_vmlaunch_amd(struct api_call_1* cmd, uint64 cpu_id, uint64 vm_id)
+{
+	guest_run_amd_vm(cpu_id, vm_id);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->arg;
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		guest_handle_nested_vmentry_intel(cmd, cpu_id, true);
+	} else {
+		guest_handle_nested_vmlaunch_amd(cmd, cpu_id, vm_id);
 	}
 }
 
