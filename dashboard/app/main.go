@@ -21,6 +21,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
@@ -83,6 +84,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
+		http.Handle("/"+ns+"/ai/", handlerWrapper(handleAIPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
@@ -300,6 +302,7 @@ type uiBugPage struct {
 	TestPatchJobs   *uiJobList
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
+	AIWorkflows     []string
 }
 
 type uiBugLabelGroup struct {
@@ -1215,6 +1218,13 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Crashes:      crashesTable,
 		LabelGroups:  getLabelGroups(c, bug),
 	}
+	if hdr.AI && bug.ReproLevel > dashapi.ReproLevelNone {
+		workflows, err := aidb.LoadActiveWorkflows(c)
+		if err != nil {
+			return err
+		}
+		data.AIWorkflows = workflows
+	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
@@ -1242,6 +1252,13 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
 				"Cause bisection attempts", uiList))
 		}
+	}
+
+	if workflow := r.FormValue("ai-workflow-create"); workflow != "" {
+		if err := aiWorkflowCreate(c, workflow, bug); err != nil {
+			return err
+		}
+		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")

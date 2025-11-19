@@ -60,6 +60,9 @@ var apiHandlers = map[string]APIHandler{
 	"save_discussion":       typedHandler(apiSaveDiscussion),
 	"create_upload_url":     typedHandler(apiCreateUploadURL),
 	"send_email":            typedHandler(apiSendEmail),
+	"ai_job_poll":           typedHandler(apiAIJobPoll),
+	"ai_job_done":           typedHandler(apiAIJobDone),
+	"ai_journal":            typedHandler(apiAIJournal),
 	"save_coverage":         gcsPayloadHandler(apiSaveCoverage),
 	"upload_build":          nsHandler(apiUploadBuild),
 	"builder_poll":          nsHandler(apiBuilderPoll),
@@ -1016,7 +1019,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	uniqueTitle := make(map[string]bool)
 	deleted, reproCount, noreproCount := 0, 0, 0
 	for _, crash := range crashes {
-		if !crash.Reported.IsZero() {
+		if !crash.Reported1.IsZero() {
 			log.Errorf(c, "purging reported crash?")
 			continue
 		}

@@ -382,6 +382,7 @@ type CrashReferenceType string
 const (
 	CrashReferenceReporting = "reporting"
 	CrashReferenceJob       = "job"
+	CrashReferenceAIJob     = "ai_job"
 	// This one is needed for backward compatibility.
 	crashReferenceUnknown = "unknown"
 )
@@ -390,6 +391,7 @@ type CrashReference struct {
 	Type CrashReferenceType
 	// For CrashReferenceReporting, it refers to Reporting.Name
 	// For CrashReferenceJob, it refers to extJobID(jobKey)
+	// For CrashReferenceAIJob, it refers to aidb.Job.ID
 	Key  string
 	Time time.Time
 }

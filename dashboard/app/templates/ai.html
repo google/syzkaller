@@ -1,0 +1,22 @@
+{{/*
+Copyright 2025 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+AI workflows page.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	Workflows:
+	{{range $wf := $.Workflows}}
+		{{$wf}} <br>
+	{{end}}
+</body>
+</html>

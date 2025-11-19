@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/syzkaller/pkg/aflow/journal"
 	"github.com/google/syzkaller/pkg/auth"
 )
 
@@ -986,6 +987,56 @@ type JobInfo struct {
 	InvalidatedBy    string
 	TreeOrigin       bool
 	OnMergeBase      bool
+}
+
+type AIJobPollReq struct {
+	Workflows []string
+}
+
+type AIJobPollResp struct {
+	ID       string
+	Workflow string
+	Patching *AIPatchingJob
+}
+
+type AIJobDoneReq struct {
+	ID       string
+	Error    string
+	Patching *AIPatchingResult
+}
+
+type AIPatchingJob struct {
+	ReproOpts       string
+	ReproSyz        string
+	ReproC          string
+	KernelConfig    string
+	SyzkallerCommit string
+}
+
+type AIPatchingResult struct {
+	PatchDescription string
+	PatchDiff        string
+}
+
+type AIJournalReq struct {
+	JobID string
+	Event *journal.Event
+}
+
+func (dash *Dashboard) AIJobPoll(req *AIJobPollReq) (*AIJobPollResp, error) {
+	resp := new(AIJobPollResp)
+	if err := dash.Query("ai_job_poll", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) AIJobDone(req *AIJobDoneReq) error {
+	return dash.Query("ai_job_done", req, nil)
+}
+
+func (dash *Dashboard) AIJournal(req *AIJournalReq) error {
+	return dash.Query("ai_journal", req, nil)
 }
 
 func (dash *Dashboard) Query(method string, req, reply any) error {
