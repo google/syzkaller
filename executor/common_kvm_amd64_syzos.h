@@ -30,6 +30,7 @@ typedef enum {
 	SYZOS_API_NESTED_CREATE_VM = 301,
 	SYZOS_API_NESTED_LOAD_CODE = 302,
 	SYZOS_API_NESTED_VMLAUNCH = 303,
+	SYZOS_API_NESTED_VMRESUME = 304,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -102,6 +103,7 @@ GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -208,6 +210,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_VMLAUNCH) {
 			// Launch the nested VM.
 			guest_handle_nested_vmlaunch((struct api_call_1*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_VMRESUME) {
+			// Resume a nested VM.
+			guest_handle_nested_vmresume((struct api_call_1*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -733,6 +738,7 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 // Common L2 exit reasons for Intel and AMD.
 typedef enum {
 	SYZOS_NESTED_EXIT_REASON_HLT = 1,
+	SYZOS_NESTED_EXIT_REASON_INVD = 2,
 	SYZOS_NESTED_EXIT_REASON_UNKNOWN = 0xFF,
 } syz_nested_exit_reason;
 
@@ -748,13 +754,26 @@ GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason
 	}
 }
 
-GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 reason)
+#define EXIT_REASON_HLT 0xc
+#define EXIT_REASON_INVD 0xd
+
+GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reason)
 {
-	volatile uint64 basic_reason = reason & 0xFFFF;
-	// EXIT_REASON_HLT.
-	if (basic_reason == 0xc)
+	// Disable optimizations.
+	volatile uint64 reason = basic_reason;
+	if (reason == EXIT_REASON_HLT)
 		return SYZOS_NESTED_EXIT_REASON_HLT;
+	if (reason == EXIT_REASON_INVD)
+		return SYZOS_NESTED_EXIT_REASON_INVD;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
+}
+
+GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
+{
+	if (basic_reason == EXIT_REASON_INVD) {
+		uint64 rip = vmread(VMCS_GUEST_RIP);
+		vmwrite(VMCS_GUEST_RIP, rip + 2);
+	}
 }
 
 // This function is called from inline assembly.
@@ -762,8 +781,10 @@ __attribute__((used))
 GUEST_CODE static void
 nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
 {
-	syz_nested_exit_reason mapped_reason = map_intel_exit_reason(exit_reason);
+	uint64 basic_reason = exit_reason & 0xFFFF;
+	syz_nested_exit_reason mapped_reason = map_intel_exit_reason(basic_reason);
 	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_INTEL);
+	advance_l2_rip_intel(basic_reason);
 }
 
 extern char after_vmentry_label;
@@ -810,20 +831,36 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
 			 [vm_exit_reason] "i"(VMCS_VM_EXIT_REASON) : "memory", "cc", "rbx", "rdi", "rsi");
 }
 
-GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 reason)
+#define VMEXIT_INVD 0x76
+#define VMEXIT_HLT 0x78
+
+GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason)
 {
-	volatile uint64 basic_reason = reason & 0xFFFF;
-	// #VMEXIT_HLT.
-	if (basic_reason == 0x78)
+	// Disable optimizations.
+	volatile uint64 reason = basic_reason;
+	if (reason == VMEXIT_HLT)
 		return SYZOS_NESTED_EXIT_REASON_HLT;
+	if (reason == VMEXIT_INVD)
+		return SYZOS_NESTED_EXIT_REASON_INVD;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
+}
+
+GUEST_CODE static void advance_l2_rip_amd(uint64 basic_reason, uint64 cpu_id, uint64 vm_id)
+{
+	if (basic_reason == VMEXIT_INVD) {
+		uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+		uint64 rip = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_GUEST_RIP);
+		vmcb_write64(vmcb_addr, VMCB_GUEST_RIP, rip + 2);
+	}
 }
 
 __attribute__((used)) GUEST_CODE static void
 nested_vm_exit_handler_amd(uint64 exit_reason, uint64 cpu_id, uint64 vm_id)
 {
-	syz_nested_exit_reason mapped_reason = map_amd_exit_reason(exit_reason);
+	volatile uint64 basic_reason = exit_reason & 0xFFFF;
+	syz_nested_exit_reason mapped_reason = map_amd_exit_reason(basic_reason);
 	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_AMD);
+	advance_l2_rip_amd(basic_reason, cpu_id, vm_id);
 }
 
 GUEST_CODE static noinline void init_vmcs_host_state(void)
@@ -1011,7 +1048,7 @@ GUEST_CODE static noinline void init_vmcb_guest_state(uint64 cpu_id, uint64 vm_i
 	vmcb_write32(vmcb_addr, VMCB_GUEST_IDTR_LIM, idtr.limit);
 
 	// Setup VMCB Control Fields.
-	vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, VMCB_CTRL_INTERCEPT_HLT);
+	vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC3, VMCB_CTRL_INTERCEPT_VEC3_ALL);
 	vmcb_write32(vmcb_addr, VMCB_CTRL_INTERCEPT_VEC4, VMCB_CTRL_INTERCEPT_VEC4_ALL);
 
 	// Enable Nested Paging (NPT):
@@ -1078,9 +1115,8 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 }
 
 GUEST_CODE static noinline void
-guest_handle_nested_vmentry_intel(struct api_call_1* cmd, uint64 cpu_id, bool is_launch)
+guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 {
-	uint64 vm_id = cmd->arg;
 	uint64 vmx_error_code = 0;
 	uint8 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
 
@@ -1149,19 +1185,24 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 }
 
 GUEST_CODE static noinline void
-guest_handle_nested_vmlaunch_amd(struct api_call_1* cmd, uint64 cpu_id, uint64 vm_id)
-{
-	guest_run_amd_vm(cpu_id, vm_id);
-}
-
-GUEST_CODE static noinline void
 guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->arg;
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
-		guest_handle_nested_vmentry_intel(cmd, cpu_id, true);
+		guest_handle_nested_vmentry_intel(vm_id, cpu_id, true);
 	} else {
-		guest_handle_nested_vmlaunch_amd(cmd, cpu_id, vm_id);
+		guest_run_amd_vm(cpu_id, vm_id);
+	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->arg;
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		guest_handle_nested_vmentry_intel(vm_id, cpu_id, false);
+	} else {
+		guest_run_amd_vm(cpu_id, vm_id);
 	}
 }
 
