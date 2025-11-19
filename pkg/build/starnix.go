@@ -107,7 +107,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
 		"product", "get-image-path", productBundlePath,
 		"--slot", "a",
-		"--image-type", "fxfs",
+		"--image-type", "fxfs.fastboot",
 	)
 	if err != nil {
 		return ImageDetails{}, err
