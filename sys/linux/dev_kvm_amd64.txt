@@ -117,6 +117,7 @@ syzos_api_call$x86 [
 	nested_create_vm	syzos_api$x86[301, syzos_api_vm_id]
 	nested_load_code	syzos_api$x86[302, syzos_api_nested_load_code]
 	nested_vmlaunch		syzos_api$x86[303, syzos_api_vm_id]
+	nested_vmresume		syzos_api$x86[304, syzos_api_vm_id]
 ] [varlen]
 
 kvm_text_x86 [
