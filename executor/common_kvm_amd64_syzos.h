@@ -107,7 +107,6 @@ typedef enum {
 	UEXIT_END = (uint64)-1,
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
-	UEXIT_STOP_L2 = (uint64)-4,
 } uexit_code;
 
 typedef enum {
@@ -1117,11 +1116,10 @@ guest_handle_nested_vmentry_intel(struct api_call_1* cmd, uint64 cpu_id, bool is
 		// VMLAUNCH/VMRESUME failed, so VMCS is still valid and can be read.
 		vmx_error_code = vmread(VMCS_VM_INSTRUCTION_ERROR);
 		guest_uexit(0xE2E10000 | (uint32)vmx_error_code);
-	} else {
-		// This path is only taken if VMLAUNCH/VMRESUME truly succeeded (CF=0 and ZF=0)
-		// and the L2 guest has run and exited.
-		guest_uexit(UEXIT_STOP_L2);
+		return;
 	}
+	// If we get here, this means VMLAUNCH/VMRESUME truly succeeded (CF=0 and ZF=0)
+	// and the L2 guest has run and exited.
 }
 
 GUEST_CODE static noinline void
@@ -1148,7 +1146,6 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 	// VMRUN succeeded and we have a VM-exit.
 	uint64 exit_reason = vmcb_read64(vmcb_ptr, VMCB_EXIT_CODE);
 	nested_vm_exit_handler_amd(exit_reason, cpu_id, vm_id);
-	guest_uexit(UEXIT_STOP_L2);
 }
 
 GUEST_CODE static noinline void
