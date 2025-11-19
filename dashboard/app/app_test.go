@@ -604,6 +604,33 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
+		"ains": {
+			AI:          true,
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientAI: keyAI,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/test.git",
+					Branch: "main",
+					Alias:  "main",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessPublic,
+					Name:        "ai-email-reporting",
+					DailyLimit:  1000,
+					Config: &EmailConfig{
+						Email:            "test@syzkaller.com",
+						HandleListEmails: true,
+						SubjectPrefix:    "[syzbot]",
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -654,6 +681,8 @@ const (
 	keySubsystemRemind    = "keySubsystemRemindkeySubsystemRemind"
 	clientTreeTests       = "clientTreeTestsclientTreeTests"
 	keyTreeTests          = "keyTreeTestskeyTreeTestskeyTreeTests"
+	clientAI              = "client-ai"
+	keyAI                 = "clientaikeyclientaikeyclientaikey"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"

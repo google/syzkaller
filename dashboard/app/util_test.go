@@ -54,6 +54,8 @@ type Ctx struct {
 	client           *apiClient
 	client2          *apiClient
 	publicClient     *apiClient
+	aiClient         *apiClient
+	checkAI          bool
 }
 
 var skipDevAppserverTests = func() bool {
@@ -92,10 +94,12 @@ func newCtx(t *testing.T, appID string) *Ctx {
 		mockedTime:       time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		emailSink:        make(chan *aemail.Message, 100),
 		transformContext: func(c context.Context) context.Context { return c },
+		checkAI:          appID != "",
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.aiClient = c.makeClient(clientAI, keyAI, true)
 	c.ctx = registerRequest(r, c).Context()
 	return c
 }
@@ -260,6 +264,16 @@ func (c *Ctx) Close() {
 		resp, _ := c.client.ReportingPollBugs("test")
 		for _, rep := range resp.Reports {
 			c.t.Errorf("ERROR: leftover external report:\n%#v", rep)
+		}
+		if c.checkAI {
+			_, err = c.GET("/ains/ai/")
+			c.expectOK(err)
+			jobs, err := aidb.LoadNamespaceJobs(c.ctx, "ains")
+			c.expectOK(err)
+			for _, job := range jobs {
+				_, err = c.GET(fmt.Sprintf("/ai_job?id=%v", job.ID))
+				c.expectOK(err)
+			}
 		}
 	}
 	unregisterContext(c)
@@ -732,6 +746,7 @@ func initMocks() {
 	timeNow = func(c context.Context) time.Time {
 		return getRequestContext(c).mockedTime
 	}
+	aidb.TimeNow = timeNow
 	sendEmail = func(c context.Context, msg *aemail.Message) error {
 		getRequestContext(c).emailSink <- msg
 		return nil
