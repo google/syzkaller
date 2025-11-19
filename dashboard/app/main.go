@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
@@ -46,6 +47,7 @@ func initHTTPHandlers() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
+	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
@@ -82,6 +84,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
+		http.Handle("/"+ns+"/ai/", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
@@ -294,6 +297,8 @@ type uiBugPage struct {
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
 	Bug             *uiBugDetails
+	AIWorkflows     []string
+	AIJobs          []*uiAIJob
 }
 
 type uiBugDetails struct {
@@ -1170,6 +1175,21 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: reproAttempts,
 		})
 	}
+	var aiWorkflows []string
+	var aiJobs []*uiAIJob
+	if hdr.AI {
+		aiWorkflows, err = aiBugWorkflows(c, bug)
+		if err != nil {
+			return err
+		}
+		jobs, err := aidb.LoadBugJobs(c, bug.keyHash(c))
+		if err != nil {
+			return err
+		}
+		for _, job := range jobs {
+			aiJobs = append(aiJobs, makeUIAIJob(job))
+		}
+	}
 	data := &uiBugPage{
 		Header:      hdr,
 		Now:         timeNow(c),
@@ -1177,6 +1197,8 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		LabelGroups: getLabelGroups(c, bug),
 		Crashes:     crashesTable,
 		Bug:         bugDetails,
+		AIWorkflows: aiWorkflows,
+		AIJobs:      aiJobs,
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
@@ -1193,6 +1215,16 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
 		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
 			"Cause bisection attempts", bugDetails.BisectCauseJobs))
+	}
+
+	if workflow := r.FormValue("ai-job-create"); workflow != "" {
+		if !hdr.AI {
+			return ErrAccess
+		}
+		if err := aiBugJobCreate(c, workflow, bug); err != nil {
+			return err
+		}
+		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")

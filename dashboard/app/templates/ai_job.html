@@ -1,0 +1,70 @@
+{{/*
+Copyright 2025 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Detailed info on a single AI job execution.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	{{template "ai_job_list" .Jobs}}
+
+	{{range $res := .Results}}
+		<br><b>{{$res.Name}}:</b><br>
+		<div id="ai_result_div"><pre>{{$res.Value}}</pre></div><br>
+	{{end}}
+
+	<table class="list_table">
+		<caption>Trajectory:</caption>
+		<thead><tr>
+			<th>Seq</th>
+			<th>Timestamp</th>
+			<th>Type</th>
+			<th>Name</th>
+			<th>Duration</th>
+		</tr></thead>
+		<tbody>
+		{{range $span := $.Trajectory}}
+		<tr>
+			<td>{{$span.Seq}}/{{$span.Nesting}}</td>
+			<td>{{formatTime $span.Started}}</td>
+			<td>{{$span.Type}}</td>
+			<td>{{$span.Name}}</td>
+			<td>
+				<details>
+					<summary>{{formatDuration $span.Duration}}</summary>
+					{{if $span.Error}}
+						<b>Error:</b> <div id="ai_details_div"><pre>{{$span.Error}}</pre></div><br>
+					{{end}}
+					{{if $span.Args}}
+						<b>Args:</b> <div id="ai_details_div"><pre>{{$span.Args}}</pre></div><br>
+					{{end}}
+					{{if $span.Results}}
+						<b>Results:</b> <div id="ai_details_div"><pre>{{$span.Results}}</pre></div><br>
+					{{end}}
+					{{if $span.Instruction}}
+						<b>Instruction:</b> <div id="ai_details_div"><pre>{{$span.Instruction}}</pre></div><br>
+					{{end}}
+					{{if $span.Prompt}}
+						<b>Prompt:</b> <div id="ai_details_div"><pre>{{$span.Prompt}}</pre></div><br>
+					{{end}}
+					{{if $span.Reply}}
+						<b>Reply:</b> <div id="ai_details_div"><pre>{{$span.Reply}}</pre></div><br>
+					{{end}}
+					{{if $span.Thoughts}}
+						<b>Thoughts:</b> <div id="ai_details_div"><pre>{{$span.Thoughts}}</pre></div><br>
+					{{end}}
+				</details>
+			</td>
+		</tr>
+		{{end}}
+		</tbody>
+	</table>
+</body>
+</html>

@@ -115,6 +115,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</div>
 			</div>
 			{{end}}
+			{{if .AI}}
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/ai" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/ai'>✨ AI</a>
+			</div>
+			{{end}}
 			{{if .ContactEmail}}
 			<div class="navigation_tab">
 				<a href='mailto:{{.ContactEmail}}'><span style="color:ForestGreen;">💬</span> Send us feedback</a>
@@ -124,6 +129,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{end}}
 	</header>
 	<br>
+	{{if .Message}}
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				alert("{{.Message}}");
+			});
+		</script>
+	{{end}}
 {{end}}
 
 {{/* List of enabled filters, invoked with *uiBugFilter */}}
@@ -673,4 +685,36 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tbody>
 </table>
 {{end}}
+{{end}}
+
+{{/* List of AI jobs, invoked with []*uiAIJob */}}
+{{define "ai_job_list"}}
+<table class="list_table">
+	<thead><tr>
+		<th><a onclick="return sortTable(this, 'ID', textSort)" href="#">ID</a></th>
+		<th><a onclick="return sortTable(this, 'Workflow', textSort)" href="#">Workflow</a></th>
+		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Created', textSort)" href="#">Created</a></th>
+		<th><a onclick="return sortTable(this, 'Started', textSort)" href="#">Started</a></th>
+		<th><a onclick="return sortTable(this, 'Finished', textSort)" href="#">Finished</a></th>
+		<th><a onclick="return sortTable(this, 'Model', textSort)" href="#">Model</a></th>
+		<th><a onclick="return sortTable(this, 'Revision', textSort)" href="#">Revision</a></th>
+		<th><a onclick="return sortTable(this, 'Error', textSort)" href="#">Error</a></th>
+	</tr></thead>
+	<tbody>
+	{{range $job := .}}
+	<tr>
+		<td>{{link $job.Link $job.ID}}</td>
+		<td>{{$job.Workflow}}</td>
+		<td>{{link $job.DescriptionLink $job.Description}}</td>
+		<td>{{formatTime $job.Created}}</td>
+		<td>{{formatTime $job.Started}}</td>
+		<td>{{formatTime $job.Finished}}</td>
+		<td>{{$job.LLMModel}}</td>
+		<td>{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
+		<td>{{$job.Error}}</td>
+	</tr>
+	{{end}}
+	</tbody>
+</table>
 {{end}}

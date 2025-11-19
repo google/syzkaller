@@ -38,6 +38,28 @@ Page with details about a single bug.
 		{{end}}
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	{{if .AIWorkflows}}
+		<form method="POST">
+			<select name="ai-job-create">
+				{{range $flow := .AIWorkflows}}
+					<option>{{$flow}}</option>
+				{{end}}
+			</select>
+			<input type="submit" value="✨ Create"/>
+		</form>
+	{{end}}
+	{{if .AIJobs}}
+		<div class="collapsible collapsible-show">
+			<div class="head">
+				<span class="show-icon">&#9654;</span>
+				<span class="hide-icon">&#9660;</span>
+				<span>✨ AI Jobs ({{len .AIJobs}})</span>
+			</div>
+			<div class="content">
+				{{template "ai_job_list" .AIJobs}}
+			</div>
+		</div>
+	{{end}}
 	{{if .Bug.FixCandidateJob}}
 		<div class="fix-candidate-block">{{template "bisect_results" .Bug.FixCandidateJob}}</div>
 	{{end}}

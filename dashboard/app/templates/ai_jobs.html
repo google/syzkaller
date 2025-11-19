@@ -1,0 +1,18 @@
+{{/*
+Copyright 2025 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+List of AI jobs page.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	{{template "ai_job_list" .Jobs}}
+</body>
+</html>
