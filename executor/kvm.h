@@ -244,6 +244,7 @@
 // VMX control bits
 #define RFLAGS_1_BIT (1ULL << 1)
 #define CPU_BASED_HLT_EXITING (1U << 7)
+#define CPU_BASED_RDTSC_EXITING (1U << 12)
 #define AR_TSS_AVAILABLE 0x0089
 #define SVM_ATTR_LDTR_UNUSABLE 0x0000
 #define VMX_AR_TSS_BUSY 0x008b

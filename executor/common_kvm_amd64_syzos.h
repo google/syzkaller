@@ -686,7 +686,10 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	// Read and write Primary Processor-Based controls from TRUE MSR.
 	// We also add the bit to enable the secondary controls.
 	vmx_msr = rdmsr(X86_MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
-	vmwrite(VMCS_CPU_BASED_VM_EXEC_CONTROL, (uint32)vmx_msr | CPU_BASED_ACTIVATE_SECONDARY_CONTROLS | CPU_BASED_HLT_EXITING);
+	vmx_msr |= CPU_BASED_ACTIVATE_SECONDARY_CONTROLS;
+	// Exit on HLT and RDTSC.
+	vmx_msr |= CPU_BASED_HLT_EXITING | CPU_BASED_RDTSC_EXITING;
+	vmwrite(VMCS_CPU_BASED_VM_EXEC_CONTROL, (uint32)vmx_msr);
 
 	// Set up VM-Exit controls via TRUE MSR: indicate a 64-bit host.
 	vmx_msr = rdmsr(X86_MSR_IA32_VMX_TRUE_EXIT_CTLS);
@@ -740,6 +743,7 @@ typedef enum {
 	SYZOS_NESTED_EXIT_REASON_HLT = 1,
 	SYZOS_NESTED_EXIT_REASON_INVD = 2,
 	SYZOS_NESTED_EXIT_REASON_CPUID = 3,
+	SYZOS_NESTED_EXIT_REASON_RDTSC = 4,
 	SYZOS_NESTED_EXIT_REASON_UNKNOWN = 0xFF,
 } syz_nested_exit_reason;
 
@@ -758,6 +762,7 @@ GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason
 #define EXIT_REASON_CPUID 0xa
 #define EXIT_REASON_HLT 0xc
 #define EXIT_REASON_INVD 0xd
+#define EXIT_REASON_RDTSC 0x10
 
 GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reason)
 {
@@ -769,6 +774,8 @@ GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reas
 		return SYZOS_NESTED_EXIT_REASON_INVD;
 	if (reason == EXIT_REASON_CPUID)
 		return SYZOS_NESTED_EXIT_REASON_CPUID;
+	if (reason == EXIT_REASON_RDTSC)
+		return SYZOS_NESTED_EXIT_REASON_RDTSC;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -777,7 +784,8 @@ GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
 	// Disable optimizations.
 	volatile uint64 reason = basic_reason;
 	uint64 rip = vmread(VMCS_GUEST_RIP);
-	if ((reason == EXIT_REASON_INVD) || (reason == EXIT_REASON_CPUID))
+	if ((reason == EXIT_REASON_INVD) || (reason == EXIT_REASON_CPUID) ||
+	    (reason == EXIT_REASON_RDTSC))
 		rip += 2;
 	vmwrite(VMCS_GUEST_RIP, rip);
 }
@@ -837,6 +845,7 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
 			 [vm_exit_reason] "i"(VMCS_VM_EXIT_REASON) : "memory", "cc", "rbx", "rdi", "rsi");
 }
 
+#define VMEXIT_RDTSC 0x6e
 #define VMEXIT_CPUID 0x72
 #define VMEXIT_INVD 0x76
 #define VMEXIT_HLT 0x78
@@ -851,6 +860,8 @@ GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason
 		return SYZOS_NESTED_EXIT_REASON_INVD;
 	if (reason == VMEXIT_CPUID)
 		return SYZOS_NESTED_EXIT_REASON_CPUID;
+	if (reason == VMEXIT_RDTSC)
+		return SYZOS_NESTED_EXIT_REASON_RDTSC;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -860,7 +871,8 @@ GUEST_CODE static void advance_l2_rip_amd(uint64 basic_reason, uint64 cpu_id, ui
 	volatile uint64 reason = basic_reason;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint64 rip = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_GUEST_RIP);
-	if ((reason == VMEXIT_INVD) || (reason == VMEXIT_CPUID))
+	if ((reason == VMEXIT_INVD) || (reason == VMEXIT_CPUID) ||
+	    (reason == VMEXIT_RDTSC))
 		rip += 2;
 	vmcb_write64(vmcb_addr, VMCB_GUEST_RIP, rip);
 }
