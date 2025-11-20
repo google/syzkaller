@@ -249,11 +249,8 @@ GUEST_CODE static noinline void guest_handle_cpuid(uint32 eax, uint32 ecx)
 	    : "rbx", "rdx");
 }
 
-// Write val into an MSR register reg.
-GUEST_CODE static noinline void guest_handle_wrmsr(uint64 reg, uint64 val)
+GUEST_CODE static noinline void wrmsr(uint64 reg, uint64 val)
 {
-	// The wrmsr instruction takes its arguments in specific registers:
-	// edx:eax contains the 64-bit value to write, ecx contains the MSR address.
 	asm volatile(
 	    "wrmsr"
 	    :
@@ -263,20 +260,26 @@ GUEST_CODE static noinline void guest_handle_wrmsr(uint64 reg, uint64 val)
 	    : "memory");
 }
 
+// Write val into an MSR register reg.
+GUEST_CODE static noinline void guest_handle_wrmsr(uint64 reg, uint64 val)
+{
+	wrmsr(reg, val);
+}
+
+GUEST_CODE static noinline uint64 rdmsr(uint64 msr_id)
+{
+	uint32 low = 0, high = 0; // nolint
+	// The RDMSR instruction takes the MSR address in ecx.
+	// It puts the lower 32 bits of the MSR value into eax, and the upper.
+	// 32 bits of the MSR value into edx.
+	asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr_id));
+	return ((uint64)high << 32) | low;
+}
+
 // Read an MSR register, ignore the result.
 GUEST_CODE static noinline void guest_handle_rdmsr(uint64 reg)
 {
-	uint32 low = 0, high = 0;
-	// The rdmsr instruction takes the MSR address in ecx.
-	// It puts the lower 32 bits of the MSR value into eax, and the upper.
-	// 32 bits of the MSR value into edx.
-	asm volatile(
-	    "rdmsr"
-	    : "=a"(low),
-	      "=d"(high)
-	    : "c"(reg)
-	    : // No explicit clobbers.
-	);
+	(void)rdmsr(reg);
 }
 
 // Write to CRn control register.
@@ -488,24 +491,6 @@ GUEST_CODE static inline void write_cr4(uint64 val)
 	asm volatile("mov %0, %%cr4" : : "r"(val));
 }
 
-GUEST_CODE static noinline void wrmsr(uint64 reg, uint64 val)
-{
-	asm volatile(
-	    "wrmsr"
-	    :
-	    : "c"(reg),
-	      "a"((uint32)val),
-	      "d"((uint32)(val >> 32))
-	    : "memory");
-}
-
-GUEST_CODE static noinline uint64 rdmsr(uint32 msr_id)
-{
-	uint64 msr_value;
-	asm volatile("rdmsr" : "=A"(msr_value) : "c"(msr_id));
-	return msr_value;
-}
-
 GUEST_CODE static noinline void vmwrite(uint64 field, uint64 value)
 {
 	uint8 error = 0; // nolint
@@ -678,10 +663,9 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 	vmwrite(VMCS_PIN_BASED_VM_EXEC_CONTROL, (uint32)vmx_msr);
 
 	// Setup Secondary Processor-Based controls: enable EPT.
-	vmx_msr = rdmsr(X86_MSR_IA32_VMX_PROCBASED_CTLS2);
-	uint32 sec_exec_ctl = (uint32)(vmx_msr >> 32); // Must-be-1 bits.
-	sec_exec_ctl |= ((uint32)vmx_msr & SECONDARY_EXEC_ENABLE_EPT); // Allowed bits.
-	vmwrite(VMCS_SECONDARY_VM_EXEC_CONTROL, sec_exec_ctl);
+	vmx_msr = (uint32)rdmsr(X86_MSR_IA32_VMX_PROCBASED_CTLS2);
+	vmx_msr |= SECONDARY_EXEC_ENABLE_EPT;
+	vmwrite(VMCS_SECONDARY_VM_EXEC_CONTROL, vmx_msr);
 
 	// Read and write Primary Processor-Based controls from TRUE MSR.
 	// We also add the bit to enable the secondary controls.
