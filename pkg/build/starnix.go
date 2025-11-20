@@ -74,6 +74,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		params.KernelDir,
 		"scripts/fx", "--dir", buildSubdir,
 		"set", product,
+		"--debug",
 		"--assembly-override", fmt.Sprintf("//products/workbench/*=//local:%s", overrideName),
 	); err != nil {
 		return ImageDetails{}, err
