@@ -664,7 +664,7 @@ GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 v
 
 	// Setup Secondary Processor-Based controls: enable EPT.
 	vmx_msr = (uint32)rdmsr(X86_MSR_IA32_VMX_PROCBASED_CTLS2);
-	vmx_msr |= SECONDARY_EXEC_ENABLE_EPT;
+	vmx_msr |= SECONDARY_EXEC_ENABLE_EPT | SECONDARY_EXEC_ENABLE_RDTSCP;
 	vmwrite(VMCS_SECONDARY_VM_EXEC_CONTROL, vmx_msr);
 
 	// Read and write Primary Processor-Based controls from TRUE MSR.
@@ -728,6 +728,7 @@ typedef enum {
 	SYZOS_NESTED_EXIT_REASON_INVD = 2,
 	SYZOS_NESTED_EXIT_REASON_CPUID = 3,
 	SYZOS_NESTED_EXIT_REASON_RDTSC = 4,
+	SYZOS_NESTED_EXIT_REASON_RDTSCP = 5,
 	SYZOS_NESTED_EXIT_REASON_UNKNOWN = 0xFF,
 } syz_nested_exit_reason;
 
@@ -747,6 +748,7 @@ GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason
 #define EXIT_REASON_HLT 0xc
 #define EXIT_REASON_INVD 0xd
 #define EXIT_REASON_RDTSC 0x10
+#define EXIT_REASON_RDTSCP 0x33
 
 GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reason)
 {
@@ -760,6 +762,8 @@ GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reas
 		return SYZOS_NESTED_EXIT_REASON_CPUID;
 	if (reason == EXIT_REASON_RDTSC)
 		return SYZOS_NESTED_EXIT_REASON_RDTSC;
+	if (reason == EXIT_REASON_RDTSCP)
+		return SYZOS_NESTED_EXIT_REASON_RDTSCP;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -769,8 +773,12 @@ GUEST_CODE static void advance_l2_rip_intel(uint64 basic_reason)
 	volatile uint64 reason = basic_reason;
 	uint64 rip = vmread(VMCS_GUEST_RIP);
 	if ((reason == EXIT_REASON_INVD) || (reason == EXIT_REASON_CPUID) ||
-	    (reason == EXIT_REASON_RDTSC))
+	    (reason == EXIT_REASON_RDTSC)) {
 		rip += 2;
+	} else if (reason == EXIT_REASON_RDTSCP) {
+		// We insist on a single-line compound statement for else-if.
+		rip += 3;
+	}
 	vmwrite(VMCS_GUEST_RIP, rip);
 }
 
@@ -833,6 +841,7 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
 #define VMEXIT_CPUID 0x72
 #define VMEXIT_INVD 0x76
 #define VMEXIT_HLT 0x78
+#define VMEXIT_RDTSCP 0x87
 
 GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason)
 {
@@ -846,6 +855,8 @@ GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason
 		return SYZOS_NESTED_EXIT_REASON_CPUID;
 	if (reason == VMEXIT_RDTSC)
 		return SYZOS_NESTED_EXIT_REASON_RDTSC;
+	if (reason == VMEXIT_RDTSCP)
+		return SYZOS_NESTED_EXIT_REASON_RDTSCP;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -856,8 +867,12 @@ GUEST_CODE static void advance_l2_rip_amd(uint64 basic_reason, uint64 cpu_id, ui
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint64 rip = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_GUEST_RIP);
 	if ((reason == VMEXIT_INVD) || (reason == VMEXIT_CPUID) ||
-	    (reason == VMEXIT_RDTSC))
+	    (reason == VMEXIT_RDTSC)) {
 		rip += 2;
+	} else if (reason == VMEXIT_RDTSCP) {
+		// We insist on a single-line compound statement for else-if.
+		rip += 3;
+	}
 	vmcb_write64(vmcb_addr, VMCB_GUEST_RIP, rip);
 }
 
