@@ -62,3 +62,6 @@ The email will later be sent to:
 If the report looks fine to you, reply with:
 #syz upstream
 
+If the report is a false positive, reply with
+#syz invalid
+
