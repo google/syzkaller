@@ -145,7 +145,7 @@ func TestSeriesRepositoryList(t *testing.T) {
 	})
 
 	dtd.addSessionTest(session, "test")
-	dtd.addFinding(session, "title", "test")
+	finding := dtd.addFinding(session, "title", "test")
 	dtd.finishSession(session)
 	t.Run("query_finding_count", func(t *testing.T) {
 		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusFinished}, time.Time{})
@@ -159,6 +159,18 @@ func TestSeriesRepositoryList(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
 		assert.Equal(t, "Series 2", list[0].Series.Title)
+	})
+
+	dtd.invalidateFinding(finding)
+	t.Run("invalidated_findings", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx, SeriesFilter{WithFindings: true}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 0)
+		// When not filtered, ensure invalidated findings are not counted in.
+		list, err = repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusFinished}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 1)
+		assert.Equal(t, 0, list[0].Findings)
 	})
 }
 

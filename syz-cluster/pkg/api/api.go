@@ -174,6 +174,7 @@ type Finding struct {
 	Build        BuildInfo `json:"build"`
 	LinkCRepro   string    `json:"c_repro"`
 	LinkSyzRepro string    `json:"syz_repro"`
+	Invalidated  bool      `json:"invalidated"`
 }
 
 type BuildInfo struct {

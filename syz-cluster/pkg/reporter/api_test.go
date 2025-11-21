@@ -10,7 +10,9 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
+	"github.com/google/syzkaller/syz-cluster/pkg/service"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReportFlow(t *testing.T) {
@@ -191,4 +193,41 @@ func TestReplyReporting(t *testing.T) {
 			ReportID: "",
 		}, resp)
 	})
+}
+
+func TestInvalidate(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := controller.TestServer(t, env)
+	testSeries := controller.DummySeries()
+	ids := controller.FakeSeriesWithFindings(t, ctx, env, client, testSeries)
+
+	generator := NewGenerator(env)
+	err := generator.Process(ctx, 1)
+	require.NoError(t, err)
+
+	// Create a report.
+	reportClient := TestServer(t, env)
+	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
+	require.NoError(t, err)
+	reportID := nextResp.Report.ID
+	err = reportClient.ConfirmReport(ctx, reportID)
+	require.NoError(t, err)
+
+	// Invalidate the findings.
+	err = reportClient.InvalidateReport(ctx, reportID)
+	require.NoError(t, err)
+
+	// Report should not appear in Next().
+	emptyNext, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
+	require.NoError(t, err)
+	assert.Nil(t, emptyNext.Report)
+
+	// All findings must be invalidated.
+	findingService := service.NewFindingService(env)
+	list, err := findingService.List(ctx, ids.SessionID, 0)
+	require.NoError(t, err)
+	assert.Len(t, list, 2)
+	for i, finding := range list {
+		assert.True(t, finding.Invalidated, "finding %d must be invalidated", i)
+	}
 }

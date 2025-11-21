@@ -45,6 +45,11 @@ func (client ReporterClient) UpstreamReport(ctx context.Context, id string, req 
 	return err
 }
 
+func (client ReporterClient) InvalidateReport(ctx context.Context, id string) error {
+	_, err := postJSON[any, any](ctx, client.baseURL+"/reports/"+id+"/invalidate", nil)
+	return err
+}
+
 type RecordReplyReq struct {
 	MessageID string `json:"message_id"`
 	ReportID  string `json:"report_id"`

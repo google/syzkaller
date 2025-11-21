@@ -148,6 +148,7 @@
                       {{range .Findings}}
                       <tr>
                         <td>
+                          {{if not .InvalidatedAt.IsNull}}<b>[invalidated]</b>{{end}}
                           {{if .ReportURI}}
                             <a href="/findings/{{.ID}}/report" class="modal-link-raw">{{.Title}}</a>
                           {{else}}

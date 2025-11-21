@@ -51,7 +51,7 @@ var ErrNotOnModeration = errors.New("the report is not on moderation")
 func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.UpstreamReportReq) error {
 	rep, err := rs.query(ctx, id)
 	if err != nil {
-		return nil
+		return err
 	} else if !rep.Moderation {
 		return ErrNotOnModeration
 	}
@@ -66,6 +66,15 @@ func (rs *ReportService) Upstream(ctx context.Context, id string, req *api.Upstr
 		return fmt.Errorf("failed to schedule a new report: %w", err)
 	}
 	return nil
+}
+
+func (rs *ReportService) Invalidate(ctx context.Context, id string) error {
+	rep, err := rs.query(ctx, id)
+	if err != nil {
+		return err
+	}
+	// For now, invalidate all the findings at once - later we can do it more selectively.
+	return rs.findingService.InvalidateSession(ctx, rep.SessionID)
 }
 
 const maxFindingsPerReport = 5

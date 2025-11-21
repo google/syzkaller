@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -87,6 +88,23 @@ func (s *FindingService) saveAssets(finding *db.Finding, req *api.NewFinding) er
 	return nil
 }
 
+func (s *FindingService) InvalidateSession(ctx context.Context, sessionID string) error {
+	findings, err := s.findingRepo.ListForSession(ctx, sessionID, 0)
+	if err != nil {
+		return err
+	}
+	for _, finding := range findings {
+		err := s.findingRepo.Update(ctx, finding.ID, func(finding *db.Finding) error {
+			finding.SetInvalidatedAt(time.Now())
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update finding %s: %w", finding.ID, err)
+		}
+	}
+	return nil
+}
+
 func (s *FindingService) List(ctx context.Context, sessionID string, limit int) ([]*api.Finding, error) {
 	list, err := s.findingRepo.ListForSession(ctx, sessionID, limit)
 	if err != nil {
@@ -111,6 +129,9 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 		}
 		if item.CReproURI != "" {
 			finding.LinkCRepro = s.urls.FindingCRepro(item.ID)
+		}
+		if !item.InvalidatedAt.IsNull() {
+			finding.Invalidated = true
 		}
 		build := testPerName[item.TestName].PatchedBuild
 		if build != nil {

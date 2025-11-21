@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/emailclient"
 	"github.com/google/syzkaller/syz-cluster/pkg/reporter"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testEmailConfig = emailclient.TestEmailConfig()
@@ -62,6 +63,38 @@ func TestModerationReportFlow(t *testing.T) {
 		InReplyTo: testSeries.ExtID,
 		BugID:     report.ID,
 	}, receivedEmail)
+}
+
+func TestReportInvalidationFlow(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	testSeries := controller.DummySeries()
+	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+
+	report, err := handler.PollAndReport(ctx)
+	require.NoError(t, err)
+
+	receivedEmail := emailServer.email()
+	require.NotNil(t, receivedEmail, "a moderation email must be sent")
+	receivedEmail.Body = nil // for now don't validate the body
+
+	// Emulate an "upstream" command.
+	err = handler.IncomingEmail(ctx, &email.Email{
+		BugIDs: []string{report.ID},
+		Commands: []*email.SingleCommand{
+			{
+				Command: email.CmdInvalid,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// The report must be not sent upstream.
+	report, err = handler.PollAndReport(ctx)
+	require.NoError(t, err)
+	assert.Nil(t, report)
+
+	receivedEmail = emailServer.email()
+	assert.Nil(t, receivedEmail, "an email must not be sent upstream")
 }
 
 func TestInvalidReply(t *testing.T) {

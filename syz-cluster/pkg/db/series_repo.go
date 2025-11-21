@@ -173,8 +173,9 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 		stmt.SQL += ")"
 	}
 	if filter.WithFindings {
-		stmt.SQL += " AND Series.LatestSessionID IS NOT NULL " +
-			"AND EXISTS(SELECT 1 FROM Findings WHERE Findings.SessionID = Series.LatestSessionID)"
+		stmt.SQL += " AND Series.LatestSessionID IS NOT NULL AND EXISTS(" +
+			"SELECT 1 FROM Findings WHERE " +
+			"Findings.SessionID = Series.LatestSessionID AND Findings.InvalidatedAt IS NULL)"
 	}
 	stmt.SQL += " ORDER BY PublishedAt DESC, ID"
 	if filter.Limit > 0 {
@@ -262,7 +263,8 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 	}
 	list, err := readEntities[findingCount](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT `SessionID`, COUNT(`ID`) as `Count` FROM `Findings` " +
-			"WHERE `SessionID` IN UNNEST(@ids) GROUP BY `SessionID`",
+			"WHERE `SessionID` IN UNNEST(@ids) AND `Findings`.`InvalidatedAt` IS NULL " +
+			"GROUP BY `SessionID`",
 		Params: map[string]interface{}{
 			"ids": keys,
 		},
