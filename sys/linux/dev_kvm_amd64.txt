@@ -101,23 +101,54 @@ syzos_api_nested_load_code {
 	insns	text[x86_64]
 } [packed]
 
+# VMCS Component Encoding is a 32-bit value, but only bits 0:15 are used.
+# Certain bit combinations are invalid, because the number encodes additional
+# parameters like access type and width.
+# Constants as per Intel SDM vol. 3C, Appendix B.
+vmcs_field_encoding [
+	control16	int64[0x0:0x4, 2]
+	guest16		int64[0x800:0x812, 2]
+	host16		int64[0xc00:0xc0c, 2]
+	control64	int64[0x2000:0x2033]
+	ro64		int64[0x2400:0x2401]
+	guest64		int64[0x2800:0x2813]
+	host64		int64[0x2c00:0x2c05]
+	control32	int64[0x4000:0x4022, 2]
+	ro32		int64[0x4400:0x440e, 2]
+	guest32		int64[0x4800:0x482e, 2]
+	host32		int64[0x4c00:0x4c00]
+	control_nat	int64[0x6000:0x600e, 2]
+	ro_nat		int64[0x6400:0x640a, 2]
+	guest_nat	int64[0x6800:0x6826, 2]
+	host_nat	int64[0x6c00:0x6c16, 2]
+]
+
+syzos_api_nested_intel_vmwrite_mask {
+	vm_id		syzos_api_vm_id
+	field		vmcs_field_encoding
+	set_mask	int64
+	unset_mask	int64
+	flip_mask	int64
+}
+
 # IDs here must match those in executor/common_kvm_amd64_syzos.h.
 syzos_api_call$x86 [
-	uexit			syzos_api$x86[0, intptr]
-	code			syzos_api$x86[10, syzos_api_code$x86]
-	cpuid			syzos_api$x86[100, syzos_api_cpuid]
-	wrmsr			syzos_api$x86[101, syzos_api_wrmsr]
-	rdmsr			syzos_api$x86[102, syzos_api_rdmsr]
-	wr_crn			syzos_api$x86[103, syzos_api_wr_crn]
-	wr_drn			syzos_api$x86[104, syzos_api_wr_drn]
-	in_dx			syzos_api$x86[105, syzos_api_in_dx]
-	out_dx			syzos_api$x86[106, syzos_api_out_dx]
-	set_irq_handler		syzos_api$x86[200, syzos_api_set_irq_handler]
-	enable_nested		syzos_api$x86[300, const[0, intptr]]
-	nested_create_vm	syzos_api$x86[301, syzos_api_vm_id]
-	nested_load_code	syzos_api$x86[302, syzos_api_nested_load_code]
-	nested_vmlaunch		syzos_api$x86[303, syzos_api_vm_id]
-	nested_vmresume		syzos_api$x86[304, syzos_api_vm_id]
+	uexit				syzos_api$x86[0, intptr]
+	code				syzos_api$x86[10, syzos_api_code$x86]
+	cpuid				syzos_api$x86[100, syzos_api_cpuid]
+	wrmsr				syzos_api$x86[101, syzos_api_wrmsr]
+	rdmsr				syzos_api$x86[102, syzos_api_rdmsr]
+	wr_crn				syzos_api$x86[103, syzos_api_wr_crn]
+	wr_drn				syzos_api$x86[104, syzos_api_wr_drn]
+	in_dx				syzos_api$x86[105, syzos_api_in_dx]
+	out_dx				syzos_api$x86[106, syzos_api_out_dx]
+	set_irq_handler			syzos_api$x86[200, syzos_api_set_irq_handler]
+	enable_nested			syzos_api$x86[300, const[0, intptr]]
+	nested_create_vm		syzos_api$x86[301, syzos_api_vm_id]
+	nested_load_code		syzos_api$x86[302, syzos_api_nested_load_code]
+	nested_vmlaunch			syzos_api$x86[303, syzos_api_vm_id]
+	nested_vmresume			syzos_api$x86[304, syzos_api_vm_id]
+	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
 ] [varlen]
 
 kvm_text_x86 [
