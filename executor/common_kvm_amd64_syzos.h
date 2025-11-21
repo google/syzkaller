@@ -32,6 +32,7 @@ typedef enum {
 	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_NESTED_VMRESUME = 304,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
+	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -111,6 +112,7 @@ GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -223,6 +225,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) {
 			// Write to a VMCS field using masks.
 			guest_handle_nested_intel_vmwrite_mask((struct api_call_5*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
+			// Write to a VMCB field using masks.
+			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1254,6 +1259,24 @@ guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
 	vmwrite(field, new_value);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+	uint64 vm_id = cmd->args[0];
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+	uint64 offset = cmd->args[1];
+	uint64 set_mask = cmd->args[2];
+	uint64 unset_mask = cmd->args[3];
+	uint64 flip_mask = cmd->args[4];
+
+	uint64 current_value = vmcb_read64((volatile uint8*)vmcb_addr, offset);
+	uint64 new_value = (current_value & ~unset_mask) | set_mask;
+	new_value ^= flip_mask;
+	vmcb_write64(vmcb_addr, offset, new_value);
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
