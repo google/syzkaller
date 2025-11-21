@@ -31,6 +31,7 @@ typedef enum {
 	SYZOS_API_NESTED_LOAD_CODE = 302,
 	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_NESTED_VMRESUME = 304,
+	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -76,6 +77,11 @@ struct api_call_3 {
 	uint64 args[3];
 };
 
+struct api_call_5 {
+	struct api_call_header header;
+	uint64 args[5];
+};
+
 // This struct must match the push/pop order in nested_vm_exit_handler_intel_asm().
 struct l2_guest_regs {
 	uint64 rax, rbx, rcx, rdx, rsi, rdi, rbp;
@@ -104,6 +110,7 @@ GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uin
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -213,6 +220,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_VMRESUME) {
 			// Resume a nested VM.
 			guest_handle_nested_vmresume((struct api_call_1*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_INTEL_VMWRITE_MASK) {
+			// Write to a VMCS field using masks.
+			guest_handle_nested_intel_vmwrite_mask((struct api_call_5*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1226,6 +1236,24 @@ guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id)
 	} else {
 		guest_run_amd_vm(cpu_id, vm_id);
 	}
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_INTEL)
+		return;
+	uint64 vm_id = cmd->args[0];
+	nested_vmptrld(cpu_id, vm_id);
+	uint64 field = cmd->args[1];
+	uint64 set_mask = cmd->args[2];
+	uint64 unset_mask = cmd->args[3];
+	uint64 flip_mask = cmd->args[4];
+
+	uint64 current_value = vmread(field);
+	uint64 new_value = (current_value & ~unset_mask) | set_mask;
+	new_value ^= flip_mask;
+	vmwrite(field, new_value);
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
