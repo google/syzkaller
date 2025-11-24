@@ -534,11 +534,11 @@ ioctl$KVM_TRANSLATE(fd fd_kvmcpu, cmd const[KVM_TRANSLATE], arg ptr[inout, kvm_t
 # KVM_GET_MSRS can be both a system and a vcpu ioctl: https://docs.kernel.org/virt/kvm/api.html#kvm-get-msrs
 ioctl$KVM_GET_MSRS_sys(fd fd_kvm, cmd const[KVM_GET_MSRS], arg ptr[inout, kvm_msrs])
 ioctl$KVM_GET_MSRS_cpu(fd fd_kvmcpu, cmd const[KVM_GET_MSRS], arg ptr[inout, kvm_msrs])
-ioctl$KVM_SET_MSRS(fd fd_kvmcpu, cmd const[KVM_SET_MSRS], arg ptr[in, kvm_msrs])
-ioctl$KVM_SET_CPUID(fd fd_kvmcpu, cmd const[KVM_SET_CPUID], arg ptr[in, kvm_cpuid])
+ioctl$KVM_SET_MSRS(fd fd_kvmcpu, cmd const[KVM_SET_MSRS], arg ptr[in, kvm_msrs]) (no_squash)
+ioctl$KVM_SET_CPUID(fd fd_kvmcpu, cmd const[KVM_SET_CPUID], arg ptr[in, kvm_cpuid]) (no_squash)
 # NEED: we should be able to read kvm_cpuid2 with KVM_GET_CPUID2, alter few bits and then call KVM_SET_CPUID2 with that object.
 ioctl$KVM_GET_CPUID2(fd fd_kvmcpu, cmd const[KVM_GET_CPUID2], arg ptr[out, kvm_cpuid2])
-ioctl$KVM_SET_CPUID2(fd fd_kvmcpu, cmd const[KVM_SET_CPUID2], arg ptr[in, kvm_cpuid2])
+ioctl$KVM_SET_CPUID2(fd fd_kvmcpu, cmd const[KVM_SET_CPUID2], arg ptr[in, kvm_cpuid2]) (no_squash)
 ioctl$KVM_GET_SUPPORTED_CPUID(fd fd_kvm, cmd const[KVM_GET_SUPPORTED_CPUID], arg ptr[inout, kvm_cpuid2])
 # KVM_GET_SUPPORTED_HV_CPUID is both a system and a vcpu ioctl: https://docs.kernel.org/virt/kvm/api.html#kvm-get-supported-hv-cpuid
 ioctl$KVM_GET_SUPPORTED_HV_CPUID_sys(fd fd_kvm, cmd const[KVM_GET_SUPPORTED_HV_CPUID], arg ptr[inout, kvm_cpuid2])
