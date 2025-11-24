@@ -49,7 +49,7 @@ type Updater struct {
 type Config struct {
 	// If set, exit on updates instead of restarting the current binary.
 	ExitOnUpdate          bool
-	BuildSem              *instance.Semaphore
+	BuildSem              *osutil.Semaphore
 	ReportBuildError      func(commit *vcs.Commit, compilerID string, buildErr error)
 	SyzkallerRepo         string
 	SyzkallerBranch       string
