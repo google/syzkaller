@@ -670,9 +670,9 @@ func (target *Target) PseudoSyscalls() []*Syscall {
 }
 
 // GenSampleProg generates a single sample program for the call.
-func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source) *Prog {
+func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source, ct *ChoiceTable) *Prog {
 	r := newRand(target, rs)
-	s := newState(target, target.DefaultChoiceTable(), nil)
+	s := newState(target, ct, nil)
 	p := &Prog{
 		Target: target,
 	}

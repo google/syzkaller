@@ -370,6 +370,17 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 	return target.defaultChoiceTable
 }
 
+func (target *Target) NoAutoChoiceTable() *ChoiceTable {
+	calls := map[*Syscall]bool{}
+	for _, c := range target.Syscalls {
+		if c.Attrs.Automatic {
+			continue
+		}
+		calls[c] = true
+	}
+	return target.BuildChoiceTable(nil, calls)
+}
+
 func (target *Target) RequiredGlobs() []string {
 	globs := make(map[string]bool)
 	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
