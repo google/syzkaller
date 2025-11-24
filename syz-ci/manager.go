@@ -33,6 +33,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/updater"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -41,11 +42,11 @@ import (
 )
 
 // This is especially slightly longer than syzkaller rebuild period.
-// If we set kernelRebuildPeriod = syzkallerRebuildPeriod and both are changed
+// If we set kernelRebuildPeriod = updater.RebuildPeriod and both are changed
 // during that period (or around that period), we can rebuild kernel, restart
 // manager and then instantly shutdown everything for syzkaller update.
 // Instead we rebuild syzkaller, restart and then rebuild kernel.
-const kernelRebuildPeriod = syzkallerRebuildPeriod + time.Hour
+const kernelRebuildPeriod = updater.RebuildPeriod + time.Hour
 
 // List of required files in kernel build (contents of latest/current dirs).
 var imageFiles = map[string]bool{
@@ -200,7 +201,7 @@ func (mgr *Manager) loop(ctx context.Context) {
 
 	benchUploadTime = time.Now().Add(benchUploadPeriod)
 
-	ticker := time.NewTicker(buildRetryPeriod)
+	ticker := time.NewTicker(updater.BuildRetryPeriod)
 	defer ticker.Stop()
 
 loop:
@@ -274,7 +275,7 @@ func (mgr *Manager) archiveCommit(commit string) {
 
 func (mgr *Manager) pollAndBuild(ctx context.Context, lastCommit string, latestInfo *BuildInfo) (
 	string, *BuildInfo, time.Duration) {
-	rebuildAfter := buildRetryPeriod
+	rebuildAfter := updater.BuildRetryPeriod
 	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 	if err != nil {
 		mgr.buildFailed = true

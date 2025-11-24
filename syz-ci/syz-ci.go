@@ -54,6 +54,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -71,6 +72,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/updater"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -265,7 +267,6 @@ func main() {
 
 	serveHTTP(cfg)
 
-	os.Unsetenv("GOPATH")
 	if cfg.Goroot != "" {
 		os.Setenv("GOROOT", cfg.Goroot)
 		os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
@@ -273,14 +274,29 @@ func main() {
 	}
 
 	updatePending := make(chan struct{})
-	updater := NewSyzUpdater(cfg)
-	updater.UpdateOnStart(*flagAutoUpdate, shutdownPending)
-	if *flagAutoUpdate {
-		go func() {
-			updater.WaitForUpdate()
-			close(updatePending)
-		}()
+	updateTargets := make(map[updater.Target]bool)
+	for _, mgr := range cfg.Managers {
+		updateTargets[updater.Target{
+			OS:     mgr.managercfg.TargetOS,
+			VMArch: mgr.managercfg.TargetVMArch,
+			Arch:   mgr.managercfg.TargetArch,
+		}] = true
 	}
+	updater, err := updater.New(&updater.Config{
+		ExitOnUpdate: *flagExitOnUpgrade,
+		BuildSem:     buildSem,
+		ReportBuildError: func(commit *vcs.Commit, compilerID string, buildErr error) {
+			uploadSyzkallerBuildError(cfg, commit, compilerID, buildErr)
+		},
+		SyzkallerRepo:         cfg.SyzkallerRepo,
+		SyzkallerBranch:       cfg.SyzkallerBranch,
+		SyzkallerDescriptions: cfg.SyzkallerDescriptions,
+		Targets:               updateTargets,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	updater.UpdateOnStart(*flagAutoUpdate, updatePending, shutdownPending)
 
 	ctx, stop := context.WithCancel(context.Background())
 	var managers []*Manager
@@ -387,6 +403,50 @@ func serveHTTP(cfg *Config) {
 		err := http.Serve(ln, nil)
 		log.Fatalf("failed to serve http: %v", err)
 	}()
+}
+
+func uploadSyzkallerBuildError(cfg *Config, commit *vcs.Commit, compilerID string, buildErr error) {
+	var output []byte
+	var verbose *osutil.VerboseError
+	title := buildErr.Error()
+	if errors.As(buildErr, &verbose) {
+		output = verbose.Output
+	}
+	title = "syzkaller: " + title
+	for _, mgrcfg := range cfg.Managers {
+		if cfg.DashboardAddr == "" || mgrcfg.DashboardClient == "" {
+			log.Logf(0, "not uploading build error for %v: no dashboard", mgrcfg.Name)
+			continue
+		}
+		dash, err := dashapi.New(mgrcfg.DashboardClient, cfg.DashboardAddr, mgrcfg.DashboardKey)
+		if err != nil {
+			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
+			return
+		}
+		managercfg := mgrcfg.managercfg
+		req := &dashapi.BuildErrorReq{
+			Build: dashapi.Build{
+				Manager:             managercfg.Name,
+				ID:                  commit.Hash,
+				OS:                  managercfg.TargetOS,
+				Arch:                managercfg.TargetArch,
+				VMArch:              managercfg.TargetVMArch,
+				SyzkallerCommit:     commit.Hash,
+				SyzkallerCommitDate: commit.CommitDate,
+				CompilerID:          compilerID,
+				KernelRepo:          cfg.SyzkallerRepo,
+				KernelBranch:        cfg.SyzkallerBranch,
+			},
+			Crash: dashapi.Crash{
+				Title: title,
+				Log:   output,
+			},
+		}
+		if err := dash.ReportBuildError(req); err != nil {
+			// TODO: log ReportBuildError error to dashboard.
+			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
+		}
+	}
 }
 
 func loadConfig(filename string) (*Config, error) {
