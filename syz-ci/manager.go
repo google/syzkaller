@@ -170,12 +170,12 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, debug bool) (*Manager, er
 // Gates kernel builds, syzkaller builds and coverage report generation.
 // Kernel builds take whole machine, so we don't run more than one at a time.
 // Also current image build script uses some global resources (/dev/nbd0) and can't run in parallel.
-var buildSem = instance.NewSemaphore(1)
+var buildSem = osutil.NewSemaphore(1)
 
 // Gates tests that require extra VMs.
 // Currently we overcommit instances in such cases, so we'd like to minimize the number of
 // simultaneous env.Test calls.
-var testSem = instance.NewSemaphore(1)
+var testSem = osutil.NewSemaphore(1)
 
 const fuzzingMinutesBeforeCover = 360
 const benchUploadPeriod = 30 * time.Minute

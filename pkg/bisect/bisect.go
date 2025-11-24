@@ -36,8 +36,8 @@ type Config struct {
 	Syzkaller       SyzkallerConfig
 	Repro           ReproConfig
 	Manager         *mgrconfig.Config
-	BuildSemaphore  *instance.Semaphore
-	TestSemaphore   *instance.Semaphore
+	BuildSemaphore  *osutil.Semaphore
+	TestSemaphore   *osutil.Semaphore
 	BuildCPUs       int
 	// CrossTree specifies whether a cross tree bisection is to take place, i.e.
 	// Kernel.Commit is not reachable from Kernel.Branch.
