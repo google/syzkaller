@@ -130,19 +130,9 @@ var (
 
 func SetTargets(cfg *Config) error {
 	var err error
-	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.RawTarget)
-	if err != nil {
-		return err
-	}
-	cfg.Target, err = prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		return err
-	}
-	cfg.SysTarget = targets.Get(cfg.TargetOS, cfg.TargetVMArch)
-	if cfg.SysTarget == nil {
-		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
-	}
-	return nil
+	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, cfg.Target, cfg.SysTarget,
+		err = SplitTarget(cfg.RawTarget)
+	return err
 }
 
 func Complete(cfg *Config) error {
@@ -402,21 +392,29 @@ func (cfg *Config) completeFocusAreas() error {
 	return nil
 }
 
-func splitTarget(target string) (string, string, string, error) {
-	if target == "" {
-		return "", "", "", fmt.Errorf("target is empty")
+func SplitTarget(str string) (os, vmarch, arch string, target *prog.Target, sysTarget *targets.Target, err error) {
+	if str == "" {
+		err = fmt.Errorf("target is empty")
+		return
 	}
-	targetParts := strings.Split(target, "/")
+	targetParts := strings.Split(str, "/")
 	if len(targetParts) != 2 && len(targetParts) != 3 {
-		return "", "", "", fmt.Errorf("bad config param target")
+		err = fmt.Errorf("bad config param target")
+		return
 	}
-	os := targetParts[0]
-	vmarch := targetParts[1]
-	arch := targetParts[1]
+	os = targetParts[0]
+	vmarch = targetParts[1]
+	arch = targetParts[1]
 	if len(targetParts) == 3 {
 		arch = targetParts[2]
 	}
-	return os, vmarch, arch, nil
+	sysTarget = targets.Get(os, vmarch)
+	if sysTarget == nil {
+		err = fmt.Errorf("unsupported OS/arch: %v/%v", os, vmarch)
+		return
+	}
+	target, err = prog.GetTarget(os, arch)
+	return
 }
 
 func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
