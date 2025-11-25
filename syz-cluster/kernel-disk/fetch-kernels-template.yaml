@@ -71,4 +71,5 @@ spec:
             git remote remove ${NAME} || true
             git remote add ${NAME} ${REPO}
             git fetch ${NAME} ${BRANCH} --tags "+refs/heads/*:refs/heads/${NAME}/*" "+refs/tags/*:refs/tags/${NAME}/*"
+            git log -1 --format="%h %an %ad %s" ${NAME}/${BRANCH}
             git tag -f ${NAME}-head ${NAME}/${BRANCH}
