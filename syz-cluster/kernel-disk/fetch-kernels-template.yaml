@@ -61,6 +61,10 @@ spec:
           - "-c"
           - |
             cd /repo.git
+            if [ -f "packed-refs.lock" ]; then
+              echo "Found stale 'packed-refs.lock' at start. Removing it."
+              rm -f packed-refs.lock
+            fi
             if [ ! -d "refs" ]; then
               git init --bare
             fi
