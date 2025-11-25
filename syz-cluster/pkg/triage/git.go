@@ -30,7 +30,7 @@ func NewGitTreeOps(dir string, sandbox bool) (*GitTreeOps, error) {
 
 func (ops *GitTreeOps) HeadCommit(tree *api.Tree) (*vcs.Commit, error) {
 	// See kernel-disk/cron.yaml.
-	return ops.Git.Commit(tree.Name + "-head")
+	return ops.Git.Commit(tree.Name + "/" + tree.Branch)
 }
 
 func (ops *GitTreeOps) Commit(treeName, commitOrBranch string) (*vcs.Commit, error) {
