@@ -1,0 +1,76 @@
+TITLE: WARNING in ext4_xattr_inode_update_ref
+TYPE: WARNING
+FRAME: ext4_xattr_inode_update_ref
+EXECUTOR: proc=0, id=17
+
+[   92.518566][ T5982] ------------[ cut here ]------------
+[   92.524796][ T5982] EA inode 11 i_nlink=2
+[   92.524882][ T5982] WARNING: fs/ext4/xattr.c:1058 at 0x0, CPU#0: syz.0.17/5982
+[   92.537107][ T5982] Modules linked in:
+[   92.541176][ T5982] CPU: 0 UID: 0 PID: 5982 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
+[   92.550634][ T5982] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+[   92.561124][ T5982] RIP: 0010:ext4_xattr_inode_update_ref+0x4dc/0x570
+[   92.567942][ T5982] Code: 74 08 4c 89 ef e8 14 b0 9a ff 4d 8b 6d 00 48 b8 00 00 00 00 00 fc ff df 41 0f b6 04 06 84 c0 75 77 41 8b 17 4c 89 e7 4c 89 ee <67> 48 0f b9 3a 4c 8b 6c 24 28 e9 bd fe ff ff e8 20 af ca 08 44 89
+[   92.588213][ T5982] RSP: 0018:ffffc90003117100 EFLAGS: 00010246
+[   92.594460][ T5982] RAX: 0000000000000000 RBX: 1ffff1100bb197c9 RCX: dffffc0000000000
+[   92.602723][ T5982] RDX: 0000000000000002 RSI: 000000000000000b RDI: ffffffff8f845a00
+[   92.611969][ T5982] RBP: ffffc900031171f8 R08: ffff88805d8cbe4f R09: 1ffff1100bb197c9
+[   92.620220][ T5982] R10: dffffc0000000000 R11: ffffed100bb197ca R12: ffffffff8f845a00
+[   92.628334][ T5982] R13: 000000000000000b R14: 1ffff1100bb19794 R15: ffff88805d8cbca0
+[   92.636412][ T5982] FS:  000055557939f500(0000) GS:ffff888125e8b000(0000) knlGS:0000000000000000
+[   92.645478][ T5982] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   92.652323][ T5982] CR2: 00007f3939572a60 CR3: 0000000074ca6000 CR4: 00000000003526f0
+[   92.660779][ T5982] Call Trace:
+[   92.664385][ T5982]  <TASK>
+[   92.667663][ T5982]  ? __pfx_inode_set_ctime_to_ts+0x10/0x10
+[   92.673557][ T5982]  ? __pfx_ext4_xattr_inode_update_ref+0x10/0x10
+[   92.679902][ T5982]  ? ext4_xattr_inode_iget+0x3d2/0x5f0
+[   92.685672][ T5982]  ext4_xattr_set_entry+0xabb/0x1e20
+[   92.691132][ T5982]  ext4_xattr_ibody_set+0x254/0x6a0
+[   92.696590][ T5982]  ext4_expand_extra_isize_ea+0x13ad/0x1ea0
+[   92.702534][ T5982]  __ext4_expand_extra_isize+0x30d/0x400
+[   92.708350][ T5982]  __ext4_mark_inode_dirty+0x45c/0x6e0
+[   92.714057][ T5982]  ext4_evict_inode+0x79c/0xe60
+[   92.719052][ T5982]  ? __pfx_ext4_evict_inode+0x10/0x10
+[   92.724565][ T5982]  ? do_raw_spin_unlock+0x122/0x240
+[   92.729790][ T5982]  ? __pfx_ext4_evict_inode+0x10/0x10
+[   92.735341][ T5982]  evict+0x5f4/0xae0
+[   92.739271][ T5982]  ? __pfx_evict+0x10/0x10
+[   92.743784][ T5982]  ? _raw_spin_unlock+0x28/0x50
+[   92.748665][ T5982]  ? iput+0xcc6/0x1030
+[   92.752967][ T5982]  ext4_orphan_cleanup+0xc20/0x1460
+[   92.759239][ T5982]  ? __pfx_ext4_orphan_cleanup+0x10/0x10
+[   92.765079][ T5982]  ? ext4_register_li_request+0x640/0x720
+[   92.770862][ T5982]  ? errseq_check_and_advance+0x66/0x120
+[   92.776581][ T5982]  ext4_fill_super+0x5946/0x6200
+[   92.781752][ T5982]  ? __pfx_ext4_fill_super+0x10/0x10
+[   92.787273][ T5982]  ? snprintf+0xda/0x120
+[   92.791822][ T5982]  ? __pfx_snprintf+0x10/0x10
+[   92.796611][ T5982]  ? set_blocksize+0x21e/0x500
+[   92.801601][ T5982]  ? sb_set_blocksize+0x155/0x240
+[   92.806934][ T5982]  ? setup_bdev_super+0x4c1/0x5b0
+[   92.812002][ T5982]  get_tree_bdev_flags+0x40e/0x4d0
+[   92.817700][ T5982]  ? __pfx_ext4_fill_super+0x10/0x10
+[   92.824046][ T5982]  ? __pfx_get_tree_bdev_flags+0x10/0x10
+[   92.829727][ T5982]  vfs_get_tree+0x92/0x2a0
+[   92.834405][ T5982]  do_new_mount+0x302/0xa10
+[   92.838970][ T5982]  ? apparmor_capable+0x137/0x1a0
+[   92.845392][ T5982]  ? __pfx_do_new_mount+0x10/0x10
+[   92.850851][ T5982]  ? ns_capable+0x8a/0xf0
+[   92.855658][ T5982]  ? kmem_cache_free+0x197/0x620
+[   92.860625][ T5982]  __se_sys_mount+0x313/0x410
+[   92.866399][ T5982]  ? __pfx___se_sys_mount+0x10/0x10
+[   92.871999][ T5982]  ? do_syscall_64+0xbe/0xf80
+[   92.876791][ T5982]  ? __x64_sys_mount+0x20/0xc0
+[   92.881596][ T5982]  do_syscall_64+0xfa/0xf80
+[   92.886160][ T5982]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   92.892335][ T5982]  ? clear_bhb_loop+0x60/0xb0
+[   92.897669][ T5982]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   92.904447][ T5982] RIP: 0033:0x7f3939590eea
+[   92.909010][ T5982] Code: d8 64 89 02 48 c7 c0 ff ff ff ff eb a6 e8 de 1a 00 00 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[   92.929288][ T5982] RSP: 002b:00007fffa9553f88 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[   92.938034][ T5982] RAX: ffffffffffffffda RBX: 00007fffa9554010 RCX: 00007f3939590eea
+[   92.946954][ T5982] RDX: 0000200000000180 RSI: 00002000000001c0 RDI: 00007fffa9553fd0
+[   92.955125][ T5982] RBP: 0000200000000180 R08: 00007fffa9554010 R09: 0000000000800700
+[   92.963266][ T5982] R10: 0000000000800700 R11: 0000000000000246 R12: 00002000000001c0
+[   92.971924][ T5982] R13: 00007fffa9553fd0 R14: 000000000000046f R15: 000000000000002c

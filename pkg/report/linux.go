@@ -1811,7 +1811,7 @@ var linuxOopses = append([]*oops{
 		[]byte("WARNING:"),
 		[]oopsFormat{
 			{
-				title: compile("WARNING: .*lib/debugobjects\\.c.* (?:debug_print|debug_check)"),
+				title: compile("WARNING: .*lib/debugobjects\\.c.* (?:debug_print|debug_check|at)"),
 				fmt:   "WARNING: ODEBUG bug in %[1]v",
 				// Skip all users of ODEBUG as well.
 				stack: warningStackFmt("debug_", "rcu", "hrtimer_", "timer_",
@@ -1819,22 +1819,22 @@ var linuxOopses = append([]*oops{
 					"vfree", "__free_", "debug_check", "kobject_"),
 			},
 			{
-				title: compile("WARNING: .*mm/usercopy\\.c.* usercopy_warn"),
+				title: compile("WARNING: .*mm/usercopy\\.c.* (?:usercopy_warn|at)"),
 				fmt:   "WARNING: bad usercopy in %[1]v",
 				stack: warningStackFmt("usercopy", "__check"),
 			},
 			{
-				title: compile("WARNING: .*lib/kobject\\.c.* kobject_"),
+				title: compile("WARNING: .*lib/kobject\\.c.* (?:kobject_|at)"),
 				fmt:   "WARNING: kobject bug in %[1]v",
 				stack: warningStackFmt("kobject_"),
 			},
 			{
-				title: compile("WARNING: .*fs/proc/generic\\.c.* proc_register"),
+				title: compile("WARNING: .*fs/proc/generic\\.c.* (?:proc_register|at)"),
 				fmt:   "WARNING: proc registration bug in %[1]v",
 				stack: warningStackFmt("proc_"),
 			},
 			{
-				title: compile("WARNING: .*lib/refcount\\.c.* refcount_"),
+				title: compile("WARNING: .*lib/refcount\\.c.* (?:refcount_|at)"),
 				fmt:   "WARNING: refcount bug in %[1]v",
 				stack: warningStackFmt("refcount", "kobject_"),
 			},
@@ -1873,6 +1873,12 @@ var linuxOopses = append([]*oops{
 				title: compile("WARNING: .* usb_submit_urb"),
 				fmt:   "WARNING in %[1]v/usb_submit_urb",
 				stack: warningStackFmt("usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"),
+			},
+			{
+				// Format introduced in https://lore.kernel.org/all/20251110114633.202485143@infradead.org/.
+				title: compile(`WARNING: {{SRC}} at 0x\d+, CPU#\d+`),
+				fmt:   "WARNING in %[2]v",
+				stack: warningStackFmt(),
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
