@@ -4,6 +4,7 @@
 # AF_INET and AF_INET6: DCCP support
 
 include <linux/dccp.h>
+include <linux/in.h>
 
 resource sock_dccp[sock_in]
 
