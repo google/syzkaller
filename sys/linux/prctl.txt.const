@@ -164,6 +164,6 @@ SECCOMP_MODE_FILTER = 2
 SECCOMP_MODE_STRICT = 1
 SUID_DUMP_ROOT = 2
 SUID_DUMP_USER = 1
-XFEATURE_MAX = 19, arm:arm64:mips64le:ppc64le:riscv64:s390x:???
+XFEATURE_MAX = 20, arm:arm64:mips64le:ppc64le:riscv64:s390x:???
 __NR_arch_prctl = 386:384, amd64:158, arm:arm64:mips64le:ppc64le:riscv64:s390x:???
 __NR_prctl = 172, amd64:157, arm64:riscv64:167, mips64le:5153, ppc64le:171
