@@ -16,23 +16,23 @@ import (
 	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
-func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
+func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 	return &api.Bug{
 		Version: api.Version,
-		Title:   bugPage.Bug.Title,
-		ID:      bugPage.Bug.ID,
+		Title:   bug.Title,
+		ID:      bug.ID,
 		Discussions: func() []string {
-			if bugPage.Bug.ExternalLink == "" {
+			if bug.ExternalLink == "" {
 				return nil
 			}
-			return []string{bugPage.Bug.ExternalLink}
+			return []string{bug.ExternalLink}
 		}(),
-		FixCommits: getBugFixCommits(bugPage.Bug),
+		FixCommits: getBugFixCommits(bug.uiBug),
 		CauseCommit: func() *api.Commit {
-			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
+			if bug.BisectCause == nil || bug.BisectCause.Commit == nil {
 				return nil
 			}
-			bisectCause := bugPage.BisectCause
+			bisectCause := bug.BisectCause
 			return &api.Commit{
 				Title:  bisectCause.Commit.Title,
 				Link:   bisectCause.Commit.Link,
@@ -42,7 +42,7 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
 		}(),
 		Crashes: func() []api.Crash {
 			var res []api.Crash
-			for _, crash := range bugPage.Crashes.Crashes {
+			for _, crash := range bug.Crashes {
 				res = append(res, api.Crash{
 					Title:              crash.Title,
 					SyzReproducerLink:  crash.ReproSyzLink,
@@ -165,7 +165,7 @@ func GetJSONDescrFor(page any) ([]byte, error) {
 	var res any
 	switch i := page.(type) {
 	case *uiBugPage:
-		res = getExtAPIDescrForBugPage(i)
+		res = getExtAPIDescrForBug(i.Bug)
 	case *uiTerminalPage:
 		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
 	case *uiMainPage:
