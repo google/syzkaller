@@ -50,6 +50,10 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
 	}
 
+	// Enforce deterministic execution for verifier
+	cfg.Experimental.ResetAccState = true // executor process restarts between program executions to clear accumulated kernel/VM stat.
+	//cfg.Procs = 1 // No parallel processes execution. When enabled slows down execution significantly.
+
 	kernel.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
 		Manager: kernel,
