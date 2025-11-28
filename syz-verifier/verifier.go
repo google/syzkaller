@@ -112,6 +112,8 @@ type Kernel struct {
 	mu     sync.Mutex
 
 	reportGenerator *manager.ReportGeneratorWrapper
+	coverModules    []*vminfo.KernelModule  // Store modules for coverage display
+	coverFilters    manager.CoverageFilters // Store coverage filters
 }
 
 // =============================================================================
@@ -126,20 +128,25 @@ func (vrf *Verifier) RunVerifierFuzzer(ctx context.Context) error {
 	// Initialize corpus synchronization
 	vrf.corpusUpdates = make(chan corpus.NewItemEvent, 256)
 
-	for _, kernel := range vrf.kernels {
+	for idx, kernel := range vrf.kernels {
 		Pools[kernel.name] = kernel.pool
+		// Also set the first pool as default (empty key) for HTTP access without pool parameter
+		if idx == 0 {
+			Pools[""] = kernel.pool
+		}
 	}
 
 	for idx, kernel := range vrf.kernels {
 		if idx == 0 {
 			if kernel.cfg.HTTP != "" {
 				// Initialize HTTP server with the first kernel's configuration
-				// TODO: Enhance to aggregate information from all kernels
+				// Aggregate information from all kernels
 				vrf.http = &manager.HTTPServer{
 					Cfg:       kernel.cfg,
 					StartTime: time.Now(),
 					Pools:     Pools,
 				}
+				// Cover info will be populated later in fuzzingLoop() after VMs are ready
 			}
 		}
 	}
@@ -305,6 +312,20 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 	// Initialize HTTP-visible state.
 	if vrf.http != nil {
 		vrf.http.EnabledSyscalls.Store(totalEnabledSyscalls)
+
+		// Use the first kernel's coverage info for HTTP display
+		// All kernels should have similar coverage info structure
+		kernel0 := vrf.kernels[0]
+		if kernel0.coverModules != nil {
+			log.Logf(1, "updating HTTP server with coverage info from kernel %s (filter PCs: %d)",
+				kernel0.name, len(kernel0.coverFilters.ExecutorFilter))
+			vrf.coverFilters = kernel0.coverFilters
+			vrf.http.Cover.Store(&manager.CoverageInfo{
+				Modules:         kernel0.coverModules,
+				ReportGenerator: kernel0.reportGenerator,
+				CoverFilter:     kernel0.coverFilters.ExecutorFilter,
+			})
+		}
 	}
 	vrf.firstConnect.Store(time.Now().Unix())
 	statSyscalls := stat.New("syscalls", "Number of enabled syscalls", stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
@@ -646,12 +667,17 @@ func (kernel *Kernel) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
-	// kernel.coverFilters = filters. TODO: aggregate to manager
+
+	// Store modules and filters for this kernel
+	kernel.coverModules = modules
+	kernel.coverFilters = filters
+
 	for _, area := range filters.Areas {
-		log.Logf(0, "area %q: %d PCs in the cover filter",
-			area.Name, len(area.CoverPCs))
+		log.Logf(0, "kernel %s area %q: %d PCs in the cover filter",
+			kernel.name, area.Name, len(area.CoverPCs))
 	}
-	log.Logf(0, "executor cover filter: %d PCs", len(filters.ExecutorFilter))
+	log.Logf(0, "kernel %s executor cover filter: %d PCs", kernel.name, len(filters.ExecutorFilter))
+
 	var pcs []uint64
 	for pc := range filters.ExecutorFilter {
 		pcs = append(pcs, pc)
