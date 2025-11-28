@@ -45,7 +45,7 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	if err != nil || head == nil {
 		return SelectResult{}, err
 	}
-	cs.tracer.Log("current HEAD: %q (%v)", head.Hash, head.Date)
+	cs.tracer.Log("current HEAD: %q (commit date: %v)", head.Hash, head.CommitDate)
 	// If the series is already too old, it may be incompatible even if it applies cleanly.
 	const seriesLagsBehind = time.Hour * 24 * 7
 	if diff := head.CommitDate.Sub(series.PublishedAt); series.PublishedAt.Before(head.CommitDate) &&
