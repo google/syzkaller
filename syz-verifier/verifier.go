@@ -668,9 +668,12 @@ func (kernel *Kernel) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, 
 		return nil, fmt.Errorf("failed to init coverage filter: %w", err)
 	}
 
-	// Store modules and filters for this kernel
-	kernel.coverModules = modules
-	kernel.coverFilters = filters
+	// Only store modules and filters for kernel 0 (used by fuzzer and HTTP server)
+	// Other kernels only need to return PCs for their executors
+	if kernel.id == 0 {
+		kernel.coverModules = modules
+		kernel.coverFilters = filters
+	}
 
 	for _, area := range filters.Areas {
 		log.Logf(0, "kernel %s area %q: %d PCs in the cover filter",
