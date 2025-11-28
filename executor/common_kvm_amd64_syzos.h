@@ -1151,7 +1151,10 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 	}
 }
 
-GUEST_CODE static noinline void
+// Clang's LTO may ignore noinline and attempt to inline this function into both callers,
+// which results in duplicate declaration of after_vmentry_label.
+// Applying __optnone should prevent this behavior.
+GUEST_CODE static noinline __optnone void
 guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 {
 	uint64 vmx_error_code = 0;
