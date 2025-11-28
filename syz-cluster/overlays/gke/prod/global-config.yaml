@@ -20,6 +20,7 @@ data:
       - linux-mm
       - linux-unionfs
       - linux-block
+      - linux-fsdevel
     emailReporting:
       name: "syzbot ci"
       sender: dashapi
