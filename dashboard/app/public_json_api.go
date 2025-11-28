@@ -18,9 +18,24 @@ import (
 
 func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 	return &api.Bug{
-		Version: api.Version,
-		Title:   bug.Title,
-		ID:      bug.ID,
+		Version:    api.Version,
+		Title:      bug.Title,
+		ID:         bug.ID,
+		Status:     bug.Status,
+		FirstCrash: bug.FirstTime,
+		LastCrash:  bug.LastTime,
+		FixTime: func() *time.Time {
+			if bug.FixTime.IsZero() {
+				return nil
+			}
+			return &bug.FixTime
+		}(),
+		CloseTime: func() *time.Time {
+			if bug.ClosedTime.IsZero() {
+				return nil
+			}
+			return &bug.ClosedTime
+		}(),
 		Discussions: func() []string {
 			if bug.ExternalLink == "" {
 				return nil
@@ -29,16 +44,21 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 		}(),
 		FixCommits: getBugFixCommits(bug.uiBug),
 		CauseCommit: func() *api.Commit {
-			if bug.BisectCause == nil || bug.BisectCause.Commit == nil {
+			bisectCause := bug.BisectCauseJob
+			if bisectCause == nil || bisectCause.Commit == nil {
 				return nil
 			}
-			bisectCause := bug.BisectCause
-			return &api.Commit{
+			commit := &api.Commit{
 				Title:  bisectCause.Commit.Title,
 				Link:   bisectCause.Commit.Link,
 				Hash:   bisectCause.Commit.Hash,
 				Repo:   bisectCause.KernelRepo,
-				Branch: bisectCause.KernelBranch}
+				Branch: bisectCause.KernelBranch,
+			}
+			if !bisectCause.Commit.Date.IsZero() {
+				commit.Date = &bisectCause.Commit.Date
+			}
+			return commit
 		}(),
 		Crashes: func() []api.Crash {
 			var res []api.Crash
@@ -65,13 +85,17 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 func getBugFixCommits(bug *uiBug) []api.Commit {
 	var res []api.Commit
 	for _, commit := range bug.Commits {
-		res = append(res, api.Commit{
+		apiCommit := api.Commit{
 			Title:  commit.Title,
 			Link:   commit.Link,
 			Hash:   commit.Hash,
 			Repo:   commit.Repo,
 			Branch: commit.Branch,
-		})
+		}
+		if !commit.Date.IsZero() {
+			apiCommit.Date = &commit.Date
+		}
+		res = append(res, apiCommit)
 	}
 	return res
 }
