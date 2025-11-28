@@ -290,16 +290,29 @@ type uiReproAttempt struct {
 type uiBugPage struct {
 	Header          *uiHeader
 	Now             time.Time
-	Bug             *uiBug
-	BisectCause     *uiJob
-	BisectFix       *uiJob
-	FixCandidate    *uiJob
 	Sections        []*uiCollapsible
-	SampleReport    template.HTML
 	Crashes         *uiCrashTable
-	TestPatchJobs   *uiJobList
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
+	Bug             *uiBugDetails
+}
+
+type uiBugDetails struct {
+	*uiBug
+	// If DupOf is not nil, uiBug is a duplicate of DupOf.
+	DupOf *uiBug
+	// Dups are the bugs that have been deduplicated into uiBug.
+	Dups *uiBugGroup
+	// Similar are the bugs from other namespaces that have the same title.
+	Similar         *uiBugGroup
+	BisectCauseJob  *uiJob
+	BisectCauseJobs []*uiJob
+	BisectFixJob    *uiJob
+	BisectFixJobs   []*uiJob
+	FixCandidateJob *uiJob
+	SampleReport    template.HTML
+	Crashes         []*uiCrash
+	TestPatchJobs   *uiJobList
 }
 
 type uiBugLabelGroup struct {
@@ -1070,46 +1083,27 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	state, err := loadReportingState(c)
-	if err != nil {
-		return err
-	}
-	managers, err := CachedManagerList(c, bug.Namespace)
+	bugDetails, err := loadBugDetails(c, bug, accessLevel)
 	if err != nil {
 		return err
 	}
 	sections := []*uiCollapsible{}
-	if bug.DupOf != "" {
-		dup := new(Bug)
-		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
-			return err
-		}
-		if accessLevel >= dup.sanitizeAccess(c, accessLevel) {
-			sections = append(sections, &uiCollapsible{
-				Title: "Duplicate of",
-				Show:  true,
-				Type:  sectionBugList,
-				Value: &uiBugGroup{
-					Now:  timeNow(c),
-					Bugs: []*uiBug{createUIBug(c, dup, state, managers)},
-				},
-			})
-		}
-	}
-	uiBug := createUIBug(c, bug, state, managers)
-	crashes, sampleReport, err := loadCrashesForBug(c, bug)
-	if err != nil {
-		return err
+	if bugDetails.DupOf != nil {
+		sections = append(sections, &uiCollapsible{
+			Title: "Duplicate of",
+			Show:  true,
+			Type:  sectionBugList,
+			Value: &uiBugGroup{
+				Now:  timeNow(c),
+				Bugs: []*uiBug{bugDetails.DupOf},
+			},
+		})
 	}
 	crashesTable := &uiCrashTable{
-		Crashes: crashes,
-		Caption: fmt.Sprintf("Crashes (%d)", bug.NumCrashes),
+		Crashes: bugDetails.Crashes,
+		Caption: fmt.Sprintf("Crashes (%d)", bugDetails.NumCrashes),
 	}
-	dups, err := loadDupsForBug(c, r, bug, state, managers)
-	if err != nil {
-		return err
-	}
-	if len(dups.Bugs) > 0 {
+	if dups := bugDetails.Dups; len(dups.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Duplicate bugs (%d)", len(dups.Bugs)),
 			Type:  sectionBugList,
@@ -1140,46 +1134,13 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: treeTestJobs,
 		})
 	}
-	similar, err := loadSimilarBugsUI(c, r, bug, state)
-	if err != nil {
-		return err
-	}
-	if len(similar.Bugs) > 0 {
+	if similar := bugDetails.Similar; len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
 			Show:  getNsConfig(c, hdr.Namespace).AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
-	}
-	causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
-	if err != nil {
-		return fmt.Errorf("failed to load cause bisections: %w", err)
-	}
-	var bisectCause *uiJob
-	if bug.BisectCause > BisectPending {
-		bisectCause, err = causeBisections.uiBestBisection(c)
-		if err != nil {
-			return err
-		}
-	}
-	fixBisections, err := queryBugJobs(c, bug, JobBisectFix)
-	if err != nil {
-		return fmt.Errorf("failed to load cause bisections: %w", err)
-	}
-	var bisectFix *uiJob
-	if bug.BisectFix > BisectPending {
-		bisectFix, err = fixBisections.uiBestBisection(c)
-		if err != nil {
-			return err
-		}
-	}
-	var fixCandidate *uiJob
-	if bug.FixCandidateJob != "" {
-		fixCandidate, err = fixBisections.uiBestFixCandidate(c)
-		if err != nil {
-			return err
-		}
 	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
@@ -1204,16 +1165,12 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		})
 	}
 	data := &uiBugPage{
-		Header:       hdr,
-		Now:          timeNow(c),
-		Bug:          uiBug,
-		BisectCause:  bisectCause,
-		BisectFix:    bisectFix,
-		FixCandidate: fixCandidate,
-		Sections:     sections,
-		SampleReport: sampleReport,
-		Crashes:      crashesTable,
-		LabelGroups:  getLabelGroups(c, bug),
+		Header:      hdr,
+		Now:         timeNow(c),
+		Sections:    sections,
+		LabelGroups: getLabelGroups(c, bug),
+		Crashes:     crashesTable,
+		Bug:         bugDetails,
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
@@ -1222,26 +1179,16 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
-	if len(fixBisections.all()) > 1 || len(fixBisections.all()) > 0 && bisectFix == nil {
-		uiList, err := fixBisections.uiAll(c)
-		if err != nil {
-			return err
-		}
-		if len(uiList) != 0 {
-			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Fix bisection attempts", uiList))
-		}
+	// nolint: dupl
+	if len(bugDetails.BisectFixJobs) > 1 || len(bugDetails.BisectFixJobs) > 0 && bugDetails.BisectFixJob == nil {
+		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
-	if len(causeBisections.all()) > 1 || len(causeBisections.all()) > 0 && bisectCause == nil {
-		uiList, err := causeBisections.uiAll(c)
-		if err != nil {
-			return err
-		}
-		if len(uiList) != 0 {
-			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Cause bisection attempts", uiList))
-		}
+	// nolint: dupl
+	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
+		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+			"Cause bisection attempts", bugDetails.BisectCauseJobs))
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
@@ -1249,6 +1196,76 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func loadBugDetails(c context.Context, bug *Bug, accessLevel AccessLevel) (*uiBugDetails, error) {
+	managers, err := CachedManagerList(c, bug.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	state, err := loadReportingState(c)
+	if err != nil {
+		return nil, err
+	}
+	ret := &uiBugDetails{
+		uiBug: createUIBug(c, bug, state, managers),
+	}
+	if bug.DupOf != "" {
+		dup := new(Bug)
+		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
+			return nil, err
+		}
+		if accessLevel >= dup.sanitizeAccess(c, accessLevel) {
+			ret.DupOf = createUIBug(c, dup, state, managers)
+		}
+	}
+	ret.Crashes, ret.SampleReport, err = loadCrashesForBug(c, bug)
+	if err != nil {
+		return nil, err
+	}
+	ret.Dups, err = loadDupsForBug(c, bug, state, managers, accessLevel)
+	if err != nil {
+		return nil, err
+	}
+	ret.Similar, err = loadSimilarBugsUI(c, bug, state, accessLevel)
+	if err != nil {
+		return nil, err
+	}
+	causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cause bisections: %w", err)
+	}
+	ret.BisectCauseJobs, err = causeBisections.uiAll(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
+	}
+	if bug.BisectCause > BisectPending {
+		ret.BisectCauseJob, err = causeBisections.uiBestBisection(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	fixBisections, err := queryBugJobs(c, bug, JobBisectFix)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load fix bisections: %w", err)
+	}
+	ret.BisectFixJobs, err = fixBisections.uiAll(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
+	}
+	if bug.BisectFix > BisectPending {
+		ret.BisectFixJob, err = fixBisections.uiBestBisection(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if bug.FixCandidateJob != "" {
+		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ret, nil
 }
 
 func getReproAttempts(bug *Bug) []*uiReproAttempt {
@@ -1816,7 +1833,8 @@ func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
 	return query
 }
 
-func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
+func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState,
+	managers []string, accessLevel AccessLevel) (
 	*uiBugGroup, error) {
 	bugHash := bug.keyHash(c)
 	var dups []*Bug
@@ -1828,7 +1846,6 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 		return nil, err
 	}
 	var results []*uiBug
-	accessLevel := accessLevel(c, r)
 	for _, dup := range dups {
 		if accessLevel < dup.sanitizeAccess(c, accessLevel) {
 			continue
@@ -1845,9 +1862,9 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 	return group, nil
 }
 
-func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
+func loadSimilarBugsUI(c context.Context, bug *Bug, state *ReportingState,
+	accessLevel AccessLevel) (*uiBugGroup, error) {
 	managers := make(map[string][]string)
-	accessLevel := accessLevel(c, r)
 	similarBugs, err := loadSimilarBugs(c, bug)
 	if err != nil {
 		return nil, err
