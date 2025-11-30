@@ -113,6 +113,7 @@ func main() {
 	}
 	osutil.MkdirAll(workdir)
 
+	log.EnableLogCaching(1000, 1<<20)
 	log.Logf(0, "initialized %d sources", len(sources))
 
 	vrf := &Verifier{

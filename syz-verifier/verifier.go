@@ -689,17 +689,32 @@ func (kernel *Kernel) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, 
 }
 
 func (kernel *Kernel) MaxSignal() signal.Signal {
-	if kernel.phase >= kPhaseLoadedQueue {
-		kernel.reqMaxSignal <- kernel.id
-		kernel.setPhaseLocked(kPhaseAwaitingMaxSignal)
-		sig := <-kernel.maxSignal
-		kernel.setPhaseLocked(kPhaseLoadedQueue)
-		return sig
+	kernel.mu.Lock()
+	if kernel.phase < kPhaseLoadedQueue {
+		kernel.mu.Unlock()
+		return nil
 	}
-	return nil
+	if kernel.phase == kPhaseAwaitingMaxSignal {
+		// Another goroutine is already requesting max signal
+		kernel.mu.Unlock()
+		return nil
+	}
+	kernel.phase = kPhaseAwaitingMaxSignal
+	kernel.mu.Unlock()
+
+	kernel.reqMaxSignal <- kernel.id
+	sig := <-kernel.maxSignal
+
+	kernel.mu.Lock()
+	kernel.phase = kPhaseLoadedQueue
+	kernel.mu.Unlock()
+
+	return sig
 }
 
 func (kernel *Kernel) setPhaseLocked(newPhase int) {
+	kernel.mu.Lock()
+	defer kernel.mu.Unlock()
 	if kernel.phase == newPhase {
 		panic("repeated phase update")
 	}
