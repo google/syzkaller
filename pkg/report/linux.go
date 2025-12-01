@@ -1398,6 +1398,8 @@ var linuxStackParams = &stackParams{
 		"__timer_delete_sync",
 		"sk_stop_timer_sync",
 		"__mod_timer",
+		"fast_dput",
+		"dput",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

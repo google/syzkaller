@@ -1,0 +1,76 @@
+TITLE: WARNING in ovl_stack_put
+TYPE: WARNING
+
+[  195.358969][ T5830] ------------[ cut here ]------------
+[  195.364985][ T5830] WARNING: fs/dcache.c:829 at fast_dput+0x334/0x430, CPU#1: syz-executor/5830
+[  195.373920][ T5830] Modules linked in:
+[  195.378541][ T5830] CPU: 1 UID: 0 PID: 5830 Comm: syz-executor Not tainted syzkaller #0 PREEMPT(full) 
+[  195.388052][ T5830] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+[  195.388344][ T5935] usb 4-1: Using ep0 maxpacket: 16
+[  195.398271][ T5830] RIP: 0010:fast_dput+0x334/0x430
+[  195.408590][ T5830] Code: e3 81 ff 48 b8 00 00 00 00 00 fc ff df 41 0f b6 44 05 00 84 c0 0f 85 e2 00 00 00 41 80 0e 40 e9 fd fe ff ff e8 4d e3 81 ff 90 <0f> 0b 90 e9 ef fe ff ff 44 89 e6 81 e6 00 00 04 00 31 ff e8 74 e7
+[  195.410107][ T5825] usb 1-1: config index 0 descriptor too short (expected 215, got 45)
+[  195.428283][ T5830] RSP: 0018:ffffc900040af8e8 EFLAGS: 00010293
+[  195.428311][ T5830] RAX: ffffffff82400fe3 RBX: ffff888059c7a0b8 RCX: ffff888028138000
+[  195.428326][ T5830] RDX: 0000000000000000 RSI: 00000000ffffff80 RDI: 0000000000000001
+[  195.428337][ T5830] RBP: 00000000ffffff80 R08: 0000000000000003 R09: 0000000000000004
+[  195.428349][ T5830] R10: dffffc0000000000 R11: fffff52000815f0c R12: dffffc0000000000
+[  195.428362][ T5830] R13: 1ffff1100b38f41f R14: ffff888059c7a000 R15: ffff888059c7a0f8
+[  195.428376][ T5830] FS:  000055557e3d5500(0000) GS:ffff888125b03000(0000) knlGS:0000000000000000
+[  195.428393][ T5830] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  195.428407][ T5830] CR2: 00007ffd130c7ba8 CR3: 000000005dd7a000 CR4: 00000000003526f0
+[  195.428425][ T5830] Call Trace:
+[  195.428434][ T5830]  <TASK>
+[  195.428442][ T5830]  ? dput+0x37/0x1a0
+[  195.428467][ T5830]  dput+0xe8/0x1a0
+[  195.446260][ T5825] usb 1-1: New USB device found, idVendor=0424, idProduct=7850, bcdDevice= 0.00
+[  195.450810][ T5830]  ovl_stack_put+0x6a/0xa0
+[  195.450848][ T5830]  ovl_destroy_inode+0xaa/0x150
+[  195.450870][ T5830]  evict+0x8aa/0xae0
+[  195.450901][ T5830]  ? __pfx_evict+0x10/0x10
+[  195.450922][ T5830]  ? _raw_spin_unlock+0x28/0x50
+[  195.450942][ T5830]  ? iput+0xcc6/0x1030
+[  195.450970][ T5830]  __dentry_kill+0x209/0x660
+[  195.450996][ T5830]  ? shrink_kill+0x8d/0x2c0
+[  195.451013][ T5830]  shrink_kill+0xa9/0x2c0
+[  195.451032][ T5830]  shrink_dentry_list+0x2e0/0x5e0
+[  195.451054][ T5830]  ? __pfx_select_collect_umount+0x10/0x10
+[  195.451077][ T5830]  shrink_dcache_tree+0xca/0x2e0
+[  195.459502][ T5825] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[  195.467176][ T5830]  ? __pfx_select_collect_umount+0x10/0x10
+[  195.467220][ T5830]  ? __pfx_shrink_dcache_tree+0x10/0x10
+[  195.480866][ T5825] usb 1-1: Product: syz
+[  195.483638][ T5830]  do_one_tree+0x28/0xe0
+[  195.495414][ T5825] usb 1-1: Manufacturer: syz
+[  195.498996][ T5830]  shrink_dcache_for_umount+0xa0/0x170
+[  195.499032][ T5830]  generic_shutdown_super+0x67/0x2c0
+[  195.499057][ T5830]  kill_anon_super+0x3b/0x70
+[  195.499080][ T5830]  deactivate_locked_super+0xbc/0x130
+[  195.508417][ T5935] usb 4-1: unable to get BOS descriptor or descriptor too short
+[  195.510405][ T5830]  cleanup_mnt+0x425/0x4c0
+[  195.513631][ T5825] usb 1-1: SerialNumber: syz
+[  195.517316][ T5830]  ? lockdep_hardirqs_on+0x98/0x140
+[  195.517349][ T5830]  task_work_run+0x1d4/0x260
+[  195.517381][ T5830]  ? __pfx_task_work_run+0x10/0x10
+[  195.517406][ T5830]  ? exit_to_user_mode_loop+0x55/0x4f0
+[  195.517434][ T5830]  exit_to_user_mode_loop+0xff/0x4f0
+[  195.523031][ T5935] usb 4-1: config 127 has an invalid descriptor of length 0, skipping remainder of the config
+[  195.530247][ T5830]  ? rcu_is_watching+0x15/0xb0
+[  195.534784][ T5935] usb 4-1: config 127 has 0 interfaces, different from the descriptor's value: 1
+[  195.539532][ T5830]  do_syscall_64+0x2e3/0xf80
+[  195.539574][ T5830]  ? entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  195.681013][ T5935] usb 4-1: New USB device found, idVendor=04b8, idProduct=0202, bcdDevice=3e.b8
+[  195.683279][ T5830]  ? clear_bhb_loop+0x60/0xb0
+[  195.683313][ T5830]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[  195.694429][ T5935] usb 4-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[  195.698420][ T5830] RIP: 0033:0x7fa45b190a77
+[  195.698446][ T5830] Code: a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 a8 ff ff ff f7 d8 64 89 02 b8
+[  195.698462][ T5830] RSP: 002b:00007ffd130c8358 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+[  195.698484][ T5830] RAX: 0000000000000000 RBX: 00007fa45b213d7d RCX: 00007fa45b190a77
+[  195.698498][ T5830] RDX: 0000000000000000 RSI: 0000000000000009 RDI: 00007ffd130c8410
+[  195.708629][ T5935] usb 4-1: Product: syz
+[  195.712202][ T5830] RBP: 00007ffd130c8410 R08: 0000000000000000 R09: 0000000000000000
+[  195.712219][ T5830] R10: 00000000ffffffff R11: 0000000000000246 R12: 00007ffd130c94a0
+[  195.712233][ T5830] R13: 00007fa45b213d7d R14: 000000000002fadc R15: 00007ffd130c94e0
+[  195.738345][ T5935] usb 4-1: Manufacturer: syz
+[  195.746308][ T5830]  </TASK>
