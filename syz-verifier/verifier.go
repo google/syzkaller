@@ -139,8 +139,8 @@ func (vrf *Verifier) RunVerifierFuzzer(ctx context.Context) error {
 	for idx, kernel := range vrf.kernels {
 		if idx == 0 {
 			if kernel.cfg.HTTP != "" {
-				// Initialize HTTP server with the first kernel's configuration
-				// Aggregate information from all kernels
+				// Initialize HTTP server with the first kernel's configuration.
+				// Currently, only kernel 0's data is used for coverage display and fuzzer state.
 				vrf.http = &manager.HTTPServer{
 					Cfg:       kernel.cfg,
 					StartTime: time.Now(),
@@ -189,6 +189,8 @@ func (vrf *Verifier) loadCorpus(enabledSyscalls map[*prog.Syscall]bool) []fuzzer
 	return ret.Candidates
 }
 
+// corpusMinimization runs in a background goroutine (started in fuzzingLoop)
+// and periodically minimizes the corpus every minute.
 func (vrf *Verifier) corpusMinimization() {
 	for range time.NewTicker(time.Minute).C {
 		vrf.mu.Lock()
@@ -197,6 +199,9 @@ func (vrf *Verifier) corpusMinimization() {
 	}
 }
 
+// minimizeCorpusLocked removes redundant programs from the corpus while preserving
+// all discovered coverage. Programs whose coverage is entirely contained in other
+// programs are removed to keep the corpus lean and efficient.
 func (vrf *Verifier) minimizeCorpusLocked() {
 	cm := &manager.CorpusMinimizer{
 		Corpus:         vrf.corpus,
@@ -474,12 +479,6 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 			for callIdx := 0; callIdx < len(responses[0].Info.Calls) && callIdx < len(res.Info.Calls); callIdx++ {
 				call0 := responses[0].Info.Calls[callIdx]
 				call1 := res.Info.Calls[callIdx]
-
-				// Skip comparison if either call wasn't actually executed
-				// Errno >= 512 indicates execution failure (not real kernel errno)
-				if call0.Error >= 512 || call1.Error >= 512 {
-					continue
-				}
 
 				// Only report if errno differs between successfully executed calls
 				if call0.Error != call1.Error {
