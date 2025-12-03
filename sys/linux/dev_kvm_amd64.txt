@@ -590,28 +590,61 @@ kvm_guest_debug_arch_x86 {
 	reg	array[int64, 8]
 }
 
-kvm_nested_state {
+kvm_vmx_smm {
+	flags	flags[kvm_nested_smm_flags, int16]
+}
+
+# Size must be 120 bytes to start data at 128 bytes.
+kvm_vmx_nested_state_hdr {
+	vmxon_pa			flags[kvm_guest_addrs, int64]
+	vmcs12_pa			flags[kvm_guest_addrs, int64]
+	smm				kvm_vmx_smm
+	flags				flags[kvm_vmx_nested_state_hdr_flags, int32]
+	preemption_timer_deadline	int64
+} [size[120]]
+
+kvm_vmx_nested_state_data {
+	vmcs12		array[int8, KVM_STATE_NESTED_VMX_VMCS_SIZE]
+	shadow_vmcs12	array[int8, KVM_STATE_NESTED_VMX_VMCS_SIZE]
+}
+
+# format = KVM_STATE_NESTED_FORMAT_VMX
+kvm_nested_state_vmx {
 	flags	flags[kvm_nested_state_flags, int16]
 	format	const[0, int16]
 	size	bytesize[parent, int32]
-	hdr	kvm_vmx_nested_state
-	data	void
+	hdr	kvm_vmx_nested_state_hdr
+	data	kvm_vmx_nested_state_data
 }
 
-kvm_nested_state_arg {
-	state		kvm_nested_state
-	current_vmcs	array[int8, VMCS12_SIZE]
-	shadow_vmcs	array[int8, VMCS12_SIZE]
-}
-
-kvm_vmx_nested_state {
-	vmxon_pa	flags[kvm_guest_addrs, int64]
-	vmcs_pa		flags[kvm_guest_addrs, int64]
-	smm_flags	flags[kvm_nested_smm_flags, int16]
+# SVM descriptions taken from https://elixir.bootlin.com/linux/latest/source/arch/x86/include/uapi/asm/kvm.h
+# Size must be 120 bytes to start data at 128 bytes.
+kvm_svm_nested_state_hdr {
+	vmcb_pa	flags[kvm_guest_addrs, int64]
 } [size[120]]
 
-kvm_nested_state_flags = KVM_STATE_NESTED_GUEST_MODE, KVM_STATE_NESTED_RUN_PENDING
+kvm_svm_nested_state_data {
+	vmcb12	array[int8, KVM_STATE_NESTED_SVM_VMCB_SIZE]
+}
+
+# format = KVM_STATE_NESTED_FORMAT_SVM
+kvm_nested_state_svm {
+	flags	flags[kvm_nested_state_flags, int16]
+	format	const[1, int16]
+	size	bytesize[parent, int32]
+	hdr	kvm_svm_nested_state_hdr
+	data	kvm_svm_nested_state_data
+}
+
+# See https://docs.kernel.org/virt/kvm/api.html#kvm-get-nested-state.
+kvm_nested_state_arg [
+	vmx	kvm_nested_state_vmx
+	svm	kvm_nested_state_svm
+] [varlen]
+
+kvm_nested_state_flags = KVM_STATE_NESTED_GUEST_MODE, KVM_STATE_NESTED_RUN_PENDING, KVM_STATE_NESTED_EVMCS, KVM_STATE_NESTED_MTF_PENDING, KVM_STATE_NESTED_GIF_SET
 kvm_nested_smm_flags = KVM_STATE_NESTED_SMM_GUEST_MODE, KVM_STATE_NESTED_SMM_VMXON
+kvm_vmx_nested_state_hdr_flags = KVM_STATE_VMX_PREEMPTION_TIMER_DEADLINE
 
 kvm_cpuid_entry {
 	func	flags[kvm_cpu_function, int32]
