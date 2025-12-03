@@ -5,6 +5,8 @@
 // All structures in this package are backwards compatible.
 package api
 
+import "time"
+
 const Version = 1
 
 type BugGroup struct {
@@ -20,11 +22,16 @@ type BugSummary struct {
 }
 
 type Bug struct {
-	Version     int      `json:"version"`
-	Title       string   `json:"title,omitempty"`
-	ID          string   `json:"id"`
-	FixCommits  []Commit `json:"fix-commits,omitempty"`
-	CauseCommit *Commit  `json:"cause-commit,omitempty"`
+	Version     int        `json:"version"`
+	Title       string     `json:"title,omitempty"`
+	ID          string     `json:"id"`
+	Status      string     `json:"status"`
+	FirstCrash  time.Time  `json:"first-crash"`
+	LastCrash   time.Time  `json:"last-crash"`
+	FixTime     *time.Time `json:"fix-time,omitempty"`
+	CloseTime   *time.Time `json:"close-time,omitempty"`
+	FixCommits  []Commit   `json:"fix-commits,omitempty"`
+	CauseCommit *Commit    `json:"cause-commit,omitempty"`
 	// Links to the discussions.
 	Discussions []string `json:"discussions,omitempty"`
 	Crashes     []Crash  `json:"crashes,omitempty"`
@@ -45,9 +52,10 @@ type Crash struct {
 }
 
 type Commit struct {
-	Title  string `json:"title"`
-	Link   string `json:"link,omitempty"`
-	Hash   string `json:"hash,omitempty"`
-	Repo   string `json:"repo,omitempty"`
-	Branch string `json:"branch,omitempty"`
+	Title  string     `json:"title"`
+	Link   string     `json:"link,omitempty"`
+	Hash   string     `json:"hash,omitempty"`
+	Repo   string     `json:"repo,omitempty"`
+	Branch string     `json:"branch,omitempty"`
+	Date   *time.Time `json:"date,omitempty"`
 }
