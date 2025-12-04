@@ -400,9 +400,9 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 				Corpus:         vrf.corpus,
 				Snapshot:       vrf.cfg.Snapshot,
 				Coverage:       vrf.cfg.Cover,
-				FaultInjection: faultFeature,
-				Comparisons:    compariosonFeature,
-				Collide:        true,
+				FaultInjection: false,
+				Comparisons:    false,
+				Collide:        false,
 				EnabledCalls:   totalEnabledSyscalls,
 				NoMutateCalls:  vrf.cfg.NoMutateCalls,
 				FetchRawCover:  vrf.cfg.RawCover,
@@ -473,9 +473,10 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 			wg.Wait()
 			log.Logf(3, "all %d kernels finished execution", len(vrf.sources))
 			log.Logf(3, "comparing results for %d kernels", len(vrf.sources))
+
 			opts := []cmp.Option{
 				cmpopts.IgnoreFields(queue.Result{}, "Executor"),
-				cmpopts.IgnoreFields(flatrpc.ProgInfoRawT{}, "Elapsed"),
+				cmpopts.IgnoreFields(flatrpc.ProgInfoRawT{}, "Elapsed", "MemoryHash"),
 				cmpopts.IgnoreFields(flatrpc.CallInfoRawT{}, "Signal", "Cover", "Comps"),
 				cmp.Transformer("NormalizeFlags", func(call flatrpc.CallInfoRawT) flatrpc.CallInfoRawT {
 					// Keep only behavioral flags (Executed + Finished), filter out noise
@@ -516,6 +517,12 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 					}
 					log.Logf(0, "Kernel 0: output: %s", responses[0].Output)
 					log.Logf(0, "Kernel %d: output: %s", i, res.Output)
+					log.Logf(0, "Kernel 0: error: %s", responses[0].Err)
+					log.Logf(0, "Kernel %d: error: %s", i, res.Err)
+					log.Logf(0, "Kernel 0: info: %+v", responses[0].Info)
+					log.Logf(0, "Kernel %d: info: %+v", i, res.Info)
+					// log.Logf(0, "Kernel 0: memHash: %x", responses[0].Info.MemoryHash)
+					// log.Logf(0, "Kernel %d: memHash: %x", i, res.Info.MemoryHash)
 					log.Logf(0, "==========================================")
 					// TODO: send to repro
 				}

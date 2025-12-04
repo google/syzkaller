@@ -22,6 +22,12 @@
 #include <unistd.h>
 #endif
 
+#if GOOS_linux
+#include <sys/mman.h>
+#include <sys/ptrace.h>
+#include <fcntl.h>
+#endif
+
 #include "defs.h"
 
 #include "pkg/flatrpc/flatrpc.h"
@@ -94,6 +100,12 @@ static NORETURN void doexit(int status);
 static NORETURN void doexit_thread(int status);
 #endif
 
+// Memory hash calculation for child processes
+#if GOOS_linux
+static uint32 calculate_child_memory_hash(int child_pid);
+static uint32 hash_child_memory_region(int mem_fd, uint64 start, uint64 size);
+#endif
+
 // Print debug output that is visible when running syz-manager/execprog with -debug flag.
 // Debug output is supposed to be relatively high-level (syscalls executed, return values, timing, etc)
 // and is intended mostly for end users. If you need to debug lower-level details, use debug_verbose
@@ -147,6 +159,7 @@ struct alignas(8) OutputData {
 	std::atomic<uint32> completed;
 	std::atomic<uint32> num_calls;
 	std::atomic<flatbuffers::Offset<flatbuffers::Vector<uint8_t>>> result_offset;
+	std::atomic<uint32> memory_hash; // Memory hash calculated by parent process
 	struct {
 		// Call index in the test program (they may be out-of-order is some syscalls block).
 		int index;
@@ -161,6 +174,7 @@ struct alignas(8) OutputData {
 		completed.store(0, std::memory_order_relaxed);
 		num_calls.store(0, std::memory_order_relaxed);
 		result_offset.store(0, std::memory_order_relaxed);
+		memory_hash.store(0, std::memory_order_relaxed);
 	}
 };
 
@@ -950,6 +964,9 @@ void execute_one()
 		SnapshotStart();
 	else
 		realloc_output_data();
+	debug("execute_one: procid=%llu, request_id=%llu, request_type=%llu\n",
+		      procid, request_id, (uint64)request_type);
+	raise(SIGSTOP); // stop to produce a hash of the memory.
 	// Output buffer may be pkey-protected in snapshot mode, so don't write the output size
 	// (it's fixed and known anyway).
 	output_builder.emplace(output_data, output_size, !flag_snapshot);
@@ -1419,8 +1436,8 @@ void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bo
 	call.offset = off;
 	output_data->consumed.store(output_builder->GetSize(), std::memory_order_release);
 	output_data->completed.store(slot + 1, std::memory_order_release);
-	debug_verbose("out #%u: index=%u errno=%d flags=0x%x total_size=%u\n",
-		      slot + 1, index, error, static_cast<unsigned>(flags), call.data_size - start_size);
+	debug("out #%u: index=%u errno=%d flags=0x%x\n",
+		      slot + 1, index, error, static_cast<unsigned>(flags));
 }
 
 void write_call_output(thread_t* th, bool finished)
@@ -1449,6 +1466,363 @@ void write_extra_output()
 	write_output(-1, &extra_cov, rpc::CallFlag::NONE, 997, all_extra_signal);
 	cover_reset(&extra_cov);
 }
+
+#if GOOS_linux
+struct memory_region {
+	uint64 start;
+	uint64 end;
+	bool readable;
+};
+
+// Parse /proc/self/maps to get memory regions
+static std::vector<memory_region> get_memory_regions()
+{
+	std::vector<memory_region> regions;
+	FILE* f = fopen("/proc/self/maps", "r");
+	if (!f) {
+		debug("memory_hash: failed to open /proc/self/maps: %s\n", strerror(errno));
+		return regions;
+	}
+	
+	char line[1024];
+	int line_count = 0;
+	while (fgets(line, sizeof(line), f)) {
+		line_count++;
+		uint64 start, end;
+		char perms[8];
+		debug("memory_hash: parsing line %d: %s", line_count, line);
+		if (sscanf(line, "%llx-%llx %7s", &start, &end, perms) == 3) {
+			memory_region region;
+			region.start = start;
+			region.end = end;
+			region.readable = (perms[0] == 'r');
+			regions.push_back(region);
+			debug("memory_hash: line %d: %llx-%llx %s (readable=%d)\n", 
+				      line_count, start, end, perms, region.readable);
+		} else {
+			debug("memory_hash: failed to parse line %d: %s", line_count, line);
+		}
+	}
+	fclose(f);
+	debug("memory_hash: parsed %zu memory regions from /proc/self/maps\n", regions.size());
+	return regions;
+}
+
+// Calculate simple hash of memory content
+static uint32 hash_memory_region(uint64 start, uint64 size)
+{
+	debug("memory_hash: hashing region %llx-%llx (size=%llu)\n", 
+		      start, start + size, size);
+	
+	uint32 hash_val = 0;
+	const uint8* data = (const uint8*)start;
+	uint32 chunk_count = 0;
+	uint32 read_errors = 0;
+	
+	// For very large regions, use sampling to maintain performance
+	uint64 step = 1;
+	if (size > (1ULL << 20)) { // If larger than 1MB, sample every 4KB
+		step = 4096;
+		debug("memory_hash: large region, sampling every %llu bytes\n", step);
+	}
+	
+	// Use the existing hash function with a simple iteration over memory
+	for (uint64 i = 0; i < size; i += step) {
+		uint32 chunk = 0;
+		bool read_success = false;
+		
+		// Safely read 4 bytes or less
+		uint64 remaining = size - i;
+		uint64 read_size = remaining >= 4 ? 4 : remaining;
+		
+		if (read_size >= 4) {
+			NONFAILING(chunk = *(uint32*)(data + i); read_success = true);
+		} else {
+			// Read remaining bytes
+			for (uint64 j = 0; j < read_size; j++) {
+				uint8 byte_val = 0;
+				NONFAILING(byte_val = data[i + j]; read_success = true);
+				chunk |= (byte_val << (j * 8));
+			}
+		}
+		
+		if (read_success) {
+			hash_val ^= hash(chunk + i);
+			chunk_count++;
+		} else {
+			read_errors++;
+			// Still hash something to maintain consistency
+			hash_val ^= hash(0xDEADBEEF + i);
+		}
+		
+		// For sampling mode, skip ahead by step size
+		if (step > 1) {
+			i += step - 1; // -1 because the loop will add 1
+		}
+	}
+	
+	if (read_errors > 0) {
+		debug("memory_hash: region had %u read errors out of %u chunks\n", 
+		      read_errors, chunk_count + read_errors);
+	}
+	
+	debug("memory_hash: region hash=0x%x (sampled %u chunks with step %llu, %u errors)\n", 
+				hash_val, chunk_count, step, read_errors);
+	return hash_val;
+}
+
+// Calculate hash of all readable memory regions
+static uint32 __attribute__((unused)) calculate_memory_hash()
+{
+	debug("memory_hash: starting memory hash calculation\n");
+	
+	std::vector<memory_region> regions = get_memory_regions();
+	if (regions.empty()) {
+		debug("memory_hash: no memory regions found, returning 0\n");
+		return 0;
+	}
+	
+	// Use a simple hash combination approach
+	uint32 combined_hash = 0;
+	uint32 region_count = 0;
+	uint32 skipped_unreadable = 0;
+	uint32 skipped_empty = 0;
+	uint32 split_regions = 0;
+	uint64 total_bytes_hashed = 0;
+	
+	// Split large regions into chunks of max 64MB to balance coverage vs performance
+	const uint64 max_chunk_size = 64ULL << 20; // 64MB
+	
+	for (const auto& region : regions) {
+		if (!region.readable) {
+			skipped_unreadable++;
+			continue;
+		}
+			
+		uint64 size = region.end - region.start;
+		if (size == 0) {
+			skipped_empty++;
+			continue;
+		}
+		
+		// Split large regions into manageable chunks
+		uint64 current_start = region.start;
+		uint64 remaining_size = size;
+		bool region_was_split = false;
+		
+		while (remaining_size > 0) {
+			uint64 chunk_size = remaining_size > max_chunk_size ? max_chunk_size : remaining_size;
+			
+			if (remaining_size > max_chunk_size && !region_was_split) {
+				debug("memory_hash: splitting large region %llx-%llx (size=%llu) into chunks\n", 
+				      region.start, region.end, size);
+				region_was_split = true;
+				split_regions++;
+			}
+			
+			debug("memory_hash: processing region %d: %llx-%llx (size=%llu)%s\n", 
+			      region_count + 1, current_start, current_start + chunk_size, chunk_size,
+			      region_was_split ? " [chunk]" : "");
+			
+			uint32 region_hash = hash_memory_region(current_start, chunk_size);
+			uint32 old_combined = combined_hash;
+			combined_hash ^= hash(region_hash + region_count);
+			total_bytes_hashed += chunk_size;
+			region_count++;
+			
+			debug("memory_hash: region %d hash=0x%x, combined: 0x%x -> 0x%x\n", 
+			      region_count, region_hash, old_combined, combined_hash);
+			
+			// Move to next chunk
+			current_start += chunk_size;
+			remaining_size -= chunk_size;
+			
+			if (region_count > 2000) { // Increased limit since we're splitting regions
+				debug("memory_hash: reached region limit (2000), stopping\n");
+				goto done;
+			}
+		}
+	}
+	
+done:
+	debug("memory_hash: final result=0x%x (processed %u regions, %llu bytes total)\n", 
+	      combined_hash, region_count, total_bytes_hashed);
+	debug("memory_hash: skipped %u unreadable, %u empty regions, split %u large regions\n", 
+	      skipped_unreadable, skipped_empty, split_regions);
+	
+	return combined_hash;
+}
+
+// Calculate memory hash for a child process by PID
+static uint32 calculate_child_memory_hash(int child_pid)
+{
+	debug("memory_hash: calculating hash for child PID %d\n", child_pid);
+	
+	char maps_path[64];
+	char mem_path[64];
+	snprintf(maps_path, sizeof(maps_path), "/proc/%d/maps", child_pid);
+	snprintf(mem_path, sizeof(mem_path), "/proc/%d/mem", child_pid);
+	
+	// Parse child's memory regions
+	std::vector<memory_region> regions;
+	FILE* f = fopen(maps_path, "r");
+	if (!f) {
+		debug("memory_hash: failed to open %s: %s\n", maps_path, strerror(errno));
+		return 0;
+	}
+	
+	char line[1024];
+	int line_count = 0;
+	while (fgets(line, sizeof(line), f)) {
+		line_count++;
+		uint64 start, end;
+		char perms[8];
+		if (strstr(line, "(deleted)") || strstr(line, "kcov") || strstr(line, "[heap]")) {
+			debug("memory_hash: skipping line %d: %s", line_count, line);
+			continue; // Skip deleted regions and stack
+		}
+		if (sscanf(line, "%llx-%llx %7s", &start, &end, perms) == 3) {
+			if (perms[0] == 'r') { // Only readable regions
+				memory_region region;
+				region.start = start;
+				region.end = end;
+				region.readable = true;
+				regions.push_back(region);
+				debug("memory_hash: %s", line);
+			}
+		}
+	}
+	fclose(f);
+	
+	if (regions.empty()) {
+		debug("memory_hash: no readable regions found in child\n");
+		return 0;
+	}
+	
+	// Open child's memory file
+	int mem_fd = open(mem_path, O_RDONLY);
+	if (mem_fd == -1) {
+		debug("memory_hash: failed to open %s: %s\n", mem_path, strerror(errno));
+		return 0;
+	}
+	
+	// Hash child's memory regions
+	uint32 combined_hash = 0;
+	uint32 region_count = 0;
+	uint64 total_bytes_hashed = 0;
+	
+	for (const auto& region : regions) {
+		uint64 size = region.end - region.start;
+		if (size == 0) continue;
+		
+		// Limit region size to avoid hanging
+		if (size > (64ULL << 20)) { // 64MB max
+			size = 64ULL << 20;
+			debug("memory_hash: truncating large region to 64MB\n");
+		}
+		
+		uint32 region_hash = hash_child_memory_region(mem_fd, region.start, size);
+		uint32 old_combined = combined_hash;
+		combined_hash ^= hash(region_hash + region_count);
+		total_bytes_hashed += size;
+		region_count++;
+		
+		debug("memory_hash: child region (%llx-%llx) %d hash=0x%x, combined: 0x%x -> 0x%x\n", region.start, region.end,
+		      region_count, region_hash, old_combined, combined_hash);
+		
+		if (region_count > 500) { // Reasonable limit for child process
+			debug("memory_hash: reached region limit (500), stopping\n");
+			break;
+		}
+	}
+	
+	close(mem_fd);
+	
+	debug("memory_hash: child memory hash=0x%x (processed %u regions, %llu bytes)\n", 
+	      combined_hash, region_count, total_bytes_hashed);
+	
+	return combined_hash;
+}
+
+// Hash a memory region from child process via /proc/PID/mem
+static uint32 hash_child_memory_region(int mem_fd, uint64 start, uint64 size)
+{
+	debug("memory_hash: hashing child region %llx-%llx (size=%llu)\n", start, start + size, size);
+	
+	uint32 hash_val = 0;
+	uint32 chunk_count = 0;
+	uint32 read_errors = 0;
+	
+	// Use sampling for large regions
+	uint64 step = 4096; // Sample every 4KB for safety
+	if (size < 4096) {
+		step = size / 4; // For small regions, take a few samples
+		if (step < 1) step = 1;
+	}
+	
+	debug("memory_hash: sampling child region every %llu bytes\n", step);
+	
+	// Read memory in chunks
+	uint8 buffer[8];
+	for (uint64 i = 0; i < size; i += step) {
+		uint64 remaining = size - i;
+		uint64 read_size = remaining >= 4 ? 4 : remaining;
+		
+		// Seek to position in child's memory
+		if (lseek(mem_fd, start + i, SEEK_SET) == -1) {
+			read_errors++;
+			hash_val ^= hash(0xDEADBEEF + i);
+			continue;
+		}
+		
+		// Read from child's memory
+		ssize_t bytes_read = read(mem_fd, buffer, read_size);
+		if (bytes_read != (ssize_t)read_size) {
+			read_errors++;
+			hash_val ^= hash(0xDEADBEEF + i);
+			continue;
+		}
+		
+		// Hash the read data
+		uint32 chunk = 0;
+		for (uint64 j = 0; j < read_size; j++) {
+			chunk |= (buffer[j] << (j * 8));
+		}
+		
+		hash_val ^= hash(chunk + i);
+		chunk_count++;
+		
+		// Emergency break if too many errors
+		if (read_errors > 50) {
+			debug("memory_hash: too many read errors (%u), stopping child region\n", read_errors);
+			break;
+		}
+	}
+	
+	if (read_errors > 0) {
+		debug("memory_hash: child region had %u read errors out of %u chunks\n", 
+		      read_errors, chunk_count + read_errors);
+	}
+	
+	// debug("memory_hash: child region hash=0x%x (sampled %u chunks, %u errors)\n", 
+	    //   hash_val, chunk_count, read_errors);
+	return hash_val;
+}
+#else
+// Non-Linux platforms - return empty hash
+static uint32 calculate_memory_hash()
+{
+	debug("memory_hash: non-Linux platform, returning 0\n");
+	return 0;
+}
+
+// Non-Linux platforms - return empty hash for child
+static uint32 calculate_child_memory_hash(int child_pid)
+{
+	debug("memory_hash: non-Linux platform, returning 0 for child\n");
+	return 0;
+}
+#endif
 
 flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64 req_id, uint32 num_calls, uint64 elapsed,
 					 uint64 freshness, uint32 status, bool hanged, const std::vector<uint8_t>* process_output)
@@ -1485,7 +1859,13 @@ flatbuffers::span<uint8_t> finish_output(OutputData* output, int proc_id, uint64
 	auto output_off = output->result_offset.load(std::memory_order_relaxed);
 	if (output_off.IsNull() && process_output)
 		output_off = fbb.CreateVector(*process_output);
-	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, hanged, error_off, prog_info_off);
+	
+	// Use memory hash calculated by parent process from child's memory
+	uint32 memory_hash = output->memory_hash.load(std::memory_order_relaxed);
+	debug("memory_hash: using parent-calculated hash=0x%x for proc=%d req=%llu\n", 
+	      memory_hash, proc_id, req_id);
+	
+	auto exec_off = rpc::CreateExecResultRaw(fbb, req_id, proc_id, output_off, hanged, error_off, prog_info_off, memory_hash);
 	auto msg_off = rpc::CreateExecutorMessageRaw(fbb, rpc::ExecutorMessagesRaw::ExecResult,
 						     flatbuffers::Offset<void>(exec_off.o));
 	fbb.FinishSizePrefixed(msg_off);

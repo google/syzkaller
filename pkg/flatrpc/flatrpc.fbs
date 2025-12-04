@@ -261,6 +261,7 @@ table ExecResultRaw {
 	hanged			:bool;
 	error			:string;
 	info			:ProgInfoRaw;
+	memory_hash		:uint32;
 }
 
 table StateResultRaw {

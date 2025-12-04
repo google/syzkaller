@@ -449,6 +449,7 @@ func (runner *Runner) handleExecResult(msg *flatrpc.ExecResult) error {
 		}
 		runner.hanged[msg.Id] = true
 	}
+	msg.Info.MemoryHash = msg.MemoryHash
 	req.Done(&queue.Result{
 		Executor: queue.ExecutorID{
 			VM:   runner.id,
