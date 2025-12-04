@@ -724,8 +724,8 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		flags += " [suppressed]"
 	}
 	log.Logf(0, "VM %v: crash: %v%v", crash.InstanceIndex, crash.Report.Title, flags)
-	for i, report := range crash.TailReports {
-		log.Logf(0, "VM %v: crash(tail%d): %v%v", crash.InstanceIndex, i, report.Title, flags)
+	for i, t := range crash.TailTitles() {
+		log.Logf(0, "VM %v: crash(tail%d): %v%v", crash.InstanceIndex, i, t, flags)
 	}
 
 	if mgr.mode.FailOnCrashes {
@@ -758,12 +758,14 @@ func (mgr *Manager) saveCrash(crash *manager.Crash) bool {
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.Title,
+			TailTitles:  crash.TailTitles(),
 			AltTitles:   crash.AltTitles,
 			Corrupted:   crash.Corrupted,
 			Suppressed:  crash.Suppressed,
 			Recipients:  crash.Recipients.ToDash(),
 			Log:         crash.Output,
-			Report:      report.SplitReportBytes(crash.Report.Report)[0],
+			Report:      crash.Report.Report,
+			TailReports: crash.TailReportsBytes(),
 			MachineInfo: crash.MachineInfo,
 		}
 		setGuiltyFiles(dc, crash.Report)
@@ -910,12 +912,14 @@ func (mgr *Manager) saveRepro(res *manager.ReproResult) {
 		dc := &dashapi.Crash{
 			BuildID:       mgr.cfg.Tag,
 			Title:         reproReport.Title,
+			TailTitles:    res.Crash.TailTitles(),
 			AltTitles:     reproReport.AltTitles,
 			Suppressed:    reproReport.Suppressed,
 			Recipients:    reproReport.Recipients.ToDash(),
 			Log:           output,
 			Flags:         crashFlags,
-			Report:        report.SplitReportBytes(reproReport.Report)[0],
+			Report:        reproReport.Report,
+			TailReports:   res.Crash.TailReportsBytes(),
 			ReproOpts:     repro.Opts.Serialize(),
 			ReproSyz:      progText,
 			ReproC:        cprogText,
