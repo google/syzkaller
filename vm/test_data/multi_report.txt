@@ -1,0 +1,612 @@
+[   39.657063][   T39] audit: type=1400 audit(1758704007.057:82): avc:  denied  { read } for  pid=4608 comm="syslogd" name="log" dev="sda1" ino=1915 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:var_t tclass=lnk_file permissive=1
+Warning: Permanently added '[localhost]:16382' (ED25519) to the list of known hosts.
+[   39.940326][   T39] audit: type=1400 audit(1758704007.347:83): avc:  denied  { name_bind } for  pid=5114 comm="sshd" src=30000 scontext=system_u:system_r:sshd_t tcontext=system_u:object_r:unreserved_port_t tclass=tcp_socket permissive=1
+[   39.978086][   T39] audit: type=1400 audit(1758704007.377:84): avc:  denied  { execute } for  pid=5117 comm="sh" name="syz-executor" dev="sda1" ino=1924 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:etc_runtime_t tclass=file permissive=1
+[   39.981218][   T39] audit: type=1400 audit(1758704007.377:85): avc:  denied  { execute_no_trans } for  pid=5117 comm="sh" path="/syz-executor" dev="sda1" ino=1924 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:etc_runtime_t tclass=file permissive=1
+[   41.285472][   T39] audit: type=1400 audit(1758704008.687:86): avc:  denied  { append } for  pid=4608 comm="syslogd" name="messages" dev="tmpfs" ino=3 scontext=system_u:system_r:syslogd_t tcontext=system_u:object_r:tmpfs_t tclass=file permissive=1
+[   41.426148][ T5117] cgroup: Unknown subsys name 'net'
+[   41.618384][ T5117] cgroup: Unknown subsys name 'rlimit'
+[   41.846049][ T5123] SELinux:  Context root:object_r:swapfile_t is not valid (left unmapped).
+Setting up swapspace version 1, size = 127995904 bytes
+[   42.687269][ T5117] Adding 124996k swap on ./swap-file.  Priority:0 extents:1 across:124996k
+[   45.597591][   T39] kauditd_printk_skb: 17 callbacks suppressed
+[   45.597608][   T39] audit: type=1400 audit(1758704012.997:104): avc:  denied  { execmem } for  pid=5126 comm="syz-executor" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=process permissive=1
+[   45.808293][   T39] audit: type=1400 audit(1758704013.207:105): avc:  denied  { create } for  pid=5130 comm="syz-executor" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=bluetooth_socket permissive=1
+[   45.811051][   T39] audit: type=1400 audit(1758704013.207:107): avc:  denied  { read write } for  pid=5132 comm="syz-executor" name="vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.814145][   T39] audit: type=1400 audit(1758704013.207:106): avc:  denied  { read write } for  pid=5131 comm="syz-executor" name="vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.817384][   T39] audit: type=1400 audit(1758704013.207:108): avc:  denied  { open } for  pid=5132 comm="syz-executor" path="/dev/vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.825659][   T39] audit: type=1400 audit(1758704013.207:109): avc:  denied  { open } for  pid=5131 comm="syz-executor" path="/dev/vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.828771][   T39] audit: type=1400 audit(1758704013.217:110): avc:  denied  { ioctl } for  pid=5133 comm="syz-executor" path="socket:[3894]" dev="sockfs" ino=3894 ioctlcmd=0x48c9 scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=bluetooth_socket permissive=1
+[   45.851749][ T5139] Bluetooth: hci2: unexpected cc 0x0c03 length: 249 > 1
+[   45.854168][ T5139] Bluetooth: hci2: unexpected cc 0x1003 length: 249 > 9
+[   45.855456][ T5139] Bluetooth: hci2: unexpected cc 0x1001 length: 249 > 9
+[   45.857016][ T5139] Bluetooth: hci2: unexpected cc 0x0c23 length: 249 > 4
+[   45.858374][ T5139] Bluetooth: hci2: unexpected cc 0x0c25 length: 249 > 3
+[   45.859441][ T5142] Bluetooth: hci1: unexpected cc 0x0c03 length: 249 > 1
+[   45.861070][ T5142] Bluetooth: hci1: unexpected cc 0x1003 length: 249 > 9
+[   45.861310][ T5139] Bluetooth: hci2: unexpected cc 0x0c38 length: 249 > 2
+[   45.871785][ T5134] Bluetooth: hci1: unexpected cc 0x1001 length: 249 > 9
+[   45.873061][ T5144] Bluetooth: hci0: unexpected cc 0x0c03 length: 249 > 1
+[   45.874338][ T5134] Bluetooth: hci1: unexpected cc 0x0c23 length: 249 > 4
+[   45.875252][   T39] audit: type=1400 audit(1758704013.277:111): avc:  denied  { read } for  pid=5133 comm="syz-executor" dev="nsfs" ino=4026531840 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:nsfs_t tclass=file permissive=1
+[   45.876126][ T5134] Bluetooth: hci1: unexpected cc 0x0c25 length: 249 > 3
+[   45.876446][ T5145] Bluetooth: hci3: unexpected cc 0x0c03 length: 249 > 1
+[   45.878316][   T39] audit: type=1400 audit(1758704013.277:112): avc:  denied  { open } for  pid=5133 comm="syz-executor" path="net:[4026531840]" dev="nsfs" ino=4026531840 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:nsfs_t tclass=file permissive=1
+[   45.879777][ T5134] Bluetooth: hci1: unexpected cc 0x0c38 length: 249 > 2
+[   45.880528][   T39] audit: type=1400 audit(1758704013.277:113): avc:  denied  { mounton } for  pid=5133 comm="syz-executor" path="/" dev="sda1" ino=2 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:root_t tclass=dir permissive=1
+[   45.881368][ T5145] Bluetooth: hci3: unexpected cc 0x1003 length: 249 > 9
+[   45.882202][ T5145] Bluetooth: hci0: unexpected cc 0x1003 length: 249 > 9
+[   45.884015][ T5134] Bluetooth: hci3: unexpected cc 0x1001 length: 249 > 9
+[   45.884770][ T5145] Bluetooth: hci0: unexpected cc 0x1001 length: 249 > 9
+[   45.888783][ T5134] Bluetooth: hci3: unexpected cc 0x0c23 length: 249 > 4
+[   45.892109][ T5144] Bluetooth: hci0: unexpected cc 0x0c23 length: 249 > 4
+[   45.892513][ T5134] Bluetooth: hci3: unexpected cc 0x0c25 length: 249 > 3
+[   45.894308][ T5134] Bluetooth: hci3: unexpected cc 0x0c38 length: 249 > 2
+[   45.900310][ T5145] Bluetooth: hci0: unexpected cc 0x0c25 length: 249 > 3
+[   45.902698][ T5145] Bluetooth: hci0: unexpected cc 0x0c38 length: 249 > 2
+[   46.147358][ T5133] chnl_net:caif_netlink_parms(): no params data found
+[   46.353134][ T5133] bridge0: port 1(bridge_slave_0) entered blocking state
+[   46.354431][ T5133] bridge0: port 1(bridge_slave_0) entered disabled state
+[   46.356138][ T5133] bridge_slave_0: entered allmulticast mode
+[   46.358286][ T5133] bridge_slave_0: entered promiscuous mode
+[   46.381830][ T5133] bridge0: port 2(bridge_slave_1) entered blocking state
+[   46.383228][ T5133] bridge0: port 2(bridge_slave_1) entered disabled state
+[   46.384294][ T5133] bridge_slave_1: entered allmulticast mode
+[   46.386050][ T5133] bridge_slave_1: entered promiscuous mode
+[   46.466121][ T5133] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   46.467595][ T5131] chnl_net:caif_netlink_parms(): no params data found
+[   46.473561][ T5133] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   46.475093][ T5132] chnl_net:caif_netlink_parms(): no params data found
+[   46.550553][ T5133] team0: Port device team_slave_0 added
+[   46.609536][ T5133] team0: Port device team_slave_1 added
+[   46.615615][ T5130] chnl_net:caif_netlink_parms(): no params data found
+[   46.715224][ T5133] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   46.716135][ T5133] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.719488][ T5133] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   46.792492][ T5133] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   46.793753][ T5133] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.797583][ T5133] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   46.875586][ T5132] bridge0: port 1(bridge_slave_0) entered blocking state
+[   46.876897][ T5132] bridge0: port 1(bridge_slave_0) entered disabled state
+[   46.878015][ T5132] bridge_slave_0: entered allmulticast mode
+[   46.879837][ T5132] bridge_slave_0: entered promiscuous mode
+[   46.883096][ T5131] bridge0: port 1(bridge_slave_0) entered blocking state
+[   46.884335][ T5131] bridge0: port 1(bridge_slave_0) entered disabled state
+[   46.885611][ T5131] bridge_slave_0: entered allmulticast mode
+[   46.887347][ T5131] bridge_slave_0: entered promiscuous mode
+[   46.938229][ T5132] bridge0: port 2(bridge_slave_1) entered blocking state
+[   46.939526][ T5132] bridge0: port 2(bridge_slave_1) entered disabled state
+[   46.940813][ T5132] bridge_slave_1: entered allmulticast mode
+[   46.942832][ T5132] bridge_slave_1: entered promiscuous mode
+[   46.944537][ T5131] bridge0: port 2(bridge_slave_1) entered blocking state
+[   46.945864][ T5131] bridge0: port 2(bridge_slave_1) entered disabled state
+[   46.946884][ T5131] bridge_slave_1: entered allmulticast mode
+[   46.948585][ T5131] bridge_slave_1: entered promiscuous mode
+[   47.000222][ T5130] bridge0: port 1(bridge_slave_0) entered blocking state
+[   47.001450][ T5130] bridge0: port 1(bridge_slave_0) entered disabled state
+[   47.002673][ T5130] bridge_slave_0: entered allmulticast mode
+[   47.004378][ T5130] bridge_slave_0: entered promiscuous mode
+[   47.008663][ T5131] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   47.080033][ T5130] bridge0: port 2(bridge_slave_1) entered blocking state
+[   47.081171][ T5130] bridge0: port 2(bridge_slave_1) entered disabled state
+[   47.082284][ T5130] bridge_slave_1: entered allmulticast mode
+[   47.084130][ T5130] bridge_slave_1: entered promiscuous mode
+[   47.087675][ T5131] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   47.147716][ T5133] hsr_slave_0: entered promiscuous mode
+[   47.149298][ T5133] hsr_slave_1: entered promiscuous mode
+[   47.207757][ T5130] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   47.215316][ T5132] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   47.219748][ T5130] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   47.223603][ T5132] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   47.327565][ T5131] team0: Port device team_slave_0 added
+[   47.331272][ T5130] team0: Port device team_slave_0 added
+[   47.376561][ T5131] team0: Port device team_slave_1 added
+[   47.383291][ T5130] team0: Port device team_slave_1 added
+[   47.412530][ T5132] team0: Port device team_slave_0 added
+[   47.493458][ T5132] team0: Port device team_slave_1 added
+[   47.495369][ T5130] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   47.496459][ T5130] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.500217][ T5130] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   47.531206][ T5131] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   47.532193][ T5131] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.535561][ T5131] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   47.562152][ T5130] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   47.563347][ T5130] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.568115][ T5130] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   47.596723][ T5132] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   47.597672][ T5132] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.600893][ T5132] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   47.603595][ T5131] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   47.604816][ T5131] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.608764][ T5131] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   47.616773][ T5132] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   47.617784][ T5132] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   47.621599][ T5132] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   47.818247][ T5132] hsr_slave_0: entered promiscuous mode
+[   47.820265][ T5132] hsr_slave_1: entered promiscuous mode
+[   47.821865][ T5132] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   47.823576][ T5132] Cannot create hsr debugfs directory
+[   47.828465][ T5130] hsr_slave_0: entered promiscuous mode
+[   47.830583][ T5130] hsr_slave_1: entered promiscuous mode
+[   47.831828][ T5130] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   47.832829][ T5130] Cannot create hsr debugfs directory
+[   47.863256][ T5131] hsr_slave_0: entered promiscuous mode
+[   47.865062][ T5131] hsr_slave_1: entered promiscuous mode
+[   47.866397][ T5131] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   47.867555][ T5131] Cannot create hsr debugfs directory
+[   47.930781][   T62] Bluetooth: hci2: command 0x0409 tx timeout
+[   47.931774][ T5135] Bluetooth: hci3: command 0x0409 tx timeout
+[   47.939158][ T5135] Bluetooth: hci0: command 0x0409 tx timeout
+[   47.939449][   T62] Bluetooth: hci1: command 0x0409 tx timeout
+[   48.092039][ T5133] netdevsim netdevsim0 netdevsim0: renamed from eth0
+[   48.101313][ T5133] netdevsim netdevsim0 netdevsim1: renamed from eth1
+[   48.123781][ T5133] netdevsim netdevsim0 netdevsim2: renamed from eth2
+[   48.186877][ T5133] netdevsim netdevsim0 netdevsim3: renamed from eth3
+[   48.327197][ T5132] netdevsim netdevsim2 netdevsim0: renamed from eth0
+[   48.331252][ T5132] netdevsim netdevsim2 netdevsim1: renamed from eth1
+[   48.335067][ T5132] netdevsim netdevsim2 netdevsim2: renamed from eth2
+[   48.341515][ T5132] netdevsim netdevsim2 netdevsim3: renamed from eth3
+[   48.394533][ T5131] netdevsim netdevsim1 netdevsim0: renamed from eth0
+[   48.403364][ T5131] netdevsim netdevsim1 netdevsim1: renamed from eth1
+[   48.407210][ T5131] netdevsim netdevsim1 netdevsim2: renamed from eth2
+[   48.410818][ T5131] netdevsim netdevsim1 netdevsim3: renamed from eth3
+[   48.479677][ T5133] 8021q: adding VLAN 0 to HW filter on device bond0
+[   48.506875][ T5130] netdevsim netdevsim3 netdevsim0: renamed from eth0
+[   48.510998][ T5130] netdevsim netdevsim3 netdevsim1: renamed from eth1
+[   48.517719][ T5130] netdevsim netdevsim3 netdevsim2: renamed from eth2
+[   48.522799][ T5130] netdevsim netdevsim3 netdevsim3: renamed from eth3
+[   48.543329][ T5133] 8021q: adding VLAN 0 to HW filter on device team0
+[   48.579884][ T5173] bridge0: port 1(bridge_slave_0) entered blocking state
+[   48.581081][ T5173] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   48.584729][ T5173] bridge0: port 2(bridge_slave_1) entered blocking state
+[   48.585806][ T5173] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   48.602744][ T5132] 8021q: adding VLAN 0 to HW filter on device bond0
+[   48.664022][ T5132] 8021q: adding VLAN 0 to HW filter on device team0
+[   48.678389][ T5131] 8021q: adding VLAN 0 to HW filter on device bond0
+[   48.700176][    T8] bridge0: port 1(bridge_slave_0) entered blocking state
+[   48.701351][    T8] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   48.703867][    T8] bridge0: port 2(bridge_slave_1) entered blocking state
+[   48.704984][    T8] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   48.742831][ T5131] 8021q: adding VLAN 0 to HW filter on device team0
+[   48.756722][  T820] bridge0: port 1(bridge_slave_0) entered blocking state
+[   48.757957][  T820] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   48.786033][   T54] bridge0: port 2(bridge_slave_1) entered blocking state
+[   48.787023][   T54] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   48.795024][ T5130] 8021q: adding VLAN 0 to HW filter on device bond0
+[   48.815716][ T5133] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   48.846511][ T5130] 8021q: adding VLAN 0 to HW filter on device team0
+[   48.864190][    T8] bridge0: port 1(bridge_slave_0) entered blocking state
+[   48.865399][    T8] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   48.874505][ T5133] veth0_vlan: entered promiscuous mode
+[   48.879375][ T5131] hsr0: Slave A (hsr_slave_0) is not up; please bring it up to get a fully working HSR network
+[   48.880771][ T5131] hsr0: Slave B (hsr_slave_1) is not up; please bring it up to get a fully working HSR network
+[   48.898889][ T5172] bridge0: port 2(bridge_slave_1) entered blocking state
+[   48.899919][ T5172] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   48.913553][ T5133] veth1_vlan: entered promiscuous mode
+[   48.942402][ T5132] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   48.965374][ T5130] hsr0: Slave A (hsr_slave_0) is not up; please bring it up to get a fully working HSR network
+[   48.966909][ T5130] hsr0: Slave B (hsr_slave_1) is not up; please bring it up to get a fully working HSR network
+[   49.006432][ T5133] veth0_macvtap: entered promiscuous mode
+[   49.010398][ T5131] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   49.021897][ T5133] veth1_macvtap: entered promiscuous mode
+[   49.033294][ T5132] veth0_vlan: entered promiscuous mode
+[   49.056826][ T5132] veth1_vlan: entered promiscuous mode
+[   49.060151][ T5133] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   49.066998][ T5133] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   49.077794][ T5131] veth0_vlan: entered promiscuous mode
+[   49.083331][ T5133] netdevsim netdevsim0 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.084806][ T5133] netdevsim netdevsim0 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.086290][ T5133] netdevsim netdevsim0 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.087437][ T5133] netdevsim netdevsim0 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.113615][ T5131] veth1_vlan: entered promiscuous mode
+[   49.136315][ T5130] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   49.170241][   T70] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.172080][ T5132] veth0_macvtap: entered promiscuous mode
+[   49.172985][   T70] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.194212][ T5132] veth1_macvtap: entered promiscuous mode
+[   49.208362][ T1112] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.210985][ T1112] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.228058][ T5131] veth0_macvtap: entered promiscuous mode
+[   49.237485][ T5132] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.239244][ T5132] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.241673][ T5132] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   49.246357][ T5131] veth1_macvtap: entered promiscuous mode
+[   49.259540][ T5132] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.260959][ T5132] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.263407][ T5132] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   49.274990][ T5130] veth0_vlan: entered promiscuous mode
+[   49.281348][ T5132] netdevsim netdevsim2 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.282739][ T5132] netdevsim netdevsim2 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.283863][ T5132] netdevsim netdevsim2 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.285058][ T5132] netdevsim netdevsim2 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.292827][ T5130] veth1_vlan: entered promiscuous mode
+[   49.298699][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.301191][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.302426][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.303748][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.306310][ T5131] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   49.325557][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.328120][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.330616][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.332374][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.335311][ T5131] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   49.345419][ T5131] netdevsim netdevsim1 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.346608][ T5131] netdevsim netdevsim1 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.347710][ T5131] netdevsim netdevsim1 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.348799][ T5131] netdevsim netdevsim1 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.390489][   T70] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.391612][   T70] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.436896][ T1112] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.437678][ T5130] veth0_macvtap: entered promiscuous mode
+[   49.438488][ T1112] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.444088][ T5130] veth1_macvtap: entered promiscuous mode
+[   49.469930][   T70] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.471066][   T70] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.495741][ T5204] (unnamed net_device) (uninitialized): Unable to set up delay as MII monitoring is disabled
+[   49.503723][   T70] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.503880][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.504800][   T70] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.506235][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.508584][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.510690][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.511971][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   49.513304][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.515800][ T5130] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   49.531987][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.533339][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.534693][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.535964][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.536004][ T5207] syz.2.3[5207]: memfd_create() called without MFD_EXEC or MFD_NOEXEC_SEAL set
+[   49.537144][ T5130] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   49.542385][ T5130] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   49.545376][ T5130] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   49.554359][ T5130] netdevsim netdevsim3 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.555598][ T5130] netdevsim netdevsim3 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.556678][ T5130] netdevsim netdevsim3 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.557960][ T5130] netdevsim netdevsim3 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   49.580200][ T5207] loop2: detected capacity change from 0 to 2048
+[   49.600774][ T5207] UDF-fs: INFO Mounting volume 'LiuxUDF', timestamp 2022/11/22 14:59 (1000)
+[   49.615875][ T5212] loop1: detected capacity change from 0 to 16
+[   49.623540][ T5212] erofs: (device loop1): mounted with root inode @ nid 36.
+[   49.644990][   T70] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.646129][   T70] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   49.656975][   T62] erofs: (device loop1): z_erofs_lz4_decompress_mem: failed to decompress -26 in[46, 0] out[9000]
+[   49.668656][   T38] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   49.672425][ T5212] erofs: (device loop1): z_erofs_lz4_decompress_mem: failed to decompress -26 in[46, 4050] out[8192]
+[   49.676225][   T38] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   50.010166][   T62] Bluetooth: hci1: command 0x041b tx timeout
+[   50.011291][   T62] Bluetooth: hci0: command 0x041b tx timeout
+[   50.012068][   T62] Bluetooth: hci2: command 0x041b tx timeout
+[   50.012903][   T62] Bluetooth: hci3: command 0x041b tx timeout
+[   50.144273][ T5226] autofs4:pid:5226:validate_dev_ioctl: path string terminator missing for cmd(0xc018937e)
+[   50.181290][ T5228] A link change request failed with some changes committed already. Interface lo may have been left with an inconsistent configuration, please check.
+[   50.185887][ T5231] netlink: 'syz.1.16': attribute type 21 has an invalid length.
+[   50.188655][ T5231] netlink: 164 bytes leftover after parsing attributes in process `syz.1.16'.
+[   50.347459][ T5244] netlink: 'syz.3.23': attribute type 10 has an invalid length.
+[   50.379686][ T5249] netlink: 'syz.1.26': attribute type 1 has an invalid length.
+[   50.380751][ T5249] netlink: 4 bytes leftover after parsing attributes in process `syz.1.26'.
+[   50.404963][ T5252] loop3: detected capacity change from 0 to 64
+[   50.534545][ T5262] nbd: must specify an index to disconnect
+[   50.715946][ T5258] loop1: detected capacity change from 0 to 32768
+[   50.717589][   T39] kauditd_printk_skb: 61 callbacks suppressed
+[   50.717630][   T39] audit: type=1400 audit(1758704018.117:175): avc:  denied  { mounton } for  pid=5257 comm="syz.1.30" path="/8/file0" dev="tmpfs" ino=59 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:user_tmpfs_t tclass=dir permissive=1
+[   50.731405][   T39] audit: type=1400 audit(1758704018.137:176): avc:  denied  { create } for  pid=5279 comm="syz.0.41" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=netlink_rdma_socket permissive=1
+[   50.734020][ T5280] netlink: 40 bytes leftover after parsing attributes in process `syz.0.41'.
+[   50.735395][   T39] audit: type=1400 audit(1758704018.137:177): avc:  denied  { write } for  pid=5279 comm="syz.0.41" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=netlink_rdma_socket permissive=1
+[   50.739241][   T28] usb 7-1: new high-speed USB device number 2 using dummy_hcd
+[   50.754935][   T39] audit: type=1400 audit(1758704018.157:178): avc:  denied  { write } for  pid=5257 comm="syz.1.30" name="/" dev="loop1" ino=2 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   50.757983][   T39] audit: type=1400 audit(1758704018.157:179): avc:  denied  { add_name } for  pid=5257 comm="syz.1.30" name="file1" scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   50.768485][   T39] audit: type=1400 audit(1758704018.157:180): avc:  denied  { create } for  pid=5257 comm="syz.1.30" name="file1" scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=file permissive=1
+[   50.775297][   T39] audit: type=1400 audit(1758704018.157:181): avc:  denied  { write } for  pid=5257 comm="syz.1.30" name="file1" dev="loop1" ino=4 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=file permissive=1
+[   50.779870][   T39] audit: type=1800 audit(1758704018.157:182): pid=5258 uid=0 auid=4294967295 ses=4294967295 subj=root:sysadm_r:sysadm_t op=collect_data cause=failed(directio) comm="syz.1.30" name="file1" dev="loop1" ino=4 res=0 errno=0
+[   50.897794][   T39] audit: type=1400 audit(1758704018.297:183): avc:  denied  { ioctl } for  pid=5297 comm="syz.1.49" path="socket:[8438]" dev="sockfs" ino=8438 ioctlcmd=0x8936 scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=rawip_socket permissive=1
+[   50.930484][   T39] audit: type=1400 audit(1758704018.337:184): avc:  denied  { read } for  pid=5299 comm="syz.0.52" name="kvm" dev="devtmpfs" ino=84 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:kvm_device_t tclass=chr_file permissive=1
+[   50.999815][   T28] usb 7-1: Using ep0 maxpacket: 8
+[   51.006397][ T5307] loop0: detected capacity change from 0 to 4096
+[   51.271482][ T5328] loop0: detected capacity change from 0 to 4096
+[   51.273367][ T5328] ntfs3: loop0: Different NTFS sector size (2048) and media sector size (512).
+[   51.296828][ T5321] loop1: detected capacity change from 0 to 32768
+[   51.303655][ T5321] BTRFS: device fsid 5e4b7888-5e56-43f0-8345-635ad0fd87c6 devid 1 transid 8 /dev/loop1 scanned by syz.1.61 (5321)
+[   51.311764][ T5322] loop3: detected capacity change from 0 to 32768
+[   51.313421][ T5321] BTRFS info (device loop1): first mount of filesystem 5e4b7888-5e56-43f0-8345-635ad0fd87c6
+[   51.315782][ T5321] BTRFS info (device loop1): using blake2b (blake2b-256-generic) checksum algorithm
+[   51.316989][ T5321] BTRFS info (device loop1): using free space tree
+[   51.318304][ T5322]
+[   51.318304][ T5322]  ... Log Wrap ... Log Wrap ... Log Wrap ...
+[   51.318304][ T5322]
+[   51.321205][   T28] usb 7-1: New USB device found, idVendor=110a, idProduct=1450, bcdDevice=62.cb
+[   51.322488][   T28] usb 7-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[   51.323578][   T28] usb 7-1: Product: syz
+[   51.324494][   T28] usb 7-1: Manufacturer: syz
+[   51.325113][   T28] usb 7-1: SerialNumber: syz
+[   51.347627][ T5322] ERROR: (device loop3): ea_get: invalid ea.flag
+[   51.347627][ T5322]
+[   51.354909][ T5322] ERROR: (device loop3): remounting filesystem as read-only
+[   51.355972][ T5322] SELinux: inode_doinit_use_xattr:  getxattr returned 5 for dev=loop3 ino=4
+[   51.357551][ T5322] ERROR: (device loop3): ea_get: invalid ea.flag
+[   51.357551][ T5322]
+[   51.359801][ T5322] SELinux: inode_doinit_use_xattr:  getxattr returned 5 for dev=loop3 ino=4
+[   51.360902][ T5322] ERROR: (device loop3): ea_get: invalid ea.flag
+[   51.360902][ T5322]
+[   51.365250][ T5321] BTRFS info (device loop1): enabling ssd optimizations
+[   51.366233][ T5321] BTRFS info (device loop1): auto enabling async discard
+[   51.481325][ T5131] BTRFS info (device loop1): last unmount of filesystem 5e4b7888-5e56-43f0-8345-635ad0fd87c6
+[   51.609682][   T28] mxuport 7-1:254.0: mxuport_send_ctrl_data_urb - usb_control_msg failed (-71)
+[   51.637847][   T28] mxuport 7-1:254.0: mxuport_send_ctrl_data_urb - usb_control_msg failed (-71)
+[   51.639168][   T28] mxuport: probe of 7-1:254.0 failed with error -71
+[   51.642553][   T28] usb 7-1: USB disconnect, device number 2
+[   51.696638][ T5371] A link change request failed with some changes committed already. Interface netdevsim0 may have been left with an inconsistent configuration, please check.
+[   51.736165][ T5379] loop0: detected capacity change from 0 to 128
+[   51.737558][ T5379] =======================================================
+[   51.737558][ T5379] WARNING: The mand mount option has been deprecated and
+[   51.737558][ T5379]          and is ignored by this kernel. Remove the mand
+[   51.737558][ T5379]          option from the mount to silence this warning.
+[   51.737558][ T5379] =======================================================
+[   51.747690][ T5379] hpfs: filesystem error: invalid number of hotfixes: 2066844986, used: 2066844985; already mounted read-only
+[   51.751889][ T5379] hpfs: filesystem error: improperly stopped
+[   51.753100][ T5379] hpfs: filesystem error: warning: spare dnodes used, try chkdsk
+[   51.754344][ T5379] hpfs: You really don't want any checks? You are crazy...
+[   51.756112][ T5379] hpfs: hpfs_map_sector(): read error
+[   51.757101][ T5379] hpfs: code page support is disabled
+[   51.761641][ T5379] hpfs: hpfs_map_4sectors(): unaligned read
+[   51.763100][ T5379] hpfs: hpfs_map_4sectors(): unaligned read
+[   51.763871][ T5379] hpfs: filesystem error: unable to find root dir
+[   51.868624][ T5393] process 'syz.0.89' launched '/dev/fd/-1' with NULL argv: empty string added
+[   51.902937][ T5397] netlink: 12 bytes leftover after parsing attributes in process `syz.0.91'.
+[   51.973062][ T5401] loop1: detected capacity change from 0 to 4096
+[   51.975724][ T5401] ntfs3: loop1: Different NTFS sector size (2048) and media sector size (512).
+[   52.089742][ T5135] Bluetooth: hci3: command 0x040f tx timeout
+[   52.090234][   T62] Bluetooth: hci2: command 0x040f tx timeout
+[   52.090591][ T5135] Bluetooth: hci0: command 0x040f tx timeout
+[   52.090802][ T5145] Bluetooth: hci1: command 0x040f tx timeout
+[   52.112356][ T5409] loop0: detected capacity change from 0 to 4096
+[   52.356108][ T5439] loop1: detected capacity change from 0 to 1024
+[   52.381447][ T5439] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   52.428605][ T5131] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   52.456299][ T5431] loop2: detected capacity change from 0 to 32768
+[   52.459543][ T5431] BTRFS: device fsid 395ef67a-297e-477c-816d-cd80a5b93e5d devid 1 transid 8 /dev/loop2 scanned by syz.2.108 (5431)
+[   52.468063][ T5431] BTRFS info (device loop2): first mount of filesystem 395ef67a-297e-477c-816d-cd80a5b93e5d
+[   52.469479][ T5431] BTRFS info (device loop2): using sha256 (sha256-ni) checksum algorithm
+[   52.471169][ T5431] BTRFS info (device loop2): enabling ssd optimizations
+[   52.472059][ T5431] BTRFS info (device loop2): using free space tree
+[   52.505401][ T5431] BTRFS info (device loop2): auto enabling async discard
+[   52.559502][ T5132] BTRFS info (device loop2): last unmount of filesystem 395ef67a-297e-477c-816d-cd80a5b93e5d
+[   52.601366][ T5474] loop1: detected capacity change from 0 to 512
+[   52.618637][ T5474] EXT4-fs (loop1): revision level too high, forcing read-only mode
+[   52.622165][ T5473] warning: `syz.0.120' uses wireless extensions which will stop working for Wi-Fi 7 hardware; use nl80211
+[   52.623115][ T5474] [EXT4 FS bs=4096, gc=1, bpg=32768, ipg=32, mo=e040e018, mo2=0002]
+[   52.624877][ T5474] System zones: 0-1, 15-15, 18-18, 34-34
+[   52.628445][ T5474] EXT4-fs (loop1): orphan cleanup on readonly fs
+[   52.629772][ T5474] EXT4-fs warning (device loop1): ext4_enable_quotas:7093: Failed to enable quota tracking (type=1, err=-22, ino=4). Please run e2fsck to fix.
+[   52.631661][ T5474] EXT4-fs (loop1): Cannot turn on quotas: error -22
+[   52.649782][ T5474] EXT4-fs error (device loop1): ext4_validate_block_bitmap:438: comm syz.1.121: bg 0: block 40: padding at end of block bitmap is not set
+[   52.669322][ T5474] EXT4-fs error (device loop1) in ext4_mb_clear_bb:6601: Corrupt filesystem
+[   52.671723][ T5474] EXT4-fs (loop1): 1 truncate cleaned up
+[   52.672451][ T5474] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 ro without journal. Quota mode: writeback.
+[   52.701381][ T5474] EXT4-fs (loop1): revision level too high, forcing read-only mode
+[   52.702452][ T5474] [EXT4 FS bs=4096, gc=1, bpg=32768, ipg=32, mo=e040e018, mo2=0002]
+[   52.726924][ T5131] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   52.870748][ T5496] loop3: detected capacity change from 0 to 8
+[   52.938488][ T5496] cramfs: Error -3 while decompressing!
+[   52.948852][ T5496] cramfs: ffffffff9216c968(26)->ffff888037dbf000(4096)
+[   52.957801][ T5496] cramfs: Error -3 while decompressing!
+[   52.958593][ T5496] cramfs: ffffffff9216c982(26)->ffff888049c16000(4096)
+[   52.961664][ T5496] cramfs: Error -3 while decompressing!
+[   52.962653][ T5496] cramfs: ffffffff9216c99c(16)->ffff888037dc3000(4096)
+[   52.963553][ T5496] cramfs: Error -3 while decompressing!
+[   52.964256][ T5496] cramfs: ffffffff9216c968(26)->ffff888037dbf000(4096)
+[   53.069329][ T5509] loop3: detected capacity change from 0 to 512
+[   53.080354][ T5511] loop2: detected capacity change from 0 to 2048
+[   53.084262][ T5511] UDF-fs: error (device loop2): udf_read_tagged: tag checksum failed, block 99: 0x27 != 0x4d
+[   53.085944][ T5511] UDF-fs: error (device loop2): udf_read_tagged: tag checksum failed, block 160: 0xd2 != 0xd4
+[   53.088670][ T5511] UDF-fs: INFO Mounting volume 'LinuxUDF', timestamp 2022/11/22 14:59 (1000)
+[   53.120651][ T5509] EXT4-fs (loop3): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   53.122567][ T5509] ext4 filesystem being mounted at /33/file1 supports timestamps until 2038-01-19 (0x7fffffff)
+[   53.153701][ T5509] EXT4-fs error (device loop3): ext4_xattr_block_get:596: inode #15: comm syz.3.137: corrupted xattr block 32: overlapping e_value
+[   53.158466][ T5509] SELinux: inode_doinit_use_xattr:  getxattr returned 117 for dev=loop3 ino=15
+[   53.160342][ T5509] EXT4-fs error (device loop3): ext4_xattr_block_get:596: inode #15: comm syz.3.137: corrupted xattr block 32: overlapping e_value
+[   53.164880][ T5509] SELinux: inode_doinit_use_xattr:  getxattr returned 117 for dev=loop3 ino=15
+[   53.165688][ T5501] loop1: detected capacity change from 0 to 32768
+[   53.166441][ T5509] EXT4-fs error (device loop3): ext4_xattr_block_get:596: inode #15: comm syz.3.137: corrupted xattr block 32: overlapping e_value
+[   53.172161][ T5501] BTRFS: device fsid c9fe44da-de57-406a-8241-57ec7d4412cf devid 1 transid 8 /dev/loop1 scanned by syz.1.132 (5501)
+[   53.175522][ T5501] BTRFS info (device loop1): first mount of filesystem c9fe44da-de57-406a-8241-57ec7d4412cf
+[   53.176843][ T5501] BTRFS info (device loop1): using crc32c (crc32c-intel) checksum algorithm
+[   53.177941][ T5501] BTRFS info (device loop1): setting incompat feature flag for COMPRESS_LZO (0x8)
+[   53.179600][ T5509] SELinux: inode_doinit_use_xattr:  getxattr returned 117 for dev=loop3 ino=15
+[   53.179870][ T5501] BTRFS info (device loop1): use lzo compression, level 0
+[   53.182354][ T5501] BTRFS info (device loop1): setting nodatasum
+[   53.183154][ T5501] BTRFS info (device loop1): force zlib compression, level 3
+[   53.184154][ T5501] BTRFS info (device loop1): turning on async discard
+[   53.185241][ T5501] BTRFS info (device loop1): unrecognized rescue option 'isuperflags'
+[   53.186487][ T5501] BTRFS error (device loop1): unrecognized rescue value isuperflags
+[   53.186852][ T5509] EXT4-fs error (device loop3): ext4_xattr_block_get:596: inode #15: comm syz.3.137: corrupted xattr block 32: overlapping e_value
+[   53.197652][ T5501] BTRFS error (device loop1): open_ctree failed
+[   53.229615][ T5363] BTRFS: device fsid c9fe44da-de57-406a-8241-57ec7d4412cf devid 1 transid 8 /dev/loop1 scanned by udevd (5363)
+[   53.249648][ T5130] EXT4-fs (loop3): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   53.287378][ T5518] ax25_connect(): syz.1.141 uses autobind, please contact jreuter@yaina.de
+[   53.636332][ T5481] loop0: detected capacity change from 0 to 131072
+[   53.640910][ T5481] F2FS-fs (loop0): Invalid log sectorsize (67108873)
+[   53.642021][ T5481] F2FS-fs (loop0): Can't find valid F2FS filesystem in 1th superblock
+[   53.645694][ T5481] F2FS-fs (loop0): invalid crc value
+[   53.653603][ T5481] F2FS-fs (loop0): Found nat_bits in checkpoint
+[   53.670978][ T5528] loop3: detected capacity change from 0 to 32768
+[   53.692691][ T5532] loop2: detected capacity change from 0 to 40427
+[   53.693287][ T5528] XFS (loop3): Mounting V5 Filesystem bfdc47fc-10d8-4eed-a562-11a831b3f791
+[   53.697820][ T5532] F2FS-fs (loop2): Fix alignment : internally, start(4096) end(16896) block(12288)
+[   53.699701][ T5481] F2FS-fs (loop0): Try to recover 1th superblock, ret: 0
+[   53.701750][ T5481] F2FS-fs (loop0): Mounted with checkpoint version = 48b305e4
+[   53.710003][ T5532] F2FS-fs (loop2): invalid crc value
+[   53.718323][ T5532] F2FS-fs (loop2): Found nat_bits in checkpoint
+[   53.728989][ T5481] F2FS-fs (loop0): sanity_check_inode: inode (ino=7, mode=33261) should not have inline_data, run fsck to fix
+[   53.744564][ T5528] XFS (loop3): Ending clean mount
+[   53.751358][ T5532] F2FS-fs (loop2): Mounted with checkpoint version = 48b305e5
+[   53.756222][ T5528] XFS (loop3): Quotacheck needed: Please wait.
+[   53.785871][ T5532] F2FS-fs (loop2): Try to recover all the superblocks, ret: 0
+[   53.792337][  T820] usb 6-1: new high-speed USB device number 2 using dummy_hcd
+[   53.803177][ T5528] XFS (loop3): Quotacheck: Done.
+[   53.848768][ T5130] XFS (loop3): Unmounting Filesystem bfdc47fc-10d8-4eed-a562-11a831b3f791
+[   54.037184][ T5559] loop3: detected capacity change from 0 to 512
+[   54.039897][  T820] usb 6-1: Using ep0 maxpacket: 8
+[   54.058633][ T5563] loop2: detected capacity change from 0 to 8
+[   54.061297][ T5559] EXT4-fs (loop3): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   54.062972][ T5559] ext4 filesystem being mounted at /37/file1 supports timestamps until 2038-01-19 (0x7fffffff)
+[   54.100620][ T5130] EXT4-fs (loop3): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   54.169647][ T5134] Bluetooth: hci2: command 0x0419 tx timeout
+[   54.170515][ T5134] Bluetooth: hci1: command 0x0419 tx timeout
+[   54.171247][ T5134] Bluetooth: hci3: command 0x0419 tx timeout
+[   54.179858][ T5135] Bluetooth: hci0: command 0x0419 tx timeout
+[   54.208334][ T5575] netlink: 24 bytes leftover after parsing attributes in process `syz.3.160'.
+[   54.219697][  T820] usb 6-1: unable to get BOS descriptor or descriptor too short
+[   54.308607][  T820] usb 6-1: config 12 interface 0 altsetting 7 endpoint 0x3 has an invalid bInterval 255, changing to 11
+[   54.310717][ T5584] loop0: detected capacity change from 0 to 256
+[   54.311724][  T820] usb 6-1: config 12 interface 0 altsetting 7 endpoint 0x3 has invalid maxpacket 59391, setting to 1024
+[   54.313165][  T820] usb 6-1: config 12 interface 0 has no altsetting 0
+[   54.326875][ T5584] exFAT-fs (loop0): failed to load upcase table (idx : 0x00010000, chksum : 0xbe66f6fd, utbl_chksum : 0xe619d30d)
+[   54.445265][ T5595] IPv6: NLM_F_CREATE should be specified when creating new route
+[   54.446325][ T5595] IPv6: RTM_NEWROUTE with no NLM_F_CREATE or NLM_F_REPLACE
+[   54.447533][ T5595] IPv6: NLM_F_CREATE should be set when creating new route
+[   54.483552][  T820] usb 6-1: New USB device found, idVendor=07fd, idProduct=0001, bcdDevice=6a.e5
+[   54.484730][  T820] usb 6-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[   54.485880][  T820] usb 6-1: Product: syz
+[   54.486612][  T820] usb 6-1: Manufacturer: syz
+[   54.487206][  T820] usb 6-1: SerialNumber: syz
+[   54.519943][ T5534] raw-gadget.0 gadget.1: fail, usb_ep_enable returned -22
+[   54.537674][ T5601] loop0: detected capacity change from 0 to 1024
+[   54.833982][  T820] usb 6-1: selecting invalid altsetting 0
+[   54.840380][ T5565] loop2: detected capacity change from 0 to 131072
+[   54.858481][ T5565] F2FS-fs (loop2): Found nat_bits in checkpoint
+[   54.871623][  T820] usb 6-1: USB disconnect, device number 2
+[   54.929490][ T5565] F2FS-fs (loop2): Mounted with checkpoint version = 48b305e5
+[   54.965506][ T5216] udevd[5216]: error opening ATTR{/sys/devices/platform/dummy_hcd.1/usb6/6-1/6-1:12.0/sound/card3/controlC3/../uevent} for writing: No such file or directory
+[   54.984411][ T5565] F2FS-fs (loop2): lookup inode (7) has corrupted xattr
+[   55.000858][ T5565] F2FS-fs (loop2): list inode (7) has corrupted xattr
+[   55.016779][ T5642] netlink: 8 bytes leftover after parsing attributes in process `syz.0.191'.
+[   55.048971][ T5644] i801_smbus 0000:00:1f.3: Transaction timeout
+[   55.369656][ T5675] netlink: 196 bytes leftover after parsing attributes in process `syz.1.208'.
+[   55.370917][ T5675] netlink: 196 bytes leftover after parsing attributes in process `syz.1.208'.
+[   55.372012][ T5675] netlink: 19 bytes leftover after parsing attributes in process `syz.1.208'.
+[   55.442896][ T5682] A link change request failed with some changes committed already. Interface geneve1 may have been left with an inconsistent configuration, please check.
+[   55.626792][ T5710] loop3: detected capacity change from 0 to 256
+[   55.631392][ T5710] exfat: Deprecated parameter 'namecase'
+[   55.632242][ T5710] exfat: Unknown parameter 'zero_size_dir'
+[   55.691148][ T5640] I/O error, dev loop3, sector 0 op 0x0:(READ) flags 0x80700 phys_seg 1 prio class 2
+[   55.735866][   T39] kauditd_printk_skb: 97 callbacks suppressed
+[   55.735878][   T39] audit: type=1400 audit(1758704023.137:281): avc:  denied  { create } for  pid=5720 comm="syz.0.230" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=icmp_socket permissive=1
+[   55.750022][   T39] audit: type=1400 audit(1758704023.147:282): avc:  denied  { setopt } for  pid=5720 comm="syz.0.230" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=icmp_socket permissive=1
+[   55.760261][   T39] audit: type=1400 audit(1758704023.157:283): avc:  denied  { ioctl } for  pid=5723 comm="syz.3.231" path="socket:[8082]" dev="sockfs" ino=8082 ioctlcmd=0x5450 scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=netlink_tcpdiag_socket permissive=1
+[   55.765105][ T5726] loop2: detected capacity change from 0 to 1024
+[   55.785599][ T5726] EXT4-fs (loop2): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   55.817955][   T39] audit: type=1400 audit(1758704023.217:284): avc:  denied  { rename } for  pid=5724 comm="syz.2.232" name="file0" dev="loop2" ino=12 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   55.820744][   T39] audit: type=1400 audit(1758704023.217:285): avc:  denied  { rmdir } for  pid=5724 comm="syz.2.232" name="file1" dev="loop2" ino=11 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   55.850390][ T5732] Illegal XDP return value 4263690693 on prog  (id 6) dev N/A, expect packet loss!
+[   55.878267][ T5132] EXT4-fs (loop2): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   55.952480][ T5746] tipc: Trying to set illegal importance in message
+[   55.955944][   T39] audit: type=1400 audit(1758704023.357:286): avc:  denied  { setopt } for  pid=5745 comm="syz.3.241" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=tipc_socket permissive=1
+[   55.971401][ T5748] loop1: detected capacity change from 0 to 512
+[   55.994899][ T5751] loop2: detected capacity change from 0 to 256
+[   56.007996][ T5752] loop3: detected capacity change from 0 to 1024
+[   56.029439][ T5748] EXT4-fs warning (device loop1): ext4_xattr_inode_get:558: inode #11: comm syz.1.242: EA inode hash validation failed
+[   56.031632][ T5752] ------------[ cut here ]------------
+[   56.032688][ T5752] kernel BUG at fs/hfsplus/xattr.c:175!
+[   56.033467][ T5752] invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+[   56.034337][ T5752] CPU: 3 PID: 5752 Comm: syz.3.244 Not tainted 6.6.6 #3
+[   56.035234][ T5752] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[   56.035444][ T5748] EXT4-fs warning (device loop1): ext4_expand_extra_isize_ea:2859: Unable to expand inode 15. Delete some EAs or run e2fsck.
+[   56.036926][ T5752] RIP: 0010:__hfsplus_setxattr+0x1efa/0x23c0
+[   56.041237][ T5752] Code: e7 e8 4a f0 83 ff e9 cb fd ff ff e8 40 f0 83 ff 4c 8b 54 24 50 4c 8b 44 24 48 4c 8b 4c 24 40 e9 47 ed ff ff e8 07 18 2f ff 90 <0f> 0b 48 8b 7c 24 38 e8 1a f0 83 ff 4c 8b 54 24 50 4c 8b 44 24 48
+[   56.041310][ T5748] EXT4-fs error (device loop1): ext4_do_update_inode:5109: inode #15: comm syz.1.242: corrupted inode contents
+[   56.042300][ T5751] FAT-fs (loop2): Directory bread(block 64) failed
+[   56.042317][ T5751] FAT-fs (loop2): Directory bread(block 65) failed
+[   56.042358][ T5751] FAT-fs (loop2): Directory bread(block 66) failed
+[   56.042369][ T5751] FAT-fs (loop2): Directory bread(block 67) failed
+[   56.042410][ T5751] FAT-fs (loop2): Directory bread(block 68) failed
+[   56.042424][ T5751] FAT-fs (loop2): Directory bread(block 69) failed
+[   56.042470][ T5751] FAT-fs (loop2): Directory bread(block 70) failed
+[   56.042481][ T5751] FAT-fs (loop2): Directory bread(block 71) failed
+[   56.042522][ T5751] FAT-fs (loop2): Directory bread(block 72) failed
+[   56.042533][ T5751] FAT-fs (loop2): Directory bread(block 73) failed
+[   56.043649][ T5752] RSP: 0018:ffffc900036ff4c8 EFLAGS: 00010283
+[   56.045479][ T5748] EXT4-fs error (device loop1): ext4_dirty_inode:5968: inode #15: comm syz.1.242: mark_inode_dirty error
+[   56.046078][ T5752]
+[   56.046082][ T5752] RAX: 00000000000203ef RBX: ffff888045f60870 RCX: ffffc900053d2000
+[   56.047145][ T5748] EXT4-fs error (device loop1): ext4_do_update_inode:5109: inode #15: comm syz.1.242: corrupted inode contents
+[   56.047767][ T5752] RDX: 0000000000080000 RSI: ffffffff825696f9 RDI: 0000000000000007
+[   56.047776][ T5752] RBP: 0000000000000003 R08: ffff888020293800 R09: ffff8880479d8000
+[   56.047784][ T5752] R10: ffff888020293830 R11: 0000000000800000 R12: 0000000000010000
+[   56.047792][ T5752] R13: ffff888020293838 R14: 1ffff920006dfeab R15: ffffc900036ff588
+[   56.048849][ T5748] EXT4-fs error (device loop1): ext4_xattr_delete_inode:3005: inode #15: comm syz.1.242: mark_inode_dirty error
+[   56.049532][ T5752] FS:  00007f1b5d2926c0(0000) GS:ffff88806b900000(0000) knlGS:0000000000000000
+[   56.049547][ T5752] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   56.049555][ T5752] CR2: 00007fa5b65716c0 CR3: 0000000023fc3000 CR4: 0000000000350ee0
+[   56.049563][ T5752] Call Trace:
+[   56.049567][ T5752]  <TASK>
+[   56.049572][ T5752]  ? show_regs+0x90/0xa0
+[   56.049588][ T5752]  ? die+0x36/0xa0
+[   56.049600][ T5752]  ? do_trap+0x222/0x420
+[   56.049615][ T5752]  ? do_error_trap+0xfe/0x230
+[   56.049629][ T5752]  ? __hfsplus_setxattr+0x1efa/0x23c0
+[   56.049646][ T5752]  ? handle_invalid_op+0x34/0x40
+[   56.053961][ T5748] EXT4-fs error (device loop1): ext4_xattr_delete_inode:3007: inode #15: comm syz.1.242: mark inode dirty (error -117)
+[   56.054445][ T5752]  ? __hfsplus_setxattr+0x1efa/0x23c0
+[   56.056609][ T5748] EXT4-fs warning (device loop1): ext4_evict_inode:271: xattr delete (err -117)
+[   56.057217][ T5752]  ? exc_invalid_op+0x2e/0x40
+[   56.058711][ T5748] EXT4-fs (loop1): 1 orphan inode deleted
+[   56.059656][ T5752]  ? asm_exc_invalid_op+0x1a/0x20
+[   56.059685][ T5752]  ? __hfsplus_setxattr+0x1ef9/0x23c0
+[   56.059701][ T5752]  ? __hfsplus_setxattr+0x1efa/0x23c0
+[   56.059716][ T5752]  ? __hfsplus_setxattr+0x1ef9/0x23c0
+[   56.061585][ T5748] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: none.
+[   56.061786][ T5752]  ? lock_acquire+0x1b5/0x4f0
+[   56.074216][ T5738] loop0: detected capacity change from 0 to 32768
+[   56.075118][ T5752]  ? find_held_lock+0x2d/0x110
+[   56.082771][ T5752]  ? copy_name+0xa0/0xa0
+[   56.083351][ T5752]  ? mark_held_locks+0x94/0xe0
+[   56.083993][ T5752]  ? _raw_spin_unlock_irqrestore+0x4e/0x70
+[   56.084730][ T5752]  ? lockdep_hardirqs_on+0x7d/0x110
+[   56.085407][ T5752]  hfsplus_setxattr+0x10c/0x160
+[   56.086054][ T5752]  ? hfsplus_init_security+0x40/0x40
+[   56.086712][ T5752]  __vfs_setxattr+0x173/0x1d0
+[   56.087361][ T5752]  ? __vfs_removexattr+0x1c0/0x1c0
+[   56.088016][ T5752]  __vfs_setxattr_noperm+0x127/0x5e0
+[   56.088671][ T5752]  __vfs_setxattr_locked+0x17e/0x250
+[   56.089459][ T5752]  vfs_setxattr+0x141/0x340
+[   56.090149][ T5752]  ? __vfs_setxattr_locked+0x250/0x250
+[   56.090852][ T5752]  ? __might_fault+0xe7/0x1a0
+[   56.091527][ T5752]  do_setxattr+0x142/0x170
+[   56.092089][ T5752]  setxattr+0x165/0x180
+[   56.092613][ T5752]  ? do_setxattr+0x170/0x170
+[   56.093269][ T5752]  ? __mnt_want_write+0x20c/0x300
+[   56.093941][ T5752]  path_setxattr+0x1a8/0x1d0
+[   56.094599][ T5752]  ? kernel_fpu_begin_mask+0x270/0x270
+[   56.095339][ T5752]  ? setxattr+0x180/0x180
+[   56.095882][ T5752]  __x64_sys_lsetxattr+0xc1/0x160
+[   56.096487][ T5752]  ? syscall_enter_from_user_mode+0x7f/0x120
+[   56.097229][ T5752]  do_syscall_64+0x3a/0xb0
+[   56.097785][ T5752]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   56.098507][ T5752] RIP: 0033:0x7f1b5c38ebe9
+[   56.099067][ T5752] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[   56.101490][ T5752] RSP: 002b:00007f1b5d292038 EFLAGS: 00000246 ORIG_RAX: 00000000000000bd
+[   56.102536][ T5752] RAX: ffffffffffffffda RBX: 00007f1b5c5c5fa0 RCX: 00007f1b5c38ebe9
+[   56.103526][ T5752] RDX: 0000200000000800 RSI: 0000200000000180 RDI: 0000200000000040
+[   56.104723][ T5752] RBP: 00007f1b5c411e19 R08: 0000000000000001 R09: 0000000000000000
+[   56.105861][ T5752] R10: 0000000000000361 R11: 0000000000000246 R12: 0000000000000000
+[   56.106829][ T5752] R13: 00007f1b5c5c6038 R14: 00007f1b5c5c5fa0 R15: 00007ffc33526998
+[   56.107795][ T5752]  </TASK>
+[   56.108174][ T5752] Modules linked in:
+[   56.123738][   T39] audit: type=1400 audit(1758704023.527:287): avc:  denied  { read append open } for  pid=5735 comm="syz.0.237" path="/81/file1/cpuacct.stat" dev="loop0" ino=7 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=file permissive=1
+[   56.127755][ T5131] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   56.128707][ T5752] ---[ end trace 0000000000000000 ]---
+[   56.130979][ T5752] RIP: 0010:__hfsplus_setxattr+0x1efa/0x23c0
+[   56.131829][ T5752] Code: e7 e8 4a f0 83 ff e9 cb fd ff ff e8 40 f0 83 ff 4c 8b 54 24 50 4c 8b 44 24 48 4c 8b 4c 24 40 e9 47 ed ff ff e8 07 18 2f ff 90 <0f> 0b 48 8b 7c 24 38 e8 1a f0 83 ff 4c 8b 54 24 50 4c 8b 44 24 48
+[   56.135811][ T5752] RSP: 0018:ffffc900036ff4c8 EFLAGS: 00010283
+[   56.136767][ T5752] RAX: 00000000000203ef RBX: ffff888045f60870 RCX: ffffc900053d2000
+[   56.138166][ T5752] RDX: 0000000000080000 RSI: ffffffff825696f9 RDI: 0000000000000007
+[   56.139269][ T5752] RBP: 0000000000000003 R08: ffff888020293800 R09: ffff8880479d8000
+[   56.140308][ T5752] R10: ffff888020293830 R11: 0000000000800000 R12: 0000000000010000
+[   56.141322][ T5752] R13: ffff888020293838 R14: 1ffff920006dfeab R15: ffffc900036ff588
+[   56.142378][ T5752] FS:  00007f1b5d2926c0(0000) GS:ffff88806b800000(0000) knlGS:0000000000000000
+[   56.143541][ T5752] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   56.144348][ T5752] CR2: 00007ffc4dba0c98 CR3: 0000000023fc3000 CR4: 0000000000350ee0
+[   56.145371][ T5752] Kernel panic - not syncing: Fatal exception
+[   56.146251][ T5752] Kernel Offset: disabled
+[   56.146792][ T5752] Rebooting in 86400 seconds..
