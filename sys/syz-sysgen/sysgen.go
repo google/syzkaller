@@ -73,7 +73,7 @@ var outDir = flag.String("out", "", "path to out dir")
 func main() {
 	defer tool.Init()()
 
-	// Cleanup old files in the case set of architectures has chnaged.
+	// Cleanup old files in the case set of architectures has changed.
 	allFiles, err := filepath.Glob(filepath.Join(*outDir, "sys", generated.Glob()))
 	if err != nil {
 		tool.Failf("failed to glob: %v", err)
