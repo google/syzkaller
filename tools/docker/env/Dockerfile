@@ -39,7 +39,7 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 # To build root image run:
 #	docker run -it --rm --privileged --device /dev/loop0 gcr.io/syzkaller/env
 #	mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
-#	create-image.sh -a s390x -d buster
+#	create-image.sh -a <ARCH> -d <DEBIAN RELEASE>
 
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz

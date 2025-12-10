@@ -32,7 +32,7 @@ make
 4. 将构建好的二进制文件和程序复制到待测试机器上（根据待测试机器，替换命令中的 `linux_amd64`）
 
 ``` bash
-scp -P 10022 -i bullseye.img.key bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program root@localhost:
+scp -P 10022 -i trixie.img.key bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program root@localhost:
 ```
 
 5. 在待测试机器上运行程序
