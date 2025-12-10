@@ -124,7 +124,7 @@ var allTypes = []algType{
 
 // Algorithms can be extracted with something along the following lines:
 //
-//	cat /proc/crypto | grep -B 8 ": skcipher" | grep -B 7 "internal     : no" | egrep "name |driver " | \
+//	cat /proc/crypto | grep -B 8 ": skcipher" | grep -B 7 "internal     : no" | grep -E "name |driver " | \
 //		cut -b 16- | sort | uniq | awk '{printf("{\"%s\", nil},\n", $1)}'
 //
 // Note: the kernel needs to include all crypto configs and CPU needs to support AVX/NEON/etc.
