@@ -1032,68 +1032,20 @@ func (mgr *Manager) addNewCandidates(candidates []fuzzer.Candidate) {
 }
 
 func (mgr *Manager) minimizeCorpusLocked() {
-	// Don't minimize corpus until we have triaged all inputs from it.
-	// During corpus triage it would happen very often since we are actively adding inputs,
-	// and presumably the persistent corpus was reasonably minimial, and we don't use it for fuzzing yet.
-	if mgr.phase < phaseTriagedCorpus {
-		return
+	cm := &manager.CorpusMinimizer{
+		Corpus:         mgr.corpus,
+		CorpusDB:       mgr.corpusDB,
+		Cover:          mgr.cfg.Cover,
+		LastMinCorpus:  mgr.lastMinCorpus,
+		SaturatedCalls: mgr.saturatedCalls,
+		DisabledHashes: mgr.disabledHashes,
+		PhaseCheck: func() bool {
+			return mgr.phase >= phaseTriagedCorpus
+		},
 	}
-	currSize := mgr.corpus.StatProgs.Val()
-	if currSize <= mgr.lastMinCorpus*103/100 {
-		return
-	}
-	mgr.corpus.Minimize(mgr.cfg.Cover)
-	newSize := mgr.corpus.StatProgs.Val()
-
-	log.Logf(1, "minimized corpus: %v -> %v", currSize, newSize)
-	mgr.lastMinCorpus = newSize
-
-	// From time to time we get corpus explosion due to different reason:
-	// generic bugs, per-OS bugs, problems with fallback coverage, kcov bugs, etc.
-	// This has bad effect on the instance and especially on instances
-	// connected via hub. Do some per-syscall sanity checking to prevent this.
-	for call, info := range mgr.corpus.CallCover() {
-		if mgr.cfg.Cover {
-			// If we have less than 1K inputs per this call,
-			// accept all new inputs unconditionally.
-			if info.Count < 1000 {
-				continue
-			}
-			// If we have more than 3K already, don't accept any more.
-			// Between 1K and 3K look at amount of coverage we are getting from these programs.
-			// Empirically, real coverage for the most saturated syscalls is ~30-60
-			// per program (even when we have a thousand of them). For explosion
-			// case coverage tend to be much lower (~0.3-5 per program).
-			if info.Count < 3000 && len(info.Cover)/info.Count >= 10 {
-				continue
-			}
-		} else {
-			// If we don't have real coverage, signal is weak.
-			// If we have more than several hundreds, there is something wrong.
-			if info.Count < 300 {
-				continue
-			}
-		}
-		if mgr.saturatedCalls[call] {
-			continue
-		}
-		mgr.saturatedCalls[call] = true
-		log.Logf(0, "coverage for %v has saturated, not accepting more inputs", call)
-	}
-
 	mgr.corpusDBMu.Lock()
 	defer mgr.corpusDBMu.Unlock()
-	for key := range mgr.corpusDB.Records {
-		ok1 := mgr.corpus.Item(key) != nil
-		_, ok2 := mgr.disabledHashes[key]
-		if !ok1 && !ok2 {
-			mgr.corpusDB.Delete(key)
-		}
-	}
-	if err := mgr.corpusDB.Flush(); err != nil {
-		log.Fatalf("failed to save corpus database: %v", err)
-	}
-	mgr.corpusDB.BumpVersion(manager.CurrentDBVersion)
+	mgr.lastMinCorpus = cm.Minimize()
 }
 
 func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
