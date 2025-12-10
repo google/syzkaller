@@ -301,7 +301,7 @@ type Reporting struct {
 	Embargo time.Duration
 	// Type of reporting and its configuration.
 	// The app has one built-in type, EmailConfig, which reports bugs by email.
-	// And ExternalConfig which can be used to attach any external reporting system (e.g. Bugzilla).
+	// The user can implement other types to attach to external reporting systems (e.g. Bugzilla).
 	Config ReportingType
 	// List of labels to notify about (keys are strings of form "label:value").
 	// The value is the string that will be included in the notification message.
