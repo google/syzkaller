@@ -988,6 +988,43 @@ type JobInfo struct {
 	OnMergeBase      bool
 }
 
+type AIJobPollReq struct {
+	Namespaces []string
+	Workflows []AIWorkflow
+}
+
+type AIWorkflow struct {
+	Type AIWorkflowType
+	Name string
+}
+
+type AIWorkflowType string
+
+const (
+	AIPatching AIWorkflowType = "patching"
+)
+
+type AIJobPollResp struct {
+	ID string
+	Workflow AIWorkflow
+	// ... bug info ...
+}
+
+type AIJobJournalReq struct {
+	JobID string
+	//!!! what to do with retried/duplicated entries
+	//!!! Attempt int?
+	// ... entry info
+}
+
+func (dash *Dashboard) AIJobPoll(req *AIJobPollReq) (*AIJobPollResp, error) {
+	resp := new(AIJobPollResp)
+	if err := dash.Query("ai_job_poll", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
