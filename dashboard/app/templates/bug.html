@@ -38,12 +38,12 @@ Page with details about a single bug.
 		{{end}}
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
-	{{if .FixCandidate}}
-		<div class="fix-candidate-block">{{template "bisect_results" .FixCandidate}}</div>
+	{{if .Bug.FixCandidateJob}}
+		<div class="fix-candidate-block">{{template "bisect_results" .Bug.FixCandidateJob}}</div>
 	{{end}}
 	<div>
-		{{if .BisectCause}}<div class="bug-bisection-info">{{template "bisect_results" .BisectCause}}</div>{{end}}
-		{{if .BisectFix}}<div class="bug-bisection-info">{{template "bisect_results" .BisectFix}}</div>{{end}}
+		{{if .Bug.BisectCauseJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectCauseJob}}</div>{{end}}
+		{{if .Bug.BisectFixJob}}<div class="bug-bisection-info">{{template "bisect_results" .Bug.BisectFixJob}}</div>{{end}}
 		<div class="bug-bisection-stop"></div>
 	</div>
 
@@ -64,9 +64,9 @@ Page with details about a single bug.
 	</div>
 	{{end}}
 
-	{{if .SampleReport}}
+	{{if .Bug.SampleReport}}
 	<br><b>Sample crash report:</b><br>
-	<div id="crash_div"><pre>{{.SampleReport}}</pre></div><br>
+	<div id="crash_div"><pre>{{.Bug.SampleReport}}</pre></div><br>
 	{{end}}
 
 	{{template "crash_list" .Crashes}}
