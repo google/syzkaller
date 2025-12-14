@@ -1,0 +1,285 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/drm/drm.h>
+include <uapi/drm/panthor_drm.h>
+
+resource vm_id[int32]
+resource bo_handle[drm_gem_handle]
+resource group_handle[int32]
+resource heap_handle[int32]
+
+openat$panthor(dirfd const[AT_FDCWD], path ptr[in, string["/dev/dri/renderD128"]], flags const[2], mode const[0]) fd_dri
+mmap$panthor(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_dri, offset fileoff)
+_ = __NR_mmap2
+
+ioctl$DRM_IOCTL_PANTHOR_DEV_QUERY_GPU_INFO(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_DEV_QUERY], arg ptr[inout, drm_panthor_dev_query_gpu_info])
+ioctl$DRM_IOCTL_PANTHOR_DEV_QUERY_CSIF_INFO(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_DEV_QUERY], arg ptr[inout, drm_panthor_dev_query_csif_info])
+ioctl$DRM_IOCTL_PANTHOR_DEV_QUERY_TIMESTAMP_INFO(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_DEV_QUERY], arg ptr[inout, drm_panthor_dev_query_timestamp_info])
+ioctl$DRM_IOCTL_PANTHOR_DEV_QUERY_GROUP_PRIORITIES_INFO(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_DEV_QUERY], arg ptr[inout, drm_panthor_dev_query_group_priorities_info])
+ioctl$DRM_IOCTL_PANTHOR_VM_CREATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_VM_CREATE], arg ptr[inout, drm_panthor_vm_create])
+ioctl$DRM_IOCTL_PANTHOR_VM_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_VM_DESTROY], arg ptr[inout, drm_panthor_vm_destroy])
+ioctl$DRM_IOCTL_PANTHOR_VM_BIND(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_VM_BIND], arg ptr[inout, drm_panthor_vm_bind])
+ioctl$DRM_IOCTL_PANTHOR_VM_GET_STATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_VM_GET_STATE], arg ptr[inout, drm_panthor_vm_get_state])
+ioctl$DRM_IOCTL_PANTHOR_BO_CREATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_BO_CREATE], arg ptr[inout, drm_panthor_bo_create])
+ioctl$DRM_IOCTL_PANTHOR_BO_MMAP_OFFSET(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_BO_MMAP_OFFSET], arg ptr[inout, drm_panthor_bo_mmap_offset])
+ioctl$DRM_IOCTL_PANTHOR_GROUP_CREATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_GROUP_CREATE], arg ptr[inout, drm_panthor_group_create])
+ioctl$DRM_IOCTL_PANTHOR_GROUP_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_GROUP_DESTROY], arg ptr[inout, drm_panthor_group_destroy])
+ioctl$DRM_IOCTL_PANTHOR_GROUP_SUBMIT(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_GROUP_SUBMIT], arg ptr[inout, drm_panthor_group_submit])
+ioctl$DRM_IOCTL_PANTHOR_GROUP_GET_STATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_GROUP_GET_STATE], arg ptr[inout, drm_panthor_group_get_state])
+ioctl$DRM_IOCTL_PANTHOR_TILER_HEAP_CREATE(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_TILER_HEAP_CREATE], arg ptr[inout, drm_panthor_tiler_heap_create])
+ioctl$DRM_IOCTL_PANTHOR_TILER_HEAP_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_TILER_HEAP_DESTROY], arg ptr[inout, drm_panthor_tiler_heap_destroy])
+ioctl$DRM_IOCTL_PANTHOR_BO_SET_LABEL(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_BO_SET_LABEL], arg ptr[inout, drm_panthor_bo_set_label])
+ioctl$DRM_IOCTL_PANTHOR_SET_USER_MMIO_OFFSET(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_SET_USER_MMIO_OFFSET], arg ptr[inout, drm_panthor_set_user_mmio_offset])
+ioctl$DRM_IOCTL_PANTHOR_BO_SYNC(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_BO_SYNC], arg ptr[inout, drm_panthor_bo_sync])
+ioctl$DRM_IOCTL_PANTHOR_BO_QUERY_INFO(fd fd_dri, cmd const[DRM_IOCTL_PANTHOR_BO_QUERY_INFO], arg ptr[inout, drm_panthor_bo_query_info])
+
+drm_panthor_sync_op {
+	flags		flags[drm_panthor_sync_op_flags, int32]
+	handle		drm_syncobj	(in)
+	timeline_value	int64
+}
+
+drm_panthor_gpu_info {
+	gpu_id				int32
+	gpu_rev				int32
+	csf_id				int32
+	l2_features			int32
+	tiler_features			int32
+	mem_features			int32
+	mmu_features			int32
+	thread_features			int32
+	max_threads			int32
+	thread_max_workgroup_size	int32
+	thread_max_barrier_size		int32
+	coherency_features		flags[drm_panthor_gpu_coherency, int32]
+	texture_features		array[int32, 4]
+	as_present			int32
+	selected_coherency		int32
+	shader_present			int64
+	l2_present			int64
+	tiler_present			int64
+	core_features			int32
+	pad				const[0, int32]
+	gpu_features			int64
+}
+
+drm_panthor_csif_info {
+	csg_slot_count			int32
+	cs_slot_count			int32
+	cs_reg_count			int32
+	scoreboard_slot_count		int32
+	unpreserved_cs_reg_count	int32
+	pad				const[0, int32]
+}
+
+drm_panthor_timestamp_info {
+	timestamp_frequency	int64
+	current_timestamp	int64
+	timestamp_offset	int64
+}
+
+drm_panthor_group_priorities_info {
+	allowed_mask	int8
+	pad		const[0, int64:24]
+}
+
+drm_panthor_dev_query_gpu_info {
+	type	const[0, int32]
+	size	int32
+	pointer	ptr64[out, drm_panthor_gpu_info]
+}
+
+drm_panthor_dev_query_csif_info {
+	type	const[1, int32]
+	size	int32
+	pointer	ptr64[out, drm_panthor_csif_info]
+}
+
+drm_panthor_dev_query_timestamp_info {
+	type	const[2, int32]
+	size	int32
+	pointer	ptr64[out, drm_panthor_timestamp_info]
+}
+
+drm_panthor_dev_query_group_priorities_info {
+	type	const[3, int32]
+	size	int32
+	pointer	ptr64[out, drm_panthor_group_priorities_info]
+}
+
+drm_panthor_vm_create {
+	flags		const[0, int32]
+	id		vm_id	(out)
+	user_va_range	int64
+}
+
+drm_panthor_vm_destroy {
+	id	vm_id	(in)
+	pad	const[0, int32]
+}
+
+drm_panthor_vm_bind_op {
+	flags		flags[drm_panthor_vm_bind_op_flags, int32]
+	bo_handle	bo_handle	(in)
+	bo_offset	int64
+	va		int64
+	size		int64
+	syncs		drm_panthor_obj_array_drm_panthor_sync_op
+}
+
+drm_panthor_vm_bind {
+	vm_id	vm_id	(in)
+	flags	flags[drm_panthor_vm_bind_flags, int32]
+	ops	drm_panthor_obj_array_drm_panthor_vm_bind_op
+}
+
+drm_panthor_vm_get_state {
+	vm_id	vm_id	(in)
+	state	int32	(out)
+}
+
+drm_panthor_bo_create {
+	size		int64
+	flags		flags[drm_panthor_bo_flags, int32]
+	exclusive_vm_id	vm_id	(in)
+	handle		bo_handle	(out)
+	pad		const[0, int32]
+}
+
+drm_panthor_bo_mmap_offset {
+	handle	bo_handle	(in)
+	pad	const[0, int32]
+	offset	fileoff[int64]	(out)
+}
+
+drm_panthor_queue_create {
+	priority	int8
+	pad		const[0, int64:24]
+	ringbuf_size	int32
+}
+
+drm_panthor_group_create {
+	queues			drm_panthor_obj_array_drm_panthor_queue_create
+	max_compute_cores	int8
+	max_fragment_cores	int8
+	max_tiler_cores		int8
+	priority		flags[drm_panthor_group_priority, int8]
+	pad			const[0, int32]
+	compute_core_mask	int64
+	fragment_core_mask	int64
+	tiler_core_mask		int64
+	vm_id			vm_id	(in)
+	group_handle		group_handle	(out)
+}
+
+drm_panthor_group_destroy {
+	group_handle	group_handle	(in)
+	pad		const[0, int32]
+}
+
+drm_panthor_queue_submit {
+	queue_index	int32
+	stream_size	int32[0:-1, 8]
+	stream_addr	int64[0:-1, 64]
+	latest_flush	int32
+	pad		const[0, int32]
+	syncs		drm_panthor_obj_array_drm_panthor_sync_op
+}
+
+drm_panthor_group_submit {
+	group_handle	group_handle	(in)
+	pad		const[0, int32]
+	queue_submits	drm_panthor_obj_array_drm_panthor_queue_submit
+}
+
+drm_panthor_group_get_state {
+	group_handle	group_handle	(in)
+	state		int32	(out)
+	fatal_queues	int32	(out)
+	pad		const[0, int32]
+}
+
+drm_panthor_tiler_heap_create {
+	vm_id			vm_id	(in)
+	initial_chunk_count	int32
+	chunk_size		int32[131072:8388608, 131072]
+	max_chunks		int32
+	target_in_flight	int32
+	handle			heap_handle	(out)
+	tiler_heap_ctx_gpu_va	int64
+	first_heap_chunk_gpu_va	int64
+}
+
+drm_panthor_tiler_heap_destroy {
+	handle	heap_handle	(in)
+	pad	const[0, int32]
+}
+
+drm_panthor_bo_set_label {
+	handle	bo_handle	(in)
+	pad	const[0, int32]
+	label	ptr[in, string]
+}
+
+drm_panthor_set_user_mmio_offset {
+	offset	int64
+}
+
+drm_panthor_bo_sync_op {
+	handle	bo_handle	(in)
+	type	flags[drm_panthor_bo_sync_op_type, int32]
+	offset	int64
+	size	int64
+}
+
+drm_panthor_bo_sync {
+	ops	drm_panthor_obj_array_drm_panthor_bo_sync_op
+}
+
+drm_panthor_bo_query_info {
+	handle		bo_handle
+	extra_flags	flags[drm_panthor_bo_extra_flags, int32]
+	create_flags	flags[drm_panthor_bo_flags, int32]
+	pad		const[0, int32]
+}
+
+drm_panthor_obj_array_drm_panthor_vm_bind_op {
+	stride	const[48, int32]
+	count	len[array, int32]
+	array	ptr64[inout, array[drm_panthor_vm_bind_op]]
+}
+
+drm_panthor_obj_array_drm_panthor_queue_create {
+	stride	const[8, int32]
+	count	len[array, int32]
+	array	ptr64[inout, array[drm_panthor_queue_create]]
+}
+
+drm_panthor_obj_array_drm_panthor_queue_submit {
+	stride	const[40, int32]
+	count	len[array, int32]
+	array	ptr64[inout, array[drm_panthor_queue_submit]]
+}
+
+drm_panthor_obj_array_drm_panthor_sync_op {
+	stride	const[16, int32]
+	count	len[array, int32]
+	array	ptr64[inout, array[drm_panthor_sync_op]]
+}
+
+drm_panthor_obj_array_drm_panthor_bo_sync_op {
+	stride	const[24, int32]
+	count	len[array, int32]
+	array	ptr64[inout, array[drm_panthor_bo_sync_op]]
+}
+
+drm_panthor_sync_op_flags = 0, 1, 255, 2147483648
+drm_panthor_gpu_coherency = 0, 1, 31
+drm_panthor_vm_bind_op_flags = 0, 1, 2, 4, 268435456, 536870912, 4026531840
+drm_panthor_vm_bind_flags = 1
+drm_panthor_bo_flags = 1, 2
+drm_panthor_group_priority = 0, 1, 2, 3
+drm_panthor_bo_sync_op_type = 0, 1
+drm_panthor_bo_extra_flags = 1
