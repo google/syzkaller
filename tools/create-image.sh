@@ -23,21 +23,21 @@ PERF=false
 
 # Display help function
 display_help() {
-    echo "Usage: $0 [option...] " >&2
+    echo "Usage: $0 [option...] "
     echo
-    echo "   -a, --arch                 Set architecture"
-    echo "   -d, --distribution         Set on which debian distribution to create"
-    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
-    echo "   -s, --seek                 Image size (MB), default 2048 (2G)"
+    echo "   -a, --arch                 Set architecture (default: $ARCH)"
+    echo "   -d, --distribution         Set on which Debian distribution to create (default: $RELEASE)"
+    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full (default: $FEATURE)"
     echo "   -h, --help                 Display help message"
-    echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
+    echo "   -p, --add-perf             Add perf support. Requires environment variable \$KERNEL pointing to kernel source tree"
+    echo "   -s, --seek                 Image size in MB (default: $(($SEEK + 1)))"
     echo
 }
 
 while true; do
     if [ $# -eq 0 ];then
-	echo $#
-	break
+        echo $#
+        break
     fi
     case "$1" in
         -h | --help)
@@ -45,24 +45,24 @@ while true; do
             exit 0
             ;;
         -a | --arch)
-	    ARCH=$2
+            ARCH=$2
             shift 2
             ;;
         -d | --distribution)
-	    RELEASE=$2
+            RELEASE=$2
             shift 2
             ;;
         -f | --feature)
-	    FEATURE=$2
-            shift 2
-            ;;
-        -s | --seek)
-	    SEEK=$(($2 - 1))
+            FEATURE=$2
             shift 2
             ;;
         -p | --add-perf)
-	    PERF=true
+            PERF=true
             shift 1
+            ;;
+        -s | --seek)
+            SEEK=$(($2 - 1))
+            shift 2
             ;;
         -*)
             echo "Error: Unknown option: $1" >&2
