@@ -1,0 +1,154 @@
+TITLE: WARNING: ODEBUG bug in handle_softirqs
+TYPE: WARNING
+FRAME: handle_softirqs
+
+[ 1448.582383][    C1] ------------[ cut here ]------------
+[ 1448.582480][    C1] ODEBUG: free active (active state 0) object: ffff88807b3c4490 object type: timer_list hint: rose_t0timer_expiry+0x0/0x350
+[ 1448.582538][    C1] WARNING: lib/debugobjects.c:615 at 0x0, CPU#1: kworker/1:3/17677
+[ 1448.582567][    C1] Modules linked in:
+[ 1448.582646][    C1] CPU: 1 UID: 0 PID: 17677 Comm: kworker/1:3 Not tainted syzkaller #0 PREEMPT(full) 
+[ 1448.582667][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+[ 1448.582682][    C1] Workqueue: usb_hub_wq hub_event
+[ 1448.582706][    C1] RIP: 0010:debug_check_no_obj_freed+0x44a/0x550
+[ 1448.582735][    C1] Code: 89 44 24 20 e8 57 86 87 fd 48 8b 44 24 20 4c 8b 4d 00 4c 89 ef 48 c7 c6 00 4d e1 8b 48 c7 c2 00 52 e1 8b 8b 0c 24 4d 89 f8 50 <67> 48 0f b9 3a 48 83 c4 08 4c 8b 6c 24 18 48 b9 00 00 00 00 00 fc
+[ 1448.582754][    C1] RSP: 0018:ffffc90000a08a70 EFLAGS: 00010246
+[ 1448.582773][    C1] RAX: ffffffff8a52f8d0 RBX: ffffffff99ef7010 RCX: 0000000000000000
+[ 1448.582790][    C1] RDX: ffffffff8be15200 RSI: ffffffff8be14d00 RDI: ffffffff8fc9dd10
+[ 1448.582806][    C1] RBP: ffffffff8b8d0a00 R08: ffff88807b3c4490 R09: ffffffff8b8d1b40
+[ 1448.582822][    C1] R10: dffffc0000000000 R11: ffffffff81aee640 R12: ffff88807b3c4600
+[ 1448.582838][    C1] R13: ffffffff8fc9dd10 R14: ffff88807b3c4000 R15: ffff88807b3c4490
+[ 1448.582853][    C1] FS:  0000000000000000(0000) GS:ffff888125b3e000(0000) knlGS:0000000000000000
+[ 1448.582878][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1448.582894][    C1] CR2: 00007effee671ff0 CR3: 0000000034f00000 CR4: 00000000003526f0
+[ 1448.582914][    C1] Call Trace:
+[ 1448.582923][    C1]  <IRQ>
+[ 1448.582930][    C1]  ? __pfx_rose_t0timer_expiry+0x10/0x10
+[ 1448.582965][    C1]  ? rose_timer_expiry+0x4cb/0x600
+[ 1448.582985][    C1]  kfree+0x13b/0x660
+[ 1448.583020][    C1]  rose_timer_expiry+0x4cb/0x600
+[ 1448.583046][    C1]  call_timer_fn+0x16e/0x590
+[ 1448.583070][    C1]  ? __pfx_rose_timer_expiry+0x10/0x10
+[ 1448.583092][    C1]  ? call_timer_fn+0xbe/0x590
+[ 1448.583118][    C1]  ? __pfx_call_timer_fn+0x10/0x10
+[ 1448.583153][    C1]  ? _raw_spin_unlock_irq+0x23/0x50
+[ 1448.583183][    C1]  ? lockdep_hardirqs_on+0x98/0x140
+[ 1448.583201][    C1]  ? __pfx_rose_timer_expiry+0x10/0x10
+[ 1448.583228][    C1]  __run_timer_base+0x61a/0x860
+[ 1448.583269][    C1]  ? __pfx___run_timer_base+0x10/0x10
+[ 1448.583292][    C1]  ? seqcount_lockdep_reader_access+0x15e/0x1c0
+[ 1448.583345][    C1]  run_timer_softirq+0xb7/0x180
+[ 1448.583371][    C1]  handle_softirqs+0x27d/0x850
+[ 1448.583402][    C1]  ? __irq_exit_rcu+0xca/0x1f0
+[ 1448.583433][    C1]  ? __pfx_handle_softirqs+0x10/0x10
+[ 1448.583464][    C1]  ? irqtime_account_irq+0xb6/0x1c0
+[ 1448.583500][    C1]  __irq_exit_rcu+0xca/0x1f0
+[ 1448.583525][    C1]  ? __pfx___irq_exit_rcu+0x10/0x10
+[ 1448.583560][    C1]  irq_exit_rcu+0x9/0x30
+[ 1448.583583][    C1]  sysvec_apic_timer_interrupt+0xa6/0xc0
+[ 1448.583616][    C1]  </IRQ>
+[ 1448.583624][    C1]  <TASK>
+[ 1448.583636][    C1]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[ 1448.583660][    C1] RIP: 0010:console_flush_all+0x846/0xb60
+[ 1448.583692][    C1] Code: ff ff e8 8d 23 20 00 90 0f 0b 90 e9 53 fc ff ff e8 7f 23 20 00 e8 3a 65 c0 09 48 85 db 74 c0 e8 70 23 20 00 fb 48 8b 5c 24 10 <48> 8b 44 24 20 42 80 3c 20 00 4c 8b 74 24 18 74 08 4c 89 f7 e8 f1
+[ 1448.583711][    C1] RSP: 0018:ffffc900048fe2e0 EFLAGS: 00000287
+[ 1448.583733][    C1] RAX: ffffffff81a1bc90 RBX: ffffc900048fe480 RCX: 0000000000100000
+[ 1448.583750][    C1] RDX: ffffc9001215d000 RSI: 000000000002bfc9 RDI: 000000000002bfca
+[ 1448.583767][    C1] RBP: ffffc900048fe430 R08: ffffffff8fbf8277 R09: 1ffffffff1f7f04e
+[ 1448.583785][    C1] R10: dffffc0000000000 R11: fffffbfff1f7f04f R12: dffffc0000000000
+[ 1448.583802][    C1] R13: 0000000000000001 R14: 0000000000000000 R15: ffffffff8eb89b80
+[ 1448.583827][    C1]  ? console_flush_all+0x840/0xb60
+[ 1448.583876][    C1]  ? console_flush_all+0x131/0xb60
+[ 1448.583914][    C1]  ? __pfx_console_flush_all+0x10/0x10
+[ 1448.583956][    C1]  ? is_printk_cpu_sync_owner+0x32/0x40
+[ 1448.583983][    C1]  console_unlock+0xbb/0x190
+[ 1448.584012][    C1]  ? __pfx___down_trylock_console_sem+0x10/0x10
+[ 1448.584044][    C1]  ? __pfx_console_unlock+0x10/0x10
+[ 1448.584083][    C1]  vprintk_emit+0x4f8/0x5f0
+[ 1448.584115][    C1]  ? __pfx_vprintk_emit+0x10/0x10
+[ 1448.584148][    C1]  ? __pfx_snprintf+0x10/0x10
+[ 1448.584180][    C1]  ? do_raw_spin_lock+0x121/0x290
+[ 1448.584218][    C1]  dev_vprintk_emit+0x337/0x3f0
+[ 1448.584251][    C1]  ? __pfx_dev_vprintk_emit+0x10/0x10
+[ 1448.584288][    C1]  ? do_raw_spin_lock+0x121/0x290
+[ 1448.584325][    C1]  dev_printk_emit+0xe0/0x130
+[ 1448.584352][    C1]  ? rcu_is_watching+0x15/0xb0
+[ 1448.584389][    C1]  ? __pfx_dev_printk_emit+0x10/0x10
+[ 1448.584432][    C1]  __netdev_printk+0x3e1/0x480
+[ 1448.584471][    C1]  netdev_warn+0x10a/0x160
+[ 1448.584493][    C1]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[ 1448.584523][    C1]  ? trace_rpm_return_int+0x83/0x1e0
+[ 1448.584560][    C1]  ? __pfx_netdev_warn+0x10/0x10
+[ 1448.584587][    C1]  ? __pm_runtime_idle+0x13c/0x1a0
+[ 1448.584616][    C1]  ? usbnet_read_cmd+0xbb/0xe0
+[ 1448.584655][    C1]  smsc75xx_wait_eeprom+0x256/0x290
+[ 1448.584686][    C1]  ? __pm_runtime_idle+0xef/0x1a0
+[ 1448.584715][    C1]  ? __pfx_smsc75xx_wait_eeprom+0x10/0x10
+[ 1448.584750][    C1]  ? usbnet_write_cmd+0xbb/0xe0
+[ 1448.584787][    C1]  smsc75xx_read_eeprom+0x128/0x350
+[ 1448.584822][    C1]  ? __pfx_smsc75xx_read_eeprom+0x10/0x10
+[ 1448.584870][    C1]  smsc75xx_bind+0x55d/0xd40
+[ 1448.584906][    C1]  ? __pfx_smsc75xx_bind+0x10/0x10
+[ 1448.584945][    C1]  ? usbnet_probe+0x934/0x28f0
+[ 1448.584981][    C1]  usbnet_probe+0xab5/0x28f0
+[ 1448.585013][    C1]  ? usb_unlocked_disable_lpm+0x8c/0xb0
+[ 1448.585058][    C1]  ? __pfx_usbnet_probe+0x10/0x10
+[ 1448.585087][    C1]  ? _raw_spin_unlock_irqrestore+0xad/0x110
+[ 1448.585119][    C1]  ? __pfx__raw_spin_unlock_irqrestore+0x10/0x10
+[ 1448.585149][    C1]  ? ktime_get_mono_fast_ns+0x2af/0x2d0
+[ 1448.585182][    C1]  ? usb_disable_lpm+0x77/0x3e0
+[ 1448.585212][    C1]  usb_probe_interface+0x668/0xc90
+[ 1448.585252][    C1]  ? __pfx_usb_probe_interface+0x10/0x10
+[ 1448.585279][    C1]  really_probe+0x26d/0xad0
+[ 1448.585318][    C1]  __driver_probe_device+0x18c/0x320
+[ 1448.585353][    C1]  driver_probe_device+0x4f/0x240
+[ 1448.585389][    C1]  __device_attach_driver+0x279/0x430
+[ 1448.585426][    C1]  bus_for_each_drv+0x251/0x2e0
+[ 1448.585452][    C1]  ? __pfx___device_attach_driver+0x10/0x10
+[ 1448.585485][    C1]  ? __pfx_bus_for_each_drv+0x10/0x10
+[ 1448.585522][    C1]  __device_attach+0x2b8/0x430
+[ 1448.585556][    C1]  ? __pfx___device_attach+0x10/0x10
+[ 1448.585589][    C1]  ? do_raw_spin_unlock+0x122/0x240
+[ 1448.585625][    C1]  bus_probe_device+0x185/0x260
+[ 1448.585655][    C1]  device_add+0x7b6/0xb80
+[ 1448.585689][    C1]  usb_set_configuration+0x1a87/0x2110
+[ 1448.585745][    C1]  usb_generic_driver_probe+0x8d/0x150
+[ 1448.585774][    C1]  usb_probe_device+0x1c4/0x3c0
+[ 1448.585805][    C1]  ? __pfx_usb_probe_device+0x10/0x10
+[ 1448.585831][    C1]  really_probe+0x26d/0xad0
+[ 1448.585874][    C1]  __driver_probe_device+0x18c/0x320
+[ 1448.585909][    C1]  driver_probe_device+0x4f/0x240
+[ 1448.585945][    C1]  __device_attach_driver+0x279/0x430
+[ 1448.585981][    C1]  bus_for_each_drv+0x251/0x2e0
+[ 1448.586008][    C1]  ? __pfx___device_attach_driver+0x10/0x10
+[ 1448.586040][    C1]  ? __pfx_bus_for_each_drv+0x10/0x10
+[ 1448.586077][    C1]  __device_attach+0x2b8/0x430
+[ 1448.586110][    C1]  ? __pfx___device_attach+0x10/0x10
+[ 1448.586146][    C1]  ? do_raw_spin_unlock+0x122/0x240
+[ 1448.586182][    C1]  bus_probe_device+0x185/0x260
+[ 1448.586212][    C1]  device_add+0x7b6/0xb80
+[ 1448.586245][    C1]  usb_new_device+0xa39/0x1720
+[ 1448.586281][    C1]  ? __pfx_usb_new_device+0x10/0x10
+[ 1448.586305][    C1]  ? _raw_spin_unlock_irq+0x23/0x50
+[ 1448.586336][    C1]  ? lockdep_hardirqs_on+0x98/0x140
+[ 1448.586364][    C1]  hub_event+0x29b1/0x4ef0
+[ 1448.586443][    C1]  ? __pfx_hub_event+0x10/0x10
+[ 1448.586468][    C1]  ? process_one_work+0x868/0x15a0
+[ 1448.586499][    C1]  ? _raw_spin_unlock_irq+0x23/0x50
+[ 1448.586534][    C1]  ? process_one_work+0x868/0x15a0
+[ 1448.586556][    C1]  process_one_work+0x93a/0x15a0
+[ 1448.586604][    C1]  ? __pfx_process_one_work+0x10/0x10
+[ 1448.586637][    C1]  ? assign_work+0x3a1/0x410
+[ 1448.586666][    C1]  worker_thread+0x9b0/0xee0
+[ 1448.586718][    C1]  kthread+0x711/0x8a0
+[ 1448.586752][    C1]  ? __pfx_worker_thread+0x10/0x10
+[ 1448.586777][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1448.586809][    C1]  ? _raw_spin_unlock_irq+0x23/0x50
+[ 1448.586839][    C1]  ? lockdep_hardirqs_on+0x98/0x140
+[ 1448.586859][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1448.586894][    C1]  ret_from_fork+0x599/0xb30
+[ 1448.586921][    C1]  ? __pfx_ret_from_fork+0x10/0x10
+[ 1448.586956][    C1]  ? __switch_to_asm+0x39/0x70
+[ 1448.586985][    C1]  ? __switch_to_asm+0x33/0x70
+[ 1448.587013][    C1]  ? __pfx_kthread+0x10/0x10
+[ 1448.587043][    C1]  ret_from_fork_asm+0x1a/0x30
+[ 1448.587091][    C1]  </TASK>

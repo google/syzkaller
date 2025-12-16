@@ -230,7 +230,7 @@ class ShmemBuilder : ShmemAllocator, public flatbuffers::FlatBufferBuilder
 public:
 	ShmemBuilder(OutputData* data, size_t size, bool store_size)
 	    : ShmemAllocator(data + 1, size - sizeof(*data)),
-	      FlatBufferBuilder(size - sizeof(*data), this)
+	      flatbuffers::FlatBufferBuilder(size - sizeof(*data), this)
 	{
 		if (store_size)
 			data->size.store(size, std::memory_order_relaxed);
@@ -238,7 +238,7 @@ public:
 		if (consumed >= size - sizeof(*data))
 			failmsg("ShmemBuilder: too large output offset", "size=%zd consumed=%zd", size, consumed);
 		if (consumed)
-			FlatBufferBuilder::buf_.make_space(consumed);
+			flatbuffers::FlatBufferBuilder::buf_.make_space(consumed);
 	}
 };
 
@@ -1226,7 +1226,7 @@ uint32 write_signal(flatbuffers::FlatBufferBuilder& fbb, int index, cover_t* cov
 {
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
-	fbb.StartVector(0, sizeof(uint64));
+	fbb.StartVector<uint64_t>(0);
 	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
 	if ((char*)(cover_data + cov->size) > cov->data_end)
 		failmsg("too much cover", "cov=%u", cov->size);
@@ -1267,7 +1267,7 @@ uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 		std::sort(cover_data, end);
 		cover_size = std::unique(cover_data, end) - cover_data;
 	}
-	fbb.StartVector(cover_size, sizeof(uint64));
+	fbb.StartVector<uint64_t>(cover_size);
 	// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
 	for (uint32 i = 0; i < cover_size; i++)
 		fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));

@@ -238,6 +238,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_ADDR_SCRATCH_CODE, 1, 0},
     // CPU stack.
     {X86_SYZOS_ADDR_STACK_BOTTOM, 1, 0},
+    // Per-VCPU regions for L2 VMs.
+    {X86_SYZOS_PER_VCPU_REGIONS_BASE, (KVM_MAX_VCPU * X86_SYZOS_L1_VCPU_REGION_SIZE) / KVM_PAGE_SIZE, 0},
     // IOAPIC memory.
     {X86_SYZOS_ADDR_IOAPIC, 1, 0},
 };
@@ -397,11 +399,21 @@ static void setup_gdt_64(struct gdt_entry* gdt)
 	// P=1, DPL=0, S=1, Type=Read/Write, DB=1, G=1
 	gdt[X86_SYZOS_SEL_DATA >> 3] = (struct gdt_entry){
 	    .limit_low = 0xFFFF,
-	    .base_low = 0,
-	    .base_mid = 0,
+	    .base_low = (uint16)(X86_SYZOS_ADDR_VAR_TSS & 0xFFFF),
+	    .base_mid = (uint8)((X86_SYZOS_ADDR_VAR_TSS >> 16) & 0xFF),
 	    .access = 0x92, // Present, DPL=0, S=1, Type=Read/Write, Accessed
 	    .limit_high_and_flags = 0xCF, // Granularity=1, DB=1, Limit=0xF
+	    .base_high = (uint8)((X86_SYZOS_ADDR_VAR_TSS >> 24) & 0xFF)};
+	// Entry 3 (selector 0x18): 64-bit TSS Segment
+	gdt[X86_SYZOS_SEL_TSS64 >> 3] = (struct gdt_entry){
+	    .limit_low = 0x67, // Minimal TSS limit
+	    .base_low = 0,
+	    .base_mid = 0,
+	    .access = 0x89, // Present, DPL=0, 64-bit TSS (Available)
+	    .limit_high_and_flags = 0x00, // G=0, Limit High = 0
 	    .base_high = 0};
+	// NOTE: A 64-bit TSS descriptor actually needs a second GDT entry for the high 32 bits of the base.
+	// We'll keep the base 0 for simplicity, so the second entry (index 4) can remain 0.
 }
 
 // This only sets up a 64-bit VCPU.
@@ -412,7 +424,7 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd)
 	ioctl(cpufd, KVM_GET_SREGS, &sregs);
 
 	sregs.gdt.base = X86_SYZOS_ADDR_GDT;
-	sregs.gdt.limit = 3 * sizeof(struct gdt_entry) - 1;
+	sregs.gdt.limit = 5 * sizeof(struct gdt_entry) - 1;
 	struct gdt_entry* gdt = (struct gdt_entry*)((uint64)vm->host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_cs64;
@@ -443,6 +455,29 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd)
 	sregs.fs = seg_ds64;
 	sregs.gs = seg_ds64;
 	sregs.ss = seg_ds64;
+
+	// The L1 guest (the host for L2) MUST have a valid TR
+	// pointing to the 64-bit TSS in the GDT.
+	struct kvm_segment seg_tr;
+	memset(&seg_tr, 0, sizeof(seg_tr));
+	seg_tr.selector = X86_SYZOS_SEL_TSS64; // 0x18
+	seg_tr.type = 11; // 64-bit TSS (Busy)
+	seg_tr.base = X86_SYZOS_ADDR_VAR_TSS;
+	seg_tr.limit = 0x67; // Limit of the TSS descriptor
+	seg_tr.present = 1;
+	seg_tr.s = 0; // System segment
+	sregs.tr = seg_tr;
+
+	// The L1 TSS memory is at (vm->host_mem + X86_SYZOS_ADDR_VAR_TSS)
+	volatile uint8* l1_tss =
+	    (volatile uint8*)((uint64)vm->host_mem + X86_SYZOS_ADDR_VAR_TSS);
+
+	// Zero out the TSS (104 bytes for 64-bit)
+	memset((void*)l1_tss, 0, 104);
+
+	// Set the critical RSP0 field to the L1 guest's main stack.
+	// RSP0 is at offset +4 bytes in a 64-bit TSS.
+	*(volatile uint64*)(l1_tss + 4) = X86_SYZOS_ADDR_STACK0;
 
 	setup_gdt_64(gdt);
 

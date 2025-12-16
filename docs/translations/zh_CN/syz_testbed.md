@@ -32,8 +32,8 @@ syz-testbed 需要一个 JSON 配置文件。示例：
   "manager_config": {
 	  "target": "linux/amd64",
 	  "kernel_obj": "/tmp/linux-stable",
-	  "image": "/tmp/kernel-image/bullseye.img",
-	  "sshkey": "/tmp/kernel-image/bullseye.id_rsa",
+	  "image": "/tmp/kernel-image/trixie.img",
+	  "sshkey": "/tmp/kernel-image/trixie.id_rsa",
 	  "procs": 8,
 	  "type": "qemu",
 	  "vm": {

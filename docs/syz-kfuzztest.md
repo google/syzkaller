@@ -26,7 +26,7 @@ enabled. Namely
 
 Furthermore, as you will need to connect to the VM being tested through SSH and
 launch `syz-kfuzztest` _(a Go binary with LIBC dependencies)_, it is recommended
-to create an image for the kernel being fuzzed (e.g., a Debian Bullseye image).
+to create an image for the kernel being fuzzed (e.g., a Debian Trixie image).
 Detailed instructions on how to do this can be found in
 [this setup guide](linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md).
 

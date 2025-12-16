@@ -16,7 +16,12 @@ type Sig [sha1.Size]byte
 func Hash(pieces ...any) Sig {
 	h := sha1.New()
 	for _, data := range pieces {
-		binary.Write(h, binary.LittleEndian, data)
+		if str, ok := data.(string); ok {
+			data = []byte(str)
+		}
+		if err := binary.Write(h, binary.LittleEndian, data); err != nil {
+			panic(err)
+		}
 	}
 	var sig Sig
 	copy(sig[:], h.Sum(nil))

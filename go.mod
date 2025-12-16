@@ -5,11 +5,11 @@ go 1.24.4
 require (
 	cloud.google.com/go v0.123.0
 	cloud.google.com/go/batch v1.13.0
-	cloud.google.com/go/bigquery v1.71.0
+	cloud.google.com/go/bigquery v1.72.0
 	cloud.google.com/go/compute/metadata v0.9.0
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/profiler v0.4.3
-	cloud.google.com/go/secretmanager v1.15.1
+	cloud.google.com/go/secretmanager v1.16.0
 	cloud.google.com/go/spanner v1.82.0
 	cloud.google.com/go/storage v1.57.1
 	github.com/VividCortex/gohistogram v1.0.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/oauth2 v0.32.0
 	golang.org/x/perf v0.0.0-20251008221758-42ba72fec400
 	golang.org/x/sync v0.17.0
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.38.0
 	golang.org/x/tools v0.38.0
 	google.golang.org/api v0.252.0
 	google.golang.org/appengine/v2 v2.0.6
@@ -38,7 +38,7 @@ require (
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.34.1
+	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/yaml v1.6.0
 )

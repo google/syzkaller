@@ -74,6 +74,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		params.KernelDir,
 		"scripts/fx", "--dir", buildSubdir,
 		"set", product,
+		"--debug",
 		"--assembly-override", fmt.Sprintf("//products/workbench/*=//local:%s", overrideName),
 	); err != nil {
 		return ImageDetails{}, err
@@ -107,7 +108,7 @@ func (st starnix) build(params Params) (ImageDetails, error) {
 		"-c", "log.enabled=false,ffx.analytics.disabled=true,daemon.autostart=false",
 		"product", "get-image-path", productBundlePath,
 		"--slot", "a",
-		"--image-type", "fxfs",
+		"--image-type", "fxfs.fastboot",
 	)
 	if err != nil {
 		return ImageDetails{}, err

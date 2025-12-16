@@ -1,0 +1,8 @@
+def-source source0.c close no
+
+function close is defined in source0.c:
+
+int close()
+{
+	return 0;
+}

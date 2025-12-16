@@ -370,6 +370,11 @@ static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_802154
+
+// Force few TX and RX queues per interface to avoid creating 2 sysfs entries
+// per CPU per interface which takes a long time on machines with many cores.
+static unsigned int queue_count = 2;
+
 static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 				    const char* name, bool up)
 {
@@ -380,6 +385,10 @@ static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 	netlink_init(nlmsg, RTM_NEWLINK, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
 	if (name)
 		netlink_attr(nlmsg, IFLA_IFNAME, name, strlen(name));
+
+	netlink_attr(nlmsg, IFLA_NUM_TX_QUEUES, &queue_count, sizeof(queue_count));
+	netlink_attr(nlmsg, IFLA_NUM_RX_QUEUES, &queue_count, sizeof(queue_count));
+
 	netlink_nest(nlmsg, IFLA_LINKINFO);
 	netlink_attr(nlmsg, IFLA_INFO_KIND, type, strlen(type));
 }
@@ -405,6 +414,8 @@ static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_nest(nlmsg, VETH_INFO_PEER);
 	nlmsg->pos += sizeof(struct ifinfomsg);
 	netlink_attr(nlmsg, IFLA_IFNAME, peer, strlen(peer));
+	netlink_attr(nlmsg, IFLA_NUM_TX_QUEUES, &queue_count, sizeof(queue_count));
+	netlink_attr(nlmsg, IFLA_NUM_RX_QUEUES, &queue_count, sizeof(queue_count));
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
@@ -2422,7 +2433,7 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 			*hash = '0' + (char)(nb % 10); // 10 devices should be enough for everyone.
 			nb /= 10;
 		}
-		return open(buf, a2, 0);
+		return open(buf, a2 & ~O_CREAT, 0);
 	}
 }
 #endif

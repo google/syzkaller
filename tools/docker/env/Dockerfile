@@ -4,7 +4,7 @@
 # See /tools/docker/README.md for details.
 
 # Construct a /syzkaller folder.
-FROM debian:bookworm as syzkaller-folder
+FROM debian:trixie AS syzkaller-folder
 WORKDIR /syzkaller
 RUN apt-get update --allow-releaseinfo-change
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl
@@ -39,13 +39,13 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 # To build root image run:
 #	docker run -it --rm --privileged --device /dev/loop0 gcr.io/syzkaller/env
 #	mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
-#	create-image.sh -a s390x -d buster
+#	create-image.sh -a <ARCH> -d <DEBIAN RELEASE>
 
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
 
 # Now build the actual syz-env container.
-FROM debian:bookworm
+FROM debian:trixie
 
 LABEL homepage="https://github.com/google/syzkaller"
 
@@ -54,8 +54,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends
 	sudo make nano unzip curl ca-certificates binutils g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
-	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-12-dev lib32stdc++-12-dev \
-	python3 python-is-python3 git \
+	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-14-dev lib32stdc++-14-dev \
+	python3 python-is-python3 python3-legacy-cgi git \
 	# These are needed to build Linux kernel:
 	flex bison bc libelf-dev libssl-dev \
 	# qemu-user is required to run alien arch binaries in pkg/cover tests.
@@ -77,17 +77,17 @@ ENV GOPATH /gopath
 ENV GOMODCACHE /syzkaller/.cache/gomod
 
 # Install clang.
-RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
-RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-20 main" | sudo tee /etc/apt/sources.list.d/llvm-20.list
+RUN apt-get install -y -q gnupg apt-transport-https
+RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm-snapshot.gpg
+RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
 RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends clang-20 clang-format-20 clang-tidy-20 lld-20
+RUN apt-get install -y -q --no-install-recommends clang-21 clang-format-21 clang-tidy-21 lld-21
 RUN apt-get install -y -q --no-install-recommends flatbuffers-compiler
-RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
-RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
-RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-20 100
-RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
-RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-20 100
+RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
+RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100
+RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
+RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-21 100
 RUN apt autoremove -y -q
 
 # Install the Spanner emulator.
@@ -116,15 +116,13 @@ ENV SOURCEDIR_NETBSD /syzkaller/netbsd
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
-ENV RUST_VERSION=1.87.0
+ENV RUST_VERSION=1.91.1
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $RUST_VERSION
 RUN rustup component add rust-src
 RUN cargo install --locked bindgen-cli
 
 # Use the latest libdw-dev release, otherwise we get compilation error when CONFIG_RUST=y.
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/bookworm-backports.list
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends libdw-dev/bookworm-backports libelf-dev/bookworm-backports
+RUN apt-get install -y --no-install-recommends libdw-dev libelf-dev
 
 # Install node to pass act jobs (https://github.com/nektos/act)
 RUN apt-get install -y -q nodejs

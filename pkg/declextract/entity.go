@@ -4,11 +4,9 @@
 package declextract
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/json"
-	"slices"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/clangtool"
 )
 
 type Output struct {
@@ -243,17 +241,17 @@ func (out *Output) Merge(other *Output) {
 	out.NetlinkPolicies = append(out.NetlinkPolicies, other.NetlinkPolicies...)
 }
 
-func (out *Output) SortAndDedup() {
-	out.Functions = sortAndDedupSlice(out.Functions)
-	out.Consts = sortAndDedupSlice(out.Consts)
-	out.Enums = sortAndDedupSlice(out.Enums)
-	out.Structs = sortAndDedupSlice(out.Structs)
-	out.Syscalls = sortAndDedupSlice(out.Syscalls)
-	out.FileOps = sortAndDedupSlice(out.FileOps)
-	out.Ioctls = sortAndDedupSlice(out.Ioctls)
-	out.IouringOps = sortAndDedupSlice(out.IouringOps)
-	out.NetlinkFamilies = sortAndDedupSlice(out.NetlinkFamilies)
-	out.NetlinkPolicies = sortAndDedupSlice(out.NetlinkPolicies)
+func (out *Output) Finalize(v *clangtool.Verifier) {
+	out.Functions = clangtool.SortAndDedupSlice(out.Functions)
+	out.Consts = clangtool.SortAndDedupSlice(out.Consts)
+	out.Enums = clangtool.SortAndDedupSlice(out.Enums)
+	out.Structs = clangtool.SortAndDedupSlice(out.Structs)
+	out.Syscalls = clangtool.SortAndDedupSlice(out.Syscalls)
+	out.FileOps = clangtool.SortAndDedupSlice(out.FileOps)
+	out.Ioctls = clangtool.SortAndDedupSlice(out.Ioctls)
+	out.IouringOps = clangtool.SortAndDedupSlice(out.IouringOps)
+	out.NetlinkFamilies = clangtool.SortAndDedupSlice(out.NetlinkFamilies)
+	out.NetlinkPolicies = clangtool.SortAndDedupSlice(out.NetlinkPolicies)
 }
 
 // SetSoureFile attaches the source file to the entities that need it.
@@ -284,22 +282,4 @@ func (out *Output) SetSourceFile(file string, updatePath func(string) string) {
 	for _, op := range out.IouringOps {
 		op.SourceFile = file
 	}
-}
-
-func sortAndDedupSlice[Slice ~[]E, E comparable](s Slice) Slice {
-	dedup := make(map[[sha256.Size]byte]E)
-	text := make(map[E][]byte)
-	for _, e := range s {
-		t, _ := json.Marshal(e)
-		dedup[sha256.Sum256(t)] = e
-		text[e] = t
-	}
-	s = make([]E, 0, len(dedup))
-	for _, e := range dedup {
-		s = append(s, e)
-	}
-	slices.SortFunc(s, func(a, b E) int {
-		return bytes.Compare(text[a], text[b])
-	})
-	return s
 }

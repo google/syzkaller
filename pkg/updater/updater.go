@@ -1,10 +1,9 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package updater
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -22,38 +20,54 @@ import (
 )
 
 const (
-	syzkallerRebuildPeriod = 12 * time.Hour
-	buildRetryPeriod       = 10 * time.Minute // used for both syzkaller and kernel
+	RebuildPeriod    = 12 * time.Hour
+	BuildRetryPeriod = 10 * time.Minute // used for both syzkaller and kernel
 )
 
-// SyzUpdater handles everything related to syzkaller updates.
+// Updater handles everything related to syzkaller updates.
 // As kernel builder, it maintains 2 builds:
 //   - latest: latest known good syzkaller build
 //   - current: currently used syzkaller build
 //
 // Additionally it updates and restarts the current executable as necessary.
 // Current executable is always built on the same revision as the rest of syzkaller binaries.
-type SyzUpdater struct {
-	repo          vcs.Repo
-	exe           string
-	repoAddress   string
-	branch        string
-	descriptions  string
-	gopathDir     string
-	syzkallerDir  string
-	latestDir     string
-	currentDir    string
-	syzFiles      map[string]bool
-	targets       map[string]bool
-	dashboardAddr string
-	compilerID    string
-	cfg           *Config
+type Updater struct {
+	repo         vcs.Repo
+	exe          string
+	repoAddress  string
+	branch       string
+	descriptions string
+	gopathDir    string
+	syzkallerDir string
+	latestDir    string
+	currentDir   string
+	syzFiles     map[string]bool
+	compilerID   string
+	cfg          *Config
 }
 
-func NewSyzUpdater(cfg *Config) *SyzUpdater {
+type Config struct {
+	// If set, exit on updates instead of restarting the current binary.
+	ExitOnUpdate          bool
+	BuildSem              *osutil.Semaphore
+	ReportBuildError      func(commit *vcs.Commit, compilerID string, buildErr error)
+	SyzkallerRepo         string
+	SyzkallerBranch       string
+	SyzkallerDescriptions string
+	Targets               map[Target]bool
+}
+
+type Target struct {
+	OS     string
+	VMArch string
+	Arch   string
+}
+
+func New(cfg *Config) (*Updater, error) {
+	os.Unsetenv("GOPATH")
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("failed to get wd: %v", err)
+		return nil, fmt.Errorf("updater: failed to get wd: %w", err)
 	}
 	bin := os.Args[0]
 	if !filepath.IsAbs(bin) {
@@ -62,7 +76,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	bin = filepath.Clean(bin)
 	exe := filepath.Base(bin)
 	if wd != filepath.Dir(bin) {
-		log.Fatalf("%v executable must be in cwd (it will be overwritten on update)", exe)
+		return nil, fmt.Errorf("updater: %v executable must be in cwd (it will be overwritten on update)", exe)
 	}
 
 	gopath := filepath.Join(wd, "gopath")
@@ -76,42 +90,40 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		"bin/syz-manager": true,
 		"sys/*/test/*":    true,
 	}
-	targets := make(map[string]bool)
-	for _, mgr := range cfg.Managers {
-		mgrcfg := mgr.managercfg
-		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
-		targets[os+"/"+vmarch+"/"+arch] = true
-		syzFiles[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
-		if mgrcfg.SysTarget.ExecutorBin == "" {
-			syzFiles[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
+	for target := range cfg.Targets {
+		sysTarget := targets.Get(target.OS, target.VMArch)
+		if sysTarget == nil {
+			return nil, fmt.Errorf("unsupported OS/arch: %v/%v", target.OS, target.VMArch)
+		}
+		syzFiles[fmt.Sprintf("bin/%v_%v/syz-execprog", target.OS, target.VMArch)] = true
+		if sysTarget.ExecutorBin == "" {
+			syzFiles[fmt.Sprintf("bin/%v_%v/syz-executor", target.OS, target.Arch)] = true
 		}
 	}
 	compilerID, err := osutil.RunCmd(time.Minute, "", "go", "version")
 	if err != nil {
-		log.Fatalf("%v", err)
+		return nil, err
 	}
-	return &SyzUpdater{
-		repo:          vcs.NewSyzkallerRepo(syzkallerDir),
-		exe:           exe,
-		repoAddress:   cfg.SyzkallerRepo,
-		branch:        cfg.SyzkallerBranch,
-		descriptions:  cfg.SyzkallerDescriptions,
-		gopathDir:     gopath,
-		syzkallerDir:  syzkallerDir,
-		latestDir:     filepath.Join("syzkaller", "latest"),
-		currentDir:    filepath.Join("syzkaller", "current"),
-		syzFiles:      syzFiles,
-		targets:       targets,
-		dashboardAddr: cfg.DashboardAddr,
-		compilerID:    strings.TrimSpace(string(compilerID)),
-		cfg:           cfg,
-	}
+	return &Updater{
+		repo:         vcs.NewSyzkallerRepo(syzkallerDir),
+		exe:          exe,
+		repoAddress:  cfg.SyzkallerRepo,
+		branch:       cfg.SyzkallerBranch,
+		descriptions: cfg.SyzkallerDescriptions,
+		gopathDir:    gopath,
+		syzkallerDir: syzkallerDir,
+		latestDir:    filepath.Join("syzkaller", "latest"),
+		currentDir:   filepath.Join("syzkaller", "current"),
+		syzFiles:     syzFiles,
+		compilerID:   strings.TrimSpace(string(compilerID)),
+		cfg:          cfg,
+	}, nil
 }
 
 // UpdateOnStart does 3 things:
 //   - ensures that the current executable is fresh
 //   - ensures that we have a working syzkaller build in current
-func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
+func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan struct{}) {
 	os.RemoveAll(upd.currentDir)
 	latestTag := upd.checkLatest()
 	if latestTag != "" {
@@ -156,23 +168,29 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 			if autoupdate && prog.GitRevisionBase != latestTag {
 				upd.UpdateAndRestart()
 			}
-			return
+			break
 		}
 
 		// No good build at all, try again later.
-		log.Logf(0, "retrying in %v", buildRetryPeriod)
+		log.Logf(0, "retrying in %v", BuildRetryPeriod)
 		select {
-		case <-time.After(buildRetryPeriod):
+		case <-time.After(BuildRetryPeriod):
 		case <-shutdown:
 			os.Exit(0)
 		}
 	}
+	if autoupdate {
+		go func() {
+			upd.waitForUpdate()
+			close(updatePending)
+		}()
+	}
 }
 
-// WaitForUpdate polls and rebuilds syzkaller.
+// waitForUpdate polls and rebuilds syzkaller.
 // Returns when we have a new good build in latest.
-func (upd *SyzUpdater) WaitForUpdate() {
-	time.Sleep(syzkallerRebuildPeriod)
+func (upd *Updater) waitForUpdate() {
+	time.Sleep(RebuildPeriod)
 	latestTag := upd.checkLatest()
 	lastCommit := latestTag
 	for {
@@ -180,20 +198,21 @@ func (upd *SyzUpdater) WaitForUpdate() {
 		if latestTag != upd.checkLatest() {
 			break
 		}
-		time.Sleep(buildRetryPeriod)
+		time.Sleep(BuildRetryPeriod)
 	}
 	log.Logf(0, "syzkaller: update available, restarting")
 }
 
 // UpdateAndRestart updates and restarts the current executable.
+// If ExitOnUpdate is set, exits without restarting instead.
 // Does not return.
-func (upd *SyzUpdater) UpdateAndRestart() {
+func (upd *Updater) UpdateAndRestart() {
 	log.Logf(0, "restarting executable for update")
 	latestBin := filepath.Join(upd.latestDir, "bin", upd.exe)
 	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
 		log.Fatal(err)
 	}
-	if *flagExitOnUpgrade {
+	if upd.cfg.ExitOnUpdate {
 		log.Logf(0, "exiting, please restart syz-ci to run the new version")
 		os.Exit(0)
 	}
@@ -203,7 +222,7 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 	log.Fatalf("not reachable")
 }
 
-func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
+func (upd *Updater) pollAndBuild(lastCommit string) string {
 	commit, err := upd.repo.Poll(upd.repoAddress, upd.branch)
 	if err != nil {
 		log.Logf(0, "syzkaller: failed to poll: %v", err)
@@ -215,19 +234,21 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 	}
 	log.Logf(0, "syzkaller: building ...")
 	if err := upd.build(commit); err != nil {
-		log.Logf(0, "syzkaller: %v", err)
-		upd.uploadBuildError(commit, err)
+		log.Errorf("syzkaller: failed to build: %v", err)
+		if upd.cfg.ReportBuildError != nil {
+			upd.cfg.ReportBuildError(commit, upd.compilerID, err)
+		}
 	}
 	return commit.Hash
 }
 
 // nolint: goconst // "GOPATH=" looks good here, ignore
-func (upd *SyzUpdater) build(commit *vcs.Commit) error {
+func (upd *Updater) build(commit *vcs.Commit) error {
 	// syzkaller testing may be slowed down by concurrent kernel builds too much
 	// and cause timeout failures, so we serialize it with other builds:
 	// https://groups.google.com/forum/#!msg/syzkaller-openbsd-bugs/o-G3vEsyQp4/f_nFpoNKBQAJ
-	buildSem.Wait()
-	defer buildSem.Signal()
+	upd.cfg.BuildSem.Wait()
+	defer upd.cfg.BuildSem.Signal()
 
 	if upd.descriptions != "" {
 		files, err := os.ReadDir(upd.descriptions)
@@ -259,16 +280,15 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("make host failed: %w", err)
 	}
-	for target := range upd.targets {
-		parts := strings.Split(target, "/")
+	for target := range upd.cfg.Targets {
 		cmd = osutil.Command(instance.MakeBin, "target")
 		cmd.Dir = upd.syzkallerDir
 		cmd.Env = append([]string{}, os.Environ()...)
 		cmd.Env = append(cmd.Env,
 			"GOPATH="+upd.gopathDir,
-			"TARGETOS="+parts[0],
-			"TARGETVMARCH="+parts[1],
-			"TARGETARCH="+parts[2],
+			"TARGETOS="+target.OS,
+			"TARGETVMARCH="+target.VMArch,
+			"TARGETARCH="+target.Arch,
 		)
 		if _, err := osutil.Run(time.Hour, cmd); err != nil {
 			return fmt.Errorf("make target failed: %w", err)
@@ -293,53 +313,9 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	return nil
 }
 
-func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
-	var output []byte
-	var verbose *osutil.VerboseError
-	title := buildErr.Error()
-	if errors.As(buildErr, &verbose) {
-		output = verbose.Output
-	}
-	title = "syzkaller: " + title
-	for _, mgrcfg := range upd.cfg.Managers {
-		if upd.dashboardAddr == "" || mgrcfg.DashboardClient == "" {
-			log.Logf(0, "not uploading build error for %v: no dashboard", mgrcfg.Name)
-			continue
-		}
-		dash, err := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)
-		if err != nil {
-			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
-			return
-		}
-		managercfg := mgrcfg.managercfg
-		req := &dashapi.BuildErrorReq{
-			Build: dashapi.Build{
-				Manager:             managercfg.Name,
-				ID:                  commit.Hash,
-				OS:                  managercfg.TargetOS,
-				Arch:                managercfg.TargetArch,
-				VMArch:              managercfg.TargetVMArch,
-				SyzkallerCommit:     commit.Hash,
-				SyzkallerCommitDate: commit.CommitDate,
-				CompilerID:          upd.compilerID,
-				KernelRepo:          upd.repoAddress,
-				KernelBranch:        upd.branch,
-			},
-			Crash: dashapi.Crash{
-				Title: title,
-				Log:   output,
-			},
-		}
-		if err := dash.ReportBuildError(req); err != nil {
-			// TODO: log ReportBuildError error to dashboard.
-			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
-		}
-	}
-}
-
 // checkLatest returns tag of the latest build,
 // or an empty string if latest build is missing/broken.
-func (upd *SyzUpdater) checkLatest() string {
+func (upd *Updater) checkLatest() string {
 	if !osutil.FilesExist(upd.latestDir, upd.syzFiles) {
 		return ""
 	}

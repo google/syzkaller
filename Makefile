@@ -272,7 +272,9 @@ format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h \
 		executor/android/android_seccomp.h \
 		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc \
-		tools/syz-declextract/clangtool/*.cpp tools/syz-declextract/clangtool/*.h
+		tools/clang/*.h \
+		tools/clang/declextract/*.h tools/clang/declextract/*.cpp \
+		tools/clang/codesearch/*.h tools/clang/codesearch/*.cpp
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all
@@ -293,7 +295,7 @@ tidy: descriptions
 		executor/*.cc
 
 lint:
-	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
 

@@ -26,7 +26,10 @@ RUN apt-get update && \
     apt-get install -y git
 
 # pkg/osutil uses syzkaller user for sandboxing.
-RUN useradd --create-home syzkaller
+RUN useradd -u 10000 --create-home syzkaller
+# Prevent "fatal: detected dubious ownership in repository" errors.
+RUN git config --system --add safe.directory /workdir
+RUN git config --system --add safe.directory /kernel-repo
 
 COPY --from=triage-step-builder /build/triage-step-bin /bin/triage-step
 

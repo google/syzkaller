@@ -35,6 +35,15 @@
 #define __addrspace_guest
 #endif
 
+// Disable optimizations for a particular function.
+#if defined(__clang__)
+#define __optnone __attribute__((optnone))
+#elif defined(__GNUC__)
+#define __optnone __attribute__((optimize("O0")))
+#else
+#define __optnone
+#endif
+
 // Host will map the code in this section into the guest address space.
 #define GUEST_CODE __attribute__((section("guest"))) __no_stack_protector __addrspace_guest
 

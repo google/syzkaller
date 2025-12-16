@@ -174,6 +174,7 @@ type Finding struct {
 	Build        BuildInfo `json:"build"`
 	LinkCRepro   string    `json:"c_repro"`
 	LinkSyzRepro string    `json:"syz_repro"`
+	Invalidated  bool      `json:"invalidated"`
 }
 
 type BuildInfo struct {
@@ -229,6 +230,12 @@ var DefaultTrees = []*Tree{
 		URL:        `https://kernel.googlesource.com/pub/scm/virt/kvm/kvm/`,
 		Branch:     `next`,
 		EmailLists: []string{`kvm@vger.kernel.org`},
+	},
+	{
+		Name:       `drm-next`,
+		URL:        `https://gitlab.freedesktop.org/drm/kernel.git`,
+		Branch:     `drm-next`,
+		EmailLists: []string{`dri-devel@lists.freedesktop.org`},
 	},
 	{
 		Name:       `mm-new`,

@@ -65,11 +65,21 @@ func (d *dummyTestData) finishSession(session *Session) {
 	assert.NoError(d.t, err)
 }
 
-func (d *dummyTestData) addFinding(session *Session, title, test string) {
+func (d *dummyTestData) addFinding(session *Session, title, test string) *Finding {
 	findingRepo := NewFindingRepository(d.client)
-	assert.NoError(d.t, findingRepo.mustStore(d.ctx, &Finding{
+	finding := &Finding{
 		SessionID: session.ID,
 		Title:     title,
 		TestName:  test,
+	}
+	assert.NoError(d.t, findingRepo.mustStore(d.ctx, finding))
+	return finding
+}
+
+func (d *dummyTestData) invalidateFinding(f *Finding) {
+	findingRepo := NewFindingRepository(d.client)
+	assert.NoError(d.t, findingRepo.Update(d.ctx, f.ID, func(f *Finding) error {
+		f.SetInvalidatedAt(time.Now())
+		return nil
 	}))
 }

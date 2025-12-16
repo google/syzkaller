@@ -132,6 +132,10 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 	sourceDir := arch.sourceDir
 	buildDir := arch.buildDir
 	args := []string{
+		// EFI kernel headers use wide character constants.
+		"-fshort-wchar",
+		// Avoid implicit declaration errors.
+		"-Wno-implicit-function-declaration",
 		// This makes the build completely hermetic, only kernel headers are used.
 		"-nostdinc",
 		"-w", "-fmessage-length=0",

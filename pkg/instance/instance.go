@@ -40,8 +40,8 @@ type Env interface {
 type env struct {
 	cfg           *mgrconfig.Config
 	optionalFlags bool
-	buildSem      *Semaphore
-	testSem       *Semaphore
+	buildSem      *osutil.Semaphore
+	testSem       *osutil.Semaphore
 }
 
 type BuildKernelConfig struct {
@@ -56,7 +56,7 @@ type BuildKernelConfig struct {
 	BuildCPUs    int
 }
 
-func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
+func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *osutil.Semaphore) (Env, error) {
 	if !vm.AllowsOvercommit(cfg.Type) {
 		return nil, fmt.Errorf("test instances are not supported for %v VMs", cfg.Type)
 	}
@@ -506,40 +506,6 @@ var MakeBin = func() string {
 func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, threaded, newEnv bool) string {
 	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%d -vm=%d "+
 		"-threaded=%t -new-env=%t", prog, fwdAddr, os, arch, poolIdx, vmIdx, threaded, newEnv)
-}
-
-type Semaphore struct {
-	ch chan struct{}
-}
-
-func NewSemaphore(count int) *Semaphore {
-	s := &Semaphore{
-		ch: make(chan struct{}, count),
-	}
-	for i := 0; i < count; i++ {
-		s.Signal()
-	}
-	return s
-}
-
-func (s *Semaphore) Wait() {
-	<-s.ch
-}
-
-func (s *Semaphore) WaitC() <-chan struct{} {
-	return s.ch
-}
-
-func (s *Semaphore) Available() int {
-	return len(s.ch)
-}
-
-func (s *Semaphore) Signal() {
-	if av := s.Available(); av == cap(s.ch) {
-		// Not super reliable, but let it be here just in case.
-		panic(fmt.Sprintf("semaphore capacity (%d) is exceeded (%d)", cap(s.ch), av))
-	}
-	s.ch <- struct{}{}
 }
 
 // RunSmokeTest executes syz-manager in the smoke test mode and returns two values:

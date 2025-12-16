@@ -5,6 +5,7 @@ package clangtool
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/declextract"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -30,17 +30,21 @@ type Config struct {
 	DebugTrace io.Writer
 }
 
+type OutputDataPtr[T any] interface {
+	*T
+	Merge(*T)
+	SetSourceFile(string, func(filename string) string)
+	Finalize(*Verifier)
+}
+
 // Run runs the clang tool on all files in the compilation database
 // in the kernel build dir and returns combined output for all files.
 // It always caches results, and optionally reuses previously cached results.
-func Run(cfg *Config) (*declextract.Output, error) {
+func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, error) {
 	if cfg.CacheFile != "" {
-		data, err := os.ReadFile(cfg.CacheFile)
+		out, err := osutil.ReadJSON[OutputPtr](cfg.CacheFile)
 		if err == nil {
-			out, err := unmarshal(data)
-			if err == nil {
-				return out, nil
-			}
+			return out, nil
 		}
 	}
 
@@ -51,7 +55,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	}
 
 	type result struct {
-		out *declextract.Output
+		out OutputPtr
 		err error
 	}
 	results := make(chan *result, 10)
@@ -59,7 +63,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	for w := 0; w < runtime.NumCPU(); w++ {
 		go func() {
 			for file := range files {
-				out, err := runTool(cfg, dbFile, file)
+				out, err := runTool[Output, OutputPtr](cfg, dbFile, file)
 				results <- &result{out, err}
 			}
 		}()
@@ -69,7 +73,7 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	}
 	close(files)
 
-	out := new(declextract.Output)
+	out := OutputPtr(new(Output))
 	for range cmds {
 		res := <-results
 		if res.err != nil {
@@ -77,7 +81,15 @@ func Run(cfg *Config) (*declextract.Output, error) {
 		}
 		out.Merge(res.out)
 	}
-	out.SortAndDedup()
+	// Finalize the output (sort, dedup, etc), and let the output verify
+	// that all source file names, line numbers, etc are valid/present.
+	// If there are any bogus entries, it's better to detect them early,
+	// than to crash/error much later when the info is used.
+	// Some of the source files (generated) may be in the obj dir.
+	srcDirs := []string{cfg.KernelSrc, cfg.KernelObj}
+	if err := Finalize(out, srcDirs); err != nil {
+		return nil, err
+	}
 	if cfg.CacheFile != "" {
 		osutil.MkdirAll(filepath.Dir(cfg.CacheFile))
 		data, err := json.MarshalIndent(out, "", "\t")
@@ -91,12 +103,62 @@ func Run(cfg *Config) (*declextract.Output, error) {
 	return out, nil
 }
 
-func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
+func Finalize[Output any, OutputPtr OutputDataPtr[Output]](out OutputPtr, srcDirs []string) error {
+	v := &Verifier{
+		srcDirs:   srcDirs,
+		fileCache: make(map[string]int),
+	}
+	out.Finalize(v)
+	if v.err.Len() == 0 {
+		return nil
+	}
+	return errors.New(v.err.String())
+}
+
+type Verifier struct {
+	srcDirs   []string
+	fileCache map[string]int // file->line count (-1 is cached for missing files)
+	err       strings.Builder
+}
+
+func (v *Verifier) Filename(file string) {
+	if _, ok := v.fileCache[file]; ok {
+		return
+	}
+	for _, srcDir := range v.srcDirs {
+		data, err := os.ReadFile(filepath.Join(srcDir, file))
+		if err != nil {
+			continue
+		}
+		v.fileCache[file] = len(bytes.Split(data, []byte{'\n'}))
+		return
+	}
+	v.fileCache[file] = -1
+	fmt.Fprintf(&v.err, "missing file: %v\n", file)
+}
+
+func (v *Verifier) LineRange(file string, start, end int) {
+	v.Filename(file)
+	lines, ok := v.fileCache[file]
+	if !ok || lines < 0 {
+		return
+	}
+	// Line numbers produced by clang are 1-based.
+	if start <= 0 || end < start || end > lines {
+		fmt.Fprintf(&v.err, "bad line range [%v-%v] for file %v with %v lines\n",
+			start, end, file, lines)
+	}
+}
+
+func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, file string) (OutputPtr, error) {
 	relFile := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(filepath.Clean(file),
 		cfg.KernelSrc), cfg.KernelObj), "/")
 	// Suppress warning since we may build the tool on a different clang
 	// version that produces more warnings.
-	data, err := exec.Command(cfg.ToolBin, "-p", dbFile, "--extra-arg=-w", file).Output()
+	// Comments are needed for codesearch tool, but may be useful for declextract
+	// in the future if we try to parse them with LLMs.
+	data, err := exec.Command(cfg.ToolBin, "-p", dbFile,
+		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file).Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -104,33 +166,20 @@ func runTool(cfg *Config, dbFile, file string) (*declextract.Output, error) {
 		}
 		return nil, err
 	}
-	out, err := unmarshal(data)
+	out, err := osutil.ParseJSON[OutputPtr](data)
 	if err != nil {
 		return nil, err
 	}
-	fixupFileNames(cfg, out, relFile)
-	return out, nil
-}
-
-func unmarshal(data []byte) (*declextract.Output, error) {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	out := new(declextract.Output)
-	if err := dec.Decode(out); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal clang tool output: %w\n%s", err, data)
-	}
-	return out, nil
-}
-
-func fixupFileNames(cfg *Config, out *declextract.Output, file string) {
 	// All includes in the tool output are relative to the build dir.
 	// Make them relative to the source dir.
-	out.SetSourceFile(file, func(filename string) string {
-		if res, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, filename)); err == nil {
-			return res
+	out.SetSourceFile(relFile, func(filename string) string {
+		rel, err := filepath.Rel(cfg.KernelSrc, filepath.Join(cfg.KernelObj, filename))
+		if err == nil && filename != "" {
+			return rel
 		}
 		return filename
 	})
+	return out, nil
 }
 
 type compileCommand struct {
@@ -169,4 +218,22 @@ func loadCompileCommands(dbFile string) ([]compileCommand, error) {
 			" (was the kernel compiled with gcc?)")
 	}
 	return cmds, nil
+}
+
+func SortAndDedupSlice[Slice ~[]E, E comparable](s Slice) Slice {
+	dedup := make(map[[sha256.Size]byte]E)
+	text := make(map[E][]byte)
+	for _, e := range s {
+		t, _ := json.Marshal(e)
+		dedup[sha256.Sum256(t)] = e
+		text[e] = t
+	}
+	s = make([]E, 0, len(dedup))
+	for _, e := range dedup {
+		s = append(s, e)
+	}
+	slices.SortFunc(s, func(a, b E) int {
+		return bytes.Compare(text[a], text[b])
+	})
+	return s
 }

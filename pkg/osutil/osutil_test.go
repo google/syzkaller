@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestIsExist(t *testing.T) {
@@ -127,5 +129,24 @@ func TestMonotonicNano(t *testing.T) {
 	diff := MonotonicNano() - start
 	if diff <= 0 || diff > 10*time.Second {
 		t.Fatalf("diff %v", diff)
+	}
+}
+
+func TestReadWriteJSON(t *testing.T) {
+	type Test struct {
+		X int
+		Y string
+	}
+	test := Test{10, "foo"}
+	file := filepath.Join(t.TempDir(), "file")
+	if err := WriteJSON(file, test); err != nil {
+		t.Fatal(err)
+	}
+	test2, err := ReadJSON[Test](file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(test, test2); diff != "" {
+		t.Fatal(diff)
 	}
 }
