@@ -117,6 +117,7 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 			WithFindings: r.FormValue("with_findings") != "",
 			Limit:        perPage,
 			Offset:       offset,
+			Name:         r.FormValue("name"),
 		},
 		// If the filters are changed, the old offset value is irrelevant.
 		FilterFormURL: urlutil.DropParam(baseURL, "offset", ""),
