@@ -530,12 +530,12 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 
 						if isMismatch {
 							log.Logf(0, "%s     ┌─ %s: errno=%d, flags=0x%x",
-								prefix, vrf.kernels[0].cfg.Name, call0.Error, call0.Flags)
+								prefix, vrf.kernels[0].cfg.Name, call0.Error, uint8(call0.Flags))
 							log.Logf(0, "%s     └─ %s: errno=%d, flags=0x%x",
-								prefix, vrf.kernels[i].cfg.Name, call1.Error, call1.Flags)
+								prefix, vrf.kernels[i].cfg.Name, call1.Error, uint8(call1.Flags))
 						} else {
 							log.Logf(0, "%s     Result: errno=%d, flags=0x%x",
-								prefix, call0.Error, call0.Flags)
+								prefix, call0.Error, uint8(call0.Flags))
 						}
 					}
 					log.Logf(0, "")
@@ -565,14 +565,14 @@ func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, upd
 	index := inst.Index()
 	injectExec := make(chan bool, 10)
 	kernel.serv.CreateInstance(index, injectExec, updInfo)
-	rep, err := kernel.runInstance(ctx, inst, injectExec)
-	_, _ = kernel.serv.ShutdownInstance(index, rep != nil)
-	if rep != nil {
+	reps, err := kernel.runInstance(ctx, inst, injectExec)
+	_, _ = kernel.serv.ShutdownInstance(index, len(reps) > 0)
+	if len(reps) > 0 {
 		// Just log crashes - syz-verifier focuses on behavioral differences, not crashes
 		select {
 		case <-ctx.Done():
 		default:
-			log.Logf(0, "kernel %s: VM crash detected: %s", kernel.cfg.Name, rep.Title)
+			log.Logf(0, "kernel %s: VM crash detected: %s", kernel.cfg.Name, reps[0].Title)
 		}
 	}
 	if err != nil {
@@ -581,7 +581,7 @@ func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, upd
 }
 
 func (kernel *Kernel) runInstance(ctx context.Context, inst *vm.Instance,
-	injectExec <-chan bool) (*report.Report, error) {
+	injectExec <-chan bool) ([]*report.Report, error) {
 	fwdAddr, err := inst.Forward(kernel.serv.Port())
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %w", err)
