@@ -173,6 +173,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		*db.Series
 		Patches      []*db.Patch
 		Sessions     []SessionData
+		Versions     []*db.Series
 		TotalPatches int
 	}
 	var data SeriesData
@@ -189,6 +190,23 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("failed to query patches: %w", err)
 	}
 	data.TotalPatches = len(data.Patches)
+	// Fetch all series with the same title to find other versions.
+	// NOTE: In some cases we might have multiple unrelated series with the same exact name.
+	// I suspect it wouldn't be a problem, but it's worth noting.
+	seriesFilter := db.SeriesFilter{
+		SeriesName: data.Series.Title,
+		Limit:      50, // A large enough number to get all versions.
+		Offset:     0,
+	}
+	allVersions, err := h.seriesRepo.ListLatest(ctx, seriesFilter, time.Time{})
+	if err != nil {
+		return fmt.Errorf("failed to query all series versions: %w", err)
+	}
+	for _, v := range allVersions {
+		if v.Series.ID != data.Series.ID && v.Series.Version != data.Series.Version {
+			data.Versions = append(data.Versions, v.Series)
+		}
+	}
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
 		return fmt.Errorf("failed to query sessions: %w", err)
