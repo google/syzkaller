@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -130,6 +131,7 @@ type SeriesFilter struct {
 	WithFindings bool
 	Limit        int
 	Offset       int
+	Name         string
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -139,41 +141,57 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 	defer ro.Close()
 
 	stmt := spanner.Statement{
-		SQL:    "SELECT Series.* FROM Series WHERE 1=1",
+		SQL:    "SELECT Series.* FROM Series",
 		Params: map[string]any{},
 	}
+	var conds []string
+
 	if !maxPublishedAt.IsZero() {
-		stmt.SQL += " AND PublishedAt < @toTime"
+		conds = append(conds, "PublishedAt < @toTime")
 		stmt.Params["toTime"] = maxPublishedAt
 	}
 	if filter.Cc != "" {
-		stmt.SQL += " AND @cc IN UNNEST(Cc)"
+		conds = append(conds, "@cc IN UNNEST(Cc)")
 		stmt.Params["cc"] = filter.Cc
+	}
+	if filter.Name != "" {
+		conds = append(conds, `ID IN(
+SELECT ID FROM SERIES 
+WHERE SEARCH(Series.TitleTokens, @name)
+UNION DISTINCT
+SELECT SeriesID FROM Patches
+WHERE SEARCH(Patches.TitleTokens, @name)
+)`)
+		stmt.Params["name"] = filter.Name
 	}
 	if filter.Status != SessionStatusAny {
 		// It could have been an INNER JOIN in the main query, but let's favor the simpler code
 		// in this function.
 		// The optimizer should transform the query to a JOIN anyway.
-		stmt.SQL += " AND EXISTS(SELECT 1 FROM Sessions WHERE"
+		var statusCond = "EXISTS(SELECT 1 FROM Sessions WHERE"
 		switch filter.Status {
 		case SessionStatusWaiting:
-			stmt.SQL += " Sessions.SeriesID = Series.ID AND Sessions.StartedAt IS NULL"
+			statusCond += " Sessions.SeriesID = Series.ID AND Sessions.StartedAt IS NULL"
 		case SessionStatusInProgress:
-			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
+			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
 		case SessionStatusFinished:
-			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL" +
+			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL" +
 				" AND Sessions.SkipReason IS NULL"
 		case SessionStatusSkipped:
-			stmt.SQL += " Sessions.ID = Series.LatestSessionID AND Sessions.SkipReason IS NOT NULL"
+			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.SkipReason IS NOT NULL"
 		default:
 			return nil, fmt.Errorf("unknown status value: %q", filter.Status)
 		}
-		stmt.SQL += ")"
+		statusCond += ")"
+		conds = append(conds, statusCond)
 	}
 	if filter.WithFindings {
-		stmt.SQL += " AND Series.LatestSessionID IS NOT NULL AND EXISTS(" +
-			"SELECT 1 FROM Findings WHERE " +
-			"Findings.SessionID = Series.LatestSessionID AND Findings.InvalidatedAt IS NULL)"
+		conds = append(conds, "Series.LatestSessionID IS NOT NULL AND EXISTS("+
+			"SELECT 1 FROM Findings WHERE "+
+			"Findings.SessionID = Series.LatestSessionID AND Findings.InvalidatedAt IS NULL)")
+	}
+	if len(conds) != 0 {
+		stmt.SQL += " WHERE " + strings.Join(conds, " AND ")
 	}
 	stmt.SQL += " ORDER BY PublishedAt DESC, ID"
 	if filter.Limit > 0 {
