@@ -112,6 +112,8 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 	baseURL := r.URL.RequestURI()
 	data := MainPageData{
 		Filter: db.SeriesFilter{
+			PatchName:    r.FormValue("patch_name"),
+			SeriesName:   r.FormValue("series_name"),
 			Cc:           r.FormValue("cc"),
 			Status:       db.SessionStatus(r.FormValue("status")),
 			WithFindings: r.FormValue("with_findings") != "",

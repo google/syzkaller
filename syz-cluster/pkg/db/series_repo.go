@@ -132,6 +132,8 @@ type SeriesFilter struct {
 	WithFindings bool
 	Limit        int
 	Offset       int
+	PatchName    string
+	SeriesName   string
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -151,6 +153,15 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 	if filter.Cc != "" {
 		stmt.SQL += " AND @cc IN UNNEST(Cc)"
 		stmt.Params["cc"] = filter.Cc
+	}
+	if filter.SeriesName != "" {
+		stmt.SQL += " AND LOWER(title) LIKE '%' || LOWER(@series_name) || '%'"
+		stmt.Params["series_name"] = filter.SeriesName
+	}
+	if filter.PatchName != "" {
+		stmt.SQL += " AND EXISTS(SELECT 1 FROM Patches WHERE Patches.SeriesID = Series.ID" +
+			" AND LOWER(Title) LIKE '%' || LOWER(@patch_name) || '%')"
+		stmt.Params["patch_name"] = filter.PatchName
 	}
 	if filter.Status != SessionStatusAny {
 		// It could have been an INNER JOIN in the main query, but let's favor the simpler code
