@@ -171,5 +171,30 @@
             </tbody>
         </table>
         {{end}}
+
+        <h3>Series Versions</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Version</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{$currentSeriesVersion := .Version}}
+                {{range .Versions}}
+                <tr>
+                    <td>
+                        {{if eq .Version $currentSeriesVersion}}
+                            <b>{{.Version}}</b>
+                        {{else}}
+                            <a href="/series/{{.ID}}">{{.Version}}</a>
+                        {{end}}
+                    </td>
+                    <td>{{.PublishedAt}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
     </div>
 {{end}}
