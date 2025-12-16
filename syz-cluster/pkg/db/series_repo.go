@@ -226,6 +226,17 @@ WHERE SEARCH(Patches.TitleTokens, @name)
 	return ret, nil
 }
 
+func (repo *SeriesRepository) ListAllVersions(ctx context.Context, title string) ([]*Series, error) {
+	ro := repo.client.ReadOnlyTransaction()
+	defer ro.Close()
+	return readEntities[Series](ctx, ro, spanner.Statement{
+		SQL: "SELECT ID, Version FROM SERIES where Title = @title ORDER BY Version",
+		Params: map[string]any{
+			"title": title,
+		},
+	})
+}
+
 func (repo *SeriesRepository) querySessions(ctx context.Context, ro *spanner.ReadOnlyTransaction,
 	seriesList []*SeriesWithSession) error {
 	idToSeries := map[string]*SeriesWithSession{}

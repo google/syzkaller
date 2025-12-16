@@ -53,7 +53,16 @@
                 </tr>
                 <tr>
                     <th>Version</th>
-                    <td>{{.Version}}</td>
+                    <td>
+                        <select class="form-select" onchange="window.location.href=this.value;">
+                            {{$currentSeriesVersion := .Version}}
+                            {{range .Versions}}
+                                <option value="/series/{{.ID}}" {{if eq .Version $currentSeriesVersion}}selected{{end}}>
+                                    Version {{.Version}}
+                                </option>
+                            {{end}}
+                        </select>
+                    </td>
                 </tr>
                 <tr>
                     <th>Cc</th>

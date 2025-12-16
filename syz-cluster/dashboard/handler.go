@@ -172,6 +172,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		*db.Series
 		Patches      []*db.Patch
 		Sessions     []SessionData
+		Versions     []*db.Series
 		TotalPatches int
 	}
 	var data SeriesData
@@ -188,6 +189,11 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("failed to query patches: %w", err)
 	}
 	data.TotalPatches = len(data.Patches)
+	// Note: There may be some false positives, but there's no straightforward way to filter them out.
+	data.Versions, err = h.seriesRepo.ListAllVersions(ctx, data.Series.Title)
+	if err != nil {
+		return fmt.Errorf("failed to query all series versions: %w", err)
+	}
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
 		return fmt.Errorf("failed to query sessions: %w", err)
