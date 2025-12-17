@@ -370,7 +370,7 @@ kvm_sev_launch_measure {
 kvm_sev_guest_status {
 	handle	sev_handle
 	policy	int32
-	state	int8
+	state	int32
 }
 
 kvm_sev_dbg {
