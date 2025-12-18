@@ -69,7 +69,7 @@ func LoadFile(filename string) (*Config, error) {
 }
 
 func LoadPartialData(data []byte) (*Config, error) {
-	cfg := defaultValues()
+	cfg := DefaultValues()
 	if err := config.LoadData(data, cfg); err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func LoadPartialData(data []byte) (*Config, error) {
 }
 
 func LoadPartialFile(filename string) (*Config, error) {
-	cfg := defaultValues()
+	cfg := DefaultValues()
 	if err := config.LoadFile(filename, cfg); err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func LoadPartialFile(filename string) (*Config, error) {
 	return cfg, nil
 }
 
-func defaultValues() *Config {
+func DefaultValues() *Config {
 	return &Config{
 		SSHUser:        "root",
 		Cover:          true,
