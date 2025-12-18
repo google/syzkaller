@@ -256,8 +256,8 @@ func (err *CrashError) Error() string {
 }
 
 // Test boots numVMs VMs, tests basic kernel operation, and optionally tests the provided reproducer.
-// TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
-// CrashError is returned if the reproducer crashes kernel.
+// *TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
+// *CrashError is returned if the reproducer crashes kernel.
 func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error) {
 	if env.testSem != nil {
 		env.testSem.Wait()
