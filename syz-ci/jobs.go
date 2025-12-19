@@ -798,12 +798,12 @@ func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, e
 	return nil, anyErr
 }
 
-func (jp *JobProcessor) Logf(level int, msg string, args ...interface{}) {
-	log.Logf(level, "%s: "+msg, append([]interface{}{jp.name}, args...)...)
+func (jp *JobProcessor) Logf(level int, msg string, args ...any) {
+	log.Logf(level, "%s: "+msg, append([]any{jp.name}, args...)...)
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
-func (jp *JobProcessor) Errorf(msg string, args ...interface{}) {
+func (jp *JobProcessor) Errorf(msg string, args ...any) {
 	log.Errorf("job: "+msg, args...)
 	if jp.dash != nil {
 		jp.dash.LogError(jp.name, msg, args...)

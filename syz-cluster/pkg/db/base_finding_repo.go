@@ -38,7 +38,7 @@ CommitHash = @commit AND
 Config = @config AND
 Arch = @arch AND
 Title = @title`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"commit": info.CommitHash,
 			"config": info.Config,
 			"arch":   info.Arch,

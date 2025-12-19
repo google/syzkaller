@@ -203,7 +203,7 @@ func handleAuth(fn contextHandler) contextHandler {
 	}
 }
 
-func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
+func serveTemplate(w http.ResponseWriter, name string, data any) error {
 	buf := new(bytes.Buffer)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
 		return err

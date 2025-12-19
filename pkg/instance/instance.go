@@ -193,7 +193,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
 		cfg.SSHKey = keyFile
 	}
-	vmConfig := make(map[string]interface{})
+	vmConfig := make(map[string]any)
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
 		return fmt.Errorf("failed to parse VM config: %w", err)
 	}
@@ -218,7 +218,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 }
 
 func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
-	vmConfig := make(map[string]interface{})
+	vmConfig := make(map[string]any)
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
 		return fmt.Errorf("failed to parse VM config: %w", err)
 	}

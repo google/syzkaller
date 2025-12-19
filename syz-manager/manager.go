@@ -1175,7 +1175,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			EnabledCalls:   enabledSyscalls,
 			NoMutateCalls:  mgr.cfg.NoMutateCalls,
 			FetchRawCover:  mgr.cfg.RawCover,
-			Logf: func(level int, msg string, args ...interface{}) {
+			Logf: func(level int, msg string, args ...any) {
 				if level != 0 {
 					return
 				}

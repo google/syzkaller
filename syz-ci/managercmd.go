@@ -26,7 +26,7 @@ type ManagerCmd struct {
 	closing chan bool
 }
 
-type Errorf func(msg string, args ...interface{})
+type Errorf func(msg string, args ...any)
 
 // NewManagerCmd starts new syz-manager process.
 // name - name for logging.

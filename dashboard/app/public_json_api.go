@@ -161,8 +161,8 @@ func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
 	}
 }
 
-func GetJSONDescrFor(page interface{}) ([]byte, error) {
-	var res interface{}
+func GetJSONDescrFor(page any) ([]byte, error) {
+	var res any
 	switch i := page.(type) {
 	case *uiBugPage:
 		res = getExtAPIDescrForBugPage(i)

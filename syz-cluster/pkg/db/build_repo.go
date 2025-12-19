@@ -44,7 +44,7 @@ type LastBuildParams struct {
 func (repo *BuildRepository) LastBuiltTree(ctx context.Context, params *LastBuildParams) (*Build, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Builds` WHERE 1=1",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	if params.Arch != "" {
 		stmt.SQL += " AND `Arch` = @arch"

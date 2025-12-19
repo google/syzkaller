@@ -1034,7 +1034,7 @@ func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string 
 	return status
 }
 
-func executeTemplate(w http.ResponseWriter, templ *template.Template, data interface{}) {
+func executeTemplate(w http.ResponseWriter, templ *template.Template, data any) {
 	buf := new(bytes.Buffer)
 	if err := templ.Execute(buf, data); err != nil {
 		log.Logf(0, "failed to execute template: %v", err)

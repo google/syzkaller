@@ -95,7 +95,7 @@ func main() {
 		tool.Fail(err)
 	}
 
-	jobC := make(chan interface{}, len(arches)+nfiles)
+	jobC := make(chan any, len(arches)+nfiles)
 	for _, arch := range arches {
 		jobC <- arch
 	}
@@ -152,7 +152,7 @@ func main() {
 	}
 }
 
-func worker(extractor Extractor, jobC chan interface{}) {
+func worker(extractor Extractor, jobC chan any) {
 	for job := range jobC {
 		switch j := job.(type) {
 		case *Arch:

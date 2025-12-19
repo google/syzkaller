@@ -94,7 +94,7 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 	return runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true})
 }
 
-type pollTreeJobResult interface{}
+type pollTreeJobResult any
 
 // pollResultPending is returned when we wait some job to finish.
 type pollResultPending struct{}
@@ -371,7 +371,7 @@ func (ctx *bugTreeContext) groupResults(results []pollTreeJobResult) pollTreeJob
 	return pollResultSkip{}
 }
 
-type expectedResult interface{}
+type expectedResult any
 
 // resultFreshness subtypes.
 type wantFirstOK struct{}
@@ -379,7 +379,7 @@ type wantFirstCrash struct{}
 type wantFirstAny struct{}
 type wantNewAny time.Time
 
-type runReproOn interface{}
+type runReproOn any
 
 // runReproOn subtypes.
 type runOnAny struct{} // attempts to find any result, if unsuccessful, runs on HEAD

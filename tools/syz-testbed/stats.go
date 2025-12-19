@@ -19,7 +19,7 @@ type BugInfo struct {
 	Logs  []string
 }
 
-type RunResult interface{}
+type RunResult any
 
 // The information collected from a syz-manager instance.
 type SyzManagerResult struct {

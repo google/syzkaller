@@ -192,7 +192,7 @@ func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Di
 	noteUsagef(uses, c, weight, dir, "%v", str)
 }
 
-func noteUsagef(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
+func noteUsagef(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...any) {
 	id := fmt.Sprintf(str, args...)
 	if uses[id] == nil {
 		uses[id] = make(map[int]weights)

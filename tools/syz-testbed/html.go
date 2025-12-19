@@ -291,7 +291,7 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, mainTemplate, "testbed.html", data)
 }
 
-func executeTemplate(w http.ResponseWriter, templ *template.Template, name string, data interface{}) {
+func executeTemplate(w http.ResponseWriter, templ *template.Template, name string, data any) {
 	buf := new(bytes.Buffer)
 	if err := templ.ExecuteTemplate(buf, name, data); err != nil {
 		log.Printf("failed to execute template: %v", err)

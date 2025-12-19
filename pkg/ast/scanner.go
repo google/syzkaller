@@ -289,7 +289,7 @@ func (s *scanner) scanIdent(pos Pos) (tok token, lit string) {
 	return
 }
 
-func (s *scanner) Errorf(pos Pos, msg string, args ...interface{}) {
+func (s *scanner) Errorf(pos Pos, msg string, args ...any) {
 	s.errors++
 	s.errorHandler(pos, fmt.Sprintf(msg, args...))
 }

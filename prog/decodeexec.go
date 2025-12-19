@@ -35,7 +35,7 @@ type ExecCopyout struct {
 	Size  uint64
 }
 
-type ExecArg interface{} // one of ExecArg*
+type ExecArg any // one of ExecArg*
 
 type ExecArgConst struct {
 	Size           uint64

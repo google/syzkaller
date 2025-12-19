@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-type ExecutorLogger func(int, string, ...interface{})
+type ExecutorLogger func(int, string, ...any)
 
 type OptionalConfig struct {
 	Logf               ExecutorLogger
@@ -84,7 +84,7 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 		}
 	}
 	if ret.Logf == nil {
-		ret.Logf = func(int, string, ...interface{}) {}
+		ret.Logf = func(int, string, ...any) {}
 	}
 	return ret, nil
 }

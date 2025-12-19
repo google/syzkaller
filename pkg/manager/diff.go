@@ -564,7 +564,7 @@ func (kc *kernelContext) setupFuzzer(features flatrpc.Feature, syscalls map[*pro
 		EnabledCalls:   syscalls,
 		NoMutateCalls:  kc.cfg.NoMutateCalls,
 		PatchTest:      true,
-		Logf: func(level int, msg string, args ...interface{}) {
+		Logf: func(level int, msg string, args ...any) {
 			if level != 0 {
 				return
 			}

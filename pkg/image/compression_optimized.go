@@ -25,7 +25,7 @@ type decompressScratch struct {
 // This is just for memory consumption estimation, does not need to be precise.
 const pageSize = 4 << 10
 
-var decompressPool = sync.Pool{New: func() interface{} {
+var decompressPool = sync.Pool{New: func() any {
 	return &decompressScratch{
 		buf: make([]byte, pageSize),
 	}

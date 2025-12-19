@@ -233,7 +233,7 @@ func display(graphs []*Graph) {
 			tool.Failf("failed to create file: %v", err)
 		}
 	}
-	vars := map[string]interface{}{
+	vars := map[string]any{
 		"Graphs":     graphs,
 		"HAxisTitle": getAxisTitle(),
 	}

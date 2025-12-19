@@ -204,7 +204,7 @@ func DeserializeConstFile(glob string, eh ast.ErrorHandler) *ConstFile {
 
 func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.ErrorHandler) bool {
 	pos := ast.Pos{File: file, Line: 1}
-	errf := func(msg string, args ...interface{}) bool {
+	errf := func(msg string, args ...any) bool {
 		eh(pos, fmt.Sprintf(msg, args...))
 		return false
 	}
@@ -247,7 +247,7 @@ func (cf *ConstFile) deserializeFile(data []byte, file, arch string, eh ast.Erro
 	return true
 }
 
-type errft func(msg string, args ...interface{}) bool
+type errft func(msg string, args ...any) bool
 
 func (cf *ConstFile) parseConst(arches []string, name, line string, weak bool, errf errft) bool {
 	var dflt map[string]uint64

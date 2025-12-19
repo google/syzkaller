@@ -24,7 +24,7 @@ type Config[T any] struct {
 	// anongside the intermediate bisection result (a valid, but not fully minimized slice).
 	MaxChunks int
 	// Logf is used for sharing debugging output.
-	Logf func(string, ...interface{})
+	Logf func(string, ...any)
 }
 
 // Slice() finds a minimal subsequence of slice elements that still gives Pred() == true.
@@ -33,7 +33,7 @@ type Config[T any] struct {
 // The expected number of Pred() runs is O(|result|*log2(|elements|)).
 func Slice[T any](config Config[T], slice []T) ([]T, error) {
 	if config.Logf == nil {
-		config.Logf = func(string, ...interface{}) {}
+		config.Logf = func(string, ...any) {}
 	}
 	ctx := &sliceCtx[T]{
 		Config: config,
