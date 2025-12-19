@@ -144,3 +144,11 @@ func loopvar() {
 		_, _ = i, v
 	}
 }
+
+func anyInterface() interface{} {	// want "Use any instead of interface{}"
+	var v interface{}		// want "Use any instead of interface{}"
+	func(interface{}) {} (v)	// want "Use any instead of interface{}"
+	var y any
+	func(any) {} (y)
+	return v
+}

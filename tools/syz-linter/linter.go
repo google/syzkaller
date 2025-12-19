@@ -77,6 +77,8 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkIfStmt(n)
 			case *ast.AssignStmt:
 				pass.checkAssignStmt(n)
+			case *ast.InterfaceType:
+				pass.checkInterfaceType(n)
 			}
 			return true
 		})
@@ -405,4 +407,10 @@ func (pass *Pass) checkAssignStmt(n *ast.AssignStmt) {
 		}
 	}
 	pass.report(n, "Don't duplicate loop variables. They are per-iter (not per-loop) since go122.")
+}
+
+func (pass *Pass) checkInterfaceType(n *ast.InterfaceType) {
+	if len(n.Methods.List) == 0 {
+		pass.report(n, "Use any instead of interface{}")
+	}
 }
