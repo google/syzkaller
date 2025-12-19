@@ -29,8 +29,8 @@ type qmpBanner struct {
 }
 
 type qmpCommand struct {
-	Execute   string      `json:"execute"`
-	Arguments interface{} `json:"arguments,omitempty"`
+	Execute   string `json:"execute"`
+	Arguments any    `json:"arguments,omitempty"`
 }
 
 type hmpCommand struct {
@@ -43,10 +43,10 @@ type qmpResponse struct {
 		Class string
 		Desc  string
 	}
-	Return interface{}
+	Return any
 
 	Event     string
-	Data      map[string]interface{}
+	Data      map[string]any
 	Timestamp struct {
 		Seconds      int64
 		Microseconds int64
@@ -102,7 +102,7 @@ func (inst *instance) doQmp(cmd *qmpCommand) (*qmpResponse, error) {
 	return inst.qmpRecv()
 }
 
-func (inst *instance) qmp(cmd *qmpCommand) (interface{}, error) {
+func (inst *instance) qmp(cmd *qmpCommand) (any, error) {
 	if err := inst.qmpConnCheck(); err != nil {
 		return nil, err
 	}

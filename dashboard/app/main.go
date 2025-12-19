@@ -318,7 +318,7 @@ type uiCollapsible struct {
 	Title string
 	Show  bool   // By default it's collapsed.
 	Type  string // Template system understands it.
-	Value interface{}
+	Value any
 }
 
 func makeCollapsibleBugJobs(title string, jobs []*uiJob) *uiCollapsible {
@@ -1411,7 +1411,7 @@ func handleBugSummaries(c context.Context, w http.ResponseWriter, r *http.Reques
 	return json.NewEncoder(w).Encode(list)
 }
 
-func writeJSONVersionOf(writer http.ResponseWriter, page interface{}) error {
+func writeJSONVersionOf(writer http.ResponseWriter, page any) error {
 	data, err := GetJSONDescrFor(page)
 	if err != nil {
 		return err

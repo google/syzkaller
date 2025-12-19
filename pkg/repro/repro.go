@@ -51,7 +51,7 @@ type Stats struct {
 type reproContext struct {
 	ctx            context.Context
 	exec           execInterface
-	logf           func(string, ...interface{})
+	logf           func(string, ...any)
 	target         *targets.Target
 	crashTitle     string
 	crashType      crash.Type
@@ -82,7 +82,7 @@ type Environment struct {
 	// it skips multiple simpifications and C repro generation.
 	Fast bool
 
-	logf func(string, ...interface{})
+	logf func(string, ...any)
 }
 
 func Run(ctx context.Context, log []byte, env Environment) (*Result, *Stats, error) {
@@ -766,7 +766,7 @@ func (ctx *reproContext) testCProg(p *prog.Prog, duration time.Duration, opts cs
 	}, strict)
 }
 
-func (ctx *reproContext) reproLogf(level int, format string, args ...interface{}) {
+func (ctx *reproContext) reproLogf(level int, format string, args ...any) {
 	if ctx.logf != nil {
 		ctx.logf(format, args...)
 	}
@@ -795,7 +795,7 @@ func (ctx *reproContext) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.L
 	ret, err := minimize.SliceWithFixed(minimize.Config[*prog.LogEntry]{
 		Pred:      minimizePred,
 		MaxChunks: chunks,
-		Logf: func(msg string, args ...interface{}) {
+		Logf: func(msg string, args ...any) {
 			ctx.reproLogf(3, "bisect: "+msg, args...)
 		},
 	}, progs, func(elem *prog.LogEntry) bool {

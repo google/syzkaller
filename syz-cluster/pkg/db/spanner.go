@@ -305,7 +305,7 @@ type genericEntityOps[EntityType, KeyType any] struct {
 func (g *genericEntityOps[EntityType, KeyType]) GetByID(ctx context.Context, key KeyType) (*EntityType, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM " + g.table + " WHERE " + g.keyField + "=@key",
-		Params: map[string]interface{}{"key": key},
+		Params: map[string]any{"key": key},
 	}
 	return readEntity[EntityType](ctx, g.client.Single(), stmt)
 }
@@ -318,7 +318,7 @@ func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key 
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			entity, err := readEntity[EntityType](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `" + g.table + "` WHERE `" + g.keyField + "`=@key",
-				Params: map[string]interface{}{"key": key},
+				Params: map[string]any{"key": key},
 			})
 			if err != nil {
 				return err

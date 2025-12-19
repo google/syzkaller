@@ -300,7 +300,7 @@ func (proxy *ProxyApp) signalLostConnection() {
 	}
 }
 
-func (proxy *ProxyApp) Call(serviceMethod string, args, reply interface{}) error {
+func (proxy *ProxyApp) Call(serviceMethod string, args, reply any) error {
 	err := proxy.Client.Call(serviceMethod, args, reply)
 	if err == rpc.ErrShutdown {
 		proxy.signalLostConnection()
@@ -589,8 +589,8 @@ type stdInOutCloser struct {
 	io.Writer
 }
 
-func clientErrorf(writer io.Writer) func(fmt string, s ...interface{}) {
-	return func(f string, s ...interface{}) {
+func clientErrorf(writer io.Writer) func(fmt string, s ...any) {
+	return func(f string, s ...any) {
 		fmt.Fprintf(writer, f, s...)
 		writer.Write([]byte("\nSYZFAIL: proxy app plugin error\n"))
 	}

@@ -23,7 +23,7 @@ func MergeJSONs(left, right []byte) ([]byte, error) {
 
 // Recursively apply a patch to a raw JSON data.
 // Patch is supposed to be a map, which possibly nests other map objects.
-func PatchJSON(left []byte, patch map[string]interface{}) ([]byte, error) {
+func PatchJSON(left []byte, patch map[string]any) ([]byte, error) {
 	vLeft, err := parseFragment(left)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func PatchJSON(left []byte, patch map[string]interface{}) ([]byte, error) {
 	return json.Marshal(mergeRecursive(vLeft, patch))
 }
 
-func parseFragment(input []byte) (parsed interface{}, err error) {
+func parseFragment(input []byte) (parsed any, err error) {
 	if len(input) == 0 {
 		// For convenience, we allow empty strings to be passed to the function that merges JSONs.
 		return
@@ -42,15 +42,15 @@ func parseFragment(input []byte) (parsed interface{}, err error) {
 
 // If one of the elements is not a map, use the new one.
 // Otherwise, recursively merge map elements.
-func mergeRecursive(left, right interface{}) interface{} {
+func mergeRecursive(left, right any) any {
 	if left == nil {
 		return right
 	}
 	if right == nil {
 		return left
 	}
-	mLeft, okLeft := left.(map[string]interface{})
-	mRight, okRight := right.(map[string]interface{})
+	mLeft, okLeft := left.(map[string]any)
+	mRight, okRight := right.(map[string]any)
 	if !okLeft || !okRight {
 		return right
 	}

@@ -148,12 +148,12 @@ type warn struct {
 	msg string
 }
 
-func (comp *compiler) error(pos ast.Pos, msg string, args ...interface{}) {
+func (comp *compiler) error(pos ast.Pos, msg string, args ...any) {
 	comp.errors++
 	comp.eh(pos, fmt.Sprintf(msg, args...))
 }
 
-func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
+func (comp *compiler) warning(pos ast.Pos, msg string, args ...any) {
 	comp.warnings = append(comp.warnings, warn{pos, fmt.Sprintf(msg, args...)})
 }
 

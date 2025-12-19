@@ -26,7 +26,7 @@ type RowIterator interface {
 }
 
 type Row interface {
-	ToStruct(p interface{}) error
+	ToStruct(p any) error
 }
 
 type SpannerClientProxy struct {

@@ -25,7 +25,7 @@ func Init() func() {
 	return installProfiling(*flagCPUProfile, *flagMEMProfile)
 }
 
-func Failf(msg string, args ...interface{}) {
+func Failf(msg string, args ...any) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }

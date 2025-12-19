@@ -205,7 +205,7 @@ func formatStringList(list []string) string {
 	return strings.Join(list, ", ")
 }
 
-func dereferencePointer(v interface{}) interface{} {
+func dereferencePointer(v any) any {
 	reflectValue := reflect.ValueOf(v)
 	if !reflectValue.IsNil() && reflectValue.Kind() == reflect.Ptr {
 		elem := reflectValue.Elem()

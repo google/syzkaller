@@ -15,7 +15,7 @@ import (
 // The external system is meant to poll for new bugs with apiReportingPoll,
 // and report back bug status updates with apiReportingUpdate.
 
-func apiReportingPollBugs(c context.Context, req *dashapi.PollBugsRequest) (interface{}, error) {
+func apiReportingPollBugs(c context.Context, req *dashapi.PollBugsRequest) (any, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollBugsResponse{}, err
 	}
@@ -32,7 +32,7 @@ func apiReportingPollBugs(c context.Context, req *dashapi.PollBugsRequest) (inte
 }
 
 func apiReportingPollNotifications(c context.Context, req *dashapi.PollNotificationsRequest) (
-	interface{}, error) {
+	any, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollNotificationsResponse{}, err
 	}
@@ -43,7 +43,7 @@ func apiReportingPollNotifications(c context.Context, req *dashapi.PollNotificat
 	return resp, nil
 }
 
-func apiReportingPollClosed(c context.Context, req *dashapi.PollClosedRequest) (interface{}, error) {
+func apiReportingPollClosed(c context.Context, req *dashapi.PollClosedRequest) (any, error) {
 	if stop, err := emergentlyStopped(c); err != nil || stop {
 		return &dashapi.PollClosedResponse{}, err
 	}
@@ -57,7 +57,7 @@ func apiReportingPollClosed(c context.Context, req *dashapi.PollClosedRequest) (
 	return resp, nil
 }
 
-func apiReportingUpdate(c context.Context, req *dashapi.BugUpdate) (interface{}, error) {
+func apiReportingUpdate(c context.Context, req *dashapi.BugUpdate) (any, error) {
 	if req.JobID != "" {
 		resp := &dashapi.BugUpdateReply{
 			OK:    true,
@@ -78,7 +78,7 @@ func apiReportingUpdate(c context.Context, req *dashapi.BugUpdate) (interface{},
 	}, nil
 }
 
-func apiNewTestJob(c context.Context, req *dashapi.TestPatchRequest) (interface{}, error) {
+func apiNewTestJob(c context.Context, req *dashapi.TestPatchRequest) (any, error) {
 	resp := &dashapi.TestPatchReply{}
 	err := handleExternalTestRequest(c, req)
 	if err != nil {

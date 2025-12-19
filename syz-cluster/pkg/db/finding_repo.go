@@ -44,7 +44,7 @@ func (repo *FindingRepository) Store(ctx context.Context, id *FindingID,
 			oldFinding, err := readEntity[Finding](ctx, txn, spanner.Statement{
 				SQL: "SELECT * from `Findings` WHERE `SessionID`=@sessionID " +
 					"AND `TestName` = @testName AND `Title`=@title",
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"sessionID": id.SessionID,
 					"testName":  id.TestName,
 					"title":     id.Title,
@@ -56,7 +56,7 @@ func (repo *FindingRepository) Store(ctx context.Context, id *FindingID,
 			// Query the Session object.
 			session, err := readEntity[Session](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * FROM `Sessions` WHERE `ID`=@id",
-				Params: map[string]interface{}{"id": id.SessionID},
+				Params: map[string]any{"id": id.SessionID},
 			})
 			if err != nil {
 				return err
@@ -105,7 +105,7 @@ func (repo *FindingRepository) mustStore(ctx context.Context, finding *Finding) 
 func (repo *FindingRepository) ListForSession(ctx context.Context, sessionID string, limit int) ([]*Finding, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Findings` WHERE `SessionID` = @session ORDER BY `TestName`, `Title`",
-		Params: map[string]interface{}{"session": sessionID},
+		Params: map[string]any{"session": sessionID},
 	}
 	addLimit(&stmt, limit)
 	return repo.readEntities(ctx, stmt)

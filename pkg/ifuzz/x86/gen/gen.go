@@ -39,7 +39,7 @@ func main() {
 	var insn, insn1 *x86.Insn
 	s := bufio.NewScanner(f)
 	for i := 1; s.Scan(); i++ {
-		reportError := func(msg string, args ...interface{}) {
+		reportError := func(msg string, args ...any) {
 			fmt.Fprintf(os.Stderr, "line %v: %v\n", i, s.Text())
 			tool.Failf(msg, args...)
 		}

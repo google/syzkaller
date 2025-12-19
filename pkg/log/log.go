@@ -79,7 +79,7 @@ func Log(v int, msg string) {
 	Logf(v, "%v", msg)
 }
 
-func Logf(v int, msg string, args ...interface{}) {
+func Logf(v int, msg string, args ...any) {
 	writeMessage(v, "", msg, args...)
 }
 
@@ -87,7 +87,7 @@ func Error(err error) {
 	Errorf("%v", err)
 }
 
-func Errorf(msg string, args ...interface{}) {
+func Errorf(msg string, args ...any) {
 	writeMessage(0, "ERROR", msg, args...)
 }
 
@@ -95,11 +95,11 @@ func Fatal(err error) {
 	Fatalf("%v", err)
 }
 
-func Fatalf(msg string, args ...interface{}) {
+func Fatalf(msg string, args ...any) {
 	golog.Fatal(message("FATAL", msg, args...))
 }
 
-func message(severity, msg string, args ...interface{}) string {
+func message(severity, msg string, args ...any) string {
 	var sb strings.Builder
 	if severity != "" {
 		fmt.Fprintf(&sb, "[%s] ", severity)
@@ -111,7 +111,7 @@ func message(severity, msg string, args ...interface{}) string {
 	return sb.String()
 }
 
-func writeMessage(v int, severity, msg string, args ...interface{}) {
+func writeMessage(v int, severity, msg string, args ...any) {
 	cache := v <= 1 && cachingEnabled.Load()
 	if !V(v) && !cache {
 		return

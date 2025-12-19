@@ -1258,7 +1258,7 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 	return reports, nil
 }
 
-func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config interface{}) (
+func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config any) (
 	*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(config)
 	if err != nil {

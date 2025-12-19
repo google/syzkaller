@@ -331,7 +331,7 @@ func parseNode(node yaml.Node) (name, val string, constraints []string, err erro
 
 type Errors []byte
 
-func (errs *Errors) push(msg string, args ...interface{}) {
+func (errs *Errors) push(msg string, args ...any) {
 	*errs = append(*errs, fmt.Sprintf(msg+"\n", args...)...)
 }
 

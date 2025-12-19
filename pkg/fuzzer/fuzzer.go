@@ -210,7 +210,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 type Config struct {
 	Debug          bool
 	Corpus         *corpus.Corpus
-	Logf           func(level int, msg string, args ...interface{})
+	Logf           func(level int, msg string, args ...any)
 	Snapshot       bool
 	Coverage       bool
 	FaultInjection bool
@@ -338,7 +338,7 @@ func (fuzzer *Fuzzer) Next() *queue.Request {
 	return req
 }
 
-func (fuzzer *Fuzzer) Logf(level int, msg string, args ...interface{}) {
+func (fuzzer *Fuzzer) Logf(level int, msg string, args ...any) {
 	if fuzzer.Config.Logf == nil {
 		return
 	}

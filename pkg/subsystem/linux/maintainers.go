@@ -83,7 +83,7 @@ type endOfFile struct{}
 
 var propertyRe = regexp.MustCompile(`^([[:alpha:]]):\s+(.*).*$`)
 
-func (ml *maintainersLexer) next() interface{} {
+func (ml *maintainersLexer) next() any {
 	for ml.scanner.Scan() {
 		ml.currentLine++
 		rawLine := ml.scanner.Text()

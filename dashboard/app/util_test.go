@@ -125,14 +125,14 @@ func (c *Ctx) expectBadReqest(err error) {
 	expectFailureStatus(c.t, err, http.StatusBadRequest)
 }
 
-func (c *Ctx) expectEQ(got, want interface{}) {
+func (c *Ctx) expectEQ(got, want any) {
 	if diff := cmp.Diff(got, want); diff != "" {
 		c.t.Helper()
 		c.t.Fatal(diff)
 	}
 }
 
-func (c *Ctx) expectNE(got, want interface{}) {
+func (c *Ctx) expectNE(got, want any) {
 	if reflect.DeepEqual(got, want) {
 		c.t.Helper()
 		c.t.Fatalf("equal: %#v", got)
@@ -504,8 +504,8 @@ type apiClient struct {
 }
 
 func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
-	logger := func(msg string, args ...interface{}) {
-		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
+	logger := func(msg string, args ...any) {
+		c.t.Logf("%v: "+msg, append([]any{caller(3)}, args...)...)
 	}
 	errorHandler := func(err error) {
 		if failOnErrors {
@@ -628,7 +628,7 @@ type (
 	EmailOptSender    string
 )
 
-func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
+func (c *Ctx) incomingEmail(to, body string, opts ...any) {
 	id := 0
 	subject := "crash1"
 	from := "default@sender.com"

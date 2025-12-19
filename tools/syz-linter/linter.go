@@ -54,7 +54,7 @@ var SyzAnalyzer = &analysis.Analyzer{
 	Run:  run,
 }
 
-func run(p *analysis.Pass) (interface{}, error) {
+func run(p *analysis.Pass) (any, error) {
 	pass := (*Pass)(p)
 	for _, file := range pass.Files {
 		stmts := make(map[int]bool)
@@ -91,7 +91,7 @@ func run(p *analysis.Pass) (interface{}, error) {
 
 type Pass analysis.Pass
 
-func (pass *Pass) report(pos ast.Node, msg string, args ...interface{}) {
+func (pass *Pass) report(pos ast.Node, msg string, args ...any) {
 	pass.Report(analysis.Diagnostic{
 		Pos:     pos.Pos(),
 		Message: fmt.Sprintf(msg, args...),

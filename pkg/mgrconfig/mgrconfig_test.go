@@ -25,7 +25,7 @@ func TestCanned(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var vmCfg interface{}
+			var vmCfg any
 			switch cfg.Type {
 			case "qemu":
 				vmCfg = new(qemu.Config)
