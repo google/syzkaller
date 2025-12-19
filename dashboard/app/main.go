@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	_ "net/http/pprof" // app.yaml restricts this to admins
 	"net/url"
 	"os"
 	"regexp"
