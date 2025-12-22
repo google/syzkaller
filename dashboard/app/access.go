@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	"google.golang.org/appengine/v2/user"
@@ -79,14 +80,20 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 	return al
 }
 
+const prodAuthDomain = "gmail.com"
+
 // trustedAuthDomain for the test environment is "".
-var trustedAuthDomain = "gmail.com"
+var trustedAuthDomain = prodAuthDomain
 
 // userAccessLevel returns authorization flag and AccessLevel.
 // (True, AccessAdmin) means authorized, Admin access.
 // Note - authorize higher levels first.
 func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) (bool, AccessLevel) {
-	if u == nil || u.AuthDomain != trustedAuthDomain {
+	domainOK := u != nil && (u.AuthDomain == trustedAuthDomain ||
+		// This supports local runs of dev_appserver.py where trustedAuthDomain
+		// is not overridden, but dev_appserver.py sets u.AuthDomain="".
+		appengine.IsDevAppServer() && trustedAuthDomain == prodAuthDomain)
+	if !domainOK {
 		return false, AccessPublic
 	}
 	if u.Admin {
