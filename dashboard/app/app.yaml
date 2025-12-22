@@ -26,7 +26,7 @@ handlers:
   static_dir: dashboard/app/static
   secure: always
 # debug is for net/http/pprof handlers.
-- url: /(admin|debug|cron/.*)
+- url: /(admin|debug/.*|cron/.*)
   script: auto
   login: admin
   secure: always
