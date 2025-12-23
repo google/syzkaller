@@ -57,8 +57,8 @@ type SpanEnd struct {
 
 type EventFlowStart struct {
 	SpanStart
-	Name     string
-	Revision string
+	Name     string         `json:"name"`
+	Revision string         `json:"revision"`
 	Args     map[string]any `json:"args"`
 }
 
