@@ -7,6 +7,14 @@
             <input type="text" name="cc" class="form-control mb-3" value="{{.Filter.Cc}}" id="inputCc">
           </div>
           <div class="col-auto col-sm-3">
+            <label for="inputSeriesName">Series Name</label>
+            <input type="text" name="series_name" class="form-control mb-3" value="{{.Filter.SeriesName}}" id="inputSeriesName">
+          </div>
+          <div class="col-auto col-sm-3">
+            <label for="inputPatchName">Patch Name</label>
+            <input type="text" name="patch_name" class="form-control mb-3" value="{{.Filter.PatchName}}" id="inputPatchName">
+          </div>
+          <div class="col-auto">
             <label for="inputStatus">Status</label>
             <select id="inputStatus" class="form-control mb-3" name="status">
               {{$filter := .Filter}}

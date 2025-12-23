@@ -171,5 +171,23 @@
             </tbody>
         </table>
         {{end}}
+
+        <h3>Series Versions</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Version</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Versions}}
+                <tr>
+                    <td><a href="/series/{{.ID}}">{{.Version}}</a></td>
+                    <td>{{.PublishedAt}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
     </div>
 {{end}}
