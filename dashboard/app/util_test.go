@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
@@ -675,6 +676,7 @@ func initMocks() {
 	timeNow = func(c context.Context) time.Time {
 		return getRequestContext(c).mockedTime
 	}
+	aidb.TimeNow = timeNow
 	sendEmail = func(c context.Context, msg *aemail.Message) error {
 		getRequestContext(c).emailSink <- msg
 		return nil

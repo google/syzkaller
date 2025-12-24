@@ -274,7 +274,7 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 		}
 	}
 	// This will also generate descriptions and should go before the 'go test' below.
-	cmd := osutil.Command(instance.MakeBin, "host", "ci")
+	cmd := osutil.Command(instance.MakeBin, "host", "ci", "agent")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {

@@ -115,6 +115,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</div>
 			</div>
 			{{end}}
+			{{if .AI}}
+			<div class="navigation_tab{{if eq .URLPath (printf "/%v/ai" $.Namespace)}}_selected{{end}}">
+				<a href='/{{$.Namespace}}/ai'>✨ AI</a>
+			</div>
+			{{end}}
 			{{if .ContactEmail}}
 			<div class="navigation_tab">
 				<a href='mailto:{{.ContactEmail}}'><span style="color:ForestGreen;">💬</span> Send us feedback</a>
@@ -124,6 +129,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{end}}
 	</header>
 	<br>
+	{{if .Message}}
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				alert("{{.Message}}");
+			});
+		</script>
+	{{end}}
 {{end}}
 
 {{/* List of enabled filters, invoked with *uiBugFilter */}}
