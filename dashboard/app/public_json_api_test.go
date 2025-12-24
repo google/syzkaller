@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -23,6 +24,9 @@ func TestJSONAPIIntegration(t *testing.T) {
 	"version": 1,
 	"title": "title1",
 	"id": "cb1dbe55dc6daa7e739a0d09a0ae4d5e3e5a10c8",
+	"status": "reporting1: reported on 2000/01/01 00:01",
+	"first-crash": "2000-01-01T00:01:00Z",
+	"last-crash": "2000-01-01T00:01:00Z",
 	"crashes": [
 		{
 			"title": "title1",
@@ -40,6 +44,9 @@ func TestJSONAPIIntegration(t *testing.T) {
 	"version": 1,
 	"title": "title2",
 	"id": "fc00fbc0cddd9a4ef2ae33e40cd21636081466ce",
+	"status": "reporting1: reported C repro on 2000/01/01 00:01",
+	"first-crash": "2000-01-01T00:01:00Z",
+	"last-crash": "2000-01-01T00:01:00Z",
 	"crashes": [
 		{
 			"title": "title2",
@@ -100,6 +107,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
+	c.advanceTime(time.Minute)
 	c.client.ReportCrash(crash1)
 	bugReport1 := c.client.pollBug()
 	checkBugPageJSONIs(c, bugReport1.ID, sampleCrashDescr)
@@ -121,6 +129,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 }
 
 func checkBugPageJSONIs(c *Ctx, ID string, expectedContent []byte) {
+	c.t.Helper()
 	url := fmt.Sprintf("/bug?extid=%v&json=1", ID)
 
 	contentType, _ := c.client.ContentType(url)
@@ -131,6 +140,7 @@ func checkBugPageJSONIs(c *Ctx, ID string, expectedContent []byte) {
 }
 
 func checkBugGroupPageJSONIs(c *Ctx, url string, expectedContent []byte) {
+	c.t.Helper()
 	contentType, _ := c.client.ContentType(url)
 	c.expectEQ(contentType, "application/json")
 
@@ -150,6 +160,7 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	rep1 := c.client.pollBug()
 
 	// Specify fixing commit for the bug.
+	c.advanceTime(time.Hour)
 	c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep1.ID,
 		Status:     dashapi.BugStatusOpen,
@@ -166,6 +177,10 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	"version": 1,
 	"title": "title1",
 	"id": "cb1dbe55dc6daa7e739a0d09a0ae4d5e3e5a10c8",
+	"status": "reporting1: reported on 2000/01/01 00:00",
+	"first-crash": "2000-01-01T00:00:00Z",
+	"last-crash": "2000-01-01T00:00:00Z",
+	"fix-time": "2000-01-01T01:00:00Z",
 	"fix-commits": [
 		{
 			"title": "foo: fix1",
@@ -210,11 +225,15 @@ func TestJSONAPICauseBisection(t *testing.T) {
 	"version": 1,
 	"title": "title1",
 	"id": "70ce63ecb151d563976728208edccc6879191f9f",
+	"status": "reporting2: reported C repro on 2000/01/31 00:00",
+	"first-crash": "2000-01-01T00:00:00Z",
+	"last-crash": "2000-01-01T00:00:00Z",
 	"cause-commit": {
 		"title": "kernel: add a bug",
 		"hash": "36e65cb4a0448942ec316b24d60446bbd5cc7827",
 		"repo": "repo1",
-		"branch": "branch1"
+		"branch": "branch1",
+		"date": "2000-02-09T04:05:06Z"
 	},
 	"crashes": [
 		{
