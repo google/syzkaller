@@ -889,6 +889,9 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.SetAutoSubsystems(c, newSubsystems, now, subsystemService.Revision)
 		}
 		bug.increaseCrashStats(now)
+		if err = bug.addTitleStat(req.TailTitles); err != nil {
+			return fmt.Errorf("failed to add title stat: %w", err)
+		}
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
 		// Migration of older entities (for new bugs Title is always in MergedTitles).
 		bug.MergedTitles = mergeString(bug.MergedTitles, bug.Title)
@@ -948,10 +951,11 @@ func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug
 func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key,
 	build *Build, assets []Asset) error {
 	crash := &Crash{
-		Title:   req.Title,
-		Manager: build.Manager,
-		BuildID: req.BuildID,
-		Time:    timeNow(c),
+		Title:      req.Title,
+		TailTitles: req.TailTitles,
+		Manager:    build.Manager,
+		BuildID:    req.BuildID,
+		Time:       timeNow(c),
 		Maintainers: email.MergeEmailLists(req.Maintainers,
 			GetEmails(req.Recipients, dashapi.To),
 			GetEmails(req.Recipients, dashapi.Cc)),
@@ -968,6 +972,13 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 	}
 	if crash.Report, err = putText(c, ns, textCrashReport, req.Report); err != nil {
 		return err
+	}
+	for _, tailReport := range req.TailReports {
+		tailReportID, err := putText(c, ns, textCrashReport, tailReport)
+		if err != nil {
+			return err
+		}
+		crash.TailReports = append(crash.TailReports, tailReportID)
 	}
 	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz); err != nil {
 		return err
@@ -1045,6 +1056,11 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 		}
 		if crash.Report != 0 {
 			toDelete = append(toDelete, db.NewKey(c, textCrashReport, "", crash.Report, nil))
+		}
+		if len(crash.TailReports) != 0 {
+			for _, tailReport := range crash.TailReports {
+				toDelete = append(toDelete, db.NewKey(c, textCrashReport, "", tailReport, nil))
+			}
 		}
 		if crash.ReproSyz != 0 {
 			toDelete = append(toDelete, db.NewKey(c, textReproSyz, "", crash.ReproSyz, nil))

@@ -322,6 +322,7 @@ type Crash struct {
 	BuildID     string // refers to Build.ID
 	Title       string
 	AltTitles   []string // alternative titles, used for better deduplication
+	TailTitles  []string // titles of the tail reports, see TailReports field
 	Corrupted   bool     // report is corrupted (corrupted title, no stacks, etc)
 	Suppressed  bool
 	Maintainers []string // deprecated in favor of Recipients
@@ -329,6 +330,9 @@ type Crash struct {
 	Log         []byte
 	Flags       CrashFlags
 	Report      []byte
+	// Crashing machine may generate report chain like WARNING -> WARNING -> KASAN -> GPF.
+	// These additional reports are used to better understand the bug nature and impact.
+	TailReports [][]byte
 	MachineInfo []byte
 	Assets      []NewAsset
 	GuiltyFiles []string
