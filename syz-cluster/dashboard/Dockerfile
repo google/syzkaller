@@ -7,6 +7,7 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 COPY pkg/gcs/ pkg/gcs/
+COPY pkg/osutil/ pkg/osutil/
 COPY pkg/html/urlutil/ pkg/html/urlutil/
 
 # Build the tool.

@@ -7,6 +7,7 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 COPY pkg/gcs/ pkg/gcs/
+COPY pkg/osutil/ pkg/osutil/
 
 # Build the tool.
 COPY syz-cluster/controller/ syz-cluster/controller/
