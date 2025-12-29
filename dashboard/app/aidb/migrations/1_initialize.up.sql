@@ -1,0 +1,3 @@
+CREATE TABLE Test (
+	Name			STRING(1000) NOT NULL,
+) PRIMARY KEY (Name);
