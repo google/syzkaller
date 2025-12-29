@@ -22,16 +22,22 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner/admin/database/apiv1"
+	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
+	spannertest "github.com/google/syzkaller/syz-cluster/pkg/db"
+	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -58,11 +64,16 @@ var skipDevAppserverTests = func() bool {
 }()
 
 func NewCtx(t *testing.T) *Ctx {
+	return newCtx(t, "")
+}
+
+func newCtx(t *testing.T, appID string) *Ctx {
 	if skipDevAppserverTests {
 		t.Skip("skipping test (no dev_appserver.py)")
 	}
 	t.Parallel()
 	inst, err := aetest.NewInstance(&aetest.Options{
+		AppID:          appID,
 		StartupTimeout: 120 * time.Second,
 		// Without this option datastore queries return data with slight delay,
 		// which fails reporting tests.
@@ -87,6 +98,52 @@ func NewCtx(t *testing.T) *Ctx {
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	c.ctx = registerRequest(r, c).Context()
 	return c
+}
+
+var appIDSeq = uint32(0)
+
+func NewSpannerCtx(t *testing.T) *Ctx {
+	ddlStatements, err := loadDDLStatements("1_initialize.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The code uses AppID as the spanner database URI project.
+	// So to give each test a private isolated instance of the spanner database,
+	// we give each test that uses spanner an unique AppID.
+	appID := fmt.Sprintf("testapp-%v", atomic.AddUint32(&appIDSeq, 1))
+	uri := fmt.Sprintf("projects/%s/instances/%v/databases/%v", appID, aidb.Instance, aidb.Database)
+	spannertest.NewTestDB(t, uri, ddlStatements)
+	return newCtx(t, appID)
+}
+
+func executeSpannerDDL(ctx context.Context, statements []string) error {
+	dbAdmin, err := database.NewDatabaseAdminClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed NewDatabaseAdminClient: %w", err)
+	}
+	defer dbAdmin.Close()
+	dbOp, err := dbAdmin.UpdateDatabaseDdl(ctx, &databasepb.UpdateDatabaseDdlRequest{
+		Database: fmt.Sprintf("projects/%s/instances/%v/databases/%v",
+			appengine.AppID(ctx), aidb.Instance, aidb.Database),
+		Statements: statements,
+	})
+	if err != nil {
+		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
+	}
+	if err := dbOp.Wait(ctx); err != nil {
+		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
+	}
+	return nil
+}
+
+func loadDDLStatements(file string) ([]string, error) {
+	data, err := os.ReadFile(filepath.Join("aidb", "migrations", file))
+	if err != nil {
+		return nil, err
+	}
+	// We need individual statements. Assume semicolon is not used in other places than statements end.
+	statements := strings.Split(string(data), ";")
+	return statements[:len(statements)-1], nil
 }
 
 func (c *Ctx) config() *GlobalConfig {
