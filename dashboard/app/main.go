@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -2433,14 +2432,13 @@ func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key, restart bool
 
 func formatLogLine(line string) string {
 	const maxLineLen = 1000
-
 	line = strings.ReplaceAll(line, "\n", " ")
 	line = strings.ReplaceAll(line, "\r", "")
 	if len(line) > maxLineLen {
 		line = line[:maxLineLen]
 		line += "..."
 	}
-	return line + "\n"
+	return line
 }
 
 func fetchErrorLogs(c context.Context) ([]byte, error) {
@@ -2448,9 +2446,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		return nil, nil
 	}
 
-	const (
-		maxLines = 100
-	)
+	const maxLines = 100
 	projID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 
 	adminClient, err := logadmin.NewClient(c, projID)
@@ -2462,16 +2458,23 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	lastWeek := time.Now().Add(-1 * 7 * 24 * time.Hour).Format(time.RFC3339)
 	iter := adminClient.Entries(c,
 		logadmin.Filter(
-			// We filter our instances.delete errors as false positives. Delete event happens every second.
-			// Also, ignore GKE logs since it streams all stderr output as severity=ERROR.
-			fmt.Sprintf(`(NOT protoPayload.methodName:v1.compute.instances.delete)`+
-				` AND (NOT resource.type="k8s_container") AND timestamp > "%s" AND severity>="ERROR"`,
-				lastWeek)),
-		logadmin.NewestFirst(),
-	)
+			fmt.Sprintf(`
+				timestamp > "%s" AND severity>="ERROR"
+				-- Ignore GKE logs since it streams all stderr output as severity=ERROR.
+				AND (NOT resource.type="k8s_container")
+				-- Filter our instances.delete errors as false positives. Delete event happens every second.
+				AND (NOT protoPayload.methodName:v1.compute.instances.delete)
+				-- Let somebody else monitor datastore bugs (also see #6069).
+				AND (NOT textPayload:"datastore_v3: INTERNAL_ERROR")
+				-- GetPackageUpdates is something related to package updates on GCE machines.
+				-- They are happening in hundreds every day.
+				AND (NOT jsonPayload.message:"packages.GetPackageUpdates()")
+				-- CloudBuild don't look like errors, there is nothing that suggests that's an error.
+				AND (NOT protoPayload.methodName:"google.devtools.cloudbuild.v1.CloudBuild.CreateBuild")
+			`, lastWeek)), logadmin.NewestFirst())
 
-	var entries []*logging.Entry
-	for len(entries) < maxLines {
+	var lines []string
+	for len(lines) < maxLines {
 		entry, err := iter.Next()
 		if err == iterator.Done {
 			break
@@ -2479,11 +2482,6 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, entry)
-	}
-
-	var lines []string
-	for _, entry := range entries {
 		requestLog, isRequestLog := entry.Payload.(*proto.RequestLog)
 		if isRequestLog {
 			for _, logLine := range requestLog.Line {
@@ -2509,6 +2507,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	for i := len(lines) - 1; i >= 0; i-- {
 		buf.WriteString(lines[i])
+		buf.WriteByte('\n')
 	}
 	return buf.Bytes(), nil
 }
