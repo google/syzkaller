@@ -12,8 +12,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -26,6 +26,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	migrate_spanner "github.com/golang-migrate/migrate/v4/database/spanner"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/google/syzkaller/pkg/osutil"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -127,18 +128,7 @@ func getMigrateInstance(uri string) (*migrate.Migrate, error) {
 }
 
 func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
-	// If the environment contains the emulator binary, start it.
-	if bin := os.Getenv("SPANNER_EMULATOR_BIN"); bin != "" {
-		host := spannerTestWrapper(t, bin)
-		os.Setenv("SPANNER_EMULATOR_HOST", host)
-	} else if os.Getenv("CI") != "" {
-		// We do want to always run these tests on CI.
-		t.Fatalf("CI is set, but SPANNER_EMULATOR_BIN is empty")
-	}
-	if os.Getenv("SPANNER_EMULATOR_HOST") == "" {
-		t.Skip("SPANNER_EMULATOR_HOST must be set")
-		return nil, nil
-	}
+	setupSpannerEmulator(t)
 	uri, err := ParseURI("projects/my-project/instances/test-instance/databases/" +
 		fmt.Sprintf("db%v", time.Now().UnixNano()))
 	if err != nil {
@@ -165,64 +155,73 @@ func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
 	return client, ctx
 }
 
-var setupSpannerOnce sync.Once
-var spannerHost string
+var (
+	setupSpannerOnce sync.Once
+	setupSpannerErr  error
+	errSpannerSkip   = errors.New("no spanner emulator binary found, skipping test")
+)
 
-func spannerTestWrapper(t *testing.T, bin string) string {
+func setupSpannerEmulator(t *testing.T) {
 	setupSpannerOnce.Do(func() {
-		t.Logf("this could be the first test requiring a Spanner emulator, starting %s", bin)
-		cmd, host, err := runSpanner(bin)
-		if err != nil {
-			t.Fatal(err)
-		}
-		spannerHost = host
-		t.Cleanup(func() {
-			cmd.Process.Kill()
-			cmd.Wait()
-		})
+		setupSpannerErr = startSpannerEmulator()
 	})
-	return spannerHost
+	if setupSpannerErr == errSpannerSkip {
+		t.Skip(setupSpannerErr.Error())
+	}
+	if setupSpannerErr != nil {
+		t.Fatalf("failed to setup spanner emulator: %v", setupSpannerErr)
+	}
 }
 
-var portRe = regexp.MustCompile(`Server address: ([\w:]+)`)
-
-func runSpanner(bin string) (*exec.Cmd, string, error) {
-	cmd := exec.Command(bin, "--override_max_databases_per_instance=1000",
-		"--grpc_port=0", "--http_port=0")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, "", err
-	}
-	cmd.Stderr = cmd.Stdout
-	if err := cmd.Start(); err != nil {
-		return nil, "", err
-	}
-	scanner := bufio.NewScanner(stdout)
-	started, host := false, ""
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "Cloud Spanner Emulator running") {
-			started = true
-		} else if parts := portRe.FindStringSubmatch(line); parts != nil {
-			host = parts[1]
+func startSpannerEmulator() error {
+	// This env is set by syz-env container.
+	bin := os.Getenv("SPANNER_EMULATOR_BIN")
+	if bin != "" {
+		bin = filepath.Join(filepath.Dir(bin), "emulator_main")
+	} else {
+		// Otherwise check for installed google-cloud-sdk binary.
+		appServerPath, err := exec.LookPath("dev_appserver.py")
+		if err == nil {
+			bin = filepath.Join(filepath.Dir(appServerPath), "cloud_spanner_emulator", "emulator_main")
 		}
-		if started && host != "" {
-			break
+	}
+	if bin == "" {
+		// In these contexts we expect the binary to be present.
+		if os.Getenv("CI") != "" || os.Getenv("SYZ_ENV") != "" {
+			return errors.New("no spanner emulator binary found")
+		}
+		return errSpannerSkip
+	}
+	// Use osutil.Command to set PDEATHSIG.
+	cmd := osutil.Command(bin, "--host_port", "localhost:0", "--override_max_databases_per_instance=1000")
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	serverAddr := ""
+	serverAddrRe := regexp.MustCompile(`Server address: ([\w:]+)`)
+	scanner := bufio.NewScanner(stderr)
+	for serverAddr == "" && scanner.Scan() {
+		if parts := serverAddrRe.FindStringSubmatch(scanner.Text()); parts != nil {
+			serverAddr = parts[1]
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return cmd, "", err
+		return err
 	}
 	// The program may block if we don't read out all the remaining output.
-	go io.Copy(io.Discard, stdout)
-
-	if !started {
-		return cmd, "", fmt.Errorf("the emulator did not print that it started")
+	go io.Copy(io.Discard, stderr)
+	if serverAddr == "" {
+		return fmt.Errorf("did not detect the host")
 	}
-	if host == "" {
-		return cmd, "", fmt.Errorf("did not detect the host")
-	}
-	return cmd, host, nil
+	os.Setenv("SPANNER_EMULATOR_HOST", serverAddr)
+	// Without this connections to emulator hang, probably some bug somewhere.
+	os.Setenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS", "false")
+	fmt.Printf("started spanner emulator %v on %v\n", bin, serverAddr)
+	return nil
 }
 
 func readRow[T any](iter *spanner.RowIterator) (*T, error) {
