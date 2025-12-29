@@ -967,6 +967,12 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		}
 	case "invalidate_bisection":
 		return handleInvalidateBisection(c, w, r)
+	case "updateBugReporting":
+		return updateBugReporting(c, w, r)
+	case "restartFailedBisections":
+		return restartFailedBisections(c, w, r)
+	case "setMissingBugFields":
+		return setMissingBugFields(c, w, r)
 	case "emergency_stop":
 		if err := recordEmergencyStop(c); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
