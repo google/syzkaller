@@ -198,9 +198,8 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
 	}
-	target := inst.mgrCfg.SysTarget
-	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, inst.mgrCfg.Type, opts,
-		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
+	command := ExecprogCmd(inst.execprogBin, inst.executorBin, inst.mgrCfg.TargetOS, inst.mgrCfg.TargetArch,
+		inst.mgrCfg.Type, opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
 	return inst.runCommand(command, duration, exitCondition)
 }
 
