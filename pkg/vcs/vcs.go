@@ -387,6 +387,9 @@ func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""
 	}
+	if colon := strings.IndexByte(url, ':'); colon != -1 && strings.HasPrefix(url, "git@") {
+		url = "https://" + url[4:colon] + "/" + url[colon+1:]
+	}
 	switch url {
 	case "https://fuchsia.googlesource.com":
 		// We collect hashes from the fuchsia repo.

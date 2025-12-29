@@ -183,6 +183,11 @@ func TestCommitLink(t *testing.T) {
 			"06690d5c6466b604f674477b522a809673c17eff",
 			"https://git.breakpoint.cc/cgit/fw/net-next.git/commit/?id=06690d5c6466b604f674477b522a809673c17eff",
 		},
+		{
+			"git@github.com:torvalds/linux.git",
+			"ccd1cdca5cd433c8a5dff78b69a79b31d9b77ee1",
+			"https://github.com/torvalds/linux/commit/ccd1cdca5cd433c8a5dff78b69a79b31d9b77ee1",
+		},
 	}
 	for _, test := range tests {
 		link := CommitLink(test.URL, test.Hash)
@@ -221,6 +226,13 @@ func TestFileLink(t *testing.T) {
 			"Makefile",
 			42,
 			"https://android.googlesource.com/kernel/common/+/d0c3914ffbe4c00f0a131bae83f811d5606699bc/Makefile#42",
+		},
+		{
+			"git@github.com:torvalds/linux.git",
+			"ccd1cdca5cd433c8a5dff78b69a79b31d9b77ee1",
+			"Makefile",
+			42,
+			"https://github.com/torvalds/linux/blob/ccd1cdca5cd433c8a5dff78b69a79b31d9b77ee1/Makefile#L42",
 		},
 	}
 	for _, test := range tests {
