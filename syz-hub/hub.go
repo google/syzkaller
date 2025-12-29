@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/syz-hub/state"
 )
 
@@ -59,7 +61,8 @@ func main() {
 		hub.keys[mgr.Name] = mgr.Key
 	}
 
-	hub.initHTTP(cfg.HTTP)
+	http.HandleFunc("/", hub.httpSummary)
+	tool.ServeHTTP(cfg.HTTP)
 	go hub.purgeOldManagers()
 
 	s, err := rpctype.NewRPCServer(cfg.RPC, "Hub", hub)
