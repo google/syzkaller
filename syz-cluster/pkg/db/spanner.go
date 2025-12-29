@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
-	database "cloud.google.com/go/spanner/admin/database/apiv1"
+	"cloud.google.com/go/spanner/admin/database/apiv1"
 	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
-	instance "cloud.google.com/go/spanner/admin/instance/apiv1"
+	"cloud.google.com/go/spanner/admin/instance/apiv1"
 	"cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	"github.com/golang-migrate/migrate/v4"
 	migrate_spanner "github.com/golang-migrate/migrate/v4/database/spanner"
@@ -93,15 +93,6 @@ func CreateSpannerDB(ctx context.Context, uri ParsedURI) error {
 	return err
 }
 
-func dropSpannerDB(ctx context.Context, uri ParsedURI) error {
-	client, err := database.NewDatabaseAdminClient(ctx)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-	return client.DropDatabase(ctx, &databasepb.DropDatabaseRequest{Database: uri.Full})
-}
-
 //go:embed migrations/*.sql
 var migrationsFs embed.FS
 
@@ -162,12 +153,6 @@ func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		err := dropSpannerDB(ctx, uri)
-		if err != nil {
-			t.Logf("failed to drop the test DB: %v", err)
-		}
-	})
 	client, err := spanner.NewClient(ctx, uri.Full)
 	if err != nil {
 		t.Fatal(err)
