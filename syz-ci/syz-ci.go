@@ -57,7 +57,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -72,6 +71,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/updater"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -265,7 +265,7 @@ func main() {
 	shutdownPending := make(chan struct{})
 	osutil.HandleInterrupts(shutdownPending)
 
-	serveHTTP(cfg)
+	tool.ServeHTTP(cfg.HTTP)
 
 	if cfg.Goroot != "" {
 		os.Setenv("GOROOT", cfg.Goroot)
@@ -394,18 +394,6 @@ loop:
 		log.Logf(0, "asset deprecation: needed=%d, existing=%d, deleted=%d",
 			stats.Needed, stats.Existing, stats.Deleted)
 	}
-}
-
-func serveHTTP(cfg *Config) {
-	ln, err := net.Listen("tcp4", cfg.HTTP)
-	if err != nil {
-		log.Fatalf("failed to listen on %v: %v", cfg.HTTP, err)
-	}
-	log.Logf(0, "serving http on http://%v", ln.Addr())
-	go func() {
-		err := http.Serve(ln, nil)
-		log.Fatalf("failed to serve http: %v", err)
-	}()
 }
 
 func uploadSyzkallerBuildError(cfg *Config, commit *vcs.Commit, compilerID string, buildErr error) {
