@@ -396,63 +396,79 @@ func link(url, hash, file string, line, typ int) string {
 		return link(url+"/fuchsia", hash, file, line, typ)
 	}
 	if strings.HasPrefix(url, "https://github.com/") {
-		url = strings.TrimSuffix(url, ".git")
-		switch typ {
-		case 1:
-			return url + "/tree/" + hash
-		case 2:
-			return url + "/commits/" + hash
-		case 3:
-			return url + "/blob/" + hash + "/" + file + "#L" + fmt.Sprint(line)
-		default:
-			return url + "/commit/" + hash
-		}
+		return linkGithub(url, hash, file, line, typ)
 	}
 	if strings.HasPrefix(url, "https://git.kernel.org/pub/scm/") ||
 		strings.HasPrefix(url, "git://git.kernel.org/pub/scm/") {
-		url = strings.TrimPrefix(url, "git")
-		url = strings.TrimPrefix(url, "https")
-		url = "https" + url
-		switch typ {
-		case 1:
-			return url + "/tree/?id=" + hash
-		case 2:
-			return url + "/log/?id=" + hash
-		case 3:
-			return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
-		default:
-			return url + "/commit/?id=" + hash
-		}
+		return linkKernelOrg(url, hash, file, line, typ)
 	}
 	for _, cgitHost := range []string{"git.kernel.dk", "git.breakpoint.cc"} {
 		if strings.HasPrefix(url, "https://"+cgitHost) ||
 			strings.HasPrefix(url, "git://"+cgitHost) {
-			url = strings.TrimPrefix(strings.TrimPrefix(url, "git://"), "https://")
-			url = strings.TrimPrefix(url, cgitHost)
-			url = "https://" + cgitHost + "/cgit" + url
-			switch typ {
-			case 1:
-				return url + "/tree/?id=" + hash
-			case 2:
-				return url + "/log/?id=" + hash
-			case 3:
-				return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
-			default:
-				return url + "/commit/?id=" + hash
-			}
+			return linkCgit(cgitHost, url, hash, file, line, typ)
 		}
 	}
 	if strings.HasPrefix(url, "https://") && strings.Contains(url, ".googlesource.com") {
-		switch typ {
-		case 1:
-			return url + "/+/" + hash + "/"
-		case 2:
-			return url + "/+log/" + hash
-		case 3:
-			return url + "/+/" + hash + "/" + file + "#" + fmt.Sprint(line)
-		default:
-			return url + "/+/" + hash + "^!"
-		}
+		return linkGoogleSource(url, hash, file, line, typ)
 	}
 	return ""
+}
+
+func linkGithub(url, hash, file string, line, typ int) string {
+	url = strings.TrimSuffix(url, ".git")
+	switch typ {
+	case 1:
+		return url + "/tree/" + hash
+	case 2:
+		return url + "/commits/" + hash
+	case 3:
+		return url + "/blob/" + hash + "/" + file + "#L" + fmt.Sprint(line)
+	default:
+		return url + "/commit/" + hash
+	}
+}
+
+func linkKernelOrg(url, hash, file string, line, typ int) string {
+	url = strings.TrimPrefix(url, "git")
+	url = strings.TrimPrefix(url, "https")
+	url = "https" + url
+	switch typ {
+	case 1:
+		return url + "/tree/?id=" + hash
+	case 2:
+		return url + "/log/?id=" + hash
+	case 3:
+		return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
+	default:
+		return url + "/commit/?id=" + hash
+	}
+}
+
+func linkCgit(cgitHost, url, hash, file string, line, typ int) string {
+	url = strings.TrimPrefix(strings.TrimPrefix(url, "git://"), "https://")
+	url = strings.TrimPrefix(url, cgitHost)
+	url = "https://" + cgitHost + "/cgit" + url
+	switch typ {
+	case 1:
+		return url + "/tree/?id=" + hash
+	case 2:
+		return url + "/log/?id=" + hash
+	case 3:
+		return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
+	default:
+		return url + "/commit/?id=" + hash
+	}
+}
+
+func linkGoogleSource(url, hash, file string, line, typ int) string {
+	switch typ {
+	case 1:
+		return url + "/+/" + hash + "/"
+	case 2:
+		return url + "/+log/" + hash
+	case 3:
+		return url + "/+/" + hash + "/" + file + "#" + fmt.Sprint(line)
+	default:
+		return url + "/+/" + hash + "^!"
+	}
 }
