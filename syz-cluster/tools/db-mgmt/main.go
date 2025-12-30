@@ -58,7 +58,7 @@ func main() {
 		}
 	}
 	log.Printf("check if DB is present")
-	err = db.CreateSpannerDB(ctx, uri)
+	err = db.CreateSpannerDB(ctx, uri, nil)
 	if err != nil {
 		app.Fatalf("failed to create Spanner DB: %v", err)
 	}
