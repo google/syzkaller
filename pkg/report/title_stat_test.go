@@ -4,36 +4,36 @@
 package report
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddTitleStat(t *testing.T) {
+func TestAddTitlesToStatFile(t *testing.T) {
 	tests := []struct {
-		name string
-		base string
-		reps [][]*Report
-		want *titleStat
+		name        string
+		titleChains [][]string
+		want        *TitleStat
 	}{
 		{
 			name: "read empty",
-			want: &titleStat{},
+			want: &TitleStat{},
 		},
 		{
-			name: "add single",
-			reps: [][]*Report{{{Title: "warning 1"}}},
-			want: &titleStat{
+			name:        "add single",
+			titleChains: [][]string{{"warning 1"}},
+			want: &TitleStat{
+				Count: 1,
 				Nodes: titleStatNodes{
 					"warning 1": {Count: 1},
 				},
 			},
 		},
 		{
-			name: "add chain",
-			reps: [][]*Report{{{Title: "warning 1"}, {Title: "warning 2"}}},
-			want: &titleStat{
+			name:        "add chain",
+			titleChains: [][]string{{"warning 1", "warning 2"}},
+			want: &TitleStat{
+				Count: 1,
 				Nodes: titleStatNodes{
 					"warning 1": {Count: 1,
 						Nodes: titleStatNodes{
@@ -44,9 +44,10 @@ func TestAddTitleStat(t *testing.T) {
 			},
 		},
 		{
-			name: "add multi chains",
-			reps: [][]*Report{{{Title: "warning 1"}, {Title: "warning 2"}}, {{Title: "warning 1"}, {Title: "warning 3"}}},
-			want: &titleStat{
+			name:        "add multi chains",
+			titleChains: [][]string{{"warning 1", "warning 2"}, {"warning 1", "warning 3"}},
+			want: &TitleStat{
+				Count: 2,
 				Nodes: titleStatNodes{
 					"warning 1": {Count: 2,
 						Nodes: titleStatNodes{
@@ -62,15 +63,66 @@ func TestAddTitleStat(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			tmpFile := t.TempDir() + "/test.input"
-			err := os.WriteFile(tmpFile, []byte(test.base), 0644)
-			assert.NoError(t, err)
-			for _, reps := range test.reps {
-				err = AddTitleStat(tmpFile, reps)
+			for _, titles := range test.titleChains {
+				err := AddTitlesToStatFile(tmpFile, titles)
 				assert.NoError(t, err)
 			}
-			got, err := ReadStatFile(tmpFile)
+			statData, err := ReadStatFile(tmpFile)
 			assert.NoError(t, err)
-			assert.Equal(t, test.want, got)
+			assert.Equal(t, test.want, statData)
+		})
+	}
+}
+
+func TestTitleStat_Explain(t *testing.T) {
+	tests := []struct {
+		name  string
+		input [][]string
+		want  []*TitleFreqRank
+	}{
+		{
+			name: "empty",
+			want: nil,
+		},
+		{
+			name:  "single input",
+			input: [][]string{{"info"}},
+			want: []*TitleFreqRank{
+				{
+					Title: "info",
+					Count: 1,
+					Total: 1,
+					Rank:  -1,
+				},
+			},
+		},
+		{
+			name:  "single nested input",
+			input: [][]string{{"info"}, {"info", "warning"}},
+			want: []*TitleFreqRank{
+				{
+					Title: "info",
+					Count: 1,
+					Total: 2,
+					Rank:  -1,
+				},
+				{
+					Title: "warning",
+					Count: 1,
+					Total: 2,
+					Rank:  -1,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ts := &TitleStat{}
+			for _, input := range test.input {
+				ts.Add(input)
+			}
+			assert.Equal(t, test.want, ts.Explain())
 		})
 	}
 }

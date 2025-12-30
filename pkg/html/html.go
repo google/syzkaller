@@ -52,24 +52,27 @@ func CreateTextGlob(glob string) *texttemplate.Template {
 }
 
 var Funcs = template.FuncMap{
+	// keep-sorted start
+	"add":                    func(a, b int) int { return a + b },
+	"commitLink":             commitLink,
+	"dereference":            dereferencePointer,
+	"formatClock":            formatClock,
+	"formatCommitTableTitle": formatCommitTableTitle,
+	"formatDate":             FormatDate,
+	"formatDuration":         formatDuration,
+	"formatJSTime":           formatJSTime,
+	"formatKernelTime":       formatKernelTime,
+	"formatLateness":         formatLateness,
+	"formatList":             formatStringList,
+	"formatReproLevel":       formatReproLevel,
+	"formatShortHash":        formatShortHash,
+	"formatStat":             formatStat,
+	"formatTagHash":          formatTagHash,
+	"formatTime":             FormatTime,
 	"link":                   link,
 	"optlink":                optlink,
-	"formatTime":             FormatTime,
-	"formatDate":             FormatDate,
-	"formatKernelTime":       formatKernelTime,
-	"formatJSTime":           formatJSTime,
-	"formatClock":            formatClock,
-	"formatDuration":         formatDuration,
-	"formatLateness":         formatLateness,
-	"formatReproLevel":       formatReproLevel,
-	"formatStat":             formatStat,
-	"formatShortHash":        formatShortHash,
-	"formatTagHash":          formatTagHash,
-	"formatCommitTableTitle": formatCommitTableTitle,
-	"formatList":             formatStringList,
 	"selectBisect":           selectBisect,
-	"dereference":            dereferencePointer,
-	"commitLink":             commitLink,
+	// keep-sorted end
 }
 
 func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
