@@ -95,7 +95,7 @@ Call attributes are:
 ```
 "disabled": the call will not be used in fuzzing; useful to temporary disable some calls
 	or prohibit particular argument combinations.
-"timeout[N]": additional execution timeout (in ms) for the call on top of some default value
+"timeout[N]": additional execution timeout (in ms) for the call on top of some default value.
 "prog_timeout[N]": additional execution timeout (in ms) for the whole program if it contains this call;
 	if a program contains several such calls, the max value is used.
 "ignore_return": ignore return value of this syscall in fallback feedback; need to be used for calls
@@ -107,9 +107,13 @@ Call attributes are:
 	Without that, the fuzzer will sometimes attempt to replace complex structures with arrays of bytes,
 	possibly triggering interesting mutations, but also making programs hard to reason about.
 "fsck": the content of the compressed buffer argument for this syscall is a file system and the
-    string argument is a fsck-like command that will be called to verify the filesystem
+	string argument is a fsck-like command that will be called to verify the filesystem.
 "remote_cover": wait longer to collect remote coverage for this call.
-"kfuzz_test": the call is a kfuzztest target
+"kfuzz_test": the call is a kfuzztest target.
+"snapshot": the call is enabled by default only in snapshot fuzzing mode,
+	but "enable_syscalls" and "disable_syscalls" config parameters override this.
+	It is generally used to mark calls that are not safe to execute in non-snapshot mode
+	(can lead to false positives, or lost connections to test machines.
 ```
 
 ## Ints

@@ -112,21 +112,20 @@ func DefaultValues() *Config {
 type DescriptionsMode int
 
 const (
-	invalidDescriptions = iota
-	ManualDescriptions
+	ManualDescriptions = 1 << iota
 	AutoDescriptions
-	AnyDescriptions
+	SnapshotDescriptions
+
+	AnyDescriptions = ManualDescriptions | AutoDescriptions
 )
 
 const manualDescriptions = "manual"
 
-var (
-	strToDescriptionsMode = map[string]DescriptionsMode{
-		manualDescriptions: ManualDescriptions,
-		"auto":             AutoDescriptions,
-		"any":              AnyDescriptions,
-	}
-)
+var strToDescriptionsMode = map[string]DescriptionsMode{
+	manualDescriptions: ManualDescriptions,
+	"auto":             AutoDescriptions,
+	"any":              AnyDescriptions,
+}
 
 func SetTargets(cfg *Config) error {
 	var err error
@@ -184,9 +183,13 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("fuzzing_vms cannot be less than 0")
 	}
 
+	descriptionsMode := strToDescriptionsMode[cfg.Experimental.DescriptionsMode]
+	if cfg.Snapshot {
+		descriptionsMode |= SnapshotDescriptions
+	}
 	var err error
 	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls,
-		strToDescriptionsMode[cfg.Experimental.DescriptionsMode])
+		descriptionsMode)
 	if err != nil {
 		return err
 	}
@@ -419,10 +422,6 @@ func SplitTarget(str string) (os, vmarch, arch string, target *prog.Target, sysT
 
 func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 	descriptionsMode DescriptionsMode) ([]int, error) {
-	if descriptionsMode == invalidDescriptions {
-		return nil, fmt.Errorf("config param descriptions_mode must contain one of auto/manual/any")
-	}
-
 	syscalls := make(map[int]bool)
 	if len(enabled) != 0 {
 		for _, c := range enabled {
@@ -439,14 +438,17 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 		}
 	} else {
 		for _, call := range target.Syscalls {
+			if call.Attrs.Snapshot && (descriptionsMode&SnapshotDescriptions) == 0 {
+				continue
+			}
 			syscalls[call.ID] = true
 		}
 	}
 
 	for call := range syscalls {
 		if target.Syscalls[call].Attrs.Disabled ||
-			descriptionsMode == ManualDescriptions && target.Syscalls[call].Attrs.Automatic ||
-			descriptionsMode == AutoDescriptions &&
+			(descriptionsMode&AutoDescriptions) == 0 && target.Syscalls[call].Attrs.Automatic ||
+			(descriptionsMode&ManualDescriptions) == 0 &&
 				!target.Syscalls[call].Attrs.Automatic && !target.Syscalls[call].Attrs.AutomaticHelper {
 			delete(syscalls, call)
 		}
