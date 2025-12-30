@@ -20,7 +20,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
-	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5
+	github.com/ianlancetaylor/demangle v0.0.0-20251118225945-96ee0021ea0f
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sergi/go-diff v1.4.0
 	github.com/speakeasy-api/git-diff-parser v0.0.3
