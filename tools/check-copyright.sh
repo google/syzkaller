@@ -6,7 +6,8 @@ FILES=0
 FAILED=""
 for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cpp" -o -name "*.cc" -o -name "*.h" \
 	-o -name "*.S" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.fbs" \
-	-o \( -path "./sys/*/*.txt" \) | grep -E -v "/_include/|/gen/|/testdata/"); do
+	-o -name "Dockerfile" -o \( -path "./sys/*/*.txt" \) | \
+	grep -E -v "/_include/|/gen/|/testdata/"); do
 	((FILES+=1))
 	cat $F | tr '\n' '_' | grep -E "(//|#) Copyright 20[0-9]{2}(/20[0-9]{2})? syzkaller project authors\. All rights reserved\._(//|#) Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file\." >/dev/null
 	if [ $? -eq 0 ]; then continue; fi

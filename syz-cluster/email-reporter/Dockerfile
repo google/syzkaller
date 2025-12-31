@@ -1,19 +1,16 @@
+# syntax=docker.io/docker/dockerfile:1.7-labs
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 FROM golang:1.24-alpine AS email-reporter-builder
 
 WORKDIR /build
 
 # Prepare the dependencies.
-COPY go.mod ./
-COPY go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY pkg/ pkg/
-COPY prog/ prog/
-COPY sys/targets/ sys/targets/
-COPY dashboard/dashapi/ dashboard/dashapi/
 
 # Build the tool.
-COPY syz-cluster/email-reporter/ syz-cluster/email-reporter/
-COPY syz-cluster/pkg/ syz-cluster/pkg/
+COPY --exclude=.git . .
 RUN go build -o /bin/email-reporter /build/syz-cluster/email-reporter
 
 # Build the container.

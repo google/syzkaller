@@ -1,3 +1,4 @@
+# syntax=docker.io/docker/dockerfile:1.7-labs
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -10,14 +11,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Build the tool.
-COPY pkg/ pkg/
-# TODO: get rid of this dependency.
-COPY prog/ prog/
-COPY dashboard/dashapi/ dashboard/dashapi/
-COPY sys/targets/ sys/targets/ 
-COPY syz-cluster/series-tracker/*.go syz-cluster/series-tracker/
-COPY syz-cluster/pkg/ syz-cluster/pkg/
-
+COPY --exclude=.git . .
 RUN go build -o /build/series-tracker-bin /build/syz-cluster/series-tracker
 
 FROM ubuntu:latest
