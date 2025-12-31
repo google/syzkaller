@@ -4,7 +4,6 @@
 package report
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,6 @@ import (
 func TestAddTitleStat(t *testing.T) {
 	tests := []struct {
 		name string
-		base string
 		reps [][]*Report
 		want *titleStat
 	}{
@@ -62,10 +60,8 @@ func TestAddTitleStat(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			tmpFile := t.TempDir() + "/test.input"
-			err := os.WriteFile(tmpFile, []byte(test.base), 0644)
-			assert.NoError(t, err)
 			for _, reps := range test.reps {
-				err = AddTitleStat(tmpFile, reps)
+				err := AddTitleStat(tmpFile, reps)
 				assert.NoError(t, err)
 			}
 			got, err := ReadStatFile(tmpFile)
