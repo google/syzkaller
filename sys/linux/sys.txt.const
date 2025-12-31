@@ -700,6 +700,7 @@ __NR_ioprio_get = 31, 386:290, amd64:252, arm:315, mips64le:5274, ppc64le:274, s
 __NR_ioprio_set = 30, 386:289, amd64:251, arm:314, mips64le:5273, ppc64le:273, s390x:282
 __NR_kcmp = 272, 386:349, amd64:312, arm:378, mips64le:5306, ppc64le:354, s390x:343
 __NR_kexec_load = 104, 386:283, amd64:246, arm:347, mips64le:5270, ppc64le:268, s390x:277
+__NR_kill = 37, amd64:62, arm64:riscv64:129, mips64le:5060
 __NR_lchown = 16, amd64:94, arm64:riscv64:???, mips64le:5092, s390x:198
 __NR_link = 9, amd64:86, arm64:riscv64:???, mips64le:5084
 __NR_linkat = 37, 386:303, amd64:265, arm:330, mips64le:5255, ppc64le:294, s390x:296

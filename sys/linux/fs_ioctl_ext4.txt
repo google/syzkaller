@@ -24,13 +24,13 @@ ext4_checkpoint_flags = EXT4_IOC_CHECKPOINT_FLAG_DISCARD, EXT4_IOC_CHECKPOINT_FL
 
 # EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 # Fortunately, the value does not conflict with any other ioctl commands for now.
-ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN]) (disabled)
+ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN]) (snapshot)
 
 # EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
 # and then creation of new temp dirs for tests will fail.
 # TODO: not necessary for sandbox=namespace as it tests in a tmpfs
 # and/or if we mount tmpfs for sandbox=none (#971).
-ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS]) (disabled)
+ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS]) (snapshot)
 
 ext4_new_group_input {
 	group		int32
