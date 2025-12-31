@@ -262,8 +262,8 @@ ioctl$FIOCLEX(fd fd, cmd const[FIOCLEX])
 ioctl$FIONCLEX(fd fd, cmd const[FIONCLEX])
 ioctl$FITHAW(fd fd, cmd const[FITHAW])
 
-# FIFREEZE is disabled because it can easily kill the machine.
-ioctl$FIFREEZE(fd fd, cmd const[FIFREEZE]) (disabled)
+# FIFREEZE is enabled in sandbox mode only because it can easily kill the machine.
+ioctl$FIFREEZE(fd fd, cmd const[FIFREEZE]) (snapshot)
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -544,8 +544,8 @@ waitid(which flags[waitid_which], pid pid, infop ptr[out, siginfo, opt], options
 waitid$P_PIDFD(which const[P_PIDFD], pidfd fd_pidfd, infop ptr[out, siginfo, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 times(buf ptr[out, tms])
-# Can send signals to all processes (pid=-1).
-#kill(pid pid, sig signalno)
+# Can send signals to all processes (pid=-1) so it's enabled only in snapshot mode.
+kill(pid pid, sig signalno) (snapshot)
 
 set_thread_area(info ptr[in, user_desc])
 get_thread_area(info ptr[in, user_desc])

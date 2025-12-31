@@ -15,8 +15,10 @@ syz_btf_id_by_name$bpf_lsm(name ptr[in, string[bpf_lsm_func_names]]) bpf_lsm_btf
 bpf$BPF_PROG_WITH_BTFID_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog_with_btfid], size len[arg]) fd_bpf_prog_with_btfid (timeout[500])
 bpf$BPF_PROG_RAW_TRACEPOINT_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog_raw_tracepoint], size len[arg]) fd_bpf_prog_raw_tracepoint (timeout[500])
 
-bpf$BPF_RAW_TRACEPOINT_OPEN_UNNAMED(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint_unnamed], size len[arg]) fd_perf_base (timeout[500])
-bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_perf_base (timeout[500])
+# BPF programs attached to random tracepoints can kill any process (including the executor runner process),
+# leading to false "lost connection" crashes. So we enable them only in snapshot mode.
+bpf$BPF_RAW_TRACEPOINT_OPEN_UNNAMED(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint_unnamed], size len[arg]) fd_perf_base (snapshot, timeout[500])
+bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_perf_base (snapshot, timeout[500])
 
 bpf_prog_with_btfid [
 	bpf_lsm		bpf_lsm_prog

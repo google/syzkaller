@@ -33,7 +33,7 @@ ioctl$F2FS_IOC_COMPRESS_FILE(fd fd, cmd const[F2FS_IOC_COMPRESS_FILE], arg const
 
 # F2FS_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 # Fortunately, the value does not conflict with any other ioctl commands for now.
-ioctl$F2FS_IOC_SHUTDOWN(fd fd, cmd const[F2FS_IOC_SHUTDOWN], args ptr[in, flags[f2fs_shutdown_flag, int32]]) (disabled)
+ioctl$F2FS_IOC_SHUTDOWN(fd fd, cmd const[F2FS_IOC_SHUTDOWN], args ptr[in, flags[f2fs_shutdown_flag, int32]]) (snapshot)
 
 f2fs_gc_range {
 	sync	bool32
