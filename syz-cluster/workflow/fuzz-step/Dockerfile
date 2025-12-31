@@ -10,7 +10,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN make TARGETARCH=amd64
-COPY syz-cluster/ syz-cluster/
 RUN GO_FLAGS=$(make go-flags 2>/dev/null) && go build "$GO_FLAGS" -o /bin/fuzz-step /build/syz-cluster/workflow/fuzz-step
 
 FROM debian:bookworm
