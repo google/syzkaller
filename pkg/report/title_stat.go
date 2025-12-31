@@ -4,11 +4,10 @@
 package report
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"maps"
-	"os"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func AddTitleStat(file string, reps []*Report) error {
@@ -21,39 +20,18 @@ func AddTitleStat(file string, reps []*Report) error {
 		return fmt.Errorf("report.ReadStatFile: %w", err)
 	}
 	stat.add(titles)
-	if err := writeStatFile(file, stat); err != nil {
+	if err := osutil.WriteJSON(file, stat); err != nil {
 		return fmt.Errorf("writeStatFile: %w", err)
 	}
 	return nil
 }
 
 func ReadStatFile(file string) (*titleStat, error) {
-	stat := &titleStat{}
-	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		return stat, nil
+	if !osutil.IsExist(file) {
+		return &titleStat{}, nil
 	}
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return stat, nil
-	}
-	if err := json.Unmarshal(data, stat); err != nil {
-		return nil, err
-	}
-	return stat, nil
-}
-
-func writeStatFile(file string, stat *titleStat) error {
-	data, err := json.MarshalIndent(stat, "", "\t")
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(file, data, 0644); err != nil {
-		return err
-	}
-	return nil
+	stat, err := osutil.ReadJSON[titleStat](file)
+	return &stat, err
 }
 
 type titleStatNodes map[string]*titleStat
