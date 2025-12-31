@@ -991,3 +991,9 @@ v4l2_input_capabilities = V4L2_IN_CAP_DV_TIMINGS, V4L2_IN_CAP_CUSTOM_TIMINGS, V4
 v4l2_output_type = V4L2_OUTPUT_TYPE_MODULATOR, V4L2_OUTPUT_TYPE_ANALOG, V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY
 v4l2_output_capabilities = V4L2_OUT_CAP_DV_TIMINGS, V4L2_OUT_CAP_CUSTOM_TIMINGS, V4L2_OUT_CAP_STD, V4L2_OUT_CAP_NATIVE_SIZE
 v4l2_query_ext_ctrl = V4L2_CTRL_FLAG_NEXT_CTRL, V4L2_CTRL_FLAG_NEXT_COMPOUND
+
+# These are actually defined in the newer kernel versions.
+# But the newer kernel versions don't build with make extract.
+# This can be removed once we can regenerate consts on at least v6.19-rc3.
+define V4L2_META_FMT_MALI_C55_PARAMS	1345664323
+define V4L2_META_FMT_MALI_C55_STATS	1395995971
