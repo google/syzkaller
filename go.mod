@@ -1,6 +1,6 @@
 module github.com/google/syzkaller
 
-go 1.24.4
+go 1.25.0
 
 require (
 	cloud.google.com/go v0.123.0
@@ -38,7 +38,7 @@ require (
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.34.2
+	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -268,7 +268,7 @@ require (
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
