@@ -167,7 +167,7 @@ func (cc CmdCloser) Close() error {
 	return cc.Wait()
 }
 
-var WaitForOutputTimeout = 10 * time.Second
+var WaitForOutputTimeout = 20 * time.Second
 
 type MultiplexConfig struct {
 	Console     io.Closer
