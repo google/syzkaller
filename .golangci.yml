@@ -137,6 +137,7 @@ linters:
           - whitespace # TODO: fix the code generation
       - path: (.*_test.go)
         linters:
+          - dupl
           - goconst
 
 issues:
