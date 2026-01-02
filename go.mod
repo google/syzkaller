@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/profiler v0.4.3
 	cloud.google.com/go/secretmanager v1.16.0
-	cloud.google.com/go/spanner v1.82.0
+	cloud.google.com/go/spanner v1.86.0
 	cloud.google.com/go/storage v1.57.1
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.7.3
@@ -18,6 +18,7 @@ require (
 	github.com/google/flatbuffers v25.9.23+incompatible
 	github.com/google/generative-ai-go v0.20.1
 	github.com/google/go-cmp v0.7.0
+	github.com/google/jsonschema-go v0.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/ianlancetaylor/demangle v0.0.0-20251118225945-96ee0021ea0f
@@ -34,7 +35,8 @@ require (
 	golang.org/x/tools v0.38.0
 	google.golang.org/api v0.257.0
 	google.golang.org/appengine/v2 v2.0.6
-	google.golang.org/genproto v0.0.0-20250603155806-513f23925822
+	google.golang.org/genai v1.40.0
+	google.golang.org/genproto v0.0.0-20251014184007-4626949a642f
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
@@ -172,6 +174,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/gordonklaus/ineffassign v0.1.0 // indirect
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.5.0 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.2.0 // indirect
@@ -268,7 +271,7 @@ require (
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
