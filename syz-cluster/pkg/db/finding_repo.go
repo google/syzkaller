@@ -101,7 +101,6 @@ func (repo *FindingRepository) mustStore(ctx context.Context, finding *Finding) 
 	})
 }
 
-// nolint: dupl
 func (repo *FindingRepository) ListForSession(ctx context.Context, sessionID string, limit int) ([]*Finding, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Findings` WHERE `SessionID` = @session ORDER BY `TestName`, `Title`",

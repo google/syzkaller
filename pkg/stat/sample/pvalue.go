@@ -4,7 +4,7 @@
 package sample
 
 // TODO: I didn't find the substitution as of Feb 2023. Let's keep it as is while it works.
-import "golang.org/x/perf/benchstat" // nolint:all
+import "golang.org/x/perf/benchstat" // nolint:staticcheck
 
 // Mann-Whitney U test.
 func UTest(old, new *Sample) (pval float64, err error) {

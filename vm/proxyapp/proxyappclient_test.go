@@ -137,10 +137,7 @@ func TestCtor_FailedStartProxyApp(t *testing.T) {
 	assert.Nil(t, p)
 }
 
-// TODO: reuse proxyAppServerFixture() code: func could be called here once Mock.Unset() error
-//
-//	fixed https://github.com/stretchr/testify/issues/1236
-//	nolint: dupl
+// TODO: reuse proxyAppServerFixture() code: func could be called here once Mock.Unset() error.
 func TestCtor_FailedConstructPool(t *testing.T) {
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)
@@ -198,9 +195,7 @@ func initProxyAppServerFixture(mProxyAppServer *mockProxyAppInterface) *mockProx
 	return mProxyAppServer
 }
 
-// TODO: to remove duplicate see TestCtor_FailedConstructPool() comment
-//
-//	nolint: dupl
+// TODO: to remove duplicate see TestCtor_FailedConstructPool() comment.
 func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, *proxyAppParams) {
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)
@@ -361,7 +356,6 @@ func TestInstance_Copy_OK(t *testing.T) {
 	assert.NotEmpty(t, remotePath)
 }
 
-// nolint: dupl
 func TestInstance_Copy_Failure(t *testing.T) {
 	mockInstance, inst := createInstanceFixture(t)
 	mockInstance.
@@ -390,7 +384,6 @@ func TestInstance_Forward_OK(t *testing.T) {
 	assert.Equal(t, "manager_address:12345", remoteAddressToUse)
 }
 
-// nolint: dupl
 func TestInstance_Forward_Failure(t *testing.T) {
 	mockInstance, inst := createInstanceFixture(t)
 	mockInstance.
@@ -470,7 +463,6 @@ func TestInstance_RunReadProgress_OnErrorReceived(t *testing.T) {
 	assert.Equal(t, "mock error\nSYZFAIL: proxy app plugin error\n", output)
 }
 
-// nolint: dupl
 func TestInstance_RunReadProgress_OnFinished(t *testing.T) {
 	mockInstance, inst := createInstanceFixture(t)
 	mockInstance.

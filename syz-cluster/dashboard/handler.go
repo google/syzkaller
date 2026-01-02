@@ -302,7 +302,6 @@ func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 	return h.streamBlob(w, patch.BodyURI)
 }
 
-// nolint:dupl
 func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	series, err := h.seriesRepo.GetByID(ctx, r.PathValue("id"))

@@ -28,7 +28,7 @@ func TestParseOptions(t *testing.T) {
 func TestParseOptionsCanned(t *testing.T) {
 	// Dashboard stores csource options with syzkaller reproducers,
 	// so we need to be able to parse old formats.
-	// nolint: lll, dupl
+	// nolint: lll
 	canned := map[string]Options{
 		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,

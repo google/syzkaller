@@ -43,7 +43,7 @@ func TestAccessConfig(t *testing.T) {
 }
 
 // TestAccess checks that all UIs respect access levels.
-// nolint: funlen, goconst, gocyclo
+// nolint: funlen, gocyclo
 func TestAccess(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
