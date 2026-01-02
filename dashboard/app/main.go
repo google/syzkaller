@@ -1072,7 +1072,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
-// nolint: funlen, gocyclo
+// nolint: gocyclo
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
@@ -1185,13 +1185,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
-	// nolint: dupl
 	if len(bugDetails.BisectFixJobs) > 1 || len(bugDetails.BisectFixJobs) > 0 && bugDetails.BisectFixJob == nil {
 		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
 			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
-	// nolint: dupl
 	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
 		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
 			"Cause bisection attempts", bugDetails.BisectCauseJobs))

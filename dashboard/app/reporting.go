@@ -475,7 +475,6 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
-// nolint: gocyclo
 func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
 	var job *Job

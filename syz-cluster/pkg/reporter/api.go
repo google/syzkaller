@@ -38,7 +38,6 @@ func (s *APIServer) Mux() *http.ServeMux {
 	return mux
 }
 
-// nolint: dupl
 func (s *APIServer) upstreamReport(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.UpstreamReportReq](w, r)
 	if req == nil {

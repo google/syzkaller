@@ -317,7 +317,6 @@ func runSandboxed(dir, command string, args ...string) ([]byte, error) {
 }
 
 var (
-	// nolint: lll
 	gitLocalRepoRe = regexp.MustCompile(`^file:///[a-zA-Z0-9-_./~]+(/)?$`)
 	// nolint: lll
 	gitRemoteRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps|sso)://[a-zA-Z0-9-_.]+(:[0-9]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
@@ -382,7 +381,6 @@ func FileLink(url, hash, file string, line int) string {
 	return link(url, hash, file, line, 3)
 }
 
-// nolint: goconst
 func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""

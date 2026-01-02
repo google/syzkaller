@@ -755,7 +755,7 @@ type nlaPolicy struct {
 	_          int32
 }
 
-// nolint
+// nolint:staticcheck
 const (
 	NLA_UNSPEC = iota
 	NLA_U8
@@ -780,7 +780,7 @@ const (
 	NLA_MIN_LEN
 )
 
-// nolint
+// nolint:staticcheck
 const (
 	_ = iota
 	NLA_VALIDATE_RANGE

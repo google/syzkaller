@@ -200,7 +200,7 @@ func (err errSkip) Error() string {
 	return string(err)
 }
 
-// nolint: gocyclo, gocognit, funlen
+// nolint: gocyclo, funlen
 func parsePattern(insn *x86.Insn, vals []string) error {
 	if insn.Opcode != nil {
 		return fmt.Errorf("PATTERN is already parsed for the instruction")

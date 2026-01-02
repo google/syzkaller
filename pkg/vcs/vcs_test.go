@@ -244,13 +244,11 @@ func TestFileLink(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	// nolint: lll
 	test1 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
 	Foo Bar<b@email.com> (reviewer:KERNEL)
 	<somelist@list.com> (open list:FOO)
 	"Supporter Foo" <c@email.com> (supporter:KERNEL)
 	linux-kernel@vger.kernel.org (open list)`)
-	// nolint: lll
 	test2 := []byte(`Foo Bar <a@email.com> (maintainer:KERNEL)
 	Foo Bar<b@email.com> (reviewer:KERNEL)
 	"Supporter Foo" <c@email.com> (supporter:KERNEL)

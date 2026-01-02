@@ -52,7 +52,7 @@ func createPrefix() []byte {
 	return prefix.Bytes()
 }
 
-//nolint:all
+// nolint:dupl,lll
 func TestMarshallKFuzzTestArg(t *testing.T) {
 	testCases := []testCase{
 		// This test case validates the encoding of the following structure:

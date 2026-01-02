@@ -686,7 +686,6 @@ func processInboxEmail(c context.Context, msg *email.Email, inbox *PerInboxConfi
 	return forwardEmail(c, msg, missing, []string{cc, msg.Author}, "", msg.MessageID)
 }
 
-// nolint: gocyclo
 func processIncomingEmail(c context.Context, msg *email.Email) error {
 	// Ignore any incoming emails from syzbot itself.
 	if ownEmail(c) == msg.Author {

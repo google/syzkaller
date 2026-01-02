@@ -110,7 +110,6 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSessio
 }
 
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.
-// nolint:dupl
 func (repo *SessionRepository) ListForSeries(ctx context.Context, series *Series) ([]*Session, error) {
 	return repo.readEntities(ctx, spanner.Statement{
 		SQL:    "SELECT * FROM `Sessions` WHERE `SeriesID` = @series ORDER BY CreatedAt DESC",

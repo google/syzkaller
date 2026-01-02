@@ -34,7 +34,6 @@ func NewSeriesRepository(client *spanner.Client) *SeriesRepository {
 }
 
 // TODO: move to SeriesPatchesRepository?
-// nolint:dupl
 func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch, error) {
 	return readEntity[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Patches WHERE ID=@id",
@@ -42,7 +41,6 @@ func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch,
 	})
 }
 
-// nolint:dupl
 func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Series, error) {
 	return readEntity[Series](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Series WHERE ExtID=@extID",
@@ -279,7 +277,6 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 }
 
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.
-// nolint:dupl
 func (repo *SeriesRepository) ListPatches(ctx context.Context, series *Series) ([]*Patch, error) {
 	return readEntities[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT * FROM `Patches` WHERE `SeriesID` = @seriesID ORDER BY `Seq`",

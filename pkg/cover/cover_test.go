@@ -67,7 +67,7 @@ func TestMergeDiff(t *testing.T) {
 func TestPerLineCoverage(t *testing.T) {
 	const End = backend.LineEnd
 	// Start line:col - end line:col.
-	// nolint
+	// nolint: govet
 	covered := []backend.Range{
 		// Just covered.
 		{1, 2, 1, 10},
@@ -88,7 +88,7 @@ func TestPerLineCoverage(t *testing.T) {
 		{42, 20, 42, 30},
 		{42, 10, 42, 25},
 	}
-	// nolint
+	// nolint:govet
 	uncovered := []backend.Range{
 		{10, 20, 10, 30},
 		{11, 0, 11, 20},

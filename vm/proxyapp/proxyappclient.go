@@ -423,7 +423,6 @@ type instance struct {
 }
 
 // Copy copies a hostSrc file into VM and returns file name in VM.
-// nolint: dupl
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	var reply proxyrpc.CopyResult
 	params := proxyrpc.CopyParams{
@@ -450,7 +449,6 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 // Forward sets up forwarding from within VM to the given tcp
 // port on the host and returns the address to use in VM.
-// nolint: dupl
 func (inst *instance) Forward(port int) (string, error) {
 	var reply proxyrpc.ForwardResult
 	err := inst.ProxyApp.Call(
