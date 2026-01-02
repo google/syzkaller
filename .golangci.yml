@@ -37,6 +37,7 @@ linters:
     - lll
     - misspell
     - nestif
+    - nolintlint
     - recvcheck
     - revive
     - staticcheck
@@ -97,6 +98,9 @@ linters:
     nestif:
       # TODO: consider reducing this value.
       min-complexity: 12
+    nolintlint:
+      allow-unused: false
+      require-specific: true
     revive:
       rules:
       - name: package-comments
@@ -115,6 +119,8 @@ linters:
   exclusions:
     warn-unused: true # Log a warning if an exclusion path is unused.
     rules:
+      - path: (.*\.go)
+        text: "directive `// nolint:.*` should be written without leading space"
       - path: (sys/.*/init.*|sys/targets/common.go)
         text: "don't use ALL_CAPS in Go names|should not use ALL_CAPS in Go names"
       - path: (prog/.*)
