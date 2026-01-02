@@ -38,6 +38,19 @@ Page with details about a single bug.
 		{{end}}
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	{{if .AIWorkflows}}
+		<form method="POST">
+			<select name="ai-job-create">
+				{{range $flow := .AIWorkflows}}
+					<option>{{$flow}}</option>
+				{{end}}
+			</select>
+			<input type="submit" value="✨ Create"/>
+		</form>
+	{{end}}
+	{{if .AIJobs}}
+		{{template "ai_job_list" .AIJobs}}
+	{{end}}
 	{{if .Bug.FixCandidateJob}}
 		<div class="fix-candidate-block">{{template "bisect_results" .Bug.FixCandidateJob}}</div>
 	{{end}}

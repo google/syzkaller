@@ -379,6 +379,28 @@ aside {
 	margin: 1px;
 }
 
+#ai_result_div {
+	align: left;
+	width: 90%;
+	margin: 0 0;
+	overflow: scroll;
+	border: 1px solid #777;
+	padding: 0px;
+	background: #F4F4F4;
+}
+
+#ai_result_div pre {
+	margin: 1px;
+	font-family: 'Courier New', Courier, monospace;
+}
+
+#ai_details_div pre {
+	margin: 1px;
+	max-width: 120ch;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
 .input-values {
 	margin-left: 7px;
 	margin-bottom: 7px;
