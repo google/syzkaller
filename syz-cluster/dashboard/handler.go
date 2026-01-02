@@ -117,6 +117,7 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 			WithFindings: r.FormValue("with_findings") != "",
 			Limit:        perPage,
 			Offset:       offset,
+			Name:         r.FormValue("name"),
 		},
 		// If the filters are changed, the old offset value is irrelevant.
 		FilterFormURL: urlutil.DropParam(baseURL, "offset", ""),
@@ -171,6 +172,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		*db.Series
 		Patches      []*db.Patch
 		Sessions     []SessionData
+		Versions     []*db.Series
 		TotalPatches int
 	}
 	var data SeriesData
@@ -187,6 +189,19 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("failed to query patches: %w", err)
 	}
 	data.TotalPatches = len(data.Patches)
+	// Note: There may be some false positives, but there's no straightforward way to filter them out.
+	seriesFilter := db.SeriesFilter{
+		Name:   data.Series.Title,
+		Limit:  50, // A large enough number to get all versions.
+		Offset: 0,
+	}
+	allVersions, err := h.seriesRepo.ListLatest(ctx, seriesFilter, time.Time{})
+	if err != nil {
+		return fmt.Errorf("failed to query all series versions: %w", err)
+	}
+	for _, v := range allVersions {
+		data.Versions = append(data.Versions, v.Series)
+	}
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
 		return fmt.Errorf("failed to query sessions: %w", err)
