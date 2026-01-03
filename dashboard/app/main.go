@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
@@ -46,6 +47,7 @@ func initHTTPHandlers() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
+	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
@@ -82,6 +84,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
+		http.Handle("/"+ns+"/ai/", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
@@ -294,6 +297,8 @@ type uiBugPage struct {
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
 	Bug             *uiBugDetails
+	AIWorkflows     []string
+	AIJobs          []*uiAIJob
 }
 
 type uiBugDetails struct {
@@ -1072,7 +1077,6 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
-// nolint: gocyclo
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
@@ -1089,11 +1093,67 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	cfg := getNsConfig(c, hdr.Namespace)
 	bugDetails, err := loadBugDetails(c, bug, accessLevel)
 	if err != nil {
 		return err
 	}
-	sections := []*uiCollapsible{}
+	crashesTable := &uiCrashTable{
+		Crashes: bugDetails.Crashes,
+		Caption: fmt.Sprintf("Crashes (%d)", bugDetails.NumCrashes),
+	}
+	sections, err := createBugSections(c, cfg, accessLevel, bug, bugDetails)
+	if err != nil {
+		return err
+	}
+	var aiWorkflows []string
+	var aiJobs []*uiAIJob
+	if hdr.AI {
+		aiWorkflows, err = aiBugWorkflows(c, bug)
+		if err != nil {
+			return err
+		}
+		jobs, err := aidb.LoadBugJobs(c, bug.keyHash(c))
+		if err != nil {
+			return err
+		}
+		for _, job := range jobs {
+			aiJobs = append(aiJobs, makeUIAIJob(job))
+		}
+	}
+	data := &uiBugPage{
+		Header:      hdr,
+		Now:         timeNow(c),
+		Sections:    sections,
+		LabelGroups: getLabelGroups(c, bug),
+		Crashes:     crashesTable,
+		Bug:         bugDetails,
+		AIWorkflows: aiWorkflows,
+		AIJobs:      aiJobs,
+	}
+	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
+		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
+	}
+	if workflow := r.FormValue("ai-job-create"); workflow != "" {
+		if !hdr.AI {
+			return ErrAccess
+		}
+		if err := aiBugJobCreate(c, workflow, bug); err != nil {
+			return err
+		}
+		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
+	}
+	if r.FormValue("json") == "1" {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, data)
+	}
+
+	return serveTemplate(w, "bug.html", data)
+}
+
+func createBugSections(c context.Context, cfg *Config, accessLevel AccessLevel,
+	bug *Bug, bugDetails *uiBugDetails) ([]*uiCollapsible, error) {
+	var sections []*uiCollapsible
 	if bugDetails.DupOf != nil {
 		sections = append(sections, &uiCollapsible{
 			Title: "Duplicate of",
@@ -1105,10 +1165,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			},
 		})
 	}
-	crashesTable := &uiCrashTable{
-		Crashes: bugDetails.Crashes,
-		Caption: fmt.Sprintf("Crashes (%d)", bugDetails.NumCrashes),
-	}
 	if dups := bugDetails.Dups; len(dups.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Duplicate bugs (%d)", len(dups.Bugs)),
@@ -1118,7 +1174,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	discussions, err := getBugDiscussionsUI(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(discussions) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1130,7 +1186,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	treeTestJobs, err := treeTestJobs(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(treeTestJobs) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1143,14 +1199,14 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if similar := bugDetails.Similar; len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
-			Show:  getNsConfig(c, hdr.Namespace).AccessLevel != AccessPublic,
+			Show:  cfg.AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
 	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(testPatchJobs) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1170,36 +1226,20 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: reproAttempts,
 		})
 	}
-	data := &uiBugPage{
-		Header:      hdr,
-		Now:         timeNow(c),
-		Sections:    sections,
-		LabelGroups: getLabelGroups(c, bug),
-		Crashes:     crashesTable,
-		Bug:         bugDetails,
-	}
-	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
-		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
-	}
 	// bug.BisectFix is set to BisectNot in three cases :
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
 	if len(bugDetails.BisectFixJobs) > 1 || len(bugDetails.BisectFixJobs) > 0 && bugDetails.BisectFixJob == nil {
-		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+		sections = append(sections, makeCollapsibleBugJobs(
 			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
 	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
-		data.Sections = append(data.Sections, makeCollapsibleBugJobs(
+		sections = append(sections, makeCollapsibleBugJobs(
 			"Cause bisection attempts", bugDetails.BisectCauseJobs))
 	}
-	if r.FormValue("json") == "1" {
-		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
-	}
-
-	return serveTemplate(w, "bug.html", data)
+	return sections, nil
 }
 
 func loadBugDetails(c context.Context, bug *Bug, accessLevel AccessLevel) (*uiBugDetails, error) {

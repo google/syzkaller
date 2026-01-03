@@ -131,6 +131,7 @@ type Bug struct {
 	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
 	FixCandidateJob string
 	ReproAttempts   []BugReproAttempt
+	AIJobCheck      int64
 }
 
 type BugTreeTestInfo struct {
@@ -382,6 +383,7 @@ type CrashReferenceType string
 const (
 	CrashReferenceReporting = "reporting"
 	CrashReferenceJob       = "job"
+	CrashReferenceAIJob     = "ai_job"
 	// This one is needed for backward compatibility.
 	crashReferenceUnknown = "unknown"
 )
@@ -390,6 +392,7 @@ type CrashReference struct {
 	Type CrashReferenceType
 	// For CrashReferenceReporting, it refers to Reporting.Name
 	// For CrashReferenceJob, it refers to extJobID(jobKey)
+	// For CrashReferenceAIJob, empty string
 	Key  string
 	Time time.Time
 }
