@@ -33,14 +33,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Constants for kernel phases
-const (
-	kPhaseInit = iota
-	kPhaseAwaitingQueue
-	kPhaseLoadedQueue
-	kPhaseAwaitingMaxSignal
-)
-
 type Verifier struct {
 	// Configuration
 	cfg    *mgrconfig.Config
@@ -48,7 +40,7 @@ type Verifier struct {
 	debug  bool
 
 	// Kernel management
-	kernels map[int]*Kernel
+	kernels []*Kernel
 	sources map[int]*queue.PlainQueue
 
 	// HTTP server
@@ -84,14 +76,15 @@ type Verifier struct {
 
 // Kernel represents a single kernel configuration in the verification process.
 type Kernel struct {
-	id       int
-	name     string
-	ctx      context.Context
-	debug    bool
-	cfg      *mgrconfig.Config
-	reporter *report.Reporter
-	fresh    bool
-	phase    int
+	id              int
+	name            string
+	ctx             context.Context
+	debug           bool
+	cfg             *mgrconfig.Config
+	reporter        *report.Reporter
+	fresh           bool
+	queueConfigured bool
+	requestingMax   bool
 
 	serv      rpcserver.Server
 	servStats rpcserver.Stats
@@ -150,7 +143,10 @@ func (vrf *Verifier) RunVerifierFuzzer(ctx context.Context) error {
 			}
 		}
 	}
-	go vrf.preloadCorpus()
+	eg.Go(func() error {
+		vrf.preloadCorpus()
+		return nil
+	})
 	eg.Go(func() error {
 		log.Logf(0, "starting vrf loop")
 		return vrf.Loop(ctx)
@@ -246,12 +242,22 @@ func (vrf *Verifier) Loop(ctx context.Context) error {
 	}
 	log.Logf(0, "starting corpus synchronization loop")
 	for _, kctx := range vrf.kernels {
-		go kctx.loop(ctx)
+		kctx := kctx
+		g.Go(func() error {
+			kctx.loop(ctx)
+			return nil
+		})
 	}
 
 	// Start the fuzzing synchronization loop
-	go vrf.fuzzingLoop(ctx)
-	go vrf.maxSignalLoop(ctx)
+	g.Go(func() error {
+		vrf.fuzzingLoop(ctx)
+		return nil
+	})
+	g.Go(func() error {
+		vrf.maxSignalLoop(ctx)
+		return nil
+	})
 
 	return g.Wait()
 
@@ -277,12 +283,159 @@ func (vrf *Verifier) maxSignalLoop(ctx context.Context) {
 }
 func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 	log.Logf(0, "starting fuzzing loop")
-	select {
-	case <-ctx.Done():
+
+	// Wait for kernels to be ready and get enabled syscalls
+	totalEnabledSyscalls, comparisonFeature, err := vrf.waitForKernelsReady(ctx)
+	if err != nil {
 		return
-	default:
 	}
 
+	// Record the time of the first connection and initialize syscall stats
+	vrf.firstConnect.Store(time.Now().Unix())
+	statSyscalls := stat.New("syscalls", "Number of enabled syscalls", stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
+	statSyscalls.Add(len(totalEnabledSyscalls))
+
+	// Initialize corpus object after kernels are ready
+	vrf.corpus = corpus.NewFocusedCorpus(context.Background(), vrf.corpusUpdates, vrf.coverFilters.Areas)
+
+	// Initialize fuzzer object with preloaded corpus and enabled syscalls
+	candidates := vrf.loadCorpus(totalEnabledSyscalls)
+	fuzzerObj := vrf.createFuzzerObject(comparisonFeature, totalEnabledSyscalls, candidates)
+
+	// Initialize HTTP server state with enabled syscalls, coverage, corpus, and fuzzer
+	vrf.initializeHTTPServerState(totalEnabledSyscalls, vrf.corpus, fuzzerObj)
+
+	// Start corpus input handler and minimization goroutines
+	go vrf.corpusInputHandler(vrf.corpusUpdates)
+	go vrf.corpusMinimization()
+
+	log.Logf(0, "fuzzer started with %d candidates", len(candidates))
+
+	// The main verifier fuzzer loop: fetch request → distributable check → build copies for all kernels → dispatch/collect → feedback → compare → repeat
+	for {
+		req, done := vrf.fetchNextRequest(ctx)
+		if done {
+			return
+		}
+
+		// Check if this request should be distributed to kernels for comparison
+		if !vrf.isDistributableRequest(req) {
+			req.Done(&queue.Result{Status: queue.Success})
+			continue
+		}
+
+		// Distribute the same program to all kernel queues for comparison
+		copies, responses, wg := vrf.buildRequestCopies(req)
+		responses = vrf.dispatchAndCollect(req, copies, responses, wg)
+
+		// Feed coverage back to fuzzer from kernel 0 only
+		if feedbackResult := responses[0]; feedbackResult != nil {
+			req.Done(feedbackResult)
+		}
+
+		// Compare execution results across kernels
+		log.Logf(3, "comparing results for %d kernels", len(vrf.sources))
+		vrf.compareResults(req, responses)
+	}
+}
+
+func (vrf *Verifier) fetchNextRequest(ctx context.Context) (*queue.Request, bool) {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, true
+		default:
+		}
+
+		req := vrf.fuzzer.Load().Next()
+		if req != nil {
+			return req, false
+		}
+
+		log.Logf(0, "no more candidates to fuzz, waiting for new candidates")
+		select {
+		case <-ctx.Done():
+			return nil, true
+		case <-time.After(time.Second):
+			// Retry fetching after a short wait.
+		}
+	}
+}
+
+// isDistributableRequest checks if a request should be distributed to all kernels for comparison.
+// Only Program-type requests without glob patterns should be distributed;
+// other request types are corpus management and handled locally.
+func (vrf *Verifier) isDistributableRequest(req *queue.Request) bool {
+	return req.GlobPattern == "" && req.Type == flatrpc.RequestTypeProgram
+}
+
+// buildRequestCopies builds kernel-specific request copies and wires their callbacks
+// to populate a responses slice. Returns the copies map (indexed by kernel ID),
+// the responses slice, and a waitgroup for synchronization.
+func (vrf *Verifier) buildRequestCopies(req *queue.Request) (map[int]*queue.Request, []*queue.Result, *sync.WaitGroup) {
+	var wg sync.WaitGroup
+	wg.Add(len(vrf.sources))
+	responses := make([]*queue.Result, len(vrf.sources))
+	copies := make(map[int]*queue.Request)
+
+	for kernelID := range vrf.sources {
+		var reqCopy *queue.Request
+		if kernelID == 0 {
+			// Kernel 0: Full request - results go back to fuzzer
+			reqCopy = &queue.Request{
+				Type:            req.Type,
+				ExecOpts:        req.ExecOpts,
+				Prog:            req.Prog,
+				ReturnAllSignal: []int{}, // Collect coverage signal (new pc's only)
+				ReturnError:     true,    // Ensure error info is returned
+				ReturnOutput:    req.ReturnOutput,
+				Stat:            req.Stat,
+				Important:       req.Important,
+			}
+		} else {
+			// Other kernels: Minimal request - only for comparison
+			// Clone program to avoid data races during execution
+			reqCopy = &queue.Request{
+				Type:            req.Type,
+				ExecOpts:        req.ExecOpts,
+				Prog:            req.Prog.Clone(), // Clone to prevent data races during execution
+				ReturnAllSignal: []int{},
+				ReturnError:     true,
+			}
+		}
+
+		// Capture kernelID in the closure
+		kid := kernelID
+		reqCopy.OnDone(func(r *queue.Request, res *queue.Result) bool {
+			log.Logf(3, "got result for kernel:%d %s: %+v with info: %+v", kid, reqCopy.Prog.String(), res, res.Info)
+			responses[kid] = res
+			wg.Done()
+			return true
+		})
+		copies[kernelID] = reqCopy
+	}
+
+	return copies, responses, &wg
+}
+
+// dispatchAndCollect submits request copies to kernel sources, waits for all to complete,
+// and returns the collected responses slice.
+func (vrf *Verifier) dispatchAndCollect(req *queue.Request, copies map[int]*queue.Request, responses []*queue.Result, wg *sync.WaitGroup) []*queue.Result {
+	log.Logf(3, "distributing program: %s to %d kernels", req.Prog.String(), len(vrf.sources))
+	for kernelID, source := range vrf.sources {
+		log.Logf(3, "distributing program to kernel %d: %s", kernelID, req.Prog.String())
+		source.Submit(copies[kernelID])
+	}
+	log.Logf(2, "distributed program to %d kernels", len(vrf.sources))
+	wg.Wait()
+	log.Logf(3, "all %d kernels finished execution", len(vrf.sources))
+	return responses
+}
+
+// waitForKernelsReady waits for all kernels to report their enabled syscalls and features.
+// Returns the intersection of enabled syscalls across all kernels, whether comparisons are supported,
+// and any error that occurred.
+func (vrf *Verifier) waitForKernelsReady(ctx context.Context) (map[*prog.Syscall]bool, bool, error) {
 	log.Logf(0, "waiting for enabled syscalls and features")
 	var totalEnabledSyscalls map[*prog.Syscall]bool
 	comparisonFeature := true
@@ -290,7 +443,12 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 	// Block until all kernels report enabled syscalls and features.
 	for idx, kernel := range vrf.kernels {
 		log.Logf(0, "waiting for kernel %s to be ready", kernel.cfg.Name)
-		enabledSyscalls := <-kernel.enabledSyscalls
+		var enabledSyscalls map[*prog.Syscall]bool
+		select {
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		case enabledSyscalls = <-kernel.enabledSyscalls:
+		}
 
 		if idx == 0 {
 			// Initialize with first kernel's syscalls
@@ -307,41 +465,54 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 			}
 		}
 
-		kernelFeatures := <-kernel.features
+		var kernelFeatures flatrpc.Feature
+		select {
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		case kernelFeatures = <-kernel.features:
+		}
 
 		// Only enable if ALL kernels support it (intersection)
 		comparisonFeature = comparisonFeature && (kernelFeatures&flatrpc.FeatureComparisons != 0)
 		// TODO: Handle other features as needed (like fault injection, etc.)
 	}
 
-	// Initialize HTTP-visible state.
-	if vrf.http != nil {
-		vrf.http.EnabledSyscalls.Store(totalEnabledSyscalls)
+	return totalEnabledSyscalls, comparisonFeature, nil
+}
 
-		// Use the first kernel's coverage info for HTTP display
-		// All kernels should have similar coverage info structure
-		kernel0 := vrf.kernels[0]
-		if kernel0.coverModules != nil {
-			log.Logf(1, "updating HTTP server with coverage info from kernel %s (filter PCs: %d)",
-				kernel0.name, len(kernel0.coverFilters.ExecutorFilter))
-			vrf.coverFilters = kernel0.coverFilters
-			vrf.http.Cover.Store(&manager.CoverageInfo{
-				Modules:         kernel0.coverModules,
-				ReportGenerator: kernel0.reportGenerator,
-				CoverFilter:     kernel0.coverFilters.ExecutorFilter,
-			})
-		}
-	}
-	vrf.firstConnect.Store(time.Now().Unix())
-	statSyscalls := stat.New("syscalls", "Number of enabled syscalls", stat.Simple, stat.NoGraph, stat.Link("/syscalls"))
-	statSyscalls.Add(len(totalEnabledSyscalls))
-
-	candidates := vrf.loadCorpus(totalEnabledSyscalls)
-	vrf.corpus = corpus.NewFocusedCorpus(context.Background(), vrf.corpusUpdates, vrf.coverFilters.Areas)
-	if vrf.http != nil {
-		vrf.http.Corpus.Store(vrf.corpus)
+// initializeHTTPServerState sets up the HTTP server with enabled syscalls, coverage info, corpus, and fuzzer after initialization.
+func (vrf *Verifier) initializeHTTPServerState(totalEnabledSyscalls map[*prog.Syscall]bool, c *corpus.Corpus, fuzzerObj *fuzzer.Fuzzer) {
+	if vrf.http == nil {
+		return
 	}
 
+	// Store enabled syscalls
+	vrf.http.EnabledSyscalls.Store(totalEnabledSyscalls)
+
+	// Store coverage info from kernel 0
+	kernel0 := vrf.kernels[0]
+	if kernel0.coverModules != nil {
+		log.Logf(1, "updating HTTP server with coverage info from kernel %s (filter PCs: %d)",
+			kernel0.name, len(kernel0.coverFilters.ExecutorFilter))
+		vrf.coverFilters = kernel0.coverFilters
+		vrf.http.Cover.Store(&manager.CoverageInfo{
+			Modules:         kernel0.coverModules,
+			ReportGenerator: kernel0.reportGenerator,
+			CoverFilter:     kernel0.coverFilters.ExecutorFilter,
+		})
+	}
+
+	// Store corpus
+	vrf.http.Corpus.Store(c)
+
+	// Store fuzzer instance
+	if fuzzerObj != nil {
+		vrf.http.Fuzzer.Store(fuzzerObj)
+	}
+}
+
+// createFuzzerObject creates and initializes a new fuzzer instance with the given configuration.
+func (vrf *Verifier) createFuzzerObject(comparisonFeature bool, totalEnabledSyscalls map[*prog.Syscall]bool, candidates []fuzzer.Candidate) *fuzzer.Fuzzer {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 		Corpus:         vrf.corpus,
@@ -367,192 +538,105 @@ func (vrf *Verifier) fuzzingLoop(ctx context.Context) {
 	}, rnd, vrf.target)
 	fuzzerObj.AddCandidates(candidates)
 	vrf.fuzzer.Store(fuzzerObj)
-	if vrf.http != nil {
-		vrf.http.Fuzzer.Store(fuzzerObj)
+	return fuzzerObj
+}
+
+// compareResults compares execution results across all kernels and logs any mismatches.
+// TODO: Create dedicated mismatch struct similar to syz-manager crashes for better tracking and reporting.
+func (vrf *Verifier) compareResults(req *queue.Request, responses []*queue.Result) {
+	// Get kernel 0 result as baseline
+	res0 := responses[0]
+	if res0 == nil {
+		return
 	}
-	go vrf.corpusInputHandler(vrf.corpusUpdates)
-	go vrf.corpusMinimization()
-	log.Logf(0, "fuzzer started with %d candidates", len(candidates))
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		req := vrf.fuzzer.Load().Next()
-		if req == nil {
-			log.Logf(0, "no more candidates to fuzz, waiting for new candidates")
-			// Wait for new candidates to be added.
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Second):
-				continue
-			}
-		}
-
-		// Only distribute Program-type requests without file patterns
-		// Other request types (binary execution, file operations) are corpus management
-		// and should not be distributed for comparison
-		if req.GlobPattern != "" || req.Type != flatrpc.RequestTypeProgram {
-			// This is a corpus management request, not a program execution
-			// Just process it locally and continue
-			req.Done(&queue.Result{Status: queue.Success})
+	// Compare errno results across kernels - only report true errno mismatches
+	for i := 1; i < len(responses); i++ {
+		res := responses[i]
+		if res == nil {
 			continue
 		}
 
-		// Distribute the same program to all kernel queues for comparison
-		var wg sync.WaitGroup
-		wg.Add(len(vrf.sources))
-		responses := make([]*queue.Result, len(vrf.sources))
-		log.Logf(3, "distributing program: %s to %d kernels", req.Prog.String(), len(vrf.sources))
-		for kernelID, source := range vrf.sources {
-			log.Logf(3, "distributing program to kernel %d: %s", kernelID, req.Prog.String())
+		// Check if any syscall has different errno
+		// Only compare calls that were actually executed (not skipped/failed)
+		hasMismatch := false
+		mismatchCalls := []int{}
+		for callIdx := 0; callIdx < len(res0.Info.Calls) && callIdx < len(res.Info.Calls); callIdx++ {
+			call0 := res0.Info.Calls[callIdx]
+			call1 := res.Info.Calls[callIdx]
 
-			var reqCopy *queue.Request
-			if kernelID == 0 {
-				// Kernel 0: Full request - results go back to fuzzer
-				reqCopy = &queue.Request{
-					Type:            req.Type,
-					ExecOpts:        req.ExecOpts,
-					Prog:            req.Prog,
-					ReturnAllSignal: []int{}, // Collect coverage signal (new pc's only)
-					ReturnError:     true,    // Ensure error info is returned
-					ReturnOutput:    req.ReturnOutput,
-					Stat:            req.Stat,
-					Important:       req.Important,
-				}
-			} else {
-				// Other kernels: Minimal request - only for comparison
-				// Clone program to avoid data races during execution
-				reqCopy = &queue.Request{
-					Type:            req.Type,
-					ExecOpts:        req.ExecOpts,
-					Prog:            req.Prog.Clone(), // Clone to prevent data races during execution
-					ReturnAllSignal: []int{},
-					ReturnError:     true,
-				}
-			}
-
-			reqCopy.OnDone(func(r *queue.Request, res *queue.Result) bool {
-				log.Logf(3, "got result for kernel:%d %s: %+v with info: %+v", kernelID, reqCopy.Prog.String(), res, res.Info)
-				responses[kernelID] = res
-				wg.Done()
-				return true
-			})
-			source.Submit(reqCopy)
-		}
-		log.Logf(2, "distributed program to %d kernels", len(vrf.sources))
-		wg.Wait()
-		log.Logf(3, "all %d kernels finished execution", len(vrf.sources))
-		log.Logf(3, "comparing results for %d kernels", len(vrf.sources))
-
-		// Feed coverage back to fuzzer from kernel 0 (or first available)
-		// This enables coverage-guided fuzzing
-		feedbackResult := responses[0]
-		if feedbackResult == nil {
-			// If kernel 0 failed, try to find any successful result
-			for _, res := range responses {
-				if res != nil {
-					feedbackResult = res
-					break
-				}
+			// Only report if errno differs between successfully executed calls
+			if call0.Error != call1.Error {
+				hasMismatch = true
+				mismatchCalls = append(mismatchCalls, callIdx)
 			}
 		}
-		if feedbackResult != nil {
-			// Feed result back to fuzzer so it can learn from coverage
-			req.Done(feedbackResult)
-		}
 
-		// Compare errno results across kernels - only report true errno mismatches
-		for i := 1; i < len(responses); i++ {
-			res := responses[i]
-			if res == nil || responses[0] == nil {
-				continue
-			}
+		if hasMismatch {
+			log.Logf(0, "")
+			log.Logf(0, "========== ERRNO MISMATCH DETECTED ==========")
+			log.Logf(0, "Between: Kernel 0 (%s) and Kernel %d (%s)",
+				vrf.kernels[0].cfg.Name, i, vrf.kernels[i].cfg.Name)
+			log.Logf(0, "")
+			log.Logf(0, "Complete Program Sequence:")
+			log.Logf(0, "-------------------------------------------")
 
-			// Check if any syscall has different errno
-			// Only compare calls that were actually executed (not skipped/failed)
-			hasMismatch := false
-			mismatchCalls := []int{}
-			for callIdx := 0; callIdx < len(responses[0].Info.Calls) && callIdx < len(res.Info.Calls); callIdx++ {
-				call0 := responses[0].Info.Calls[callIdx]
-				call1 := res.Info.Calls[callIdx]
+			// Serialize the entire program once to get properly formatted calls
+			progLines := strings.Split(strings.TrimSpace(string(req.Prog.Serialize())), "\n")
 
-				// Only report if errno differs between successfully executed calls
-				if call0.Error != call1.Error {
-					hasMismatch = true
-					mismatchCalls = append(mismatchCalls, callIdx)
-				}
-			}
-
-			if hasMismatch {
-				log.Logf(0, "")
-				log.Logf(0, "========== ERRNO MISMATCH DETECTED ==========")
-				log.Logf(0, "Between: Kernel 0 (%s) and Kernel %d (%s)",
-					vrf.kernels[0].cfg.Name, i, vrf.kernels[i].cfg.Name)
-				log.Logf(0, "")
-				log.Logf(0, "Complete Program Sequence:")
-				log.Logf(0, "-------------------------------------------")
-
-				// Serialize the entire program once to get properly formatted calls
-				progLines := strings.Split(strings.TrimSpace(string(req.Prog.Serialize())), "\n")
-
-				// Print full program with detailed call information
-				for callIdx, call := range req.Prog.Calls {
-					isMismatch := false
-					for _, mc := range mismatchCalls {
-						if mc == callIdx {
-							isMismatch = true
-							break
-						}
+			// Print full program with detailed call information
+			for callIdx, call := range req.Prog.Calls {
+				isMismatch := false
+				for _, mc := range mismatchCalls {
+					if mc == callIdx {
+						isMismatch = true
+						break
 					}
+				}
 
-					prefix := "   "
+				prefix := "   "
+				if isMismatch {
+					prefix = ">>>"
+				}
+
+				// Print syscall with arguments from the serialized program
+				callStr := ""
+				if callIdx < len(progLines) {
+					callStr = progLines[callIdx]
+				} else {
+					callStr = call.Meta.CallName + "(...)"
+				}
+				log.Logf(0, "%s [%d] %s", prefix, callIdx, callStr)
+
+				// Print execution results
+				if callIdx < len(res0.Info.Calls) && callIdx < len(res.Info.Calls) {
+					call0 := res0.Info.Calls[callIdx]
+					call1 := res.Info.Calls[callIdx]
+
 					if isMismatch {
-						prefix = ">>>"
-					}
-
-					// Print syscall with arguments from the serialized program
-					callStr := ""
-					if callIdx < len(progLines) {
-						callStr = progLines[callIdx]
+						log.Logf(0, "%s     ┌─ %s: errno=%d, flags=0x%x",
+							prefix, vrf.kernels[0].cfg.Name, call0.Error, uint8(call0.Flags))
+						log.Logf(0, "%s     └─ %s: errno=%d, flags=0x%x",
+							prefix, vrf.kernels[i].cfg.Name, call1.Error, uint8(call1.Flags))
 					} else {
-						callStr = call.Meta.CallName + "(...)"
+						log.Logf(0, "%s     Result: errno=%d, flags=0x%x",
+							prefix, call0.Error, uint8(call0.Flags))
 					}
-					log.Logf(0, "%s [%d] %s", prefix, callIdx, callStr)
-
-					// Print execution results
-					if callIdx < len(responses[0].Info.Calls) && callIdx < len(res.Info.Calls) {
-						call0 := responses[0].Info.Calls[callIdx]
-						call1 := res.Info.Calls[callIdx]
-
-						if isMismatch {
-							log.Logf(0, "%s     ┌─ %s: errno=%d, flags=0x%x",
-								prefix, vrf.kernels[0].cfg.Name, call0.Error, uint8(call0.Flags))
-							log.Logf(0, "%s     └─ %s: errno=%d, flags=0x%x",
-								prefix, vrf.kernels[i].cfg.Name, call1.Error, uint8(call1.Flags))
-						} else {
-							log.Logf(0, "%s     Result: errno=%d, flags=0x%x",
-								prefix, call0.Error, uint8(call0.Flags))
-						}
-					}
-					log.Logf(0, "")
 				}
-
-				log.Logf(0, "-------------------------------------------")
-				log.Logf(0, "Kernel Outputs:")
-				log.Logf(0, "  %s: %q", vrf.kernels[0].cfg.Name, responses[0].Output)
-				log.Logf(0, "  %s: %q", vrf.kernels[i].cfg.Name, res.Output)
-				if responses[0].Err != nil || res.Err != nil {
-					log.Logf(0, "Execution Errors:")
-					log.Logf(0, "  %s: %v", vrf.kernels[0].cfg.Name, responses[0].Err)
-					log.Logf(0, "  %s: %v", vrf.kernels[i].cfg.Name, res.Err)
-				}
-				log.Logf(0, "=============================================")
 				log.Logf(0, "")
 			}
+
+			log.Logf(0, "-------------------------------------------")
+			log.Logf(0, "Kernel Outputs:")
+			log.Logf(0, "  %s: %q", vrf.kernels[0].cfg.Name, res0.Output)
+			log.Logf(0, "  %s: %q", vrf.kernels[i].cfg.Name, res.Output)
+			if res0.Err != nil || res.Err != nil {
+				log.Logf(0, "Execution Errors:")
+				log.Logf(0, "  %s: %v", vrf.kernels[0].cfg.Name, res0.Err)
+				log.Logf(0, "  %s: %v", vrf.kernels[i].cfg.Name, res.Err)
+			}
+			log.Logf(0, "=============================================")
+			log.Logf(0, "")
 		}
 	}
 }
@@ -625,22 +709,12 @@ func (kernel *Kernel) MachineChecked(features flatrpc.Feature,
 		kernel.http.EnabledSyscalls.Store(enabledSyscalls)
 		kernel.http.Corpus.Store(kernel.corpus)
 	}
-	// TODO: Aggregate to main HTTP server instead of per-kernel
-	if kernel.cfg.Snapshot {
-		log.Logf(0, "restarting VMs for snapshot mode")
-		// kernel.snapshotSource = queue.Distribute(source)
-		// kernel.Pool.SetDefault(kernel.snapshotInstance)
-		kernel.serv.Close()
-		kernel.serv = nil
-		return queue.Callback(func() *queue.Request {
-			return nil
-		}), nil
-	}
-	kernel.setPhaseLocked(kPhaseAwaitingQueue)
 	log.Logf(0, "kernel %s: configuring source", kernel.cfg.Name)
 	opts := fuzzer.DefaultExecOpts(kernel.cfg, features, kernel.debug)
 	kernel.source = queue.DefaultOpts(kernel.source, opts)
-	kernel.setPhaseLocked(kPhaseLoadedQueue)
+	kernel.mu.Lock()
+	kernel.queueConfigured = true
+	kernel.mu.Unlock()
 	return kernel.source, nil
 }
 
@@ -689,35 +763,25 @@ func (kernel *Kernel) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, 
 
 func (kernel *Kernel) MaxSignal() signal.Signal {
 	kernel.mu.Lock()
-	if kernel.phase < kPhaseLoadedQueue {
+	if !kernel.queueConfigured {
 		kernel.mu.Unlock()
 		return nil
 	}
-	if kernel.phase == kPhaseAwaitingMaxSignal {
-		// Another goroutine is already requesting max signal
+	if kernel.requestingMax {
 		kernel.mu.Unlock()
 		return nil
 	}
-	kernel.phase = kPhaseAwaitingMaxSignal
+	kernel.requestingMax = true
 	kernel.mu.Unlock()
 
 	kernel.reqMaxSignal <- kernel.id
 	sig := <-kernel.maxSignal
 
 	kernel.mu.Lock()
-	kernel.phase = kPhaseLoadedQueue
+	kernel.requestingMax = false
 	kernel.mu.Unlock()
 
 	return sig
-}
-
-func (kernel *Kernel) setPhaseLocked(newPhase int) {
-	kernel.mu.Lock()
-	defer kernel.mu.Unlock()
-	if kernel.phase == newPhase {
-		panic("repeated phase update")
-	}
-	kernel.phase = newPhase
 }
 
 func (kernel *Kernel) BugFrames() (leaks, races []string) {
