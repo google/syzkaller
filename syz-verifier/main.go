@@ -50,9 +50,7 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
 	}
 
-	// Enforce deterministic execution for verifier
 	cfg.Experimental.ResetAccState = true // executor process restarts between program executions to clear accumulated kernel/VM stat.
-	//cfg.Procs = 1 // No parallel processes execution. When enabled slows down execution significantly.
 
 	kernel.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
@@ -81,16 +79,18 @@ func main() {
 	// flagReruns := flag.Int("rerun", 3, "number of time program is rerun when a mismatch is found")
 	flag.Parse()
 
-	kernels := make(map[int]*Kernel)
+	kernels := make([]*Kernel, len(cfgs))
 	for idx, cfg := range cfgs {
 		kcfg, err := mgrconfig.LoadFile(cfg)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
-		kernels[idx], err = Setup(kcfg.Name, kcfg, *flagDebug)
+		kernel, err := Setup(kcfg.Name, kcfg, *flagDebug)
 		if err != nil {
 			log.Fatalf("failed to setup kcfg context for %s: %v", kcfg.Name, err)
 		}
+		kernel.id = idx
+		kernels[idx] = kernel
 
 		log.Logf(0, "loaded kernel %s", kcfg.Name)
 	}
