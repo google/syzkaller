@@ -646,7 +646,25 @@ func RegenerateSubsystems(ctx context.Context, ns string, sss []*subsystem.Subsy
 
 func getFilePaths(ctx context.Context, ns string, client spannerclient.SpannerClient) ([]string, error) {
 	iter := client.Single().Query(ctx, spanner.Statement{
-		SQL: `select filepath from file_subsystems where namespace=$1`,
+		// Take file names from 1 quarterly, 1 monthly and 1 daily aggregations.
+		SQL: `
+select
+  distinct files.filepath
+from files
+where files.session in (
+  select session from (
+    select
+        session
+    from
+      merge_history
+    where
+      namespace = $1
+    order by dateto desc, duration desc
+    limit 3
+  ) as sub
+)
+order by files.filepath
+`,
 		Params: map[string]any{
 			"p1": ns,
 		},
