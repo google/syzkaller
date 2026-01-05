@@ -1,9 +1,12 @@
-// Copyright 2017 syzkaller project authors. All rights reserved.
+// Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+//go:build !linux
 
 package osutil
 
 import (
+	"io/fs"
 	"os"
 	"os/exec"
 	"time"
@@ -36,4 +39,8 @@ func setPdeathsig(cmd *exec.Cmd, hardKill bool) {
 }
 
 func killPgroup(cmd *exec.Cmd) {
+}
+
+func sysDiskUsage(info fs.FileInfo) uint64 {
+	return uint64(max(0, info.Size()))
 }

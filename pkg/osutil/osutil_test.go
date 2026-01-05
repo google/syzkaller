@@ -4,6 +4,7 @@
 package osutil
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -149,4 +150,45 @@ func TestReadWriteJSON(t *testing.T) {
 	if diff := cmp.Diff(test, test2); diff != "" {
 		t.Fatal(diff)
 	}
+}
+
+func TestDiskUsage(t *testing.T) {
+	dir := t.TempDir()
+	var currentUsage uint64
+	expectUsage := func(minIncrease, maxIncrease uint64) {
+		usage, err := DiskUsage(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expectMin := currentUsage + minIncrease
+		expectMax := currentUsage + maxIncrease
+		t.Logf("got usage %v when expected (%v, %v)", usage, expectMin, expectMax)
+		if usage <= expectMin || usage >= expectMax {
+			t.Fatalf("bad usage %v, expect (%v, %v)", usage, expectMin, expectMax)
+		}
+		currentUsage = usage
+	}
+	expectUsage(1, 5<<10)
+	if err := MkdirAll(filepath.Join(dir, "nested")); err != nil {
+		t.Fatal(err)
+	}
+	expectUsage(1, 5<<10)
+	if err := WriteFile(filepath.Join(dir, "nested", "foo"), bytes.Repeat([]byte{'a'}, 1<<10)); err != nil {
+		t.Fatal(err)
+	}
+	expectUsage(1<<10, 5<<10)
+	if err := WriteFile(filepath.Join(dir, "nested", "bar"), bytes.Repeat([]byte{'a'}, 10<<10)); err != nil {
+		t.Fatal(err)
+	}
+	expectUsage(10<<10, 14<<10)
+	// Symlinks must not be counted twice.
+	if err := os.Symlink(filepath.Join(dir, "nested"), filepath.Join(dir, "dirlink")); err != nil {
+		t.Fatal(err)
+	}
+	expectUsage(1, 1<<10)
+
+	if err := os.Symlink(filepath.Join(dir, "nested", "bar"), filepath.Join(dir, "filelink")); err != nil {
+		t.Fatal(err)
+	}
+	expectUsage(1, 1<<10)
 }
