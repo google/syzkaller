@@ -16,7 +16,7 @@ The dots in BQ table name are not supported, thus:
 ```bash
 bq mk \
   --table \
-  --description "android 6.12"
+  --description "android 6.12" \
   --time_partitioning_field timestamp \
   --time_partitioning_type DAY \
   --require_partition_filter=true \
