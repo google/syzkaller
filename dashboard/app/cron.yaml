@@ -38,4 +38,4 @@ cron:
   schedule: 15 of month 00:00
 # Weekly update the kernel-file -> subsystems relationship
 - url: /cron/update_coverdb_subsystems
-  schedule: every monday
+  schedule: every monday 00:00
