@@ -5,6 +5,7 @@ package osutil
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -149,4 +150,9 @@ func prolongPipe(r, w *os.File) {
 	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
 		syscall.Syscall(syscall.SYS_FCNTL, w.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
 	}
+}
+
+func sysDiskUsage(info fs.FileInfo) uint64 {
+	stat := info.Sys().(*syscall.Stat_t)
+	return uint64(max(0, stat.Size, stat.Blocks*512))
 }
