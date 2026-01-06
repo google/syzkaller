@@ -3199,8 +3199,7 @@ error_clear_loop:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_vgic_v3_setup || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_assert_syzos_uexit || __NR_syz_kvm_assert_reg || __NR_syz_kvm_assert_syzos_kvm_exit
-// KVM is not yet supported on RISC-V
-#if !GOARCH_riscv64 && !GOARCH_arm
+#if !GOARCH_arm
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -3217,7 +3216,7 @@ error_clear_loop:
 #include "common_kvm_arm64.h"
 #elif GOARCH_ppc64 || GOARCH_ppc64le
 #include "common_kvm_ppc64.h"
-#elif !GOARCH_arm && (SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu)
+#elif SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
