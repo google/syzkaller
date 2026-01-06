@@ -870,7 +870,9 @@ func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transiti
 	transitiveMap := make(map[string]struct{})
 	var allFiles []string
 	for _, patch := range gitPatches {
-		allFiles = append(allFiles, vcs.ParseGitDiff(patch)...)
+		for _, diff := range vcs.ParseGitDiff(patch) {
+			allFiles = append(allFiles, diff.Name)
+		}
 	}
 	for _, file := range allFiles {
 		directMap[file] = struct{}{}
