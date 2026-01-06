@@ -747,3 +747,183 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 	}
 	return commits, s.Err()
 }
+
+type BaseCommit struct {
+	*Commit
+	Branches []string
+}
+
+// BaseForDiff selects the most recent commit that could have been the base commit
+// for the specified git patch.
+func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) (*BaseCommit, error) {
+	// We can't just query git log with --find-object=HASH because that will only return
+	// the revisions where the hashed content was introduced or removed, while what we actually
+	// want is the latest revision(s) where the content modified in the diff is still in place.
+
+	// So we build a set of potential commits of interest:
+	// 1) Tips of the branches.
+	// 2) Parents of the commit that in any way mention the modified blob hashes.
+	// Then these commits are verified.
+
+	args := []string{
+		"log",
+		"--all",
+		"--no-renames",
+		// Note that we cannot accelerate it by specifying "--since"
+		"-n", "100",
+		`--format=%P`,
+	}
+	var fileNames []string
+	nameToHash := map[string]string{}
+	for _, file := range ParseGitDiff(diff) {
+		if strings.Trim(file.LeftHash, "0") == "" {
+			// Newly created file are not of any help here.
+			continue
+		}
+		if ok, err := git.verifyHash(file.LeftHash); err != nil {
+			return nil, fmt.Errorf("hash verification failed: %w", err)
+		} else if !ok {
+			// The object is not known in this repository.
+			// Ignore it, or otherwise the command will fail.
+			continue
+		}
+		if _, ok := nameToHash[file.Name]; !ok {
+			// If the diff is actually a concatenation of several diffs, we only
+			// want to remember the first left side hash for each file.
+			fileNames = append(fileNames, file.Name)
+			nameToHash[file.Name] = file.LeftHash
+		}
+		args = append(args, "--find-object="+file.LeftHash)
+	}
+	tracer.Log("extracted %d left blob hashes", len(nameToHash))
+	output, err := git.Run(args...)
+	if err != nil {
+		return nil, err
+	}
+	commitBranches := map[string]map[string]struct{}{}
+	record := func(commit string, branch string) {
+		if commitBranches[commit] == nil {
+			commitBranches[commit] = map[string]struct{}{}
+		}
+		commitBranches[commit][branch] = struct{}{}
+	}
+
+	s := bufio.NewScanner(bytes.NewReader(output))
+	for s.Scan() {
+		// TODO: we can further reduce the search space by adding "--raw" to args
+		// and only considering the commits that introduce the blobs from the diff.
+		firstParent, _, _ := strings.Cut(s.Text(), " ")
+		if firstParent == "" {
+			continue
+		}
+		// Only focus on branches that are still alive.
+		const cutOffDays = 60
+		list, err := git.branchesThatContain(firstParent, time.Now().Add(-time.Hour*24*cutOffDays))
+		if err != nil {
+			return nil, fmt.Errorf("failed to query branches: %w", err)
+		}
+		for _, info := range list {
+			record(firstParent, info.Branch)
+			record(info.Commit, info.Branch)
+		}
+	}
+	var ret *BaseCommit
+	for commit, branches := range commitBranches {
+		tracer.Log("considering %q [%q]", commit, branches)
+		fileHashes, err := git.fileHashes(commit, fileNames)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract hashes for %s: %w", commit, err)
+		}
+		var noMatch []string
+		for _, name := range fileNames {
+			if !strings.HasPrefix(fileHashes[name], nameToHash[name]) {
+				noMatch = append(noMatch, name)
+			}
+		}
+		if len(noMatch) != 0 {
+			tracer.Log("hashes don't match for %q", noMatch)
+			continue
+		}
+		var branchList []string
+		for branch := range branches {
+			branchList = append(branchList, branch)
+		}
+		sort.Strings(branchList)
+		info, err := git.Commit(commit)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract commit info: %w", err)
+		}
+		tracer.Log("commit date is %v", info.CommitDate)
+		// Select the most recent commit.
+		if ret == nil || ret.CommitDate.Before(info.CommitDate) {
+			ret = &BaseCommit{Commit: info, Branches: branchList}
+		}
+	}
+	return ret, nil
+}
+
+// fileHashes returns the blob SHA hashes for a particular list of files on a particular commit.
+func (git Git) fileHashes(commit string, files []string) (map[string]string, error) {
+	output, err := git.Run(append([]string{"ls-tree", commit}, files...)...)
+	if err != nil {
+		return nil, err
+	}
+	ret := map[string]string{}
+	s := bufio.NewScanner(bytes.NewReader(output))
+	for s.Scan() {
+		line := s.Text()
+		fields := strings.Fields(line)
+		if len(fields) != 4 {
+			return nil, fmt.Errorf("invalid output: %q", line)
+		}
+		ret[fields[3]] = fields[2]
+	}
+	return ret, nil
+}
+
+type branchCommit struct {
+	Branch string
+	Commit string
+}
+
+func (git Git) branchesThatContain(commit string, since time.Time) ([]branchCommit, error) {
+	output, err := git.Run(
+		"branch", "-a",
+		"--contains", commit,
+		`--format=%(committerdate);%(objectname);%(refname:short)`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	var ret []branchCommit
+	s := bufio.NewScanner(bytes.NewReader(output))
+	for s.Scan() {
+		dateString, branchInfo, _ := strings.Cut(s.Text(), ";")
+		commit, branch, _ := strings.Cut(branchInfo, ";")
+		date, err := time.Parse(gitDateFormat, dateString)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse git date: %w\n%q", err, dateString)
+		}
+		if date.Before(since) {
+			continue
+		}
+		ret = append(ret, branchCommit{Branch: branch, Commit: commit})
+	}
+	return ret, nil
+}
+
+func (git Git) verifyHash(hash string) (bool, error) {
+	_, err := git.Run("rev-parse", "--quiet", "--verify", hash)
+	if err != nil {
+		var verboseErr *osutil.VerboseError
+		if errors.As(err, &verboseErr) && verboseErr.ExitCode == 1 {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (git Git) Diff(commitA, commitB string) ([]byte, error) {
+	return git.Run("diff", commitA+".."+commitB)
+}
