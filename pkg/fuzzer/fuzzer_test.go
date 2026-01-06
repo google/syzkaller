@@ -49,7 +49,7 @@ func TestFuzz(t *testing.T) {
 	fuzzer := NewFuzzer(ctx, &Config{
 		Debug:  true,
 		Corpus: corpus.NewMonitoredCorpus(ctx, corpusUpdates),
-		Logf: func(level int, msg string, args ...interface{}) {
+		Logf: func(level int, msg string, args ...any) {
 			if level > 1 {
 				return
 			}

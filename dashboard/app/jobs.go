@@ -1032,7 +1032,6 @@ func resetJobs(c context.Context, req *dashapi.JobResetReq) error {
 }
 
 // doneJob is called by syz-ci to mark completion of a job.
-// nolint: gocyclo
 func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	jobID := req.ID
 	jobKey, err := jobID2Key(c, req.ID)
@@ -1258,7 +1257,7 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 	return reports, nil
 }
 
-func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config interface{}) (
+func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config any) (
 	*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(config)
 	if err != nil {

@@ -7,9 +7,7 @@ FROM gcr.io/syzkaller/env AS build-step-builder
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
-COPY --exclude=syz-cluster . .
-COPY syz-cluster/workflow/build-step/*.go syz-cluster/workflow/build-step/
-COPY syz-cluster/pkg/ syz-cluster/pkg/
+COPY . .
 RUN go build -o /build/build-step-bin /build/syz-cluster/workflow/build-step
 
 # Build on the latest syzbot image.

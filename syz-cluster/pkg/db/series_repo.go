@@ -34,19 +34,17 @@ func NewSeriesRepository(client *spanner.Client) *SeriesRepository {
 }
 
 // TODO: move to SeriesPatchesRepository?
-// nolint:dupl
 func (repo *SeriesRepository) PatchByID(ctx context.Context, id string) (*Patch, error) {
 	return readEntity[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Patches WHERE ID=@id",
-		Params: map[string]interface{}{"id": id},
+		Params: map[string]any{"id": id},
 	})
 }
 
-// nolint:dupl
 func (repo *SeriesRepository) GetByExtID(ctx context.Context, extID string) (*Series, error) {
 	return readEntity[Series](ctx, repo.client.Single(), spanner.Statement{
 		SQL:    "SELECT * FROM Series WHERE ExtID=@extID",
-		Params: map[string]interface{}{"extID": extID},
+		Params: map[string]any{"extID": extID},
 	})
 }
 
@@ -74,7 +72,7 @@ func (repo *SeriesRepository) Insert(ctx context.Context, series *Series,
 			// Check if the series already exists.
 			stmt := spanner.Statement{
 				SQL:    "SELECT 1 from `Series` WHERE `ExtID`=@extID",
-				Params: map[string]interface{}{"ExtID": series.ExtID},
+				Params: map[string]any{"ExtID": series.ExtID},
 			}
 			iter := txn.Query(ctx, stmt)
 			defer iter.Stop()
@@ -142,7 +140,7 @@ func (repo *SeriesRepository) ListLatest(ctx context.Context, filter SeriesFilte
 
 	stmt := spanner.Statement{
 		SQL:    "SELECT Series.* FROM Series WHERE 1=1",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	if !maxPublishedAt.IsZero() {
 		stmt.SQL += " AND PublishedAt < @toTime"
@@ -226,7 +224,7 @@ func (repo *SeriesRepository) querySessions(ctx context.Context, ro *spanner.Rea
 	}
 	sessions, err := readEntities[Session](ctx, ro, spanner.Statement{
 		SQL: "SELECT * FROM Sessions WHERE ID IN UNNEST(@ids)",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"ids": keys,
 		},
 	})
@@ -265,7 +263,7 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 		SQL: "SELECT `SessionID`, COUNT(`ID`) as `Count` FROM `Findings` " +
 			"WHERE `SessionID` IN UNNEST(@ids) AND `Findings`.`InvalidatedAt` IS NULL " +
 			"GROUP BY `SessionID`",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"ids": keys,
 		},
 	})
@@ -279,11 +277,10 @@ func (repo *SeriesRepository) queryFindingCounts(ctx context.Context, ro *spanne
 }
 
 // golint sees too much similarity with SessionRepository's ListForSeries, but in reality there's not.
-// nolint:dupl
 func (repo *SeriesRepository) ListPatches(ctx context.Context, series *Series) ([]*Patch, error) {
 	return readEntities[Patch](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT * FROM `Patches` WHERE `SeriesID` = @seriesID ORDER BY `Seq`",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"seriesID": series.ID,
 		},
 	})

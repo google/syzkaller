@@ -80,7 +80,7 @@ func (ctx *Context) Init() {
 	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
 }
 
-func (ctx *Context) log(msg string, args ...interface{}) {
+func (ctx *Context) log(msg string, args ...any) {
 	ctx.LogFunc(fmt.Sprintf(msg, args...))
 }
 

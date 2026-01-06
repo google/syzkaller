@@ -27,7 +27,7 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 			// Check if the test already exists.
 			dbTest, err := readEntity[SessionTest](ctx, txn, spanner.Statement{
 				SQL: "SELECT * from `SessionTests` WHERE `SessionID`=@sessionID AND `TestName` = @testName",
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"sessionID": test.SessionID,
 					"testName":  test.TestName,
 				},
@@ -62,7 +62,7 @@ func (repo *SessionTestRepository) InsertOrUpdate(ctx context.Context, test *Ses
 func (repo *SessionTestRepository) Get(ctx context.Context, sessionID, testName string) (*SessionTest, error) {
 	return readEntity[SessionTest](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session AND `TestName` = @name",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"session": sessionID,
 			"name":    testName,
 		},
@@ -99,7 +99,7 @@ func (repo *SessionTestRepository) BySession(ctx context.Context, sessionID stri
 		}
 		builds, err := readEntities[Build](ctx, repo.client.Single(), spanner.Statement{
 			SQL:    "SELECT * FROM `Builds` WHERE `ID` IN UNNEST(@ids)",
-			Params: map[string]interface{}{"ids": keys},
+			Params: map[string]any{"ids": keys},
 		})
 		if err != nil {
 			return nil, err
@@ -117,6 +117,6 @@ func (repo *SessionTestRepository) BySessionRaw(ctx context.Context, sessionID s
 	return readEntities[SessionTest](ctx, repo.client.Single(), spanner.Statement{
 		SQL: "SELECT * FROM `SessionTests` WHERE `SessionID` = @session" +
 			" ORDER BY `UpdatedAt`",
-		Params: map[string]interface{}{"session": sessionID},
+		Params: map[string]any{"session": sessionID},
 	})
 }

@@ -36,7 +36,7 @@ func (_m *Row) EXPECT() *Row_Expecter {
 }
 
 // ToStruct provides a mock function for the type Row
-func (_mock *Row) ToStruct(p interface{}) error {
+func (_mock *Row) ToStruct(p any) error {
 	ret := _mock.Called(p)
 
 	if len(ret) == 0 {
@@ -44,7 +44,7 @@ func (_mock *Row) ToStruct(p interface{}) error {
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(interface{}) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(any) error); ok {
 		r0 = returnFunc(p)
 	} else {
 		r0 = ret.Error(0)
@@ -58,16 +58,16 @@ type Row_ToStruct_Call struct {
 }
 
 // ToStruct is a helper method to define mock.On call
-//   - p interface{}
+//   - p any
 func (_e *Row_Expecter) ToStruct(p interface{}) *Row_ToStruct_Call {
 	return &Row_ToStruct_Call{Call: _e.mock.On("ToStruct", p)}
 }
 
-func (_c *Row_ToStruct_Call) Run(run func(p interface{})) *Row_ToStruct_Call {
+func (_c *Row_ToStruct_Call) Run(run func(p any)) *Row_ToStruct_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 interface{}
+		var arg0 any
 		if args[0] != nil {
-			arg0 = args[0].(interface{})
+			arg0 = args[0].(any)
 		}
 		run(
 			arg0,
@@ -81,7 +81,7 @@ func (_c *Row_ToStruct_Call) Return(err error) *Row_ToStruct_Call {
 	return _c
 }
 
-func (_c *Row_ToStruct_Call) RunAndReturn(run func(p interface{}) error) *Row_ToStruct_Call {
+func (_c *Row_ToStruct_Call) RunAndReturn(run func(p any) error) *Row_ToStruct_Call {
 	_c.Call.Return(run)
 	return _c
 }

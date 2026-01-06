@@ -30,7 +30,7 @@ from merge_history
     on merge_history.session = functions.session
 where
   merge_history.namespace=$1 and dateto=$2 and duration=$3`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,

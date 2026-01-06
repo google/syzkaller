@@ -187,7 +187,6 @@ func GetEx(OS, arch string, clang bool) *Target {
 	return target.other
 }
 
-// nolint: lll
 var List = map[string]map[string]*Target{
 	TestOS: {
 		TestArch64: {

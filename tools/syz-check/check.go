@@ -230,7 +230,7 @@ func checkImpl(structs map[string]*dwarf.StructType, structTypes []prog.Type,
 
 func checkStruct(typ prog.Type, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
 	var warnings []Warn
-	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
+	warn := func(pos ast.Pos, typ, msg string, args ...any) {
 		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
 	}
 	name := typ.TemplateName()
@@ -558,7 +558,7 @@ func isNlattr(typ prog.Type) bool {
 func checkNetlinkPolicy(structMap map[string]prog.Type, typ prog.Type, fields []prog.Field,
 	astStruct *ast.Struct, policy []nlaPolicy) ([]Warn, map[int]bool, error) {
 	var warnings []Warn
-	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
+	warn := func(pos ast.Pos, typ, msg string, args ...any) {
 		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
 	}
 	checked := make(map[int]bool)
@@ -755,7 +755,7 @@ type nlaPolicy struct {
 	_          int32
 }
 
-// nolint
+// nolint:staticcheck
 const (
 	NLA_UNSPEC = iota
 	NLA_U8
@@ -780,7 +780,7 @@ const (
 	NLA_MIN_LEN
 )
 
-// nolint
+// nolint:staticcheck
 const (
 	_ = iota
 	NLA_VALIDATE_RANGE

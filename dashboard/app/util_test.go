@@ -22,16 +22,22 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner/admin/database/apiv1"
+	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb/spannerclient"
 	"github.com/google/syzkaller/pkg/covermerger"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
+	spannertest "github.com/google/syzkaller/syz-cluster/pkg/db"
+	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -48,6 +54,8 @@ type Ctx struct {
 	client           *apiClient
 	client2          *apiClient
 	publicClient     *apiClient
+	aiClient         *apiClient
+	checkAI          bool
 }
 
 var skipDevAppserverTests = func() bool {
@@ -58,11 +66,16 @@ var skipDevAppserverTests = func() bool {
 }()
 
 func NewCtx(t *testing.T) *Ctx {
+	return newCtx(t, "")
+}
+
+func newCtx(t *testing.T, appID string) *Ctx {
 	if skipDevAppserverTests {
 		t.Skip("skipping test (no dev_appserver.py)")
 	}
 	t.Parallel()
 	inst, err := aetest.NewInstance(&aetest.Options{
+		AppID:          appID,
 		StartupTimeout: 120 * time.Second,
 		// Without this option datastore queries return data with slight delay,
 		// which fails reporting tests.
@@ -81,12 +94,60 @@ func NewCtx(t *testing.T) *Ctx {
 		mockedTime:       time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		emailSink:        make(chan *aemail.Message, 100),
 		transformContext: func(c context.Context) context.Context { return c },
+		checkAI:          appID != "",
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
 	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	c.aiClient = c.makeClient(clientAI, keyAI, true)
 	c.ctx = registerRequest(r, c).Context()
 	return c
+}
+
+var appIDSeq = uint32(0)
+
+func NewSpannerCtx(t *testing.T) *Ctx {
+	ddlStatements, err := loadDDLStatements("1_initialize.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The code uses AppID as the spanner database URI project.
+	// So to give each test a private isolated instance of the spanner database,
+	// we give each test that uses spanner an unique AppID.
+	appID := fmt.Sprintf("testapp-%v", atomic.AddUint32(&appIDSeq, 1))
+	uri := fmt.Sprintf("projects/%s/instances/%v/databases/%v", appID, aidb.Instance, aidb.Database)
+	spannertest.NewTestDB(t, uri, ddlStatements)
+	return newCtx(t, appID)
+}
+
+func executeSpannerDDL(ctx context.Context, statements []string) error {
+	dbAdmin, err := database.NewDatabaseAdminClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed NewDatabaseAdminClient: %w", err)
+	}
+	defer dbAdmin.Close()
+	dbOp, err := dbAdmin.UpdateDatabaseDdl(ctx, &databasepb.UpdateDatabaseDdlRequest{
+		Database: fmt.Sprintf("projects/%s/instances/%v/databases/%v",
+			appengine.AppID(ctx), aidb.Instance, aidb.Database),
+		Statements: statements,
+	})
+	if err != nil {
+		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
+	}
+	if err := dbOp.Wait(ctx); err != nil {
+		return fmt.Errorf("failed UpdateDatabaseDdl: %w", err)
+	}
+	return nil
+}
+
+func loadDDLStatements(file string) ([]string, error) {
+	data, err := os.ReadFile(filepath.Join("aidb", "migrations", file))
+	if err != nil {
+		return nil, err
+	}
+	// We need individual statements. Assume semicolon is not used in other places than statements end.
+	statements := strings.Split(string(data), ";")
+	return statements[:len(statements)-1], nil
 }
 
 func (c *Ctx) config() *GlobalConfig {
@@ -125,14 +186,14 @@ func (c *Ctx) expectBadReqest(err error) {
 	expectFailureStatus(c.t, err, http.StatusBadRequest)
 }
 
-func (c *Ctx) expectEQ(got, want interface{}) {
+func (c *Ctx) expectEQ(got, want any) {
 	if diff := cmp.Diff(got, want); diff != "" {
 		c.t.Helper()
 		c.t.Fatal(diff)
 	}
 }
 
-func (c *Ctx) expectNE(got, want interface{}) {
+func (c *Ctx) expectNE(got, want any) {
 	if reflect.DeepEqual(got, want) {
 		c.t.Helper()
 		c.t.Fatalf("equal: %#v", got)
@@ -203,6 +264,16 @@ func (c *Ctx) Close() {
 		resp, _ := c.client.ReportingPollBugs("test")
 		for _, rep := range resp.Reports {
 			c.t.Errorf("ERROR: leftover external report:\n%#v", rep)
+		}
+		if c.checkAI {
+			_, err = c.GET("/ains/ai/")
+			c.expectOK(err)
+			jobs, err := aidb.LoadNamespaceJobs(c.ctx, "ains")
+			c.expectOK(err)
+			for _, job := range jobs {
+				_, err = c.GET(fmt.Sprintf("/ai_job?id=%v", job.ID))
+				c.expectOK(err)
+			}
 		}
 	}
 	unregisterContext(c)
@@ -504,8 +575,8 @@ type apiClient struct {
 }
 
 func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
-	logger := func(msg string, args ...interface{}) {
-		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
+	logger := func(msg string, args ...any) {
+		c.t.Logf("%v: "+msg, append([]any{caller(3)}, args...)...)
 	}
 	errorHandler := func(err error) {
 		if failOnErrors {
@@ -628,7 +699,7 @@ type (
 	EmailOptSender    string
 )
 
-func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
+func (c *Ctx) incomingEmail(to, body string, opts ...any) {
 	id := 0
 	subject := "crash1"
 	from := "default@sender.com"
@@ -675,6 +746,7 @@ func initMocks() {
 	timeNow = func(c context.Context) time.Time {
 		return getRequestContext(c).mockedTime
 	}
+	aidb.TimeNow = timeNow
 	sendEmail = func(c context.Context, msg *aemail.Message) error {
 		getRequestContext(c).emailSink <- msg
 		return nil

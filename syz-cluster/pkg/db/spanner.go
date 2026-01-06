@@ -12,20 +12,21 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/spanner"
-	database "cloud.google.com/go/spanner/admin/database/apiv1"
+	"cloud.google.com/go/spanner/admin/database/apiv1"
 	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
-	instance "cloud.google.com/go/spanner/admin/instance/apiv1"
+	"cloud.google.com/go/spanner/admin/instance/apiv1"
 	"cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	"github.com/golang-migrate/migrate/v4"
 	migrate_spanner "github.com/golang-migrate/migrate/v4/database/spanner"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/google/syzkaller/pkg/osutil"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -71,35 +72,31 @@ func CreateSpannerInstance(ctx context.Context, uri ParsedURI) error {
 	return err
 }
 
-func CreateSpannerDB(ctx context.Context, uri ParsedURI) error {
+func CreateSpannerDB(ctx context.Context, uri ParsedURI, ddl []string) error {
 	client, err := database.NewDatabaseAdminClient(ctx)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-	_, err = client.GetDatabase(ctx, &databasepb.GetDatabaseRequest{Name: uri.Full})
-	if err != nil && spanner.ErrCode(err) == codes.NotFound {
-		op, err := client.CreateDatabase(ctx, &databasepb.CreateDatabaseRequest{
-			Parent:          uri.InstancePrefix,
-			CreateStatement: `CREATE DATABASE ` + uri.Database,
-			ExtraStatements: []string{},
-		})
-		if err != nil {
+	if ddl == nil {
+		_, err = client.GetDatabase(ctx, &databasepb.GetDatabaseRequest{Name: uri.Full})
+		if err != nil && spanner.ErrCode(err) != codes.NotFound {
 			return err
 		}
-		_, err = op.Wait(ctx)
-		return err
+		if err == nil {
+			return nil
+		}
 	}
-	return err
-}
-
-func dropSpannerDB(ctx context.Context, uri ParsedURI) error {
-	client, err := database.NewDatabaseAdminClient(ctx)
+	op, err := client.CreateDatabase(ctx, &databasepb.CreateDatabaseRequest{
+		Parent:          uri.InstancePrefix,
+		CreateStatement: `CREATE DATABASE ` + uri.Database,
+		ExtraStatements: ddl,
+	})
 	if err != nil {
 		return err
 	}
-	defer client.Close()
-	return client.DropDatabase(ctx, &databasepb.DropDatabaseRequest{Database: uri.Full})
+	_, err = op.Wait(ctx)
+	return err
 }
 
 //go:embed migrations/*.sql
@@ -136,108 +133,106 @@ func getMigrateInstance(uri string) (*migrate.Migrate, error) {
 }
 
 func NewTransientDB(t *testing.T) (*spanner.Client, context.Context) {
-	// If the environment contains the emulator binary, start it.
-	if bin := os.Getenv("SPANNER_EMULATOR_BIN"); bin != "" {
-		host := spannerTestWrapper(t, bin)
-		os.Setenv("SPANNER_EMULATOR_HOST", host)
-	} else if os.Getenv("CI") != "" {
-		// We do want to always run these tests on CI.
-		t.Fatalf("CI is set, but SPANNER_EMULATOR_BIN is empty")
-	}
-	if os.Getenv("SPANNER_EMULATOR_HOST") == "" {
-		t.Skip("SPANNER_EMULATOR_HOST must be set")
-		return nil, nil
-	}
-	uri, err := ParseURI("projects/my-project/instances/test-instance/databases/" +
-		fmt.Sprintf("db%v", time.Now().UnixNano()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	uri := "projects/my-project/instances/test-instance/databases/" +
+		fmt.Sprintf("db%v", time.Now().UnixNano())
+	NewTestDB(t, uri, nil)
 	ctx := t.Context()
-	err = CreateSpannerInstance(ctx, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = CreateSpannerDB(ctx, uri)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		err := dropSpannerDB(ctx, uri)
-		if err != nil {
-			t.Logf("failed to drop the test DB: %v", err)
-		}
-	})
-	client, err := spanner.NewClient(ctx, uri.Full)
+	client, err := spanner.NewClient(ctx, uri)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(client.Close)
-	err = RunMigrations(uri.Full)
+	err = RunMigrations(uri)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return client, ctx
 }
 
-var setupSpannerOnce sync.Once
-var spannerHost string
-
-func spannerTestWrapper(t *testing.T, bin string) string {
-	setupSpannerOnce.Do(func() {
-		t.Logf("this could be the first test requiring a Spanner emulator, starting %s", bin)
-		cmd, host, err := runSpanner(bin)
-		if err != nil {
-			t.Fatal(err)
-		}
-		spannerHost = host
-		t.Cleanup(func() {
-			cmd.Process.Kill()
-			cmd.Wait()
-		})
-	})
-	return spannerHost
+func NewTestDB(t *testing.T, uri string, ddl []string) {
+	setupSpannerEmulator(t)
+	// Don't bother destroying instances/databases.
+	// We create isolated per-test databases, and the emulator is all in-memory.
+	// So when the emulator is killed with the test binary, everything is gone.
+	parsedURI, err := ParseURI(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateSpannerInstance(t.Context(), parsedURI); err != nil {
+		t.Fatalf("failed CreateSpannerInstance: %v", err)
+	}
+	if err := CreateSpannerDB(t.Context(), parsedURI, ddl); err != nil {
+		t.Fatalf("failed CreateSpannerDB: %v", err)
+	}
 }
 
-var portRe = regexp.MustCompile(`Server address: ([\w:]+)`)
+var (
+	setupSpannerOnce sync.Once
+	setupSpannerErr  error
+	errSpannerSkip   = errors.New("no spanner emulator binary found, skipping test")
+)
 
-func runSpanner(bin string) (*exec.Cmd, string, error) {
-	cmd := exec.Command(bin, "--override_max_databases_per_instance=1000",
-		"--grpc_port=0", "--http_port=0")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, "", err
+func setupSpannerEmulator(t *testing.T) {
+	setupSpannerOnce.Do(func() {
+		setupSpannerErr = startSpannerEmulator()
+	})
+	if setupSpannerErr == errSpannerSkip {
+		t.Skip(setupSpannerErr.Error())
 	}
-	cmd.Stderr = cmd.Stdout
-	if err := cmd.Start(); err != nil {
-		return nil, "", err
+	if setupSpannerErr != nil {
+		t.Fatalf("failed to setup spanner emulator: %v", setupSpannerErr)
 	}
-	scanner := bufio.NewScanner(stdout)
-	started, host := false, ""
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "Cloud Spanner Emulator running") {
-			started = true
-		} else if parts := portRe.FindStringSubmatch(line); parts != nil {
-			host = parts[1]
+}
+
+func startSpannerEmulator() error {
+	// This env is set by syz-env container.
+	bin := os.Getenv("SPANNER_EMULATOR_BIN")
+	if bin != "" {
+		bin = filepath.Join(filepath.Dir(bin), "emulator_main")
+	} else {
+		// Otherwise check for installed google-cloud-sdk binary.
+		appServerPath, err := exec.LookPath("dev_appserver.py")
+		if err == nil {
+			bin = filepath.Join(filepath.Dir(appServerPath), "cloud_spanner_emulator", "emulator_main")
 		}
-		if started && host != "" {
-			break
+	}
+	if bin == "" {
+		// In these contexts we expect the binary to be present.
+		if os.Getenv("CI") != "" || os.Getenv("SYZ_ENV") != "" {
+			return errors.New("no spanner emulator binary found")
+		}
+		return errSpannerSkip
+	}
+	// Use osutil.Command to set PDEATHSIG.
+	cmd := osutil.Command(bin, "--host_port", "localhost:0", "--override_max_databases_per_instance=1000")
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	serverAddr := ""
+	serverAddrRe := regexp.MustCompile(`Server address: ([\w:]+)`)
+	scanner := bufio.NewScanner(stderr)
+	for serverAddr == "" && scanner.Scan() {
+		if parts := serverAddrRe.FindStringSubmatch(scanner.Text()); parts != nil {
+			serverAddr = parts[1]
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return cmd, "", err
+		return err
 	}
 	// The program may block if we don't read out all the remaining output.
-	go io.Copy(io.Discard, stdout)
-
-	if !started {
-		return cmd, "", fmt.Errorf("the emulator did not print that it started")
+	go io.Copy(io.Discard, stderr)
+	if serverAddr == "" {
+		return fmt.Errorf("did not detect the host")
 	}
-	if host == "" {
-		return cmd, "", fmt.Errorf("did not detect the host")
-	}
-	return cmd, host, nil
+	os.Setenv("SPANNER_EMULATOR_HOST", serverAddr)
+	// Without this connections to emulator hang, probably some bug somewhere.
+	os.Setenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS", "false")
+	fmt.Printf("started spanner emulator %v on %v\n", bin, serverAddr)
+	return nil
 }
 
 func readRow[T any](iter *spanner.RowIterator) (*T, error) {
@@ -305,7 +300,7 @@ type genericEntityOps[EntityType, KeyType any] struct {
 func (g *genericEntityOps[EntityType, KeyType]) GetByID(ctx context.Context, key KeyType) (*EntityType, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM " + g.table + " WHERE " + g.keyField + "=@key",
-		Params: map[string]interface{}{"key": key},
+		Params: map[string]any{"key": key},
 	}
 	return readEntity[EntityType](ctx, g.client.Single(), stmt)
 }
@@ -318,7 +313,7 @@ func (g *genericEntityOps[EntityType, KeyType]) Update(ctx context.Context, key 
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			entity, err := readEntity[EntityType](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `" + g.table + "` WHERE `" + g.keyField + "`=@key",
-				Params: map[string]interface{}{"key": key},
+				Params: map[string]any{"key": key},
 			})
 			if err != nil {
 				return err

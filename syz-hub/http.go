@@ -6,27 +6,12 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"net"
 	"net/http"
 	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
 )
-
-func (hub *Hub) initHTTP(addr string) {
-	http.HandleFunc("/", hub.httpSummary)
-
-	ln, err := net.Listen("tcp4", addr)
-	if err != nil {
-		log.Fatalf("failed to listen on %v: %v", addr, err)
-	}
-	log.Logf(0, "serving http on http://%v", ln.Addr())
-	go func() {
-		err := http.Serve(ln, nil)
-		log.Fatalf("failed to serve http: %v", err)
-	}()
-}
 
 func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	hub.mu.Lock()

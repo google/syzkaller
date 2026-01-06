@@ -13,7 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/stat/sample"
 )
 
-type Cell = interface{}
+type Cell = any
 
 // All tables that syz-testbed generates have named columns and rows.
 // Table type simplifies generation and processing of such tables.

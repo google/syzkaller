@@ -111,7 +111,7 @@ func getParam[T int | string | bool | civil.Date](r *http.Request, name string, 
 	return extractVal(t, r.FormValue(name)).(T)
 }
 
-func extractVal(t interface{}, val string) interface{} {
+func extractVal(t any, val string) any {
 	switch t.(type) {
 	case int:
 		res, _ := strconv.Atoi(val)

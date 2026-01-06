@@ -7,10 +7,10 @@ import "log"
 
 // TODO: catch these with monitoring.
 
-func Errorf(fmt string, args ...interface{}) {
+func Errorf(fmt string, args ...any) {
 	log.Printf(fmt, args...)
 }
 
-func Fatalf(fmt string, args ...interface{}) {
+func Fatalf(fmt string, args ...any) {
 	log.Fatalf(fmt, args...)
 }

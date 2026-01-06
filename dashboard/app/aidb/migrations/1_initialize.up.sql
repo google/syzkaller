@@ -1,0 +1,42 @@
+CREATE TABLE Workflows (
+	Name			STRING(1000) NOT NULL,
+	Type			STRING(1000) NOT NULL,
+	LastActive		TIMESTAMP NOT NULL,
+) PRIMARY KEY (Name);
+
+CREATE TABLE Jobs (
+	ID			STRING(36) NOT NULL,
+	Type			STRING(1000) NOT NULL,
+	Workflow		STRING(1000) NOT NULL,
+	Namespace		STRING(1000) NOT NULL,
+	BugID			STRING(1000),
+	Description		STRING(1000) NOT NULL,
+	Link			STRING(1000) NOT NULL,
+	Created			TIMESTAMP NOT NULL,
+	Started			TIMESTAMP,
+	Finished		TIMESTAMP,
+	LLMModel		STRING(1000),
+	CodeRevision		STRING(1000),
+	Error			STRING(MAX),
+	Args			JSON,
+	Results			JSON,
+) PRIMARY KEY (ID);
+
+CREATE TABLE TrajectorySpans (
+	JobID			STRING(36) NOT NULL,
+	Seq			INT64 NOT NULL,
+	Nesting 		INT64 NOT NULL,
+	Type 			STRING(1000) NOT NULL,
+	Name			STRING(1000) NOT NULL,
+	Started			TIMESTAMP NOT NULL,
+	Finished		TIMESTAMP,
+	Error			STRING(MAX),
+	Args			JSON,
+	Results			JSON,
+	Instruction		STRING(MAX),
+	Prompt			STRING(MAX),
+	Reply			STRING(MAX),
+	Thoughts		STRING(MAX),
+
+	CONSTRAINT FK_EventJob FOREIGN KEY (JobID) REFERENCES Jobs (ID),
+) PRIMARY KEY (JobID, Seq);

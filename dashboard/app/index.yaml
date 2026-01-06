@@ -129,6 +129,12 @@ indexes:
   - name: Status
   - name: FixCandidateJob
 
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: AIJobCheck
+
 - kind: Build
   properties:
   - name: Namespace

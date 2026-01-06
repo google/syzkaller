@@ -226,33 +226,6 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// updateBugTitles adds missing MergedTitles/AltTitles to bugs.
-// This can be used to migrate datastore to the new scheme introduced:
-// by commit fd1036219797 ("dashboard/app: merge duplicate crashes").
-func updateBugTitles(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
-		return fmt.Errorf("admin only")
-	}
-	var keys []*db.Key
-	if err := foreachBug(c, nil, func(bug *Bug, key *db.Key) error {
-		if len(bug.MergedTitles) == 0 || len(bug.AltTitles) == 0 {
-			keys = append(keys, key)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	log.Warningf(c, "fetched %v bugs for update", len(keys))
-	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {
-		if len(bug.MergedTitles) == 0 {
-			bug.MergedTitles = []string{bug.Title}
-		}
-		if len(bug.AltTitles) == 0 {
-			bug.AltTitles = []string{bug.Title}
-		}
-	})
-}
-
 // updateCrashPriorities regenerates priorities for crashes.
 // This has become necessary after the "dashboard: support per-Manager priority" commit.
 // For now, the method only considers the crashes referenced from bug origin.
@@ -406,10 +379,6 @@ func updateBatch[T any](c context.Context, keys []*db.Key, transform func(key *d
 // Prevent warnings about dead code.
 var (
 	_ = dropNamespace
-	_ = updateBugReporting
-	_ = updateBugTitles
-	_ = restartFailedBisections
-	_ = setMissingBugFields
 	_ = adminSendEmail
 	_ = updateHeadReproLevel
 	_ = updateCrashPriorities

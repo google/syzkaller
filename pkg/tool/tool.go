@@ -7,6 +7,9 @@ package tool
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
 	"os"
 )
 
@@ -25,7 +28,21 @@ func Init() func() {
 	return installProfiling(*flagCPUProfile, *flagMEMProfile)
 }
 
-func Failf(msg string, args ...interface{}) {
+// ServeHTPP serves default http mux on the specified address in a separate goroutine.
+// Terminates the process on any errors.
+func ServeHTTP(addr string) {
+	ln, err := net.Listen("tcp4", addr)
+	if err != nil {
+		log.Fatalf("failed to listen on %v: %v", addr, err)
+	}
+	log.Printf("serving http on http://%v", ln.Addr())
+	go func() {
+		err := http.Serve(ln, nil)
+		log.Fatalf("failed to serve http: %v", err)
+	}()
+}
+
+func Failf(msg string, args ...any) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }

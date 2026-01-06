@@ -286,7 +286,6 @@ func TestNoUserSubsystemOverwrite(t *testing.T) {
 	expectLabels(t, client, extID, "subsystems:subsystemA")
 }
 
-// nolint: goconst
 func TestPeriodicSubsystemReminders(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -722,7 +721,6 @@ func TestSubsystemRemindersNoReport(t *testing.T) {
 	client.expectNoEmail()
 }
 
-// nolint: goconst
 func TestNoRemindersWithDiscussions(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -827,7 +825,6 @@ You may send multiple commands in a single email message.
 `, bugToExtID["WARNING: a first"], bugToExtID["WARNING: a third"]))
 }
 
-// nolint: goconst
 func TestSkipSubsystemReminders(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -999,7 +996,6 @@ You may send multiple commands in a single email message.
 `, bugToExtID["WARNING: a first"], bugToExtID["WARNING: a second"]))
 }
 
-// nolint: goconst
 func TestRemindersPriority(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

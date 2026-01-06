@@ -29,7 +29,7 @@ func (repo *ReportReplyRepository) FindParentReportID(ctx context.Context, repor
 			"JOIN `SessionReports` ON `SessionReports`.ID = `ReportReplies`.ReportID " +
 			"WHERE `ReportReplies`.MessageID = @messageID " +
 			"AND `SessionReports`.Reporter = @reporter LIMIT 1",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"reporter":  reporter,
 			"messageID": messageID,
 		},
@@ -50,7 +50,7 @@ func (repo *ReportReplyRepository) Insert(ctx context.Context, reply *ReportRepl
 			entity, err := readEntity[ReportReply](ctx, txn, spanner.Statement{
 				SQL: "SELECT * from `ReportReplies` " +
 					"WHERE `ReportID`=@reportID AND `MessageID`=@messageID",
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"reportID":  reply.ReportID,
 					"messageID": reply.MessageID,
 				},
@@ -75,7 +75,7 @@ func (repo *ReportReplyRepository) LastForReporter(ctx context.Context, reporter
 			"JOIN `SessionReports` ON `SessionReports`.ID=`ReportReplies`.ReportID " +
 			"WHERE `SessionReports`.Reporter=@reporter " +
 			"ORDER BY `Time` DESC LIMIT 1",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"reporter": reporter,
 		},
 	})

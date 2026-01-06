@@ -13,7 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func LoadFile(filename string, cfg interface{}) error {
+func LoadFile(filename string, cfg any) error {
 	if filename == "" {
 		return fmt.Errorf("no config file specified")
 	}
@@ -24,7 +24,7 @@ func LoadFile(filename string, cfg interface{}) error {
 	return LoadData(data, cfg)
 }
 
-func LoadData(data []byte, cfg interface{}) error {
+func LoadData(data []byte, cfg any) error {
 	// Remove comment lines starting with #.
 	data = regexp.MustCompile(`(^|\n)\s*#[^\n]*`).ReplaceAll(data, nil)
 	dec := json.NewDecoder(bytes.NewReader(data))
@@ -35,7 +35,7 @@ func LoadData(data []byte, cfg interface{}) error {
 	return nil
 }
 
-func SaveFile(filename string, cfg interface{}) error {
+func SaveFile(filename string, cfg any) error {
 	data, err := json.MarshalIndent(cfg, "", "\t")
 	if err != nil {
 		return err

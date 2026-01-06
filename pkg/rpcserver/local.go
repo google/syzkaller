@@ -17,7 +17,6 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
-	"golang.org/x/sync/errgroup"
 )
 
 type LocalConfig struct {
@@ -43,15 +42,27 @@ func RunLocal(ctx context.Context, cfg *LocalConfig) error {
 		return err
 	}
 	defer localCtx.serv.Close()
-	// groupCtx will be cancelled once any goroutine returns an error.
-	eg, groupCtx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		return localCtx.RunInstance(groupCtx, 0)
-	})
-	eg.Go(func() error {
-		return localCtx.serv.Serve(groupCtx)
-	})
-	return eg.Wait()
+
+	// Note: we must not stop the RPC server before we finish RunInstance.
+	// Otherwise, RPC server will close the connection, and executor may SYZFAIL
+	// on the closed network connection.
+	// We first need to wait for the executor binary to finish, and only then stop the RPC server.
+	// However, we want to stop both if the other one errors out.
+	instCtx, instCancel := context.WithCancel(ctx)
+	defer instCancel()
+	servCtx, servCancel := context.WithCancel(context.Background())
+	defer servCancel()
+	servErr := make(chan error, 1)
+	go func() {
+		servErr <- localCtx.serv.Serve(servCtx)
+		instCancel()
+	}()
+	instErr := localCtx.RunInstance(instCtx, 0)
+	servCancel()
+	if err := <-servErr; err != nil {
+		return err
+	}
+	return instErr
 }
 
 func setupLocal(ctx context.Context, cfg *LocalConfig) (*local, context.Context, error) {

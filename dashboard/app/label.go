@@ -32,7 +32,7 @@ type subsetOf []string
 type trueFalse struct{}
 
 func makeLabelSet(c context.Context, ns string) *labelSet {
-	ret := map[BugLabelType]interface{}{
+	ret := map[BugLabelType]any{
 		PriorityLabel: oneOf([]string{
 			string(LowPrioBug),
 			string(NormalPrioBug),
@@ -74,7 +74,7 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 type labelSet struct {
 	c      context.Context
 	ns     string
-	labels map[BugLabelType]interface{}
+	labels map[BugLabelType]any
 }
 
 func (s *labelSet) FindLabel(label BugLabelType) bool {

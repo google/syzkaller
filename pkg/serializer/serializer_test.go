@@ -18,7 +18,7 @@ func TestSerializer(t *testing.T) {
 		B: true,
 		S: "a\x09b",
 		T: T1,
-		I: []interface{}{
+		I: []any{
 			nil,
 			Y{V: 42},
 			new(Y),
@@ -71,7 +71,7 @@ type X struct {
 	B bool
 	S string
 	T T
-	I []interface{}
+	I []any
 	F func()
 }
 

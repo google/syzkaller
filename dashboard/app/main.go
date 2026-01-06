@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	_ "net/http/pprof" // app.yaml restricts this to admins
 	"net/url"
 	"os"
 	"regexp"
@@ -18,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email"
@@ -46,6 +47,7 @@ func initHTTPHandlers() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
+	http.Handle("/ai_job", handlerWrapper(handleAIJobPage))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
@@ -82,6 +84,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
+		http.Handle("/"+ns+"/ai/", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
@@ -289,16 +292,31 @@ type uiReproAttempt struct {
 type uiBugPage struct {
 	Header          *uiHeader
 	Now             time.Time
-	Bug             *uiBug
-	BisectCause     *uiJob
-	BisectFix       *uiJob
-	FixCandidate    *uiJob
 	Sections        []*uiCollapsible
-	SampleReport    template.HTML
 	Crashes         *uiCrashTable
-	TestPatchJobs   *uiJobList
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
+	Bug             *uiBugDetails
+	AIWorkflows     []string
+	AIJobs          []*uiAIJob
+}
+
+type uiBugDetails struct {
+	*uiBug
+	// If DupOf is not nil, uiBug is a duplicate of DupOf.
+	DupOf *uiBug
+	// Dups are the bugs that have been deduplicated into uiBug.
+	Dups *uiBugGroup
+	// Similar are the bugs from other namespaces that have the same title.
+	Similar         *uiBugGroup
+	BisectCauseJob  *uiJob
+	BisectCauseJobs []*uiJob
+	BisectFixJob    *uiJob
+	BisectFixJobs   []*uiJob
+	FixCandidateJob *uiJob
+	SampleReport    template.HTML
+	Crashes         []*uiCrash
+	TestPatchJobs   *uiJobList
 }
 
 type uiBugLabelGroup struct {
@@ -318,7 +336,7 @@ type uiCollapsible struct {
 	Title string
 	Show  bool   // By default it's collapsed.
 	Type  string // Template system understands it.
-	Value interface{}
+	Value any
 }
 
 func makeCollapsibleBugJobs(title string, jobs []*uiJob) *uiCollapsible {
@@ -375,6 +393,7 @@ type uiBug struct {
 	FirstTime      time.Time
 	LastTime       time.Time
 	ReportedTime   time.Time
+	FixTime        time.Time
 	ClosedTime     time.Time
 	ReproLevel     dashapi.ReproLevel
 	ReportingIndex int
@@ -952,6 +971,12 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		}
 	case "invalidate_bisection":
 		return handleInvalidateBisection(c, w, r)
+	case "updateBugReporting":
+		return updateBugReporting(c, w, r)
+	case "restartFailedBisections":
+		return restartFailedBisections(c, w, r)
+	case "setMissingBugFields":
+		return setMissingBugFields(c, w, r)
 	case "emergency_stop":
 		if err := recordEmergencyStop(c); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
@@ -1052,7 +1077,6 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
-// nolint: funlen, gocyclo
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
@@ -1069,46 +1093,79 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	state, err := loadReportingState(c)
-	if err != nil {
-		return err
-	}
-	managers, err := CachedManagerList(c, bug.Namespace)
-	if err != nil {
-		return err
-	}
-	sections := []*uiCollapsible{}
-	if bug.DupOf != "" {
-		dup := new(Bug)
-		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
-			return err
-		}
-		if accessLevel >= dup.sanitizeAccess(c, accessLevel) {
-			sections = append(sections, &uiCollapsible{
-				Title: "Duplicate of",
-				Show:  true,
-				Type:  sectionBugList,
-				Value: &uiBugGroup{
-					Now:  timeNow(c),
-					Bugs: []*uiBug{createUIBug(c, dup, state, managers)},
-				},
-			})
-		}
-	}
-	uiBug := createUIBug(c, bug, state, managers)
-	crashes, sampleReport, err := loadCrashesForBug(c, bug)
+	cfg := getNsConfig(c, hdr.Namespace)
+	bugDetails, err := loadBugDetails(c, bug, accessLevel)
 	if err != nil {
 		return err
 	}
 	crashesTable := &uiCrashTable{
-		Crashes: crashes,
-		Caption: fmt.Sprintf("Crashes (%d)", bug.NumCrashes),
+		Crashes: bugDetails.Crashes,
+		Caption: fmt.Sprintf("Crashes (%d)", bugDetails.NumCrashes),
 	}
-	dups, err := loadDupsForBug(c, r, bug, state, managers)
+	sections, err := createBugSections(c, cfg, accessLevel, bug, bugDetails)
 	if err != nil {
 		return err
 	}
-	if len(dups.Bugs) > 0 {
+	var aiWorkflows []string
+	var aiJobs []*uiAIJob
+	if hdr.AI {
+		aiWorkflows, err = aiBugWorkflows(c, bug)
+		if err != nil {
+			return err
+		}
+		jobs, err := aidb.LoadBugJobs(c, bug.keyHash(c))
+		if err != nil {
+			return err
+		}
+		for _, job := range jobs {
+			aiJobs = append(aiJobs, makeUIAIJob(job))
+		}
+	}
+	data := &uiBugPage{
+		Header:      hdr,
+		Now:         timeNow(c),
+		Sections:    sections,
+		LabelGroups: getLabelGroups(c, bug),
+		Crashes:     crashesTable,
+		Bug:         bugDetails,
+		AIWorkflows: aiWorkflows,
+		AIJobs:      aiJobs,
+	}
+	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
+		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
+	}
+	if workflow := r.FormValue("ai-job-create"); workflow != "" {
+		if !hdr.AI {
+			return ErrAccess
+		}
+		if err := aiBugJobCreate(c, workflow, bug); err != nil {
+			return err
+		}
+		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
+	}
+	if r.FormValue("json") == "1" {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, data)
+	}
+
+	return serveTemplate(w, "bug.html", data)
+}
+
+func createBugSections(c context.Context, cfg *Config, accessLevel AccessLevel,
+	bug *Bug, bugDetails *uiBugDetails) ([]*uiCollapsible, error) {
+	var sections []*uiCollapsible
+	if bugDetails.DupOf != nil {
+		sections = append(sections, &uiCollapsible{
+			Title: "Duplicate of",
+			Show:  true,
+			Type:  sectionBugList,
+			Value: &uiBugGroup{
+				Now:  timeNow(c),
+				Bugs: []*uiBug{bugDetails.DupOf},
+			},
+		})
+	}
+	if dups := bugDetails.Dups; len(dups.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Duplicate bugs (%d)", len(dups.Bugs)),
 			Type:  sectionBugList,
@@ -1117,7 +1174,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	discussions, err := getBugDiscussionsUI(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(discussions) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1129,7 +1186,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	treeTestJobs, err := treeTestJobs(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(treeTestJobs) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1139,50 +1196,17 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: treeTestJobs,
 		})
 	}
-	similar, err := loadSimilarBugsUI(c, r, bug, state)
-	if err != nil {
-		return err
-	}
-	if len(similar.Bugs) > 0 {
+	if similar := bugDetails.Similar; len(similar.Bugs) > 0 {
 		sections = append(sections, &uiCollapsible{
 			Title: fmt.Sprintf("Similar bugs (%d)", len(similar.Bugs)),
-			Show:  getNsConfig(c, hdr.Namespace).AccessLevel != AccessPublic,
+			Show:  cfg.AccessLevel != AccessPublic,
 			Type:  sectionBugList,
 			Value: similar,
 		})
 	}
-	causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
-	if err != nil {
-		return fmt.Errorf("failed to load cause bisections: %w", err)
-	}
-	var bisectCause *uiJob
-	if bug.BisectCause > BisectPending {
-		bisectCause, err = causeBisections.uiBestBisection(c)
-		if err != nil {
-			return err
-		}
-	}
-	fixBisections, err := queryBugJobs(c, bug, JobBisectFix)
-	if err != nil {
-		return fmt.Errorf("failed to load cause bisections: %w", err)
-	}
-	var bisectFix *uiJob
-	if bug.BisectFix > BisectPending {
-		bisectFix, err = fixBisections.uiBestBisection(c)
-		if err != nil {
-			return err
-		}
-	}
-	var fixCandidate *uiJob
-	if bug.FixCandidateJob != "" {
-		fixCandidate, err = fixBisections.uiBestFixCandidate(c)
-		if err != nil {
-			return err
-		}
-	}
 	testPatchJobs, err := loadTestPatchJobs(c, bug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(testPatchJobs) > 0 {
 		sections = append(sections, &uiCollapsible{
@@ -1202,52 +1226,90 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			Value: reproAttempts,
 		})
 	}
-	data := &uiBugPage{
-		Header:       hdr,
-		Now:          timeNow(c),
-		Bug:          uiBug,
-		BisectCause:  bisectCause,
-		BisectFix:    bisectFix,
-		FixCandidate: fixCandidate,
-		Sections:     sections,
-		SampleReport: sampleReport,
-		Crashes:      crashesTable,
-		LabelGroups:  getLabelGroups(c, bug),
-	}
-	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
-		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
-	}
 	// bug.BisectFix is set to BisectNot in three cases :
 	// - no fix bisections have been performed on the bug
 	// - fix bisection was performed but resulted in a crash on HEAD
 	// - there have been infrastructure problems during the job execution
-	if len(fixBisections.all()) > 1 || len(fixBisections.all()) > 0 && bisectFix == nil {
-		uiList, err := fixBisections.uiAll(c)
-		if err != nil {
-			return err
-		}
-		if len(uiList) != 0 {
-			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Fix bisection attempts", uiList))
-		}
+	if len(bugDetails.BisectFixJobs) > 1 || len(bugDetails.BisectFixJobs) > 0 && bugDetails.BisectFixJob == nil {
+		sections = append(sections, makeCollapsibleBugJobs(
+			"Fix bisection attempts", bugDetails.BisectFixJobs))
 	}
 	// Similarly, a cause bisection can be repeated if there were infrastructure problems.
-	if len(causeBisections.all()) > 1 || len(causeBisections.all()) > 0 && bisectCause == nil {
-		uiList, err := causeBisections.uiAll(c)
-		if err != nil {
-			return err
-		}
-		if len(uiList) != 0 {
-			data.Sections = append(data.Sections, makeCollapsibleBugJobs(
-				"Cause bisection attempts", uiList))
-		}
+	if len(bugDetails.BisectCauseJobs) > 1 || len(bugDetails.BisectCauseJobs) > 0 && bugDetails.BisectCauseJob == nil {
+		sections = append(sections, makeCollapsibleBugJobs(
+			"Cause bisection attempts", bugDetails.BisectCauseJobs))
 	}
-	if r.FormValue("json") == "1" {
-		w.Header().Set("Content-Type", "application/json")
-		return writeJSONVersionOf(w, data)
-	}
+	return sections, nil
+}
 
-	return serveTemplate(w, "bug.html", data)
+func loadBugDetails(c context.Context, bug *Bug, accessLevel AccessLevel) (*uiBugDetails, error) {
+	managers, err := CachedManagerList(c, bug.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	state, err := loadReportingState(c)
+	if err != nil {
+		return nil, err
+	}
+	ret := &uiBugDetails{
+		uiBug: createUIBug(c, bug, state, managers),
+	}
+	if bug.DupOf != "" {
+		dup := new(Bug)
+		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
+			return nil, err
+		}
+		if accessLevel >= dup.sanitizeAccess(c, accessLevel) {
+			ret.DupOf = createUIBug(c, dup, state, managers)
+		}
+	}
+	ret.Crashes, ret.SampleReport, err = loadCrashesForBug(c, bug)
+	if err != nil {
+		return nil, err
+	}
+	ret.Dups, err = loadDupsForBug(c, bug, state, managers, accessLevel)
+	if err != nil {
+		return nil, err
+	}
+	ret.Similar, err = loadSimilarBugsUI(c, bug, state, accessLevel)
+	if err != nil {
+		return nil, err
+	}
+	causeBisections, err := queryBugJobs(c, bug, JobBisectCause)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cause bisections: %w", err)
+	}
+	ret.BisectCauseJobs, err = causeBisections.uiAll(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
+	}
+	if bug.BisectCause > BisectPending {
+		ret.BisectCauseJob, err = causeBisections.uiBestBisection(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	fixBisections, err := queryBugJobs(c, bug, JobBisectFix)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load fix bisections: %w", err)
+	}
+	ret.BisectFixJobs, err = fixBisections.uiAll(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load all fix bisections: %w", err)
+	}
+	if bug.BisectFix > BisectPending {
+		ret.BisectFixJob, err = fixBisections.uiBestBisection(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if bug.FixCandidateJob != "" {
+		ret.FixCandidateJob, err = fixBisections.uiBestFixCandidate(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ret, nil
 }
 
 func getReproAttempts(bug *Bug) []*uiReproAttempt {
@@ -1411,7 +1473,7 @@ func handleBugSummaries(c context.Context, w http.ResponseWriter, r *http.Reques
 	return json.NewEncoder(w).Encode(list)
 }
 
-func writeJSONVersionOf(writer http.ResponseWriter, page interface{}) error {
+func writeJSONVersionOf(writer http.ResponseWriter, page any) error {
 	data, err := GetJSONDescrFor(page)
 	if err != nil {
 		return err
@@ -1815,7 +1877,8 @@ func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
 	return query
 }
 
-func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
+func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState,
+	managers []string, accessLevel AccessLevel) (
 	*uiBugGroup, error) {
 	bugHash := bug.keyHash(c)
 	var dups []*Bug
@@ -1827,7 +1890,6 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 		return nil, err
 	}
 	var results []*uiBug
-	accessLevel := accessLevel(c, r)
 	for _, dup := range dups {
 		if accessLevel < dup.sanitizeAccess(c, accessLevel) {
 			continue
@@ -1844,9 +1906,9 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 	return group, nil
 }
 
-func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
+func loadSimilarBugsUI(c context.Context, bug *Bug, state *ReportingState,
+	accessLevel AccessLevel) (*uiBugGroup, error) {
 	managers := make(map[string][]string)
-	accessLevel := accessLevel(c, r)
 	similarBugs, err := loadSimilarBugs(c, bug)
 	if err != nil {
 		return nil, err
@@ -1949,6 +2011,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		LastTime:       bug.LastTime,
 		ReportedTime:   reported,
 		ClosedTime:     bug.Closed,
+		FixTime:        bug.FixTime,
 		ReproLevel:     bug.ReproLevel,
 		ReportingIndex: reportingIdx,
 		Status:         status,
@@ -2407,14 +2470,13 @@ func invalidateJobLink(c context.Context, job *Job, jobKey *db.Key, restart bool
 
 func formatLogLine(line string) string {
 	const maxLineLen = 1000
-
 	line = strings.ReplaceAll(line, "\n", " ")
 	line = strings.ReplaceAll(line, "\r", "")
 	if len(line) > maxLineLen {
 		line = line[:maxLineLen]
 		line += "..."
 	}
-	return line + "\n"
+	return line
 }
 
 func fetchErrorLogs(c context.Context) ([]byte, error) {
@@ -2422,9 +2484,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		return nil, nil
 	}
 
-	const (
-		maxLines = 100
-	)
+	const maxLines = 100
 	projID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 
 	adminClient, err := logadmin.NewClient(c, projID)
@@ -2436,16 +2496,23 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	lastWeek := time.Now().Add(-1 * 7 * 24 * time.Hour).Format(time.RFC3339)
 	iter := adminClient.Entries(c,
 		logadmin.Filter(
-			// We filter our instances.delete errors as false positives. Delete event happens every second.
-			// Also, ignore GKE logs since it streams all stderr output as severity=ERROR.
-			fmt.Sprintf(`(NOT protoPayload.methodName:v1.compute.instances.delete)`+
-				` AND (NOT resource.type="k8s_container") AND timestamp > "%s" AND severity>="ERROR"`,
-				lastWeek)),
-		logadmin.NewestFirst(),
-	)
+			fmt.Sprintf(`
+				timestamp > "%s" AND severity>="ERROR"
+				-- Ignore GKE logs since it streams all stderr output as severity=ERROR.
+				AND (NOT resource.type="k8s_container")
+				-- Filter our instances.delete errors as false positives. Delete event happens every second.
+				AND (NOT protoPayload.methodName:v1.compute.instances.delete)
+				-- Let somebody else monitor datastore bugs (also see #6069).
+				AND (NOT textPayload:"datastore_v3: INTERNAL_ERROR")
+				-- GetPackageUpdates is something related to package updates on GCE machines.
+				-- They are happening in hundreds every day.
+				AND (NOT jsonPayload.message:"packages.GetPackageUpdates()")
+				-- CloudBuild don't look like errors, there is nothing that suggests that's an error.
+				AND (NOT protoPayload.methodName:"google.devtools.cloudbuild.v1.CloudBuild.CreateBuild")
+			`, lastWeek)), logadmin.NewestFirst())
 
-	var entries []*logging.Entry
-	for len(entries) < maxLines {
+	var lines []string
+	for len(lines) < maxLines {
 		entry, err := iter.Next()
 		if err == iterator.Done {
 			break
@@ -2453,11 +2520,6 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, entry)
-	}
-
-	var lines []string
-	for _, entry := range entries {
 		requestLog, isRequestLog := entry.Payload.(*proto.RequestLog)
 		if isRequestLog {
 			for _, logLine := range requestLog.Line {
@@ -2483,6 +2545,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	for i := len(lines) - 1; i >= 0; i-- {
 		buf.WriteString(lines[i])
+		buf.WriteByte('\n')
 	}
 	return buf.Bytes(), nil
 }

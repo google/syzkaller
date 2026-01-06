@@ -97,24 +97,24 @@ func TestParse(t *testing.T) {
 var parseTests = []struct {
 	name   string
 	input  string
-	result []interface{}
+	result []any
 }{
 	{
 		"empty",
 		``,
-		[]interface{}{},
+		[]any{},
 	},
 	{
 		"new-line",
 		`
 
 `,
-		[]interface{}{},
+		[]any{},
 	},
 	{
 		"nil",
 		"\x00",
-		[]interface{}{},
+		[]any{},
 	},
 }
 

@@ -131,7 +131,7 @@ func (ctx *TestbedContext) MakeMgrConfig(base, patch json.RawMessage) json.RawMe
 		tool.Failf("failed to apply a patch to the base manager config: %s", err)
 	}
 	// We don't care much about the specific ports of syz-managers.
-	mgrCfg, err = config.PatchJSON(mgrCfg, map[string]interface{}{"HTTP": ":0"})
+	mgrCfg, err = config.PatchJSON(mgrCfg, map[string]any{"HTTP": ":0"})
 	if err != nil {
 		tool.Failf("failed to assign empty HTTP value: %s", err)
 	}
@@ -266,7 +266,7 @@ func (ctx *TestbedContext) Loop(stop chan struct{}) {
 }
 
 func (d *DurationConfig) UnmarshalJSON(data []byte) error {
-	var v interface{}
+	var v any
 	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}

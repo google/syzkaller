@@ -203,7 +203,7 @@ func handleAuth(fn contextHandler) contextHandler {
 	}
 }
 
-func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
+func serveTemplate(w http.ResponseWriter, name string, data any) error {
 	buf := new(bytes.Buffer)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
 		return err
@@ -214,6 +214,7 @@ func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
 
 type uiHeader struct {
 	Admin               bool
+	AI                  bool // Enable UI elements related to AI
 	URLPath             string
 	LoginLink           string
 	AnalyticsTrackingID string
@@ -225,6 +226,7 @@ type uiHeader struct {
 	Namespaces          []uiNamespace
 	ShowSubsystems      bool
 	ShowCoverageMenu    bool
+	Message             string // Show message box with this message when the page loads.
 }
 
 type uiNamespace struct {
@@ -299,8 +301,10 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		}
 	}
 	if ns != adminPage {
+		cfg := getNsConfig(c, ns)
 		h.Namespace = ns
-		h.ShowSubsystems = getNsConfig(c, ns).Subsystems.Service != nil
+		h.AI = cfg.AI && accessLevel >= AIAccessLevel
+		h.ShowSubsystems = cfg.Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
 		cached, err := CacheGet(c, r, ns)
@@ -309,7 +313,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		}
 		h.BugCounts = &cached.Total
 		h.MissingBackports = cached.MissingBackports
-		h.ShowCoverageMenu = getNsConfig(c, ns).Coverage != nil
+		h.ShowCoverageMenu = cfg.Coverage != nil
 	}
 	return h, nil
 }

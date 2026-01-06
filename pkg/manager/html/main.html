@@ -31,7 +31,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'First Time', textSort, true)" href="#">First Time</a></th>
 		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
 		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
-		<th><a onclick="return sortTable(this, 'Repro Attempt Count', numSort)" href="#">Repro Attempt Count</a></th>
+		<th><a onclick="return sortTable(this, 'Repro Attempts', numSort)" href="#">Repro Attempts</a></th>
 	</tr>
 	</thead>
 	<tbody>
@@ -57,7 +57,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<a href="/file?name={{$c.StraceFile}}">Strace</a>
 			{{end}}
 		</td>
-		<td class="stat">{{if $c.ReproAttempts}}{{$c.ReproAttempts}}{{end}}</td>
+		<td class="stat {{if not $c.ReproAttempts}}inactive{{end}}">{{$c.ReproAttempts}}</td>
 	</tr>
 	{{end}}
 	</tbody>

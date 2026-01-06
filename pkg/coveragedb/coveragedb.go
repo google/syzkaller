@@ -149,7 +149,7 @@ from merge_history
 		on merge_history.session = files.session
 where
 	namespace=$1 and dateto=$2 and duration=$3 and filepath=$4 and commit=$5 and manager=$6`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"p1": ns,
 			"p2": timePeriod.DateTo,
 			"p3": timePeriod.Days,
@@ -267,7 +267,7 @@ func NsDataMerged(ctx context.Context, client spannerclient.SpannerClient, ns st
 			from merge_history
 			where
 				namespace=$1`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"p1": ns,
 		},
 	}
@@ -485,7 +485,7 @@ from merge_history
     on merge_history.namespace = file_subsystems.namespace and files.filepath = file_subsystems.filepath
 where
   merge_history.namespace=$1 and dateto=$2 and duration=$3 and manager=$4`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"p1": scope.Ns,
 			"p2": scope.Periods[0].DateTo,
 			"p3": scope.Periods[0].Days,
@@ -646,8 +646,26 @@ func RegenerateSubsystems(ctx context.Context, ns string, sss []*subsystem.Subsy
 
 func getFilePaths(ctx context.Context, ns string, client spannerclient.SpannerClient) ([]string, error) {
 	iter := client.Single().Query(ctx, spanner.Statement{
-		SQL: `select filepath from file_subsystems where namespace=$1`,
-		Params: map[string]interface{}{
+		// Take file names from 1 quarterly, 1 monthly and 1 daily aggregations.
+		SQL: `
+select
+  distinct files.filepath
+from files
+where files.session in (
+  select session from (
+    select
+        session
+    from
+      merge_history
+    where
+      namespace = $1
+    order by dateto desc, duration desc
+    limit 3
+  ) as sub
+)
+order by files.filepath
+`,
+		Params: map[string]any{
 			"p1": ns,
 		},
 	})

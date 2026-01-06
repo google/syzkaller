@@ -502,4 +502,4 @@ func BenchmarkStoreLoadInt(b *testing.B) {
 	}
 }
 
-var sink interface{}
+var sink any

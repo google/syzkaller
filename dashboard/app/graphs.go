@@ -122,7 +122,6 @@ type uiMultiInput struct {
 	Vals    []string
 }
 
-// nolint: dupl
 func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
@@ -139,7 +138,6 @@ func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.R
 	return serveTemplate(w, "graph_bugs.html", data)
 }
 
-// nolint: dupl
 func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
@@ -172,7 +170,6 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	return serveTemplate(w, "graph_lifetimes.html", data)
 }
 
-// nolint: dupl
 func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
@@ -352,7 +349,6 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 	const projected = "projected"
 	// This is linux-specific at the moment, potentially can move to pkg/report/crash
 	// and extend to other OSes.
-	// nolint: lll
 	types := []struct {
 		name  string
 		color string

@@ -37,7 +37,7 @@ func (dm *dashapiMock) BuilderPoll(manager string) (*dashapi.BuilderPollResp, er
 // We don't care about the methods below for now.
 func (dm *dashapiMock) ReportBuildError(req *dashapi.BuildErrorReq) error { return nil }
 func (dm *dashapiMock) UploadBuild(build *dashapi.Build) error            { return nil }
-func (dm *dashapiMock) LogError(name, msg string, args ...interface{})    {}
+func (dm *dashapiMock) LogError(name, msg string, args ...any)            {}
 func (dm *dashapiMock) CommitPoll() (*dashapi.CommitPollResp, error)      { return nil, nil }
 func (dm *dashapiMock) UploadCommits(commits []dashapi.Commit) error      { return nil }
 

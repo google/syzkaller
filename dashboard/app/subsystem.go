@@ -108,7 +108,7 @@ type (
 )
 
 func updateBugSubsystems(c context.Context, bugKey *db.Key,
-	list []*subsystem.Subsystem, info interface{}) error {
+	list []*subsystem.Subsystem, info any) error {
 	now := timeNow(c)
 	return updateSingleBug(c, bugKey, func(bug *Bug) error {
 		switch v := info.(type) {

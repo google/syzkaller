@@ -50,12 +50,11 @@ func (repo *ReportRepository) Insert(ctx context.Context, rep *SessionReport) er
 	return fmt.Errorf("failed to pick a non-existing report ID")
 }
 
-// nolint: dupl
 func (repo *ReportRepository) ListNotReported(ctx context.Context, reporter string,
 	limit int) ([]*SessionReport, error) {
 	stmt := spanner.Statement{
 		SQL: "SELECT * FROM `SessionReports` WHERE `Reporter` = @reporter AND `ReportedAt` IS NULL",
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"reporter": reporter,
 		},
 	}

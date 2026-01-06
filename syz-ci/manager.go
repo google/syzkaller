@@ -100,7 +100,7 @@ type ManagerDashapi interface {
 	ReportBuildError(req *dashapi.BuildErrorReq) error
 	UploadBuild(build *dashapi.Build) error
 	BuilderPoll(manager string) (*dashapi.BuilderPollResp, error)
-	LogError(name, msg string, args ...interface{})
+	LogError(name, msg string, args ...any)
 	CommitPoll() (*dashapi.CommitPollResp, error)
 	UploadCommits(commits []dashapi.Commit) error
 }
@@ -1082,7 +1082,7 @@ func uploadFileHTTPPut(ctx context.Context, URL string, file io.Reader) error {
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
-func (mgr *Manager) Errorf(msg string, args ...interface{}) {
+func (mgr *Manager) Errorf(msg string, args ...any) {
 	for _, arg := range args {
 		err, _ := arg.(error)
 		if err == nil {

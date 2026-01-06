@@ -64,6 +64,8 @@ include <fs/smb/client/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
 include <uapi/linux/prctl.h>
 include <asm/prctl.h>
+include <linux/reboot.h>
+include <linux/swap.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
@@ -262,8 +264,8 @@ ioctl$FIOCLEX(fd fd, cmd const[FIOCLEX])
 ioctl$FIONCLEX(fd fd, cmd const[FIONCLEX])
 ioctl$FITHAW(fd fd, cmd const[FITHAW])
 
-# FIFREEZE is disabled because it can easily kill the machine.
-ioctl$FIFREEZE(fd fd, cmd const[FIFREEZE]) (disabled)
+# FIFREEZE is enabled in sandbox mode only because it can easily kill the machine.
+ioctl$FIFREEZE(fd fd, cmd const[FIFREEZE]) (snapshot)
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -544,8 +546,8 @@ waitid(which flags[waitid_which], pid pid, infop ptr[out, siginfo, opt], options
 waitid$P_PIDFD(which const[P_PIDFD], pidfd fd_pidfd, infop ptr[out, siginfo, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 times(buf ptr[out, tms])
-# Can send signals to all processes (pid=-1).
-#kill(pid pid, sig signalno)
+# Can send signals to all processes (pid=-1) so it's enabled only in snapshot mode.
+kill(pid pid, sig signalno) (snapshot)
 
 set_thread_area(info ptr[in, user_desc])
 get_thread_area(info ptr[in, user_desc])
@@ -569,6 +571,56 @@ sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags const[0]
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags const[0])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
+
+reboot(magic1 const[LINUX_REBOOT_MAGIC1], magic2 const[LINUX_REBOOT_MAGIC2], cmd flags[reboot_commands], arg const[0]) (snapshot)
+
+reboot_commands = LINUX_REBOOT_CMD_RESTART, LINUX_REBOOT_CMD_HALT, LINUX_REBOOT_CMD_CAD_ON, LINUX_REBOOT_CMD_CAD_OFF, LINUX_REBOOT_CMD_POWER_OFF, LINUX_REBOOT_CMD_RESTART2, LINUX_REBOOT_CMD_SW_SUSPEND, LINUX_REBOOT_CMD_KEXEC
+
+swapon(specialfile ptr[in, filename], swap_flags flags[swap_flags]) (snapshot)
+swapoff(specialfile ptr[in, filename]) (snapshot)
+
+swap_flags = SWAP_FLAG_PRIO_MASK, SWAP_FLAG_PREFER, SWAP_FLAG_DISCARD, SWAP_FLAG_DISCARD_ONCE, SWAP_FLAG_DISCARD_PAGES
+
+sethostname(name ptr[in, array[int8]], len bytesize[name]) (snapshot)
+setdomainname(name ptr[in, array[int8]], len bytesize[name]) (snapshot)
+
+gettimeofday(tv ptr[out, timeval], tz ptr[out, timezone])
+settimeofday(tv ptr[out, timeval], tz ptr[out, timezone]) (snapshot)
+adjtimex(txc_p ptr[in, __kernel_timex]) (snapshot)
+
+timezone {
+	tz_minuteswest	int32
+	tz_dsttime	int32
+}
+
+__kernel_timex {
+	modes		flags[adjtimex_modes, int32]
+	pad0		const[0, int32]
+	offset		int64
+	freq		int64
+	maxerror	int64
+	esterror	int64
+	status		int32
+	pad1		const[0, int32]
+	constant	int64
+	precision	int64
+	tolerance	int64
+	int		timeval
+	tick		int64
+	ppsfreq		int64
+	jitter		int64
+	shift		int32
+	pad2		const[0, int32]
+	stabil		int64
+	jitcnt		int64
+	calcnt		int64
+	errcnt		int64
+	stbcnt		int64
+	tai		int32
+	pad3		array[const[0, int32], 11]
+}
+
+adjtimex_modes = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMECONST, ADJ_TAI, ADJ_SETOFFSET, ADJ_MICRO, ADJ_NANO, ADJ_TICK
 
 membarrier(cmd flags[membarrier_cmd], flags const[0])
 
@@ -1390,11 +1442,6 @@ clone3_flags = CLONE_CLEAR_SIGHAND, CLONE_INTO_CGROUP, clone_flags
 ptrace_peeksiginfo_flags = PTRACE_PEEKSIGINFO_SHARED
 close_range_flags = CLOSE_RANGE_UNSHARE
 
-# adjtimex flags.
-_ = STA_PLL, STA_PPSFREQ, STA_PPSTIME, STA_FLL, STA_INS, STA_DEL, STA_UNSYNC, STA_FREQHOLD, STA_PPSSIGNAL, STA_PPSJITTER, STA_PPSWANDER, STA_PPSERROR, STA_CLOCKERR, STA_NANO, STA_MODE, STA_CLK, STA_RONLY
-# clock_adjtime modes
-_ = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMECONST, ADJ_TAI, ADJ_SETOFFSET, ADJ_MICRO, ADJ_NANO, ADJ_TICK, ADJ_OFFSET_SINGLESHOT
-
 # Consts for target.SpecialFileLenghts.
 _ = SMB_PATH_MAX, XT_CGROUP_PATH_MAX, XENSTORE_REL_PATH_MAX
 
@@ -1408,18 +1455,10 @@ define KCOV_REMOTE_ENABLE	1075340134
 # umask
 # vhangup
 # _sysctl
-# adjtimex
-# swapon
-# swapoff
 # nfsservctl
 # getcpu
 
 # Probably no sense in calling these.
 # Also affect system-wide state, so not reproducible anyway.
-# gettimeofday
-# settimeofday
-# reboot
-# sethostname
-# setdomainname
 # sched_get_priority_max
 # sched_get_priority_min

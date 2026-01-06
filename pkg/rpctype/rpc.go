@@ -19,7 +19,7 @@ type RPCServer struct {
 	s  *rpc.Server
 }
 
-func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
+func NewRPCServer(addr, name string, receiver any) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %v: %w", addr, err)
@@ -69,7 +69,7 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 	return cli, nil
 }
 
-func (cli *RPCClient) Call(method string, args, reply interface{}) error {
+func (cli *RPCClient) Call(method string, args, reply any) error {
 	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
 	cli.conn.SetDeadline(time.Now().Add(10 * time.Minute))
 	defer cli.conn.SetDeadline(time.Time{})

@@ -7,6 +7,7 @@ meta arches["386", "amd64"]
 
 include <linux/kvm.h>
 include <linux/kvm_host.h>
+include <asm/kvm.h>
 include <asm/mce.h>
 
 # kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
@@ -312,6 +313,25 @@ ioctl$KVM_SEV_SNP_LAUNCH_START(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], ar
 ioctl$KVM_SEV_SNP_LAUNCH_UPDATE(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_UPDATE, ptr[in, kvm_sev_snp_launch_update]]])
 ioctl$KVM_SEV_SNP_LAUNCH_FINISH(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_memory_encrypt_op[KVM_SEV_SNP_LAUNCH_FINISH, ptr[in, kvm_sev_snp_launch_finish]]])
 
+# TDX-related (based on Documentation/virt/kvm/x86/intel-tdx.rst).
+kvm_tdx_init_mem_region_flags = KVM_TDX_MEASURE_MEMORY_REGION
+
+kvm_tdx_empty_flags = 0
+
+type kvm_tdx_cmd[ID, FLAGS, DATA] {
+	id		const[ID, int32]
+	flags		flags[FLAGS, int32]
+	data		DATA
+	hw_error	int64	(out)
+}
+
+ioctl$KVM_TDX_CAPABILITIES(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_CAPABILITIES, kvm_tdx_empty_flags, ptr[out, kvm_tdx_capabilities]]])
+ioctl$KVM_TDX_INIT_VM(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_INIT_VM, kvm_tdx_empty_flags, ptr[in, kvm_tdx_init_vm]]])
+ioctl$KVM_TDX_INIT_VCPU(fd fd_kvmcpu, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_INIT_VCPU, kvm_tdx_empty_flags, int64]])
+ioctl$KVM_TDX_INIT_MEM_REGION(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_INIT_MEM_REGION, kvm_tdx_init_mem_region_flags, ptr[in, kvm_tdx_init_mem_region]]])
+ioctl$KVM_TDX_FINALIZE_VM(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_FINALIZE_VM, kvm_tdx_empty_flags, const[0, intptr]]])
+ioctl$KVM_TDX_GET_CPUID(fd fd_kvmcpu, cmd const[KVM_MEMORY_ENCRYPT_OP], arg ptr[inout, kvm_tdx_cmd[KVM_TDX_GET_CPUID, kvm_tdx_empty_flags, ptr[inout, kvm_cpuid2]]])
+
 # Apparently KVM_MEMORY_ENCRYPT_REG_REGION and KVM_MEMORY_ENCRYPT_UNREG_REGION are VM ioctls, despite
 # https://docs.kernel.org/virt/kvm/api.html#kvm-memory-encrypt-reg-region says they are system.
 ioctl$KVM_MEMORY_ENCRYPT_REG_REGION(fd fd_kvmvm, cmd const[KVM_MEMORY_ENCRYPT_REG_REGION], arg ptr[in, kvm_enc_region])
@@ -370,7 +390,7 @@ kvm_sev_launch_measure {
 kvm_sev_guest_status {
 	handle	sev_handle
 	policy	int32
-	state	int8
+	state	int32
 }
 
 kvm_sev_dbg {
@@ -469,6 +489,56 @@ kvm_sev_snp_launch_finish {
 	pad0		array[const[0, int8], 3]
 	flags		int16
 	pad1		array[const[0, int64], 4]
+}
+
+kvm_tdx_capabilities {
+	supported_attrs			int64
+	supported_xfam			int64
+	kernel_tdvmcallinfo_1_r11	int64
+	user_tdvmcallinfo_1_r11		int64
+	kernel_tdvmcallinfo_1_r12	int64
+	user_tdvmcallinfo_1_r12		int64
+	reserved			array[const[0, int64], 250]
+	cpuid				kvm_cpuid2
+}
+
+# From arch/x86/include/asm/shared/tdx.h.
+tdx_attrs = 0, TDX_ATTR_DEBUG, TDX_ATTR_HGS_PLUS_PROF, TDX_ATTR_PERF_PROF, TDX_ATTR_PMT_PROF, TDX_ATTR_ICSSD, TDX_ATTR_LASS, TDX_ATTR_SEPT_VE_DISABLE, TDX_ATTR_MIGRTABLE, TDX_ATTR_PKS, TDX_ATTR_KL, TDX_ATTR_TPA, TDX_ATTR_PERFMON
+
+# From Intel Trust Domain Extensions Module Base Architecture Specification,
+# Table 11.9: Extended Features Enumeration and Execution Control.
+# These loosely resemble the XFEATURE_MASK_* flags in the kernel.
+define XFAM_FP	(1 << 0)
+define XFAM_SSE	(1 << 1)
+define XFAM_AVX	(1 << 2)
+# MPX is XFAM[4:3] and must be 0.
+define XFAM_AVX512	(7 << 5)
+define XFAM_PT	(1 << 8)
+define XFAM_PK	(1 << 9)
+define XFAM_ENQCMD	(1 << 10)
+define XFAM_CET	(3 << 11)
+define XFAM_HDC	(1 << 13)
+define XFAM_ULI	(1 << 14)
+define XFAM_LBR	(1 << 15)
+define XFAM_HWP	(1 << 16)
+define XFAM_AMX	(3 << 17)
+define XFAM_APX	(1 << 19)
+tdx_xfam = 0, XFAM_FP, XFAM_SSE, XFAM_AVX, XFAM_AVX512, XFAM_PT, XFAM_PK, XFAM_ENQCMD, XFAM_CET, XFAM_HDC, XFAM_ULI, XFAM_LBR, XFAM_HWP, XFAM_AMX, XFAM_APX
+
+kvm_tdx_init_vm {
+	attributes	flags[tdx_attrs, int64]
+	xfam		flags[tdx_xfam, int64]
+	mrconfigid	array[int64, 6]
+	mrowner		array[int64, 6]
+	mrownerconfig	array[int64, 6]
+	reserved	array[const[0, int64], 12]
+	cpuid		kvm_cpuid2
+}
+
+kvm_tdx_init_mem_region {
+	source_addr	vma64
+	gpa		flags[kvm_guest_addrs, int64]
+	nr_pages	int64
 }
 
 kvm_enc_region {

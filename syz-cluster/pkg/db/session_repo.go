@@ -35,7 +35,7 @@ func (repo *SessionRepository) Start(ctx context.Context, sessionID string) erro
 		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 			session, err := readEntity[Session](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `Sessions` WHERE `ID`=@id",
-				Params: map[string]interface{}{"id": sessionID},
+				Params: map[string]any{"id": sessionID},
 			})
 			if err != nil {
 				return err
@@ -50,7 +50,7 @@ func (repo *SessionRepository) Start(ctx context.Context, sessionID string) erro
 			}
 			series, err := readEntity[Series](ctx, txn, spanner.Statement{
 				SQL:    "SELECT * from `Series` WHERE `ID`=@id",
-				Params: map[string]interface{}{"id": session.SeriesID},
+				Params: map[string]any{"id": session.SeriesID},
 			})
 			if err != nil {
 				return err
@@ -87,7 +87,7 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSessio
 	limit int) ([]*Session, *NextSession, error) {
 	stmt := spanner.Statement{
 		SQL:    "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	if from != nil {
 		stmt.SQL += " AND ((`CreatedAt` > @from) OR (`CreatedAt` = @from AND `ID` > @id))"
@@ -110,11 +110,10 @@ func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSessio
 }
 
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.
-// nolint:dupl
 func (repo *SessionRepository) ListForSeries(ctx context.Context, series *Series) ([]*Session, error) {
 	return repo.readEntities(ctx, spanner.Statement{
 		SQL:    "SELECT * FROM `Sessions` WHERE `SeriesID` = @series ORDER BY CreatedAt DESC",
-		Params: map[string]interface{}{"series": series.ID},
+		Params: map[string]any{"series": series.ID},
 	})
 }
 
@@ -129,7 +128,7 @@ func (repo *SessionRepository) MissingReportList(ctx context.Context, from time.
 			"SELECT 1 FROM SessionReports WHERE SessionReports.SessionID = Sessions.ID" +
 			") AND EXISTS (" +
 			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID)",
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	if !from.IsZero() {
 		stmt.SQL += " AND `FinishedAt` > @from"

@@ -23,21 +23,24 @@ PERF=false
 
 # Display help function
 display_help() {
-    echo "Usage: $0 [option...] " >&2
+    echo "Usage: $0 [option...] "
     echo
-    echo "   -a, --arch                 Set architecture"
-    echo "   -d, --distribution         Set on which debian distribution to create"
-    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
-    echo "   -s, --seek                 Image size (MB), default 2048 (2G)"
+    echo "   -a, --arch                 Set architecture (default: $ARCH)"
+    echo "   -d, --distribution         Set on which Debian distribution to create (default: $RELEASE)"
+    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full (default: $FEATURE)"
     echo "   -h, --help                 Display help message"
-    echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
+    echo "   -o, --output               Set output prefix (default: value of --distribution)"
+    echo "   -p, --add-perf             Add perf support. Requires environment variable \$KERNEL pointing to kernel source tree"
+    echo "   -s, --seek                 Image size in MB (default: $(($SEEK + 1)))"
     echo
+    echo "The chroot will be created in ./<output>, the final image will be created in ./<output>.img, and SSH keys will be named"
+    echo "./<output>.id_rsa[.pub]."
 }
 
 while true; do
     if [ $# -eq 0 ];then
-	echo $#
-	break
+        echo $#
+        break
     fi
     case "$1" in
         -h | --help)
@@ -45,24 +48,33 @@ while true; do
             exit 0
             ;;
         -a | --arch)
-	    ARCH=$2
+            ARCH=$2
             shift 2
             ;;
         -d | --distribution)
-	    RELEASE=$2
+            RELEASE=$2
             shift 2
             ;;
         -f | --feature)
-	    FEATURE=$2
+            FEATURE=$2
             shift 2
             ;;
-        -s | --seek)
-	    SEEK=$(($2 - 1))
+        -o | --output)
+            if [[ "$2" == *"/"* || "$2" == *" "* || "$2" == "." || "$2" == ".." ]]
+            then
+                echo "Error: output prefix cannot contain /, spaces, or be . or .."
+                exit 1
+            fi
+            OUTPUT="$2"
             shift 2
             ;;
         -p | --add-perf)
-	    PERF=true
+            PERF=true
             shift 1
+            ;;
+        -s | --seek)
+            SEEK=$(($2 - 1))
+            shift 2
             ;;
         -*)
             echo "Error: Unknown option: $1" >&2
@@ -127,7 +139,7 @@ if [ $FEATURE = "full" ]; then
     PREINSTALL_PKGS=$PREINSTALL_PKGS","$ADD_PACKAGE
 fi
 
-DIR=$RELEASE
+DIR="${OUTPUT:-$RELEASE}"
 sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
@@ -174,9 +186,9 @@ echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee 
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolv.conf
 echo "syzkaller" | sudo tee $DIR/etc/hostname
-ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
+ssh-keygen -f $DIR.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
-cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
+cat $DIR.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 
 # Add perf support
 if [ $PERF = "true" ]; then
@@ -195,9 +207,9 @@ fi
 echo 'ATTR{name}=="vim2m", SYMLINK+="vim2m"' | sudo tee -a $DIR/etc/udev/rules.d/50-udev-default.rules
 
 # Build a disk image
-dd if=/dev/zero of=$RELEASE.img bs=1M seek=$SEEK count=1
-sudo mkfs.ext4 -F $RELEASE.img
+dd if=/dev/zero of=$DIR.img bs=1M seek=$SEEK count=1
+sudo mkfs.ext4 -F $DIR.img
 sudo mkdir -p /mnt/$DIR
-sudo mount -o loop $RELEASE.img /mnt/$DIR
+sudo mount -o loop $DIR.img /mnt/$DIR
 sudo cp -a $DIR/. /mnt/$DIR/.
 sudo umount /mnt/$DIR

@@ -78,7 +78,7 @@ func (c APIServer) triageResult(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	api.ReplyJSON[interface{}](w, nil)
+	api.ReplyJSON[any](w, nil)
 }
 
 func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +118,7 @@ func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	api.ReplyJSON[interface{}](w, nil)
+	api.ReplyJSON[any](w, nil)
 }
 
 func (c APIServer) uploadTestArtifact(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +148,7 @@ func (c APIServer) uploadTestArtifact(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	api.ReplyJSON[interface{}](w, nil)
+	api.ReplyJSON[any](w, nil)
 }
 
 func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	api.ReplyJSON[interface{}](w, nil)
+	api.ReplyJSON[any](w, nil)
 }
 
 func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
@@ -224,7 +224,7 @@ func (c APIServer) uploadBaseFinding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
-	api.ReplyJSON[interface{}](w, nil)
+	api.ReplyJSON[any](w, nil)
 }
 
 func (c APIServer) baseFindingStatus(w http.ResponseWriter, r *http.Request) {

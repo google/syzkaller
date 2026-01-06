@@ -17,15 +17,9 @@ WORKDIR /build
 # Copy the code and the dependencies.
 COPY go.mod go.sum ./
 RUN go mod download
-COPY pkg/ pkg/
-COPY prog/ prog/
-COPY vm/ vm/
-COPY executor/ executor/
-COPY dashboard/dashapi/ dashboard/dashapi/
+COPY . .
 # Copying from the builder to take the `make descriptions` result.
 COPY --from=syzkaller-builder /build/sys/ sys/
-COPY syz-cluster/workflow/boot-step/*.go syz-cluster/workflow/boot-step/
-COPY syz-cluster/pkg/ syz-cluster/pkg/
 
 RUN go build -o /bin/boot-step /build/syz-cluster/workflow/boot-step
 

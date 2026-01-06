@@ -1057,7 +1057,7 @@ func (env *env) log(msg string) {
 	env.logf("%v", msg)
 }
 
-func (env *env) logf(msg string, args ...interface{}) {
+func (env *env) logf(msg string, args ...any) {
 	if false {
 		_ = fmt.Sprintf(msg, args...) // enable printf checker
 	}

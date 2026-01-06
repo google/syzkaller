@@ -54,7 +54,7 @@ func New(client, addr, key string, opts ...DashboardOpts) (*Dashboard, error) {
 type (
 	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
 	RequestDoer   func(req *http.Request) (*http.Response, error)
-	RequestLogger func(msg string, args ...interface{})
+	RequestLogger func(msg string, args ...any)
 )
 
 // key == "" indicates that the ambient GCE service account authority
@@ -407,7 +407,7 @@ type LogEntry struct {
 }
 
 // Centralized logging on dashboard.
-func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
+func (dash *Dashboard) LogError(name, msg string, args ...any) {
 	req := &LogEntry{
 		Name: name,
 		Text: fmt.Sprintf(msg, args...),
@@ -988,7 +988,7 @@ type JobInfo struct {
 	OnMergeBase      bool
 }
 
-func (dash *Dashboard) Query(method string, req, reply interface{}) error {
+func (dash *Dashboard) Query(method string, req, reply any) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
 	}
@@ -1008,7 +1008,7 @@ func (dash *Dashboard) Query(method string, req, reply interface{}) error {
 	return nil
 }
 
-func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
+func (dash *Dashboard) queryImpl(method string, req, reply any) error {
 	if reply != nil {
 		// json decoding behavior is somewhat surprising
 		// (see // https://github.com/golang/go/issues/21092).

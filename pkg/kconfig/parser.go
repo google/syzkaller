@@ -77,7 +77,7 @@ func (p *parser) identLevel() int {
 	return level
 }
 
-func (p *parser) failf(msg string, args ...interface{}) {
+func (p *parser) failf(msg string, args ...any) {
 	if p.err == nil {
 		p.err = fmt.Errorf("%v:%v:%v: %v\n%v", p.file, p.line, p.col, fmt.Sprintf(msg, args...), p.current)
 	}

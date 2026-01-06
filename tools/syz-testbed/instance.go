@@ -145,7 +145,7 @@ func SetupSyzkallerInstance(mgrName, folder string, checkout *Checkout) (*Syzkal
 	}
 	log.Printf("[%s] Generating syz-manager config", mgrName)
 	cfgFile := filepath.Join(folder, "manager.cfg")
-	managerCfg, err := config.PatchJSON(checkout.ManagerConfig, map[string]interface{}{
+	managerCfg, err := config.PatchJSON(checkout.ManagerConfig, map[string]any{
 		"name":      mgrName,
 		"workdir":   workdir,
 		"syzkaller": checkout.Path,

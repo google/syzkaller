@@ -74,7 +74,7 @@ func (ctx *serializer) print(text string) {
 	ctx.printf("%v", text)
 }
 
-func (ctx *serializer) printf(text string, args ...interface{}) {
+func (ctx *serializer) printf(text string, args ...any) {
 	fmt.Fprintf(ctx.buf, text, args...)
 }
 
@@ -820,7 +820,7 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 }
 
 // Eats excessive call arguments and struct fields to recover after description changes.
-func (p *parser) eatExcessive(stopAtComma bool, what string, args ...interface{}) {
+func (p *parser) eatExcessive(stopAtComma bool, what string, args ...any) {
 	p.strictFailf(what, args...)
 	paren, brack, brace := 0, 0, 0
 	for !p.EOF() && p.e == nil {
@@ -1286,14 +1286,14 @@ func (p *parser) Ident() string {
 	return s
 }
 
-func (p *parser) failf(msg string, args ...interface{}) {
+func (p *parser) failf(msg string, args ...any) {
 	if p.e == nil {
 		p.e = fmt.Errorf("%v\nline #%v:%v: %v", fmt.Sprintf(msg, args...), p.l, p.i,
 			highlightError(p.s, p.i))
 	}
 }
 
-func (p *parser) strictFailf(msg string, args ...interface{}) {
+func (p *parser) strictFailf(msg string, args ...any) {
 	if p.strict {
 		p.failf(msg, args...)
 	}

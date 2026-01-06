@@ -1,17 +1,16 @@
+# syntax=docker.io/docker/dockerfile:1.7-labs
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 FROM golang:1.24-alpine AS dashboard-builder
 
 WORKDIR /build
 
 # Prepare the dependencies.
-COPY go.mod ./
-COPY go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY pkg/gcs/ pkg/gcs/
-COPY pkg/html/urlutil/ pkg/html/urlutil/
 
 # Build the tool.
-COPY syz-cluster/dashboard/ syz-cluster/dashboard/
-COPY syz-cluster/pkg/ syz-cluster/pkg/
+COPY --exclude=.git . .
 RUN go build -o /bin/web-dashboard /build/syz-cluster/dashboard
 
 # Build the container.

@@ -51,19 +51,19 @@ func TestMergeJSONs(t *testing.T) {
 func TestPatchJSON(t *testing.T) {
 	tests := []struct {
 		left   string
-		patch  map[string]interface{}
+		patch  map[string]any
 		result string
 	}{
 		{
 			`{"a":1,"b":2}`,
-			map[string]interface{}{"b": "string val"},
+			map[string]any{"b": "string val"},
 			`{"a":1,"b":"string val"}`,
 		},
 		{
 			`{"a":1,"b":2}`,
-			map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": map[string]interface{}{
+			map[string]any{
+				"a": map[string]any{
+					"b": map[string]any{
 						"c": 5,
 					},
 				},
@@ -72,9 +72,9 @@ func TestPatchJSON(t *testing.T) {
 		},
 		{
 			`{}`,
-			map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": map[string]interface{}{
+			map[string]any{
+				"a": map[string]any{
+					"b": map[string]any{
 						"c": 0,
 					},
 				},

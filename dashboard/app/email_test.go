@@ -1063,7 +1063,6 @@ func TestBugFromSubjectInference(t *testing.T) {
 	c.expectEQ(strings.Contains(email.Body, "This crash does not have a reproducer"), true)
 }
 
-// nolint: funlen
 func TestEmailLinks(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

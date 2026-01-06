@@ -300,7 +300,7 @@ func (proxy *ProxyApp) signalLostConnection() {
 	}
 }
 
-func (proxy *ProxyApp) Call(serviceMethod string, args, reply interface{}) error {
+func (proxy *ProxyApp) Call(serviceMethod string, args, reply any) error {
 	err := proxy.Client.Call(serviceMethod, args, reply)
 	if err == rpc.ErrShutdown {
 		proxy.signalLostConnection()
@@ -423,7 +423,6 @@ type instance struct {
 }
 
 // Copy copies a hostSrc file into VM and returns file name in VM.
-// nolint: dupl
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	var reply proxyrpc.CopyResult
 	params := proxyrpc.CopyParams{
@@ -450,7 +449,6 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 // Forward sets up forwarding from within VM to the given tcp
 // port on the host and returns the address to use in VM.
-// nolint: dupl
 func (inst *instance) Forward(port int) (string, error) {
 	var reply proxyrpc.ForwardResult
 	err := inst.ProxyApp.Call(
@@ -589,8 +587,8 @@ type stdInOutCloser struct {
 	io.Writer
 }
 
-func clientErrorf(writer io.Writer) func(fmt string, s ...interface{}) {
-	return func(f string, s ...interface{}) {
+func clientErrorf(writer io.Writer) func(fmt string, s ...any) {
+	return func(f string, s ...any) {
 		fmt.Fprintf(writer, f, s...)
 		writer.Write([]byte("\nSYZFAIL: proxy app plugin error\n"))
 	}

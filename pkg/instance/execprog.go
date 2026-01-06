@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-type ExecutorLogger func(int, string, ...interface{})
+type ExecutorLogger func(int, string, ...any)
 
 type OptionalConfig struct {
 	Logf               ExecutorLogger
@@ -84,7 +84,7 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 		}
 	}
 	if ret.Logf == nil {
-		ret.Logf = func(int, string, ...interface{}) {}
+		ret.Logf = func(int, string, ...any) {}
 	}
 	return ret, nil
 }
@@ -198,9 +198,8 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
 	}
-	target := inst.mgrCfg.SysTarget
-	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, inst.mgrCfg.Type, opts,
-		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
+	command := ExecprogCmd(inst.execprogBin, inst.executorBin, inst.mgrCfg.TargetOS, inst.mgrCfg.TargetArch,
+		inst.mgrCfg.Type, opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
 	return inst.runCommand(command, duration, exitCondition)
 }
 

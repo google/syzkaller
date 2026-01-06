@@ -16,33 +16,53 @@ import (
 	"github.com/google/syzkaller/pkg/coveragedb"
 )
 
-func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
+func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 	return &api.Bug{
-		Version: api.Version,
-		Title:   bugPage.Bug.Title,
-		ID:      bugPage.Bug.ID,
-		Discussions: func() []string {
-			if bugPage.Bug.ExternalLink == "" {
+		Version:    api.Version,
+		Title:      bug.Title,
+		ID:         bug.ID,
+		Status:     bug.Status,
+		FirstCrash: bug.FirstTime,
+		LastCrash:  bug.LastTime,
+		FixTime: func() *time.Time {
+			if bug.FixTime.IsZero() {
 				return nil
 			}
-			return []string{bugPage.Bug.ExternalLink}
+			return &bug.FixTime
 		}(),
-		FixCommits: getBugFixCommits(bugPage.Bug),
-		CauseCommit: func() *api.Commit {
-			if bugPage.BisectCause == nil || bugPage.BisectCause.Commit == nil {
+		CloseTime: func() *time.Time {
+			if bug.ClosedTime.IsZero() {
 				return nil
 			}
-			bisectCause := bugPage.BisectCause
-			return &api.Commit{
+			return &bug.ClosedTime
+		}(),
+		Discussions: func() []string {
+			if bug.ExternalLink == "" {
+				return nil
+			}
+			return []string{bug.ExternalLink}
+		}(),
+		FixCommits: getBugFixCommits(bug.uiBug),
+		CauseCommit: func() *api.Commit {
+			bisectCause := bug.BisectCauseJob
+			if bisectCause == nil || bisectCause.Commit == nil {
+				return nil
+			}
+			commit := &api.Commit{
 				Title:  bisectCause.Commit.Title,
 				Link:   bisectCause.Commit.Link,
 				Hash:   bisectCause.Commit.Hash,
 				Repo:   bisectCause.KernelRepo,
-				Branch: bisectCause.KernelBranch}
+				Branch: bisectCause.KernelBranch,
+			}
+			if !bisectCause.Commit.Date.IsZero() {
+				commit.Date = &bisectCause.Commit.Date
+			}
+			return commit
 		}(),
 		Crashes: func() []api.Crash {
 			var res []api.Crash
-			for _, crash := range bugPage.Crashes.Crashes {
+			for _, crash := range bug.Crashes {
 				res = append(res, api.Crash{
 					Title:              crash.Title,
 					SyzReproducerLink:  crash.ReproSyzLink,
@@ -65,13 +85,17 @@ func getExtAPIDescrForBugPage(bugPage *uiBugPage) *api.Bug {
 func getBugFixCommits(bug *uiBug) []api.Commit {
 	var res []api.Commit
 	for _, commit := range bug.Commits {
-		res = append(res, api.Commit{
+		apiCommit := api.Commit{
 			Title:  commit.Title,
 			Link:   commit.Link,
 			Hash:   commit.Hash,
 			Repo:   commit.Repo,
 			Branch: commit.Branch,
-		})
+		}
+		if !commit.Date.IsZero() {
+			apiCommit.Date = &commit.Date
+		}
+		res = append(res, apiCommit)
 	}
 	return res
 }
@@ -161,11 +185,11 @@ func getExtAPIDescrForBackports(groups []*uiBackportGroup) *publicAPIBackports {
 	}
 }
 
-func GetJSONDescrFor(page interface{}) ([]byte, error) {
-	var res interface{}
+func GetJSONDescrFor(page any) ([]byte, error) {
+	var res any
 	switch i := page.(type) {
 	case *uiBugPage:
-		res = getExtAPIDescrForBugPage(i)
+		res = getExtAPIDescrForBug(i.Bug)
 	case *uiTerminalPage:
 		res = getExtAPIDescrForBugGroups([]*uiBugGroup{i.Bugs})
 	case *uiMainPage:

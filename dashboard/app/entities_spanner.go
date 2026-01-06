@@ -44,7 +44,7 @@ from merge_history join files
   on merge_history.session = files.session
 where namespace=$1 and duration>=$2 and duration<=$3 and manager='*'
 group by dateto, duration`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"p1": ns,
 			"p2": minDays,
 			"p3": maxDays,

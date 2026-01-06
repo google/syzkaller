@@ -1,0 +1,274 @@
+// Copyright 2025 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package aidb
+
+import (
+	"context"
+	"fmt"
+	"reflect"
+	"time"
+
+	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/uuid"
+	"google.golang.org/appengine/v2"
+)
+
+const (
+	Instance = "syzbot"
+	Database = "ai"
+)
+
+func init() {
+	// This forces unmarshalling of JSON integers into json.Number rather than float64.
+	spanner.UseNumberWithJSONDecoderEncoder(true)
+}
+
+func LoadWorkflows(ctx context.Context) ([]*Workflow, error) {
+	return selectAll[Workflow](ctx, spanner.Statement{
+		SQL: `SELECT * FROM Workflows`,
+	})
+}
+
+func UpdateWorkflows(ctx context.Context, active []dashapi.AIWorkflow) error {
+	workflows, err := LoadWorkflows(ctx)
+	if err != nil {
+		return err
+	}
+	m := make(map[string]*Workflow)
+	for _, f := range workflows {
+		m[f.Name] = f
+	}
+	// Truncate the time so that we don't need to update the database on each poll.
+	nowDate := TimeNow(ctx).Truncate(24 * time.Hour)
+	var mutations []*spanner.Mutation
+	for _, f := range active {
+		flow := &Workflow{
+			Name:       f.Name,
+			Type:       f.Type,
+			LastActive: nowDate,
+		}
+		if have := m[flow.Name]; reflect.DeepEqual(have, flow) {
+			continue
+		}
+		mut, err := spanner.InsertOrUpdateStruct("Workflows", flow)
+		if err != nil {
+			return err
+		}
+		mutations = append(mutations, mut)
+	}
+	if len(mutations) == 0 {
+		return nil
+	}
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	_, err = client.Apply(ctx, mutations)
+	return err
+}
+
+func CreateJob(ctx context.Context, job *Job) error {
+	job.ID = uuid.NewString()
+	job.Created = TimeNow(ctx)
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.InsertStruct("Jobs", job)
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func UpdateJob(ctx context.Context, job *Job) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.UpdateStruct("Jobs", job)
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
+	var workflows []string
+	for _, flow := range req.Workflows {
+		workflows = append(workflows, flow.Name)
+	}
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+	var job *Job
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		{
+			iter := txn.Query(ctx, spanner.Statement{
+				SQL: `SELECT * FROM Jobs WHERE Workflow IN UNNEST(@workflows)
+						AND Started IS NULL
+					ORDER BY Created ASC LIMIT 1`,
+				Params: map[string]any{
+					"workflows": workflows,
+				},
+			})
+			defer iter.Stop()
+			var jobs []*Job
+			if err := spanner.SelectAll(iter, &jobs); err != nil || len(jobs) == 0 {
+				return err
+			}
+			job = jobs[0]
+		}
+		job.Started = spanner.NullTime{
+			Time:  TimeNow(ctx),
+			Valid: true,
+		}
+		job.LLMModel = req.LLMModel
+		job.CodeRevision = req.CodeRevision
+		mut, err := spanner.InsertOrUpdateStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return job, err
+}
+
+func LoadNamespaceJobs(ctx context.Context, ns string) ([]*Job, error) {
+	return selectAll[Job](ctx, spanner.Statement{
+		SQL: `SELECT * FROM Jobs WHERE Namespace = @ns ORDER BY Created DESC`,
+		Params: map[string]any{
+			"ns": ns,
+		},
+	})
+}
+
+func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
+	return selectAll[Job](ctx, spanner.Statement{
+		SQL: `SELECT * FROM Jobs WHERE BugID = @bugID ORDER BY Created DESC`,
+		Params: map[string]any{
+			"bugID": bugID,
+		},
+	})
+}
+
+func LoadJob(ctx context.Context, id string) (*Job, error) {
+	return selectOne[Job](ctx, spanner.Statement{
+		SQL: `SELECT * FROM Jobs WHERE ID = @id`,
+		Params: map[string]any{
+			"id": id,
+		},
+	})
+}
+
+func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Span) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	ent := TrajectorySpan{
+		JobID:       jobID,
+		Seq:         int64(span.Seq),
+		Nesting:     int64(span.Nesting),
+		Type:        string(span.Type),
+		Name:        span.Name,
+		Started:     span.Started,
+		Finished:    toNullTime(span.Finished),
+		Error:       toNullString(span.Error),
+		Args:        toNullJSON(span.Args),
+		Results:     toNullJSON(span.Results),
+		Instruction: toNullString(span.Instruction),
+		Prompt:      toNullString(span.Prompt),
+		Reply:       toNullString(span.Reply),
+		Thoughts:    toNullString(span.Thoughts),
+	}
+	mut, err := spanner.InsertOrUpdateStruct("TrajectorySpans", ent)
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func LoadTrajectory(ctx context.Context, jobID string) ([]*TrajectorySpan, error) {
+	return selectAll[TrajectorySpan](ctx, spanner.Statement{
+		SQL: `SELECT * FROM TrajectorySpans WHERE JobID = @job_id ORDER BY Seq ASC`,
+		Params: map[string]any{
+			"job_id": jobID,
+		},
+	})
+}
+
+func selectAll[T any](ctx context.Context, stmt spanner.Statement) ([]*T, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+	iter := client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+	var items []*T
+	err = spanner.SelectAll(iter, &items)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func selectOne[T any](ctx context.Context, stmt spanner.Statement) (*T, error) {
+	all, err := selectAll[T](ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	if len(all) != 1 {
+		return nil, fmt.Errorf("selectOne: got %v of %T", len(all), *new(T))
+	}
+	return all[0], nil
+}
+
+func dbClient(ctx context.Context) (*spanner.Client, error) {
+	path := fmt.Sprintf("projects/%v/instances/%v/databases/%v",
+		appengine.AppID(ctx), Instance, Database)
+	// TODO(dvyukov): create a persistent client with a pool of connections for prod,
+	// but keep transient/per-test clients for tests.
+	return spanner.NewClientWithConfig(ctx, path, spanner.ClientConfig{
+		SessionPoolConfig: spanner.SessionPoolConfig{
+			MinOpened: 1,
+			MaxOpened: 1,
+		},
+	})
+}
+
+var TimeNow = func(ctx context.Context) time.Time {
+	return time.Now()
+}
+
+func toNullJSON(v map[string]any) spanner.NullJSON {
+	if v == nil {
+		return spanner.NullJSON{}
+	}
+	return spanner.NullJSON{Value: v, Valid: true}
+}
+
+func toNullTime(v time.Time) spanner.NullTime {
+	if v.IsZero() {
+		return spanner.NullTime{}
+	}
+	return spanner.NullTime{Time: v, Valid: true}
+}
+
+func toNullString(v string) spanner.NullString {
+	if v == "" {
+		return spanner.NullString{}
+	}
+	return spanner.NullString{StringVal: v, Valid: true}
+}
