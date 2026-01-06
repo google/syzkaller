@@ -5,6 +5,7 @@ package vcs
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -77,11 +78,35 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 }
 
 func (repo *TestRepo) CommitChange(description string) *Commit {
+	return repo.commitChangeset(description)
+}
+
+type writeFile struct {
+	File    string
+	Content string
+}
+
+func (wf *writeFile) Apply(repo *TestRepo) error {
+	err := os.WriteFile(filepath.Join(repo.Dir, wf.File), []byte(wf.Content), 0644)
+	if err != nil {
+		return err
+	}
+	repo.Git("add", wf.File)
+	return nil
+}
+
+func (repo *TestRepo) commitChangeset(description string, actions ...writeFile) *Commit {
+	for i, action := range actions {
+		if err := action.Apply(repo); err != nil {
+			repo.t.Fatalf("failed to apply action %d: %v", i, err)
+		}
+	}
 	repo.Git("commit", "--allow-empty", "-m", description)
 	com, err := repo.repo.Commit(HEAD)
 	if err != nil {
 		repo.t.Fatal(err)
 	}
+	repo.t.Logf("%q's hash is %s", description, com.Hash)
 	return com
 }
 

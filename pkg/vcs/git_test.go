@@ -4,7 +4,6 @@
 package vcs
 
 import (
-	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -272,17 +271,10 @@ func TestObject(t *testing.T) {
 	firstRev := []byte("First revision")
 	secondRev := []byte("Second revision")
 
-	if err := os.WriteFile(baseDir+"/object.txt", firstRev, 0644); err != nil {
-		t.Fatal(err)
-	}
-	repo.Git("add", "object.txt")
-	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
-
-	if err := os.WriteFile(baseDir+"/object.txt", secondRev, 0644); err != nil {
-		t.Fatal(err)
-	}
-	repo.Git("add", "object.txt")
-	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	repo.commitChangeset("first",
+		writeFile{"object.txt", string(firstRev)})
+	repo.commitChangeset("second",
+		writeFile{"object.txt", string(secondRev)})
 
 	commits, err := repo.repo.LatestCommits("", time.Time{})
 	if err != nil {
