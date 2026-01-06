@@ -578,15 +578,33 @@ func (git *gitRepo) PushCommit(repo, commit string) error {
 	return nil
 }
 
-var fileNameRe = regexp.MustCompile(`(?m)^diff.* b\/([^\s]+)`)
+var (
+	fileNameRe = regexp.MustCompile(`^diff.* b\/([^\s]+)$`)
+	indexRe    = regexp.MustCompile(`^index (\w+)\.\.(?:\w+)(?:\s\d+)?$`)
+)
+
+type ModifiedFile struct {
+	Name     string
+	LeftHash string
+}
 
 // ParseGitDiff extracts the files modified in the git patch.
-func ParseGitDiff(patch []byte) []string {
-	var files []string
-	for _, match := range fileNameRe.FindAllStringSubmatch(string(patch), -1) {
-		files = append(files, match[1])
+func ParseGitDiff(patch []byte) []ModifiedFile {
+	var ret []ModifiedFile
+	scanner := bufio.NewScanner(bytes.NewReader(patch))
+	for scanner.Scan() {
+		line := scanner.Text()
+		indexMatch := indexRe.FindStringSubmatch(line)
+		if indexMatch != nil && len(ret) > 0 {
+			ret[len(ret)-1].LeftHash = indexMatch[1]
+		} else {
+			fileNameMatch := fileNameRe.FindStringSubmatch(line)
+			if fileNameMatch != nil {
+				ret = append(ret, ModifiedFile{Name: fileNameMatch[1]})
+			}
+		}
 	}
-	return files
+	return ret
 }
 
 type Git struct {

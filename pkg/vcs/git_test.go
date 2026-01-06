@@ -455,7 +455,7 @@ func TestGitFetchShortHash(t *testing.T) {
 }
 
 func TestParseGitDiff(t *testing.T) {
-	files := ParseGitDiff([]byte(`diff --git a/a.txt b/a.txt
+	list := ParseGitDiff([]byte(`diff --git a/a.txt b/a.txt
 index 4c5fd91..8fe1e32 100644
 --- a/a.txt
 +++ b/a.txt
@@ -469,9 +469,26 @@ index 0000000..f8a9677
 +++ b/b.txt
 @@ -0,0 +1 @@
 +Second file.
-diff --git a/c/c.txt b/c/c.txt
-new file mode 100644
-index 0000000..e69de29
+diff --git a/c.txt b/c.txt
+deleted file mode 100644
+index f70f10e..0000000
+--- a/c.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-A
 `))
-	assert.ElementsMatch(t, files, []string{"a.txt", "b.txt", "c/c.txt"})
+	assert.Equal(t, list, []ModifiedFile{
+		{
+			Name:     `a.txt`,
+			LeftHash: `4c5fd91`,
+		},
+		{
+			Name:     `b.txt`,
+			LeftHash: `0000000`,
+		},
+		{
+			Name:     `c.txt`,
+			LeftHash: `f70f10e`,
+		},
+	})
 }
