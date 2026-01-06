@@ -1,0 +1,14 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# RISCV64-specific KVM syscall declarations.
+
+meta arches["riscv64"]
+
+include <uapi/linux/kvm.h>
+
+ioctl$KVM_SET_GUEST_DEBUG_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[in, kvm_guest_debug[kvm_guest_debug_arch_riscv64]])
+
+kvm_guest_debug_arch_riscv64 {
+	reg	array[int64, 8]
+}

@@ -1,7 +1,7 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-meta arches["386", "amd64", "arm64", "mips64le", "ppc64le", "s390x"]
+meta arches["386", "amd64", "arm64", "mips64le", "ppc64le", "s390x", "riscv64"]
 
 include <linux/kvm.h>
 include <linux/kvm_host.h>
