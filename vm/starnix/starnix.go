@@ -325,10 +325,9 @@ func (inst *instance) connect() error {
 	address, err := inst.runFfx(
 		30*time.Second,
 		true,
-		"--target",
-		inst.name,
 		"target",
 		"list",
+		inst.name,
 		"--format",
 		"addresses",
 	)
