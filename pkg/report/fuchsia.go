@@ -64,12 +64,14 @@ func (ctx *fuchsia) ContainsCrash(output []byte) bool {
 
 func (ctx *fuchsia) Parse(output []byte) *Report {
 	// We symbolize here because zircon output does not contain even function names.
-	symbolized := ctx.symbolize(output)
+	symbolized, l2l := ctx.symbolize(output)
 	rep := simpleLineParser(symbolized, fuchsiaOopses, fuchsiaStackParams, ctx.ignores)
 	if rep == nil {
 		return nil
 	}
 	rep.Output = output
+	rep.StartPos = l2l[rep.StartPos]
+	rep.EndPos = l2l[rep.EndPos+1] - 1 // EndPos points to '\n'. Mapping has information about the next symbols.
 	if report := ctx.shortenReport(rep.Report); len(report) != 0 {
 		rep.Report = report
 	}
@@ -132,7 +134,10 @@ func (ctx *fuchsia) shortenReport(report []byte) []byte {
 	return out.Bytes()
 }
 
-func (ctx *fuchsia) symbolize(output []byte) []byte {
+// symbolize additionally returns the mapping new_line_pos -> old_line_pos.
+func (ctx *fuchsia) symbolize(output []byte) ([]byte, map[int]int) {
+	l2l := map[int]int{}
+	var inPos int
 	symb := symbolizer.Make(ctx.config.target)
 	defer symb.Close()
 	out := new(bytes.Buffer)
@@ -140,6 +145,8 @@ func (ctx *fuchsia) symbolize(output []byte) []byte {
 	lines := lines(output)
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
+		l2l[out.Len()] = inPos
+		inPos += len(line) + 1
 		if bytes.Contains(line, zirconAssertFailed) && len(line) == 127 {
 			// This is super hacky: but zircon splits the most important information in long assert lines
 			// (and they are always long) into several lines in irreversible way. Try to restore full line.
@@ -163,7 +170,7 @@ func (ctx *fuchsia) symbolize(output []byte) []byte {
 		out.Write(line)
 		out.WriteByte('\n')
 	}
-	return out.Bytes()
+	return out.Bytes(), l2l
 }
 
 func (ctx *fuchsia) processPC(out *bytes.Buffer, symb symbolizer.Symbolizer,
