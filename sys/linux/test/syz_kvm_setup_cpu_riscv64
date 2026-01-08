@@ -1,0 +1,24 @@
+#
+# requires: arch=riscv64
+#
+
+r0 = openat$kvm(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = ioctl$KVM_CREATE_VCPU(r1, AUTO, 0x0)
+
+#
+# Set the register
+#   0x04200513,   li a0, 0x42      (addi a0, zero, 0x42)
+#   0x06300593,   li a1, 0x63      (addi a1, zero, 0x63)
+# Load the MMIO address to t1 (without affecting a0, a1)
+#   0x40000337,   lui t1, 0x40000 (load 20 bits high to t1)
+# Read from the MMIO address (this triggers KVM_EXIT_MMIO)
+#   0x00032683,   lw a3, 0(t1) (read from address 0x40000000 to a3)
+#
+syz_kvm_setup_cpu$riscv64(r1, r2, &(0x7f0000fe8000/0x180000)=nil,&(0x7f0000000000)=[{0x0, &(0x7f0000001000)="13052004930530063703004083260300", 0xf}], 0x1, 0x0, 0x0, 0x0)
+
+ioctl$KVM_RUN(r2, AUTO, 0x0)
+
+ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_core={0x803000000200000a, &AUTO})
+ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_config={0x8030000001000000, &AUTO})
+ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_csr={0x8030000003000000, &AUTO})
