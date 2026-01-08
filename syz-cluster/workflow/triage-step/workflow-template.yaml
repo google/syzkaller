@@ -24,6 +24,7 @@ spec:
             - -c
             - |
               git clone --reference /kernel-repo -c remote.origin.fetch="+refs/heads/*:refs/heads/*" /kernel-repo /workdir
+              git -C /workdir commit-graph write --reachable
           env:
             - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
               value: "1"
