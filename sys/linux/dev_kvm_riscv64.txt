@@ -12,3 +12,22 @@ ioctl$KVM_SET_GUEST_DEBUG_riscv64(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], 
 kvm_guest_debug_arch_riscv64 {
 	reg	array[int64, 8]
 }
+
+syz_kvm_setup_cpu$riscv64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_riscv64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_riscv64, 1]], nopt len[opts])
+
+kvm_setup_opt_riscv64 [
+# unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extention
+	featur1	kvm_setup_opt_riscv64_feature
+	featur2	kvm_setup_opt_riscv64_feature
+]
+
+kvm_setup_opt_riscv64_feature {
+	typ	const[1, int64]
+	val	int64
+}
+
+kvm_text_riscv64 {
+	typ	const[0, intptr]
+	text	ptr[in, text[riscv64]]
+	size	len[text, intptr]
+}
