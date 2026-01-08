@@ -81,3 +81,15 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	}
 	return SelectResult{Reason: reasonNotApplies}, nil
 }
+
+func (cs *CommitSelector) TrySelectWithHint(series *api.Series) (SelectResult, error) {
+	if series.BaseCommitHint == "" {
+		return SelectResult{}, nil
+	}
+	var git GitTreeOps
+	baseCommit, err := git.Git.Commit(series.BaseCommitHint)
+	if err != nil {
+		return SelectResult{}, err
+	}
+	return SelectResult{Commit: baseCommit.Hash}, nil
+}

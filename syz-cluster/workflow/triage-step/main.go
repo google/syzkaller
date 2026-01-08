@@ -113,6 +113,24 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
 	var skipErr error
+	selector := triage.NewCommitSelector(triager.ops, triager.DebugTracer)
+
+	// First try to use hints from the series description.
+	if series.BaseCommitHint != "" {
+		for _, tree := range trees {
+			triager.Log("considering tree %q with a hint", tree.Name)
+			result, err := selector.TrySelectWithHint(series)
+			if err != nil {
+				return nil, fmt.Errorf("failed to run TrySelectWithHint for %q: %w", tree.Name, err)
+			}
+			if result.Commit != "" {
+				triager.Log("selected base commit with hint: %s", result.Commit)
+				return buildFuzzTask(series, tree, target, result.Commit), nil
+			}
+			triager.Log("failed to find a base commit with hint for %q: %s", tree.Name, result.Reason)
+		}
+	}
+
 	for _, tree := range trees {
 		triager.Log("considering tree %q", tree.Name)
 		arch := "amd64"
@@ -127,7 +145,6 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			return nil, fmt.Errorf("failed to query the last build for %q: %w", tree.Name, err)
 		}
 		triager.Log("%q's last build: %q", tree.Name, lastBuild)
-		selector := triage.NewCommitSelector(triager.ops, triager.DebugTracer)
 		result, err := selector.Select(series, tree, lastBuild)
 		if err != nil {
 			// TODO: the workflow step must be retried.
@@ -141,22 +158,27 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			continue
 		}
 		triager.Log("selected base commit: %s", result.Commit)
-		base := api.BuildRequest{
-			TreeName:   tree.Name,
-			TreeURL:    tree.URL,
-			ConfigName: target.KernelConfig,
-			CommitHash: result.Commit,
-			Arch:       arch,
-		}
-		fuzz := &api.FuzzTask{
-			Base:       base,
-			Patched:    base,
-			FuzzConfig: *target.FuzzConfig,
-		}
-		fuzz.Patched.SeriesID = series.ID
-		return fuzz, nil
+		return buildFuzzTask(series, tree, target, result.Commit), nil
 	}
 	return nil, skipErr
+}
+
+func buildFuzzTask(series *api.Series, tree *api.Tree, target *triage.MergedFuzzConfig, commit string) *api.FuzzTask {
+	arch := "amd64"
+	base := api.BuildRequest{
+		TreeName:   tree.Name,
+		TreeURL:    tree.URL,
+		ConfigName: target.KernelConfig,
+		CommitHash: commit,
+		Arch:       arch,
+	}
+	fuzz := &api.FuzzTask{
+		Base:       base,
+		Patched:    base,
+		FuzzConfig: *target.FuzzConfig,
+	}
+	fuzz.Patched.SeriesID = series.ID
+	return fuzz
 }
 
 type SkipTriageError struct {

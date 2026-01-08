@@ -25,12 +25,13 @@ type Thread struct {
 
 // Series represents a single patch series sent over email.
 type Series struct {
-	Subject   string
-	MessageID string
-	Version   int
-	Corrupted string // If non-empty, contains a reason why the series better be ignored.
-	Tags      []string
-	Patches   []Patch
+	Subject        string
+	MessageID      string
+	Version        int
+	Corrupted      string // If non-empty, contains a reason why the series better be ignored.
+	Tags           []string
+	Patches        []Patch
+	BaseCommitHint string
 }
 
 type Patch struct {
@@ -87,6 +88,13 @@ func PatchSeries(emails []*Email) []*Series {
 			patch, ok := parsePatchSubject(email.Subject)
 			if !ok {
 				continue
+			}
+			if series.BaseCommitHint == "" { // Usually base-commit is in patch 0 or 1. Check them all to be safe.
+				regex := regexp.MustCompile(`(?m)^base-commit:\s*([0-9a-fA-F]{40})$`)
+				matches := regex.FindStringSubmatch(email.Body)
+				if len(matches) >= 2 {
+					series.BaseCommitHint = matches[1]
+				}
 			}
 			seq := patch.Seq.ValueOr(1)
 			if seq == 0 {
