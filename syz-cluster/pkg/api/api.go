@@ -244,6 +244,12 @@ var DefaultTrees = []*Tree{
 		EmailLists: []string{`linux-mm@kvack.org`},
 	},
 	{
+		Name:       `media`,
+		URL:        `https://git.linuxtv.org/media.git`,
+		Branch:     `next`,
+		EmailLists: []string{`linux-media@vger.kernel.org`},
+	},
+	{
 		Name:       `torvalds`,
 		URL:        `https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux`,
 		Branch:     `master`,
