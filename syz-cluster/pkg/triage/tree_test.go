@@ -74,3 +74,9 @@ func TestSelectTrees(t *testing.T) {
 		})
 	}
 }
+
+func TestTreeFromBranch(t *testing.T) {
+	treeA, treeB := &api.Tree{Name: "a"}, &api.Tree{Name: "b"}
+	assert.Equal(t, treeA, TreeFromBranch([]*api.Tree{treeA, treeB}, "a/some_branch"))
+	assert.Equal(t, treeB, TreeFromBranch([]*api.Tree{treeA, treeB}, "b/some_branch"))
+}

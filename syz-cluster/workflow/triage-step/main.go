@@ -66,7 +66,7 @@ func main() {
 type seriesTriager struct {
 	debugtracer.DebugTracer
 	client *api.Client
-	ops    triage.TreeOps
+	ops    *triage.GitTreeOps
 }
 
 func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) (*api.TriageResult, error) {
@@ -112,12 +112,80 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
-	var skipErr error
+	result, err := triager.selectFromBlobs(series, trees)
+	if err != nil {
+		return nil, fmt.Errorf("selection by blob failed: %w", err)
+	}
+	if result == nil {
+		result, err = triager.selectFromList(ctx, series, trees, target)
+		if err != nil {
+			return nil, fmt.Errorf("selection from the list failed: %w", err)
+		}
+	}
+	if result != nil {
+		triager.Log("continuing with %+v", result)
+		base := api.BuildRequest{
+			TreeName:   result.Tree.Name,
+			TreeURL:    result.Tree.URL,
+			ConfigName: target.KernelConfig,
+			CommitHash: result.Commit,
+			Arch:       result.Arch,
+		}
+		fuzz := &api.FuzzTask{
+			Base:       base,
+			Patched:    base,
+			FuzzConfig: *target.FuzzConfig,
+		}
+		fuzz.Patched.SeriesID = series.ID
+		return fuzz, nil
+	}
+	return nil, SkipError("no base commit found")
+}
+
+type SelectResult struct {
+	Tree   *api.Tree
+	Commit string
+	Arch   string
+}
+
+// For now, only amd64 fuzzing is supported.
+const fuzzArch = "amd64"
+
+func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.Tree) (*SelectResult, error) {
+	triager.Log("attempting to guess the base commit by blob hashes")
+	var diff []byte
+	for _, patch := range series.Patches {
+		diff = append(diff, patch.Body...)
+		diff = append(diff, '\n')
+	}
+	base, err := triager.ops.BaseForDiff(diff, triager.DebugTracer)
+	if err != nil {
+		return nil, err
+	} else if base == nil {
+		triager.Log("no candidate base commit is found")
+		return nil, nil
+	}
+	for _, branch := range base.Branches {
+		tree := triage.TreeFromBranch(trees, branch)
+		if tree != nil {
+			return &SelectResult{
+				Tree:   tree,
+				Commit: base.Hash,
+				Arch:   fuzzArch,
+			}, nil
+		}
+	}
+	triager.Log("cannot identify the tree from %q", base.Branches)
+	return nil, nil
+}
+
+func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Series, trees []*api.Tree,
+	target *triage.MergedFuzzConfig) (*SelectResult, error) {
+	skipErr := SkipError("empty tree list")
 	for _, tree := range trees {
 		triager.Log("considering tree %q", tree.Name)
-		arch := "amd64"
 		lastBuild, err := triager.client.LastBuild(ctx, &api.LastBuildReq{
-			Arch:       arch,
+			Arch:       fuzzArch,
 			ConfigName: target.KernelConfig,
 			TreeName:   tree.Name,
 			Status:     api.BuildSuccess,
@@ -140,21 +208,12 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			triager.Log("failed to find a base commit for %q", tree.Name)
 			continue
 		}
-		triager.Log("selected base commit: %s", result.Commit)
-		base := api.BuildRequest{
-			TreeName:   tree.Name,
-			TreeURL:    tree.URL,
-			ConfigName: target.KernelConfig,
-			CommitHash: result.Commit,
-			Arch:       arch,
-		}
-		fuzz := &api.FuzzTask{
-			Base:       base,
-			Patched:    base,
-			FuzzConfig: *target.FuzzConfig,
-		}
-		fuzz.Patched.SeriesID = series.ID
-		return fuzz, nil
+		triager.Log("result: %s", result.Commit)
+		return &SelectResult{
+			Tree:   tree,
+			Commit: result.Commit,
+			Arch:   fuzzArch,
+		}, nil
 	}
 	return nil, skipErr
 }

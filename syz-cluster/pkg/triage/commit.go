@@ -12,8 +12,7 @@ import (
 )
 
 // TODO: Some further improvements:
-//   1. Consider the blob hashes incorporated into the git diff. These may restrict the set of base commits.
-//   2. Add support for experimental sessions: these may be way behind the current HEAD.
+//   1. Add support for experimental sessions: these may be way behind the current HEAD.
 
 type TreeOps interface {
 	HeadCommit(tree *api.Tree) (*vcs.Commit, error)

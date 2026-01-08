@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
@@ -54,4 +55,8 @@ func (ops *GitTreeOps) ApplySeries(commit string, patches [][]byte) error {
 		}
 	}
 	return nil
+}
+
+func (ops *GitTreeOps) BaseForDiff(patch []byte, tracer debugtracer.DebugTracer) (*vcs.BaseCommit, error) {
+	return ops.Git.BaseForDiff(patch, tracer)
 }
