@@ -18,9 +18,20 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func creationTime(fi os.FileInfo) time.Time {
-	st := fi.Sys().(*syscall.Stat_t)
-	return time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec)) // nolint: unconvert
+func fileTimes(file string) (time.Time, time.Time, error) {
+	// Btime stands for "birth" time, which is creation time.
+	var statx unix.Statx_t
+	err := unix.Statx(unix.AT_FDCWD, file, unix.AT_SYMLINK_NOFOLLOW, unix.STATX_BTIME|unix.STATX_MTIME, &statx)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	modTime := time.Unix(statx.Mtime.Sec, int64(statx.Mtime.Nsec))
+	// Some filesystems may not store the birth time.
+	creationTime := modTime
+	if statx.Mask&unix.STATX_BTIME != 0 {
+		creationTime = time.Unix(statx.Btime.Sec, int64(statx.Btime.Nsec))
+	}
+	return creationTime, modTime, nil
 }
 
 // RemoveAll is similar to os.RemoveAll, but can handle more cases.

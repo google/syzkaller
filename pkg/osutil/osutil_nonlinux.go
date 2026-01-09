@@ -12,8 +12,14 @@ import (
 	"time"
 )
 
-func creationTime(fi os.FileInfo) time.Time {
-	return time.Time{}
+func fileTimes(file string) (time.Time, time.Time, error) {
+	stat, err := os.Stat(file)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	// Creation time is not present in stat, so we use modification time for both.
+	modTime := stat.ModTime()
+	return modTime, modTime, nil
 }
 
 func RemoveAll(dir string) error {

@@ -235,7 +235,7 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	stat, err := os.Stat(filepath.Join(dir, "description"))
+	ret.FirstTime, ret.LastTime, err = osutil.FileTimes(filepath.Join(dir, "description"))
 	if err != nil {
 		return nil, err
 	}
@@ -250,8 +250,6 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		}
 	}
 
-	ret.FirstTime = osutil.CreationTime(stat)
-	ret.LastTime = stat.ModTime()
 	files, err := osutil.ListDir(dir)
 	if err != nil {
 		return nil, err
