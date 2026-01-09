@@ -51,11 +51,11 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 		}
 		// Remove main intermediate build files, we don't need them anymore
 		// and they take lots of space. Keep generated source files.
-		keepExt := map[string]bool{"h": true, "c": true, "s": true, "S": true}
+		keepExt := map[string]bool{".h": true, ".c": true, ".s": true, ".S": true}
 		keepFiles := map[string]bool{
-			image:               true,
-			target.KernelObject: true,
-			compileCommnads:     true,
+			filepath.Join(dir, image):               true,
+			filepath.Join(dir, target.KernelObject): true,
+			filepath.Join(dir, compileCommnads):     true,
 		}
 		return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || keepFiles[path] || keepExt[filepath.Ext(d.Name())] {
