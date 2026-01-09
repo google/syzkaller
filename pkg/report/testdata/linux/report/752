@@ -1,6 +1,5 @@
 TITLE: memory leak in lookup_or_create_module_kobject
 TYPE: LEAK
-CORRUPTED: N
 
 BUG: memory leak
 unreferenced object 0xffff8882d78c9ea0 (size 96):

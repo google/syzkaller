@@ -1,4 +1,3 @@
-TITLE: 
 
 [  600.004493] EXT4-fs (loop1): feature flags set on rev 0 fs, running e2fsck is recommended
 [  600.013573] EXT4-fs (loop1): ext4_check_descriptors: Block bitmap for group 0 overlaps superblock

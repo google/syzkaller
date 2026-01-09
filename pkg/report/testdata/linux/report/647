@@ -1,4 +1,3 @@
-TITLE: 
 
 
 [    1.229302][    T0] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization

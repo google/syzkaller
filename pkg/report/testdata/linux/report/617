@@ -1,5 +1,4 @@
 TITLE: kernel panic: VFS: Unable to mount root fs on unknown-block(NUM,NUM)
-CORRUPTED: N
 TYPE: DoS
 
 
