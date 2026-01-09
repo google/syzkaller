@@ -1,6 +1,7 @@
 TITLE: KMSAN: uninit-value in prepare_task_switch
 ALT: bad-access in prepare_task_switch
 TYPE: KMSAN-UNINIT-VALUE
+CONTEXTS: ["[    T1]","[    T1]"]
 
 [  567.476354][    T1] =====================================================
 [  567.483452][    T1] BUG: KMSAN: uninit-value in prepare_task_switch+0x284/0xd00
@@ -56,3 +57,33 @@ Local variable ----path@step_into created at:
  step_into+0xbc/0x1a00
  path_openat+0x3603/0x64c0
 =====================================================
+TAIL REPORTS:
+ prepare_task_switch+0x284/0xd00
+ __schedule+0x2da/0x520
+ __cond_resched+0x43/0xa0
+ __dentry_kill+0xdc2/0xe90
+ dentry_kill+0x22c/0x710
+ dput+0x3e1/0x640
+ step_into+0x923/0x1a00
+ path_openat+0x3603/0x64c0
+ do_filp_open+0x2cb/0x720
+ do_sys_openat2+0x273/0x870
+ __x64_sys_open+0x314/0x380
+ do_syscall_64+0x53/0xc0
+ entry_SYSCALL_64_after_hwframe+0x44/0xae
+Local variable ----path@step_into created at:
+ step_into+0xbc/0x1a00
+ path_openat+0x3603/0x64c0
+=====================================================
+Disabling lock debugging due to kernel taint
+Kernel panic - not syncing: panic_on_kmsan set ...
+CPU: 1 PID: 1 Comm: systemd Tainted: G    B             5.13.0-syzkaller #0c
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:79 [inline]
+ dump_stack+0x25a/0x2f6 lib/dump_stack.c:120
+ panic+0x4c7/0xe98 kernel/panic.c:231
+ kmsan_report+0x2ee/0x300 mm/kmsan/report.c:179
+ __msan_warning+0xd7/0x150 mm/kmsan/instrumentation.c:205
+ prepare_task_switch+0x284/0xd00 kernel/sched/core.c:4146
+ context_switch kernel/sched/core.c:4302 [inline]

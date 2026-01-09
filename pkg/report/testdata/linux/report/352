@@ -1,5 +1,6 @@
 TITLE: kernel BUG in __isolate_free_page
 TYPE: BUG
+CONTEXTS: ["[ T1043]","[ T1043]","[ T1043]","[ T1043]"]
 
 [ 1191.669874][ T1043] ------------[ cut here ]------------
 [ 1191.678706][ T1043] kernel BUG at mm/page_alloc.c:3112!
@@ -367,3 +368,276 @@ Call Trace:
 Modules linked in:
 
 ======================================================
+TAIL REPORTS:
+invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+Call Trace:
+ compaction_alloc+0xd05/0x2970
+ migrate_pages+0x48e/0x2cc0
+ compact_zone+0x2207/0x3e90
+ kcompactd_do_work+0x6de/0x1200
+ kcompactd+0x251/0x970
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Modules linked in:
+
+======================================================
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+Call Trace:
+ compaction_alloc+0xd05/0x2970
+ migrate_pages+0x48e/0x2cc0
+ compact_zone+0x2207/0x3e90
+ kcompactd_do_work+0x6de/0x1200
+ kcompactd+0x251/0x970
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Modules linked in:
+======================================================
+WARNING: possible circular locking dependency detected
+5.0.0-rc1-next-20190111 #10 Not tainted
+------------------------------------------------------
+kcompactd0/1043 is trying to acquire lock:
+00000000a0848583 (console_owner){-.-.}, at: console_unlock+0x4ac/0x1040
+
+but task is already holding lock:
+00000000c8e67de2 (&(&zone->lock)->rlock){..-.}, at: compaction_alloc+0x6f3/0x2970
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #3 (&(&zone->lock)->rlock){..-.}:
+       _raw_spin_lock_irqsave+0x95/0xcd
+       get_page_from_freelist+0xf6c/0x4870
+       __alloc_pages_nodemask+0x4fd/0xdc0
+       alloc_pages_current+0x107/0x210
+       depot_save_stack+0x3da/0x460
+       save_stack+0xa9/0xd0
+       __kasan_kmalloc.constprop.0+0xcf/0xe0
+       kasan_slab_alloc+0xf/0x20
+       __kmalloc+0x145/0x740
+       __tty_buffer_request_room+0x2bf/0x7e0
+       tty_insert_flip_string_fixed_flag+0x93/0x1f0
+       pty_write+0x133/0x200
+       tty_put_char+0x137/0x160
+       __process_echoes+0x5c8/0xa40
+       n_tty_receive_buf_common+0xc2c/0x2f30
+       n_tty_receive_buf2+0x34/0x40
+       tty_ldisc_receive_buf+0xaf/0x1c0
+       tty_port_default_receive_buf+0x114/0x190
+       flush_to_ldisc+0x3b2/0x590
+       process_one_work+0xd0c/0x1ce0
+       worker_thread+0x143/0x14a0
+       kthread+0x357/0x430
+       ret_from_fork+0x3a/0x50
+
+-> #2 (&(&port->lock)->rlock){-.-.}:
+       _raw_spin_lock_irqsave+0x95/0xcd
+       tty_port_tty_get+0x22/0x80
+       tty_port_default_wakeup+0x16/0x40
+       tty_port_tty_wakeup+0x5d/0x70
+       uart_write_wakeup+0x46/0x70
+       serial8250_tx_chars+0x4a4/0xb20
+       serial8250_handle_irq.part.0+0x1be/0x2e0
+       serial8250_default_handle_irq+0xc5/0x150
+       serial8250_interrupt+0xfb/0x1a0
+       __handle_irq_event_percpu+0x1c6/0xb10
+       handle_irq_event_percpu+0xa0/0x1d0
+       handle_irq_event+0xa7/0x134
+       handle_edge_irq+0x232/0x8a0
+       handle_irq+0x252/0x3d8
+       do_IRQ+0x99/0x1d0
+       ret_from_intr+0x0/0x1e
+       native_safe_halt+0x2/0x10
+       arch_cpu_idle+0x10/0x20
+       default_idle_call+0x36/0x90
+       do_idle+0x386/0x5d0
+       cpu_startup_entry+0x1b/0x20
+       start_secondary+0x435/0x620
+       secondary_startup_64+0xa4/0xb0
+
+-> #1 (&port_lock_key){-.-.}:
+       _raw_spin_lock_irqsave+0x95/0xcd
+       serial8250_console_write+0x253/0xab0
+       univ8250_console_write+0x5f/0x70
+       console_unlock+0xc9a/0x1040
+       vprintk_emit+0x370/0x960
+       vprintk_default+0x28/0x30
+       vprintk_func+0x7e/0x189
+       printk+0xba/0xed
+       register_console+0x74d/0xb50
+       univ8250_console_init+0x3e/0x4b
+       console_init+0x6b7/0x9fe
+       start_kernel+0x5df/0x8bd
+       x86_64_start_reservations+0x29/0x2b
+       x86_64_start_kernel+0x77/0x7b
+       secondary_startup_64+0xa4/0xb0
+
+-> #0 (console_owner){-.-.}:
+       lock_acquire+0x1db/0x570
+       console_unlock+0x516/0x1040
+       vprintk_emit+0x370/0x960
+       vprintk_default+0x28/0x30
+       vprintk_func+0x7e/0x189
+       printk+0xba/0xed
+       report_bug.cold+0x11/0x5e
+       do_error_trap+0x11b/0x200
+       do_invalid_op+0x37/0x50
+       invalid_op+0x14/0x20
+       __isolate_free_page+0x4a8/0x680
+       compaction_alloc+0xd05/0x2970
+       migrate_pages+0x48e/0x2cc0
+       compact_zone+0x2207/0x3e90
+       kcompactd_do_work+0x6de/0x1200
+       kcompactd+0x251/0x970
+       kthread+0x357/0x430
+       ret_from_fork+0x3a/0x50
+
+other info that might help us debug this:
+
+Chain exists of:
+  console_owner --> &(&port->lock)->rlock --> &(&zone->lock)->rlock
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&(&zone->lock)->rlock);
+                               lock(&(&port->lock)->rlock);
+                               lock(&(&zone->lock)->rlock);
+  lock(console_owner);
+
+ *** DEADLOCK ***
+
+2 locks held by kcompactd0/1043:
+ #0: 00000000c8e67de2 (&(&zone->lock)->rlock){..-.}, at: compaction_alloc+0x6f3/0x2970
+ #1: 0000000001912981 (console_lock){+.+.}, at: vprintk_emit+0x351/0x960
+
+stack backtrace:
+CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ print_circular_bug.isra.0.cold+0x1cc/0x28f
+ __lock_acquire+0x2fed/0x4a10
+ lock_acquire+0x1db/0x570
+ console_unlock+0x516/0x1040
+ vprintk_emit+0x370/0x960
+ vprintk_default+0x28/0x30
+ vprintk_func+0x7e/0x189
+ printk+0xba/0xed
+ report_bug.cold+0x11/0x5e
+ do_error_trap+0x11b/0x200
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+ compaction_alloc+0xd05/0x2970
+ migrate_pages+0x48e/0x2cc0
+ compact_zone+0x2207/0x3e90
+Lost 33 message(s)!
+---[ end trace b088aebfc4c7ea50 ]---
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+                               lock(&(&port->lock)->rlock);
+                               lock(&(&zone->lock)->rlock);
+  lock(console_owner);
+ *** DEADLOCK ***
+2 locks held by kcompactd0/1043:
+ #0: 00000000c8e67de2 (&(&zone->lock)->rlock){..-.}, at: compaction_alloc+0x6f3/0x2970
+ #1: 0000000001912981 (console_lock){+.+.}, at: vprintk_emit+0x351/0x960
+stack backtrace:
+CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ print_circular_bug.isra.0.cold+0x1cc/0x28f
+ __lock_acquire+0x2fed/0x4a10
+ lock_acquire+0x1db/0x570
+ console_unlock+0x516/0x1040
+ vprintk_emit+0x370/0x960
+ vprintk_default+0x28/0x30
+ vprintk_func+0x7e/0x189
+ printk+0xba/0xed
+ report_bug.cold+0x11/0x5e
+ do_error_trap+0x11b/0x200
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+ compaction_alloc+0xd05/0x2970
+ migrate_pages+0x48e/0x2cc0
+ compact_zone+0x2207/0x3e90
+Lost 33 message(s)!
+---[ end trace b088aebfc4c7ea50 ]---
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+Kernel panic - not syncing: Fatal exception
+Shutting down cpus with NMI
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
