@@ -20,20 +20,21 @@ import (
 )
 
 type Email struct {
-	BugIDs      []string
-	MessageID   string
-	InReplyTo   string
-	Date        time.Time
-	Link        string
-	Subject     string
-	MailingList string
-	Author      string
-	OwnEmail    bool
-	Cc          []string
-	RawCc       []string // unstripped emails
-	Body        string   // text/plain part
-	Patch       string   // attached patch, if any
-	Commands    []*SingleCommand
+	BugIDs         []string
+	MessageID      string
+	InReplyTo      string
+	Date           time.Time
+	Link           string
+	Subject        string
+	MailingList    string
+	Author         string
+	OwnEmail       bool
+	Cc             []string
+	RawCc          []string // unstripped emails
+	Body           string   // text/plain part
+	Patch          string   // attached patch, if any
+	BaseCommitHint string   // Hash of base-commit, if provided.
+	Commands       []*SingleCommand
 }
 
 type SingleCommand struct {
@@ -179,20 +180,21 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	}
 	date, _ := mail.ParseDate(msg.Header.Get("Date"))
 	email := &Email{
-		BugIDs:      unique(bugIDs),
-		MessageID:   msg.Header.Get("Message-ID"),
-		InReplyTo:   extractInReplyTo(msg.Header),
-		Date:        date,
-		Link:        link,
-		Author:      author,
-		OwnEmail:    fromMe,
-		MailingList: mailingList,
-		Subject:     subject,
-		Cc:          ccList,
-		RawCc:       mergeRawAddresses(from, originalFroms, to, cc),
-		Body:        bodyStr,
-		Patch:       patch,
-		Commands:    cmds,
+		BugIDs:         unique(bugIDs),
+		MessageID:      msg.Header.Get("Message-ID"),
+		InReplyTo:      extractInReplyTo(msg.Header),
+		Date:           date,
+		Link:           link,
+		Author:         author,
+		OwnEmail:       fromMe,
+		MailingList:    mailingList,
+		Subject:        subject,
+		Cc:             ccList,
+		RawCc:          mergeRawAddresses(from, originalFroms, to, cc),
+		Body:           bodyStr,
+		Patch:          patch,
+		Commands:       cmds,
+		BaseCommitHint: extractBaseCommitHint(bodyStr),
 	}
 	return email, nil
 }
@@ -574,4 +576,14 @@ func decodeSubject(rawSubject string) string {
 		return rawSubject
 	}
 	return decodedSubject
+}
+
+var baseCommitRegex = regexp.MustCompile(`(?m)^base-commit:\s*([0-9a-fA-F]{40})\r?$`)
+
+func extractBaseCommitHint(email string) string {
+	matches := baseCommitRegex.FindStringSubmatch(email)
+	if matches != nil {
+		return matches[1]
+	}
+	return ""
 }
