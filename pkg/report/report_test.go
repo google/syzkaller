@@ -69,7 +69,9 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 
 func (test *ParseTest) Headers() []byte {
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "TITLE: %v\n", test.Title)
+	if test.Title != "" {
+		fmt.Fprintf(buf, "TITLE: %v\n", test.Title)
+	}
 	for _, t := range test.AltTitles {
 		fmt.Fprintf(buf, "ALT: %v\n", t)
 	}
@@ -293,6 +295,10 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 
 func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	buf := new(bytes.Buffer)
+	if test.Frame == "" {
+		// Don't create "FRAME:" record, only update existing.
+		parsed.Frame = ""
+	}
 	buf.Write(parsed.Headers())
 	fmt.Fprintf(buf, "\n%s", test.Log)
 	if test.HasReport {
