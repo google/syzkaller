@@ -210,7 +210,7 @@ func testFromReport(rep *Report) *ParseTest {
 		Corrupted:       rep.Corrupted,
 		corruptedReason: rep.CorruptedReason,
 		Suppressed:      rep.Suppressed,
-		Type:            TitleToCrashType(rep.Title),
+		Type:            crash.TitleToType(rep.Title),
 		Frame:           rep.Frame,
 		Report:          rep.Report,
 	}

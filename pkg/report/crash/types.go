@@ -3,7 +3,10 @@
 
 package crash
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 type Type string
 
@@ -49,6 +52,17 @@ const (
 	SyzFailure       = Type("SYZ_FAILURE")
 	UnexpectedReboot = Type("REBOOT")
 )
+
+func TitleToType(title string) Type {
+	for _, t := range titleToType {
+		for _, prefix := range t.includePrefixes {
+			if strings.HasPrefix(title, prefix) {
+				return t.crashType
+			}
+		}
+	}
+	return UnknownType
+}
 
 func (t Type) String() string {
 	if t == UnknownType {

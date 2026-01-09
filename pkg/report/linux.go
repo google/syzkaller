@@ -190,7 +190,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		}
 		rep.reportPrefixLen = len(rep.Report)
 		rep.Report = append(rep.Report, report...)
-		rep.Type = TitleToCrashType(rep.Title)
+		rep.Type = crash.TitleToType(rep.Title)
 		setExecutorInfo(rep)
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = isCorrupted(title, report, format)
