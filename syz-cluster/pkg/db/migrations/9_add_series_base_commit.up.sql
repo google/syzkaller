@@ -1,0 +1,1 @@
+ALTER TABLE Series ADD COLUMN BaseCommitHint STRING(256);
