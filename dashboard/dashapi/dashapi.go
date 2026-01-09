@@ -992,15 +992,28 @@ func (dash *Dashboard) Query(method string, req, reply any) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
 	}
-	err := dash.queryImpl(method, req, reply)
-	if err != nil {
-		if dash.logger != nil {
-			dash.logger("API(%v): ERROR: %v", method, err)
+	for try := 0; ; try++ {
+		err := dash.queryImpl(method, req, reply)
+		if err != nil {
+			if dash.logger != nil {
+				dash.logger("API(%v): ERROR: %v", method, err)
+			}
+			if dash.errorHandler != nil {
+				dash.errorHandler(err)
+			}
+			// API requests episodically fail due to internal datastore errors, some timeouts, etc.
+			// Failure of some requests is especially unpleasant and leads to lots of wasted work
+			// (uploading of syz-ci build info, job completion, etc). So we retry requests
+			// several times. We do this always for all requests, since we don't expect any of them
+			// to legitimately fail (we don't send malformed requests), and it won't harm for any
+			// request types.
+			if try < 3 {
+				time.Sleep(time.Second)
+				continue
+			}
+			return err
 		}
-		if dash.errorHandler != nil {
-			dash.errorHandler(err)
-		}
-		return err
+		break
 	}
 	if dash.logger != nil {
 		dash.logger("API(%v): REPLY: %#v", method, reply)
