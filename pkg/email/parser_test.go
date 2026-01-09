@@ -1138,4 +1138,114 @@ Body
 		Body: `Body
 `,
 	}},
+	{
+		`Sender: foo@foobar.com
+Subject: [PATCH] Some patch
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+
+base-commit-broken-tag-correct-hash: f8f97927abf7c12382dddc93a144fc9df7919b77
+`,
+		Email{
+			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "[PATCH] Some patch",
+			Author:    "foo@foobar.com",
+			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			Body: `base-commit-broken-tag-correct-hash: f8f97927abf7c12382dddc93a144fc9df7919b77
+`,
+			BaseCommitHint: "",
+		},
+	}, {
+		`Sender: foo@foobar.com
+Subject: [PATCH] Some patch
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+
+base-commit: f8f97927brokenhash
+`,
+		Email{
+			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "[PATCH] Some patch",
+			Author:    "foo@foobar.com",
+			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			Body: `base-commit: f8f97927brokenhash
+`,
+			BaseCommitHint: "",
+		},
+	}, {
+		`Sender: foo@foobar.com
+Subject: [PATCH] Some patch
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+
+base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77
+`,
+		Email{
+			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "[PATCH] Some patch",
+			Author:    "foo@foobar.com",
+			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			Body: `base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77
+`,
+			BaseCommitHint: "f8f97927abf7c12382dddc93a144fc9df7919b77",
+		},
+	}, {
+		`Sender: foo@foobar.com
+Subject: [PATCH] Some patch
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+
+base-commit: 
+
+Oops, no hash.
+`,
+		Email{
+			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "[PATCH] Some patch",
+			Author:    "foo@foobar.com",
+			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			Body: `base-commit: 
+
+Oops, no hash.
+`,
+			BaseCommitHint: "",
+		},
+	}, {
+		`Sender: foo@foobar.com
+Subject: [PATCH] Some patch
+To: <bar@foo.com>
+From: <foo@foobar.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 7 May 2017 19:54:00 -0700
+
+base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are bad
+`,
+		Email{
+			MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+			Date:      time.Date(2017, time.May, 7, 19, 54, 0, 0, parseTestZone),
+			Subject:   "[PATCH] Some patch",
+			Author:    "foo@foobar.com",
+			Cc:        []string{"bar@foo.com", "foo@foobar.com"},
+			RawCc:     []string{"bar@foo.com", "foo@foobar.com"},
+			Body: `base-commit: f8f97927abf7c12382dddc93a144fc9df7919b77 words after the hash are bad
+`,
+			BaseCommitHint: "",
+		},
+	},
 }
