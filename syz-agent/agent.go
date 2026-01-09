@@ -44,7 +44,7 @@ type Config struct {
 	VM                json.RawMessage `json:"vm"`
 	// Max workdir cache size (defaults to 1TB).
 	// The whole workdir may be slightly larger, since e.g. kernel checkout is not accounted here.
-	CacheSize uint64
+	CacheSize uint64 `json:"cache_size"`
 	// Use fixed base commit for patching jobs (for testing).
 	FixedBaseCommit string `json:"fixed_base_commit"`
 	// Use this LLM model (for testing, if empty use a default model).
