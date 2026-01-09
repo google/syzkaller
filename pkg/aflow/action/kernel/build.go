@@ -44,14 +44,19 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 		image := filepath.FromSlash(build.LinuxKernelImage(targets.AMD64))
 		makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
 			"ccache", dir, runtime.NumCPU())
-		makeArgs = append(makeArgs, path.Base(image), "compile_commands.json")
+		compileCommnads := "compile_commands.json"
+		makeArgs = append(makeArgs, path.Base(image), compileCommnads)
 		if _, err := osutil.RunCmd(time.Hour, args.KernelSrc, "make", makeArgs...); err != nil {
 			return err
 		}
 		// Remove main intermediate build files, we don't need them anymore
 		// and they take lots of space. Keep generated source files.
 		keepExt := map[string]bool{"h": true, "c": true, "s": true, "S": true}
-		keepFiles := map[string]bool{image: true}
+		keepFiles := map[string]bool{
+			image:               true,
+			target.KernelObject: true,
+			compileCommnads:     true,
+		}
 		return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || keepFiles[path] || keepExt[filepath.Ext(d.Name())] {
 				return err
