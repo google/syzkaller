@@ -154,13 +154,14 @@ func (sf *SeriesFetcher) handleSeries(ctx context.Context, series *lore.Series,
 		date = time.Now()
 	}
 	apiSeries := &api.Series{
-		ExtID:       series.MessageID,
-		AuthorEmail: first.Author,
-		Title:       series.Subject,
-		Version:     series.Version,
-		SubjectTags: series.Tags,
-		Link:        loreLink(series.MessageID),
-		PublishedAt: date,
+		ExtID:          series.MessageID,
+		AuthorEmail:    first.Author,
+		Title:          series.Subject,
+		Version:        series.Version,
+		SubjectTags:    series.Tags,
+		Link:           loreLink(series.MessageID),
+		PublishedAt:    date,
+		BaseCommitHint: series.BaseCommitHint,
 	}
 	sp := seriesProcessor{}
 	for i, patch := range series.Patches {
