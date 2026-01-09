@@ -1,4 +1,3 @@
-# Output with CONFIG_PRINTK_CALLER=y
 TITLE: kernel panic: sysrq triggered crash
 TYPE: DoS
 
