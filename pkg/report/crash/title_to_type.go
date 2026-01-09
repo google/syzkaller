@@ -1,35 +1,31 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package report
-
-import (
-	"github.com/google/syzkaller/pkg/report/crash"
-)
+package crash
 
 var titleToType = []struct {
 	includePrefixes []string
-	crashType       crash.Type
+	crashType       Type
 }{
 	{
 		includePrefixes: []string{
 			"KFENCE: use-after-free write",
 		},
-		crashType: crash.KFENCEUseAfterFreeWrite,
+		crashType: KFENCEUseAfterFreeWrite,
 	},
 	{
 		includePrefixes: []string{
 			"KFENCE: use-after-free read",
 			"KFENCE: use-after-free", // Read/Write is not clear. It is at least Read.
 		},
-		crashType: crash.KFENCEUseAfterFreeRead,
+		crashType: KFENCEUseAfterFreeRead,
 	},
 	{
 		includePrefixes: []string{
 			"KFENCE: invalid write",
 			"KFENCE: out-of-bounds write",
 		},
-		crashType: crash.KFENCEWrite,
+		crashType: KFENCEWrite,
 	},
 	{
 		includePrefixes: []string{
@@ -39,25 +35,25 @@ var titleToType = []struct {
 			"KFENCE: out-of-bounds", // Read/Write is not clear. It is at least Read.
 			// keep-sorted end
 		},
-		crashType: crash.KFENCERead,
+		crashType: KFENCERead,
 	},
 	{
 		includePrefixes: []string{
 			"KFENCE: memory corruption",
 		},
-		crashType: crash.KFENCEMemoryCorruption,
+		crashType: KFENCEMemoryCorruption,
 	},
 	{
 		includePrefixes: []string{
 			"KFENCE: invalid free",
 		},
-		crashType: crash.KFENCEInvalidFree,
+		crashType: KFENCEInvalidFree,
 	},
 	{
 		includePrefixes: []string{
 			"KMSAN: uninit-value",
 		},
-		crashType: crash.KMSANUninitValue,
+		crashType: KMSANUninitValue,
 	},
 	{
 		includePrefixes: []string{
@@ -67,32 +63,32 @@ var titleToType = []struct {
 			"KMSAN: use-after-free",
 			// keep-sorted end
 		},
-		crashType: crash.KMSANUseAfterFreeRead,
+		crashType: KMSANUseAfterFreeRead,
 	},
 	{
 		includePrefixes: []string{
 			"KMSAN: kernel-infoleak",
 			"KMSAN: kernel-usb-infoleak",
 		},
-		crashType: crash.KMSANInfoLeak,
+		crashType: KMSANInfoLeak,
 	},
 	{
 		includePrefixes: []string{
 			"KASAN: null-ptr-deref Write",
 		},
-		crashType: crash.KASANNullPtrDerefWrite,
+		crashType: KASANNullPtrDerefWrite,
 	},
 	{
 		includePrefixes: []string{
 			"KASAN: null-ptr-deref Read",
 		},
-		crashType: crash.KASANNullPtrDerefRead,
+		crashType: KASANNullPtrDerefRead,
 	},
 	{
 		includePrefixes: []string{
 			"BUG: unable to handle kernel NULL pointer dereference in",
 		},
-		crashType: crash.NullPtrDerefBUG,
+		crashType: NullPtrDerefBUG,
 	},
 	{
 		includePrefixes: []string{
@@ -106,7 +102,7 @@ var titleToType = []struct {
 			"KASAN: wild-memory-access Write",
 			// keep-sorting end
 		},
-		crashType: crash.KASANWrite,
+		crashType: KASANWrite,
 	},
 	{
 		includePrefixes: []string{
@@ -125,21 +121,21 @@ var titleToType = []struct {
 			"KASAN: wild-memory-access", // Read/Write is not clear. It is at least Read.
 			// keep-sorting end
 		},
-		crashType: crash.KASANRead,
+		crashType: KASANRead,
 	},
 	{
 		includePrefixes: []string{
 			"KASAN: double-free or invalid-free",
 			"KASAN: invalid-free",
 		},
-		crashType: crash.KASANInvalidFree,
+		crashType: KASANInvalidFree,
 	},
 	{
 		includePrefixes: []string{
 			"KASAN: slab-use-after-free Write",
 			"KASAN: use-after-free Write",
 		},
-		crashType: crash.KASANUseAfterFreeWrite,
+		crashType: KASANUseAfterFreeWrite,
 	},
 	{
 		includePrefixes: []string{
@@ -147,7 +143,7 @@ var titleToType = []struct {
 			"KASAN: use-after-free Read",
 			"KASAN: use-after-free", // Read/Write is not clear. It is at least Read.
 		},
-		crashType: crash.KASANUseAfterFreeRead,
+		crashType: KASANUseAfterFreeRead,
 	},
 	{
 		includePrefixes: []string{
@@ -156,27 +152,27 @@ var titleToType = []struct {
 			"BUG: unable to handle kernel paging request",
 			// keep-sorting end
 		},
-		crashType: crash.MemorySafetyBUG,
+		crashType: MemorySafetyBUG,
 	},
 	{
 		includePrefixes: []string{
 			"WARNING: refcount bug",
 		},
-		crashType: crash.RefcountWARNING,
+		crashType: RefcountWARNING,
 	},
 	{
 		includePrefixes: []string{
 			"UBSAN: array-index-out-of-bounds",
 		},
-		crashType: crash.MemorySafetyUBSAN,
+		crashType: MemorySafetyUBSAN,
 	},
 	{
 		includePrefixes: []string{"KCSAN: data-race"},
-		crashType:       crash.KCSANDataRace,
+		crashType:       KCSANDataRace,
 	},
 	{
 		includePrefixes: []string{"KCSAN: assert: race in"},
-		crashType:       crash.KCSANAssert,
+		crashType:       KCSANAssert,
 	},
 	{
 		includePrefixes: []string{
@@ -198,7 +194,7 @@ var titleToType = []struct {
 			"possible deadlock in",
 			// keep-sorted end
 		},
-		crashType: crash.LockdepBug,
+		crashType: LockdepBug,
 	},
 	{
 		includePrefixes: []string{
@@ -207,11 +203,11 @@ var titleToType = []struct {
 			"BUG: sleeping function called from invalid context in",
 			// keep-sorted end
 		},
-		crashType: crash.AtomicSleep,
+		crashType: AtomicSleep,
 	},
 	{
 		includePrefixes: []string{"memory leak in"},
-		crashType:       crash.MemoryLeak,
+		crashType:       MemoryLeak,
 	},
 	{
 		includePrefixes: []string{
@@ -220,11 +216,11 @@ var titleToType = []struct {
 			"kernel BUG",
 			// keep-sorted end
 		},
-		crashType: crash.Bug,
+		crashType: Bug,
 	},
 	{
 		includePrefixes: []string{"WARNING in"},
-		crashType:       crash.Warning,
+		crashType:       Warning,
 	},
 	{
 		includePrefixes: []string{
@@ -235,7 +231,7 @@ var titleToType = []struct {
 			"WARNING: kernel stack regs has bad",
 			// keep-sorted end
 		},
-		crashType: crash.UnknownType, // This is printk().
+		crashType: UnknownType, // This is printk().
 	},
 	{
 		includePrefixes: []string{
@@ -246,7 +242,7 @@ var titleToType = []struct {
 			"INFO: task hung in",
 			// keep-sorted end
 		},
-		crashType: crash.Hang,
+		crashType: Hang,
 	},
 	{
 		includePrefixes: []string{
@@ -271,51 +267,51 @@ var titleToType = []struct {
 			"unregister_netdevice: waiting for DEV to become free",
 			// keep-sorted end
 		},
-		crashType: crash.DoS,
+		crashType: DoS,
 	},
 	{
 		includePrefixes: []string{"unexpected kernel reboot"},
-		crashType:       crash.UnexpectedReboot,
+		crashType:       UnexpectedReboot,
 	},
 	{
 		includePrefixes: []string{
 			"SYZFAIL",
 			"SYZFATAL:",
 		},
-		crashType: crash.SyzFailure,
+		crashType: SyzFailure,
 	},
 
 	// DEFAULTS.
 	{
 		includePrefixes: []string{"WARNING:"},
-		crashType:       crash.Warning,
+		crashType:       Warning,
 	},
 	{
 		includePrefixes: []string{"BUG:"},
-		crashType:       crash.UnknownType,
+		crashType:       UnknownType,
 	},
 	{
 		includePrefixes: []string{"INFO:"},
-		crashType:       crash.UnknownType,
+		crashType:       UnknownType,
 	},
 	{
 		includePrefixes: []string{"KASAN:"},
-		crashType:       crash.KASANUnknown,
+		crashType:       KASANUnknown,
 	},
 	{
 		includePrefixes: []string{"KFENCE:"},
-		crashType:       crash.KFENCEUnknown,
+		crashType:       KFENCEUnknown,
 	},
 	{
 		includePrefixes: []string{"KMSAN:"},
-		crashType:       crash.KMSANUnknown,
+		crashType:       KMSANUnknown,
 	},
 	{
 		includePrefixes: []string{"UBSAN:"},
-		crashType:       crash.UBSAN,
+		crashType:       UBSAN,
 	},
 	{
 		includePrefixes: []string{"KCSAN:"},
-		crashType:       crash.KCSANUnknown,
+		crashType:       KCSANUnknown,
 	},
 }

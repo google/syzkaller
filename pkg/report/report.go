@@ -800,7 +800,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	rep.Type = TitleToCrashType(rep.Title)
+	rep.Type = crash.TitleToType(rep.Title)
 	return rep
 }
 
@@ -931,17 +931,6 @@ var groupGoRuntimeErrors = oops{
 		compile("ALSA"),
 		compile("fatal error: cannot create timer"),
 	},
-}
-
-func TitleToCrashType(title string) crash.Type {
-	for _, t := range titleToType {
-		for _, prefix := range t.includePrefixes {
-			if strings.HasPrefix(title, prefix) {
-				return t.crashType
-			}
-		}
-	}
-	return crash.UnknownType
 }
 
 const reportSeparator = "\n<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>\n\n"

@@ -55,7 +55,7 @@ var impactOrder = []crash.Type{
 func TitlesToImpact(title string, otherTitles ...string) int {
 	maxImpact := -1
 	for _, t := range append([]string{title}, otherTitles...) {
-		typ := TitleToCrashType(t)
+		typ := crash.TitleToType(t)
 		for i, t := range impactOrder {
 			if typ == t {
 				maxImpact = max(maxImpact, len(impactOrder)-i)

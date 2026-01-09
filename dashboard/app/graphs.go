@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/report/crash"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -370,7 +369,7 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 	months := make(map[time.Time]map[string]int)
 	for _, bug := range bugs {
 		for _, typ := range types {
-			if !typ.pred(report.TitleToCrashType(bug.Title)) {
+			if !typ.pred(crash.TitleToType(bug.Title)) {
 				continue
 			}
 			t := bug.FirstTime
