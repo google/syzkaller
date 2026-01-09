@@ -42,6 +42,9 @@ type Config struct {
 	Image             string          `json:"image"`
 	Type              string          `json:"type"`
 	VM                json.RawMessage `json:"vm"`
+	// Max workdir cache size (defaults to 1TB).
+	// The whole workdir may be slightly larger, since e.g. kernel checkout is not accounted here.
+	CacheSize uint64
 	// Use fixed base commit for patching jobs (for testing).
 	FixedBaseCommit string `json:"fixed_base_commit"`
 	// Use this LLM model (for testing, if empty use a default model).
@@ -66,6 +69,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	cfg := &Config{
 		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
 		SyzkallerBranch: "master",
+		CacheSize:       1 << 40, // 1TB should be enough for everyone!
 		Model:           aflow.DefaultModel,
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
@@ -103,8 +107,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	updater.UpdateOnStart(autoUpdate, updatePending, shutdownPending)
 
 	const workdir = "workdir"
-	const cacheSize = 1 << 40 // 1TB should be enough for everyone!
-	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cacheSize)
+	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cfg.CacheSize)
 	if err != nil {
 		return err
 	}
