@@ -1,5 +1,8 @@
-TITLE: 
-CONTEXTS: [ T5524], [ T5524]
+TITLE: UBSAN: array-index-out-of-bounds in bpf_link_show_fdinfo
+ALT: bad-access in bpf_link_show_fdinfo
+TYPE: MEMORY_SAFETY_UBSAN
+EXECUTOR: proc=1, id=86
+CONTEXTS: [[ T5524] [ T5524]]
 
 
 [   39.835000][   T38] audit: type=1400 audit(1758704777.688:82): avc:  denied  { name_bind } for  pid=5118 comm="sshd" src=30000 scontext=system_u:system_r:sshd_t tcontext=system_u:object_r:unreserved_port_t tclass=tcp_socket permissive=1
@@ -713,9 +716,7 @@ R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
  </TASK>
 ================================================================================
 ==================================================================
-
-<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
-
+TAIL REPORTS:
 index 11 is out of range for type 'char *[10]'
 CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
 Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
@@ -787,6 +788,3 @@ Memory state around the buggy address:
  ffffffff8a73d800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
  ffffffff8a73d880: 00 00 00 00 00 00 00 00 00 f9 f9 f9 f9 f9 f9 f9
 ==================================================================
-
-<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
-
