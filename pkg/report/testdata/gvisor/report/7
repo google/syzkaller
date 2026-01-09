@@ -167,3 +167,13 @@ Previous write at 0x00c4211413e0 by goroutine 45:
       pkg/sentry/kernel/task_run.go:217 +0x157c
   gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
       pkg/sentry/kernel/task_run.go:95 +0x264
+TAIL REPORTS:
+W0618 15:50:34.276259  112427 x:0] FATAL ERROR: error running container: err waiting on container "syz-1": EOF
+error running container: err waiting on container "syz-1": EOF
+W0618 15:50:34.276259  112492 x:0] FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+error getting processes for container: error executing in sandbox: EOF
+
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+W0618 15:50:34.276259  112492 x:0] FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+error getting processes for container: error executing in sandbox: EOF
+

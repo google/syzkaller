@@ -219,3 +219,38 @@ Memory state around the buggy address:
  ffff8801d5961a80: fb fb fb fb fc fc fc fc 00 00 00 fc fc fc fc fc
  ffff8801d5961b00: 04 fc fc fc fc fc fc fc fb fb fb fb fc fc fc fc
 ==================================================================
+TAIL REPORTS:
+                                           ^
+ ffff8801d5961a80: fb fb fb fb fc fc fc fc 00 00 00 fc fc fc fc fc
+ ffff8801d5961b00: 04 fc fc fc fc fc fc fc fb fb fb fb fc fc fc fc
+==================================================================
+Disabling lock debugging due to kernel taint
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 0 PID: 11514 Comm: syz-executor5 Tainted: G    B           4.12.0-rc7+ #2
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x194/0x257
+ panic+0x1e4/0x3fb
+ kasan_end_report+0x50/0x50
+ kasan_report_double_free+0x72/0x80
+ kasan_slab_free+0xa0/0xc0
+ kfree+0xd3/0x260
+ selinux_tun_dev_free_security+0x15/0x20
+ security_tun_dev_free_security+0x48/0x80
+ __tun_chr_ioctl+0x2cc1/0x3d60
+ tun_chr_ioctl+0x2a/0x40
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x4512c9
+RSP: 002b:00007fc65827bc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+RDX: 000000002053c000 RSI: 00000000400454ca RDI: 0000000000000005
+RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004baa97
+R13: 00000000ffffffff R14: 0000000020124ff3 R15: 0000000000000000
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

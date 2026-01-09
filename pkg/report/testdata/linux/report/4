@@ -137,3 +137,40 @@ Dumping ftrace buffer:
    (ftrace buffer empty)
 Kernel Offset: disabled
 Rebooting in 86400 seconds..
+TAIL REPORTS:
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 8377 Comm: syz-executor6 Not tainted 4.12.0-rc7+ #2
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x194/0x257
+ panic+0x1e4/0x3fb
+ __warn+0x1c4/0x1e0
+ report_bug+0x211/0x2d0
+ fixup_bug+0x40/0x90
+ do_trap+0x260/0x390
+ do_error_trap+0x120/0x390
+ do_invalid_op+0x1b/0x20
+ invalid_op+0x1e/0x30
+RIP: 0010:kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+RSP: 0018:ffff8801c5e37720 EFLAGS: 00010212
+RAX: 0000000000010000 RBX: ffff8801c8baa000 RCX: ffffc90004763000
+RDX: 0000000000000052 RSI: ffffffff810de507 RDI: ffff8801c6358f60
+RBP: ffff8801c5e37a80 R08: 1ffffffff097c151 R09: 0000000000000001
+R10: 0000000000000000 R11: ffffffff81066ddc R12: 0000000000000000
+R13: ffff8801c52be780 R14: ffff8801c65be600 R15: ffff8801c6358d40
+ kvm_vcpu_ioctl+0x627/0x1110
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x4512c9
+RSP: 002b:00007f7e59d4fc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000016
+RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b93f0
+R13: 00000000ffffffff R14: 0000000020000000 R15: 0000000000ffa000
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
