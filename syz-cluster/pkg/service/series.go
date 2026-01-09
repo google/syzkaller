@@ -54,14 +54,15 @@ func (s *SeriesService) getSessionSeries(ctx context.Context, sessionID string,
 
 func (s *SeriesService) UploadSeries(ctx context.Context, series *api.Series) (*api.UploadSeriesResp, error) {
 	seriesObj := &db.Series{
-		ID:          uuid.NewString(),
-		ExtID:       series.ExtID,
-		AuthorEmail: series.AuthorEmail,
-		Title:       series.Title,
-		Version:     int64(series.Version),
-		Link:        series.Link,
-		PublishedAt: series.PublishedAt,
-		Cc:          series.Cc,
+		ID:             uuid.NewString(),
+		ExtID:          series.ExtID,
+		AuthorEmail:    series.AuthorEmail,
+		Title:          series.Title,
+		Version:        int64(series.Version),
+		Link:           series.Link,
+		PublishedAt:    series.PublishedAt,
+		Cc:             series.Cc,
+		BaseCommitHint: series.BaseCommitHint,
 	}
 	for _, tag := range series.SubjectTags {
 		const tageSizeLimit = 511
@@ -120,15 +121,16 @@ func (s *SeriesService) getSeries(ctx context.Context,
 		return nil, fmt.Errorf("failed to fetch patches: %w", err)
 	}
 	ret := &api.Series{
-		ID:          series.ID,
-		ExtID:       series.ExtID,
-		Title:       series.Title,
-		AuthorEmail: series.AuthorEmail,
-		Version:     int(series.Version),
-		Cc:          series.Cc,
-		PublishedAt: series.PublishedAt,
-		Link:        series.Link,
-		SubjectTags: series.SubjectTags,
+		ID:             series.ID,
+		ExtID:          series.ExtID,
+		Title:          series.Title,
+		AuthorEmail:    series.AuthorEmail,
+		Version:        int(series.Version),
+		Cc:             series.Cc,
+		PublishedAt:    series.PublishedAt,
+		Link:           series.Link,
+		SubjectTags:    series.SubjectTags,
+		BaseCommitHint: series.BaseCommitHint,
 	}
 	for _, patch := range patches {
 		var body []byte
