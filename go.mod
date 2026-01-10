@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/logging v1.13.1
 	cloud.google.com/go/profiler v0.4.3
 	cloud.google.com/go/secretmanager v1.16.0
-	cloud.google.com/go/spanner v1.86.0
+	cloud.google.com/go/spanner v1.87.0
 	cloud.google.com/go/storage v1.57.1
 	github.com/VividCortex/gohistogram v1.0.0
 	github.com/argoproj/argo-workflows/v3 v3.7.3
