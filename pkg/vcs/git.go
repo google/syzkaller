@@ -232,8 +232,7 @@ func (git *gitRepo) initRepo(reason error) error {
 }
 
 func (git *gitRepo) Contains(commit string) (bool, error) {
-	_, err := git.Run("merge-base", "--is-ancestor", commit, HEAD)
-	return err == nil, nil
+	return git.containedIn(HEAD, commit)
 }
 
 const gitDateFormat = "Mon Jan 2 15:04:05 2006 -0700"
@@ -753,9 +752,11 @@ type BaseCommit struct {
 	Branches []string
 }
 
-// BaseForDiff selects the most recent commit that could have been the base commit
+// BaseForDiff returns a list of commits that could have been the base commit
 // for the specified git patch.
-func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) (*BaseCommit, error) {
+// The returned list is minimized to only contain the commits that are represented in different
+// subsets of branches.
+func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*BaseCommit, error) {
 	// We can't just query git log with --find-object=HASH because that will only return
 	// the revisions where the hashed content was introduced or removed, while what we actually
 	// want is the latest revision(s) where the content modified in the diff is still in place.
@@ -771,7 +772,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) (*BaseCo
 		"--no-renames",
 		// Note that we cannot accelerate it by specifying "--since"
 		"-n", "100",
-		`--format=%P`,
+		`--format=%H:%P`,
 	}
 	var fileNames []string
 	nameToHash := map[string]string{}
@@ -812,22 +813,25 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) (*BaseCo
 	for s.Scan() {
 		// TODO: we can further reduce the search space by adding "--raw" to args
 		// and only considering the commits that introduce the blobs from the diff.
-		firstParent, _, _ := strings.Cut(s.Text(), " ")
-		if firstParent == "" {
-			continue
+		commit, parents, _ := strings.Cut(s.Text(), ":")
+		// Focus on the first parent.
+		candidate, _, _ := strings.Cut(parents, " ")
+		if candidate == "" {
+			// For the first commit, there's no parent.
+			candidate = commit
 		}
 		// Only focus on branches that are still alive.
 		const cutOffDays = 60
-		list, err := git.branchesThatContain(firstParent, time.Now().Add(-time.Hour*24*cutOffDays))
+		list, err := git.branchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
 		if err != nil {
 			return nil, fmt.Errorf("failed to query branches: %w", err)
 		}
 		for _, info := range list {
-			record(firstParent, info.Branch)
+			record(candidate, info.Branch)
 			record(info.Commit, info.Branch)
 		}
 	}
-	var ret *BaseCommit
+	var ret []*BaseCommit
 	for commit, branches := range commitBranches {
 		tracer.Log("considering %q [%q]", commit, branches)
 		fileHashes, err := git.fileHashes(commit, fileNames)
@@ -853,13 +857,39 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) (*BaseCo
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract commit info: %w", err)
 		}
-		tracer.Log("commit date is %v", info.CommitDate)
-		// Select the most recent commit.
-		if ret == nil || ret.CommitDate.Before(info.CommitDate) {
-			ret = &BaseCommit{Commit: info, Branches: branchList}
+		tracer.Log("hashes match, commit date is %v, branches %v", info.CommitDate, branchList)
+		ret = append(ret, &BaseCommit{Commit: info, Branches: branchList})
+	}
+	return git.minimizeBaseCommits(ret)
+}
+
+func (git Git) minimizeBaseCommits(list []*BaseCommit) ([]*BaseCommit, error) {
+	// We want to preserve commits that are present in different subsets of branches.
+	// Then, we want to sort them topologically and break ties by date.
+	lastCommit := map[string]*BaseCommit{}
+	for _, item := range list {
+		key := strings.Join(item.Branches, ":")
+		prev, ok := lastCommit[key]
+		if !ok {
+			lastCommit[key] = item
+			continue
+		}
+		isNewer, err := git.containedIn(item.Hash, prev.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("topological sort step failed: %w", err)
+		}
+		if isNewer {
+			lastCommit[key] = item
 		}
 	}
-	return ret, nil
+	var filtered []*BaseCommit
+	for _, item := range lastCommit {
+		filtered = append(filtered, item)
+	}
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CommitDate.After(filtered[j].CommitDate)
+	})
+	return filtered, nil
 }
 
 // fileHashes returns the blob SHA hashes for a particular list of files on a particular commit.
@@ -922,6 +952,11 @@ func (git Git) verifyHash(hash string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (git Git) containedIn(parent, commit string) (bool, error) {
+	_, err := git.Run("merge-base", "--is-ancestor", commit, parent)
+	return err == nil, nil
 }
 
 func (git Git) Diff(commitA, commitB string) ([]byte, error) {
