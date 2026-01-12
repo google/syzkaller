@@ -124,6 +124,7 @@ func TestAIJob(t *testing.T) {
 	require.NotEqual(t, resp.ID, "")
 	require.Equal(t, resp.Workflow, "assessment-kcsan")
 	require.Equal(t, resp.Args, map[string]any{
+		"BugTitle":        "KCSAN: data-race in foo / bar",
 		"CrashReport":     "report1",
 		"KernelRepo":      "repo1",
 		"KernelCommit":    "1111111111111111111111111111111111111111",

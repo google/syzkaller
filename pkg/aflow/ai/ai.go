@@ -6,7 +6,10 @@ package ai
 
 type WorkflowType string
 
+// Note: don't change string values of these types w/o a good reason.
+// They are stored in the dashboard database as strings.
 const (
 	WorkflowPatching        = WorkflowType("patching")
+	WorkflowModeration      = WorkflowType("moderation")
 	WorkflowAssessmentKCSAN = WorkflowType("assessment-kcsan")
 )

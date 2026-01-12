@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -322,6 +323,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		Description: bug.displayTitle(),
 		Link:        fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)),
 		Args: spanner.NullJSON{Valid: true, Value: map[string]any{
+			"BugTitle":        bug.Title,
 			"ReproOpts":       string(crash.ReproOpts),
 			"ReproSyzID":      crash.ReproSyz,
 			"ReproCID":        crash.ReproC,
@@ -423,11 +425,21 @@ const currentAIJobCheckSeq = 1
 
 func workflowsForBug(bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	workflows := make(map[ai.WorkflowType]bool)
-	if strings.HasPrefix(bug.Title, "KCSAN: data-race") {
+	typ := crash.TitleToType(bug.Title)
+	// UAF bugs stuck in last but one reporting.
+	if typ.IsUAF() && len(bug.Reporting) > 1 &&
+		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() &&
+		!bug.Reporting[len(bug.Reporting)-2].Reported.IsZero() {
+		workflows[ai.WorkflowModeration] = true
+	}
+	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
 	}
 	if manual {
 		// Types we don't create automatically yet, but can be created manually.
+		if typ.IsUAF() {
+			workflows[ai.WorkflowModeration] = true
+		}
 		if bug.HeadReproLevel > dashapi.ReproLevelNone {
 			workflows[ai.WorkflowPatching] = true
 		}
