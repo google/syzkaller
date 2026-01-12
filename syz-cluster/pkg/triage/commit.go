@@ -80,3 +80,40 @@ func (cs *CommitSelector) Select(series *api.Series, tree *api.Tree, lastBuild *
 	}
 	return SelectResult{Reason: reasonNotApplies}, nil
 }
+
+func FromBaseCommits(series *api.Series, baseCommits []*vcs.BaseCommit, trees []*api.Tree) (*api.Tree, string) {
+	// Technically, any one of baseCommits could be a good match.
+	// However, the developers have their own expectations regarding
+	// what tree and what branch are actually preferred there.
+	// So, among baseCommits, we still give preference to those that
+	// align with the mailing lists Cc'd by the patch series.
+	tree, commit := bestCommit(baseCommits, SelectTrees(series, trees))
+	if tree != nil {
+		return tree, commit
+	}
+	return bestCommit(baseCommits, trees)
+}
+
+func bestCommit(baseCommits []*vcs.BaseCommit, trees []*api.Tree) (*api.Tree, string) {
+	retTreeIdx, retSameBranch, retCommit := -1, false, ""
+	for _, commit := range baseCommits {
+		for _, commitBranch := range commit.Branches {
+			treeIdx, branch := FindTree(trees, commitBranch)
+			if treeIdx < 0 {
+				continue
+			}
+			sameBranch := branch == trees[treeIdx].Branch
+			// If, for the same tree, we also have matched the branch, even better.
+			if retTreeIdx < 0 || treeIdx < retTreeIdx ||
+				treeIdx == retTreeIdx && !retSameBranch && sameBranch {
+				retTreeIdx = treeIdx
+				retSameBranch = sameBranch
+				retCommit = commit.Hash
+			}
+		}
+	}
+	if retTreeIdx < 0 {
+		return nil, ""
+	}
+	return trees[retTreeIdx], retCommit
+}

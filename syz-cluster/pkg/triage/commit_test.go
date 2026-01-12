@@ -87,6 +87,80 @@ func TestCommitSelector(t *testing.T) {
 	}
 }
 
+func TestFromBaseCommits(t *testing.T) {
+	trees := []*api.Tree{
+		{
+			Name:       "A",
+			Branch:     "master",
+			EmailLists: []string{"list_A"},
+		},
+		{
+			Name:       "B",
+			Branch:     "master",
+			EmailLists: []string{"list_B"},
+		},
+		{
+			Name:       "C",
+			Branch:     "main",
+			EmailLists: []string{"list_C"},
+		},
+		{
+			Name:       "D",
+			Branch:     "main",
+			EmailLists: nil,
+		},
+	}
+	commits := []*vcs.BaseCommit{
+		{
+			Commit:   &vcs.Commit{Hash: "first"},
+			Branches: []string{"C/main"},
+		},
+		{
+			Commit:   &vcs.Commit{Hash: "second"},
+			Branches: []string{"A/other", "B/other"},
+		},
+		{
+			Commit:   &vcs.Commit{Hash: "third"},
+			Branches: []string{"A/master", "A/other"},
+		},
+	}
+	t.Run("best branch", func(t *testing.T) {
+		tree, commit := FromBaseCommits(&api.Series{
+			Cc: []string{"list_A"},
+		}, commits, trees)
+		assert.Equal(t, "A", tree.Name)
+		assert.Equal(t, "third", commit)
+	})
+	t.Run("best tree", func(t *testing.T) {
+		// Even though C/main matches perfectly, there's a commit
+		// in the higher prio tree B.
+		tree, commit := FromBaseCommits(&api.Series{
+			Cc: []string{"list_B", "list_C"},
+		}, commits, trees)
+		assert.Equal(t, "B", tree.Name)
+		assert.Equal(t, "second", commit)
+	})
+	t.Run("any tree", func(t *testing.T) {
+		// If no trees matching by Cc'd list are in the base commit list,
+		// consider all trees.
+		commits := []*vcs.BaseCommit{
+			{
+				Commit:   &vcs.Commit{Hash: "first"},
+				Branches: []string{"B/main"},
+			},
+			{
+				Commit:   &vcs.Commit{Hash: "second"},
+				Branches: []string{"C/main"},
+			},
+		}
+		tree, commit := FromBaseCommits(&api.Series{
+			Cc: []string{"list_A"},
+		}, commits, trees)
+		assert.Equal(t, "B", tree.Name)
+		assert.Equal(t, "first", commit)
+	})
+}
+
 func date(date string) time.Time {
 	t, err := time.Parse("2006-Jan-02", date)
 	if err != nil {

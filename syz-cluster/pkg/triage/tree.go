@@ -46,11 +46,12 @@ func SelectTrees(series *api.Series, trees []*api.Tree) []*api.Tree {
 	return result
 }
 
-func TreeFromBranch(trees []*api.Tree, branch string) *api.Tree {
-	for _, tree := range trees {
-		if strings.HasPrefix(branch, tree.Name+"/") {
-			return tree
+func FindTree(trees []*api.Tree, branch string) (int, string) {
+	for idx, tree := range trees {
+		branchName, ok := strings.CutPrefix(branch, tree.Name+"/")
+		if ok {
+			return idx, branchName
 		}
 	}
-	return nil
+	return -1, ""
 }
