@@ -79,12 +79,6 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trees: %w", err)
 	}
-	selectedTrees := triage.SelectTrees(series, treesResp.Trees)
-	if len(selectedTrees) == 0 {
-		return &api.TriageResult{
-			SkipReason: "no suitable base kernel trees found",
-		}, nil
-	}
 	fuzzConfigs := triage.MergeKernelFuzzConfigs(triage.SelectFuzzConfigs(series, treesResp.FuzzTargets))
 	if len(fuzzConfigs) == 0 {
 		return &api.TriageResult{
@@ -93,7 +87,7 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 	}
 	ret := &api.TriageResult{}
 	for _, campaign := range fuzzConfigs {
-		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, selectedTrees, campaign)
+		fuzzTask, err := triager.prepareFuzzingTask(ctx, series, treesResp.Trees, campaign)
 		var skipErr *SkipTriageError
 		if errors.As(err, &skipErr) {
 			ret.SkipReason = skipErr.Reason.Error()
@@ -123,7 +117,7 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		}
 	}
 	if result != nil {
-		triager.Log("continuing with %+v", result)
+		triager.Log("continuing with %v in %v", result.Commit, result.Tree.Name)
 		base := api.BuildRequest{
 			TreeName:   result.Tree.Name,
 			TreeURL:    result.Tree.URL,
@@ -158,31 +152,30 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 		diff = append(diff, patch.Body...)
 		diff = append(diff, '\n')
 	}
-	base, err := triager.ops.BaseForDiff(diff, triager.DebugTracer)
+	baseList, err := triager.ops.BaseForDiff(diff, triager.DebugTracer)
 	if err != nil {
 		return nil, err
-	} else if base == nil {
+	}
+	tree, commit := triage.FromBaseCommits(series, baseList, trees)
+	if tree == nil {
 		triager.Log("no candidate base commit is found")
 		return nil, nil
 	}
-	for _, branch := range base.Branches {
-		tree := triage.TreeFromBranch(trees, branch)
-		if tree != nil {
-			return &SelectResult{
-				Tree:   tree,
-				Commit: base.Hash,
-				Arch:   fuzzArch,
-			}, nil
-		}
-	}
-	triager.Log("cannot identify the tree from %q", base.Branches)
-	return nil, nil
+	return &SelectResult{
+		Tree:   tree,
+		Commit: commit,
+		Arch:   fuzzArch,
+	}, nil
 }
 
 func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*SelectResult, error) {
-	skipErr := SkipError("empty tree list")
-	for _, tree := range trees {
+	selectedTrees := triage.SelectTrees(series, trees)
+	if len(selectedTrees) == 0 {
+		return nil, SkipError("no suitable base kernel trees found")
+	}
+	var skipErr error
+	for _, tree := range selectedTrees {
 		triager.Log("considering tree %q", tree.Name)
 		lastBuild, err := triager.client.LastBuild(ctx, &api.LastBuildReq{
 			Arch:       fuzzArch,
