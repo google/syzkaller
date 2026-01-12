@@ -11,10 +11,8 @@ import (
 	"os"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
-	"github.com/google/syzkaller/pkg/fuzzer"
 	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/manager"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -39,8 +37,6 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 		cfg:             cfg,
 		crashes:         make(chan *report.Report, 128),
 		servStats:       rpcserver.NewNamedStats(name),
-		candidates:      make(chan []fuzzer.Candidate),
-		reportGenerator: manager.ReportGeneratorCache(cfg),
 		enabledSyscalls: make(chan map[*prog.Syscall]bool, 1),
 		features:        make(chan flatrpc.Feature, 1),
 	}
@@ -75,8 +71,7 @@ func main() {
 	var cfgs tool.CfgsFlag
 	flag.Var(&cfgs, "configs", "[MANDATORY] list of at least two kernel-specific comma-sepatated configuration files")
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
-	// flagAddress := flag.String("address", "127.0.0.1:8080", "http address for monitoring")
-	// flagReruns := flag.Int("rerun", 3, "number of time program is rerun when a mismatch is found")
+	flagCorpus := flag.String("corpus", "", "path to corpus.db file (default: <workdir>/corpus.db)")
 	flag.Parse()
 
 	kernels := make([]*Kernel, len(cfgs))
@@ -101,13 +96,11 @@ func main() {
 		os.Exit(1)
 	}
 	workdir := kernels[0].cfg.Workdir
-	reqMaxSignal := make(chan int, len(kernels))
 	sources := make(map[int]*queue.PlainQueue)
 	for idx, kernel := range kernels {
 		if kernel.cfg.Workdir != workdir {
 			log.Fatalf("all kernel configurations must have the same workdir, got %q and %q", workdir, kernel.cfg.Workdir)
 		}
-		kernel.reqMaxSignal = reqMaxSignal
 		sources[idx] = queue.Plain()
 		kernel.source = sources[idx]
 	}
@@ -117,12 +110,11 @@ func main() {
 	log.Logf(0, "initialized %d sources", len(sources))
 
 	vrf := &Verifier{
-		kernels:        kernels,
-		cfg:            kernels[0].cfg, // for now take the first kernel's config
-		corpusPreload:  make(chan []fuzzer.Candidate),
-		disabledHashes: make(map[string]struct{}),
-		target:         kernels[0].cfg.Target,
-		sources:        sources,
+		kernels:    kernels,
+		cfg:        kernels[0].cfg, // for now take the first kernel's config
+		target:     kernels[0].cfg.Target,
+		sources:    sources,
+		corpusPath: *flagCorpus,
 	}
 
 	ctx := vm.ShutdownCtx()
