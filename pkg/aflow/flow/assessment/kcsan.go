@@ -72,7 +72,7 @@ by a mutual exclusion primitive.
 
 In the final reply explain why you think the given data race is benign or is harmful.
 
-Use the provided tools to confirm any assumptions, what variables/fields being accessed, etc.
+Use the provided tools to confirm any assumptions, variables/fields being accessed, etc.
 In particular, don't make assumptions about the kernel source code,
 use codesearch tools to read the actual source code.
 `

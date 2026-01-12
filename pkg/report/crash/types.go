@@ -79,6 +79,10 @@ func (t Type) IsKASAN() bool {
 		KASANUseAfterFreeRead, KASANUseAfterFreeWrite, KASANInvalidFree, KASANUnknown}, t)
 }
 
+func (t Type) IsUAF() bool {
+	return slices.Contains([]Type{KASANUseAfterFreeRead, KASANUseAfterFreeWrite}, t)
+}
+
 func (t Type) IsKMSAN() bool {
 	return slices.Contains([]Type{
 		KMSANUninitValue, KMSANInfoLeak, KMSANUseAfterFreeRead, KMSANUnknown}, t)
