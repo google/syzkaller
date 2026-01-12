@@ -5,4 +5,5 @@ Clang-based tool that indexes kernel source code to power
 agentic tool.
 
 The tool can be built following the procedure described for
-[syz-declextract tool](/tools/syz-declextract/README.md).
+[syz-declextract tool](/tools/syz-declextract/README.md) or with `make
+codesearch`.
