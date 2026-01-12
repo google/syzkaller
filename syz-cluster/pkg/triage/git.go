@@ -58,5 +58,9 @@ func (ops *GitTreeOps) ApplySeries(commit string, patches [][]byte) error {
 }
 
 func (ops *GitTreeOps) BaseForDiff(patch []byte, tracer debugtracer.DebugTracer) (*vcs.BaseCommit, error) {
-	return ops.Git.BaseForDiff(patch, tracer)
+	list, err := ops.Git.BaseForDiff(patch, tracer)
+	if len(list) == 0 || err != nil {
+		return nil, err
+	}
+	return list[0], nil
 }

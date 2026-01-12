@@ -523,22 +523,21 @@ func TestBaseForDiff(t *testing.T) {
 		require.NoError(t, err)
 		// Create a different change on top of commit2.
 		repo.Git("checkout", "-b", "branch-a")
-		time.Sleep(time.Second)
 		repo.commitChangeset("patch a.txt",
 			writeFile{"a.txt", "another change to a.txt"},
 		)
-		// Yet the patch could only be applied to commit2
+		// Yet the patch could only be applied to commit1 or commit2.
 		base, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
-		require.NotNil(t, base)
-		assert.Equal(t, []string{"branch-a", "master"}, base.Branches)
-		assert.Equal(t, commit2.Hash, base.Hash)
+		require.Len(t, base, 1)
+		assert.Equal(t, []string{"branch-a", "master"}, base[0].Branches)
+		assert.Equal(t, commit2.Hash, base[0].Hash)
 	})
 	t.Run("choose latest", func(t *testing.T) {
 		_, err := repo.repo.SwitchCommit(commit2.Hash)
 		require.NoError(t, err)
-		// Wait a second and add one more commit.
-		// (Otherwise the test might be flaky).
+		// Wait a second before adding another commit.
+		// Git does not remember milliseconds, so otherwise the commit sorting may be flaky.
 		time.Sleep(time.Second)
 		repo.Git("checkout", "-b", "branch-b")
 		commit4 := repo.commitChangeset("unrelated commit",
@@ -547,9 +546,10 @@ func TestBaseForDiff(t *testing.T) {
 		// Since the commit did not touch a.txt, it's the expected one.
 		base, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
-		require.NotNil(t, base)
-		assert.Equal(t, []string{"branch-b"}, base.Branches)
-		assert.Equal(t, commit4.Hash, base.Hash)
+		require.Len(t, base, 2)
+		assert.Equal(t, []string{"branch-b"}, base[0].Branches)
+		assert.Equal(t, commit4.Hash, base[0].Hash)
+		assert.Equal(t, commit2.Hash, base[1].Hash)
 	})
 	t.Run("ignore unknown objects", func(t *testing.T) {
 		// It's okay if the diff contains unknown hashes.
@@ -564,7 +564,6 @@ index f70f10e..0000000
 		twoDiffs := append(append([]byte{}, diff...), diff2...)
 		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
-		require.NotNil(t, base)
-		assert.Equal(t, []string{"branch-b"}, base.Branches)
+		require.Len(t, base, 2)
 	})
 }
