@@ -22,7 +22,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	util-linux dosfstools ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
 	exfatprogs gfs2-utils \
 	# Needed for buiding gVisor.
-	crossbuild-essential-amd64 crossbuild-essential-arm64 libbpf-dev
+	crossbuild-essential-amd64 crossbuild-essential-arm64 libbpf-dev binutils-gold
 RUN test "$(uname -m)" != x86_64 && exit 0 || \
         DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	  libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-14-dev lib32stdc++-14-dev \
