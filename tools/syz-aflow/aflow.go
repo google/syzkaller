@@ -24,6 +24,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
+
+	"golang.org/x/oauth2/google"
 )
 
 func main() {
@@ -35,10 +37,20 @@ func main() {
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
 			" and save into -input file")
+		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
+			" gcloud auth application-default login)")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
-		if err := downloadBug(*flagDownloadBug, *flagInput); err != nil {
+		token := ""
+		if *flagAuth {
+			var err error
+			token, err = getAccessToken()
+			if err != nil {
+				tool.Fail(err)
+			}
+		}
+		if err := downloadBug(*flagDownloadBug, *flagInput, token); err != nil {
 			tool.Fail(err)
 		}
 		return
@@ -109,11 +121,11 @@ func onEvent(span *trajectory.Span) error {
 	return nil
 }
 
-func downloadBug(extID, inputFile string) error {
+func downloadBug(extID, inputFile, token string) error {
 	if inputFile == "" {
 		return fmt.Errorf("-download-bug requires -input flag")
 	}
-	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", extID))
+	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", extID), token)
 	if err != nil {
 		return err
 	}
@@ -125,15 +137,15 @@ func downloadBug(extID, inputFile string) error {
 	inputs := map[string]any{
 		"SyzkallerCommit": crash["syzkaller-commit"],
 	}
-	inputs["ReproSyz"], err = get(crash["syz-reproducer"].(string))
+	inputs["ReproSyz"], err = get(crash["syz-reproducer"].(string), token)
 	if err != nil {
 		return err
 	}
-	inputs["ReproC"], err = get(crash["c-reproducer"].(string))
+	inputs["ReproC"], err = get(crash["c-reproducer"].(string), token)
 	if err != nil {
 		return err
 	}
-	inputs["KernelConfig"], err = get(crash["kernel-config"].(string))
+	inputs["KernelConfig"], err = get(crash["kernel-config"].(string), token)
 	if err != nil {
 		return err
 	}
@@ -144,16 +156,41 @@ func downloadBug(extID, inputFile string) error {
 	return osutil.WriteFile(inputFile, data)
 }
 
-func get(path string) (string, error) {
+func get(path, token string) (string, error) {
 	if path == "" {
 		return "", nil
 	}
 	const host = "https://syzbot.org"
-	resp, err := http.Get(fmt.Sprintf("%v%v", host, path))
+	req, err := http.NewRequest("GET", fmt.Sprintf("%v%v", host, path), nil)
+	if err != nil {
+		return "", err
+	}
+	if token != "" {
+		req.Header.Add("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("request failed: %v", resp.Status)
+	}
 	body, err := io.ReadAll(resp.Body)
 	return string(body), err
+}
+
+func getAccessToken() (string, error) {
+	ctx := context.Background()
+	scopes := []string{"https://www.googleapis.com/auth/cloud-platform"}
+	creds, err := google.FindDefaultCredentials(ctx, scopes...)
+	if err != nil {
+		return "", err
+	}
+	token, err := creds.TokenSource.Token()
+	if err != nil {
+		return "", fmt.Errorf("error retrieving token from source: %w", err)
+	}
+
+	return token.AccessToken, nil
 }
