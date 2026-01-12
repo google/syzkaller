@@ -32,6 +32,7 @@ func main() {
 		flagInput       = flag.String("input", "", "input json file with workflow arguments")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", aflow.DefaultModel, "use this LLM model")
+		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
 			" and save into -input file")
 	)
@@ -51,12 +52,38 @@ func main() {
 		}
 		return
 	}
-	if err := run(context.Background(), *flagModel, *flagFlow, *flagInput, *flagWorkdir); err != nil {
+	cacheSize, err := parseSize(*flagCacheSize)
+	if err != nil {
+		tool.Fail(err)
+	}
+	if err := run(context.Background(), *flagModel, *flagFlow, *flagInput, *flagWorkdir, cacheSize); err != nil {
 		tool.Fail(err)
 	}
 }
 
-func run(ctx context.Context, model, flowName, inputFile, workdir string) error {
+func parseSize(s string) (uint64, error) {
+	var size uint64
+	var suffix string
+	if _, err := fmt.Sscanf(s, "%d%s", &size, &suffix); err != nil {
+		return 0, fmt.Errorf("failed to parse cache size %q: %w", s, err)
+	}
+	switch suffix {
+	case "KB":
+		size <<= 10
+	case "MB":
+		size <<= 20
+	case "GB":
+		size <<= 30
+	case "TB":
+		size <<= 40
+	case "":
+	default:
+		return 0, fmt.Errorf("unknown size suffix %q", suffix)
+	}
+	return size, nil
+}
+
+func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheSize uint64) error {
 	flow := aflow.Flows[flowName]
 	if flow == nil {
 		return fmt.Errorf("workflow %q is not found", flowName)
@@ -69,7 +96,7 @@ func run(ctx context.Context, model, flowName, inputFile, workdir string) error 
 	if err := json.Unmarshal(inputData, &inputs); err != nil {
 		return err
 	}
-	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), 0)
+	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cacheSize)
 	if err != nil {
 		return err
 	}
