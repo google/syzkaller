@@ -114,7 +114,7 @@ endif
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
-	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
+	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old codesearch
 
 all: host target
 host: manager repro mutate prog2c db upgrade
@@ -239,6 +239,15 @@ extract: bin/syz-extract
 
 bin/syz-extract:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-extract
+
+codesearch: bin/syz-codesearch
+
+bin/syz-codesearch: tools/clang/codesearch/codesearch.cpp
+	$(CXX) -Itools/clang $(shell llvm-config --cxxflags) -o $@ $< \
+		-lclangTooling -lclangFrontend -lclangSerialization -lclangDriver \
+		-lclangToolingCore -lclangParse -lclangSema -lclangAPINotes -lclangAnalysis \
+		-lclangASTMatchers -lclangRewrite -lclangEdit -lclangAST -lclangLex -lclangBasic -lclangSupport \
+		$(shell llvm-config --ldflags --libs --system-libs)
 
 # `generate` does *not* depend on any kernel sources, and generates everything
 # in one pass, for all arches. It can be run on a bare syzkaller checkout.
