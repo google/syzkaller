@@ -29,7 +29,9 @@ type uiAIJobsPage struct {
 }
 
 type uiAIJobPage struct {
-	Header     *uiHeader
+	Header *uiHeader
+	Job    *uiAIJob
+	// The slice contains the same single Job, just for HTML templates convenience.
 	Jobs       []*uiAIJob
 	Results    []*uiAIResult
 	Trajectory []*uiAITrajectorySpan
@@ -49,6 +51,7 @@ type uiAIJob struct {
 	CodeRevision     string
 	CodeRevisionLink string
 	Error            string
+	Correct          string
 }
 
 type uiAIResult struct {
@@ -103,6 +106,22 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+	if correct := r.FormValue("correct"); correct != "" {
+		if !job.Finished.Valid || job.Error != "" {
+			return fmt.Errorf("job is in wrong state to set correct status")
+		}
+		switch correct {
+		case aiCorrectnessCorrect:
+			job.Correct = spanner.NullBool{Bool: true, Valid: true}
+		case aiCorrectnessIncorrect:
+			job.Correct = spanner.NullBool{Bool: false, Valid: true}
+		default:
+			job.Correct = spanner.NullBool{}
+		}
+		if err := aidb.UpdateJob(ctx, job); err != nil {
+			return err
+		}
+	}
 	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
 	if err != nil {
 		return err
@@ -111,9 +130,11 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+	uiJob := makeUIAIJob(job)
 	page := &uiAIJobPage{
 		Header:     hdr,
-		Jobs:       []*uiAIJob{makeUIAIJob(job)},
+		Job:        uiJob,
+		Jobs:       []*uiAIJob{uiJob},
 		Trajectory: makeUIAITrajectory(trajectory),
 	}
 	if m, ok := job.Results.Value.(map[string]any); ok && job.Results.Valid {
@@ -131,6 +152,16 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 }
 
 func makeUIAIJob(job *aidb.Job) *uiAIJob {
+	correct := aiCorrectnessIncorrect
+	if !job.Finished.Valid {
+		correct = aiCorrectnessPending
+	} else if job.Error != "" {
+		correct = aiCorrectnessErrored
+	} else if !job.Correct.Valid {
+		correct = aiCorrectnessUnset
+	} else if job.Correct.Bool {
+		correct = aiCorrectnessCorrect
+	}
 	return &uiAIJob{
 		ID:               job.ID,
 		Link:             fmt.Sprintf("/ai_job?id=%v", job.ID),
@@ -144,6 +175,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		CodeRevision:     job.CodeRevision,
 		CodeRevisionLink: vcs.LogLink(vcs.SyzkallerRepo, job.CodeRevision),
 		Error:            job.Error,
+		Correct:          correct,
 	}
 }
 
@@ -446,6 +478,14 @@ func workflowsForBug(bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	}
 	return workflows
 }
+
+const (
+	aiCorrectnessCorrect   = "✅"
+	aiCorrectnessIncorrect = "❌"
+	aiCorrectnessUnset     = "❓"
+	aiCorrectnessPending   = "⏳"
+	aiCorrectnessErrored   = "💥"
+)
 
 func nullTime(v spanner.NullTime) time.Time {
 	if !v.Valid {
