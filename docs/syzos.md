@@ -145,7 +145,7 @@ SYZOS targets the boundary between the Guest and EL2/Firmware.
 
 ---
 
-## 7. Developer Guide: How to Add a New Command
+## 6. Developer Guide: How to Add a New Command
 
 This guide details the process of adding a new SYZOS command, using `SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK` as a reference case.
 
@@ -198,7 +198,7 @@ Expose the new command to `syzkaller` in the description file (e.g., `sys/linux/
 
 ---
 
-## 8. Validation & Regression Testing
+## 7. Validation & Regression Testing
 
 The system includes a regression testing framework located in `sys/linux/test/`. New commands must include a test case to verify they trigger the expected Hypervisor behavior.
 
