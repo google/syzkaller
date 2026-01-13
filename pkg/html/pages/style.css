@@ -66,6 +66,13 @@ table td, table th {
 	color: #375EAB;
 }
 
+.bug_list_caption {
+	font-weight: bold;
+	font-size: large;
+	color: #375EAB;
+	cursor: pointer;
+}
+
 .position_table {
 	border: 0px;
 	margin: 0px;

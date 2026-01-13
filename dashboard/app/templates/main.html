@@ -19,7 +19,13 @@ Main page.
 	{{end}}
 	{{template "bug_filter" $.BugFilter}}
 	{{range $group := $.Groups}}
-		{{template "bug_list" $group}}
+		<details open>
+			<summary class="bug_list_caption">
+				{{$group.Caption}} ({{len $group.Bugs}})
+				<a id="{{$group.Fragment}}" href="#{{$group.Fragment}}">🔗</a>
+			</summary>
+			{{template "bug_list" $group}}
+		</details>
 	{{end}}
 </body>
 </html>
