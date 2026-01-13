@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -28,7 +29,7 @@ func init() {
 
 func LoadWorkflows(ctx context.Context) ([]*Workflow, error) {
 	return selectAll[Workflow](ctx, spanner.Statement{
-		SQL: `SELECT * FROM Workflows`,
+		SQL: selectWorkflows(),
 	})
 }
 
@@ -113,7 +114,7 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		{
 			iter := txn.Query(ctx, spanner.Statement{
-				SQL: `SELECT * FROM Jobs WHERE Workflow IN UNNEST(@workflows)
+				SQL: selectJobs() + `WHERE Workflow IN UNNEST(@workflows)
 						AND Started IS NULL
 					ORDER BY Created ASC LIMIT 1`,
 				Params: map[string]any{
@@ -144,7 +145,7 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 
 func LoadNamespaceJobs(ctx context.Context, ns string) ([]*Job, error) {
 	return selectAll[Job](ctx, spanner.Statement{
-		SQL: `SELECT * FROM Jobs WHERE Namespace = @ns ORDER BY Created DESC`,
+		SQL: selectJobs() + `WHERE Namespace = @ns ORDER BY Created DESC`,
 		Params: map[string]any{
 			"ns": ns,
 		},
@@ -153,7 +154,7 @@ func LoadNamespaceJobs(ctx context.Context, ns string) ([]*Job, error) {
 
 func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
 	return selectAll[Job](ctx, spanner.Statement{
-		SQL: `SELECT * FROM Jobs WHERE BugID = @bugID ORDER BY Created DESC`,
+		SQL: selectJobs() + `WHERE BugID = @bugID ORDER BY Created DESC`,
 		Params: map[string]any{
 			"bugID": bugID,
 		},
@@ -162,7 +163,7 @@ func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
 
 func LoadJob(ctx context.Context, id string) (*Job, error) {
 	return selectOne[Job](ctx, spanner.Statement{
-		SQL: `SELECT * FROM Jobs WHERE ID = @id`,
+		SQL: selectJobs() + `WHERE ID = @id`,
 		Params: map[string]any{
 			"id": id,
 		},
@@ -201,7 +202,7 @@ func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Spa
 
 func LoadTrajectory(ctx context.Context, jobID string) ([]*TrajectorySpan, error) {
 	return selectAll[TrajectorySpan](ctx, spanner.Statement{
-		SQL: `SELECT * FROM TrajectorySpans WHERE JobID = @job_id ORDER BY Seq ASC`,
+		SQL: selectTrajectorySpans() + `WHERE JobID = @job_id ORDER BY Seq ASC`,
 		Params: map[string]any{
 			"job_id": jobID,
 		},
@@ -250,6 +251,26 @@ func dbClient(ctx context.Context) (*spanner.Client, error) {
 
 var TimeNow = func(ctx context.Context) time.Time {
 	return time.Now()
+}
+
+func selectWorkflows() string {
+	return selectAllFrom[Workflow]("Workflows")
+}
+
+func selectJobs() string {
+	return selectAllFrom[Job]("Jobs")
+}
+
+func selectTrajectorySpans() string {
+	return selectAllFrom[TrajectorySpan]("TrajectorySpans")
+}
+
+func selectAllFrom[T any](table string) string {
+	var fields []string
+	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
+		fields = append(fields, field.Name)
+	}
+	return fmt.Sprintf("SELECT %v FROM %v ", strings.Join(fields, ", "), table)
 }
 
 func toNullJSON(v map[string]any) spanner.NullJSON {
