@@ -33,6 +33,7 @@ type Job struct {
 	Error        string // for finished jobs
 	Args         spanner.NullJSON
 	Results      spanner.NullJSON
+	Correct      spanner.NullBool
 }
 
 type TrajectorySpan struct {

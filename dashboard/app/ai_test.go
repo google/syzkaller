@@ -19,9 +19,9 @@ func TestAIMigrations(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	up, err := loadDDLStatements("1_initialize.up.sql")
+	up, err := loadUpDDLStatements()
 	require.NoError(t, err)
-	down, err := loadDDLStatements("1_initialize.down.sql")
+	down, err := loadDownDDLStatements()
 	require.NoError(t, err)
 
 	require.NoError(t, executeSpannerDDL(c.ctx, down))
