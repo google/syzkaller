@@ -33,6 +33,7 @@ typedef enum {
 	SYZOS_API_NESTED_VMRESUME = 304,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
+	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -113,6 +114,7 @@ GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -228,6 +230,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK) {
 			// Write to a VMCB field using masks.
 			guest_handle_nested_amd_vmcb_write_mask((struct api_call_5*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_INVLPGA) {
+			// Invalidate TLB mappings for the specified address/ASID.
+			guest_handle_nested_amd_invlpga((struct api_call_2*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1280,6 +1285,19 @@ guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id)
 	uint64 new_value = (current_value & ~unset_mask) | set_mask;
 	new_value ^= flip_mask;
 	vmcb_write64(vmcb_addr, offset, new_value);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+
+	uint64 linear_addr = cmd->args[0];
+	// ASID (Address Space ID) - only lower 16 bits matter usually, but register is 32-bit.
+	uint32 asid = (uint32)cmd->args[1];
+
+	asm volatile("invlpga" : : "a"(linear_addr), "c"(asid) : "memory");
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H

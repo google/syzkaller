@@ -147,6 +147,11 @@ syzos_api_nested_amd_vmcb_write_mask {
 	flip_mask	int64
 }
 
+syzos_api_nested_amd_invlpga {
+	addr	flags[kvm_guest_addrs, int64]
+	asid	int64[0:65535]
+}
+
 # IDs here must match those in executor/common_kvm_amd64_syzos.h.
 syzos_api_call$x86 [
 	uexit				syzos_api$x86[0, intptr]
@@ -166,6 +171,7 @@ syzos_api_call$x86 [
 	nested_vmresume			syzos_api$x86[304, syzos_api_vm_id]
 	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
+	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
 ] [varlen]
 
 kvm_text_x86 [
