@@ -683,6 +683,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<thead><tr>
 		<th><a onclick="return sortTable(this, 'ID', textSort)" href="#">ID</a></th>
 		<th><a onclick="return sortTable(this, 'Workflow', textSort)" href="#">Workflow</a></th>
+		<th><a onclick="return sortTable(this, 'Correct', textSort)" href="#">Correct</a></th>
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
 		<th><a onclick="return sortTable(this, 'Created', textSort)" href="#">Created</a></th>
 		<th><a onclick="return sortTable(this, 'Started', textSort)" href="#">Started</a></th>
@@ -696,6 +697,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tr>
 		<td>{{link $job.Link $job.ID}}</td>
 		<td>{{$job.Workflow}}</td>
+		<td>{{$job.Correct}}</td>
 		<td>{{link $job.DescriptionLink $job.Description}}</td>
 		<td>{{formatTime $job.Created}}</td>
 		<td>{{formatTime $job.Started}}</td>

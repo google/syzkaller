@@ -15,6 +15,21 @@ Detailed info on a single AI job execution.
 	{{template "header" .Header}}
 	{{template "ai_job_list" .Jobs}}
 
+	{{if and (ne .Job.Correct "⏳") (ne .Job.Correct "💥")}}
+		<form method="POST">
+			<fieldset>
+				<legend>Result correct:</legend>
+				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅"}}checked{{end}}>
+				<label for="✅">✅</label>
+				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌"}}checked{{end}}>
+				<label for="❌">❌</label>
+				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓"}}checked{{end}}>
+				<label for="❓">❓</label>
+				<button type="submit">Set</button>
+			</fieldset>
+		</form>
+	{{end}}
+
 	{{range $res := .Results}}
 		<br><b>{{$res.Name}}:</b><br>
 		<div id="ai_result_div"><pre>{{$res.Value}}</pre></div><br>
