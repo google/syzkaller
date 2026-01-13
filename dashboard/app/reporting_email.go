@@ -973,7 +973,7 @@ Please contact the bot's maintainers.`
 
 func handleSetCommand(c context.Context, bug *Bug, msg *email.Email,
 	command *email.SingleCommand) string {
-	labelSet := makeLabelSet(c, bug.Namespace)
+	labelSet := makeLabelSet(c, bug)
 
 	match := setCmdRe.FindStringSubmatch(command.Args)
 	if match == nil {

@@ -4,10 +4,12 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/require"
@@ -197,4 +199,59 @@ func TestAIJob(t *testing.T) {
 			"Bool":        true,
 		},
 	}))
+}
+
+func TestAIAssessmentKCSAN(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "KCSAN: data-race in foo / bar"
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	resp, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		LLMModel:     "smarty",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, resp.Workflow, string(ai.WorkflowAssessmentKCSAN))
+
+	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v", resp.ID))
+	require.NoError(t, err)
+
+	// Since the job is not completed, setting correctness must fail.
+	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
+	require.Error(t, err)
+
+	require.NoError(t, c.aiClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"Confident":   true,
+			"Benign":      true,
+			"Explanation": "I don't care about races.",
+		},
+	}))
+
+	// Now setting correctness must not fail.
+	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
+	require.NoError(t, err)
+
+	bug, _, _ := c.loadBug(extID)
+	labels := bug.LabelValues(RaceLabel)
+	require.Len(t, labels, 1)
+	require.Equal(t, labels[0].Value, BenignRace)
+
+	// Re-mark the result as incorrect, this should remove the label.
+	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessIncorrect))
+	require.NoError(t, err)
+
+	bug, _, _ = c.loadBug(extID)
+	labels = bug.LabelValues(RaceLabel)
+	require.Len(t, labels, 0)
 }

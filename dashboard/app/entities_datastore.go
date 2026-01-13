@@ -168,7 +168,7 @@ type BugLabel struct {
 	// The email of the user who manually set this subsystem tag.
 	// If empty, the label was set automatically.
 	SetBy string
-	// Link to the message.
+	// Link to the message, or AI job ID for automatic labels.
 	Link string
 }
 
@@ -193,7 +193,7 @@ func (bug *Bug) SetAutoSubsystems(c context.Context, list []*subsystem.Subsystem
 	for _, item := range list {
 		objects = append(objects, BugLabel{Label: SubsystemLabel, Value: item.Name})
 	}
-	bug.SetLabels(makeLabelSet(c, bug.Namespace), objects)
+	bug.SetLabels(makeLabelSet(c, bug), objects)
 }
 
 func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) error) error {
@@ -913,6 +913,15 @@ func (bug *Bug) keyHash(c context.Context) string {
 
 func bugKeyHash(c context.Context, ns, title string, seq int64) string {
 	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(c, ns).Key, ns, title, seq)))
+}
+
+func loadBug(c context.Context, bugHash string) (*Bug, error) {
+	bug := new(Bug)
+	bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
+	if err := db.Get(c, bugKey, bug); err != nil {
+		return nil, fmt.Errorf("failed to load bug by hash %q: %w", bugHash, err)
+	}
+	return bug, nil
 }
 
 func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
