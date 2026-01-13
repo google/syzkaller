@@ -1898,7 +1898,6 @@ func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState,
 	}
 	group := &uiBugGroup{
 		Now:         timeNow(c),
-		Caption:     "duplicates",
 		ShowPatched: true,
 		ShowStatus:  true,
 		Bugs:        results,
