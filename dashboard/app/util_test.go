@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -107,7 +108,7 @@ func newCtx(t *testing.T, appID string) *Ctx {
 var appIDSeq = uint32(0)
 
 func NewSpannerCtx(t *testing.T) *Ctx {
-	ddlStatements, err := loadDDLStatements("1_initialize.up.sql")
+	ddlStatements, err := loadUpDDLStatements()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,14 +141,38 @@ func executeSpannerDDL(ctx context.Context, statements []string) error {
 	return nil
 }
 
-func loadDDLStatements(file string) ([]string, error) {
-	data, err := os.ReadFile(filepath.Join("aidb", "migrations", file))
+func loadUpDDLStatements() ([]string, error) {
+	return loadDDLStatements("*.up.sql", 1)
+}
+
+func loadDownDDLStatements() ([]string, error) {
+	return loadDDLStatements("*.down.sql", -1)
+}
+
+func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
+	files, err := filepath.Glob(filepath.Join("aidb", "migrations", wildcard))
 	if err != nil {
 		return nil, err
 	}
-	// We need individual statements. Assume semicolon is not used in other places than statements end.
-	statements := strings.Split(string(data), ";")
-	return statements[:len(statements)-1], nil
+	if len(files) == 0 {
+		return nil, fmt.Errorf("loadDDLStatements: wildcard did not match any files: %q", wildcard)
+	}
+	// We prefix DDL file names with sequence numbers.
+	slices.SortFunc(files, func(a, b string) int {
+		return strings.Compare(a, b) * sortOrder
+	})
+	var all []string
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		// We need individual statements. Assume semicolon is not used in other places than statements end.
+		statements := strings.Split(string(data), ";")
+		statements = statements[:len(statements)-1]
+		all = append(all, statements...)
+	}
+	return all, nil
 }
 
 func (c *Ctx) config() *GlobalConfig {
