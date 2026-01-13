@@ -165,6 +165,8 @@ Modify the architecture-specific executor header (e.g., `executor/common_kvm_amd
     GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
     ```
 
+Note: make sure to choose the optimal api_call_N structure that exactly matches the number of arguments required by your new primitive (e.g., use struct api_call_2 for a command needing two arguments).
+
 ### Step 2: Implement Guest Logic and Dispatch
 In the same file (or corresponding source), implement the guest logic.
 
@@ -189,6 +191,16 @@ In the same file (or corresponding source), implement the guest logic.
 Expose the new command to `syzkaller` in the description file (e.g., `sys/linux/dev_kvm_amd64.txt`).
 
 1.  **Define Structures:** Define any necessary constants or structures.
+    ```
+    syzos_api_nested_amd_vmcb_write_mask {
+	vm_id		syzos_api_vm_id
+	offset		vmcb_offset
+	set_mask	int64
+	unset_mask	int64
+	flip_mask	int64
+    }
+    ```
+
 2.  **Map Command ID:** Add the command to the `syzos_api_call` union. **Crucial:** The ID (e.g., `380`) must match the enum in the C header.
     ```
     syzos_api_call$x86 [
