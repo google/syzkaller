@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 const (
@@ -17,6 +19,7 @@ const (
 	NoRemindersLabel     BugLabelType = "no-reminders"
 	OriginLabel          BugLabelType = "origin"
 	MissingBackportLabel BugLabelType = "missing-backport"
+	RaceLabel            BugLabelType = "race"
 )
 
 type BugPrio string
@@ -27,11 +30,16 @@ const (
 	HighPrioBug   BugPrio = "high"
 )
 
+const (
+	BenignRace  = "benign"
+	HarmfulRace = "harmful"
+)
+
 type oneOf []string
 type subsetOf []string
 type trueFalse struct{}
 
-func makeLabelSet(c context.Context, ns string) *labelSet {
+func makeLabelSet(c context.Context, bug *Bug) *labelSet {
 	ret := map[BugLabelType]any{
 		PriorityLabel: oneOf([]string{
 			string(LowPrioBug),
@@ -41,7 +49,12 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
 	}
-	service := getNsConfig(c, ns).Subsystems.Service
+	typ := crash.TitleToType(bug.Title)
+	if typ == crash.KCSANDataRace {
+		ret[RaceLabel] = oneOf([]string{BenignRace, HarmfulRace})
+	}
+	cfg := getNsConfig(c, bug.Namespace)
+	service := cfg.Subsystems.Service
 	if service != nil {
 		names := []string{}
 		for _, item := range service.List() {
@@ -51,7 +64,7 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 	}
 
 	originLabels := []string{}
-	for _, repo := range getNsConfig(c, ns).Repos {
+	for _, repo := range cfg.Repos {
 		if repo.LabelIntroduced != "" {
 			originLabels = append(originLabels, repo.LabelIntroduced)
 		}
@@ -66,7 +79,7 @@ func makeLabelSet(c context.Context, ns string) *labelSet {
 
 	return &labelSet{
 		c:      c,
-		ns:     ns,
+		ns:     bug.Namespace,
 		labels: ret,
 	}
 }

@@ -13,3 +13,12 @@ const (
 	WorkflowModeration      = WorkflowType("moderation")
 	WorkflowAssessmentKCSAN = WorkflowType("assessment-kcsan")
 )
+
+// Outputs of various workflow types.
+// Should be changed carefully since old outputs are stored in the dashboard database.
+
+type AssessmentKCSANOutputs struct {
+	Confident   bool
+	Benign      bool
+	Explanation string
+}

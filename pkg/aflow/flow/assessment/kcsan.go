@@ -18,14 +18,8 @@ type kcsanInputs struct {
 	CodesearchToolBin string
 }
 
-type kcsanOutputs struct {
-	Confident   bool
-	Benign      bool
-	Explanation string
-}
-
 func init() {
-	aflow.Register[kcsanInputs, kcsanOutputs](
+	aflow.Register[kcsanInputs, ai.AssessmentKCSANOutputs](
 		ai.WorkflowAssessmentKCSAN,
 		"assess if a KCSAN report is about a benign race that only needs annotations or not",
 		&aflow.Flow{

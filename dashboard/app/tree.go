@@ -223,7 +223,7 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 	for _, label := range allLabels {
 		labels = append(labels, BugLabel{Label: OriginLabel, Value: label})
 	}
-	ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug.Namespace), labels)
+	ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug), labels)
 	return pollResultSkip{}
 }
 
@@ -330,7 +330,7 @@ func (ctx *bugTreeContext) missingBackports() pollTreeJobResult {
 	}
 	ctx.bug.UnsetLabels(MissingBackportLabel)
 	if resultDone.Crashed {
-		ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug.Namespace), []BugLabel{
+		ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug), []BugLabel{
 			{Label: MissingBackportLabel},
 		})
 	}
