@@ -683,8 +683,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<thead><tr>
 		<th><a onclick="return sortTable(this, 'ID', textSort)" href="#">ID</a></th>
 		<th><a onclick="return sortTable(this, 'Workflow', textSort)" href="#">Workflow</a></th>
+		<th><a onclick="return sortTable(this, 'Result', textSort)" href="#">Result</a></th>
 		<th><a onclick="return sortTable(this, 'Correct', textSort)" href="#">Correct</a></th>
-		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Bug', textSort)" href="#">Bug</a></th>
 		<th><a onclick="return sortTable(this, 'Created', textSort)" href="#">Created</a></th>
 		<th><a onclick="return sortTable(this, 'Started', textSort)" href="#">Started</a></th>
 		<th><a onclick="return sortTable(this, 'Finished', textSort)" href="#">Finished</a></th>
@@ -695,15 +696,22 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tbody>
 	{{range $job := .}}
 	<tr>
-		<td>{{link $job.Link $job.ID}}</td>
+		<td class="tag">{{link $job.Link $job.ID}}</td>
 		<td>{{$job.Workflow}}</td>
-		<td>{{$job.Correct}}</td>
-		<td>{{link $job.DescriptionLink $job.Description}}</td>
+		<td>
+			{{range $res := $job.Results}}
+				{{if $res.IsBool}}
+					{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}&nbsp;
+				{{end}}
+			{{end}}
+		</td>
+		<td class="ai_correct">{{$job.Correct}}</td>
+		<td class="title">{{link $job.DescriptionLink $job.Description}}</td>
 		<td>{{formatTime $job.Created}}</td>
 		<td>{{formatTime $job.Started}}</td>
 		<td>{{formatTime $job.Finished}}</td>
 		<td>{{$job.LLMModel}}</td>
-		<td>{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
+		<td class="tag">{{link $job.CodeRevisionLink $job.CodeRevision}}</td>
 		<td>{{$job.Error}}</td>
 	</tr>
 	{{end}}

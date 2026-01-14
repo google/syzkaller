@@ -84,7 +84,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 		http.Handle("/"+ns+"/manager/", handlerWrapper(handleManagerPage))
-		http.Handle("/"+ns+"/ai/", handlerWrapper(handleAIJobsPage))
+		http.Handle("/"+ns+"/ai", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)

@@ -34,17 +34,15 @@ type uiAIJobPage struct {
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
 	Jobs       []*uiAIJob
-	Results    []*uiAIResult
 	Trajectory []*uiAITrajectorySpan
 }
 
 type uiAIJob struct {
-	ID              string
-	Link            string
-	Workflow        string
-	Description     string
-	DescriptionLink string
-
+	ID               string
+	Link             string
+	Workflow         string
+	Description      string
+	DescriptionLink  string
 	Created          time.Time
 	Started          time.Time
 	Finished         time.Time
@@ -53,11 +51,13 @@ type uiAIJob struct {
 	CodeRevisionLink string
 	Error            string
 	Correct          string
+	Results          []*uiAIResult
 }
 
 type uiAIResult struct {
-	Name  string
-	Value any
+	Name   string
+	IsBool bool
+	Value  any
 }
 
 type uiAITrajectorySpan struct {
@@ -138,21 +138,32 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		Jobs:       []*uiAIJob{uiJob},
 		Trajectory: makeUIAITrajectory(trajectory),
 	}
-	if m, ok := job.Results.Value.(map[string]any); ok && job.Results.Valid {
-		for name, value := range m {
-			page.Results = append(page.Results, &uiAIResult{
-				Name:  name,
-				Value: value,
-			})
-		}
-	}
-	slices.SortFunc(page.Results, func(a, b *uiAIResult) int {
-		return strings.Compare(a.Name, b.Name)
-	})
 	return serveTemplate(w, "ai_job.html", page)
 }
 
 func makeUIAIJob(job *aidb.Job) *uiAIJob {
+	var results []*uiAIResult
+	if m, ok := job.Results.Value.(map[string]any); ok && job.Results.Valid {
+		for name, value := range m {
+			_, isBool := value.(bool)
+			results = append(results, &uiAIResult{
+				Name:   name,
+				IsBool: isBool,
+				Value:  value,
+			})
+		}
+	}
+	slices.SortFunc(results, func(a, b *uiAIResult) int {
+		// Pop up bool flags to the top.
+		if a.IsBool != b.IsBool {
+			if a.IsBool {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+
 	correct := aiCorrectnessIncorrect
 	if !job.Finished.Valid {
 		correct = aiCorrectnessPending
@@ -177,6 +188,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		CodeRevisionLink: vcs.LogLink(vcs.SyzkallerRepo, job.CodeRevision),
 		Error:            job.Error,
 		Correct:          correct,
+		Results:          results,
 	}
 }
 
