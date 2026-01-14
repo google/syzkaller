@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"slices"
 	"strings"
@@ -33,8 +34,9 @@ type uiAIJobPage struct {
 	Header *uiHeader
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
-	Jobs       []*uiAIJob
-	Trajectory []*uiAITrajectorySpan
+	Jobs        []*uiAIJob
+	CrashReport template.HTML
+	Trajectory  []*uiAITrajectorySpan
 }
 
 type uiAIJob struct {
@@ -131,12 +133,25 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+	var args map[string]any
+	if job.Args.Valid {
+		args = job.Args.Value.(map[string]any)
+	}
+	var crashReport template.HTML
+	if reportID, _ := args["CrashReportID"].(json.Number).Int64(); reportID != 0 {
+		report, _, err := getText(ctx, textCrashReport, reportID)
+		if err != nil {
+			return err
+		}
+		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
+	}
 	uiJob := makeUIAIJob(job)
 	page := &uiAIJobPage{
-		Header:     hdr,
-		Job:        uiJob,
-		Jobs:       []*uiAIJob{uiJob},
-		Trajectory: makeUIAITrajectory(trajectory),
+		Header:      hdr,
+		Job:         uiJob,
+		Jobs:        []*uiAIJob{uiJob},
+		CrashReport: crashReport,
+		Trajectory:  makeUIAITrajectory(trajectory),
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }

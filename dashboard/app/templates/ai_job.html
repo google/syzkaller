@@ -41,6 +41,11 @@ Detailed info on a single AI job execution.
 		{{end}}
 	{{end}}
 
+	{{if .CrashReport}}
+	<br><b>Crash report:</b><br>
+	<div id="crash_div"><pre>{{.CrashReport}}</pre></div><br>
+	{{end}}
+
 	<table class="list_table">
 		<caption>Trajectory:</caption>
 		<thead><tr>
