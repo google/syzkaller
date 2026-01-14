@@ -36,6 +36,7 @@ typedef enum {
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
 	SYZOS_API_NESTED_AMD_STGI = 382,
 	SYZOS_API_NESTED_AMD_CLGI = 383,
+	SYZOS_API_NESTED_AMD_INJECT_EVENT = 384,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -119,6 +120,7 @@ GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_stgi();
 GUEST_CODE static void guest_handle_nested_amd_clgi();
+GUEST_CODE static void guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -243,6 +245,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_AMD_CLGI) {
 			// Clear Global Interrupt Flag (Disable Interrupts, including NMI).
 			guest_handle_nested_amd_clgi();
+		} else if (call == SYZOS_API_NESTED_AMD_INJECT_EVENT) {
+			// Inject an event (IRQ/Exception) into the L2 guest via VMCB.
+			guest_handle_nested_amd_inject_event((struct api_call_5*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1324,6 +1329,34 @@ guest_handle_nested_amd_clgi()
 	if (get_cpu_vendor() != CPU_VENDOR_AMD)
 		return;
 	asm volatile("clgi" ::: "memory");
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+
+	uint64 vm_id = cmd->args[0];
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+
+	uint64 vector = cmd->args[1] & 0xFF;
+	uint64 type = cmd->args[2] & 0x7;
+	uint64 error_code = cmd->args[3] & 0xFFFFFFFF;
+	uint64 flags = cmd->args[4];
+
+	// Flags bit 0: Valid (V)
+	// Flags bit 1: Error Code Valid (EV)
+	uint64 event_inj = vector;
+	event_inj |= (type << 8);
+	if (flags & 2)
+		event_inj |= (1ULL << 11); // EV bit
+	if (flags & 1)
+		event_inj |= (1ULL << 31); // V bit
+	event_inj |= (error_code << 32);
+
+	// Write to VMCB Offset 0x60 (EVENTINJ)
+	vmcb_write64(vmcb_addr, 0x60, event_inj);
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
