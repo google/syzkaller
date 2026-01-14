@@ -406,7 +406,7 @@ func (inst *instance) repair() error {
 	inst.waitForBootCompletion()
 
 	// Mount debugfs.
-	if _, err := inst.adb("shell", "ls /sys/kernel/debug/kcov"); err != nil {
+	if _, err := inst.adb("shell", "ls /sys/kernel/debug"); err != nil {
 		log.Logf(2, "debugfs was unmounted mounting")
 		// This prop only exist on Android 12+
 		inst.adb("shell", "setprop persist.dbg.keep_debugfs_mounted 1")
