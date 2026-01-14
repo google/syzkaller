@@ -43,6 +43,7 @@ func init() {
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
 		&aflow.Flow{
+			Model: aflow.BestExpensiveModel,
 			Root: &aflow.Pipeline{
 				Actions: []aflow.Action{
 					baseCommitPicker,

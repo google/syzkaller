@@ -9,14 +9,14 @@ import (
 )
 
 type AIJobPollReq struct {
-	LLMModel     string // LLM model that will be used to execute jobs
 	CodeRevision string // git commit of the syz-agent server
 	Workflows    []AIWorkflow
 }
 
 type AIWorkflow struct {
-	Type ai.WorkflowType
-	Name string
+	Type     ai.WorkflowType
+	Name     string
+	LLMModel string // LLM model that will be used to execute this workflow
 }
 
 type AIJobPollResp struct {

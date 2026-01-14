@@ -47,7 +47,7 @@ type Config struct {
 	CacheSize uint64 `json:"cache_size"`
 	// Use fixed base commit for patching jobs (for testing).
 	FixedBaseCommit string `json:"fixed_base_commit"`
-	// Use this LLM model (for testing, if empty use a default model).
+	// Use this LLM model (for testing, if empty use workflow-default model).
 	Model string `json:"model"`
 }
 
@@ -70,7 +70,6 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
 		SyzkallerBranch: "master",
 		CacheSize:       1 << 40, // 1TB should be enough for everyone!
-		Model:           aflow.DefaultModel,
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -169,13 +168,17 @@ type Server struct {
 func (s *Server) poll(ctx context.Context) (
 	bool, error) {
 	req := &dashapi.AIJobPollReq{
-		LLMModel:     s.cfg.Model,
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {
+		model := flow.Model
+		if s.cfg.Model != "" {
+			model = s.cfg.Model
+		}
 		req.Workflows = append(req.Workflows, dashapi.AIWorkflow{
-			Type: flow.Type,
-			Name: flow.Name,
+			Type:     flow.Type,
+			Name:     flow.Name,
+			LLMModel: model,
 		})
 	}
 	resp, err := s.dash.AIJobPoll(req)
@@ -207,6 +210,10 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
+	model := flow.Model
+	if s.cfg.Model != "" {
+		model = s.cfg.Model
+	}
 	inputs := map[string]any{
 		"Syzkaller":         osutil.Abs(filepath.FromSlash("syzkaller/current")),
 		"CodesearchToolBin": s.cfg.CodesearchToolBin,
@@ -223,5 +230,5 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 			Span:  span,
 		})
 	}
-	return flow.Execute(ctx, s.cfg.Model, s.workdir, inputs, s.cache, onEvent)
+	return flow.Execute(ctx, model, s.workdir, inputs, s.cache, onEvent)
 }

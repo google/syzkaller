@@ -18,9 +18,11 @@ import (
 	"google.golang.org/genai"
 )
 
-// https://ai.google.dev/gemini-api/docs/models
-const DefaultModel = "gemini-3-pro-preview"
-
+// Execute executes the given AI workflow with provided inputs and returns workflow outputs.
+// The model argument sets Gemini model name to execute the workflow.
+// The workdir argument should point to a dir owned by aflow to store private data,
+// it can be shared across parallel executions in the same process, and preferably
+// preserved across process restarts for caching purposes.
 func (flow *Flow) Execute(c context.Context, model, workdir string, inputs map[string]any,
 	cache *Cache, onEvent onEvent) (map[string]any, error) {
 	if err := flow.checkInputs(inputs); err != nil {
