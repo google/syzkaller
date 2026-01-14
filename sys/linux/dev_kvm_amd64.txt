@@ -172,6 +172,8 @@ syzos_api_call$x86 [
 	nested_intel_vmwrite_mask	syzos_api$x86[340, syzos_api_nested_intel_vmwrite_mask]
 	nested_amd_vmcb_write_mask	syzos_api$x86[380, syzos_api_nested_amd_vmcb_write_mask]
 	nested_amd_invlpga		syzos_api$x86[381, syzos_api_nested_amd_invlpga]
+	nested_amd_stgi			syzos_api$x86[382, void]
+	nested_amd_clgi			syzos_api$x86[383, void]
 ] [varlen]
 
 kvm_text_x86 [
