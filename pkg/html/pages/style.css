@@ -244,6 +244,10 @@ table td, table th {
 	font-size: 75%;
 }
 
+.list_table .ai_correct {
+	text-align: center;
+}
+
 .list_table .status-crashed {
 	background-color: #FF8674;
 }
@@ -388,7 +392,6 @@ aside {
 
 #ai_result_div {
 	align: left;
-	width: 90%;
 	margin: 0 0;
 	overflow: scroll;
 	border: 1px solid #777;
@@ -399,6 +402,9 @@ aside {
 #ai_result_div pre {
 	margin: 1px;
 	font-family: 'Courier New', Courier, monospace;
+	max-width: 120ch;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
 }
 
 #ai_details_div pre {
