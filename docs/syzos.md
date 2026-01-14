@@ -165,7 +165,7 @@ Modify the architecture-specific executor header (e.g., `executor/common_kvm_amd
     GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
     ```
 
-Note: make sure to choose the optimal api_call_N structure that exactly matches the number of arguments required by your new primitive (e.g., use struct api_call_2 for a command needing two arguments).
+Note: make sure to choose the optimal api_call_N structure that exactly matches the number of arguments required by your new primitive (e.g., use struct api_call_2 for a command needing two arguments). If no arguments are required, omit the `cmd` parameter altogether. If the guest code does not access VMCB/VMCS, omit the `cpu_id` parameter.
 
 ### Step 2: Implement Guest Logic and Dispatch
 In the same file (or corresponding source), implement the guest logic.
