@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -390,8 +391,16 @@ func (inst *instance) repair() error {
 	// reliable solution can be sought out.
 	if inst.cfg.TargetReboot {
 		if _, err := inst.adb("shell", "reboot"); err != nil {
-			return err
+			var verboseErr *osutil.VerboseError
+			if !errors.As(err, &verboseErr) {
+				return err
+			}
+
+			if verboseErr.ExitCode != 0 && verboseErr.ExitCode != 255 {
+				return err
+			}
 		}
+
 		// Now give it another 5 minutes to boot.
 		if !vmimpl.SleepInterruptible(10 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
