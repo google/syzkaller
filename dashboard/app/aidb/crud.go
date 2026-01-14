@@ -128,11 +128,13 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 			}
 			job = jobs[0]
 		}
-		job.Started = spanner.NullTime{
-			Time:  TimeNow(ctx),
-			Valid: true,
+		job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
+		for _, flow := range req.Workflows {
+			if job.Workflow == flow.Name {
+				job.LLMModel = flow.LLMModel
+				break
+			}
 		}
-		job.LLMModel = req.LLMModel
 		job.CodeRevision = req.CodeRevision
 		mut, err := spanner.InsertOrUpdateStruct("Jobs", job)
 		if err != nil {

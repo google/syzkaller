@@ -207,8 +207,13 @@ func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan 
 }
 
 func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
-	if len(req.Workflows) == 0 || req.CodeRevision == "" || req.LLMModel == "" {
+	if len(req.Workflows) == 0 || req.CodeRevision == "" {
 		return nil, fmt.Errorf("invalid request")
+	}
+	for _, flow := range req.Workflows {
+		if flow.Type == "" || flow.Name == "" || flow.LLMModel == "" {
+			return nil, fmt.Errorf("invalid request")
+		}
 	}
 	if err := aidb.UpdateWorkflows(ctx, req.Workflows); err != nil {
 		return nil, fmt.Errorf("failed UpdateWorkflows: %w", err)

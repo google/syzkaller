@@ -63,11 +63,10 @@ func TestAIBugWorkflows(t *testing.T) {
 
 	_, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: "patching", Name: "patching"},
-			{Type: "patching", Name: "patching-foo"},
-			{Type: "patching", Name: "patching-bar"},
+			{Type: "patching", Name: "patching", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-foo", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-bar", LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err)
@@ -77,25 +76,23 @@ func TestAIBugWorkflows(t *testing.T) {
 
 	_, err = c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: "patching", Name: "patching"},
-			{Type: "patching", Name: "patching-bar"},
-			{Type: "patching", Name: "patching-baz"},
-			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
+			{Type: "patching", Name: "patching", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-bar", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-baz", LLMModel: "smarty"},
+			{Type: "assessment-kcsan", Name: "assessment-kcsan", LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err)
 
 	_, err = c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: "patching", Name: "patching"},
-			{Type: "patching", Name: "patching-bar"},
-			{Type: "patching", Name: "patching-qux"},
-			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
-			{Type: "assessment-kcsan", Name: "assessment-kcsan-foo"},
+			{Type: "patching", Name: "patching", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-bar", LLMModel: "smarty"},
+			{Type: "patching", Name: "patching-qux", LLMModel: "smarty"},
+			{Type: "assessment-kcsan", Name: "assessment-kcsan", LLMModel: "smarty"},
+			{Type: "assessment-kcsan", Name: "assessment-kcsan-foo", LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err)
@@ -117,9 +114,8 @@ func TestAIJob(t *testing.T) {
 
 	resp, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
+			{Type: "assessment-kcsan", Name: "assessment-kcsan", LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err)
@@ -137,9 +133,8 @@ func TestAIJob(t *testing.T) {
 
 	resp2, err2 := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
+			{Type: "assessment-kcsan", Name: "assessment-kcsan", LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err2)
@@ -214,9 +209,8 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 
 	resp, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: prog.GitRevision,
-		LLMModel:     "smarty",
 		Workflows: []dashapi.AIWorkflow{
-			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN), LLMModel: "smarty"},
 		},
 	})
 	require.NoError(t, err)

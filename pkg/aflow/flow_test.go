@@ -76,7 +76,8 @@ func TestWorkflow(t *testing.T) {
 	flows := make(map[string]*Flow)
 	err := register[flowInputs, flowOutputs]("test", "description", flows, []*Flow{
 		{
-			Name: "flow",
+			Name:  "flow",
+			Model: "model",
 			Root: NewPipeline(
 				NewFuncAction("func-action",
 					func(ctx *Context, args firstFuncInputs) (firstFuncOutputs, error) {
@@ -530,6 +531,7 @@ func TestNoInputs(t *testing.T) {
 	flows := make(map[string]*Flow)
 	err := register[flowInputs, flowOutputs]("test", "description", flows, []*Flow{
 		{
+			Model: "model",
 			Root: NewFuncAction("func-action",
 				func(ctx *Context, args flowInputs) (flowOutputs, error) {
 					return flowOutputs{}, nil

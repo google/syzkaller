@@ -23,6 +23,7 @@ func init() {
 		ai.WorkflowAssessmentKCSAN,
 		"assess if a KCSAN report is about a benign race that only needs annotations or not",
 		&aflow.Flow{
+			Model: aflow.GoodBalancedModel,
 			Root: &aflow.Pipeline{
 				Actions: []aflow.Action{
 					kernel.Checkout,
