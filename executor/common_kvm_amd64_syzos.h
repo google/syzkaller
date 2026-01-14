@@ -34,6 +34,8 @@ typedef enum {
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
+	SYZOS_API_NESTED_AMD_STGI = 382,
+	SYZOS_API_NESTED_AMD_CLGI = 383,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -115,6 +117,8 @@ GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_vmcb_write_mask(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_stgi();
+GUEST_CODE static void guest_handle_nested_amd_clgi();
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -233,6 +237,12 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_AMD_INVLPGA) {
 			// Invalidate TLB mappings for the specified address/ASID.
 			guest_handle_nested_amd_invlpga((struct api_call_2*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_STGI) {
+			// Set Global Interrupt Flag (Enable Interrupts).
+			guest_handle_nested_amd_stgi();
+		} else if (call == SYZOS_API_NESTED_AMD_CLGI) {
+			// Clear Global Interrupt Flag (Disable Interrupts, including NMI).
+			guest_handle_nested_amd_clgi();
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1298,6 +1308,22 @@ guest_handle_nested_amd_invlpga(struct api_call_2* cmd, uint64 cpu_id)
 	uint32 asid = (uint32)cmd->args[1];
 
 	asm volatile("invlpga" : : "a"(linear_addr), "c"(asid) : "memory");
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_stgi()
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+	asm volatile("stgi" ::: "memory");
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_clgi()
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+	asm volatile("clgi" ::: "memory");
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H

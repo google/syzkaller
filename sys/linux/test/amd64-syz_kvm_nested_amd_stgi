@@ -1,0 +1,47 @@
+#
+# requires: arch=amd64 -threaded
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Test AMD SVM STGI/CLGI interaction with Host NMI Injection.
+#
+# 1. Guest executes CLGI (disabling interrupts).
+# 2. Guest executes UEXIT (0x1337) to yield to Host.
+# 3. Host injects an NMI via KVM_NMI.
+#    - Because GIF=0, this NMI must remain PENDING and NOT be delivered yet.
+# 4. Guest resumes and executes STGI.
+#    - NMI should be delivered immediately after STGI.
+#
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={AUTO, AUTO, 0x0}, @nested_create_vm={AUTO, AUTO, 0x0}, @nested_amd_clgi={AUTO, AUTO, ""}, @uexit={AUTO, AUTO, 0x1337}, @nested_amd_stgi={AUTO, AUTO, ""}, @uexit={AUTO, AUTO, 0xface}], AUTO})
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# Run 1: Execute CLGI -> UEXIT(0x1337)
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r5, 0x1337)
+
+# Inject NMI into the vCPU.
+# Since GIF=0 in the guest, this NMI should be queued by L0.
+#
+ioctl$KVM_NMI(r3, 0x0)
+
+# Run 2: Resume -> STGI -> NMI Delivery -> UEXIT(0xface)
+# We verify that the guest survives the NMI delivery and reaches the final exit.
+# (If KVM fails to queue the NMI and delivers it early, or corrupts state, this may crash).
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+
+# We check for successful completion.
+# Note: If NMI is delivered, it might cause a standard KVM exit depending on interception settings.
+# If the guest handles it transparently, we see 0xface.
+# For this regression test, ensuring we don't crash L0 is the primary goal.
+#
+syz_kvm_assert_syzos_uexit$x86(r5, 0xface)
+
+# Cleanup.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffff)
