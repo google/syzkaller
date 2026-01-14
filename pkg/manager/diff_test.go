@@ -55,7 +55,7 @@ index 103167d..fbf7a68 100644
 		{
 			Name: symbolsArea,
 			Filter: mgrconfig.CovFilterCfg{
-				Functions: []string{"function"},
+				Functions: []string{"^function$"},
 			},
 			Weight: 6.0,
 		},

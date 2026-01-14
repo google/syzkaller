@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -817,11 +818,15 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 	funcs := modifiedSymbols(baseHashes, patchedHashes)
 	if len(funcs) > 0 {
 		log.Logf(0, "adding modified_functions to focus areas: %q", funcs)
+		var regexps []string
+		for _, name := range funcs {
+			regexps = append(regexps, fmt.Sprintf("^%s$", regexp.QuoteMeta(name)))
+		}
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
 				Name: symbolsArea,
 				Filter: mgrconfig.CovFilterCfg{
-					Functions: funcs,
+					Functions: regexps,
 				},
 				Weight: 6.0,
 			})
