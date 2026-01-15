@@ -1,0 +1,1 @@
+ALTER TABLE TrajectorySpans ADD COLUMN Model STRING(1000);

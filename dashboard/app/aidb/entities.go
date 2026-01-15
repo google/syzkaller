@@ -28,7 +28,6 @@ type Job struct {
 	Created      time.Time
 	Started      spanner.NullTime
 	Finished     spanner.NullTime
-	LLMModel     string // LLM model used to execute the job, filled when the job is started
 	CodeRevision string // syzkaller revision, filled when the job is started
 	Error        string // for finished jobs
 	Args         spanner.NullJSON
@@ -43,6 +42,7 @@ type TrajectorySpan struct {
 	Nesting     int64
 	Type        string
 	Name        string
+	Model       string
 	Started     time.Time
 	Finished    spanner.NullTime
 	Error       spanner.NullString

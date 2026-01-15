@@ -65,6 +65,9 @@ Detailed info on a single AI job execution.
 			<td>
 				<details>
 					<summary>{{formatDuration $span.Duration}}</summary>
+					{{if $span.Model}}
+						<b>Model:</b> <div id="ai_details_div"><pre>{{$span.Model}}</pre></div><br>
+					{{end}}
 					{{if $span.Error}}
 						<b>Error:</b> <div id="ai_details_div"><pre>{{$span.Error}}</pre></div><br>
 					{{end}}

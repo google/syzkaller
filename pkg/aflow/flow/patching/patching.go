@@ -43,7 +43,6 @@ func init() {
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
 		&aflow.Flow{
-			Model: aflow.BestExpensiveModel,
 			Root: &aflow.Pipeline{
 				Actions: []aflow.Action{
 					baseCommitPicker,
@@ -54,6 +53,7 @@ func init() {
 					codesearcher.PrepareIndex,
 					&aflow.LLMAgent{
 						Name:        "debugger",
+						Model:       aflow.BestExpensiveModel,
 						Reply:       "BugExplanation",
 						Temperature: 1,
 						Instruction: debuggingInstruction,
@@ -62,6 +62,7 @@ func init() {
 					},
 					&aflow.LLMAgent{
 						Name:        "diff-generator",
+						Model:       aflow.BestExpensiveModel,
 						Reply:       "PatchDiff",
 						Temperature: 1,
 						Instruction: diffInstruction,
@@ -70,6 +71,7 @@ func init() {
 					},
 					&aflow.LLMAgent{
 						Name:        "description-generator",
+						Model:       aflow.BestExpensiveModel,
 						Reply:       "PatchDescription",
 						Temperature: 1,
 						Instruction: descriptionInstruction,

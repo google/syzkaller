@@ -14,9 +14,8 @@ type AIJobPollReq struct {
 }
 
 type AIWorkflow struct {
-	Type     ai.WorkflowType
-	Name     string
-	LLMModel string // LLM model that will be used to execute this workflow
+	Type ai.WorkflowType
+	Name string
 }
 
 type AIJobPollResp struct {

@@ -33,7 +33,6 @@ func init() {
 		ai.WorkflowModeration,
 		"assess if a bug report is consistent and actionable or not",
 		&aflow.Flow{
-			Model: aflow.GoodBalancedModel,
 			Root: &aflow.Pipeline{
 				Actions: []aflow.Action{
 					aflow.NewFuncAction("extract-crash-type", extractCrashType),
@@ -42,6 +41,7 @@ func init() {
 					codesearcher.PrepareIndex,
 					&aflow.LLMAgent{
 						Name:  "expert",
+						Model: aflow.GoodBalancedModel,
 						Reply: "Explanation",
 						Outputs: aflow.LLMOutputs[struct {
 							Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
