@@ -631,6 +631,44 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
+		"skip-stage": {
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientSkipStage: keySkipStage,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public.git",
+					Branch: "access-public",
+					Alias:  "access-public",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					Name:       "reporting1",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 1},
+					Embargo:    4 * 24 * time.Hour,
+				},
+				{
+					Name:       "reporting2",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
+					Filter: func(bug *Bug) FilterResult {
+						if bug.manuallyUpstreamed("reporting1") {
+							return FilterSkip
+						}
+						return FilterReport
+					},
+				},
+				{
+					Name:       "reporting3",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 3},
+				},
+			},
+		},
 	},
 }
 
@@ -683,6 +721,8 @@ const (
 	keyTreeTests          = "keyTreeTestskeyTreeTestskeyTreeTests"
 	clientAI              = "client-ai"
 	keyAI                 = "clientaikeyclientaikeyclientaikey"
+	clientSkipStage       = "client-skip-stage"
+	keySkipStage          = "skipstagekeyskipstagekeyskipstagekey"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
