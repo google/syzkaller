@@ -7,7 +7,7 @@
 # Following branch: android16-6.12
 kernel:
  repo: https://android.googlesource.com/kernel/common
- tag: 0697e85aef2e6a986214cc886be423fee63ae0e2
+ tag: 5150a2974c100f8aa5cbfa9a09d804ee4369f61e
 
 shell:
  - make gki_defconfig
