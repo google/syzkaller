@@ -1417,3 +1417,53 @@ Blocks diff,	Path
 
 `, msg.Body)
 }
+
+func TestSkipStage(t *testing.T) {
+	// The test ensures that manuallyUpstreamed works as intended in reporting filters.
+	c := NewCtx(t)
+	defer c.Close()
+	client := c.makeClient(clientSkipStage, keySkipStage, true)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	{
+		// Normal scenario - manual upstreaming.
+		client.ReportCrash(testCrash(build, 1))
+		rep := client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":1}`)
+		c.client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+		client.pollNotifs(0)
+		rep = client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":3}`)
+		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	}
+
+	{
+		// Auto-upstreamed.
+		client.ReportCrash(testCrash(build, 2))
+		rep := client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":1}`)
+		c.advanceTime(5 * 24 * time.Hour)
+		notifs := client.pollNotifs(1)
+		reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+			ID:           notifs[0].ID,
+			Status:       dashapi.BugStatusUpstream,
+			Notification: true,
+		})
+		c.expectEQ(reply.OK, true)
+		rep = client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":2}`)
+		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	}
+
+	{
+		// Manually invalidated.
+		client.ReportCrash(testCrash(build, 3))
+		rep := client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":1}`)
+		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+		client.pollNotifs(0)
+		client.pollBugs(0)
+	}
+}
