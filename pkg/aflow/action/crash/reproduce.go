@@ -52,6 +52,7 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 	if err != nil {
 		return reproduceResult{}, err
 	}
+	const noCrash = "reproducer did not crash"
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
 		" vm %v, vm config hash %v, C repro hash %v",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
@@ -91,7 +92,7 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 		}
 		os.RemoveAll(cfg.Workdir)
 		if results[0].Error == nil {
-			results[0].Error = errors.New("reproducer did not crash")
+			results[0].Error = errors.New(noCrash)
 		}
 		file, data := "", []byte(nil)
 		var crashErr *instance.CrashError
@@ -106,7 +107,11 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 		return reproduceResult{}, err
 	}
 	if data, err := os.ReadFile(filepath.Join(dir, "error")); err == nil {
-		return reproduceResult{}, errors.New(string(data))
+		err := errors.New(string(data))
+		if err.Error() == noCrash {
+			err = aflow.FlowError(err)
+		}
+		return reproduceResult{}, err
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "report"))
 	return reproduceResult{

@@ -47,7 +47,7 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 		compileCommnads := "compile_commands.json"
 		makeArgs = append(makeArgs, path.Base(image), compileCommnads)
 		if _, err := osutil.RunCmd(time.Hour, args.KernelSrc, "make", makeArgs...); err != nil {
-			return err
+			return aflow.FlowError(err)
 		}
 		// Remove main intermediate build files, we don't need them anymore
 		// and they take lots of space. Keep generated source files.
