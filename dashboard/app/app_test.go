@@ -650,6 +650,12 @@ var testConfig = &GlobalConfig{
 					DailyLimit: 1000,
 					Config:     &TestConfig{Index: 1},
 					Embargo:    4 * 24 * time.Hour,
+					Filter: func(bug *Bug) FilterResult {
+						if bug.Title == "skip reporting1" {
+							return FilterSkip
+						}
+						return FilterReport
+					},
 				},
 				{
 					Name:       "reporting2",

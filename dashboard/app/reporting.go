@@ -392,6 +392,10 @@ func (bug *Bug) manuallyUpstreamed(name string) bool {
 	if reporting == nil {
 		return false
 	}
+	if reporting.Reported.IsZero() {
+		// Either not reported yet, or fully skipped (if Closed is not empty).
+		return false
+	}
 	return !reporting.Closed.IsZero() && !reporting.Auto
 }
 
