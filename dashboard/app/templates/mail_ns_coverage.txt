@@ -1,4 +1,4 @@
-Regressions happened in '{{.Namespace}}' from {{.PeriodFrom}} ({{.PeriodFromDays}} days) to {{.PeriodTo}} ({{.PeriodToDays}} days).
+{{.Namespace}} regressions in {{.PeriodTo}} ({{.PeriodToDays}} days) since {{.PeriodFrom}} ({{.PeriodFromDays}} days).
 Web version: {{.Link}}
 
 {{.Table}}

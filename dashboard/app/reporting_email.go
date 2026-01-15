@@ -169,6 +169,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 	if err != nil {
 		return fmt.Errorf("coverageTable: %w", err)
 	}
+	cfg := getNsConfig(ctx, ns)
 	args := struct {
 		Namespace      string
 		PeriodFrom     string
@@ -178,7 +179,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 		Link           string
 		Table          string
 	}{
-		Namespace:      ns,
+		Namespace:      cfg.DisplayTitle,
 		PeriodFrom:     periodFrom,
 		PeriodFromDays: period[0].Days,
 		PeriodTo:       periodTo,
@@ -187,7 +188,7 @@ func sendNsCoverageReport(ctx context.Context, ns, email string,
 			coveragePageLink(ns, period[1].Type, period[1].DateTo.String(), minDrop, 2, true)),
 		Table: table,
 	}
-	title := fmt.Sprintf("%s coverage regression in %s", ns, periodTo)
+	title := fmt.Sprintf("%s coverage regressions in %s", cfg.DisplayTitle, periodTo)
 	err = sendMailTemplate(ctx, &mailSendParams{
 		templateName: "mail_ns_coverage.txt",
 		templateArg:  args,
