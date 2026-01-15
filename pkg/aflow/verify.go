@@ -91,6 +91,12 @@ func provideOutputs[T any](ctx *verifyContext, who string) {
 	}
 }
 
+func provideArrayOutputs[T any](ctx *verifyContext, who string) {
+	for name, typ := range foreachFieldOf[T]() {
+		ctx.provideOutput(who, name, reflect.SliceOf(typ), true)
+	}
+}
+
 func requireSchema[T any](ctx *verifyContext, who, what string) {
 	if _, err := schemaFor[T](); err != nil {
 		ctx.errorf(who, "%v: %v", what, err)
