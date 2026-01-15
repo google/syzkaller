@@ -21,7 +21,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # Run 1: Execute CLGI -> UEXIT(0x1337)
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0x1337)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0x1337)
 
 # Inject NMI into the vCPU.
 # Since GIF=0 in the guest, this NMI should be queued by L0.
@@ -39,9 +39,9 @@ ioctl$KVM_RUN(r3, AUTO, 0x0)
 # If the guest handles it transparently, we see 0xface.
 # For this regression test, ensuring we don't crash L0 is the primary goal.
 #
-syz_kvm_assert_syzos_uexit$x86(r5, 0xface)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xface)
 
 # Cleanup.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffff)

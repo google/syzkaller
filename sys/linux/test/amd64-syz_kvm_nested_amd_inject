@@ -29,9 +29,9 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # If KVM L0 processes the EVENTINJ correctly, the guest should eventually exit back to us.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xface)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xface)
 
 # Cleanup
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffff)

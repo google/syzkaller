@@ -13,11 +13,11 @@ r6 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r5, 0x3, 0x1, r3, 0x0)
 r7 = mmap$KVM_VCPU(&(0x7f000000a000/0x1000)=nil, r5, 0x3, 0x1, r4, 0x0)
 
 ioctl$KVM_RUN(r4, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$arm64(r7, 0xffffffffffffffff)
+syz_kvm_assert_syzos_uexit$arm64(r4, r7, 0xffffffffffffffff)
 #
 # Calling KVM_RUN here again would result in infinite loop.
 # Instead, signal SPI 32 on CPU 1 (0x1010020), so that the guest can execute another uexit in the IRQ handler.
 #
 ioctl$KVM_IRQ_LINE(r1, AUTO, &AUTO={0x1010020, 0x1})
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$arm64(r6, 0xfffffffffffffffe)
+syz_kvm_assert_syzos_uexit$arm64(r3, r6, 0xfffffffffffffffe)

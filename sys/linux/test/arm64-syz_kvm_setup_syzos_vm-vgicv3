@@ -12,7 +12,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$arm64(r5, 0xffffffffffffffff)
+syz_kvm_assert_syzos_uexit$arm64(r3, r5, 0xffffffffffffffff)
 #
 # Calling KVM_RUN here again would result in infinite loop.
 # Instead, signal SPI 32 (0x1000020), so that the guest can execute another uexit in the IRQ handler.
@@ -21,4 +21,4 @@ ioctl$KVM_IRQ_LINE(r1, AUTO, &AUTO={0x1000020, 0x1})
 ioctl$KVM_RUN(r3, AUTO, 0x0)
 # 0xfffffffffffffffe is UEXIT_IRQ.
 #
-syz_kvm_assert_syzos_uexit$arm64(r5, 0xfffffffffffffffe)
+syz_kvm_assert_syzos_uexit$arm64(r3, r5, 0xfffffffffffffffe)
