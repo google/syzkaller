@@ -118,7 +118,7 @@ func NewContext(customZoneID string) (*Context, error) {
 }
 
 func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
-	preemptible, displayDevice bool) (string, error) {
+	tags []string, preemptible, displayDevice bool) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
 	sshkeyAttr := "syzkaller:" + sshkey
 	oneAttr := "1"
@@ -165,6 +165,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 		DisplayDevice: &compute.DisplayDevice{
 			EnableDisplay: displayDevice,
 		},
+		Tags: &compute.Tags{Items: tags},
 	}
 retry:
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {

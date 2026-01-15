@@ -59,7 +59,8 @@ type Config struct {
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise generate one and upload it:
 	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
-	SerialPortKey string `json:"serial_port_key"`
+	SerialPortKey string   `json:"serial_port_key"`
+	Tags          []string `json:"tags"` // GCE instance tags
 }
 
 type Pool struct {
@@ -195,7 +196,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	}
 	log.Logf(0, "creating instance: %v", name)
 	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
-		string(gceKeyPub), pool.cfg.Preemptible, pool.cfg.DisplayDevice)
+		string(gceKeyPub), pool.cfg.Tags, pool.cfg.Preemptible, pool.cfg.DisplayDevice)
 	if err != nil {
 		return nil, err
 	}
