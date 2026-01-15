@@ -39,12 +39,16 @@ type Span struct {
 
 type SpanType string
 
+// Note: don't change string values of these consts w/o a good reason.
+// They are stored in the dashboard database as strings.
 const (
 	SpanFlow   = SpanType("flow") // always the first outermost span
 	SpanAction = SpanType("action")
 	SpanAgent  = SpanType("agent")
 	SpanLLM    = SpanType("llm")
 	SpanTool   = SpanType("tool")
+	// Logical grouping of several invocations of the same agent.
+	SpanAgentCandidates = SpanType("agent-candidates")
 )
 
 func (span *Span) String() string {

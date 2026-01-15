@@ -44,6 +44,17 @@ func TestTemplate(t *testing.T) {
 		},
 		{
 			template: `
+				{{range $i, $v := .array}}
+					{{$i}} {{$v}}
+				{{end}}
+				`,
+			vars: map[string]reflect.Type{
+				"array": reflect.TypeFor[[]int](),
+			},
+			used: []string{"array"},
+		},
+		{
+			template: `
 				{{if .bar}}
 					{{.foo}}
 				{{end}}

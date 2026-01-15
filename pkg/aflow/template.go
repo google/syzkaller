@@ -70,6 +70,10 @@ func walkTemplate(n parse.Node, used map[string]bool, errp *error) {
 		walkTemplate(n.Pipe, used, errp)
 		walkTemplate(n.List, used, errp)
 		walkTemplate(n.ElseList, used, errp)
+	case *parse.RangeNode:
+		walkTemplate(n.Pipe, used, errp)
+		walkTemplate(n.List, used, errp)
+		walkTemplate(n.ElseList, used, errp)
 	case *parse.ActionNode:
 		walkTemplate(n.Pipe, used, errp)
 	case *parse.PipeNode:
