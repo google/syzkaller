@@ -1466,4 +1466,16 @@ func TestSkipStage(t *testing.T) {
 		client.pollNotifs(0)
 		client.pollBugs(0)
 	}
+
+	{
+		// Don't react to skipped reporting stages.
+		crash := testCrash(build, 4)
+		crash.Title = "skip reporting1"
+		client.ReportCrash(crash)
+		rep := client.pollBug()
+		c.expectEQ(string(rep.Config), `{"Index":2}`)
+		// If we do react, there would be an upstreaming notification.
+		client.pollNotifs(0)
+		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	}
 }
