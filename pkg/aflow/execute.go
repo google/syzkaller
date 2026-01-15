@@ -5,6 +5,7 @@ package aflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -68,6 +69,25 @@ func (flow *Flow) Execute(c context.Context, model, workdir string, inputs map[s
 		panic(fmt.Sprintf("unbalanced spans (%v)", ctx.spanNesting))
 	}
 	return span.Results, nil
+}
+
+// FlowError creates an error that denotes failure of the flow itself,
+// rather than an infrastructure error. A flow errors mean an expected
+// condition in the flow when it cannot continue, and cannot produce
+// expected outputs. For example, if we are doing something with the kernel,
+// but the kernel build fails. Flow errors shouldn't be flagged in
+// infrastructure monitoring.
+func FlowError(err error) error {
+	return &flowError{err}
+}
+
+func IsFlowError(err error) bool {
+	var flowErr *flowError
+	return errors.As(err, &flowErr)
+}
+
+type flowError struct {
+	error
 }
 
 type (

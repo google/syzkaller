@@ -199,7 +199,7 @@ func (s *Server) poll(ctx context.Context) (
 	if err := s.dash.AIJobDone(doneReq); err != nil {
 		return false, err
 	}
-	if jobErr != nil {
+	if jobErr != nil && !aflow.IsFlowError(jobErr) {
 		return false, jobErr
 	}
 	return true, nil
