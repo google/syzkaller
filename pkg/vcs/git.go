@@ -776,17 +776,22 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 	}
 	var fileNames []string
 	nameToHash := map[string]string{}
+	ignoreFiles := map[string]struct{}{}
 	for _, file := range ParseGitDiff(diff) {
 		if strings.Trim(file.LeftHash, "0") == "" {
-			// Newly created file are not of any help here.
+			// Newly created files are not of any help here.
+			ignoreFiles[file.Name] = struct{}{}
+			continue
+		}
+		if _, ignore := ignoreFiles[file.Name]; ignore {
 			continue
 		}
 		if ok, err := git.verifyHash(file.LeftHash); err != nil {
 			return nil, fmt.Errorf("hash verification failed: %w", err)
 		} else if !ok {
-			// The object is not known in this repository.
-			// Ignore it, or otherwise the command will fail.
-			continue
+			// The object is not known in this repository, so we won't find the exact base commit.
+			tracer.Log("unknown object %s, stopping base commit search", file.LeftHash)
+			return nil, nil
 		}
 		if _, ok := nameToHash[file.Name]; !ok {
 			// If the diff is actually a concatenation of several diffs, we only
@@ -797,6 +802,9 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		args = append(args, "--find-object="+file.LeftHash)
 	}
 	tracer.Log("extracted %d left blob hashes", len(nameToHash))
+	if len(nameToHash) == 0 {
+		return nil, nil
+	}
 	output, err := git.Run(args...)
 	if err != nil {
 		return nil, err
