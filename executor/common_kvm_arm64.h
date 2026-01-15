@@ -362,17 +362,32 @@ static long syz_kvm_vgic_v3_setup(volatile long a0, volatile long a1, volatile l
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_uexit
-static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1)
+static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
+				       volatile long a2)
 {
-	struct kvm_run* run = (struct kvm_run*)a0;
-	uint64 expect = a1;
+#if !SYZ_EXECUTOR
+	int cpufd = (int)a0;
+#endif
+	struct kvm_run* run = (struct kvm_run*)a1;
+	uint64 expect = a2;
 
-	if (!run || (run->exit_reason != KVM_EXIT_MMIO) || (run->mmio.phys_addr != ARM64_ADDR_UEXIT)) {
+	if (!run || (run->exit_reason != KVM_EXIT_MMIO) ||
+	    (run->mmio.phys_addr != ARM64_ADDR_UEXIT)) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] Assertion Triggered on VCPU %d\n", cpufd);
+#endif
 		errno = EINVAL;
 		return -1;
 	}
 
-	if ((((uint64*)(run->mmio.data))[0]) != expect) {
+	uint64_t actual_code = ((uint64_t*)(run->mmio.data))[0];
+	if (actual_code != expect) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] Exit Code Mismatch on VCPU %d\n", cpufd);
+		fprintf(stderr, "   Expected: 0x%lx\n", (unsigned long)expect);
+		fprintf(stderr, "   Actual:   0x%lx\n",
+			(unsigned long)actual_code);
+#endif
 		errno = EDOM;
 		return -1;
 	}

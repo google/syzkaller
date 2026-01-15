@@ -24,7 +24,7 @@ syz_kvm_setup_syzos_vm$x86(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$x86
 syz_kvm_add_vcpu$x86(vm kvm_syz_vm$x86, text ptr[in, kvm_text$x86]) fd_kvmcpu (no_squash)
 
 # Test assertions, will not be used by the fuzzer.
-syz_kvm_assert_syzos_uexit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
+syz_kvm_assert_syzos_uexit$x86(cpufd fd_kvmcpu, run kvm_run_ptr, exitcode intptr) (no_generate)
 syz_kvm_assert_syzos_kvm_exit$x86(run kvm_run_ptr, exitcode intptr) (no_generate)
 
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
