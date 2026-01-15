@@ -171,14 +171,9 @@ func (s *Server) poll(ctx context.Context) (
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {
-		model := flow.Model
-		if s.cfg.Model != "" {
-			model = s.cfg.Model
-		}
 		req.Workflows = append(req.Workflows, dashapi.AIWorkflow{
-			Type:     flow.Type,
-			Name:     flow.Name,
-			LLMModel: model,
+			Type: flow.Type,
+			Name: flow.Name,
 		})
 	}
 	resp, err := s.dash.AIJobPoll(req)
@@ -210,10 +205,6 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
-	model := flow.Model
-	if s.cfg.Model != "" {
-		model = s.cfg.Model
-	}
 	inputs := map[string]any{
 		"Syzkaller":         osutil.Abs(filepath.FromSlash("syzkaller/current")),
 		"CodesearchToolBin": s.cfg.CodesearchToolBin,
@@ -230,5 +221,5 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 			Span:  span,
 		})
 	}
-	return flow.Execute(ctx, model, s.workdir, inputs, s.cache, onEvent)
+	return flow.Execute(ctx, s.cfg.Model, s.workdir, inputs, s.cache, onEvent)
 }

@@ -23,7 +23,6 @@ func init() {
 		ai.WorkflowAssessmentKCSAN,
 		"assess if a KCSAN report is about a benign race that only needs annotations or not",
 		&aflow.Flow{
-			Model: aflow.GoodBalancedModel,
 			Root: &aflow.Pipeline{
 				Actions: []aflow.Action{
 					kernel.Checkout,
@@ -31,6 +30,7 @@ func init() {
 					codesearcher.PrepareIndex,
 					&aflow.LLMAgent{
 						Name:  "expert",
+						Model: aflow.GoodBalancedModel,
 						Reply: "Explanation",
 						Outputs: aflow.LLMOutputs[struct {
 							Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`

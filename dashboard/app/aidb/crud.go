@@ -129,12 +129,6 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 			job = jobs[0]
 		}
 		job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
-		for _, flow := range req.Workflows {
-			if job.Workflow == flow.Name {
-				job.LLMModel = flow.LLMModel
-				break
-			}
-		}
 		job.CodeRevision = req.CodeRevision
 		mut, err := spanner.InsertOrUpdateStruct("Jobs", job)
 		if err != nil {
@@ -184,6 +178,7 @@ func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Spa
 		Nesting:     int64(span.Nesting),
 		Type:        string(span.Type),
 		Name:        span.Name,
+		Model:       span.Model,
 		Started:     span.Started,
 		Finished:    toNullTime(span.Finished),
 		Error:       toNullString(span.Error),

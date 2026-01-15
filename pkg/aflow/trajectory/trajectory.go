@@ -20,6 +20,7 @@ type Span struct {
 	Nesting  int
 	Type     SpanType
 	Name     string // flow/action/tool name
+	Model    string // LLM model name for agent/LLM spans
 	Started  time.Time
 	Finished time.Time
 	Error    string // relevant if Finished is set

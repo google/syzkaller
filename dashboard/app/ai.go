@@ -48,7 +48,6 @@ type uiAIJob struct {
 	Created          time.Time
 	Started          time.Time
 	Finished         time.Time
-	LLMModel         string
 	CodeRevision     string
 	CodeRevisionLink string
 	Error            string
@@ -68,6 +67,7 @@ type uiAITrajectorySpan struct {
 	Nesting     int64
 	Type        string
 	Name        string
+	Model       string
 	Duration    time.Duration
 	Error       string
 	Args        string
@@ -198,7 +198,6 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		Created:          job.Created,
 		Started:          nullTime(job.Started),
 		Finished:         nullTime(job.Finished),
-		LLMModel:         job.LLMModel,
 		CodeRevision:     job.CodeRevision,
 		CodeRevisionLink: vcs.LogLink(vcs.SyzkallerRepo, job.CodeRevision),
 		Error:            job.Error,
@@ -220,6 +219,7 @@ func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan 
 			Nesting:     span.Nesting,
 			Type:        span.Type,
 			Name:        span.Name,
+			Model:       span.Model,
 			Duration:    duration,
 			Error:       nullString(span.Error),
 			Args:        nullJSON(span.Args),
@@ -238,7 +238,7 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		return nil, fmt.Errorf("invalid request")
 	}
 	for _, flow := range req.Workflows {
-		if flow.Type == "" || flow.Name == "" || flow.LLMModel == "" {
+		if flow.Type == "" || flow.Name == "" {
 			return nil, fmt.Errorf("invalid request")
 		}
 	}

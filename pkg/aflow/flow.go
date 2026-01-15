@@ -22,9 +22,8 @@ import (
 // Actions are nodes of the graph, and they consume/produce some named values
 // (input/output fields, and intermediate values consumed by other actions).
 type Flow struct {
-	Name  string // Empty for the main workflow for the workflow type.
-	Model string // The default Gemini model name to execute this workflow.
-	Root  Action
+	Name string // Empty for the main workflow for the workflow type.
+	Root Action
 
 	*FlowType
 }
@@ -35,12 +34,6 @@ type FlowType struct {
 	checkInputs    func(map[string]any) error
 	extractOutputs func(map[string]any) map[string]any
 }
-
-// See https://ai.google.dev/gemini-api/docs/models
-const (
-	BestExpensiveModel = "gemini-3-pro-preview"
-	GoodBalancedModel  = "gemini-3-flash-preview"
-)
 
 var Flows = make(map[string]*Flow)
 
@@ -95,7 +88,6 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 		actions: make(map[string]bool),
 		state:   make(map[string]*varState),
 	}
-	ctx.requireNotEmpty(flow.Name, "Model", flow.Model)
 	provideOutputs[Inputs](ctx, "flow inputs")
 	flow.Root.verify(ctx)
 	requireInputs[Outputs](ctx, "flow outputs")

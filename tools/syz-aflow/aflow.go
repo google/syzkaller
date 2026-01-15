@@ -33,7 +33,7 @@ func main() {
 		flagFlow        = flag.String("workflow", "", "workflow to execute")
 		flagInput       = flag.String("input", "", "input json file with workflow arguments")
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
-		flagModel       = flag.String("model", "", "use this LLM model, if empty use the workflow default model")
+		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
 		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
 			" and save into -input file")
@@ -77,9 +77,6 @@ func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheS
 	flow := aflow.Flows[flowName]
 	if flow == nil {
 		return fmt.Errorf("workflow %q is not found", flowName)
-	}
-	if model == "" {
-		model = flow.Model
 	}
 	inputData, err := os.ReadFile(inputFile)
 	if err != nil {
