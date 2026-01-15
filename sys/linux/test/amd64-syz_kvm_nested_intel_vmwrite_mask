@@ -20,7 +20,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # L2 VM executes HLT. Exit reason is mapped to 0xe2e20001.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xe2e20001)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e20001)
 
 # L1 disables HLT exiting and resumes L2. L2 resumes at HLT, and breaks out of KVM_RUN.
 # 0x05 is KVM_EXIT_HLT.
@@ -32,9 +32,9 @@ syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x5)
 # After resuming, L2 executes INVD. Exit reason is mapped to 0xe2e20002.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xe2e20002)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xe2e20002)
 
 # guest_main should finish with guest_uexit(-1).
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffff)

@@ -14,7 +14,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # Run till uexit(0xaaaa).
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xaaaa)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xaaaa)
 
 # Inject interrupt 0x80.
 #
@@ -23,9 +23,9 @@ ioctl$KVM_RUN(r3, AUTO, 0x0)
 
 # Ensure that the uexit code is UEXIT_IRQ.
 #
-syz_kvm_assert_syzos_uexit$x86(r5, 0xfffffffffffffffe)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xfffffffffffffffe)
 
 # Run till the end.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffffffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffffffffffff)

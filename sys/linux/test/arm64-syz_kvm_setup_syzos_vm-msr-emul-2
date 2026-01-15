@@ -26,7 +26,7 @@ r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
 # Run till the end of guest_main(). 0xffffffffffffffff is UEXIT_END.
 #
 ioctl$KVM_RUN(r3, AUTO, 0x0)
-syz_kvm_assert_syzos_uexit$arm64(r5, 0xffffffffffffffff)
+syz_kvm_assert_syzos_uexit$arm64(r3, r5, 0xffffffffffffffff)
 syz_kvm_assert_reg(r3, 0x6030000000138017, 0x8000)
 syz_kvm_assert_reg(r3, 0x603000000013801f, 0x8000)
 syz_kvm_assert_reg(r3, 0x6030000000138084, 0x8000)

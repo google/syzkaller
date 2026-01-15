@@ -18,4 +18,4 @@ ioctl$KVM_RUN(r3, AUTO, 0x0)
 # Ensure that exit reason is KVM_EXIT_MMIO and uexit code is UEXIT_END.
 #
 syz_kvm_assert_syzos_kvm_exit$x86(r5, 0x6)
-syz_kvm_assert_syzos_uexit$x86(r5, 0xffffffffffffffff)
+syz_kvm_assert_syzos_uexit$x86(r3, r5, 0xffffffffffffffff)
