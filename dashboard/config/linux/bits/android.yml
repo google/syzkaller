@@ -13,5 +13,4 @@ config:
  - KVM_WERROR: n
  # The kernel hangs during boot on qemu if it's set to 0.
  - SERIAL_8250_RUNTIME_UARTS: 4
- - ANDROID_BINDER_IPC_RUST: [v6.12]
  - NET_VENDOR_GOOGLE
