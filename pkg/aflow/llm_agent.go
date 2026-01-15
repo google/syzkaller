@@ -191,9 +191,9 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse) (
 		err = fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
 		return
 	}
-	// We don't expect to receive these now.
-	if candidate.GroundingMetadata != nil || candidate.CitationMetadata != nil ||
-		candidate.LogprobsResult != nil {
+	// We don't expect to receive these fields now.
+	// Note: CitationMetadata may be present sometimes, but we don't have uses for it.
+	if candidate.GroundingMetadata != nil || candidate.LogprobsResult != nil {
 		err = fmt.Errorf("unexpected reply fields (%+v)", *candidate)
 		return
 	}
