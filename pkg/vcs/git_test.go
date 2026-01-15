@@ -551,8 +551,8 @@ func TestBaseForDiff(t *testing.T) {
 		assert.Equal(t, commit4.Hash, base[0].Hash)
 		assert.Equal(t, commit2.Hash, base[1].Hash)
 	})
-	t.Run("ignore unknown objects", func(t *testing.T) {
-		// It's okay if the diff contains unknown hashes.
+	t.Run("unknown objects", func(t *testing.T) {
+		// It's not okay if the diff contains unknown hashes.
 		diff2 := `
 diff --git a/b.txt b/b.txt
 deleted file mode 100644
@@ -564,6 +564,33 @@ index f70f10e..0000000
 		twoDiffs := append(append([]byte{}, diff...), diff2...)
 		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
+		require.Nil(t, base)
+	})
+	t.Run("ignore new files", func(t *testing.T) {
+		diff2 := `
+diff --git a/a.txt b/a.txt
+new file mode 100644
+index 0000000..fa49b07
+--- /dev/null
++++ b/a.txt
+@@ -0,0 +1 @@
++new file
+diff --git a/a.txt b/a.txt
+index fa49b07..01c887f 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-new file
++edit file
+`
+		twoDiffs := append(append([]byte{}, diff...), diff2...)
+		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
+		require.NoError(t, err)
 		require.Len(t, base, 2)
+	})
+	t.Run("empty patch", func(t *testing.T) {
+		base, err := repo.repo.BaseForDiff([]byte{}, &debugtracer.TestTracer{T: t})
+		require.NoError(t, err)
+		require.Nil(t, base)
 	})
 }
