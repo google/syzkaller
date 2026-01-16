@@ -12,3 +12,6 @@ config:
  # We don't need/test these on the USB instance.
  - USB_GADGETFS: n
  - USB_CONFIGFS: n
+
+ # It looks important but is not present iv v6.19-rc5.
+ - PHY_GOOGLE_USB: [v6.20]
