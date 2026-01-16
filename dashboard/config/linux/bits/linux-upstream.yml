@@ -3,4 +3,7 @@
 
 kernel:
  repo: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
- tag: v6.18-rc1
+ tag: v6.19-rc5
+config:
+ # Parameter was changed from y/n to the count of hangs before panic.
+ - BOOTPARAM_HUNG_TASK_PANIC: [1, weak]

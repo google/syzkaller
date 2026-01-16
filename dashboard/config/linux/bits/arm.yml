@@ -28,7 +28,8 @@ config:
  - HIGHMEM
  - HIGHPTE
  - DEBUG_HIGHMEM
- - BOUNCE
+ # Removed by "mm: remove the BOUNCE config option".
+ - BOUNCE: [-v6.19]
  - BIG_LITTLE
  - BL_SWITCHER
  - ARM_BIG_LITTLE_CPUIDLE

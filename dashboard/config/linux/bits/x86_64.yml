@@ -32,7 +32,8 @@ config:
 
  # Should be faster this way.
  - PARAVIRT_SPINLOCKS
- - PARAVIRT_DEBUG
+ # Disabled in "x86/paravirt: Remove PARAVIRT_DEBUG config option"
+ - PARAVIRT_DEBUG: [-v6.19]
 
  - PROCESSOR_SELECT
  - CPU_SUP_HYGON: n

@@ -57,7 +57,8 @@ config:
  - CRYPTO_842
  - CRYPTO_LZ4
  - CRYPTO_LZ4HC
- - CRYPTO_ANSI_CPRNG
+ # removed by "crypto: ansi_cprng - Remove unused ansi_cprng algorithm"
+ - CRYPTO_ANSI_CPRNG: [-v6.19]
  - CRYPTO_DRBG_HASH
  - CRYPTO_DRBG_CTR
  - CRYPTO_USER_API_HASH
@@ -74,7 +75,8 @@ config:
  - CRYPTO_ARIA: [v6.1]
  - CRYPTO_ARIA_AESNI_AVX_X86_64: [v6.1, x86_64, -kmsan]
  - CRYPTO_HCTR2: [v6.1]
- - CRYPTO_POLYVAL_CLMUL_NI: [v6.1, x86_64, -kmsan]
+ # Removed in "lib/crypto: x86/polyval: Migrate optimized code into library"
+ - CRYPTO_POLYVAL_CLMUL_NI: [v6.1, x86_64, -kmsan, -v6.19]
 
  - CRYPTO_TWOFISH_AVX_X86_64: [x86_64, -kmsan]
  - CRYPTO_BLOWFISH_X86_64: [x86_64, -kmsan]
@@ -87,8 +89,9 @@ config:
  - CRYPTO_AES_NI_INTEL: [x86_64, -kmsan]
  - CRYPTO_GHASH_CLMUL_NI_INTEL: [x86_64, -kmsan]
  - CRYPTO_AEGIS128_AESNI_SSE2: [x86_64, -kmsan]
- - CRYPTO_NHPOLY1305_SSE2: [x86_64, -kmsan]
- - CRYPTO_NHPOLY1305_AVX2: [x86_64, -kmsan]
+ # CRYPTO_NHPOLY1305_* removed by "lib/crypto: x86/nh: Migrate optimized code into library"
+ - CRYPTO_NHPOLY1305_SSE2: [x86_64, -kmsan, -v6.19]
+ - CRYPTO_NHPOLY1305_AVX2: [x86_64, -kmsan, -v6.19]
  # These two were removed in "x86/crc32: expose CRC32 functions through lib".
  - CRYPTO_CRC32C_INTEL: [x86_64, -kmsan, -v6.14]
  - CRYPTO_CRC32_PCLMUL: [x86_64, -kmsan, -v6.14]
@@ -144,7 +147,8 @@ config:
  # Removed in "crypto: arm64/sha256 - implement library instead of shash".
  - CRYPTO_SHA2_ARM64_CE: [arm64, -v6.16]
  - CRYPTO_SHA512_ARM64_CE: [arm64, -v6.16]
- - CRYPTO_SHA3_ARM64: [arm64]
+ # Removed in "lib/crypto: arm64/sha3: Migrate optimized code into library"
+ - CRYPTO_SHA3_ARM64: [arm64, -v6.19]
  - CRYPTO_SM3_ARM64_CE: [arm64]
  - CRYPTO_SM4_ARM64_CE: [arm64]
  - CRYPTO_SM4_ARM64_CE_BLK: [arm64, v6.1]
