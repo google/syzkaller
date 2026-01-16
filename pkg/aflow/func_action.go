@@ -22,7 +22,7 @@ type funcAction[Args, Results any] struct {
 }
 
 func (a *funcAction[Args, Results]) execute(ctx *Context) error {
-	args, err := convertFromMap[Args](ctx.state, false)
+	args, err := convertFromMap[Args](ctx.state, false, false)
 	if err != nil {
 		return err
 	}
