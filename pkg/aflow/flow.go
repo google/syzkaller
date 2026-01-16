@@ -57,12 +57,12 @@ func register[Inputs, Outputs any](typ ai.WorkflowType, description string,
 		Type:        typ,
 		Description: description,
 		checkInputs: func(inputs map[string]any) error {
-			_, err := convertFromMap[Inputs](inputs, false)
+			_, err := convertFromMap[Inputs](inputs, false, false)
 			return err
 		},
 		extractOutputs: func(state map[string]any) map[string]any {
 			// Ensure that we actually have all outputs.
-			tmp, err := convertFromMap[Outputs](state, false)
+			tmp, err := convertFromMap[Outputs](state, false, false)
 			if err != nil {
 				panic(err)
 			}
