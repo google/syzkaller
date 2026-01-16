@@ -95,6 +95,11 @@ func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheS
 }
 
 func onEvent(span *trajectory.Span) error {
+	if span.Error != "" {
+		// We do not want to print error twice (once here and once in main).
+		// So we ignore those events.
+		return nil
+	}
 	log.Printf("%v", span)
 	return nil
 }
