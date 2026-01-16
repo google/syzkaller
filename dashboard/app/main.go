@@ -2483,7 +2483,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		return nil, nil
 	}
 
-	const maxLines = 100
+	const maxLines = 150
 	projID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 
 	adminClient, err := logadmin.NewClient(c, projID)
@@ -2501,8 +2501,16 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 				AND (NOT resource.type="k8s_container")
 				-- Filter our instances.delete errors as false positives. Delete event happens every second.
 				AND (NOT protoPayload.methodName:v1.compute.instances.delete)
+				-- Frequent known problem with zone pools being exhausted.
+				AND (NOT protoPayload.status.details:"ZONE_RESOURCE_POOL_EXHAUSTED")
+				-- Let somebody else monitor GCE bugs.
+				AND (NOT (protoPayload.methodName:"v1.compute.instances.insert"
+					AND protoPayload.status.message:"INTERNAL_ERROR"))
+				AND (NOT (protoPayload.methodName:"google.ssh-serialport.v1.connect"
+					AND protoPayload.status.message:"INTERNAL_ERROR"))
 				-- Let somebody else monitor datastore bugs (also see #6069).
 				AND (NOT textPayload:"datastore_v3: INTERNAL_ERROR")
+				AND (NOT jsonPayload.message:"datastore_v3: INTERNAL_ERROR")
 				-- GetPackageUpdates is something related to package updates on GCE machines.
 				-- They are happening in hundreds every day.
 				AND (NOT jsonPayload.message:"packages.GetPackageUpdates()")
