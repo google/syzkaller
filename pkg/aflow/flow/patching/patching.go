@@ -29,6 +29,7 @@ type Inputs struct {
 
 	// Use this fixed based kernel commit (for testing/local running).
 	FixedBaseCommit string
+	FixedRepository string
 }
 
 type Outputs struct {
