@@ -10,7 +10,8 @@ config:
  - CMDLINE: [append, "kmsan.panic=1"]
 
  # Avoid reboot loop in instrumented kernel:
- - PREEMPT_NONE
+ # Since v6.19 PREEMPT_NONE depends on ARCH_NO_PREEMPT. And KMSAN just works w/o PREEMPT_NONE.
+ - PREEMPT_NONE: [-v6.19]
  - PREEMPT: [n, weak]
  - HYPERV: [n, weak]
 
@@ -30,7 +31,7 @@ config:
  - UNWINDER_FRAME_POINTER
 
  - PARAVIRT_SPINLOCKS: [n, weak]
- - PARAVIRT_DEBUG: [n, weak]
+ - PARAVIRT_DEBUG: [n, weak, -v6.19]
  - CPU_IDLE_GOV_HALTPOLL: [n, weak]
  - BPF_JIT: [n, weak]
  - MTD_BLOCK: [n, weak]
@@ -64,8 +65,9 @@ config:
  - UBIFS_FS_ZSTD: [n, weak]
  - UBIFS_FS_SECURITY: [n, weak]
  - CRYPTO_AEGIS128_AESNI_SSE2: [n, weak]
- - CRYPTO_NHPOLY1305_SSE2: [n, weak]
- - CRYPTO_NHPOLY1305_AVX2: [n, weak]
+ # CRYPTO_NHPOLY1305_* removed by "lib/crypto: x86/nh: Migrate optimized code into library"
+ - CRYPTO_NHPOLY1305_SSE2: [n, weak, -v6.19]
+ - CRYPTO_NHPOLY1305_AVX2: [n, weak, -v6.19]
  - CRYPTO_CRC32C_INTEL: [n, weak]
  - CRYPTO_CRC32_PCLMUL: [n, weak]
  - CRYPTO_CRCT10DIF_PCLMUL: [n, weak]

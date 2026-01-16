@@ -36,7 +36,6 @@ config:
  - DEBUG_OBJECTS_TIMERS
  - DEBUG_OBJECTS_WORK
  - DEBUG_OBJECTS_SELFTEST: n
- - WPROBE_EVENTS: [linux-next, -arm64]
  # Some base configs may not enable sound at all.
  - SND_DEBUG: [-riscv, -s390, optional]
  - SND_PCM_XRUN_DEBUG: [-riscv, -s390, optional]
