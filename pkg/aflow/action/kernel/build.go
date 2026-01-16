@@ -46,9 +46,9 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 		makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
 			"ccache", dir, runtime.NumCPU())
 		compileCommnads := "compile_commands.json"
-		makeArgs = append(makeArgs, path.Base(image), compileCommnads)
-		if _, err := osutil.RunCmd(time.Hour, args.KernelSrc, "make", makeArgs...); err != nil {
-			return aflow.FlowError(err)
+		makeArgs = append(makeArgs, "-s", path.Base(image), compileCommnads)
+		if out, err := osutil.RunCmd(time.Hour, args.KernelSrc, "make", makeArgs...); err != nil {
+			return aflow.FlowError(fmt.Errorf("make failed: %w\n%s", err, out))
 		}
 		// Remove main intermediate build files, we don't need them anymore
 		// and they take lots of space. But keep generated source files.
