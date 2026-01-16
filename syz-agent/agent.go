@@ -47,6 +47,8 @@ type Config struct {
 	CacheSize uint64 `json:"cache_size"`
 	// Use fixed base commit for patching jobs (for testing).
 	FixedBaseCommit string `json:"fixed_base_commit"`
+	// Use a different repo than torvalds's mainline.
+	FixedRepository string `json:"repo"`
 	// Use this LLM model (for testing, if empty use workflow-default model).
 	Model string `json:"model"`
 }
@@ -231,6 +233,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 		"Type":              s.cfg.Type,
 		"VM":                s.cfg.VM,
 		"FixedBaseCommit":   s.cfg.FixedBaseCommit,
+		"FixedRepository":   s.cfg.FixedRepository,
 	}
 	maps.Insert(inputs, maps.All(req.Args))
 	onEvent := func(span *trajectory.Span) error {

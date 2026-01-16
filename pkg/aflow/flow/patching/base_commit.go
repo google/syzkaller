@@ -14,6 +14,7 @@ var baseCommitPicker = aflow.NewFuncAction("base-commit-picker", pickBaseCommit)
 type baseCommitArgs struct {
 	// Can be used to override the selected base commit (for manual testing).
 	FixedBaseCommit string
+	FixedRepository string
 }
 
 type baseCommitResult struct {
@@ -40,6 +41,9 @@ func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, 
 	res := baseCommitResult{
 		KernelRepo:   baseRepo,
 		KernelCommit: args.FixedBaseCommit,
+	}
+	if args.FixedRepository != "" {
+		res.KernelRepo = args.FixedRepository
 	}
 	if args.FixedBaseCommit != "" {
 		return res, nil
