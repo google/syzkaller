@@ -5,6 +5,8 @@ package aflow
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow/ai"
 )
@@ -25,6 +27,7 @@ type Flow struct {
 	Name string // Empty for the main workflow for the workflow type.
 	Root Action
 
+	Models []string // LLM models used in this workflow.
 	*FlowType
 }
 
@@ -87,6 +90,7 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 	ctx := &verifyContext{
 		actions: make(map[string]bool),
 		state:   make(map[string]*varState),
+		models:  make(map[string]bool),
 	}
 	provideOutputs[Inputs](ctx, "flow inputs")
 	flow.Root.verify(ctx)
@@ -94,6 +98,8 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 	if err := ctx.finalize(); err != nil {
 		return fmt.Errorf("flow %v: %w", flow.Name, err)
 	}
+	flow.Models = slices.Collect(maps.Keys(ctx.models))
+	slices.Sort(flow.Models)
 	all[flow.Name] = flow
 	return nil
 }

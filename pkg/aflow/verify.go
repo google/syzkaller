@@ -13,6 +13,7 @@ import (
 type verifyContext struct {
 	actions map[string]bool
 	state   map[string]*varState
+	models  map[string]bool
 	err     error
 }
 

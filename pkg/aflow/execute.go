@@ -88,6 +88,52 @@ type flowError struct {
 	error
 }
 
+func IsModelQuotaError(err error) string {
+	var quotaErr *modelQuotaError
+	if errors.As(err, &quotaErr) {
+		return quotaErr.model
+	}
+	return ""
+}
+
+type modelQuotaError struct {
+	model string
+}
+
+func (err *modelQuotaError) Error() string {
+	return fmt.Sprintf("model %q is over daily quota", err.model)
+}
+
+// QuotaResetTime returns the time when RPD quota will be reset
+// for a quota overflow happened at time t.
+func QuotaResetTime(t time.Time) time.Time {
+	// Requests per day (RPD) quotas reset at midnight Pacific time:
+	// https://ai.google.dev/gemini-api/docs/rate-limits
+	// To account for potential delays in the reset logic, we add small delta (5 mins)
+	// to that to avoid situation when we reset it at exactly midnight locally,
+	// but it's not reset on the server yet.
+	// The assumption is also that any rate limiting errors in the very beginning
+	// of the day (within first seconds/minutes), actually belong to the previous day
+	// (we couldn't overflow the quota within that period).
+	t = t.In(pacificLoc)
+	resetTime := time.Date(t.Year(), t.Month(), t.Day(), 0, 5, 0, 0, pacificLoc)
+	if t.After(resetTime) {
+		resetTime = resetTime.Add(24 * time.Hour)
+		if t.After(resetTime) {
+			panic(fmt.Sprintf("%v > %v", t, resetTime))
+		}
+	}
+	return resetTime.UTC()
+}
+
+var pacificLoc = func() *time.Location {
+	loc, err := time.LoadLocation("US/Pacific")
+	if err != nil {
+		panic(err)
+	}
+	return loc
+}()
+
 type (
 	onEvent        func(*trajectory.Span) error
 	contextKeyType int
