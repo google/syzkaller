@@ -197,7 +197,7 @@ Subsystem	sftp	/usr/libexec/sftp-server
 EOF
 
 # Generate sshd host keys.
-ssh-keygen -A -f $1
+env -u LD_LIBRARY_PATH ssh-keygen -A -f $1
 mkdir -p $1/var/db/dhcpcd
 
 EOFEOF
