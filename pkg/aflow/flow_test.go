@@ -918,3 +918,25 @@ func TestNoInputs(t *testing.T) {
 	require.Equal(t, err.Error(), "flow inputs are missing:"+
 		" field InBar is not present when converting map to aflow.flowInputs")
 }
+
+func TestQuotaResetTime(t *testing.T) {
+	type Test struct {
+		when  time.Time
+		reset time.Time
+	}
+	testLoc := time.FixedZone("+4h", 4*60*60) // seconds east of UTC
+	tests := []Test{
+		{time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 0, 0, 0, 0, testLoc), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 8, 0, 0, 0, testLoc), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 9, 0, 0, 0, time.UTC), time.Date(2000, 1, 2, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 9, 0, 0, 0, testLoc), time.Date(2000, 1, 1, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 13, 0, 0, 0, time.UTC), time.Date(2000, 1, 2, 8, 5, 0, 0, time.UTC)},
+		{time.Date(2000, 1, 1, 13, 0, 0, 0, testLoc), time.Date(2000, 1, 2, 8, 5, 0, 0, time.UTC)},
+	}
+	for _, test := range tests {
+		got := QuotaResetTime(test.when)
+		assert.Equal(t, test.reset, got, "when: %v", test.when)
+	}
+}
