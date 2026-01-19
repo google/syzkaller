@@ -14,6 +14,9 @@ import (
 )
 
 var Tools = []aflow.Tool{
+	aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
+Tool provides list of source files and subdirectories in the given directory in the source tree.
+`),
 	aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
@@ -52,6 +55,17 @@ type prepareArgs struct {
 
 type prepareResult struct {
 	Index index
+}
+
+// nolint: lll
+type dirIndexArgs struct {
+	Dir string `jsonschema:"Relative directory in the source tree. Use an empty string for the root of the tree, or paths like 'net/ipv4/' for subdirs."`
+}
+
+type dirIndexResult struct {
+	Missing bool     `jsonschema:"Set to true if the requested directory does not exist."`
+	Subdirs []string `jsonschema:"List of direct subdirectories."`
+	Files   []string `jsonschema:"List of source files."`
 }
 
 type fileIndexArgs struct {
@@ -128,6 +142,16 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 	srcDirs := []string{args.KernelSrc, args.KernelObj}
 	csIndex, err := codesearch.NewIndex(filepath.Join(dir, "index.json"), srcDirs)
 	return prepareResult{index{csIndex}}, err
+}
+
+func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIndexResult, error) {
+	ok, subdirs, files, err := state.Index.DirIndex(args.Dir)
+	res := dirIndexResult{
+		Missing: !ok,
+		Subdirs: subdirs,
+		Files:   files,
+	}
+	return res, err
 }
 
 func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fileIndexResult, error) {
