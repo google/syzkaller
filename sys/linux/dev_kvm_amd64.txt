@@ -160,6 +160,13 @@ syzos_api_nested_amd_inject_event {
 	flags		int64[0:3]
 }
 
+syzos_api_nested_amd_set_intercept {
+	vm_id		syzos_api_vm_id
+	offset		int64
+	bit_mask	int64
+	action		int64[0:1]
+}
+
 # IDs here must match those in executor/common_kvm_amd64_syzos.h.
 syzos_api_call$x86 [
 	uexit				syzos_api$x86[0, intptr]
@@ -183,6 +190,7 @@ syzos_api_call$x86 [
 	nested_amd_stgi			syzos_api$x86[382, void]
 	nested_amd_clgi			syzos_api$x86[383, void]
 	nested_amd_inject_event		syzos_api$x86[384, syzos_api_nested_amd_inject_event]
+	nested_amd_set_intercept	syzos_api$x86[385, syzos_api_nested_amd_set_intercept]
 ] [varlen]
 
 kvm_text_x86 [
