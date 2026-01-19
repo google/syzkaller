@@ -1,0 +1,75 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.beqz
+long_name: Branch if Equal Zero
+description: |
+  C.BEQZ performs conditional control transfers. The offset is sign-extended and added to the pc to form the branch target address. It can therefore target a &pm;256 B range. C.BEQZ takes the branch if the value in register xs1' is zero.
+  It expands to `beq` `xs1, x0, offset`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xs1, imm
+encoding:
+  match: 110-----------01
+  variables:
+    - name: imm
+      location: 12|6-5|2|11-10|4-3
+      left_shift: 1
+      sign_extend: true
+    - name: xs1
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  if (X[creg2reg(xs1)] == 0) {
+    jump($pc + $signed(imm));
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(0);
+    let taken : bool = match op {
+      RISCV_BEQ  => rs1_val == rs2_val,
+      RISCV_BNE  => rs1_val != rs2_val,
+      RISCV_BLT  => rs1_val <_s rs2_val,
+      RISCV_BGE  => rs1_val >=_s rs2_val,
+      RISCV_BLTU => rs1_val <_u rs2_val,
+      RISCV_BGEU => rs1_val >=_u rs2_val
+    };
+    let t : xlenbits = PC + sign_extend(imm);
+    if taken then {
+      /* Extensions get the first checks on the prospective target address. */
+      match ext_control_check_pc(t) {
+        Ext_ControlAddr_Error(e) => {
+          ext_handle_control_check_error(e);
+          RETIRE_FAIL
+        },
+        Ext_ControlAddr_OK(target) => {
+          if bit_to_bool(target[1]) & not(extension("C")) then {
+            handle_mem_exception(target, E_Fetch_Addr_Align());
+            RETIRE_FAIL;
+          } else {
+            set_next_pc(target);
+            RETIRE_SUCCESS
+          }
+        }
+      }
+    } else RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

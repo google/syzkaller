@@ -1,0 +1,65 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fence.i
+long_name: Instruction fence
+description: |
+  The FENCE.I instruction is used to synchronize the instruction and data
+  streams. RISC-V does not guarantee that stores to instruction memory
+  will be made visible to instruction fetches on a RISC-V hart until that
+  hart executes a FENCE.I instruction. A FENCE.I instruction ensures that
+  a subsequent instruction fetch on a RISC-V hart will see any previous
+  data stores already visible to the same RISC-V hart. FENCE.I does _not_
+  ensure that other RISC-V harts' instruction fetches will observe the
+  local hart's stores in a multiprocessor system. To make a store to
+  instruction memory visible to all RISC-V harts, the writing hart also
+  has to execute a data FENCE before requesting that all remote RISC-V
+  harts execute a FENCE.I.
+
+  The unused fields in the FENCE.I instruction, _imm[11:0]_, _xs1_, and
+  _xd_, are reserved for finer-grain fences in future extensions. For
+  forward compatibility, base implementations shall ignore these fields,
+  and standard software shall zero these fields.
+  (((FENCE.I, finer-grained)))
+  (((FENCE.I, forward compatibility)))
+
+  [NOTE]
+  ====
+  Because FENCE.I only orders stores with a hart's own instruction
+  fetches, application code should only rely upon FENCE.I if the
+  application thread will not be migrated to a different hart. The EEI can
+  provide mechanisms for efficient multiprocessor instruction-stream
+  synchronization.
+  ====
+definedBy:
+  extension:
+    name: Zifencei
+assembly: ""
+encoding:
+  match: "-----------------001-----0001111"
+  variables:
+    - name: imm
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  ifence();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  { /* __barrier(Barrier_RISCV_i); */ RETIRE_SUCCESS }
+
+# SPDX-SnippetEnd

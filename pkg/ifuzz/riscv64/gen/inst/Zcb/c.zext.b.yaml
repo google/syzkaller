@@ -1,0 +1,60 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.zext.b
+long_name: Zero-extend byte, 16-bit encoding
+description: |
+  Takes a single source/destination operand.
+  This instruction zero-extends the least-significant byte of the source to XLEN by inserting
+  0's into all of the bits more significant than 7.
+
+definedBy:
+  extension:
+    allOf:
+      - name: Zcb
+      - name: Zbb
+assembly: xd
+encoding:
+  match: 100111---1100001
+  variables:
+    - name: xd
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |2
+
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[creg2reg(xd)] = X[creg2reg(xd)][7:0];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rsdc);
+    let result : xlenbits = match op {
+      RISCV_SEXTB => sign_extend(rs1_val[7..0]),
+      RISCV_SEXTH => sign_extend(rs1_val[15..0]),
+      RISCV_ZEXTB => zero_extend(rs1_val[7..0]),
+      RISCV_ZEXTH => zero_extend(rs1_val[15..0]),
+      RISCV_ZEXTW => zero_extend(rs1_val[31..0])
+    };
+    X(rsdc) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

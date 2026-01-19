@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.addi4spn
+long_name: Add a zero-extended non-zero immediate, scaled by 4, to the stack pointer
+description: |
+  Adds a zero-extended non-zero immediate, scaled by 4, to the stack pointer, x2, and writes the result to rd'.
+  This instruction is used to generate pointers to stack-allocated variables.
+  It expands to `addi rd', x2, nzuimm[9:2]`.
+  C.ADDI4SPN is only valid when nzuimm &ne; 0; the code points with nzuimm=0 are reserved.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, sp, imm
+encoding:
+  match: 000-----------00
+  variables:
+    - name: imm
+      location: 10-7|12-11|5|6
+      left_shift: 2
+      not: 0
+    - name: xd
+      location: 4-2
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[creg2reg(xd)] = X[2] + imm;

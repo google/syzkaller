@@ -1,0 +1,50 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vfredosum.vs
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, vs1, vm
+encoding:
+  match: 000011-----------001-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: vs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let num_elem_vs = get_num_elem(LMUL_pow, SEW);
+
+    if funct6 == FVV_VFWREDOSUM | funct6 == FVV_VFWREDUSUM then
+      process_rfvv_widen(funct6, vm, vs2, vs1, vd, num_elem_vs, SEW, LMUL_pow)
+    else
+      process_rfvv_single(funct6, vm, vs2, vs1, vd, num_elem_vs, SEW, LMUL_pow)
+  }
+
+# SPDX-SnippetEnd

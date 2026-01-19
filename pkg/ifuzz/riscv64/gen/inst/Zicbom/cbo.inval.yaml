@@ -1,0 +1,116 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cbo.inval
+long_name: Cache Block Invalidate
+description: |
+  Either invalidates or flushes (clean + invalidate) a cache block, depending on the current mode and value of
+  `menvcfg.CBIE`, `senvcfg.CBIE`, and/or `henvcfg.CBIE`.
+
+  The instruction is an invalidate (without a clean) when:
+
+    * In M-mode
+    * In (H)S-mode and `menvcfg.CBIE` == 11
+    * In U-mode and `menvcfg.CBIE` == 11 and `senvcfg.CBIE` == 11
+    * In VS-mode and `menvcfg.CBIE` == 11 and `henvcfg.CBIE` == 11
+    * In VU-mode and `menvcfg.CBIE` == 11 and `henvcfg.CBIE` == 11 and `senvcfg.CBIE` == 11
+
+  Otherwise, if the instruction does not trap (see Access section), the operation is a flush.
+  The table below summarizes the options.
+
+  [%autowidth,cols="1,1,1,1,1,1,1,1",separator="!"]
+  !===
+  .2+h![.rotate]#`menvcfg.CBIE`# .2+h! [.rotate]#`senvcfg.CBIE`# .2+h! [.rotate]#`henvcfg.CBIE`#
+  5+^.>h! `cbe.inval` Operation
+  .^h! M-mode .^h! S-mode .^h! U-mode .^h! VS-mode .^h! VU-mode
+
+  ! 00 ! - ! - ! Invalidate ! `Illegal Instruction` ! `Illegal Instruction` ! `Illegal Instruction` ! `Illegal Instruction`
+  ! 01 ! 00 ! 00 ! Invalidate ! Flush  ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 01 ! 00 ! 01 ! Invalidate ! Flush  ! `Illegal Instruction` ! Flush ! `Virtual Instruction`
+  ! 01 ! 00 ! 11 ! Invalidate ! Flush  ! `Illegal Instruction` ! Flush ! `Virtual Instruction`
+  ! 01 ! 01 ! 00 ! Invalidate ! Flush  ! Flush ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 01 ! 01 ! 01 ! Invalidate ! Flush  ! Flush ! Flush ! Flush
+  ! 01 ! 01 ! 11 ! Invalidate ! Flush  ! Flush ! Flush ! Flush
+  ! 01 ! 11 ! 00 ! Invalidate ! Flush  ! Flush ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 01 ! 11 ! 01 ! Invalidate ! Flush  ! Flush ! Flush ! Flush
+  ! 01 ! 11 ! 11 ! Invalidate ! Flush  ! Flush ! Flush ! Flush
+  ! 11 ! 00 ! 00  ! Invalidate ! Invalidate  ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 11 ! 00 ! 01  ! Invalidate ! Invalidate  ! `Illegal Instruction` ! Flush ! `Virtual Instruction`
+  ! 11 ! 00 ! 11  ! Invalidate ! Invalidate  ! `Illegal Instruction` ! Invalidate ! `Virtual Instruction`
+  ! 11 ! 01 ! 00 ! Invalidate ! Invalidate  ! Flush ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 11 ! 01 ! 01 ! Invalidate ! Invalidate  ! Flush ! Flush ! Flush
+  ! 11 ! 01 ! 11 ! Invalidate ! Invalidate  ! Flush ! Invalidate ! Flush
+  ! 11 ! 11 ! 00 ! Invalidate ! Invalidate  ! Invalidate ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 11 ! 11 ! 01 ! Invalidate ! Invalidate  ! Invalidate ! Flush ! Flush
+  ! 11 ! 11 ! 11 ! Invalidate ! Invalidate  ! Invalidate ! Invalidate ! Invalidate
+  !===
+
+  `cbo.inval` is ordered by `FENCE` instructions but not `FENCE.I` or `SFENCE.VMA`.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length > [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Both PMP and PMA access control must be the same for all bytes in the block; otherwise, `cbo.zero` has UNSPECIFIED behavior.
+  <%- end -%>
+
+  Invalidate operations are treated as stores for page and access permissions. If permission checks fail,
+  one of the following exceptions will occur:
+
+    <%- if ext?(:H) -%>
+    * `Store/AMO Guest-Page Fault` if virtual memory translation fails during G-stage translation.
+    <%- end -%>
+    * `Store/AMO Page Fault` if virtual memory translation fails <% if ext?(:H) %>when V=0 or during VS-stage translation<% end %>
+    * `Store/AMO Access Fault` if a PMP or PMA access check fails.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length <= [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Because cache blocks are naturally aligned and always fit in a single PMP or PMA regions, the PMP
+  and PMA access checks only need to check a single address in the line.
+  <%- end -%>
+
+  CBO operations never raise a misaligned address fault.
+definedBy:
+  extension:
+    name: Zicbom
+assembly: (xs1)
+encoding:
+  match: 000000000000-----010000000001111
+  variables:
+    - name: xs1
+      location: 19-15
+access:
+  m: always
+  s: sometimes
+  u: sometimes
+  vs: sometimes
+  vu: sometimes
+access_detail: |
+  Access is controlled through `menvcfg.CBIE`, `senvcfg.CBIE`, and `henvcfg.CBIE`.
+  When access is denied, the instruction either raises an `Illegal Instruction`
+  or `Virtual Instruction` exception according to the table below.
+
+  [NOTE]
+  `xenvcfg.CBIE` == 10 is reserved, and cannot be written by software. As such, that pattern is
+  excluded from the table below.
+
+  [%autowidth,cols="1,1,1,1,1,1,1",separator="!"]
+  !===
+  .2+h![.rotate]#`menvcfg.CBIE`# .2+h! [.rotate]#`senvcfg.CBIE`# .2+h! [.rotate]#`henvcfg.CBIE`#
+  4+^.>h! `cbo.inval` Instruction Behavior
+  .^h! S-mode .^h! U-mode .^h! VS-mode .^h! VU-mode
+
+  ! 00 ! - ! - ! `Illegal Instruction` ! `Illegal Instruction` ! `Illegal Instruction` ! `Illegal Instruction`
+  ! 01/11 ! 00 ! 00 ! executes  ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 01/11 ! 01/11 ! 00 ! executes ! executes ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 01/11 ! 00 ! 01/11 ! executes ! `Illegal Instruction` ! executes ! `Virtual Instruction`
+  ! 01/11 ! 01/11 ! 01/11 ! executes ! executes ! executes ! executes
+  !===
+
+# operation(): |
+#   let cache_block_address = X[xs1] & ~(CACHE_BLOCK_SIZE-1);
+
+#   // zeroing operation can occur in any number of independent stores
+#   for (i=0; i<CACHE_BLOCK_SIZE; i++) {
+#     MEM[cache_block_address + i, 8] = 0;
+#   }

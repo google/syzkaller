@@ -1,0 +1,40 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmadd.q
+long_name: Floating-Point Multiply-Add Quad-Precision
+description: |
+  The `fmadd.q` instruction performs a floating-point multiply-add operation on the values in registers `fs1`, `fs2`, and `fs3`.
+  It computes the result as `(fs1 * fs2) + fs3` and writes the result to the destination register `fd`.
+
+  The fused multiply-add instructions must set the invalid operation exception flag when the
+  multiplicands are latexmath:[$\infty$] and zero, even when the addend is a quiet _NaN_.
+
+definedBy:
+  extension:
+    name: Q
+assembly: fd, fs1, fs2, fs3, rm
+encoding:
+  match: "-----11------------------1000011"
+  variables:
+    - name: fs3
+      location: 31-27
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

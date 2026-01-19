@@ -1,0 +1,84 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: remw
+long_name: Signed 32-bit remainder
+description: |
+  Calculate the remainder of signed division of the 32-bit values xs1 by xs2,
+  and store the sign-extended result in xd.
+
+  If the value in register xs2 is zero, write the sign-extended 32-bit value in xs1 into xd;
+
+  If the result of the division overflows, write zero into xd;
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: M
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------110-----0111011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  Bits<32> src1 = X[xs1][31:0];
+  Bits<32> src2 = X[xs2][31:0];
+
+  if (src2 == 0) {
+    # division by zero. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be the dividend, sign extended to into the 64-bit register
+    Bits<1> sign_bit = src1[31];
+    X[xd] = {{32{sign_bit}}, src1};
+
+  } else if ((src1 == 32'h80000000) && (src2 == 32'hFFFFFFFF)) {
+    # signed overflow. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be zero
+    X[xd] = 0;
+
+  } else {
+    # no special case
+    Bits<32> result = $signed(src1) % $signed(src2);
+    Bits<1> sign_bit = result[31];
+
+    X[xd] = {{32{sign_bit}}, result};
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") then {
+      let rs1_val = X(rs1)[31..0];
+      let rs2_val = X(rs2)[31..0];
+      let rs1_int : int = if s then signed(rs1_val) else unsigned(rs1_val);
+      let rs2_int : int = if s then signed(rs2_val) else unsigned(rs2_val);
+      let r : int = if rs2_int == 0 then rs1_int else rem_round_zero(rs1_int, rs2_int);
+      /* signed overflow case returns zero naturally as required due to -1 divisor */
+      X(rd) = sign_extend(to_bits(32, r));
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

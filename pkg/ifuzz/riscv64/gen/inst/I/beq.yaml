@@ -1,0 +1,82 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: beq
+long_name: Branch if equal
+description: |
+  Branch to PC + imm if
+  the value in register xs1 is equal to the value in register xs2.
+
+  Raise a `MisalignedAddress` exception if PC + imm is misaligned.
+definedBy:
+  extension:
+    name: I
+assembly: xs1, xs2, imm
+encoding:
+  match: "-----------------000-----1100011"
+  variables:
+    - name: imm
+      location: 31|7|30-25|11-8
+      left_shift: 1
+      sign_extend: true
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: xs2 == 0
+    to: beqz xs1,imm
+operation(): |
+  XReg lhs = X[xs1];
+  XReg rhs = X[xs2];
+
+  if (lhs == rhs) {
+    jump_halfword($pc + $signed(imm));
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let xs1_val = X(xs1);
+    let xs2_val = X(xs2);
+    let taken : bool = match op {
+      RISCV_BEQ  => xs1_val == xs2_val,
+      RISCV_BNE  => xs1_val != xs2_val,
+      RISCV_BLT  => xs1_val <_s xs2_val,
+      RISCV_BGE  => xs1_val >=_s xs2_val,
+      RISCV_BLTU => xs1_val <_u xs2_val,
+      RISCV_BGEU => xs1_val >=_u xs2_val
+    };
+    let t : xlenbits = PC + sign_extend(imm);
+    if taken then {
+      /* Extensions get the first checks on the prospective target address. */
+      match ext_control_check_pc(t) {
+        Ext_ControlAddr_Error(e) => {
+          ext_handle_control_check_error(e);
+          RETIRE_FAIL
+        },
+        Ext_ControlAddr_OK(target) => {
+          if bit_to_bool(target[1]) & not(extension("C")) then {
+            handle_mem_exception(target, E_Fetch_Addr_Align());
+            RETIRE_FAIL;
+          } else {
+            set_next_pc(target);
+            RETIRE_SUCCESS
+          }
+        }
+      }
+    } else RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

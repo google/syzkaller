@@ -1,0 +1,59 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmin.s
+long_name: Floating-Point Minimum-Number Single-Precision
+description: |
+  The `fmin.s` instruction writes smaller of `fs1` and `fs2` to `fd`. For the purposes of this instruction,
+  the value `-0.0` is considered to be less than the value `+0.0`. If both inputs are NaNs, the result is
+  the canonical NaN. If only one operand is a NaN, the result is the non-NaN operand. Signaling NaN inputs
+  set the invalid operation exception flag, even when the result is not NaN.
+
+  [NOTE]
+  ====
+  Note that in version 2.2 of the F extension, the `fmin.s` and `fmax.s` instructions were amended to implement
+  the proposed _IEEE 754-201x_ `minimumNumber` and `maximumNumber` operations, rather than the _IEEE 754-2008_
+  _minNum_ and _maxNum_ operations. These operations differ in their handling of signaling NaNs.
+  ====
+definedBy:
+  extension:
+    name: F
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010100----------000-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_S = F_or_X_S(rs1);
+    let rs2_val_S = F_or_X_S(rs2);
+
+    let (fflags, rd_val) : (bits_fflags, bool) =
+        riscv_f32Le (rs1_val_S, rs2_val_S);
+
+    accrue_fflags(fflags);
+    X(rd) = zero_extend(bool_to_bits(rd_val));
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

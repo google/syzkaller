@@ -1,0 +1,91 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: hinval.gvma
+long_name: Invalidate cached address translations
+definedBy:
+  extension:
+    allOf:
+      - name: Svinval
+      - name: H
+encoding:
+  match: 0110011----------000000001110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+description: |
+  `hinval.gvma` has the same semantics as `sinval.vma` except that it combines with
+  `sfence.w.inval` and `sfence.inval.ir` to replace `hfence.gvma` and uses VMID instead of ASID.
+access:
+  s: sometimes
+  u: never
+  vs: never
+  vu: never
+assembly: xs1, xs2
+operation(): |
+  XReg gpa = X[xs1];
+  Bits<VMID_WIDTH> vmid = X[xs2][VMID_WIDTH-1:0];
+
+  if (mode() == PrivilegeMode::U) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (CSR[mstatus].TVM == 1 && mode() == PrivilegeMode::S) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if ((mode() == PrivilegeMode::VS) || (mode() == PrivilegeMode::VU)) {
+    raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+  }
+
+  # note: this will default to "all"
+  VmaOrderType vma_type;
+  vma_type.gstage = true;
+
+  if ((xs1 == 0) && (xs2 == 0)) {
+    # invalidate all G-stage translations, from all addresses and all VMIDs
+    # includes global mappings
+    vma_type.global = true;
+
+    invalidate_translations(vma_type);
+
+  } else if ((xs1 == 0) && (xs2 != 0)) {
+    # invalidates all G-stage translations from VMID 'vmid'
+    # does not affect global mappings
+    vma_type.single_vmid = true;
+    vma_type.vmid = vmid;
+
+    invalidate_translations(vma_type);
+
+  } else if ((xs1 != 0) && (xs2 == 0)) {
+    # invalidate all G-stage translations from leaf page tables containing 'vaddr'
+    # does not affect global mappings
+    if (canonical_gpaddr?(gpa)) {
+      vma_type.single_gpaddr = true;
+      vma_type.gpaddr = gpa;
+
+      invalidate_translations(vma_type);
+
+    }
+    # else, silently do nothing
+
+  } else {
+    # invalidate all G-stage translations from leaf page tables for virtual machine 'vmid' containing 'vaddr'
+    # does not affect global mappings
+    if (canonical_gpaddr?(gpa)) {
+      vma_type.single_vmid = true;
+      vma_type.vmid = vmid;
+      vma_type.single_gpaddr = true;
+      vma_type.gpaddr = gpa;
+
+      invalidate_translations(vma_type);
+
+    }
+    # else, silently do nothing
+  }

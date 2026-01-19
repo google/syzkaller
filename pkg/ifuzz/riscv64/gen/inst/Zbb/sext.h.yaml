@@ -1,0 +1,55 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sext.h
+long_name: Sign-extend halfword
+description: |
+  Sign-extends the least-significant halfword in the source to XLEN by copying the
+  most-significant bit in the halfword (i.e., bit 15) to all of the more-significant bits.
+definedBy:
+  extension:
+    name: Zbb
+assembly: xd, xs1
+encoding:
+  match: 011000000101-----001-----0010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (xlen() == 32) {
+    X[xd] = {{16{X[xs1][15]}}, X[xs1][15:0]};
+  } else if (xlen() == 64) {
+    X[xd] = {{48{X[xs1][15]}}, X[xs1][15:0]};
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let result : xlenbits = match op {
+      RISCV_SEXTB => sign_extend(rs1_val[7..0]),
+      RISCV_SEXTH => sign_extend(rs1_val[15..0]),
+      RISCV_ZEXTH => zero_extend(rs1_val[15..0])
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

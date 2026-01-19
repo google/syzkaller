@@ -1,0 +1,39 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.jal
+long_name: Jump and Link
+description: |
+  C.JAL is an RV32C-only instruction that performs the same operation as C.J, but additionally writes the address of the instruction following the jump (pc+2) to the link register, x1.
+  It expands to `jal` `x1, offset`.
+definedBy:
+  allOf:
+    - xlen: 32
+    - extension:
+        name: Zca
+assembly: imm
+encoding:
+  match: 001-----------01
+  variables:
+    - name: imm
+      location: 12|8|10-9|6|7|2|11|5-3
+      left_shift: 1
+      sign_extend: true
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg return_addr = $pc + 2;
+
+  X[1] = return_addr;
+  jump_halfword($pc + $signed(imm));

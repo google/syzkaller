@@ -1,0 +1,78 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vfmerge.vfm
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, fs1, v0
+encoding:
+  match: 0101110----------101-----1010111
+  variables:
+    - name: vs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rm_3b         = fcsr.FRM();
+    let start_element = get_start_element();
+    let end_element   = get_end_element();
+    let SEW           = get_sew();
+    let LMUL_pow      = get_lmul_pow();
+    let num_elem      = get_num_elem(LMUL_pow, SEW); /* max(VLMAX,VLEN/SEW)) */
+    let real_num_elem = if LMUL_pow >= 0 then num_elem else num_elem / (0 - LMUL_pow); /* VLMAX */
+
+    if illegal_fp_vd_masked(vd, SEW, rm_3b) then { handle_illegal(); return RETIRE_FAIL };
+    assert(SEW != 8);
+
+    let 'n = num_elem;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, 0b0, 0b00000);
+    let rs1_val : bits('m)                  = get_scalar_fp(rs1, 'm);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs2);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
+    result      : vector('n, dec, bits('m)) = undefined;
+
+    let tail_ag : agtype = get_vtype_vta();
+    foreach (i from 0 to (num_elem - 1)) {
+      if i < start_element then {
+        result[i] = vd_val[i]
+      } else if i > end_element | i >= real_num_elem then {
+        result[i] = match tail_ag {
+          UNDISTURBED => vd_val[i],
+          AGNOSTIC    => vd_val[i] /* TODO: configuration support */
+        }
+      } else {
+        /* the merge operates on all body elements */
+        result[i] = if vm_val[i] then rs1_val else vs2_val[i]
+      }
+    };
+
+    write_vreg(num_elem, SEW, LMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

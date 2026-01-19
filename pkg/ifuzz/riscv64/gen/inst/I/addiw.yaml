@@ -1,0 +1,50 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: addiw
+long_name: Add immediate word
+description:
+  Add an immediate to the 32-bit value in xs1, and store the sign extended
+  result in xd
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: I
+assembly: xd, xs1, imm
+encoding:
+  match: "-----------------000-----0011011"
+  variables:
+    - name: imm
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+pseudoinstructions:
+  - when: imm == 0
+    to: sext.w xd,xs1
+operation(): |
+  X[xd] = $signed((X[xs1] + $signed(imm))[31:0]);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let result : xlenbits = sign_extend(imm) + X(xs1);
+    X(xd) = sign_extend(result[31..0]);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

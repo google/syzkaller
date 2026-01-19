@@ -1,0 +1,102 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sinval.vma
+long_name: Invalidate cached address translations
+definedBy:
+  extension:
+    name: Svinval
+encoding:
+  match: 0001011----------000000001110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+description:
+  The `sinval.vma` instruction invalidates any address-translation cache entries that an
+  `sfence.vma` instruction with the same values of xs1 and xs2 would invalidate.
+  However, unlike `sfence.vma`, `sinval.vma` instructions are only ordered with respect to
+  `sfence.vma`, `sfence.w.inval`, and `sfence.inval.ir` instructions as defined below.
+access:
+  s: sometimes
+  u: never
+  vs: sometimes
+  vu: never
+assembly: xs1, xs2
+operation(): |
+  XReg vaddr = X[xs1];
+  Bits<ASID_WIDTH> asid = X[xs2][ASID_WIDTH-1:0];
+
+  if (CSR[mstatus].TVM == 1 &&
+      ((mode() == PrivilegeMode::S) || (mode() == PrivilegeMode::VS))) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (CSR[misa].H == 1 && CSR[hstatus].VTVM == 1 && mode() == PrivilegeMode::VS) {
+    raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+  }
+
+  if (mode() == PrivilegeMode::U) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (CSR[misa].H == 1 && mode() == PrivilegeMode::VU) {
+    raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+  }
+
+  # note: this will default to "all"
+  VmaOrderType vma_type;
+  if (CSR[misa].H == 1 && mode() == PrivilegeMode::VS) {
+    vma_type.vsmode = true;
+    vma_type.single_vmid = true;
+    vma_type.vmid = CSR[hgatp].VMID;
+  } else {
+    vma_type.smode = true;
+  }
+
+  if ((xs1 == 0) && (xs2 == 0)) {
+    # invalidate all translations, from all addresses and all ASIDs
+    # includes global mappings
+    vma_type.global = true;
+
+    invalidate_translations(vma_type);
+
+  } else if ((xs1 == 0) && (xs2 != 0)) {
+    # invalidates all translations from ASID 'asid'
+    # does not affect global mappings
+    vma_type.single_asid = true;
+    vma_type.asid = asid;
+
+    invalidate_translations(vma_type);
+
+  } else if ((xs1 != 0) && (xs2 == 0)) {
+    # invalidate all translations from leaf page tables containing 'vaddr'
+    # does not affect global mappings
+    if (canonical_vaddr?(vaddr)) {
+      vma_type.single_vaddr = true;
+      vma_type.vaddr = vaddr;
+
+      invalidate_translations(vma_type);
+
+    }
+    # else, silently do nothing
+
+  } else {
+    # invalidate all translations from leaf page tables for address space 'asid' containing 'vaddr'
+    # does not affect global mappings
+    if (canonical_vaddr?(vaddr)) {
+      vma_type.single_asid = true;
+      vma_type.asid = asid;
+      vma_type.single_vaddr = true;
+      vma_type.vaddr = vaddr;
+
+      invalidate_translations(vma_type);
+
+    }
+    # else, silently do nothing
+  }

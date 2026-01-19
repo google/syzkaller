@@ -1,0 +1,64 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: xperm4
+long_name: Crossbar permutation (nibbles)
+description: |
+  The xperm4 instruction operates on nibbles. The xs1 register contains a vector of XLEN/4 4-bit
+  elements. The xs2 register contains a vector of XLEN/4 4-bit indexes. The result is each element in
+  xs2 replaced by the indexed element in xs1, or zero if the index into xs2 is out of bounds.
+definedBy:
+  extension:
+    name: Zbkx
+assembly: xd, xs1, xs2
+encoding:
+  match: 0010100----------010-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+  XReg input1 = X[xs1];
+  XReg input2 = X[xs2];
+  XReg output = 0;
+
+  for(U32 i=0; i<(xlen()-4); i = i+4) {
+    XReg index = input2[i+3:i];
+    if(4*index < xlen()) {
+      output[i+3:i] = input1[4*index+3:4*index];
+    }
+  }
+
+  X[xd] = output;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  val xperm4_lookup : (bits(4), xlenbits) -> bits(4)
+  function xperm4_lookup (idx, lut) = {
+    (lut >> (idx @ 0b00))[3..0]
+  }
+  function clause execute ( XPERM_4 (rs2,rs1,rd)) = {
+    result : xlenbits = EXTZ(0b0);
+    foreach(i from 0 to xlen by 4) {
+      result[i+3..i] = xperm4_lookup(X(rs2)[i+3..i], X(rs1));
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

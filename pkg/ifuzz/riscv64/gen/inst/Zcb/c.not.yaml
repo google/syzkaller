@@ -1,0 +1,45 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.not
+long_name: Bitwise not, 16-bit encoding
+description: |
+  Takes a single source/destination operand.
+  This instruction takes the one's complement of xd'/xs1' and writes the result to the same register.
+
+definedBy:
+  extension:
+    name: Zcb
+assembly: xd
+encoding:
+  match: 100111---1110101
+  variables:
+    - name: xd
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[creg2reg(xd)] = ~X[creg2reg(xd)];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    X(rsdc) = X(rsdc) XOR -1;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

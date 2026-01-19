@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fmsub.d
+long_name: Floating-Point Multiply-Subtract Double-Precision
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The `fmsub.d` instruction multiplies the values in `fs1` and `fs2`, subtracts the value in `fs3`, and writes the final result to `fd`.
+assembly: fd, fs1, fs2, fs3, rm
+encoding:
+  match: "-----01------------------1000111"
+  variables:
+    - name: fs3
+      location: 31-27
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

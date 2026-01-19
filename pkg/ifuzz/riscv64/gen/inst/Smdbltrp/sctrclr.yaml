@@ -1,0 +1,47 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: sctrclr
+long_name: Supervisor Control Transfer Record (CTR) clear
+description: |
+  When `mstateen0.CTR`=1, the SCTRCLR instruction performs the following operations:
+
+  * Zeroes all CTR Entry Registers, for all DEPTH values
+  * Reset to Zero the optional CTR cycle counter where implemented
+  ** `ctrdata.CC` and `ctrdata.CCV` bit fields.
+
+  Any read of `ctrsource`, `ctrtarget`, or `ctrdata` that follows SCTRCLR, such that it precedes the next
+  qualified control transfer, will return the value 0.
+
+  Further, the first recorded transfer following SCTRCLR will have `ctrdata.CCV`=0.
+
+  SCTRCLR execution causes an `IllegalInstruction` exception if:
+
+  * `Smctr` is not implemented
+  * The instruction is executed in S/VS/VU-mode and `Ssctr` is not implemented, or `mstateen0.CTR`=0
+  * The instruction is executed in U-mode
+
+  SCTRCLR execution  causes a `VirtualInstruciton` exception if `mstateen0.CTR`=1 and:
+
+  * The instruction is executed in VS-mode and `hstateen0.CTR`=0
+  * The instruction is executed in VU-mode
+definedBy:
+  extension:
+    anyOf:
+      - name: Smctr
+      - name: Ssctr
+assembly: ""
+encoding:
+  match: "00010000010000000000000001110011"
+  variables: []
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

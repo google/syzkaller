@@ -1,0 +1,49 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: mnret
+long_name: Machine mode resume from the RNMI or Double Trap handler
+description: |
+  MNRET is an M-mode-only instruction that uses the values in mnepc and mnstatus to return to the
+  program counter, privilege mode, and virtualization mode of the interrupted context. This instruction
+  also sets mnstatus.NMIE. If MNRET changes the privilege mode to a mode less privileged than M, it
+  also sets mstatus.MPRV to 0. If the Zicfilp extension is implemented, then if the new privileged mode is
+  y, MNRET sets ELP to the logical AND of yLPE (see Section 22.1.1) and mnstatus.MNPELP.
+definedBy:
+  extension:
+    name: Smrnmi
+assembly: ""
+encoding:
+  match: "01110000001000000000000001110011"
+  variables: []
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+  if (CSR[mnstatus].MNPP != 2'b11) {
+    CSR[mstatus].MPRV = 0;
+    if (implemented?(ExtensionName::Smdbltrp)) {
+      if (xlen() == 64) {
+        CSR[mstatus].MDT = 1'b0;
+      } else {
+        CSR[mstatush].MDT = 1'b0;
+      }
+    }
+  }
+  CSR[mnstatus].NMIE = 1'b1;
+  if (CSR[mnstatus].MNPP == 2'b00) {
+    set_mode(PrivilegeMode::U);
+  } else if (CSR[mnstatus].MNPP == 2'b01) {
+    set_mode(PrivilegeMode::S);
+  } else if (CSR[mnstatus].MNPP == 2'b11) {
+    set_mode(PrivilegeMode::M);
+  }
+  CSR[mnstatus].MNPP = implemented?(ExtensionName::U) ? 2'b00 : 2'b11;
+  $pc = $bits(CSR[mnepc]);

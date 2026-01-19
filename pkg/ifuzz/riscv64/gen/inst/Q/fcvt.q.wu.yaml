@@ -1,0 +1,31 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.q.wu
+long_name: Floating-Point Convert Unsigned Word to Quad-Precision
+definedBy:
+  extension:
+    name: Q
+description: |
+  `fcvt.q.wu` converts a 32-bit unsigned integer into a quad-precision floating-point number.
+assembly: fd, xs1, rm
+encoding:
+  match: 110101100001-------------1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

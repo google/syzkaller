@@ -1,0 +1,55 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: wrs.nto
+long_name: Wait-on-Reservation-Set-with-No-Timeout
+description: |
+  To mitigate the wasteful looping in such usages, a `wrs.nto` (WRS-with-no-timeout) instruction is provided.
+  Instead of polling for a store to a specific memory location, software registers a reservation set that
+  includes all the bytes of the memory location using the LR instruction. Then a subsequent `wrs.nto`
+  instruction would cause the hart to temporarily stall execution in a low-power state until a store
+  occurs to the reservation set or an interrupt is observed.
+
+  This instruction is not supported in a constrained LR/SC loop.
+  While stalled, an implementation is permitted to occasionally terminate the stall and complete
+  execution for any reason.
+
+  `wrs.nto` follows the rules of the WFI instruction for resuming execution
+  on a pending interrupt.
+
+  When the TW (Timeout Wait) bit in `mstatus` is set and `wrs.nto` is executed
+  in any privilege mode otherthan M mode, and it does not complete within an implementation-specific
+  bounded time limit, the `wrs.nto` instruction will cause an illegal instruction exception.
+
+  When executing in VS or VU mode, if the VTW bit is set in `hstatus`, the TW bit in `mstatus` is clear,
+  and the `wrs.nto` does not complete within an implementation-specific bounded time limit,
+  the `wrs.nto` instruction will cause a virtual instruction exception.
+
+  [Note]
+  Since `wrs.nto` can complete execution for reasons other than stores to the reservation set,
+  software will likely need a means of looping until the required stores have occurred.
+
+  [Note]
+  `wrs.nto`, unlike WFI, is not specified to cause an illegal instruction exception if executed in U-mode
+  when the governing TW bit is 0. WFI is typically not expected to be used in U-mode and on many systems
+  may promptly cause an illegal instruction exception if used at U-mode.
+  Unlike WFI, `wrs.nto` is expected to be used by software in U-mode when waiting on memory but without
+  a deadline for that wait.
+definedBy:
+  extension:
+    name: Zawrs
+assembly: ""
+encoding:
+  match: "00000000110100000000000001110011"
+  variables: []
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

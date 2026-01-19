@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fadd.d
+long_name: Floating-Point Add Double-Precision
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The `fadd.d` instruction is analogous to `fadd.s` and performs double-precision floating-point addition of
+  `fs1` and `fs2` and writes the final result to `fd`.
+assembly: fd, fs1, fs2, rm
+encoding:
+  match: 0000001------------------1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

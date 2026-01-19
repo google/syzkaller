@@ -1,0 +1,67 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.sd
+long_name: Store double
+description: |
+  For RV64, store a 64-bit value in register xs2 to memory. For RV32 with Zclsd extension, store a 64-bit value from the combined values in register pair [xs2, xs2+1] to memory.
+  It computes an effective address by adding the zero-extended offset, scaled by 8,
+  to the base address in register xs1.
+  It expands to `sd` `xs2, offset(xs1)`.
+definedBy:
+  anyOf:
+    - allOf:
+        - xlen: 64
+        - extension:
+            name: Zca
+    - extension:
+        name: Zclsd
+assembly: xs2, imm(xs1)
+encoding:
+  RV32:
+    match: 111-----------00
+    variables:
+      - name: imm
+        location: 6-5|12-10
+        left_shift: 3
+      - name: xs2
+        location: 4-2
+        not: [1, 3, 5, 7]
+      - name: xs1
+        location: 9-7
+  RV64:
+    match: 111-----------00
+    variables:
+      - name: imm
+        location: 6-5|12-10
+        left_shift: 3
+      - name: xs2
+        location: 4-2
+      - name: xs1
+        location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[creg2reg(xs1)] + imm;
+
+  if (xlen() == 32) {
+    if (implemented?(ExtensionName::Zclsd)) {
+      Bits<64> data = {X[creg2reg(xs2) + 1], X[creg2reg(xs2)]};
+      write_memory<64>(virtual_address, data, $encoding);
+    } else {
+      raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+    }
+  } else {
+    write_memory<64>(virtual_address, X[creg2reg(xs2)], $encoding);
+  }

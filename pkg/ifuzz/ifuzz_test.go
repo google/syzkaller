@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
-var allArches = []string{ArchX86, ArchPowerPC, ArchArm64}
+var allArches = []string{ArchX86, ArchPowerPC, ArchArm64, ArchRiscv64}
 
 func TestMode(t *testing.T) {
 	for _, arch := range allArches {
@@ -138,6 +138,10 @@ func testGenerate(t *testing.T, arch string) {
 				Priv: true,
 				Exec: true,
 				Len:  repeat,
+			}
+			if arch == ArchRiscv64 {
+				cfg.Priv = false
+				cfg.Exec = false
 			}
 			text := Generate(cfg, r)
 			for len(text) != 0 {

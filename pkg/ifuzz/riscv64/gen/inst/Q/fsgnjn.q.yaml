@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fsgnjn.q
+long_name: Floating-Point Sign-Inject Negate Quad-Precision
+definedBy:
+  extension:
+    name: Q
+description: |
+  The `fsgnjn.q` instruction produces a result that takes all bits except the sign bit from `fs1`.
+  The result's sign bit is opposite of `fs2`'s sign bit, and the result is written to the destination register `fd`.
+  `fsgnjn.q` does not set floating-point exception flags, nor do they canonicalize _NaN_s.
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010011----------001-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+pseudoinstructions:
+  - when: (fs2 == fs1)
+    to: fneg.q fd, fs1
+operation(): |

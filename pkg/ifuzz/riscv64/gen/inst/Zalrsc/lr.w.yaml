@@ -1,0 +1,155 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: lr.w
+long_name: Load reserved word
+description: |
+  Loads a word from the address in xs1, places the sign-extended value in xd,
+  and registers a _reservation set_  -- a set of bytes that subsumes the bytes in the
+  addressed word.
+
+  <%- if MXLEN == 64 -%>
+  The 32-bit load result is sign-extended to 64-bits.
+  <%- end -%>
+
+  The address in xs1 must be naturally aligned to the size of the operand
+  (_i.e._, eight-byte aligned for doublewords and four-byte aligned for words).
+
+  If the address is not naturally aligned, a `LoadAddressMisaligned` exception or an
+  `LoadAccessFault` exception will be generated. The access-fault exception can be generated
+  for a memory access that would otherwise be able to complete except for the misalignment,
+  if the misaligned access should not be emulated.
+
+  An implementation can register an arbitrarily large reservation set on each LR, provided the
+  reservation set includes all bytes of the addressed data word or doubleword.
+  An SC can only pair with the most recent LR in program order.
+  An SC may succeed only if no store from another hart to the reservation set can be
+  observed to have occurred between the LR and the SC, and if there is no other SC between the
+  LR and itself in program order.
+  An SC may succeed only if no write from a device other than a hart to the bytes accessed by
+  the LR instruction can be observed to have occurred between the LR and SC. Note this LR
+  might have had a different effective address and data size, but reserved the SC's
+  address as part of the reservation set.
+
+  [NOTE]
+  ----
+  Following this model, in systems with memory translation, an SC is allowed to succeed if the
+  earlier LR reserved the same location using an alias with a different virtual address, but is
+  also allowed to fail if the virtual address is different.
+
+  To accommodate legacy devices and buses, writes from devices other than RISC-V harts are only
+  required to invalidate reservations when they overlap the bytes accessed by the LR.
+  These writes are not required to invalidate the reservation when they access other bytes in
+  the reservation set.
+  ----
+
+  Software should not set the _rl_ bit on an LR instruction unless the _aq_ bit is also set.
+  LR.rl and SC.aq instructions are not guaranteed to provide any stronger ordering than those
+  with both bits clear, but may result in lower performance.
+definedBy:
+  extension:
+    name: Zalrsc
+assembly: xd, (xs1)
+encoding:
+  match: 00010--00000-----010-----0101111
+  variables:
+    - name: aq
+      location: 26
+      not: 1
+    - name: rl
+      location: 25
+      not: 1
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::A) && (CSR[misa].A == 1'b0)) {
+    # even though this is a memory operation, the exception occurs before that would be known,
+    # so mode() is the correct reporting mode rathat than effective_ldst_mode()
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[xs1];
+
+  if (!is_naturally_aligned<32>(virtual_address)) {
+    # can raise either LoadAddressMisaligned *or* LoadAccessFault
+    #
+    # from the spec:
+    #   If the address is not naturally aligned, an address-misaligned exception or
+    #   an access-fault exception will be generated. The access-fault exception can
+    #   be generated for a memory access that would otherwise be able to complete except
+    #   for the misalignment, if the misaligned access should not be emulated.
+
+    if (LRSC_MISALIGNED_BEHAVIOR == "always raise misaligned exception") {
+      raise(ExceptionCode::LoadAddressMisaligned, effective_ldst_mode(), virtual_address);
+    } else if (LRSC_MISALIGNED_BEHAVIOR == "always raise access fault") {
+      raise(ExceptionCode::LoadAccessFault, effective_ldst_mode(), virtual_address);
+    } else {
+      unpredictable("Implementations may raise either a LoadAddressMisaligned or a LoadAccessFault when an LR/SC address is misaligned");
+    }
+  }
+
+  XReg load_value = load_reserved<32>(virtual_address, aq, rl, $encoding);
+  if (xlen() == 64) {
+    X[xd] = load_value;
+  } else {
+    X[xd] = sext(load_value[31:0], 32);
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("A") then {
+      /* Get the address, X(rs1) (no offset).
+       * Extensions might perform additional checks on address validity.
+       */
+      match ext_data_get_addr(rs1, zeros(), Read(Data), width) {
+        Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+        Ext_DataAddr_OK(vaddr) => {
+          let aligned : bool =
+             /* BYTE and HALF would only occur due to invalid decodes, but it doesn't hurt
+              * to treat them as valid here; otherwise we'd need to throw an internal_error.
+              */
+             match width {
+               BYTE   => true,
+               HALF   => vaddr[0..0] == 0b0,
+               WORD   => vaddr[1..0] == 0b00,
+               DOUBLE => vaddr[2..0] == 0b000
+             };
+          /* "LR faults like a normal load, even though it's in the AMO major opcode space."
+           * - Andrew Waterman, isa-dev, 10 Jul 2018.
+           */
+          if not(aligned)
+          then { handle_mem_exception(vaddr, E_Load_Addr_Align()); RETIRE_FAIL }
+          else match translateAddr(vaddr, Read(Data)) {
+                 TR_Failure(e, _)    => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                 TR_Address(addr, _) =>
+                   match (width, sizeof(xlen)) {
+                     (BYTE, _)    => process_loadres(rd, vaddr, mem_read(Read(Data), addr, 1, aq, aq & rl, true), false),
+                     (HALF, _)    => process_loadres(rd, vaddr, mem_read(Read(Data), addr, 2, aq, aq & rl, true), false),
+                     (WORD, _)    => process_loadres(rd, vaddr, mem_read(Read(Data), addr, 4, aq, aq & rl, true), false),
+                     (DOUBLE, 64) => process_loadres(rd, vaddr, mem_read(Read(Data), addr, 8, aq, aq & rl, true), false),
+                     _            => internal_error(__FILE__, __LINE__, "Unexpected AMO width")
+                   }
+               }
+        }
+      }
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fltq.q
+long_name: Floating-Point Less Than Quiet Quad-Precision
+description: |
+  The `fltq.q` performs the specified comparison between floating-point registers `fs1` and `fs2`,
+  and writes 1 to integer register `xd` if the condition holds, and 0 otherwise.
+
+  `fltq.q` is defined like `flt.q`, except that quiet _NaN_ inputs do not cause the invalid
+  operation exception flag to be set.
+  This instruction is encoded like its `fle` counterpart, but with instruction bit 14 set to 1.
+definedBy:
+  extension:
+    allOf:
+      - name: Q
+      - name: Zfa
+assembly: fd, fs1, fs2
+encoding:
+  match: 1010011----------101-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,74 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fli.s
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zfa
+assembly: fd, xs1
+encoding:
+  match: 111100000001-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let bits : bits(32) = match constantidx {
+      0b00000 => { 0xbf800000 },  /* -1.0 */
+      0b00001 => { 0x00800000 },  /* minimum positive normal */
+      0b00010 => { 0x37800000 },  /* 1.0 * 2^-16 */
+      0b00011 => { 0x38000000 },  /* 1.0 * 2^-15 */
+      0b00100 => { 0x3b800000 },  /* 1.0 * 2^-8  */
+      0b00101 => { 0x3c000000 },  /* 1.0 * 2^-7  */
+      0b00110 => { 0x3d800000 },  /* 1.0 * 2^-4  */
+      0b00111 => { 0x3e000000 },  /* 1.0 * 2^-3  */
+      0b01000 => { 0x3e800000 },  /* 0.25 */
+      0b01001 => { 0x3ea00000 },  /* 0.3125 */
+      0b01010 => { 0x3ec00000 },  /* 0.375 */
+      0b01011 => { 0x3ee00000 },  /* 0.4375 */
+      0b01100 => { 0x3f000000 },  /* 0.5 */
+      0b01101 => { 0x3f200000 },  /* 0.625 */
+      0b01110 => { 0x3f400000 },  /* 0.75 */
+      0b01111 => { 0x3f600000 },  /* 0.875 */
+      0b10000 => { 0x3f800000 },  /* 1.0 */
+      0b10001 => { 0x3fa00000 },  /* 1.25 */
+      0b10010 => { 0x3fc00000 },  /* 1.5 */
+      0b10011 => { 0x3fe00000 },  /* 1.75 */
+      0b10100 => { 0x40000000 },  /* 2.0 */
+      0b10101 => { 0x40200000 },  /* 2.5 */
+      0b10110 => { 0x40400000 },  /* 3 */
+      0b10111 => { 0x40800000 },  /* 4 */
+      0b11000 => { 0x41000000 },  /* 8 */
+      0b11001 => { 0x41800000 },  /* 16 */
+      0b11010 => { 0x43000000 },  /* 2^7 */
+      0b11011 => { 0x43800000 },  /* 2^8 */
+      0b11100 => { 0x47000000 },  /* 2^15 */
+      0b11101 => { 0x47800000 },  /* 2^16 */
+      0b11110 => { 0x7f800000 },  /* +inf */
+      0b11111 => { canonical_NaN_S() },
+    };
+    F_S(rd) = bits;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

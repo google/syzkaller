@@ -1,0 +1,35 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fmvh.x.d
+long_name: Floating-Point Move High Half from Double-Precision Register to Integer Register
+description: |
+  The `fmvh.x.d` instruction moves bits 63:32 of floating-point register `fs1` into integer register `xd`. `fmvh.x.d`
+  is used in conjunction with the existing `fmv.x.w` instruction to move a double-precision floating-point number to a
+  pair of integer-registers.
+definedBy:
+  allOf:
+    - xlen: 32
+    - extension:
+        allOf:
+          - name: D
+          - name: Zfa
+assembly: xd, fs1
+encoding:
+  match: 111000100001-----000-----1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

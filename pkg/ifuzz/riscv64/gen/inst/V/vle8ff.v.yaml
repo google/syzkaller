@@ -1,0 +1,52 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vle8ff.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, (xs1), vm
+encoding:
+  match: 000000-10000-----000-----0000111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: xs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let load_width_bytes = vlewidth_bytesnumber(width);
+    let EEW = load_width_bytes * 8;
+    let EEW_pow = vlewidth_pow(width);
+    let SEW_pow = get_sew_pow();
+    let LMUL_pow = get_lmul_pow();
+    let EMUL_pow = EEW_pow - SEW_pow + LMUL_pow;
+    let num_elem = get_num_elem(EMUL_pow, EEW);
+    let nf_int = nfields_int(nf);
+
+    if illegal_load(vd, vm, nf_int, EEW, EMUL_pow) then { handle_illegal(); return RETIRE_FAIL };
+
+    process_vlsegff(nf_int, vm, vd, load_width_bytes, rs1, EMUL_pow, num_elem)
+  }
+
+# SPDX-SnippetEnd

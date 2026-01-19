@@ -1,0 +1,65 @@
+# Copyright (c) Ventana Micro Systems
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cm.jalt
+long_name: Jump Via Table with Optional Link
+description: |
+  Read an address from the Jump Vector Table and jump to it, linking to `ra`.
+definedBy:
+  extension:
+    name: Zcmt
+assembly: index
+encoding:
+  match: 101000--------10
+  variables:
+    - name: index
+      location: 9-2
+      # prettier-ignore
+      not: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 ]
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  # Ensure JVT readable
+  check_zcmt_enabled($encoding);
+
+  if (CSR[jvt].MODE != 0) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  # Skip over _this_ 16-bit instruction
+  XReg return_addr = $pc + 2;
+  X[1] = return_addr;
+
+  XReg jump_table_base = { CSR[jvt].BASE, 6'b000000 };
+  XReg virtual_address = jump_table_base + index `* (xlen() / 8);
+  XReg addr;
+  TranslationResult result;
+
+  # TODO: Correct this check when we figure out what MISA can do
+  if (CSR[misa].S == 1) {
+    result = translate(virtual_address, MemoryOperation::Fetch, mode(), $encoding);
+  } else {
+    result.paddr = virtual_address;
+  }
+
+  # may raise an exception
+  access_check(result.paddr, xlen(), $pc, MemoryOperation::Fetch, ExceptionCode::InstructionAccessFault, mode());
+
+  if (xlen() == 32) {
+    addr = read_physical_memory<32>(result.paddr);
+  } else {
+    addr = read_physical_memory<64>(result.paddr);
+  }  # Ensure low-order bit is clear
+
+  addr = addr & $signed(2'b10);
+
+  jump(addr);
+
+sail(): |

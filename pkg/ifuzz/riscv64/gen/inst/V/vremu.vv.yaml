@@ -1,0 +1,116 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vremu.vv
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, vs1, vm
+encoding:
+  match: 100010-----------010-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: vs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let num_elem = get_num_elem(LMUL_pow, SEW);
+
+    if illegal_normal(vd, vm) then { handle_illegal(); return RETIRE_FAIL };
+
+    let 'n = num_elem;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, vm, 0b00000);
+    let vs1_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs1);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs2);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
+    result      : vector('n, dec, bits('m)) = undefined;
+    mask        : vector('n, dec, bool)     = undefined;
+
+    (result, mask) = init_masked_result(num_elem, SEW, LMUL_pow, vd_val, vm_val);
+
+    foreach (i from 0 to (num_elem - 1)) {
+      if mask[i] then {
+        result[i] = match funct6 {
+          MVV_VAADDU   => {
+                            let result_add = zero_extend('m + 1, vs2_val[i]) + zero_extend('m + 1, vs1_val[i]);
+                            let rounding_incr = get_fixed_rounding_incr(result_add, 1);
+                            slice(result_add >> 1, 0, 'm) + zero_extend('m, rounding_incr)
+                          },
+          MVV_VAADD    => {
+                            let result_add = sign_extend('m + 1, vs2_val[i]) + sign_extend('m + 1, vs1_val[i]);
+                            let rounding_incr = get_fixed_rounding_incr(result_add, 1);
+                            slice(result_add >> 1, 0, 'm) + zero_extend('m, rounding_incr)
+                          },
+          MVV_VASUBU   => {
+                            let result_sub = zero_extend('m + 1, vs2_val[i]) - zero_extend('m + 1, vs1_val[i]);
+                            let rounding_incr = get_fixed_rounding_incr(result_sub, 1);
+                            slice(result_sub >> 1, 0, 'm) + zero_extend('m, rounding_incr)
+                          },
+          MVV_VASUB    => {
+                            let result_sub = sign_extend('m + 1, vs2_val[i]) - sign_extend('m + 1, vs1_val[i]);
+                            let rounding_incr = get_fixed_rounding_incr(result_sub, 1);
+                            slice(result_sub >> 1, 0, 'm) + zero_extend('m, rounding_incr)
+                          },
+          MVV_VMUL     => get_slice_int(SEW, signed(vs2_val[i]) * signed(vs1_val[i]), 0),
+          MVV_VMULH    => get_slice_int(SEW, signed(vs2_val[i]) * signed(vs1_val[i]), SEW),
+          MVV_VMULHU   => get_slice_int(SEW, unsigned(vs2_val[i]) * unsigned(vs1_val[i]), SEW),
+          MVV_VMULHSU  => get_slice_int(SEW, signed(vs2_val[i]) * unsigned(vs1_val[i]), SEW),
+          MVV_VDIVU    => {
+                            let q : int = if unsigned(vs1_val[i]) == 0 then -1 else quot_round_zero(unsigned(vs2_val[i]), unsigned(vs1_val[i]));
+                            to_bits(SEW, q)
+                          },
+          MVV_VDIV     => {
+                            let elem_max : int = 2 ^ (SEW - 1) - 1;
+                            let elem_min : int = 0 - 2 ^ (SEW - 1);
+                            let q : int = if signed(vs1_val[i]) == 0 then -1 else quot_round_zero(signed(vs2_val[i]), signed(vs1_val[i]));
+                            /* check for signed overflow */
+                            let q' : int = if q > elem_max then elem_min else q;
+                            to_bits(SEW, q')
+                          },
+          MVV_VREMU    => {
+                            let r : int = if unsigned(vs1_val[i]) == 0 then unsigned(vs2_val[i]) else rem_round_zero(unsigned(vs2_val[i]), unsigned(vs1_val[i]));
+                            /* signed overflow case returns zero naturally as required due to -1 divisor */
+                            to_bits(SEW, r)
+                          },
+          MVV_VREM     => {
+                            let r : int = if signed(vs1_val[i]) == 0 then signed(vs2_val[i]) else rem_round_zero(signed(vs2_val[i]), signed(vs1_val[i]));
+                            /* signed overflow case returns zero naturally as required due to -1 divisor */
+                            to_bits(SEW, r)
+                          }
+        }
+      }
+    };
+
+    write_vreg(num_elem, SEW, LMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,25 @@
+# Copyright (c) Jordan Carlin
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: ntl.s1
+long_name: Non-temporal locality hint, innermost shared
+description: |
+  The NTL.S1 instruction indicates that the immediately subsequent instruction
+  does not exhibit temporal locality within the capacity of the innermost level
+  of shared cache in the memory hierarchy. NTL.S1 is encoded as ADD x0, x0, x4.
+definedBy:
+  extension:
+    name: Zihintntl
+assembly: ""
+encoding:
+  match: "00000000010000000000000000110011"
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false

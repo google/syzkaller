@@ -1,0 +1,57 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: addw
+long_name: Add word
+description: |
+  Add the 32-bit values in xs1 to xs2, and store the sign-extended result in xd.
+  Any overflow is thrown away.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: I
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000000----------000-----0111011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  XReg operand1 = sext(X[xs1], 32);
+  XReg operand2 = sext(X[xs2], 32);
+  X[xd] = sext(operand1 + operand2, 32);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let xs1_val = (X(xs1))[31..0];
+    let xs2_val = (X(xs2))[31..0];
+    let result : bits(32) = match op {
+      RISCV_ADDW => xs1_val + xs2_val,
+      RISCV_SUBW => xs1_val - xs2_val,
+      RISCV_SLLW => xs1_val << (xs2_val[4..0]),
+      RISCV_SRLW => xs1_val >> (xs2_val[4..0]),
+      RISCV_SRAW => shift_right_arith32(xs1_val, xs2_val[4..0])
+    };
+    X(xd) = sign_extend(result);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,109 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mul
+long_name: Signed multiply
+description: |
+  MUL performs an XLEN-bitxXLEN-bit multiplication of `xs1` by `xs2` and places the lower
+  XLEN bits in the destination register.
+  Any overflow is thrown away.
+
+  [NOTE]
+  If both the high and low bits of the same product are required, then the recommended code
+  sequence is:
+  MULH[[S]U] xdh, xs1, xs2; MUL xdl, xs1, xs2
+  (source register specifiers must be in same order and xdh cannot be the same as xs1 or xs2).
+  Microarchitectures can then fuse these into a single multiply operation instead of
+  performing two separate multiplies.
+
+definedBy:
+  extension:
+    anyOf:
+      - name: M
+      - name: Zmmul
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------000-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg src1 = X[xs1];
+  XReg src2 = X[xs2];
+
+  X[xd] = (src1 * src2)[MXLEN-1:0];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") | haveZmmul() then {
+      let rs1_val = X(rs1);
+      let rs2_val = X(rs2);
+      let rs1_int : int = if signed1 then signed(rs1_val) else unsigned(rs1_val);
+      let rs2_int : int = if signed2 then signed(rs2_val) else unsigned(rs2_val);
+      let result_wide = to_bits(2 * sizeof(xlen), rs1_int * rs2_int);
+      let result = if   high
+                   then result_wide[(2 * sizeof(xlen) - 1) .. sizeof(xlen)]
+                   else result_wide[(sizeof(xlen) - 1) .. 0];
+      X(rd) = result;
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd
+
+cert_normative_rules:
+  - id: inst.mul.encoding
+    name: Encoding
+    description: Encoding of `mul` instruction
+    doc_links:
+      - manual:inst:mul:encoding
+  - id: inst.mul.basic_op
+    name: Basic operation
+    description: Basic operation of `mul` instruction
+    doc_links:
+      - manual:inst:mul:operation
+  - id: inst.mul.ill_exc_misa_M_disabled
+    name: Illegal instruction exception when misa.M is 0
+    description: |
+      An illegal instruction exception is raised when the instruction is executed
+      and `misa.M` is 0.
+    doc_links:
+      - manual:csr:misa:disabling-extension
+
+cert_test_procedures:
+  - id: inst.mul.encoding
+    description: Verify the encoding of the `mul` instruction
+    normative_rules: [inst.mul.encoding]
+    steps: |
+      . Setup
+      .. Load a variety of known values into rs1 & rs2 with a variety of rs1/rs2/rd values.
+      . Execution
+      .. Execute the `mul` instruction
+      . Validation
+      .. Check each result in rd
+      . Teardown
+      .. Clear the registers used for rd

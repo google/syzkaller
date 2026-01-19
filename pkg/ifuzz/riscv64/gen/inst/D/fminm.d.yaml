@@ -1,0 +1,34 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fminm.d
+long_name: Floating-Point Minimum-Number NaN Double-Precision
+description: |
+  The `fminm.d` instruction writes smaller of `fs1` and `fs2` to `fd`. It is defined like `fmin.d` instruction, except
+  that if either input is NaN, the result is the canonical NaN.
+definedBy:
+  extension:
+    allOf:
+      - name: D
+      - name: Zfa
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010101----------010-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,68 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: csrrc
+long_name: Atomic Read and Clear Bits in CSR
+description: |
+  The CSRRC (Atomic Read and Clear Bits in CSR) instruction reads the value of the CSR, zero-extends
+  the value to XLEN bits, and writes it to integer register `xd`. The initial value in integer register `xs1` is
+  treated as a bit mask that specifies bit positions to be cleared in the CSR. Any bit that is high in `xs1` will
+  cause the corresponding bit to be cleared in the CSR, if that CSR bit is writable.
+
+  For CSRRC, if `xs1=x0`, then the instruction will not write to the CSR at all, and so shall
+  not cause any of the side effects that might otherwise occur on a CSR write, nor raise illegal-
+  instruction exceptions on accesses to read-only CSRs. CSRRC always reads the addressed CSR and
+  cause any read side effects regardless of `xs1` and `xd` fields.
+  Note that if `xs1` specifies a register other than `x0`, and that register holds a zero value,
+  the instruction will not action any attendant per-field side effects, but will action any
+  side effects caused by writing to the entire CSR.
+definedBy:
+  extension:
+    name: Zicsr
+assembly: xd, csr, xs1
+encoding:
+  match: "-----------------011-----1110011"
+  variables:
+    - name: csr
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+pseudoinstructions:
+  - when: xd == 0
+    to: csrc csr,xs1
+operation(): |
+  Csr csr_handle = direct_csr_lookup(csr);
+
+  Boolean will_write = xs1 != 0;
+
+  # permission checks
+  if (csr_handle.valid == false) {
+    unimplemented_csr($encoding);
+  } else if (!compatible_mode?(csr_handle.mode, mode())) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  } else if (will_write && csr_handle.writable == false) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg initial_csr_value = csr_sw_read(csr_handle);
+
+  if (xs1 != 0) {
+    # clear bits using the mask
+    # performing any WARL transformations first
+    XReg mask = X[xs1];
+    csr_sw_write(csr_handle, initial_csr_value & ~mask);
+  }
+
+  X[xd] = initial_csr_value;

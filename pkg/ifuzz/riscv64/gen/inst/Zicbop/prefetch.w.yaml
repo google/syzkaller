@@ -1,0 +1,34 @@
+# Copyright (c) Jordan Carlin
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: prefetch.w
+long_name: Cache block prefetch for data write
+description: |
+  A prefetch.w instruction indicates to hardware that the cache block whose
+  effective address is the sum of the base address specified in xs1 and the
+  sign-extended offset encoded in imm[11:0], where imm[4:0] equals 0b00000,
+  is likely to be accessed by a data write (i.e. store) in the near future.
+definedBy:
+  extension:
+    name: Zicbop
+assembly: imm(xs1)
+encoding:
+  match: -------00011-----110000000010011
+  variables:
+    - name: imm
+      location: 31-25
+    - name: xs1
+      location: 19-15
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+  XReg address = X[xs1] + $signed(imm << 5);
+  prefetch_write(address);

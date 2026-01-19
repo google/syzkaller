@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.jalr
+long_name: Jump and Link Register
+description: |
+  C.JALR (jump and link register) performs the same operation as C.JR, but additionally writes the address of the instruction following the jump (pc+2) to the link register, x1.
+  C.JALR expands to jalr x1, 0(xs1).
+definedBy:
+  extension:
+    name: Zca
+assembly: xs1
+encoding:
+  match: 1001-----0000010
+  variables:
+    - name: xs1
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  XReg addr = X[xs1];
+  XReg returnaddr;
+  returnaddr = $pc + 2;
+
+  X[1] = returnaddr;
+  jump(addr);

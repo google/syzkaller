@@ -1,0 +1,55 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: clzw
+long_name: Count leading zero bits in word
+description: |
+  Counts the number of 0's before the first 1 starting at bit 31 and progressing to bit 0.
+  Accordingly, if the least-significant word is 0, the output is 32, and if the most-significant
+  bit of the word (_i.e._, bit 31) is a 1, the output is 0.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zbb
+assembly: xd, xs1
+encoding:
+  match: 011000000000-----001-----0011011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = 31 - $signed(highest_set_bit(X[xs1][31:0]));
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    result : nat = 0;
+    done : bool = false;
+    foreach (i from 31 downto 0)
+      if not(done) then if rs1_val[i] == bitzero
+                      then result = result + 1
+                      else done = true;
+    X(rd) = to_bits(sizeof(xlen), result);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

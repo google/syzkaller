@@ -661,7 +661,7 @@ func genTextType(t *ast.Type) prog.TextKind {
 	case "ppc64":
 		return prog.TextPpc64
 	case "riscv64":
-		return prog.TextTarget
+		return prog.TextRiscv64
 	default:
 		panic(fmt.Sprintf("unknown text type %q", t.Ident))
 	}

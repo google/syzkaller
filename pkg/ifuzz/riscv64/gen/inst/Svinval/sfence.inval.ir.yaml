@@ -1,0 +1,44 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sfence.inval.ir
+long_name: Order implicit page table reads after invalidation
+definedBy:
+  extension:
+    name: Svinval
+encoding:
+  match: "00011000000100000000000001110011"
+description: |
+  The `sfence.inval.ir` instruction guarantees that any previous `sinval.vma`
+  instructions executed by the current hart are ordered before subsequent implicit references by
+  that hart to the memory-management data structures.
+access:
+  s: sometimes
+  u: never
+  vs: sometimes
+  vu: never
+assembly: ""
+operation(): |
+  if (mode() == PrivilegeMode::U) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (CSR[misa].H == 1 && mode() == PrivilegeMode::VU) {
+    raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+  }
+
+  # order all subsequent (implicit) loads after an sfence/hfence invalidation
+  # Unlike SFENCE.VMA/HFENCE.[GV]VMA, SFENCE.W.INVAL is indiscriminate;
+  # it orders all reads after all page tables
+  VmaOrderType vma_type;
+  vma_type.global = true;
+  vma_type.smode = true;
+  if (CSR[misa].H == 1) {
+    vma_type.vsmode = true;
+    vma_type.gstage = true;
+  }
+  order_pgtbl_reads_after_vmafence(vma_type);

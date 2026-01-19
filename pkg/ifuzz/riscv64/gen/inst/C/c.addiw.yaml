@@ -1,0 +1,39 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.addiw
+long_name: Add a sign-extended non-zero immediate
+description: |
+  C.ADDIW is an RV64C/RV128C-only instruction that performs the same computation as C.ADDI but produces a 32-bit result, then sign-extends result to 64 bits.
+  C.ADDIW expands into `addiw xd, xd, imm`.
+  The immediate can be zero for C.ADDIW, where this corresponds to `sext.w xd`.
+  C.ADDIW is only valid when xd &ne; x0; the code points with xd=x0 are reserved.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zca
+assembly: xd, imm
+encoding:
+  match: 001-----------01
+  variables:
+    - name: imm
+      location: 12|6-2
+    - name: xd
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = sext((X[xd] + sext(imm, 6)), 32);

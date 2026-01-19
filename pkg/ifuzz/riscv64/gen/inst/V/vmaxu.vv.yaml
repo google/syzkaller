@@ -1,0 +1,134 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vmaxu.vv
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, vs1, vm
+encoding:
+  match: 000110-----------000-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: vs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let SEW_pow  = get_sew_pow();
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let VLEN_pow = get_vlen_pow();
+    let num_elem = get_num_elem(LMUL_pow, SEW);
+
+    if illegal_normal(vd, vm) then { handle_illegal(); return RETIRE_FAIL };
+
+    let 'n = num_elem;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, vm, 0b00000);
+    let vs1_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs1);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs2);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
+    result      : vector('n, dec, bits('m)) = undefined;
+    mask        : vector('n, dec, bool)     = undefined;
+
+    (result, mask) = init_masked_result(num_elem, SEW, LMUL_pow, vd_val, vm_val);
+
+    foreach (i from 0 to (num_elem - 1)) {
+      if mask[i] then {
+        result[i] = match funct6 {
+          VV_VADD          => vs2_val[i] + vs1_val[i],
+          VV_VSUB          => vs2_val[i] - vs1_val[i],
+          VV_VAND          => vs2_val[i] & vs1_val[i],
+          VV_VOR           => vs2_val[i] | vs1_val[i],
+          VV_VXOR          => vs2_val[i] ^ vs1_val[i],
+          VV_VSADDU        => unsigned_saturation('m, zero_extend('m + 1, vs2_val[i]) + zero_extend('m + 1, vs1_val[i])),
+          VV_VSADD         => signed_saturation('m, sign_extend('m + 1, vs2_val[i]) + sign_extend('m + 1, vs1_val[i])),
+          VV_VSSUBU        => {
+                                if unsigned(vs2_val[i]) < unsigned(vs1_val[i]) then zeros()
+                                else unsigned_saturation('m, zero_extend('m + 1, vs2_val[i]) - zero_extend('m + 1, vs1_val[i]))
+                              },
+          VV_VSSUB         => signed_saturation('m, sign_extend('m + 1, vs2_val[i]) - sign_extend('m + 1, vs1_val[i])),
+          VV_VSMUL         => {
+                                let result_mul = to_bits('m * 2, signed(vs2_val[i]) * signed(vs1_val[i]));
+                                let rounding_incr = get_fixed_rounding_incr(result_mul, 'm - 1);
+                                let result_wide = (result_mul >> ('m - 1)) + zero_extend('m * 2, rounding_incr);
+                                signed_saturation('m, result_wide['m..0])
+                              },
+          VV_VSLL          => {
+                                let shift_amount = get_shift_amount(vs1_val[i], SEW);
+                                vs2_val[i] << shift_amount
+                              },
+          VV_VSRL          => {
+                                let shift_amount = get_shift_amount(vs1_val[i], SEW);
+                                vs2_val[i] >> shift_amount
+                              },
+          VV_VSRA          => {
+                                let shift_amount = get_shift_amount(vs1_val[i], SEW);
+                                let v_double : bits('m * 2) = sign_extend(vs2_val[i]);
+                                slice(v_double >> shift_amount, 0, SEW)
+                              },
+          VV_VSSRL         => {
+                                let shift_amount = get_shift_amount(vs1_val[i], SEW);
+                                let rounding_incr = get_fixed_rounding_incr(vs2_val[i], shift_amount);
+                                (vs2_val[i] >> shift_amount) + zero_extend('m, rounding_incr)
+                              },
+          VV_VSSRA         => {
+                                let shift_amount = get_shift_amount(vs1_val[i], SEW);
+                                let rounding_incr = get_fixed_rounding_incr(vs2_val[i], shift_amount);
+                                let v_double : bits('m * 2) = sign_extend(vs2_val[i]);
+                                slice(v_double >> shift_amount, 0, SEW) + zero_extend('m, rounding_incr)
+                              },
+          VV_VMINU         => to_bits(SEW, min(unsigned(vs2_val[i]), unsigned(vs1_val[i]))),
+          VV_VMIN          => to_bits(SEW, min(signed(vs2_val[i]), signed(vs1_val[i]))),
+          VV_VMAXU         => to_bits(SEW, max(unsigned(vs2_val[i]), unsigned(vs1_val[i]))),
+          VV_VMAX          => to_bits(SEW, max(signed(vs2_val[i]), signed(vs1_val[i]))),
+          VV_VRGATHER      => {
+                                if (vs1 == vd | vs2 == vd) then { handle_illegal(); return RETIRE_FAIL };
+                                let idx = unsigned(vs1_val[i]);
+                                let VLMAX = int_power(2, LMUL_pow + VLEN_pow - SEW_pow);
+                                assert(VLMAX <= 'n);
+                                if idx < VLMAX then vs2_val[idx] else zeros()
+                              },
+          VV_VRGATHEREI16  => {
+                                if (vs1 == vd | vs2 == vd) then { handle_illegal(); return RETIRE_FAIL };
+                                /* vrgatherei16.vv uses SEW/LMUL for the data in vs2 but EEW=16 and EMUL = (16/SEW)*LMUL for the indices in vs1 */
+                                let vs1_new : vector('n, dec, bits(16)) = read_vreg(num_elem, 16, 4 + LMUL_pow - SEW_pow, vs1);
+                                let idx = unsigned(vs1_new[i]);
+                                let VLMAX = int_power(2, LMUL_pow + VLEN_pow - SEW_pow);
+                                assert(VLMAX <= 'n);
+                                if idx < VLMAX then vs2_val[idx] else zeros()
+                              }
+        }
+      }
+    };
+
+    write_vreg(num_elem, SEW, LMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,51 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: wrs.sto
+long_name: Wait-on-Reservation-Set-with-Short-Timeout
+description: |
+  Instead of polling for a store to a specific memory location, software registers a
+  reservation set that includes all the bytes of the memory location using the LR instruction.
+  A subsequent `wrs.sto` instruction would cause the hart to temporarily stall execution in a
+  low-power state until a store occurs to the reservation set or an interrupt is observed.
+  Sometimes the program waiting on a memory update may also need to carry out a task at a future time
+  or otherwise place an upper bound on the wait. To support such use cases, `wrs.sto` bounds the
+  stall duration to an implementation-define short timeout such that the stall is terminated on the
+  timeout if no other conditions have occurred to terminate the stall. The program using this instruction
+  may then determine if its deadline has been reached.
+  `wrs.sto` causes the hart to temporarily stall execution in a low-power state as long as the reservation
+  set is valid and no pending interrupts, even if disabled, are observed. For `wrs.sto` the stall duration
+  is bounded by an implementation defined short timeout. These instructions are not supported in a
+  constrained LR/SC loop.
+  Hart execution may be stalled while the following conditions are all satisfied:
+  a. The reservation set is valid
+  b. If `wrs.sto`, a "short" duration since start of stall has not elapsed
+  c. No pending interrupt is observed (see the rules below)
+
+  While stalled, an implementation is permitted to occasionally terminate the stall and complete
+  execution for any reason. `wrs.sto` follows the rules of the WFI instruction for resuming execution
+  on a pending interrupt. Since `wrs.sto` can complete execution for reasons other than stores to
+  the reservation set, software will likely need a means of looping until the required stores have occurred.
+
+  [Note]
+  The duration of a `wrs.sto` instruction's timeout may vary significantly within and among implementations.
+  In typical implementations this duration should be roughly in the range of 10 to 100 times an on-chip
+  cache miss latency or a cacheless access to main memory.
+definedBy:
+  extension:
+    name: Zawrs
+assembly: ""
+encoding:
+  match: "00000001110100000000000001110011"
+  variables: []
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

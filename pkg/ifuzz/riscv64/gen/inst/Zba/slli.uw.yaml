@@ -1,0 +1,54 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: slli.uw
+long_name: Shift left unsigned word (Immediate)
+description: |
+  Takes the least-significant word of xs1, zero-extends it, and shifts it
+  left by the immediate.
+
+  [NOTE]
+  This instruction is the same as `slli` with `zext.w` performed on xs1 before shifting.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zba
+encoding:
+  match: 000010-----------001-----0011011
+  variables:
+    - name: shamt
+      location: 25-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+assembly: xd, xs1, shamt
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = X[xs1][31:0] << shamt;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let result : xlenbits = zero_extend(rs1_val[31..0]) << shamt;
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

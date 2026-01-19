@@ -1,0 +1,45 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sfence.w.inval
+long_name: Order writes before sfence
+definedBy:
+  extension:
+    name: Svinval
+encoding:
+  match: "00011000000000000000000001110011"
+description: |
+  The `sfence.w.inval` instruction guarantees that any previous stores already visible to the
+  current RISC-V hart are ordered before subsequent `sinval.vma` instructions executed by the
+  same hart.
+access:
+  s: sometimes
+  u: never
+  vs: sometimes
+  vu: never
+assembly: ""
+operation(): |
+  if (mode() == PrivilegeMode::U) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (CSR[misa].H == 1 && mode() == PrivilegeMode::VU) {
+    raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+  }
+
+  # order all prior stores already visible to the current hart
+  # before any following sfence
+  # Unlike SFENCE.VMA/HFENCE.[GV]VMA, SFENCE.W.INVAL is indiscriminate;
+  # it orders all writes before all page tables
+  VmaOrderType vma_type;
+  vma_type.global = true;
+  vma_type.smode = true;
+  if (CSR[misa].H == 1) {
+    vma_type.vsmode = true;
+    vma_type.gstage = true;
+  }
+  order_pgtbl_writes_before_vmafence(vma_type);

@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.q.h
+long_name: Floating-point Convert Half-precision to Quad-precision
+description: |
+  `fcvt.q.h` converts a half-precision floating-point number to a quad-precision floating-point number.
+definedBy:
+  extension:
+    allOf:
+      - name: Q
+      - name: Zfhmin
+assembly: fd, fs1, rm
+encoding:
+  match: 010001100010-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

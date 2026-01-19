@@ -1,0 +1,34 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fcvt.w.d
+long_name: Floating-Point Convert Double-Precision to Word
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The `fcvt.w.d` instruction converts a double-precision floating-point number in floating-point register `fs1` to a
+  signed 32-bit integer, in integer register `xd`.
+assembly: xd, fs1, rm
+encoding:
+  match: 110000100000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

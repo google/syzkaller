@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: vssseg6e32.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vs3, (xs1), xs2, vm
+encoding:
+  match: 101010-----------110-----0100111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: vs3
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,56 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mop.rr.n
+long_name: May-be-operation (2 source registers)
+description: |
+  The Zimop extension defines 8 MOP instructions named MOP.RR.n, where n is an integer between 0
+  and 7, inclusive. Unless redefined by another extension, these instructions simply write 0 to X[xd].
+  Their encoding allows future extensions to define them to read X[xs1] and X[xs2], as well as write X[xd].
+definedBy:
+  extension:
+    name: Zimop
+assembly: xd, xs1, xs2
+encoding:
+  match: 1-00--1----------100-----1110011
+  variables:
+    - name: n
+      location: 30|27-26
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+hints:
+  - { $ref: inst/Zicfilp/sspush.x1.yaml# }
+  - { $ref: inst/Zicfilp/sspush.x5.yaml# }
+pseudoinstructions:
+  - when: n == 0
+    to: mop.rr.0
+  - when: n == 1
+    to: mop.rr.1
+  - when: n == 2
+    to: mop.rr.2
+  - when: n == 3
+    to: mop.rr.3
+  - when: n == 4
+    to: mop.rr.4
+  - when: n == 5
+    to: mop.rr.5
+  - when: n == 6
+    to: mop.rr.6
+  - when: n == 7
+    to: mop.rr.7
+operation(): |
+  X[xd] = 0;

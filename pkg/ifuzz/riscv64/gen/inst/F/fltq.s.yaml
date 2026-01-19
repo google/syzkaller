@@ -1,0 +1,50 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fltq.s
+long_name: Floating-Point Less Than Quiet Single-Precision
+description: |
+  The `fltq.s` is defined like the `flt.s` instruction, except that quiet NaN inputs do not cause
+  the invalid operation exception flag to be set.
+definedBy:
+  extension:
+    name: Zfa
+assembly: xd, fs1, fs2
+encoding:
+  match: 1010000----------101-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_S = F_S(rs1);
+    let rs2_val_S = F_S(rs2);
+
+    let (fflags, rd_val) : (bits_fflags, bool) =
+        riscv_f32Lt_quiet   (rs1_val_S, rs2_val_S);
+
+    accrue_fflags(fflags);
+    X(rd) = zero_extend(bool_to_bits(rd_val));
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

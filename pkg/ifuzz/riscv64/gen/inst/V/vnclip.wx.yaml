@@ -1,0 +1,87 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vnclip.wx
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, xs1, vm
+encoding:
+  match: 101111-----------100-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let num_elem = get_num_elem(LMUL_pow, SEW);
+    let SEW_widen      = SEW * 2;
+    let LMUL_pow_widen = LMUL_pow + 1;
+
+    if  illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
+        not(valid_reg_overlap(vs2, vd, LMUL_pow_widen, LMUL_pow))
+    then { handle_illegal(); return RETIRE_FAIL };
+
+    let 'n = num_elem;
+    let 'm = SEW;
+    let 'o = SEW_widen;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, vm, 0b00000);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
+    let rs1_val : bits('m)                  = get_scalar(rs1, SEW);
+    let vs2_val : vector('n, dec, bits('o)) = read_vreg(num_elem, SEW_widen, LMUL_pow_widen, vs2);
+    result      : vector('n, dec, bits('m)) = undefined;
+    mask        : vector('n, dec, bool)     = undefined;
+
+    (result, mask) = init_masked_result(num_elem, SEW, LMUL_pow, vd_val, vm_val);
+
+    assert(SEW_widen <= 64);
+    foreach (i from 0 to (num_elem - 1)) {
+      if mask[i] then {
+        let shift_amount = get_shift_amount(rs1_val, SEW_widen);
+        let rounding_incr = get_fixed_rounding_incr(vs2_val[i], shift_amount);
+        result[i] = match funct6 {
+          NX_VNCLIPU => {
+                          let result_wide = (vs2_val[i] >> shift_amount) + zero_extend('o, rounding_incr);
+                          unsigned_saturation('m, result_wide)
+                        },
+          NX_VNCLIP  => {
+                          let v_double : bits('m * 4) = sign_extend(vs2_val[i]);
+                          let result_wide = slice(v_double >> shift_amount, 0, 'o) + zero_extend('o, rounding_incr);
+                          signed_saturation('m, result_wide)
+                        }
+        }
+      }
+    };
+
+    write_vreg(num_elem, SEW, LMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

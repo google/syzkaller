@@ -1,0 +1,62 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: csrrsi
+long_name: Atomic Read and Set Bits in CSR with Immediate
+description: |
+  The CSRRSI variant is similar to CSRRS, except this updates the CSR using an XLEN-bit value obtained
+  by zero-extending a 5-bit unsigned immediate (imm[4:0]) field encoded in the `xs1` field instead of a
+  value from an integer register. For CSRRSI, if the `imm[4:0]` field is zero, then this instruction
+  will not write to the CSR, and shall not cause any of the side effects that might otherwise occur on
+  a CSR write, nor raise illegal-instruction exceptions on accesses to read-only CSRs. The CSRRSI will
+  always read the CSR and cause any read side effects regardless of `xd` and `xs1` fields.
+definedBy:
+  extension:
+    name: Zicsr
+assembly: xd, csr, imm
+encoding:
+  match: "-----------------110-----1110011"
+  variables:
+    - name: csr
+      location: 31-20
+    - name: imm
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+pseudoinstructions:
+  - when: xd == 0
+    to: csrsi csr,imm
+operation(): |
+  Boolean will_write = imm != 0;
+
+  Csr csr_handle = direct_csr_lookup(csr);
+
+  # permission checks
+  if (csr_handle.valid == false) {
+    unimplemented_csr($encoding);
+  } else if (!compatible_mode?(csr_handle.mode, mode())) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  } else if (will_write && csr_handle.writable == false) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg initial_csr_value = csr_sw_read(csr_handle);
+
+  if (will_write) {
+    # set bits using the mask
+    # performing any WARL transformations first
+    XReg mask = imm;
+    csr_sw_write(csr_handle, initial_csr_value | mask);
+  }
+
+  X[xd] = initial_csr_value;

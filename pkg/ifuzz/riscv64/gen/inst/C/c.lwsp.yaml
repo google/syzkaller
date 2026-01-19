@@ -1,0 +1,41 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.lwsp
+long_name: Load word from stack pointer
+description: |
+  Loads a 32-bit value from memory into register xd.
+  It computes an effective address by adding the zero-extended offset, scaled by 4,
+  to the stack pointer, x2.
+  It expands to `lw` `xd, offset(x2)`.
+  C.LWSP is only valid when xd &ne; x0. The code points with xd=x0 are reserved.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, imm(sp)
+encoding:
+  match: 010-----------10
+  variables:
+    - name: imm
+      location: 3-2|12|6-4
+      left_shift: 2
+    - name: xd
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[2] + imm;
+
+  X[xd] = sext(read_memory<32>(virtual_address, $encoding), 32);

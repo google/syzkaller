@@ -1,0 +1,50 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: ebreak
+long_name: Breakpoint exception
+description: |
+  The EBREAK instruction is used by debuggers to cause control to be transferred back to
+  a debugging environment. Unless overridden by an external debug environment,
+  EBREAK raises a breakpoint exception and performs no other operation.
+
+  [NOTE]
+  As described in the `C` Standaxd Extension for Compressed Instructions, the `c.ebreak`
+  instruction performs the same operation as the EBREAK instruction.
+
+  EBREAK causes the receiving privilege mode's epc register to be set to the address of
+  the EBREAK instruction itself, not the address of the following instruction.
+  As EBREAK causes a synchronous exception, it is not considered to retire,
+  and should not increment the `minstret` CSR.
+definedBy:
+  extension:
+    name: I
+assembly: ""
+encoding:
+  match: "00000000000100000000000001110011"
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (TRAP_ON_EBREAK) {
+    raise_precise(ExceptionCode::Breakpoint, mode(), $pc);
+  } else {
+    eei_ebreak();
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    handle_mem_exception(PC, E_Breakpoint());
+    RETIRE_FAIL
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fle.q
+long_name: Floating-Point Less Than or Equal Quad-Precision
+description: |
+  The `fle.q` performs the specified comparison between floating-point registers `fs1` and `fs2`,
+  and writes 1 to integer register `xd` if the condition holds, and 0 otherwise.
+
+  `fle.q` performs what the IEEE 754-2008 standard refers to as signaling comparisons: that is,
+  they set the invalid operation exception flag if either input is _NaN_.
+  The result is 0 if either operand is _NaN_.
+
+definedBy:
+  extension:
+    name: Q
+assembly: xd, fs1, fs2
+encoding:
+  match: 1010011----------000-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

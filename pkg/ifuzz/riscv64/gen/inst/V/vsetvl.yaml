@@ -1,0 +1,147 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vsetvl
+long_name: Vector Set Vector Type and Vector Length
+description: Set the vtype and vl CSRs, and write the new value of vl into rd.
+definedBy:
+  extension:
+    name: V
+assembly: xd, xs1, xs2
+encoding:
+  match: 1000000----------111-----1010111
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+  XReg new_vtype = X[xs2];
+  if ((new_vtype[xlen() - 1] == 1'b1) # software is setting the illegal bit
+      || ((new_vtype & 8'd0) != 0)    # reserved bits
+      || (new_vtype[5] == 1)          # reserved vsew encoding
+      || (new_vtype[2:0] == 3'b100)   # reserved vlmul encoding
+      || (xlen() == 32 && new_vtype[2:0] == 3'b101)) # reserved LMUL in RV32
+  {
+    CSR[vtype].VILL = 1;
+    CSR[vtype].VMA = 0;
+    CSR[vtype].VTA = 0;
+    CSR[vtype].VSEW = 0;
+    CSR[vtype].VLMUL = 0;
+  } else {
+    # valid, do the write
+    CSR[vtype].VILL = 0;
+    CSR[vtype].VMA = new_vtype[7];
+    CSR[vtype].VTA = new_vtype[6];
+    CSR[vtype].VSEW = new_vtype[5:3];
+    CSR[vtype].VLMUL = new_vtype[2:0];
+  }
+
+  VectorState state = vector_state();
+  XReg vlen = VLEN;
+  XReg vlmax = (vlen << state.log2_lmul) >> state.log2_sew;
+  XReg avl = X[xs1];
+  XReg ceil_avl_over_two = (avl + 1) / 2;
+  if (avl < vlmax) {
+    CSR[vl].VALUE = avl;
+  } else if (avl < 2*vlmax) {
+    if (RVV_VL_WHEN_AVL_LT_DOUBLE_VLMAX == "ceil(AVL/2)") {
+      CSR[vl].VALUE = ceil_avl_over_two;
+    } else if (RVV_VL_WHEN_AVL_LT_DOUBLE_VLMAX == "VLMAX") {
+      CSR[vl].VALUE = vlmax;
+    } else {
+      unpredictable("Implementations may choose a custom value for vl in the case AVL < (2*VLMAX), so long as ceil(AVL/2) <= vl <= VLMAX");
+    }
+  } else {
+    CSR[vl].VALUE = vlmax;
+  }
+
+  X[xd] = CSR[vl].VALUE;
+  CSR[vstart].VALUE = 0;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let VLEN_pow      = get_vlen_pow();
+    let ELEN_pow      = get_elen_pow();
+    let LMUL_pow_ori  = get_lmul_pow();
+    let SEW_pow_ori   = get_sew_pow();
+    let ratio_pow_ori = SEW_pow_ori - LMUL_pow_ori;
+
+    /* set vtype */
+    match op {
+      VSETVLI => {
+        vtype->bits() = 0b0 @ zeros(sizeof(xlen) - 9) @ ma @ ta @ sew @ lmul
+      },
+      VSETVL  => {
+        let rs2 : regidx = sew[1 .. 0] @ lmul;
+        vtype->bits() = X(rs2)
+      }
+    };
+
+    /* check legal SEW and LMUL and calculate VLMAX */
+    let LMUL_pow_new = get_lmul_pow();
+    let SEW_pow_new  = get_sew_pow();
+    if SEW_pow_new > LMUL_pow_new + ELEN_pow then {
+      /* Note: Implementations can set vill or trap if the vtype setting is not supported.
+       * TODO: configuration support for both solutions
+       */
+      vtype->bits() = 0b1 @ zeros(sizeof(xlen) - 1); /* set vtype.vill */
+      vl = zeros();
+      print_reg("CSR vtype <- " ^ BitStr(vtype.bits()));
+      print_reg("CSR vl <- " ^ BitStr(vl));
+      return RETIRE_SUCCESS
+    };
+    let VLMAX = int_power(2, VLEN_pow + LMUL_pow_new - SEW_pow_new);
+
+    /* set vl according to VLMAX and AVL */
+    if (rs1 != 0b00000) then { /* normal stripmining */
+      let rs1_val = X(rs1);
+      let AVL = unsigned(rs1_val);
+      vl = if AVL <= VLMAX then to_bits(sizeof(xlen), AVL)
+           else if AVL < 2 * VLMAX then to_bits(sizeof(xlen), (AVL + 1) / 2)
+           else to_bits(sizeof(xlen), VLMAX);
+      /* Note: ceil(AVL / 2) <= vl <= VLMAX when VLMAX < AVL < (2 * VLMAX)
+       * TODO: configuration support for either using ceil(AVL / 2) or VLMAX
+       */
+      X(rd) = vl;
+    } else if (rd != 0b00000) then { /* set vl to VLMAX */
+      let AVL = unsigned(ones(sizeof(xlen)));
+      vl = to_bits(sizeof(xlen), VLMAX);
+      X(rd) = vl;
+    } else { /* keep existing vl */
+      let AVL = unsigned(vl);
+      let ratio_pow_new = SEW_pow_new - LMUL_pow_new;
+      if (ratio_pow_new != ratio_pow_ori) then {
+        /* Note: Implementations can set vill or trap if the vtype setting is not supported.
+         * TODO: configuration support for both solutions
+         */
+        vtype->bits() = 0b1 @ zeros(sizeof(xlen) - 1); /* set vtype.vill */
+        vl = zeros();
+      }
+    };
+    print_reg("CSR vtype <- " ^ BitStr(vtype.bits()));
+    print_reg("CSR vl <- " ^ BitStr(vl));
+
+    /* reset vstart to 0 */
+    vstart = zeros();
+    print_reg("CSR vstart <- " ^ BitStr(vstart));
+
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

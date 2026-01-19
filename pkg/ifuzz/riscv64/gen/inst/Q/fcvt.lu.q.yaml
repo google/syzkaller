@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.lu.q
+long_name: Floating-Point Convert Quad-Precision to Unsigned Long
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Q
+description: |
+  `fcvt.lu.q` converts a quad-precision floating-point number to an unsigned 64-bit integer.
+assembly: xd, fs1, rm
+encoding:
+  match: 110001100011-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

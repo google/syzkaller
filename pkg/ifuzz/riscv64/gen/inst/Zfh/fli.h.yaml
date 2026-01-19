@@ -1,0 +1,31 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fli.h
+long_name: Floating-point Load Immediate Half-precision
+description: |
+  No description available.
+definedBy:
+  extension:
+    allOf:
+      - name: Zfa
+      - name: Zfh
+assembly: fd, xs1
+encoding:
+  match: 111101000001-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

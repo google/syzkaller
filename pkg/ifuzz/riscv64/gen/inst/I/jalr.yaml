@@ -1,0 +1,78 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: jalr
+long_name: Jump and link register
+description: |
+  Jump to an address formed by adding xs1
+  to a signed offset then clearing the least
+  significant bit, and store the return address
+  in xd.
+definedBy:
+  extension:
+    name: I
+assembly: xd, imm(xs1)
+encoding:
+  match: "-----------------000-----1100111"
+  variables:
+    - name: imm
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: xd == 0
+    to: jr imm(xs1)
+  - when: (rd == 0 && xs1 == x1 && imm == 0)
+    to: ret
+operation(): |
+  XReg addr = (X[xs1] + $signed(imm)) & ~MXLEN'1;
+  XReg returnaddr;
+  returnaddr = $pc + 4;
+
+  X[xd] = returnaddr;
+  jump(addr);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+  /* For the sequential model, the memory-model definition doesn't work directly
+   * if xs1 = xd.  We would effectively have to keep a regfile for reads and another for
+   * writes, and swap on instruction completion.  This could perhaps be optimized in
+   * some manner, but for now, we just keep a reoxdered definition to improve simulator
+   * performance.
+   */
+    let t : xlenbits = X(xs1) + sign_extend(imm);
+    /* Extensions get the first checks on the prospective target address. */
+    match ext_control_check_addr(t) {
+      Ext_ControlAddr_Error(e) => {
+        ext_handle_control_check_error(e);
+        RETIRE_FAIL
+      },
+      Ext_ControlAddr_OK(addr) => {
+        let target = [addr with 0 = bitzero];  /* clear addr[0] */
+        if bit_to_bool(target[1]) & not(extension("C")) then {
+          handle_mem_exception(target, E_Fetch_Addr_Align());
+          RETIRE_FAIL
+        } else {
+          X(xd) = get_next_pc();
+          set_next_pc(target);
+          RETIRE_SUCCESS
+        }
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

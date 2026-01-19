@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: flq
+long_name: Floating-Point Load Quad-Precision
+description: |
+  The `flq` is the new variant of LOAD-FP, encoded with a new value for the `funct3`.
+
+  `flq` is only guaranteed to execute atomically if the effective address is naturally aligned XLEN=128.
+
+  `flq` does not modify the bits being transferred; in particular, the payloads of non-canonical
+  _NaNs_ are preserved.
+
+definedBy:
+  extension:
+    name: Q
+assembly: fd, xs1, imm
+encoding:
+  match: "-----------------100-----0000111"
+  variables:
+    - name: imm
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,58 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: addi
+long_name: Add immediate
+description:
+  Adds an immediate value to the value in xs1, and store the result in
+  xd
+definedBy:
+  extension:
+    name: I
+assembly: xd, xs1, imm
+encoding:
+  match: "-----------------000-----0010011"
+  variables:
+    - name: imm
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+pseudoinstructions:
+  - when: (xd == 0 && xs1 == 0 && imm == 0)
+    to: nop
+  - when: imm == 0
+    to: mv xd,xs1
+operation(): X[xd] = X[xs1] + $signed(imm);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let xs1_val = X(xs1);
+    let immext : xlenbits = sign_extend(imm);
+    let result : xlenbits = match op {
+      RISCV_ADDI  => xs1_val + immext,
+      RISCV_SLTI  => zero_extend(bool_to_bits(xs1_val <_s immext)),
+      RISCV_SLTIU => zero_extend(bool_to_bits(xs1_val <_u immext)),
+      RISCV_ANDI  => xs1_val & immext,
+      RISCV_ORI   => xs1_val | immext,
+      RISCV_XORI  => xs1_val ^ immext
+    };
+    X(xd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

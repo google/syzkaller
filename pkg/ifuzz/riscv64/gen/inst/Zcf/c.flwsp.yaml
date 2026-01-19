@@ -1,0 +1,42 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.flwsp
+long_name: Load word into floating-point register from stack
+description: |
+  Loads a single-precision floating-point value from memory into floating-point register fd.
+  It computes its effective address by adding the zero-extended offset, scaled by 4,
+  to the stack pointer, x2.
+  It expands to `flw` `fd, offset(x2)`.
+definedBy:
+  extension:
+    name: Zcf
+assembly: fd, imm(sp)
+encoding:
+  match: 011-----------10
+  variables:
+    - name: imm
+      location: 3-2|12|6-4
+      left_shift: 2
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  if (implemented?(ExtensionName::F) && (CSR[misa].F == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[2] + imm;
+
+  f[fd] = read_memory<32>(virtual_address, $encoding);

@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: aes64ks1i
+long_name: AES Key Schedule Instruction 1
+description: |
+  This instruction implements the rotation, SubBytes and Round Constant addition steps of the AES
+  block cipher Key Schedule.
+  `rnum` must be in the range `0x0..0xA`. The values `0xB..0xF` are reserved.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        anyOf:
+          - name: Zknd
+          - name: Zkne
+assembly: xd, xs1, rnum
+encoding:
+  match: 00110001---------001-----0010011
+  variables:
+    - name: rnum
+      location: 23-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |

@@ -1,0 +1,40 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fdiv.q
+long_name: Floating-Point Divide Quad-Precision
+description: |
+  The `fdiv.q` performs the quad-precision floating-point division of `fs1` by `fs2` and writes
+  the result to floating-point register `fd`.`
+  The rounding mode is specified by the value in the floating-point Control and Status register (FCSR)
+  or by the value in the `rm` field of the instruction.
+
+  The operation is performed according to the IEEE 754-2008 standard for quad-precision floating-point arithmetic.
+
+  The instruction sets the floating-point exception flags according to the result of the operation.
+definedBy:
+  extension:
+    name: Q
+assembly: fd, fs1, fs2, rm
+encoding:
+  match: 0001111------------------1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

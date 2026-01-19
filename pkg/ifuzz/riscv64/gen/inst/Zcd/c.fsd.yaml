@@ -1,0 +1,41 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.fsd
+long_name: Store double-precision
+description: |
+  Stores a double precision floating-point value in register fs2 to memory.
+  It computes an effective address by adding the zero-extended offset, scaled by 8,
+  to the base address in register xs1.
+  It expands to `fsd` `fs2, offset(xs1)`.
+definedBy:
+  extension:
+    name: Zcd
+assembly: fs2, imm(xs1)
+encoding:
+  match: 101-----------00
+  variables:
+    - name: imm
+      location: 6-5|12-10
+      left_shift: 3
+    - name: fs2
+      location: 4-2
+    - name: xs1
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[creg2reg(xs1)] + imm;
+
+  write_memory<64>(virtual_address, X[creg2reg(fs2)], $encoding);

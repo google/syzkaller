@@ -1,0 +1,69 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: zext.h
+long_name: Zero-extend halfword
+description: |
+  Zero-extends the least-significant halfword of the source to XLEN by inserting
+  0's into all of the bits more significant than 15.
+
+  [NOTE]
+  The *zext.h* instruction is a pseudo-op for `pack` when `Zbkb` is implemented and XLEN == 32.
+
+  [NOTE]
+  The *zext.h* instruction is a pseudo-op for `packw` when `Zbkb` is implemented and XLEN == 64.
+definedBy:
+  # When The Bit-manipulation for Cryptography extension (Zbkb) is implemented, then zext.h is an alias of pack.
+  extension:
+    allOf:
+      - name: Zbb
+      - not:
+          name: Zbkb
+encoding:
+  RV32:
+    match: 000010000000-----100-----0110011
+    variables:
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+  RV64:
+    match: 000010000000-----100-----0111011
+    variables:
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+assembly: xd, xs1
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = X[xs1][15:0];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let result : xlenbits = match op {
+      RISCV_SEXTB => sign_extend(rs1_val[7..0]),
+      RISCV_SEXTH => sign_extend(rs1_val[15..0]),
+      RISCV_ZEXTH => zero_extend(rs1_val[15..0])
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

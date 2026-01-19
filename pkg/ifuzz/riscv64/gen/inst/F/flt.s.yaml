@@ -1,0 +1,70 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: flt.s
+long_name: Floating-Point Less Than Single-Precision
+description: |
+  The `flt.s` instruction writes 1 to `xd` if `fs1` is less than `fs2`, and 0 otherwise.
+  If either operand is NaN, the result is 0 (not equal). If either operand is a NaN
+  (signaling or quiet), the invalid flag is set.
+
+definedBy:
+  extension:
+    name: F
+assembly: xd, fs1, fs2
+encoding:
+  match: 1010000----------001-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  check_f_ok($encoding);
+
+  Bits<32> sp_value_a = f[fs1][31:0];
+  Bits<32> sp_value_b = f[fs2][31:0];
+
+  if (is_sp_nan?(sp_value_a) || is_sp_nan?(sp_value_b)) {
+    set_fp_flag(FpFlag::NV);
+    X[xd] = 0;
+  } else {
+    Boolean sign_a = sp_value_a[31] == 1;
+    Boolean sign_b = sp_value_b[31] == 1;
+
+    Boolean a_lt_b =
+      (sign_a != sign_b)
+        ? (sign_a && ((sp_value_a[30:0] | sp_value_b[30:0]) != 0)) # opposite sign, a is negative. a is less than b as long as both are not zero
+        : ((sp_value_a != sp_value_b) && (sign_a != (sp_value_a < sp_value_b)));
+    X[xd] = a_lt_b ? 1 : 0;
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_S = F_or_X_S(rs1);
+    let rs2_val_S = F_or_X_S(rs2);
+
+    let (fflags, rd_val) : (bits_fflags, bool) =
+        riscv_f32Le (rs1_val_S, rs2_val_S);
+
+    accrue_fflags(fflags);
+    X(rd) = zero_extend(bool_to_bits(rd_val));
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

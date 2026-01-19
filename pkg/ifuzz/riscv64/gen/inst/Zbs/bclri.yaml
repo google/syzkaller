@@ -1,0 +1,69 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: bclri
+long_name: Single-Bit clear (Immediate)
+description: |
+  Returns xs1 with a single bit cleared at the index specified in shamt. The
+  index is read from the lower log2(XLEN) bits of shamt. For RV32, the encodings corresponding
+  to shamt[5]=1 are reserved.
+definedBy:
+  extension:
+    name: Zbs
+assembly: xd, xs1, shamt
+encoding:
+  RV32:
+    match: 0100100----------001-----0010011
+    variables:
+      - name: shamt
+        location: 24-20
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+  RV64:
+    match: 010010-----------001-----0010011
+    variables:
+      - name: shamt
+        location: 25-20
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg index = shamt & (xlen() - 1);
+  X[xd] = X[xs1] & ~(1 << index);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let mask : xlenbits = if sizeof(xlen) == 32
+                          then zero_extend(0b1) << shamt[4..0]
+                          else zero_extend(0b1) << shamt;
+    let result : xlenbits = match op {
+      RISCV_BCLRI => rs1_val & ~(mask),
+      RISCV_BEXTI => zero_extend(bool_to_bits((rs1_val & mask) != zeros())),
+      RISCV_BINVI => rs1_val ^ mask,
+      RISCV_BSETI => rs1_val | mask
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

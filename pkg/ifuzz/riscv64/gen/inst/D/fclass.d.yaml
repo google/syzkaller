@@ -1,0 +1,53 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fclass.d
+long_name: Floating-Point Classify Double-Precision
+description: |
+  The `fclass.d` instruction is defined analogously to its single-precision counterpart, but operates on double-precision
+  operands. It examines the value in floating-point register `fs1` and writes to integer register `xd` a 10-bit mask that
+  indicates the class of the floating point number.
+
+  The format of the mask is described in the table below. The corresponding bit in `xd` will be set if the property
+  is true and clear otherwise. All other bits in `xd` are cleared. Note that exactly one bit in `xd` will be set.
+
+  .Format of result of `fclass` instruction.
+  [%autowidth,float="center",align="center",cols="^,<",options="header",]
+  |===
+  |_xd_ bit |Meaning
+  |0 |_fs1_ is latexmath:[$-\infty$].
+  |1 |_fs1_ is a negative normal number.
+  |2 |_fs1_ is a negative subnormal number.
+  |3 |_fs1_ is latexmath:[$-0$].
+  |4 |_fs1_ is latexmath:[$+0$].
+  |5 |_fs1_ is a positive subnormal number.
+  |6 |_fs1_ is a positive normal number.
+  |7 |_fs1_ is latexmath:[$+\infty$].
+  |8 |_fs1_ is a signaling NaN.
+  |9 |_fs1_ is a quiet NaN.
+  |===
+
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+assembly: xd, fs1
+encoding:
+  match: 111000100000-----001-----1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

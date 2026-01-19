@@ -1,0 +1,66 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.srai
+long_name: Shift right arithmetical immediate
+description: |
+  Arithmetic shift (the original sign bit is copied into the vacated upper bits) the value in xd right by shamt, and store the result in xd.
+  The xd register index should be used as xd+8 (registers x8-x15).
+  C.SRAI expands into `srai xd, xd, shamt`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, shamt
+encoding:
+  RV32:
+    match: 100001--------01
+    variables:
+      - name: shamt
+        location: 6-2
+        not: 0
+      - name: xd
+        location: 9-7
+  RV64:
+    match: 100-01--------01
+    variables:
+      - name: shamt
+        location: 12|6-2
+        not: 0
+      - name: xd
+        location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  # shamt is between 0-63
+  X[creg2reg(xd)] = X[creg2reg(xd)] >>> shamt;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rd_val = X(rd+8);
+    /* the decoder guard should ensure that shamt[5] = 0 for RV32 */
+    let result : xlenbits = match op {
+      RISCV_SLLI => if   sizeof(xlen) == 32
+                    then rd_val << shamt[4..0]
+                    else rd_val << shamt,
+      RISCV_SRLI => if   sizeof(xlen) == 32
+                    then rd_val >> shamt[4..0]
+                    else rd_val >> shamt,
+      RISCV_SRAI => if   sizeof(xlen) == 32
+                    then shift_right_arith32(rd_val, shamt[4..0])
+                    else shift_right_arith64(rd_val, shamt)
+    };
+    X(rd+8) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

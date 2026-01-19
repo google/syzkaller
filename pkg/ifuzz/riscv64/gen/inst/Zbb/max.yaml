@@ -1,0 +1,71 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: max
+long_name: Maximum
+description: |
+  Returns the larger of two signed integers.
+
+  .Software Hint
+  [NOTE]
+  Calculating the absolute value of a signed integer can be performed using the
+  following sequence: `neg rD,rS` followed by `max rD,rS,rD. When using this
+  common sequence, it is suggested that they are scheduled with no intervening
+  instructions so that implementations that are so optimized can fuse them
+  together.
+definedBy:
+  extension:
+    name: Zbb
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000101----------110-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = ($signed(X[xs1]) > $signed(X[xs2])) ? X[xs1] : X[xs2];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    let result : xlenbits = match op {
+      RISCV_ANDN => rs1_val & ~(rs2_val),
+      RISCV_ORN  => rs1_val | ~(rs2_val),
+      RISCV_XNOR => ~(rs1_val ^ rs2_val),
+      RISCV_MAX  => to_bits(sizeof(xlen), max(signed(rs1_val),   signed(rs2_val))),
+      RISCV_MAXU => to_bits(sizeof(xlen), max(unsigned(rs1_val), unsigned(rs2_val))),
+      RISCV_MIN  => to_bits(sizeof(xlen), min(signed(rs1_val),   signed(rs2_val))),
+      RISCV_MINU => to_bits(sizeof(xlen), min(unsigned(rs1_val), unsigned(rs2_val))),
+      RISCV_ROL  => if sizeof(xlen) == 32
+                    then rs1_val <<< rs2_val[4..0]
+                    else rs1_val <<< rs2_val[5..0],
+      RISCV_ROR  => if sizeof(xlen) == 32
+                    then rs1_val >>> rs2_val[4..0]
+                    else rs1_val >>> rs2_val[5..0]
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

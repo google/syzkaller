@@ -1,0 +1,94 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.h.s
+long_name: Convert half-precision float to a single-precision float
+definedBy:
+  extension:
+    oneOf:
+      - name: Zfhmin
+      - name: Zhinxmin
+assembly: fd, fs1, rm
+description: |
+  Converts a half-precision number in floating-point register _fs1_ into a single-precision floating-point number in
+  floating-point register _fd_.
+
+  `fcvt.h.s` rounds according to the _rm_ field.
+
+  All floating-point conversion instructions set the Inexact exception flag if the rounded
+  result differs from the operand value and the Invalid exception flag is not set.
+
+encoding:
+  match: 010001000000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  check_f_ok($encoding);
+
+  Bits<16> hp_value = f[fs1][15:0];
+
+  Bits<1> sign = hp_value[15];
+  Bits<5> exp = hp_value[14:10];
+  Bits<10> frac = hp_value[9:0];
+
+  if (exp == 0x1F) {
+    if (frac != 0) {
+      if ((hp_value & 0x0200) != 0) {
+        set_fp_flag(FpFlag::NV);
+      }
+      f[fd] = HP_CANONICAL_NAN;
+    } else {
+      f[fd] = packToF32UI(sign, 0xFF, 0);
+    }
+  } else {
+    if (exp != 0) {
+      if (frac != 0) {
+        f[fd] = packToF32UI(sign, 0, 0);
+      } else {
+        Bits<6> norm_exp;
+        (norm_exp, frac) = softfloat_normSubnormalF16Sig( frac );
+        exp = norm_exp - 1;
+        f[fd] = packToF32UI(sign, exp + 0x70, frac << 13);
+      }
+    } else {
+      f[fd] = packToF32UI(sign, exp + 0x70, frac << 13);
+    }
+  }
+
+  mark_f_state_dirty();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    assert(sizeof(xlen) >= 64);
+    let rs1_val_LU = X(rs1)[63..0];
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_H) = riscv_ui64ToF16 (rm_3b, rs1_val_LU);
+
+        accrue_fflags(fflags);
+        F_or_X_H(rd) = rd_val_H;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

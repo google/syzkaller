@@ -1,0 +1,85 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cbo.zero
+long_name: Cache Block Zero
+description: |
+  Zeros an entire cache block
+
+  The block zeroing does not need to be atomic.
+
+  `cbo.zero` is ordered by `FENCE` instructions but not `FENCE.I` or `SFENCE.VMA`.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length > [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Both PMP and PMA access control must be the same for all bytes in the block; otherwise, `cbo.zero` has UNSPECIFIED behavior.
+  <%- end -%>
+
+  Clean operations are treated as stores for page and access permissions. If permission checks fail,
+  one of the following exceptions will occur:
+
+    <%- if ext?(:H) -%>
+    * `Store/AMO Guest-Page Fault` if virtual memory translation fails during G-stage translation.
+    <%- end -%>
+    * `Store/AMO Page Fault` if virtual memory translation fails <% if ext?(:H) %>when V=0 or during VS-stage translation<% end %>
+    * `Store/AMO Access Fault` if a PMP or PMA access check fails.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length <= [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Because cache blocks are naturally aligned and always fit in a single PMP or PMA regions, the PMP
+  and PMA access checks only need to check a single address in the line.
+  <%- end -%>
+
+  CBO operations never raise a misaligned address fault.
+definedBy:
+  extension:
+    name: Zicboz
+assembly: (xs1)
+encoding:
+  match: 000000000100-----010000000001111
+  variables:
+    - name: xs1
+      location: 19-15
+access:
+  m: always
+  s: sometimes
+  u: sometimes
+  vs: sometimes
+  vu: sometimes
+access_detail: |
+  Access is controlled through `menvcfg.CBZE`, `senvcfg.CBZE`, and `henvcfg.CBZE`.
+  When access is denied, the instruction either raises an `Illegal Instruction`
+  or `Virtual Instruction` exception according to the table below.
+
+  [%autowidth,cols="1,1,1,1,1,1,1",separator="!"]
+  !===
+  .2+h![.rotate]#`menvcfg.CBZE`# .2+h! [.rotate]#`senvcfg.CBZE`# .2+h! [.rotate]#`henvcfg.CBZE`#
+  4+^.>h! `cbo.zero` Instruction Behavior
+  .^h! S-mode .^h! U-mode .^h! VS-mode .^h! VU-mode
+
+  ! 0 ! - ! - ! `Illegal Instruction` ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 0 ! 0 ! executes  ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 1 ! 0 ! executes ! executes ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 0 ! 1 ! executes ! `Illegal Instruction` ! executes ! `Virtual Instruction`
+  ! 1 ! 1 ! 1 ! executes ! executes ! executes ! executes
+  !===
+operation(): |
+  if ((mode() == PrivilegeMode::M && CSR[menvcfg].CBZE == 0) ||
+      (mode() == PrivilegeMode::U && CSR[senvcfg].CBZE == 0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  else if ((mode() == PrivilegeMode::VS && CSR[henvcfg].CBZE ==0) ||
+           (mode() == PrivilegeMode::VU && (CSR[henvcfg].CBZE | CSR[senvcfg].CBZE) == 0)) {
+    raise(ExceptionCode::VirtualInstruction, mode(), $encoding);
+  } else {
+    XReg mask = CACHE_BLOCK_SIZE - 1;
+    XReg cache_block_vaddr = X[xs1] & ~mask;
+
+    TranslationResult result;
+    result = translate(cache_block_vaddr, MemoryOperation::Write, effective_ldst_mode(), $encoding);
+    access_check(result.paddr, CACHE_BLOCK_SIZE*8, cache_block_vaddr, MemoryOperation::Write, ExceptionCode::StoreAmoAccessFault, effective_ldst_mode());
+
+    cache_block_zero(result.paddr);
+  }

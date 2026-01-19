@@ -1,0 +1,41 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.sw
+long_name: Store word
+description: |
+  Stores a 32-bit value in register xs2 to memory.
+  It computes an effective address by adding the zero-extended offset, scaled by 4,
+  to the base address in register xs1.
+  It expands to `sw` `rs2, offset(xs1)`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xs2, imm(xs1)
+encoding:
+  match: 110-----------00
+  variables:
+    - name: imm
+      location: 5|12-10|6
+      left_shift: 2
+    - name: xs2
+      location: 4-2
+    - name: xs1
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[creg2reg(xs1)] + imm;
+
+  write_memory<32>(virtual_address, X[creg2reg(xs2)][31:0], $encoding);

@@ -1,0 +1,66 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: clmulh
+long_name: Carry-less multiply (high-part)
+description: |
+  `clmulh` produces the upper half of the 2*XLEN carry-less product
+definedBy:
+  extension:
+    anyOf:
+      - name: Zbc
+      - name: Zbkc
+assembly: xd, xs1, xs2
+format:
+  $inherits:
+    - inst_subtype/R/R-x.yaml#/data
+  opcodes:
+    funct7:
+      display_name: CLMUL
+      value: 0b0000101
+    funct3:
+      display_name: CLMULH
+      value: 0b011
+    opcode: { $inherits: inst_opcode/OP.yaml#/data }
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg xs1_val = X[xs1];
+  XReg xs2_val = X[xs2];
+  XReg output = 0;
+
+  for (U32 i=1; i <= xlen(); i++) {
+    output = (((xs2_val >> i) & 1) == 1)
+      ? output ^ (xs1_val >> (xlen() - i))
+      : output;
+  }
+
+  X[xd] = output;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    result : xlenbits = zeros();
+    foreach (i from 0 to (xlen_val - 1))
+      if rs2_val[i] == bitone then result = result ^ (rs1_val >> (xlen_val - i));
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

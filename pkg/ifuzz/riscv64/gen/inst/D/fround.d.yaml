@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fround.d
+long_name: Floating-Point Round Double-Precision
+description: |
+  The `fround.d` instruction rounds the double-precision floating-point number in floating-point register
+  `fs1` to an integer, according to the rounding mode specified in the instruction's `rm` field. It then writes
+  that integer, represented as a double-precision floating-point number, to floating-point register `fd`. Zero
+  and infinite inputs are copied to `fd` unmodified. Signaling NaN inputs cause the invalid operation
+  exception flag to be set; no other exception flags are set. `fround.d` is encoded like `fcvt.d.s`, but with
+  `xs2` set to 4.
+definedBy:
+  extension:
+    allOf:
+      - name: D
+      - name: Zfa
+assembly: fd, fs1, rm
+encoding:
+  match: 010000100100-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,62 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vmv8r.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2
+encoding:
+  match: 1001111-----00111011-----1010111
+  variables:
+    - name: vs2
+      location: 24-20
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let start_element = get_start_element();
+    let SEW     = get_sew();
+    let imm_val = unsigned(zero_extend(sizeof(xlen), simm));
+    let EMUL    = imm_val + 1;
+
+    if not(EMUL == 1 | EMUL == 2 | EMUL == 4 | EMUL == 8) then { handle_illegal(); return RETIRE_FAIL };
+
+    let EMUL_pow = log2(EMUL);
+    let num_elem = get_num_elem(EMUL_pow, SEW);
+    let 'n = num_elem;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, 0b1, 0b00000);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, EMUL_pow, vs2);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, EMUL_pow, vd);
+    result      : vector('n, dec, bits('m)) = undefined;
+
+    foreach (i from 0 to (num_elem - 1)) {
+      result[i] = if i < start_element then vd_val[i] else vs2_val[i]
+    };
+
+    write_vreg(num_elem, SEW, EMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

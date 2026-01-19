@@ -1,0 +1,63 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: add.uw
+long_name: Add unsigned word
+description: |
+  Performs an XLEN-wide addition between xs2 and the
+  zero-extended least-significant word of xs1.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zba
+assembly: xd, xs1, xs2
+format:
+  $inherits:
+    - inst_subtype/R/R-x.yaml#/data
+  opcodes:
+    funct7:
+      display_name: ADD.UW
+      value: 0b0000100
+    funct3:
+      display_name: ADD.UW
+      value: 0b000
+    opcode: { $inherits: inst_opcode/OP-32.yaml#/data }
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: xs2 == 0
+    to: zext.w xd, xs1
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = X[xs2] + X[xs1][31:0];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    let shamt : bits(2) = match op {
+      RISCV_ADDUW    => 0b00,
+      RISCV_SH1ADDUW => 0b01,
+      RISCV_SH2ADDUW => 0b10,
+      RISCV_SH3ADDUW => 0b11
+    };
+    let result : xlenbits = (zero_extend(rs1_val[31..0]) << shamt) + rs2_val;
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

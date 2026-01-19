@@ -1,0 +1,54 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vsuxei8.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vs3, (xs1), vs2, vm
+encoding:
+  match: 000001-----------000-----0100111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: vs3
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let EEW_index_pow = vlewidth_pow(width);
+    let EEW_index_bytes = vlewidth_bytesnumber(width);
+    let EEW_data_pow = get_sew_pow();
+    let EEW_data_bytes = get_sew_bytes();
+    let EMUL_data_pow = get_lmul_pow();
+    let EMUL_index_pow = EEW_index_pow - EEW_data_pow + EMUL_data_pow;
+    let num_elem = get_num_elem(EMUL_data_pow, EEW_data_bytes * 8); /* number of data and indices are the same */
+    let nf_int = nfields_int(nf);
+
+    if illegal_indexed_store(nf_int, EEW_index_bytes * 8, EMUL_index_pow, EMUL_data_pow) then { handle_illegal(); return RETIRE_FAIL };
+
+    process_vsxseg(nf_int, vm, vs3, EEW_index_bytes, EEW_data_bytes, EMUL_index_pow, EMUL_data_pow, rs1, vs2, num_elem, 1)
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,89 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fsh
+long_name: Half-precision floating-point store
+description: |
+  The `fsh` instruction stores a half-precision floating-point value
+  from register _xd_ to memory at address _xs1_ + _imm_.
+
+  `fsh` does not modify the bits being transferred; in particular, the payloads of non-canonical NaNs are preserved.
+
+  `fsh` ignores all but the lower 16 bits in _fs2_.
+
+  `fsh` is only guaranteed to execute atomically if the effective address is naturally aligned.
+
+definedBy:
+  extension:
+    name: Zfhmin
+assembly: fs2, imm(xs1)
+encoding:
+  match: "-----------------001-----0100111"
+  variables:
+    - name: imm
+      location: 31-25|11-7
+    - name: xs1
+      location: 19-15
+    - name: fs2
+      location: 24-20
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  check_f_ok($encoding);
+
+  XReg virtual_address = X[xs1] + $signed(imm);
+
+  Bits<16> hp_value = f[fs2][15:0];
+
+  write_memory<16>(virtual_address, hp_value, $encoding);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let offset : xlenbits = sign_extend(imm);
+    let (aq, rl, con) = (false, false, false);
+    /* Get the address, X(rs1) + offset.
+       Some extensions perform additional checks on address validity. */
+    match ext_data_get_addr(rs1, offset, Write(Data), width) {
+      Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+      Ext_DataAddr_OK(vaddr) =>
+        if   check_misaligned(vaddr, width)
+        then { handle_mem_exception(vaddr, E_SAMO_Addr_Align()); RETIRE_FAIL }
+        else match translateAddr(vaddr, Write(Data)) {
+          TR_Failure(e, _)    => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+          TR_Address(addr, _) => {
+            let eares : MemoryOpResult(unit) = match width {
+              BYTE   => MemValue () /* bogus placeholder for illegal size */,
+              HALF   => mem_write_ea(addr, 2, aq, rl, false),
+              WORD   => mem_write_ea(addr, 4, aq, rl, false),
+              DOUBLE => mem_write_ea(addr, 8, aq, rl, false)
+            };
+            match (eares) {
+              MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+              MemValue(_) => {
+                let rs2_val = F(rs2);
+                match (width) {
+                  BYTE => { handle_illegal(); RETIRE_FAIL },
+                  HALF => process_fstore (vaddr, mem_write_value(addr, 2, rs2_val[15..0], aq, rl, con)),
+                  WORD => process_fstore (vaddr, mem_write_value(addr, 4, rs2_val[31..0], aq, rl, con)),
+                  DOUBLE if sizeof(flen) >= 64 =>
+                    process_fstore (vaddr, mem_write_value(addr, 8, rs2_val, aq, rl, con)),
+                  _ => report_invalid_width(__FILE__, __LINE__, width, "floating point store"),
+                };
+              }
+            }
+          }
+        }
+    }
+  }
+
+# SPDX-SnippetEnd
