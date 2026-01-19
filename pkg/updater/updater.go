@@ -125,6 +125,15 @@ func New(cfg *Config) (*Updater, error) {
 //   - ensures that the current executable is fresh
 //   - ensures that we have a working syzkaller build in current
 func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan struct{}) {
+	if autoupdate {
+		defer func() {
+			go func() {
+				upd.waitForUpdate()
+				close(updatePending)
+			}()
+		}()
+	}
+
 	os.RemoveAll(upd.currentDir)
 	latestTag := upd.checkLatest()
 	if latestTag != "" {
@@ -179,12 +188,6 @@ func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan 
 		case <-shutdown:
 			os.Exit(0)
 		}
-	}
-	if autoupdate {
-		go func() {
-			upd.waitForUpdate()
-			close(updatePending)
-		}()
 	}
 }
 
