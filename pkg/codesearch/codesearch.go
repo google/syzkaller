@@ -45,6 +45,13 @@ var Commands = []Command{
 		}
 		return b.String(), nil
 	}},
+	{"read-file", 1, func(index *Index, args []string) (string, error) {
+		ok, contents, err := index.ReadFile(args[0])
+		if err != nil || !ok {
+			return notFound, err
+		}
+		return contents, nil
+	}},
 	{"file-index", 1, func(index *Index, args []string) (string, error) {
 		ok, entities, err := index.FileIndex(args[0])
 		if err != nil || !ok {
@@ -135,6 +142,27 @@ func (index *Index) DirIndex(dir string) (bool, []string, []string, error) {
 	subdirs = slices.Compact(subdirs)
 	files = slices.Compact(files)
 	return exists, subdirs, files, nil
+}
+
+func (index *Index) ReadFile(file string) (bool, string, error) {
+	if err := escaping(file); err != nil {
+		return false, "", nil
+	}
+	for _, dir := range index.srcDirs {
+		data, err := os.ReadFile(filepath.Join(dir, file))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			var errno syscall.Errno
+			if errors.As(err, &errno) && errno == syscall.EISDIR {
+				return false, "", nil
+			}
+			return false, "", err
+		}
+		return true, string(data), nil
+	}
+	return false, "", nil
 }
 
 func (index *Index) FileIndex(file string) (bool, []Entity, error) {
