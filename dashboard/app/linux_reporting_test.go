@@ -50,6 +50,7 @@ func TestFsSubsystemFlow(t *testing.T) {
 	// The subsystem should have been taken from the guilty path.
 	c.expectEQ(reply.Subject, "[syzbot] [nilfs?] WARNING in nilfs_dat_commit_end")
 	assert.ElementsMatch(t, reply.To, []string{
+		"slava@dubeyko.com",
 		"konishi.ryusuke@gmail.com",
 		"linux-kernel@vger.kernel.org",
 		"linux-nilfs@vger.kernel.org",
