@@ -184,7 +184,7 @@ func TestWorkflow(t *testing.T) {
 			if replySeq < 4 {
 				assert.Equal(t, model, "model1")
 				assert.Equal(t, cfg.SystemInstruction, genai.NewContentFromText("You are smarty. baz"+
-					llmOutputsInstruction, genai.RoleUser))
+					llmMultipleToolsInstruction+llmOutputsInstruction, genai.RoleUser))
 				assert.Equal(t, cfg.Temperature, genai.Ptr[float32](0))
 				assert.Equal(t, len(cfg.Tools), 3)
 				assert.Equal(t, cfg.Tools[0].FunctionDeclarations[0].Name, "tool1")
@@ -444,7 +444,7 @@ func TestWorkflow(t *testing.T) {
 			Name:        "smarty",
 			Model:       "model1",
 			Started:     startTime.Add(4 * time.Second),
-			Instruction: "You are smarty. baz" + llmOutputsInstruction,
+			Instruction: "You are smarty. baz" + llmMultipleToolsInstruction + llmOutputsInstruction,
 			Prompt:      "Prompt: baz func-output",
 		},
 		{
@@ -586,7 +586,7 @@ func TestWorkflow(t *testing.T) {
 			Model:       "model1",
 			Started:     startTime.Add(4 * time.Second),
 			Finished:    startTime.Add(17 * time.Second),
-			Instruction: "You are smarty. baz" + llmOutputsInstruction,
+			Instruction: "You are smarty. baz" + llmMultipleToolsInstruction + llmOutputsInstruction,
 			Prompt:      "Prompt: baz func-output",
 			Reply:       "hello, world!",
 			Results: map[string]any{
