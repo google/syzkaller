@@ -2,7 +2,7 @@ def-source source1.c same_name_in_several_files yes
 
 function same_name_in_several_files is defined in source1.c:
 
-   3:	static void same_name_in_several_files()
-   4:	{
-   5:		// This is static version in source1.c.
-   6:	}
+   4:	static void same_name_in_several_files()
+   5:	{
+   6:		// This is static version in source1.c.
+   7:	}

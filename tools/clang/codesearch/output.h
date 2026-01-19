@@ -7,16 +7,26 @@
 #include "json.h"
 #include <vector>
 
-constexpr char KindFunction[] = "function";
-constexpr char KindStruct[] = "struct";
-constexpr char KindVariable[] = "variable";
-constexpr char KindMacro[] = "macro";
-constexpr char KindEnum[] = "enum";
+constexpr char EntityKindFunction[] = "function";
+constexpr char EntityKindStruct[] = "struct";
+constexpr char EntityKindVariable[] = "variable";
+constexpr char EntityKindMacro[] = "macro";
+constexpr char EntityKindEnum[] = "enum";
+
+constexpr char RefKindCall[] = "calls";
+constexpr char RefKindTakesAddr[] = "takes-address-of";
 
 struct LineRange {
   std::string File;
   int StartLine = 0;
   int EndLine = 0;
+};
+
+struct Reference {
+  const char* Kind;
+  const char* EntityKind;
+  std::string Name;
+  int Line;
 };
 
 struct Definition {
@@ -29,6 +39,7 @@ struct Definition {
   LineRange Body;
   // Location of the kernel-doc comment.
   LineRange Comment;
+  std::vector<Reference> Refs;
 };
 
 inline void print(JSONPrinter& Printer, const LineRange& V) {
@@ -38,6 +49,14 @@ inline void print(JSONPrinter& Printer, const LineRange& V) {
   Printer.Field("end_line", V.EndLine, true);
 }
 
+inline void print(JSONPrinter& Printer, const Reference& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("kind", V.Kind);
+  Printer.Field("entity_kind", V.EntityKind);
+  Printer.Field("name", V.Name);
+  Printer.Field("line", V.Line, true);
+}
+
 inline void print(JSONPrinter& Printer, const Definition& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("kind", V.Kind);
@@ -45,7 +64,8 @@ inline void print(JSONPrinter& Printer, const Definition& V) {
   Printer.Field("type", V.Type);
   Printer.Field("is_static", V.IsStatic);
   Printer.Field("body", V.Body);
-  Printer.Field("comment", V.Comment, true);
+  Printer.Field("comment", V.Comment);
+  Printer.Field("refs", V.Refs, true);
 }
 
 class Output {

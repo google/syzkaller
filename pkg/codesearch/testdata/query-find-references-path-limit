@@ -1,0 +1,10 @@
+find-references refs.c refs2 mm 1 1
+
+refs2 has 1 references:
+
+function ref_in_mm calls it at mm/refs.c:5
+   4:	{
+   5:		refs2();
+   6:	}
+
+

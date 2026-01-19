@@ -47,16 +47,24 @@ func testCommand(t *testing.T, index *Index, covered map[string]bool, file strin
 		t.Fatal(err)
 	}
 	query, _, _ := bytes.Cut(data, []byte{'\n'})
-	args := strings.Fields(string(query))
-	if len(args) == 0 {
+	fields := strings.Fields(string(query))
+	if len(fields) == 0 {
 		t.Fatal("no command found")
 	}
-	result, err := index.Command(args[0], args[1:])
+	cmd := fields[0]
+	var args []string
+	for _, arg := range fields[1:] {
+		if arg == `""` {
+			arg = ""
+		}
+		args = append(args, arg)
+	}
+	result, err := index.Command(cmd, args)
 	if err != nil {
 		// This is supposed to test aflow.BadCallError messages.
 		result = err.Error() + "\n"
 	}
-	got := append([]byte(strings.Join(args, " ")+"\n\n"), result...)
+	got := append([]byte(strings.Join(fields, " ")+"\n\n"), result...)
 	tooltest.CompareGoldenData(t, file, got)
-	covered[args[0]] = true
+	covered[cmd] = true
 }

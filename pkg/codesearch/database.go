@@ -14,12 +14,20 @@ type Database struct {
 }
 
 type Definition struct {
-	Kind     string    `json:"kind,omitempty"`
-	Name     string    `json:"name,omitempty"`
-	Type     string    `json:"type,omitempty"`
-	IsStatic bool      `json:"is_static,omitempty"`
-	Body     LineRange `json:"body,omitempty"`
-	Comment  LineRange `json:"comment,omitempty"`
+	Kind     string      `json:"kind,omitempty"`
+	Name     string      `json:"name,omitempty"`
+	Type     string      `json:"type,omitempty"`
+	IsStatic bool        `json:"is_static,omitempty"`
+	Body     LineRange   `json:"body,omitempty"`
+	Comment  LineRange   `json:"comment,omitempty"`
+	Refs     []Reference `json:"refs,omitempty"`
+}
+
+type Reference struct {
+	Kind       string `json:"kind,omitempty"`
+	EntityKind string `json:"entity_kind,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Line       int    `json:"line,omitempty"`
 }
 
 type LineRange struct {

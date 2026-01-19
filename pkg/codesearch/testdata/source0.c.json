@@ -20,7 +20,15 @@
 				"start_line": 19,
 				"end_line": 22
 			},
-			"comment": {}
+			"comment": {},
+			"refs": [
+				{
+					"kind": "calls",
+					"entity_kind": "function",
+					"name": "same_name_in_several_files",
+					"line": 21
+				}
+			]
 		},
 		{
 			"kind": "function",
