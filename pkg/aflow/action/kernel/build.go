@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
@@ -50,16 +51,22 @@ func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 			return aflow.FlowError(err)
 		}
 		// Remove main intermediate build files, we don't need them anymore
-		// and they take lots of space. Keep generated source files.
-		keepExt := map[string]bool{".h": true, ".c": true, ".s": true, ".S": true}
+		// and they take lots of space. But keep generated source files.
 		keepFiles := map[string]bool{
-			filepath.Join(dir, image):               true,
-			filepath.Join(dir, target.KernelObject): true,
-			filepath.Join(dir, compileCommnads):     true,
+			image:               true,
+			target.KernelObject: true,
+			compileCommnads:     true,
 		}
 		return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || keepFiles[path] || keepExt[filepath.Ext(d.Name())] {
+			if err != nil {
 				return err
+			}
+			relative, err := filepath.Rel(dir, path)
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || keepFiles[relative] || codesearch.IsSourceFile(relative) {
+				return nil
 			}
 			return os.Remove(path)
 		})

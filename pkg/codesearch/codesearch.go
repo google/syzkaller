@@ -82,7 +82,17 @@ var Commands = []Command{
 	}},
 }
 
-var SourceExtensions = map[string]bool{".c": true, ".h": true, ".S": true, ".rs": true}
+func IsSourceFile(file string) bool {
+	return sourceFiles[file] || sourceExtensions[filepath.Ext(file)]
+}
+
+var (
+	// Files and extensions we want to keep in the build dir and make available to LLM agents.
+	sourceExtensions = map[string]bool{".c": true, ".h": true, ".S": true, ".rs": true}
+	sourceFiles      = map[string]bool{
+		".config": true,
+	}
+)
 
 func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
 	db, err := osutil.ReadJSON[*Database](databaseFile)
@@ -275,6 +285,7 @@ func escaping(path string) error {
 }
 
 func dirIndex(root, subdir string) (bool, []string, []string, error) {
+	subdir = filepath.Clean(subdir)
 	dir := filepath.Join(root, subdir)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -293,7 +304,7 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 			// These are internal things like .git, etc.
 		} else if entry.IsDir() {
 			subdirs = append(subdirs, entry.Name())
-		} else if SourceExtensions[filepath.Ext(entry.Name())] {
+		} else if IsSourceFile(filepath.Join(subdir, entry.Name())) {
 			files = append(files, entry.Name())
 		}
 	}
