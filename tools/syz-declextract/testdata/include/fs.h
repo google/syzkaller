@@ -11,13 +11,16 @@ struct file_operations {
 	void (*mmap)(void);
 };
 
-static int alloc_fd() {
+static int alloc_fd()
+{
 	return 1;
 }
 
-static void __fget_light(int fd) {
+static void __fget_light(int fd)
+{
 }
 
-static int from_kuid() {
+static int from_kuid()
+{
 	return 1;
 }

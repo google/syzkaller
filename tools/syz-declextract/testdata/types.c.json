@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_align_syscall",
 			"file": "types.c",
-			"start_line": 111,
-			"end_line": 113,
+			"start_line": 139,
+			"end_line": 142,
 			"scopes": [
 				{
 					"arg": -1
@@ -14,8 +14,8 @@
 		{
 			"name": "__do_sys_types_syscall",
 			"file": "types.c",
-			"start_line": 53,
-			"end_line": 57,
+			"start_line": 75,
+			"end_line": 80,
 			"scopes": [
 				{
 					"arg": -1
@@ -25,8 +25,8 @@
 		{
 			"name": "__do_sys_types_syscall2",
 			"file": "types.c",
-			"start_line": 69,
-			"end_line": 71,
+			"start_line": 92,
+			"end_line": 95,
 			"scopes": [
 				{
 					"arg": -1
@@ -36,8 +36,8 @@
 		{
 			"name": "anon_flow",
 			"file": "types.c",
-			"start_line": 73,
-			"end_line": 82,
+			"start_line": 97,
+			"end_line": 107,
 			"scopes": [
 				{
 					"arg": -1,
@@ -51,7 +51,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126317",
+									"struct": "11253655576479126320",
 									"field": "x"
 								}
 							}
@@ -65,7 +65,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126319",
+									"struct": "11253655576479126325",
 									"field": "y"
 								}
 							}
@@ -79,7 +79,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126320",
+									"struct": "11253655576479126328",
 									"field": "w"
 								}
 							}
@@ -107,7 +107,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126323",
+									"struct": "11253655576479126334",
 									"field": "a"
 								}
 							}
@@ -121,7 +121,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126324",
+									"struct": "11253655576479126338",
 									"field": "a"
 								}
 							}
@@ -135,7 +135,7 @@
 							},
 							"dst": {
 								"field": {
-									"struct": "11253655576479126325",
+									"struct": "11253655576479126342",
 									"field": "b"
 								}
 							}
@@ -148,7 +148,7 @@
 			"name": "atomic_load32",
 			"file": "include/types.h",
 			"start_line": 17,
-			"end_line": 19,
+			"end_line": 20,
 			"is_static": true,
 			"scopes": [
 				{
@@ -159,8 +159,8 @@
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
-			"start_line": 21,
-			"end_line": 23,
+			"start_line": 22,
+			"end_line": 25,
 			"scopes": [
 				{
 					"arg": -1

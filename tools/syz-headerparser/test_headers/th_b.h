@@ -4,11 +4,11 @@
 #ifndef _TEST_HEADER_B
 #define _TEST_HEADER_B
 
-#include <linux/types.h>		/* header comment */
+#include <linux/types.h> /* header comment */
 
 enum random_enum {
-	ONE = 1<<0,
-	TWO = 1<<1,
+	ONE = 1 << 0,
+	TWO = 1 << 1,
 };
 
 struct B {
@@ -19,8 +19,8 @@ struct B {
 struct struct_containing_union {
 	int something;
 	union {
-		char  *a_char;
-		struct B *B_ptr;
+		char* a_char;
+		struct B* B_ptr;
 	} a_union;
 };
 

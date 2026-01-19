@@ -8,7 +8,8 @@
 #define COVER_IOCTL3 3
 #define COVER_IOCTL4 4
 
-static void cover_helper(int cmd) {
+static void cover_helper(int cmd)
+{
 	int tmp = 0;
 	tmp++;
 	switch (cmd) {
@@ -20,7 +21,8 @@ static void cover_helper(int cmd) {
 	}
 }
 
-SYSCALL_DEFINE1(cover, int cmd) {
+SYSCALL_DEFINE1(cover, int cmd)
+{
 	int tmp = 0;
 	tmp++;
 	switch (cmd) {

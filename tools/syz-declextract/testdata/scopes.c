@@ -5,10 +5,11 @@
 #include "include/syscall.h"
 #include "include/uapi/file_operations.h"
 
-#define LARGE_UINT (1ull<<63) // this is supposed to overflow int64
-#define LARGE_SINT (20ll<<63) // this is supposed to overflow uint64
+#define LARGE_UINT (1ull << 63) // this is supposed to overflow int64
+#define LARGE_SINT (20ll << 63) // this is supposed to overflow uint64
 
-static int scopes_helper(long cmd, long aux) {
+static int scopes_helper(long cmd, long aux)
+{
 	switch (cmd) {
 	case FOO_IOCTL7:
 		return alloc_fd();
@@ -22,7 +23,8 @@ static int scopes_helper(long cmd, long aux) {
 	return 0;
 }
 
-SYSCALL_DEFINE1(scopes0, int x, long cmd, long aux) {
+SYSCALL_DEFINE1(scopes0, int x, long cmd, long aux)
+{
 	int tmp = 0;
 	__fget_light(aux);
 	switch (cmd) {

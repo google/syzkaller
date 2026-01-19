@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_scopes0",
 			"file": "scopes.c",
-			"start_line": 25,
-			"end_line": 51,
+			"start_line": 26,
+			"end_line": 53,
 			"scopes": [
 				{
 					"arg": -1,
@@ -45,8 +45,8 @@
 					"values": [
 						"FOO_IOCTL1"
 					],
-					"start_line": 29,
-					"end_line": 32,
+					"start_line": 31,
+					"end_line": 34,
 					"calls": [
 						"__fget_light"
 					],
@@ -73,8 +73,8 @@
 						"FOO_IOCTL2",
 						"FOO_IOCTL3"
 					],
-					"start_line": 32,
-					"end_line": 36,
+					"start_line": 34,
+					"end_line": 38,
 					"calls": [
 						"alloc_fd"
 					],
@@ -112,8 +112,8 @@
 						"1074291461",
 						"1074291462"
 					],
-					"start_line": 36,
-					"end_line": 39
+					"start_line": 38,
+					"end_line": 41
 				},
 				{
 					"arg": 1,
@@ -121,8 +121,8 @@
 						"FOO_IOCTL7",
 						"FOO_IOCTL8"
 					],
-					"start_line": 39,
-					"end_line": 43,
+					"start_line": 41,
+					"end_line": 45,
 					"calls": [
 						"scopes_helper"
 					],
@@ -176,13 +176,13 @@
 						"101",
 						"102"
 					],
-					"start_line": 43,
-					"end_line": 46
+					"start_line": 45,
+					"end_line": 48
 				},
 				{
 					"arg": 1,
-					"start_line": 46,
-					"end_line": 49,
+					"start_line": 48,
+					"end_line": 51,
 					"facts": [
 						{
 							"src": {
@@ -204,8 +204,8 @@
 		{
 			"name": "__fget_light",
 			"file": "include/fs.h",
-			"start_line": 18,
-			"end_line": 19,
+			"start_line": 19,
+			"end_line": 21,
 			"is_static": true,
 			"scopes": [
 				{
@@ -217,7 +217,7 @@
 			"name": "alloc_fd",
 			"file": "include/fs.h",
 			"start_line": 14,
-			"end_line": 16,
+			"end_line": 17,
 			"is_static": true,
 			"scopes": [
 				{
@@ -228,8 +228,8 @@
 		{
 			"name": "from_kuid",
 			"file": "include/fs.h",
-			"start_line": 21,
-			"end_line": 23,
+			"start_line": 23,
+			"end_line": 26,
 			"is_static": true,
 			"scopes": [
 				{
@@ -241,7 +241,7 @@
 			"name": "scopes_helper",
 			"file": "scopes.c",
 			"start_line": 11,
-			"end_line": 23,
+			"end_line": 24,
 			"is_static": true,
 			"scopes": [
 				{
@@ -252,8 +252,8 @@
 					"values": [
 						"FOO_IOCTL7"
 					],
-					"start_line": 13,
-					"end_line": 15,
+					"start_line": 14,
+					"end_line": 16,
 					"calls": [
 						"alloc_fd"
 					],
@@ -277,8 +277,8 @@
 					"values": [
 						"FOO_IOCTL8"
 					],
-					"start_line": 15,
-					"end_line": 18,
+					"start_line": 16,
+					"end_line": 19,
 					"calls": [
 						"__fget_light"
 					],
@@ -305,8 +305,8 @@
 						"LARGE_UINT",
 						"LARGE_SINT"
 					],
-					"start_line": 18,
-					"end_line": 21
+					"start_line": 19,
+					"end_line": 22
 				}
 			]
 		}

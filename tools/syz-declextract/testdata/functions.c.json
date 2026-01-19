@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_functions",
 			"file": "functions.c",
-			"start_line": 31,
-			"end_line": 34,
+			"start_line": 35,
+			"end_line": 39,
 			"scopes": [
 				{
 					"arg": -1,
@@ -46,8 +46,8 @@
 		{
 			"name": "__fget_light",
 			"file": "include/fs.h",
-			"start_line": 18,
-			"end_line": 19,
+			"start_line": 19,
+			"end_line": 21,
 			"is_static": true,
 			"scopes": [
 				{
@@ -59,7 +59,7 @@
 			"name": "alloc_fd",
 			"file": "include/fs.h",
 			"start_line": 14,
-			"end_line": 16,
+			"end_line": 17,
 			"is_static": true,
 			"scopes": [
 				{
@@ -71,7 +71,7 @@
 			"name": "atomic_load32",
 			"file": "include/types.h",
 			"start_line": 17,
-			"end_line": 19,
+			"end_line": 20,
 			"is_static": true,
 			"scopes": [
 				{
@@ -82,8 +82,8 @@
 		{
 			"name": "atomic_load64",
 			"file": "include/types.h",
-			"start_line": 21,
-			"end_line": 23,
+			"start_line": 22,
+			"end_line": 25,
 			"scopes": [
 				{
 					"arg": -1
@@ -93,8 +93,8 @@
 		{
 			"name": "from_kuid",
 			"file": "include/fs.h",
-			"start_line": 21,
-			"end_line": 23,
+			"start_line": 23,
+			"end_line": 26,
 			"is_static": true,
 			"scopes": [
 				{
@@ -105,8 +105,8 @@
 		{
 			"name": "func_bar",
 			"file": "functions.c",
-			"start_line": 11,
-			"end_line": 13,
+			"start_line": 12,
+			"end_line": 15,
 			"is_static": true,
 			"scopes": [
 				{
@@ -120,8 +120,8 @@
 		{
 			"name": "func_baz",
 			"file": "functions.c",
-			"start_line": 15,
-			"end_line": 24,
+			"start_line": 17,
+			"end_line": 27,
 			"scopes": [
 				{
 					"arg": -1,
@@ -165,7 +165,7 @@
 			"name": "func_foo",
 			"file": "functions.c",
 			"start_line": 8,
-			"end_line": 9,
+			"end_line": 10,
 			"is_static": true,
 			"scopes": [
 				{
@@ -176,8 +176,8 @@
 		{
 			"name": "func_qux",
 			"file": "functions.c",
-			"start_line": 26,
-			"end_line": 29,
+			"start_line": 29,
+			"end_line": 33,
 			"scopes": [
 				{
 					"arg": -1,
@@ -216,8 +216,8 @@
 		{
 			"name": "typing",
 			"file": "functions.c",
-			"start_line": 46,
-			"end_line": 52,
+			"start_line": 52,
+			"end_line": 59,
 			"scopes": [
 				{
 					"arg": -1,
@@ -311,8 +311,8 @@
 		{
 			"name": "typing1",
 			"file": "functions.c",
-			"start_line": 42,
-			"end_line": 44,
+			"start_line": 47,
+			"end_line": 50,
 			"scopes": [
 				{
 					"arg": -1,

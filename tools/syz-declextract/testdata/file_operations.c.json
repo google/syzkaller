@@ -3,8 +3,8 @@
 		{
 			"name": "__fget_light",
 			"file": "include/fs.h",
-			"start_line": 18,
-			"end_line": 19,
+			"start_line": 19,
+			"end_line": 21,
 			"is_static": true,
 			"scopes": [
 				{
@@ -16,7 +16,7 @@
 			"name": "alloc_fd",
 			"file": "include/fs.h",
 			"start_line": 14,
-			"end_line": 16,
+			"end_line": 17,
 			"is_static": true,
 			"scopes": [
 				{
@@ -27,8 +27,8 @@
 		{
 			"name": "foo_ioctl",
 			"file": "file_operations.c",
-			"start_line": 30,
-			"end_line": 42,
+			"start_line": 41,
+			"end_line": 54,
 			"is_static": true,
 			"scopes": [
 				{
@@ -79,16 +79,16 @@
 						"FOO_IOCTL11",
 						"FOO_IOCTL12"
 					],
-					"start_line": 32,
-					"end_line": 40
+					"start_line": 44,
+					"end_line": 52
 				}
 			]
 		},
 		{
 			"name": "foo_ioctl2",
 			"file": "file_operations.c",
-			"start_line": 22,
-			"end_line": 28,
+			"start_line": 32,
+			"end_line": 39,
 			"is_static": true,
 			"scopes": [
 				{
@@ -100,16 +100,16 @@
 						"FOO_IOCTL6",
 						"FOO_IOCTL7"
 					],
-					"start_line": 24,
-					"end_line": 27
+					"start_line": 35,
+					"end_line": 38
 				}
 			]
 		},
 		{
 			"name": "foo_mmap",
 			"file": "file_operations.c",
-			"start_line": 19,
-			"end_line": 19,
+			"start_line": 25,
+			"end_line": 27,
 			"is_static": true,
 			"scopes": [
 				{
@@ -120,8 +120,8 @@
 		{
 			"name": "foo_mmap2",
 			"file": "file_operations.c",
-			"start_line": 20,
-			"end_line": 20,
+			"start_line": 28,
+			"end_line": 30,
 			"is_static": true,
 			"scopes": [
 				{
@@ -133,7 +133,7 @@
 			"name": "foo_open",
 			"file": "file_operations.c",
 			"start_line": 16,
-			"end_line": 16,
+			"end_line": 18,
 			"is_static": true,
 			"scopes": [
 				{
@@ -144,8 +144,8 @@
 		{
 			"name": "foo_read",
 			"file": "file_operations.c",
-			"start_line": 17,
-			"end_line": 17,
+			"start_line": 19,
+			"end_line": 21,
 			"is_static": true,
 			"scopes": [
 				{
@@ -156,8 +156,8 @@
 		{
 			"name": "foo_write",
 			"file": "file_operations.c",
-			"start_line": 18,
-			"end_line": 18,
+			"start_line": 22,
+			"end_line": 24,
 			"is_static": true,
 			"scopes": [
 				{
@@ -168,8 +168,8 @@
 		{
 			"name": "from_kuid",
 			"file": "include/fs.h",
-			"start_line": 21,
-			"end_line": 23,
+			"start_line": 23,
+			"end_line": 26,
 			"is_static": true,
 			"scopes": [
 				{
@@ -180,8 +180,8 @@
 		{
 			"name": "proc_ioctl",
 			"file": "file_operations.c",
-			"start_line": 57,
-			"end_line": 57,
+			"start_line": 75,
+			"end_line": 77,
 			"is_static": true,
 			"scopes": [
 				{
@@ -192,8 +192,8 @@
 		{
 			"name": "proc_open",
 			"file": "file_operations.c",
-			"start_line": 54,
-			"end_line": 54,
+			"start_line": 66,
+			"end_line": 68,
 			"is_static": true,
 			"scopes": [
 				{
@@ -204,8 +204,8 @@
 		{
 			"name": "proc_read",
 			"file": "file_operations.c",
-			"start_line": 55,
-			"end_line": 55,
+			"start_line": 69,
+			"end_line": 71,
 			"is_static": true,
 			"scopes": [
 				{
@@ -216,8 +216,8 @@
 		{
 			"name": "proc_write",
 			"file": "file_operations.c",
-			"start_line": 56,
-			"end_line": 56,
+			"start_line": 72,
+			"end_line": 74,
 			"is_static": true,
 			"scopes": [
 				{
@@ -228,8 +228,8 @@
 		{
 			"name": "unused_ioctl",
 			"file": "file_operations.c",
-			"start_line": 73,
-			"end_line": 78,
+			"start_line": 93,
+			"end_line": 99,
 			"is_static": true,
 			"scopes": [
 				{
@@ -241,8 +241,8 @@
 						"UNUSED_IOCTL1",
 						"UNUSED_IOCTL2"
 					],
-					"start_line": 75,
-					"end_line": 77
+					"start_line": 96,
+					"end_line": 98
 				}
 			]
 		}
