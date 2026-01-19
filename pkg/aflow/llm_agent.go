@@ -93,6 +93,10 @@ It must be called exactly once before the final reply.
 Ignore results of this tool.
 `
 
+const llmMultipleToolsInstruction = `
+Prefer calling several tools at the same time to save round-trips.
+`
+
 const llmMissingOutputs = `You did not call set-results tool.
 Please call set-results tool to provide results of the analysis.
 `
@@ -210,6 +214,9 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, map[string]Tool) {
 	instruction := formatTemplate(a.Instruction, ctx.state)
 	toolList := a.Tools
+	if len(toolList) != 0 {
+		instruction += llmMultipleToolsInstruction
+	}
 	if a.Outputs != nil {
 		instruction += llmOutputsInstruction
 		toolList = append(toolList, a.Outputs.tool)
