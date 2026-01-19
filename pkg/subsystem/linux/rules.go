@@ -39,7 +39,6 @@ var (
 			// - syz_mount_image$vxfs
 			// - syz_mount_image$zonefs
 
-			"bcachefs":  {"syz_mount_image$bcachefs"},
 			"bfs":       {"syz_mount_image$bfs"},
 			"bluetooth": {"syz_emit_vhci"},
 			"btrfs":     {"syz_mount_image$btrfs"},
@@ -89,6 +88,8 @@ var (
 			"tomoyo-dev-en@lists.osdn.me":         {},
 			"tomoyo-users-en@lists.osdn.me":       {},
 			"kernel@collabora.com":                {},
+			// The list is too broad and always intersects with other lists.
+			"x86@kernel.org": {},
 		},
 		extraSubsystems: map[string][]string{
 			"bfs":     {"BFS FILE SYSTEM"},
