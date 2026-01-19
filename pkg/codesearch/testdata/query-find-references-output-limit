@@ -1,0 +1,10 @@
+find-references refs.c refs2 "" 1 1
+
+refs2 has 4 references:
+
+function long_func_with_ref calls it at refs.c:29
+  28:		refs1();
+  29:		refs2(refs1, refs0());
+  30:		refs0();
+
+

@@ -1,0 +1,23 @@
+{
+	"definitions": [
+		{
+			"kind": "function",
+			"name": "ref_in_mm",
+			"type": "void ()",
+			"body": {
+				"file": "mm/refs.c",
+				"start_line": 3,
+				"end_line": 6
+			},
+			"comment": {},
+			"refs": [
+				{
+					"kind": "calls",
+					"entity_kind": "function",
+					"name": "refs2",
+					"line": 5
+				}
+			]
+		}
+	]
+}

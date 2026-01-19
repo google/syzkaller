@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -79,6 +80,28 @@ var Commands = []Command{
 			return "", err
 		}
 		return fmt.Sprintf("%v %v is defined in %v:\n\n%v", info.Kind, args[1], info.File, info.Body), nil
+	}},
+	{"find-references", 5, func(index *Index, args []string) (string, error) {
+		contextLines, err := strconv.Atoi(args[3])
+		if err != nil {
+			return "", fmt.Errorf("failed to parse number of context lines %q: %w", args[3], err)
+		}
+		outputLimit, err := strconv.Atoi(args[4])
+		if err != nil {
+			return "", fmt.Errorf("failed to parse output limit %q: %w", args[4], err)
+		}
+		refs, totalCount, err := index.FindReferences(args[0], args[1], args[2], contextLines, outputLimit)
+		if err != nil {
+			return "", err
+		}
+		b := new(strings.Builder)
+		fmt.Fprintf(b, "%v has %v references:\n\n", args[1], totalCount)
+		for _, ref := range refs {
+			fmt.Fprintf(b, "%v %v %v it at %v:%v\n%v\n\n",
+				ref.ReferencingEntityKind, ref.ReferencingEntityName, ref.ReferenceKind,
+				ref.SourceFile, ref.SourceLine, ref.SourceSnippet)
+		}
+		return b.String(), nil
 	}},
 }
 
@@ -225,6 +248,69 @@ func (index *Index) definitionSource(contextFile, name string, comment, includeL
 	}, nil
 }
 
+type ReferenceInfo struct {
+	ReferencingEntityKind string `jsonschema:"Kind of the referencing entity (function, struct, etc)."`
+	ReferencingEntityName string `jsonschema:"Name of the referencing entity."`
+	ReferenceKind         string `jsonschema:"Kind of the reference (calls, takes-address, reads, writes-to, etc)."`
+	SourceFile            string `jsonschema:"Source file of the reference."`
+	SourceLine            int    `jsonschema:"Source line of the reference."`
+	SourceSnippet         string `jsonschema:"Surrounding code snippet, if requested." json:",omitempty"`
+}
+
+func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextLines, outputLimit int) (
+	[]ReferenceInfo, int, error) {
+	target := index.findDefinition(contextFile, name)
+	if target == nil {
+		return nil, 0, aflow.BadCallError("requested entity does not exist")
+	}
+	if srcPrefix != "" {
+		srcPrefix = filepath.Clean(srcPrefix)
+	}
+	totalCount := 0
+	var results []ReferenceInfo
+	for _, def := range index.db.Definitions {
+		if !strings.HasPrefix(def.Body.File, srcPrefix) {
+			continue
+		}
+		for _, ref := range def.Refs {
+			// TODO: this mis-handles the following case:
+			// the target is a non-static 'foo' in some file,
+			// the reference is in another file and refers to a static 'foo'
+			// defined in that file (which is not the target 'foo').
+			if ref.EntityKind != target.Kind || ref.Name != target.Name ||
+				target.IsStatic && target.Body.File != def.Body.File {
+				continue
+			}
+			totalCount++
+			if totalCount > outputLimit {
+				continue
+			}
+			snippet := ""
+			if contextLines > 0 {
+				lines := LineRange{
+					File:      def.Body.File,
+					StartLine: max(def.Body.StartLine, ref.Line-contextLines),
+					EndLine:   min(def.Body.EndLine, ref.Line+contextLines),
+				}
+				var err error
+				snippet, err = index.formatSource(lines, true)
+				if err != nil {
+					return nil, 0, err
+				}
+			}
+			results = append(results, ReferenceInfo{
+				ReferencingEntityKind: def.Kind,
+				ReferencingEntityName: def.Name,
+				ReferenceKind:         ref.Kind,
+				SourceFile:            def.Body.File,
+				SourceLine:            ref.Line,
+				SourceSnippet:         snippet,
+			})
+		}
+	}
+	return results, totalCount, nil
+}
+
 func (index *Index) findDefinition(contextFile, name string) *Definition {
 	var weakMatch *Definition
 	for _, def := range index.db.Definitions {
@@ -269,7 +355,7 @@ func formatSourceFile(file string, start, end int, includeLines bool) (string, e
 	b := new(strings.Builder)
 	for line := start; line <= end; line++ {
 		if includeLines {
-			fmt.Fprintf(b, "%4v:\t%s\n", line, lines[line])
+			fmt.Fprintf(b, "%4v:\t%s\n", line+1, lines[line])
 		} else {
 			fmt.Fprintf(b, "%s\n", lines[line])
 		}

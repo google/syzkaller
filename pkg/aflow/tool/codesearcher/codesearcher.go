@@ -45,6 +45,11 @@ Entity can be function, struct, or global variable.
 Use it to understand implementation details of an entity.
 For example, how a function works, what precondition error checks it has, etc.
 `),
+	aflow.NewFuncTool("codesearch-find-references", findReferences, `
+Tool finds and lists all references to (uses of) the given entity.
+Entity can be function, struct, or global variable.
+If can be used to find all calls or other uses of the given function.
+`),
 }
 
 // This action needs to run before any agents that use codesearch tools.
@@ -95,8 +100,8 @@ type indexEntity struct {
 
 // nolint: lll
 type defCommentArgs struct {
-	SourceFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
-	Name       string `jsonschema:"Name of the entity of interest."`
+	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
+	Name        string `jsonschema:"Name of the entity of interest."`
 }
 
 type defCommentResult struct {
@@ -106,7 +111,7 @@ type defCommentResult struct {
 
 // nolint: lll
 type defSourceArgs struct {
-	SourceFile   string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
+	ContextFile  string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files."`
 	Name         string `jsonschema:"Name of the entity of interest."`
 	IncludeLines bool   `jsonschema:"Whether to include line numbers in the output or not. Line numbers may distract you, so ask for them only if you need to match lines elsewhere with the source code."`
 }
@@ -181,7 +186,7 @@ func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fil
 }
 
 func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentArgs) (defCommentResult, error) {
-	info, err := state.Index.DefinitionComment(args.SourceFile, args.Name)
+	info, err := state.Index.DefinitionComment(args.ContextFile, args.Name)
 	if err != nil {
 		return defCommentResult{}, err
 	}
@@ -192,12 +197,47 @@ func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentA
 }
 
 func definitionSource(ctx *aflow.Context, state prepareResult, args defSourceArgs) (defSourceResult, error) {
-	info, err := state.Index.DefinitionSource(args.SourceFile, args.Name, args.IncludeLines)
+	info, err := state.Index.DefinitionSource(args.ContextFile, args.Name, args.IncludeLines)
 	if err != nil {
 		return defSourceResult{}, err
 	}
 	return defSourceResult{
 		SourceFile: info.File,
 		SourceCode: info.Body,
+	}, nil
+}
+
+// nolint: lll
+type findReferencesArgs struct {
+	ContextFile         string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files." json:",omitempty"`
+	Name                string `jsonschema:"Name of the entity of interest."`
+	SourceTreePrefix    string `jsonschema:"Prefix of the source tree where to search for references. Can be used to restrict search to e.g. net/ipv4/. Pass an empty string to find all references." json:",omitempty"`
+	IncludeSnippetLines uint   `jsonschema:"If set to non-0, output will include source code snippets with that many lines of context. If set to 0, no source snippets will be included. Snippets only show the referencing entity, so to see e.g. whole referencing functions pass a large value, e.g. 10000" json:",omitempty"`
+}
+
+// nolint: lll
+type findReferencesResult struct {
+	TruncatedOutput bool                       `jsonschema:"Set if there were too many references, and the output is truncated. If you get truncated output, you may try to either request w/o source code snippets by passing IncludeSnippetLines=0 (which has higher limit on the number of output references), or restrict search to some prefix of the source tree with SourceTreePrefix argument."`
+	References      []codesearch.ReferenceInfo `jsonschema:"List of requested references."`
+}
+
+func findReferences(ctx *aflow.Context, state prepareResult, args findReferencesArgs) (findReferencesResult, error) {
+	// TODO: consider limiting output based on the total number of lines in code snippets.
+	// In the end we care about total number of consumed tokens.
+	outputLimit := 20
+	if args.IncludeSnippetLines == 0 {
+		outputLimit = 1000
+	} else if args.IncludeSnippetLines < 10 {
+		outputLimit = 100
+	}
+	refs, totalCount, err := state.Index.FindReferences(
+		args.ContextFile, args.Name, args.SourceTreePrefix,
+		int(args.IncludeSnippetLines), outputLimit)
+	if err != nil {
+		return findReferencesResult{}, err
+	}
+	return findReferencesResult{
+		TruncatedOutput: totalCount > len(refs),
+		References:      refs,
 	}, nil
 }

@@ -18,11 +18,8 @@ func schemaFor[T any]() (*jsonschema.Schema, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("%v is not a struct", typ.Name())
 	}
-	for _, field := range reflect.VisibleFields(typ) {
-		if field.Tag.Get("jsonschema") == "" {
-			return nil, fmt.Errorf("%v.%v does not have a jsonschema tag with description",
-				typ.Name(), field.Name)
-		}
+	if err := checkSchemaType(typ); err != nil {
+		return nil, err
 	}
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
@@ -33,6 +30,28 @@ func schemaFor[T any]() (*jsonschema.Schema, error) {
 		return nil, err
 	}
 	return resolved.Schema(), nil
+}
+
+func checkSchemaType(typ reflect.Type) error {
+	if typ.Kind() != reflect.Struct {
+		return nil
+	}
+	for _, field := range reflect.VisibleFields(typ) {
+		if field.Tag.Get("jsonschema") == "" {
+			return fmt.Errorf("%v.%v does not have a jsonschema tag with description",
+				typ.Name(), field.Name)
+		}
+		if err := checkSchemaType(field.Type); err != nil {
+			return err
+		}
+		switch field.Type.Kind() {
+		case reflect.Pointer, reflect.Slice, reflect.Array:
+			if err := checkSchemaType(field.Type.Elem()); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func mustSchemaFor[T any]() *jsonschema.Schema {

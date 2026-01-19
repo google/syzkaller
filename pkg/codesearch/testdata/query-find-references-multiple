@@ -1,0 +1,28 @@
+find-references refs.c refs2 "" 1 10
+
+refs2 has 4 references:
+
+function long_func_with_ref calls it at refs.c:29
+  28:		refs1();
+  29:		refs2(refs1, refs0());
+  30:		refs0();
+
+
+function ref_in_mm calls it at mm/refs.c:5
+   4:	{
+   5:		refs2();
+   6:	}
+
+
+function refs3 calls it at refs.c:19
+  18:	{
+  19:		refs2(refs1, refs0());
+  20:		(void)refs2;
+
+
+function refs3 takes-address-of it at refs.c:20
+  19:		refs2(refs1, refs0());
+  20:		(void)refs2;
+  21:	}
+
+

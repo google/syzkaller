@@ -1,0 +1,16 @@
+find-references refs.c refs2 "" 0 10
+
+refs2 has 4 references:
+
+function long_func_with_ref calls it at refs.c:29
+
+
+function ref_in_mm calls it at mm/refs.c:5
+
+
+function refs3 calls it at refs.c:19
+
+
+function refs3 takes-address-of it at refs.c:20
+
+

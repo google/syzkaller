@@ -71,12 +71,18 @@ public:
   Indexer(ASTContext& Context, Output& Output, const MacroMap& Macros)
       : Context(Context), SM(Context.getSourceManager()), Out(Output) {}
 
-  bool VisitFunctionDecl(const FunctionDecl*);
+  bool TraverseFunctionDecl(FunctionDecl*);
+  bool TraverseCallExpr(CallExpr*);
+  bool VisitDeclRefExpr(const DeclRefExpr*);
 
 private:
   ASTContext& Context;
   SourceManager& SM;
   Output& Out;
+  Definition* CurrentFunction = nullptr;
+  bool InCallee = false;
+
+  using Base = RecursiveASTVisitor<Indexer>;
 };
 
 bool Instance::handleBeginSource(CompilerInstance& CI) {
@@ -92,9 +98,10 @@ void IndexerAstConsumer::HandleTranslationUnit(ASTContext& Context) {
   Indexer.TraverseDecl(Context.getTranslationUnitDecl());
 }
 
-bool Indexer::VisitFunctionDecl(const FunctionDecl* Func) {
+bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
   if (!Func->doesThisDeclarationHaveABody())
-    return true;
+    return Base::TraverseFunctionDecl(Func);
+
   auto Range = Func->getSourceRange();
   const std::string& SourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(Range.getBegin())).str());
   int StartLine = SM.getExpansionLineNumber(Range.getBegin());
@@ -115,8 +122,8 @@ bool Indexer::VisitFunctionDecl(const FunctionDecl* Func) {
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
-  Out.emit(Definition{
-      .Kind = KindFunction,
+  Definition Def{
+      .Kind = EntityKindFunction,
       .Name = Func->getNameAsString(),
       .Type = Func->getType().getAsString(),
       .IsStatic = Func->isStatic(),
@@ -132,6 +139,37 @@ bool Indexer::VisitFunctionDecl(const FunctionDecl* Func) {
               .StartLine = CommentStartLine,
               .EndLine = CommentEndLine,
           },
+  };
+
+  Definition* SavedCurrentFunction = CurrentFunction;
+  CurrentFunction = &Def;
+  if (!Base::TraverseFunctionDecl(Func))
+    return false;
+  CurrentFunction = SavedCurrentFunction;
+  Out.emit(std::move(Def));
+  return true;
+}
+
+bool Indexer::TraverseCallExpr(CallExpr* CE) {
+  bool SavedInCallee = InCallee;
+  InCallee = true;
+  TraverseStmt(CE->getCallee());
+  InCallee = SavedInCallee;
+
+  for (auto* Arg : CE->arguments())
+    TraverseStmt(Arg);
+  return true;
+}
+
+bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
+  const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl());
+  if (!Func || !CurrentFunction)
+    return true;
+  CurrentFunction->Refs.push_back(Reference{
+      .Kind = InCallee ? RefKindCall : RefKindTakesAddr,
+      .EntityKind = EntityKindFunction,
+      .Name = Func->getNameAsString(),
+      .Line = static_cast<int>(SM.getExpansionLineNumber(DeclRef->getBeginLoc())),
   });
   return true;
 }

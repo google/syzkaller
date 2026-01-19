@@ -3,5 +3,6 @@ dir-index /mm/
 directory /mm/ subdirs:
 
 directory /mm/ files:
+ - refs.c
  - slub.c
  - slub.h

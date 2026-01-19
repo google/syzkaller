@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,7 +83,13 @@ func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, 
 }
 
 func forEachTestFile(t *testing.T, fn func(t *testing.T, file string)) {
-	files, err := filepath.Glob(filepath.Join(osutil.Abs("testdata"), "*.c"))
+	var files []string
+	err := filepath.WalkDir(osutil.Abs("testdata"), func(path string, d fs.DirEntry, err error) error {
+		if d.Name()[0] != '.' && filepath.Ext(d.Name()) == ".c" {
+			files = append(files, path)
+		}
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
