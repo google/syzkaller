@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -30,9 +31,9 @@ type Command struct {
 // Commands are used to run unit tests and for the syz-codesearch tool.
 var Commands = []Command{
 	{"dir-index", 1, func(index *Index, args []string) (string, error) {
-		ok, subdirs, files, err := index.DirIndex(args[0])
-		if err != nil || !ok {
-			return notFound, err
+		subdirs, files, err := index.DirIndex(args[0])
+		if err != nil {
+			return "", err
 		}
 		b := new(strings.Builder)
 		fmt.Fprintf(b, "directory %v subdirs:\n", args[0])
@@ -46,16 +47,12 @@ var Commands = []Command{
 		return b.String(), nil
 	}},
 	{"read-file", 1, func(index *Index, args []string) (string, error) {
-		ok, contents, err := index.ReadFile(args[0])
-		if err != nil || !ok {
-			return notFound, err
-		}
-		return contents, nil
+		return index.ReadFile(args[0])
 	}},
 	{"file-index", 1, func(index *Index, args []string) (string, error) {
-		ok, entities, err := index.FileIndex(args[0])
-		if err != nil || !ok {
-			return notFound, err
+		entities, err := index.FileIndex(args[0])
+		if err != nil {
+			return "", err
 		}
 		b := new(strings.Builder)
 		fmt.Fprintf(b, "file %v defines the following entities:\n\n", args[0])
@@ -66,8 +63,8 @@ var Commands = []Command{
 	}},
 	{"def-comment", 2, func(index *Index, args []string) (string, error) {
 		info, err := index.DefinitionComment(args[0], args[1])
-		if err != nil || info == nil {
-			return notFound, err
+		if err != nil {
+			return "", err
 		}
 		if info.Body == "" {
 			return fmt.Sprintf("%v %v is defined in %v and is not commented\n",
@@ -78,16 +75,14 @@ var Commands = []Command{
 	}},
 	{"def-source", 3, func(index *Index, args []string) (string, error) {
 		info, err := index.DefinitionSource(args[0], args[1], args[2] == "yes")
-		if err != nil || info == nil {
-			return notFound, err
+		if err != nil {
+			return "", err
 		}
 		return fmt.Sprintf("%v %v is defined in %v:\n\n%v", info.Kind, args[1], info.File, info.Body), nil
 	}},
 }
 
 var SourceExtensions = map[string]bool{".c": true, ".h": true, ".S": true, ".rs": true}
-
-const notFound = "not found\n"
 
 func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
 	db, err := osutil.ReadJSON[*Database](databaseFile)
@@ -118,16 +113,16 @@ type Entity struct {
 	Name string
 }
 
-func (index *Index) DirIndex(dir string) (bool, []string, []string, error) {
+func (index *Index) DirIndex(dir string) ([]string, []string, error) {
 	if err := escaping(dir); err != nil {
-		return false, nil, nil, nil
+		return nil, nil, err
 	}
 	exists := false
 	var subdirs, files []string
 	for _, root := range index.srcDirs {
 		exists1, subdirs1, files1, err := dirIndex(root, dir)
 		if err != nil {
-			return false, nil, nil, err
+			return nil, nil, err
 		}
 		if exists1 {
 			exists = true
@@ -135,18 +130,21 @@ func (index *Index) DirIndex(dir string) (bool, []string, []string, error) {
 		subdirs = append(subdirs, subdirs1...)
 		files = append(files, files1...)
 	}
+	if !exists {
+		return nil, nil, aflow.BadCallError("the directory does not exist")
+	}
 	slices.Sort(subdirs)
 	slices.Sort(files)
 	// Dedup dirs across src/build trees,
 	// also dedup files, but hopefully there are no duplicates.
 	subdirs = slices.Compact(subdirs)
 	files = slices.Compact(files)
-	return exists, subdirs, files, nil
+	return subdirs, files, nil
 }
 
-func (index *Index) ReadFile(file string) (bool, string, error) {
+func (index *Index) ReadFile(file string) (string, error) {
 	if err := escaping(file); err != nil {
-		return false, "", nil
+		return "", err
 	}
 	for _, dir := range index.srcDirs {
 		data, err := os.ReadFile(filepath.Join(dir, file))
@@ -156,16 +154,21 @@ func (index *Index) ReadFile(file string) (bool, string, error) {
 			}
 			var errno syscall.Errno
 			if errors.As(err, &errno) && errno == syscall.EISDIR {
-				return false, "", nil
+				return "", aflow.BadCallError("the file is a directory")
 			}
-			return false, "", err
+			return "", err
 		}
-		return true, string(data), nil
+		return string(data), nil
 	}
-	return false, "", nil
+	return "", aflow.BadCallError("the file does not exist")
 }
 
-func (index *Index) FileIndex(file string) (bool, []Entity, error) {
+func (index *Index) FileIndex(file string) ([]Entity, error) {
+	file = filepath.Clean(file)
+	// This allows to distinguish missing files from files that don't define anything.
+	if _, err := index.ReadFile(file); err != nil {
+		return nil, err
+	}
 	var entities []Entity
 	for _, def := range index.db.Definitions {
 		if def.Body.File == file {
@@ -175,7 +178,7 @@ func (index *Index) FileIndex(file string) (bool, []Entity, error) {
 			})
 		}
 	}
-	return len(entities) != 0, entities, nil
+	return entities, nil
 }
 
 type EntityInfo struct {
@@ -195,7 +198,7 @@ func (index *Index) DefinitionSource(contextFile, name string, includeLines bool
 func (index *Index) definitionSource(contextFile, name string, comment, includeLines bool) (*EntityInfo, error) {
 	def := index.findDefinition(contextFile, name)
 	if def == nil {
-		return nil, nil
+		return nil, aflow.BadCallError("requested entity does not exist")
 	}
 	lineRange := def.Body
 	if comment {
@@ -266,7 +269,7 @@ func formatSourceFile(file string, start, end int, includeLines bool) (string, e
 
 func escaping(path string) error {
 	if strings.Contains(filepath.Clean(path), "..") {
-		return errors.New("path is outside of the source tree")
+		return aflow.BadCallError("path is outside of the source tree")
 	}
 	return nil
 }
@@ -280,7 +283,7 @@ func dirIndex(root, subdir string) (bool, []string, []string, error) {
 		}
 		var errno syscall.Errno
 		if errors.As(err, &errno) && errno == syscall.ENOTDIR {
-			err = nil
+			err = aflow.BadCallError("the path is not a directory")
 		}
 		return false, nil, nil, err
 	}

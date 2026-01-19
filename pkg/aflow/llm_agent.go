@@ -246,24 +246,25 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 				},
 			})
 		}
+		appendError := func(message string) {
+			appendPart(map[string]any{"error": message})
+		}
 		tool := tools[call.Name]
 		if tool == nil {
-			appendPart(map[string]any{
-				"error": fmt.Sprintf("tool %q does not exist, please correct the name", call.Name),
-			})
+			appendError(fmt.Sprintf("tool %q does not exist, please correct the name", call.Name))
 			continue
 		}
 		results, err := tool.execute(ctx, call.Args)
 		if err != nil {
-			if argsErr := new(toolArgsError); errors.As(err, &argsErr) {
-				// LLM provided wrong arguments to the tool,
-				// return the error back to the LLM instead of failing.
-				appendPart(map[string]any{
-					"error": err.Error(),
-				})
+			// LLM provided wrong arguments to the tool,
+			// or the tool returned error message to the LLM.
+			// Return the error back to the LLM instead of failing.
+			if callErr := new(badCallError); errors.As(err, &callErr) {
+				appendError(err.Error())
 				continue
 			}
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("tool %v failed: error: %w\nargs: %+v",
+				call.Name, err, call.Args)
 		}
 		appendPart(results)
 		if a.Outputs != nil && tool == a.Outputs.tool {

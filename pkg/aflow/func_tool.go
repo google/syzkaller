@@ -4,6 +4,8 @@
 package aflow
 
 import (
+	"errors"
+
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"google.golang.org/genai"
 )
@@ -22,6 +24,17 @@ func NewFuncTool[State, Args, Results any](name string, fn func(*Context, State,
 		Description: description,
 		Func:        fn,
 	}
+}
+
+// BadCallError creates an error that means that LLM made a bad tool call,
+// the provided message will be returned to the LLM as an error,
+// instead of failing the whole workflow.
+func BadCallError(message string) error {
+	return &badCallError{errors.New(message)}
+}
+
+type badCallError struct {
+	error
 }
 
 type funcTool[State, Args, Results any] struct {
