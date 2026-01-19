@@ -37,6 +37,7 @@ typedef enum {
 	SYZOS_API_NESTED_AMD_STGI = 382,
 	SYZOS_API_NESTED_AMD_CLGI = 383,
 	SYZOS_API_NESTED_AMD_INJECT_EVENT = 384,
+	SYZOS_API_NESTED_AMD_SET_INTERCEPT = 385,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -121,6 +122,7 @@ GUEST_CODE static void guest_handle_nested_amd_invlpga(struct api_call_2* cmd, u
 GUEST_CODE static void guest_handle_nested_amd_stgi();
 GUEST_CODE static void guest_handle_nested_amd_clgi();
 GUEST_CODE static void guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -248,6 +250,9 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_AMD_INJECT_EVENT) {
 			// Inject an event (IRQ/Exception) into the L2 guest via VMCB.
 			guest_handle_nested_amd_inject_event((struct api_call_5*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT) {
+			// Set/Clear specific intercept bits in the VMCB.
+			guest_handle_nested_amd_set_intercept((struct api_call_5*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -568,6 +573,11 @@ GUEST_CODE static noinline void vmcb_write16(uint64 vmcb, uint16 offset, uint16 
 GUEST_CODE static noinline void vmcb_write32(uint64 vmcb, uint16 offset, uint32 val)
 {
 	*((volatile uint32*)(vmcb + offset)) = val;
+}
+
+GUEST_CODE static noinline uint32 vmcb_read32(uint64 vmcb, uint16 offset)
+{
+	return *((volatile uint32*)(vmcb + offset));
 }
 
 GUEST_CODE static noinline void vmcb_write64(uint64 vmcb, uint16 offset, uint64 val)
@@ -1357,6 +1367,29 @@ guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id)
 
 	// Write to VMCB Offset 0x60 (EVENTINJ)
 	vmcb_write64(vmcb_addr, 0x60, event_inj);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+
+	uint64 vm_id = cmd->args[0];
+	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+	uint64 offset = cmd->args[1];
+	uint64 bit_mask = cmd->args[2];
+	uint64 action = cmd->args[3]; // 1 = Set, 0 = Clear
+
+	// Read 32-bit intercept field (Offsets 0x00 - 0x14 are all 32-bit vectors).
+	uint32 current = vmcb_read32(vmcb_addr, (uint16)offset);
+
+	if (action == 1)
+		current |= (uint32)bit_mask;
+	else
+		current &= ~((uint32)bit_mask);
+
+	vmcb_write32(vmcb_addr, (uint16)offset, current);
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
