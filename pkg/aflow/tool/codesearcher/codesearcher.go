@@ -17,6 +17,11 @@ var Tools = []aflow.Tool{
 	aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
 Tool provides list of source files and subdirectories in the given directory in the source tree.
 `),
+	aflow.NewFuncTool("read-file", readFile, `
+Tool provides full contents of a single source file as is. Avoid using this tool if there are better
+and more specialized tools for the job, because source files may be large and contain lots
+of unrelated information.
+`),
 	aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
@@ -66,6 +71,15 @@ type dirIndexResult struct {
 	Missing bool     `jsonschema:"Set to true if the requested directory does not exist."`
 	Subdirs []string `jsonschema:"List of direct subdirectories."`
 	Files   []string `jsonschema:"List of source files."`
+}
+
+type readFileArgs struct {
+	File string `jsonschema:"Source file path."`
+}
+
+type readFileResult struct {
+	Missing  bool   `jsonschema:"Set to true if the requested file does not exist."`
+	Contents string `jsonschema:"File contents."`
 }
 
 type fileIndexArgs struct {
@@ -150,6 +164,15 @@ func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIn
 		Missing: !ok,
 		Subdirs: subdirs,
 		Files:   files,
+	}
+	return res, err
+}
+
+func readFile(ctx *aflow.Context, state prepareResult, args readFileArgs) (readFileResult, error) {
+	ok, contents, err := state.Index.ReadFile(args.File)
+	res := readFileResult{
+		Missing:  !ok,
+		Contents: contents,
 	}
 	return res, err
 }
