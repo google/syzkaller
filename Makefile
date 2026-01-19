@@ -272,12 +272,13 @@ format_keep_sorted:
 	find . -name "*.yml" -exec bin/keep-sorted {} \;
 
 format_cpp:
-	clang-format --style=file -i executor/*.cc executor/*.h \
-		executor/android/android_seccomp.h \
-		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc \
-		tools/clang/*.h \
-		tools/clang/declextract/*.h tools/clang/declextract/*.cpp \
-		tools/clang/codesearch/*.h tools/clang/codesearch/*.cpp
+	# Exclude auto-generated and canned files.
+	git ls-files *.h *.c *.cc *.cpp | grep -Ev \
+"executor/_include/flatbuffers/\
+|pkg/flatrpc/flatrpc.h\
+|pkg/covermerger/testdata/integration/\
+|executor/android/.*_policy.h" \
+	| xargs -I {} -P 0 clang-format --style=file -i {}
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all
