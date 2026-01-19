@@ -63,7 +63,7 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 		f, ok := m[name]
 		if !ok {
 			if tool {
-				return val, &toolArgsError{fmt.Errorf("missing argument %q", name)}
+				return val, BadCallError(fmt.Sprintf("missing argument %q", name))
 			} else {
 				return val, fmt.Errorf("field %q is not present when converting map to %T", name, val)
 			}
@@ -79,8 +79,8 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 			field.Set(reflect.ValueOf(f))
 		} else {
 			if tool {
-				return val, &toolArgsError{fmt.Errorf("argument %q has wrong type: got %T, want %v",
-					name, f, field.Type().Name())}
+				return val, BadCallError(fmt.Sprintf("argument %q has wrong type: got %T, want %v",
+					name, f, field.Type().Name()))
 			} else {
 				return val, fmt.Errorf("field %q has wrong type: got %T, want %v",
 					name, f, field.Type().Name())
@@ -92,8 +92,6 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 	}
 	return val, nil
 }
-
-type toolArgsError struct{ error }
 
 // foreachField iterates over all public fields of the struct provided in data.
 func foreachField(data any) iter.Seq2[string, reflect.Value] {

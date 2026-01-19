@@ -68,7 +68,6 @@ type dirIndexArgs struct {
 }
 
 type dirIndexResult struct {
-	Missing bool     `jsonschema:"Set to true if the requested directory does not exist."`
 	Subdirs []string `jsonschema:"List of direct subdirectories."`
 	Files   []string `jsonschema:"List of source files."`
 }
@@ -78,7 +77,6 @@ type readFileArgs struct {
 }
 
 type readFileResult struct {
-	Missing  bool   `jsonschema:"Set to true if the requested file does not exist."`
 	Contents string `jsonschema:"File contents."`
 }
 
@@ -87,7 +85,6 @@ type fileIndexArgs struct {
 }
 
 type fileIndexResult struct {
-	Missing  bool          `jsonschema:"Set to true if the file with the given name does not exist."`
 	Entities []indexEntity `jsonschema:"List of entites defined in the file."`
 }
 
@@ -103,7 +100,6 @@ type defCommentArgs struct {
 }
 
 type defCommentResult struct {
-	Missing bool   `jsonschema:"Set to true if the entity with the given name does not exist."`
 	Kind    string `jsonschema:"Kind of the entity: function, struct, variable."`
 	Comment string `jsonschema:"Source comment for the entity."`
 }
@@ -117,7 +113,6 @@ type defSourceArgs struct {
 
 // nolint: lll
 type defSourceResult struct {
-	Missing    bool   `jsonschema:"Set to true if the entity with the given name does not exist."`
 	SourceFile string `jsonschema:"Source file path where the entity is defined."`
 	SourceCode string `jsonschema:"Source code of the entity definition. It is prefixed with line numbers, so that they can be referenced in other tool invocations."`
 }
@@ -159,29 +154,23 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 }
 
 func dirIndex(ctx *aflow.Context, state prepareResult, args dirIndexArgs) (dirIndexResult, error) {
-	ok, subdirs, files, err := state.Index.DirIndex(args.Dir)
-	res := dirIndexResult{
-		Missing: !ok,
+	subdirs, files, err := state.Index.DirIndex(args.Dir)
+	return dirIndexResult{
 		Subdirs: subdirs,
 		Files:   files,
-	}
-	return res, err
+	}, err
 }
 
 func readFile(ctx *aflow.Context, state prepareResult, args readFileArgs) (readFileResult, error) {
-	ok, contents, err := state.Index.ReadFile(args.File)
-	res := readFileResult{
-		Missing:  !ok,
+	contents, err := state.Index.ReadFile(args.File)
+	return readFileResult{
 		Contents: contents,
-	}
-	return res, err
+	}, err
 }
 
 func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fileIndexResult, error) {
-	ok, entities, err := state.Index.FileIndex(args.SourceFile)
-	res := fileIndexResult{
-		Missing: !ok,
-	}
+	entities, err := state.Index.FileIndex(args.SourceFile)
+	res := fileIndexResult{}
 	for _, ent := range entities {
 		res.Entities = append(res.Entities, indexEntity{
 			Kind: ent.Kind,
@@ -193,10 +182,8 @@ func fileIndex(ctx *aflow.Context, state prepareResult, args fileIndexArgs) (fil
 
 func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentArgs) (defCommentResult, error) {
 	info, err := state.Index.DefinitionComment(args.SourceFile, args.Name)
-	if err != nil || info == nil {
-		return defCommentResult{
-			Missing: info == nil,
-		}, err
+	if err != nil {
+		return defCommentResult{}, err
 	}
 	return defCommentResult{
 		Kind:    info.Kind,
@@ -206,10 +193,8 @@ func definitionComment(ctx *aflow.Context, state prepareResult, args defCommentA
 
 func definitionSource(ctx *aflow.Context, state prepareResult, args defSourceArgs) (defSourceResult, error) {
 	info, err := state.Index.DefinitionSource(args.SourceFile, args.Name, args.IncludeLines)
-	if err != nil || info == nil {
-		return defSourceResult{
-			Missing: info == nil,
-		}, err
+	if err != nil {
+		return defSourceResult{}, err
 	}
 	return defSourceResult{
 		SourceFile: info.File,

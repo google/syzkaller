@@ -53,7 +53,8 @@ func testCommand(t *testing.T, index *Index, covered map[string]bool, file strin
 	}
 	result, err := index.Command(args[0], args[1:])
 	if err != nil {
-		t.Fatal(err)
+		// This is supposed to test aflow.BadCallError messages.
+		result = err.Error() + "\n"
 	}
 	got := append([]byte(strings.Join(args, " ")+"\n\n"), result...)
 	tooltest.CompareGoldenData(t, file, got)
