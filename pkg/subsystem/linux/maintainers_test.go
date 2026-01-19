@@ -89,12 +89,13 @@ func TestRecordToPathRule(t *testing.T) {
 				`with-subfolders/a`,
 				`with-subfolders/a/b`,
 				`dir/only-one`,
+				`dir/only-one/a.c`,
+				`dir/only-one/a/b.c`,
 				`also-with-subfolders/a.c`,
 				`also-with-subfolders/b/a.c`,
 			},
 			noMatch: []string{
-				`dir/only-one/a.c`,
-				`dir/only-one/a/b.c`,
+				`dir/only-one-plus-suffix`,
 			},
 		},
 		{
