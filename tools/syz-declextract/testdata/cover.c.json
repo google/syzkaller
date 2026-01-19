@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_cover",
 			"file": "cover.c",
-			"start_line": 23,
-			"end_line": 37,
+			"start_line": 24,
+			"end_line": 39,
 			"scopes": [
 				{
 					"arg": -1,
@@ -28,16 +28,16 @@
 					"values": [
 						"COVER_IOCTL1"
 					],
-					"start_line": 27,
-					"end_line": 29
+					"start_line": 29,
+					"end_line": 31
 				},
 				{
 					"arg": 0,
 					"values": [
 						"COVER_IOCTL2"
 					],
-					"start_line": 29,
-					"end_line": 31
+					"start_line": 31,
+					"end_line": 33
 				},
 				{
 					"arg": 0,
@@ -45,8 +45,8 @@
 						"COVER_IOCTL3",
 						"COVER_IOCTL4"
 					],
-					"start_line": 31,
-					"end_line": 35,
+					"start_line": 33,
+					"end_line": 37,
 					"calls": [
 						"cover_helper"
 					],
@@ -73,7 +73,7 @@
 			"name": "cover_helper",
 			"file": "cover.c",
 			"start_line": 11,
-			"end_line": 21,
+			"end_line": 22,
 			"is_static": true,
 			"scopes": [
 				{
@@ -84,16 +84,16 @@
 					"values": [
 						"COVER_IOCTL3"
 					],
-					"start_line": 15,
-					"end_line": 17
+					"start_line": 16,
+					"end_line": 18
 				},
 				{
 					"arg": 0,
 					"values": [
 						"COVER_IOCTL4"
 					],
-					"start_line": 17,
-					"end_line": 20
+					"start_line": 18,
+					"end_line": 21
 				}
 			]
 		}

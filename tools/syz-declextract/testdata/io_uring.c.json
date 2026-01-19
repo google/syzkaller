@@ -4,7 +4,7 @@
 			"name": "io_eopnotsupp_prep",
 			"file": "io_uring.c",
 			"start_line": 11,
-			"end_line": 11,
+			"end_line": 13,
 			"scopes": [
 				{
 					"arg": -1
@@ -14,8 +14,8 @@
 		{
 			"name": "io_nop",
 			"file": "io_uring.c",
-			"start_line": 13,
-			"end_line": 13,
+			"start_line": 17,
+			"end_line": 19,
 			"scopes": [
 				{
 					"arg": -1
@@ -25,8 +25,8 @@
 		{
 			"name": "io_nop_prep",
 			"file": "io_uring.c",
-			"start_line": 12,
-			"end_line": 12,
+			"start_line": 14,
+			"end_line": 16,
 			"scopes": [
 				{
 					"arg": -1
@@ -36,8 +36,8 @@
 		{
 			"name": "io_read",
 			"file": "io_uring.c",
-			"start_line": 15,
-			"end_line": 15,
+			"start_line": 23,
+			"end_line": 25,
 			"scopes": [
 				{
 					"arg": -1
@@ -47,8 +47,8 @@
 		{
 			"name": "io_readv_prep",
 			"file": "io_uring.c",
-			"start_line": 14,
-			"end_line": 14,
+			"start_line": 20,
+			"end_line": 22,
 			"scopes": [
 				{
 					"arg": -1
@@ -58,8 +58,8 @@
 		{
 			"name": "io_write",
 			"file": "io_uring.c",
-			"start_line": 17,
-			"end_line": 17,
+			"start_line": 29,
+			"end_line": 31,
 			"scopes": [
 				{
 					"arg": -1
@@ -69,8 +69,8 @@
 		{
 			"name": "io_writev_prep",
 			"file": "io_uring.c",
-			"start_line": 16,
-			"end_line": 16,
+			"start_line": 26,
+			"end_line": 28,
 			"scopes": [
 				{
 					"arg": -1

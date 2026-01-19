@@ -3,10 +3,12 @@
 
 #include "include/syscall.h"
 
-SYSCALL_DEFINE1(open, const char* filename, int flags, int mode) {
+SYSCALL_DEFINE1(open, const char* filename, int flags, int mode)
+{
 	return 0;
 }
 
-SYSCALL_DEFINE1(chmod, const char* filename, int mode) {
+SYSCALL_DEFINE1(chmod, const char* filename, int mode)
+{
 	return 0;
 }

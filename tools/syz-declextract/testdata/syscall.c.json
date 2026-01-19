@@ -3,8 +3,8 @@
 		{
 			"name": "__do_sys_chmod",
 			"file": "syscall.c",
-			"start_line": 10,
-			"end_line": 12,
+			"start_line": 11,
+			"end_line": 14,
 			"scopes": [
 				{
 					"arg": -1
@@ -15,7 +15,7 @@
 			"name": "__do_sys_open",
 			"file": "syscall.c",
 			"start_line": 6,
-			"end_line": 8,
+			"end_line": 9,
 			"scopes": [
 				{
 					"arg": -1

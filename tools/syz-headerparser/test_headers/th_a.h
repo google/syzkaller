@@ -8,8 +8,8 @@
 #define RANDOM_MACRO_2 2
 
 struct A {
-	struct B *B_item;
-	const char *char_ptr;
+	struct B* B_item;
+	const char* char_ptr;
 	unsigned int an_unsigned_int;
 	/*
 	 * Some comments

@@ -1,8 +1,8 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#include "include/fs.h"
 #include "include/uapi/file_operations.h"
+#include "include/fs.h"
 #include "include/uapi/unused_ioctl.h"
 
 enum {
@@ -13,13 +13,24 @@ enum {
 	config_foo
 };
 
-static void foo_open() {}
-static void foo_read() {}
-static void foo_write() {}
-static void foo_mmap() {}
-static void foo_mmap2() {}
+static void foo_open()
+{
+}
+static void foo_read()
+{
+}
+static void foo_write()
+{
+}
+static void foo_mmap()
+{
+}
+static void foo_mmap2()
+{
+}
 
-static void foo_ioctl2(unsigned int cmd, unsigned long arg) {
+static void foo_ioctl2(unsigned int cmd, unsigned long arg)
+{
 	switch (cmd) {
 	case FOO_IOCTL6:
 	case FOO_IOCTL7:
@@ -27,7 +38,8 @@ static void foo_ioctl2(unsigned int cmd, unsigned long arg) {
 	}
 }
 
-static void foo_ioctl(void* file, unsigned int cmd, unsigned long arg) {
+static void foo_ioctl(void* file, unsigned int cmd, unsigned long arg)
+{
 	switch (cmd) {
 	case FOO_IOCTL1:
 	case FOO_IOCTL2:
@@ -42,35 +54,44 @@ static void foo_ioctl(void* file, unsigned int cmd, unsigned long arg) {
 }
 
 const struct file_operations foo = {
-	.open = foo_open,
-	.read = foo_read,
-	.write = foo_write,
-	.unlocked_ioctl = foo_ioctl,
-	// Such code happens after macro expansion,
-	// we want to extract the first function name.
-	.mmap = ((config_foo) ? foo_mmap : foo_mmap2),
+    .open = foo_open,
+    .read = foo_read,
+    .write = foo_write,
+    .unlocked_ioctl = foo_ioctl,
+    // Such code happens after macro expansion,
+    // we want to extract the first function name.
+    .mmap = ((config_foo) ? foo_mmap : foo_mmap2),
 };
 
-static void proc_open() {}
-static void proc_read() {}
-static void proc_write() {}
-static void proc_ioctl(void* file, unsigned int cmd, unsigned long arg) {}
+static void proc_open()
+{
+}
+static void proc_read()
+{
+}
+static void proc_write()
+{
+}
+static void proc_ioctl(void* file, unsigned int cmd, unsigned long arg)
+{
+}
 
 const struct file_operations proc_ops[] = {
-	{
-		.open = proc_open,
-		.read_iter = proc_read,
-		.write_iter = proc_write,
-	},
-	{
-		.open = proc_open,
-		.unlocked_ioctl = proc_ioctl,
-	},
+    {
+	.open = proc_open,
+	.read_iter = proc_read,
+	.write_iter = proc_write,
+    },
+    {
+	.open = proc_open,
+	.unlocked_ioctl = proc_ioctl,
+    },
 };
 
-#define UNUSED_IOCTL2		_IO('c', 2)
+#define UNUSED_IOCTL2 _IO('c', 2)
 
-static void unused_ioctl(void* file, unsigned int cmd, unsigned long arg) {
+static void unused_ioctl(void* file, unsigned int cmd, unsigned long arg)
+{
 	switch (cmd) {
 	case UNUSED_IOCTL1:
 	case UNUSED_IOCTL2:
@@ -78,5 +99,5 @@ static void unused_ioctl(void* file, unsigned int cmd, unsigned long arg) {
 }
 
 const struct file_operations unused = {
-	.unlocked_ioctl = unused_ioctl,
+    .unlocked_ioctl = unused_ioctl,
 };

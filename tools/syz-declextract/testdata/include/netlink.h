@@ -30,34 +30,36 @@ enum {
 };
 
 struct nla_policy {
-	u8		type;
-	u8		validation_type;
-	u16		len;
+	u8 type;
+	u8 validation_type;
+	u16 len;
 	union {
 		const u32 bitfield32_valid;
 		const u32 mask;
-		const struct nla_policy *nested_policy;
-		struct { s16 min, max; };
+		const struct nla_policy* nested_policy;
+		struct {
+			s16 min, max;
+		};
 	};
 };
 
-#define NLA_POLICY_NESTED(policy) { .type = NLA_NESTED, .nested_policy = policy, .len = sizeof(policy)/sizeof(policy[0]) }
+#define NLA_POLICY_NESTED(policy) {.type = NLA_NESTED, .nested_policy = policy, .len = sizeof(policy) / sizeof(policy[0])}
 
 #define GENL_ADMIN_PERM 0x01
 #define GENL_UNS_ADMIN_PERM 0x10
 
 struct genl_ops {
-	u8				cmd;
-	u8				flags;
-	const struct nla_policy*	policy;
-	void				(*doit)(void);
-	void				(*dumpit)(void);
+	u8 cmd;
+	u8 flags;
+	const struct nla_policy* policy;
+	void (*doit)(void);
+	void (*dumpit)(void);
 };
 
 struct genl_split_ops {
-	u8			cmd;
-	u8			flags;
-	const struct nla_policy *policy;
+	u8 cmd;
+	u8 flags;
+	const struct nla_policy* policy;
 	union {
 		struct {
 			void (*pre_doit)(void);
@@ -72,15 +74,16 @@ struct genl_split_ops {
 	};
 };
 
-struct genl_small_ops {};
+struct genl_small_ops {
+};
 
 struct genl_family {
-	char				name[64];
-	u8				n_ops;
-	u8				n_small_ops;
-	u8				n_split_ops;
-	const struct nla_policy* 	policy;
-	const struct genl_ops*		ops;
-	const struct genl_small_ops*	mall_ops;
-	const struct genl_split_ops*	split_ops;
+	char name[64];
+	u8 n_ops;
+	u8 n_small_ops;
+	u8 n_split_ops;
+	const struct nla_policy* policy;
+	const struct genl_ops* ops;
+	const struct genl_small_ops* mall_ops;
+	const struct genl_split_ops* split_ops;
 };
