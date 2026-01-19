@@ -1,0 +1,48 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmv.x.w
+long_name: Floating-Point Move Single-Precision Word to Integer Register
+description: |
+  The `fmv.x.w` instruction moves the single-precision value in floating-point register `fs1`` represented in `IEEE 754-2008`
+  encoding to the lower 32 bits of integer register `xd`. The bits are not modified in the transfer, and in particular, the
+  payloads of non-canonical NaNs are preserved. For RV64, the higher 32 bits of the destination register are filled with copies
+  of the floating-point number's sign bit.
+definedBy:
+  extension:
+    name: F
+assembly: xd, fs1
+encoding:
+  match: 111000000000-----000-----1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  check_f_ok($encoding);
+
+  X[xd] = sext(f[fs1][31:0], 32);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_X            = X(rs1);
+    let rd_val_S             = rs1_val_X [31..0];
+    F(rd) = nan_box (rd_val_S);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

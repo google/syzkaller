@@ -1,0 +1,91 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.s.h
+long_name: Convert single-precision float to a half-precision float
+definedBy:
+  extension:
+    oneOf:
+      - name: Zfhmin
+      - name: Zhinxmin
+assembly: fd, fs1, rm
+description: |
+  Converts a single-precision number in floating-point register _fs1_ into a half-precision floating-point number in
+  floating-point register _fd_.
+
+  `fcvt.s.h` will never round, and so the 'rm' field is effectively ignored.
+
+encoding:
+  match: 010000000010-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  check_f_ok($encoding);
+
+  Bits<32> sp_value = f[fs1][31:0];
+
+  Bits<1> sign = sp_value[31];
+  Bits<8> exp = sp_value[30:23];
+  Bits<23> frac = sp_value[22:0];
+
+  if (exp == 0xFF) {
+    if (frac != 0) {
+      if ((sp_value & 0x00400000) != 0) {
+        set_fp_flag(FpFlag::NV);
+      }
+      f[fd] = nan_box<16, FLEN>(HP_CANONICAL_NAN);
+    } else {
+      f[fd] = nan_box<16, FLEN>(packToF16UI( sign, 0x1F, 0 ));
+    }
+  } else {
+
+    # frac is a 24-bit significand, the bottom 9 bits LSB are extracted and OR-red
+    # into a sticky flag, the top 15 MSBs are extracted, the LSB of this top slice
+    # is OR-red with the sticky
+    Bits<16> frac16 = (frac >> 9) | ((frac & 0x1ff) != 0 ? 1 : 0);
+    if ((exp | frac16) == 0) {
+      f[fd] = nan_box<16, FLEN>(packToF16UI( sign, 0, 0 ));
+    } else {
+      assert(false, "TODO: implement roundPackToF16");
+      # f[fd] = soffloat_roundPackToF16(sign, exp - 0x71, frac16 | 0x4000);
+    }
+
+  }
+
+  mark_f_state_dirty();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    assert(sizeof(xlen) >= 64);
+    let rs1_val_LU = X(rs1)[63..0];
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_H) = riscv_ui64ToF16 (rm_3b, rs1_val_LU);
+
+        accrue_fflags(fflags);
+        F_or_X_H(rd) = rd_val_H;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

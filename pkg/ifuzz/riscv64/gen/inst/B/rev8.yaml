@@ -1,0 +1,77 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: rev8
+long_name: Byte-reverse register (RV64 encoding)
+description: |
+  Reverses the order of the bytes in rs1.
+
+  [NOTE]
+  The rev8 mnemonic corresponds to different instruction encodings in RV32 and RV64.
+
+  [NOTE]
+  The byte-reverse operation is only available for the full register width. To emulate word-sized
+  and halfword-sized byte-reversal, perform a `rev8 xd,xs1` followed by a `srai xd,xd,K`, where K
+  is XLEN-32 and XLEN-16, respectively.
+definedBy:
+  extension:
+    anyOf:
+      - name: Zbb
+      - name: Zbkb
+assembly: xd, xs1
+encoding:
+  RV32:
+    match: 011010011000-----101-----0010011
+    variables:
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+  RV64:
+    match: 011010111000-----101-----0010011
+    variables:
+      - name: xs1
+        location: 19-15
+      - name: xd
+        location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg input = X[xs1];
+  XReg output = 0;
+
+  XReg j = xlen() - 1;
+
+  for (U32 i=0; i<(xlen()-8); i = i+8) {
+    output[(i+7):i] = input[j:(j-7)];
+    j = j - 8;
+  }
+
+  X[xd] = output;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    result : xlenbits = zeros();
+    foreach (i from 0 to (sizeof(xlen) - 8) by 8)
+      result[(i + 7) .. i] = rs1_val[(sizeof(xlen) - i - 1) .. (sizeof(xlen) - i - 8)];
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

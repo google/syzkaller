@@ -1,0 +1,47 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: c.mop.n
+long_name: Compressed May-Be-Operation
+description:
+  C.MOP.n is encoded in the reserved encoding space corresponding to C.LUI
+  xn, 0. Unlike the MOPs defined in the Zimop extension, the C.MOP.n instructions
+  are defined to not write any register. Their encoding allows future extensions to
+  define them to read register x[n].
+definedBy:
+  extension:
+    name: Zcmop
+assembly: ""
+encoding:
+  match: 01100---10000001
+  variables:
+    - name: n
+      location: 10-8
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+pseudoinstructions:
+  - when: (n == 0)
+    to: c.mop.1
+  - when: (n == 1)
+    to: c.mop.3
+  - when: (n == 2)
+    to: c.mop.5
+  - when: (n == 3)
+    to: c.mop.7
+  - when: (n == 4)
+    to: c.mop.9
+  - when: (n == 5)
+    to: c.mop.11
+  - when: (n == 6)
+    to: c.mop.13
+  - when: (n == 7)
+    to: c.mop.15
+operation(): "" #do nothing

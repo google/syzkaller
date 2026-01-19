@@ -1,0 +1,59 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mret
+long_name: Machine-mode Return from Trap
+description: |
+  Return from machine mode after handling a trap.
+assembly: ""
+definedBy:
+  extension:
+    name: Sm
+access:
+  s: never
+  u: never
+  vs: never
+  vu: never
+encoding:
+  match: "00110000001000000000000001110011"
+operation(): |
+  if (CSR[mstatus].MPP != 2'b11) {
+    CSR[mstatus].MPRV = 0;
+  }
+  if (implemented?(ExtensionName::Smdbltrp)) {
+    if (xlen() == 64) {
+      CSR[mstatus].MDT = 1'b0;
+    } else {
+      CSR[mstatush].MDT = 1'b0;
+    }
+  }
+  CSR[mstatus].MIE = CSR[mstatus].MPIE;
+  CSR[mstatus].MPIE = 1;
+  if (CSR[mstatus].MPP == 2'b00) {
+    set_mode(PrivilegeMode::U);
+  } else if (CSR[mstatus].MPP == 2'b01) {
+    set_mode(PrivilegeMode::S);
+  } else if (CSR[mstatus].MPP == 2'b11) {
+    set_mode(PrivilegeMode::M);
+  }
+  CSR[mstatus].MPP = implemented?(ExtensionName::U) ? 2'b00 : 2'b11;
+  $pc = $bits(CSR[mepc]);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if   cur_privilege != Machine
+    then { handle_illegal(); RETIRE_FAIL }
+    else if not(ext_check_xret_priv (Machine))
+    then { ext_fail_xret_priv(); RETIRE_FAIL }
+    else {
+      set_next_pc(exception_handler(cur_privilege, CTL_MRET(), PC));
+      RETIRE_SUCCESS
+    }
+  }
+
+# SPDX-SnippetEnd

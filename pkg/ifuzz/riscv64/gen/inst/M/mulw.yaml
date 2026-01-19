@@ -1,0 +1,79 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mulw
+long_name: Signed 32-bit multiply
+description: |
+  Multiplies the lower 32 bits of the source registers, placing the sign-extension of the
+  lower 32 bits of the result into the destination register.
+
+  Any overflow is thrown away.
+
+  [NOTE]
+  In RV64, MUL can be used to obtain the upper 32 bits of the 64-bit product,
+  but signed arguments must be proper 32-bit signed values, whereas unsigned arguments
+  must have their upper 32 bits clear. If the arguments are not known to be sign- or zero-extended,
+  an alternative is to shift both arguments left by 32 bits, then use MULH[[S]U].
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        anyOf:
+          - name: M
+          - name: Zmmul
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------000-----0111011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  Bits<32> src1 = X[xs1][31:0];
+  Bits<32> src2 = X[xs2][31:0];
+
+  Bits<32> result = src1 * src2;
+  Bits<1> sign_bit = result[31];
+
+  # return the sign-extended result
+  X[xd] = {{32{sign_bit}}, result};
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") | haveZmmul() then {
+      let rs1_val = X(rs1)[31..0];
+      let rs2_val = X(rs2)[31..0];
+      let rs1_int : int = signed(rs1_val);
+      let rs2_int : int = signed(rs2_val);
+      /* to_bits requires expansion to 64 bits followed by truncation */
+      let result32 = to_bits(64, rs1_int * rs2_int)[31..0];
+      let result : xlenbits = sign_extend(result32);
+      X(rd) = result;
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

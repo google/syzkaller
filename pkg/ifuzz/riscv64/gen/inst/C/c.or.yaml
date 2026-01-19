@@ -1,0 +1,64 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.or
+long_name: Or
+description: |
+  Or xd with xs2, and store the result in xd
+  The xd and xs2 register indexes should be used as xd+8 and xs2+8 (registers x8-x15).
+  C.OR expands into `or xd, xd, xs2`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, xs2
+encoding:
+  match: 100011---10---01
+  variables:
+    - name: xs2
+      location: 4-2
+    - name: xd
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  XReg t0 = X[creg2reg(xd)];
+  XReg t1 = X[creg2reg(xs2)];
+  X[creg2reg(xd)] = t0 | t1;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rd+8);
+    let rs2_val = X(rs2+8);
+    let result : xlenbits = match op {
+      RISCV_ADD  => rs1_val + rs2_val,
+      RISCV_SLT  => zero_extend(bool_to_bits(rs1_val <_s rs2_val)),
+      RISCV_SLTU => zero_extend(bool_to_bits(rs1_val <_u rs2_val)),
+      RISCV_AND  => rs1_val & rs2_val,
+      RISCV_OR   => rs1_val | rs2_val,
+      RISCV_XOR  => rs1_val ^ rs2_val,
+      RISCV_SLL  => if   sizeof(xlen) == 32
+                    then rs1_val << (rs2_val[4..0])
+                    else rs1_val << (rs2_val[5..0]),
+      RISCV_SRL  => if   sizeof(xlen) == 32
+                    then rs1_val >> (rs2_val[4..0])
+                    else rs1_val >> (rs2_val[5..0]),
+      RISCV_SUB  => rs1_val - rs2_val,
+      RISCV_SRA  => if   sizeof(xlen) == 32
+                    then shift_right_arith32(rs1_val, rs2_val[4..0])
+                    else shift_right_arith64(rs1_val, rs2_val[5..0])
+    };
+    X(rd+8) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

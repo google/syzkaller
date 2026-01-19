@@ -1,0 +1,35 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fsqrt.d
+long_name: Floating-Point Square Root Double-Precision
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The `fsqrt.d` instruction computes the square root of `fs1` and result is written in `fd`. It is defined
+  analogously to its single-precision counterpart, but operates on double-precision operands and produces
+  double-precision results.
+assembly: fd, fs1, rm
+encoding:
+  match: 010110100000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

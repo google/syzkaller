@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fmin.d
+long_name: Floating-Point Minimum-Number Double-Precision
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The `fmin.d` instruction writes smaller of `fs1` and `fs2` to `fd`. For the purposes of this instruction,
+  the value `-0.0` is considered to be less than the value `+0.0`. If both inputs are NaNs, the result is
+  the canonical NaN. If only one operand is a NaN, the result is the non-NaN operand. Signaling NaN inputs
+  set the invalid operation exception flag, even when the result is not NaN.
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010101----------000-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

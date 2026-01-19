@@ -1,0 +1,239 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fence
+long_name: Memory ordering fence
+description: |
+  Orders memory operations.
+
+  The `fence` instruction is used to order device I/O and memory accesses as
+  viewed by other RISC-V harts and external devices or coprocessors. Any
+  combination of device input (I), device output (O), memory reads \(R),
+  and memory writes (W) may be ordered with respect to any combination of
+  the same. Informally, no other RISC-V hart or external device can
+  observe any operation in the _successor_ set following a `fence` before
+  any operation in the _predecessor_ set preceding the `fence`.
+
+  The predecessor and successor fields have the same format to specify operation types:
+
+  [%autowidth]
+  |===
+  4+| `pred` 4+| `succ`
+
+  | 27 | 26 |25 | 24 | 23 | 22 | 21| 20
+  | PI | PO |PR | PW | SI | SO |SR | SW
+  |===
+
+  [%autowidth,align="center",cols="^1,^1,<3",options="header"]
+  .Fence mode encoding
+  |===
+  |_fm_ field |Mnemonic |Meaning
+  |0000 |_none_ |Normal Fence
+  |1000 |TSO |With `FENCE RW,RW`: exclude write-to-read ordering; otherwise: _Reserved for future use._
+  2+|_other_ |_Reserved for future use._
+  |===
+
+  When the mode field _fm_ is `0001` and both the predecessor and successor sets are 'RW',
+  then the instruction acts as a special-case `fence.tso`. `fence.tso` orders all load operations
+  in its predecessor set before all memory operations in its successor set, and all store operations
+  in its predecessor set before all store operations in its successor set. This leaves non-AMO store
+  operations in the 'fence.tso's predecessor set unordered with non-AMO loads in its successor set.
+
+  When mode field _fm_ is not `0001`, or when mode field _fm_ is `0001` but the _pred_ and
+  _succ_ fields are not both 'RW' (0x3), then the fence acts as a baseline fence (_e.g._, _fm_ is
+  effectively `0000`). This is unaffected by the FIOM bits, described below (implicit promotion does
+  not change how `fence.tso` is decoded).
+
+  The `xs1` and `xd` fields are unused and ignored.
+
+  In modes other than M-mode, `fence` is further affected by `menvcfg.FIOM`,
+  `senvcfg.FIOM`<% if ext?(:H) %>, and/or `henvcfg.FIOM`<% end %>
+  as follows:
+
+  .Effective PR/PW/SR/SW in (H)S-mode
+  [%autowidth,cols=",,,",options="header",separator="!"]
+  !===
+  ! [.rotate]#`menvcfg.FIOM`# ! `pred.PI` +
+  `pred.PO` +
+  `succ.SI` +
+  `succ.SO`
+  ! -> +
+  -> +
+  -> +
+  ->
+  ! effective `PR` +
+  effective `PW` +
+  effective `SR` +
+  effective `SW`
+
+  ! 0 ! - ! ! from encoding
+  ! 1 ! 0 ! ! from encoding
+  ! 1 ! 1 ! ! 1
+  !===
+
+  .Effective PR/PW/SR/SW in U-mode
+  [%autowidth,options="header",separator="!",cols=",,,,"]
+  !===
+  ! [.rotate]#`menvcfg.FIOM`# ! [.rotate]#`senvcfg.FIOM`# !  `pred.PI` +
+  `pred.PO` +
+  `succ.SI` +
+  `succ.SO`
+  ! -> +
+  -> +
+  -> +
+  ->
+  ! effective `PR` +
+  effective `PW` +
+  effective `SR` +
+  effective `SW`
+
+  ! 0 ! 0 ! - ! ! from encoding
+  ! 0 ! 1 ! 0 ! ! from encoding
+  ! 0 ! 1 ! 1 ! ! 1
+  ! 1 ! - ! 0 ! ! from encoding
+  ! 1 ! - ! 1 ! ! 1
+  !===
+
+  <%- if ext?(:H) -%>
+  .Effective PR/PW/SR/SW in VS-mode and VU-mode
+  [%autowidth,options="header",separator="!",cols=",,,,"]
+  !===
+  ! [.rotate]#`menvcfg.FIOM`# ! [.rotate]#`henvcfg.FIOM`# !  `pred.PI` +
+  `pred.PO` +
+  `succ.SI` +
+  `succ.SO`
+  ! -> +
+  -> +
+  -> +
+  ->
+  ! effective `PR` +
+  effective `PW` +
+  effective `SR` +
+  effective `SW`
+
+  ! 0 ! 0 ! - ! ! from encoding
+  ! 0 ! 1 ! 0 ! ! from encoding
+  ! 0 ! 1 ! 1 ! ! 1
+  ! 1 ! - ! 0 ! ! from encoding
+  ! 1 ! - ! 1 ! ! 1
+  !===
+  <%- end -%>
+
+definedBy:
+  extension:
+    name: I
+assembly: pred, succ
+encoding:
+  match: "-----------------000-----0001111"
+  variables:
+    - name: fm
+      location: 31-28
+    - name: pred
+      location: 27-24
+    - name: succ
+      location: 23-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  Boolean is_pause;
+
+  if (implemented?(ExtensionName::Zihintpause)) {
+    if ((pred == 1) && (succ == 0) && (xd == 0) && (xs1 == 0)) {
+      # this is a PAUSE instruction
+      is_pause = true;
+    }
+  }
+
+  Boolean pred_i = pred[3] == 1;
+  Boolean pred_o = pred[2] == 1;
+  Boolean pred_r = pred[1] == 1;
+  Boolean pred_w = pred[0] == 1;
+
+  Boolean succ_i = succ[3] == 1;
+  Boolean succ_o = succ[2] == 1;
+  Boolean succ_r = succ[1] == 1;
+  Boolean succ_w = succ[0] == 1;
+
+  if (is_pause) {
+    pause();
+  } else {
+
+    # apply FIOM overrides
+    if (mode() == PrivilegeMode::S) {
+      if (CSR[menvcfg].FIOM == 1) {
+        if (pred_i) { pred_r = true; }
+        if (pred_o) { pred_w = true; }
+        if (succ_i) { succ_r = true; }
+        if (succ_o) { succ_w = true; }
+      }
+    } else if (mode() == PrivilegeMode::U) {
+      if ((CSR[menvcfg].FIOM | CSR[senvcfg].FIOM) == 1) {
+        if (pred_i) { pred_r = true; }
+        if (pred_o) { pred_w = true; }
+        if (succ_i) { succ_r = true; }
+        if (succ_o) { succ_w = true; }
+      }
+    } else if (mode() == PrivilegeMode::VS || mode() == PrivilegeMode::VU) {
+      if ((CSR[menvcfg].FIOM | CSR[henvcfg].FIOM) == 1) {
+        if (pred_i) { pred_r = true; }
+        if (pred_o) { pred_w = true; }
+        if (succ_i) { succ_r = true; }
+        if (succ_o) { succ_w = true; }
+      }
+    }
+
+    fence(
+      pred_i, pred_o, pred_r, pred_w,
+      succ_i, succ_o, succ_r, succ_w
+    );
+  }
+hints:
+  - { $ref: inst/I/fence.tso.yaml# }
+pseudoinstructions:
+  - when: (pred == 1) && (succ == 0) && (xd == 0) && (xs1 == 0)
+    to: pause
+  - when: (pred == 4'b1111) && (succ == 4'b1111)
+    to: fence # fence => fence iorw,iorw
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    // If the FIOM bit in menvcfg/senvcfg is set then the I/O bits can imply R/W.
+    let fiom = is_fiom_active();
+    let pred = effective_fence_set(pred, fiom);
+    let succ = effective_fence_set(succ, fiom);
+
+    match (pred, succ) {
+      (_ : bits(2) @ 0b11, _ : bits(2) @ 0b11) => __barrier(Barrier_RISCV_rw_rw()),
+      (_ : bits(2) @ 0b10, _ : bits(2) @ 0b11) => __barrier(Barrier_RISCV_r_rw()),
+      (_ : bits(2) @ 0b10, _ : bits(2) @ 0b10) => __barrier(Barrier_RISCV_r_r()),
+      (_ : bits(2) @ 0b11, _ : bits(2) @ 0b01) => __barrier(Barrier_RISCV_rw_w()),
+      (_ : bits(2) @ 0b01, _ : bits(2) @ 0b01) => __barrier(Barrier_RISCV_w_w()),
+      (_ : bits(2) @ 0b01, _ : bits(2) @ 0b11) => __barrier(Barrier_RISCV_w_rw()),
+      (_ : bits(2) @ 0b11, _ : bits(2) @ 0b10) => __barrier(Barrier_RISCV_rw_r()),
+      (_ : bits(2) @ 0b10, _ : bits(2) @ 0b01) => __barrier(Barrier_RISCV_r_w()),
+      (_ : bits(2) @ 0b01, _ : bits(2) @ 0b10) => __barrier(Barrier_RISCV_w_r()),
+
+      (_ : bits(4)       , _ : bits(2) @ 0b00) => (),
+      (_ : bits(2) @ 0b00, _ : bits(4)       ) => (),
+
+      _ => { print("FIXME: unsupported fence");
+             () }
+    };
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

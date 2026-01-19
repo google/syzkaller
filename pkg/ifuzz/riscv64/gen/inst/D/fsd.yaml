@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fsd
+long_name: Floating-Point Store Double-Precision
+definedBy:
+  extension:
+    name: D
+description: |
+  The `fsd` instruction stores a double-precision value from the floating-point registers to memory. It is guaranteed to execute
+  atomically if the effective address is naturally aligned and XLEN≥64. It doesn't modify the bits being transferred; in particular,
+  the payloads of non-canonical NaNs are preserved.
+assembly: fs2, imm(xs1)
+encoding:
+  match: "-----------------011-----0100111"
+  variables:
+    - name: imm
+      location: 31-25|11-7
+    - name: fs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

@@ -1,0 +1,39 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmvp.q.x
+long_name: Floating-Point Move Pair from Integer Registers to Quad-Precision Register
+description: |
+  The `fmvp.q.x` instruction moves a double-precision number from a pair of integer registers into
+  a floating-point register.
+  Integer registers `xs1` and `xs2` supply bits 63:0 and 127:64, respectively; the result is written to
+  floating-point register `fd`.
+  `fmvp.q.x` is encoded in the OP-FP major opcode with _funct3_=0 and _funct7_=1011011.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        allOf:
+          - name: Q
+          - name: Zfa
+assembly: fd, xs1, xs2
+encoding:
+  match: 1011011----------000-----1010011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

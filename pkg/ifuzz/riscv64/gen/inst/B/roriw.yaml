@@ -1,0 +1,58 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: roriw
+long_name: Rotate right word (Immediate)
+description: |
+  Performs a rotate right on the least-significant word of xs1 by the amount in
+  the least-significant log2(XLEN) bits of shamt. The resulting word value is sign-extended by
+  copying bit 31 to all of the more-significant bits.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        anyOf:
+          - name: Zbb
+          - name: Zbkb
+assembly: xd, xs1, shamt
+encoding:
+  match: 0110000----------101-----0011011
+  variables:
+    - name: shamt
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg xs1_word = X[xs1][31:0];
+
+  XReg unextended_result = (X[xs1] >> shamt) | (X[xs1] << (32 - shamt));
+  X[xd] = {{32{unextended_result[31]}}, unextended_result};
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = (X(rs1))[31..0];
+    let result : xlenbits = sign_extend(rs1_val >>> shamt);
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

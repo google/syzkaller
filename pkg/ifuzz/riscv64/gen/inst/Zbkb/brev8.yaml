@@ -1,0 +1,51 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: brev8
+long_name: Reverse bits in bytes
+description: |
+  Reverses the order of the bits in every byte of a register.
+definedBy:
+  extension:
+    name: Zbkb
+assembly: xd, xs1
+encoding:
+  match: 011010000111-----101-----0010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+  XReg input = X[xs1];
+  XReg output = 0;
+
+  for(U32 i=0; i<(xlen()-8); i = i+8) {
+    for(U32 j=0; j<8; j = j+1) {
+      output[(i*8)+(7-j)] = input[(i*8)+j];
+    }
+  }
+
+  X[xd] = output;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  result : xlenbits = EXTZ(0b0);
+  foreach (i from 0 to sizeof(xlen) by 8) {
+    result[i+7..i] = reverse_bits_in_byte(X(rs1)[i+7..i]);
+  };
+  X(rd) = result;
+
+# SPDX-SnippetEnd

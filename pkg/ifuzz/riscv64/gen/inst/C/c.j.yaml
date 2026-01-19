@@ -1,0 +1,34 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.j
+long_name: Jump
+description: |
+  C.J performs an unconditional control transfer. The offset is sign-extended and added to the pc to form the jump target address. C.J can therefore target a &pm;2 KiB range.
+  It expands to `jal` `x0, offset`.
+definedBy:
+  extension:
+    name: Zca
+assembly: imm
+encoding:
+  match: 101-----------01
+  variables:
+    - name: imm
+      location: 12|8|10-9|6|7|2|11|5-3
+      left_shift: 1
+      sign_extend: true
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  jump($pc + $signed(imm));

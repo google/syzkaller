@@ -1,0 +1,75 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cbo.flush
+long_name: Cache Block Flush
+description: |
+  Flushes an entire cache block by cleaning it and then invalidating it in all caches.
+
+  `cbo.flush` is ordered by `FENCE` instructions but not `FENCE.I` or `SFENCE.VMA`.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length > [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Both PMP and PMA access control must be the same for all bytes in the block; otherwise, `cbo.flush` has UNSPECIFIED behavior.
+  <%- end -%>
+
+  Flush operations are treated as stores for page and access permissions. If permission checks fail,
+  one of the following exceptions will occur:
+
+    <%- if ext?(:H) -%>
+    * `Store/AMO Guest-Page Fault` if virtual memory translation fails during G-stage translation.
+    <%- end -%>
+    * `Store/AMO Page Fault` if virtual memory translation fails <% if ext?(:H) %>when V=0 or during VS-stage translation<% end %>
+    * `Store/AMO Access Fault` if a PMP or PMA access check fails.
+
+  <%- if CACHE_BLOCK_SIZE.bit_length <= [PMP_GRANULARITY, PMA_GRANULARITY].min -%>
+  Because cache blocks are naturally aligned and always fit in a single PMP or PMA regions, the PMP
+  and PMA access checks only need to check a single address in the line.
+  <%- end -%>
+
+  CBO operations never raise a misaligned address fault.
+definedBy:
+  extension:
+    name: Zicbom
+assembly: (xs1)
+encoding:
+  match: 000000000010-----010000000001111
+  variables:
+    - name: xs1
+      location: 19-15
+access:
+  m: always
+  s: sometimes
+  u: sometimes
+  vs: sometimes
+  vu: sometimes
+access_detail: |
+  Access is controlled through `menvcfg.CBZE`, `senvcfg.CBZE`, and `henvcfg.CBZE`.
+  When access is denied, the instruction either raises an `Illegal Instruction`
+  or `Virtual Instruction` exception according to the table below.
+
+  [%autowidth,cols="1,1,1,1,1,1,1",separator="!"]
+  !===
+  .2+h![.rotate]#`menvcfg.CBCFE`# .2+h! [.rotate]#`senvcfg.CBCFE`# .2+h! [.rotate]#`henvcfg.CBCFE`#
+  4+^.>h! `cbo.flush` Instruction Behavior
+  .^h! S-mode .^h! U-mode .^h! VS-mode .^h! VU-mode
+
+  ! 0 ! - ! - ! `Illegal Instruction` ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 0 ! 0 ! executes  ! `Illegal Instruction` ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 1 ! 0 ! executes ! executes ! `Virtual Instruction` ! `Virtual Instruction`
+  ! 1 ! 0 ! 1 ! executes ! `Illegal Instruction` ! executes ! `Virtual Instruction`
+  ! 1 ! 1 ! 1 ! executes ! executes ! executes ! executes
+  !===
+
+# operation(): |
+#   XReg cache_block_address = X[xs1] & ~(CACHE_BLOCK_SIZE-1);
+#   Boolean has_fault?;
+#   ExceptionCode code;
+
+#   (has_fault?, code) = zero_cache_line(cache_block_address);
+#   if (has_fault?) {
+#     raise(code);
+#   }

@@ -1,0 +1,122 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vfcvt.xu.f.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, vm
+encoding:
+  match: 010010------00000001-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rm_3b    = fcsr.FRM();
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let num_elem = get_num_elem(LMUL_pow, SEW);
+
+    if illegal_fp_normal(vd, vm, SEW, rm_3b) then { handle_illegal(); return RETIRE_FAIL };
+
+    let 'n = num_elem;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem, vm, 0b00000);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vs2);
+    let vd_val  : vector('n, dec, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
+    result      : vector('n, dec, bits('m)) = undefined;
+    mask        : vector('n, dec, bool)     = undefined;
+
+    (result, mask) = init_masked_result(num_elem, SEW, LMUL_pow, vd_val, vm_val);
+
+    foreach (i from 0 to (num_elem - 1)) {
+      if mask[i] then {
+        result[i] = match vfunary0 {
+          FV_CVT_XU_F      => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_f16ToUi16(rm_3b, vs2_val[i]),
+                                  32 => riscv_f32ToUi32(rm_3b, vs2_val[i]),
+                                  64 => riscv_f64ToUi64(rm_3b, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              },
+          FV_CVT_X_F       => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_f16ToI16(rm_3b, vs2_val[i]),
+                                  32 => riscv_f32ToI32(rm_3b, vs2_val[i]),
+                                  64 => riscv_f64ToI64(rm_3b, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              },
+          FV_CVT_F_XU      => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_ui32ToF16(rm_3b, zero_extend(vs2_val[i])),
+                                  32 => riscv_ui32ToF32(rm_3b, vs2_val[i]),
+                                  64 => riscv_ui64ToF64(rm_3b, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              },
+          FV_CVT_F_X       => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_i32ToF16(rm_3b, sign_extend(vs2_val[i])),
+                                  32 => riscv_i32ToF32(rm_3b, vs2_val[i]),
+                                  64 => riscv_i64ToF64(rm_3b, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              },
+          FV_CVT_RTZ_XU_F  => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_f16ToUi16(0b001, vs2_val[i]),
+                                  32 => riscv_f32ToUi32(0b001, vs2_val[i]),
+                                  64 => riscv_f64ToUi64(0b001, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              },
+          FV_CVT_RTZ_X_F   => {
+                                let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                                  16 => riscv_f16ToI16(0b001, vs2_val[i]),
+                                  32 => riscv_f32ToI32(0b001, vs2_val[i]),
+                                  64 => riscv_f64ToI64(0b001, vs2_val[i])
+                                };
+                                accrue_fflags(fflags);
+                                elem
+                              }
+        }
+      }
+    };
+
+    write_vreg(num_elem, SEW, LMUL_pow, vd, result);
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

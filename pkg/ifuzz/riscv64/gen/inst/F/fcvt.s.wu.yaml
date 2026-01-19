@@ -1,0 +1,66 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.s.wu
+long_name: Floating-Point Convert Unsigned Word to Single-Precision
+description: |
+  The `fcvt.s.wu` instruction converts a 32-bit unsigned integer in integer register `xs1` into
+  a floating-point number in floating-point register `fd`.
+
+  All floating-point to integer and integer to floating-point conversion instructions round
+  according to the `rm` field.
+
+  A floating-point register can be initialized to floating-point positive zero using
+  `fcvt.s.w rd, x0`, which will never set any exception flags.
+
+  All floating-point conversion instructions set the Inexact exception flag if the rounded
+  result differs from the operand value and the Invalid exception flag is not set.
+definedBy:
+  extension:
+    name: F
+assembly: fd, xs1, rm
+encoding:
+  match: 110100000001-------------1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  check_f_ok($encoding);
+  RoundingMode rounding_mode = rm_to_mode(rm, $encoding);
+  f[fd] = ui32_to_f32(X[xs1], rounding_mode);
+  mark_f_state_dirty();
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    assert(sizeof(xlen) >= 64);
+    let rs1_val_LU = X(rs1)[63..0];
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_S) = riscv_ui64ToF32 (rm_3b, rs1_val_LU);
+
+        accrue_fflags(fflags);
+        F_or_X_S(rd) = rd_val_S;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

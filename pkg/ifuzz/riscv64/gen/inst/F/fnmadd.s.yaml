@@ -1,0 +1,64 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fnmadd.s
+long_name: Floating-Point Negate-Multiply-Add Single-Precision
+description: |
+  The `fnmadd.s` multiplies the values in `fs1` and `fs2`, negates the product, subtracts the value in `fs3`, and
+  writes the final result to `fd`.
+definedBy:
+  extension:
+    name: F
+assembly: fd, fs1, fs2, fs3, rm
+encoding:
+  match: "-----00------------------1001111"
+  variables:
+    - name: fs3
+      location: 31-27
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_32b = F_or_X_S(rs1);
+    let rs2_val_32b = F_or_X_S(rs2);
+    let rs3_val_32b = F_or_X_S(rs3);
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_32b) : (bits(5), bits(32)) =
+          match op {
+            FMADD_S  => riscv_f32MulAdd (rm_3b, rs1_val_32b, rs2_val_32b, rs3_val_32b),
+            FMSUB_S  => riscv_f32MulAdd (rm_3b, rs1_val_32b, rs2_val_32b, negate_S (rs3_val_32b)),
+            FNMSUB_S => riscv_f32MulAdd (rm_3b, negate_S (rs1_val_32b), rs2_val_32b, rs3_val_32b),
+            FNMADD_S => riscv_f32MulAdd (rm_3b, negate_S (rs1_val_32b), rs2_val_32b, negate_S (rs3_val_32b))
+          };
+        accrue_fflags(fflags);
+        F_or_X_S(rd) = rd_val_32b;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

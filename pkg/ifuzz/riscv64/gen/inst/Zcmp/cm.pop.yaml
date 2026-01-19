@@ -1,0 +1,86 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cm.pop
+long_name: Destroy function call stack frame
+description: |
+  Destroys a stack frame: load `ra` and 0 to 12 saved registers from the stack frame, deallocate the stack frame.
+  This instruction pops (loads) the registers in `reg_list` from stack memory, and then adjusts the stack pointer by `stack_adj`.
+
+  Restrictions on stack_adj:
+
+  * it must be enough to store all of the listed registers
+  * it must be a multiple of 16 (bytes):
+  ** for RV32 the allowed values are: 16, 32, 48, 64, 80, 96, 112
+  ** for RV64 the allowed values are: 16, 32, 48, 64, 80, 96, 112, 128, 144, 160
+definedBy:
+  extension:
+    name: Zcmp
+assembly: reg_list, stack_adj
+encoding:
+  match: 10111010------10
+  variables:
+    - name: rlist
+      location: 7-4
+      not: [0, 1, 2, 3]
+    - name: spimm
+      location: 3-2
+      left_shift: 4
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::Zcmp) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg size = xlen() / 8;
+  XReg nreg = (rlist == 15) ? 13 : (rlist - 3);
+  XReg stack_aligned_adj = (nreg * 4 + 15) & ~0xF;
+  XReg virtual_address_sp = X[2];
+  XReg virtual_address_new_sp = virtual_address_sp + stack_aligned_adj + spimm;
+  XReg virtual_address_base = virtual_address_new_sp - (nreg * size);
+
+  X[ 1] = read_memory_xlen_aligned(virtual_address_base +  0*size, $encoding);
+  if (nreg > 1) {
+    X[ 8] = read_memory_xlen_aligned(virtual_address_base +  1*size, $encoding);
+  }
+  if (nreg > 2) {
+    X[ 9] = read_memory_xlen_aligned(virtual_address_base +  2*size, $encoding);
+  }
+  if (nreg > 3) {
+    X[18] = read_memory_xlen_aligned(virtual_address_base +  3*size, $encoding);
+  }
+  if (nreg > 4) {
+    X[19] = read_memory_xlen_aligned(virtual_address_base +  4*size, $encoding);
+  }
+  if (nreg > 5) {
+    X[20] = read_memory_xlen_aligned(virtual_address_base +  5*size, $encoding);
+  }
+  if (nreg > 6) {
+    X[21] = read_memory_xlen_aligned(virtual_address_base +  6*size, $encoding);
+  }
+  if (nreg > 7) {
+    X[22] = read_memory_xlen_aligned(virtual_address_base +  7*size, $encoding);
+  }
+  if (nreg > 8) {
+    X[23] = read_memory_xlen_aligned(virtual_address_base +  8*size, $encoding);
+  }
+  if (nreg > 9) {
+    X[24] = read_memory_xlen_aligned(virtual_address_base +  9*size, $encoding);
+  }
+  if (nreg > 10) {
+    X[25] = read_memory_xlen_aligned(virtual_address_base + 10*size, $encoding);
+  }
+  if (nreg > 11) {
+    X[26] = read_memory_xlen_aligned(virtual_address_base + 11*size, $encoding);
+    X[27] = read_memory_xlen_aligned(virtual_address_base + 12*size, $encoding);
+  }
+
+  X[2] = virtual_address_new_sp;

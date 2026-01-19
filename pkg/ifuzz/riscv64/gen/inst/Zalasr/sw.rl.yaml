@@ -1,0 +1,77 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sw.rl
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zalasr
+assembly: xs2, (xs1)
+encoding:
+  match: 0011101----------010000000101111
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let offset : xlenbits = sign_extend(imm);
+    /* Get the address, X(rs1) + offset.
+       Some extensions perform additional checks on address validity. */
+    match ext_data_get_addr(rs1, offset, Write(Data), width) {
+      Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+      Ext_DataAddr_OK(vaddr) =>
+        if   check_misaligned(vaddr, width)
+        then { handle_mem_exception(vaddr, E_SAMO_Addr_Align()); RETIRE_FAIL }
+        else match translateAddr(vaddr, Write(Data)) {
+          TR_Failure(e, _)    => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+          TR_Address(paddr, _) => {
+            let eares : MemoryOpResult(unit) = match width {
+              BYTE   => mem_write_ea(paddr, 1, aq, rl, false),
+              HALF   => mem_write_ea(paddr, 2, aq, rl, false),
+              WORD   => mem_write_ea(paddr, 4, aq, rl, false),
+              DOUBLE => mem_write_ea(paddr, 8, aq, rl, false)
+            };
+            match (eares) {
+              MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+              MemValue(_) => {
+                let rs2_val = X(rs2);
+                let res : MemoryOpResult(bool) = match (width) {
+                  BYTE => mem_write_value(paddr, 1, rs2_val[7..0],  aq, rl, false),
+                  HALF => mem_write_value(paddr, 2, rs2_val[15..0], aq, rl, false),
+                  WORD => mem_write_value(paddr, 4, rs2_val[31..0], aq, rl, false),
+                  DOUBLE if sizeof(xlen) >= 64
+                       => mem_write_value(paddr, 8, rs2_val,        aq, rl, false),
+                  _    => report_invalid_width(__FILE__, __LINE__, width, "store"),
+                };
+                match (res) {
+                  MemValue(true)  => RETIRE_SUCCESS,
+                  MemValue(false) => internal_error(__FILE__, __LINE__, "store got false from mem_write_value"),
+                  MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL }
+                }
+              }
+            }
+          }
+        }
+    }
+  }
+
+# SPDX-SnippetEnd

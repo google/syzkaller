@@ -1,0 +1,71 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cpopw
+long_name: Count set bits in word
+description: |
+  Counts the number of 1's (i.e., set bits) in the least-significant word of the source register.
+
+  .Software Hint
+  [NOTE]
+  ----
+  This operations is known as population count, popcount, sideways sum,
+  bit summation, or Hamming weight.
+
+  The GCC builtin function `__builtin_popcount (unsigned int x)` is
+  implemented by cpop on RV32 and by cpopw on RV64. The GCC builtin
+  function `__builtin_popcountl (unsigned long x)` for LP64 is
+  implemented by cpop on RV64.
+  ----
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zbb
+assembly: xd, xs1
+encoding:
+  match: 011000000010-----001-----0011011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg bitcount = 0;
+  XReg xs1_val = X[xs1];
+
+  for (U32 i=0; i < 32; i++) {
+    if (xs1_val[i] == 1'b1) {
+      bitcount = bitcount + 1;
+    }
+  }
+
+  X[xd] = bitcount;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    result : nat = 0;
+    foreach (i from 0 to 31)
+      if rs1_val[i] == bitone then result = result + 1;
+    X(rd) = to_bits(sizeof(xlen), result);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

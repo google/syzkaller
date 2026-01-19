@@ -1,0 +1,55 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.subw
+long_name: Subtract word
+description: |
+  Subtract the 32-bit values in xs2 from xd, and store the result in xd.
+  The xd and xs2 register indexes should be used as xd+8 and xs2+8 (registers x8-x15).
+  C.SUBW expands into `subw xd, xd, xs2`.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zca
+assembly: xd, xs2
+encoding:
+  match: 100111---00---01
+  variables:
+    - name: xs2
+      location: 4-2
+    - name: xd
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  Bits<32> t0 = X[creg2reg(xd)][31:0];
+  Bits<32> t1 = X[creg2reg(xs2)][31:0];
+  X[creg2reg(xd)] = sext(t0 - t1, 32);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = (X(rd+8))[31..0];
+    let rs2_val = (X(rs2+8))[31..0];
+    let result : bits(32) = match op {
+      RISCV_ADDW => rs1_val + rs2_val,
+      RISCV_SUBW => rs1_val - rs2_val,
+      RISCV_SLLW => rs1_val << (rs2_val[4..0]),
+      RISCV_SRLW => rs1_val >> (rs2_val[4..0]),
+      RISCV_SRAW => shift_right_arith32(rs1_val, rs2_val[4..0])
+    };
+    X(rd+8) = sign_extend(result);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

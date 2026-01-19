@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fcvt.w.h
+long_name: Floating-point Convert Half-precision to Word
+definedBy:
+  extension:
+    oneOf:
+      - name: Zfh
+      - name: Zhinx
+description: |
+  `fcvt.w.h` converts a half-precision floating-point number to a signed 32-bit integer.
+assembly: xd, fs1, rm
+encoding:
+  match: 110001000000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

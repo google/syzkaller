@@ -1,0 +1,144 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+
+# WARNING: This file is auto-generated from spec/std/isa/inst/Zaamo/amoswap.SIZE.AQRL.layout
+
+# Copyright (c) Abhijit Das(Sukuna0007Abhi)
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: amoswap.b.aqrl
+long_name: Atomic SWAP byte (acquire-release)
+description: |
+  Atomically with acquire and release ordering:
+
+    * Load the byte at address _xs1_
+    * Write the sign-extended value into _xd_
+    * Store the least-significant byte of register _xs2_ to the address in _xs1_
+definedBy:
+  extension:
+    name: Zabha
+assembly: xd, xs2, (xs1)
+encoding:
+  match: 0000111----------000-----0101111
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (!implemented?(ExtensionName::A) || (MISA_CSR_IMPLEMENTED && (CSR[misa].A == 1'b0))) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  memory_model_acquire();
+
+  XReg virtual_address = X[xs1];
+  X[xd] = amo<8>(virtual_address, X[xs2][7:0], AmoOperation::Swap, 1'b1, 1'b1, $encoding);
+
+  memory_model_release();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("A") then {
+      /* Get the address, X(rs1) (no offset).
+       * Some extensions perform additional checks on address validity.
+       */
+      match ext_data_get_addr(rs1, zeros(), ReadWrite(Data, Data), width) {
+        Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+        Ext_DataAddr_OK(vaddr) => {
+          match translateAddr(vaddr, ReadWrite(Data, Data)) {
+            TR_Failure(e, _) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+            TR_Address(addr, _) => {
+              let eares : MemoryOpResult(unit) = match (width, sizeof(xlen)) {
+                (BYTE, _)    => mem_write_ea(addr, 1, aq & rl, rl, true),
+                (HALF, _)    => mem_write_ea(addr, 2, aq & rl, rl, true),
+                (WORD, _)    => mem_write_ea(addr, 4, aq & rl, rl, true),
+                (DOUBLE, 64) => mem_write_ea(addr, 8, aq & rl, rl, true),
+                _            => internal_error(__FILE__, __LINE__, "Unexpected AMO width")
+              };
+              let is_unsigned : bool = match op {
+                AMOMINU => true,
+                AMOMAXU => true,
+                _       => false
+              };
+              let rs2_val : xlenbits = match width {
+                BYTE   => if is_unsigned then zero_extend(X(rs2)[7..0])  else sign_extend(X(rs2)[7..0]),
+                HALF   => if is_unsigned then zero_extend(X(rs2)[15..0]) else sign_extend(X(rs2)[15..0]),
+                WORD   => if is_unsigned then zero_extend(X(rs2)[31..0]) else sign_extend(X(rs2)[31..0]),
+                DOUBLE => X(rs2)
+              };
+              match (eares) {
+                MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                MemValue(_) => {
+                  let mval : MemoryOpResult(xlenbits) = match (width, sizeof(xlen)) {
+                    (BYTE, _)    => extend_value(is_unsigned, mem_read(ReadWrite(Data, Data), addr, 1, aq, aq & rl, true)),
+                    (HALF, _)    => extend_value(is_unsigned, mem_read(ReadWrite(Data, Data), addr, 2, aq, aq & rl, true)),
+                    (WORD, _)    => extend_value(is_unsigned, mem_read(ReadWrite(Data, Data), addr, 4, aq, aq & rl, true)),
+                    (DOUBLE, 64) => extend_value(is_unsigned, mem_read(ReadWrite(Data, Data), addr, 8, aq, aq & rl, true)),
+                    _            => internal_error(__FILE__, __LINE__, "Unexpected AMO width")
+                  };
+                  match (mval) {
+                    MemException(e)  => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                    MemValue(loaded) => {
+                      let result : xlenbits =
+                        match op {
+                          AMOSWAP => rs2_val,
+                          AMOADD  => rs2_val + loaded,
+                          AMOXOR  => rs2_val ^ loaded,
+                          AMOAND  => rs2_val & loaded,
+                          AMOOR   => rs2_val | loaded,
+
+                          /* These operations convert bitvectors to integer values using [un]signed,
+                           * and back using to_bits().
+                           */
+                          AMOMIN  => to_bits(sizeof(xlen), min(signed(rs2_val),   signed(loaded))),
+                          AMOMAX  => to_bits(sizeof(xlen), max(signed(rs2_val),   signed(loaded))),
+                          AMOMINU => to_bits(sizeof(xlen), min(unsigned(rs2_val), unsigned(loaded))),
+                          AMOMAXU => to_bits(sizeof(xlen), max(unsigned(rs2_val), unsigned(loaded)))
+                        };
+                      let rval : xlenbits = match width {
+                        BYTE   => sign_extend(loaded[7..0]),
+                        HALF   => sign_extend(loaded[15..0]),
+                        WORD   => sign_extend(loaded[31..0]),
+                        DOUBLE => loaded
+                      };
+                      let wval : MemoryOpResult(bool) = match (width, sizeof(xlen)) {
+                        (BYTE, _)    => mem_write_value(addr, 1, result[7..0],  aq & rl, rl, true),
+                        (HALF, _)    => mem_write_value(addr, 2, result[15..0], aq & rl, rl, true),
+                        (WORD, _)    => mem_write_value(addr, 4, result[31..0], aq & rl, rl, true),
+                        (DOUBLE, 64) => mem_write_value(addr, 8, result,        aq & rl, rl, true),
+                        _            => internal_error(__FILE__, __LINE__, "Unexpected AMO width")
+                      };
+                      match (wval) {
+                        MemValue(true)  => { X(rd) = rval; RETIRE_SUCCESS },
+                        MemValue(false) => { internal_error(__FILE__, __LINE__, "AMO got false from mem_write_value") },
+                        MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

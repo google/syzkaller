@@ -1,0 +1,47 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: auipc
+long_name: Add upper immediate to pc
+description: Add an immediate to the current PC.
+definedBy:
+  extension:
+    name: I
+assembly: xd, imm
+encoding:
+  match: "-------------------------0010111"
+  variables:
+    - name: imm
+      location: 31-12
+      left_shift: 12
+    - name: xd
+      location: 11-7
+hints:
+  - { $ref: inst/Zicfilp/lpad.yaml# }
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): X[xd] = $pc + $signed(imm);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let off : xlenbits = sign_extend(imm @ 0x000);
+    let ret : xlenbits = match op {
+      RISCV_LUI   => off,
+      RISCV_AUIPC => get_arch_pc() + off
+    };
+    X(xd) = ret;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,87 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cm.push
+long_name: Create function call stack frame
+description: |
+  Creates a stack frame: store `ra` and 0 to 12 saved registers to the stack frame, optionally allocate additional stack space.
+  This instruction pushes (stores) the registers in `reg_list` to the memory below the stack pointer,
+  and then creates the stack frame by decrementing the stack pointer by `stack_adj`.
+
+  Restrictions on stack_adj:
+
+  * it must be enough to store all of the listed registers
+  * it must be a multiple of 16 (bytes):
+  ** for RV32 the allowed values are: 16, 32, 48, 64, 80, 96, 112
+  ** for RV64 the allowed values are: 16, 32, 48, 64, 80, 96, 112, 128, 144, 160
+definedBy:
+  extension:
+    name: Zcmp
+assembly: reg_list, -stack_adj
+encoding:
+  match: 10111000------10
+  variables:
+    - name: rlist
+      location: 7-4
+      not: [0, 1, 2, 3]
+    - name: spimm
+      location: 3-2
+      left_shift: 4
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::Zcmp) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg size = xlen() / 8;
+  XReg nreg = (rlist == 15) ? 13 : (rlist - 3);
+  XReg stack_aligned_adj = (nreg * 4 + 15) & ~0xF;
+  XReg virtual_address_sp = X[2];
+  XReg virtual_address_new_sp = virtual_address_sp - stack_aligned_adj - spimm;
+  XReg virtual_address_base = virtual_address_sp - (nreg * size);
+
+  write_memory_xlen_aligned(virtual_address_base +  0*size, X[ 1], $encoding);
+  if (nreg > 1) {
+    write_memory_xlen_aligned(virtual_address_base +  1*size, X[ 8], $encoding);
+  }
+  if (nreg > 2) {
+    write_memory_xlen_aligned(virtual_address_base +  2*size, X[ 9], $encoding);
+  }
+  if (nreg > 3) {
+    write_memory_xlen_aligned(virtual_address_base +  3*size, X[18], $encoding);
+  }
+  if (nreg > 4) {
+    write_memory_xlen_aligned(virtual_address_base +  4*size, X[19], $encoding);
+  }
+  if (nreg > 5) {
+    write_memory_xlen_aligned(virtual_address_base +  5*size, X[20], $encoding);
+  }
+  if (nreg > 6) {
+    write_memory_xlen_aligned(virtual_address_base +  6*size, X[21], $encoding);
+  }
+  if (nreg > 7) {
+    write_memory_xlen_aligned(virtual_address_base +  7*size, X[22], $encoding);
+  }
+  if (nreg > 8) {
+    write_memory_xlen_aligned(virtual_address_base +  8*size, X[23], $encoding);
+  }
+  if (nreg > 9) {
+    write_memory_xlen_aligned(virtual_address_base +  9*size, X[24], $encoding);
+  }
+  if (nreg > 10) {
+    write_memory_xlen_aligned(virtual_address_base + 10*size, X[25], $encoding);
+  }
+  if (nreg > 11) {
+    write_memory_xlen_aligned(virtual_address_base + 11*size, X[26], $encoding);
+    write_memory_xlen_aligned(virtual_address_base + 12*size, X[27], $encoding);
+  }
+
+  X[2] = virtual_address_new_sp;

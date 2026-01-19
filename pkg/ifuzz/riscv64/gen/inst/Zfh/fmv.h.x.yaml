@@ -1,0 +1,51 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmv.h.x
+long_name: Half-precision floating-point move from integer
+description: |
+  Moves the half-precision value encoded in IEEE 754-2008 standard encoding
+  from the lower 16 bits of integer register `xs1` to the floating-point
+  register `fd`. The bits are not modified in the transfer, and in particular,
+  the payloads of non-canonical NaNs are preserved.
+definedBy:
+  extension:
+    name: Zfhmin
+assembly: fd, xs1
+encoding:
+  match: 111101000000-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  check_f_ok($encoding);
+
+  Bits<16> hp_value = X[xs1][15:0];
+
+  f[fd] = nan_box<16, FLEN>(hp_value);
+
+  mark_f_state_dirty();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_X            = X(rs1);
+    let rd_val_H             = rs1_val_X [15..0];
+    F(rd) = nan_box (rd_val_H);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

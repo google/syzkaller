@@ -1,0 +1,245 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sc.w
+long_name: Store conditional word
+description: |
+  `sc.w` conditionally writes a word in _xs2_ to the address in _xs1_:
+  the `sc.w` succeeds only if the reservation is still valid and the
+  reservation set contains the bytes being written. If the `sc.w` succeeds,
+  the instruction writes the word in _xs2_ to memory, and it writes zero to _xd_.
+  If the `sc.w` fails, the instruction does not write to memory, and it writes a
+  nonzero value to _xd_. For the purposes of memory protection, a failed `sc.w`
+  may be treated like a store. Regardless of success or failure, executing an
+  `sc.w` instruction invalidates any reservation held by this hart.
+
+  <%- if MXLEN == 64 -%>
+  [NOTE]
+  If a value other than 0 or 1 is defined as a result for `sc.w`, the value will before
+  sign-extended into _xd_.
+  <%- end -%>
+
+  The failure code with value 1 encodes an unspecified failure.
+  Other failure codes are reserved at this time.
+  Portable software should only assume the failure code will be non-zero.
+
+  The address held in _xs1_ must be naturally aligned to the size of the operand
+  (_i.e._, eight-byte aligned for doublewords and four-byte aligned for words).
+  If the address is not naturally aligned, an address-misaligned exception or an
+  access-fault exception will be generated.
+  The access-fault exception can be generated for a memory access that would otherwise
+  be able to complete except for the misalignment,
+  if the misaligned access should not be emulated.
+
+  [NOTE]
+  --
+  Emulating misaligned LR/SC sequences is impractical in most systems.
+
+  Misaligned LR/SC sequences also raise the possibility of accessing multiple
+  reservation sets at once, which present definitions do not provide for.
+  --
+
+  An implementation can register an arbitrarily large reservation set on each LR,
+  provided the reservation set includes all bytes of the addressed data word or
+  doubleword.
+  An SC can only pair with the most recent LR in program order.
+  An SC may succeed only if no store from another hart to the reservation set
+  can be observed to have occurred between the LR and the SC,
+  and if there is no other SC between the LR and itself in program order.
+  An SC may succeed only if no write from a device other than a hart to the bytes
+  accessed by the LR instruction can be observed to have occurred between the LR
+  and SC.
+  Note this LR might have had a different effective address and data size,
+  but reserved the SC's address as part of the reservation set.
+
+  [NOTE]
+  ----
+  Following this model, in systems with memory translation, an SC is allowed to succeed if the
+  earlier LR reserved the same location using an alias with a different virtual address, but is
+  also allowed to fail if the virtual address is different.
+
+  To accommodate legacy devices and buses, writes from devices other than RISC-V harts are only
+  required to invalidate reservations when they overlap the bytes accessed by the LR.
+  These writes are not required to invalidate the reservation when they access other bytes in
+  the reservation set.
+  ----
+
+  The SC must fail if the address is not within the reservation set of the most
+  recent LR in program order.
+  The SC must fail if a store to the reservation set from another hart can be
+  observed to occur between the LR and SC.
+  The SC must fail if a write from some other device to the bytes accessed by the
+  LR can be observed to occur between the LR and SC.
+  (If such a device writes the reservation set but does not write the bytes accessed
+  by the LR, the SC may or may not fail.)
+  An SC must fail if there is another SC (to any address) between the LR and the SC
+  in program order.
+  The precise statement of the atomicity requirements for successful LR/SC sequences
+  is defined by the Atomicity Axiom of the memory model.
+
+  [NOTE]
+  --
+  The platform should provide a means to determine the size and shape of the reservation set.
+
+  A platform specification may constrain the size and shape of the reservation set.
+
+  A store-conditional instruction to a scratch word of memory should be used to forcibly invalidate any existing load reservation:
+
+    * during a preemptive context switch, and
+    * if necessary when changing virtual to physical address mappings, such as when migrating pages that might contain an active reservation.
+
+  The invalidation of a hart's reservation when it executes an LR or SC imply that a hart can only hold one reservation at a time, and that an SC can only pair with the most recent LR, and LR with the next following SC, in program order. This is a restriction to the Atomicity Axiom in Section 18.1 that ensures software runs correctly on expected common implementations that operate in this manner.
+  --
+
+  An SC instruction can never be observed by another RISC-V hart before the LR instruction that established the reservation.
+
+  [NOTE]
+  --
+  The LR/SC sequence can be given acquire semantics by setting the aq bit on the LR instruction. The LR/SC sequence can be given release semantics by by setting the rl bit on the SC instruction. Assuming suitable mappings for other atomic operations, setting the aq bit on the LR instruction, and setting the rl bit on the SC instruction makes the LR/SC sequence sequentially consistent in the C++ memory_order_seq_cst sense. Such a sequence does not act as a fence for ordering ordinary load and store instructions before and after the sequence. Specific instruction mappings for other C++ atomic operations, or stronger notions of "sequential consistency", may require both bits to be set on either or both of the LR or SC instruction.
+
+  If neither bit is set on either LR or SC, the LR/SC sequence can be observed to occur before or after surrounding memory operations from the same RISC-V hart. This can be appropriate when the LR/SC sequence is used to implement a parallel reduction operation.
+  --
+
+  Software should not set the _rl_ bit on an LR instruction unless the _aq_ bit is also set.
+  LR.rl and SC.aq instructions are not guaranteed to provide any stronger ordering than those
+  with both bits clear, but may result in lower performance.
+definedBy:
+  extension:
+    name: Zalrsc
+assembly: xd, xs2, (xs1)
+encoding:
+  match: 00011------------010-----0101111
+  variables:
+    - name: aq
+      location: 26
+      not: 1
+    - name: rl
+      location: 25
+      not: 1
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::A) && (CSR[misa].A == 1'b0)) {
+    # even though this is a memory operation, the exception occurs before that would be known,
+    # so mode() is the correct reporting mode rathat than effective_ldst_mode()
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[xs1];
+  XReg value = X[xs2];
+
+  if (!is_naturally_aligned<32>(virtual_address)) {
+    # can raise either LoadAddressMisaligned *or* LoadAccessFault
+    #
+    # from the spec:
+    #   If the address is not naturally aligned, an address-misaligned exception or
+    #   an access-fault exception will be generated. The access-fault exception can
+    #   be generated for a memory access that would otherwise be able to complete except
+    #   for the misalignment, if the misaligned access should not be emulated.
+
+    if (LRSC_MISALIGNED_BEHAVIOR == "always raise misaligned exception") {
+      raise(ExceptionCode::LoadAddressMisaligned, effective_ldst_mode(), virtual_address);
+    } else if (LRSC_MISALIGNED_BEHAVIOR == "always raise access fault") {
+      raise(ExceptionCode::LoadAccessFault, effective_ldst_mode(), virtual_address);
+    } else {
+      unpredictable("Implementations may raise either a LoadAddressMisaligned or a LoadAccessFault when an LR/SC address is misaligned");
+    }
+  }
+
+  Boolean success = store_conditional<32>(virtual_address, value, aq, rl, $encoding);
+  X[xd] = success ? 0 : 1;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if speculate_conditional () == false then {
+      /* should only happen in rmem
+       * rmem: allow SC to fail very early
+       */
+      X(rd) = zero_extend(0b1); RETIRE_SUCCESS
+    } else {
+      if extension("A") then {
+        /* normal non-rmem case
+         * rmem: SC is allowed to succeed (but might fail later)
+         */
+        /* Get the address, X(rs1) (no offset).
+         * Extensions might perform additional checks on address validity.
+         */
+        match ext_data_get_addr(rs1, zeros(), Write(Data), width) {
+          Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+          Ext_DataAddr_OK(vaddr) => {
+            let aligned : bool =
+              /* BYTE and HALF would only occur due to invalid decodes, but it doesn't hurt
+               * to treat them as valid here; otherwise we'd need to throw an internal_error.
+               */
+              match width {
+                BYTE   => true,
+                HALF   => vaddr[0..0] == 0b0,
+                WORD   => vaddr[1..0] == 0b00,
+                DOUBLE => vaddr[2..0] == 0b000
+              };
+            if not(aligned)
+            then { handle_mem_exception(vaddr, E_SAMO_Addr_Align()); RETIRE_FAIL }
+            else {
+              if match_reservation(vaddr) == false then {
+                /* cannot happen in rmem */
+                X(rd) = zero_extend(0b1); cancel_reservation(); RETIRE_SUCCESS
+              } else {
+                match translateAddr(vaddr, Write(Data)) {  /* Write and ReadWrite are equivalent here:
+                                                            * both result in a SAMO exception */
+                  TR_Failure(e, _) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                  TR_Address(addr, _) => {
+                    let eares : MemoryOpResult(unit) = match (width, sizeof(xlen)) {
+                      (BYTE, _)    => mem_write_ea(addr, 1, aq & rl, rl, true),
+                      (HALF, _)    => mem_write_ea(addr, 2, aq & rl, rl, true),
+                      (WORD, _)    => mem_write_ea(addr, 4, aq & rl, rl, true),
+                      (DOUBLE, 64) => mem_write_ea(addr, 8, aq & rl, rl, true),
+                      _            => internal_error(__FILE__, __LINE__, "STORECON expected word or double")
+                    };
+                    match (eares) {
+                      MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                      MemValue(_) => {
+                        rs2_val = X(rs2);
+                        let res : MemoryOpResult(bool) = match (width, sizeof(xlen)) {
+                          (BYTE, _)    => mem_write_value(addr, 1, rs2_val[7..0], aq & rl, rl, true),
+                          (HALF, _)    => mem_write_value(addr, 2, rs2_val[15..0], aq & rl, rl, true),
+                          (WORD, _)    => mem_write_value(addr, 4, rs2_val[31..0], aq & rl, rl, true),
+                          (DOUBLE, 64) => mem_write_value(addr, 8, rs2_val,        aq & rl, rl, true),
+                          _            => internal_error(__FILE__, __LINE__, "STORECON expected word or double")
+                        };
+                        match (res) {
+                          MemValue(true)  => { X(rd) = zero_extend(0b0); cancel_reservation(); RETIRE_SUCCESS },
+                          MemValue(false) => { X(rd) = zero_extend(0b1); cancel_reservation(); RETIRE_SUCCESS },
+                          MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else {
+        handle_illegal();
+        RETIRE_FAIL
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,63 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fadd.s
+long_name: Floating-Point Add Single-Precision
+description: |
+  The `fadd.s` instruction performs single-precision floating-point addition of `fs1` and `fs2`
+  and writes the final result to `fd`.
+definedBy:
+  extension:
+    name: F
+assembly: fd, fs1, fs2, rm
+encoding:
+  match: 0000000------------------1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  check_f_ok($encoding);
+  RoundingMode mode = rm_to_mode(rm, $encoding);
+  f[fd] = f32_add(f[fs1], f[fs2], mode);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_32b = F_or_X_S(rs1);
+    let rs2_val_32b = F_or_X_S(rs2);
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_32b) : (bits(5), bits(32)) = match op {
+          FADD_S  => riscv_f32Add (rm_3b, rs1_val_32b, rs2_val_32b),
+          FSUB_S  => riscv_f32Sub (rm_3b, rs1_val_32b, rs2_val_32b),
+          FMUL_S  => riscv_f32Mul (rm_3b, rs1_val_32b, rs2_val_32b),
+          FDIV_S  => riscv_f32Div (rm_3b, rs1_val_32b, rs2_val_32b)
+        };
+        accrue_fflags(fflags);
+        F_or_X_S(rd) = rd_val_32b;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

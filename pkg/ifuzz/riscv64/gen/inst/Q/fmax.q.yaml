@@ -1,0 +1,35 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmax.q
+long_name: Floating-Point Maximum-Number Quad-Precision
+definedBy:
+  extension:
+    name: Q
+description: |
+  The `fmax.q` instruction writes the larger/maximum of `fs1` and `fs2` to `fd`.
+  The value `-0.0` is considered to be less than the value `+0.0`.
+  If both inputs are _NaN_s, the result is the canonical _NaN_.
+  If only one operand is a _NaN_, the result is the non-_NaN_ operand.
+  Signaling _NaN_ inputs set the invalid operation exception flag, even when the result is not _NaN_.
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010111----------001-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

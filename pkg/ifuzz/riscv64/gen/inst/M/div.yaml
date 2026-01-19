@@ -1,0 +1,82 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: div
+long_name: Signed division
+description: |
+  Divide xs1 by xs2, and store the result in xd. The remainder is discarded.
+
+  Division by zero will put -1 into xd.
+
+  Division resulting in signed overflow (when most negative number is divided by -1)
+  will put the most negative number into xd;
+definedBy:
+  extension:
+    name: M
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------100-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg src1 = X[xs1];
+  XReg src2 = X[xs2];
+
+  # smallest signed value
+  XReg signed_min = (xlen() == 32) ? $signed({1'b1, {31{1'b0}}}) : {1'b1, {63{1'b0}}};
+
+  if (src2 == 0) {
+    # division by zero. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be -1
+    X[xd] = {MXLEN{1'b1}};
+
+  } else if ((src1 == signed_min) && (src2 == {MXLEN{1'b1}})) {
+    # signed overflow. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be the most negative number (-2^(MXLEN-1))
+    X[xd] = signed_min;
+
+  } else {
+    # no special case, just divide
+    X[xd] = $signed(src1) / $signed(src2);
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") then {
+      let rs1_val = X(rs1);
+      let rs2_val = X(rs2);
+      let rs1_int : int = if s then signed(rs1_val) else unsigned(rs1_val);
+      let rs2_int : int = if s then signed(rs2_val) else unsigned(rs2_val);
+      let q : int = if rs2_int == 0 then -1 else quot_round_zero(rs1_int, rs2_int);
+      /* check for signed overflow */
+      let q': int = if s & q > xlen_max_signed then xlen_min_signed else q;
+      X(rd) = to_bits(sizeof(xlen), q');
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

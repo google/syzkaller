@@ -12,6 +12,7 @@ const (
 	ArchX86     = "x86"
 	ArchPowerPC = "powerpc"
 	ArchArm64   = "arm64"
+	ArchRiscv64 = "riscv64"
 )
 
 var Arches = make(map[string]InsnSet)

@@ -1,0 +1,88 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: csrrwi
+long_name: Atomic Read/Write CSR Immediate
+description: |
+  Atomically write CSR using a 5-bit immediate, and load the previous value into 'xd'.
+
+  Read the old value of the CSR, zero-extends the value to `XLEN` bits,
+  and then write it to integer register xd.
+  The 5-bit uimm field is zero-extended and written to the CSR.
+  If `xd=x0`, then the instruction shall not read the CSR and shall not
+  cause any of the side effects that might occur on a CSR read.
+definedBy:
+  extension:
+    name: Zicsr
+assembly: xd, csr, imm
+encoding:
+  match: "-----------------101-----1110011"
+  variables:
+    - name: csr
+      location: 31-20
+    - name: imm
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: xd == 0
+    to: csrwi csr,imm
+operation(): |
+  Csr csr_handle = direct_csr_lookup(csr);
+
+  # permission checks
+  if (csr_handle.valid == false) {
+    unimplemented_csr($encoding);
+  } else if (!compatible_mode?(csr_handle.mode, mode())) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  } else if (csr_handle.writable == false) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (xd != 0) {
+    X[xd] = csr_sw_read(csr_handle);
+  }
+
+  # writes the zero-extended immediate to the CSR,
+  # performing any WARL transformations first
+  csr_sw_write(csr_handle, {{MXLEN-5{1'b0}}, imm});
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val : xlenbits = if is_imm then zero_extend(rs1) else X(rs1);
+    let isWrite : bool = match op {
+      CSRRW  => true,
+      _      => if is_imm then unsigned(rs1_val) != 0 else unsigned(rs1) != 0
+    };
+    if not(check_CSR(csr, cur_privilege, isWrite))
+    then { handle_illegal(); RETIRE_FAIL }
+    else if not(ext_check_CSR(csr, cur_privilege, isWrite))
+    then { ext_check_CSR_fail(); RETIRE_FAIL }
+    else {
+      let csr_val = readCSR(csr); /* could have side-effects, so technically shouldn't perform for CSRW[I] with rd == 0 */
+      if isWrite then {
+        let new_val : xlenbits = match op {
+          CSRRW => rs1_val,
+          CSRRS => csr_val | rs1_val,
+          CSRRC => csr_val & ~(rs1_val)
+        };
+        writeCSR(csr, new_val)
+      };
+      X(rd) = csr_val;
+      RETIRE_SUCCESS
+    }
+  }
+
+# SPDX-SnippetEnd

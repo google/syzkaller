@@ -1,0 +1,53 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.mul
+long_name: Multiply, 16-bit encoding
+description: |
+  Multiplies XLEN bits of the source operands from rsd' and xs2' and writes the lowest XLEN bits of the result to rsd'.
+
+definedBy:
+  extension:
+    allOf:
+      - name: Zcb
+      - name: Zmmul
+assembly: xd, xs2
+encoding:
+  match: 100111---10---01
+  variables:
+    - name: xd
+      location: 9-7
+    - name: xs2
+      location: 4-2
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |2
+
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[creg2reg(xd)] = X[creg2reg(xd)] * X[creg2reg(xs2)];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let result_wide = to_bits(2 * sizeof(xlen), signed(X(rsdc)) * signed(X(rs2c)));
+    X(rsdc) = result_wide[(sizeof(xlen) - 1) .. 0];
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,85 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fcvt.w.s
+long_name: Floating-Point Convert Single-Precision to Word
+description: |
+  The `fcvt.w.s` instruction converts a floating-point number in floating-point register `fs1` to a
+  signed 32-bit integer in integer register `xd`. For XLEN &gt;32, `fcvt.w.s` sign-extends the 32-bit
+  result to the destination register width.
+
+  If the rounded result is not representable as a 32-bit signed integer, it is clipped to the
+  nearest value and the invalid flag is set.
+
+  The range of valid inputs and behavior for invalid inputs are:
+
+  [separator="!"]
+  !===
+  ! ! Value
+
+  h! Minimum valid input (after rounding) ! `-2^31`
+  h! Maximum valid input (after rounding) ! `2^31 - 1`
+  h! Output for out-of-range negative input ! `-2^31`
+  h! Output for `-&infin;` ! `-2^31`
+  h! Output for out-of-range positive input ! `2^31 - 1`
+  h! Output for `+&infin;` for `NaN` ! `2^31 - 1`
+  !===
+
+  All floating-point to integer and integer to floating-point conversion instructions round
+  according to the `rm` field.
+
+  A floating-point register can be initialized to floating-point positive zero using
+  `fcvt.s.w xd, x0`, which will never set any exception flags.
+
+  All floating-point conversion instructions set the Inexact exception flag if the rounded
+  result differs from the operand value and the Invalid exception flag is not set.
+
+definedBy:
+  extension:
+    name: F
+assembly: xd, fs1, rm
+encoding:
+  match: 110000000000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  check_f_ok($encoding);
+  RoundingMode rounding_mode = rm_to_mode(rm, $encoding);
+  X[xd] = f32_to_i32(f[fs1], rounding_mode);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    assert(sizeof(xlen) >= 64);
+    let rs1_val_LU = X(rs1)[63..0];
+    match (select_instr_or_fcsr_rm (rm)) {
+      None() => { handle_illegal(); RETIRE_FAIL },
+      Some(rm') => {
+        let rm_3b = encdec_rounding_mode(rm');
+        let (fflags, rd_val_S) = riscv_ui64ToF32 (rm_3b, rs1_val_LU);
+
+        accrue_fflags(fflags);
+        F_or_X_S(rd) = rd_val_S;
+        RETIRE_SUCCESS
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

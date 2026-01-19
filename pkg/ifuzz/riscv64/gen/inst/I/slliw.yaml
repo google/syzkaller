@@ -1,0 +1,53 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: slliw
+long_name: Shift left logical immediate word
+description:
+  Shift the 32-bit value in xs1 left by shamt, and store the sign-extended
+  result in xd
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: I
+assembly: xd, xs1, shamt
+encoding:
+  match: 0000000----------001-----0011011
+  variables:
+    - name: shamt
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  # shamt is between 0-32
+  X[xd] = sext(X[xs1] << shamt, 32);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let xs1_val = (X(xs1))[31..0];
+    let result : bits(32) = match op {
+      RISCV_SLLIW => xs1_val << shamt,
+      RISCV_SRLIW => xs1_val >> shamt,
+      RISCV_SRAIW => shift_right_arith32(xs1_val, shamt)
+    };
+    X(xd) = sign_extend(result);
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

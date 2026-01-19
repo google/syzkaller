@@ -1,0 +1,102 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mop.r.n
+long_name: May-be-operation (1 source register)
+description: |
+  Unless redefined by another extension, this instructions simply writes 0 to X[xd].
+  The encoding allows future extensions to define them to read X[xs1], as well as write X[xd].
+definedBy:
+  extension:
+    name: Zimop
+assembly: xd, xs1
+encoding:
+  match: 1-00--0111-------100-----1110011
+  variables:
+    - name: n
+      location: 30|27-26|21-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+hints:
+  - { $ref: inst/Zicfilp/sspopchk.x1.yaml# }
+  - { $ref: inst/Zicfilp/sspopchk.x5.yaml# }
+  - { $ref: inst/Zicfiss/ssrdp.yaml# }
+pseudoinstructions:
+  - when: n == 0
+    to: mop.r.0
+  - when: n == 1
+    to: mop.r.1
+  - when: n == 2
+    to: mop.r.2
+  - when: n == 3
+    to: mop.r.3
+  - when: n == 4
+    to: mop.r.4
+  - when: n == 5
+    to: mop.r.5
+  - when: n == 6
+    to: mop.r.6
+  - when: n == 7
+    to: mop.r.7
+  - when: n == 8
+    to: mop.r.8
+  - when: n == 9
+    to: mop.r.9
+  - when: n == 10
+    to: mop.r.10
+  - when: n == 11
+    to: mop.r.11
+  - when: n == 12
+    to: mop.r.12
+  - when: n == 13
+    to: mop.r.13
+  - when: n == 14
+    to: mop.r.14
+  - when: n == 15
+    to: mop.r.15
+  - when: n == 16
+    to: mop.r.16
+  - when: n == 17
+    to: mop.r.17
+  - when: n == 18
+    to: mop.r.18
+  - when: n == 19
+    to: mop.r.19
+  - when: n == 20
+    to: mop.r.20
+  - when: n == 21
+    to: mop.r.21
+  - when: n == 22
+    to: mop.r.22
+  - when: n == 23
+    to: mop.r.23
+  - when: n == 24
+    to: mop.r.24
+  - when: n == 25
+    to: mop.r.25
+  - when: n == 26
+    to: mop.r.26
+  - when: n == 27
+    to: mop.r.27
+  - when: n == 28
+    to: mop.r.28
+  - when: n == 29
+    to: mop.r.29
+  - when: n == 30
+    to: mop.r.30
+  - when: n == 31
+    to: mop.r.31
+operation(): |
+  X[xd] = 0;

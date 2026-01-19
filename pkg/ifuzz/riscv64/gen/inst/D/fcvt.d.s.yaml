@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fcvt.d.s
+long_name: Floating-Point Convert Single-Precision to Double-Precision
+definedBy:
+  extension:
+    oneOf:
+      - name: D
+      - name: Zdinx
+description: |
+  The single-precision to double-precision conversion instruction, `fcvt.d.s` is encoded in the OP-FP
+  major opcode space and both the source and destination are floating-point registers. The `xs2` field
+  encodes the datatype of the source, and the `fmt` field encodes the datatype of the destination.
+  `fcvt.d.s` will never round.
+assembly: fd, fs1, rm
+encoding:
+  match: 010000100000-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

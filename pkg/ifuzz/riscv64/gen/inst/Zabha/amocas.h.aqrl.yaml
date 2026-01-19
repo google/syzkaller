@@ -1,0 +1,137 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+
+# WARNING: This file is auto-generated from spec/std/isa/inst/Zacas/amocas.SIZE.AQRL.layout
+
+# Copyright (c) Abhijit Das(Sukuna0007Abhi)
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: amocas.h.aqrl
+long_name: Atomic compare-and-swap halfword (acquire-release)
+description: |
+  Atomically with acquire and release ordering:
+
+    * Load the halfword at address _xs1_
+    * Write the sign-extended value into _xd_
+    * Compare the loaded value with the least-significant halfword of register _xs2_
+    * If equal, write the least-significant halfword of register _xs2+1_ to the address in _xs1_
+definedBy:
+  extension:
+    name: Zabha
+assembly: xd, xs2, (xs1)
+encoding:
+  match: 0010111----------001-----0101111
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (!implemented?(ExtensionName::Zabha)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  memory_model_acquire();
+
+  XReg virtual_address = X[xs1];
+  # TODO
+  # X[xd] = amocas16(virtual_address, X[xs2][15:0], X[xd][15:0], 1'b1, 1'b1, $encoding);
+
+  memory_model_release();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("Zabha") then {
+      /* Get the address, X(rs1) (no offset).
+       * Some extensions perform additional checks on address validity.
+       */
+      match ext_data_get_addr(rs1, zeros(), ReadWrite(Data, Data), width) {
+        Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+        Ext_DataAddr_OK(vaddr) => {
+          match translateAddr(vaddr, ReadWrite(Data, Data)) {
+            TR_Failure(e, _) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+            TR_Address(addr, _) => {
+              let eares : MemoryOpResult(unit) = match (width, sizeof(xlen)) {
+                (BYTE, _)    => mem_write_ea(addr, 1, aq & rl, rl, true),
+                (HALF, _)    => mem_write_ea(addr, 2, aq & rl, rl, true),
+                (WORD, _)    => mem_write_ea(addr, 4, aq & rl, rl, true),
+                (DOUBLE, 64) => mem_write_ea(addr, 8, aq & rl, rl, true),
+                _            => internal_error(__FILE__, __LINE__, "Unexpected AMOCAS width")
+              };
+              let rs2_val : xlenbits = match width {
+                BYTE   => sign_extend(X(rs2)[7..0]),
+                HALF   => sign_extend(X(rs2)[15..0]),
+                WORD   => sign_extend(X(rs2)[31..0]),
+                DOUBLE => X(rs2)
+              };
+              let rd_val : xlenbits = match width {
+                BYTE   => sign_extend(X(rd)[7..0]),
+                HALF   => sign_extend(X(rd)[15..0]),
+                WORD   => sign_extend(X(rd)[31..0]),
+                DOUBLE => X(rd)
+              };
+              match (eares) {
+                MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                MemValue(_) => {
+                  let mval : MemoryOpResult(xlenbits) = match (width, sizeof(xlen)) {
+                    (BYTE, _)    => extend_value(false, mem_read(ReadWrite(Data, Data), addr, 1, aq, aq & rl, true)),
+                    (HALF, _)    => extend_value(false, mem_read(ReadWrite(Data, Data), addr, 2, aq, aq & rl, true)),
+                    (WORD, _)    => extend_value(false, mem_read(ReadWrite(Data, Data), addr, 4, aq, aq & rl, true)),
+                    (DOUBLE, 64) => extend_value(false, mem_read(ReadWrite(Data, Data), addr, 8, aq, aq & rl, true)),
+                    _            => internal_error(__FILE__, __LINE__, "Unexpected AMOCAS width")
+                  };
+                  match (mval) {
+                    MemException(e)  => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+                    MemValue(loaded) => {
+                      let success : bool = (loaded == rs2_val);
+                      let result : xlenbits = if success then rd_val else loaded;
+                      let rval : xlenbits = match width {
+                        BYTE   => sign_extend(loaded[7..0]),
+                        HALF   => sign_extend(loaded[15..0]),
+                        WORD   => sign_extend(loaded[31..0]),
+                        DOUBLE => loaded
+                      };
+                      let wval : MemoryOpResult(bool) = if success then {
+                        match (width, sizeof(xlen)) {
+                          (BYTE, _)    => mem_write_value(addr, 1, result[7..0],  aq & rl, rl, true),
+                          (HALF, _)    => mem_write_value(addr, 2, result[15..0], aq & rl, rl, true),
+                          (WORD, _)    => mem_write_value(addr, 4, result[31..0], aq & rl, rl, true),
+                          (DOUBLE, 64) => mem_write_value(addr, 8, result,        aq & rl, rl, true),
+                          _            => internal_error(__FILE__, __LINE__, "Unexpected AMOCAS width")
+                        }
+                      } else {
+                        MemValue(true)  /* No write on compare failure */
+                      };
+                      match (wval) {
+                        MemValue(true)  => { X(rd) = rval; RETIRE_SUCCESS },
+                        MemValue(false) => { internal_error(__FILE__, __LINE__, "AMOCAS got false from mem_write_value") },
+                        MemException(e) => { handle_mem_exception(vaddr, e); RETIRE_FAIL }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

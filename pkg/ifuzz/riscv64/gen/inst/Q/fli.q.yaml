@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fli.q
+long_name: Floating-Point Load Immediate Quad-Precision
+description: |
+  The `fli.q` instruction loads one of 32 quad-precision floating-point constants, encoded in the `xs1`
+  field, into floating-point register `rd`.
+  `fli.q` is encoded like `fmv.w.x`, but with _fmt_ = Q.
+definedBy:
+  extension:
+    allOf:
+      - name: Q
+      - name: Zfa
+assembly: fd, xs1
+encoding:
+  match: 111101100001-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

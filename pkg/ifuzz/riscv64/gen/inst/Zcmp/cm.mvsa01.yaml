@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: cm.mvsa01
+long_name: Move a0-a1 into two registers of s0-s7
+description: |
+  Moves a0 into r1s' and a1 into r2s'. r1s' and r2s' must be different.
+  The execution is atomic, so it is not possible to observe state where only one of r1s' or r2s' has been updated.
+  The encoding uses sreg number specifiers instead of xreg number specifiers to save encoding space.
+  The mapping between them is specified in the pseudo-code below.
+definedBy:
+  extension:
+    name: Zcmp
+assembly: r1s, r2s
+encoding:
+  match: 101011---01---10
+  variables:
+    - name: r1s
+      location: 9-7
+    - name: r2s
+      location: 4-2
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::Zcmp) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  XReg xreg1 = (r1s[2:1]>0) ? {1,0,r1s[2:0]} : {0,1,r1s[2:0]};
+  XReg xreg2 = (r2s[2:1]>0) ? {1,0,r2s[2:0]} : {0,1,r2s[2:0]};
+  X[xreg1] = X[10];
+  X[xreg2] = X[11];

@@ -1,0 +1,52 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.add
+long_name: Add
+description: |
+  Add the value in xs2 to xd, and store the result in xd.
+  C.ADD expands into `add xd, xd, xs2`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, xs2
+encoding:
+  match: 1001----------10
+  variables:
+    - name: xs2
+      location: 6-2
+      not: 0
+    - name: xd
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+hints:
+  - { $ref: inst/Zihintntl/c.ntl.p1.yaml# }
+  - { $ref: inst/Zihintntl/c.ntl.pall.yaml# }
+  - { $ref: inst/Zihintntl/c.ntl.s1.yaml# }
+  - { $ref: inst/Zihintntl/c.ntl.all.yaml# }
+operation(): |
+  XReg t0 = X[xd];
+  XReg t1 = X[xs2];
+  X[xd] = t0 + t1;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rd);
+    let rs2_val = X(rs2);
+    X(rd) = rs1_val + rs2_val;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,25 @@
+# Copyright (c) Jordan Carlin
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: ntl.pall
+long_name: Non-temporal locality hint, all private
+description: |
+  The NTL.PALL instruction indicates that the immediately subsequent instruction
+  does not exhibit temporal locality within the capacity of any level of private
+  cache in the memory hierarchy. NTL.PALL is encoded as ADD x0, x0, x3.
+definedBy:
+  extension:
+    name: Zihintntl
+assembly: ""
+encoding:
+  match: "00000000001100000000000000110011"
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false

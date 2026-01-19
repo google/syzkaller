@@ -1,0 +1,81 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vredmax.vs
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, vs2, vs1, vm
+encoding:
+  match: 000111-----------010-----1010111
+  variables:
+    - name: vm
+      location: 25-25
+    - name: vs2
+      location: 24-20
+    - name: vs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let SEW      = get_sew();
+    let LMUL_pow = get_lmul_pow();
+    let num_elem_vs = get_num_elem(LMUL_pow, SEW);
+    let num_elem_vd = get_num_elem(0, SEW); /* vd regardless of LMUL setting */
+
+    if illegal_reduction() then { handle_illegal(); return RETIRE_FAIL };
+
+    if unsigned(vl) == 0 then return RETIRE_SUCCESS; /* if vl=0, no operation is performed */
+
+    let 'n = num_elem_vs;
+    let 'd = num_elem_vd;
+    let 'm = SEW;
+
+    let vm_val  : vector('n, dec, bool)     = read_vmask(num_elem_vs, vm, 0b00000);
+    let vd_val  : vector('d, dec, bits('m)) = read_vreg(num_elem_vd, SEW, 0, vd);
+    let vs2_val : vector('n, dec, bits('m)) = read_vreg(num_elem_vs, SEW, LMUL_pow, vs2);
+    let mask    : vector('n, dec, bool)     = init_masked_source(num_elem_vs, LMUL_pow, vm_val);
+
+    sum : bits('m) = read_single_element(SEW, 0, vs1); /* vs1 regardless of LMUL setting */
+    foreach (i from 0 to (num_elem_vs - 1)) {
+      if mask[i] then {
+        sum = match funct6 {
+          MVV_VREDSUM   => sum + vs2_val[i],
+          MVV_VREDAND   => sum & vs2_val[i],
+          MVV_VREDOR    => sum | vs2_val[i],
+          MVV_VREDXOR   => sum ^ vs2_val[i],
+          MVV_VREDMIN   => to_bits(SEW, min(signed(vs2_val[i]), signed(sum))),
+          MVV_VREDMINU  => to_bits(SEW, min(unsigned(vs2_val[i]), unsigned(sum))),
+          MVV_VREDMAX   => to_bits(SEW, max(signed(vs2_val[i]), signed(sum))),
+          MVV_VREDMAXU  => to_bits(SEW, max(unsigned(vs2_val[i]), unsigned(sum)))
+        }
+      }
+    };
+
+    write_single_element(SEW, 0, vd, sum);
+    /* other elements in vd are treated as tail elements, currently remain unchanged */
+    /* TODO: configuration support for agnostic behavior */
+    vstart = zeros();
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

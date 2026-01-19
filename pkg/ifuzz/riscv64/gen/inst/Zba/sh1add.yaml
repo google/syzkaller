@@ -1,0 +1,54 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sh1add
+long_name: Shift left by 1 and add
+description: |
+  Shifts `xs1` to the left by 1 bit and adds it to `xs2`.
+definedBy:
+  extension:
+    name: Zba
+assembly: xd, xs1, xs2
+encoding:
+  match: 0010000----------010-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = X[xs2] + (X[xs1] << 1);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    let shamt : bits(2) = match op {
+      RISCV_SH1ADD => 0b01,
+      RISCV_SH2ADD => 0b10,
+      RISCV_SH3ADD => 0b11
+    };
+    let result : xlenbits = (rs1_val << shamt) + rs2_val;
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

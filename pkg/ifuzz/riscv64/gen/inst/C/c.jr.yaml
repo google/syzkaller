@@ -1,0 +1,33 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.jr
+long_name: Jump Register
+description: |
+  C.JR (jump register) performs an unconditional control transfer to the address in register xs1.
+  C.JR expands to jalr x0, 0(xs1).
+definedBy:
+  extension:
+    name: Zca
+assembly: xs1
+encoding:
+  match: 1000-----0000010
+  variables:
+    - name: xs1
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  jump(X[xs1]);

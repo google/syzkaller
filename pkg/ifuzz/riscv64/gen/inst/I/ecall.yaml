@@ -1,0 +1,81 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: ecall
+long_name: Environment call
+description: |
+  Makes a request to the supporting execution environment.
+  When executed in U-mode, S-mode, or M-mode, it generates an environment-call-from-U-mode
+  exception, environment-call-from-S-mode exception, or environment-call-from-M-mode
+  exception, respectively, and performs no other operation.
+
+  [NOTE]
+  ECALL generates a different exception for each originating privilege mode so that
+  environment call exceptions can be selectively delegated.
+  A typical use case for Unix-like operating systems is to delegate to S-mode
+  the environment-call-from-U-mode exception but not the others.
+
+  ECALL causes the receiving privilege mode's epc register to be set to the address of
+  the ECALL instruction itself, not the address of the following instruction.
+  As ECALL causes a synchronous exception, it is not considered to retire,
+  and should not increment the `minstret` CSR.
+definedBy:
+  extension:
+    name: I
+assembly: ""
+encoding:
+  match: "00000000000000000000000001110011"
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (mode() == PrivilegeMode::M) {
+    if (TRAP_ON_ECALL_FROM_M) {
+      raise_precise(ExceptionCode::Mcall, PrivilegeMode::M, 0);
+    } else {
+      eei_ecall_from_m();
+    }
+  } else if (mode() == PrivilegeMode::S) {
+    if (TRAP_ON_ECALL_FROM_S) {
+      raise_precise(ExceptionCode::Scall, PrivilegeMode::S, 0);
+    } else {
+      eei_ecall_from_s();
+    }
+  } else if (mode() == PrivilegeMode::U || mode() == PrivilegeMode::VU) {
+    if (TRAP_ON_ECALL_FROM_U) {
+      raise_precise(ExceptionCode::Ucall, mode(), 0);
+    } else {
+      eei_ecall_from_u();
+    }
+  } else if (mode() == PrivilegeMode::VS) {
+    if (TRAP_ON_ECALL_FROM_VS) {
+      raise_precise(ExceptionCode::VScall, PrivilegeMode::VS, 0);
+    } else {
+      eei_ecall_from_vs();
+    }
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let t : sync_exception =
+      struct { trap = match (cur_privilege) {
+                        User       => E_U_EnvCall(),
+                        Supervisor => E_S_EnvCall(),
+                        Machine    => E_M_EnvCall()
+                      },
+               excinfo = (None() : option(xlenbits)),
+               ext     = None() };
+    set_next_pc(exception_handler(cur_privilege, CTL_TRAP(t), PC));
+    RETIRE_FAIL
+  }
+
+# SPDX-SnippetEnd

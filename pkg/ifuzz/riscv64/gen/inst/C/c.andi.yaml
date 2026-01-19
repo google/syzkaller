@@ -1,0 +1,53 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.andi
+long_name: And immediate
+description: |
+  And an immediate to the value in xd, and store the result in xd.
+  The xd register index should be used as xd+8 (registers x8-x15).
+  C.ANDI expands into `andi xd, xd, imm`.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, imm
+encoding:
+  match: 100-10--------01
+  variables:
+    - name: imm
+      location: 12|6-2
+    - name: xd
+      location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  # shamt is between 0-63
+  X[creg2reg(xd)] = X[creg2reg(xd)] & $signed(imm);
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rd_val = X(rd+8);
+    let immext : xlenbits = sign_extend(imm);
+    let result : xlenbits = match op {
+      RISCV_ADDI  => rd_val + immext,
+      RISCV_SLTI  => zero_extend(bool_to_bits(rd_val <_s immext)),
+      RISCV_SLTIU => zero_extend(bool_to_bits(rd_val <_u immext)),
+      RISCV_ANDI  => rd_val & immext,
+      RISCV_ORI   => rd_val | immext,
+      RISCV_XORI  => rd_val ^ immext
+    };
+    X(rd+8) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

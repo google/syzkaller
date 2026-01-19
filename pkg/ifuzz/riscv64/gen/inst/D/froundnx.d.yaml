@@ -1,0 +1,34 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: froundnx.d
+long_name: Floating-Point Round-to-Integer Inexact Double-Precision
+description: |
+  The `froundnx.d` instruction is defined in the same way as `fround.d`, but it also sets the inexact exception flag if the input
+  differs from the rounded result and is not NaN. `froundnx.d` is encoded like `fcvt.d.s`, but with `xs2` set to 5.
+definedBy:
+  extension:
+    allOf:
+      - name: D
+      - name: Zfa
+assembly: fd, fs1, rm
+encoding:
+  match: 010000100101-------------1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

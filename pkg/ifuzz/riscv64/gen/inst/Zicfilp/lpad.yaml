@@ -1,0 +1,28 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: lpad
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zicfilp
+assembly: imm
+encoding:
+  match: "--------------------000000010111"
+  variables:
+    - name: imm
+      location: 31-12
+      left_shift: 12
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

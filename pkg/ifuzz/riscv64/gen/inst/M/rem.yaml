@@ -1,0 +1,76 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: rem
+long_name: Signed remainder
+description: |
+  Calculate the remainder of signed division of xs1 by xs2, and store the result in xd.
+
+  If the value in register xs2 is zero, write the value in xs1 into xd;
+
+  If the result of the division overflows, write zero into xd;
+definedBy:
+  extension:
+    name: M
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------110-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg src1 = X[xs1];
+  XReg src2 = X[xs2];
+
+  if (src2 == 0) {
+    # division by zero. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be the dividend
+    X[xd] = src1;
+
+  } else if ((src1 == {1'b1, {MXLEN-1{1'b0}}}) && (src2 == {MXLEN{1'b1}})) {
+    # signed overflow. Since RISC-V does not have arithmetic exceptions, the result is defined
+    # to be zero
+    X[xd] = 0;
+
+  } else {
+    X[xd] = $signed(src1) % $signed(src2);
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") then {
+      let rs1_val = X(rs1);
+      let rs2_val = X(rs2);
+      let rs1_int : int = if s then signed(rs1_val) else unsigned(rs1_val);
+      let rs2_int : int = if s then signed(rs2_val) else unsigned(rs2_val);
+      let r : int = if rs2_int == 0 then rs1_int else rem_round_zero(rs1_int, rs2_int);
+      /* signed overflow case returns zero naturally as required due to -1 divisor */
+      X(rd) = to_bits(sizeof(xlen), r);
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

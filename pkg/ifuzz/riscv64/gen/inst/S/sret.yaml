@@ -1,0 +1,166 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: sret
+long_name: Supervisor Mode Return from Trap
+description: |
+  Returns from supervisor mode after handling a trap.
+
+  When `sret` is allowed to execute, its behavior depends on whether or not the current privilege
+  mode is virtualized.
+
+  *When the current privilege mode is (H)S-mode or M-mode*
+
+  `sret` sets  `hstatus.HPV` = 0, `mstatus.SPP` = 0,
+  `mstatus.SIE` = `mstatus.SPIE`, and `mstatus.SPIE` = 1,
+  changes the privilege mode according to the table below,
+  and then jumps to the address in `sepc`.
+
+  .Next privilege mode following an `sret` in (H)S-mode or M-mode
+  [%autowidth]
+  |===
+  | [.rotate]#`mstatus.SPP`# | [.rotate]#`hstatus.SPV`# .>| Mode after `sret`
+
+  | 0 | 0 | U-mode
+  | 0 | 1 | VU-mode
+  | 1 | 0 | (H)S-mode
+  | 1 | 1 | VS-mode
+  |===
+
+  *When the current privilege mode is VS-mode*
+
+  `sret` sets
+  `vsstatus.SPP` = 0, `vsstatus.SIE` = `vstatus.SPIE`, and `vsstatus.SPIE` = 1,
+  changes the privilege mode according to the table below,
+  and then jumps to the address in `vsepc`.
+
+  .Next privilege mode following an `sret` in (H)S-mode or M-mode
+  [%autowidth]
+  |===
+  | [.rotate]#`vsstatus.SPP`# .>| Mode after `sret`
+
+  | 0 | VU-mode
+  | 1 | VS-mode
+  |===
+
+definedBy:
+  extension:
+    name: S
+assembly: ""
+encoding:
+  match: "00010000001000000000000001110011"
+access:
+  s: sometimes
+  u: never
+  vs: sometimes
+  vu: never
+access_detail: |
+  Access is determined as follows:
+
+  [%autowidth]
+  |===
+  .2+| [.rotate]#`mstatus.TSR`# .2+| [.rotate]#`hstatus.VTSR`# 5+^.>| Behavior when executed from:
+  h| M-mode h| U-mode h| (H)S-mode h| VU-mode h| VS-mode
+
+  | 0 | 0 | executes | `Illegal Instruction` | executes | `Virtual Instruction` | executes
+  | 0 | 1 | executes | `Illegal Instruction` | executes | `Virtual Instruction` | `Virtual Instruction`
+  | 1 | 0 | executes | `Illegal Instruction` | `Illegal Instruction` | `Virtual Instruction` | executes
+  | 1 | 1 | executes | `Illegal Instruction` | `Illegal Instruction` | `Virtual Instruction` | `Virtual Instruction`
+  |===
+operation(): |
+  # first, check access requirements
+  if (implemented?(ExtensionName::H)) {
+    if (CSR[mstatus].TSR == 1'b0 && CSR[hstatus].VTSR == 1'b0) {
+      if (mode() == PrivilegeMode::U) {
+        raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+      } else if (mode() == PrivilegeMode::VU) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    } else if (CSR[mstatus].TSR == 1'b0 && CSR[hstatus].VTSR == 1'b1) {
+      if (mode() == PrivilegeMode::U) {
+        raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+      } else if (mode() == PrivilegeMode::VU || mode() == PrivilegeMode::VS) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    } else if (CSR[mstatus].TSR == 1'b1 && CSR[hstatus].VTSR == 1'b0) {
+      if (mode() == PrivilegeMode::U || mode() == PrivilegeMode::S) {
+        raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+      } else if (mode() == PrivilegeMode::VU) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    } else if (CSR[mstatus].TSR == 1'b1 && CSR[hstatus].VTSR == 1'b1) {
+      if (mode() == PrivilegeMode::U || mode() == PrivilegeMode::S) {
+        raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+      } else if (mode() == PrivilegeMode::VU || mode() == PrivilegeMode::VS) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    }
+  } else {
+    if (mode() == PrivilegeMode::U) {
+      raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+    }
+  }
+
+  # now pop the interrupt stack and change modes
+  if (!virtual_mode?()) {
+    if (implemented?(ExtensionName::H)) {
+      if (CSR[hstatus].SPV == 1'b1) {
+        if (CSR[mstatus].SPP == 1'b1) {
+          set_mode(PrivilegeMode::VS);
+        } else {
+          set_mode(PrivilegeMode::VU);
+        }
+      } else {
+        if (CSR[mstatus].SPP == 1'b1) {
+          set_mode(PrivilegeMode::S);
+        } else {
+          set_mode(PrivilegeMode::U);
+        }
+      }
+      CSR[hstatus].SPV = 0;
+    } else {
+      if (CSR[mstatus].SPP == 1'b1) {
+        set_mode(PrivilegeMode::S);
+      } else {
+        set_mode(PrivilegeMode::U);
+      }
+    }
+    CSR[mstatus].SIE = CSR[mstatus].SPIE;
+    CSR[mstatus].SPIE = 1;
+    CSR[mstatus].SPP = 2'b00;
+    $pc = $bits(CSR[sepc]);
+  } else {
+    if (CSR[mstatus].TSR == 1'b1) {
+      raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+    }
+    CSR[vsstatus].SPP = 0;
+    CSR[vsstatus].SIE = CSR[vsstatus].SPIE;
+    CSR[vsstatus].SPIE = 1;
+    $pc = $bits(CSR[vsepc]);
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let sret_illegal : bool = match cur_privilege {
+      User       => true,
+      Supervisor => not(haveSupMode ()) | mstatus.TSR() == 0b1,
+      Machine    => not(haveSupMode ())
+    };
+    if   sret_illegal
+    then { handle_illegal(); RETIRE_FAIL }
+    else if not(ext_check_xret_priv (Supervisor))
+    then { ext_fail_xret_priv(); RETIRE_FAIL }
+    else {
+      set_next_pc(exception_handler(cur_privilege, CTL_SRET(), PC));
+      RETIRE_SUCCESS
+    }
+  }
+
+# SPDX-SnippetEnd

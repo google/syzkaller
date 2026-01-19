@@ -1,0 +1,25 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: sspopchk.x1
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zicfiss
+assembly: sspopchk_x1
+encoding:
+  match: "11001101110000001100000001110011"
+  variables: []
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

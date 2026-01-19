@@ -1,0 +1,34 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: aes64dsm
+long_name: AES decrypt middle round
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: Zknd
+description: |
+  Uses the two 64-bit source registers to represent the entire AES state, and produces _half_ of the next
+  round output, applying the Inverse ShiftRows, SubBytes and MixColumns steps.
+assembly: xd, xs1, xs2
+encoding:
+  match: 0011111----------000-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |

@@ -1,0 +1,52 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fence.tso
+long_name: Memory ordering fence, total store ordering
+description: |
+  Orders memory operations.
+
+  `fence.tso` orders all load operations
+  in its predecessor set before all memory operations in its successor set, and all store operations
+  in its predecessor set before all store operations in its successor set. This leaves non-AMO store
+  operations in the 'fence.tso's predecessor set unordered with non-AMO loads in its successor set.
+
+  The `xs1` and `xd` fields are unused and ignored.
+
+  In modes other than M-mode, `fence.tso` is further affected by `menvcfg.FIOM`,
+  `senvcfg.FIOM`<% if ext?(:H) %>, and/or `henvcfg.FIOM`<% end %>.
+
+definedBy:
+  extension:
+    name: I
+assembly: ""
+encoding:
+  match: 100000110011-----000-----0001111
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  fence_tso();
+
+sail(): |
+  {
+    match (pred, succ) {
+      (_ : bits(2) @ 0b11, _ : bits(2) @ 0b11) => sail_barrier(Barrier_RISCV_tso),
+      (_ : bits(2) @ 0b00, _ : bits(2) @ 0b00) => (),
+
+      _ => { print("FIXME: unsupported fence");
+             () }
+    };
+    RETIRE_SUCCESS
+  }

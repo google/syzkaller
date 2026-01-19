@@ -1,0 +1,35 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fcvt.h.l
+long_name: Floating-point Convert Long to Half-precision
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        oneOf:
+          - name: Zfh
+          - name: Zhinx
+description: |
+  `fcvt.h.l` converts a 64-bit signed integer to a half-precision floating-point number.
+assembly: fd, xs1, rm
+encoding:
+  match: 110101000010-------------1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: rm
+      location: 14-12
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

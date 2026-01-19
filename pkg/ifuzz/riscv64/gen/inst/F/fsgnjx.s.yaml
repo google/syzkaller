@@ -1,0 +1,66 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fsgnjx.s
+long_name: Floating-Point Sign-Inject XOR Single-Precision
+description: |
+  The `fsgnjx.s` instruction produces a result that takes all bits except the sign bit from `fs1`.
+  The result's sign bit is the XOR of sign bits of `fs1` and `fs2`, and the result is written to
+  the destination register `fd`. Sign-injection instructions do not set floating-point exception
+  flags, nor do they canonicalize NaNs.
+definedBy:
+  extension:
+    name: F
+assembly: fd, fs1, fs2
+encoding:
+  match: 0010000----------010-----1010011
+  variables:
+    - name: fs2
+      location: 24-20
+    - name: fs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+pseudoinstructions:
+  - when: (xs2 == xs1)
+    to: fabs.s
+operation(): |
+  check_f_ok($encoding);
+
+  Bits<32> sp_value = {f[fs1][31] ^ f[fs2][31], f[fs1][30:0]};
+
+  if (implemented?(ExtensionName::D)) {
+    f[fd] = nan_box<32, 64>(sp_value);
+  } else {
+    f[fd] = sp_value;
+  }
+
+  mark_f_state_dirty();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val_S = F_or_X_S(rs1);
+    let rs2_val_S = F_or_X_S(rs2);
+
+    let (fflags, rd_val) : (bits_fflags, bool) =
+        riscv_f32Le (rs1_val_S, rs2_val_S);
+
+    accrue_fflags(fflags);
+    X(rd) = zero_extend(bool_to_bits(rd_val));
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

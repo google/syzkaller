@@ -1,0 +1,36 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.li
+long_name: Load the sign-extended 6-bit immediate
+description: |
+  C.LI loads the sign-extended 6-bit immediate, imm, into register xd.
+  C.LI expands into `addi xd, x0, imm`.
+  C.LI is only valid when xd &ne; x0; the code points with xd=x0 encode HINTs.
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, imm
+encoding:
+  match: 010-----------01
+  variables:
+    - name: imm
+      location: 12|6-2
+    - name: xd
+      location: 11-7
+      not: 0
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = $signed(imm);

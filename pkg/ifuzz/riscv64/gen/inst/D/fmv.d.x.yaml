@@ -1,0 +1,32 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fmv.d.x
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        name: D
+long_name: Floating-Point Move Double-Precision from Integer Register
+description: |
+  The `fmv.d.x` instruction moves the double-precision value encoded in `IEEE 754-2008` standard encoding from the integer
+  register `xs1` to the floating-point register `fd`.
+assembly: fd, xs1
+encoding:
+  match: 111100100000-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

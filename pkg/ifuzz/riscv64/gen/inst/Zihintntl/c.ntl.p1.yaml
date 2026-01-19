@@ -1,0 +1,27 @@
+# Copyright (c) Jordan Carlin
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: c.ntl.p1
+long_name: Compressed non-temporal locality hint, innermost private
+description: |
+  The C.NTL.P1 instruction indicates that the immediately subsequent instruction
+  does not exhibit temporal locality within the capacity of the innermost level
+  of private cache in the memory hierarchy. C.NTL.P1 is encoded as C.ADD x0, x2.
+definedBy:
+  extension:
+    allOf:
+      - name: Zca
+      - name: Zihintntl
+assembly: ""
+encoding:
+  match: "1001000000001010"
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false

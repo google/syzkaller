@@ -1,0 +1,69 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: jal
+long_name: Jump and link
+description: |
+  Jump to a PC-relative offset and store the return
+  address in xd.
+definedBy:
+  extension:
+    name: I
+assembly: xd, imm
+encoding:
+  match: "-------------------------1101111"
+  variables:
+    - name: imm
+      location: 31|19-12|20|30-21
+      left_shift: 1
+      sign_extend: true
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: imm == 0
+    to: j xd
+  - when: xd == x1
+    to: jal imm
+operation(): |
+  XReg return_addr = $pc + 4;
+
+  X[xd] = return_addr;
+  jump_halfword($pc + $signed(imm));
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let t : xlenbits = PC + sign_extend(imm);
+    /* Extensions get the first checks on the prospective target address. */
+    match ext_control_check_pc(t) {
+      Ext_ControlAddr_Error(e) => {
+        ext_handle_control_check_error(e);
+        RETIRE_FAIL
+      },
+      Ext_ControlAddr_OK(target) => {
+        /* Perform standaxd alignment check */
+        if bit_to_bool(target[1]) & not(extension("C"))
+        then {
+          handle_mem_exception(target, E_Fetch_Addr_Align());
+          RETIRE_FAIL
+        } else {
+          X(xd) = get_next_pc();
+          set_next_pc(target);
+          RETIRE_SUCCESS
+        }
+      }
+    }
+  }
+
+# SPDX-SnippetEnd

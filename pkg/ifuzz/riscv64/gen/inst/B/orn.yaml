@@ -1,0 +1,68 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: orn
+long_name: OR with inverted operand
+description: |
+  Performs the bitwise logical OR operation between xs1 and the bitwise inversion of xs2.
+definedBy:
+  extension:
+    anyOf:
+      - name: Zbb
+      - name: Zbkb
+assembly: xd, xs1, xs2
+format:
+  $inherits:
+    - inst_subtype/R/R-x.yaml#/data
+  opcodes:
+    funct7:
+      display_name: ORN
+      value: 0b0100000
+    funct3:
+      display_name: ORN
+      value: 0b110
+    opcode: { $inherits: inst_opcode/OP.yaml#/data }
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = X[xs1] | ~X[xs2];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    let result : xlenbits = match op {
+      RISCV_ANDN => rs1_val & ~(rs2_val),
+      RISCV_ORN  => rs1_val | ~(rs2_val),
+      RISCV_XNOR => ~(rs1_val ^ rs2_val),
+      RISCV_MAX  => to_bits(sizeof(xlen), max(signed(rs1_val),   signed(rs2_val))),
+      RISCV_MAXU => to_bits(sizeof(xlen), max(unsigned(rs1_val), unsigned(rs2_val))),
+      RISCV_MIN  => to_bits(sizeof(xlen), min(signed(rs1_val),   signed(rs2_val))),
+      RISCV_MINU => to_bits(sizeof(xlen), min(unsigned(rs1_val), unsigned(rs2_val))),
+      RISCV_ROL  => if sizeof(xlen) == 32
+                    then rs1_val <<< rs2_val[4..0]
+                    else rs1_val <<< rs2_val[5..0],
+      RISCV_ROR  => if sizeof(xlen) == 32
+                    then rs1_val >>> rs2_val[4..0]
+                    else rs1_val >>> rs2_val[5..0]
+    };
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

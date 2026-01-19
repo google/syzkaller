@@ -1,0 +1,31 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vsm3c.vi
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zvksh
+assembly: vd, vs2, imm
+encoding:
+  match: 1010111----------010-----1110111
+  variables:
+    - name: vs2
+      location: 24-20
+    - name: imm
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |

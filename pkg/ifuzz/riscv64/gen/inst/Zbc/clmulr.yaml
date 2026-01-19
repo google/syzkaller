@@ -1,0 +1,61 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: clmulr
+long_name: Carry-less multiply (reversed)
+description: |
+  `clmulr` produces bits 2*XLEN-2:XLEN-1 of the 2*XLEN carry-less product
+definedBy:
+  extension:
+    name: Zbc
+assembly: xd, xs1, xs2
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+encoding:
+  match: 0000101----------010-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+operation(): |
+  if (implemented?(ExtensionName::B) && (CSR[misa].B == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg xs1_val = X[xs1];
+  XReg xs2_val = X[xs2];
+  XReg output = 0;
+
+  for (U32 i=0; i < xlen(); i++) {
+    output = (((xs2_val >> i) & 1) == 1)
+      ? output ^ (xs1_val >> (xlen() - i - 1))
+      : output;
+  }
+
+  X[xd] = output;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val = X(rs1);
+    let rs2_val = X(rs2);
+    result : xlenbits = zeros();
+    foreach (i from 0 to (xlen_val - 1))
+      if rs2_val[i] == bitone then result = result ^ (rs1_val >> (xlen_val - i - 1));
+    X(rd) = result;
+    RETIRE_SUCCESS
+  }
+
+# SPDX-SnippetEnd

@@ -1,0 +1,131 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: wfi
+long_name: Wait for interrupt
+description: |
+  Can causes the processor to enter a low-power state until the next interrupt occurs.
+
+  <%- if ext?(:H) -%>
+  The behavior of `wfi` is affected by the `mstatus.TW`
+  and `hstatus.VTW` bits, as summarized below.
+
+  [%autowidth,%footer]
+  |===
+  .2+| [.rotate]#`mstatus.TW`# .2+| [.rotate]#`hstatus.VTW`# 4+^.>| `wfi` behavior
+  h| HS-mode h| U-mode h| VS-mode h| in VU-mode
+
+  | 0 | 0 | Wait | Trap (I) | Wait | Trap (V)
+  | 0 | 1 | Wait | Trap (I) | Trap (V) | Trap (V)
+  | 1 | - | Trap (I) | Trap (I) | Trap (I) | Trap (I)
+
+  6+| Trap (I) - Trap with `Illegal Instruction` code +
+  Trap (V) - Trap with `Virtual Instruction` code
+  |===
+
+  <%- else -%>
+  The `wfi` instruction is also affected by `mstatus.TW`, as shown below:
+
+  [%autowidth,%footer]
+  |===
+  .2+| [.rotate]#`mstatus.TW`# 2+^.>| `wfi` behavior
+  h| S-mode h| U-mode
+
+  | 0 | Wait | Trap (I)
+  | 1 | Trap (I) | Trap (I)
+
+  3+| Trap (I) - Trap with `Illegal Instruction` code
+  |===
+
+  <%- end -%>
+
+  When `wfi` is marked as causing a trap above, the implementation is allowed to wait
+  for an unspecified period of time to see if an interrupt occurs before raising the trap.
+  That period of time can be zero (_i.e._, `wfi` always causes a trap in the cases identified
+  above).
+definedBy:
+  extension:
+    name: Sm
+assembly: ""
+encoding:
+  match: "00010000010100000000000001110011"
+access:
+  s: sometimes
+  u: sometimes
+  vs: sometimes
+  vu: sometimes
+access_detail: |
+  <%- if ext?(:H) -%>
+  The behavior of `wfi` is affected by the `mstatus.TW`
+  and `hstatus.VTW` bits, as summarized below.
+
+  [%autowidth,%footer]
+  |===
+  .2+| [.rotate]#`mstatus.TW`# .2+| [.rotate]#`hstatus.VTW`# 4+^.>| `wfi` behavior
+  h| HS-mode h| U-mode h| VS-mode h| in VU-mode
+
+  | 0 | 0 | Wait | Trap (I) | Wait | Trap (V)
+  | 0 | 1 | Wait | Trap (I) | Trap (V) | Trap (V)
+  | 1 | - | Trap (I) | Trap (I) | Trap (I) | Trap (I)
+
+  6+| Trap (I) - Trap with `Illegal Instruction` code +
+  Trap (V) - Trap with `Virtual Instruction` code
+  |===
+
+  <%- else -%>
+  The `wfi` instruction is also affected by `mstatus.TW`, as shown below:
+
+  [%autowidth,%footer]
+  |===
+  .2+| [.rotate]#`mstatus.TW`# 2+^.>| `wfi` behavior
+  h| S-mode h| U-mode
+
+  | 0 | Wait | Trap (I)
+  | 1 | Trap (I) | Trap (I)
+
+  3+| Trap (I) - Trap with `Illegal Instruction` code
+  |===
+
+  <%- end -%>
+operation(): |
+  # first, perform all the access checks
+  if (mode() == PrivilegeMode::U) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+  if ((CSR[misa].S == 1) && (CSR[mstatus].TW == 1'b1)) {
+    if (mode() != PrivilegeMode::M) {
+      raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+    }
+  }
+  if (CSR[misa].H == 1) {
+    if (CSR[hstatus].VTW == 1'b0) {
+      if (mode() == PrivilegeMode::VU) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    } else if (CSR[hstatus].VTW == 1'b1) {
+      if ((mode() == PrivilegeMode::VS) || (mode() == PrivilegeMode::VU)) {
+        raise (ExceptionCode::VirtualInstruction, mode(), $encoding);
+      }
+    }
+  }
+
+  # passed, so now do the wait
+  wfi();
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  match cur_privilege {
+      Machine    => { platform_wfi(); RETIRE_SUCCESS },
+      Supervisor => if   mstatus.TW() == 0b1
+                    then { handle_illegal(); RETIRE_FAIL }
+                    else { platform_wfi(); RETIRE_SUCCESS },
+      User       => { handle_illegal(); RETIRE_FAIL }
+    }
+
+# SPDX-SnippetEnd

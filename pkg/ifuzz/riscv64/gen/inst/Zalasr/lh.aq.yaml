@@ -1,0 +1,62 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: lh.aq
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: Zalasr
+assembly: xd, (xs1)
+encoding:
+  match: 001101000000-----001-----0101111
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let offset : xlenbits = sign_extend(imm);
+    /* Get the address, X(rs1) + offset.
+       Some extensions perform additional checks on address validity. */
+    match ext_data_get_addr(rs1, offset, Read(Data), width) {
+      Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+      Ext_DataAddr_OK(vaddr) =>
+        if   check_misaligned(vaddr, width)
+        then { handle_mem_exception(vaddr, E_Load_Addr_Align()); RETIRE_FAIL }
+        else match translateAddr(vaddr, Read(Data)) {
+          TR_Failure(e, _) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+          TR_Address(paddr, _) =>
+            match (width) {
+              BYTE =>
+                process_load(rd, vaddr, mem_read(Read(Data), paddr, 1, aq, rl, false), is_unsigned),
+              HALF =>
+                process_load(rd, vaddr, mem_read(Read(Data), paddr, 2, aq, rl, false), is_unsigned),
+              WORD =>
+                process_load(rd, vaddr, mem_read(Read(Data), paddr, 4, aq, rl, false), is_unsigned),
+              DOUBLE if sizeof(xlen) >= 64 =>
+                process_load(rd, vaddr, mem_read(Read(Data), paddr, 8, aq, rl, false), is_unsigned),
+              _ => report_invalid_width(__FILE__, __LINE__, width, "load")
+            }
+        }
+    }
+  }
+
+# SPDX-SnippetEnd

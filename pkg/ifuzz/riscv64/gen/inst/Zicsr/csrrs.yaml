@@ -1,0 +1,114 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: csrrs
+long_name: Atomic Read and Set Bits in CSR
+description: |
+  Atomically read and set bits in a CSR.
+
+  Reads the value of the CSR, zero-extends the value to `XLEN` bits,
+  and writes it to integer register `xd`. The initial value in integer
+  register `xs1` is treated as a bit mask that specifies bit positions
+  to be set in the CSR. Any bit that is high in `xs1` will cause the
+  corresponding bit to be set in the CSR, if that CSR bit is writable.
+  Other bits in the CSR are not explicitly written.
+definedBy:
+  extension:
+    name: Zicsr
+assembly: xd, csr, xs1
+encoding:
+  match: "-----------------010-----1110011"
+  variables:
+    - name: csr
+      location: 31-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+pseudoinstructions:
+  - when: xs1 == 0 && csr == 0x001
+    to: frflags xd
+  - when: xs1 == 0 && csr == 0x002
+    to: frrm xd
+  - when: xs1 == 0 && csr == 0x003
+    to: frcsr xd
+  - when: xs1 == 0 && csr == 0xC00
+    to: rdcycle xd
+  - when: xs1 == 0 && csr == 0xC01
+    to: rdtime xd
+  - when: xs1 == 0 && csr == 0xC02
+    to: rdinstret xd
+  - when: xs1 == 0 && csr == 0xC80
+    to: rdcycleh xd
+  - when: xs1 == 0 && csr == 0xC81
+    to: rdtimeh xd
+  - when: xs1 == 0 && csr == 0xC82
+    to: rdinstreth xd
+  - when: xs1 == 0
+    to: csrr xd,csr
+  - when: xd == 0
+    to: csrs csr,xs1
+operation(): |
+  Boolean will_write = xs1 != 0;
+
+  Csr csr_handle = direct_csr_lookup(csr);
+
+  # permission checks
+  if (csr_handle.valid == false) {
+    unimplemented_csr($encoding);
+  } else if (!compatible_mode?(csr_handle.mode, mode())) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  } else if (will_write && csr_handle.writable == false) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg initial_csr_value = csr_sw_read(csr_handle);
+
+  if (will_write) {
+    # set bits using the mask
+    # performing any WARL transformations first
+    XReg mask = X[xs1];
+    csr_sw_write(csr_handle, initial_csr_value | mask);
+  }
+
+  X[xd] = initial_csr_value;
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let rs1_val : xlenbits = if is_imm then zero_extend(rs1) else X(rs1);
+    let isWrite : bool = match op {
+      CSRRW  => true,
+      _      => if is_imm then unsigned(rs1_val) != 0 else unsigned(rs1) != 0
+    };
+    if not(check_CSR(csr, cur_privilege, isWrite))
+    then { handle_illegal(); RETIRE_FAIL }
+    else if not(ext_check_CSR(csr, cur_privilege, isWrite))
+    then { ext_check_CSR_fail(); RETIRE_FAIL }
+    else {
+      let csr_val = readCSR(csr); /* could have side-effects, so technically shouldn't perform for CSRW[I] with rd == 0 */
+      if isWrite then {
+        let new_val : xlenbits = match op {
+          CSRRW => rs1_val,
+          CSRRS => csr_val | rs1_val,
+          CSRRC => csr_val & ~(rs1_val)
+        };
+        writeCSR(csr, new_val)
+      };
+      X(rd) = csr_val;
+      RETIRE_SUCCESS
+    }
+  }
+
+# SPDX-SnippetEnd

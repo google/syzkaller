@@ -1,0 +1,101 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.ld
+long_name: Load double
+description: |
+  Loads a 64-bit value from memory into register xd.
+  It computes an effective address by adding the zero-extended offset, scaled by 8,
+  to the base address in register xs1.
+  It expands to `ld` `xd, offset(xs1)`.
+  For RV32, if the Zclsd extension is enabled, this instruction loads a 64-bit value into registers xd and xd+1. It computes an effective address by adding the zero-extended imm, scaled by 8, to the base address in register xs1.
+definedBy:
+  anyOf:
+    - allOf:
+        - xlen: 64
+        - extension:
+            name: Zca
+    - extension:
+        name: Zclsd
+assembly: xd, imm(xs1)
+encoding:
+  RV32:
+    match: 011-----------00
+    variables:
+      - name: imm
+        location: 6-5|12-10
+        left_shift: 3
+      - name: xd
+        location: 4-2
+        not: [1, 3, 5, 7]
+      - name: xs1
+        location: 9-7
+  RV64:
+    match: 011-----------00
+    variables:
+      - name: imm
+        location: 6-5|12-10
+        left_shift: 3
+      - name: xd
+        location: 4-2
+      - name: xs1
+        location: 9-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  if (xlen() == 32) {
+    if (implemented?(ExtensionName::Zclsd)) {
+      Bits<64> val = read_memory<64>(X[creg2reg(xs1)] + imm, $encoding);
+      X[creg2reg(xd)] = val[31:0];
+      X[creg2reg(xd + 1)] = val[63:32];
+    } else {
+      raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+    }
+  } else {
+    XReg virtual_address = X[creg2reg(xs1)] + imm;
+    X[creg2reg(xd)] = sext(read_memory<64>(virtual_address, $encoding), 64);
+  }
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let offset : xlenbits = sign_extend(imm);
+    /* Get the address, X(rs1) + offset.
+       Some extensions perform additional checks on address validity. */
+    match ext_data_get_addr(rs1, offset, Read(Data), width) {
+      Ext_DataAddr_Error(e)  => { ext_handle_data_check_error(e); RETIRE_FAIL },
+      Ext_DataAddr_OK(vaddr) =>
+        if   check_misaligned(vaddr, width)
+        then { handle_mem_exception(vaddr, E_Load_Addr_Align()); RETIRE_FAIL }
+        else match translateAddr(vaddr, Read(Data)) {
+          TR_Failure(e, _) => { handle_mem_exception(vaddr, e); RETIRE_FAIL },
+          TR_Address(paddr, _) =>
+            match (width) {
+              BYTE =>
+                process_load(xd, vaddr, mem_read(Read(Data), paddr, 1, aq, rl, false), is_unsigned),
+              HALF =>
+                process_load(xd, vaddr, mem_read(Read(Data), paddr, 2, aq, rl, false), is_unsigned),
+              WOxD =>
+                process_load(xd, vaddr, mem_read(Read(Data), paddr, 4, aq, rl, false), is_unsigned),
+              DOUBLE if sizeof(xlen) >= 64 =>
+                process_load(xd, vaddr, mem_read(Read(Data), paddr, 8, aq, rl, false), is_unsigned),
+              _ => report_invalid_width(__FILE__, __LINE__, width, "load")
+            }
+        }
+    }
+  }
+
+# SPDX-SnippetEnd

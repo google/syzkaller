@@ -1,0 +1,48 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: vlm.v
+long_name: No synopsis available
+description: |
+  No description available.
+definedBy:
+  extension:
+    name: V
+assembly: vd, (xs1)
+encoding:
+  match: 000000101011-----000-----0000111
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: vd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    let EEW = 8;
+    let EMUL_pow = 0;
+    let vl_val = unsigned(vl);
+    let evl : int = if vl_val % 8 == 0 then vl_val / 8 else vl_val / 8 + 1; /* the effective vector length is evl=ceil(vl/8) */
+    let num_elem = get_num_elem(EMUL_pow, EEW);
+
+    if illegal_vd_unmasked() then { handle_illegal(); return RETIRE_FAIL };
+
+    assert(evl >= 0);
+    process_vm(vd_or_vs3, rs1, num_elem, evl, op)
+  }
+
+# SPDX-SnippetEnd

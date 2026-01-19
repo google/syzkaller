@@ -1,0 +1,37 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: fmvh.x.q
+long_name: Floating-Point Move High Half to Integer from Quad-Precision
+description: |
+  The `fmvh.x.q` instruction moves bits `127:64` of floating-point register `fs1` into integer register `xd`.
+  It is encoded in the OP-FP major opcode with _funct3_=0, _rs2_=1, and _funct7_=1110011.
+
+  `fmvh.x.q` is used in conjunction with the existing `fmv.x.d` instruction to move a quad-precision floating-point
+  number to a pair of x-registers.
+definedBy:
+  allOf:
+    - xlen: 64
+    - extension:
+        allOf:
+          - name: Q
+          - name: Zfa
+assembly: xd, fs1
+encoding:
+  match: 111001100001-----000-----1010011
+  variables:
+    - name: fs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

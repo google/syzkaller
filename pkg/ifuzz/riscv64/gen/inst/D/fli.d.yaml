@@ -1,0 +1,32 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: inst_schema.json#
+kind: instruction
+name: fli.d
+long_name: Floating-Point Load Immediate Double-Precision
+description: |
+  The `fli.d` instruction instruction loads one of 32 double-precision floating-point constants, encoded in the `xs1`
+  field, into floating-point register `fd`. `fli.d` is encoded like `fli.s`, but with `fmt` set to D.
+definedBy:
+  extension:
+    allOf:
+      - name: D
+      - name: Zfa
+assembly: fd, xs1
+encoding:
+  match: 111100100001-----000-----1010011
+  variables:
+    - name: xs1
+      location: 19-15
+    - name: fd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: false
+operation(): |

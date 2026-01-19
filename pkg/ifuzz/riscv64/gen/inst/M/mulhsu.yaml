@@ -1,0 +1,77 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: mulhsu
+long_name: Signed/unsigned multiply high
+description: |
+  Multiply the signed value in xs1 by the unsigned value in xs2, and store the upper half of the result in xd.
+  The lower half is thrown away.
+
+  If both the upper and lower halves are needed, it suggested to use the sequence:
+
+  ---
+    mulhsu xdh, xs1, xs2
+    mul    xdl, xs1, xs2
+  ---
+
+  Microarchitectures may look for that sequence and fuse the operations.
+definedBy:
+  extension:
+    anyOf:
+      - name: M
+      - name: Zmmul
+assembly: xd, xs1, xs2
+encoding:
+  match: 0000001----------010-----0110011
+  variables:
+    - name: xs2
+      location: 24-20
+    - name: xs1
+      location: 19-15
+    - name: xd
+      location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+data_independent_timing: true
+operation(): |
+  if (implemented?(ExtensionName::M) && (CSR[misa].M == 1'b0)) {
+    raise (ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  # enlarge and extend the sources
+  Bits<1> xs1_sign_bit = X[xs1][MXLEN-1];
+  Bits<MXLEN*8'd2> src1 = {{MXLEN{xs1_sign_bit}}, X[xs1]};
+  Bits<MXLEN*8'd2> src2 = {{MXLEN{1'b0}}, X[xs2]};
+
+  X[xd] = (src1 * src2)[(MXLEN*8'd2)-1:MXLEN];
+
+# SPDX-SnippetBegin
+# SPDX-FileCopyrightText: 2017-2025 Contributors to the RISCV Sail Model <https://github.com/riscv/sail-riscv/blob/master/LICENCE>
+# SPDX-License-Identifier: BSD-2-Clause
+sail(): |
+  {
+    if extension("M") | haveZmmul() then {
+      let rs1_val = X(rs1);
+      let rs2_val = X(rs2);
+      let rs1_int : int = if signed1 then signed(rs1_val) else unsigned(rs1_val);
+      let rs2_int : int = if signed2 then signed(rs2_val) else unsigned(rs2_val);
+      let result_wide = to_bits(2 * sizeof(xlen), rs1_int * rs2_int);
+      let result = if   high
+                   then result_wide[(2 * sizeof(xlen) - 1) .. sizeof(xlen)]
+                   else result_wide[(sizeof(xlen) - 1) .. 0];
+      X(rd) = result;
+      RETIRE_SUCCESS
+    } else {
+      handle_illegal();
+      RETIRE_FAIL
+    }
+  }
+
+# SPDX-SnippetEnd

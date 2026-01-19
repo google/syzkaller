@@ -1,0 +1,38 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.lui
+long_name: Load Upper Immediate
+description: |
+  C.LUI loads the non-zero 6-bit immediate field into bits 17-12 of the destination register, clears the bottom 12 bits, and sign-extends bit 17 into all higher bits of the destination.
+  C.LUI expands into `lui xd, imm`.
+  C.LUI is only valid when xd&ne;x0 and xd&ne;x2, and when the immediate is not equal to zero.
+  The code points with imm=0 are reserved; the remaining code points with xd=x0 are HINTs; and the remaining code points with xd=x2 correspond to the C.ADDI16SP instruction
+definedBy:
+  extension:
+    name: Zca
+assembly: xd, imm
+encoding:
+  match: 011-----------01
+  variables:
+    - name: imm
+      location: 12|6-2
+      left_shift: 12
+    - name: xd
+      location: 11-7
+      not: [0, 2]
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  X[xd] = $signed(imm);

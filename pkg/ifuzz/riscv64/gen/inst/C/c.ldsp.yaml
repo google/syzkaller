@@ -1,0 +1,64 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# yaml-language-server: $schema=../../../../schemas/inst_schema.json
+
+$schema: "inst_schema.json#"
+kind: instruction
+name: c.ldsp
+long_name: Load doubleword from stack pointer
+description: |
+  C.LDSP is an RV64C/RV128C-only instruction that loads a 64-bit value from memory
+  into register xd.
+  It computes its effective address by adding the zero-extended offset, scaled by 8,
+  to the stack pointer, x2.
+  It expands to `ld xd, offset(x2)`.
+  C.LDSP is only valid when xd ≠ x0; code points with xd=x0 are reserved.
+definedBy:
+  anyOf:
+    - allOf:
+        - xlen: 32
+        - extension:
+            name: Zclsd
+    - allOf:
+        - xlen: 64
+        - extension:
+            name: Zca
+assembly: xd, imm(sp)
+encoding:
+  RV32:
+    match: 011-----------10
+    variables:
+      - name: imm
+        location: 4-2|12|6-5
+        left_shift: 3
+      - name: xd
+        location: 11-7
+        not: [0, 1, 3, 5, 7]
+  RV64:
+    match: 011-----------10
+    variables:
+      - name: imm
+        location: 4-2|12|6-5
+        left_shift: 3
+      - name: xd
+        location: 11-7
+access:
+  s: always
+  u: always
+  vs: always
+  vu: always
+operation(): |
+  if (implemented?(ExtensionName::C) && (CSR[misa].C == 1'b0)) {
+    raise(ExceptionCode::IllegalInstruction, mode(), $encoding);
+  }
+
+  XReg virtual_address = X[2] + imm;
+  Bits<64> value = read_memory<64>(virtual_address, $encoding);
+
+  if (xlen()== 64) {
+    X[creg2reg(xd)] = value;
+  } else if (xlen() == 32) {
+    X[creg2reg(xd)]     = value[31:0];
+    X[creg2reg(xd) + 1] = value[63:32];
+  }
