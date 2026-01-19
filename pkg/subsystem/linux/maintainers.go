@@ -209,7 +209,6 @@ var (
 
 func wildcardToRegexp(wildcard string, store *strings.Builder) {
 	store.WriteByte('^')
-
 	// We diverge a bit from the standard MAINTAINERS rule semantics.
 	// path/* corresponds to the files belonging to the `path` folder,
 	// but, since we also infer the parent-child relationship, it's
@@ -231,7 +230,9 @@ func wildcardToRegexp(wildcard string, store *strings.Builder) {
 	if tokenStart < len(wildcard) {
 		store.WriteString(regexp.QuoteMeta(wildcard[tokenStart:]))
 	}
+	// get_maintainers.pl script tolerates the absence of / when the wildcard
+	// points to a folder. Let's do the same.
 	if wildcard == "" || wildcard[len(wildcard)-1] != '/' {
-		store.WriteByte('$')
+		store.WriteString("(?:" + escapedSeparator + "|$)")
 	}
 }
