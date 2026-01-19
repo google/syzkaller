@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -88,7 +89,11 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 		if err != nil {
 			return "", err
 		}
-		if err := osutil.WriteFile(metaFile, []byte(desc)); err != nil {
+		meta := cacheMeta{
+			Description: desc,
+			DiskUsage:   size,
+		}
+		if err := osutil.WriteJSON(metaFile, meta); err != nil {
 			os.RemoveAll(dir)
 			return "", err
 		}
@@ -135,26 +140,42 @@ func (c *Cache) init() error {
 	}
 	for _, dir := range dirs {
 		metaFile := filepath.Join(dir, cacheMetaFile)
-		if !osutil.IsExist(metaFile) {
-			if err := osutil.RemoveAll(dir); err != nil {
+		data, err := os.ReadFile(metaFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// Incomplete cache dir.
+				if err := osutil.RemoveAll(dir); err != nil {
+					return err
+				}
+				continue
+			}
+			return err
+		}
+		var meta cacheMeta
+		if err := json.Unmarshal(data, &meta); err != nil {
+			// Assume the old format that contained just the description.
+			// This code can be removed after 2027-06-01,
+			// and the code above can use osutil.ReadJSON.
+			size, err := osutil.DiskUsage(dir)
+			if err != nil {
 				return err
 			}
-			continue
+			meta.Description = string(data)
+			meta.DiskUsage = size
+			if err := osutil.WriteJSON(metaFile, meta); err != nil {
+				return err
+			}
 		}
 		stat, err := os.Stat(metaFile)
 		if err != nil {
 			return err
 		}
-		size, err := osutil.DiskUsage(dir)
-		if err != nil {
-			return err
-		}
 		c.entries[dir] = &cacheEntry{
 			dir:      dir,
-			size:     size,
+			size:     meta.DiskUsage,
 			lastUsed: stat.ModTime(),
 		}
-		c.currentSize += size
+		c.currentSize += meta.DiskUsage
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -196,6 +217,11 @@ func (c *Cache) logf(msg string, args ...any) {
 	if c.t != nil {
 		c.t.Logf("cache: "+msg, args...)
 	}
+}
+
+type cacheMeta struct {
+	Description string
+	DiskUsage   uint64
 }
 
 const cacheMetaFile = "aflow-meta"
