@@ -33,7 +33,7 @@ func TestBuildCoincidenceMatrix(t *testing.T) {
 		"fs/fat/file.c":  {},
 		"net/socket.c":   {},
 	}
-	matrix, err := BuildCoincidenceMatrix(fs, []*subsystem.Subsystem{vfs, ntfs, ext4, kernel}, nil)
+	matrix, _, err := BuildCoincidenceMatrix(fs, []*subsystem.Subsystem{vfs, ntfs, ext4, kernel}, nil)
 	assert.NoError(t, err)
 
 	// Test total counts.
