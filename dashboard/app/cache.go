@@ -314,7 +314,7 @@ func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 		item.Expiration = cfg.Window
 		item.Object = obj
 		err = memcache.Gob.CompareAndSwap(c, item)
-		if err == memcache.ErrCASConflict {
+		if err == memcache.ErrCASConflict || err == memcache.ErrNotStored {
 			if ok {
 				// Only retry if we approved the query.
 				// If we denied and there was a concurrent write
