@@ -13,7 +13,7 @@ import (
 )
 
 func TestGroupLinuxSubsystems(t *testing.T) {
-	subsystems, err := listFromRepoInner(
+	subsystems, _, err := listFromRepoInner(
 		prepareTestLinuxRepo(t, []byte(testMaintainers)),
 		nil)
 	if err != nil {
@@ -57,7 +57,7 @@ func TestGroupLinuxSubsystems(t *testing.T) {
 }
 
 func TestCustomCallRules(t *testing.T) {
-	subsystems, err := listFromRepoInner(
+	subsystems, _, err := listFromRepoInner(
 		prepareTestLinuxRepo(t, []byte(testMaintainers)),
 		testRules,
 	)
@@ -103,7 +103,7 @@ func TestLinuxSubsystemPaths(t *testing.T) {
 	// For the list of subsystems, see TestLinuxSubsystemsList.
 	// Here we rely on the same ones.
 	repo := prepareTestLinuxRepo(t, []byte(testMaintainers))
-	subsystems, err := listFromRepoInner(repo, nil)
+	subsystems, _, err := listFromRepoInner(repo, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestLinuxSubsystemParents(t *testing.T) {
 	// For the list of subsystems, see TestLinuxSubsystemsList.
 	// Here we rely on the same ones.
 	repo := prepareTestLinuxRepo(t, []byte(testMaintainers))
-	subsystems, err := listFromRepoInner(repo, nil)
+	subsystems, _, err := listFromRepoInner(repo, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestLinuxSubsystemParents(t *testing.T) {
 	})
 
 	// Now check that our custom parent rules work.
-	subsystems2, err := listFromRepoInner(repo, &customRules{
+	subsystems2, _, err := listFromRepoInner(repo, &customRules{
 		addParents: map[string][]string{
 			// Just for the sake of testing.
 			"fs": {"mm"},

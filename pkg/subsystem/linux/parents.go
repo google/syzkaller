@@ -3,42 +3,61 @@
 
 package linux
 
-import "github.com/google/syzkaller/pkg/subsystem"
+import (
+	"fmt"
+
+	"github.com/google/syzkaller/pkg/subsystem"
+)
 
 // parentTransformations applies all subsystem list transformations that have been implemented.
 func parentTransformations(matrix *CoincidenceMatrix,
-	list []*subsystem.Subsystem) ([]*subsystem.Subsystem, error) {
+	list []*subsystem.Subsystem) ([]*subsystem.Subsystem, parentInfo, error) {
 	list = dropSmallSubsystems(matrix, list)
 	list = dropDuplicateSubsystems(matrix, list)
-	err := setParents(matrix, list)
+	info, err := setParents(matrix, list)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return list, nil
+	return list, info, nil
+}
+
+type parentInfo map[*subsystem.Subsystem]map[*subsystem.Subsystem]string
+
+func (pi parentInfo) Save(parent, child *subsystem.Subsystem, info string) {
+	if pi[parent] == nil {
+		pi[parent] = map[*subsystem.Subsystem]string{}
+	}
+	pi[parent][child] = info
 }
 
 // setParents attempts to determine the parent-child relations among the extracted subsystems.
 // We assume A is a child of B if:
 // 1) B covers more paths than A.
 // 2) Most of the paths that relate to A also relate to B.
-func setParents(matrix *CoincidenceMatrix, list []*subsystem.Subsystem) error {
+func setParents(matrix *CoincidenceMatrix, list []*subsystem.Subsystem) (parentInfo, error) {
 	// Some subsystems might have already been dropeed.
 	inInput := map[*subsystem.Subsystem]bool{}
 	for _, item := range list {
 		inInput[item] = true
 	}
-	matrix.NonEmptyPairs(func(a, b *subsystem.Subsystem, count int) {
+	info := parentInfo{}
+	matrix.NonEmptyPairs(func(a, b *subsystem.Subsystem, common int) {
 		if !inInput[a] || !inInput[b] {
 			return
 		}
+		childFiles := matrix.Count(a)
+		parentFiles := matrix.Count(b)
 		// Demand that >= 50% paths are related.
-		if 2*count/matrix.Count(a) >= 1 && matrix.Count(a) < matrix.Count(b) {
+		if 2*common/childFiles >= 1 && childFiles < parentFiles {
 			a.Parents = append(a.Parents, b)
+			info.Save(b, a,
+				fmt.Sprintf("Auto-inferred: %d common files among %d/%d.",
+					common, childFiles, parentFiles))
 			a.ReachableParents() // make sure we haven't created a loop
 		}
 	})
 	transitiveReduction(list)
-	return nil
+	return info, nil
 }
 
 // dropSmallSubsystems removes subsystems for which we have found only a few matches in the filesystem tree.

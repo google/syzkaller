@@ -82,3 +82,8 @@ type PathRule struct {
 func (pr *PathRule) IsEmpty() bool {
 	return pr.IncludeRegexp == "" && pr.ExcludeRegexp == ""
 }
+
+type DebugInfo struct {
+	ParentChildComment map[*Subsystem]map[*Subsystem]string
+	FileLists          map[*Subsystem][]string
+}

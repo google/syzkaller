@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"go/format"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -18,7 +19,8 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
-func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commit *vcs.Commit) ([]byte, error) {
+func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commit *vcs.Commit,
+	debugInfo *subsystem.DebugInfo) ([]byte, error) {
 	// Set names first -- we'll need them for filling in the Parents array.
 	objToName := map[*subsystem.Subsystem]string{}
 	for _, entry := range list {
@@ -41,11 +43,16 @@ func generateSubsystemsFile(name string, list []*subsystem.Subsystem, commit *vc
 		// The serializer does not understand parent references and just prints all the
 		// nested structures.
 		// Therefore we call it separately for the fields it can understand.
-		parents := []string{}
+		parents := []parentInfo{}
 		for _, p := range entry.Parents {
-			parents = append(parents, objToName[p])
+			parents = append(parents, parentInfo{
+				Name:    objToName[p],
+				Comment: debugInfo.ParentChildComment[p][entry],
+			})
 		}
-		sort.Strings(parents)
+		slices.SortFunc(parents, func(a, b parentInfo) int {
+			return strings.Compare(a.Name, b.Name)
+		})
 		subsystem := &templateSubsystem{
 			VarName:      varName,
 			Name:         serializer.WriteString(entry.Name),
@@ -121,9 +128,14 @@ type templateSubsystem struct {
 	PathRules    string
 	Lists        string
 	Maintainers  string
-	Parents      []string
+	Parents      []parentInfo
 	NoReminders  bool
 	NoIndirectCc bool
+}
+
+type parentInfo struct {
+	Name    string
+	Comment string
 }
 
 type templateVars struct {
@@ -171,7 +183,14 @@ var {{range $i, $item := .List}}
  Maintainers: {{.Maintainers}},
 {{- end}}
 {{- if .Parents}}
- Parents: []*Subsystem{ {{range .Parents}} &{{.}}, {{end}} },
+ Parents: []*Subsystem{
+ {{- range .Parents}}
+  {{- if .Comment}}
+   // {{.Comment}}
+  {{- end}}
+   &{{.Name}},
+ {{end -}}
+},
 {{- end}}
  PathRules: {{.PathRules}},
 {{- if .NoReminders}}

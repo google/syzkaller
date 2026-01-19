@@ -28,6 +28,7 @@ var (
 	flagName          = flag.String("name", "", "the name under which the list should be saved")
 	flagFilter        = flag.String("filter", "", "comma-separated list of subsystems to keep")
 	flagEmails        = flag.Bool("emails", true, "save lists and maintainer fields")
+	flagDebug         = flag.Bool("debug", false, "print the debugging information")
 )
 
 var nameRe = regexp.MustCompile(`^[a-z]\w*$`)
@@ -48,10 +49,11 @@ func main() {
 		tool.Failf("the name is not acceptable")
 	}
 	// Query the subsystems.
-	list, err := linux.ListFromRepo(*flagKernelRepo)
+	list, debugInfo, err := linux.ListFromRepo(*flagKernelRepo)
 	if err != nil {
 		tool.Failf("failed to query subsystems: %v", err)
 	}
+	printDebugInfo(debugInfo)
 	list = postProcessList(list)
 	// Save the list.
 	folder := filepath.Join(*flagSyzkallerRepo, "pkg", "subsystem", "lists")
@@ -62,13 +64,26 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to fetch commit info: %v", err)
 	}
-	code, err := generateSubsystemsFile(*flagName, list, commitInfo)
+	code, err := generateSubsystemsFile(*flagName, list, commitInfo, debugInfo)
 	if err != nil {
 		tool.Failf("failed to generate code: %s", err)
 	}
 	err = osutil.WriteFile(filepath.Join(folder, *flagName+".go"), code)
 	if err != nil {
 		tool.Failf("failed to save the code: %s", err)
+	}
+}
+
+func printDebugInfo(info *subsystem.DebugInfo) {
+	if !*flagDebug {
+		return
+	}
+	for item, list := range info.FileLists {
+		fmt.Printf("****\n")
+		fmt.Printf("Subsystem %q (%d paths)\n", item.Name, len(list))
+		for _, path := range list {
+			fmt.Printf("%s\n", path)
+		}
 	}
 }
 

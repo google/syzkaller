@@ -13,15 +13,16 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem"
 )
 
-func ListFromRepo(repo string) ([]*subsystem.Subsystem, error) {
+func ListFromRepo(repo string) ([]*subsystem.Subsystem, *subsystem.DebugInfo, error) {
 	return listFromRepoInner(os.DirFS(repo), linuxSubsystemRules)
 }
 
 // listFromRepoInner allows for better testing.
-func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, error) {
+func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem,
+	*subsystem.DebugInfo, error) {
 	records, err := getMaintainers(root)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	removeMatchingPatterns(records, dropPatterns)
 	ctx := &linuxCtx{
@@ -31,22 +32,22 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, 
 	}
 	extraList, err := ctx.groupByRules()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	list := append(ctx.groupByList(), extraList...)
-	matrix, err := BuildCoincidenceMatrix(root, list, dropPatterns)
+	matrix, matrixDebug, err := BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	list, err = parentTransformations(matrix, list)
+	list, parentDebug, err := parentTransformations(matrix, list)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := setSubsystemNames(list); err != nil {
-		return nil, fmt.Errorf("failed to set names: %w", err)
+		return nil, nil, fmt.Errorf("failed to set names: %w", err)
 	}
 	if err := ctx.applyExtraRules(list); err != nil {
-		return nil, fmt.Errorf("failed to apply extra rules: %w", err)
+		return nil, nil, fmt.Errorf("failed to apply extra rules: %w", err)
 	}
 
 	// Sort subsystems by name to keep output consistent.
@@ -61,7 +62,10 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, 
 			return a.ExcludeRegexp < b.ExcludeRegexp
 		})
 	}
-	return list, nil
+	return list, &subsystem.DebugInfo{
+		ParentChildComment: parentDebug,
+		FileLists:          matrixDebug.files,
+	}, nil
 }
 
 type linuxCtx struct {

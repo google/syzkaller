@@ -113,13 +113,13 @@ func TestSetParents(t *testing.T) {
 		"drivers/android/binder.c": {},
 	}
 
-	matrix, err := BuildCoincidenceMatrix(tree,
+	matrix, _, err := BuildCoincidenceMatrix(tree,
 		[]*subsystem.Subsystem{kernel, net, wireless, drivers}, nil)
 	assert.NoError(t, err)
 
 	// Calculate parents.
 
-	err = setParents(matrix, []*subsystem.Subsystem{kernel, net, wireless, drivers})
+	_, err = setParents(matrix, []*subsystem.Subsystem{kernel, net, wireless, drivers})
 	if err != nil {
 		t.Fatal(err)
 	}

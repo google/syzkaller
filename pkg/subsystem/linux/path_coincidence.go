@@ -7,22 +7,27 @@ import (
 	"io/fs"
 	"regexp"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/subsystem"
 )
 
 func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,
-	excludeRe *regexp.Regexp) (*CoincidenceMatrix, error) {
+	excludeRe *regexp.Regexp) (*CoincidenceMatrix, *matrixDebugInfo, error) {
 	// Create a matcher.
 	matcher := subsystem.MakePathMatcher(list)
 	chPaths, chResult := extractSubsystems(matcher)
 	// The final consumer goroutine.
 	cm := MakeCoincidenceMatrix()
 	ready := make(chan struct{})
+	debug := &matrixDebugInfo{files: map[*subsystem.Subsystem][]string{}}
 	go func() {
-		for items := range chResult {
-			cm.Record(items...)
+		for item := range chResult {
+			cm.Record(item.list...)
+			for _, entity := range item.list {
+				debug.files[entity] = append(debug.files[entity], item.path)
+			}
 		}
 		ready <- struct{}{}
 	}()
@@ -40,23 +45,38 @@ func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,
 	})
 	close(chPaths)
 	<-ready
-	return cm, err
+	for _, list := range debug.files {
+		sort.Strings(list)
+	}
+	return cm, debug, err
+}
+
+type matrixDebugInfo struct {
+	files map[*subsystem.Subsystem][]string
 }
 
 var (
 	includePathRe = regexp.MustCompile(`(?:/|\.(?:c|h|S))$`)
 )
 
-func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan []*subsystem.Subsystem) {
+type extracted struct {
+	path string
+	list []*subsystem.Subsystem
+}
+
+func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan extracted) {
 	procs := runtime.NumCPU()
-	paths, output := make(chan string, procs), make(chan []*subsystem.Subsystem, procs)
+	paths, output := make(chan string, procs), make(chan extracted, procs)
 	var wg sync.WaitGroup
 	for i := 0; i < procs; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for path := range paths {
-				output <- matcher.Match(path)
+				output <- extracted{
+					path: path,
+					list: matcher.Match(path),
+				}
 			}
 		}()
 	}
