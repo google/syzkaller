@@ -5,10 +5,13 @@ package codesearch
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"syscall"
 
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -26,6 +29,22 @@ type Command struct {
 
 // Commands are used to run unit tests and for the syz-codesearch tool.
 var Commands = []Command{
+	{"dir-index", 1, func(index *Index, args []string) (string, error) {
+		ok, subdirs, files, err := index.DirIndex(args[0])
+		if err != nil || !ok {
+			return notFound, err
+		}
+		b := new(strings.Builder)
+		fmt.Fprintf(b, "directory %v subdirs:\n", args[0])
+		for _, subdir := range subdirs {
+			fmt.Fprintf(b, " - %v\n", subdir)
+		}
+		fmt.Fprintf(b, "\ndirectory %v files:\n", args[0])
+		for _, file := range files {
+			fmt.Fprintf(b, " - %v\n", file)
+		}
+		return b.String(), nil
+	}},
 	{"file-index", 1, func(index *Index, args []string) (string, error) {
 		ok, entities, err := index.FileIndex(args[0])
 		if err != nil || !ok {
@@ -59,6 +78,8 @@ var Commands = []Command{
 	}},
 }
 
+var SourceExtensions = map[string]bool{".c": true, ".h": true, ".S": true, ".rs": true}
+
 const notFound = "not found\n"
 
 func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
@@ -88,6 +109,32 @@ func (index *Index) Command(cmd string, args []string) (string, error) {
 type Entity struct {
 	Kind string
 	Name string
+}
+
+func (index *Index) DirIndex(dir string) (bool, []string, []string, error) {
+	if err := escaping(dir); err != nil {
+		return false, nil, nil, nil
+	}
+	exists := false
+	var subdirs, files []string
+	for _, root := range index.srcDirs {
+		exists1, subdirs1, files1, err := dirIndex(root, dir)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		if exists1 {
+			exists = true
+		}
+		subdirs = append(subdirs, subdirs1...)
+		files = append(files, files1...)
+	}
+	slices.Sort(subdirs)
+	slices.Sort(files)
+	// Dedup dirs across src/build trees,
+	// also dedup files, but hopefully there are no duplicates.
+	subdirs = slices.Compact(subdirs)
+	files = slices.Compact(files)
+	return exists, subdirs, files, nil
 }
 
 func (index *Index) FileIndex(file string) (bool, []Entity, error) {
@@ -187,4 +234,37 @@ func formatSourceFile(file string, start, end int, includeLines bool) (string, e
 		}
 	}
 	return b.String(), nil
+}
+
+func escaping(path string) error {
+	if strings.Contains(filepath.Clean(path), "..") {
+		return errors.New("path is outside of the source tree")
+	}
+	return nil
+}
+
+func dirIndex(root, subdir string) (bool, []string, []string, error) {
+	dir := filepath.Join(root, subdir)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = nil
+		}
+		var errno syscall.Errno
+		if errors.As(err, &errno) && errno == syscall.ENOTDIR {
+			err = nil
+		}
+		return false, nil, nil, err
+	}
+	var subdirs, files []string
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") {
+			// These are internal things like .git, etc.
+		} else if entry.IsDir() {
+			subdirs = append(subdirs, entry.Name())
+		} else if SourceExtensions[filepath.Ext(entry.Name())] {
+			files = append(files, entry.Name())
+		}
+	}
+	return true, subdirs, files, err
 }
