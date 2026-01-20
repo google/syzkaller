@@ -8,9 +8,7 @@
 #include <windows.h>
 
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
-static void install_segv_handler()
-{
-}
+static void install_segv_handler(){}
 
 #define NONFAILING(...) \
 	([&]() { __try { __VA_ARGS__; } __except (EXCEPTION_EXECUTE_HANDLER) { return false; } return true; }())
