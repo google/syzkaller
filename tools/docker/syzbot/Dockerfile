@@ -54,6 +54,7 @@ RUN sudo update-alternatives --install /usr/bin/llvm-objdump llvm-objdump /usr/b
 RUN sudo update-alternatives --install /usr/bin/llvm-addr2line llvm-addr2line /usr/bin/llvm-addr2line-21 100
 RUN sudo update-alternatives --install /usr/bin/llvm-readelf llvm-readelf /usr/bin/llvm-readelf-21 100
 RUN sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-21 100
+RUN sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-21 100
 
 # Also install clang-15 to keep bisections alive.
 RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main" | sudo tee /etc/apt/sources.list.d/llvm-bookworm-15.list
