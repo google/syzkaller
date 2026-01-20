@@ -19,6 +19,5 @@ syz_kvm_setup_cpu$riscv64(r1, r2, &(0x7f0000fe8000/0x180000)=nil,&(0x7f000000000
 
 ioctl$KVM_RUN(r2, AUTO, 0x0)
 
-ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_core={0x803000000200000a, &AUTO})
-ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_config={0x8030000001000000, &AUTO})
-ioctl$KVM_GET_ONE_REG(r2, AUTO, &AUTO=@riscv64_csr={0x8030000003000000, &AUTO})
+syz_kvm_assert_reg$riscv64(r2, 0x803000000200000a, 0x42)
+syz_kvm_assert_reg$riscv64(r2, 0x803000000200000b, 0x63)
