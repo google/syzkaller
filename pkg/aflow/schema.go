@@ -9,6 +9,7 @@ import (
 	"iter"
 	"maps"
 	"reflect"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -81,6 +82,10 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 	for name, field := range foreachField(&val) {
 		f, ok := m[name]
 		if !ok {
+			fieldType, _ := reflect.TypeFor[T]().FieldByName(name)
+			if strings.Contains(fieldType.Tag.Get("json"), ",omitempty") {
+				continue
+			}
 			if tool {
 				return val, BadCallError(fmt.Sprintf("missing argument %q", name))
 			} else {
