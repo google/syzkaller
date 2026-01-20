@@ -191,6 +191,8 @@ syzos_api_call$x86 [
 	nested_amd_clgi			syzos_api$x86[383, void]
 	nested_amd_inject_event		syzos_api$x86[384, syzos_api_nested_amd_inject_event]
 	nested_amd_set_intercept	syzos_api$x86[385, syzos_api_nested_amd_set_intercept]
+	nested_amd_vmload		syzos_api$x86[386, syzos_api_vm_id]
+	nested_amd_vmsave		syzos_api$x86[387, syzos_api_vm_id]
 ] [varlen]
 
 kvm_text_x86 [
