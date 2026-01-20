@@ -6,7 +6,6 @@ package aflow
 import (
 	"errors"
 
-	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"google.golang.org/genai"
 )
 
@@ -67,18 +66,8 @@ func (t *funcTool[State, Args, Results]) execute(ctx *Context, args map[string]a
 	if err != nil {
 		return nil, err
 	}
-	span := &trajectory.Span{
-		Type: trajectory.SpanTool,
-		Name: t.Name,
-		Args: args,
-	}
-	if err := ctx.startSpan(span); err != nil {
-		return nil, err
-	}
 	res, err := t.Func(ctx, state, a)
-	span.Results = convertToMap(res)
-	err = ctx.finishSpan(span, err)
-	return span.Results, err
+	return convertToMap(res), err
 }
 
 func (t *funcTool[State, Args, Results]) verify(ctx *verifyContext) {

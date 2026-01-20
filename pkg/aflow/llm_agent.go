@@ -244,38 +244,45 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 	}
 	var outputs map[string]any
 	for _, call := range calls {
-		appendPart := func(results map[string]any) {
-			responses.Parts = append(responses.Parts, &genai.Part{
-				FunctionResponse: &genai.FunctionResponse{
-					ID:       call.ID,
-					Name:     call.Name,
-					Response: results,
-				},
-			})
+		span := &trajectory.Span{
+			Type: trajectory.SpanTool,
+			Name: call.Name,
+			Args: call.Args,
 		}
-		appendError := func(message string) {
-			appendPart(map[string]any{"error": message})
+		if err := ctx.startSpan(span); err != nil {
+			return nil, nil, err
 		}
+		toolErr := BadCallError(fmt.Sprintf("tool %q does not exist, please correct the name", call.Name))
 		tool := tools[call.Name]
-		if tool == nil {
-			appendError(fmt.Sprintf("tool %q does not exist, please correct the name", call.Name))
-			continue
+		if tool != nil {
+			span.Results, toolErr = tool.execute(ctx, call.Args)
 		}
-		results, err := tool.execute(ctx, call.Args)
-		if err != nil {
+		if toolErr != nil {
+			span.Error = toolErr.Error()
+		}
+		if err := ctx.finishSpan(span, nil); err != nil {
+			return nil, nil, err
+		}
+		if toolErr != nil {
 			// LLM provided wrong arguments to the tool,
 			// or the tool returned error message to the LLM.
 			// Return the error back to the LLM instead of failing.
-			if callErr := new(badCallError); errors.As(err, &callErr) {
-				appendError(err.Error())
-				continue
+			if callErr := new(badCallError); errors.As(toolErr, &callErr) {
+				span.Results = map[string]any{"error": toolErr.Error()}
+			} else {
+				return nil, nil, fmt.Errorf("tool %v failed: error: %w\nargs: %+v",
+					call.Name, toolErr, call.Args)
 			}
-			return nil, nil, fmt.Errorf("tool %v failed: error: %w\nargs: %+v",
-				call.Name, err, call.Args)
 		}
-		appendPart(results)
-		if a.Outputs != nil && tool == a.Outputs.tool {
-			outputs = results
+		responses.Parts = append(responses.Parts, &genai.Part{
+			FunctionResponse: &genai.FunctionResponse{
+				ID:       call.ID,
+				Name:     call.Name,
+				Response: span.Results,
+			},
+		})
+		if toolErr == nil && a.Outputs != nil && tool == a.Outputs.tool {
+			outputs = span.Results
 		}
 	}
 	return responses, outputs, nil
