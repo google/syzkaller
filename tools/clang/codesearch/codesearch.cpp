@@ -26,18 +26,18 @@ using namespace clang;
 
 // MacroDef/MacroMap hold information about macros defined in the file.
 struct MacroDef {
-  std::string Value;       // value as written in the source
-  SourceRange SourceRange; // soruce range of the value
+  std::string Value; // value as written in the source
+  SourceRange Range; // soruce range of the value
 };
 using MacroMap = std::unordered_map<std::string, MacroDef>;
 
 class Instance : public tooling::SourceFileCallbacks {
 public:
-  Instance(Output& Output) : Output(Output) {}
+  Instance(Output& Output) : Out(Output) {}
   std::unique_ptr<ASTConsumer> newASTConsumer();
 
 private:
-  Output& Output;
+  Output& Out;
   MacroMap Macros;
 
   bool handleBeginSource(CompilerInstance& CI) override;
@@ -57,10 +57,10 @@ private:
 
 class IndexerAstConsumer : public ASTConsumer {
 public:
-  IndexerAstConsumer(Output& Output, const MacroMap& Macros) : Output(Output), Macros(Macros) {}
+  IndexerAstConsumer(Output& Output, const MacroMap& Macros) : Out(Output), Macros(Macros) {}
 
 private:
-  Output& Output;
+  Output& Out;
   const MacroMap& Macros;
 
   void HandleTranslationUnit(ASTContext& context) override;
@@ -69,14 +69,14 @@ private:
 class Indexer : public RecursiveASTVisitor<Indexer> {
 public:
   Indexer(ASTContext& Context, Output& Output, const MacroMap& Macros)
-      : Context(Context), SM(Context.getSourceManager()), Output(Output) {}
+      : Context(Context), SM(Context.getSourceManager()), Out(Output) {}
 
   bool VisitFunctionDecl(const FunctionDecl*);
 
 private:
   ASTContext& Context;
   SourceManager& SM;
-  Output& Output;
+  Output& Out;
 };
 
 bool Instance::handleBeginSource(CompilerInstance& CI) {
@@ -85,10 +85,10 @@ bool Instance::handleBeginSource(CompilerInstance& CI) {
   return true;
 }
 
-std::unique_ptr<ASTConsumer> Instance::newASTConsumer() { return std::make_unique<IndexerAstConsumer>(Output, Macros); }
+std::unique_ptr<ASTConsumer> Instance::newASTConsumer() { return std::make_unique<IndexerAstConsumer>(Out, Macros); }
 
 void IndexerAstConsumer::HandleTranslationUnit(ASTContext& Context) {
-  Indexer Indexer(Context, Output, Macros);
+  Indexer Indexer(Context, Out, Macros);
   Indexer.TraverseDecl(Context.getTranslationUnitDecl());
 }
 
@@ -115,7 +115,7 @@ bool Indexer::VisitFunctionDecl(const FunctionDecl* Func) {
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
-  Output.emit(Definition{
+  Out.emit(Definition{
       .Kind = KindFunction,
       .Name = Func->getNameAsString(),
       .Type = Func->getType().getAsString(),
