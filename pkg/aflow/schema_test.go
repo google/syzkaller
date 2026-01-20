@@ -79,10 +79,10 @@ func TestConvertFromMap(t *testing.T) {
 	testConvertFromMap(t, true, map[string]any{
 		"I1": 2.0,
 	}, struct {
-		I0 int
+		I0 int `json:"I0"`
 	}{},
 		`missing argument "I0"`,
-		`field "I0" is not present when converting map to struct { I0 int }`)
+		`field "I0" is not present when converting map to struct { I0 int "json:\"I0\"" }`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": "foo",
@@ -108,6 +108,14 @@ func TestConvertFromMap(t *testing.T) {
 	}{},
 		`unused fields when converting map to struct { I0 int }: map[I1:2]`,
 		`unused fields when converting map to struct { I0 int }: map[I1:2]`)
+
+	testConvertFromMap(t, false, map[string]any{
+		"I1": 2.0,
+	}, struct {
+		I0 int `json:",omitempty"`
+	}{},
+		``,
+		``)
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {
