@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -46,5 +47,81 @@ func TestSchema(t *testing.T) {
 			}
 			require.Empty(t, test.err)
 		})
+	}
+}
+
+func TestConvertFromMap(t *testing.T) {
+	testConvertFromMap(t, false, map[string]any{
+		"I0": -1,
+		"I1": 2.0,
+		"I2": 3.0,
+		"S":  "foo",
+		"VM": map[string]any{
+			"Foo": 1,
+			"Str": "str",
+		},
+		"unused": "unused",
+	}, struct {
+		I0 int
+		I1 int
+		I2 uint8
+		S  string
+		VM json.RawMessage
+	}{
+		I0: -1,
+		I1: 2,
+		I2: 3,
+		S:  "foo",
+		VM: json.RawMessage(`{"Foo":1,"Str":"str"}`),
+	},
+		"", "")
+
+	testConvertFromMap(t, true, map[string]any{
+		"I1": 2.0,
+	}, struct {
+		I0 int
+	}{},
+		`missing argument "I0"`,
+		`field "I0" is not present when converting map to struct { I0 int }`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"I0": "foo",
+	}, struct {
+		I0 int
+	}{},
+		`argument "I0" has wrong type: got string, want int`,
+		`field "I0" has wrong type: got string, want int`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"I0": 1.1,
+	}, struct {
+		I0 int
+	}{},
+		`argument I0: float value truncated from 1.1 to 1`,
+		`field I0: float value truncated from 1.1 to 1`)
+
+	testConvertFromMap(t, true, map[string]any{
+		"I0": -1,
+		"I1": 2.0,
+	}, struct {
+		I0 int
+	}{},
+		`unused fields when converting map to struct { I0 int }: map[I1:2]`,
+		`unused fields when converting map to struct { I0 int }: map[I1:2]`)
+}
+
+func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {
+	for _, tool := range []bool{true, false} {
+		wantErr := nonToolErr
+		if tool {
+			wantErr = toolErr
+		}
+		got, err := convertFromMap[T](input, strict, tool)
+		if err != nil {
+			require.Equal(t, err.Error(), wantErr)
+		} else {
+			require.Empty(t, wantErr)
+			require.Equal(t, got, output)
+		}
 	}
 }
