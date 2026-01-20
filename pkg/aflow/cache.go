@@ -120,6 +120,23 @@ func (c *Cache) Create(typ, desc string, populate func(string) error) (string, e
 	return dir, nil
 }
 
+func cacheCreateObject[T any](c *Cache, typ, desc string, populate func() (T, error)) (string, T, error) {
+	const filename = "object"
+	dir, err := c.Create(typ, desc, func(dir string) error {
+		v, err := populate()
+		if err != nil {
+			return err
+		}
+		return osutil.WriteJSON(filepath.Join(dir, filename), v)
+	})
+	if err != nil {
+		var res T
+		return "", res, err
+	}
+	res, err := osutil.ReadJSON[T](filepath.Join(dir, filename))
+	return dir, res, err
+}
+
 // Release must be called for every directory returned by Create method when the directory is not used anymore.
 func (c *Cache) Release(dir string) {
 	c.mu.Lock()

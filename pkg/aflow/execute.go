@@ -226,6 +226,15 @@ func (ctx *Context) Cache(typ, desc string, populate func(string) error) (string
 	return dir, nil
 }
 
+func CacheObject[T any](ctx *Context, typ, desc string, populate func() (T, error)) (T, error) {
+	dir, obj, err := cacheCreateObject(ctx.cache, typ, desc, populate)
+	if err != nil {
+		return obj, err
+	}
+	ctx.cachedDirs = append(ctx.cachedDirs, dir)
+	return obj, nil
+}
+
 func (ctx *Context) close() {
 	for _, dir := range ctx.cachedDirs {
 		ctx.cache.Release(dir)
