@@ -197,6 +197,7 @@ type Context struct {
 	llmModel    string
 	cache       *Cache
 	cachedDirs  []string
+	tempDirs    []string
 	state       map[string]any
 	onEvent     onEvent
 	spanSeq     int
@@ -235,9 +236,23 @@ func CacheObject[T any](ctx *Context, typ, desc string, populate func() (T, erro
 	return obj, nil
 }
 
+// TempDir creates a new temp dir that will be automatically removed
+// when the flow finished, or on the next restart.
+func (ctx *Context) TempDir() (string, error) {
+	dir, err := ctx.cache.TempDir()
+	if err != nil {
+		return "", err
+	}
+	ctx.tempDirs = append(ctx.tempDirs, dir)
+	return dir, nil
+}
+
 func (ctx *Context) close() {
 	for _, dir := range ctx.cachedDirs {
 		ctx.cache.Release(dir)
+	}
+	for _, dir := range ctx.tempDirs {
+		os.RemoveAll(dir)
 	}
 }
 

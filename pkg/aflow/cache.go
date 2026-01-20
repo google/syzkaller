@@ -149,6 +149,15 @@ func (c *Cache) Release(dir string) {
 	}
 }
 
+// TempDir creates a new temp dir.
+// The temp dir is within the cache, but won't have the metadata file,
+// so it will be removed on the next start (if not removed earlier).
+func (c *Cache) TempDir() (string, error) {
+	tmpDir := filepath.Join(c.dir, "tmp")
+	osutil.MkdirAll(tmpDir)
+	return os.MkdirTemp(tmpDir, "tmp")
+}
+
 // init reads the cached dirs (disk usage, last use time) from disk when the cache is created.
 func (c *Cache) init() error {
 	dirs, err := filepath.Glob(filepath.Join(c.dir, "*", "*"))
