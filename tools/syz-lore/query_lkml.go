@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"log"
 	"path/filepath"
@@ -81,12 +80,8 @@ func saveDiscussion(d *dashapi.Discussion) error {
 		}
 	}
 	if *flagOutDir != "" {
-		bytes, err := json.Marshal(d)
-		if err != nil {
-			return err
-		}
-		path := filepath.Join(*flagOutDir, hash.String([]byte(d.ID))+".json")
-		err = osutil.WriteFile(path, bytes)
+		path := filepath.Join(*flagOutDir, hash.String(d.ID)+".json")
+		err = osutil.WriteJSON(path, d)
 		if err != nil {
 			return err
 		}
