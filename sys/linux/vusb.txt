@@ -7,7 +7,10 @@ include <linux/byteorder/generic.h>
 include <uapi/linux/usb/ch9.h>
 include <uapi/linux/usb/ch11.h>
 
+include <uapi/linux/usb/midi.h>
 include <uapi/linux/usb/audio.h>
+include <linux/usb/audio-v2.h>
+include <linux/usb/audio-v3.h>
 include <uapi/linux/hid.h>
 include <linux/hid.h>
 include <uapi/linux/usb/cdc.h>
@@ -47,8 +50,8 @@ type usb_device_descriptor_verbose_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VEN
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
 	bMaxPacketSize0		PACKET
-	idVendor		const[VENDOR, int16]
-	idProduct		const[PRODUCT, int16]
+	idVendor		VENDOR
+	idProduct		PRODUCT
 	bcdDevice		const[DEVICE, int16]
 	iManufacturer		const[1, int8]
 	iProduct		const[2, int8]
@@ -58,15 +61,15 @@ type usb_device_descriptor_verbose_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VEN
 	configs			CFS
 } [packed]
 
-type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[flags[usb_versions, int16], CLASS, SUBCLASS, PROTOCOL, flags[usb_device_max_packet_sizes, int8], VENDOR, PRODUCT, DEVICE, CFS]
-type usb_device_descriptor_fixed_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[const[USB, int16], CLASS, SUBCLASS, PROTOCOL, const[PACKET, int8], VENDOR, PRODUCT, DEVICE, CFS]
+type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[flags[usb_versions, int16], CLASS, SUBCLASS, PROTOCOL, flags[usb_device_max_packet_sizes, int8], const[VENDOR, int16], const[PRODUCT, int16], DEVICE, CFS]
+type usb_device_descriptor_fixed_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[const[USB, int16], CLASS, SUBCLASS, PROTOCOL, const[PACKET, int8], const[VENDOR, int16], const[PRODUCT, int16], DEVICE, CFS]
 
 usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
 usb_device_max_packet_sizes = 8, 16, 32, 64, 255
 
-type usb_config_descriptor_verbose_t[NUM, IFSNUM, ICONFIG, ATTRS, POWER, IFS] {
+type usb_config_descriptor_verbose_t[NUM, IFSNUM, ICONFIG, ATTRS, POWER, EXTRA, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
 	bDescriptorType		const[USB_DT_CONFIG, int8]
 
@@ -77,12 +80,14 @@ type usb_config_descriptor_verbose_t[NUM, IFSNUM, ICONFIG, ATTRS, POWER, IFS] {
 	bmAttributes		ATTRS
 	bMaxPower		POWER
 
+	extra			EXTRA
 	interfaces		IFS
 } [packed]
 
-type usb_config_descriptor_t[NUM, IFSNUM, IFS] usb_config_descriptor_verbose_t[NUM, IFSNUM, int8, flags[usb_config_attributes, int8], int8, IFS]
+type usb_config_descriptor_t[NUM, IFSNUM, IFS] usb_config_descriptor_verbose_t[NUM, IFSNUM, int8, flags[usb_config_attributes, int8], int8, void, IFS]
 type usb_config_descriptor_ifaces_array_t[NUM, IFS] usb_config_descriptor_t[NUM, len[interfaces, int8], IFS]
-type usb_config_descriptor_fixed_t[NUM, IFSNUM, ATTRS, POWER, IFS] usb_config_descriptor_verbose_t[const[NUM, int8], const[IFSNUM, int8], const[0, int8], const[ATTRS, int8], const[POWER, int8], IFS]
+type usb_config_descriptor_fixed_t[NUM, IFSNUM, ATTRS, POWER, IFS] usb_config_descriptor_verbose_t[const[NUM, int8], const[IFSNUM, int8], const[0, int8], const[ATTRS, int8], const[POWER, int8], void, IFS]
+type usb_config_descriptor_extra_t[NUM, IFSNUM, EXTRA, IFS] usb_config_descriptor_verbose_t[NUM, IFSNUM, int8, flags[usb_config_attributes, int8], int8, EXTRA, IFS]
 
 type usb_interface_descriptor_verbose_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, IIF, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
@@ -1071,6 +1076,11 @@ usb_config_descriptor_uac1 {
 
 # TODO: control interface might have and optional interrupt endpoint.
 usb_interface_descriptors_uac1 {
+	inner	usb_interface_descriptors_uac1_inner
+} [packed]
+
+# Define folded-in structure to match layout expected by USB ID patching code.
+usb_interface_descriptors_uac1_inner {
 	control		usb_interface_descriptor_fixed_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, 0, uac_control_iface_extra_descriptors, void]
 	as_out_alt_0	usb_interface_descriptor_fixed_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
 	as_out_alt_1	usb_interface_descriptor_fixed_t[1, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, uac_as_iface_extra_descriptors, uac_as_out_endpoint_descriptor]
@@ -1085,12 +1095,22 @@ usb_interface_descriptors_uac1 {
 type uac_id int8[1:6]
 
 uac_control_iface_extra_descriptors {
-	header	uac1_ac_header_descriptor_2
+	header	uac1_ac_header_descriptor
 	others	array[uac_control_iface_extra_descriptor, 0:6]
 } [packed]
 
-uac_as_iface_extra_descriptors {
-	others	array[uac_as_iface_extra_descriptor, 0:6]
+uac1_ac_header_descriptor {
+	bLength			const[UAC_DT_AC_HEADER_LENGTH, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_HEADER, int8]
+
+	bcdADC			int16
+	wTotalLength		len[uac_control_iface_extra_descriptors, int16]
+	bInCollection		const[F_AUDIO_NUM_INTERFACES, int8]
+
+# These must match interfaces numbers.
+	baInterfaceNr0		const[1, int8]
+	baInterfaceNr1		const[2, int8]
 } [packed]
 
 uac_control_iface_extra_descriptor [
@@ -1103,29 +1123,8 @@ uac_control_iface_extra_descriptor [
 	extension_unit	uac_extension_unit_descriptor
 ] [varlen]
 
-uac_as_iface_extra_descriptor [
-	as_header			uac1_as_header_descriptor
-	format_type_i_continuous	uac_format_type_i_continuous_descriptor
-	format_type_i_discrete		uac_format_type_i_discrete_descriptor
-	format_type_ii_discrete		uac_format_type_ii_discrete_descriptor
-] [varlen]
-
 define F_AUDIO_NUM_INTERFACES	2
 define UAC_DT_AC_HEADER_LENGTH	UAC_DT_AC_HEADER_SIZE(F_AUDIO_NUM_INTERFACES)
-
-uac1_ac_header_descriptor_2 {
-	bLength			const[UAC_DT_AC_HEADER_LENGTH, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[UAC_HEADER, int8]
-
-	bcdADC			int16
-	wTotalLength		int8
-	bInCollection		const[F_AUDIO_NUM_INTERFACES, int8]
-
-# These must match interfaces numbers.
-	baInterfaceNr0		const[1, int8]
-	baInterfaceNr1		const[2, int8]
-} [packed]
 
 uac_input_terminal_descriptor {
 	bLength			len[parent, int8]
@@ -1141,7 +1140,15 @@ uac_input_terminal_descriptor {
 	iTerminal		int8
 } [packed]
 
-uac_input_terminal_types = UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_INPUT_TERMINAL_UNDEFINED, UAC_INPUT_TERMINAL_MICROPHONE, UAC_INPUT_TERMINAL_DESKTOP_MICROPHONE, UAC_INPUT_TERMINAL_PERSONAL_MICROPHONE, UAC_INPUT_TERMINAL_OMNI_DIR_MICROPHONE, UAC_INPUT_TERMINAL_MICROPHONE_ARRAY, UAC_INPUT_TERMINAL_PROC_MICROPHONE_ARRAY
+# The following list contains input terminal types and inout terminal types.
+uac_input_terminal_types = UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_INPUT_TERMINAL_UNDEFINED, UAC_INPUT_TERMINAL_MICROPHONE, UAC_INPUT_TERMINAL_DESKTOP_MICROPHONE, UAC_INPUT_TERMINAL_PERSONAL_MICROPHONE, UAC_INPUT_TERMINAL_OMNI_DIR_MICROPHONE, UAC_INPUT_TERMINAL_MICROPHONE_ARRAY, UAC_INPUT_TERMINAL_PROC_MICROPHONE_ARRAY, UAC_BIDIR_TERMINAL_UNDEFINED, UAC_BIDIR_TERMINAL_HANDSET, UAC_BIDIR_TERMINAL_HEADSET, UAC_BIDIR_TERMINAL_SPEAKER_PHONE, UAC_BIDIR_TERMINAL_ECHO_SUPPRESSING, UAC_BIDIR_TERMINAL_ECHO_CANCELING
+# The following list contains output terminal types and inout terminal types.
+uac_output_terminal_types = UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_OUTPUT_TERMINAL_UNDEFINED, UAC_OUTPUT_TERMINAL_SPEAKER, UAC_OUTPUT_TERMINAL_HEADPHONES, UAC_OUTPUT_TERMINAL_HEAD_MOUNTED_DISPLAY_AUDIO, UAC_OUTPUT_TERMINAL_DESKTOP_SPEAKER, UAC_OUTPUT_TERMINAL_ROOM_SPEAKER, UAC_OUTPUT_TERMINAL_COMMUNICATION_SPEAKER, UAC_OUTPUT_TERMINAL_LOW_FREQ_EFFECTS_SPEAKER, UAC_BIDIR_TERMINAL_UNDEFINED, UAC_BIDIR_TERMINAL_HANDSET, UAC_BIDIR_TERMINAL_HEADSET, UAC_BIDIR_TERMINAL_SPEAKER_PHONE, UAC_BIDIR_TERMINAL_ECHO_SUPPRESSING, UAC_BIDIR_TERMINAL_ECHO_CANCELING
+
+# TODO: Support the following format in syzlang:
+# uac_input_terminal_types =  uac_inout_terminal_types, UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_INPUT_TERMINAL_UNDEFINED, UAC_INPUT_TERMINAL_MICROPHONE, UAC_INPUT_TERMINAL_DESKTOP_MICROPHONE, UAC_INPUT_TERMINAL_PERSONAL_MICROPHONE, UAC_INPUT_TERMINAL_OMNI_DIR_MICROPHONE, UAC_INPUT_TERMINAL_MICROPHONE_ARRAY, UAC_INPUT_TERMINAL_PROC_MICROPHONE_ARRAY
+# uac_output_terminal_types =  uac_inout_terminal_types, UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_OUTPUT_TERMINAL_UNDEFINED, UAC_OUTPUT_TERMINAL_SPEAKER, UAC_OUTPUT_TERMINAL_HEADPHONES, UAC_OUTPUT_TERMINAL_HEAD_MOUNTED_DISPLAY_AUDIO, UAC_OUTPUT_TERMINAL_DESKTOP_SPEAKER, UAC_OUTPUT_TERMINAL_ROOM_SPEAKER, UAC_OUTPUT_TERMINAL_COMMUNICATION_SPEAKER, UAC_OUTPUT_TERMINAL_LOW_FREQ_EFFECTS_SPEAKER
+# uac_inout_terminal_types = UAC_BIDIR_TERMINAL_UNDEFINED, UAC_BIDIR_TERMINAL_HANDSET, UAC_BIDIR_TERMINAL_HEADSET, UAC_BIDIR_TERMINAL_SPEAKER_PHONE, UAC_BIDIR_TERMINAL_ECHO_SUPPRESSING, UAC_BIDIR_TERMINAL_ECHO_CANCELING
 
 uac1_output_terminal_descriptor {
 	bLength			len[parent, int8]
@@ -1154,8 +1161,6 @@ uac1_output_terminal_descriptor {
 	bSourceID		uac_id
 	iTerminal		int8
 } [packed]
-
-uac_output_terminal_types = UAC_TERMINAL_UNDEFINED, UAC_TERMINAL_STREAMING, UAC_TERMINAL_VENDOR_SPEC, UAC_OUTPUT_TERMINAL_UNDEFINED, UAC_OUTPUT_TERMINAL_SPEAKER, UAC_OUTPUT_TERMINAL_HEADPHONES, UAC_OUTPUT_TERMINAL_HEAD_MOUNTED_DISPLAY_AUDIO, UAC_OUTPUT_TERMINAL_DESKTOP_SPEAKER, UAC_OUTPUT_TERMINAL_ROOM_SPEAKER, UAC_OUTPUT_TERMINAL_COMMUNICATION_SPEAKER, UAC_OUTPUT_TERMINAL_LOW_FREQ_EFFECTS_SPEAKER
 
 uac_mixer_unit_descriptor {
 	bLength			len[parent, int8]
@@ -1215,6 +1220,21 @@ uac_extension_unit_descriptor {
 	baSourceID		array[int8, 0:6]
 } [packed]
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac_as_iface_extra_descriptors {
+	others	array[uac_as_iface_extra_descriptor, 0:6]
+} [packed]
+
+uac_as_iface_extra_descriptor [
+	as_header			uac1_as_header_descriptor
+	format_type_i_continuous	uac_format_type_i_continuous_descriptor
+	format_type_i_discrete		uac_format_type_i_discrete_descriptor
+	format_type_ii_discrete		uac_format_type_ii_discrete_descriptor
+	format_type_ii_ext		uac_format_type_ii_ext_descriptor
+	format_type_i_ext		uac_format_type_i_ext_descriptor
+] [varlen]
+
 uac1_as_header_descriptor {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
@@ -1222,10 +1242,11 @@ uac1_as_header_descriptor {
 
 	bTerminalLink		int8
 	bDelay			int8
-	wFormatTag		flags[uac_format_types, int16]
+	wFormatTag		flags[uac_format_tags, int16]
 } [packed]
 
-uac_format_types = UAC_FORMAT_TYPE_I_UNDEFINED, UAC_FORMAT_TYPE_I_PCM, UAC_FORMAT_TYPE_I_PCM8, UAC_FORMAT_TYPE_I_IEEE_FLOAT, UAC_FORMAT_TYPE_I_ALAW, UAC_FORMAT_TYPE_I_MULAW, UAC_FORMAT_TYPE_II_MPEG, UAC_FORMAT_TYPE_II_AC3
+uac_format_tags = UAC_FORMAT_TYPE_I_UNDEFINED, UAC_FORMAT_TYPE_I_PCM, UAC_FORMAT_TYPE_I_PCM8, UAC_FORMAT_TYPE_I_IEEE_FLOAT, UAC_FORMAT_TYPE_I_ALAW, UAC_FORMAT_TYPE_I_MULAW, UAC_FORMAT_TYPE_II_MPEG, UAC_FORMAT_TYPE_II_AC3
+uac_usb_format_types_i = UAC_FORMAT_TYPE_I, UAC_FORMAT_TYPE_II, UAC_FORMAT_TYPE_III, UAC_FORMAT_TYPE_UNDEFINED
 
 uac_format_type_i_continuous_descriptor {
 	bLength			len[parent, int8]
@@ -1247,6 +1268,7 @@ uac_format_type_i_discrete_descriptor {
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 
 	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
+#flags[uac_usb_format_types_i, int8]
 	bNrChannels		int8
 	bSubframeSize		int8[1:4]
 	bBitResolution		int8
@@ -1260,6 +1282,7 @@ uac_format_type_ii_discrete_descriptor {
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 
 	bFormatType		const[UAC_FORMAT_TYPE_II, int8]
+#flags[uac_usb_format_types_i, int8]
 	wMaxBitRate		int16
 	wSamplesPerFrame	int16
 	bSamFreqType		int8
@@ -1280,6 +1303,8 @@ define USB_ENDPOINT_UAC1_AS_OUT_ADDRESS	(1 | USB_DIR_OUT)
 define USB_ENDPOINT_UAC1_AS_IN_ADDRESS	(2 | USB_DIR_IN)
 define USB_ENDPOINT_UAC1_AS_ATTRIBUTES	(USB_ENDPOINT_SYNC_ADAPTIVE | USB_ENDPOINT_XFER_ISOC)
 
+uac_iso_ep_attributes = USB_ENDPOINT_SYNCTYPE, USB_ENDPOINT_SYNC_NONE, USB_ENDPOINT_SYNC_ASYNC, USB_ENDPOINT_SYNC_ADAPTIVE, USB_ENDPOINT_SYNC_SYNC
+
 uac_iso_endpoint_descriptor {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_CS_ENDPOINT, int8]
@@ -1289,8 +1314,6 @@ uac_iso_endpoint_descriptor {
 	bLockDelayUnits		int8
 	wLockDelay		int16
 } [packed]
-
-uac_iso_ep_attributes = UAC_EP_CS_ATTR_SAMPLE_RATE, UAC_EP_CS_ATTR_PITCH_CONTROL, UAC_EP_CS_ATTR_FILL_MAX
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -1319,11 +1342,691 @@ vusb_responses_uac1 {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# TODO: describe MIDI, UAC2, UAC3
-# https://www.usb.org/sites/default/files/midi10.pdf
-# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_midi.c
+# UAC2 device class specific descriptions.
+# https://www.usb.org/sites/default/files/audio10.pdf
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/audio.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_uac2.c
-# https://elixir.bootlin.com/linux/latest/source/include/linux/usb/audio-v2.h
+# https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/usb/audio.h
+
+resource fd_usb_uac2[fd_usb]
+
+syz_usb_connect$uac2(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac2], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac2 (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$uac2(fd fd_usb_uac2, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300], remote_cover)
+
+usb_device_descriptor_uac2 {
+	inner	usb_device_descriptor_t[0, 0, 0, 0x41e, 0x3000, 64, array[usb_config_descriptor_uac2, 1]]
+} [packed]
+
+usb_config_descriptor_uac2 {
+	inner	usb_config_descriptor_extra_t[const[1, int8], const[3, int8], uac2_interface_assoc_descriptor, usb_interface_descriptors_uac2]
+} [packed]
+
+uac2_interface_assoc_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_INTERFACE_ASSOCIATION, int8]
+
+	bFirstInterface		int8[0:2]
+	bInterfaceCount		int8[0:2]
+	bFunctionClass		const[USB_CLASS_AUDIO, int8]
+	bFunctionSubClass	flags[audio_function_category_types, int8]
+	bFunctionProtocol	const[UAC_VERSION_2, int8]
+	iFunction		int8
+} [packed]
+
+audio_function_category_types = UAC2_FUNCTION_SUBCLASS_UNDEFINED, UAC2_FUNCTION_DESKTOP_SPEAKER, UAC2_FUNCTION_HOME_THEATER, UAC2_FUNCTION_MICROPHONE, UAC2_FUNCTION_HEADSET, UAC2_FUNCTION_TELEPHONE, UAC2_FUNCTION_CONVERTER, UAC2_FUNCTION_SOUND_RECORDER, UAC2_FUNCTION_IO_BOX, UAC2_FUNCTION_MUSICAL_INSTRUMENT, UAC2_FUNCTION_PRO_AUDIO, UAC2_FUNCTION_AUDIO_VIDEO, UAC2_FUNCTION_CONTROL_PANEL, UAC2_FUNCTION_OTHER
+
+usb_interface_descriptors_uac2 {
+	inner	usb_interface_descriptors_uac2_inner
+} [packed]
+
+# Define folded-in structure to match layout expected by USB ID patching code.
+usb_interface_descriptors_uac2_inner {
+	control		usb_interface_descriptor_fixed_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, UAC_VERSION_2, uac2_control_iface_extra_descriptors, void]
+	as_out_alt_0	usb_interface_descriptor_fixed_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_2, void, void]
+	as_out_alt_1	usb_interface_descriptor_fixed_t[1, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_2, uac2_as_iface_extra_descriptors, uac2_as_out_endpoint_descriptor]
+	as_in_alt_0	usb_interface_descriptor_fixed_t[2, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_2, void, void]
+	as_in_alt_1	usb_interface_descriptor_fixed_t[2, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_2, uac2_as_iface_extra_descriptors, uac2_as_in_endpoint_descriptor]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac2_control_iface_extra_descriptors {
+	header	uac2_ac_header_descriptor
+	others	array[uac2_control_iface_extra_descriptor, 0:6]
+} [packed]
+
+uac2_ac_header_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_MS_HEADER, int8]
+	bcdADC			int16
+	bCategory		flags[uac2_feature_unit_controls, int8]
+	wTotalLength		len[uac2_control_iface_extra_descriptors, int16]
+	bmControls		int8
+} [packed]
+
+uac2_feature_unit_controls = UAC2_FUNCTION_SUBCLASS_UNDEFINED, UAC2_FUNCTION_DESKTOP_SPEAKER, UAC2_FUNCTION_HOME_THEATER, UAC2_FUNCTION_MICROPHONE, UAC2_FUNCTION_HEADSET, UAC2_FUNCTION_TELEPHONE, UAC2_FUNCTION_CONVERTER, UAC2_FUNCTION_SOUND_RECORDER, UAC2_FUNCTION_IO_BOX, UAC2_FUNCTION_MUSICAL_INSTRUMENT, UAC2_FUNCTION_PRO_AUDIO, UAC2_FUNCTION_AUDIO_VIDEO, UAC2_FUNCTION_CONTROL_PANEL, UAC2_FUNCTION_OTHER, uac_feature_unit_controls
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac2_as_iface_extra_descriptors {
+	others	array[uac2_as_iface_extra_descriptor, 0:6]
+} [packed]
+
+uac2_as_iface_extra_descriptor [
+	as_header			uac2_as_header_descriptor
+	format_type_i_descriptor	uac2_format_type_i_descriptor
+	format_type_i_continuous	uac_format_type_i_continuous_descriptor
+	format_type_i_discrete		uac_format_type_i_discrete_descriptor
+	format_type_ii_discrete		uac_format_type_ii_discrete_descriptor
+	format_type_i_ext		uac2_format_type_i_ext_descriptor
+	format_type_ii_ext		uac_format_type_ii_ext_descriptor
+] [varlen]
+
+uac2_as_header_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_AS_GENERAL, int8]
+	bTerminalLink		int8
+	bmControls		int8
+	bFormatType		flags[uac_usb_format_types_i, int8]
+	bmFormats		flags[uac_format_tags, int32]
+	bNrChannels		int8
+	bmChannelConfig		int32
+	iChannelNames		int8
+} [packed]
+
+b_sub_slot_sizes = 1, 2, 3, 4
+
+uac2_format_type_i_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
+	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
+	bSubslotSize		flags[b_sub_slot_sizes, int8]
+	bBitResolution		int8
+} [packed]
+
+uac2_format_type_i_ext_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
+
+	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
+#flags[uac_usb_format_types_i, int8]
+	bSubslotSize		int8
+	bBitResolution		int8
+	bHeaderLength		int8
+	bControlSize		int8
+	bSideBandProtocol	int8
+} [packed]
+
+uac_format_type_ii_ext_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
+	bFormatType		const[UAC_FORMAT_TYPE_II, int8]
+#flags[uac_usb_format_types_i, int8]
+	wMaxBitRate		int16
+	wSamplesPerFrame	int16
+	bHeaderLength		int8
+	bSideBandProtocol	int8
+} [packed]
+
+uac_format_type_i_ext_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
+	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
+#flags[uac_usb_format_types_i, int8]
+	bSubslotSize		int8
+	bBitResolution		int8
+	bHeaderLength		int8
+	bControlSize		int8
+	bSideBandProtocol	int8
+} [packed]
+
+uac2_as_out_endpoint_descriptor {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_UAC1_AS_OUT_ADDRESS, int8], const[USB_ENDPOINT_UAC1_AS_ATTRIBUTES, int8], uac2_iso_endpoint_descriptor]
+} [packed]
+
+uac2_as_in_endpoint_descriptor {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_UAC1_AS_IN_ADDRESS, int8], const[USB_ENDPOINT_UAC1_AS_ATTRIBUTES, int8], uac2_iso_endpoint_descriptor]
+} [packed]
+
+uac2_iso_endpoint_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_ENDPOINT, int8]
+	bDescriptorSubtype	const[UAC_EP_GENERAL, int8]
+
+	bmAttributes		flags[csep_bm_attributes, int8]
+	bmControls		flags[csep_bm_controls, int8]
+	bLockDelayUnits		int8
+	wLockDelay		int16
+} [packed]
+
+csep_bm_attributes = UAC_EP_CS_ATTR_SAMPLE_RATE, UAC_EP_CS_ATTR_PITCH_CONTROL, UAC_EP_CS_ATTR_FILL_MAX
+csep_bm_controls = UAC2_CONTROL_PITCH, UAC2_CONTROL_DATA_OVERRUN, UAC2_CONTROL_DATA_UNDERRUN
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac2_control_iface_extra_descriptor [
+	input_terminal	uac2_input_terminal_descriptor
+	output_terminal	uac2_output_terminal_descriptor
+	mixer_unit	uac2_mixer_unit_descriptor
+	selector_unit	uac2_clock_selector_descriptor
+
+	feature_unit	uac2_feature_unit_descriptor
+	processing_unit	uac2_processing_unit_descriptor
+	extension_unit	uac2_extension_unit_descriptor
+
+	effect_unit	uac2_effect_unit_descriptor
+	sample_rate	uac2_sample_rate_descriptor
+	source_unit	uac2_clock_source_descriptor
+	multiply_unit	uac2_clock_multiplier_descriptor
+] [varlen]
+
+uac2_input_terminal_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC_INPUT_TERMINAL, int8]
+
+	bTerminalID		uac_id
+	wTerminalType		flags[uac_input_terminal_types, int16]
+	bAssocTerminal		uac_id
+	bCSourceID		int8
+	bNrChannels		int8
+	bmChannelConfig		int32
+	iChannelNames		int8
+	bmControls		int8
+	iTerminal		int8
+} [packed]
+
+uac2_output_terminal_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC_OUTPUT_TERMINAL, int8]
+	bTerminalID		uac_id
+	wTerminalType		flags[uac_output_terminal_types, int16]
+	bAssocTerminal		int8
+	bSourceID		uac_id
+	bCSourceID		int8
+	bmControls		int16
+	iTerminal		int8
+} [packed]
+
+uac2_mixer_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_MIXER_UNIT, int8]
+
+	bUnitID			uac_id
+	bNrInPins		int8
+	baSourceID		array[int8, 0:6]
+} [packed]
+
+# TODO: Figure out if bmControls and iClockSelector should be a part of this structure.
+uac2_clock_selector_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC2_CLOCK_SELECTOR, int8]
+	bClockID		int8
+	bNrInPins		len[baCSourceID, int8]
+	baCSourceID		array[int8, 0:8]
+} [packed]
+
+# TODO: Verify coverage.
+uac2_processing_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC2_PROCESSING_UNIT_V2, int8]
+	bUnitID			uac_id
+	bSourceID		uac_id
+	bmaControls		array[flags[uac2_processing_unit_types, int16], 1:6]
+} [packed]
+
+uac2_processing_unit_types = UAC2_PROCESS_UNDEFINED, UAC2_PROCESS_UP_DOWNMIX, UAC2_PROCESS_DOLBY_PROLOCIC, UAC2_PROCESS_STEREO_EXTENDER
+
+uac2_extension_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC2_EXTENSION_UNIT_V2, int8]
+
+	bUnitID			uac_id
+	wProcessType		int16
+	bNrInPins		int8
+	baSourceID		array[int8, 0:6]
+} [packed]
+
+# TODO: Verify coverage.
+uac2_effect_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC2_EFFECT_UNIT, int8]
+	bUnitID			uac_id
+	wEffectType		flags[uac2_effect_unit_types, int16]
+	bSourceID		uac_id
+	bmaControls		array[flags[uac2_processing_unit_types, int16], 1:6]
+} [packed]
+
+uac2_effect_unit_types = UAC2_EFFECT_UNDEFINED, UAC2_EFFECT_PARAM_EQ, UAC2_EFFECT_REVERB, UAC2_EFFECT_MOD_DELAY, UAC2_EFFECT_DYN_RANGE_COMP
+
+uac2_sample_rate_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC2_SAMPLE_RATE_CONVERTER, int8]
+	bUnitID			uac_id
+	wProcessType		flags[uac2_processing_unit_types, int16]
+	bSourceID		uac_id
+	bmaControls		array[flags[uac2_processing_unit_types, int16], 1:6]
+} [packed]
+
+uac2_feature_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC_FEATURE_UNIT, int8]
+	bUnitID			uac_id
+	bSourceID		uac_id
+	bmaControls		array[flags[uac2_feature_unit_controls, int16], 1:6]
+} [packed]
+
+uac2_clock_source_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC2_CLOCK_SOURCE, int8]
+	bClockID		int8
+	bmAttributes		flags[uac2_clock_bmattribute_types, int8]
+	bmControls		int8
+	bAssocTerminal		int8
+	iClockSource		flags[uac2_clock_source_types, int8]
+} [packed]
+
+uac2_clock_bmattribute_types = UAC_CLOCK_SOURCE_TYPE_EXT, UAC_CLOCK_SOURCE_TYPE_INT_FIXED, UAC_CLOCK_SOURCE_TYPE_INT_VAR, UAC_CLOCK_SOURCE_TYPE_INT_PROG, UAC_CLOCK_SOURCE_SYNCED_TO_SOF
+uac2_clock_source_types = UAC_CLOCK_SOURCE_TYPE_EXT, UAC_CLOCK_SOURCE_TYPE_INT_FIXED, UAC_CLOCK_SOURCE_TYPE_INT_VAR, UAC_CLOCK_SOURCE_TYPE_INT_PROG, UAC_CLOCK_SOURCE_SYNCED_TO_SOF
+
+uac2_clock_multiplier_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC2_CLOCK_MULTIPLIER, int8]
+	bClockID		int8
+	bCSourceID		int8
+	bmControls		int8
+	iClockMultiplier	int8
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# UAC3 device class specific descriptions.
+# https://www.usb.org/sites/default/files/audio10.pdf
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/audio.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_uac3.c
+# https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/usb/audio.h
+
+resource fd_usb_uac3[fd_usb]
+
+syz_usb_connect$uac3(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac3], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac3 (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$uac3(fd fd_usb_uac3, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300], remote_cover)
+
+usb_device_descriptor_uac3 {
+	inner	usb_device_descriptor_t[0, 0, 0, 0x582, 0x582, 64, array[usb_config_descriptor_uac3, 1]]
+} [packed]
+
+usb_config_descriptor_uac3 {
+	inner	usb_config_descriptor_extra_t[const[1, int8], const[3, int8], uac3_interface_assoc_descriptor, usb_interface_descriptors_uac3]
+} [packed]
+
+uac3_interface_assoc_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_INTERFACE_ASSOCIATION, int8]
+
+	bFirstInterface		int8[0:2]
+	bInterfaceCount		int8[0:2]
+	bFunctionClass		const[USB_CLASS_AUDIO, int8]
+	bFunctionSubClass	flags[uac3_all_subclasses, int8]
+	bFunctionProtocol	const[UAC_VERSION_3, int8]
+	iFunction		int8
+} [packed]
+
+usb_interface_descriptors_uac3 {
+	inner	usb_interface_descriptors_uac3_inner
+} [packed]
+
+# Define folded-in structure to match layout expected by USB ID patching code.
+usb_interface_descriptors_uac3_inner {
+	control		usb_interface_descriptor_fixed_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, UAC_VERSION_3, uac3_control_iface_extra_descriptors, void]
+	as_out_alt_0	usb_interface_descriptor_fixed_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_3, void, void]
+	as_out_alt_1	usb_interface_descriptor_fixed_t[1, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_3, uac3_as_iface_extra_descriptors, uac3_as_out_endpoint_descriptor]
+	as_in_alt_0	usb_interface_descriptor_fixed_t[2, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_3, void, void]
+	as_in_alt_1	usb_interface_descriptor_fixed_t[2, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, UAC_VERSION_3, uac3_as_iface_extra_descriptors, uac3_as_in_endpoint_descriptor]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac3_control_iface_extra_descriptors {
+	header	uac3_ac_header_descriptor
+	others	array[uac3_control_iface_extra_descriptor, 0:6]
+} [packed]
+
+uac3_ac_header_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_MS_HEADER, int8]
+
+	bCategory		flags[uac3_feature_unit_controls, int8]
+	wTotalLength		len[uac3_control_iface_extra_descriptors, int16]
+	bmControls		int32
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac3_as_iface_extra_descriptors {
+	others	array[uac3_as_iface_extra_descriptor, 0:6]
+} [packed]
+
+uac3_as_iface_extra_descriptor [
+	as_header			uac3_as_header_descriptor
+	format_type_i_descriptor	uac2_format_type_i_descriptor
+	format_type_i_continuous	uac_format_type_i_continuous_descriptor
+	format_type_i_discrete		uac_format_type_i_discrete_descriptor
+	format_type_ii_discrete		uac_format_type_ii_discrete_descriptor
+	format_type_i_ext		uac2_format_type_i_ext_descriptor
+	format_type_ii_ext		uac_format_type_ii_ext_descriptor
+] [varlen]
+
+# TODO: Figure out how wClusterDescrID is used in the kernel.
+uac3_as_header_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_AS_GENERAL, int8]
+	bTerminalLink		int8
+
+	bmControls		int32
+	wClusterDescrID		int16
+
+	bmFormats		flags[uac_format_tags, int64]
+
+	bSubslotSize		int8
+	bBitResolution		int8
+	bmAuxProtocols		int16
+	bControlSize		int8
+} [packed]
+
+uac3_as_out_endpoint_descriptor {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_UAC1_AS_OUT_ADDRESS, int8], const[USB_ENDPOINT_UAC1_AS_ATTRIBUTES, int8], uac3_iso_endpoint_descriptor]
+} [packed]
+
+uac3_as_in_endpoint_descriptor {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_UAC1_AS_IN_ADDRESS, int8], const[USB_ENDPOINT_UAC1_AS_ATTRIBUTES, int8], uac3_iso_endpoint_descriptor]
+} [packed]
+
+uac3_iso_endpoint_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_ENDPOINT, int8]
+	bDescriptorSubType	const[UAC3_CS_ENDPOINT, int8]
+	bmControls		int32
+	bLockDelayUnits		int8
+	wLockDelay		int16
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+uac3_control_iface_extra_descriptor [
+	input_terminal		uac3_input_terminal_descriptor
+	output_terminal		uac3_output_terminal_descriptor
+	mixer_unit		uac3_mixer_unit_descriptor
+	selector_unit		uac3_clock_selector_descriptor
+	source_unit		uac3_clock_source_descriptor
+	multiply_unit		uac3_clock_multiplier_descriptor
+	feature_unit		uac3_feature_unit_descriptor
+	processing_unit		uac3_processing_unit_descriptor
+	extension_unit		uac3_extension_unit_descriptor
+	power_domain		uac3_power_domain_descriptor
+	cluster_info_segment	uac3_cluster_information_segment_descriptor
+# Only cluster information segment is currently used in the kernel.See: sound/usb/stream.c
+# cluster_segment 		uac3_cluster_segment_descriptor
+# cluster_end_segment		uac3_cluster_end_segment_descriptor
+# The following units are not yet supported by the kernel.
+# See audio_validators[] in sound/usb/validate.c:
+#	effect_unit 		uac3_effect_unit_descriptor
+#	sample_rate			uac3_sample_rate_descriptor
+#	connectors_unit		uac3_connectors_unit_descriptor
+#	extended_term_unit	uac3_extended_terminal_unit
+] [varlen]
+
+uac3_input_terminal_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC_INPUT_TERMINAL, int8]
+
+	bTerminalID		uac_id
+	wTerminalType		flags[uac_input_terminal_types, int16]
+	bAssocTerminal		uac_id
+	bCSourceID		int8
+
+	bmControls		int32
+	wClusterDescrID		int16
+	wExTerminalDescrID	int16
+	wConnectorsDescrID	int16
+	wTerminalDescrStr	int16
+} [packed]
+
+uac3_output_terminal_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC_OUTPUT_TERMINAL, int8]
+
+	bTerminalID		uac_id
+	wTerminalType		flags[uac_output_terminal_types, int16]
+	bAssocTerminal		uac_id
+	bSourceID		uac_id
+	bCSourceID		int8
+
+	bmControls		int32
+	wExTerminalDescrID	int16
+	wConnectorsDescrID	int16
+	wTerminalDescrStr	int16
+} [packed]
+
+uac3_mixer_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC3_MIXER_UNIT, int8]
+
+	bUnitID			uac_id
+	bNrInPins		int8
+	baSourceID		array[int8, 0:6]
+} [packed]
+
+uac3_clock_selector_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC3_CLOCK_SELECTOR, int8]
+	bClockID		int8
+	bNrInPins		len[baCSourceID, int8]
+	baCSourceID		array[int8, 0:8]
+} [packed]
+
+uac3_clock_source_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC3_CLOCK_SOURCE, int8]
+	bClockID		int8
+	bmAttributes		flags[uac3_clock_bmattribute_types, int8]
+	bmControls		int32
+	bReferenceTerminal	int8
+	wClockSourceStr		int16
+} [packed]
+
+uac3_clock_bmattribute_types = UAC3_CLOCK_SOURCE_TYPE_EXT, UAC3_CLOCK_SOURCE_TYPE_INT, UAC3_CLOCK_SOURCE_ASYNC, UAC3_CLOCK_SOURCE_SYNCED_TO_SOF
+
+uac3_clock_multiplier_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC3_CLOCK_MULTIPLIER, int8]
+	bClockID		int8
+	bCSourceID		int8
+	bmControls		int32
+	wCMultiplierDescrStr	int16
+} [packed]
+
+uac3_feature_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC3_FEATURE_UNIT, int8]
+	bUnitID			uac_id
+	bSourceID		uac_id
+	bmaControls		array[flags[uac3_feature_unit_controls, int32], 1:6]
+} [packed]
+
+uac3_processing_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC3_PROCESSING_UNIT, int8]
+	bUnitID			uac_id
+	bSourceID		uac_id
+	bmaControls		array[flags[uac3_processing_unit_types, int32], 1:6]
+} [packed]
+
+uac3_processing_unit_types = UAC3_PROCESS_UNDEFINED, UAC3_PROCESS_UP_DOWNMIX, UAC3_PROCESS_STEREO_EXTENDER, UAC3_PROCESS_MULTI_FUNCTION
+
+uac3_extension_unit_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubtype	const[UAC3_EXTENSION_UNIT, int8]
+	bUnitID			uac_id
+	bSourceID		uac_id
+	bmaControls		array[flags[uac3_processing_unit_types, int32], 1:6]
+} [packed]
+
+uac3_power_domain_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC3_POWER_DOMAIN, int8]
+
+	bPowerDomainID		int8
+	waRecoveryTime1		int16
+	waRecoveryTime2		int16
+	bNrEntities		int8
+	baEntityID		array[int8, 0:8]
+} [packed]
+
+uac3_cluster_information_segment_descriptor {
+	bLength		len[parent, int16]
+	bSegmentType	const[UAC3_CHANNEL_INFORMATION, int8]
+	bChPurpose	flags[uac3_cluster_channel_purposes, int8]
+	bChRelationship	flags[uac3_cluster_channel_relationships, int8]
+	bChGroupID	int8
+} [packed]
+
+uac3_cluster_channel_purposes = UAC3_PURPOSE_UNDEFINED, UAC3_PURPOSE_GENERIC_AUDIO, UAC3_PURPOSE_VOICE, UAC3_PURPOSE_SPEECH, UAC3_PURPOSE_AMBIENT, UAC3_PURPOSE_REFERENCE, UAC3_PURPOSE_ULTRASONIC, UAC3_PURPOSE_VIBROKINETIC, UAC3_PURPOSE_NON_AUDIO
+uac3_cluster_channel_relationships = UAC3_CH_RELATIONSHIP_UNDEFINED, UAC3_CH_MONO, UAC3_CH_LEFT, UAC3_CH_RIGHT, UAC3_CH_ARRAY, UAC3_CH_PATTERN_X, UAC3_CH_PATTERN_Y, UAC3_CH_PATTERN_A, UAC3_CH_PATTERN_B, UAC3_CH_PATTERN_M, UAC3_CH_PATTERN_S, UAC3_CH_FRONT_LEFT, UAC3_CH_FRONT_RIGHT, UAC3_CH_FRONT_CENTER, UAC3_CH_FRONT_LEFT_OF_CENTER, UAC3_CH_FRONT_RIGHT_OF_CENTER, UAC3_CH_FRONT_WIDE_LEFT, UAC3_CH_FRONT_WIDE_RIGHT, UAC3_CH_SIDE_LEFT, UAC3_CH_SIDE_RIGHT, UAC3_CH_SURROUND_ARRAY_LEFT, UAC3_CH_SURROUND_ARRAY_RIGHT, UAC3_CH_BACK_LEFT, UAC3_CH_BACK_RIGHT, UAC3_CH_BACK_CENTER, UAC3_CH_BACK_LEFT_OF_CENTER, UAC3_CH_BACK_RIGHT_OF_CENTER, UAC3_CH_BACK_WIDE_LEFT, UAC3_CH_BACK_WIDE_RIGHT, UAC3_CH_TOP_CENTER, UAC3_CH_TOP_FRONT_LEFT, UAC3_CH_TOP_FRONT_RIGHT, UAC3_CH_TOP_FRONT_CENTER, UAC3_CH_TOP_FRONT_LOC, UAC3_CH_TOP_FRONT_ROC, UAC3_CH_TOP_FRONT_WIDE_LEFT, UAC3_CH_TOP_FRONT_WIDE_RIGHT, UAC3_CH_TOP_SIDE_LEFT, UAC3_CH_TOP_SIDE_RIGHT, UAC3_CH_TOP_SURR_ARRAY_LEFT, UAC3_CH_TOP_SURR_ARRAY_RIGHT, UAC3_CH_TOP_BACK_LEFT, UAC3_CH_TOP_BACK_RIGHT, UAC3_CH_TOP_BACK_CENTER, UAC3_CH_TOP_BACK_LOC, UAC3_CH_TOP_BACK_ROC, UAC3_CH_TOP_BACK_WIDE_LEFT, UAC3_CH_TOP_BACK_WIDE_RIGHT, UAC3_CH_BOTTOM_CENTER, UAC3_CH_BOTTOM_FRONT_LEFT, UAC3_CH_BOTTOM_FRONT_RIGHT, UAC3_CH_BOTTOM_FRONT_CENTER, UAC3_CH_BOTTOM_FRONT_LOC, UAC3_CH_BOTTOM_FRONT_ROC, UAC3_CH_BOTTOM_FRONT_WIDE_LEFT, UAC3_CH_BOTTOM_FRONT_WIDE_RIGHT, UAC3_CH_BOTTOM_SIDE_LEFT, UAC3_CH_BOTTOM_SIDE_RIGHT, UAC3_CH_BOTTOM_SURR_ARRAY_LEFT, UAC3_CH_BOTTOM_SURR_ARRAY_RIGHT, UAC3_CH_BOTTOM_BACK_LEFT, UAC3_CH_BOTTOM_BACK_RIGHT, UAC3_CH_BOTTOM_BACK_CENTER, UAC3_CH_BOTTOM_BACK_LOC, UAC3_CH_BOTTOM_BACK_ROC, UAC3_CH_BOTTOM_BACK_WIDE_LEFT, UAC3_CH_BOTTOM_BACK_WIDE_RIGHT, UAC3_CH_LOW_FREQUENCY_EFFECTS, UAC3_CH_LFE_LEFT, UAC3_CH_LFE_RIGHT, UAC3_CH_HEADPHONE_LEFT, UAC3_CH_HEADPHONE_RIGHT
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# This list consists of uac3_func_subclasses + uac3_badd_classes.
+uac3_all_subclasses = UAC3_FUNCTION_SUBCLASS_UNDEFINED, UAC3_FUNCTION_SUBCLASS_FULL_ADC_3_0, UAC3_FUNCTION_SUBCLASS_GENERIC_IO, UAC3_FUNCTION_SUBCLASS_HEADPHONE, UAC3_FUNCTION_SUBCLASS_SPEAKER, UAC3_FUNCTION_SUBCLASS_MICROPHONE, UAC3_FUNCTION_SUBCLASS_HEADSET, UAC3_FUNCTION_SUBCLASS_HEADSET_ADAPTER, UAC3_FUNCTION_SUBCLASS_SPEAKERPHONE
+
+# TODO: Support the following format in syzlang:
+# uac3_all_subclasses =  uac3_func_subclasses, uac3_badd_classes
+# uac3_func_subclasses =  UAC3_FUNCTION_SUBCLASS_UNDEFINED, UAC3_FUNCTION_SUBCLASS_FULL_ADC_3_0
+# uac3_badd_classes = UAC3_FUNCTION_SUBCLASS_GENERIC_IO, UAC3_FUNCTION_SUBCLASS_HEADPHONE, UAC3_FUNCTION_SUBCLASS_SPEAKER, UAC3_FUNCTION_SUBCLASS_MICROPHONE, UAC3_FUNCTION_SUBCLASS_HEADSET, UAC3_FUNCTION_SUBCLASS_HEADSET_ADAPTER, UAC3_FUNCTION_SUBCLASS_SPEAKERPHONE
+
+uac3_feature_unit_controls = UAC3_FUNCTION_SUBCLASS_UNDEFINED, UAC3_FUNCTION_DESKTOP_SPEAKER, UAC3_FUNCTION_HOME_THEATER, UAC3_FUNCTION_MICROPHONE, UAC3_FUNCTION_HEADSET, UAC3_FUNCTION_TELEPHONE, UAC3_FUNCTION_CONVERTER, UAC3_FUNCTION_SOUND_RECORDER, UAC3_FUNCTION_IO_BOX, UAC3_FUNCTION_MUSICAL_INSTRUMENT, UAC3_FUNCTION_PRO_AUDIO, UAC3_FUNCTION_AUDIO_VIDEO, UAC3_FUNCTION_CONTROL_PANEL, UAC3_FUNCTION_HEADPHONE, UAC3_FUNCTION_GENERIC_SPEAKER, UAC3_FUNCTION_HEADSET_ADAPTER, UAC3_FUNCTION_SPEAKERPHONE, UAC3_FUNCTION_OTHER
+
+# TODO: Support uac3 badd profiles. See sound/usb/mixer.c: snd_usb_mixer_controls_badd()
+# uac3_badd_endpoint_descriptor {
+# 	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_UAC1_AS_OUT_ADDRESS, int8], const[USB_ENDPOINT_UAC1_AS_ATTRIBUTES, int8], uac3_iso_endpoint_descriptor]
+# } [packed]
+
+#uac3_badd_maxsizes = UAC3_BADD_EP_MAXPSIZE_SYNC_MONO_16,UAC3_BADD_EP_MAXPSIZE_ASYNC_MONO_16,UAC3_BADD_EP_MAXPSIZE_SYNC_MONO_24,UAC3_BADD_EP_MAXPSIZE_ASYNC_MONO_24,UAC3_BADD_EP_MAXPSIZE_SYNC_STEREO_16,UAC3_BADD_EP_MAXPSIZE_ASYNC_STEREO_16,UAC3_BADD_EP_MAXPSIZE_SYNC_STEREO_24,UAC3_BADD_EP_MAXPSIZE_ASYNC_STEREO_24
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# MIDI device class specific descriptions.
+# https://www.usb.org/sites/default/files/midi10.pdf
+# https://elixir.bootlin.com/linux/latest/source/sound/usb/midi.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_midi.c
+
+resource fd_usb_midi[fd_usb]
+syz_usb_connect$midi(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_midi], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_midi (timeout[3000], prog_timeout[3000], remote_cover)
+syz_usb_control_io$midi(fd fd_usb_midi, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300], remote_cover)
+
+usb_device_descriptor_midi {
+	inner	usb_device_descriptor_verbose_t[flags[usb_versions, int16], 0, 0, 0, flags[usb_device_max_packet_sizes, int8], flags[midi_vendor_ids, int16], flags[midi_device_ids, int16], 64, array[usb_config_descriptor_midi, 1]]
+} [packed]
+
+usb_config_descriptor_midi {
+	inner	usb_config_descriptor_t[const[1, int8], const[1, int8], usb_interface_descriptors_midi]
+} [packed]
+
+usb_interface_descriptors_midi {
+	inner	usb_interface_descriptors_midi_inner
+} [packed]
+
+# Define folded-in structure to match layout expected by USB ID patching code.
+usb_interface_descriptors_midi_inner {
+	control	usb_interface_descriptor_eps_array_t[const[0, int8], const[0, int8], const[USB_CLASS_AUDIO, int8], const[USB_SUBCLASS_MIDISTREAMING, int8], flags[uac_version_types, int8], array[usb_midi_iface_extra], array[usb_endpoint_descriptor_midi, 0:8]]
+} [packed]
+
+usb_endpoint_descriptor_midi {
+	inner	usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], flags[usb_endpoint_attributes, int8], usb_ms_endpoint_descriptor]
+} [packed]
+
+midi_vendor_ids = 0x403, 0x41e, 0x424, 0x45e, 0x499, 0x582, 0x763, 0x7cf, 0x86a, 0x9e8, 0xa12, 0xccd, 0xdba, 0x1235, 0x1395, 0x1686, 0x19b5, 0x1a86, 0x1f38, 0x200c, 0x4752, 0x7104
+midi_device_ids = 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xe, 0x10, 0x11, 0x12, 0x14, 0x16, 0x18, 0x1b, 0x1d, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2d, 0x2f, 0x33, 0x35, 0x37, 0x40, 0x42, 0x44, 0x47, 0x48, 0x4c, 0x4d, 0x50, 0x52, 0x60, 0x62, 0x64, 0x65, 0x6d, 0x75, 0x7d, 0x80, 0x8b, 0x8d, 0xa3, 0xc4, 0xdd, 0x113, 0x120, 0x12f, 0x159, 0x283, 0x300, 0x1000, 0x100b, 0x1243, 0x1503, 0x1507, 0x1509, 0x150a, 0x150c, 0x2019, 0x2202, 0x3000, 0x6801, 0x6802, 0x752d, 0xb832, 0xb8d8
+midi_jack_type = USB_MS_EMBEDDED, USB_MS_EXTERNAL
+uac_version_types = UAC_VERSION_1, UAC_VERSION_2, UAC_VERSION_3
+
+usb_ms_endpoint_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_ENDPOINT, int8]
+	bDescriptorSubType	const[USB_MS_GENERAL, int8]
+	bNumEmbMIDIJack		len[baAssocJackID, int8]
+	baAssocJackID		array[int8, 0:16]
+} [packed]
+
+usb_midi_iface_extra [
+	ms_header	usb_ms_header_descriptor
+	midi_in_jack	usb_midi_in_jack_descriptor
+	midi_out_jack	usb_midi_out_jack_descriptor
+] [varlen]
+
+usb_ms_header_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_HEADER, int8]
+	bcdMSC			int16
+	wTotalLength		len[parent, int16]
+} [packed]
+
+usb_midi_in_jack_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_MIDI_IN_JACK, int8]
+	bJackType		flags[midi_jack_type, int8]
+	bJackID			int8
+	iJack			int8
+} [packed]
+
+usb_midi_out_jack_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[UAC_MIDI_OUT_JACK, int8]
+	bJackType		flags[midi_jack_type, int8]
+	bJackID			int8
+	bNrInputPins		len[pins, int8]
+	pins			array[usb_midi_source_pin]
+	iJack			int8
+} [packed]
+
+usb_midi_source_pin {
+	baSourceID	int8
+	baSourcePin	int8
+} [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
