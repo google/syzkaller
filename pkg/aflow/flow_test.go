@@ -213,7 +213,10 @@ func TestWorkflow(t *testing.T) {
 							Name: "tool1",
 							Args: map[string]any{
 								"ArgFoo": "arg-foo",
-								"ArgBar": 100,
+								// Genai package will give us ints as float64
+								// b/c they pass via json unmarshalling.
+								// Test how we handle that.
+								"ArgBar": float64(100),
 							},
 						},
 					},
@@ -472,7 +475,7 @@ func TestWorkflow(t *testing.T) {
 			Name:    "tool1",
 			Started: startTime.Add(7 * time.Second),
 			Args: map[string]any{
-				"ArgBar": 100,
+				"ArgBar": float64(100),
 				"ArgFoo": "arg-foo",
 			},
 		},
@@ -484,7 +487,7 @@ func TestWorkflow(t *testing.T) {
 			Started:  startTime.Add(7 * time.Second),
 			Finished: startTime.Add(8 * time.Second),
 			Args: map[string]any{
-				"ArgBar": 100,
+				"ArgBar": float64(100),
 				"ArgFoo": "arg-foo",
 			},
 			Results: map[string]any{

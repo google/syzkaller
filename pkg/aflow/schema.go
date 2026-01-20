@@ -88,14 +88,30 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 			}
 		}
 		delete(m, name)
+		fType, fValue := reflect.TypeOf(f), reflect.ValueOf(f)
 		if mm, ok := f.(map[string]any); ok && field.Type() == reflect.TypeFor[json.RawMessage]() {
 			raw, err := json.Marshal(mm)
 			if err != nil {
 				return val, err
 			}
 			field.Set(reflect.ValueOf(json.RawMessage(raw)))
-		} else if field.Type() == reflect.TypeOf(f) {
-			field.Set(reflect.ValueOf(f))
+		} else if fType.Kind() == reflect.Float64 &&
+			(field.CanInt() || field.CanUint()) {
+			// Genai will send us integers as float64 after json conversion,
+			// so convert them back to ints.
+			iv := fValue.Convert(field.Type())
+			if fv := iv.Convert(fType); !fValue.Equal(fv) {
+				if tool {
+					return val, BadCallError(fmt.Sprintf("argument %v: float value truncated from %v to %v",
+						name, f, iv.Interface()))
+				} else {
+					return val, fmt.Errorf("field %v: float value truncated from %v to %v",
+						name, f, iv.Interface())
+				}
+			}
+			field.Set(iv)
+		} else if field.Type() == fType {
+			field.Set(fValue)
 		} else {
 			if tool {
 				return val, BadCallError(fmt.Sprintf("argument %q has wrong type: got %T, want %v",
