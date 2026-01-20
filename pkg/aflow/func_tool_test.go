@@ -8,6 +8,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/stretchr/testify/assert"
@@ -103,7 +104,7 @@ func TestToolErrors(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), stubContextKey, stub)
 	workdir := t.TempDir()
-	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
+	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, time.Now)
 	require.NoError(t, err)
 	onEvent := func(span *trajectory.Span) error { return nil }
 	_, err = flows["test"].Execute(ctx, "", workdir, nil, cache, onEvent)

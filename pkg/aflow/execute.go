@@ -178,6 +178,9 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
 	}
 	if thinking {
+		// Don't alter the original object (that may affect request caching).
+		cfgCopy := *cfg
+		cfg = &cfgCopy
 		cfg.ThinkingConfig = &genai.ThinkingConfig{
 			// We capture them in the trajectory for analysis.
 			IncludeThoughts: true,

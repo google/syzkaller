@@ -225,7 +225,7 @@ func TestWorkflow(t *testing.T) {
 							ID:   "id1",
 							Name: "tool2",
 							Args: map[string]any{
-								"ArgBaz": 101,
+								"ArgBaz": 101.0,
 							},
 						},
 					},
@@ -265,7 +265,7 @@ func TestWorkflow(t *testing.T) {
 							ID:   "id2",
 							Name: "set-results",
 							Args: map[string]any{
-								"AgentFoo": 42,
+								"AgentFoo": 42.0,
 								"AgentBar": "agent-bar",
 							},
 						},
@@ -294,8 +294,6 @@ func TestWorkflow(t *testing.T) {
 					},
 				}}
 
-			// dupl considers makeSwarmReply/makeSwarmResp duplicates
-			// nolint:dupl
 			makeSwarmReply := func(index int) *genai.Content {
 				return &genai.Content{
 					Role: string(genai.RoleModel),
@@ -305,14 +303,13 @@ func TestWorkflow(t *testing.T) {
 								ID:   fmt.Sprintf("id%v", index),
 								Name: "set-results",
 								Args: map[string]any{
-									"SwarmInt": index,
+									"SwarmInt": float64(index),
 									"SwarmStr": fmt.Sprintf("swarm%v", index),
 								},
 							},
 						},
 					}}
 			}
-			// nolint:dupl // dupl considers makeSwarmReply/makeSwarmResp duplicates
 			makeSwarmResp := func(index int) *genai.Content {
 				return &genai.Content{
 					Role: string(genai.RoleUser),
@@ -410,7 +407,7 @@ func TestWorkflow(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), stubContextKey, stub)
 	workdir := t.TempDir()
-	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
+	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, time.Now)
 	require.NoError(t, err)
 	// nolint: dupl
 	expected := []*trajectory.Span{
@@ -502,7 +499,7 @@ func TestWorkflow(t *testing.T) {
 			Name:    "tool2",
 			Started: startTime.Add(9 * time.Second),
 			Args: map[string]any{
-				"ArgBaz": 101,
+				"ArgBaz": 101.0,
 			},
 		},
 		{
@@ -513,7 +510,7 @@ func TestWorkflow(t *testing.T) {
 			Started:  startTime.Add(9 * time.Second),
 			Finished: startTime.Add(10 * time.Second),
 			Args: map[string]any{
-				"ArgBaz": 101,
+				"ArgBaz": 101.0,
 			},
 			Results: map[string]any{
 				"ResBaz": 300,
@@ -545,7 +542,7 @@ func TestWorkflow(t *testing.T) {
 			Started: startTime.Add(13 * time.Second),
 			Args: map[string]any{
 				"AgentBar": "agent-bar",
-				"AgentFoo": 42,
+				"AgentFoo": 42.0,
 			},
 		},
 		{
@@ -557,7 +554,7 @@ func TestWorkflow(t *testing.T) {
 			Finished: startTime.Add(14 * time.Second),
 			Args: map[string]any{
 				"AgentBar": "agent-bar",
-				"AgentFoo": 42,
+				"AgentFoo": 42.0,
 			},
 			Results: map[string]any{
 				"AgentBar": "agent-bar",
@@ -656,7 +653,7 @@ func TestWorkflow(t *testing.T) {
 			Name:    "set-results",
 			Started: startTime.Add(24 * time.Second),
 			Args: map[string]any{
-				"SwarmInt": 1,
+				"SwarmInt": 1.0,
 				"SwarmStr": "swarm1",
 			},
 		},
@@ -668,7 +665,7 @@ func TestWorkflow(t *testing.T) {
 			Started:  startTime.Add(24 * time.Second),
 			Finished: startTime.Add(25 * time.Second),
 			Args: map[string]any{
-				"SwarmInt": 1,
+				"SwarmInt": 1.0,
 				"SwarmStr": "swarm1",
 			},
 			Results: map[string]any{
@@ -743,7 +740,7 @@ func TestWorkflow(t *testing.T) {
 			Name:    "set-results",
 			Started: startTime.Add(32 * time.Second),
 			Args: map[string]any{
-				"SwarmInt": 2,
+				"SwarmInt": 2.0,
 				"SwarmStr": "swarm2",
 			},
 		},
@@ -755,7 +752,7 @@ func TestWorkflow(t *testing.T) {
 			Started:  startTime.Add(32 * time.Second),
 			Finished: startTime.Add(33 * time.Second),
 			Args: map[string]any{
-				"SwarmInt": 2,
+				"SwarmInt": 2.0,
 				"SwarmStr": "swarm2",
 			},
 			Results: map[string]any{
@@ -1023,7 +1020,6 @@ func TestToolMisbehavior(t *testing.T) {
 								FunctionCall: &genai.FunctionCall{
 									ID:   "id3",
 									Name: "tool2",
-									Args: map[string]any{},
 								},
 							},
 							// Excessive argument.
@@ -1032,8 +1028,8 @@ func TestToolMisbehavior(t *testing.T) {
 									ID:   "id4",
 									Name: "tool2",
 									Args: map[string]any{
-										"Tool2Arg":  0,
-										"Tool2Arg2": 100,
+										"Tool2Arg":  0.0,
+										"Tool2Arg2": 100.0,
 									},
 								},
 							},
@@ -1172,7 +1168,7 @@ func TestToolMisbehavior(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), stubContextKey, stub)
 	workdir := t.TempDir()
-	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
+	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, time.Now)
 	require.NoError(t, err)
 	expected := []*trajectory.Span{
 		{
@@ -1247,14 +1243,12 @@ func TestToolMisbehavior(t *testing.T) {
 			Nesting: 2,
 			Type:    trajectory.SpanTool,
 			Name:    "tool2",
-			Args:    map[string]any{},
 		},
 		{
 			Seq:     5,
 			Nesting: 2,
 			Type:    trajectory.SpanTool,
 			Name:    "tool2",
-			Args:    map[string]any{},
 			Error:   "missing argument \"Tool2Arg\"",
 		},
 		{
@@ -1263,8 +1257,8 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "tool2",
 			Args: map[string]any{
-				"Tool2Arg":  0,
-				"Tool2Arg2": 100,
+				"Tool2Arg":  0.0,
+				"Tool2Arg2": 100.0,
 			},
 		},
 		{
@@ -1273,8 +1267,8 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "tool2",
 			Args: map[string]any{
-				"Tool2Arg":  0,
-				"Tool2Arg2": 100,
+				"Tool2Arg":  0.0,
+				"Tool2Arg2": 100.0,
 			},
 			Results: map[string]any{
 				"Result": 42,
@@ -1286,7 +1280,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "tool3",
 			Args: map[string]any{
-				"Arg": 0,
+				"Arg": 0.0,
 			},
 		},
 		{
@@ -1295,7 +1289,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "tool3",
 			Args: map[string]any{
-				"Arg": 0,
+				"Arg": 0.0,
 			},
 			Error: "tool \"tool3\" does not exist, please correct the name",
 		},
@@ -1305,7 +1299,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"WrongArg": 0,
+				"WrongArg": 0.0,
 			},
 		},
 		{
@@ -1314,7 +1308,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"WrongArg": 0,
+				"WrongArg": 0.0,
 			},
 			Error: "missing argument \"AdditionalOutput\"",
 		},
@@ -1352,7 +1346,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"AdditionalOutput": 1,
+				"AdditionalOutput": 1.0,
 			},
 		},
 		{
@@ -1361,7 +1355,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"AdditionalOutput": 1,
+				"AdditionalOutput": 1.0,
 			},
 			Results: map[string]any{
 				"AdditionalOutput": 1,
@@ -1373,7 +1367,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"AdditionalOutput": 2,
+				"AdditionalOutput": 2.0,
 			},
 		},
 		{
@@ -1382,7 +1376,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Type:    trajectory.SpanTool,
 			Name:    "set-results",
 			Args: map[string]any{
-				"AdditionalOutput": 2,
+				"AdditionalOutput": 2.0,
 			},
 			Results: map[string]any{
 				"AdditionalOutput": 2,

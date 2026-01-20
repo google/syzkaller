@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/google/syzkaller/pkg/hash"
 	"google.golang.org/genai"
 )
 
@@ -109,7 +110,7 @@ type llmOutputs struct {
 
 func (a *LLMAgent) execute(ctx *Context) error {
 	if a.Candidates <= 1 {
-		reply, outputs, err := a.executeOne(ctx)
+		reply, outputs, err := a.executeOne(ctx, 0)
 		if err != nil {
 			return err
 		}
@@ -132,7 +133,7 @@ func (a *LLMAgent) executeMany(ctx *Context) error {
 	var replies []string
 	allOutputs := map[string]any{}
 	for candidate := 0; candidate < a.Candidates; candidate++ {
-		reply, outputs, err := a.executeOne(ctx)
+		reply, outputs, err := a.executeOne(ctx, candidate)
 		if err != nil {
 			return err
 		}
@@ -146,7 +147,7 @@ func (a *LLMAgent) executeMany(ctx *Context) error {
 	return nil
 }
 
-func (a *LLMAgent) executeOne(ctx *Context) (string, map[string]any, error) {
+func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]any, error) {
 	cfg, instruction, tools := a.config(ctx)
 	span := &trajectory.Span{
 		Type:        trajectory.SpanAgent,
@@ -158,7 +159,7 @@ func (a *LLMAgent) executeOne(ctx *Context) (string, map[string]any, error) {
 	if err := ctx.startSpan(span); err != nil {
 		return "", nil, err
 	}
-	reply, outputs, err := a.chat(ctx, cfg, tools, span.Prompt)
+	reply, outputs, err := a.chat(ctx, cfg, tools, span.Prompt, candidate)
 	if err == nil {
 		span.Reply = reply
 		span.Results = outputs
@@ -166,8 +167,8 @@ func (a *LLMAgent) executeOne(ctx *Context) (string, map[string]any, error) {
 	return reply, outputs, ctx.finishSpan(span, err)
 }
 
-func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool, prompt string) (
-	string, map[string]any, error) {
+func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
+	prompt string, candidate int) (string, map[string]any, error) {
 	var outputs map[string]any
 	req := []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
 	for {
@@ -179,7 +180,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if err := ctx.startSpan(reqSpan); err != nil {
 			return "", nil, err
 		}
-		resp, err := a.generateContent(ctx, cfg, req)
+		resp, err := a.generateContent(ctx, cfg, req, candidate)
 		if err != nil {
 			return "", nil, ctx.finishSpan(reqSpan, err)
 		}
@@ -328,11 +329,10 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse) (
 }
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
 	backoff := time.Second
-	model := ctx.modelName(a.Model)
 	for try := 0; ; try++ {
-		resp, err := ctx.generateContent(model, cfg, req)
+		resp, err := a.generateContentCached(ctx, cfg, req, candidate)
 		var apiErr genai.APIError
 		if err != nil && try < 100 && errors.As(err, &apiErr) &&
 			apiErr.Code == http.StatusServiceUnavailable {
@@ -343,10 +343,31 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 		if err != nil && errors.As(err, &apiErr) && apiErr.Code == http.StatusTooManyRequests &&
 			strings.Contains(apiErr.Message, "Quota exceeded for metric") &&
 			strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-			return resp, &modelQuotaError{model}
+			return resp, &modelQuotaError{ctx.modelName(a.Model)}
 		}
 		return resp, err
 	}
+}
+
+func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
+	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
+	type Cached struct {
+		Config  *genai.GenerateContentConfig
+		Request []*genai.Content
+		Reply   *genai.GenerateContentResponse
+	}
+	model := ctx.modelName(a.Model)
+	desc := fmt.Sprintf("model %v, config hash %v, request hash %v, candidate %v",
+		model, hash.String(cfg), hash.String(req), candidate)
+	cached, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
+		resp, err := ctx.generateContent(model, cfg, req)
+		return Cached{
+			Config:  cfg,
+			Request: req,
+			Reply:   resp,
+		}, err
+	})
+	return cached.Reply, err
 }
 
 func (a *LLMAgent) verify(vctx *verifyContext) {
