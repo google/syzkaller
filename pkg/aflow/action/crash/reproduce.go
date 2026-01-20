@@ -15,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -52,24 +51,32 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 	if err != nil {
 		return reproduceResult{}, err
 	}
-	const noCrash = "reproducer did not crash"
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v",
+		" vm %v, vm config hash %v, C repro hash %v, version 2",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC))
-	dir, err := ctx.Cache("repro", desc, func(dir string) error {
+	type Cached struct {
+		Report string
+		Error  string
+	}
+	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
+		var res Cached
 		var vmConfig map[string]any
 		if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
-			return fmt.Errorf("failed to parse VM config: %w", err)
+			return res, fmt.Errorf("failed to parse VM config: %w", err)
 		}
 		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
 		vmCfg, err := json.Marshal(vmConfig)
 		if err != nil {
-			return fmt.Errorf("failed to serialize VM config: %w", err)
+			return res, fmt.Errorf("failed to serialize VM config: %w", err)
+		}
+		workdir, err := ctx.TempDir()
+		if err != nil {
+			return res, err
 		}
 		cfg := mgrconfig.DefaultValues()
 		cfg.RawTarget = "linux/amd64"
-		cfg.Workdir = filepath.Join(dir, "workdir")
+		cfg.Workdir = workdir
 		cfg.Syzkaller = args.Syzkaller
 		cfg.KernelObj = args.KernelObj
 		cfg.KernelSrc = args.KernelSrc
@@ -77,44 +84,37 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 		cfg.Type = args.Type
 		cfg.VM = vmCfg
 		if err := mgrconfig.SetTargets(cfg); err != nil {
-			return err
+			return res, err
 		}
 		if err := mgrconfig.Complete(cfg); err != nil {
-			return err
+			return res, err
 		}
 		env, err := instance.NewEnv(cfg, nil, nil)
 		if err != nil {
-			return err
+			return res, err
 		}
 		results, err := env.Test(1, nil, nil, []byte(args.ReproC))
 		if err != nil {
-			return err
+			return res, err
 		}
-		os.RemoveAll(cfg.Workdir)
-		if results[0].Error == nil {
-			results[0].Error = errors.New(noCrash)
+		if results[0].Error != nil {
+			if crashErr := new(instance.CrashError); errors.As(results[0].Error, &crashErr) {
+				res.Report = string(crashErr.Report.Report)
+			} else {
+				res.Error = results[0].Error.Error()
+			}
 		}
-		file, data := "", []byte(nil)
-		var crashErr *instance.CrashError
-		if errors.As(results[0].Error, &crashErr) {
-			file, data = "report", crashErr.Report.Report
-		} else {
-			file, data = "error", []byte(results[0].Error.Error())
-		}
-		return osutil.WriteFile(filepath.Join(dir, file), data)
+		return res, nil
 	})
 	if err != nil {
 		return reproduceResult{}, err
 	}
-	if data, err := os.ReadFile(filepath.Join(dir, "error")); err == nil {
-		err := errors.New(string(data))
-		if err.Error() == noCrash {
-			err = aflow.FlowError(err)
-		}
-		return reproduceResult{}, err
+	if cached.Error != "" {
+		return reproduceResult{}, errors.New(cached.Error)
+	} else if cached.Report == "" {
+		return reproduceResult{}, aflow.FlowError(errors.New("reproducer did not crash"))
 	}
-	data, err := os.ReadFile(filepath.Join(dir, "report"))
 	return reproduceResult{
-		CrashReport: string(data),
-	}, err
+		CrashReport: cached.Report,
+	}, nil
 }
