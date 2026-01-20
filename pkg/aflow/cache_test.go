@@ -142,3 +142,19 @@ func TestCache(t *testing.T) {
 	require.False(t, osutil.IsExist(dir8))
 	require.True(t, osutil.IsExist(dir10))
 }
+
+func TestCacheObject(t *testing.T) {
+	tempDir := t.TempDir()
+	c, err := newTestCache(t, tempDir, 1<<40, time.Now)
+	require.NoError(t, err)
+	type X struct {
+		I int
+		S string
+	}
+	dir, x, err := cacheCreateObject(c, "foo", "1", func() (X, error) {
+		return X{42, "foo"}, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, x, X{42, "foo"})
+	c.Release(dir)
+}
