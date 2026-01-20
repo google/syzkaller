@@ -31,3 +31,5 @@ kvm_text_riscv64 {
 	text	ptr[in, text[riscv64]]
 	size	len[text, intptr]
 }
+
+syz_kvm_assert_reg$riscv64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
