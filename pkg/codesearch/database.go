@@ -6,7 +6,9 @@ package codesearch
 import (
 	"strings"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/google/syzkaller/pkg/clangtool"
+	"github.com/google/syzkaller/pkg/hash"
 )
 
 type Database struct {
@@ -35,6 +37,20 @@ type LineRange struct {
 	StartLine int    `json:"start_line,omitempty"`
 	EndLine   int    `json:"end_line,omitempty"`
 }
+
+// DatabaseFormatHash contains a hash uniquely identifying format of the database.
+// In covers both structure and semantics of the data, and is supposed to be used
+// for caching of the database files.
+var DatabaseFormatHash = func() string {
+	// Semantic version should be bumped when the schema does not change,
+	// but stored values changes.
+	const semanticVersion = "1"
+	schema, err := jsonschema.For[Database](nil)
+	if err != nil {
+		panic(err)
+	}
+	return hash.String(schema, semanticVersion)
+}()
 
 func (db *Database) Merge(other *Database) {
 	db.Definitions = append(db.Definitions, other.Definitions...)

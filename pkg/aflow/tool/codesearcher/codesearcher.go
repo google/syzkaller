@@ -138,8 +138,8 @@ func (index) UnmarshalJSON([]byte) error {
 }
 
 func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
-	desc := fmt.Sprintf("kernel commit %v, config hash %v",
-		args.KernelCommit, hash.String(args.KernelConfig))
+	desc := fmt.Sprintf("kernel commit %v, config hash %v, databash hash %v",
+		args.KernelCommit, hash.String(args.KernelConfig), codesearch.DatabaseFormatHash)
 	dir, err := ctx.Cache("codesearch", desc, func(dir string) error {
 		cfg := &clangtool.Config{
 			ToolBin:   args.CodesearchToolBin,
