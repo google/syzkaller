@@ -962,7 +962,7 @@ func TestToolMisbehavior(t *testing.T) {
 			Root: NewPipeline(
 				&LLMAgent{
 					Name:        "smarty",
-					Model:       "model1",
+					Model:       "model",
 					Temperature: 1,
 					Reply:       "Reply",
 
@@ -970,7 +970,7 @@ func TestToolMisbehavior(t *testing.T) {
 						AdditionalOutput int `jsonschema:"arg"`
 					}](),
 					Instruction: "Do something!",
-					Prompt:      "Data",
+					Prompt:      "Prompt",
 					Tools: []Tool{
 						NewFuncTool("tool1", func(ctx *Context, state struct{}, args tool1Args) (struct{}, error) {
 							return struct{}{}, nil
@@ -1162,15 +1162,205 @@ func TestToolMisbehavior(t *testing.T) {
 				return nil, nil
 			}
 		},
+		timeNow: func() time.Time {
+			var zero time.Time
+			return zero
+		},
 	}
 	ctx := context.WithValue(context.Background(), stubContextKey, stub)
 	workdir := t.TempDir()
 	cache, err := newTestCache(t, filepath.Join(workdir, "cache"), 0, stub.timeNow)
 	require.NoError(t, err)
-	onEvent := func(span *trajectory.Span) error { return nil }
+	expected := []*trajectory.Span{
+		{
+			Seq:     0,
+			Nesting: 0,
+			Type:    trajectory.SpanFlow,
+			Name:    "test-flow",
+		},
+		{
+			Seq:         1,
+			Nesting:     1,
+			Type:        trajectory.SpanAgent,
+			Name:        "smarty",
+			Model:       "model",
+			Instruction: "Do something!" + llmMultipleToolsInstruction + llmOutputsInstruction,
+			Prompt:      "Prompt",
+		},
+		{
+			Seq:     2,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     2,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     3,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "tool1",
+			Args: map[string]any{
+				"Tool1Arg": "string",
+			},
+		},
+		{
+			Seq:     3,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "tool1",
+			Args: map[string]any{
+				"Tool1Arg": "string",
+			},
+			Results: map[string]any{},
+		},
+		{
+			Seq:     4,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "tool2",
+			Args: map[string]any{
+				"Tool2Arg":  0,
+				"Tool2Arg2": 100,
+			},
+		},
+		{
+			Seq:     4,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "tool2",
+			Args: map[string]any{
+				"Tool2Arg":  0,
+				"Tool2Arg2": 100,
+			},
+			Results: map[string]any{
+				"Result": 42,
+			},
+		},
+		{
+			Seq:     5,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     5,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     6,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     6,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     7,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "set-results",
+			Args: map[string]any{
+				"AdditionalOutput": 1,
+			},
+		},
+		{
+			Seq:     7,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "set-results",
+			Args: map[string]any{
+				"AdditionalOutput": 1,
+			},
+			Results: map[string]any{
+				"AdditionalOutput": 1,
+			},
+		},
+		{
+			Seq:     8,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "set-results",
+			Args: map[string]any{
+				"AdditionalOutput": 2,
+			},
+		},
+		{
+			Seq:     8,
+			Nesting: 2,
+			Type:    trajectory.SpanTool,
+			Name:    "set-results",
+			Args: map[string]any{
+				"AdditionalOutput": 2,
+			},
+			Results: map[string]any{
+				"AdditionalOutput": 2,
+			},
+		},
+		{
+			Seq:     9,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:     9,
+			Nesting: 2,
+			Type:    trajectory.SpanLLM,
+			Name:    "smarty",
+			Model:   "model",
+		},
+		{
+			Seq:         1,
+			Nesting:     1,
+			Type:        trajectory.SpanAgent,
+			Name:        "smarty",
+			Model:       "model",
+			Instruction: "Do something!" + llmMultipleToolsInstruction + llmOutputsInstruction,
+			Prompt:      "Prompt",
+			Reply:       "Finally done",
+			Results: map[string]any{
+				"AdditionalOutput": 2,
+			},
+		},
+		{
+			Seq:     0,
+			Nesting: 0,
+			Type:    trajectory.SpanFlow,
+			Name:    "test-flow",
+			Results: map[string]any{
+				"Reply":            "Finally done",
+				"AdditionalOutput": 2,
+			},
+		},
+	}
+	onEvent := func(span *trajectory.Span) error {
+		require.NotEmpty(t, expected, "span: %#v", span)
+		require.Equal(t, span, expected[0])
+		expected = expected[1:]
+		return nil
+	}
 	res, err := flows["test-flow"].Execute(ctx, "", workdir, map[string]any{}, cache, onEvent)
 	require.NoError(t, err)
 	require.Equal(t, replySeq, 4)
+	require.Empty(t, expected)
 	require.Equal(t, res, map[string]any{
 		"Reply":            "Finally done",
 		"AdditionalOutput": 2,
