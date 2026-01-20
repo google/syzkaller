@@ -27,7 +27,7 @@ using namespace clang;
 // MacroDef/MacroMap hold information about macros defined in the file.
 struct MacroDef {
   std::string Value; // value as written in the source
-  SourceRange Range; // soruce range of the value
+  SourceRange Range; // source range of the value
 };
 using MacroMap = std::unordered_map<std::string, MacroDef>;
 
