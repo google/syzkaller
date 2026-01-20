@@ -1,0 +1,4 @@
+# requires: -repeat
+
+r0 = syz_usb_connect$uac2(0x0, 0x0, &AUTO, &AUTO)
+syz_usb_control_io$uac2(r0, 0x0, 0x0)

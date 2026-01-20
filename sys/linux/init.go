@@ -64,6 +64,10 @@ func InitTarget(target *prog.Target) {
 		"usb_device_descriptor":         arch.generateUsbDeviceDescriptor,
 		"usb_device_descriptor_printer": arch.generateUsbPrinterDeviceDescriptor,
 		"usb_device_descriptor_hid":     arch.generateUsbHidDeviceDescriptor,
+		"usb_device_descriptor_uac1":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_uac2":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_uac3":    arch.generateAudioDeviceDescriptor,
+		"usb_device_descriptor_midi":    arch.generateAudioDeviceDescriptor,
 	}
 
 	target.AuxResources = map[string]bool{

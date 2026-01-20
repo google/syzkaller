@@ -112,6 +112,154 @@ func (arch *arch) generateUsbPrinterDeviceDescriptor(g *prog.Gen, typ0 prog.Type
 	return
 }
 
+func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
+	arg prog.Arg, calls []*prog.Call) {
+	if old == nil {
+		arg = g.GenerateSpecialArg(typ0, dir, &calls)
+	} else {
+		arg = prog.CloneArg(old)
+		calls = g.MutateArg(arg)
+	}
+	if g.Target().ArgContainsAny(arg) {
+		return
+	}
+	// Roll the dice to decide if and how we want to patch audio device IDs.
+	switch {
+	case g.Rand().Intn(3) == 0:
+		// Syzlang descriptions already contain passable IDs, leave them as is.
+		return
+	case g.Rand().Intn(2) == 0:
+		// Patch in quirk IDs that are hardcoded in the USB audio class drivers
+		// (and thus are not auto-extractable) to allow exercising driver quirks.
+		var idVendor uint16
+		var idProduct uint16
+		quirksIDs := [][2]uint16{
+			// sound/usb/quirks.c
+			{0x041e, 0x3000},
+			{0x041e, 0x3020},
+			{0x10f5, 0x0200},
+			{0x0d8c, 0x0102},
+			{0x0ccd, 0x00b1},
+			{0x1235, 0x0010},
+			{0x1235, 0x0018},
+			{0x0763, 0x2012},
+			{0x047f, 0xc010},
+			{0x2466, 0x8010},
+			// sound/usb/stream.c ?
+			{0x04fa, 0x4201},
+			// sound/usb/midi.c
+			{0x0a67, 0x5011},
+			{0x0a92, 0x1020},
+			{0x1430, 0x474b},
+			{0x15ca, 0x0101},
+			{0x15ca, 0x1806},
+			{0x1a86, 0x752d},
+			{0xfc08, 0x0101},
+			{0x0644, 0x800e},
+			{0x0644, 0x800f},
+			{0x0763, 0x0150},
+			// Test if this covers midi.c | grep USB_VID_VENDOR
+			{0x0582, 0x0582},
+			//sound/usb/card.c
+			{0x18d1, 0x2d04},
+			{0x18d1, 0x2d05},
+			//sound/usb/format.c
+			{0x0582, 0x0016},
+			{0x0582, 0x000c},
+			{0x0d8c, 0x0201},
+			{0x0d8c, 0x0102},
+			{0x0d8c, 0x0078},
+			{0x0ccd, 0x00b1},
+			{0x041e, 0x4064},
+			{0x041e, 0x4068},
+			{0x194f, 0x010c},
+			{0x0e41, 0x4241},
+			{0x0e41, 0x4241},
+			{0x0e41, 0x4242},
+			{0x0e41, 0x4244},
+			{0x0e41, 0x4246},
+			{0x0e41, 0x4247},
+			{0x0e41, 0x4248},
+			{0x0e41, 0x4249},
+			{0x0e41, 0x424a},
+			{0x19f7, 0x0011},
+			{0x0e41, 0x3000},
+			{0x0e41, 0x3020},
+			{0x0e41, 0x3061},
+			{0x0a67, 0x5011},
+			//sound/usb/mixer_quirks.c
+			{0x041e, 0x3000},
+			{0x041e, 0x3020},
+			{0x041e, 0x3040},
+			{0x041e, 0x3042},
+			{0x041e, 0x3048},
+			{0x041e, 0x30df},
+			{0x041e, 0x3237},
+			{0x041e, 0x323b},
+			{0x041e, 0x3263},
+			{0x0644, 0x8047},
+			{0x0b05, 0x1739},
+			{0x0b05, 0x1743},
+			{0x0b05, 0x17a0},
+			{0x0bda, 0x4014},
+			{0x0d8c, 0x000c},
+			{0x0d8c, 0x0014},
+			{0x0d8c, 0x0103},
+			{0x1235, 0x8002},
+			{0x1235, 0x8004},
+			{0x1235, 0x800c},
+			{0x1235, 0x8012},
+			{0x1235, 0x8014},
+			{0x1235, 0x8201},
+			{0x1235, 0x8203},
+			{0x1235, 0x8204},
+			{0x1235, 0x8210},
+			{0x1235, 0x8211},
+			{0x1235, 0x8212},
+			{0x1235, 0x8213},
+			{0x1235, 0x8214},
+			{0x1235, 0x8215},
+			{0x17cc, 0x1011},
+			{0x17cc, 0x1021},
+			{0x194f, 0x010c},
+			{0x200c, 0x1018},
+			{0x21b4, 0x0081},
+			{0x2a39, 0x3fb0},
+			{0x2a39, 0x3fd2},
+			{0x2a39, 0x3fd3},
+			{0x2a39, 0x3fd4},
+			// yamaha
+			{0x0499, 0x0499},
+			{0x0582, 0x0582},
+		}
+		idx := g.Rand().Intn(len(quirksIDs))
+		idVendor = quirksIDs[idx][0]
+		idProduct = quirksIDs[idx][1]
+		devArg := arg.(*prog.GroupArg).Inner[0]
+		patchGroupArg(devArg, 7, "idVendor", uint64(idVendor))
+		patchGroupArg(devArg, 8, "idProduct", uint64(idProduct))
+	default:
+		// Patch in IDs auto-extracted from the matching rules for the USB audio class.
+		// Do not patch IDs that are not used in the matching rules to avoid subverting
+		// the kernel into matching the device to a different driver.
+		// TODO: some of these strings might be missing is dict, check
+		ids := usbIds["snd-bcd2000"] +
+			usbIds["snd-ua101"] +
+			usbIds["snd-usb-6fire"] +
+			usbIds["snd-usb-audio"] +
+			usbIds["snd-usb-caiaq"] +
+			usbIds["snd-usb-hiface"] +
+			usbIds["snd-usb-us122l"] +
+			usbIds["snd-usb-usx2y"] +
+			usbIds["snd_usb_pod"] +
+			usbIds["snd_usb_podhd"] +
+			usbIds["snd_usb_toneport"] +
+			usbIds["snd_usb_variax"]
+		patchUsbDeviceID(g, &arg, calls, ids, false)
+	}
+	return
+}
+
 func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string, patchNonMatching bool) {
 	id := randUsbDeviceID(g, ids, patchNonMatching)
 
@@ -138,7 +286,7 @@ func patchUsbDeviceID(g *prog.Gen, arg *prog.Arg, calls []*prog.Call, ids string
 	}
 
 	configArg := devArg.(*prog.GroupArg).Inner[14].(*prog.GroupArg).Inner[0].(*prog.GroupArg).Inner[0]
-	interfacesArg := configArg.(*prog.GroupArg).Inner[8]
+	interfacesArg := configArg.(*prog.GroupArg).Inner[9]
 
 	for i, interfaceArg := range interfacesArg.(*prog.GroupArg).Inner {
 		interfaceArg = interfaceArg.(*prog.GroupArg).Inner[0]
