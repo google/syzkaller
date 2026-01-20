@@ -1,0 +1,11 @@
+#
+# requires: arch=amd64 -threaded
+#
+
+# VMLOAD/VMSAVE Reproducer
+#
+r0 = openat$kvm(0xffffffffffffff9c, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, 0x0, 0x0)
+r2 = syz_kvm_setup_syzos_vm$x86(r1, &(0x7f0000000000/0x400000)=nil)
+r3 = syz_kvm_add_vcpu$x86(r2, &AUTO={0x0, &AUTO=[@enable_nested={0x12c, 0x18, 0x0}, @nested_create_vm={0x12d, 0x18, 0x1}, @nested_amd_vmsave={0x183, 0x18, 0x1}, @nested_amd_vmload={0x182, 0x18, 0x1}], 0x0})
+ioctl$KVM_RUN(r3, 0x0, 0x0)

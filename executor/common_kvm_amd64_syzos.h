@@ -38,6 +38,8 @@ typedef enum {
 	SYZOS_API_NESTED_AMD_CLGI = 383,
 	SYZOS_API_NESTED_AMD_INJECT_EVENT = 384,
 	SYZOS_API_NESTED_AMD_SET_INTERCEPT = 385,
+	SYZOS_API_NESTED_AMD_VMLOAD = 386,
+	SYZOS_API_NESTED_AMD_VMSAVE = 387,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -123,6 +125,8 @@ GUEST_CODE static void guest_handle_nested_amd_stgi();
 GUEST_CODE static void guest_handle_nested_amd_clgi();
 GUEST_CODE static void guest_handle_nested_amd_inject_event(struct api_call_5* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_vmload(struct api_call_1* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_amd_vmsave(struct api_call_1* cmd, uint64 cpu_id);
 
 typedef enum {
 	UEXIT_END = (uint64)-1,
@@ -253,6 +257,12 @@ guest_main(uint64 size, uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_AMD_SET_INTERCEPT) {
 			// Set/Clear specific intercept bits in the VMCB.
 			guest_handle_nested_amd_set_intercept((struct api_call_5*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_VMLOAD) {
+			// Execute VMLOAD to load state from VMCB.
+			guest_handle_nested_amd_vmload((struct api_call_1*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_AMD_VMSAVE) {
+			// Execute VMSAVE to save state to VMCB.
+			guest_handle_nested_amd_vmsave((struct api_call_1*)cmd, cpu);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -1390,6 +1400,28 @@ guest_handle_nested_amd_set_intercept(struct api_call_5* cmd, uint64 cpu_id)
 		current &= ~((uint32)bit_mask);
 
 	vmcb_write32(vmcb_addr, (uint16)offset, current);
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_vmload(struct api_call_1* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+	uint64 vm_id = cmd->arg;
+	uint64 vmcb_pa = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+
+	asm volatile("vmload %%rax" ::"a"(vmcb_pa) : "memory");
+}
+
+GUEST_CODE static noinline void
+guest_handle_nested_amd_vmsave(struct api_call_1* cmd, uint64 cpu_id)
+{
+	if (get_cpu_vendor() != CPU_VENDOR_AMD)
+		return;
+	uint64 vm_id = cmd->arg;
+	uint64 vmcb_pa = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+
+	asm volatile("vmsave %%rax" ::"a"(vmcb_pa) : "memory");
 }
 
 #endif // EXECUTOR_COMMON_KVM_AMD64_SYZOS_H
