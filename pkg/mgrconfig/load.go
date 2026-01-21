@@ -438,13 +438,17 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 		}
 	} else {
 		for _, call := range target.Syscalls {
-			if call.Attrs.Snapshot && (descriptionsMode&SnapshotDescriptions) == 0 {
-				continue
-			}
 			syscalls[call.ID] = true
 		}
 	}
-
+	if descriptionsMode&SnapshotDescriptions == 0 {
+		// Drop snapshot calls in the non-snapshot mode.
+		for _, call := range target.Syscalls {
+			if call.Attrs.Snapshot {
+				delete(syscalls, call.ID)
+			}
+		}
+	}
 	for call := range syscalls {
 		if target.Syscalls[call].Attrs.Disabled ||
 			(descriptionsMode&AutoDescriptions) == 0 && target.Syscalls[call].Attrs.Automatic ||

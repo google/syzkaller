@@ -110,8 +110,7 @@ Call attributes are:
 	string argument is a fsck-like command that will be called to verify the filesystem.
 "remote_cover": wait longer to collect remote coverage for this call.
 "kfuzz_test": the call is a kfuzztest target.
-"snapshot": the call is enabled by default only in snapshot fuzzing mode,
-	but "enable_syscalls" and "disable_syscalls" config parameters override this.
+"snapshot": the call can only be enabled in snapshot fuzzing mode.
 	It is generally used to mark calls that are not safe to execute in non-snapshot mode
 	(can lead to false positives, or lost connections to test machines.
 ```
