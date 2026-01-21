@@ -4,6 +4,9 @@
 package codesearch
 
 import (
+	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -13,6 +16,10 @@ import (
 
 type Database struct {
 	Definitions []*Definition `json:"definitions,omitempty"`
+
+	mergeCache   map[string]*Definition
+	reverseCache map[*Definition]string
+	stringCache  map[string]string
 }
 
 type Definition struct {
@@ -52,19 +59,43 @@ var DatabaseFormatHash = func() string {
 	return hash.String(schema, semanticVersion)
 }()
 
-func (db *Database) Merge(other *Database) {
-	db.Definitions = append(db.Definitions, other.Definitions...)
-}
-
-func (db *Database) Finalize(v *clangtool.Verifier) {
-	db.Definitions = clangtool.SortAndDedupSlice(db.Definitions)
-
-	for _, def := range db.Definitions {
+func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
+	if db.mergeCache == nil {
+		db.mergeCache = make(map[string]*Definition)
+		db.reverseCache = make(map[*Definition]string)
+		db.stringCache = make(map[string]string)
+	}
+	for _, def := range other.Definitions {
+		id := fmt.Sprintf("%v-%v-%v", def.Kind, def.Name, def.Body.File)
+		if _, ok := db.mergeCache[id]; ok {
+			continue
+		}
+		db.mergeCache[id] = def
+		db.reverseCache[def] = id
 		v.LineRange(def.Body.File, def.Body.StartLine, def.Body.EndLine)
 		if def.Comment.File != "" {
 			v.LineRange(def.Comment.File, def.Comment.StartLine, def.Comment.EndLine)
 		}
+		db.intern(&def.Kind)
+		db.intern(&def.Name)
+		db.intern(&def.Type)
+		db.intern(&def.Body.File)
+		db.intern(&def.Comment.File)
+		for _, ref := range def.Refs {
+			db.intern(&ref.Kind)
+			db.intern(&ref.Name)
+			db.intern(&ref.EntityKind)
+		}
 	}
+}
+
+func (db *Database) Finalize(v *clangtool.Verifier) {
+	db.Definitions = slices.Collect(maps.Values(db.mergeCache))
+	slices.SortFunc(db.Definitions, func(a, b *Definition) int {
+		return strings.Compare(db.reverseCache[a], db.reverseCache[b])
+	})
+	db.mergeCache = nil
+	db.reverseCache = nil
 }
 
 // SetSoureFile attaches the source file to the entities that need it.
@@ -77,4 +108,16 @@ func (db *Database) SetSourceFile(file string, updatePath func(string) string) {
 			def.IsStatic = false
 		}
 	}
+}
+
+func (db *Database) intern(str *string) {
+	if *str == "" {
+		return
+	}
+	v, ok := db.stringCache[*str]
+	if !ok {
+		v = strings.Clone(*str)
+		db.stringCache[v] = v
+	}
+	*str = v
 }
