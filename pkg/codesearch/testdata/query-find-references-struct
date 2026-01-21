@@ -1,0 +1,15 @@
+find-references source0.c some_struct "" 1 10
+
+some_struct has 2 references:
+
+function func_accepting_a_struct uses it at source0.c:29
+  29:	int func_accepting_a_struct(struct some_struct* p)
+  30:	{
+
+
+function func_accepting_a_struct uses it at source0.c:31
+  30:	{
+  31:		return ((some_struct_t*)p)->x +
+  32:		       ((union some_union*)p)->x;
+
+

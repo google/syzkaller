@@ -23,6 +23,43 @@
 		},
 		{
 			"kind": "function",
+			"name": "func_accepting_a_struct",
+			"type": "int (struct some_struct *)",
+			"body": {
+				"file": "source0.c",
+				"start_line": 29,
+				"end_line": 33
+			},
+			"comment": {},
+			"refs": [
+				{
+					"kind": "uses",
+					"entity_kind": "struct",
+					"name": "some_struct",
+					"line": 29
+				},
+				{
+					"kind": "uses",
+					"entity_kind": "typedef",
+					"name": "some_struct_t",
+					"line": 31
+				},
+				{
+					"kind": "uses",
+					"entity_kind": "struct",
+					"name": "some_struct",
+					"line": 31
+				},
+				{
+					"kind": "uses",
+					"entity_kind": "union",
+					"name": "some_union",
+					"line": 32
+				}
+			]
+		},
+		{
+			"kind": "function",
 			"name": "func_in_header",
 			"type": "int ()",
 			"is_static": true,
