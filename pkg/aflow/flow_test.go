@@ -422,6 +422,8 @@ func TestToolMisbehavior(t *testing.T) {
 					},
 				},
 			},
+			// LLM tries to get away w/o answering anything.
+			genai.NewPartFromText(""),
 			genai.NewPartFromText("Finally done"),
 		},
 	)
