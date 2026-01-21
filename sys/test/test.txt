@@ -1002,3 +1002,8 @@ test$consume_common(val common)
 test$consume_subtype_of_common(val subtype_of_common)
 
 test$fsck_attr() (fsck["fsck.test -n"])
+
+test$snapshot_only(a0 intptr) (snapshot)
+test$automatic(a0 intptr) (automatic)
+test$automatic_helper(a0 intptr) (automatic_helper)
+test$manual(a0 intptr)

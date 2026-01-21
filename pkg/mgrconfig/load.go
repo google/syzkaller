@@ -427,7 +427,11 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 		for _, c := range enabled {
 			n := 0
 			for _, call := range target.Syscalls {
-				if MatchSyscall(call.Name, c) {
+				if !MatchSyscall(call.Name, c) {
+					continue
+				}
+				// Skip snapshot attr check for the calls that match exactly.
+				if checkMode(call, descriptionsMode, call.Name != c) {
 					syscalls[call.ID] = true
 					n++
 				}
@@ -438,18 +442,14 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 		}
 	} else {
 		for _, call := range target.Syscalls {
-			if call.Attrs.Snapshot && (descriptionsMode&SnapshotDescriptions) == 0 {
+			if !checkMode(call, descriptionsMode, true) {
 				continue
 			}
 			syscalls[call.ID] = true
 		}
 	}
-
 	for call := range syscalls {
-		if target.Syscalls[call].Attrs.Disabled ||
-			(descriptionsMode&AutoDescriptions) == 0 && target.Syscalls[call].Attrs.Automatic ||
-			(descriptionsMode&ManualDescriptions) == 0 &&
-				!target.Syscalls[call].Attrs.Automatic && !target.Syscalls[call].Attrs.AutomaticHelper {
+		if target.Syscalls[call].Attrs.Disabled {
 			delete(syscalls, call)
 		}
 	}
@@ -473,6 +473,24 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string,
 		arr = append(arr, id)
 	}
 	return arr, nil
+}
+
+func checkMode(syscall *prog.Syscall, descriptionsMode DescriptionsMode,
+	checkSnapshot bool) bool {
+	if syscall.Attrs.Automatic &&
+		(descriptionsMode&AutoDescriptions) == 0 {
+		return false
+	}
+	if !syscall.Attrs.Automatic &&
+		!syscall.Attrs.AutomaticHelper &&
+		(descriptionsMode&ManualDescriptions) == 0 {
+		return false
+	}
+	if checkSnapshot && syscall.Attrs.Snapshot &&
+		(descriptionsMode&SnapshotDescriptions) == 0 {
+		return false
+	}
+	return true
 }
 
 func ParseNoMutateSyscalls(target *prog.Target, syscalls []string) (map[int]bool, error) {
