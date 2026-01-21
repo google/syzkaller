@@ -31,3 +31,7 @@ int func_accepting_a_struct(struct some_struct* p)
 	return ((some_struct_t*)p)->x +
 	       ((union some_union*)p)->x;
 }
+
+void function_with_quotes_in_type(void __attribute__((btf_type_tag("user"))) *)
+{
+}

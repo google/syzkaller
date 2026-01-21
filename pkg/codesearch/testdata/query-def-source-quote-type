@@ -1,0 +1,7 @@
+def-source source0.c function_with_quotes_in_type yes
+
+function function_with_quotes_in_type is defined in source0.c:
+
+  35:	void function_with_quotes_in_type(void __attribute__((btf_type_tag("user"))) *)
+  36:	{
+  37:	}

@@ -5,5 +5,6 @@ file source0.c defines the following entities:
 function close
 function func_accepting_a_struct
 function function_with_comment_in_header
+function function_with_quotes_in_type
 function open
 struct struct_in_c_file
