@@ -44,11 +44,19 @@ static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 	uint64 expect = a1;
 
 	if (!run) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] Assertion Triggered: run is NULL\n");
+#endif
 		errno = EINVAL;
 		return -1;
 	}
 
 	if (run->exit_reason != expect) {
+#if !SYZ_EXECUTOR
+		fprintf(stderr, "[SYZOS-DEBUG] KVM Exit Reason Mismatch\n");
+		fprintf(stderr, "   Expected: 0x%lx\n", (unsigned long)expect);
+		fprintf(stderr, "   Actual:   0x%lx\n", (unsigned long)run->exit_reason);
+#endif
 		errno = EDOM;
 		return -1;
 	}
