@@ -4,6 +4,7 @@
 package lintertest
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -151,4 +152,25 @@ func anyInterface() interface{} {	// want "Use any instead of interface{}"
 	var y any
 	func(any) {} (y)
 	return v
+}
+
+func contextArgsGood1(ctx context.Context) {
+}
+
+func contextArgsBad1(c context.Context) { // want "Context variable must be named 'ctx'"
+}
+
+func contextArgsBad2(a int, ctx context.Context) { // want "Context must be the first argument"
+}
+
+func contextArgsGood2(ctx context.Context, a int) {
+}
+
+func TestContextArgsGood(t *testing.T, ctx context.Context) {
+}
+
+func TestContextArgsBad1(t *testing.T, c context.Context) { // want "Context variable must be named 'ctx'"
+}
+
+func TestContextArgsBad2(t *testing.T, a int, ctx context.Context) { // want "Context must be the second argument"
 }

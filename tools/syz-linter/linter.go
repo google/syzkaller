@@ -68,6 +68,7 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkStringLenCompare(n)
 			case *ast.FuncDecl:
 				pass.checkFuncArgs(n)
+				pass.checkContextArgs(n)
 			case *ast.CallExpr:
 				pass.checkFlagDefinition(n)
 				pass.checkLogErrorFormat(n)
@@ -227,6 +228,43 @@ func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 		}
 	}
 	pass.report(fields[first], "Use '%v %v'", names[2:], pass.typ(fields[first].Type))
+}
+
+func (pass *Pass) checkContextArgs(n *ast.FuncDecl) {
+	if n.Type.Params == nil {
+		return
+	}
+	expectedCtxPos := 0
+	if len(n.Type.Params.List) > 0 {
+		firstField := n.Type.Params.List[0]
+		if strings.HasSuffix(pass.typ(firstField.Type), "*testing.T") {
+			expectedCtxPos = 1
+		}
+	}
+	for fieldPos, field := range n.Type.Params.List {
+		isContext := pass.typ(field.Type) == "context.Context"
+		if isContext {
+			if fieldPos != expectedCtxPos {
+				if expectedCtxPos == 0 {
+					pass.report(field, "Context must be the first argument")
+				} else {
+					pass.report(field, "Context must be the second argument")
+				}
+			}
+			// Every type group may have a few variables.
+			if len(field.Names) > 1 {
+				// A few contexts are passed to the function
+				// It is very rare. Let's use nolint:syz-linter to opt-out.
+				pass.report(field, "multiple Contexts are passed, use nolint:syz-linter")
+			}
+			if len(field.Names) == 1 {
+				name := field.Names[0]
+				if name.Name != "ctx" && name.Name != "_" {
+					pass.report(name, "Context variable must be named 'ctx' or '_'")
+				}
+			}
+		}
+	}
 }
 
 func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
