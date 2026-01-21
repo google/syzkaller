@@ -19,7 +19,7 @@ func main() {
 		flagKernelSrc = flag.String("kernel-src", "", "path to kernel source directory (mandatory)")
 		flagKernelObj = flag.String("kernel-obj", "", "path to kernel build directory (mandatory)")
 	)
-	flag.Parse()
+	defer tool.Init()()
 	if len(flag.Args()) == 0 || *flagDatabase == "" || *flagKernelSrc == "" || *flagKernelObj == "" {
 		printUsageAndExit()
 	}
