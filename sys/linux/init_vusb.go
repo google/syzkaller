@@ -160,10 +160,10 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0763, 0x0150},
 			// Test if this covers midi.c | grep USB_VID_VENDOR
 			{0x0582, 0x0582},
-			//sound/usb/card.c
+			// sound/usb/card.c
 			{0x18d1, 0x2d04},
 			{0x18d1, 0x2d05},
-			//sound/usb/format.c
+			// sound/usb/format.c
 			{0x0582, 0x0016},
 			{0x0582, 0x000c},
 			{0x0d8c, 0x0201},
@@ -187,7 +187,7 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0e41, 0x3020},
 			{0x0e41, 0x3061},
 			{0x0a67, 0x5011},
-			//sound/usb/mixer_quirks.c
+			// sound/usb/mixer_quirks.c
 			{0x041e, 0x3000},
 			{0x041e, 0x3020},
 			{0x041e, 0x3040},
