@@ -1,9 +1,9 @@
 {
 	"definitions": [
 		{
-			"kind": "function",
 			"name": "long_func_with_ref",
 			"type": "void ()",
+			"kind": "function",
 			"body": {
 				"file": "refs.c",
 				"start_line": 23,
@@ -12,77 +12,77 @@
 			"comment": {},
 			"refs": [
 				{
+					"name": "refs0",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs0",
 					"line": 25
 				},
 				{
+					"name": "refs1",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs1",
 					"line": 26
 				},
 				{
+					"name": "refs0",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs0",
 					"line": 27
 				},
 				{
+					"name": "refs1",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs1",
 					"line": 28
 				},
 				{
+					"name": "refs2",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs2",
 					"line": 29
 				},
 				{
+					"name": "refs1",
 					"kind": "takes-address-of",
 					"entity_kind": "function",
-					"name": "refs1",
 					"line": 29
 				},
 				{
+					"name": "refs0",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs0",
 					"line": 29
 				},
 				{
+					"name": "refs0",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs0",
 					"line": 30
 				},
 				{
+					"name": "refs1",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs1",
 					"line": 31
 				},
 				{
+					"name": "refs0",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs0",
 					"line": 32
 				},
 				{
+					"name": "refs1",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs1",
 					"line": 33
 				}
 			]
 		},
 		{
-			"kind": "function",
 			"name": "refs0",
 			"type": "int ()",
+			"kind": "function",
 			"body": {
 				"file": "refs.c",
 				"start_line": 4,
@@ -95,9 +95,9 @@
 			}
 		},
 		{
-			"kind": "function",
 			"name": "refs1",
 			"type": "void ()",
+			"kind": "function",
 			"body": {
 				"file": "refs.c",
 				"start_line": 9,
@@ -106,9 +106,9 @@
 			"comment": {}
 		},
 		{
-			"kind": "function",
 			"name": "refs2",
 			"type": "void (void (*)(), int)",
+			"kind": "function",
 			"body": {
 				"file": "refs.c",
 				"start_line": 13,
@@ -117,9 +117,9 @@
 			"comment": {}
 		},
 		{
-			"kind": "function",
 			"name": "refs3",
 			"type": "void ()",
+			"kind": "function",
 			"body": {
 				"file": "refs.c",
 				"start_line": 17,
@@ -128,27 +128,27 @@
 			"comment": {},
 			"refs": [
 				{
+					"name": "refs2",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs2",
 					"line": 19
 				},
 				{
-					"kind": "takes-address-of",
-					"entity_kind": "function",
 					"name": "refs1",
-					"line": 19
-				},
-				{
-					"kind": "calls",
-					"entity_kind": "function",
-					"name": "refs0",
-					"line": 19
-				},
-				{
 					"kind": "takes-address-of",
 					"entity_kind": "function",
+					"line": 19
+				},
+				{
+					"name": "refs0",
+					"kind": "calls",
+					"entity_kind": "function",
+					"line": 19
+				},
+				{
 					"name": "refs2",
+					"kind": "takes-address-of",
+					"entity_kind": "function",
 					"line": 20
 				}
 			]

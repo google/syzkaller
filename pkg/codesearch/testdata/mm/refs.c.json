@@ -1,9 +1,9 @@
 {
 	"definitions": [
 		{
-			"kind": "function",
 			"name": "ref_in_mm",
 			"type": "void ()",
+			"kind": "function",
 			"body": {
 				"file": "mm/refs.c",
 				"start_line": 3,
@@ -12,9 +12,9 @@
 			"comment": {},
 			"refs": [
 				{
+					"name": "refs2",
 					"kind": "calls",
 					"entity_kind": "function",
-					"name": "refs2",
 					"line": 5
 				}
 			]

@@ -1,9 +1,9 @@
 {
 	"definitions": [
 		{
-			"kind": "function",
 			"name": "same_name_in_several_files",
 			"type": "void ()",
+			"kind": "function",
 			"body": {
 				"file": "source2.c",
 				"start_line": 4,
