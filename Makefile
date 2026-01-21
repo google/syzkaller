@@ -242,8 +242,8 @@ bin/syz-extract:
 
 codesearch: bin/syz-codesearch
 
-bin/syz-codesearch: tools/clang/codesearch/codesearch.cpp
-	$(CXX) -Itools/clang $(shell llvm-config --cxxflags) -o $@ $< \
+bin/syz-codesearch: tools/clang/codesearch/* tools/clang/*
+	$(CXX) -Itools/clang $(shell llvm-config --cxxflags) -O2 -o $@ $< \
 		-lclangTooling -lclangFrontend -lclangSerialization -lclangDriver \
 		-lclangToolingCore -lclangParse -lclangSema -lclangAPINotes -lclangAnalysis \
 		-lclangASTMatchers -lclangRewrite -lclangEdit -lclangAST -lclangLex -lclangBasic -lclangSupport \
