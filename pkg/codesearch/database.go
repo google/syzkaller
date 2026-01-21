@@ -4,6 +4,7 @@
 package codesearch
 
 import (
+	"bytes"
 	"fmt"
 	"maps"
 	"slices"
@@ -23,7 +24,7 @@ type Database struct {
 }
 
 type Definition struct {
-	Kind     string      `json:"kind,omitempty"`
+	Kind     EntityKind  `json:"kind,omitempty"`
 	Name     string      `json:"name,omitempty"`
 	Type     string      `json:"type,omitempty"`
 	IsStatic bool        `json:"is_static,omitempty"`
@@ -33,16 +34,110 @@ type Definition struct {
 }
 
 type Reference struct {
-	Kind       string `json:"kind,omitempty"`
-	EntityKind string `json:"entity_kind,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Line       int    `json:"line,omitempty"`
+	Kind       RefKind    `json:"kind,omitempty"`
+	EntityKind EntityKind `json:"entity_kind,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	Line       int        `json:"line,omitempty"`
 }
 
 type LineRange struct {
 	File      string `json:"file,omitempty"`
 	StartLine int    `json:"start_line,omitempty"`
 	EndLine   int    `json:"end_line,omitempty"`
+}
+
+type EntityKind uint8
+
+const (
+	entityKindInvalid EntityKind = iota
+	EntityKindFunction
+	EntityKindStruct
+	EntityKindUnion
+	EntityKindVariable
+	EntityKindMacro
+	EntityKindEnum
+	EntityKindTypedef
+	entityKindLast
+)
+
+var entityKindNames = [...]string{
+	EntityKindFunction: "function",
+	EntityKindStruct:   "struct",
+	EntityKindUnion:    "union",
+	EntityKindVariable: "variable",
+	EntityKindMacro:    "macro",
+	EntityKindEnum:     "enum",
+	EntityKindTypedef:  "typedef",
+}
+
+var entityKindBytes = func() [entityKindLast][]byte {
+	var ret [entityKindLast][]byte
+	for k, v := range entityKindNames {
+		ret[k] = []byte("\"" + v + "\"")
+	}
+	return ret
+}()
+
+func (v *EntityKind) String() string {
+	return entityKindNames[*v]
+}
+
+func (v *EntityKind) MarshalJSON() ([]byte, error) {
+	return entityKindBytes[*v], nil
+}
+
+func (v *EntityKind) UnmarshalJSON(data []byte) error {
+	*v = entityKindInvalid
+	for k, val := range entityKindBytes {
+		if bytes.Equal(data, val) {
+			*v = EntityKind(k)
+			break
+		}
+	}
+	return nil
+}
+
+type RefKind uint8
+
+const (
+	refKindInvalid RefKind = iota
+	RefKindUses
+	RefKindCall
+	RefKindTakesAddr
+	refKindLast
+)
+
+var refKindNames = [...]string{
+	RefKindUses:      "uses",
+	RefKindCall:      "calls",
+	RefKindTakesAddr: "takes-address-of",
+}
+
+var refKindBytes = func() [refKindLast][]byte {
+	var ret [refKindLast][]byte
+	for k, v := range refKindNames {
+		ret[k] = []byte("\"" + v + "\"")
+	}
+	return ret
+}()
+
+func (v *RefKind) String() string {
+	return refKindNames[*v]
+}
+
+func (v *RefKind) MarshalJSON() ([]byte, error) {
+	return refKindBytes[*v], nil
+}
+
+func (v *RefKind) UnmarshalJSON(data []byte) error {
+	*v = refKindInvalid
+	for k, val := range refKindBytes {
+		if bytes.Equal(data, val) {
+			*v = RefKind(k)
+			break
+		}
+	}
+	return nil
 }
 
 // DatabaseFormatHash contains a hash uniquely identifying format of the database.
@@ -76,15 +171,12 @@ func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
 		if def.Comment.File != "" {
 			v.LineRange(def.Comment.File, def.Comment.StartLine, def.Comment.EndLine)
 		}
-		db.intern(&def.Kind)
 		db.intern(&def.Name)
 		db.intern(&def.Type)
 		db.intern(&def.Body.File)
 		db.intern(&def.Comment.File)
 		for _, ref := range def.Refs {
-			db.intern(&ref.Kind)
 			db.intern(&ref.Name)
-			db.intern(&ref.EntityKind)
 		}
 	}
 }

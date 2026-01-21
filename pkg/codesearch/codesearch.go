@@ -206,7 +206,7 @@ func (index *Index) FileIndex(file string) ([]Entity, error) {
 	for _, def := range index.db.Definitions {
 		if def.Body.File == file {
 			entities = append(entities, Entity{
-				Kind: def.Kind,
+				Kind: def.Kind.String(),
 				Name: def.Name,
 			})
 		}
@@ -243,7 +243,7 @@ func (index *Index) definitionSource(contextFile, name string, comment, includeL
 	}
 	return &EntityInfo{
 		File: def.Body.File,
-		Kind: def.Kind,
+		Kind: def.Kind.String(),
 		Body: src,
 	}, nil
 }
@@ -299,9 +299,9 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 				}
 			}
 			results = append(results, ReferenceInfo{
-				ReferencingEntityKind: def.Kind,
+				ReferencingEntityKind: def.Kind.String(),
 				ReferencingEntityName: def.Name,
-				ReferenceKind:         ref.Kind,
+				ReferenceKind:         ref.Kind.String(),
 				SourceFile:            def.Body.File,
 				SourceLine:            ref.Line,
 				SourceSnippet:         snippet,
