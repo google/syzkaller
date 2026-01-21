@@ -17,25 +17,27 @@ type Span struct {
 	Seq int
 	// Nesting represents hierarchical relation between spans.
 	// For example, SpanTool spans within SpanAgent have +1 nesting level.
-	Nesting  int
-	Type     SpanType
-	Name     string // flow/action/tool name
-	Model    string // LLM model name for agent/LLM spans
+	Nesting int
+	Type    SpanType
+	Name    string // flow/action/tool name
+	// LLM model name for agent/LLM spans.
+	Model    string `json:",omitzero"`
 	Started  time.Time
-	Finished time.Time
-	Error    string // relevant if Finished is set
+	Finished time.Time `json:",omitzero"`
+	// Relevant if Finished is set.
+	Error string `json:",omitzero"`
 
 	// Args/results for actions/tools.
-	Args    map[string]any
-	Results map[string]any
+	Args    map[string]any `json:",omitzero"`
+	Results map[string]any `json:",omitzero"`
 
 	// Agent invocation.
-	Instruction string
-	Prompt      string
-	Reply       string
+	Instruction string `json:",omitzero"`
+	Prompt      string `json:",omitzero"`
+	Reply       string `json:",omitzero"`
 
 	// LLM invocation.
-	Thoughts string
+	Thoughts string `json:",omitzero"`
 }
 
 type SpanType string

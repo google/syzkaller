@@ -1,0 +1,976 @@
+[
+	{
+		"Model": "model1",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "You are smarty. baz\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 1 description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBar": {
+										"description": "bar",
+										"type": "integer"
+									},
+									"ArgFoo": {
+										"description": "foo",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ArgFoo",
+									"ArgBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									},
+									"ResString": {
+										"description": "string",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ResFoo",
+									"ResString"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 2 description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ArgBaz"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResBaz"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz func-output"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "You are smarty. baz\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 1 description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBar": {
+										"description": "bar",
+										"type": "integer"
+									},
+									"ArgFoo": {
+										"description": "foo",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ArgFoo",
+									"ArgBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									},
+									"ResString": {
+										"description": "string",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ResFoo",
+									"ResString"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 2 description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ArgBaz"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResBaz"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz func-output"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"ArgBar": 100,
+								"ArgFoo": "arg-foo"
+							},
+							"name": "tool1"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"ArgBaz": 101
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"text": "I am thinking I need to call some tools",
+						"thought": true
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"name": "tool1",
+							"response": {
+								"ResFoo": 200,
+								"ResString": "res-string"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tool2",
+							"response": {
+								"ResBaz": 300
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model1",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "You are smarty. baz\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 1 description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBar": {
+										"description": "bar",
+										"type": "integer"
+									},
+									"ArgFoo": {
+										"description": "foo",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ArgFoo",
+									"ArgBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									},
+									"ResString": {
+										"description": "string",
+										"type": "string"
+									}
+								},
+								"required": [
+									"ResFoo",
+									"ResString"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 2 description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ArgBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ArgBaz"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResBaz": {
+										"description": "baz",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResBaz"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AgentBar": {
+										"description": "bar",
+										"type": "string"
+									},
+									"AgentFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AgentFoo",
+									"AgentBar"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz func-output"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"ArgBar": 100,
+								"ArgFoo": "arg-foo"
+							},
+							"name": "tool1"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"ArgBaz": 101
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"text": "I am thinking I need to call some tools",
+						"thought": true
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"name": "tool1",
+							"response": {
+								"ResFoo": 200,
+								"ResString": "res-string"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tool2",
+							"response": {
+								"ResBaz": 300
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"AgentBar": "agent-bar",
+								"AgentFoo": 42
+							},
+							"name": "set-results"
+						}
+					},
+					{
+						"text": "Completly blank.",
+						"thought": true
+					},
+					{
+						"text": "Whatever.",
+						"thought": true
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "set-results",
+							"response": {
+								"AgentBar": "agent-bar",
+								"AgentFoo": 42
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model2",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model2",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"SwarmInt": 1,
+								"SwarmStr": "swarm1"
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "set-results",
+							"response": {
+								"SwarmInt": 1,
+								"SwarmStr": "swarm1"
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model2",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model2",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something. baz\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"SwarmInt": {
+										"description": "swarm-int",
+										"type": "integer"
+									},
+									"SwarmStr": {
+										"description": "swarm-str",
+										"type": "string"
+									}
+								},
+								"required": [
+									"SwarmInt",
+									"SwarmStr"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"SwarmInt": 2,
+								"SwarmStr": "swarm2"
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "set-results",
+							"response": {
+								"SwarmInt": 2,
+								"SwarmStr": "swarm2"
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model3",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Aggregate!"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt: baz\n#0: swarm candidate 1\n#1: swarm candidate 2\n\n#0: 1\n#1: 2\n\n#0: swarm1\n#1: swarm2\n\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

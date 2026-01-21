@@ -1,0 +1,138 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 1 description",
+							"name": "faulty",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"CallError": {
+										"description": "call error",
+										"type": "boolean"
+									}
+								},
+								"required": [
+									"CallError"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool 1 description",
+							"name": "faulty",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"CallError": {
+										"description": "call error",
+										"type": "boolean"
+									}
+								},
+								"required": [
+									"CallError"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id0",
+							"args": {
+								"CallError": true
+							},
+							"name": "faulty"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id0",
+							"name": "faulty",
+							"response": {
+								"error": "you are wrong"
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
