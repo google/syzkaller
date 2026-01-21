@@ -8,3 +8,8 @@
 void function_with_comment_in_header();
 
 void same_name_in_several_files();
+
+static inline int func_in_header()
+{
+	return 0;
+}

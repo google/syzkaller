@@ -312,18 +312,25 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 }
 
 func (index *Index) findDefinition(contextFile, name string) *Definition {
-	var weakMatch *Definition
+	var weakMatch, veryWeakMatch *Definition
 	for _, def := range index.db.Definitions {
-		if def.Name == name {
-			if def.Body.File == contextFile {
-				return def
-			}
-			if !def.IsStatic {
-				weakMatch = def
-			}
+		if def.Name != name {
+			continue
 		}
+		if def.Body.File == contextFile {
+			return def
+		}
+		// Strictly speaking there may be several different static functions in different headers,
+		// but we ignore such possibility for now.
+		if !def.IsStatic || strings.HasSuffix(def.Body.File, ".h") {
+			weakMatch = def
+		}
+		veryWeakMatch = def
 	}
-	return weakMatch
+	if weakMatch != nil {
+		return weakMatch
+	}
+	return veryWeakMatch
 }
 
 func (index *Index) formatSource(lines LineRange, includeLines bool) (string, error) {
