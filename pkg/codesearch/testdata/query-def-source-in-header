@@ -1,0 +1,8 @@
+def-source source0.c func_in_header yes
+
+function func_in_header is defined in source0.h:
+
+  12:	static inline int func_in_header()
+  13:	{
+  14:		return 0;
+  15:	}

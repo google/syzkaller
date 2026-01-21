@@ -13,6 +13,18 @@
 		},
 		{
 			"kind": "function",
+			"name": "func_in_header",
+			"type": "int ()",
+			"is_static": true,
+			"body": {
+				"file": "source0.h",
+				"start_line": 12,
+				"end_line": 15
+			},
+			"comment": {}
+		},
+		{
+			"kind": "function",
 			"name": "function_with_comment_in_header",
 			"type": "void ()",
 			"body": {
