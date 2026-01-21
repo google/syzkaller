@@ -7,11 +7,16 @@
 #include "json.h"
 #include <vector>
 
+// Note: these string names are exposed all way to LLMs,
+// so keep them readable and meaningful.
+
 constexpr char EntityKindFunction[] = "function";
 constexpr char EntityKindStruct[] = "struct";
+constexpr char EntityKindUnion[] = "union";
 constexpr char EntityKindVariable[] = "variable";
 constexpr char EntityKindMacro[] = "macro";
 constexpr char EntityKindEnum[] = "enum";
+constexpr char EntityKindTypedef[] = "typedef";
 
 constexpr char RefKindCall[] = "calls";
 constexpr char RefKindTakesAddr[] = "takes-address-of";

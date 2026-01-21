@@ -1,0 +1,7 @@
+def-source source0.c typedefed_struct_t yes
+
+typedef typedefed_struct_t is defined in source0.h:
+
+  32:	typedef struct {
+  33:		int x;
+  34:	} typedefed_struct_t;

@@ -2,10 +2,10 @@ find-references source0.c same_name_in_several_files "" 3 10
 
 same_name_in_several_files has 1 references:
 
-function function_with_comment_in_header calls it at source0.c:21
-  19:	void function_with_comment_in_header()
-  20:	{
-  21:		same_name_in_several_files();
-  22:	}
+function function_with_comment_in_header calls it at source0.c:26
+  24:	void function_with_comment_in_header()
+  25:	{
+  26:		same_name_in_several_files();
+  27:	}
 
 

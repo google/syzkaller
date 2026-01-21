@@ -2,10 +2,10 @@ def-source source0.c open yes
 
 function open is defined in source0.c:
 
-   6:	/*
-   7:	 * Comment about open.
-   8:	 */
-   9:	int open()
-  10:	{
-  11:		return 0;
-  12:	}
+  11:	/*
+  12:	 * Comment about open.
+  13:	 */
+  14:	int open()
+  15:	{
+  16:		return 0;
+  17:	}

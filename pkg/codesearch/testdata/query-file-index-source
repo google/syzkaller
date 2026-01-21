@@ -5,3 +5,4 @@ file source0.c defines the following entities:
 function close
 function function_with_comment_in_header
 function open
+struct struct_in_c_file

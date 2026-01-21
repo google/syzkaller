@@ -3,6 +3,11 @@
 
 #include "source0.h"
 
+struct struct_in_c_file {
+	int X;
+	struct some_struct by_value;
+};
+
 /*
  * Comment about open.
  */
