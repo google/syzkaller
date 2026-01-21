@@ -1,0 +1,907 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 1,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool1Arg": {
+										"description": "arg",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Tool1Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool2Arg": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Tool2Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 1,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool1Arg": {
+										"description": "arg",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Tool1Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool2Arg": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Tool2Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Tool1Arg": "string"
+							},
+							"name": "tool1"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"Tool2Arg": "string-instead-of-int"
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Tool2Arg": 0,
+								"Tool2Arg2": 100
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id5",
+							"args": {
+								"Arg": 0
+							},
+							"name": "tool3"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id6",
+							"args": {
+								"WrongArg": 0
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tool1"
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "tool2",
+							"response": {
+								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "tool2",
+							"response": {
+								"error": "missing argument \"Tool2Arg\""
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "tool2",
+							"response": {
+								"Result": 42
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id5",
+							"name": "tool3",
+							"response": {
+								"error": "tool \"tool3\" does not exist, please correct the name"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id6",
+							"name": "set-results",
+							"response": {
+								"error": "missing argument \"AdditionalOutput\""
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 1,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool1Arg": {
+										"description": "arg",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Tool1Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool2Arg": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Tool2Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Tool1Arg": "string"
+							},
+							"name": "tool1"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"Tool2Arg": "string-instead-of-int"
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Tool2Arg": 0,
+								"Tool2Arg2": 100
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id5",
+							"args": {
+								"Arg": 0
+							},
+							"name": "tool3"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id6",
+							"args": {
+								"WrongArg": 0
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tool1"
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "tool2",
+							"response": {
+								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "tool2",
+							"response": {
+								"error": "missing argument \"Tool2Arg\""
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "tool2",
+							"response": {
+								"Result": 42
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id5",
+							"name": "tool3",
+							"response": {
+								"error": "tool \"tool3\" does not exist, please correct the name"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id6",
+							"name": "set-results",
+							"response": {
+								"error": "missing argument \"AdditionalOutput\""
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "I am done"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 1,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool1",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool1Arg": {
+										"description": "arg",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Tool1Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool description",
+							"name": "tool2",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Tool2Arg": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Tool2Arg"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"AdditionalOutput": {
+										"description": "arg",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"AdditionalOutput"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"Tool1Arg": "string"
+							},
+							"name": "tool1"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"Tool2Arg": "string-instead-of-int"
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Tool2Arg": 0,
+								"Tool2Arg2": 100
+							},
+							"name": "tool2"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id5",
+							"args": {
+								"Arg": 0
+							},
+							"name": "tool3"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id6",
+							"args": {
+								"WrongArg": 0
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tool1"
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "tool2",
+							"response": {
+								"error": "argument \"Tool2Arg\" has wrong type: got string, want int"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "tool2",
+							"response": {
+								"error": "missing argument \"Tool2Arg\""
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "tool2",
+							"response": {
+								"Result": 42
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id5",
+							"name": "tool3",
+							"response": {
+								"error": "tool \"tool3\" does not exist, please correct the name"
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id6",
+							"name": "set-results",
+							"response": {
+								"error": "missing argument \"AdditionalOutput\""
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "I am done"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "You did not call set-results tool.\nPlease call set-results tool to provide results of the analysis.\n"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"args": {
+								"AdditionalOutput": 1
+							},
+							"name": "set-results"
+						}
+					},
+					{
+						"functionCall": {
+							"id": "id2",
+							"args": {
+								"AdditionalOutput": 2
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "set-results",
+							"response": {
+								"AdditionalOutput": 1
+							}
+						}
+					},
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "set-results",
+							"response": {
+								"AdditionalOutput": 2
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
