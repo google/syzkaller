@@ -15,7 +15,7 @@ import (
 	aemail "google.golang.org/appengine/v2/mail"
 )
 
-func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http.Request) error {
+func handleInvalidateBisection(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	encodedKey := r.FormValue("key")
 	if encodedKey == "" {
 		return fmt.Errorf("mandatory parameter key is missing")
@@ -25,7 +25,7 @@ func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http
 		return fmt.Errorf("failed to decode job key %v: %w", encodedKey, err)
 	}
 
-	err = invalidateBisection(c, jobKey, r.FormValue("restart") == "1")
+	err = invalidateBisection(ctx, jobKey, r.FormValue("restart") == "1")
 	if err != nil {
 		return fmt.Errorf("failed to invalidate job %v: %w", jobKey, err)
 	}
@@ -41,15 +41,15 @@ func handleInvalidateBisection(c context.Context, w http.ResponseWriter, r *http
 // To use it, first make a backup of the db. Then, specify the target
 // namespace in the ns variable, connect the function to a handler, invoke it
 // and double check the output. Finally, set dryRun to false and invoke again.
-func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) error {
+func dropNamespace(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	ns := "non-existent"
 	dryRun := true
 	if !dryRun {
-		log.Criticalf(c, "dropping namespace %v", ns)
+		log.Criticalf(ctx, "dropping namespace %v", ns)
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "dropping namespace %v\n", ns)
-	if err := dropNamespaceReportingState(c, w, ns, dryRun); err != nil {
+	if err := dropNamespaceReportingState(ctx, w, ns, dryRun); err != nil {
 		return err
 	}
 	type Entity struct {
@@ -74,7 +74,7 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 		keys, err := db.NewQuery(entity.name).
 			Filter("Namespace=", ns).
 			KeysOnly().
-			GetAll(c, nil)
+			GetAll(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -85,27 +85,27 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 				keys1, err := db.NewQuery(entity.child).
 					Ancestor(key).
 					KeysOnly().
-					GetAll(c, nil)
+					GetAll(ctx, nil)
 				if err != nil {
 					return err
 				}
 				childKeys = append(childKeys, keys1...)
 			}
 			fmt.Fprintf(w, "  %v: %v\n", entity.child, len(childKeys))
-			if err := dropEntities(c, childKeys, dryRun); err != nil {
+			if err := dropEntities(ctx, childKeys, dryRun); err != nil {
 				return err
 			}
 		}
-		if err := dropEntities(c, keys, dryRun); err != nil {
+		if err := dropEntities(ctx, keys, dryRun); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns string, dryRun bool) error {
-	tx := func(c context.Context) error {
-		state, err := loadReportingState(c)
+func dropNamespaceReportingState(ctx context.Context, w http.ResponseWriter, ns string, dryRun bool) error {
+	tx := func(ctx context.Context) error {
+		state, err := loadReportingState(ctx)
 		if err != nil {
 			return err
 		}
@@ -116,23 +116,23 @@ func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns st
 			}
 		}
 		if !dryRun {
-			if err := saveReportingState(c, newState); err != nil {
+			if err := saveReportingState(ctx, newState); err != nil {
 				return err
 			}
 		}
 		fmt.Fprintf(w, "ReportingState: %v\n", len(state.Entries)-len(newState.Entries))
 		return nil
 	}
-	return runInTransaction(c, tx, nil)
+	return runInTransaction(ctx, tx, nil)
 }
 
-func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
+func dropEntities(ctx context.Context, keys []*db.Key, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
 	for len(keys) != 0 {
 		batch := min(len(keys), 100)
-		if err := db.DeleteMulti(c, keys[:batch]); err != nil {
+		if err := db.DeleteMulti(ctx, keys[:batch]); err != nil {
 			return err
 		}
 		keys = keys[batch:]
@@ -140,8 +140,8 @@ func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
 	return nil
 }
 
-func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func restartFailedBisections(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	ns := r.FormValue("ns")
@@ -152,7 +152,7 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 	var jobKeys []*db.Key
 	jobKeys, err := db.NewQuery("Job").
 		Filter("Finished>", time.Time{}).
-		GetAll(c, &jobs)
+		GetAll(ctx, &jobs)
 	if err != nil {
 		return fmt.Errorf("failed to query jobs: %w", err)
 	}
@@ -167,7 +167,7 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 		if job.Error == 0 {
 			continue
 		}
-		errorTextBytes, _, err := getText(c, textError, job.Error)
+		errorTextBytes, _, err := getText(ctx, textError, job.Error)
 		if err != nil {
 			return fmt.Errorf("failed to query error text: %w", err)
 		}
@@ -179,7 +179,7 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 		return nil
 	}
 	for idx, jobKey := range toReset {
-		err = invalidateBisection(c, jobKey, true)
+		err = invalidateBisection(ctx, jobKey, true)
 		if err != nil {
 			fmt.Fprintf(w, "job %v update failed: %s", idx, err)
 		}
@@ -194,8 +194,8 @@ func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.R
 // This can be used to migrate datastore to a new config with more reporting stages.
 // This functionality is intentionally not connected to any handler.
 // Before invoking it is recommended to stop all connected instances just in case.
-func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func updateBugReporting(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	ns := r.FormValue("ns")
@@ -205,12 +205,12 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
-		GetAll(c, &bugs)
+		GetAll(ctx, &bugs)
 	if err != nil {
 		return err
 	}
-	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
-	cfg := getNsConfig(c, ns)
+	log.Warningf(ctx, "fetched %v bugs for namespce %v", len(bugs), ns)
+	cfg := getNsConfig(ctx, ns)
 	var update []*db.Key
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {
@@ -218,8 +218,8 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		}
 		update = append(update, keys[i])
 	}
-	return updateBatch(c, update, func(_ *db.Key, bug *Bug) {
-		err := bug.updateReportings(c, cfg, timeNow(c))
+	return updateBatch(ctx, update, func(_ *db.Key, bug *Bug) {
+		err := bug.updateReportings(ctx, cfg, timeNow(ctx))
 		if err != nil {
 			panic(err)
 		}
@@ -229,8 +229,8 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 // updateCrashPriorities regenerates priorities for crashes.
 // This has become necessary after the "dashboard: support per-Manager priority" commit.
 // For now, the method only considers the crashes referenced from bug origin.
-func updateCrashPriorities(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func updateCrashPriorities(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	ns := r.FormValue("ns")
@@ -240,7 +240,7 @@ func updateCrashPriorities(c context.Context, w http.ResponseWriter, r *http.Req
 	bugsCount := 0
 	bugPerKey := map[string]*Bug{}
 	var crashKeys []*db.Key
-	if err := foreachBug(c, func(query *db.Query) *db.Query {
+	if err := foreachBug(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen).Filter("Namespace=", ns)
 	}, func(bug *Bug, key *db.Key) error {
 		bugsCount++
@@ -250,49 +250,49 @@ func updateCrashPriorities(c context.Context, w http.ResponseWriter, r *http.Req
 			crashIDs[item.CrashID] = struct{}{}
 		}
 		for crashID := range crashIDs {
-			crashKeys = append(crashKeys, db.NewKey(c, "Crash", "", crashID, key))
+			crashKeys = append(crashKeys, db.NewKey(ctx, "Crash", "", crashID, key))
 		}
 		bugPerKey[key.String()] = bug
 		return nil
 	}); err != nil {
 		return err
 	}
-	log.Warningf(c, "fetched %d bugs and %v crash keys to update", bugsCount, len(crashKeys))
-	return updateBatch(c, crashKeys, func(key *db.Key, crash *Crash) {
+	log.Warningf(ctx, "fetched %d bugs and %v crash keys to update", bugsCount, len(crashKeys))
+	return updateBatch(ctx, crashKeys, func(key *db.Key, crash *Crash) {
 		bugKey := key.Parent()
 		bug := bugPerKey[bugKey.String()]
-		build, err := loadBuild(c, ns, crash.BuildID)
+		build, err := loadBuild(ctx, ns, crash.BuildID)
 		if build == nil || err != nil {
 			panic(fmt.Sprintf("err: %s, build: %v", err, build))
 		}
-		crash.UpdateReportingPriority(c, build, bug)
+		crash.UpdateReportingPriority(ctx, build, bug)
 	})
 }
 
 // setMissingBugFields makes sure all Bug entity fields are present in the database.
 // The problem is that, in Datastore, sorting/filtering on a field will only return entries
 // where that field is present.
-func setMissingBugFields(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func setMissingBugFields(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	var keys []*db.Key
 	// Query everything.
-	err := foreachBug(c, nil, func(bug *Bug, key *db.Key) error {
+	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
 		keys = append(keys, key)
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	log.Warningf(c, "fetched %v bugs for update", len(keys))
+	log.Warningf(ctx, "fetched %v bugs for update", len(keys))
 	// Save everything unchanged.
-	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {})
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {})
 }
 
 // adminSendEmail can be used to send an arbitrary message from the bot.
-func adminSendEmail(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func adminSendEmail(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	msg := &aemail.Message{
@@ -300,24 +300,24 @@ func adminSendEmail(c context.Context, w http.ResponseWriter, r *http.Request) e
 		To:     []string{r.FormValue("to")},
 		Body:   r.FormValue("body"),
 	}
-	return sendEmail(c, msg)
+	return sendEmail(ctx, msg)
 }
 
-func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if accessLevel(c, r) != AccessAdmin {
+func updateHeadReproLevel(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(ctx, r) != AccessAdmin {
 		return fmt.Errorf("admin only")
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	var keys []*db.Key
 	newLevels := map[string]dashapi.ReproLevel{}
-	if err := foreachBug(c, func(query *db.Query) *db.Query {
+	if err := foreachBug(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen)
 	}, func(bug *Bug, key *db.Key) error {
 		if len(bug.Commits) > 0 {
 			return nil
 		}
 		actual := ReproLevelNone
-		reproCrashes, _, err := queryCrashesForBug(c, key, 2)
+		reproCrashes, _, err := queryCrashesForBug(ctx, key, 2)
 		if err != nil {
 			return fmt.Errorf("failed to fetch crashes with repro: %w", err)
 		}
@@ -334,16 +334,17 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 			}
 		}
 		if actual != bug.HeadReproLevel {
-			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n", bugLink(bug.keyHash(c)), actual, bug.HeadReproLevel)
-			newLevels[bug.keyHash(c)] = actual
+			fmt.Fprintf(w, "%v: HeadReproLevel mismatch, actual=%d db=%d\n",
+				bugLink(bug.keyHash(ctx)), actual, bug.HeadReproLevel)
+			newLevels[bug.keyHash(ctx)] = actual
 			keys = append(keys, key)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	return updateBatch(c, keys, func(_ *db.Key, bug *Bug) {
-		newLevel, ok := newLevels[bug.keyHash(c)]
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
+		newLevel, ok := newLevels[bug.keyHash(ctx)]
 		if !ok {
 			panic("fetched unknown bug")
 		}
@@ -351,27 +352,27 @@ func updateHeadReproLevel(c context.Context, w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func updateBatch[T any](c context.Context, keys []*db.Key, transform func(key *db.Key, item *T)) error {
+func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key *db.Key, item *T)) error {
 	for len(keys) != 0 {
 		batchSize := min(len(keys), 20)
 		batchKeys := keys[:batchSize]
 		keys = keys[batchSize:]
 
-		tx := func(c context.Context) error {
+		tx := func(ctx context.Context) error {
 			items := make([]*T, len(batchKeys))
-			if err := db.GetMulti(c, batchKeys, items); err != nil {
+			if err := db.GetMulti(ctx, batchKeys, items); err != nil {
 				return err
 			}
 			for i, item := range items {
 				transform(batchKeys[i], item)
 			}
-			_, err := db.PutMulti(c, batchKeys, items)
+			_, err := db.PutMulti(ctx, batchKeys, items)
 			return err
 		}
-		if err := runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+		if err := runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
-		log.Warningf(c, "updated %v bugs", len(batchKeys))
+		log.Warningf(ctx, "updated %v bugs", len(batchKeys))
 	}
 	return nil
 }

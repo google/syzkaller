@@ -73,21 +73,21 @@ type Context struct {
 	buildSem chan bool
 }
 
-func (ctx *Context) Init() {
+func (rt *Context) Init() {
 	// Run usually runs in a separate goroutine concurrently with request consumer (Next calls),
 	// so at least executor needs to be initialized before Run.
-	ctx.executor = queue.DynamicOrder()
-	ctx.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
+	rt.executor = queue.DynamicOrder()
+	rt.buildSem = make(chan bool, runtime.GOMAXPROCS(0))
 }
 
-func (ctx *Context) log(msg string, args ...any) {
-	ctx.LogFunc(fmt.Sprintf(msg, args...))
+func (rt *Context) log(msg string, args ...any) {
+	rt.LogFunc(fmt.Sprintf(msg, args...))
 }
 
-func (ctx *Context) Run(waitCtx context.Context) error {
-	ctx.generatePrograms()
+func (rt *Context) Run(ctx context.Context) error {
+	rt.generatePrograms()
 	var ok, fail, broken, skip int
-	for _, req := range ctx.requests {
+	for _, req := range rt.requests {
 		result := ""
 		verbose := false
 		if req.broken != "" {
@@ -103,7 +103,7 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
 			verbose = true
 		} else {
-			req.Request.Wait(waitCtx)
+			req.Request.Wait(ctx)
 			if req.err != nil {
 				fail++
 				result = fmt.Sprintf("FAIL: %v",
@@ -117,25 +117,25 @@ func (ctx *Context) Run(waitCtx context.Context) error {
 				result = "OK"
 			}
 		}
-		if !verbose || ctx.Verbose {
-			ctx.log("%-38v: %v", req.name, result)
+		if !verbose || rt.Verbose {
+			rt.log("%-38v: %v", req.name, result)
 		}
 		if req.Request != nil && req.Type == flatrpc.RequestTypeBinary && req.BinaryFile != "" {
 			os.Remove(req.BinaryFile)
 		}
 	}
-	ctx.log("ok: %v, broken: %v, skip: %v, fail: %v", ok, broken, skip, fail)
+	rt.log("ok: %v, broken: %v, skip: %v, fail: %v", ok, broken, skip, fail)
 	if fail != 0 {
 		return fmt.Errorf("tests failed")
 	}
 	return nil
 }
 
-func (ctx *Context) Next() *queue.Request {
-	return ctx.executor.Next()
+func (rt *Context) Next() *queue.Request {
+	return rt.executor.Next()
 }
 
-func (ctx *Context) onDone(req *runRequest, res *queue.Result) bool {
+func (rt *Context) onDone(req *runRequest, res *queue.Result) bool {
 	// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
 	// We don't want to fix this by significantly bumping all timeouts,
 	// because if a program fails all the time with the default timeouts,
@@ -163,37 +163,37 @@ func (ctx *Context) onDone(req *runRequest, res *queue.Result) bool {
 	}
 	// We need at least `failed - ok + 1` more runs <=> `failed + ok + need` in total,
 	// which simplifies to `failed * 2 + 1`.
-	retries := ctx.Retries
+	retries := rt.Retries
 	if retries%2 == 0 {
 		retries++
 	}
 	if req.failed*2+1 <= retries {
 		// We can still retry the execution.
-		ctx.submit(req)
+		rt.submit(req)
 		return false
 	}
 	// Give up and fail on this request.
 	return true
 }
 
-func (ctx *Context) generatePrograms() error {
+func (rt *Context) generatePrograms() error {
 	cover := []bool{false}
-	if ctx.Features&flatrpc.FeatureCoverage != 0 {
+	if rt.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
 	}
 	var sandboxes []string
-	for sandbox := range ctx.EnabledCalls {
+	for sandbox := range rt.EnabledCalls {
 		sandboxes = append(sandboxes, sandbox)
 	}
 	sort.Strings(sandboxes)
-	files, err := progFileList(ctx.Dir, ctx.Tests)
+	files, err := progFileList(rt.Dir, rt.Tests)
 	if err != nil {
 		return err
 	}
 	for _, file := range files {
-		if err := ctx.generateFile(sandboxes, cover, file); err != nil {
+		if err := rt.generateFile(sandboxes, cover, file); err != nil {
 			// Treat invalid programs as failing.
-			ctx.createTest(&runRequest{
+			rt.createTest(&runRequest{
 				name:    file,
 				failing: err.Error(),
 			})
@@ -220,21 +220,21 @@ func progFileList(dir, filter string) ([]string, error) {
 	return res, nil
 }
 
-func (ctx *Context) generateFile(sandboxes []string, cover []bool, filename string) error {
-	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename, nil)
+func (rt *Context) generateFile(sandboxes []string, cover []bool, filename string) error {
+	p, requires, results, err := parseProg(rt.Target, rt.Dir, filename, nil)
 	if err != nil {
 		return err
 	}
 	if p == nil {
 		return nil
 	}
-	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
+	sysTarget := targets.Get(rt.Target.OS, rt.Target.Arch)
 nextSandbox:
 	for _, sandbox := range sandboxes {
 		name := fmt.Sprintf("%v %v", filename, sandbox)
 		for _, call := range p.Calls {
-			if !ctx.EnabledCalls[sandbox][call.Meta] {
-				ctx.createTest(&runRequest{
+			if !rt.EnabledCalls[sandbox][call.Meta] {
+				rt.createTest(&runRequest{
 					name: name,
 					skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
 				})
@@ -242,10 +242,10 @@ nextSandbox:
 			}
 		}
 		properties := map[string]bool{
-			"manual":                  ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
-			"sandbox=" + sandbox:      true,
-			"bigendian":               sysTarget.BigEndian,
-			"arch=" + ctx.Target.Arch: true,
+			"manual":                 rt.Tests != "", // "manual" tests run only if selected by the filter explicitly.
+			"sandbox=" + sandbox:     true,
+			"bigendian":              sysTarget.BigEndian,
+			"arch=" + rt.Target.Arch: true,
 		}
 		for _, threaded := range []bool{false, true} {
 			if threaded {
@@ -271,11 +271,11 @@ nextSandbox:
 					properties["cover"] = cov
 					properties["C"] = false
 					properties["executor"] = true
-					req, err := ctx.createSyzTest(p, sandbox, threaded, cov)
+					req, err := rt.createSyzTest(p, sandbox, threaded, cov)
 					if err != nil {
 						return err
 					}
-					ctx.produceTest(req, name, properties, requires, results)
+					rt.produceTest(req, name, properties, requires, results)
 				}
 				if sysTarget.HostFuzzer {
 					// For HostFuzzer mode, we need to cross-compile
@@ -287,17 +287,17 @@ nextSandbox:
 				name += " C"
 				if !sysTarget.ExecutorUsesForkServer && times > 1 {
 					// Non-fork loop implementation does not support repetition.
-					ctx.createTest(&runRequest{
+					rt.createTest(&runRequest{
 						name:   name,
 						broken: "non-forking loop",
 					})
 					continue
 				}
-				req, err := ctx.createCTest(p, sandbox, threaded, times)
+				req, err := rt.createCTest(p, sandbox, threaded, times)
 				if err != nil {
 					return err
 				}
-				ctx.produceTest(req, name, properties, requires, results)
+				rt.produceTest(req, name, properties, requires, results)
 			}
 		}
 	}
@@ -368,37 +368,37 @@ func parseProg(target *prog.Target, dir, filename string, requires map[string]bo
 	return p, properties, info, nil
 }
 
-func (ctx *Context) produceTest(req *runRequest, name string, properties,
+func (rt *Context) produceTest(req *runRequest, name string, properties,
 	requires map[string]bool, results *flatrpc.ProgInfo) {
 	req.name = name
 	req.results = results
 	if !manager.MatchRequirements(properties, requires) {
 		req.skip = "excluded by constraints"
 	}
-	ctx.createTest(req)
+	rt.createTest(req)
 }
 
-func (ctx *Context) createTest(req *runRequest) {
-	req.executor = ctx.executor.Append()
-	ctx.requests = append(ctx.requests, req)
+func (rt *Context) createTest(req *runRequest) {
+	req.executor = rt.executor.Append()
+	rt.requests = append(rt.requests, req)
 	if req.skip != "" || req.broken != "" || req.failing != "" {
 		return
 	}
 	if req.sourceOpts == nil {
-		ctx.submit(req)
+		rt.submit(req)
 		return
 	}
 	go func() {
-		ctx.buildSem <- true
+		rt.buildSem <- true
 		defer func() {
-			<-ctx.buildSem
+			<-rt.buildSem
 		}()
 		src, err := csource.Write(req.Prog, *req.sourceOpts)
 		if err != nil {
 			req.err = fmt.Errorf("failed to create C source: %w", err)
 			req.Request.Done(&queue.Result{})
 		}
-		bin, err := csource.Build(ctx.Target, src)
+		bin, err := csource.Build(rt.Target, src)
 		if err != nil {
 			req.err = fmt.Errorf("failed to build C program: %w", err)
 			req.Request.Done(&queue.Result{})
@@ -406,18 +406,18 @@ func (ctx *Context) createTest(req *runRequest) {
 		}
 		req.Type = flatrpc.RequestTypeBinary
 		req.BinaryFile = bin
-		ctx.submit(req)
+		rt.submit(req)
 	}()
 }
 
-func (ctx *Context) submit(req *runRequest) {
+func (rt *Context) submit(req *runRequest) {
 	req.OnDone(func(_ *queue.Request, res *queue.Result) bool {
-		return ctx.onDone(req, res)
+		return rt.onDone(req, res)
 	})
 	req.executor.Submit(req.Request)
 }
 
-func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool) (*runRequest, error) {
+func (rt *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool) (*runRequest, error) {
 	var opts flatrpc.ExecOpts
 	sandboxFlags, err := flatrpc.SandboxToFlags(sandbox)
 	if err != nil {
@@ -432,8 +432,8 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		opts.ExecFlags |= flatrpc.ExecFlagCollectSignal
 		opts.ExecFlags |= flatrpc.ExecFlagCollectCover
 	}
-	opts.EnvFlags |= csource.FeaturesToFlags(ctx.Features, nil)
-	if ctx.Debug {
+	opts.EnvFlags |= csource.FeaturesToFlags(rt.Features, nil)
+	if rt.Debug {
 		opts.EnvFlags |= flatrpc.ExecEnvDebug
 	}
 	req := &runRequest{
@@ -445,7 +445,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	return req, nil
 }
 
-func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, times int) (*runRequest, error) {
+func (rt *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, times int) (*runRequest, error) {
 	opts := csource.Options{
 		Threaded:    threaded,
 		Repeat:      times > 1,
@@ -457,22 +457,22 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		HandleSegv:  true,
 		Cgroups:     p.Target.OS == targets.Linux && sandbox != "",
 		Trace:       true,
-		Swap:        ctx.Features&flatrpc.FeatureSwap != 0,
+		Swap:        rt.Features&flatrpc.FeatureSwap != 0,
 	}
 	if sandbox != "" {
-		if ctx.Features&flatrpc.FeatureNetInjection != 0 {
+		if rt.Features&flatrpc.FeatureNetInjection != 0 {
 			opts.NetInjection = true
 		}
-		if ctx.Features&flatrpc.FeatureNetDevices != 0 {
+		if rt.Features&flatrpc.FeatureNetDevices != 0 {
 			opts.NetDevices = true
 		}
-		if ctx.Features&flatrpc.FeatureVhciInjection != 0 {
+		if rt.Features&flatrpc.FeatureVhciInjection != 0 {
 			opts.VhciInjection = true
 		}
-		if ctx.Features&flatrpc.FeatureWifiEmulation != 0 {
+		if rt.Features&flatrpc.FeatureWifiEmulation != 0 {
 			opts.Wifi = true
 		}
-		if ctx.Features&flatrpc.FeatureLRWPANEmulation != 0 {
+		if rt.Features&flatrpc.FeatureLRWPANEmulation != 0 {
 			opts.IEEE802154 = true
 		}
 	}

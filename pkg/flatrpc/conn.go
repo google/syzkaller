@@ -45,11 +45,11 @@ func Listen(addr string) (*Serv, error) {
 
 // Serve accepts incoming connections and calls handler for each of them.
 // An error returned from the handler stops the server and aborts the whole processing.
-func (s *Serv) Serve(baseCtx context.Context, handler func(context.Context, *Conn) error) error {
-	eg, ctx := errgroup.WithContext(baseCtx)
+func (s *Serv) Serve(ctx context.Context, handler func(context.Context, *Conn) error) error {
+	eg, groupCtx := errgroup.WithContext(ctx)
 	go func() {
 		// If the context is cancelled, stop the server.
-		<-ctx.Done()
+		<-groupCtx.Done()
 		s.Close()
 	}()
 	for {
@@ -66,7 +66,7 @@ func (s *Serv) Serve(baseCtx context.Context, handler func(context.Context, *Con
 			continue
 		}
 		eg.Go(func() error {
-			connCtx, cancel := context.WithCancel(ctx)
+			connCtx, cancel := context.WithCancel(groupCtx)
 			defer cancel()
 
 			c := NewConn(conn)

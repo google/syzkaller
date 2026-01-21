@@ -263,7 +263,7 @@ type FileMergeResult struct {
 	*MergeResult
 }
 
-func MergeCSVData(c context.Context, config *Config, reader io.Reader, results chan<- *FileMergeResult) error {
+func MergeCSVData(ctx context.Context, config *Config, reader io.Reader, results chan<- *FileMergeResult) error {
 	var schema []string
 	csvReader := csv.NewReader(reader)
 	if fields, err := csvReader.Read(); err != nil {
@@ -295,13 +295,13 @@ func MergeCSVData(c context.Context, config *Config, reader io.Reader, results c
 				return
 			}
 			select {
-			case <-c.Done():
+			case <-ctx.Done():
 				return
 			case recordsChan <- record:
 			}
 		}
 	}()
-	errMerging := mergeChanData(c, config, recordsChan, results)
+	errMerging := mergeChanData(ctx, config, recordsChan, results)
 	errStream := <-errStreamChan
 	if errMerging != nil || errStream != nil {
 		return fmt.Errorf("errors merging stream data:\nmerger err: %w\nstream reader err: %w",
@@ -315,10 +315,10 @@ type FileRecords struct {
 	records  []*FileRecord
 }
 
-func mergeChanData(c context.Context, cfg *Config, recordChan <-chan *FileRecord, results chan<- *FileMergeResult,
+func mergeChanData(ctx context.Context, cfg *Config, recordChan <-chan *FileRecord, results chan<- *FileMergeResult,
 ) error {
 	g := errgroup.Group{}
-	frecordChan := groupFileRecords(recordChan, c)
+	frecordChan := groupFileRecords(ctx, recordChan)
 
 	for i := 0; i < cfg.Jobs; i++ {
 		g.Go(func() error {
@@ -328,7 +328,7 @@ func mergeChanData(c context.Context, cfg *Config, recordChan <-chan *FileRecord
 					return fmt.Errorf("failed to batchFileData(%s): %w", frecord.fileName, err)
 				}
 				select {
-				case <-c.Done():
+				case <-ctx.Done():
 					return nil
 				case results <- &FileMergeResult{
 					FilePath:    frecord.fileName,
@@ -341,7 +341,7 @@ func mergeChanData(c context.Context, cfg *Config, recordChan <-chan *FileRecord
 	return g.Wait()
 }
 
-func groupFileRecords(recordChan <-chan *FileRecord, ctx context.Context) chan FileRecords {
+func groupFileRecords(ctx context.Context, recordChan <-chan *FileRecord) chan FileRecords {
 	frecordChan := make(chan FileRecords)
 	go func() {
 		defer close(frecordChan)

@@ -32,25 +32,25 @@ type CachedBugStats struct {
 	Invalid int
 }
 
-func CacheGet(c context.Context, r *http.Request, ns string) (*Cached, error) {
-	accessLevel := accessLevel(c, r)
+func CacheGet(ctx context.Context, r *http.Request, ns string) (*Cached, error) {
+	accessLevel := accessLevel(ctx, r)
 	v := new(Cached)
-	_, err := memcache.Gob.Get(c, cacheKey(ns, accessLevel), v)
+	_, err := memcache.Gob.Get(ctx, cacheKey(ns, accessLevel), v)
 	if err != nil && err != memcache.ErrCacheMiss {
 		return nil, err
 	}
 	if err == nil {
 		return v, nil
 	}
-	bugs, _, err := loadNamespaceBugs(c, ns)
+	bugs, _, err := loadNamespaceBugs(ctx, ns)
 	if err != nil {
 		return nil, err
 	}
-	backports, err := loadAllBackports(c, false)
+	backports, err := loadAllBackports(ctx, false)
 	if err != nil {
 		return nil, err
 	}
-	return buildAndStoreCached(c, bugs, backports, ns, accessLevel)
+	return buildAndStoreCached(ctx, bugs, backports, ns, accessLevel)
 }
 
 var cacheAccessLevels = []AccessLevel{AccessPublic, AccessUser, AccessAdmin}
@@ -80,13 +80,13 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackport,
+func buildAndStoreCached(ctx context.Context, bugs []*Bug, backports []*rawBackport,
 	ns string, accessLevel AccessLevel) (*Cached, error) {
 	v := &Cached{
 		Subsystems: make(map[string]CachedBugStats),
 	}
 	for _, bug := range bugs {
-		if bug.Status == BugStatusOpen && accessLevel < bug.sanitizeAccess(c, accessLevel) {
+		if bug.Status == BugStatusOpen && accessLevel < bug.sanitizeAccess(ctx, accessLevel) {
 			continue
 		}
 		v.Total.Record(bug)
@@ -103,7 +103,7 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackpor
 	for _, backport := range backports {
 		outgoing := stringInList(backport.FromNs, ns)
 		for _, info := range backport.Bugs {
-			if accessLevel < info.bug.sanitizeAccess(c, accessLevel) {
+			if accessLevel < info.bug.sanitizeAccess(ctx, accessLevel) {
 				continue
 			}
 			if info.bug.Namespace == ns || outgoing {
@@ -117,7 +117,7 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, backports []*rawBackpor
 		Object:     v,
 		Expiration: 4 * time.Hour, // supposed to be updated by cron every hour
 	}
-	if err := memcache.Gob.Set(c, item); err != nil {
+	if err := memcache.Gob.Set(ctx, item); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -142,8 +142,8 @@ func cacheKey(ns string, accessLevel AccessLevel) string {
 	return fmt.Sprintf("%v-%v", ns, accessLevel)
 }
 
-func CachedBugGroups(c context.Context, ns string, accessLevel AccessLevel) ([]*uiBugGroup, error) {
-	item, err := memcache.Get(c, cachedBugGroupsKey(ns, accessLevel))
+func CachedBugGroups(ctx context.Context, ns string, accessLevel AccessLevel) ([]*uiBugGroup, error) {
+	item, err := memcache.Get(ctx, cachedBugGroupsKey(ns, accessLevel))
 	if err == memcache.ErrCacheMiss {
 		return nil, nil
 	}
@@ -179,17 +179,17 @@ func handleMinuteCacheUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func minuteCacheNsUpdate(c context.Context, ns string) error {
-	bugs, err := loadVisibleBugs(c, ns, nil)
+func minuteCacheNsUpdate(ctx context.Context, ns string) error {
+	bugs, err := loadVisibleBugs(ctx, ns, nil)
 	if err != nil {
 		return err
 	}
-	managers, err := managerList(c, ns)
+	managers, err := managerList(ctx, ns)
 	if err != nil {
 		return err
 	}
 	for _, accessLevel := range cacheAccessLevels {
-		groups, err := prepareBugGroups(c, bugs, managers, accessLevel, ns)
+		groups, err := prepareBugGroups(ctx, bugs, managers, accessLevel, ns)
 		if err != nil {
 			return fmt.Errorf("failed to fetch groups: %w", err)
 		}
@@ -203,39 +203,39 @@ func minuteCacheNsUpdate(c context.Context, ns string) error {
 			Value:      image.Compress(encoded),
 			Expiration: 2 * time.Minute, // supposed to be updated by cron every minute
 		}
-		if err := memcache.Set(c, item); err != nil {
+		if err := memcache.Set(ctx, item); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func CachedManagerList(c context.Context, ns string) ([]string, error) {
-	return cachedObjectList(c,
+func CachedManagerList(ctx context.Context, ns string) ([]string, error) {
+	return cachedObjectList(ctx,
 		fmt.Sprintf("%s-managers-list", ns),
 		time.Minute,
-		func(c context.Context) ([]string, error) {
-			return managerList(c, ns)
+		func(ctx context.Context) ([]string, error) {
+			return managerList(ctx, ns)
 		},
 	)
 }
 
-func CachedUIManagers(c context.Context, accessLevel AccessLevel, ns string,
+func CachedUIManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 	filter *userBugFilter) ([]*uiManager, error) {
-	return cachedObjectList(c,
+	return cachedObjectList(ctx,
 		fmt.Sprintf("%s-%v-%v-ui-managers", ns, accessLevel, filter.Hash()),
 		5*time.Minute,
-		func(c context.Context) ([]*uiManager, error) {
-			return loadManagers(c, accessLevel, ns, filter)
+		func(ctx context.Context) ([]*uiManager, error) {
+			return loadManagers(ctx, accessLevel, ns, filter)
 		},
 	)
 }
 
-func cachedObjectList[T any](c context.Context, key string, period time.Duration,
+func cachedObjectList[T any](ctx context.Context, key string, period time.Duration,
 	load func(context.Context) ([]T, error)) ([]T, error) {
 	// Check if the object is in cache.
 	var obj []T
-	_, err := memcache.Gob.Get(c, key, &obj)
+	_, err := memcache.Gob.Get(ctx, key, &obj)
 	if err == nil {
 		return obj, nil
 	} else if err != memcache.ErrCacheMiss {
@@ -243,7 +243,7 @@ func cachedObjectList[T any](c context.Context, key string, period time.Duration
 	}
 
 	// Load the object.
-	obj, err = load(c)
+	obj, err = load(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func cachedObjectList[T any](c context.Context, key string, period time.Duration
 		Object:     obj,
 		Expiration: period,
 	}
-	if err := memcache.Gob.Set(c, item); err != nil {
+	if err := memcache.Gob.Set(ctx, item); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -283,8 +283,8 @@ func (ri *RequesterInfo) Record(now time.Time, cfg ThrottleConfig) bool {
 
 var ErrThrottleTooManyRetries = errors.New("all attempts to record request failed")
 
-func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
-	cfg := getConfig(c).Throttle
+func ThrottleRequest(ctx context.Context, requesterID string) (bool, error) {
+	cfg := getConfig(ctx).Throttle
 	if cfg.Empty() || requesterID == "" {
 		// No sense to query memcached.
 		return true, nil
@@ -293,10 +293,10 @@ func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 	const attempts = 5
 	for i := 0; i < attempts; i++ {
 		var obj RequesterInfo
-		item, err := memcache.Gob.Get(c, key, &obj)
+		item, err := memcache.Gob.Get(ctx, key, &obj)
 		if err == memcache.ErrCacheMiss {
-			ok := obj.Record(timeNow(c), cfg)
-			err = memcache.Gob.Add(c, &memcache.Item{
+			ok := obj.Record(timeNow(ctx), cfg)
+			err = memcache.Gob.Add(ctx, &memcache.Item{
 				Key:        key,
 				Object:     obj,
 				Expiration: cfg.Window,
@@ -310,10 +310,10 @@ func ThrottleRequest(c context.Context, requesterID string) (bool, error) {
 			return false, err
 		}
 		// Update the existing object.
-		ok := obj.Record(timeNow(c), cfg)
+		ok := obj.Record(timeNow(ctx), cfg)
 		item.Expiration = cfg.Window
 		item.Object = obj
-		err = memcache.Gob.CompareAndSwap(c, item)
+		err = memcache.Gob.CompareAndSwap(ctx, item)
 		if err == memcache.ErrCASConflict || err == memcache.ErrNotStored {
 			if ok {
 				// Only retry if we approved the query.

@@ -18,32 +18,32 @@ import (
 
 // reassignBugSubsystems is expected to be periodically called to refresh old automatic
 // subsystem assignments.
-func reassignBugSubsystems(c context.Context, ns string, count int) error {
-	service := getNsConfig(c, ns).Subsystems.Service
+func reassignBugSubsystems(ctx context.Context, ns string, count int) error {
+	service := getNsConfig(ctx, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
-	bugs, keys, err := bugsToUpdateSubsystems(c, ns, count)
+	bugs, keys, err := bugsToUpdateSubsystems(ctx, ns, count)
 	if err != nil {
 		return err
 	}
-	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
+	log.Infof(ctx, "updating subsystems for %d bugs in %#v", len(keys), ns)
 	rev := service.Revision
 	for i, bugKey := range keys {
 		if bugs[i].hasUserSubsystems() {
 			// It might be that the user-set subsystem no longer exists.
 			// For now let's just log an error in this case.
-			checkOutdatedSubsystems(c, service, bugs[i])
+			checkOutdatedSubsystems(ctx, service, bugs[i])
 			// If we don't set the latst revision, we'll have to update this
 			// bug over and over again.
-			err = updateBugSubsystems(c, bugKey, nil, updateRevision(rev))
+			err = updateBugSubsystems(ctx, bugKey, nil, updateRevision(rev))
 		} else {
 			var list []*subsystem.Subsystem
-			list, err = inferSubsystems(c, bugs[i], bugKey, &debugtracer.NullTracer{})
+			list, err = inferSubsystems(ctx, bugs[i], bugKey, &debugtracer.NullTracer{})
 			if err != nil {
 				return fmt.Errorf("failed to infer subsystems: %w", err)
 			}
-			err = updateBugSubsystems(c, bugKey, list, autoInference(rev))
+			err = updateBugSubsystems(ctx, bugKey, list, autoInference(rev))
 		}
 		if err != nil {
 			return fmt.Errorf("failed to save subsystems: %w", err)
@@ -52,9 +52,9 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 	return nil
 }
 
-func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []*db.Key, error) {
-	now := timeNow(c)
-	rev := getSubsystemService(c, ns).Revision
+func bugsToUpdateSubsystems(ctx context.Context, ns string, count int) ([]*Bug, []*db.Key, error) {
+	now := timeNow(ctx)
+	rev := getSubsystemService(ctx, ns).Revision
 	queries := []*db.Query{
 		// If revision has been updated, first update open bugs.
 		db.NewQuery("Bug").
@@ -83,7 +83,7 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 			break
 		}
 		var tmpBugs []*Bug
-		tmpKeys, err := query.Limit(count).GetAll(c, &tmpBugs)
+		tmpKeys, err := query.Limit(count).GetAll(ctx, &tmpBugs)
 		if err != nil {
 			return nil, nil, fmt.Errorf("query %d failed: %w", i, err)
 		}
@@ -94,10 +94,10 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 	return bugs, keys, nil
 }
 
-func checkOutdatedSubsystems(c context.Context, service *subsystem.Service, bug *Bug) {
+func checkOutdatedSubsystems(ctx context.Context, service *subsystem.Service, bug *Bug) {
 	for _, item := range bug.LabelValues(SubsystemLabel) {
 		if service.ByName(item.Value) == nil {
-			log.Errorf(c, "ns=%s bug=%s subsystem %s no longer exists", bug.Namespace, bug.Title, item.Value)
+			log.Errorf(ctx, "ns=%s bug=%s subsystem %s no longer exists", bug.Namespace, bug.Title, item.Value)
 		}
 	}
 }
@@ -107,14 +107,14 @@ type (
 	updateRevision int
 )
 
-func updateBugSubsystems(c context.Context, bugKey *db.Key,
+func updateBugSubsystems(ctx context.Context, bugKey *db.Key,
 	list []*subsystem.Subsystem, info any) error {
-	now := timeNow(c)
-	return updateSingleBug(c, bugKey, func(bug *Bug) error {
+	now := timeNow(ctx)
+	return updateSingleBug(ctx, bugKey, func(bug *Bug) error {
 		switch v := info.(type) {
 		case autoInference:
-			logSubsystemChange(c, bug, list)
-			bug.SetAutoSubsystems(c, list, now, int(v))
+			logSubsystemChange(ctx, bug, list)
+			bug.SetAutoSubsystems(ctx, list, now, int(v))
 		case updateRevision:
 			bug.SubsystemsRev = int(v)
 			bug.SubsystemsTime = now
@@ -123,7 +123,7 @@ func updateBugSubsystems(c context.Context, bugKey *db.Key,
 	})
 }
 
-func logSubsystemChange(c context.Context, bug *Bug, new []*subsystem.Subsystem) {
+func logSubsystemChange(ctx context.Context, bug *Bug, new []*subsystem.Subsystem) {
 	var oldNames, newNames []string
 	for _, item := range bug.LabelValues(SubsystemLabel) {
 		oldNames = append(oldNames, item.Value)
@@ -134,8 +134,8 @@ func logSubsystemChange(c context.Context, bug *Bug, new []*subsystem.Subsystem)
 	sort.Strings(oldNames)
 	sort.Strings(newNames)
 	if !reflect.DeepEqual(oldNames, newNames) {
-		log.Infof(c, "bug %s: subsystems set from %v to %v",
-			bug.keyHash(c), oldNames, newNames)
+		log.Infof(ctx, "bug %s: subsystems set from %v to %v",
+			bug.keyHash(ctx), oldNames, newNames)
 	}
 }
 
@@ -147,14 +147,14 @@ const (
 )
 
 // inferSubsystems determines the best yet possible estimate of the bug's subsystems.
-func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
+func inferSubsystems(ctx context.Context, bug *Bug, bugKey *db.Key,
 	tracer debugtracer.DebugTracer) ([]*subsystem.Subsystem, error) {
-	service := getSubsystemService(c, bug.Namespace)
+	service := getSubsystemService(ctx, bug.Namespace)
 	if service == nil {
 		// There's nothing we can do.
 		return nil, nil
 	}
-	dbCrashes, dbCrashKeys, err := queryCrashesForBug(c, bugKey, crashesForInference)
+	dbCrashes, dbCrashKeys, err := queryCrashesForBug(ctx, bugKey, crashesForInference)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
 			crash.GuiltyPath = dbCrash.ReportElements.GuiltyFiles[0]
 		}
 		if dbCrash.ReproSyz != 0 {
-			crash.SyzRepro, _, err = getText(c, textReproSyz, dbCrash.ReproSyz)
+			crash.SyzRepro, _, err = getText(ctx, textReproSyz, dbCrash.ReproSyz)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load syz repro for %s: %w",
 					dbCrashKeys[i], err)
@@ -178,8 +178,8 @@ func inferSubsystems(c context.Context, bug *Bug, bugKey *db.Key,
 }
 
 // subsystemMaintainers queries the list of emails to send the bug to.
-func subsystemMaintainers(c context.Context, ns, subsystemName string) []string {
-	service := getNsConfig(c, ns).Subsystems.Service
+func subsystemMaintainers(ctx context.Context, ns, subsystemName string) []string {
+	service := getNsConfig(ctx, ns).Subsystems.Service
 	if service == nil {
 		return nil
 	}
@@ -190,13 +190,13 @@ func subsystemMaintainers(c context.Context, ns, subsystemName string) []string 
 	return item.Emails()
 }
 
-func getSubsystemService(c context.Context, ns string) *subsystem.Service {
-	return getNsConfig(c, ns).Subsystems.Service
+func getSubsystemService(ctx context.Context, ns string) *subsystem.Service {
+	return getNsConfig(ctx, ns).Subsystems.Service
 }
 
-func subsystemListURL(c context.Context, ns string) string {
-	if getNsConfig(c, ns).Subsystems.Service == nil {
+func subsystemListURL(ctx context.Context, ns string) string {
+	if getNsConfig(ctx, ns).Subsystems.Service == nil {
 		return ""
 	}
-	return fmt.Sprintf("%v/%v/subsystems?all=true", appURL(c), ns)
+	return fmt.Sprintf("%v/%v/subsystems?all=true", appURL(ctx), ns)
 }

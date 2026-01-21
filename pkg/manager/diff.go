@@ -150,39 +150,39 @@ const (
 	corpusTriageToMonitor = 0.99
 )
 
-func (dc *diffContext) Loop(baseCtx context.Context) error {
-	g, ctx := errgroup.WithContext(baseCtx)
+func (dc *diffContext) Loop(ctx context.Context) error {
+	g, groupCtx := errgroup.WithContext(ctx)
 	reproLoop := NewReproLoop(dc, dc.new.pool.Total()-dc.new.cfg.FuzzingVMs, false)
 	if dc.http != nil {
 		dc.http.ReproLoop = reproLoop
 		g.Go(func() error {
-			return dc.http.Serve(ctx)
+			return dc.http.Serve(groupCtx)
 		})
 	}
 
 	g.Go(func() error {
 		select {
-		case <-ctx.Done():
+		case <-groupCtx.Done():
 			return nil
-		case <-dc.waitCorpusTriage(ctx, corpusTriageToRepro):
+		case <-dc.waitCorpusTriage(groupCtx, corpusTriageToRepro):
 		case <-dc.cfg.TriageDeadline():
 			log.Logf(0, "timed out waiting for coprus triage")
 		}
 		log.Logf(0, "starting bug reproductions")
-		reproLoop.Loop(ctx)
+		reproLoop.Loop(groupCtx)
 		return nil
 	})
 
-	g.Go(func() error { return dc.monitorPatchedCoverage(ctx) })
-	g.Go(func() error { return dc.base.Loop(ctx) })
-	g.Go(func() error { return dc.new.Loop(ctx) })
+	g.Go(func() error { return dc.monitorPatchedCoverage(groupCtx) })
+	g.Go(func() error { return dc.base.Loop(groupCtx) })
+	g.Go(func() error { return dc.new.Loop(groupCtx) })
 
 	runner := &reproRunner{done: make(chan reproRunnerResult, 2), kernel: dc.base}
 	statTimer := time.NewTicker(5 * time.Minute)
 loop:
 	for {
 		select {
-		case <-ctx.Done():
+		case <-groupCtx.Done():
 			break loop
 		case <-statTimer.C:
 			vals := make(map[string]int)
@@ -193,13 +193,13 @@ loop:
 			log.Logf(0, "STAT %s", data)
 		case rep := <-dc.base.crashes:
 			log.Logf(1, "base crash: %v", rep.Title)
-			dc.reportBaseCrash(ctx, rep)
+			dc.reportBaseCrash(groupCtx, rep)
 		case ret := <-runner.done:
 			// We have run the reproducer on the base instance.
 
 			// A sanity check: the base kernel might have crashed with the same title
 			// since the moment we have stared the reproduction / running on the repro base.
-			ignored := dc.ignoreCrash(ctx, ret.reproReport.Title)
+			ignored := dc.ignoreCrash(groupCtx, ret.reproReport.Title)
 			if ret.crashReport == nil && ignored {
 				// Report it as error so that we could at least find it in the logs.
 				log.Errorf("resulting crash of an approved repro result is to be ignored: %s",
@@ -207,7 +207,7 @@ loop:
 			} else if ret.crashReport == nil {
 				dc.store.BaseNotCrashed(ret.reproReport.Title)
 				select {
-				case <-ctx.Done():
+				case <-groupCtx.Done():
 				case dc.patchedOnly <- &UniqueBug{
 					Report: ret.reproReport,
 					Repro:  ret.repro,
@@ -226,7 +226,7 @@ loop:
 					})
 				}
 			} else {
-				dc.reportBaseCrash(ctx, ret.crashReport)
+				dc.reportBaseCrash(groupCtx, ret.crashReport)
 				log.Logf(0, "crashes both: %s / %s", ret.reproReport.Title, ret.crashReport.Title)
 			}
 		case ret := <-dc.doneRepro:
@@ -239,7 +239,7 @@ loop:
 				log.Logf(1, "found repro for %q (orig title: %q, reliability: %2.f), took %.2f minutes",
 					ret.Repro.Report.Title, origTitle, ret.Repro.Reliability, ret.Stats.TotalTime.Minutes())
 				g.Go(func() error {
-					runner.Run(ctx, ret.Repro, ret.Crash.FullRepro)
+					runner.Run(groupCtx, ret.Repro, ret.Crash.FullRepro)
 					return nil
 				})
 			} else {
@@ -486,27 +486,27 @@ func setup(name string, cfg *mgrconfig.Config, debug bool) (*kernelContext, erro
 	return kernelCtx, nil
 }
 
-func (kc *kernelContext) Loop(baseCtx context.Context) error {
+func (kc *kernelContext) Loop(ctx context.Context) error {
 	defer log.Logf(1, "%s: kernel context loop terminated", kc.name)
 
 	if err := kc.serv.Listen(); err != nil {
 		return fmt.Errorf("failed to start rpc server: %w", err)
 	}
-	eg, ctx := errgroup.WithContext(baseCtx)
-	kc.ctx = ctx
+	eg, groupCtx := errgroup.WithContext(ctx)
+	kc.ctx = groupCtx
 	eg.Go(func() error {
 		defer log.Logf(1, "%s: rpc server terminaled", kc.name)
-		return kc.serv.Serve(ctx)
+		return kc.serv.Serve(groupCtx)
 	})
 	eg.Go(func() error {
 		defer log.Logf(1, "%s: pool terminated", kc.name)
-		kc.pool.Loop(ctx)
+		kc.pool.Loop(groupCtx)
 		return nil
 	})
 	eg.Go(func() error {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-groupCtx.Done():
 				return nil
 			case err := <-kc.pool.BootErrors:
 				title := "unknown"

@@ -22,7 +22,7 @@ var testEmailConfig = emailclient.TestEmailConfig()
 func TestModerationReportFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+	handler, _, emailServer := setupHandlerTest(t, ctx, env, testSeries)
 
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestModerationReportFlow(t *testing.T) {
 func TestReportInvalidationFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+	handler, _, emailServer := setupHandlerTest(t, ctx, env, testSeries)
 
 	report, err := handler.PollAndReport(ctx)
 	require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestReportInvalidationFlow(t *testing.T) {
 func TestInvalidReply(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, _, emailServer := setupHandlerTest(t, env, ctx, testSeries)
+	handler, _, emailServer := setupHandlerTest(t, ctx, env, testSeries)
 
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
@@ -189,7 +189,7 @@ Unknown command
 	})
 }
 
-func setupHandlerTest(t *testing.T, env *app.AppEnvironment, ctx context.Context,
+func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment,
 	series *api.Series) (*Handler, *api.ReporterClient, *fakeSender) {
 	client := controller.TestServer(t, env)
 	controller.FakeSeriesWithFindings(t, ctx, env, client, series)

@@ -114,35 +114,35 @@ type local struct {
 	setupDone chan bool
 }
 
-func (ctx *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {
-	<-ctx.setupDone
-	ctx.serv.TriagedCorpus()
-	return ctx.cfg.MachineChecked(features, syscalls), nil
+func (l *local) MachineChecked(features flatrpc.Feature, syscalls map[*prog.Syscall]bool) (queue.Source, error) {
+	<-l.setupDone
+	l.serv.TriagedCorpus()
+	return l.cfg.MachineChecked(features, syscalls), nil
 }
 
-func (ctx *local) BugFrames() ([]string, []string) {
+func (l *local) BugFrames() ([]string, []string) {
 	return nil, nil
 }
 
-func (ctx *local) MaxSignal() signal.Signal {
-	return signal.FromRaw(ctx.cfg.MaxSignal, 0)
+func (l *local) MaxSignal() signal.Signal {
+	return signal.FromRaw(l.cfg.MaxSignal, 0)
 }
 
-func (ctx *local) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
-	return ctx.cfg.CoverFilter, nil
+func (l *local) CoverageFilter(modules []*vminfo.KernelModule) ([]uint64, error) {
+	return l.cfg.CoverFilter, nil
 }
 
-func (ctx *local) Serve(context context.Context) error {
-	return ctx.serv.Serve(context)
+func (l *local) Serve(ctx context.Context) error {
+	return l.serv.Serve(ctx)
 }
 
-func (ctx *local) RunInstance(baseCtx context.Context, id int) error {
-	connErr := ctx.serv.CreateInstance(id, nil, nil)
-	defer ctx.serv.ShutdownInstance(id, true)
+func (l *local) RunInstance(ctx context.Context, id int) error {
+	connErr := l.serv.CreateInstance(id, nil, nil)
+	defer l.serv.ShutdownInstance(id, true)
 
-	cfg := ctx.cfg
+	cfg := l.cfg
 	bin := cfg.Executor
-	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(ctx.serv.Port())}
+	args := []string{"runner", fmt.Sprint(id), "localhost", fmt.Sprint(l.serv.Port())}
 	if cfg.GDB {
 		bin = "gdb"
 		args = append([]string{
@@ -152,7 +152,7 @@ func (ctx *local) RunInstance(baseCtx context.Context, id int) error {
 			cfg.Executor,
 		}, args...)
 	}
-	cmd := exec.CommandContext(baseCtx, bin, args...)
+	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = cfg.Dir
 	if cfg.OutputWriter != nil {
 		cmd.Stdout = cfg.OutputWriter
@@ -169,7 +169,7 @@ func (ctx *local) RunInstance(baseCtx context.Context, id int) error {
 	}
 	var retErr error
 	select {
-	case <-baseCtx.Done():
+	case <-ctx.Done():
 	case err := <-connErr:
 		if err != nil {
 			retErr = fmt.Errorf("connection error: %w", err)
@@ -181,7 +181,7 @@ func (ctx *local) RunInstance(baseCtx context.Context, id int) error {
 		retErr = fmt.Errorf("executor process exited: %w", err)
 	}
 	// Note that we ignore the error if we killed the process because of the context.
-	if baseCtx.Err() == nil {
+	if ctx.Err() == nil {
 		return retErr
 	}
 	return nil

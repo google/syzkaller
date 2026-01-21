@@ -55,12 +55,12 @@ func (bi *bugInput) bugStatus() (syzbotstats.BugStatus, error) {
 }
 
 // allBugInputs queries the raw data about all bugs from a namespace.
-func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
+func allBugInputs(ctx context.Context, ns string) ([]*bugInput, error) {
 	filter := func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
 	}
 	inputs := []*bugInput{}
-	bugs, bugKeys, err := loadAllBugs(c, filter)
+	bugs, bugKeys, err := loadAllBugs(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +72,14 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 			bugReporting: bugReporting,
 		}
 		if bugReporting.CrashID != 0 {
-			crashKey := db.NewKey(c, "Crash", "", bugReporting.CrashID, bugKeys[i])
+			crashKey := db.NewKey(ctx, "Crash", "", bugReporting.CrashID, bugKeys[i])
 			crashLoader.add(crashKey, func(crash *Crash) {
 				input.reportedCrash = crash
 			})
 		}
 		inputs = append(inputs, input)
 	}
-	if err := crashLoader.load(c); err != nil {
+	if err := crashLoader.load(ctx); err != nil {
 		return nil, fmt.Errorf("failed to fetch crashes: %w", err)
 	}
 	buildLoader := &dependencyLoader[Build]{}
@@ -87,22 +87,22 @@ func allBugInputs(c context.Context, ns string) ([]*bugInput, error) {
 		if input.reportedCrash == nil {
 			continue
 		}
-		buildLoader.add(buildKey(c, ns, input.reportedCrash.BuildID), func(build *Build) {
+		buildLoader.add(buildKey(ctx, ns, input.reportedCrash.BuildID), func(build *Build) {
 			input.build = build
 		})
 	}
-	if err := buildLoader.load(c); err != nil {
+	if err := buildLoader.load(ctx); err != nil {
 		return nil, fmt.Errorf("failed to fetch builds: %w", err)
 	}
 	return inputs, nil
 }
 
 // Circumventing the datastore's multi query limitation.
-func getAllMulti[T any](c context.Context, keys []*db.Key, objects []*T) (*db.Key, error) {
+func getAllMulti[T any](ctx context.Context, keys []*db.Key, objects []*T) (*db.Key, error) {
 	const step = 1000
 	for from := 0; from < len(keys); from += step {
 		to := min(from+step, len(keys))
-		err := db.GetMulti(c, keys[from:to], objects[from:to])
+		err := db.GetMulti(ctx, keys[from:to], objects[from:to])
 		if err == nil {
 			continue
 		}
@@ -121,8 +121,8 @@ func getAllMulti[T any](c context.Context, keys []*db.Key, objects []*T) (*db.Ke
 
 // getBugSummaries extracts the list of BugStatSummary objects among bugs
 // that reached the specific reporting stage.
-func getBugSummaries(c context.Context, ns, stage string) ([]*syzbotstats.BugStatSummary, error) {
-	inputs, err := allBugInputs(c, ns)
+func getBugSummaries(ctx context.Context, ns, stage string) ([]*syzbotstats.BugStatSummary, error) {
+	inputs, err := allBugInputs(ctx, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func getBugSummaries(c context.Context, ns, stage string) ([]*syzbotstats.BugSta
 			obj.ReproTime = crash.Time
 		}
 		if bug.BisectCause == BisectYes {
-			causeBisect, err := queryBestBisection(c, bug, JobBisectCause)
+			causeBisect, err := queryBestBisection(ctx, bug, JobBisectCause)
 			if err != nil {
 				return nil, err
 			}

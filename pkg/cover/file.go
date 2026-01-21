@@ -51,7 +51,7 @@ func RendFileCoverage(repo, forCommit, filePath string, fileProvider covermerger
 }
 
 // nolint:revive
-func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePath string,
+func GetMergeResult(ctx context.Context, ns, repo, forCommit, sourceCommit, filePath string,
 	proxy covermerger.FuncProxyURI, tp coveragedb.TimePeriod) (*covermerger.MergeResult, error) {
 	config := &covermerger.Config{
 		Jobs: 1,
@@ -63,14 +63,14 @@ func GetMergeResult(c context.Context, ns, repo, forCommit, sourceCommit, filePa
 	}
 
 	fromDate, toDate := tp.DatesFromTo()
-	csvReader, err := covermerger.InitNsRecords(c, ns, filePath, sourceCommit, fromDate, toDate)
+	csvReader, err := covermerger.InitNsRecords(ctx, ns, filePath, sourceCommit, fromDate, toDate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to covermerger.InitNsRecords: %w", err)
 	}
 	defer csvReader.Close()
 
 	ch := make(chan *covermerger.FileMergeResult, 1)
-	if err := covermerger.MergeCSVData(c, config, csvReader, ch); err != nil {
+	if err := covermerger.MergeCSVData(ctx, config, csvReader, ch); err != nil {
 		return nil, fmt.Errorf("error merging coverage: %w", err)
 	}
 

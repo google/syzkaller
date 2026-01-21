@@ -35,14 +35,14 @@ func verifyAccessLevel(access AccessLevel) {
 
 var ErrAccess = errors.New("unauthorized")
 
-func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) error {
-	if accessLevel(c, r) >= level {
+func checkAccessLevel(ctx context.Context, r *http.Request, level AccessLevel) error {
+	if accessLevel(ctx, r) >= level {
 		return nil
 	}
-	if u := user.Current(c); u != nil {
+	if u := user.Current(ctx); u != nil {
 		// Log only if user is signed in. Not-signed-in users are redirected to login page.
-		log.Errorf(c, "unauthorized access: %q [%q] access level %v, url %.100s",
-			u.Email, u.AuthDomain, level, getCurrentURL(c))
+		log.Errorf(ctx, "unauthorized access: %q [%q] access level %v, url %.100s",
+			u.Email, u.AuthDomain, level, getCurrentURL(ctx))
 	}
 	return ErrAccess
 }
@@ -57,14 +57,14 @@ func isEmailAuthorized(email string, acls []*ACLItem) (bool, AccessLevel) {
 	return false, AccessPublic
 }
 
-func currentUser(c context.Context) *user.User {
-	u := user.Current(c)
+func currentUser(ctx context.Context) *user.User {
+	u := user.Current(ctx)
 	if u != nil {
 		return u
 	}
 	// Let's ignore err here. In case of the wrong token we'll return nil here (it means AccessPublic).
 	// Bad or expired tokens will also enable throttling and make the authorization problem visible.
-	u, _ = user.CurrentOAuth(c, "https://www.googleapis.com/auth/userinfo.email")
+	u, _ = user.CurrentOAuth(ctx, "https://www.googleapis.com/auth/userinfo.email")
 	return u
 }
 
@@ -75,8 +75,8 @@ func currentUser(c context.Context) *user.User {
 //
 // OAuth2 token is expected to be present in "Authorization" header.
 // Example: "Authorization: Bearer $(gcloud auth print-access-token)".
-func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	_, al := userAccessLevel(currentUser(c), r.FormValue("access"), getConfig(c))
+func accessLevel(ctx context.Context, r *http.Request) AccessLevel {
+	_, al := userAccessLevel(currentUser(ctx), r.FormValue("access"), getConfig(ctx))
 	return al
 }
 
@@ -108,60 +108,60 @@ func userAccessLevel(u *user.User, wantAccess string, config *GlobalConfig) (boo
 	return isEmailAuthorized(u.Email, config.ACL)
 }
 
-func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {
+func checkTextAccess(ctx context.Context, r *http.Request, tag string, id int64) (*Bug, *Crash, error) {
 	switch tag {
 	default:
-		return nil, nil, checkAccessLevel(c, r, AccessAdmin)
+		return nil, nil, checkAccessLevel(ctx, r, AccessAdmin)
 	case textPatch:
-		return nil, nil, checkJobTextAccess(c, r, "Patch", id)
+		return nil, nil, checkJobTextAccess(ctx, r, "Patch", id)
 	case textLog:
-		return nil, nil, checkJobTextAccess(c, r, "Log", id)
+		return nil, nil, checkJobTextAccess(ctx, r, "Log", id)
 	case textError:
-		return nil, nil, checkJobTextAccess(c, r, "Error", id)
+		return nil, nil, checkJobTextAccess(ctx, r, "Error", id)
 	case textKernelConfig:
 		// This is checked based on text namespace.
 		return nil, nil, nil
 	case textCrashLog:
 		// Log and Report can be attached to a Crash or Job.
-		bug, crash, err := checkCrashTextAccess(c, r, "Log", id)
+		bug, crash, err := checkCrashTextAccess(ctx, r, "Log", id)
 		if err == nil || err == ErrAccess {
 			return bug, crash, err
 		}
-		return nil, nil, checkJobTextAccess(c, r, "CrashLog", id)
+		return nil, nil, checkJobTextAccess(ctx, r, "CrashLog", id)
 	case textCrashReport:
-		bug, crash, err := checkCrashTextAccess(c, r, "Report", id)
+		bug, crash, err := checkCrashTextAccess(ctx, r, "Report", id)
 		if err == nil || err == ErrAccess {
 			return bug, crash, err
 		}
-		return nil, nil, checkJobTextAccess(c, r, "CrashReport", id)
+		return nil, nil, checkJobTextAccess(ctx, r, "CrashReport", id)
 	case textReproSyz:
-		return checkCrashTextAccess(c, r, "ReproSyz", id)
+		return checkCrashTextAccess(ctx, r, "ReproSyz", id)
 	case textReproC:
-		return checkCrashTextAccess(c, r, "ReproC", id)
+		return checkCrashTextAccess(ctx, r, "ReproC", id)
 	case textReproLog:
-		bug, crash, err := checkCrashTextAccess(c, r, "ReproLog", id)
+		bug, crash, err := checkCrashTextAccess(ctx, r, "ReproLog", id)
 		if err == nil || err == ErrAccess {
 			return bug, crash, err
 		}
 		// ReproLog might also be referenced from Bug.ReproAttempts.Log
 		// for failed repro attempts, but those are not exposed to non-admins
 		// as of yet, so fallback to normal admin access check.
-		return nil, nil, checkAccessLevel(c, r, AccessAdmin)
+		return nil, nil, checkAccessLevel(ctx, r, AccessAdmin)
 	case textMachineInfo:
 		// MachineInfo is deduplicated, so we can't find the exact crash/bug.
 		// But since machine info is usually the same for all bugs and is not secret,
 		// it's fine to check based on the namespace.
 		return nil, nil, nil
 	case textFsckLog:
-		return checkCrashTextAccess(c, r, "Assets.FsckLog", id)
+		return checkCrashTextAccess(ctx, r, "Assets.FsckLog", id)
 	}
 }
 
-func checkCrashTextAccess(c context.Context, r *http.Request, field string, id int64) (*Bug, *Crash, error) {
+func checkCrashTextAccess(ctx context.Context, r *http.Request, field string, id int64) (*Bug, *Crash, error) {
 	var crashes []*Crash
 	keys, err := db.NewQuery("Crash").
 		Filter(field+"=", id).
-		GetAll(c, &crashes)
+		GetAll(ctx, &crashes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query crashes: %w", err)
 	}
@@ -174,18 +174,18 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 	}
 	crash := crashes[0]
 	bug := new(Bug)
-	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
+	if err := db.Get(ctx, keys[0].Parent(), bug); err != nil {
 		return nil, nil, fmt.Errorf("failed to get bug: %w", err)
 	}
-	bugLevel := bug.sanitizeAccess(c, accessLevel(c, r))
-	return bug, crash, checkAccessLevel(c, r, bugLevel)
+	bugLevel := bug.sanitizeAccess(ctx, accessLevel(ctx, r))
+	return bug, crash, checkAccessLevel(ctx, r, bugLevel)
 }
 
-func checkJobTextAccess(c context.Context, r *http.Request, field string, id int64) error {
+func checkJobTextAccess(ctx context.Context, r *http.Request, field string, id int64) error {
 	keys, err := db.NewQuery("Job").
 		Filter(field+"=", id).
 		KeysOnly().
-		GetAll(c, nil)
+		GetAll(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to query jobs: %w", err)
 	}
@@ -198,15 +198,15 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 		return err
 	}
 	bug := new(Bug)
-	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
+	if err := db.Get(ctx, keys[0].Parent(), bug); err != nil {
 		return fmt.Errorf("failed to get bug: %w", err)
 	}
-	bugLevel := bug.sanitizeAccess(c, accessLevel(c, r))
-	return checkAccessLevel(c, r, bugLevel)
+	bugLevel := bug.sanitizeAccess(ctx, accessLevel(ctx, r))
+	return checkAccessLevel(ctx, r, bugLevel)
 }
 
-func (bug *Bug) sanitizeAccess(c context.Context, currentLevel AccessLevel) AccessLevel {
-	config := getConfig(c)
+func (bug *Bug) sanitizeAccess(ctx context.Context, currentLevel AccessLevel) AccessLevel {
+	config := getConfig(ctx)
 	for ri := len(bug.Reporting) - 1; ri >= 0; ri-- {
 		bugReporting := &bug.Reporting[ri]
 		if ri == 0 || !bugReporting.Reported.IsZero() {

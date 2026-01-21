@@ -340,6 +340,7 @@ func (pi *poolInstance[T]) free(job Runner[T]) {
 	}
 }
 
+//nolint:syz-linter
 func mergeContextCancel(main, monitor context.Context) (context.Context, func()) {
 	withCancel, cancel := context.WithCancel(main)
 	go func() {

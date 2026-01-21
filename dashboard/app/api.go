@@ -80,8 +80,8 @@ var apiHandlers = map[string]APIHandler{
 	"log_to_repro":          nsHandler(apiLogToReproduce),
 }
 
-type JSONHandler func(c context.Context, r *http.Request) (any, error)
-type APIHandler func(c context.Context, payload io.Reader) (any, error)
+type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
+type APIHandler func(ctx context.Context, payload io.Reader) (any, error)
 
 const (
 	maxReproPerBug   = 10
@@ -93,12 +93,12 @@ const (
 )
 
 // Overridable for testing.
-var timeNow = func(c context.Context) time.Time {
+var timeNow = func(ctx context.Context) time.Time {
 	return time.Now()
 }
 
-func timeSince(c context.Context, t time.Time) time.Duration {
-	return timeNow(c).Sub(t)
+func timeSince(ctx context.Context, t time.Time) time.Duration {
+	return timeNow(ctx).Sub(t)
 }
 
 var maxCrashes = func() int {
@@ -108,10 +108,10 @@ var maxCrashes = func() int {
 
 func handleJSON(fn JSONHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := appengine.NewContext(r)
-		reply, err := fn(c, r)
+		ctx := appengine.NewContext(r)
+		reply, err := fn(ctx, r)
 		if err != nil {
-			status := logErrorPrepareStatus(c, err)
+			status := logErrorPrepareStatus(ctx, err)
 			http.Error(w, err.Error(), status)
 			return
 		}
@@ -119,31 +119,31 @@ func handleJSON(fn JSONHandler) http.Handler {
 		wJS := newGzipResponseWriterCloser(w)
 		defer wJS.Close()
 		if err := json.NewEncoder(wJS).Encode(reply); err != nil {
-			log.Errorf(c, "failed to encode reply: %v", err)
+			log.Errorf(ctx, "failed to encode reply: %v", err)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := wJS.writeResult(r); err != nil {
-			log.Errorf(c, "wJS.writeResult: %s", err.Error())
+			log.Errorf(ctx, "wJS.writeResult: %s", err.Error())
 		}
 	})
 }
 
-func handleAPI(c context.Context, r *http.Request) (any, error) {
+func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
-	log.Infof(c, "api %q from %q", method, client)
+	log.Infof(ctx, "api %q from %q", method, client)
 	if client == "" {
 		// Don't log as error if somebody just invokes /api.
 		return nil, fmt.Errorf("client is empty: %w", ErrClientBadRequest)
 	}
 	auth := auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint)
-	subj, err := auth.DetermineAuthSubj(timeNow(c), r.Header["Authorization"])
+	subj, err := auth.DetermineAuthSubj(timeNow(ctx), r.Header["Authorization"])
 	if err != nil {
 		return nil, fmt.Errorf("failed to auth.DetermineAuthSubj(): %w", err)
 	}
 	password := r.PostFormValue("key")
-	ns, err := checkClient(getConfig(c), client, password, subj)
+	ns, err := checkClient(getConfig(ctx), client, password, subj)
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
@@ -161,7 +161,7 @@ func handleAPI(c context.Context, r *http.Request) (any, error) {
 	if !exists {
 		return nil, fmt.Errorf("unknown api method %q", method)
 	}
-	reply, err := handler(contextWithNamespace(c, ns), payloadReader)
+	reply, err := handler(contextWithNamespace(ctx, ns), payloadReader)
 	if err != nil {
 		err = fmt.Errorf("method '%s' ns '%s' err: %w", method, ns, err)
 	}
@@ -170,24 +170,24 @@ func handleAPI(c context.Context, r *http.Request) (any, error) {
 
 var contextKeyNamespace = "context namespace available for any APIHandler"
 
-func contextWithNamespace(c context.Context, ns string) context.Context {
-	return context.WithValue(c, &contextKeyNamespace, ns)
+func contextWithNamespace(ctx context.Context, ns string) context.Context {
+	return context.WithValue(ctx, &contextKeyNamespace, ns)
 }
 
-func contextNamespace(c context.Context) string {
-	return c.Value(&contextKeyNamespace).(string)
+func contextNamespace(ctx context.Context) string {
+	return ctx.Value(&contextKeyNamespace).(string)
 }
 
 // gcsPayloadHandler json.Decode the gcsURL from payload and stream pointed content.
 // This function streams ungzipped content in order to be aligned with other wrappers/handlers.
 func gcsPayloadHandler(handler APIHandler) APIHandler {
-	return func(c context.Context, payload io.Reader) (any, error) {
+	return func(ctx context.Context, payload io.Reader) (any, error) {
 		var gcsURL string
 		if err := json.NewDecoder(payload).Decode(&gcsURL); err != nil {
 			return nil, fmt.Errorf("json.NewDecoder(payload).Decode(&gcsURL): %w", err)
 		}
 		gcsURL = strings.TrimPrefix(gcsURL, "gs://")
-		clientGCS, err := gcs.NewClient(c)
+		clientGCS, err := gcs.NewClient(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("gcs.NewClient: %w", err)
 		}
@@ -204,7 +204,7 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 		// In order to check the data checksum all the data should be read.
 		// We don't guarantee all the data will be read - let's ignore.
 		defer gz.Close()
-		return handler(c, gz)
+		return handler(ctx, gz)
 	}
 }
 
@@ -230,13 +230,13 @@ func typedHandler[Req any](handler func(context.Context, *Req) (any, error)) API
 	}
 }
 
-func apiLogError(c context.Context, req *dashapi.LogEntry) (any, error) {
-	log.Errorf(c, "%v: %v", req.Name, req.Text)
+func apiLogError(ctx context.Context, req *dashapi.LogEntry) (any, error) {
+	log.Errorf(ctx, "%v: %v", req.Name, req.Text)
 	return nil, nil
 }
 
-func apiBuilderPoll(c context.Context, ns string, req *dashapi.BuilderPollReq) (any, error) {
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+func apiBuilderPoll(ctx context.Context, ns string, req *dashapi.BuilderPollReq) (any, error) {
+	bugs, _, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status<", BugStatusFixed)
 	})
@@ -266,25 +266,25 @@ loop:
 	sort.Strings(commits)
 	resp := &dashapi.BuilderPollResp{
 		PendingCommits: commits,
-		ReportEmail:    reportEmail(c, ns),
+		ReportEmail:    reportEmail(ctx, ns),
 	}
 	return resp, nil
 }
 
-func reportEmail(c context.Context, ns string) string {
-	for _, reporting := range getNsConfig(c, ns).Reporting {
+func reportEmail(ctx context.Context, ns string) string {
+	for _, reporting := range getNsConfig(ctx, ns).Reporting {
 		if _, ok := reporting.Config.(*EmailConfig); ok {
-			return ownEmail(c)
+			return ownEmail(ctx)
 		}
 	}
 	return ""
 }
 
-func apiCommitPoll(c context.Context, ns string, req *any) (any, error) {
+func apiCommitPoll(ctx context.Context, ns string, req *any) (any, error) {
 	resp := &dashapi.CommitPollResp{
-		ReportEmail: reportEmail(c, ns),
+		ReportEmail: reportEmail(ctx, ns),
 	}
-	for _, repo := range getNsConfig(c, ns).Repos {
+	for _, repo := range getNsConfig(ctx, ns).Repos {
 		if repo.NoPoll {
 			continue
 		}
@@ -299,7 +299,7 @@ func apiCommitPoll(c context.Context, ns string, req *any) (any, error) {
 		Filter("NeedCommitInfo=", true).
 		Project("Commits").
 		Limit(100).
-		GetAll(c, &bugs)
+		GetAll(ctx, &bugs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
@@ -312,9 +312,9 @@ func apiCommitPoll(c context.Context, ns string, req *any) (any, error) {
 	for com := range commits {
 		resp.Commits = append(resp.Commits, com)
 	}
-	if getNsConfig(c, ns).RetestMissingBackports {
+	if getNsConfig(ctx, ns).RetestMissingBackports {
 		const takeBackportTitles = 5
-		backportCommits, err := pollBackportCommits(c, ns, takeBackportTitles)
+		backportCommits, err := pollBackportCommits(ctx, ns, takeBackportTitles)
 		if err != nil {
 			return nil, err
 		}
@@ -323,9 +323,9 @@ func apiCommitPoll(c context.Context, ns string, req *any) (any, error) {
 	return resp, nil
 }
 
-func pollBackportCommits(c context.Context, ns string, count int) ([]string, error) {
+func pollBackportCommits(ctx context.Context, ns string, count int) ([]string, error) {
 	// Let's assume that there won't be too many pending backports.
-	list, err := relevantBackportJobs(c)
+	list, err := relevantBackportJobs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query backport: %w", err)
 	}
@@ -336,7 +336,7 @@ func pollBackportCommits(c context.Context, ns string, count int) ([]string, err
 		}
 		backportTitles = append(backportTitles, info.job.Commits[0].Title)
 	}
-	randomizer := rand.New(rand.NewSource(timeNow(c).UnixNano()))
+	randomizer := rand.New(rand.NewSource(timeNow(ctx).UnixNano()))
 	randomizer.Shuffle(len(backportTitles), func(i, j int) {
 		backportTitles[i], backportTitles[j] = backportTitles[j], backportTitles[i]
 	})
@@ -346,9 +346,9 @@ func pollBackportCommits(c context.Context, ns string, count int) ([]string, err
 	return backportTitles, nil
 }
 
-func apiUploadCommits(c context.Context, ns string, req *dashapi.CommitPollResultReq) (any, error) {
+func apiUploadCommits(ctx context.Context, ns string, req *dashapi.CommitPollResultReq) (any, error) {
 	// This adds fixing commits to bugs.
-	err := addCommitsToBugs(c, ns, "", nil, req.Commits)
+	err := addCommitsToBugs(ctx, ns, "", nil, req.Commits)
 	if err != nil {
 		return nil, err
 	}
@@ -357,12 +357,12 @@ func apiUploadCommits(c context.Context, ns string, req *dashapi.CommitPollResul
 		if com.Hash == "" {
 			continue
 		}
-		if err := addCommitInfo(c, ns, com); err != nil {
+		if err := addCommitInfo(ctx, ns, com); err != nil {
 			return nil, err
 		}
 	}
-	if getNsConfig(c, ns).RetestMissingBackports {
-		err = updateBackportCommits(c, ns, req.Commits)
+	if getNsConfig(ctx, ns).RetestMissingBackports {
+		err = updateBackportCommits(ctx, ns, req.Commits)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update backport commits: %w", err)
 		}
@@ -370,48 +370,48 @@ func apiUploadCommits(c context.Context, ns string, req *dashapi.CommitPollResul
 	return nil, nil
 }
 
-func addCommitInfo(c context.Context, ns string, com dashapi.Commit) error {
+func addCommitInfo(ctx context.Context, ns string, com dashapi.Commit) error {
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Commits=", com.Title).
-		GetAll(c, &bugs)
+		GetAll(ctx, &bugs)
 	if err != nil {
 		return fmt.Errorf("failed to query bugs: %w", err)
 	}
 	for i, bug := range bugs {
-		if err := addCommitInfoToBug(c, bug, keys[i], com); err != nil {
+		if err := addCommitInfoToBug(ctx, bug, keys[i], com); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi.Commit) error {
-	if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
+func addCommitInfoToBug(ctx context.Context, bug *Bug, bugKey *db.Key, com dashapi.Commit) error {
+	if needUpdate, err := addCommitInfoToBugImpl(ctx, bug, com); err != nil {
 		return err
 	} else if !needUpdate {
 		return nil
 	}
-	tx := func(c context.Context) error {
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %w", bugKey.StringID(), err)
 		}
-		if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
+		if needUpdate, err := addCommitInfoToBugImpl(ctx, bug, com); err != nil {
 			return err
 		} else if !needUpdate {
 			return nil
 		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(c, tx, nil)
+	return runInTransaction(ctx, tx, nil)
 }
 
-func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
+func addCommitInfoToBugImpl(ctx context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
 	ci := -1
 	for i, title := range bug.Commits {
 		if title == com.Title {
@@ -447,45 +447,45 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 	return changed, nil
 }
 
-func apiJobPoll(c context.Context, req *dashapi.JobPollReq) (any, error) {
-	if stop, err := emergentlyStopped(c); err != nil || stop {
+func apiJobPoll(ctx context.Context, req *dashapi.JobPollReq) (any, error) {
+	if stop, err := emergentlyStopped(ctx); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.JobPollResp{}, err
 	}
 	if len(req.Managers) == 0 {
 		return nil, fmt.Errorf("no managers")
 	}
-	return pollPendingJobs(c, req.Managers)
+	return pollPendingJobs(ctx, req.Managers)
 }
 
-func apiJobDone(c context.Context, req *dashapi.JobDoneReq) (any, error) {
-	err := doneJob(c, req)
+func apiJobDone(ctx context.Context, req *dashapi.JobDoneReq) (any, error) {
+	err := doneJob(ctx, req)
 	return nil, err
 }
 
-func apiJobReset(c context.Context, req *dashapi.JobResetReq) (any, error) {
-	err := resetJobs(c, req)
+func apiJobReset(ctx context.Context, req *dashapi.JobResetReq) (any, error) {
+	err := resetJobs(ctx, req)
 	return nil, err
 }
 
-func apiUploadBuild(c context.Context, ns string, req *dashapi.Build) (any, error) {
-	now := timeNow(c)
-	_, isNewBuild, err := uploadBuild(c, now, ns, req, BuildNormal)
+func apiUploadBuild(ctx context.Context, ns string, req *dashapi.Build) (any, error) {
+	now := timeNow(ctx)
+	_, isNewBuild, err := uploadBuild(ctx, now, ns, req, BuildNormal)
 	if err != nil {
 		return nil, err
 	}
 	if isNewBuild {
-		err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) error {
+		err := updateManager(ctx, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) error {
 			prevKernel, prevSyzkaller := "", ""
 			if mgr.CurrentBuild != "" {
-				prevBuild, err := loadBuild(c, ns, mgr.CurrentBuild)
+				prevBuild, err := loadBuild(ctx, ns, mgr.CurrentBuild)
 				if err != nil {
 					return err
 				}
 				prevKernel = prevBuild.KernelCommit
 				prevSyzkaller = prevBuild.SyzkallerCommit
 			}
-			log.Infof(c, "new build on %v: kernel %v->%v syzkaller %v->%v",
+			log.Infof(ctx, "new build on %v: kernel %v->%v syzkaller %v->%v",
 				req.Manager, prevKernel, req.KernelCommit, prevSyzkaller, req.SyzkallerCommit)
 			mgr.CurrentBuild = req.ID
 			if req.KernelCommit != prevKernel {
@@ -506,27 +506,27 @@ func apiUploadBuild(c context.Context, ns string, req *dashapi.Build) (any, erro
 			// the build does not necessary come from the master repo, so we must not remember hashes.
 			req.FixCommits[i].Hash = ""
 		}
-		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
+		if err := addCommitsToBugs(ctx, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
 			// We've already uploaded the build successfully and manager can use it.
 			// Moreover, addCommitsToBugs scans all bugs and can take long time.
 			// So just log the error.
-			log.Errorf(c, "failed to add commits to bugs: %v", err)
+			log.Errorf(ctx, "failed to add commits to bugs: %v", err)
 		}
 	}
 	return nil, nil
 }
 
-func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (
+func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (
 	*Build, bool, error) {
 	newAssets := []Asset{}
 	for i, toAdd := range req.Assets {
-		newAsset, err := parseIncomingAsset(c, toAdd, ns)
+		newAsset, err := parseIncomingAsset(ctx, toAdd, ns)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
 		newAssets = append(newAssets, newAsset)
 	}
-	if build, err := loadBuild(c, ns, req.ID); err == nil {
+	if build, err := loadBuild(ctx, ns, req.ID); err == nil {
 		return build, false, nil
 	}
 	checkStrLen := func(str, name string, maxLen int) error {
@@ -559,7 +559,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	if len(req.KernelCommit) > MaxStringLen {
 		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
 	}
-	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig)
+	configID, err := putText(ctx, ns, textKernelConfig, req.KernelConfig)
 	if err != nil {
 		return nil, false, err
 	}
@@ -583,13 +583,13 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 		KernelConfig:        configID,
 		Assets:              newAssets,
 	}
-	if _, err := db.Put(c, buildKey(c, ns, req.ID), build); err != nil {
+	if _, err := db.Put(ctx, buildKey(ctx, ns, req.ID), build); err != nil {
 		return nil, false, err
 	}
 	return build, true, nil
 }
 
-func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fixCommits []dashapi.Commit) error {
+func addCommitsToBugs(ctx context.Context, ns, manager string, titles []string, fixCommits []dashapi.Commit) error {
 	presentCommits := make(map[string]bool)
 	bugFixedBy := make(map[string][]string)
 	for _, com := range titles {
@@ -601,7 +601,7 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 			bugFixedBy[bugID] = append(bugFixedBy[bugID], com.Title)
 		}
 	}
-	managers, err := managerList(c, ns)
+	managers, err := managerList(ctx, ns)
 	if err != nil {
 		return err
 	}
@@ -610,7 +610,7 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 	// and splits a long query into two (two smaller queries have lower chances of trigerring
 	// timeouts than one huge).
 	for _, status := range []int{BugStatusOpen, BugStatusDup} {
-		err := addCommitsToBugsInStatus(c, status, ns, manager, managers, presentCommits, bugFixedBy)
+		err := addCommitsToBugsInStatus(ctx, status, ns, manager, managers, presentCommits, bugFixedBy)
 		if err != nil {
 			return err
 		}
@@ -618,9 +618,9 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 	return nil
 }
 
-func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
+func addCommitsToBugsInStatus(ctx context.Context, status int, ns, manager string, managers []string,
 	presentCommits map[string]bool, bugFixedBy map[string][]string) error {
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", status)
 	})
@@ -633,16 +633,16 @@ func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string,
 			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
 		}
 		sort.Strings(fixCommits)
-		if err := addCommitsToBug(c, bug, manager, managers, fixCommits, presentCommits); err != nil {
+		if err := addCommitsToBug(ctx, bug, manager, managers, fixCommits, presentCommits); err != nil {
 			return err
 		}
 		if bug.Status == BugStatusDup {
-			canon, err := canonicalBug(c, bug)
+			canon, err := canonicalBug(ctx, bug)
 			if err != nil {
 				return err
 			}
 			if canon.Status == BugStatusOpen && len(bug.Commits) == 0 {
-				if err := addCommitsToBug(c, canon, manager, managers,
+				if err := addCommitsToBug(ctx, canon, manager, managers,
 					fixCommits, presentCommits); err != nil {
 					return err
 				}
@@ -652,19 +652,19 @@ func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string,
 	return nil
 }
 
-func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixCommits []string,
+func addCommitsToBug(ctx context.Context, bug *Bug, manager string, managers, fixCommits []string,
 	presentCommits map[string]bool) error {
-	if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, true) {
+	if !bugNeedsCommitUpdate(ctx, bug, manager, fixCommits, presentCommits, true) {
 		return nil
 	}
-	now := timeNow(c)
-	bugKey := bug.key(c)
-	tx := func(c context.Context) error {
+	now := timeNow(ctx)
+	bugKey := bug.key(ctx)
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %w", bugKey.StringID(), err)
 		}
-		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, false) {
+		if !bugNeedsCommitUpdate(ctx, bug, manager, fixCommits, presentCommits, false) {
 			return nil
 		}
 		if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
@@ -686,19 +686,19 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixC
 				}
 			}
 		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(c, tx, nil)
+	return runInTransaction(ctx, tx, nil)
 }
 
-func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
+func bugNeedsCommitUpdate(ctx context.Context, bug *Bug, manager string, fixCommits []string,
 	presentCommits map[string]bool, dolog bool) bool {
 	if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
 		if dolog {
-			log.Infof(c, "bug %q is fixed with %q", bug.Title, fixCommits)
+			log.Infof(ctx, "bug %q is fixed with %q", bug.Title, fixCommits)
 		}
 		return true
 	}
@@ -714,17 +714,17 @@ func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommit
 }
 
 // Note: if you do not need the latest data, prefer CachedManagersList().
-func managerList(c context.Context, ns string) ([]string, error) {
+func managerList(ctx context.Context, ns string) ([]string, error) {
 	var builds []*Build
 	_, err := db.NewQuery("Build").
 		Filter("Namespace=", ns).
 		Project("Manager").
 		Distinct().
-		GetAll(c, &builds)
+		GetAll(ctx, &builds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query builds: %w", err)
 	}
-	configManagers := getNsConfig(c, ns).Managers
+	configManagers := getNsConfig(ctx, ns).Managers
 	var managers []string
 	for _, build := range builds {
 		if configManagers[build.Manager].Decommissioned {
@@ -735,23 +735,23 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	return managers, nil
 }
 
-func apiReportBuildError(c context.Context, ns string, req *dashapi.BuildErrorReq) (any, error) {
-	now := timeNow(c)
-	build, _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed)
+func apiReportBuildError(ctx context.Context, ns string, req *dashapi.BuildErrorReq) (any, error) {
+	now := timeNow(ctx)
+	build, _, err := uploadBuild(ctx, now, ns, &req.Build, BuildFailed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store build: %w", err)
 	}
 	req.Crash.BuildID = req.Build.ID
-	bug, err := reportCrash(c, build, &req.Crash)
+	bug, err := reportCrash(ctx, build, &req.Crash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store crash: %w", err)
 	}
-	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
-		log.Infof(c, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
+	if err := updateManager(ctx, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
+		log.Infof(ctx, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
 		if req.Build.KernelCommit != "" {
-			mgr.FailedBuildBug = bug.keyHash(c)
+			mgr.FailedBuildBug = bug.keyHash(ctx)
 		} else {
-			mgr.FailedSyzBuildBug = bug.keyHash(c)
+			mgr.FailedSyzBuildBug = bug.keyHash(ctx)
 		}
 		return nil
 	}); err != nil {
@@ -765,47 +765,47 @@ const (
 	suppressedReportTitle = "suppressed report"
 )
 
-func apiReportCrash(c context.Context, ns string, req *dashapi.Crash) (any, error) {
-	if stop, err := emergentlyStopped(c); err != nil || stop {
+func apiReportCrash(ctx context.Context, ns string, req *dashapi.Crash) (any, error) {
+	if stop, err := emergentlyStopped(ctx); err != nil || stop {
 		// The bot's operation was aborted. Don't accept new crash reports.
 		return &dashapi.ReportCrashResp{}, err
 	}
-	build, err := loadBuild(c, ns, req.BuildID)
+	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
-	if !getNsConfig(c, ns).TransformCrash(build, req) {
+	if !getNsConfig(ctx, ns).TransformCrash(build, req) {
 		return new(dashapi.ReportCrashResp), nil
 	}
 	var bug2 *Bug
 	if req.OriginalTitle != "" {
-		bug2, err = findExistingBugForCrash(c, ns, []string{req.OriginalTitle})
+		bug2, err = findExistingBugForCrash(ctx, ns, []string{req.OriginalTitle})
 		if err != nil {
 			return nil, fmt.Errorf("original bug query failed: %w", err)
 		}
 	}
-	bug, err := reportCrash(c, build, req)
+	bug, err := reportCrash(ctx, build, req)
 	if err != nil {
 		return nil, err
 	}
 	if bug2 != nil && bug2.Title != bug.Title && len(req.ReproLog) > 0 {
 		// During bug reproduction, we have diverted to another bug.
 		// Let's remember this.
-		err = saveFailedReproLog(c, bug2, build, req.ReproLog)
+		err = saveFailedReproLog(ctx, bug2, build, req.ReproLog)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save failed repro log: %w", err)
 		}
 	}
 	resp := &dashapi.ReportCrashResp{
-		NeedRepro: needRepro(c, bug),
+		NeedRepro: needRepro(ctx, bug),
 	}
 	return resp, nil
 }
 
 // nolint: gocyclo
-func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
+func reportCrash(ctx context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
 	ns := build.Namespace
-	assets, err := parseCrashAssets(c, req, ns)
+	assets, err := parseCrashAssets(ctx, req, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -820,19 +820,19 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	}
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 
-	bug, err := findBugForCrash(c, ns, req.AltTitles)
+	bug, err := findBugForCrash(ctx, ns, req.AltTitles)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find bug for the crash: %w", err)
 	}
 	if bug == nil {
-		bug, err = createBugForCrash(c, ns, req)
+		bug, err = createBugForCrash(ctx, ns, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a bug: %w", err)
 		}
 	}
 
-	bugKey := bug.key(c)
-	now := timeNow(c)
+	bugKey := bug.key(ctx)
+	now := timeNow(ctx)
 	reproLevel := ReproLevelNone
 	if len(req.ReproC) != 0 {
 		reproLevel = ReproLevelC
@@ -845,14 +845,14 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		bug.NumCrashes%20 == 0 ||
 		!stringInList(bug.MergedTitles, req.Title)
 	if save {
-		if err := saveCrash(c, ns, req, bug, bugKey, build, assets); err != nil {
+		if err := saveCrash(ctx, ns, req, bug, bugKey, build, assets); err != nil {
 			return nil, fmt.Errorf("failed to save the crash: %w", err)
 		}
 	} else {
-		log.Infof(c, "not saving crash for %q", bug.Title)
+		log.Infof(ctx, "not saving crash for %q", bug.Title)
 	}
 
-	subsystemService := getNsConfig(c, ns).Subsystems.Service
+	subsystemService := getNsConfig(ctx, ns).Subsystems.Service
 
 	newSubsystems := []*subsystem.Subsystem{}
 	// Recalculate subsystems on the first saved crash and on the first saved repro,
@@ -863,16 +863,16 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		(bug.NumCrashes == 0 ||
 			bug.ReproLevel == ReproLevelNone && reproLevel != ReproLevelNone)
 	if calculateSubsystems {
-		newSubsystems, err = inferSubsystems(c, bug, bugKey, &debugtracer.NullTracer{})
+		newSubsystems, err = inferSubsystems(ctx, bug, bugKey, &debugtracer.NullTracer{})
 		if err != nil {
-			log.Errorf(c, "%q: failed to extract subsystems: %s", bug.Title, err)
+			log.Errorf(ctx, "%q: failed to extract subsystems: %s", bug.Title, err)
 			return nil, err
 		}
 	}
 
-	tx := func(c context.Context) error {
+	tx := func(ctx context.Context) error {
 		bug = new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		bug.LastTime = now
@@ -889,7 +889,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.HasReport = true
 		}
 		if calculateSubsystems {
-			bug.SetAutoSubsystems(c, newSubsystems, now, subsystemService.Revision)
+			bug.SetAutoSubsystems(ctx, newSubsystems, now, subsystemService.Revision)
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
@@ -897,12 +897,12 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		bug.MergedTitles = mergeString(bug.MergedTitles, bug.Title)
 		bug.MergedTitles = mergeString(bug.MergedTitles, req.Title)
 		bug.AltTitles = mergeStringList(bug.AltTitles, req.AltTitles)
-		if _, err = db.Put(c, bugKey, bug); err != nil {
+		if _, err = db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	if err := runInTransaction(c, tx, &db.TransactionOptions{
+	if err := runInTransaction(ctx, tx, &db.TransactionOptions{
 		XG: true,
 		// Very valuable transaction.
 		Attempts: 30,
@@ -910,15 +910,15 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		return nil, fmt.Errorf("bug updating failed: %w", err)
 	}
 	if save {
-		purgeOldCrashes(c, bug, bugKey)
+		purgeOldCrashes(ctx, bug, bugKey)
 	}
 	return bug, nil
 }
 
-func parseCrashAssets(c context.Context, req *dashapi.Crash, ns string) ([]Asset, error) {
+func parseCrashAssets(ctx context.Context, req *dashapi.Crash, ns string) ([]Asset, error) {
 	assets := []Asset{}
 	for i, toAdd := range req.Assets {
-		newAsset, err := parseIncomingAsset(c, toAdd, ns)
+		newAsset, err := parseIncomingAsset(ctx, toAdd, ns)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
@@ -927,8 +927,8 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash, ns string) ([]Asset
 	return assets, nil
 }
 
-func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug *Bug) {
-	prio := int64(kernelRepoInfo(c, build).ReportingPriority) * 1e6
+func (crash *Crash) UpdateReportingPriority(ctx context.Context, build *Build, bug *Bug) {
+	prio := int64(kernelRepoInfo(ctx, build).ReportingPriority) * 1e6
 	if crash.ReproC > 0 && !crash.ReproIsRevoked {
 		prio += 4e12
 	} else if crash.ReproSyz > 0 && !crash.ReproIsRevoked {
@@ -938,7 +938,7 @@ func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug
 		prio += 1e8 // prefer reporting crash that matches bug title
 	}
 	managerPrio := 0
-	if _, mgrConfig := activeManager(c, crash.Manager, bug.Namespace); mgrConfig != nil {
+	if _, mgrConfig := activeManager(ctx, crash.Manager, bug.Namespace); mgrConfig != nil {
 		managerPrio = mgrConfig.Priority
 	}
 	prio += int64((managerPrio - MinManagerPriority) * 1e5)
@@ -948,13 +948,13 @@ func (crash *Crash) UpdateReportingPriority(c context.Context, build *Build, bug
 	crash.ReportLen = prio
 }
 
-func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key,
+func saveCrash(ctx context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key,
 	build *Build, assets []Asset) error {
 	crash := &Crash{
 		Title:   req.Title,
 		Manager: build.Manager,
 		BuildID: req.BuildID,
-		Time:    timeNow(c),
+		Time:    timeNow(ctx),
 		Maintainers: email.MergeEmailLists(req.Maintainers,
 			GetEmails(req.Recipients, dashapi.To),
 			GetEmails(req.Recipients, dashapi.Cc)),
@@ -966,33 +966,33 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 		},
 	}
 	var err error
-	if crash.Log, err = putText(c, ns, textCrashLog, req.Log); err != nil {
+	if crash.Log, err = putText(ctx, ns, textCrashLog, req.Log); err != nil {
 		return err
 	}
-	if crash.Report, err = putText(c, ns, textCrashReport, req.Report); err != nil {
+	if crash.Report, err = putText(ctx, ns, textCrashReport, req.Report); err != nil {
 		return err
 	}
-	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz); err != nil {
+	if crash.ReproSyz, err = putText(ctx, ns, textReproSyz, req.ReproSyz); err != nil {
 		return err
 	}
-	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC); err != nil {
+	if crash.ReproC, err = putText(ctx, ns, textReproC, req.ReproC); err != nil {
 		return err
 	}
-	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo); err != nil {
+	if crash.MachineInfo, err = putText(ctx, ns, textMachineInfo, req.MachineInfo); err != nil {
 		return err
 	}
-	if crash.ReproLog, err = putText(c, ns, textReproLog, req.ReproLog); err != nil {
+	if crash.ReproLog, err = putText(ctx, ns, textReproLog, req.ReproLog); err != nil {
 		return err
 	}
-	crash.UpdateReportingPriority(c, build, bug)
-	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
-	if _, err = db.Put(c, crashKey, crash); err != nil {
+	crash.UpdateReportingPriority(ctx, build, bug)
+	crashKey := db.NewIncompleteKey(ctx, "Crash", bugKey)
+	if _, err = db.Put(ctx, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %w", err)
 	}
 	return nil
 }
 
-func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
+func purgeOldCrashes(ctx context.Context, bug *Bug, bugKey *db.Key) {
 	const purgeEvery = 10
 	if bug.NumCrashes <= int64(2*maxCrashes()) || (bug.NumCrashes-1)%purgeEvery != 0 {
 		return
@@ -1001,9 +1001,9 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	keys, err := db.NewQuery("Crash").
 		Ancestor(bugKey).
 		Filter("Reported=", time.Time{}).
-		GetAll(c, &crashes)
+		GetAll(ctx, &crashes)
 	if err != nil {
-		log.Errorf(c, "failed to fetch purge crashes: %v", err)
+		log.Errorf(ctx, "failed to fetch purge crashes: %v", err)
 		return
 	}
 	keyMap := make(map[*Crash]*db.Key)
@@ -1020,7 +1020,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	deleted, reproCount, noreproCount := 0, 0, 0
 	for _, crash := range crashes {
 		if !crash.Reported.IsZero() {
-			log.Errorf(c, "purging reported crash?")
+			log.Errorf(ctx, "purging reported crash?")
 			continue
 		}
 		// Preserve latest crash on each manager.
@@ -1044,16 +1044,16 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 		}
 		toDelete = append(toDelete, keyMap[crash])
 		if crash.Log != 0 {
-			toDelete = append(toDelete, db.NewKey(c, textCrashLog, "", crash.Log, nil))
+			toDelete = append(toDelete, db.NewKey(ctx, textCrashLog, "", crash.Log, nil))
 		}
 		if crash.Report != 0 {
-			toDelete = append(toDelete, db.NewKey(c, textCrashReport, "", crash.Report, nil))
+			toDelete = append(toDelete, db.NewKey(ctx, textCrashReport, "", crash.Report, nil))
 		}
 		if crash.ReproSyz != 0 {
-			toDelete = append(toDelete, db.NewKey(c, textReproSyz, "", crash.ReproSyz, nil))
+			toDelete = append(toDelete, db.NewKey(ctx, textReproSyz, "", crash.ReproSyz, nil))
 		}
 		if crash.ReproC != 0 {
-			toDelete = append(toDelete, db.NewKey(c, textReproC, "", crash.ReproC, nil))
+			toDelete = append(toDelete, db.NewKey(ctx, textReproC, "", crash.ReproC, nil))
 		}
 		deleted++
 		if deleted == 2*purgeEvery {
@@ -1063,51 +1063,51 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	if len(toDelete) == 0 {
 		return
 	}
-	if err := db.DeleteMulti(c, toDelete); err != nil {
-		log.Errorf(c, "failed to delete old crashes: %v", err)
+	if err := db.DeleteMulti(ctx, toDelete); err != nil {
+		log.Errorf(ctx, "failed to delete old crashes: %v", err)
 		return
 	}
-	log.Infof(c, "deleted %v crashes for bug %q", deleted, bug.Title)
+	log.Infof(ctx, "deleted %v crashes for bug %q", deleted, bug.Title)
 }
 
-func apiReportFailedRepro(c context.Context, ns string, req *dashapi.CrashID) (any, error) {
+func apiReportFailedRepro(ctx context.Context, ns string, req *dashapi.CrashID) (any, error) {
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted, req.Suppressed)
-	bug, err := findExistingBugForCrash(c, ns, []string{req.Title})
+	bug, err := findExistingBugForCrash(ctx, ns, []string{req.Title})
 	if err != nil {
 		return nil, err
 	}
 	if bug == nil {
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
-	build, err := loadBuild(c, ns, req.BuildID)
+	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
-	return nil, saveFailedReproLog(c, bug, build, req.ReproLog)
+	return nil, saveFailedReproLog(ctx, bug, build, req.ReproLog)
 }
 
-func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) error {
-	now := timeNow(c)
-	bugKey := bug.key(c)
-	tx := func(c context.Context) error {
+func saveFailedReproLog(ctx context.Context, bug *Bug, build *Build, log []byte) error {
+	now := timeNow(ctx)
+	bugKey := bug.key(ctx)
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
 		if len(log) > 0 {
-			err := saveReproAttempt(c, bug, build, log)
+			err := saveReproAttempt(ctx, bug, build, log)
 			if err != nil {
 				return fmt.Errorf("failed to save repro log: %w", err)
 			}
 		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(c, tx, &db.TransactionOptions{
+	return runInTransaction(ctx, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
@@ -1115,29 +1115,29 @@ func saveFailedReproLog(c context.Context, bug *Bug, build *Build, log []byte) e
 
 const maxReproLogs = 5
 
-func saveReproAttempt(c context.Context, bug *Bug, build *Build, log []byte) error {
+func saveReproAttempt(ctx context.Context, bug *Bug, build *Build, log []byte) error {
 	var deleteKeys []*db.Key
 	for len(bug.ReproAttempts)+1 > maxReproLogs {
 		deleteKeys = append(deleteKeys,
-			db.NewKey(c, textReproLog, "", bug.ReproAttempts[0].Log, nil))
+			db.NewKey(ctx, textReproLog, "", bug.ReproAttempts[0].Log, nil))
 		bug.ReproAttempts = bug.ReproAttempts[1:]
 	}
 	entry := BugReproAttempt{
-		Time:    timeNow(c),
+		Time:    timeNow(ctx),
 		Manager: build.Manager,
 	}
 	var err error
-	if entry.Log, err = putText(c, bug.Namespace, textReproLog, log); err != nil {
+	if entry.Log, err = putText(ctx, bug.Namespace, textReproLog, log); err != nil {
 		return err
 	}
 	if len(deleteKeys) > 0 {
-		return db.DeleteMulti(c, deleteKeys)
+		return db.DeleteMulti(ctx, deleteKeys)
 	}
 	bug.ReproAttempts = append(bug.ReproAttempts, entry)
 	return nil
 }
 
-func apiNeedRepro(c context.Context, ns string, req *dashapi.CrashID) (any, error) {
+func apiNeedRepro(ctx context.Context, ns string, req *dashapi.CrashID) (any, error) {
 	if req.Corrupted {
 		resp := &dashapi.NeedReproResp{
 			NeedRepro: false,
@@ -1146,7 +1146,7 @@ func apiNeedRepro(c context.Context, ns string, req *dashapi.CrashID) (any, erro
 	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted, req.Suppressed)
 
-	bug, err := findExistingBugForCrash(c, ns, []string{req.Title})
+	bug, err := findExistingBugForCrash(ctx, ns, []string{req.Title})
 	if err != nil {
 		return nil, err
 	}
@@ -1161,7 +1161,7 @@ func apiNeedRepro(c context.Context, ns string, req *dashapi.CrashID) (any, erro
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	resp := &dashapi.NeedReproResp{
-		NeedRepro: needRepro(c, bug),
+		NeedRepro: needRepro(ctx, bug),
 	}
 	return resp, nil
 }
@@ -1185,9 +1185,9 @@ func normalizeCrashTitle(title string) string {
 	return strings.TrimSpace(limitLength(title, maxTextLen))
 }
 
-func apiManagerStats(c context.Context, ns string, req *dashapi.ManagerStatsReq) (any, error) {
-	now := timeNow(c)
-	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
+func apiManagerStats(ctx context.Context, ns string, req *dashapi.ManagerStatsReq) (any, error) {
+	now := timeNow(ctx)
+	err := updateManager(ctx, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
 		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime
@@ -1206,37 +1206,37 @@ func apiManagerStats(c context.Context, ns string, req *dashapi.ManagerStatsReq)
 	return nil, err
 }
 
-func apiUpdateReport(c context.Context, ns string, req *dashapi.UpdateReportReq) (any, error) {
+func apiUpdateReport(ctx context.Context, ns string, req *dashapi.UpdateReportReq) (any, error) {
 	bug := new(Bug)
-	bugKey := db.NewKey(c, "Bug", req.BugID, 0, nil)
-	if err := db.Get(c, bugKey, bug); err != nil {
+	bugKey := db.NewKey(ctx, "Bug", req.BugID, 0, nil)
+	if err := db.Get(ctx, bugKey, bug); err != nil {
 		return nil, fmt.Errorf("failed to get bug: %w", err)
 	}
 	if bug.Namespace != ns {
 		return nil, fmt.Errorf("no such bug")
 	}
-	tx := func(c context.Context) error {
+	tx := func(ctx context.Context) error {
 		crash := new(Crash)
-		crashKey := db.NewKey(c, "Crash", "", req.CrashID, bugKey)
-		if err := db.Get(c, crashKey, crash); err != nil {
+		crashKey := db.NewKey(ctx, "Crash", "", req.CrashID, bugKey)
+		if err := db.Get(ctx, crashKey, crash); err != nil {
 			return fmt.Errorf("failed to query the crash: %w", err)
 		}
 		if req.GuiltyFiles != nil {
 			crash.ReportElements.GuiltyFiles = *req.GuiltyFiles
 		}
-		if _, err := db.Put(c, crashKey, crash); err != nil {
+		if _, err := db.Put(ctx, crashKey, crash); err != nil {
 			return fmt.Errorf("failed to put reported crash: %w", err)
 		}
 		return nil
 	}
-	return nil, runInTransaction(c, tx, nil)
+	return nil, runInTransaction(ctx, tx, nil)
 }
 
-func apiBugList(c context.Context, ns string, req *any) (any, error) {
+func apiBugList(ctx context.Context, ns string, req *any) (any, error) {
 	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		KeysOnly().
-		GetAll(c, nil)
+		GetAll(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
@@ -1247,20 +1247,20 @@ func apiBugList(c context.Context, ns string, req *any) (any, error) {
 	return resp, nil
 }
 
-func apiLoadBug(c context.Context, ns string, req *dashapi.LoadBugReq) (any, error) {
+func apiLoadBug(ctx context.Context, ns string, req *dashapi.LoadBugReq) (any, error) {
 	bug := new(Bug)
-	bugKey := db.NewKey(c, "Bug", req.ID, 0, nil)
-	if err := db.Get(c, bugKey, bug); err != nil {
+	bugKey := db.NewKey(ctx, "Bug", req.ID, 0, nil)
+	if err := db.Get(ctx, bugKey, bug); err != nil {
 		return nil, fmt.Errorf("failed to get bug: %w", err)
 	}
 	if bug.Namespace != ns {
 		return nil, fmt.Errorf("no such bug")
 	}
-	return loadBugReport(c, bug)
+	return loadBugReport(ctx, bug)
 }
 
-func apiLoadFullBug(c context.Context, req *dashapi.LoadFullBugReq) (any, error) {
-	bug, bugKey, err := findBugByReportingID(c, req.BugID)
+func apiLoadFullBug(ctx context.Context, req *dashapi.LoadFullBugReq) (any, error) {
+	bug, bugKey, err := findBugByReportingID(ctx, req.BugID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find the bug: %w", err)
 	}
@@ -1268,40 +1268,40 @@ func apiLoadFullBug(c context.Context, req *dashapi.LoadFullBugReq) (any, error)
 	if bugReporting == nil {
 		return nil, fmt.Errorf("failed to find the bug reporting: %w", err)
 	}
-	return loadFullBugInfo(c, bug, bugKey, bugReporting)
+	return loadFullBugInfo(ctx, bug, bugKey, bugReporting)
 }
 
-func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
-	crash, crashKey, err := findCrashForBug(c, bug)
+func loadBugReport(ctx context.Context, bug *Bug) (*dashapi.BugReport, error) {
+	crash, crashKey, err := findCrashForBug(ctx, bug)
 	if err != nil {
 		return nil, err
 	}
 	// Create report for the last reporting so that it's stable and ExtID does not change over time.
 	bugReporting := &bug.Reporting[len(bug.Reporting)-1]
-	reporting := getNsConfig(c, bug.Namespace).ReportingByName(bugReporting.Name)
+	reporting := getNsConfig(ctx, bug.Namespace).ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		return nil, fmt.Errorf("reporting %v is missing in config", bugReporting.Name)
 	}
-	return createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
+	return createBugReport(ctx, bug, crash, crashKey, bugReporting, reporting)
 }
 
-func apiAddBuildAssets(c context.Context, ns string, req *dashapi.AddBuildAssetsReq) (any, error) {
+func apiAddBuildAssets(ctx context.Context, ns string, req *dashapi.AddBuildAssetsReq) (any, error) {
 	assets := []Asset{}
 	for i, toAdd := range req.Assets {
-		asset, err := parseIncomingAsset(c, toAdd, ns)
+		asset, err := parseIncomingAsset(ctx, toAdd, ns)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse asset #%d: %w", i, err)
 		}
 		assets = append(assets, asset)
 	}
-	_, err := appendBuildAssets(c, ns, req.BuildID, assets)
+	_, err := appendBuildAssets(ctx, ns, req.BuildID, assets)
 	if err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string) (Asset, error) {
+func parseIncomingAsset(ctx context.Context, newAsset dashapi.NewAsset, ns string) (Asset, error) {
 	typeInfo := asset.GetTypeDescription(newAsset.Type)
 	if typeInfo == nil {
 		return Asset{}, fmt.Errorf("unknown asset type")
@@ -1312,7 +1312,7 @@ func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string)
 	}
 	fsckLog := int64(0)
 	if len(newAsset.FsckLog) > 0 {
-		fsckLog, err = putText(c, ns, textFsckLog, newAsset.FsckLog)
+		fsckLog, err = putText(ctx, ns, textFsckLog, newAsset.FsckLog)
 		if err != nil {
 			return Asset{}, err
 		}
@@ -1320,23 +1320,23 @@ func parseIncomingAsset(c context.Context, newAsset dashapi.NewAsset, ns string)
 	return Asset{
 		Type:        newAsset.Type,
 		DownloadURL: newAsset.DownloadURL,
-		CreateDate:  timeNow(c),
+		CreateDate:  timeNow(ctx),
 		FsckLog:     fsckLog,
 		FsIsClean:   newAsset.FsIsClean,
 	}, nil
 }
 
-func apiNeededAssetsList(c context.Context, req *any) (any, error) {
-	return queryNeededAssets(c)
+func apiNeededAssetsList(ctx context.Context, req *any) (any, error) {
+	return queryNeededAssets(ctx)
 }
 
-func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
+func findExistingBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, error) {
 	// First, try to find an existing bug that we already used to report this crash title.
 	var bugs []*Bug
 	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("MergedTitles=", titles[0]).
-		GetAll(c, &bugs)
+		GetAll(ctx, &bugs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
@@ -1347,7 +1347,7 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 		return bugs[i].Seq > bugs[j].Seq
 	})
 	for _, bug := range bugs {
-		if active, err := isActiveBug(c, bug); err != nil {
+		if active, err := isActiveBug(ctx, bug); err != nil {
 			return nil, err
 		} else if active {
 			return bug, nil
@@ -1357,12 +1357,12 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 	// Older bugs don't have MergedTitles, so we need to check Title as well
 	// (reportCrash will set MergedTitles later).
 	for _, title := range titles {
-		bug, err := highestSeqBug(c, ns, title)
+		bug, err := highestSeqBug(ctx, ns, title)
 		if err != nil {
 			return nil, err
 		}
 		if bug != nil {
-			if active, err := isActiveBug(c, bug); err != nil {
+			if active, err := isActiveBug(ctx, bug); err != nil {
 				return nil, err
 			} else if active {
 				return bug, nil
@@ -1372,14 +1372,14 @@ func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bu
 	return nil, nil
 }
 
-func highestSeqBug(c context.Context, ns, title string) (*Bug, error) {
+func highestSeqBug(ctx context.Context, ns, title string) (*Bug, error) {
 	var bugs []*Bug
 	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Title=", title).
 		Order("-Seq").
 		Limit(1).
-		GetAll(c, &bugs)
+		GetAll(ctx, &bugs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query the last bug report: %w", err)
 	}
@@ -1389,9 +1389,9 @@ func highestSeqBug(c context.Context, ns, title string) (*Bug, error) {
 	return bugs[0], nil
 }
 
-func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
+func findBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, error) {
 	// First, try to find an existing bug that we already used to report this crash title.
-	bug, err := findExistingBugForCrash(c, ns, titles)
+	bug, err := findExistingBugForCrash(ctx, ns, titles)
 	if bug != nil || err != nil {
 		return bug, err
 	}
@@ -1402,7 +1402,7 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 		_, err := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("AltTitles=", title).
-			GetAll(c, &bugs1)
+			GetAll(ctx, &bugs1)
 		if err != nil {
 			return nil, fmt.Errorf("failed to query bugs: %w", err)
 		}
@@ -1421,7 +1421,7 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 		if i != 0 && bugs[i-1].Title == bug.Title {
 			continue // skip inactive bugs
 		}
-		if active, err := isActiveBug(c, bug); err != nil {
+		if active, err := isActiveBug(ctx, bug); err != nil {
 			return nil, err
 		} else if !active {
 			continue
@@ -1449,13 +1449,13 @@ func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error
 	return best, nil
 }
 
-func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
+func createBugForCrash(ctx context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
 	// Datastore limits the number of entities involved in a transaction to 25, so it's possible
 	// to iterate over them all only up to some point.
 	// To optimize the process, let's first obtain the maximum known seq for the title outside
 	// of the transaction and then iterate a bit more in case of conflicts.
 	startSeq := int64(0)
-	prevBug, err := highestSeqBug(c, ns, req.Title)
+	prevBug, err := highestSeqBug(ctx, ns, req.Title)
 	if err != nil {
 		return nil, err
 	} else if prevBug != nil {
@@ -1463,13 +1463,13 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 	}
 
 	var bug *Bug
-	now := timeNow(c)
-	tx := func(c context.Context) error {
+	now := timeNow(ctx)
+	tx := func(ctx context.Context) error {
 		for seq := startSeq; ; seq++ {
 			bug = new(Bug)
-			bugHash := bugKeyHash(c, ns, req.Title, seq)
-			bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
-			if err := db.Get(c, bugKey, bug); err != nil {
+			bugHash := bugKeyHash(ctx, ns, req.Title, seq)
+			bugKey := db.NewKey(ctx, "Bug", bugHash, 0, nil)
+			if err := db.Get(ctx, bugKey, bug); err != nil {
 				if err != db.ErrNoSuchEntity {
 					return fmt.Errorf("failed to get bug: %w", err)
 				}
@@ -1488,16 +1488,16 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					LastTime:       now,
 					SubsystemsTime: now,
 				}
-				err = bug.updateReportings(c, getNsConfig(c, ns), now)
+				err = bug.updateReportings(ctx, getNsConfig(ctx, ns), now)
 				if err != nil {
 					return err
 				}
-				if _, err = db.Put(c, bugKey, bug); err != nil {
+				if _, err = db.Put(ctx, bugKey, bug); err != nil {
 					return fmt.Errorf("failed to put new bug: %w", err)
 				}
 				return nil
 			}
-			canon, err := canonicalBug(c, bug)
+			canon, err := canonicalBug(ctx, bug)
 			if err != nil {
 				return err
 			}
@@ -1507,7 +1507,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 			return nil
 		}
 	}
-	if err := runInTransaction(c, tx, &db.TransactionOptions{
+	if err := runInTransaction(ctx, tx, &db.TransactionOptions{
 		XG: true,
 		// Very valuable transaction.
 		Attempts: 30,
@@ -1517,32 +1517,32 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 	return bug, nil
 }
 
-func isActiveBug(c context.Context, bug *Bug) (bool, error) {
+func isActiveBug(ctx context.Context, bug *Bug) (bool, error) {
 	if bug == nil {
 		return false, nil
 	}
-	canon, err := canonicalBug(c, bug)
+	canon, err := canonicalBug(ctx, bug)
 	if err != nil {
 		return false, err
 	}
 	return canon.Status == BugStatusOpen, nil
 }
 
-func needRepro(c context.Context, bug *Bug) bool {
-	if !needReproForBug(c, bug) {
+func needRepro(ctx context.Context, bug *Bug) bool {
+	if !needReproForBug(ctx, bug) {
 		return false
 	}
-	canon, err := canonicalBug(c, bug)
+	canon, err := canonicalBug(ctx, bug)
 	if err != nil {
-		log.Errorf(c, "failed to get canonical bug: %v", err)
+		log.Errorf(ctx, "failed to get canonical bug: %v", err)
 		return false
 	}
-	return needReproForBug(c, canon)
+	return needReproForBug(ctx, canon)
 }
 
 var syzErrorTitleRe = regexp.MustCompile(`^SYZFAIL:|^SYZFATAL:`)
 
-func needReproForBug(c context.Context, bug *Bug) bool {
+func needReproForBug(ctx context.Context, bug *Bug) bool {
 	// We already have fixing commits.
 	if len(bug.Commits) > 0 {
 		return false
@@ -1551,7 +1551,7 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 		bug.Title == suppressedReportTitle {
 		return false
 	}
-	if !getNsConfig(c, bug.Namespace).NeedRepro(bug) {
+	if !getNsConfig(ctx, bug.Namespace).NeedRepro(bug) {
 		return false
 	}
 	bestReproLevel := ReproLevelC
@@ -1561,10 +1561,10 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	}
 	if bug.HeadReproLevel < bestReproLevel {
 		// We have not found a best-level repro yet, try until we do.
-		return bug.NumRepro < maxReproPerBug || timeSince(c, bug.LastReproTime) >= reproRetryPeriod
+		return bug.NumRepro < maxReproPerBug || timeSince(ctx, bug.LastReproTime) >= reproRetryPeriod
 	}
 	// When the best repro is already found, still do a repro attempt once in a while.
-	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
+	return timeSince(ctx, bug.LastReproTime) >= reproStalePeriod
 }
 
 var dedupTextFor = map[string]bool{
@@ -1572,7 +1572,7 @@ var dedupTextFor = map[string]bool{
 	textMachineInfo:  true,
 }
 
-func putText(c context.Context, ns, tag string, data []byte) (int64, error) {
+func putText(ctx context.Context, ns, tag string, data []byte) (int64, error) {
 	if ns == "" {
 		return 0, fmt.Errorf("putting text outside of namespace")
 	}
@@ -1605,27 +1605,27 @@ func putText(c context.Context, ns, tag string, data []byte) (int64, error) {
 	var key *db.Key
 	if dedupTextFor[tag] {
 		h := hash.Hash([]byte(ns), b.Bytes())
-		key = db.NewKey(c, tag, "", h.Truncate64(), nil)
+		key = db.NewKey(ctx, tag, "", h.Truncate64(), nil)
 	} else {
-		key = db.NewIncompleteKey(c, tag, nil)
+		key = db.NewIncompleteKey(ctx, tag, nil)
 	}
 	text := &Text{
 		Namespace: ns,
 		Text:      b.Bytes(),
 	}
-	key, err := db.Put(c, key, text)
+	key, err := db.Put(ctx, key, text)
 	if err != nil {
 		return 0, err
 	}
 	return key.IntID(), nil
 }
 
-func getText(c context.Context, tag string, id int64) ([]byte, string, error) {
+func getText(ctx context.Context, tag string, id int64) ([]byte, string, error) {
 	if id == 0 {
 		return nil, "", nil
 	}
 	text := new(Text)
-	if err := db.Get(c, db.NewKey(c, tag, "", id, nil), text); err != nil {
+	if err := db.Get(ctx, db.NewKey(ctx, tag, "", id, nil), text); err != nil {
 		return nil, "", fmt.Errorf("failed to read text %v: %w", tag, err)
 	}
 	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))
@@ -1707,11 +1707,11 @@ func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func apiSaveDiscussion(c context.Context, req *dashapi.SaveDiscussionReq) (any, error) {
+func apiSaveDiscussion(ctx context.Context, req *dashapi.SaveDiscussionReq) (any, error) {
 	d := req.Discussion
 	newBugIDs := []string{}
 	for _, id := range d.BugIDs {
-		_, _, err := findBugByReportingID(c, id)
+		_, _, err := findBugByReportingID(ctx, id)
 		if err == nil {
 			newBugIDs = append(newBugIDs, id)
 		}
@@ -1720,25 +1720,25 @@ func apiSaveDiscussion(c context.Context, req *dashapi.SaveDiscussionReq) (any, 
 	if len(d.BugIDs) == 0 {
 		return nil, nil
 	}
-	return nil, mergeDiscussion(c, d)
+	return nil, mergeDiscussion(ctx, d)
 }
 
-func emergentlyStopped(c context.Context) (bool, error) {
+func emergentlyStopped(ctx context.Context) (bool, error) {
 	keys, err := db.NewQuery("EmergencyStop").
 		Limit(1).
 		KeysOnly().
-		GetAll(c, nil)
+		GetAll(ctx, nil)
 	if err != nil {
 		return false, err
 	}
 	return len(keys) > 0, nil
 }
 
-func recordEmergencyStop(c context.Context) error {
-	key := db.NewKey(c, "EmergencyStop", "all", 0, nil)
-	_, err := db.Put(c, key, &EmergencyStop{
-		Time: timeNow(c),
-		User: user.Current(c).Email,
+func recordEmergencyStop(ctx context.Context) error {
+	key := db.NewKey(ctx, "EmergencyStop", "all", 0, nil)
+	_, err := db.Put(ctx, key, &EmergencyStop{
+		Time: timeNow(ctx),
+		User: user.Current(ctx).Email,
 	})
 	return err
 }
@@ -1746,13 +1746,13 @@ func recordEmergencyStop(c context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
-func apiLogToReproduce(c context.Context, ns string, req *dashapi.LogToReproReq) (any, error) {
-	build, err := loadBuild(c, ns, req.BuildID)
+func apiLogToReproduce(ctx context.Context, ns string, req *dashapi.LogToReproReq) (any, error) {
+	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
 	// First check if there have been any manual requests.
-	log, err := takeReproTask(c, ns, build.Manager)
+	log, err := takeReproTask(ctx, ns, build.Manager)
 	if err != nil {
 		return nil, err
 	}
@@ -1763,7 +1763,7 @@ func apiLogToReproduce(c context.Context, ns string, req *dashapi.LogToReproReq)
 		}, nil
 	}
 
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("HappenedOn=", build.Manager).
 			Filter("Status=", BugStatusOpen)
@@ -1771,7 +1771,7 @@ func apiLogToReproduce(c context.Context, ns string, req *dashapi.LogToReproReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bugs: %w", err)
 	}
-	rand.New(rand.NewSource(timeNow(c).UnixNano())).Shuffle(len(bugs), func(i, j int) {
+	rand.New(rand.NewSource(timeNow(ctx).UnixNano())).Shuffle(len(bugs), func(i, j int) {
 		bugs[i], bugs[j] = bugs[j], bugs[i]
 	})
 	// Let's limit the load on the DB.
@@ -1786,14 +1786,14 @@ func apiLogToReproduce(c context.Context, ns string, req *dashapi.LogToReproReq)
 			// finished a bug reproduction process.
 			continue
 		}
-		if !crashNeedsRepro(bug.Title) || !needReproForBug(c, bug) {
+		if !crashNeedsRepro(bug.Title) || !needReproForBug(ctx, bug) {
 			continue
 		}
 		checkedBugs++
 		if checkedBugs > bugsToConsider {
 			break
 		}
-		resp, err := logToReproForBug(c, bug, build.Manager)
+		resp, err := logToReproForBug(ctx, bug, build.Manager)
 		if resp != nil || err != nil {
 			return resp, err
 		}
@@ -1801,9 +1801,9 @@ func apiLogToReproduce(c context.Context, ns string, req *dashapi.LogToReproReq)
 	return nil, nil
 }
 
-func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.LogToReproResp, error) {
+func logToReproForBug(ctx context.Context, bug *Bug, manager string) (*dashapi.LogToReproResp, error) {
 	const considerCrashes = 10
-	crashes, _, err := queryCrashesForBug(c, bug.key(c), considerCrashes)
+	crashes, _, err := queryCrashesForBug(ctx, bug.key(ctx), considerCrashes)
 	if err != nil {
 		return nil, err
 	}
@@ -1811,7 +1811,7 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 		if crash.Manager != manager {
 			continue
 		}
-		crashLog, _, err := getText(c, textCrashLog, crash.Log)
+		crashLog, _, err := getText(ctx, textCrashLog, crash.Log)
 		if err != nil {
 			return nil, fmt.Errorf("failed to query a crash log: %w", err)
 		}
@@ -1824,8 +1824,8 @@ func logToReproForBug(c context.Context, bug *Bug, manager string) (*dashapi.Log
 	return nil, nil
 }
 
-func saveReproTask(c context.Context, ns, manager string, repro []byte) error {
-	log, err := putText(c, ns, textCrashLog, repro)
+func saveReproTask(ctx context.Context, ns, manager string, repro []byte) error {
+	log, err := putText(ctx, ns, textCrashLog, repro)
 	if err != nil {
 		return err
 	}
@@ -1837,18 +1837,18 @@ func saveReproTask(c context.Context, ns, manager string, repro []byte) error {
 		Log:          log,
 		AttemptsLeft: attempts,
 	}
-	key := db.NewIncompleteKey(c, "ReproTask", nil)
-	_, err = db.Put(c, key, obj)
+	key := db.NewIncompleteKey(ctx, "ReproTask", nil)
+	_, err = db.Put(ctx, key, obj)
 	return err
 }
 
-func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
+func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {
 	var tasks []*ReproTask
 	keys, err := db.NewQuery("ReproTask").
 		Filter("Namespace=", ns).
 		Filter("Manager=", manager).
 		Filter("AttemptsLeft>", 0).
-		GetAll(c, &tasks)
+		GetAll(ctx, &tasks)
 	if err != nil || len(keys) == 0 {
 		return nil, err
 	}
@@ -1858,28 +1858,28 @@ func takeReproTask(c context.Context, ns, manager string) ([]byte, error) {
 	// worst case we'd just try to reproduce it once more.
 	key, task := keys[0], tasks[0]
 	task.AttemptsLeft--
-	task.LastAttempt = timeNow(c)
-	if _, err := db.Put(c, key, task); err != nil {
+	task.LastAttempt = timeNow(ctx)
+	if _, err := db.Put(ctx, key, task); err != nil {
 		return nil, err
 	}
-	log, _, err := getText(c, textCrashLog, task.Log)
+	log, _, err := getText(ctx, textCrashLog, task.Log)
 	return log, err
 }
 
-func apiCreateUploadURL(c context.Context, req *any) (any, error) {
-	bucket := getConfig(c).UploadBucket
+func apiCreateUploadURL(ctx context.Context, req *any) (any, error) {
+	bucket := getConfig(ctx).UploadBucket
 	if bucket == "" {
 		return nil, errors.New("not configured")
 	}
 	return fmt.Sprintf("%s/%s.upload", bucket, uuid.New().String()), nil
 }
 
-func apiSendEmail(c context.Context, req *dashapi.SendEmailReq) (any, error) {
+func apiSendEmail(ctx context.Context, req *dashapi.SendEmailReq) (any, error) {
 	var headers mail.Header
 	if req.InReplyTo != "" {
 		headers = mail.Header{"In-Reply-To": []string{req.InReplyTo}}
 	}
-	return nil, sendEmail(c, &aemail.Message{
+	return nil, sendEmail(ctx, &aemail.Message{
 		Sender:  req.Sender,
 		Headers: headers,
 		To:      req.To,
@@ -1892,18 +1892,18 @@ func apiSendEmail(c context.Context, req *dashapi.SendEmailReq) (any, error) {
 // apiSaveCoverage reads jsonl data from payload and stores it to coveragedb.
 // First payload jsonl line is a coveragedb.HistoryRecord (w/o session and time).
 // Second+ records are coveragedb.JSONLWrapper.
-func apiSaveCoverage(c context.Context, payload io.Reader) (any, error) {
+func apiSaveCoverage(ctx context.Context, payload io.Reader) (any, error) {
 	descr := new(coveragedb.HistoryRecord)
 	jsonDec := json.NewDecoder(payload)
 	if err := jsonDec.Decode(descr); err != nil {
 		return 0, fmt.Errorf("json.NewDecoder(coveragedb.HistoryRecord).Decode: %w", err)
 	}
-	rowsCreated, err := coveragedb.SaveMergeResult(c, getCoverageDBClient(c), descr, jsonDec)
+	rowsCreated, err := coveragedb.SaveMergeResult(ctx, getCoverageDBClient(ctx), descr, jsonDec)
 	if err != nil {
-		log.Errorf(c, "error storing coverage for ns %s, date %s: %v",
+		log.Errorf(ctx, "error storing coverage for ns %s, date %s: %v",
 			descr.Namespace, descr.DateTo.String(), err)
 	} else {
-		log.Infof(c, "updated coverage for ns %s, date %s to %d rows",
+		log.Infof(ctx, "updated coverage for ns %s, date %s to %d rows",
 			descr.Namespace, descr.DateTo.String(), descr.TotalRows)
 	}
 	return &rowsCreated, err

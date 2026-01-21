@@ -24,7 +24,7 @@ import (
 
 // This file contains common middleware for UI handlers (auth, html templates, etc).
 
-type contextHandler func(c context.Context, w http.ResponseWriter, r *http.Request) error
+type contextHandler func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handlerWrapper(fn contextHandler) http.Handler {
 	return handleContext(handleAuth(fn))
@@ -32,25 +32,25 @@ func handlerWrapper(fn contextHandler) http.Handler {
 
 func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := context.WithValue(r.Context(), &currentURLKey, r.URL.RequestURI())
-		authorizedUser, _ := userAccessLevel(currentUser(c), "", getConfig(c))
+		ctx := context.WithValue(r.Context(), &currentURLKey, r.URL.RequestURI())
+		authorizedUser, _ := userAccessLevel(currentUser(ctx), "", getConfig(ctx))
 		if !authorizedUser {
-			if !throttleRequest(c, w, r) {
+			if !throttleRequest(ctx, w, r) {
 				return
 			}
-			defer backpressureRobots(c, r)()
+			defer backpressureRobots(ctx, r)()
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		gzw := newGzipResponseWriterCloser(w)
 		defer gzw.Close()
-		err := fn(c, gzw, r)
+		err := fn(ctx, gzw, r)
 		if err == nil {
 			if err = gzw.writeResult(r); err == nil {
 				return
 			}
 		}
-		hdr := commonHeaderRaw(c, r)
+		hdr := commonHeaderRaw(ctx, r)
 		data := &struct {
 			Header  *uiHeader
 			Error   string
@@ -74,7 +74,7 @@ func handleContext(fn contextHandler) http.Handler {
 			return
 		}
 
-		status := logErrorPrepareStatus(c, err)
+		status := logErrorPrepareStatus(ctx, err)
 		w.WriteHeader(status)
 		if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 			combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
@@ -83,7 +83,7 @@ func handleContext(fn contextHandler) http.Handler {
 	})
 }
 
-func logErrorPrepareStatus(c context.Context, err error) int {
+func logErrorPrepareStatus(ctx context.Context, err error) int {
 	status := http.StatusInternalServerError
 	logf := log.Errorf
 	var clientError *ErrClient
@@ -93,7 +93,7 @@ func logErrorPrepareStatus(c context.Context, err error) int {
 		logf = log.Warningf
 		status = clientError.HTTPStatus()
 	}
-	logf(c, "appengine error: %v", err)
+	logf(ctx, "appengine error: %v", err)
 	return status
 }
 
@@ -108,11 +108,11 @@ func isRobot(r *http.Request) bool {
 
 // We don't count the request round trip time here.
 // Actual delay will be the minDelay + requestRoundTripTime.
-func backpressureRobots(c context.Context, r *http.Request) func() {
+func backpressureRobots(ctx context.Context, r *http.Request) func() {
 	if !isRobot(r) {
 		return func() {}
 	}
-	cfg := getConfig(c).Throttle
+	cfg := getConfig(ctx).Throttle
 	if cfg.Empty() {
 		return func() {}
 	}
@@ -120,13 +120,13 @@ func backpressureRobots(c context.Context, r *http.Request) func() {
 	delayUntil := time.Now().Add(minDelay)
 	return func() {
 		select {
-		case <-c.Done():
+		case <-ctx.Done():
 		case <-time.After(time.Until(delayUntil)):
 		}
 	}
 }
 
-func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) bool {
+func throttleRequest(ctx context.Context, w http.ResponseWriter, r *http.Request) bool {
 	// AppEngine removes all App Engine-specific headers, which include
 	// X-Appengine-User-IP and X-Forwarded-For.
 	// https://cloud.google.com/appengine/docs/standard/reference/request-headers?tab=python#removed_headers
@@ -138,28 +138,28 @@ func throttleRequest(c context.Context, w http.ResponseWriter, r *http.Request) 
 	}
 	cron := r.Header.Get("X-Appengine-Cron") != ""
 	if ip == "" || cron {
-		log.Infof(c, "cannot throttle request from %q, cron %t", ip, cron)
+		log.Infof(ctx, "cannot throttle request from %q, cron %t", ip, cron)
 		return true
 	}
-	accept, err := ThrottleRequest(c, ip)
+	accept, err := ThrottleRequest(ctx, ip)
 	if errors.Is(err, ErrThrottleTooManyRetries) {
 		// We get these at peak QPS anyway, it's not an error.
-		log.Warningf(c, "failed to throttle: %v", err)
+		log.Warningf(ctx, "failed to throttle: %v", err)
 	} else if err != nil {
-		log.Errorf(c, "failed to throttle: %v", err)
+		log.Errorf(ctx, "failed to throttle: %v", err)
 	}
-	log.Infof(c, "throttling for %q: %t", ip, accept)
+	log.Infof(ctx, "throttling for %q: %t", ip, accept)
 	if !accept {
-		http.Error(w, throttlingErrorMessage(c), http.StatusTooManyRequests)
+		http.Error(w, throttlingErrorMessage(ctx), http.StatusTooManyRequests)
 		return false
 	}
 	return true
 }
 
-func throttlingErrorMessage(c context.Context) string {
+func throttlingErrorMessage(ctx context.Context) string {
 	ret := fmt.Sprintf("429 Too Many Requests\nAllowed rate is %d requests per %d seconds.",
-		getConfig(c).Throttle.Limit, int(getConfig(c).Throttle.Window.Seconds()))
-	email := getConfig(c).ContactEmail
+		getConfig(ctx).Throttle.Limit, int(getConfig(ctx).Throttle.Window.Seconds()))
+	email := getConfig(ctx).ContactEmail
 	if email == "" {
 		return ret
 	}
@@ -168,8 +168,8 @@ func throttlingErrorMessage(c context.Context) string {
 
 var currentURLKey = "the URL of the HTTP request in context"
 
-func getCurrentURL(c context.Context) string {
-	val, ok := c.Value(&currentURLKey).(string)
+func getCurrentURL(ctx context.Context) string {
+	val, ok := ctx.Value(&currentURLKey).(string)
 	if ok {
 		return val
 	}
@@ -195,11 +195,11 @@ func (ce *ErrClient) HTTPStatus() int {
 }
 
 func handleAuth(fn contextHandler) contextHandler {
-	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {
-		if err := checkAccessLevel(c, r, getConfig(c).AccessLevel); err != nil {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		if err := checkAccessLevel(ctx, r, getConfig(ctx).AccessLevel); err != nil {
 			return err
 		}
-		return fn(c, w, r)
+		return fn(ctx, w, r)
 	}
 }
 
@@ -238,21 +238,21 @@ type cookieData struct {
 	Namespace string `json:"namespace"`
 }
 
-func commonHeaderRaw(c context.Context, r *http.Request) *uiHeader {
+func commonHeaderRaw(ctx context.Context, r *http.Request) *uiHeader {
 	h := &uiHeader{
-		Admin:               accessLevel(c, r) == AccessAdmin,
+		Admin:               accessLevel(ctx, r) == AccessAdmin,
 		URLPath:             r.URL.Path,
-		AnalyticsTrackingID: getConfig(c).AnalyticsTrackingID,
-		ContactEmail:        getConfig(c).ContactEmail,
+		AnalyticsTrackingID: getConfig(ctx).AnalyticsTrackingID,
+		ContactEmail:        getConfig(ctx).ContactEmail,
 	}
-	if user.Current(c) == nil {
-		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
+	if user.Current(ctx) == nil {
+		h.LoginLink, _ = user.LoginURL(ctx, r.URL.String())
 	}
 	return h
 }
 
-func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns string) (*uiHeader, error) {
-	accessLevel := accessLevel(c, r)
+func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, ns string) (*uiHeader, error) {
+	accessLevel := accessLevel(ctx, r)
 	if ns == "" {
 		ns = strings.ToLower(r.URL.Path)
 		if ns != "" && ns[0] == '/' {
@@ -262,11 +262,11 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			ns = ns[:pos]
 		}
 	}
-	h := commonHeaderRaw(c, r)
+	h := commonHeaderRaw(ctx, r)
 	const adminPage = "admin"
 	isAdminPage := r.URL.Path == "/"+adminPage
 	found := false
-	for ns1, cfg := range getConfig(c).Namespaces {
+	for ns1, cfg := range getConfig(ctx).Namespaces {
 		if accessLevel < cfg.AccessLevel {
 			if ns1 == ns {
 				return nil, ErrAccess
@@ -276,7 +276,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		if ns1 == ns {
 			found = true
 		}
-		if getNsConfig(c, ns1).Decommissioned {
+		if getNsConfig(ctx, ns1).Decommissioned {
 			continue
 		}
 		h.Namespaces = append(h.Namespaces, uiNamespace{
@@ -289,8 +289,8 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	})
 	cookie := decodeCookie(r)
 	if !found {
-		ns = getConfig(c).DefaultNamespace
-		if cfg := getNsConfig(c, cookie.Namespace); cfg != nil && cfg.AccessLevel <= accessLevel {
+		ns = getConfig(ctx).DefaultNamespace
+		if cfg := getNsConfig(ctx, cookie.Namespace); cfg != nil && cfg.AccessLevel <= accessLevel {
 			ns = cookie.Namespace
 		}
 		if accessLevel == AccessAdmin {
@@ -301,13 +301,13 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		}
 	}
 	if ns != adminPage {
-		cfg := getNsConfig(c, ns)
+		cfg := getNsConfig(ctx, ns)
 		h.Namespace = ns
 		h.AI = cfg.AI && accessLevel >= AIAccessLevel
 		h.ShowSubsystems = cfg.Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
-		cached, err := CacheGet(c, r, ns)
+		cached, err := CacheGet(ctx, r, ns)
 		if err != nil {
 			return nil, err
 		}

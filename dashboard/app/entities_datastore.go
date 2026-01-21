@@ -186,32 +186,32 @@ type BugReproAttempt struct {
 	Log     int64
 }
 
-func (bug *Bug) SetAutoSubsystems(c context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
+func (bug *Bug) SetAutoSubsystems(ctx context.Context, list []*subsystem.Subsystem, now time.Time, rev int) {
 	bug.SubsystemsRev = rev
 	bug.SubsystemsTime = now
 	var objects []BugLabel
 	for _, item := range list {
 		objects = append(objects, BugLabel{Label: SubsystemLabel, Value: item.Name})
 	}
-	bug.SetLabels(makeLabelSet(c, bug), objects)
+	bug.SetLabels(makeLabelSet(ctx, bug), objects)
 }
 
-func updateSingleBug(c context.Context, bugKey *db.Key, transform func(*Bug) error) error {
-	tx := func(c context.Context) error {
+func updateSingleBug(ctx context.Context, bugKey *db.Key, transform func(*Bug) error) error {
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %w", err)
 		}
 		err := transform(bug)
 		if err != nil {
 			return err
 		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(c, tx, nil)
+	return runInTransaction(ctx, tx, nil)
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
@@ -458,12 +458,12 @@ type Discussion struct {
 	Summary DiscussionSummary
 }
 
-func discussionKey(c context.Context, source, id string) *db.Key {
-	return db.NewKey(c, "Discussion", fmt.Sprintf("%v-%v", source, id), 0, nil)
+func discussionKey(ctx context.Context, source, id string) *db.Key {
+	return db.NewKey(ctx, "Discussion", fmt.Sprintf("%v-%v", source, id), 0, nil)
 }
 
-func (d *Discussion) key(c context.Context) *db.Key {
-	return discussionKey(c, d.Source, d.ID)
+func (d *Discussion) key(ctx context.Context) *db.Key {
+	return discussionKey(ctx, d.Source, d.ID)
 }
 
 type DiscussionMessage struct {
@@ -737,17 +737,17 @@ type ReproTask struct {
 	LastAttempt  time.Time
 }
 
-func mgrKey(c context.Context, ns, name string) *db.Key {
-	return db.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
+func mgrKey(ctx context.Context, ns, name string) *db.Key {
+	return db.NewKey(ctx, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
 }
 
-func (mgr *Manager) key(c context.Context) *db.Key {
-	return mgrKey(c, mgr.Namespace, mgr.Name)
+func (mgr *Manager) key(ctx context.Context) *db.Key {
+	return mgrKey(ctx, mgr.Namespace, mgr.Name)
 }
 
-func loadManager(c context.Context, ns, name string) (*Manager, error) {
+func loadManager(ctx context.Context, ns, name string) (*Manager, error) {
 	mgr := new(Manager)
-	if err := db.Get(c, mgrKey(c, ns, name), mgr); err != nil {
+	if err := db.Get(ctx, mgrKey(ctx, ns, name), mgr); err != nil {
 		if err != db.ErrNoSuchEntity {
 			return nil, fmt.Errorf("failed to get manager %v/%v: %w", ns, name, err)
 		}
@@ -760,17 +760,17 @@ func loadManager(c context.Context, ns, name string) (*Manager, error) {
 }
 
 // updateManager does transactional compare-and-swap on the manager and its current stats.
-func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, stats *ManagerStats) error) error {
-	date := timeDate(timeNow(c))
-	tx := func(c context.Context) error {
-		mgr, err := loadManager(c, ns, name)
+func updateManager(ctx context.Context, ns, name string, fn func(mgr *Manager, stats *ManagerStats) error) error {
+	date := timeDate(timeNow(ctx))
+	tx := func(ctx context.Context) error {
+		mgr, err := loadManager(ctx, ns, name)
 		if err != nil {
 			return err
 		}
-		mgrKey := mgr.key(c)
+		mgrKey := mgr.key(ctx)
 		stats := new(ManagerStats)
-		statsKey := db.NewKey(c, "ManagerStats", "", int64(date), mgrKey)
-		if err := db.Get(c, statsKey, stats); err != nil {
+		statsKey := db.NewKey(ctx, "ManagerStats", "", int64(date), mgrKey)
+		if err := db.Get(ctx, statsKey, stats); err != nil {
 			if err != db.ErrNoSuchEntity {
 				return fmt.Errorf("failed to get stats %v/%v/%v: %w", ns, name, date, err)
 			}
@@ -783,31 +783,31 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 			return err
 		}
 
-		if _, err := db.Put(c, mgrKey, mgr); err != nil {
+		if _, err := db.Put(ctx, mgrKey, mgr); err != nil {
 			return fmt.Errorf("failed to put manager: %w", err)
 		}
-		if _, err := db.Put(c, statsKey, stats); err != nil {
+		if _, err := db.Put(ctx, statsKey, stats); err != nil {
 			return fmt.Errorf("failed to put manager stats: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(c, tx, nil)
+	return runInTransaction(ctx, tx, nil)
 }
 
-func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error) {
+func loadAllManagers(ctx context.Context, ns string) ([]*Manager, []*db.Key, error) {
 	var managers []*Manager
 	query := db.NewQuery("Manager")
 	if ns != "" {
 		query = query.Filter("Namespace=", ns)
 	}
-	keys, err := query.GetAll(c, &managers)
+	keys, err := query.GetAll(ctx, &managers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query managers: %w", err)
 	}
 	var result []*Manager
 	var resultKeys []*db.Key
 	for i, mgr := range managers {
-		if getNsConfig(c, mgr.Namespace).Managers[mgr.Name].Decommissioned {
+		if getNsConfig(ctx, mgr.Namespace).Managers[mgr.Name].Decommissioned {
 			continue
 		}
 		result = append(result, mgr)
@@ -816,17 +816,17 @@ func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error
 	return result, resultKeys, nil
 }
 
-func buildKey(c context.Context, ns, id string) *db.Key {
+func buildKey(ctx context.Context, ns, id string) *db.Key {
 	if ns == "" {
 		panic("requesting build key outside of namespace")
 	}
 	h := hash.String([]byte(fmt.Sprintf("%v-%v", ns, id)))
-	return db.NewKey(c, "Build", h, 0, nil)
+	return db.NewKey(ctx, "Build", h, 0, nil)
 }
 
-func loadBuild(c context.Context, ns, id string) (*Build, error) {
+func loadBuild(ctx context.Context, ns, id string) (*Build, error) {
 	build := new(Build)
-	if err := db.Get(c, buildKey(c, ns, id), build); err != nil {
+	if err := db.Get(ctx, buildKey(ctx, ns, id), build); err != nil {
 		if err == db.ErrNoSuchEntity {
 			return nil, fmt.Errorf("unknown build %v/%v", ns, id)
 		}
@@ -835,18 +835,18 @@ func loadBuild(c context.Context, ns, id string) (*Build, error) {
 	return build, nil
 }
 
-func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
-	mgr, err := loadManager(c, ns, manager)
+func lastManagerBuild(ctx context.Context, ns, manager string) (*Build, error) {
+	mgr, err := loadManager(ctx, ns, manager)
 	if err != nil {
 		return nil, err
 	}
 	if mgr.CurrentBuild == "" {
 		return nil, fmt.Errorf("failed to fetch manager build: no builds")
 	}
-	return loadBuild(c, ns, mgr.CurrentBuild)
+	return loadBuild(ctx, ns, mgr.CurrentBuild)
 }
 
-func loadBuilds(c context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
+func loadBuilds(ctx context.Context, ns, manager string, typ BuildType) ([]*Build, error) {
 	const limit = 1000
 	var builds []*Build
 	_, err := db.NewQuery("Build").
@@ -855,7 +855,7 @@ func loadBuilds(c context.Context, ns, manager string, typ BuildType) ([]*Build,
 		Filter("Type=", typ).
 		Order("-Time").
 		Limit(limit).
-		GetAll(c, &builds)
+		GetAll(ctx, &builds)
 	if err != nil {
 		return nil, err
 	}
@@ -888,62 +888,62 @@ func splitDisplayTitle(display string) (string, int64, error) {
 	return title, seq - 1, nil
 }
 
-func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
+func canonicalBug(ctx context.Context, bug *Bug) (*Bug, error) {
 	for {
 		if bug.Status != BugStatusDup {
 			return bug, nil
 		}
 		canon := new(Bug)
-		bugKey := db.NewKey(c, "Bug", bug.DupOf, 0, nil)
-		if err := db.Get(c, bugKey, canon); err != nil {
+		bugKey := db.NewKey(ctx, "Bug", bug.DupOf, 0, nil)
+		if err := db.Get(ctx, bugKey, canon); err != nil {
 			return nil, fmt.Errorf("failed to get dup bug %q for %q: %w",
-				bug.DupOf, bug.keyHash(c), err)
+				bug.DupOf, bug.keyHash(ctx), err)
 		}
 		bug = canon
 	}
 }
 
-func (bug *Bug) key(c context.Context) *db.Key {
-	return db.NewKey(c, "Bug", bug.keyHash(c), 0, nil)
+func (bug *Bug) key(ctx context.Context) *db.Key {
+	return db.NewKey(ctx, "Bug", bug.keyHash(ctx), 0, nil)
 }
 
-func (bug *Bug) keyHash(c context.Context) string {
-	return bugKeyHash(c, bug.Namespace, bug.Title, bug.Seq)
+func (bug *Bug) keyHash(ctx context.Context) string {
+	return bugKeyHash(ctx, bug.Namespace, bug.Title, bug.Seq)
 }
 
-func bugKeyHash(c context.Context, ns, title string, seq int64) string {
-	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(c, ns).Key, ns, title, seq)))
+func bugKeyHash(ctx context.Context, ns, title string, seq int64) string {
+	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", getNsConfig(ctx, ns).Key, ns, title, seq)))
 }
 
-func loadBug(c context.Context, bugHash string) (*Bug, error) {
+func loadBug(ctx context.Context, bugHash string) (*Bug, error) {
 	bug := new(Bug)
-	bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
-	if err := db.Get(c, bugKey, bug); err != nil {
+	bugKey := db.NewKey(ctx, "Bug", bugHash, 0, nil)
+	if err := db.Get(ctx, bugKey, bug); err != nil {
 		return nil, fmt.Errorf("failed to load bug by hash %q: %w", bugHash, err)
 	}
 	return bug, nil
 }
 
-func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
-	domain := getNsConfig(c, bug.Namespace).SimilarityDomain
+func loadSimilarBugs(ctx context.Context, bug *Bug) ([]*Bug, error) {
+	domain := getNsConfig(ctx, bug.Namespace).SimilarityDomain
 	dedup := make(map[string]bool)
-	dedup[bug.keyHash(c)] = true
+	dedup[bug.keyHash(ctx)] = true
 
 	ret := []*Bug{}
 	for _, title := range bug.AltTitles {
 		var similar []*Bug
 		_, err := db.NewQuery("Bug").
 			Filter("AltTitles=", title).
-			GetAll(c, &similar)
+			GetAll(ctx, &similar)
 		if err != nil {
 			return nil, err
 		}
 		for _, bug := range similar {
-			if getNsConfig(c, bug.Namespace).SimilarityDomain != domain ||
-				dedup[bug.keyHash(c)] {
+			if getNsConfig(ctx, bug.Namespace).SimilarityDomain != domain ||
+				dedup[bug.keyHash(ctx)] {
 				continue
 			}
-			dedup[bug.keyHash(c)] = true
+			dedup[bug.keyHash(ctx)] = true
 			ret = append(ret, bug)
 		}
 	}
@@ -1032,40 +1032,40 @@ type EmergencyStop struct {
 	User string
 }
 
-func addCrashReference(c context.Context, crashID int64, bugKey *db.Key, ref CrashReference) error {
+func addCrashReference(ctx context.Context, crashID int64, bugKey *db.Key, ref CrashReference) error {
 	crash := new(Crash)
-	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
-	if err := db.Get(c, crashKey, crash); err != nil {
+	crashKey := db.NewKey(ctx, "Crash", "", crashID, bugKey)
+	if err := db.Get(ctx, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to get reported crash %v: %w", crashID, err)
 	}
 	crash.AddReference(ref)
-	if _, err := db.Put(c, crashKey, crash); err != nil {
+	if _, err := db.Put(ctx, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put reported crash %v: %w", crashID, err)
 	}
 	return nil
 }
 
-func removeCrashReference(c context.Context, crashID int64, bugKey *db.Key,
+func removeCrashReference(ctx context.Context, crashID int64, bugKey *db.Key,
 	t CrashReferenceType, key string) error {
 	crash := new(Crash)
-	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
-	if err := db.Get(c, crashKey, crash); err != nil {
+	crashKey := db.NewKey(ctx, "Crash", "", crashID, bugKey)
+	if err := db.Get(ctx, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to get reported crash %v: %w", crashID, err)
 	}
 	crash.ClearReference(t, key)
-	if _, err := db.Put(c, crashKey, crash); err != nil {
+	if _, err := db.Put(ctx, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put reported crash %v: %w", crashID, err)
 	}
 	return nil
 }
 
-func kernelRepoInfo(c context.Context, build *Build) KernelRepo {
-	return kernelRepoInfoRaw(c, build.Namespace, build.KernelRepo, build.KernelBranch)
+func kernelRepoInfo(ctx context.Context, build *Build) KernelRepo {
+	return kernelRepoInfoRaw(ctx, build.Namespace, build.KernelRepo, build.KernelBranch)
 }
 
-func kernelRepoInfoRaw(c context.Context, ns, url, branch string) KernelRepo {
+func kernelRepoInfoRaw(ctx context.Context, ns, url, branch string) KernelRepo {
 	var info KernelRepo
-	for _, repo := range getNsConfig(c, ns).Repos {
+	for _, repo := range getNsConfig(ctx, ns).Repos {
 		if repo.URL == url && repo.Branch == branch {
 			info = repo
 			break
@@ -1145,7 +1145,7 @@ func (dl *dependencyLoader[T]) add(key *db.Key, upd func(*T)) {
 	dl.callbacks = append(dl.callbacks, upd)
 }
 
-func (dl *dependencyLoader[T]) load(c context.Context) error {
+func (dl *dependencyLoader[T]) load(ctx context.Context) error {
 	type info struct {
 		key *db.Key
 		cbs []func(*T)
@@ -1171,7 +1171,7 @@ func (dl *dependencyLoader[T]) load(c context.Context) error {
 		infos = append(infos, info)
 	}
 	objects := make([]*T, len(keys))
-	if badKey, err := getAllMulti(c, keys, objects); err != nil {
+	if badKey, err := getAllMulti(ctx, keys, objects); err != nil {
 		return fmt.Errorf("%v: %w", badKey, err)
 	}
 	for i := range keys {
@@ -1187,12 +1187,12 @@ type txFunc func(tc context.Context) error
 
 // runInTransaction is a wrapper around db.RunInTransaction,
 // with the common number of attempts.
-func runInTransaction(c context.Context, tx txFunc, opts *db.TransactionOptions) error {
+func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOptions) error {
 	if opts == nil {
 		opts = &db.TransactionOptions{}
 	}
 	if opts.Attempts == 0 {
 		opts.Attempts = 10
 	}
-	return db.RunInTransaction(c, tx, opts)
+	return db.RunInTransaction(ctx, tx, opts)
 }
