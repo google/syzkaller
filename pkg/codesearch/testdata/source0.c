@@ -25,3 +25,9 @@ void function_with_comment_in_header()
 {
 	same_name_in_several_files();
 }
+
+int func_accepting_a_struct(struct some_struct* p)
+{
+	return ((some_struct_t*)p)->x +
+	       ((union some_union*)p)->x;
+}

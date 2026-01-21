@@ -76,7 +76,12 @@ public:
   bool TraverseEnumDecl(EnumDecl*);
   bool TraverseTypedefDecl(TypedefDecl*);
   bool TraverseCallExpr(CallExpr*);
+  bool TraverseCStyleCastExpr(CStyleCastExpr*);
+  bool TraverseVarDecl(VarDecl*);
+  bool TraverseParmVarDecl(ParmVarDecl*);
   bool VisitDeclRefExpr(const DeclRefExpr*);
+  bool VisitTagType(const TagType*);
+  bool VisitTypedefType(const TypedefType*);
 
 private:
   ASTContext& Context;
@@ -84,6 +89,10 @@ private:
   Output& Out;
   Definition* Current = nullptr;
   bool InCallee = false;
+  // If set, record references to struct types as uses.
+  SourceLocation TypeRefingLocation;
+
+  void EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind);
 
   struct NamedDeclEmitter {
     NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type, bool IsStatic);
@@ -98,6 +107,13 @@ private:
   };
 
   using Base = RecursiveASTVisitor<Indexer>;
+};
+
+template <typename T> struct ScopedState {
+  T* const Var;
+  T Saved;
+  ScopedState(T* Var, T ScopeValue) : Var(Var), Saved(*Var) { *Var = ScopeValue; }
+  ~ScopedState() { *Var = Saved; }
 };
 
 bool Instance::handleBeginSource(CompilerInstance& CI) {
@@ -173,27 +189,76 @@ bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
 }
 
 bool Indexer::TraverseCallExpr(CallExpr* CE) {
-  bool SavedInCallee = InCallee;
-  InCallee = true;
-  TraverseStmt(CE->getCallee());
-  InCallee = SavedInCallee;
-
+  {
+    ScopedState<bool> Scoped(&InCallee, true);
+    TraverseStmt(CE->getCallee());
+  }
   for (auto* Arg : CE->arguments())
     TraverseStmt(Arg);
   return true;
 }
 
 bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
-  const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl());
-  if (!Func || !Current)
-    return true;
-  Current->Refs.push_back(Reference{
-      .Kind = InCallee ? RefKindCall : RefKindTakesAddr,
-      .EntityKind = EntityKindFunction,
-      .Name = Func->getNameAsString(),
-      .Line = static_cast<int>(SM.getExpansionLineNumber(DeclRef->getBeginLoc())),
-  });
+  if (const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl()))
+    EmitReference(DeclRef->getBeginLoc(), DeclRef->getDecl(), EntityKindFunction,
+                  InCallee ? RefKindCall : RefKindTakesAddr);
   return true;
+}
+
+bool Indexer::TraverseVarDecl(VarDecl* Decl) {
+  ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
+  return Base::TraverseVarDecl(Decl);
+}
+
+bool Indexer::TraverseParmVarDecl(ParmVarDecl* Decl) {
+  ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
+  return Base::TraverseParmVarDecl(Decl);
+}
+
+bool Indexer::TraverseCStyleCastExpr(CStyleCastExpr* Cast) {
+  ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Cast->getBeginLoc());
+  return Base::TraverseCStyleCastExpr(Cast);
+}
+
+bool Indexer::VisitTagType(const TagType* T) {
+  if (TypeRefingLocation.isInvalid())
+    return true;
+  const auto* Tag = T->getAsTagDecl();
+  const char* EntityKind = nullptr;
+  if (Tag->isStruct())
+    EntityKind = EntityKindStruct;
+  else if (Tag->isUnion())
+    EntityKind = EntityKindUnion;
+  else if (Tag->isEnum())
+    EntityKind = EntityKindEnum;
+  else
+    return true;
+  EmitReference(TypeRefingLocation, Tag, EntityKind, RefKindUses);
+  return true;
+}
+
+bool Indexer::VisitTypedefType(const TypedefType* T) {
+  if (TypeRefingLocation.isInvalid())
+    return true;
+  EmitReference(TypeRefingLocation, T->getDecl(), EntityKindTypedef, RefKindUses);
+  // If it's a struct typedef, also note the struct use.
+  if (const auto* Tag = dyn_cast<TagType>(T->getCanonicalTypeInternal().getTypePtr()))
+    VisitTagType(Tag);
+  return true;
+}
+
+void Indexer::EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind) {
+  if (!Current || !Named || Named->getNameAsString().empty())
+    return;
+  const std::string& Name = Named->getNameAsString();
+  if (Name.empty())
+    return;
+  Current->Refs.push_back(Reference{
+      .Kind = RefKind,
+      .EntityKind = EntityKind,
+      .Name = Name,
+      .Line = static_cast<int>(SM.getExpansionLineNumber(Loc)),
+  });
 }
 
 bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
