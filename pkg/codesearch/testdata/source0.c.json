@@ -1,16 +1,6 @@
 {
 	"definitions": [
 		{
-			"name": "some_enum",
-			"kind": "enum",
-			"body": {
-				"file": "source0.h",
-				"start_line": 45,
-				"end_line": 48
-			},
-			"comment": {}
-		},
-		{
 			"name": "close",
 			"type": "int ()",
 			"kind": "function",
@@ -90,6 +80,17 @@
 			]
 		},
 		{
+			"name": "function_with_quotes_in_type",
+			"type": "void (void  __attribute__((btf_type_tag(\"user\")))*)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 35,
+				"end_line": 37
+			},
+			"comment": {}
+		},
+		{
 			"name": "open",
 			"type": "int ()",
 			"kind": "function",
@@ -149,6 +150,26 @@
 			"comment": {}
 		},
 		{
+			"name": "some_union",
+			"kind": "union",
+			"body": {
+				"file": "source0.h",
+				"start_line": 40,
+				"end_line": 43
+			},
+			"comment": {}
+		},
+		{
+			"name": "some_enum",
+			"kind": "enum",
+			"body": {
+				"file": "source0.h",
+				"start_line": 45,
+				"end_line": 48
+			},
+			"comment": {}
+		},
+		{
 			"name": "another_struct_t",
 			"kind": "typedef",
 			"body": {
@@ -185,16 +206,6 @@
 				"file": "source0.h",
 				"start_line": 32,
 				"end_line": 34
-			},
-			"comment": {}
-		},
-		{
-			"name": "some_union",
-			"kind": "union",
-			"body": {
-				"file": "source0.h",
-				"start_line": 40,
-				"end_line": 43
 			},
 			"comment": {}
 		}
