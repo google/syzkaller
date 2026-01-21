@@ -106,7 +106,7 @@ func GetTarget(OS, arch string) (*Target, error) {
 			supported = append(supported, fmt.Sprintf("%v/%v", t.OS, t.Arch))
 		}
 		sort.Strings(supported)
-		return nil, fmt.Errorf("unknown target: %v (supported: %v)", key, supported)
+		return nil, fmt.Errorf("unknown target: %v (supported: %v) did you run `make generate`?", key, supported)
 	}
 	target.init.Do(target.lazyInit)
 	return target, nil
