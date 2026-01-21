@@ -98,8 +98,14 @@ const llmMultipleToolsInstruction = `
 Prefer calling several tools at the same time to save round-trips.
 `
 
+const llmMissingReply = `You did not provide any final reply to the question. Please return something.
+Or did you want to call some other tools, but did not actually do that?
+`
+
 const llmMissingOutputs = `You did not call set-results tool.
 Please call set-results tool to provide results of the analysis.
+Note: if you already provided you final reply, you will need to provide it again after calling set-results tool.
+Or did you want to call some other tools, but did not actually do that?
 `
 
 type llmOutputs struct {
@@ -191,13 +197,18 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		req = append(req, resp.Candidates[0].Content)
 		if len(calls) == 0 {
-			// This is the final reply.
-			if a.Outputs == nil || outputs != nil {
-				return reply, outputs, nil
+			if a.Outputs != nil && outputs == nil {
+				// LLM did not call set-results.
+				req = append(req, genai.NewContentFromText(llmMissingOutputs, genai.RoleUser))
+				continue
 			}
-			// LLM did not call set-results.
-			req = append(req, genai.NewContentFromText(llmMissingOutputs, genai.RoleUser))
-			continue
+			if reply == "" {
+				// LLM did not provide any final reply.
+				req = append(req, genai.NewContentFromText(llmMissingReply, genai.RoleUser))
+				continue
+			}
+			// This is the final reply.
+			return reply, outputs, nil
 		}
 		// This is not the final reply, LLM asked to execute some tools.
 		// Append the current reply, and tool responses to the next request.
@@ -324,6 +335,9 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse) (
 		} else {
 			reply += part.Text
 		}
+	}
+	if strings.TrimSpace(reply) == "" {
+		reply = ""
 	}
 	return
 }
