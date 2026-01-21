@@ -222,8 +222,12 @@ struct mem_region {
 
 // SYZOS guest virtual memory layout (must be in sync with executor/kvm.h):
 static const struct mem_region syzos_mem_regions[] = {
-    // AMD64 data structures (48 pages starting at GPA 0x0, see kvm.h).
-    {X86_SYZOS_ADDR_ZERO, 48, MEM_REGION_FLAG_GPA0},
+    // AMD64 fixed data structures (5 pages: Zero, GDT, PML4, PDP, PD).
+    {X86_SYZOS_ADDR_ZERO, 5, MEM_REGION_FLAG_GPA0},
+    // High fixed data (IDT, TSS).
+    {X86_SYZOS_ADDR_VAR_IDT, 11, 0},
+    // Dynamic Page Table Pool.
+    {X86_SYZOS_ADDR_PT_POOL, X86_SYZOS_PT_POOL_SIZE, 0},
     // SMRAM memory.
     {X86_SYZOS_ADDR_SMRAM, 10, 0},
     // Unmapped region to trigger a page faults for uexits etc.
@@ -253,6 +257,7 @@ struct kvm_syz_vm {
 	size_t total_pages;
 	void* user_text;
 	void* gpa0_mem;
+	void* pt_pool_mem;
 };
 #endif
 
@@ -311,40 +316,52 @@ static uint64 pg_alloc(page_alloc_t* alloc)
 	return page;
 }
 
-static void map_4k_page(uint64 host_mem, page_alloc_t* alloc, uint64 gpa)
+// Helper to translate GPA to Host Pointer handling the memory gap.
+static uint64* get_host_pte_ptr(struct kvm_syz_vm* vm, uint64 gpa)
 {
-	uint64* pml4 = (uint64*)(host_mem + X86_SYZOS_ADDR_PML4);
+	// Case 1: GPA is in the PT Pool (High Memory).
+	if (gpa >= X86_SYZOS_ADDR_PT_POOL &&
+	    gpa < X86_SYZOS_ADDR_PT_POOL + (X86_SYZOS_PT_POOL_SIZE * KVM_PAGE_SIZE)) {
+		uint64 offset = gpa - X86_SYZOS_ADDR_PT_POOL;
+		return (uint64*)((char*)vm->pt_pool_mem + offset);
+	}
+	// Case 2: GPA is in the Low Fixed Data (0x0 based).
+	return (uint64*)((char*)vm->gpa0_mem + gpa);
+}
+
+static void map_4k_page(struct kvm_syz_vm* vm, page_alloc_t* alloc, uint64 gpa)
+{
+	uint64* pml4 = (uint64*)((char*)vm->gpa0_mem + X86_SYZOS_ADDR_PML4);
 
 	// PML4 Entry (Level 4).
 	uint64 pml4_idx = (gpa >> 39) & 0x1FF;
 	if (pml4[pml4_idx] == 0)
 		pml4[pml4_idx] = X86_PDE64_PRESENT | X86_PDE64_RW | pg_alloc(alloc);
-	uint64* pdpt = (uint64*)(host_mem + (pml4[pml4_idx] & PAGE_MASK));
+	uint64* pdpt = get_host_pte_ptr(vm, pml4[pml4_idx] & PAGE_MASK);
 
 	// PDPT Entry (Level 3).
 	uint64 pdpt_idx = (gpa >> 30) & 0x1FF;
 	if (pdpt[pdpt_idx] == 0)
 		pdpt[pdpt_idx] = X86_PDE64_PRESENT | X86_PDE64_RW | pg_alloc(alloc);
-	uint64* pd = (uint64*)(host_mem + (pdpt[pdpt_idx] & PAGE_MASK));
+	uint64* pd = get_host_pte_ptr(vm, pdpt[pdpt_idx] & PAGE_MASK);
 
 	// PD Entry (Level 2).
 	uint64 pd_idx = (gpa >> 21) & 0x1FF;
 	if (pd[pd_idx] == 0)
 		pd[pd_idx] = X86_PDE64_PRESENT | X86_PDE64_RW | pg_alloc(alloc);
-	uint64* pt = (uint64*)(host_mem + (pd[pd_idx] & PAGE_MASK));
+	uint64* pt = get_host_pte_ptr(vm, pd[pd_idx] & PAGE_MASK);
 
 	// PT Entry (Level 1).
 	uint64 pt_idx = (gpa >> 12) & 0x1FF;
 
 	// Set the final 4KB page table entry to map the GPA
-	// This is an identity map: GPA -> GPA
 	pt[pt_idx] = (gpa & PAGE_MASK) | X86_PDE64_PRESENT | X86_PDE64_RW;
 }
 
-static int map_4k_region(uint64 host_mem, page_alloc_t* alloc, uint64 gpa_start, int num_pages)
+static int map_4k_region(struct kvm_syz_vm* vm, page_alloc_t* alloc, uint64 gpa_start, int num_pages)
 {
 	for (int i = 0; i < num_pages; i++)
-		map_4k_page(host_mem, alloc, gpa_start + (i * KVM_PAGE_SIZE));
+		map_4k_page(vm, alloc, gpa_start + (i * KVM_PAGE_SIZE));
 	return num_pages;
 }
 
@@ -353,20 +370,21 @@ static int map_4k_region(uint64 host_mem, page_alloc_t* alloc, uint64 gpa_start,
 static void setup_pg_table(struct kvm_syz_vm* vm)
 {
 	int total = vm->total_pages;
-	// Page tables are located in the first memory region starting at 0x0.
-	uint64 host_mem = (uint64)vm->gpa0_mem;
 
 	page_alloc_t alloc = {.next_page = X86_SYZOS_ADDR_PT_POOL,
-			      .last_page = X86_SYZOS_ADDR_PT_POOL + 32 * KVM_PAGE_SIZE};
+			      .last_page = X86_SYZOS_ADDR_PT_POOL + X86_SYZOS_PT_POOL_SIZE * KVM_PAGE_SIZE};
 
-	// Zero-out all page table memory.
-	for (uint64 i = 0; i < (alloc.last_page - alloc.next_page); i += KVM_PAGE_SIZE)
-		memset((void*)(host_mem + alloc.next_page + i), 0, KVM_PAGE_SIZE);
+	// Zero-out the PT Pool memory.
+	memset(vm->pt_pool_mem, 0, X86_SYZOS_PT_POOL_SIZE * KVM_PAGE_SIZE);
+
+	// Zero-out the fixed system pages (PML4/PDP/PD).
+	// They are in the first 5 pages of gpa0_mem.
+	memset(vm->gpa0_mem, 0, 5 * KVM_PAGE_SIZE);
 
 	// Map all the regions defined in setup_vm()
 	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++)
-		total -= map_4k_region(host_mem, &alloc, syzos_mem_regions[i].gpa, syzos_mem_regions[i].pages);
-	map_4k_region(host_mem, &alloc, X86_SYZOS_ADDR_UNUSED, total);
+		total -= map_4k_region(vm, &alloc, syzos_mem_regions[i].gpa, syzos_mem_regions[i].pages);
+	map_4k_region(vm, &alloc, X86_SYZOS_ADDR_UNUSED, total);
 }
 
 // A 64-bit GDT entry for a code or data segment.
@@ -1149,6 +1167,8 @@ static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			vm->user_text = next.addr;
 		if (r->flags & MEM_REGION_FLAG_GPA0)
 			vm->gpa0_mem = next.addr;
+		if (r->gpa == X86_SYZOS_ADDR_PT_POOL)
+			vm->pt_pool_mem = next.addr;
 		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
 			install_syzos_code(next.addr, next.size);
 		vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size, (uintptr_t)next.addr);
