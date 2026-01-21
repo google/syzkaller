@@ -266,6 +266,7 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 	if srcPrefix != "" {
 		srcPrefix = filepath.Clean(srcPrefix)
 	}
+	contextLines = min(contextLines, 10000)
 	totalCount := 0
 	var results []ReferenceInfo
 	for _, def := range index.db.Definitions {
@@ -289,8 +290,8 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 			if contextLines > 0 {
 				lines := LineRange{
 					File:      def.Body.File,
-					StartLine: max(def.Body.StartLine, ref.Line-contextLines),
-					EndLine:   min(def.Body.EndLine, ref.Line+contextLines),
+					StartLine: max(def.Body.StartLine, uint32(max(0, int(ref.Line)-contextLines))),
+					EndLine:   min(def.Body.EndLine, ref.Line+uint32(contextLines)),
 				}
 				var err error
 				snippet, err = index.formatSource(lines, true)
@@ -303,7 +304,7 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 				ReferencingEntityName: def.Name,
 				ReferenceKind:         ref.Kind.String(),
 				SourceFile:            def.Body.File,
-				SourceLine:            ref.Line,
+				SourceLine:            int(ref.Line),
 				SourceSnippet:         snippet,
 			})
 		}
@@ -342,7 +343,7 @@ func (index *Index) formatSource(lines LineRange, includeLines bool) (string, er
 		if !osutil.IsExist(file) {
 			continue
 		}
-		return formatSourceFile(file, lines.StartLine, lines.EndLine, includeLines)
+		return formatSourceFile(file, int(lines.StartLine), int(lines.EndLine), includeLines)
 	}
 	return "", fmt.Errorf("codesearch: can't find %q file in any of %v", lines.File, index.srcDirs)
 }

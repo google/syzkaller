@@ -24,9 +24,9 @@ type Database struct {
 }
 
 type Definition struct {
-	Kind     EntityKind  `json:"kind,omitempty"`
 	Name     string      `json:"name,omitempty"`
 	Type     string      `json:"type,omitempty"`
+	Kind     EntityKind  `json:"kind,omitempty"`
 	IsStatic bool        `json:"is_static,omitempty"`
 	Body     LineRange   `json:"body,omitempty"`
 	Comment  LineRange   `json:"comment,omitempty"`
@@ -34,16 +34,16 @@ type Definition struct {
 }
 
 type Reference struct {
+	Name       string     `json:"name,omitempty"`
 	Kind       RefKind    `json:"kind,omitempty"`
 	EntityKind EntityKind `json:"entity_kind,omitempty"`
-	Name       string     `json:"name,omitempty"`
-	Line       int        `json:"line,omitempty"`
+	Line       uint32     `json:"line,omitempty"`
 }
 
 type LineRange struct {
 	File      string `json:"file,omitempty"`
-	StartLine int    `json:"start_line,omitempty"`
-	EndLine   int    `json:"end_line,omitempty"`
+	StartLine uint32 `json:"start_line,omitempty"`
+	EndLine   uint32 `json:"end_line,omitempty"`
 }
 
 type EntityKind uint8
@@ -167,9 +167,9 @@ func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
 		}
 		db.mergeCache[id] = def
 		db.reverseCache[def] = id
-		v.LineRange(def.Body.File, def.Body.StartLine, def.Body.EndLine)
+		v.LineRange(def.Body.File, int(def.Body.StartLine), int(def.Body.EndLine))
 		if def.Comment.File != "" {
-			v.LineRange(def.Comment.File, def.Comment.StartLine, def.Comment.EndLine)
+			v.LineRange(def.Comment.File, int(def.Comment.StartLine), int(def.Comment.EndLine))
 		}
 		db.intern(&def.Name)
 		db.intern(&def.Type)
