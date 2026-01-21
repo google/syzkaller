@@ -42,14 +42,16 @@ func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *tes
 
 func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T) OutputPtr {
 	out := OutputPtr(new(Output))
+	v := clangtool.NewVerifier("testdata")
 	forEachTestFile(t, func(t *testing.T, file string) {
 		tmp, err := osutil.ReadJSON[OutputPtr](file + ".json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		out.Merge(tmp)
+		out.Merge(tmp, v)
 	})
-	if err := clangtool.Finalize(out, []string{"testdata"}); err != nil {
+	out.Finalize(v)
+	if err := v.Error(); err != nil {
 		t.Fatal(err)
 	}
 	return out

@@ -32,7 +32,7 @@ type Config struct {
 
 type OutputDataPtr[T any] interface {
 	*T
-	Merge(*T)
+	Merge(*T, *Verifier)
 	SetSourceFile(string, func(filename string) string)
 	Finalize(*Verifier)
 }
@@ -73,21 +73,22 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	}
 	close(files)
 
+	v := NewVerifier(cfg.KernelSrc, cfg.KernelObj)
 	out := OutputPtr(new(Output))
 	for range cmds {
 		res := <-results
 		if res.err != nil {
 			return nil, res.err
 		}
-		out.Merge(res.out)
+		out.Merge(res.out, v)
 	}
 	// Finalize the output (sort, dedup, etc), and let the output verify
 	// that all source file names, line numbers, etc are valid/present.
 	// If there are any bogus entries, it's better to detect them early,
 	// than to crash/error much later when the info is used.
 	// Some of the source files (generated) may be in the obj dir.
-	srcDirs := []string{cfg.KernelSrc, cfg.KernelObj}
-	if err := Finalize(out, srcDirs); err != nil {
+	out.Finalize(v)
+	if err := v.Error(); err != nil {
 		return nil, err
 	}
 	if cfg.CacheFile != "" {
@@ -103,22 +104,24 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	return out, nil
 }
 
-func Finalize[Output any, OutputPtr OutputDataPtr[Output]](out OutputPtr, srcDirs []string) error {
-	v := &Verifier{
-		srcDirs:   srcDirs,
-		fileCache: make(map[string]int),
-	}
-	out.Finalize(v)
-	if v.err.Len() == 0 {
-		return nil
-	}
-	return errors.New(v.err.String())
-}
-
 type Verifier struct {
 	srcDirs   []string
 	fileCache map[string]int // file->line count (-1 is cached for missing files)
 	err       strings.Builder
+}
+
+func NewVerifier(src ...string) *Verifier {
+	return &Verifier{
+		srcDirs:   src,
+		fileCache: make(map[string]int),
+	}
+}
+
+func (v *Verifier) Error() error {
+	if v.err.Len() == 0 {
+		return nil
+	}
+	return errors.New(v.err.String())
 }
 
 func (v *Verifier) Filename(file string) {

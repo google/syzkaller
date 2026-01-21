@@ -228,7 +228,7 @@ type EntityGlobalAddr struct {
 	Name string
 }
 
-func (out *Output) Merge(other *Output) {
+func (out *Output) Merge(other *Output, v *clangtool.Verifier) {
 	out.Functions = append(out.Functions, other.Functions...)
 	out.Consts = append(out.Consts, other.Consts...)
 	out.Enums = append(out.Enums, other.Enums...)
