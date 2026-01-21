@@ -1,0 +1,8 @@
+def-source source0.c some_struct yes
+
+struct some_struct is defined in source0.h:
+
+  17:	struct some_struct {
+  18:		int x;
+  19:		int y;
+  20:	};

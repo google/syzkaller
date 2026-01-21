@@ -1,13 +1,23 @@
 {
 	"definitions": [
 		{
+			"kind": "enum",
+			"name": "some_enum",
+			"body": {
+				"file": "source0.h",
+				"start_line": 45,
+				"end_line": 48
+			},
+			"comment": {}
+		},
+		{
 			"kind": "function",
 			"name": "close",
 			"type": "int ()",
 			"body": {
 				"file": "source0.c",
-				"start_line": 14,
-				"end_line": 17
+				"start_line": 19,
+				"end_line": 22
 			},
 			"comment": {}
 		},
@@ -29,8 +39,8 @@
 			"type": "void ()",
 			"body": {
 				"file": "source0.c",
-				"start_line": 19,
-				"end_line": 22
+				"start_line": 24,
+				"end_line": 27
 			},
 			"comment": {},
 			"refs": [
@@ -38,7 +48,7 @@
 					"kind": "calls",
 					"entity_kind": "function",
 					"name": "same_name_in_several_files",
-					"line": 21
+					"line": 26
 				}
 			]
 		},
@@ -48,14 +58,108 @@
 			"type": "int ()",
 			"body": {
 				"file": "source0.c",
-				"start_line": 6,
-				"end_line": 12
+				"start_line": 11,
+				"end_line": 17
 			},
 			"comment": {
 				"file": "source0.c",
-				"start_line": 6,
-				"end_line": 8
+				"start_line": 11,
+				"end_line": 13
 			}
+		},
+		{
+			"kind": "struct",
+			"name": "another_struct",
+			"body": {
+				"file": "source0.h",
+				"start_line": 36,
+				"end_line": 38
+			},
+			"comment": {}
+		},
+		{
+			"kind": "struct",
+			"name": "some_struct",
+			"body": {
+				"file": "source0.h",
+				"start_line": 17,
+				"end_line": 20
+			},
+			"comment": {}
+		},
+		{
+			"kind": "struct",
+			"name": "some_struct_with_a_comment",
+			"body": {
+				"file": "source0.h",
+				"start_line": 24,
+				"end_line": 30
+			},
+			"comment": {
+				"file": "source0.h",
+				"start_line": 24,
+				"end_line": 26
+			}
+		},
+		{
+			"kind": "struct",
+			"name": "struct_in_c_file",
+			"body": {
+				"file": "source0.c",
+				"start_line": 6,
+				"end_line": 9
+			},
+			"comment": {}
+		},
+		{
+			"kind": "typedef",
+			"name": "another_struct_t",
+			"body": {
+				"file": "source0.h",
+				"start_line": 36,
+				"end_line": 38
+			},
+			"comment": {}
+		},
+		{
+			"kind": "typedef",
+			"name": "some_enum_t",
+			"body": {
+				"file": "source0.h",
+				"start_line": 50,
+				"end_line": 50
+			},
+			"comment": {}
+		},
+		{
+			"kind": "typedef",
+			"name": "some_struct_t",
+			"body": {
+				"file": "source0.h",
+				"start_line": 22,
+				"end_line": 22
+			},
+			"comment": {}
+		},
+		{
+			"kind": "typedef",
+			"name": "typedefed_struct_t",
+			"body": {
+				"file": "source0.h",
+				"start_line": 32,
+				"end_line": 34
+			},
+			"comment": {}
+		},
+		{
+			"kind": "union",
+			"name": "some_union",
+			"body": {
+				"file": "source0.h",
+				"start_line": 40,
+				"end_line": 43
+			},
+			"comment": {}
 		}
 	]
 }

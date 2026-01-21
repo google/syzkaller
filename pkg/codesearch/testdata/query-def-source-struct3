@@ -1,0 +1,11 @@
+def-source source0.c some_struct_with_a_comment yes
+
+struct some_struct_with_a_comment is defined in source0.h:
+
+  24:	/*
+  25:	 * This should not require an explanation.
+  26:	 */
+  27:	struct some_struct_with_a_comment {
+  28:		int x;
+  29:		struct some_struct* other_struct;
+  30:	};

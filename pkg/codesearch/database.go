@@ -44,7 +44,7 @@ type LineRange struct {
 var DatabaseFormatHash = func() string {
 	// Semantic version should be bumped when the schema does not change,
 	// but stored values changes.
-	const semanticVersion = "1"
+	const semanticVersion = "2"
 	schema, err := jsonschema.For[Database](nil)
 	if err != nil {
 		panic(err)

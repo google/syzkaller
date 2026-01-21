@@ -1,0 +1,8 @@
+def-source source0.c some_union yes
+
+union some_union is defined in source0.h:
+
+  40:	union some_union {
+  41:		int x;
+  42:		void* p;
+  43:	};

@@ -72,6 +72,9 @@ public:
       : Context(Context), SM(Context.getSourceManager()), Out(Output) {}
 
   bool TraverseFunctionDecl(FunctionDecl*);
+  bool TraverseRecordDecl(RecordDecl*);
+  bool TraverseEnumDecl(EnumDecl*);
+  bool TraverseTypedefDecl(TypedefDecl*);
   bool TraverseCallExpr(CallExpr*);
   bool VisitDeclRefExpr(const DeclRefExpr*);
 
@@ -79,8 +82,20 @@ private:
   ASTContext& Context;
   SourceManager& SM;
   Output& Out;
-  Definition* CurrentFunction = nullptr;
+  Definition* Current = nullptr;
   bool InCallee = false;
+
+  struct NamedDeclEmitter {
+    NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type, bool IsStatic);
+    ~NamedDeclEmitter();
+
+    Indexer* const Parent;
+    ASTContext& Context;
+    SourceManager& SM;
+    const NamedDecl* const Decl;
+    Definition Def;
+    Definition* SavedCurrent = nullptr;
+  };
 
   using Base = RecursiveASTVisitor<Indexer>;
 };
@@ -98,18 +113,17 @@ void IndexerAstConsumer::HandleTranslationUnit(ASTContext& Context) {
   Indexer.TraverseDecl(Context.getTranslationUnitDecl());
 }
 
-bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
-  if (!Func->doesThisDeclarationHaveABody())
-    return Base::TraverseFunctionDecl(Func);
-
-  auto Range = Func->getSourceRange();
+Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind,
+                                            const std::string& Type, bool IsStatic)
+    : Parent(Parent), Context(Parent->Context), SM(Parent->SM), Decl(Decl) {
+  auto Range = Decl->getSourceRange();
   const std::string& SourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(Range.getBegin())).str());
   int StartLine = SM.getExpansionLineNumber(Range.getBegin());
   int EndLine = SM.getExpansionLineNumber(Range.getEnd());
   std::string CommentSourceFile;
   int CommentStartLine = 0;
   int CommentEndLine = 0;
-  if (auto Comment = Context.getRawCommentForDeclNoCache(Func)) {
+  if (auto Comment = Context.getRawCommentForDeclNoCache(Decl)) {
     const auto& begin = Comment->getBeginLoc();
     const auto& end = Comment->getEndLoc();
     CommentSourceFile = std::filesystem::relative(SM.getFilename(SM.getExpansionLoc(begin)).str());
@@ -122,11 +136,11 @@ bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
-  Definition Def{
-      .Kind = EntityKindFunction,
-      .Name = Func->getNameAsString(),
-      .Type = Func->getType().getAsString(),
-      .IsStatic = Func->isStatic(),
+  Def = Definition{
+      .Kind = Kind,
+      .Name = Decl->getNameAsString(),
+      .Type = Type,
+      .IsStatic = IsStatic,
       .Body =
           LineRange{
               .File = SourceFile,
@@ -141,13 +155,21 @@ bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
           },
   };
 
-  Definition* SavedCurrentFunction = CurrentFunction;
-  CurrentFunction = &Def;
-  if (!Base::TraverseFunctionDecl(Func))
-    return false;
-  CurrentFunction = SavedCurrentFunction;
-  Out.emit(std::move(Def));
-  return true;
+  SavedCurrent = Parent->Current;
+  Parent->Current = &Def;
+}
+
+Indexer::NamedDeclEmitter::~NamedDeclEmitter() {
+  Parent->Current = SavedCurrent;
+  if (!Def.Name.empty())
+    Parent->Out.emit(std::move(Def));
+}
+
+bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
+  if (!Func->doesThisDeclarationHaveABody())
+    return Base::TraverseFunctionDecl(Func);
+  NamedDeclEmitter Emitter(this, Func, EntityKindFunction, Func->getType().getAsString(), Func->isStatic());
+  return Base::TraverseFunctionDecl(Func);
 }
 
 bool Indexer::TraverseCallExpr(CallExpr* CE) {
@@ -163,15 +185,34 @@ bool Indexer::TraverseCallExpr(CallExpr* CE) {
 
 bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
   const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl());
-  if (!Func || !CurrentFunction)
+  if (!Func || !Current)
     return true;
-  CurrentFunction->Refs.push_back(Reference{
+  Current->Refs.push_back(Reference{
       .Kind = InCallee ? RefKindCall : RefKindTakesAddr,
       .EntityKind = EntityKindFunction,
       .Name = Func->getNameAsString(),
       .Line = static_cast<int>(SM.getExpansionLineNumber(DeclRef->getBeginLoc())),
   });
   return true;
+}
+
+bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
+  if (!Decl->isThisDeclarationADefinition())
+    return Base::TraverseRecordDecl(Decl);
+  NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", false);
+  return Base::TraverseRecordDecl(Decl);
+}
+
+bool Indexer::TraverseEnumDecl(EnumDecl* Decl) {
+  if (!Decl->isThisDeclarationADefinition())
+    return Base::TraverseEnumDecl(Decl);
+  NamedDeclEmitter Emitter(this, Decl, EntityKindEnum, "", false);
+  return Base::TraverseEnumDecl(Decl);
+}
+
+bool Indexer::TraverseTypedefDecl(TypedefDecl* Decl) {
+  NamedDeclEmitter Emitter(this, Decl, EntityKindTypedef, "", false);
+  return Base::TraverseTypedefDecl(Decl);
 }
 
 int main(int argc, const char** argv) {

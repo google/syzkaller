@@ -1,0 +1,7 @@
+def-source source0.c another_struct yes
+
+struct another_struct is defined in source0.h:
+
+  36:	typedef struct another_struct {
+  37:		int x;
+  38:	} another_struct_t;
