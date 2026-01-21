@@ -121,28 +121,28 @@ type uiMultiInput struct {
 	Vals    []string
 }
 
-func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleKernelHealthGraph(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace)
+	bugs, err := loadGraphBugs(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
 	data := &uiKernelHealthPage{
 		Header: hdr,
-		Graph:  createBugsGraph(c, bugs),
+		Graph:  createBugsGraph(ctx, bugs),
 	}
 	return serveTemplate(w, "graph_bugs.html", data)
 }
 
-func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleGraphLifetimes(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	bugs, err := loadGraphBugs(c, hdr.Namespace)
+	bugs, err := loadGraphBugs(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	keys, err := db.NewQuery("Job").
 		Filter("Namespace=", hdr.Namespace).
 		Filter("Type=", JobBisectCause).
-		GetAll(c, &jobs)
+		GetAll(ctx, &jobs)
 	if err != nil {
 		return err
 	}
@@ -164,39 +164,39 @@ func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	data := &uiBugLifetimesPage{
 		Header:    hdr,
-		Lifetimes: createBugLifetimes(c, bugs, causeBisects),
+		Lifetimes: createBugLifetimes(ctx, bugs, causeBisects),
 	}
 	return serveTemplate(w, "graph_lifetimes.html", data)
 }
 
-func handleFoundBugsGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleFoundBugsGraph(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	bugs, err := loadStableGraphBugs(c, hdr.Namespace)
+	bugs, err := loadStableGraphBugs(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
 	data := &uiHistogramPage{
 		Title:  hdr.Namespace + " bugs found per month",
 		Header: hdr,
-		Graph:  createFoundBugs(c, bugs),
+		Graph:  createFoundBugs(ctx, bugs),
 	}
 	return serveTemplate(w, "graph_histogram.html", data)
 }
 
-func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
+func loadGraphBugs(ctx context.Context, ns string) ([]*Bug, error) {
 	filter := func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
 	}
-	bugs, _, err := loadAllBugs(c, filter)
+	bugs, _, err := loadAllBugs(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 	n := 0
 	fixes := make(map[string]bool)
-	lastReporting := getNsConfig(c, ns).lastActiveReporting()
+	lastReporting := getNsConfig(ctx, ns).lastActiveReporting()
 	for _, bug := range bugs {
 		if bug.Reporting[lastReporting].Reported.IsZero() {
 			// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
@@ -228,18 +228,18 @@ func loadGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 
 // loadStableGraphBugs is similar to loadGraphBugs, but it does not remove duplicates and auto-invalidated bugs.
 // This ensures that the set of bugs does not change much over time.
-func loadStableGraphBugs(c context.Context, ns string) ([]*Bug, error) {
+func loadStableGraphBugs(ctx context.Context, ns string) ([]*Bug, error) {
 	filter := func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns)
 	}
-	bugs, _, err := loadAllBugs(c, filter)
+	bugs, _, err := loadAllBugs(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 	n := 0
-	lastReporting := getNsConfig(c, ns).lastActiveReporting()
+	lastReporting := getNsConfig(ctx, ns).lastActiveReporting()
 	for _, bug := range bugs {
-		if isStableBug(c, bug, lastReporting) {
+		if isStableBug(ctx, bug, lastReporting) {
 			bugs[n] = bug
 			n++
 		}
@@ -247,7 +247,7 @@ func loadStableGraphBugs(c context.Context, ns string) ([]*Bug, error) {
 	return bugs[:n], nil
 }
 
-func isStableBug(c context.Context, bug *Bug, lastReporting int) bool {
+func isStableBug(ctx context.Context, bug *Bug, lastReporting int) bool {
 	// Bugs with fixing commits are considered public (see Bug.sanitizeAccess).
 	if !bug.Reporting[lastReporting].Reported.IsZero() ||
 		bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
@@ -266,7 +266,7 @@ func isStableBug(c context.Context, bug *Bug, lastReporting int) bool {
 		if !bug.Reporting[i].Closed.IsZero() {
 			continue
 		}
-		reporting := getNsConfig(c, bug.Namespace).ReportingByName(bug.Reporting[i].Name)
+		reporting := getNsConfig(ctx, bug.Namespace).ReportingByName(bug.Reporting[i].Name)
 		if !bug.Reporting[i].Reported.IsZero() && reporting.Embargo != 0 {
 			continue
 		}
@@ -278,7 +278,7 @@ func isStableBug(c context.Context, bug *Bug, lastReporting int) bool {
 	return false
 }
 
-func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
+func createBugsGraph(ctx context.Context, bugs []*Bug) *uiGraph {
 	type BugStats struct {
 		Opened        int
 		Fixed         int
@@ -289,7 +289,7 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 		TotalClosed   int
 	}
 	const timeWeek = 30 * 24 * time.Hour
-	now := timeNow(c)
+	now := timeNow(ctx)
 	m := make(map[int]*BugStats)
 	maxWeek := 0
 	bugStatsFor := func(t time.Time) *BugStats {
@@ -344,7 +344,7 @@ func createBugsGraph(c context.Context, bugs []*Bug) *uiGraph {
 	}
 }
 
-func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
+func createFoundBugs(ctx context.Context, bugs []*Bug) *uiGraph {
 	const projected = "projected"
 	// This is linux-specific at the moment, potentially can move to pkg/report/crash
 	// and extend to other OSes.
@@ -385,7 +385,7 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Before(sorted[j])
 	})
-	now := timeNow(c)
+	now := timeNow(ctx)
 	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	if m := months[thisMonth]; m != nil {
 		total := 0
@@ -416,7 +416,7 @@ func createFoundBugs(c context.Context, bugs []*Bug) *uiGraph {
 	}
 }
 
-func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]*Job) []uiBugLifetime {
+func createBugLifetimes(ctx context.Context, bugs []*Bug, causeBisects map[string]*Job) []uiBugLifetime {
 	var res []uiBugLifetime
 	for i, bug := range bugs {
 		if bug.Status >= BugStatusInvalid {
@@ -457,7 +457,7 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 		ui = uiBugLifetime{
 			Reported: reported,
 		}
-		if job := causeBisects[bug.keyHash(c)]; job != nil {
+		if job := causeBisects[bug.keyHash(ctx)]; job != nil {
 			days := float32(job.Commits[0].Date.Sub(ui.Reported)) / float32(24*time.Hour)
 			if days < -365 {
 				ui.Introduced1y = -365 - float32(i%7)
@@ -470,14 +470,14 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 	return res
 }
 
-func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleGraphFuzzing(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
 	r.ParseForm()
 
-	allManagers, err := managerList(c, hdr.Namespace)
+	allManagers, err := managerList(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -498,21 +498,21 @@ func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Reques
 		Metrics:  metrics,
 		Months:   createSlider(r, "Months", 1, 36),
 	}
-	data.Graph, err = createManagersGraph(c, hdr.Namespace, data.Managers.vals, data.Metrics.vals, data.Months.Val*30)
+	data.Graph, err = createManagersGraph(ctx, hdr.Namespace, data.Managers.vals, data.Metrics.vals, data.Months.Val*30)
 	if err != nil {
 		return err
 	}
 	return serveTemplate(w, "graph_fuzzing.html", data)
 }
 
-func createManagersGraph(c context.Context, ns string, selManagers, selMetrics []string, days int) (*uiGraph, error) {
+func createManagersGraph(ctx context.Context, ns string, selManagers, selMetrics []string, days int) (*uiGraph, error) {
 	graph := &uiGraph{}
 	for _, mgr := range selManagers {
 		for _, metric := range selMetrics {
 			graph.Headers = append(graph.Headers, uiGraphHeader{Name: mgr + "-" + metric})
 		}
 	}
-	now := timeNow(c)
+	now := timeNow(ctx)
 	const day = 24 * time.Hour
 	// Step 1: fill the whole table with empty values to simplify subsequent logic
 	// when we fill random positions in the table.
@@ -527,11 +527,11 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 	}
 	// Step 2: fill in actual data.
 	for mgrIndex, mgr := range selManagers {
-		parentKey := mgrKey(c, ns, mgr)
+		parentKey := mgrKey(ctx, ns, mgr)
 		var stats []*ManagerStats
 		_, err := db.NewQuery("ManagerStats").
 			Ancestor(parentKey).
-			GetAll(c, &stats)
+			GetAll(ctx, &stats)
 		if err != nil {
 			return nil, err
 		}
@@ -667,8 +667,8 @@ func createMultiInput(r *http.Request, id, caption string) *uiMultiInput {
 	}
 }
 
-func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleGraphCrashes(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
@@ -681,16 +681,16 @@ func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Reques
 		TableDays:   createSlider(r, "Days", 1, 30),
 	}
 
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(ctx, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", hdr.Namespace)
 	})
 	if err != nil {
 		return err
 	}
-	accessLevel := accessLevel(c, r)
+	accessLevel := accessLevel(ctx, r)
 	nbugs := 0
 	for _, bug := range bugs {
-		if accessLevel < bug.sanitizeAccess(c, accessLevel) {
+		if accessLevel < bug.sanitizeAccess(ctx, accessLevel) {
 			continue
 		}
 		bugs[nbugs] = bug
@@ -702,19 +702,19 @@ func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Reques
 		data.Regexps.Vals = []string{"^KASAN", "^KMSAN", "^KCSAN", "^SYZFAIL"}
 	}
 	if r.Form["show-graph"] != nil {
-		data.Graph, err = createCrashesGraph(c, hdr.Namespace, data.Regexps.Vals, data.GraphMonths.Val*30, bugs)
+		data.Graph, err = createCrashesGraph(ctx, hdr.Namespace, data.Regexps.Vals, data.GraphMonths.Val*30, bugs)
 		if err != nil {
 			return err
 		}
 	} else {
-		data.Table = createCrashesTable(c, hdr.Namespace, data.TableDays.Val, bugs)
+		data.Table = createCrashesTable(ctx, hdr.Namespace, data.TableDays.Val, bugs)
 	}
 	return serveTemplate(w, "graph_crashes.html", data)
 }
 
-func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *uiCrashPageTable {
+func createCrashesTable(ctx context.Context, ns string, days int, bugs []*Bug) *uiCrashPageTable {
 	const dayDuration = 24 * time.Hour
-	startDay := timeNow(c).Add(time.Duration(-days+1) * dayDuration)
+	startDay := timeNow(ctx).Add(time.Duration(-days+1) * dayDuration)
 	table := &uiCrashPageTable{
 		Title: fmt.Sprintf("Top crashers of the last %d day(s)", days),
 	}
@@ -731,7 +731,7 @@ func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *ui
 		titleRegexp := regexp.QuoteMeta(bug.Title)
 		table.Rows = append(table.Rows, &uiCrashSummary{
 			Title:     bug.Title,
-			Link:      bugLink(bug.keyHash(c)),
+			Link:      bugLink(bug.keyHash(ctx)),
 			GraphLink: "?show-graph=1&Months=1&regexp=" + url.QueryEscape(titleRegexp),
 			Count:     count,
 		})
@@ -746,13 +746,13 @@ func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *ui
 	return table
 }
 
-func createCrashesGraph(c context.Context, ns string, regexps []string, days int, bugs []*Bug) (*uiGraph, error) {
+func createCrashesGraph(ctx context.Context, ns string, regexps []string, days int, bugs []*Bug) (*uiGraph, error) {
 	const dayDuration = 24 * time.Hour
 	graph := &uiGraph{}
 	for _, re := range regexps {
 		graph.Headers = append(graph.Headers, uiGraphHeader{Name: re})
 	}
-	startDay := timeNow(c).Add(time.Duration(-days) * dayDuration)
+	startDay := timeNow(ctx).Add(time.Duration(-days) * dayDuration)
 	// Step 1: fill the whole table with empty values.
 	dateToIdx := make(map[int]int)
 	for date := 0; date <= days; date++ {

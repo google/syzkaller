@@ -16,7 +16,7 @@ import (
 
 // saveDiscussionMessage is meant to be called after each received E-mail message,
 // for which we know the BugID.
-func saveDiscussionMessage(c context.Context, msg *email.Email,
+func saveDiscussionMessage(ctx context.Context, msg *email.Email,
 	msgSource dashapi.DiscussionSource, msgType dashapi.DiscussionType) error {
 	discUpdate := &dashapi.Discussion{
 		Source: msgSource,
@@ -26,7 +26,7 @@ func saveDiscussionMessage(c context.Context, msg *email.Email,
 	var parent *Discussion
 	var oldThreadInfo *email.OldThreadInfo
 	if msg.InReplyTo != "" {
-		parent, _ = discussionByMessageID(c, msgSource, msg.InReplyTo)
+		parent, _ = discussionByMessageID(ctx, msgSource, msg.InReplyTo)
 		if parent != nil {
 			oldThreadInfo = &email.OldThreadInfo{
 				ThreadType: dashapi.DiscussionType(parent.Type),
@@ -49,24 +49,24 @@ func saveDiscussionMessage(c context.Context, msg *email.Email,
 		Time:     msg.Date,
 		External: !msg.OwnEmail,
 	})
-	return mergeDiscussion(c, discUpdate)
+	return mergeDiscussion(ctx, discUpdate)
 }
 
 // mergeDiscussion either creates a new discussion or updates the existing one.
 // It is assumed that the input is valid.
-func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
+func mergeDiscussion(ctx context.Context, update *dashapi.Discussion) error {
 	if len(update.Messages) == 0 {
 		return fmt.Errorf("no messages")
 	}
-	newBugKeys, err := getBugKeys(c, update.BugIDs)
+	newBugKeys, err := getBugKeys(ctx, update.BugIDs)
 	if err != nil {
 		return nil
 	}
 	// First update the discussion itself.
 	d := new(Discussion)
 	var diff DiscussionSummary
-	tx := func(c context.Context) error {
-		err := db.Get(c, discussionKey(c, string(update.Source), update.ID), d)
+	tx := func(ctx context.Context) error {
+		err := db.Get(ctx, discussionKey(ctx, string(update.Source), update.ID), d)
 		if err != nil && err != db.ErrNoSuchEntity {
 			return fmt.Errorf("failed to query Discussion: %w", err)
 		} else if err == db.ErrNoSuchEntity {
@@ -81,21 +81,21 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 			diff.LastPatchMessage = diff.LastMessage
 		}
 		d.Summary.merge(diff)
-		_, err = db.Put(c, d.key(c), d)
+		_, err = db.Put(ctx, d.key(ctx), d)
 		if err != nil {
 			return fmt.Errorf("failed to put Discussion: %w", err)
 		}
 		return nil
 	}
-	if err = runInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+	if err = runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return err
 	}
 	// Update individual bug statistics.
 	// We have to do it outside of the main transaction, as we might hit the "operating on
 	// too many entity groups in a single transaction." error.
 	for _, key := range d.BugKeys {
-		if err := runInTransaction(c, func(c context.Context) error {
-			return mergeDiscussionSummary(c, key, d.Source, diff)
+		if err := runInTransaction(ctx, func(ctx context.Context) error {
+			return mergeDiscussionSummary(ctx, key, d.Source, diff)
 		}, nil); err != nil {
 			return fmt.Errorf("failed to put update summary for %s: %w", key, err)
 		}
@@ -103,10 +103,10 @@ func mergeDiscussion(c context.Context, update *dashapi.Discussion) error {
 	return nil
 }
 
-func mergeDiscussionSummary(c context.Context, key, source string, diff DiscussionSummary) error {
+func mergeDiscussionSummary(ctx context.Context, key, source string, diff DiscussionSummary) error {
 	bug := new(Bug)
-	bugKey := db.NewKey(c, "Bug", key, 0, nil)
-	if err := db.Get(c, bugKey, bug); err != nil {
+	bugKey := db.NewKey(ctx, "Bug", key, 0, nil)
+	if err := db.Get(ctx, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to get bug: %w", err)
 	}
 	var record *BugDiscussionInfo
@@ -122,7 +122,7 @@ func mergeDiscussionSummary(c context.Context, key, source string, diff Discussi
 		record = &bug.DiscussionInfo[len(bug.DiscussionInfo)-1]
 	}
 	record.Summary.merge(diff)
-	if _, err := db.Put(c, bugKey, bug); err != nil {
+	if _, err := db.Put(ctx, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to put bug: %w", err)
 	}
 	return nil
@@ -203,14 +203,14 @@ func (d *Discussion) link() string {
 	return ""
 }
 
-func discussionByMessageID(c context.Context, source dashapi.DiscussionSource,
+func discussionByMessageID(ctx context.Context, source dashapi.DiscussionSource,
 	msgID string) (*Discussion, error) {
 	var discussions []*Discussion
 	keys, err := db.NewQuery("Discussion").
 		Filter("Source=", source).
 		Filter("Messages.ID=", msgID).
 		Limit(2).
-		GetAll(c, &discussions)
+		GetAll(ctx, &discussions)
 	if err != nil {
 		return nil, err
 	} else if len(keys) == 0 {
@@ -222,21 +222,21 @@ func discussionByMessageID(c context.Context, source dashapi.DiscussionSource,
 	return discussions[0], nil
 }
 
-func discussionsForBug(c context.Context, bugKey *db.Key) ([]*Discussion, error) {
+func discussionsForBug(ctx context.Context, bugKey *db.Key) ([]*Discussion, error) {
 	var discussions []*Discussion
 	_, err := db.NewQuery("Discussion").
 		Filter("BugKeys=", bugKey.StringID()).
-		GetAll(c, &discussions)
+		GetAll(ctx, &discussions)
 	if err != nil {
 		return nil, err
 	}
 	return discussions, nil
 }
 
-func getBugKeys(c context.Context, bugIDs []string) ([]string, error) {
+func getBugKeys(ctx context.Context, bugIDs []string) ([]string, error) {
 	keys := []string{}
 	for _, id := range bugIDs {
-		_, bugKey, err := findBugByReportingID(c, id)
+		_, bugKey, err := findBugByReportingID(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find bug for %s: %w", id, err)
 		}

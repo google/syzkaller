@@ -448,15 +448,15 @@ func installConfig(cfg *GlobalConfig) {
 
 var contextConfigKey = "Updated config (to be used during tests). Use only in tests!"
 
-func contextWithConfig(c context.Context, cfg *GlobalConfig) context.Context {
-	return context.WithValue(c, &contextConfigKey, cfg)
+func contextWithConfig(ctx context.Context, cfg *GlobalConfig) context.Context {
+	return context.WithValue(ctx, &contextConfigKey, cfg)
 }
 
-func getConfig(c context.Context) *GlobalConfig {
+func getConfig(ctx context.Context) *GlobalConfig {
 	// Check point.
 	validateGlobalConfig()
 
-	if val, ok := c.Value(&contextConfigKey).(*GlobalConfig); ok {
+	if val, ok := ctx.Value(&contextConfigKey).(*GlobalConfig); ok {
 		return val
 	}
 	return configDontUse // The base config was not overwriten.
@@ -471,8 +471,8 @@ func validateGlobalConfig() {
 	}
 }
 
-func getNsConfig(c context.Context, ns string) *Config {
-	return getConfig(c).Namespaces[ns]
+func getNsConfig(ctx context.Context, ns string) *Config {
+	return getConfig(ctx).Namespaces[ns]
 }
 
 func checkConfig(cfg *GlobalConfig) {

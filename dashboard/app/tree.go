@@ -22,22 +22,22 @@ import (
 )
 
 // generateTreeOriginJobs generates new jobs for bug origin tree determination.
-func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
+func generateTreeOriginJobs(ctx context.Context, bugKey *db.Key,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	var job *Job
 	var jobKey *db.Key
-	tx := func(c context.Context) error {
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %w", err)
 		}
-		ctx := &bugTreeContext{
-			c:       c,
-			cGlobal: cGlobal,
+		tc := &bugTreeContext{
+			ctx:     ctx,
+			cGlobal: ctx,
 			bug:     bug,
-			bugKey:  bug.key(c),
+			bugKey:  bug.key(ctx),
 		}
-		ret := ctx.pollBugTreeJobs(managers)
+		ret := tc.pollBugTreeJobs(managers)
 		switch ret.(type) {
 		case pollResultError:
 			return ret.(error)
@@ -48,13 +48,13 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 			}
 		}
 		bug.TreeTests.NeedPoll = false
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
-		job, jobKey = ctx.job, ctx.jobKey
+		job, jobKey = tc.job, tc.jobKey
 		return nil
 	}
-	if err := runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true}); err != nil {
+	if err := runInTransaction(ctx, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return nil, nil, err
 	}
 	return job, jobKey, nil
@@ -62,21 +62,21 @@ func generateTreeOriginJobs(cGlobal context.Context, bugKey *db.Key,
 
 // treeOriginJobDone is supposed to be called when tree origin job is done.
 // It keeps the cached info in Bug up to date and assigns bug tree origin labels.
-func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error {
+func treeOriginJobDone(ctx context.Context, jobKey *db.Key, job *Job) error {
 	bugKey := jobKey.Parent()
-	tx := func(c context.Context) error {
+	tx := func(ctx context.Context) error {
 		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %w", err)
 		}
-		ctx := &bugTreeContext{
-			c:         c,
-			cGlobal:   cGlobal,
+		tc := &bugTreeContext{
+			ctx:       ctx,
+			cGlobal:   ctx,
 			bug:       bug,
-			bugKey:    bug.key(c),
+			bugKey:    bug.key(ctx),
 			noNewJobs: true,
 		}
-		ret := ctx.pollBugTreeJobs(
+		ret := tc.pollBugTreeJobs(
 			map[string]dashapi.ManagerJobs{job.Manager: {TestPatches: true}},
 		)
 		switch ret.(type) {
@@ -86,12 +86,12 @@ func treeOriginJobDone(cGlobal context.Context, jobKey *db.Key, job *Job) error 
 			bug.TreeTests.NextPoll = time.Time{}
 			bug.TreeTests.NeedPoll = true
 		}
-		if _, err := db.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(ctx, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %w", err)
 		}
 		return nil
 	}
-	return runInTransaction(cGlobal, tx, &db.TransactionOptions{XG: true})
+	return runInTransaction(ctx, tx, &db.TransactionOptions{XG: true})
 }
 
 type pollTreeJobResult any
@@ -114,7 +114,7 @@ type pollResultDone struct {
 }
 
 type bugTreeContext struct {
-	c context.Context
+	ctx context.Context
 	// Datastore puts limits on how often a single entity can be accessed by transactions.
 	// And we actually don't always need a consistent view of the DB, we just want to query
 	// a single entity. So, when possible, let's make queries outside of a transaction.
@@ -136,18 +136,18 @@ func (ctx *bugTreeContext) pollBugTreeJobs(managers map[string]dashapi.ManagerJo
 	// Determine the crash we'd stick to.
 	err := ctx.loadCrashInfo()
 	if err != nil {
-		log.Errorf(ctx.c, "bug %q: failed to load crash info: %s", ctx.bug.displayTitle(), err)
+		log.Errorf(ctx.ctx, "bug %q: failed to load crash info: %s", ctx.bug.displayTitle(), err)
 		return pollResultError(err)
 	}
 	if ctx.crash == nil {
 		// There are no crashes we could further work with.
 		// TODO: consider looking at the recent repro retest results.
-		log.Infof(ctx.c, "bug %q: no suitable crash", ctx.bug.displayTitle())
+		log.Infof(ctx.ctx, "bug %q: no suitable crash", ctx.bug.displayTitle())
 		return pollResultSkip{}
 	}
 	if ctx.repoNode == nil {
 		// We have no information about the tree on which the bug happened.
-		log.Errorf(ctx.c, "bug %q: no information about the tree", ctx.bug.displayTitle())
+		log.Errorf(ctx.ctx, "bug %q: no information about the tree", ctx.bug.displayTitle())
 		return pollResultSkip{}
 	}
 	if !managers[ctx.crash.Manager].TestPatches {
@@ -158,7 +158,7 @@ func (ctx *bugTreeContext) pollBugTreeJobs(managers map[string]dashapi.ManagerJo
 		ctx.bug.TreeTests.List = nil
 	}
 	for i := range ctx.bug.TreeTests.List {
-		err := ctx.bug.TreeTests.List[i].applyPending(ctx.c)
+		err := ctx.bug.TreeTests.List[i].applyPending(ctx.ctx)
 		if err != nil {
 			return pollResultError(err)
 		}
@@ -223,7 +223,7 @@ func (ctx *bugTreeContext) setOriginLabels() pollTreeJobResult {
 	for _, label := range allLabels {
 		labels = append(labels, BugLabel{Label: OriginLabel, Value: label})
 	}
-	ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug), labels)
+	ctx.bug.SetLabels(makeLabelSet(ctx.ctx, ctx.bug), labels)
 	return pollResultSkip{}
 }
 
@@ -305,7 +305,7 @@ func (ctx *bugTreeContext) missingBackports() pollTreeJobResult {
 			// We already know that the reproducer doesn't crash the tree.
 			// There'd be no sense to call runRepro in the hope of getting a crash,
 			// so let's just look into the past tree testing results.
-			resultCrash, _ = ctx.bug.findResult(ctx.c, node.repo, wantFirstCrash{}, runOnAny{})
+			resultCrash, _ = ctx.bug.findResult(ctx.ctx, node.repo, wantFirstCrash{}, runOnAny{})
 		}
 		doneCrash, ok := resultCrash.(pollResultDone)
 		if !ok {
@@ -330,7 +330,7 @@ func (ctx *bugTreeContext) missingBackports() pollTreeJobResult {
 	}
 	ctx.bug.UnsetLabels(MissingBackportLabel)
 	if resultDone.Crashed {
-		ctx.bug.SetLabels(makeLabelSet(ctx.c, ctx.bug), []BugLabel{
+		ctx.bug.SetLabels(makeLabelSet(ctx.ctx, ctx.bug), []BugLabel{
 			{Label: MissingBackportLabel},
 		})
 	}
@@ -391,12 +391,12 @@ type runOnMergeBase struct {
 
 func (ctx *bugTreeContext) runRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
 	ret := ctx.doRunRepro(repo, result, runOn)
-	log.Infof(ctx.c, "runRepro on %s, %T, %T: %#v", repo.Alias, result, runOn, ret)
+	log.Infof(ctx.ctx, "runRepro on %s, %T, %T: %#v", repo.Alias, result, runOn, ret)
 	return ret
 }
 
 func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, runOn runReproOn) pollTreeJobResult {
-	existingResult, _ := ctx.bug.findResult(ctx.c, repo, result, runOn)
+	existingResult, _ := ctx.bug.findResult(ctx.ctx, repo, result, runOn)
 	if _, ok := existingResult.(pollResultSkip); !ok {
 		return existingResult
 	}
@@ -442,7 +442,7 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 		}
 	}
 	var err error
-	ctx.job, ctx.jobKey, err = addTestJob(ctx.c, &testJobArgs{
+	ctx.job, ctx.jobKey, err = addTestJob(ctx.ctx, &testJobArgs{
 		crash:         ctx.crash,
 		crashKey:      ctx.crashKey,
 		configRef:     ctx.build.KernelConfig,
@@ -466,18 +466,18 @@ func (ctx *bugTreeContext) doRunRepro(repo KernelRepo, result expectedResult, ru
 }
 
 func (ctx *bugTreeContext) ensureRepeatPeriod(jobKey string, period time.Duration) pollTreeJobResult {
-	job, _, err := fetchJob(ctx.c, jobKey)
+	job, _, err := fetchJob(ctx.ctx, jobKey)
 	if err != nil {
 		return pollResultError(err)
 	}
-	timePassed := timeNow(ctx.c).Sub(job.Finished)
+	timePassed := timeNow(ctx.ctx).Sub(job.Finished)
 	if timePassed < period {
 		return pollResultWait(job.Finished.Add(period))
 	}
 	return pollResultSkip{}
 }
 
-func (bug *Bug) findResult(c context.Context,
+func (bug *Bug) findResult(ctx context.Context,
 	repo KernelRepo, result expectedResult, runOn runReproOn) (pollTreeJobResult, *Job) {
 	anyPending := false
 	for _, i := range bug.matchingTreeTests(repo, runOn) {
@@ -499,7 +499,7 @@ func (bug *Bug) findResult(c context.Context,
 		if key == "" {
 			continue
 		}
-		job, _, err := fetchJob(c, key)
+		job, _, err := fetchJob(ctx, key)
 		if err != nil {
 			return pollResultError(err), nil
 		}
@@ -547,7 +547,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	// First look at the crash from previous tests.
 	if len(ctx.bug.TreeTests.List) > 0 {
 		crashID := ctx.bug.TreeTests.List[len(ctx.bug.TreeTests.List)-1].CrashID
-		crashKey := db.NewKey(ctx.c, "Crash", "", crashID, ctx.bugKey)
+		crashKey := db.NewKey(ctx.ctx, "Crash", "", crashID, ctx.bugKey)
 		crash := new(Crash)
 		// We need to also tolerate the case when the crash was just deleted.
 		err := db.Get(ctx.cGlobal, crashKey, crash)
@@ -584,7 +584,7 @@ func (ctx *bugTreeContext) loadCrashInfo() error {
 	if ctx.crash != nil {
 		var err error
 		ns := ctx.bug.Namespace
-		repoGraph, err := makeRepoGraph(getNsConfig(ctx.c, ns).Repos)
+		repoGraph, err := makeRepoGraph(getNsConfig(ctx.ctx, ns).Repos)
 		if err != nil {
 			return err
 		}
@@ -621,11 +621,11 @@ func (ctx *bugTreeContext) isCrashRelevant(crash *Crash) (bool, *Build, error) {
 		build.KernelBranch == mgrBuild.KernelBranch, build, nil
 }
 
-func (test *BugTreeTest) applyPending(c context.Context) error {
+func (test *BugTreeTest) applyPending(ctx context.Context) error {
 	if test.Pending == "" {
 		return nil
 	}
-	job, _, err := fetchJob(c, test.Pending)
+	job, _, err := fetchJob(ctx, test.Pending)
 	if err != nil {
 		return err
 	}
@@ -652,7 +652,7 @@ func (test *BugTreeTest) applyPending(c context.Context) error {
 }
 
 // treeTestJobs fetches relevant tree testing results.
-func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
+func treeTestJobs(ctx context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 	g, _ := errgroup.WithContext(context.Background())
 	jobIDs := make(chan string)
 
@@ -664,20 +664,20 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 	for i := 0; i < threads; i++ {
 		g.Go(func() error {
 			for id := range jobIDs {
-				job, jobKey, err := fetchJob(c, id)
+				job, jobKey, err := fetchJob(ctx, id)
 				if err != nil {
 					return err
 				}
-				build, err := loadBuild(c, job.Namespace, job.BuildID)
+				build, err := loadBuild(ctx, job.Namespace, job.BuildID)
 				if err != nil {
 					return err
 				}
-				crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
+				crashKey := db.NewKey(ctx, "Crash", "", job.CrashID, bug.key(ctx))
 				crash := new(Crash)
-				if err := db.Get(c, crashKey, crash); err != nil {
+				if err := db.Get(ctx, crashKey, crash); err != nil {
 					return fmt.Errorf("failed to get crash: %w", err)
 				}
-				info := makeJobInfo(c, job, jobKey, bug, build, crash)
+				info := makeJobInfo(ctx, job, jobKey, bug, build, crash)
 				mu.Lock()
 				ret = append(ret, info)
 				mu.Unlock()
@@ -716,14 +716,14 @@ func treeTestJobs(c context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 // Returns:
 // a) Job object and its key -- in case of success.
 // b) Whether the lookup was expensive (it can help optimize crossTreeBisection calls).
-func crossTreeBisection(c context.Context, bug *Bug,
+func crossTreeBisection(ctx context.Context, bug *Bug,
 	managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, bool, error) {
-	repoGraph, err := makeRepoGraph(getNsConfig(c, bug.Namespace).Repos)
+	repoGraph, err := makeRepoGraph(getNsConfig(ctx, bug.Namespace).Repos)
 	if err != nil {
 		return nil, nil, false, err
 	}
 	bugJobs := &lazyJobList{
-		c:       c,
+		ctx:     ctx,
 		bug:     bug,
 		jobType: JobBisectFix,
 	}
@@ -738,9 +738,9 @@ func crossTreeBisection(c context.Context, bug *Bug,
 			return nil
 		}
 		expensive = true
-		log.Infof(c, "%s: considering cross-tree bisection %s/%s",
+		log.Infof(ctx, "%s: considering cross-tree bisection %s/%s",
 			bug.displayTitle(), from.repo.Alias, to.repo.Alias)
-		_, crashJob := bug.findResult(c, to.repo, wantNewAny{}, runOnHEAD{})
+		_, crashJob := bug.findResult(ctx, to.repo, wantNewAny{}, runOnHEAD{})
 		if crashJob == nil {
 			// No patch testing was performed yet.
 			return nil
@@ -749,15 +749,15 @@ func crossTreeBisection(c context.Context, bug *Bug,
 			// The bug is already fixed on the target tree.
 			return nil
 		}
-		crashBuild, err := loadBuild(c, bug.Namespace, crashJob.BuildID)
+		crashBuild, err := loadBuild(ctx, bug.Namespace, crashJob.BuildID)
 		if err != nil {
 			return err
 		}
-		manager, _ := activeManager(c, crashJob.Manager, crashJob.Namespace)
+		manager, _ := activeManager(ctx, crashJob.Manager, crashJob.Namespace)
 		if !managers[manager].BisectFix {
 			return nil
 		}
-		_, successJob := bug.findResult(c, from.repo, wantNewAny{}, runOnHEAD{})
+		_, successJob := bug.findResult(ctx, from.repo, wantNewAny{}, runOnHEAD{})
 		if successJob == nil {
 			// The jobs is not done yet.
 			return nil
@@ -768,7 +768,7 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		}
 		newJob := &Job{
 			Type:            JobBisectFix,
-			Created:         timeNow(c),
+			Created:         timeNow(ctx),
 			Namespace:       bug.Namespace,
 			Manager:         crashJob.Manager,
 			BisectFrom:      crashBuild.KernelCommit,
@@ -787,19 +787,19 @@ func crossTreeBisection(c context.Context, bug *Bug,
 		}
 		const repeatPeriod = time.Hour * 24 * 30
 		if prevJob != nil && (prevJob.Error == 0 ||
-			prevJob.Finished.After(timeNow(c).Add(-repeatPeriod))) {
+			prevJob.Finished.After(timeNow(ctx).Add(-repeatPeriod))) {
 			// The job is already pending or failed recently. Skip.
 			return nil
 		}
 		job = newJob
-		jobKey, err = saveJob(c, newJob, bug.key(c))
+		jobKey, err = saveJob(ctx, newJob, bug.key(ctx))
 		return err
 	})
 	return job, jobKey, expensive, err
 }
 
 type lazyJobList struct {
-	c       context.Context
+	ctx     context.Context
 	bug     *Bug
 	jobType JobType
 	jobs    *bugJobs
@@ -808,7 +808,7 @@ type lazyJobList struct {
 func (list *lazyJobList) lastMatch(job *Job) (*Job, error) {
 	if list.jobs == nil {
 		var err error
-		list.jobs, err = queryBugJobs(list.c, list.bug, list.jobType)
+		list.jobs, err = queryBugJobs(list.ctx, list.bug, list.jobType)
 		if err != nil {
 			return nil, err
 		}
@@ -832,7 +832,7 @@ func (list *lazyJobList) lastMatch(job *Job) (*Job, error) {
 	return best, nil
 }
 
-func doneCrossTreeBisection(c context.Context, jobKey *db.Key, job *Job) error {
+func doneCrossTreeBisection(ctx context.Context, jobKey *db.Key, job *Job) error {
 	if job.Type != JobBisectFix || job.MergeBaseRepo == "" {
 		// Not a cross tree bisection.
 		return nil
@@ -841,7 +841,7 @@ func doneCrossTreeBisection(c context.Context, jobKey *db.Key, job *Job) error {
 		// The result is not interesting.
 		return nil
 	}
-	return updateSingleBug(c, jobKey.Parent(), func(bug *Bug) error {
+	return updateSingleBug(ctx, jobKey.Parent(), func(bug *Bug) error {
 		bug.FixCandidateJob = jobKey.Encode()
 		return nil
 	})

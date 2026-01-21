@@ -408,11 +408,11 @@ func (serv *server) handleMachineInfo(infoReq *flatrpc.InfoRequestRawT) (handsha
 	}, nil
 }
 
-func (serv *server) connectionLoop(baseCtx context.Context, runner *Runner) error {
+func (serv *server) connectionLoop(ctx context.Context, runner *Runner) error {
 	// To "cancel" the runner's loop we need to call runner.Stop().
 	// At the same time, we don't want to leak the goroutine that monitors it,
 	// so we derive a new context and cancel it on function exit.
-	ctx, cancel := context.WithCancel(baseCtx)
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
 		<-ctx.Done()

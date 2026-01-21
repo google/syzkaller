@@ -113,9 +113,9 @@ func logFinalState(store *manager.DiffFuzzerStore) {
 
 var errSkipFuzzing = errors.New("skip")
 
-func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
+func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	timeout time.Duration, store *manager.DiffFuzzerStore) error {
-	series, err := client.GetSessionSeries(baseCtx, *flagSession)
+	series, err := client.GetSessionSeries(ctx, *flagSession)
 	if err != nil {
 		return fmt.Errorf("failed to query the series info: %w", err)
 	}
@@ -141,13 +141,13 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
 	if len(config.CorpusURLs) > 0 {
-		err := prepareCorpus(baseCtx, patched.Workdir, config.CorpusURLs, patched.Target)
+		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
 		if err != nil {
 			app.Errorf("failed to download the corpus: %v", err)
 		}
 	}
 
-	eg, ctx := errgroup.WithContext(baseCtx)
+	eg, groupCtx := errgroup.WithContext(ctx)
 	bugs := make(chan *manager.UniqueBug)
 	baseCrashes := make(chan string, 16)
 	eg.Go(func() error {
@@ -155,7 +155,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 		for {
 			select {
 			case title := <-baseCrashes:
-				err := client.UploadBaseFinding(ctx, &api.BaseFindingInfo{
+				err := client.UploadBaseFinding(groupCtx, &api.BaseFindingInfo{
 					BuildID: *flagBaseBuild,
 					Title:   title,
 				})
@@ -163,18 +163,18 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 					app.Errorf("failed to report a base kernel crash %q: %v", title, err)
 				}
 			case bug := <-bugs:
-				err := reportFinding(ctx, config, client, bug)
+				err := reportFinding(groupCtx, config, client, bug)
 				if err != nil {
 					app.Errorf("failed to report a finding %q: %v", bug.Report.Title, err)
 				}
-			case <-ctx.Done():
+			case <-groupCtx.Done():
 				return nil
 			}
 		}
 	})
 	eg.Go(func() error {
 		defer log.Logf(0, "diff fuzzing terminated")
-		return manager.RunDiffFuzzer(ctx, base, patched, manager.DiffFuzzerConfig{
+		return manager.RunDiffFuzzer(groupCtx, base, patched, manager.DiffFuzzerConfig{
 			Debug:              false,
 			PatchedOnly:        bugs,
 			BaseCrashes:        baseCrashes,
@@ -209,7 +209,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 		defer log.Logf(0, "status reporting terminated")
 		for {
 			select {
-			case <-ctx.Done():
+			case <-groupCtx.Done():
 				return nil
 			case <-time.After(updatePeriod):
 			}
@@ -218,7 +218,7 @@ func run(baseCtx context.Context, config *api.FuzzConfig, client *api.Client,
 				lastArtifactUpdate = time.Now()
 				useStore = store
 			}
-			err := reportStatus(ctx, config, client, api.TestRunning, useStore)
+			err := reportStatus(groupCtx, config, client, api.TestRunning, useStore)
 			if err != nil {
 				app.Errorf("failed to update status: %v", err)
 			}

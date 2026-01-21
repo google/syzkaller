@@ -128,34 +128,34 @@ func extractVal(t any, val string) any {
 	panic("unsupported type")
 }
 
-func handleCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	params, err := makeHeatmapParams(c, r)
+	params, err := makeHeatmapParams(ctx, r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
 	if getParam[bool](r, "jsonl") {
 		ns := hdr.Namespace
-		repo, _ := getNsConfig(c, ns).mainRepoBranch()
+		repo, _ := getNsConfig(ctx, ns).mainRepoBranch()
 		w.Header().Set("Content-Type", "application/json")
-		return writeExtAPICoverageFor(c, w, ns, repo, params)
+		return writeExtAPICoverageFor(ctx, w, ns, repo, params)
 	}
-	return handleHeatmap(c, w, hdr, params, cover.DoHeatMapStyleBodyJS)
+	return handleHeatmap(ctx, w, hdr, params, cover.DoHeatMapStyleBodyJS)
 }
 
-func handleSubsystemsCoverageHeatmap(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	params, err := makeHeatmapParams(c, r)
+	params, err := makeHeatmapParams(ctx, r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
-	return handleHeatmap(c, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
+	return handleHeatmap(ctx, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
 
 type covPageParam string
@@ -200,9 +200,9 @@ func coveragePageLink(ns, periodType, dateTo string, minDrop, periodCount int, o
 	return url
 }
 
-func handleHeatmap(c context.Context, w http.ResponseWriter, hdr *uiHeader, p *coverageHeatmapParams,
+func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p *coverageHeatmapParams,
 	f funcStyleBodyJS) error {
-	nsConfig := getNsConfig(c, hdr.Namespace)
+	nsConfig := getNsConfig(ctx, hdr.Namespace)
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
@@ -211,12 +211,12 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, hdr *uiHeader, p *c
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
 	}
-	managers, err := CachedManagerList(c, hdr.Namespace)
+	managers, err := CachedManagerList(ctx, hdr.Namespace)
 	if err != nil {
 		return err
 	}
 	var subsystems []string
-	if ssService := getNsConfig(c, hdr.Namespace).Subsystems.Service; ssService != nil {
+	if ssService := getNsConfig(ctx, hdr.Namespace).Subsystems.Service; ssService != nil {
 		for _, s := range ssService.List() {
 			subsystems = append(subsystems, s.Name)
 		}
@@ -226,7 +226,7 @@ func handleHeatmap(c context.Context, w http.ResponseWriter, hdr *uiHeader, p *c
 
 	var style template.CSS
 	var body, js template.HTML
-	if style, body, js, err = f(c, getCoverageDBClient(c),
+	if style, body, js, err = f(ctx, getCoverageDBClient(ctx),
 		&coveragedb.SelectScope{
 			Ns:        hdr.Namespace,
 			Subsystem: p.subsystem,
@@ -259,12 +259,12 @@ func makeProxyURIProvider(url string) covermerger.FuncProxyURI {
 	}
 }
 
-func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	nsConfig := getNsConfig(c, hdr.Namespace)
+	nsConfig := getNsConfig(ctx, hdr.Namespace)
 	if nsConfig.Coverage == nil || nsConfig.Coverage.WebGitURI == "" {
 		return ErrClientNotFound
 	}
@@ -292,12 +292,12 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		return fmt.Errorf("coveragedb.MakeTimePeriod: %w", err)
 	}
 	mainNsRepo, _ := nsConfig.mainRepoBranch()
-	client := getCoverageDBClient(c)
+	client := getCoverageDBClient(ctx)
 	if client == nil {
 		return fmt.Errorf("spannerdb client is nil")
 	}
 	hitLines, hitCounts, err := coveragedb.ReadLinesHitCount(
-		c, client, hdr.Namespace, targetCommit, kernelFilePath, manager, tp)
+		ctx, client, hdr.Namespace, targetCommit, kernelFilePath, manager, tp)
 	covMap := coveragedb.MakeCovMap(hitLines, hitCounts)
 	if err != nil {
 		return fmt.Errorf("coveragedb.ReadLinesHitCount(%s): %w", manager, err)
@@ -306,14 +306,14 @@ func handleFileCoverage(c context.Context, w http.ResponseWriter, r *http.Reques
 		// This request is expected to be made second by tests.
 		// Moving it to goroutine don't forget to change multiManagerCovDBFixture.
 		allHitLines, allHitCounts, err := coveragedb.ReadLinesHitCount(
-			c, client, hdr.Namespace, targetCommit, kernelFilePath, "*", tp)
+			ctx, client, hdr.Namespace, targetCommit, kernelFilePath, "*", tp)
 		if err != nil {
 			return fmt.Errorf("coveragedb.ReadLinesHitCount(*): %w", err)
 		}
 		covMap = coveragedb.UniqCoverage(coveragedb.MakeCovMap(allHitLines, allHitCounts), covMap)
 	}
 
-	webGit := getWebGit(c) // Get mock if available.
+	webGit := getWebGit(ctx) // Get mock if available.
 	if webGit == nil {
 		webGit = covermerger.MakeWebGit(makeProxyURIProvider(nsConfig.Coverage.WebGitURI))
 	}
@@ -344,12 +344,12 @@ func getWebGit(ctx context.Context) covermerger.FileVersProvider {
 	return res
 }
 
-func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	hdr, err := commonHeader(c, r, w, "")
+func handleCoverageGraph(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
-	nsConfig := getNsConfig(c, hdr.Namespace)
+	nsConfig := getNsConfig(ctx, hdr.Namespace)
 	if nsConfig.Coverage == nil {
 		return ErrClientNotFound
 	}
@@ -360,11 +360,11 @@ func handleCoverageGraph(c context.Context, w http.ResponseWriter, r *http.Reque
 	if periodType != coveragedb.QuarterPeriod && periodType != coveragedb.MonthPeriod {
 		return fmt.Errorf("only quarter and month are allowed, but received %s instead", periodType)
 	}
-	hist, err := MergedCoverage(c, getCoverageDBClient(c), hdr.Namespace, periodType)
+	hist, err := MergedCoverage(ctx, getCoverageDBClient(ctx), hdr.Namespace, periodType)
 	if err != nil {
 		return err
 	}
-	periodEndDates, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(c)), periodType)
+	periodEndDates, err := coveragedb.GenNPeriodsTill(12, civil.DateOf(timeNow(ctx)), periodType)
 	if err != nil {
 		return err
 	}

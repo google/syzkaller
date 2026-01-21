@@ -39,7 +39,7 @@ type oneOf []string
 type subsetOf []string
 type trueFalse struct{}
 
-func makeLabelSet(c context.Context, bug *Bug) *labelSet {
+func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 	ret := map[BugLabelType]any{
 		PriorityLabel: oneOf([]string{
 			string(LowPrioBug),
@@ -53,7 +53,7 @@ func makeLabelSet(c context.Context, bug *Bug) *labelSet {
 	if typ == crash.KCSANDataRace {
 		ret[RaceLabel] = oneOf([]string{BenignRace, HarmfulRace})
 	}
-	cfg := getNsConfig(c, bug.Namespace)
+	cfg := getNsConfig(ctx, bug.Namespace)
 	service := cfg.Subsystems.Service
 	if service != nil {
 		names := []string{}
@@ -78,7 +78,7 @@ func makeLabelSet(c context.Context, bug *Bug) *labelSet {
 	}
 
 	return &labelSet{
-		c:      c,
+		c:      ctx,
 		ns:     bug.Namespace,
 		labels: ret,
 	}

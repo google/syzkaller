@@ -21,7 +21,7 @@ import (
 func TestEmailStream(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, reporterClient, _ := setupHandlerTest(t, env, ctx, testSeries)
+	handler, reporterClient, _ := setupHandlerTest(t, ctx, env, testSeries)
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
 
