@@ -8,21 +8,21 @@ type Action interface {
 	execute(*Context) error
 }
 
-type Pipeline struct {
+type pipeline struct {
 	// These actions are invoked sequentially,
 	// but dataflow across actions is specified by their use
 	// of variables in args/instructions/prompts.
-	Actions []Action
+	actions []Action
 }
 
-func NewPipeline(actions ...Action) *Pipeline {
-	return &Pipeline{
-		Actions: actions,
+func Pipeline(actions ...Action) *pipeline {
+	return &pipeline{
+		actions: actions,
 	}
 }
 
-func (p *Pipeline) execute(ctx *Context) error {
-	for _, sub := range p.Actions {
+func (p *pipeline) execute(ctx *Context) error {
+	for _, sub := range p.actions {
 		if err := sub.execute(ctx); err != nil {
 			return err
 		}
@@ -30,8 +30,8 @@ func (p *Pipeline) execute(ctx *Context) error {
 	return nil
 }
 
-func (p *Pipeline) verify(ctx *verifyContext) {
-	for _, a := range p.Actions {
+func (p *pipeline) verify(ctx *verifyContext) {
+	for _, a := range p.actions {
 		a.verify(ctx)
 	}
 }

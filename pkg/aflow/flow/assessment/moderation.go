@@ -33,27 +33,25 @@ func init() {
 		ai.WorkflowModeration,
 		"assess if a bug report is consistent and actionable or not",
 		&aflow.Flow{
-			Root: &aflow.Pipeline{
-				Actions: []aflow.Action{
-					aflow.NewFuncAction("extract-crash-type", extractCrashType),
-					kernel.Checkout,
-					kernel.Build,
-					codesearcher.PrepareIndex,
-					&aflow.LLMAgent{
-						Name:  "expert",
-						Model: aflow.GoodBalancedModel,
-						Reply: "Explanation",
-						Outputs: aflow.LLMOutputs[struct {
-							Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
-							Actionable bool `jsonschema:"If the report is actionable or not."`
-						}](),
-						Temperature: 1,
-						Instruction: moderationInstruction,
-						Prompt:      moderationPrompt,
-						Tools:       codesearcher.Tools,
-					},
+			Root: aflow.Pipeline(
+				aflow.NewFuncAction("extract-crash-type", extractCrashType),
+				kernel.Checkout,
+				kernel.Build,
+				codesearcher.PrepareIndex,
+				&aflow.LLMAgent{
+					Name:  "expert",
+					Model: aflow.GoodBalancedModel,
+					Reply: "Explanation",
+					Outputs: aflow.LLMOutputs[struct {
+						Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
+						Actionable bool `jsonschema:"If the report is actionable or not."`
+					}](),
+					Temperature: 1,
+					Instruction: moderationInstruction,
+					Prompt:      moderationPrompt,
+					Tools:       codesearcher.Tools,
 				},
-			},
+			),
 		},
 	)
 }

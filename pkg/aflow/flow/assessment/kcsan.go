@@ -23,26 +23,24 @@ func init() {
 		ai.WorkflowAssessmentKCSAN,
 		"assess if a KCSAN report is about a benign race that only needs annotations or not",
 		&aflow.Flow{
-			Root: &aflow.Pipeline{
-				Actions: []aflow.Action{
-					kernel.Checkout,
-					kernel.Build,
-					codesearcher.PrepareIndex,
-					&aflow.LLMAgent{
-						Name:  "expert",
-						Model: aflow.GoodBalancedModel,
-						Reply: "Explanation",
-						Outputs: aflow.LLMOutputs[struct {
-							Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
-							Benign    bool `jsonschema:"If the data race is benign or not."`
-						}](),
-						Temperature: 1,
-						Instruction: kcsanInstruction,
-						Prompt:      kcsanPrompt,
-						Tools:       codesearcher.Tools,
-					},
+			Root: aflow.Pipeline(
+				kernel.Checkout,
+				kernel.Build,
+				codesearcher.PrepareIndex,
+				&aflow.LLMAgent{
+					Name:  "expert",
+					Model: aflow.GoodBalancedModel,
+					Reply: "Explanation",
+					Outputs: aflow.LLMOutputs[struct {
+						Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
+						Benign    bool `jsonschema:"If the data race is benign or not."`
+					}](),
+					Temperature: 1,
+					Instruction: kcsanInstruction,
+					Prompt:      kcsanPrompt,
+					Tools:       codesearcher.Tools,
 				},
-			},
+			),
 		},
 	)
 }
