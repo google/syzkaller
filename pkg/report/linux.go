@@ -63,8 +63,9 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		vmlinux: vmlinux,
 		symbols: symbols,
 	}
-	// nolint: lll
-	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
+	ctx.consoleOutputRe = regexp.MustCompile(
+		`^(?:\*\* [0-9]+ printk messages dropped \*\* )?` +
+			`(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.questionableFrame = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? `)
