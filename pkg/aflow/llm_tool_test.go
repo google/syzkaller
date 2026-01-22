@@ -21,7 +21,7 @@ func TestLLMTool(t *testing.T) {
 		Something string `jsonschema:"something"`
 	}
 	testFlow[inputs, outputs](t, map[string]any{"Input": 42}, map[string]any{"Reply": "YES"},
-		NewPipeline(
+		Pipeline(
 			&LLMAgent{
 				Name:        "smarty",
 				Model:       "model",

@@ -90,7 +90,7 @@ func TestWorkflow(t *testing.T) {
 			"SwarmInt":      []int{1, 2},
 			"OutAggregator": "aggregated",
 		},
-		NewPipeline(
+		Pipeline(
 			NewFuncAction("func-action",
 				func(ctx *Context, args firstFuncInputs) (firstFuncOutputs, error) {
 					assert.Equal(t, args.InFoo, 10)
@@ -317,7 +317,7 @@ func TestToolMisbehavior(t *testing.T) {
 			"Reply":            "Finally done",
 			"AdditionalOutput": 2,
 		},
-		NewPipeline(
+		Pipeline(
 			&LLMAgent{
 				Name:        "smarty",
 				Model:       "model",
