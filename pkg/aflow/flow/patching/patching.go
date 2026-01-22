@@ -5,11 +5,13 @@ package patching
 
 import (
 	"encoding/json"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
@@ -40,7 +42,7 @@ type Outputs struct {
 }
 
 func init() {
-	tools := append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...)
+	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...))
 
 	aflow.Register[Inputs, Outputs](
 		ai.WorkflowPatching,
@@ -60,17 +62,23 @@ func init() {
 					Temperature: 1,
 					Instruction: debuggingInstruction,
 					Prompt:      debuggingPrompt,
-					Tools:       tools,
+					Tools:       commonTools,
 				},
 				kernel.CheckoutScratch,
-				&aflow.LLMAgent{
-					Name:        "diff-generator",
-					Model:       aflow.BestExpensiveModel,
-					Reply:       "PatchDiff",
-					Temperature: 1,
-					Instruction: diffInstruction,
-					Prompt:      diffPrompt,
-					Tools:       tools,
+				&aflow.DoWhile{
+					Do: aflow.Pipeline(
+						&aflow.LLMAgent{
+							Name:        "patch-generator",
+							Model:       aflow.BestExpensiveModel,
+							Reply:       "PatchExplanation",
+							Temperature: 1,
+							Instruction: patchInstruction,
+							Prompt:      patchPrompt,
+							Tools:       append(commonTools, codeeditor.Tool),
+						},
+						crash.TestPatch, // -> PatchDiff or TestError
+					),
+					While: "TestError",
 				},
 				&aflow.LLMAgent{
 					Name:        "description-generator",
@@ -79,6 +87,7 @@ func init() {
 					Temperature: 1,
 					Instruction: descriptionInstruction,
 					Prompt:      descriptionPrompt,
+					Tools:       commonTools,
 				},
 			),
 		},
@@ -104,12 +113,14 @@ The crash is:
 {{.CrashReport}}
 `
 
-const diffInstruction = `
-You are an experienced Linux kernel developer tasked with creating a patch for a kernel bug.
-Your final reply should contain only the code diff in patch format.
+const patchInstruction = `
+You are an experienced Linux kernel developer tasked with creating a fix for a kernel bug.
+Use the codeedit tool to do code edits.
+Note: you will not see your changes when looking at the code using codesearch tools.
+Your final reply should contain explanation of what you did in the patch and why.
 `
 
-const diffPrompt = `
+const patchPrompt = `
 The crash that corresponds to the bug is:
 
 {{.CrashReport}}
@@ -117,6 +128,28 @@ The crash that corresponds to the bug is:
 The explanation of the root cause of the bug is:
 
 {{.BugExplanation}}
+
+{{if .TestError}}
+Another developer tried to fix this bug, and come up with the following patch:
+
+{{.PatchDiff}}
+
+and the following explanation:
+
+{{.PatchExplanation}}
+
+However, the patch testing failed with the following error:
+
+{{.TestError}}
+
+If the error is fixable, and the fix patch is correct overall,
+the create a new fixed patch based on the provided one with the errors fixed.
+If the error points to a fundamental issue with the approach in the patch,
+then create a new patch from scratch.
+Note: in both cases the source tree does not contain the patch yet
+(so if you want to create a new fixed patch, you need to recreate it
+in its entirety from scratch using the codeeditor tool).
+{{end}}
 `
 
 const descriptionInstruction = `
@@ -140,4 +173,8 @@ The explanation of the root cause of the bug is:
 The diff of the bug fix is:
 
 {{.PatchDiff}}
+
+Additional description of the patch:
+
+{{.PatchExplanation}}
 `
