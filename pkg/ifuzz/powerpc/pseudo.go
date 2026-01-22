@@ -16,58 +16,60 @@ const (
 	SprnSrr1 = 0x01B // msr for rfid (SPRN_SRR1)
 )
 
-// nolint:dupl
 func (insnset *InsnSet) initPseudo() {
-	insnset.Insns = append(insnset.Insns, &Insn{
-		Name:   "PSEUDO_hypercall",
-		Priv:   true,
-		Pseudo: true,
-		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
-			gen := makeGen(insnset, cfg, r)
-			gen.sc(1)
-			return gen.text
+	type pseudoInsn struct {
+		Name      string
+		generator func(cfg *iset.Config, r *rand.Rand) []byte
+	}
+	for _, insn := range []pseudoInsn{
+		{
+			Name: "PSEUDO_hypercall",
+			generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+				gen := makeGen(insnset, cfg, r)
+				gen.sc(1)
+				return gen.text
+			},
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
-		Name:   "PSEUDO_syscall",
-		Priv:   true,
-		Pseudo: true,
-		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
-			gen := makeGen(insnset, cfg, r)
-			gen.sc(0)
-			return gen.text
+		{
+			Name: "PSEUDO_syscall",
+			generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+				gen := makeGen(insnset, cfg, r)
+				gen.sc(0)
+				return gen.text
+			},
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
-		Name:   "PSEUDO_ultracall",
-		Priv:   true,
-		Pseudo: true,
-		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
-			gen := makeGen(insnset, cfg, r)
-			gen.sc(2)
-			return gen.text
+		{
+			Name: "PSEUDO_ultracall",
+			generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+				gen := makeGen(insnset, cfg, r)
+				gen.sc(2)
+				return gen.text
+			},
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
-		Name:   "PSEUDO_rtas",
-		Priv:   true,
-		Pseudo: true,
-		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
-			gen := makeGen(insnset, cfg, r)
-			gen.rtas()
-			return gen.text
+		{
+			Name: "PSEUDO_rtas",
+			generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+				gen := makeGen(insnset, cfg, r)
+				gen.rtas()
+				return gen.text
+			},
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
-		Name:   "PSEUDO_rfid",
-		Priv:   true,
-		Pseudo: true,
-		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
-			gen := makeGen(insnset, cfg, r)
-			gen.rfid()
-			return gen.text
+		{
+			Name: "PSEUDO_rfid",
+			generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+				gen := makeGen(insnset, cfg, r)
+				gen.rfid()
+				return gen.text
+			},
 		},
-	})
+	} {
+		insnset.Insns = append(insnset.Insns, &Insn{
+			Name:      insn.Name,
+			Priv:      true,
+			Pseudo:    true,
+			generator: insn.generator,
+		})
+	}
 }
 
 type generator struct {
