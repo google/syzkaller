@@ -32,4 +32,60 @@ kvm_text_riscv64 {
 	size	len[text, intptr]
 }
 
+# kvm_syz_vm is a VM handler used by syzos-related pseudo-syscalls. It is actually an opaque pointer under the hood.
+resource kvm_syz_vm$riscv64[int64]
+
+# Map the given memory into the VM and set up syzos there.
+syz_kvm_setup_syzos_vm$riscv64(fd fd_kvmvm, usermem vma[1024]) kvm_syz_vm$riscv64
+
+# Create a VCPU inside a kvm_syz_vm VM.
+# Prohibit flattening the input arguments, so that it is easier to reason about them.
+syz_kvm_add_vcpu$riscv64(vm kvm_syz_vm$riscv64, text ptr[in, kvm_text_syzos_riscv64], opts ptr[in, array[kvm_setup_opt_riscv64, 1]], nopt len[opts]) fd_kvmcpu (no_squash)
+
+kvm_text_syzos_riscv64 {
+	typ	const[0, intptr]
+	text	ptr[in, array[syzos_api_call$riscv64, 1:32]]
+	size	bytesize[text, int64]
+}
+
+type syzos_api$riscv64[NUM, PAYLOAD] {
+	call	const[NUM, int64]
+	size	bytesize[parent, int64]
+	payload	PAYLOAD
+}
+
+syzos_api_code$riscv64 {
+	insns	text[riscv64]
+	ret	const[0x8067, int32]
+} [packed]
+
+syzos_api_csrr {
+	arg_reg	riscv64_csr_or_any
+}
+
+syzos_api_csrw {
+	arg_reg		riscv64_csr_or_any
+	arg_value	int64
+}
+
+riscv64_csr_or_any [
+	valid	flags[riscv64_csr, int64]
+	any	int64
+]
+
+# Table 5 in https://docs.riscv.org/reference/isa/_attachments/riscv-privileged.pdf .
+# Currently, only 11 CSRS are supported in Linux-6.19. See
+# https://elixir.bootlin.com/linux/v6.19-rc5/source/arch/riscv/include/uapi/asm/kvm.h#L75 .
+riscv64_csr = 0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x180, 0x106, 0x10a
+
+syzos_api_call$riscv64 [
+	uexit	syzos_api$riscv64[0, intptr]
+	code	syzos_api$riscv64[10, syzos_api_code$riscv64]
+	csrr	syzos_api$riscv64[100, syzos_api_csrr]
+	csrw	syzos_api$riscv64[101, syzos_api_csrw]
+] [varlen]
+
+# Test assertions, will not be used by the fuzzer.
 syz_kvm_assert_reg$riscv64(fd fd_kvmcpu, reg int64, value int64) (no_generate)
+syz_kvm_assert_syzos_uexit$riscv64(cpufd fd_kvmcpu, run kvm_run_ptr, exitcode int64) (no_generate)
+syz_kvm_assert_syzos_kvm_exit$riscv64(run kvm_run_ptr, exitcode int64) (no_generate)

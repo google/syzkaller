@@ -193,7 +193,9 @@ func linuxSyzKvmSupported(ctx *checkContext, call *prog.Syscall) string {
 		if ctx.target.Arch == targets.ARM64 {
 			return ""
 		}
-	case "syz_kvm_setup_cpu$riscv64", "syz_kvm_assert_reg$riscv64":
+	case "syz_kvm_setup_cpu$riscv64", "syz_kvm_assert_reg$riscv64", "syz_kvm_setup_syzos_vm$riscv64",
+		"syz_kvm_add_vcpu$riscv64", "syz_kvm_assert_syzos_kvm_exit$riscv64",
+		"syz_kvm_assert_syzos_uexit$riscv64":
 		if ctx.target.Arch == targets.RiscV64 {
 			return ""
 		}

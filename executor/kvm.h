@@ -546,4 +546,26 @@
 
 #endif // ARM64 SYZOS definitions
 
+// RISCV64 SYZOS definitions.
+#if GOARCH_riscv64
+// Core Local INTerruptor address.
+#define RISCV64_ADDR_CLINT 0x02000000
+// Platform Level Interrupt Controller address.
+#define RISCV64_ADDR_PLIC 0x0c000000
+// Write to this page to trigger a page fault and stop KVM_RUN.
+#define RISCV64_ADDR_EXIT 0x40000000
+// Two writable pages with KVM_MEM_LOG_DIRTY_PAGES explicitly set.
+#define RISCV64_ADDR_DIRTY_PAGES 0x40001000
+#define RISCV64_ADDR_USER_CODE 0x80000000
+// Location of the SYZOS guest code. Name shared with x86 SYZOS.
+#define SYZOS_ADDR_EXECUTOR_CODE 0x80008000
+#define RISCV64_ADDR_SCRATCH_CODE 0x80010000
+#define RISCV64_ADDR_STACK_BASE 0x80020000
+#define RISCV64_ADDR_EXCEPTION_VECTOR 0x00001000
+
+// Dedicated address within the exit page for the uexit command.
+#define RISCV64_ADDR_UEXIT (RISCV64_ADDR_EXIT + 256)
+
+#endif // RISCV64 SYZOS definitions
+
 #endif // EXECUTOR_KVM_H

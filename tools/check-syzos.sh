@@ -54,6 +54,12 @@ elif [ "$TARGETARCH" = "arm64" ]; then
     if command -v aarch64-linux-gnu-objdump > /dev/null; then
         OBJDUMP_CMD="aarch64-linux-gnu-objdump"
     fi
+elif [ "$TARGETARCH" = "riscv64" ]; then
+    ARCH="riscv64"
+    PATTERNS_TO_FIND='auipc'
+    if command -v riscv64-linux-gnu-objdump > /dev/null; then
+        OBJDUMP_CMD="riscv64-linux-gnu-objdump"
+    fi
 else
     echo "[INFO] Unsupported architecture '$TARGETARCH', skipping check."
     exit 0
