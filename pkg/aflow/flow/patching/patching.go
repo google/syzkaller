@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 )
 
@@ -38,7 +39,7 @@ type Outputs struct {
 }
 
 func init() {
-	tools := codesearcher.Tools
+	tools := append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...)
 
 	aflow.Register[Inputs, Outputs](
 		ai.WorkflowPatching,
