@@ -237,6 +237,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_ADDR_BOOT_ARGS, 1, 0},
     // Dynamic Page Table Pool.
     {X86_SYZOS_ADDR_PT_POOL, X86_SYZOS_PT_POOL_SIZE, 0},
+    // Global State Page.
+    {X86_SYZOS_ADDR_GLOBALS, 1, 0},
     // SMRAM memory.
     {X86_SYZOS_ADDR_SMRAM, 10, 0},
     // Unmapped region to trigger a page faults for uexits etc.
