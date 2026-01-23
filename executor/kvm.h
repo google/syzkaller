@@ -47,6 +47,8 @@
 #define X86_SYZOS_ADDR_PDP 0x3000
 #define X86_SYZOS_ADDR_VAR_IDT 0x25000
 #define X86_SYZOS_ADDR_VAR_TSS 0x26000
+// Dedicated page for passing configuration (memory map) to L1.
+#define X86_SYZOS_ADDR_BOOT_ARGS 0x2F000
 
 #define X86_SYZOS_ADDR_SMRAM 0x30000
 // Write to this page to trigger a page fault and stop KVM_RUN.
