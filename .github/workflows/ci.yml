@@ -25,7 +25,7 @@ jobs:
     steps:
       # Checks out syzkaller repo at the path.
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
           # This is needed for tools/check-commits.sh
@@ -34,7 +34,7 @@ jobs:
         run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
         shell: bash
       - name: update cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7  # v5.0.2
         with:
           path: /syzkaller/.cache
           key: ${{ runner.os }}-syzenv-${{ steps.get-date.outputs.date }}
@@ -57,7 +57,7 @@ jobs:
       GITHUB_ACTIONS: true
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
@@ -87,7 +87,7 @@ jobs:
       GITHUB_ACTIONS: true
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
@@ -120,7 +120,7 @@ jobs:
         target: [ presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_netbsd, presubmit_arch_openbsd, presubmit_arch_darwin, presubmit_arch_windows, presubmit_arch_executor ]
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
@@ -142,7 +142,7 @@ jobs:
       TERM: dumb
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
 
@@ -166,7 +166,7 @@ jobs:
       TERM: dumb
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
@@ -189,7 +189,7 @@ jobs:
       TERM: dumb
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
@@ -214,7 +214,7 @@ jobs:
       GITHUB_ACTIONS: true
     steps:
       - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           path: gopath/src/github.com/google/syzkaller
       - name: restore cache
