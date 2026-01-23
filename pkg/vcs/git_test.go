@@ -530,7 +530,11 @@ func TestBaseForDiff(t *testing.T) {
 		base, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
 		require.Len(t, base, 1)
-		assert.Equal(t, []string{"branch-a", "master"}, base[0].Branches)
+		require.Len(t, base[0].Branches, 2)
+		assert.Equal(t, "branch-a", base[0].Branches[0])
+		// Different git versions name it differently.
+		assert.True(t, base[0].Branches[1] == "master" || base[0].Branches[1] == "main",
+			"branch=%q", base[0].Branches[1])
 		assert.Equal(t, commit2.Hash, base[0].Hash)
 	})
 	t.Run("choose latest", func(t *testing.T) {
