@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
+	"github.com/google/syzkaller/pkg/manager/diff"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
@@ -43,11 +44,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		manager.PatchFocusAreas(newCfg, [][]byte{data}, nil, nil)
+		diff.PatchFocusAreas(newCfg, [][]byte{data}, nil, nil)
 	}
 
 	ctx := vm.ShutdownCtx()
-	err = manager.RunDiffFuzzer(ctx, baseCfg, newCfg, manager.DiffFuzzerConfig{
+	err = diff.Run(ctx, baseCfg, newCfg, diff.Config{
 		Store: &manager.DiffFuzzerStore{BasePath: newCfg.Workdir},
 		Debug: *flagDebug,
 	})
