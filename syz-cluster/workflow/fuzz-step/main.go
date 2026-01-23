@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/manager"
+	"github.com/google/syzkaller/pkg/manager/diff"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -138,7 +139,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	if shouldSkipFuzzing(baseSymbols, patchedSymbols) {
 		return errSkipFuzzing
 	}
-	manager.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
+	diff.PatchFocusAreas(patched, series.PatchBodies(), baseSymbols.Text, patchedSymbols.Text)
 
 	if len(config.CorpusURLs) > 0 {
 		err := prepareCorpus(ctx, patched.Workdir, config.CorpusURLs, patched.Target)
@@ -148,7 +149,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	}
 
 	eg, groupCtx := errgroup.WithContext(ctx)
-	bugs := make(chan *manager.UniqueBug)
+	bugs := make(chan *diff.Bug)
 	baseCrashes := make(chan string, 16)
 	eg.Go(func() error {
 		defer log.Logf(0, "bug reporting terminated")
@@ -174,7 +175,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	})
 	eg.Go(func() error {
 		defer log.Logf(0, "diff fuzzing terminated")
-		return manager.RunDiffFuzzer(groupCtx, base, patched, manager.DiffFuzzerConfig{
+		return diff.Run(groupCtx, base, patched, diff.Config{
 			Debug:              false,
 			PatchedOnly:        bugs,
 			BaseCrashes:        baseCrashes,
@@ -225,7 +226,7 @@ func run(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 		}
 	})
 	err = eg.Wait()
-	if errors.Is(err, manager.ErrPatchedAreaNotReached) {
+	if errors.Is(err, diff.ErrPatchedAreaNotReached) {
 		// We did not reach the modified parts of the kernel, but that's fine.
 		return nil
 	}
@@ -332,7 +333,7 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 	return nil
 }
 
-func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *manager.UniqueBug) error {
+func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *diff.Bug) error {
 	finding := &api.NewFinding{
 		SessionID: *flagSession,
 		TestName:  getTestName(config),
