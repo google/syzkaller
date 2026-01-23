@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -153,6 +154,11 @@ func TestReadWriteJSON(t *testing.T) {
 }
 
 func TestDiskUsage(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		// The test uses some hardcoded numbers for disk usage,
+		// it's hard to get it working on all possible OSes.
+		t.Skip("skipping on non-linux")
+	}
 	dir := t.TempDir()
 	var currentUsage uint64
 	expectUsage := func(minIncrease, maxIncrease uint64) {
