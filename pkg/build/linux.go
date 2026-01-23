@@ -206,7 +206,7 @@ func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir st
 	}
 	// The standard way to build Linux with clang is to pass LLVM=1 instead of CC= and LD=.
 	if compiler == targets.DefaultLLVMCompiler && (linker == "" || linker == targets.DefaultLLVMLinker) {
-		args = append(args, "LLVM=1")
+		args = append(args, "LLVM=1", "LLVM_IAS=1", "KCFLAGS=-mllvm -enable-bb-addr-map")
 	} else {
 		if compiler != "" {
 			args = append(args, "CC="+compiler)
