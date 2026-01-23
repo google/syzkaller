@@ -213,6 +213,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 #define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
 #define MEM_REGION_FLAG_GPA0 (1 << 5)
 #define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
+#define MEM_REGION_FLAG_REMAINING (1 << 7)
 
 struct mem_region {
 	uint64 gpa;
@@ -220,12 +221,20 @@ struct mem_region {
 	uint32 flags;
 };
 
+struct syzos_boot_args {
+	uint32 region_count;
+	uint32 reserved;
+	struct mem_region regions[];
+};
+
 // SYZOS guest virtual memory layout (must be in sync with executor/kvm.h):
 static const struct mem_region syzos_mem_regions[] = {
     // AMD64 fixed data structures (5 pages: Zero, GDT, PML4, PDP, PD).
     {X86_SYZOS_ADDR_ZERO, 5, MEM_REGION_FLAG_GPA0},
-    // High fixed data (IDT, TSS).
-    {X86_SYZOS_ADDR_VAR_IDT, 11, 0},
+    // High fixed data (IDT, TSS). Reduced to 10 pages to make room for Boot Args.
+    {X86_SYZOS_ADDR_VAR_IDT, 10, 0},
+    // Boot Configuration Page.
+    {X86_SYZOS_ADDR_BOOT_ARGS, 1, 0},
     // Dynamic Page Table Pool.
     {X86_SYZOS_ADDR_PT_POOL, X86_SYZOS_PT_POOL_SIZE, 0},
     // SMRAM memory.
@@ -246,6 +255,8 @@ static const struct mem_region syzos_mem_regions[] = {
     {X86_SYZOS_PER_VCPU_REGIONS_BASE, (KVM_MAX_VCPU * X86_SYZOS_L1_VCPU_REGION_SIZE) / KVM_PAGE_SIZE, 0},
     // IOAPIC memory.
     {X86_SYZOS_ADDR_IOAPIC, 1, 0},
+    // Remainder of memory (Unused Heap). Must be last.
+    {X86_SYZOS_ADDR_UNUSED, 0, MEM_REGION_FLAG_REMAINING},
 };
 #endif
 
@@ -376,15 +387,25 @@ static void setup_pg_table(struct kvm_syz_vm* vm)
 
 	// Zero-out the PT Pool memory.
 	memset(vm->pt_pool_mem, 0, X86_SYZOS_PT_POOL_SIZE * KVM_PAGE_SIZE);
-
 	// Zero-out the fixed system pages (PML4/PDP/PD).
-	// They are in the first 5 pages of gpa0_mem.
 	memset(vm->gpa0_mem, 0, 5 * KVM_PAGE_SIZE);
 
 	// Map all the regions defined in setup_vm()
-	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++)
-		total -= map_4k_region(vm, &alloc, syzos_mem_regions[i].gpa, syzos_mem_regions[i].pages);
-	map_4k_region(vm, &alloc, X86_SYZOS_ADDR_UNUSED, total);
+	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++) {
+		int pages = syzos_mem_regions[i].pages;
+		if (syzos_mem_regions[i].flags & MEM_REGION_FLAG_REMAINING) {
+			if (total < 0)
+				fail("Guest memory accounting underflow");
+			pages = total;
+		}
+		map_4k_region(vm, &alloc, syzos_mem_regions[i].gpa, pages);
+
+		// Only consume 'total' if the region is actually backed by host RAM.
+		if (!(syzos_mem_regions[i].flags & MEM_REGION_FLAG_NO_HOST_MEM))
+			total -= pages;
+		if (syzos_mem_regions[i].flags & MEM_REGION_FLAG_REMAINING)
+			break;
+	}
 }
 
 // A 64-bit GDT entry for a code or data segment.
@@ -1152,12 +1173,18 @@ static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 {
 	struct addr_size allocator = {.addr = vm->host_mem, .size = vm->total_pages * KVM_PAGE_SIZE};
 	int slot = 0; // Slot numbers do not matter, they just have to be different.
+	struct syzos_boot_args* boot_args = NULL;
 
 	for (size_t i = 0; i < sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]); i++) {
 		const struct mem_region* r = &syzos_mem_regions[i];
 		if (r->flags & MEM_REGION_FLAG_NO_HOST_MEM)
 			continue;
-		struct addr_size next = alloc_guest_mem(&allocator, r->pages * KVM_PAGE_SIZE);
+
+		size_t pages = r->pages;
+		if (r->flags & MEM_REGION_FLAG_REMAINING)
+			pages = allocator.size / KVM_PAGE_SIZE;
+
+		struct addr_size next = alloc_guest_mem(&allocator, pages * KVM_PAGE_SIZE);
 		uint32 flags = 0;
 		if (r->flags & MEM_REGION_FLAG_DIRTY_LOG)
 			flags |= KVM_MEM_LOG_DIRTY_PAGES;
@@ -1169,14 +1196,24 @@ static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			vm->gpa0_mem = next.addr;
 		if (r->gpa == X86_SYZOS_ADDR_PT_POOL)
 			vm->pt_pool_mem = next.addr;
+
+		if (r->gpa == X86_SYZOS_ADDR_BOOT_ARGS) {
+			boot_args = (struct syzos_boot_args*)next.addr;
+			boot_args->region_count = sizeof(syzos_mem_regions) / sizeof(syzos_mem_regions[0]);
+			for (size_t k = 0; k < boot_args->region_count; k++)
+				boot_args->regions[k] = syzos_mem_regions[k];
+		}
+
+		if ((r->flags & MEM_REGION_FLAG_REMAINING) && boot_args)
+			boot_args->regions[i].pages = pages;
+
 		if (r->flags & MEM_REGION_FLAG_EXECUTOR_CODE)
 			install_syzos_code(next.addr, next.size);
 		vm_set_user_memory_region(vmfd, slot++, flags, r->gpa, next.size, (uintptr_t)next.addr);
-	}
 
-	// Map the remaining pages at an unused address.
-	struct addr_size next = alloc_guest_mem(&allocator, allocator.size);
-	vm_set_user_memory_region(vmfd, slot++, 0, X86_SYZOS_ADDR_UNUSED, next.size, (uintptr_t)next.addr);
+		if (r->flags & MEM_REGION_FLAG_REMAINING)
+			break;
+	}
 }
 #endif
 
