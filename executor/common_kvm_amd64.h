@@ -215,18 +215,6 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 #define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
 #define MEM_REGION_FLAG_REMAINING (1 << 7)
 
-struct mem_region {
-	uint64 gpa;
-	int pages;
-	uint32 flags;
-};
-
-struct syzos_boot_args {
-	uint32 region_count;
-	uint32 reserved;
-	struct mem_region regions[];
-};
-
 // SYZOS guest virtual memory layout (must be in sync with executor/kvm.h):
 static const struct mem_region syzos_mem_regions[] = {
     // AMD64 fixed data structures (5 pages: Zero, GDT, PML4, PDP, PD).

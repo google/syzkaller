@@ -96,6 +96,23 @@ struct l2_guest_regs {
 	uint64 r8, r9, r10, r11, r12, r13, r14, r15;
 };
 
+struct mem_region {
+	uint64 gpa;
+	int pages;
+	uint32 flags;
+};
+
+struct syzos_boot_args {
+	uint32 region_count;
+	uint32 reserved;
+	struct mem_region regions[];
+};
+
+struct syzos_globals {
+	uint64 alloc_offset;
+	uint64 total_size;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -672,35 +689,73 @@ guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id)
 	}
 }
 
+// Calculate the size of the unused memory region from the boot arguments.
+GUEST_CODE static uint64 get_unused_memory_size()
+{
+	volatile struct syzos_boot_args* args = (volatile struct syzos_boot_args*)X86_SYZOS_ADDR_BOOT_ARGS;
+	for (uint32 i = 0; i < args->region_count; i++) {
+		if (args->regions[i].gpa == X86_SYZOS_ADDR_UNUSED)
+			return args->regions[i].pages * KVM_PAGE_SIZE;
+	}
+	return 0;
+}
+
+// Allocate a page from the X86_SYZOS_ADDR_UNUSED region using a non-reclaiming bump allocator.
+GUEST_CODE static uint64 guest_alloc_page()
+{
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+
+	// Lazy initialization of total_size using CAS to prevent races.
+	if (globals->total_size == 0) {
+		uint64 size = get_unused_memory_size();
+		// Attempt to swap 0 with the calculated size.
+		// If another CPU beat us to it, this does nothing (which is fine).
+		__sync_val_compare_and_swap(&globals->total_size, 0, size);
+	}
+
+	// Atomic fetch-and-add to reserve space.
+	uint64 offset = __sync_fetch_and_add(&globals->alloc_offset, KVM_PAGE_SIZE);
+
+	if (offset >= globals->total_size)
+		guest_uexit(UEXIT_ASSERT);
+
+	uint64 ptr = X86_SYZOS_ADDR_UNUSED + offset;
+	guest_memset((void*)ptr, 0, KVM_PAGE_SIZE);
+	return ptr;
+}
+
 GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id)
 {
+	// The Root PML4 remains at the fixed address assigned to this VM.
 	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
-	uint64 l2_pdpt_addr = l2_pml4_addr + KVM_PAGE_SIZE;
-	uint64 l2_pd_addr = l2_pml4_addr + 2 * KVM_PAGE_SIZE;
-	uint64 l2_pt_addr = l2_pml4_addr + 3 * KVM_PAGE_SIZE;
+
+	// Allocate subsequent levels dynamically.
+	uint64 l2_pdpt_addr = guest_alloc_page();
+	uint64 l2_pd_addr = guest_alloc_page();
+	uint64 l2_pt_addr = guest_alloc_page();
 
 	volatile uint64* pml4 = (volatile uint64*)l2_pml4_addr;
 	volatile uint64* pdpt = (volatile uint64*)l2_pdpt_addr;
 	volatile uint64* pd = (volatile uint64*)l2_pd_addr;
 	volatile uint64* pt = (volatile uint64*)l2_pt_addr;
 
+	// Clear the root table (the others are cleared by guest_alloc_page).
 	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
-	guest_memset((void*)l2_pdpt_addr, 0, KVM_PAGE_SIZE);
-	guest_memset((void*)l2_pd_addr, 0, KVM_PAGE_SIZE);
-	guest_memset((void*)l2_pt_addr, 0, KVM_PAGE_SIZE);
 	guest_memset((void*)X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id), 0, KVM_PAGE_SIZE);
 
 	// Intel EPT: set Read, Write, Execute.
 	// AMD NPT: set Present, Write, User.
 	uint64 flags = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
-	// Create the 4-level page table entries using 4KB pages:
-	//    PML4[0] -> points to PDPT
+
+	// Setup Hierarchy:
+	// PML4[0] -> PDPT
 	pml4[0] = l2_pdpt_addr | flags;
-	//    PDPT[0] -> points to Page Directory (PD)
+	// PDPT[0] -> PD
 	pdpt[0] = l2_pd_addr | flags;
-	//    PD[0]   -> points to Page Table (PT) (NO X86_PDE64_PS)
+	// PD[0] -> PT
 	pd[0] = l2_pt_addr | flags;
-	//    PT[0..511] -> maps 512 4KB pages (2MB total) identity
+
+	// PT[0..511] -> Maps 2MB identity
 	uint64 pt_flags = flags;
 	if (vendor == CPU_VENDOR_INTEL) {
 		pt_flags |= EPT_MEMTYPE_WB | EPT_ACCESSED | EPT_DIRTY;
