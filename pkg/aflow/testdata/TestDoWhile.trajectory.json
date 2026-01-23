@@ -1,0 +1,191 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "",
+		"Started": "0001-01-01T00:00:02Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:04Z",
+		"Finished": "0001-01-01T00:00:05Z",
+		"Results": {
+			"Patch": "bad"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:06Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:06Z",
+		"Finished": "0001-01-01T00:00:07Z",
+		"Results": {
+			"Diff": "",
+			"TestError": "error"
+		}
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:09Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:10Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:10Z",
+		"Finished": "0001-01-01T00:00:11Z",
+		"Results": {
+			"Patch": "bad"
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:12Z",
+		"Finished": "0001-01-01T00:00:13Z",
+		"Results": {
+			"Diff": "",
+			"TestError": "error"
+		}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:14Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "2",
+		"Started": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-generator",
+		"Started": "0001-01-01T00:00:16Z",
+		"Finished": "0001-01-01T00:00:17Z",
+		"Results": {
+			"Patch": "good"
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:18Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "patch-tester",
+		"Started": "0001-01-01T00:00:18Z",
+		"Finished": "0001-01-01T00:00:19Z",
+		"Results": {
+			"Diff": "diff",
+			"TestError": ""
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "2",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:21Z"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Results": {
+			"Diff": "diff"
+		}
+	}
+]
