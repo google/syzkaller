@@ -11,7 +11,8 @@ import (
 )
 
 type verifyContext struct {
-	actions map[string]bool
+	inputs  bool // verify action inputs
+	outputs bool // provide action outputs
 	state   map[string]*varState
 	models  map[string]bool
 	err     error
@@ -34,6 +35,9 @@ func (ctx *verifyContext) requireNotEmpty(who, name, value string) {
 }
 
 func (ctx *verifyContext) requireInput(who, name string, typ reflect.Type) {
+	if !ctx.inputs {
+		return
+	}
 	state := ctx.state[name]
 	if state == nil {
 		ctx.errorf(who, "no input %v, available inputs: %v",
@@ -47,17 +51,13 @@ func (ctx *verifyContext) requireInput(who, name string, typ reflect.Type) {
 	state.used = true
 }
 
-func (ctx *verifyContext) provideOutput(who, name string, typ reflect.Type, unique bool) {
+func (ctx *verifyContext) provideOutput(who, name string, typ reflect.Type) {
+	if !ctx.outputs {
+		return
+	}
 	state := ctx.state[name]
 	if state != nil {
-		if unique {
-			ctx.errorf(who, "output %v is already set", name)
-		} else if typ != state.typ {
-			ctx.errorf(who, "output %v changes type: %v -> %v",
-				name, state.typ, typ)
-		} else if !state.used {
-			ctx.errorf(state.action, "output %v is unused", name)
-		}
+		ctx.errorf(who, "output %v is already set", name)
 	}
 	ctx.state[name] = &varState{
 		action: who,
@@ -88,13 +88,13 @@ func requireInputs[T any](ctx *verifyContext, who string) {
 
 func provideOutputs[T any](ctx *verifyContext, who string) {
 	for name, typ := range foreachFieldOf[T]() {
-		ctx.provideOutput(who, name, typ, true)
+		ctx.provideOutput(who, name, typ)
 	}
 }
 
 func provideArrayOutputs[T any](ctx *verifyContext, who string) {
 	for name, typ := range foreachFieldOf[T]() {
-		ctx.provideOutput(who, name, reflect.SliceOf(typ), true)
+		ctx.provideOutput(who, name, reflect.SliceOf(typ))
 	}
 }
 

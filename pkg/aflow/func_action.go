@@ -39,8 +39,8 @@ func (a *funcAction[Args, Results]) execute(ctx *Context) error {
 	return ctx.finishSpan(span, fnErr)
 }
 
-func (a *funcAction[Args, Results]) verify(vctx *verifyContext) {
-	vctx.requireNotEmpty(a.name, "Name", a.name)
-	requireInputs[Args](vctx, a.name)
-	provideOutputs[Results](vctx, a.name)
+func (a *funcAction[Args, Results]) verify(ctx *verifyContext) {
+	ctx.requireNotEmpty(a.name, "Name", a.name)
+	requireInputs[Args](ctx, a.name)
+	provideOutputs[Results](ctx, a.name)
 }
