@@ -195,40 +195,7 @@ loop:
 			log.Logf(1, "base crash: %v", rep.Title)
 			dc.reportBaseCrash(groupCtx, rep)
 		case ret := <-runner.done:
-			// We have run the reproducer on the base instance.
-
-			// A sanity check: the base kernel might have crashed with the same title
-			// since the moment we have stared the reproduction / running on the repro base.
-			ignored := dc.ignoreCrash(groupCtx, ret.reproReport.Title)
-			if ret.crashReport == nil && ignored {
-				// Report it as error so that we could at least find it in the logs.
-				log.Errorf("resulting crash of an approved repro result is to be ignored: %s",
-					ret.reproReport.Title)
-			} else if ret.crashReport == nil {
-				dc.store.BaseNotCrashed(ret.reproReport.Title)
-				select {
-				case <-groupCtx.Done():
-				case dc.patchedOnly <- &UniqueBug{
-					Report: ret.reproReport,
-					Repro:  ret.repro,
-				}:
-				}
-				log.Logf(0, "patched-only: %s", ret.reproReport.Title)
-				// Now that we know this bug only affects the patch kernel, we can spend more time
-				// generating a minimalistic repro and a C repro.
-				if !ret.fullRepro {
-					reproLoop.Enqueue(&Crash{
-						Report: &report.Report{
-							Title:  ret.reproReport.Title,
-							Output: ret.repro.Prog.Serialize(),
-						},
-						FullRepro: true,
-					})
-				}
-			} else {
-				dc.reportBaseCrash(groupCtx, ret.crashReport)
-				log.Logf(0, "crashes both: %s / %s", ret.reproReport.Title, ret.crashReport.Title)
-			}
+			dc.handleReproResult(groupCtx, ret, reproLoop)
 		case ret := <-dc.doneRepro:
 			// We have finished reproducing a crash from the patched instance.
 			if ret.Repro != nil && ret.Repro.Report != nil {
@@ -260,6 +227,43 @@ loop:
 		}
 	}
 	return g.Wait()
+}
+
+func (dc *diffContext) handleReproResult(ctx context.Context, ret reproRunnerResult, reproLoop *ReproLoop) {
+	// We have run the reproducer on the base instance.
+
+	// A sanity check: the base kernel might have crashed with the same title
+	// since the moment we have stared the reproduction / running on the repro base.
+	ignored := dc.ignoreCrash(ctx, ret.reproReport.Title)
+	if ret.crashReport == nil && ignored {
+		// Report it as error so that we could at least find it in the logs.
+		log.Errorf("resulting crash of an approved repro result is to be ignored: %s",
+			ret.reproReport.Title)
+	} else if ret.crashReport == nil {
+		dc.store.BaseNotCrashed(ret.reproReport.Title)
+		select {
+		case <-ctx.Done():
+		case dc.patchedOnly <- &UniqueBug{
+			Report: ret.reproReport,
+			Repro:  ret.repro,
+		}:
+		}
+		log.Logf(0, "patched-only: %s", ret.reproReport.Title)
+		// Now that we know this bug only affects the patch kernel, we can spend more time
+		// generating a minimalistic repro and a C repro.
+		if !ret.fullRepro {
+			reproLoop.Enqueue(&Crash{
+				Report: &report.Report{
+					Title:  ret.reproReport.Title,
+					Output: ret.repro.Prog.Serialize(),
+				},
+				FullRepro: true,
+			})
+		}
+	} else {
+		dc.reportBaseCrash(ctx, ret.crashReport)
+		log.Logf(0, "crashes both: %s / %s", ret.reproReport.Title, ret.crashReport.Title)
+	}
 }
 
 func (dc *diffContext) ignoreCrash(ctx context.Context, title string) bool {
@@ -789,7 +793,8 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 			// Just exit without sending anything over the channel.
 			log.Logf(1, "%s: aborting due to context cancelation", logPrefix)
 			return
-		} else if runErr != nil || err != nil {
+		}
+		if runErr != nil || err != nil {
 			log.Logf(1, "%s: skipping due to errors: %v / %v", logPrefix, runErr, err)
 			continue
 		}
@@ -881,24 +886,25 @@ func affectedFiles(cfg *mgrconfig.Config, gitPatches [][]byte) (direct, transiti
 	}
 	for _, file := range allFiles {
 		directMap[file] = struct{}{}
-		if strings.HasSuffix(file, ".h") && cfg.KernelSrc != "" {
-			// For .h files, we want to determine all the .c files that include them.
-			// Ideally, we should combine this with the recompilation process - then we know
-			// exactly which files were affected by the patch.
-			matching, err := osutil.GrepFiles(cfg.KernelSrc, `.c`,
-				[]byte(`<`+strings.TrimPrefix(file, "include/")+`>`))
-			if err != nil {
-				log.Logf(0, "failed to grep for includes: %s", err)
-				continue
-			}
-			if len(matching) >= maxAffectedByHeader {
-				// It's too widespread. It won't help us focus on anything.
-				log.Logf(0, "the header %q is included in too many files (%d)", file, len(matching))
-				continue
-			}
-			for _, name := range matching {
-				transitiveMap[name] = struct{}{}
-			}
+		if !strings.HasSuffix(file, ".h") || cfg.KernelSrc == "" {
+			continue
+		}
+		// For .h files, we want to determine all the .c files that include them.
+		// Ideally, we should combine this with the recompilation process - then we know
+		// exactly which files were affected by the patch.
+		matching, err := osutil.GrepFiles(cfg.KernelSrc, `.c`,
+			[]byte(`<`+strings.TrimPrefix(file, "include/")+`>`))
+		if err != nil {
+			log.Logf(0, "failed to grep for includes: %s", err)
+			continue
+		}
+		if len(matching) >= maxAffectedByHeader {
+			// It's too widespread. It won't help us focus on anything.
+			log.Logf(0, "the header %q is included in too many files (%d)", file, len(matching))
+			continue
+		}
+		for _, name := range matching {
+			transitiveMap[name] = struct{}{}
 		}
 	}
 	for name := range directMap {
