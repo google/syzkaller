@@ -52,6 +52,8 @@ const (
 	SpanTool   = SpanType("tool")
 	// Logical grouping of several invocations of the same agent.
 	SpanAgentCandidates = SpanType("agent-candidates")
+	SpanLoop            = SpanType("loop")
+	SpanLoopIteration   = SpanType("iteration")
 )
 
 func (span *Span) String() string {

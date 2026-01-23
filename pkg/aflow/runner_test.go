@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -106,13 +107,28 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	requestsFile := filepath.Join("testdata", t.Name()+".llm.json")
 	if *flagUpdate {
 		require.NoError(t, osutil.WriteJSON(trajectoryFile, spans))
-		require.NoError(t, osutil.WriteJSON(requestsFile, requests))
+		if requests != nil {
+			require.NoError(t, osutil.WriteJSON(requestsFile, requests))
+		} else {
+			os.Remove(requestsFile)
+		}
 	}
 	wantSpans, err := osutil.ReadJSON[[]trajectory.Span](trajectoryFile)
 	require.NoError(t, err)
 	require.Equal(t, spans, wantSpans)
-	wantRequests, err := osutil.ReadJSON[[]llmRequest](requestsFile)
-	require.NoError(t, err)
-	require.Equal(t, requests, wantRequests)
+	if requests != nil {
+		wantRequests, err := osutil.ReadJSON[[]llmRequest](requestsFile)
+		require.NoError(t, err)
+		require.Equal(t, requests, wantRequests)
+	} else {
+		require.False(t, osutil.IsExist(requestsFile))
+	}
 	require.Empty(t, llmReplies)
+}
+
+func testRegistrationError[Inputs, Outputs any](t *testing.T, expected string, root Action) {
+	flows := map[string]*Flow{}
+	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{{Root: root}})
+	require.Error(t, err)
+	require.Equal(t, expected, err.Error())
 }

@@ -82,7 +82,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int `json:"I0"`
 	}{},
 		`missing argument "I0"`,
-		`field "I0" is not present when converting map to struct { I0 int "json:\"I0\"" }`)
+		`struct { I0 int "json:\"I0\"" }: field "I0" is not present when converting map`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": "foo",
@@ -90,7 +90,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int
 	}{},
 		`argument "I0" has wrong type: got string, want int`,
-		`field "I0" has wrong type: got string, want int`)
+		`struct { I0 int }: field "I0" has wrong type: got string, want int`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": 1.1,
@@ -98,7 +98,7 @@ func TestConvertFromMap(t *testing.T) {
 		I0 int
 	}{},
 		`argument I0: float value truncated from 1.1 to 1`,
-		`field I0: float value truncated from 1.1 to 1`)
+		`struct { I0 int }: field I0: float value truncated from 1.1 to 1`)
 
 	testConvertFromMap(t, true, map[string]any{
 		"I0": -1,

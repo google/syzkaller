@@ -89,7 +89,7 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 			if tool {
 				return val, BadCallError(fmt.Sprintf("missing argument %q", name))
 			} else {
-				return val, fmt.Errorf("field %q is not present when converting map to %T", name, val)
+				return val, fmt.Errorf("%T: field %q is not present when converting map", val, name)
 			}
 		}
 		delete(m, name)
@@ -110,8 +110,8 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 					return val, BadCallError(fmt.Sprintf("argument %v: float value truncated from %v to %v",
 						name, f, iv.Interface()))
 				} else {
-					return val, fmt.Errorf("field %v: float value truncated from %v to %v",
-						name, f, iv.Interface())
+					return val, fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+						val, name, f, iv.Interface())
 				}
 			}
 			field.Set(iv)
@@ -122,8 +122,8 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 				return val, BadCallError(fmt.Sprintf("argument %q has wrong type: got %T, want %v",
 					name, f, field.Type().Name()))
 			} else {
-				return val, fmt.Errorf("field %q has wrong type: got %T, want %v",
-					name, f, field.Type().Name())
+				return val, fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+					val, name, f, field.Type().Name())
 			}
 		}
 	}

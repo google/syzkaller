@@ -273,7 +273,7 @@ func TestNoInputs(t *testing.T) {
 	onEvent := func(span *trajectory.Span) error { return nil }
 	_, err = flows["test"].Execute(ctx, "", workdir, inputs, cache, onEvent)
 	require.Equal(t, err.Error(), "flow inputs are missing:"+
-		" field \"InBar\" is not present when converting map to aflow.flowInputs")
+		" aflow.flowInputs: field \"InBar\" is not present when converting map")
 }
 
 func TestQuotaResetTime(t *testing.T) {

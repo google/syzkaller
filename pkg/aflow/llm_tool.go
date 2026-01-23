@@ -6,7 +6,6 @@ package aflow
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"google.golang.org/genai"
 )
@@ -51,6 +50,8 @@ func (t *LLMTool) execute(ctx *Context, args map[string]any) (map[string]any, er
 	if err != nil {
 		return nil, err
 	}
+	// We temporarily use ctx.state to provide the prompt to the agent,
+	// and extract the reply.
 	ctx.state[llmToolPrompt] = a.Question
 	defer delete(ctx.state, llmToolPrompt)
 	if err := t.agent.execute(ctx); err != nil {
@@ -79,9 +80,5 @@ func (t *LLMTool) verify(ctx *verifyContext) {
 		Prompt:      fmt.Sprintf("{{.%v}}", llmToolPrompt),
 		Tools:       t.Tools,
 	}
-	// We will do the same manipulation with state during the actual execution.
-	ctx.provideOutput(t.Name, llmToolPrompt, reflect.TypeFor[string](), true)
 	t.agent.verify(ctx)
-	delete(ctx.state, llmToolPrompt)
-	delete(ctx.state, llmToolReply)
 }

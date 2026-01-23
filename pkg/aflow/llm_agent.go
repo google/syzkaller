@@ -384,47 +384,52 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateConten
 	return cached.Reply, err
 }
 
-func (a *LLMAgent) verify(vctx *verifyContext) {
-	vctx.requireNotEmpty(a.Name, "Name", a.Name)
-	vctx.requireNotEmpty(a.Name, "Model", a.Model)
-	vctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+func (a *LLMAgent) verify(ctx *verifyContext) {
+	ctx.requireNotEmpty(a.Name, "Name", a.Name)
+	ctx.requireNotEmpty(a.Name, "Model", a.Model)
+	ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
 	if temp, ok := a.Temperature.(int); ok {
 		a.Temperature = float32(temp)
 	}
 	if temp, ok := a.Temperature.(float32); !ok || temp < 0 || temp > 2 {
-		vctx.errorf(a.Name, "Temperature must have a float32 value in the range [0, 2]")
+		ctx.errorf(a.Name, "Temperature must have a float32 value in the range [0, 2]")
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
-		vctx.errorf(a.Name, "Candidates must be in the range [0, 100]")
+		ctx.errorf(a.Name, "Candidates must be in the range [0, 100]")
 	}
 	// Verify dataflow. All dynamic variables must be provided by inputs,
 	// or preceding actions.
-	a.verifyTemplate(vctx, "Instruction", a.Instruction)
-	a.verifyTemplate(vctx, "Prompt", a.Prompt)
+	a.verifyTemplate(ctx, "Instruction", a.Instruction)
+	a.verifyTemplate(ctx, "Prompt", a.Prompt)
 	for _, tool := range a.Tools {
-		tool.verify(vctx)
+		tool.verify(ctx)
 	}
-	replyType := reflect.TypeFor[string]()
-	if a.Candidates > 1 {
-		replyType = reflect.TypeFor[[]string]()
-	}
-	vctx.provideOutput(a.Name, a.Reply, replyType, true)
-	if a.Outputs != nil {
-		a.Outputs.provideOutputs(vctx, a.Name, a.Candidates > 1)
+	if a.Reply != llmToolReply {
+		replyType := reflect.TypeFor[string]()
+		if a.Candidates > 1 {
+			replyType = reflect.TypeFor[[]string]()
+		}
+		ctx.provideOutput(a.Name, a.Reply, replyType)
+		if a.Outputs != nil {
+			a.Outputs.provideOutputs(ctx, a.Name, a.Candidates > 1)
+		}
 	}
 }
 
-func (a *LLMAgent) verifyTemplate(vctx *verifyContext, what, text string) {
-	vctx.requireNotEmpty(a.Name, what, text)
+func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
+	if !ctx.inputs || strings.Contains(text, llmToolPrompt) {
+		return
+	}
+	ctx.requireNotEmpty(a.Name, what, text)
 	vars := make(map[string]reflect.Type)
-	for name, state := range vctx.state {
+	for name, state := range ctx.state {
 		vars[name] = state.typ
 	}
 	used, err := verifyTemplate(text, vars)
 	if err != nil {
-		vctx.errorf(a.Name, "%v: %v", what, err)
+		ctx.errorf(a.Name, "%v: %v", what, err)
 	}
 	for name := range used {
-		vctx.state[name].used = true
+		ctx.state[name].used = true
 	}
 }
