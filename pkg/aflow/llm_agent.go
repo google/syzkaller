@@ -264,7 +264,7 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 		if err := ctx.startSpan(span); err != nil {
 			return nil, nil, err
 		}
-		toolErr := BadCallError(fmt.Sprintf("tool %q does not exist, please correct the name", call.Name))
+		toolErr := BadCallError("tool %q does not exist, please correct the name", call.Name)
 		tool := tools[call.Name]
 		if tool != nil {
 			span.Results, toolErr = tool.execute(ctx, call.Args)
