@@ -4,7 +4,7 @@
 package aflow
 
 import (
-	"errors"
+	"fmt"
 
 	"google.golang.org/genai"
 )
@@ -28,8 +28,8 @@ func NewFuncTool[State, Args, Results any](name string, fn func(*Context, State,
 // BadCallError creates an error that means that LLM made a bad tool call,
 // the provided message will be returned to the LLM as an error,
 // instead of failing the whole workflow.
-func BadCallError(message string) error {
-	return &badCallError{errors.New(message)}
+func BadCallError(message string, args ...any) error {
+	return &badCallError{fmt.Errorf(message, args...)}
 }
 
 type badCallError struct {
