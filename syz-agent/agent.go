@@ -11,6 +11,7 @@ import (
 	"maps"
 	_ "net/http/pprof"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -51,6 +52,8 @@ type Config struct {
 	FixedRepository string `json:"repo"`
 	// Use this LLM model (for testing, if empty use workflow-default model).
 	Model string `json:"model"`
+	// Names of workflows to serve (all if not set, mainly for testing/local experimentation).
+	Workflows []string `json:"workflows"`
 }
 
 func main() {
@@ -175,7 +178,8 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {
-		if s.modelOverQuota(flow) {
+		if len(s.cfg.Workflows) != 0 && !slices.Contains(s.cfg.Workflows, flow.Name) ||
+			s.modelOverQuota(flow) {
 			continue
 		}
 		req.Workflows = append(req.Workflows, dashapi.AIWorkflow{
