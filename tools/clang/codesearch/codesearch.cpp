@@ -181,10 +181,28 @@ Indexer::NamedDeclEmitter::~NamedDeclEmitter() {
     Parent->Out.emit(std::move(Def));
 }
 
+// Helper to escape quotes for JSON
+static std::string EscapeTypeString(std::string s) {
+  std::string result;
+  result.reserve(s.size() + 10); // reserve a little extra space
+  for (char c : s) {
+    if (c == '"') {
+      result += "\\\""; // Turn " into \"
+    } else if (c == '\\') {
+      result += "\\\\"; // Turn \ into \\
+    } else {
+      result += c;
+    }
+  }
+  return result;
+}
+
 bool Indexer::TraverseFunctionDecl(FunctionDecl* Func) {
   if (!Func->doesThisDeclarationHaveABody())
     return Base::TraverseFunctionDecl(Func);
-  NamedDeclEmitter Emitter(this, Func, EntityKindFunction, Func->getType().getAsString(), Func->isStatic());
+  // Escape the type string to handle quotes in attributes like btf_type_tag("user")
+  std::string typeStr = EscapeTypeString(Func->getType().getAsString());
+  NamedDeclEmitter Emitter(this, Func, EntityKindFunction, typeStr, Func->isStatic());
   return Base::TraverseFunctionDecl(Func);
 }
 
