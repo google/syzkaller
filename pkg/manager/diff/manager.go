@@ -191,6 +191,9 @@ loop:
 				}
 				log.Logf(1, "found repro for %q (orig title: %q, reliability: %2.f), took %.2f minutes",
 					ret.Repro.Report.Title, origTitle, ret.Repro.Reliability, ret.Stats.TotalTime.Minutes())
+
+				dc.store.UpdateStatus(ret.Repro.Report.Title, manager.DiffBugStatusVerifying)
+
 				g.Go(func() error {
 					runner.Run(groupCtx, ret.Repro, ret.Crash.FullRepro)
 					return nil
@@ -198,6 +201,7 @@ loop:
 			} else {
 				origTitle := ret.Crash.Report.Title
 				log.Logf(1, "failed repro for %q, err=%s", origTitle, ret.Err)
+				dc.store.UpdateStatus(origTitle, manager.DiffBugStatusCompleted)
 			}
 			dc.store.SaveRepro(ret)
 		case rep := <-dc.new.crashes:
@@ -208,7 +212,10 @@ loop:
 				rep.Title, need)
 			dc.store.PatchedCrashed(rep.Title, rep.Report, rep.Output)
 			if need {
+				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusVerifying)
 				reproLoop.Enqueue(crash)
+			} else {
+				dc.store.UpdateStatus(rep.Title, manager.DiffBugStatusIgnored)
 			}
 		}
 	}
