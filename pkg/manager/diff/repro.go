@@ -22,7 +22,6 @@ import (
 type reproRunner struct {
 	done    chan reproRunnerResult
 	running atomic.Int64
-	kernel  *kernelContext
 }
 
 type reproRunnerResult struct {
@@ -46,7 +45,7 @@ const (
 // To avoid reporting false positives, the function does not require the kernel to crash with exactly
 // the same crash title as in the original crash report. Any single crash is accepted.
 // The result is sent back over the rr.done channel.
-func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool) {
+func (rr *reproRunner) Run(ctx context.Context, k Kernel, r *repro.Result, fullRepro bool) {
 	if r.Reliability < reliabilityCutOff {
 		log.Logf(1, "%s: repro is too unreliable, skipping", r.Report.Title)
 		return
@@ -56,12 +55,12 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 		needRuns = 6
 	}
 
-	pool := rr.kernel.pool
+	pool := k.Pool()
 	cnt := int(rr.running.Add(1))
 	pool.ReserveForRun(min(cnt, pool.Total()))
 	defer func() {
 		cnt := int(rr.running.Add(-1))
-		rr.kernel.pool.ReserveForRun(min(cnt, pool.Total()))
+		pool.ReserveForRun(min(cnt, pool.Total()))
 	}()
 
 	ret := reproRunnerResult{reproReport: r.Report, repro: r, fullRepro: fullRepro}
@@ -80,7 +79,7 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 		var result *instance.RunResult
 		runErr := pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 			var ret *instance.ExecProgInstance
-			ret, err = instance.SetupExecProg(inst, rr.kernel.cfg, rr.kernel.reporter, nil)
+			ret, err = instance.SetupExecProg(inst, k.Config(), k.Reporter(), nil)
 			if err != nil {
 				return
 			}
@@ -113,4 +112,13 @@ func (rr *reproRunner) Run(ctx context.Context, r *repro.Result, fullRepro bool)
 	case rr.done <- ret:
 	case <-ctx.Done():
 	}
+}
+
+type runner interface {
+	Run(ctx context.Context, k Kernel, r *repro.Result, fullRepro bool)
+	Results() <-chan reproRunnerResult
+}
+
+func (rr *reproRunner) Results() <-chan reproRunnerResult {
+	return rr.done
 }

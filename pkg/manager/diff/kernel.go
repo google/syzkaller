@@ -297,7 +297,7 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 	return nil, err
 }
 
-func (kc *kernelContext) triageProgress() float64 {
+func (kc *kernelContext) TriageProgress() float64 {
 	fuzzer := kc.fuzzer.Load()
 	if fuzzer == nil {
 		return 0
@@ -310,10 +310,34 @@ func (kc *kernelContext) triageProgress() float64 {
 	return 1.0 - float64(fuzzer.CandidatesToTriage())/float64(total)
 }
 
-func (kc *kernelContext) progsPerArea() map[string]int {
+func (kc *kernelContext) ProgsPerArea() map[string]int {
 	fuzzer := kc.fuzzer.Load()
 	if fuzzer == nil {
 		return nil
 	}
 	return fuzzer.Config.Corpus.ProgsPerArea()
+}
+
+func (kc *kernelContext) Crashes() <-chan *report.Report {
+	return kc.crashes
+}
+
+func (kc *kernelContext) CoverFilters() manager.CoverageFilters {
+	return kc.coverFilters
+}
+
+func (kc *kernelContext) Config() *mgrconfig.Config {
+	return kc.cfg
+}
+
+func (kc *kernelContext) Pool() *vm.Dispatcher {
+	return kc.pool
+}
+
+func (kc *kernelContext) Features() flatrpc.Feature {
+	return kc.features
+}
+
+func (kc *kernelContext) Reporter() *report.Reporter {
+	return kc.reporter
 }
