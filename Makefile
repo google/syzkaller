@@ -229,8 +229,7 @@ kfuzztest:
 endif
 
 verifier: descriptions
-	# TODO: switch syz-verifier to use syz-executor.
-	# GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-verifier github.com/google/syzkaller/syz-verifier
 
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.

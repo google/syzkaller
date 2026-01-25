@@ -1,25 +1,22 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// TODO: switch syz-verifier to use syz-fuzzer.
-
-//go:build ignore
-
 // package main starts the syz-verifier tool. High-level documentation can be
 // found in docs/syz_verifier.md.
 package main
 
 import (
 	"flag"
-	"io"
+	"fmt"
 	"os"
-	"path/filepath"
-	"strconv"
 
+	"github.com/google/syzkaller/pkg/flatrpc"
+	"github.com/google/syzkaller/pkg/fuzzer/queue"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/rpcserver"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
@@ -33,146 +30,94 @@ const (
 // and reporting crashes. It also keeps track of the Runners executing on
 // spawned VMs, what programs have been sent to each Runner and what programs
 // have yet to be sent on any of the Runners.
-type poolInfo struct {
-	cfg      *mgrconfig.Config
-	pool     *vm.Pool
-	Reporter *report.Reporter
-	// checked is set to true when the set of system calls not supported on the
-	// kernel is known.
-	checked bool
+func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
+	kernel := &Kernel{
+		name:            name,
+		debug:           debug,
+		cfg:             cfg,
+		crashes:         make(chan *report.Report, 128),
+		servStats:       rpcserver.NewNamedStats(name),
+		enabledSyscalls: make(chan map[*prog.Syscall]bool, 1),
+		features:        make(chan flatrpc.Feature, 1),
+	}
+	var err error
+	kernel.reporter, err = report.NewReporter(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
+	}
+
+	cfg.Experimental.ResetAccState = true // executor process restarts between program executions to clear accumulated kernel/VM stat.
+
+	kernel.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
+		Config:  cfg,
+		Manager: kernel,
+		Stats:   kernel.servStats,
+		Debug:   debug,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rpc server for %q: %w", name, err)
+	}
+
+	vmPool, err := vm.Create(cfg, debug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create vm.Pool for %q: %w", name, err)
+	}
+
+	kernel.pool = vm.NewDispatcher(vmPool, kernel.FuzzerInstance)
+	return kernel, nil
 }
 
 func main() {
 	var cfgs tool.CfgsFlag
 	flag.Var(&cfgs, "configs", "[MANDATORY] list of at least two kernel-specific comma-sepatated configuration files")
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
-	flagStats := flag.String("stats", "", "where stats will be written when"+
-		"execution of syz-verifier finishes, defaults to stdout")
-	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
-	flagAddress := flag.String("address", "127.0.0.1:8080", "http address for monitoring")
-	flagReruns := flag.Int("rerun", 3, "number of time program is rerun when a mismatch is found")
+	flagCorpus := flag.String("corpus", "", "path to corpus.db file (default: <workdir>/corpus.db)")
 	flag.Parse()
 
-	pools := make(map[int]*poolInfo)
+	kernels := make([]*Kernel, len(cfgs))
 	for idx, cfg := range cfgs {
-		var err error
-		pi := &poolInfo{}
-		pi.cfg, err = mgrconfig.LoadFile(cfg)
+		kcfg, err := mgrconfig.LoadFile(cfg)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
-		// TODO: call pi.pool.Close() on exit.
-		pi.pool, err = vm.Create(pi.cfg, *flagDebug)
+		kernel, err := Setup(kcfg.Name, kcfg, *flagDebug)
 		if err != nil {
-			log.Fatalf("%v", err)
+			log.Fatalf("failed to setup kcfg context for %s: %v", kcfg.Name, err)
 		}
-		pools[idx] = pi
+		kernel.id = idx
+		kernels[idx] = kernel
+
+		log.Logf(0, "loaded kernel %s", kcfg.Name)
 	}
 
-	if len(pools) < 2 {
+	log.Logf(0, "loaded %d kernel configurations", len(kernels))
+	if len(kernels) < 2 && !*flagDebug {
 		flag.Usage()
 		os.Exit(1)
 	}
-
-	cfg := pools[0].cfg
-	workdir, target, sysTarget, addr := cfg.Workdir, cfg.Target, cfg.SysTarget, cfg.RPC
-	for idx := 1; idx < len(pools); idx++ {
-		cfg := pools[idx].cfg
-
-		// TODO: pass the configurations that should be the same for all
-		// kernels in a default config file in order to avoid this checks and
-		// add testing
-		if workdir != cfg.Workdir {
-			log.Fatalf("working directory mismatch")
+	workdir := kernels[0].cfg.Workdir
+	sources := make(map[int]*queue.PlainQueue)
+	for idx, kernel := range kernels {
+		if kernel.cfg.Workdir != workdir {
+			log.Fatalf("all kernel configurations must have the same workdir, got %q and %q", workdir, kernel.cfg.Workdir)
 		}
-		if target != cfg.Target {
-			log.Fatalf("target mismatch")
-		}
-		if sysTarget != cfg.SysTarget {
-			log.Fatalf("system target mismatch")
-		}
-		if addr != pools[idx].cfg.RPC {
-			log.Fatalf("tcp address mismatch")
-		}
+		sources[idx] = queue.Plain()
+		kernel.source = sources[idx]
 	}
+	osutil.MkdirAll(workdir)
 
-	exe := sysTarget.ExeExtension
-	runnerBin := filepath.Join(cfg.Syzkaller, "bin", target.OS+"_"+target.Arch, "syz-runner"+exe)
-	if !osutil.IsExist(runnerBin) {
-		log.Fatalf("bad syzkaller config: can't find %v", runnerBin)
-	}
-	execBin := cfg.ExecutorBin
-	if !osutil.IsExist(execBin) {
-		log.Fatalf("bad syzkaller config: can't find %v", execBin)
-	}
-
-	crashdir := filepath.Join(workdir, "crashes")
-	osutil.MkdirAll(crashdir)
-	for idx := range pools {
-		OS, Arch := target.OS, target.Arch
-		targetPath := OS + "-" + Arch + "-" + strconv.Itoa(idx)
-		osutil.MkdirAll(filepath.Join(workdir, targetPath))
-		osutil.MkdirAll(filepath.Join(crashdir, targetPath))
-	}
-
-	resultsdir := filepath.Join(workdir, "results")
-	osutil.MkdirAll(resultsdir)
-
-	var sw io.Writer
-	var err error
-	if *flagStats == "" {
-		sw = os.Stdout
-	} else {
-		statsFile := filepath.Join(workdir, *flagStats)
-		sw, err = os.Create(statsFile)
-		if err != nil {
-			log.Fatalf("failed to create stats output file: %v", err)
-		}
-	}
-
-	for idx, pi := range pools {
-		var err error
-		pi.Reporter, err = report.NewReporter(pi.cfg)
-		if err != nil {
-			log.Fatalf("failed to create reporter for instance-%d: %v", idx, err)
-		}
-	}
-
-	calls := make(map[*prog.Syscall]bool)
-
-	for _, id := range cfg.Syscalls {
-		c := target.Syscalls[id]
-		calls[c] = true
-	}
+	log.EnableLogCaching(1000, 1<<20)
+	log.Logf(0, "initialized %d sources", len(sources))
 
 	vrf := &Verifier{
-		workdir:       workdir,
-		crashdir:      crashdir,
-		resultsdir:    resultsdir,
-		pools:         pools,
-		target:        target,
-		calls:         calls,
-		reasons:       make(map[*prog.Syscall]string),
-		runnerBin:     runnerBin,
-		executorBin:   execBin,
-		addr:          addr,
-		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
-		stats:         MakeStats(),
-		statsWrite:    sw,
-		newEnv:        *flagEnv,
-		reruns:        *flagReruns,
+		kernels:    kernels,
+		cfg:        kernels[0].cfg, // for now take the first kernel's config
+		target:     kernels[0].cfg.Target,
+		sources:    sources,
+		corpusPath: *flagCorpus,
 	}
 
-	vrf.Init()
+	ctx := vm.ShutdownCtx()
+	vrf.RunVerifierFuzzer(ctx)
 
-	vrf.StartProgramsAnalysis()
-	vrf.startInstances()
-
-	monitor := MakeMonitor()
-	monitor.SetStatsTracking(vrf.stats)
-
-	log.Logf(0, "run the Monitor at http://%s", *flagAddress)
-	go monitor.ListenAndServe(*flagAddress)
-
-	select {}
 }
