@@ -119,6 +119,11 @@ config:
  - DEBUG_INFO_BTF: [-v5.13]
  - DEBUG_INFO_REDUCED: n
 
+ # PROPELLER_CLANG adds section .llvm_bb_addr_map that is used to get BB details.
+ # The Discriminators from AUTOFDO_CLANG ensure that line:col info is precise even for macros/inline.
+ - AUTOFDO_CLANG: [clang, x86_64, v6.13]
+ - PROPELLER_CLANG: [clang, x86_64, v6.13]
+
  # This should make behavior more deterministic.
  - INIT_ON_ALLOC_DEFAULT_ON: [v4.16, -kmsan]
 
