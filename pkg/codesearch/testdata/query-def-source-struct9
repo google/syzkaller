@@ -2,4 +2,4 @@ def-source source0.c some_enum_t yes
 
 typedef some_enum_t is defined in source0.h:
 
-  50:	typedef enum some_enum some_enum_t;
+  51:	typedef enum some_enum some_enum_t;

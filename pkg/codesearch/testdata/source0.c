@@ -35,3 +35,12 @@ int func_accepting_a_struct(struct some_struct* p)
 void function_with_quotes_in_type(void __attribute__((btf_type_tag("user"))) *)
 {
 }
+
+int field_refs(struct some_struct* p, union some_union* u)
+{
+	p->x = p->y;
+	*(&p->x) = 1;
+	u->p = 0;
+	u->s.x = 2;
+	return p->x;
+}

@@ -17,11 +17,14 @@ constexpr char EntityKindVariable[] = "variable";
 constexpr char EntityKindMacro[] = "macro";
 constexpr char EntityKindEnum[] = "enum";
 constexpr char EntityKindTypedef[] = "typedef";
+constexpr char EntityKindField[] = "field";
 
 // The uses reference is very generic, ideally we refine it in the future
 // (e.g. "used as an argument type", "cast to this type", "includes field of this type", etc).
 constexpr char RefKindUses[] = "uses";
 constexpr char RefKindCall[] = "calls";
+constexpr char RefKindRead[] = "reads";
+constexpr char RefKindWrite[] = "writes";
 constexpr char RefKindTakesAddr[] = "takes-address-of";
 
 struct LineRange {

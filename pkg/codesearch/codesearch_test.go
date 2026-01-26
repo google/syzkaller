@@ -54,8 +54,8 @@ func testCommand(t *testing.T, index *Index, covered map[string]bool, file strin
 	cmd := fields[0]
 	var args []string
 	for _, arg := range fields[1:] {
-		if arg == `""` {
-			arg = ""
+		if len(arg) >= 2 && arg[0] == '"' && arg[len(arg)-1] == '"' {
+			arg = arg[1 : len(arg)-1]
 		}
 		args = append(args, arg)
 	}

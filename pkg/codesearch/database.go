@@ -57,6 +57,7 @@ const (
 	EntityKindMacro
 	EntityKindEnum
 	EntityKindTypedef
+	EntityKindField
 	entityKindLast
 )
 
@@ -68,6 +69,7 @@ var entityKindNames = [...]string{
 	EntityKindMacro:    "macro",
 	EntityKindEnum:     "enum",
 	EntityKindTypedef:  "typedef",
+	EntityKindField:    "field",
 }
 
 var entityKindBytes = func() [entityKindLast][]byte {
@@ -103,6 +105,8 @@ const (
 	refKindInvalid RefKind = iota
 	RefKindUses
 	RefKindCall
+	RefKindRead
+	RefKindWrite
 	RefKindTakesAddr
 	refKindLast
 )
@@ -110,6 +114,8 @@ const (
 var refKindNames = [...]string{
 	RefKindUses:      "uses",
 	RefKindCall:      "calls",
+	RefKindRead:      "reads",
+	RefKindWrite:     "writes",
 	RefKindTakesAddr: "takes-address-of",
 }
 
