@@ -87,12 +87,7 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 	if all[flow.Name] != nil {
 		return fmt.Errorf("flow %v is already registered", flow.Name)
 	}
-	ctx := &verifyContext{
-		inputs:  true,
-		outputs: true,
-		state:   make(map[string]*varState),
-		models:  make(map[string]bool),
-	}
+	ctx := newVerifyContext()
 	provideOutputs[Inputs](ctx, "flow inputs")
 	flow.Root.verify(ctx)
 	requireInputs[Outputs](ctx, "flow outputs")
