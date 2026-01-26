@@ -97,6 +97,15 @@ struct l2_guest_regs {
 	uint64 r8, r9, r10, r11, r12, r13, r14, r15;
 };
 
+// Flags for mem_region
+#define MEM_REGION_FLAG_USER_CODE (1 << 0)
+#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
+#define MEM_REGION_FLAG_READONLY (1 << 2)
+#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
+#define MEM_REGION_FLAG_GPA0 (1 << 5)
+#define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
+#define MEM_REGION_FLAG_REMAINING (1 << 7)
+
 struct mem_region {
 	uint64 gpa;
 	int pages;
@@ -725,46 +734,103 @@ GUEST_CODE static uint64 guest_alloc_page()
 	return ptr;
 }
 
+// Helper to map a page in L2's EPT/NPT.
+GUEST_CODE static void l2_map_page(uint64 cpu_id, uint64 vm_id, uint64 gpa, uint64 host_pa, uint64 flags)
+{
+	// Page table root (PML4).
+	uint64 pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
+	volatile uint64* pml4 = (volatile uint64*)pml4_addr;
+
+	// Allocate Level 4 entries.
+	uint64 pml4_idx = (gpa >> 39) & 0x1FF;
+	if (!(pml4[pml4_idx] & X86_PDE64_PRESENT)) {
+		uint64 page = guest_alloc_page();
+		pml4[pml4_idx] = page | X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
+	}
+
+	// Allocate Level 3 entries.
+	volatile uint64* pdpt = (volatile uint64*)(pml4[pml4_idx] & ~0xFFF);
+	uint64 pdpt_idx = (gpa >> 30) & 0x1FF;
+	if (!(pdpt[pdpt_idx] & X86_PDE64_PRESENT)) {
+		uint64 page = guest_alloc_page();
+		pdpt[pdpt_idx] = page | X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
+	}
+
+	// Allocate Level 2 entries.
+	volatile uint64* pd = (volatile uint64*)(pdpt[pdpt_idx] & ~0xFFF);
+	uint64 pd_idx = (gpa >> 21) & 0x1FF;
+	if (!(pd[pd_idx] & X86_PDE64_PRESENT)) {
+		uint64 page = guest_alloc_page();
+		pd[pd_idx] = page | X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
+	}
+
+	// Update Level 1 (PT).
+	volatile uint64* pt = (volatile uint64*)(pd[pd_idx] & ~0xFFF);
+	uint64 pt_idx = (gpa >> 12) & 0x1FF;
+
+	// Map if not present.
+	if (!(pt[pt_idx] & X86_PDE64_PRESENT))
+		pt[pt_idx] = (host_pa & ~0xFFF) | flags;
+}
+
 GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id)
 {
 	// The Root PML4 remains at the fixed address assigned to this VM.
 	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
 
-	// Allocate subsequent levels dynamically.
-	uint64 l2_pdpt_addr = guest_alloc_page();
-	uint64 l2_pd_addr = guest_alloc_page();
-	uint64 l2_pt_addr = guest_alloc_page();
-
-	volatile uint64* pml4 = (volatile uint64*)l2_pml4_addr;
-	volatile uint64* pdpt = (volatile uint64*)l2_pdpt_addr;
-	volatile uint64* pd = (volatile uint64*)l2_pd_addr;
-	volatile uint64* pt = (volatile uint64*)l2_pt_addr;
-
-	// Clear the root table (the others are cleared by guest_alloc_page).
+	// Clear the root table.
 	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
 	guest_memset((void*)X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id), 0, KVM_PAGE_SIZE);
 
 	// Intel EPT: set Read, Write, Execute.
 	// AMD NPT: set Present, Write, User.
 	uint64 flags = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
-
-	// Setup Hierarchy:
-	// PML4[0] -> PDPT
-	pml4[0] = l2_pdpt_addr | flags;
-	// PDPT[0] -> PD
-	pdpt[0] = l2_pd_addr | flags;
-	// PD[0] -> PT
-	pd[0] = l2_pt_addr | flags;
-
-	// PT[0..511] -> Maps 2MB identity
-	uint64 pt_flags = flags;
 	if (vendor == CPU_VENDOR_INTEL) {
-		pt_flags |= EPT_MEMTYPE_WB | EPT_ACCESSED | EPT_DIRTY;
+		flags |= EPT_MEMTYPE_WB | EPT_ACCESSED | EPT_DIRTY;
 	} else {
-		pt_flags |= X86_PDE64_ACCESSED | X86_PDE64_DIRTY;
+		flags |= X86_PDE64_ACCESSED | X86_PDE64_DIRTY;
 	}
-	for (int i = 0; i < 512; i++)
-		pt[i] = (i * KVM_PAGE_SIZE) | pt_flags;
+
+	// Replicate L1 memory layout from boot args.
+	volatile struct syzos_boot_args* args = (volatile struct syzos_boot_args*)X86_SYZOS_ADDR_BOOT_ARGS;
+	for (uint32 i = 0; i < args->region_count; i++) {
+		struct mem_region r;
+		r.gpa = args->regions[i].gpa;
+		r.pages = args->regions[i].pages;
+		r.flags = args->regions[i].flags;
+
+		// Skip the huge unused heap for now, map fixed small heap if needed or handled by guest_alloc.
+		if (r.flags & MEM_REGION_FLAG_REMAINING)
+			continue;
+
+		for (int p = 0; p < r.pages; p++) {
+			uint64 gpa = r.gpa + (p * KVM_PAGE_SIZE);
+			uint64 backing;
+
+			if (r.gpa == X86_SYZOS_ADDR_USER_CODE && p == 0) {
+				// Map start of user code to the VM's dedicated code buffer
+				backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+			} else if (r.gpa == X86_SYZOS_ADDR_STACK_BOTTOM) {
+				// Map stack to the VM's dedicated stack buffer
+				backing = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
+			} else if (r.gpa == X86_SYZOS_ADDR_ZERO ||
+			           r.gpa == X86_SYZOS_ADDR_VAR_IDT ||
+			           r.gpa == X86_SYZOS_ADDR_BOOT_ARGS ||
+			           r.gpa == X86_SYZOS_ADDR_PT_POOL) {
+				// Critical System Regions: Allocate and COPY from L1.
+				// We must copy the PT POOL because the PD entries in ADDR_ZERO
+				// point to tables allocated here. If we don't copy, L2 sees
+				// empty page tables and cannot resolve addresses like 0x50000.
+				// GDT/IDT/BootArgs are also copied for valid environment.
+				backing = guest_alloc_page();
+				guest_memcpy((void*)backing, (void*)gpa, KVM_PAGE_SIZE);
+			} else {
+				// Allocate new backing memory
+				backing = guest_alloc_page();
+			}
+			l2_map_page(cpu_id, vm_id, gpa, backing, flags);
+		}
+	}
 }
 
 GUEST_CODE static noinline void init_vmcs_control_fields(uint64 cpu_id, uint64 vm_id)
@@ -1229,21 +1295,25 @@ GUEST_CODE static noinline void
 guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->vm_id;
-	uint64 l2_code_addr = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
-	uint64 l2_stack_addr = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
+	// Backing address in L1 for the L2 User Code (mapped at X86_SYZOS_ADDR_USER_CODE)
+	uint64 l2_code_backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+
 	// Code size = command size - header size - vm_id size.
 	uint64 l2_code_size = cmd->header.size - sizeof(struct api_call_header) - sizeof(uint64);
 	if (l2_code_size > KVM_PAGE_SIZE)
 		l2_code_size = KVM_PAGE_SIZE;
-	guest_memcpy((void*)l2_code_addr, (void*)cmd->insns,
+	guest_memcpy((void*)l2_code_backing, (void*)cmd->insns,
 		     l2_code_size);
+
 	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
 		nested_vmptrld(cpu_id, vm_id);
-		vmwrite(VMCS_GUEST_RIP, l2_code_addr);
-		vmwrite(VMCS_GUEST_RSP, l2_stack_addr + KVM_PAGE_SIZE - 8);
+		// Start execution at standard User Code address
+		vmwrite(VMCS_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		// Stack is mapped at X86_SYZOS_ADDR_STACK_BOTTOM
+		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	} else {
-		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, l2_code_addr);
-		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, l2_stack_addr + KVM_PAGE_SIZE - 8);
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RIP, X86_SYZOS_ADDR_USER_CODE);
+		vmcb_write64(X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id), VMCB_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
 	}
 }
 
