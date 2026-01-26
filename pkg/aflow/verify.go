@@ -24,6 +24,15 @@ type varState struct {
 	used   bool
 }
 
+func newVerifyContext() *verifyContext {
+	return &verifyContext{
+		inputs:  true,
+		outputs: true,
+		state:   make(map[string]*varState),
+		models:  make(map[string]bool),
+	}
+}
+
 func (ctx *verifyContext) errorf(who, msg string, args ...any) {
 	noteError(&ctx.err, fmt.Sprintf("action %v: %v", who, msg), args...)
 }

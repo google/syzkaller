@@ -4,7 +4,11 @@
 package codeeditor
 
 import (
+	"path/filepath"
+	"strings"
+
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 var Tool = aflow.NewFuncTool("codeeditor", codeeditor, `
@@ -26,7 +30,16 @@ type args struct {
 }
 
 func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
-	// TODO: check that the SourceFile is not escaping.
+	if strings.Contains(filepath.Clean(args.SourceFile), "..") {
+		return struct{}{}, aflow.BadCallError("SourceFile %q is outside of the source tree", args.SourceFile)
+	}
+	file := filepath.Join(state.KernelScratchSrc, args.SourceFile)
+	if !osutil.IsExist(file) {
+		return struct{}{}, aflow.BadCallError("SourceFile %q does not exist", args.SourceFile)
+	}
+	if strings.TrimSpace(args.CurrentCode) == "" {
+		return struct{}{}, aflow.BadCallError("CurrentCode snippet is empty")
+	}
 	// If SourceFile is incorrect, or CurrentCode is not matched, return aflow.BadCallError
 	// with an explanation. Say that it needs to increase context if CurrentCode is not matched.
 	// Try to do as fuzzy match for CurrentCode as possible (strip line numbers,
