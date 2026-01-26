@@ -13,11 +13,11 @@ import (
 // entries are considered more severe.
 var impactOrder = []crash.Type{
 	// Highest Priority (Direct Memory Corruption - Write)
+	crash.KASANInvalidFree,
+	crash.KFENCEInvalidFree,
 	crash.KASANUseAfterFreeWrite,
 	crash.KASANWrite,
 	// High Priority (Memory Corruption)
-	crash.KASANInvalidFree,
-	crash.KFENCEInvalidFree,
 	crash.KFENCEMemoryCorruption,
 	crash.KASANUseAfterFreeRead,
 	crash.KMSANUseAfterFreeRead,
