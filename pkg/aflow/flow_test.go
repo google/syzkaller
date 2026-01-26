@@ -321,7 +321,7 @@ func TestToolMisbehavior(t *testing.T) {
 			&LLMAgent{
 				Name:        "smarty",
 				Model:       "model",
-				Temperature: 1,
+				Temperature: 0.5,
 				Reply:       "Reply",
 
 				Outputs: LLMOutputs[struct {

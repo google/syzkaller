@@ -10,7 +10,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.5,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -132,7 +132,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.5,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -367,7 +367,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.5,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -618,7 +618,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.5,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -915,7 +915,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.5,
 			"tools": [
 				{
 					"functionDeclarations": [
