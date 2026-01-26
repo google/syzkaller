@@ -35,7 +35,7 @@ type LLMAgent struct {
 	// Value that controls the degree of randomness in token selection.
 	// Lower temperatures are good for prompts that require a less open-ended or creative response,
 	// while higher temperatures can lead to more diverse or creative results.
-	// Must be assigned a float32 value in the range [0, 2].
+	// Must be assigned a number in the range [0, 2].
 	Temperature any
 	// If set, the agent will generate that many candidates and the outputs will be arrays
 	// instead of scalars.
@@ -245,7 +245,7 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 	}
 	return &genai.GenerateContentConfig{
 		ResponseModalities: []string{"TEXT"},
-		Temperature:        genai.Ptr(a.Temperature.(float32)),
+		Temperature:        genai.Ptr(float32(a.Temperature.(float64))),
 		SystemInstruction:  genai.NewContentFromText(instruction, genai.RoleUser),
 		Tools:              tools,
 	}, instruction, toolMap
@@ -399,10 +399,10 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
 	ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
 	if temp, ok := a.Temperature.(int); ok {
-		a.Temperature = float32(temp)
+		a.Temperature = float64(temp)
 	}
-	if temp, ok := a.Temperature.(float32); !ok || temp < 0 || temp > 2 {
-		ctx.errorf(a.Name, "Temperature must have a float32 value in the range [0, 2]")
+	if temp, ok := a.Temperature.(float64); !ok || temp < 0 || temp > 2 {
+		ctx.errorf(a.Name, "Temperature must be a number in the range [0, 2]")
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
 		ctx.errorf(a.Name, "Candidates must be in the range [0, 100]")

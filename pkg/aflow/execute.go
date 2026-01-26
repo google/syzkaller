@@ -38,6 +38,7 @@ func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map
 		state:    maps.Clone(inputs),
 		onEvent:  onEvent,
 	}
+
 	defer c.close()
 	if s := ctx.Value(stubContextKey); s != nil {
 		c.stubContext = *s.(*stubContext)
@@ -143,9 +144,16 @@ var (
 	createClientOnce sync.Once
 	createClientErr  error
 	client           *genai.Client
-	modelList        = make(map[string]bool)
+	modelList        = make(map[string]*modelInfo)
 	stubContextKey   = contextKeyType(1)
 )
+
+type modelInfo struct {
+	Thinking         bool
+	MaxTemperature   float32
+	InputTokenLimit  int
+	OutputTokenLimit int
+}
 
 func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateContentConfig,
 	req []*genai.Content) (*genai.GenerateContentResponse, error) {
@@ -165,19 +173,30 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 				createClientErr = err
 				return
 			}
-			modelList[strings.TrimPrefix(m.Name, modelPrefix)] = m.Thinking
+			if !slices.Contains(m.SupportedActions, "generateContent") ||
+				strings.Contains(m.Name, "-image") ||
+				strings.Contains(m.Name, "-audio") {
+				continue
+			}
+			modelList[strings.TrimPrefix(m.Name, modelPrefix)] = &modelInfo{
+				Thinking:         m.Thinking,
+				MaxTemperature:   m.MaxTemperature,
+				InputTokenLimit:  int(m.InputTokenLimit),
+				OutputTokenLimit: int(m.OutputTokenLimit),
+			}
 		}
 	})
 	if createClientErr != nil {
 		return nil, createClientErr
 	}
-	thinking, ok := modelList[model]
-	if !ok {
+	info := modelList[model]
+	if info == nil {
 		models := slices.Collect(maps.Keys(modelList))
 		slices.Sort(models)
 		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
 	}
-	if thinking {
+	*cfg.Temperature = min(*cfg.Temperature, info.MaxTemperature)
+	if info.Thinking {
 		// Don't alter the original object (that may affect request caching).
 		cfgCopy := *cfg
 		cfg = &cfgCopy
