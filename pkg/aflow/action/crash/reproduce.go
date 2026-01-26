@@ -23,7 +23,7 @@ import (
 // If the reproducer does not trigger a crash, action fails.
 var Reproduce = aflow.NewFuncAction("crash-reproducer", reproduce)
 
-type reproduceArgs struct {
+type ReproduceArgs struct {
 	Syzkaller       string
 	Image           string
 	Type            string
@@ -42,11 +42,55 @@ type reproduceResult struct {
 	CrashReport string
 }
 
-func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) {
+func ReproduceCrash(args ReproduceArgs, workdir string) (string, string, error) {
 	if args.Type != "qemu" {
-		// Since we use injected kernel boot, and don't build full disk image.
-		return reproduceResult{}, errors.New("only qemu VM type is supported")
+		return "", "", errors.New("only qemu VM type is supported")
 	}
+
+	var vmConfig map[string]any
+	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
+		return "", "", fmt.Errorf("failed to parse VM config: %w", err)
+	}
+	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
+	vmCfg, err := json.Marshal(vmConfig)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to serialize VM config: %w", err)
+	}
+
+	cfg := mgrconfig.DefaultValues()
+	cfg.RawTarget = "linux/amd64"
+	cfg.Workdir = workdir
+	cfg.Syzkaller = args.Syzkaller
+	cfg.KernelObj = args.KernelObj
+	cfg.KernelSrc = args.KernelSrc
+	cfg.Image = args.Image
+	cfg.Type = args.Type
+	cfg.VM = vmCfg
+	if err := mgrconfig.SetTargets(cfg); err != nil {
+		return "", "", err
+	}
+	if err := mgrconfig.Complete(cfg); err != nil {
+		return "", "", err
+	}
+	env, err := instance.NewEnv(cfg, nil, nil)
+	if err != nil {
+		return "", "", err
+	}
+	results, err := env.Test(1, nil, nil, []byte(args.ReproC))
+	if err != nil {
+		return "", "", err
+	}
+	if results[0].Error != nil {
+		if crashErr := new(instance.CrashError); errors.As(results[0].Error, &crashErr) {
+			return string(crashErr.Report.Report), "", nil
+		} else {
+			return "", results[0].Error.Error(), nil
+		}
+	}
+	return "", "", nil
+}
+
+func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
 	imageData, err := os.ReadFile(args.Image)
 	if err != nil {
 		return reproduceResult{}, err
@@ -61,50 +105,12 @@ func reproduce(ctx *aflow.Context, args reproduceArgs) (reproduceResult, error) 
 	}
 	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
 		var res Cached
-		var vmConfig map[string]any
-		if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
-			return res, fmt.Errorf("failed to parse VM config: %w", err)
-		}
-		vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
-		vmCfg, err := json.Marshal(vmConfig)
-		if err != nil {
-			return res, fmt.Errorf("failed to serialize VM config: %w", err)
-		}
 		workdir, err := ctx.TempDir()
 		if err != nil {
 			return res, err
 		}
-		cfg := mgrconfig.DefaultValues()
-		cfg.RawTarget = "linux/amd64"
-		cfg.Workdir = workdir
-		cfg.Syzkaller = args.Syzkaller
-		cfg.KernelObj = args.KernelObj
-		cfg.KernelSrc = args.KernelSrc
-		cfg.Image = args.Image
-		cfg.Type = args.Type
-		cfg.VM = vmCfg
-		if err := mgrconfig.SetTargets(cfg); err != nil {
-			return res, err
-		}
-		if err := mgrconfig.Complete(cfg); err != nil {
-			return res, err
-		}
-		env, err := instance.NewEnv(cfg, nil, nil)
-		if err != nil {
-			return res, err
-		}
-		results, err := env.Test(1, nil, nil, []byte(args.ReproC))
-		if err != nil {
-			return res, err
-		}
-		if results[0].Error != nil {
-			if crashErr := new(instance.CrashError); errors.As(results[0].Error, &crashErr) {
-				res.Report = string(crashErr.Report.Report)
-			} else {
-				res.Error = results[0].Error.Error()
-			}
-		}
-		return res, nil
+		res.Error, res.Report, err = ReproduceCrash(args, workdir)
+		return res, err
 	})
 	if err != nil {
 		return reproduceResult{}, err
