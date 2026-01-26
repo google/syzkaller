@@ -229,13 +229,70 @@
 		"Finished": "0001-01-01T00:00:24Z"
 	},
 	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Args": {
+			"Something": "subtool input 3"
+		}
+	},
+	{
+		"Seq": 14,
+		"Nesting": 4,
+		"Type": "tool",
+		"Name": "researcher-tool",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"Args": {
+			"Something": "subtool input 3"
+		},
+		"Results": {}
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z",
+		"Error": "Error 400, Message: The input token count exceeds the maximum number of tokens allowed 1048576., Status: , Details: []"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:29Z"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 4,
+		"Type": "llm",
+		"Name": "researcher",
+		"Model": "sub-agent-model",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:30Z"
+	},
+	{
 		"Seq": 10,
 		"Nesting": 3,
 		"Type": "agent",
 		"Name": "researcher",
 		"Model": "sub-agent-model",
 		"Started": "0001-01-01T00:00:18Z",
-		"Finished": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:31Z",
 		"Instruction": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "But really?",
 		"Reply": "Still nothing."
@@ -246,7 +303,7 @@
 		"Type": "tool",
 		"Name": "researcher",
 		"Started": "0001-01-01T00:00:17Z",
-		"Finished": "0001-01-01T00:00:26Z",
+		"Finished": "0001-01-01T00:00:32Z",
 		"Args": {
 			"Question": "But really?"
 		},
@@ -255,21 +312,21 @@
 		}
 	},
 	{
-		"Seq": 14,
+		"Seq": 17,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:27Z"
+		"Started": "0001-01-01T00:00:33Z"
 	},
 	{
-		"Seq": 14,
+		"Seq": 17,
 		"Nesting": 2,
 		"Type": "llm",
 		"Name": "smarty",
 		"Model": "model",
-		"Started": "0001-01-01T00:00:27Z",
-		"Finished": "0001-01-01T00:00:28Z"
+		"Started": "0001-01-01T00:00:33Z",
+		"Finished": "0001-01-01T00:00:34Z"
 	},
 	{
 		"Seq": 1,
@@ -278,7 +335,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:35Z",
 		"Instruction": "Do something!\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Prompt",
 		"Reply": "YES"
@@ -289,7 +346,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:30Z",
+		"Finished": "0001-01-01T00:00:36Z",
 		"Results": {
 			"Reply": "YES"
 		}

@@ -9,6 +9,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	require.NoError(t, err)
 	type llmRequest struct {
 		Model   string
-		Config  *genai.GenerateContentConfig
+		Config  genai.GenerateContentConfig
 		Request []*genai.Content
 	}
 	var requests []llmRequest
@@ -45,7 +46,9 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 		},
 		generateContent: func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
 			*genai.GenerateContentResponse, error) {
-			requests = append(requests, llmRequest{model, cfg, req})
+			// Copy config and req slices, so that future changes to these objects
+			// don't affect our stored requests.
+			requests = append(requests, llmRequest{model, *cfg, slices.Clone(req)})
 			require.NotEmpty(t, llmReplies, "unexpected LLM call")
 			reply := llmReplies[0]
 			llmReplies = llmReplies[1:]
