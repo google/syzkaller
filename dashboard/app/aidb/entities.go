@@ -10,6 +10,14 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 )
 
+const (
+	ActionJobReview = "JobReview"
+)
+
+type JobReviewDetails struct {
+	Correct bool
+}
+
 type Workflow struct {
 	Name       string
 	Type       ai.WorkflowType
@@ -55,4 +63,13 @@ type TrajectorySpan struct {
 	InputTokens          spanner.NullInt64
 	OutputTokens         spanner.NullInt64
 	OutputThoughtsTokens spanner.NullInt64
+}
+
+type Journal struct {
+	ID      string
+	JobID   spanner.NullString
+	Date    time.Time
+	User    string
+	Action  string
+	Details spanner.NullJSON
 }

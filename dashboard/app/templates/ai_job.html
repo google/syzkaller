@@ -31,6 +31,29 @@ Detailed info on a single AI job execution.
 		<br>
 	{{end}}
 
+	{{if .History}}
+	<table class="list_table">
+		<caption>Decision History:</caption>
+		<thead>
+			<tr>
+				<th>Time</th>
+				<th>User</th>
+				<th>Decision</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .History}}
+			<tr>
+				<td>{{formatTime .Date}}</td>
+				<td>{{.User}}</td>
+				<td>{{.Correct}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
+	{{end}}
+
 	{{range $res := .Job.Results}}
 		{{if $res.IsBool}}
 			<b>{{$res.Name}}:</b>

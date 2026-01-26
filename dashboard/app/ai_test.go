@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -236,14 +237,31 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
 	require.NoError(t, err)
 
+	// Verify history via UI helper to also test parsing logic.
+	history, err := aidb.LoadJobJournal(c.ctx, resp.ID, aidb.ActionJobReview)
+	require.NoError(t, err)
+	uiHistory := makeUIJobReviewHistory(history)
+	require.Len(t, uiHistory, 1)
+	require.Equal(t, uiHistory[0].Correct, aiCorrectnessCorrect)
+	require.NotEmpty(t, uiHistory[0].User)
+
 	bug, _, _ := c.loadBug(extID)
 	labels := bug.LabelValues(RaceLabel)
 	require.Len(t, labels, 1)
 	require.Equal(t, labels[0].Value, BenignRace)
 
+	c.advanceTime(time.Second)
+
 	// Re-mark the result as incorrect, this should remove the label.
 	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessIncorrect))
 	require.NoError(t, err)
+
+	history, err = aidb.LoadJobJournal(c.ctx, resp.ID, aidb.ActionJobReview)
+	require.NoError(t, err)
+	uiHistory = makeUIJobReviewHistory(history)
+	require.Len(t, uiHistory, 2)
+	require.Equal(t, uiHistory[0].Correct, aiCorrectnessIncorrect)
+	require.Equal(t, uiHistory[1].Correct, aiCorrectnessCorrect)
 
 	bug, _, _ = c.loadBug(extID)
 	labels = bug.LabelValues(RaceLabel)
