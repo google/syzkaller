@@ -64,20 +64,23 @@ type uiAIResult struct {
 }
 
 type uiAITrajectorySpan struct {
-	Started     time.Time
-	Seq         int64
-	Nesting     int64
-	Type        string
-	Name        string
-	Model       string
-	Duration    time.Duration
-	Error       string
-	Args        string
-	Results     string
-	Instruction string
-	Prompt      string
-	Reply       string
-	Thoughts    string
+	Started              time.Time
+	Seq                  int64
+	Nesting              int64
+	Type                 string
+	Name                 string
+	Model                string
+	Duration             time.Duration
+	Error                string
+	Args                 string
+	Results              string
+	Instruction          string
+	Prompt               string
+	Reply                string
+	Thoughts             string
+	InputTokens          int
+	OutputTokens         int
+	OutputThoughtsTokens int
 }
 
 func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -233,20 +236,23 @@ func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan 
 			duration = span.Finished.Time.Sub(span.Started)
 		}
 		res = append(res, &uiAITrajectorySpan{
-			Started:     span.Started,
-			Seq:         span.Seq,
-			Nesting:     span.Nesting,
-			Type:        span.Type,
-			Name:        span.Name,
-			Model:       span.Model,
-			Duration:    duration,
-			Error:       nullString(span.Error),
-			Args:        nullJSON(span.Args),
-			Results:     nullJSON(span.Results),
-			Instruction: nullString(span.Instruction),
-			Prompt:      nullString(span.Prompt),
-			Reply:       nullString(span.Reply),
-			Thoughts:    nullString(span.Thoughts),
+			Started:              span.Started,
+			Seq:                  span.Seq,
+			Nesting:              span.Nesting,
+			Type:                 span.Type,
+			Name:                 span.Name,
+			Model:                span.Model,
+			Duration:             duration,
+			Error:                nullString(span.Error),
+			Args:                 nullJSON(span.Args),
+			Results:              nullJSON(span.Results),
+			Instruction:          nullString(span.Instruction),
+			Prompt:               nullString(span.Prompt),
+			Reply:                nullString(span.Reply),
+			Thoughts:             nullString(span.Thoughts),
+			InputTokens:          nullInt64(span.InputTokens),
+			OutputTokens:         nullInt64(span.OutputTokens),
+			OutputThoughtsTokens: nullInt64(span.OutputThoughtsTokens),
 		})
 	}
 	return res
@@ -641,4 +647,11 @@ func nullJSON(v spanner.NullJSON) string {
 		return ""
 	}
 	return fmt.Sprint(v.Value)
+}
+
+func nullInt64(v spanner.NullInt64) int {
+	if !v.Valid {
+		return 0
+	}
+	return int(v.Int64)
 }

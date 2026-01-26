@@ -173,21 +173,24 @@ func StoreTrajectorySpan(ctx context.Context, jobID string, span *trajectory.Spa
 	}
 	defer client.Close()
 	ent := TrajectorySpan{
-		JobID:       jobID,
-		Seq:         int64(span.Seq),
-		Nesting:     int64(span.Nesting),
-		Type:        string(span.Type),
-		Name:        span.Name,
-		Model:       span.Model,
-		Started:     span.Started,
-		Finished:    toNullTime(span.Finished),
-		Error:       toNullString(span.Error),
-		Args:        toNullJSON(span.Args),
-		Results:     toNullJSON(span.Results),
-		Instruction: toNullString(span.Instruction),
-		Prompt:      toNullString(span.Prompt),
-		Reply:       toNullString(span.Reply),
-		Thoughts:    toNullString(span.Thoughts),
+		JobID:                jobID,
+		Seq:                  int64(span.Seq),
+		Nesting:              int64(span.Nesting),
+		Type:                 string(span.Type),
+		Name:                 span.Name,
+		Model:                span.Model,
+		Started:              span.Started,
+		Finished:             toNullTime(span.Finished),
+		Error:                toNullString(span.Error),
+		Args:                 toNullJSON(span.Args),
+		Results:              toNullJSON(span.Results),
+		Instruction:          toNullString(span.Instruction),
+		Prompt:               toNullString(span.Prompt),
+		Reply:                toNullString(span.Reply),
+		Thoughts:             toNullString(span.Thoughts),
+		InputTokens:          toNullInt64(span.InputTokens),
+		OutputTokens:         toNullInt64(span.OutputTokens),
+		OutputThoughtsTokens: toNullInt64(span.OutputThoughtsTokens),
 	}
 	mut, err := spanner.InsertOrUpdateStruct("TrajectorySpans", ent)
 	if err != nil {
@@ -289,4 +292,11 @@ func toNullString(v string) spanner.NullString {
 		return spanner.NullString{}
 	}
 	return spanner.NullString{StringVal: v, Valid: true}
+}
+
+func toNullInt64(v int) spanner.NullInt64 {
+	if v == 0 {
+		return spanner.NullInt64{}
+	}
+	return spanner.NullInt64{Int64: int64(v), Valid: true}
 }
