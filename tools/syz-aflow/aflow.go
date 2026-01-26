@@ -30,18 +30,17 @@ import (
 
 func main() {
 	var (
-		flagFlow        = flag.String("workflow", "", "workflow to execute")
-		flagInput       = flag.String("input", "", "input json file with workflow arguments")
-		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
-		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
-		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
-		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
-			" and save into -input file")
-		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
-			" gcloud auth application-default login)")
+		flagFlow               = flag.String("workflow", "", "workflow to execute")
+		flagInput              = flag.String("input", "", "input json file with workflow arguments")
+		flagWorkdir            = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
+		flagModel              = flag.String("model", "", "use this LLM model, if empty use default models")
+		flagCacheSize          = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
+		flagDownloadBugByExtID = flag.String("download-bug-by-extid", "", "extid of a bug to download from the dashboard and save into -input file")
+		flagDownloadBugByID    = flag.String("download-bug-by-id", "", "id of a bug to download from the dashboard and save into -input file")
+		flagAuth               = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with gcloud auth application-default login)")
 	)
 	defer tool.Init()()
-	if *flagDownloadBug != "" {
+	if *flagDownloadBugByExtID != "" || *flagDownloadBugByID != "" {
 		token := ""
 		if *flagAuth {
 			var err error
@@ -50,7 +49,13 @@ func main() {
 				tool.Fail(err)
 			}
 		}
-		if err := downloadBug(*flagDownloadBug, *flagInput, token); err != nil {
+		var err error
+		if *flagDownloadBugByExtID != "" {
+			err = downloadBug(true, *flagDownloadBugByExtID, *flagInput, token)
+		} else {
+			err = downloadBug(false, *flagDownloadBugByID, *flagInput, token)
+		}
+		if err != nil {
 			tool.Fail(err)
 		}
 		return
@@ -104,11 +109,17 @@ func onEvent(span *trajectory.Span) error {
 	return nil
 }
 
-func downloadBug(extID, inputFile, token string) error {
+func downloadBug(useExtID bool, id, inputFile, token string) error {
 	if inputFile == "" {
 		return fmt.Errorf("-download-bug requires -input flag")
 	}
-	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", extID), token)
+	var resp string
+	var err error
+	if useExtID {
+		resp, err = get(fmt.Sprintf("/bug?extid=%v&json=1", id), token)
+	} else {
+		resp, err = get(fmt.Sprintf("/bug?id=%v&json=1", id), token)
+	}
 	if err != nil {
 		return err
 	}
