@@ -347,6 +347,11 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 	if strings.TrimSpace(reply) == "" {
 		reply = ""
 	}
+	// If there is any reply along with tool calls, append it to thoughts.
+	// Otherwise it won't show up in the trajectory anywhere.
+	if len(calls) != 0 && reply != "" {
+		span.Thoughts += "\n" + reply
+	}
 	return
 }
 

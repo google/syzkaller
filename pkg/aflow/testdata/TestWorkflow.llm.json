@@ -321,6 +321,9 @@
 						}
 					},
 					{
+						"text": "Some non-thoughts reply along with tool calls"
+					},
+					{
 						"text": "I am thinking I need to call some tools",
 						"thought": true
 					}
@@ -522,6 +525,9 @@
 							},
 							"name": "tool2"
 						}
+					},
+					{
+						"text": "Some non-thoughts reply along with tool calls"
 					},
 					{
 						"text": "I am thinking I need to call some tools",

@@ -51,7 +51,7 @@
 		"Model": "model1",
 		"Started": "0001-01-01T00:00:05Z",
 		"Finished": "0001-01-01T00:00:06Z",
-		"Thoughts": "I am thinking I need to call some tools"
+		"Thoughts": "I am thinking I need to call some tools\nSome non-thoughts reply along with tool calls"
 	},
 	{
 		"Seq": 4,
