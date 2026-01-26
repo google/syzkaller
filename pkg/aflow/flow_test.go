@@ -188,6 +188,9 @@ func TestWorkflow(t *testing.T) {
 					},
 				},
 				{
+					Text: "Some non-thoughts reply along with tool calls",
+				},
+				{
 					Text:    "I am thinking I need to call some tools",
 					Thought: true,
 				},
