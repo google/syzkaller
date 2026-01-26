@@ -70,6 +70,8 @@ func (span *Span) String() string {
 		case SpanLLM:
 		case SpanTool:
 			printMap(sb, span.Args, "args")
+		case SpanLoop:
+		case SpanLoopIteration:
 		default:
 			panic(fmt.Sprintf("unhandled span type %v", span.Type))
 		}
@@ -92,6 +94,8 @@ func (span *Span) String() string {
 			}
 		case SpanTool:
 			printMap(sb, span.Results, "results")
+		case SpanLoop:
+		case SpanLoopIteration:
 		default:
 			panic(fmt.Sprintf("unhandled span type %v", span.Type))
 		}
