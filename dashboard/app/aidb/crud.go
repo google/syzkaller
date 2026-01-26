@@ -282,6 +282,34 @@ func selectTrajectorySpans() string {
 	return selectAllFrom[TrajectorySpan]("TrajectorySpans")
 }
 
+func selectJournal() string {
+	return selectAllFrom[Journal]("Journal")
+}
+
+func AddJournalEntry(ctx context.Context, entry *Journal) error {
+	entry.ID = uuid.NewString()
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.InsertStruct("Journal", entry)
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func LoadJobJournal(ctx context.Context, jobID, action string) ([]*Journal, error) {
+	return selectAll[Journal](ctx, spanner.Statement{
+		SQL: selectJournal() + `WHERE JobID = @jobID AND Action = @action ORDER BY Date DESC`,
+		Params: map[string]any{
+			"jobID":  jobID,
+			"action": action,
+		},
+	})
+}
+
 func selectAllFrom[T any](table string) string {
 	var fields []string
 	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {

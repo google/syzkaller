@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,6 +17,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/vcs"
 	db "google.golang.org/appengine/v2/datastore"
@@ -39,6 +39,13 @@ type uiAIJobPage struct {
 	Jobs        []*uiAIJob
 	CrashReport template.HTML
 	Trajectory  []*uiAITrajectorySpan
+	History     []*uiJobReviewHistory
+}
+
+type uiJobReviewHistory struct {
+	Date    time.Time
+	User    string
+	Correct string
 }
 
 type uiAIJob struct {
@@ -141,11 +148,28 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		default:
 			job.Correct = spanner.NullBool{}
 		}
+		userEmail := ""
+		if user := currentUser(ctx); user != nil {
+			userEmail = user.Email
+		}
+		if err := aidb.AddJournalEntry(ctx, &aidb.Journal{
+			JobID:   spanner.NullString{StringVal: job.ID, Valid: true},
+			Date:    timeNow(ctx),
+			User:    userEmail,
+			Action:  aidb.ActionJobReview,
+			Details: spanner.NullJSON{Value: aidb.JobReviewDetails{Correct: job.Correct.Bool}, Valid: true},
+		}); err != nil {
+			return err
+		}
 		if err := aiJobUpdate(ctx, job); err != nil {
 			return err
 		}
 	}
 	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	history, err := aidb.LoadJobJournal(ctx, job.ID, aidb.ActionJobReview)
 	if err != nil {
 		return err
 	}
@@ -172,6 +196,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		Jobs:        []*uiAIJob{uiJob},
 		CrashReport: crashReport,
 		Trajectory:  makeUIAITrajectory(trajectory),
+		History:     makeUIJobReviewHistory(history),
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }
@@ -253,6 +278,28 @@ func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan 
 			InputTokens:          nullInt64(span.InputTokens),
 			OutputTokens:         nullInt64(span.OutputTokens),
 			OutputThoughtsTokens: nullInt64(span.OutputThoughtsTokens),
+		})
+	}
+	return res
+}
+
+func makeUIJobReviewHistory(history []*aidb.Journal) []*uiJobReviewHistory {
+	var res []*uiJobReviewHistory
+	for _, h := range history {
+		val := aiCorrectnessUnset
+		if h.Details.Valid {
+			if details, err := parseJSON[aidb.JobReviewDetails](h.Details); err == nil {
+				if details.Correct {
+					val = aiCorrectnessCorrect
+				} else {
+					val = aiCorrectnessIncorrect
+				}
+			}
+		}
+		res = append(res, &uiJobReviewHistory{
+			Date:    h.Date,
+			User:    h.User,
+			Correct: val,
 		})
 	}
 	return res
@@ -407,25 +454,24 @@ func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 e
 }
 
 func castJobResults[T any](job *aidb.Job) (T, error) {
-	var res T
-	raw, ok := job.Results.Value.(map[string]any)
-	if !ok || !job.Results.Valid {
+	if !job.Results.Valid {
+		var res T
 		return res, fmt.Errorf("finished job %v %v does not have results", job.Type, job.ID)
 	}
+	return parseJSON[T](job.Results)
+}
+
+func parseJSON[T any](val spanner.NullJSON) (T, error) {
+	var res T
 	// Database may store older versions of the output structs.
 	// It's not possible to automatically handle all possible changes to the structs.
 	// For now we just parse in some way. Later when we start changing output structs,
 	// we may need to reconsider and use more careful parsing.
-	data, err := json.Marshal(raw)
+	data, err := json.Marshal(val.Value)
 	if err != nil {
 		return res, err
 	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&res); err != nil {
-		return res, fmt.Errorf("failed to unmarshal %T: %w", res, err)
-	}
-	return res, nil
+	return osutil.ParseJSON[T](data)
 }
 
 func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any, error) {
