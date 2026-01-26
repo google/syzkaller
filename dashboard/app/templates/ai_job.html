@@ -86,6 +86,13 @@ Detailed info on a single AI job execution.
 					{{if $span.Reply}}
 						<b>Reply:</b> <div id="ai_details_div"><pre>{{$span.Reply}}</pre></div><br>
 					{{end}}
+					{{if $span.InputTokens}}
+						<b>Tokens:</b> <div id="ai_details_div"><pre>
+							input: {{$span.InputTokens}}
+							output: {{$span.OutputTokens}}
+							thoughts: {{$span.OutputThoughtsTokens}}
+						</pre></div><br>
+					{{end}}
 					{{if $span.Thoughts}}
 						<b>Thoughts:</b> <div id="ai_details_div"><pre>{{$span.Thoughts}}</pre></div><br>
 					{{end}}
