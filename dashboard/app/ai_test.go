@@ -249,3 +249,40 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	labels = bug.LabelValues(RaceLabel)
 	require.Len(t, labels, 0)
 }
+
+func TestAIJobsFiltering(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "KCSAN: data-race in foo / bar"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailBug()
+
+	pollResp, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+			{Type: ai.WorkflowPatching, Name: "patching"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, pollResp.ID)
+
+	resp, err := c.GET("/ains/ai")
+	require.NoError(t, err)
+	require.Contains(t, string(resp), "KCSAN: data-race")
+
+	// Filter by correct workflow.
+	resp, err = c.GET("/ains/ai?workflow=" + string(ai.WorkflowAssessmentKCSAN))
+	require.NoError(t, err)
+	require.Contains(t, string(resp), "KCSAN: data-race")
+
+	// Filter by usage of another workflow (should hide it).
+	resp, err = c.GET("/ains/ai?workflow=patching")
+	require.NoError(t, err)
+	require.NotContains(t, string(resp), "KCSAN: data-race")
+}

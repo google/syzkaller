@@ -26,8 +26,10 @@ import (
 const AIAccessLevel = AccessUser
 
 type uiAIJobsPage struct {
-	Header *uiHeader
-	Jobs   []*uiAIJob
+	Header          *uiHeader
+	Jobs            []*uiAIJob
+	Workflows       []string
+	CurrentWorkflow string
 }
 
 type uiAIJobPage struct {
@@ -90,13 +92,28 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
+	workflowParam := r.FormValue("workflow")
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
+		if workflowParam != "" && job.Workflow != workflowParam {
+			continue
+		}
 		uiJobs = append(uiJobs, makeUIAIJob(job))
 	}
+	workflows, err := aidb.LoadWorkflows(ctx)
+	if err != nil {
+		return err
+	}
+	var workflowNames []string
+	for _, w := range workflows {
+		workflowNames = append(workflowNames, w.Name)
+	}
+	slices.Sort(workflowNames)
 	page := &uiAIJobsPage{
-		Header: hdr,
-		Jobs:   uiJobs,
+		Header:          hdr,
+		Jobs:            uiJobs,
+		Workflows:       workflowNames,
+		CurrentWorkflow: workflowParam,
 	}
 	return serveTemplate(w, "ai_jobs.html", page)
 }
