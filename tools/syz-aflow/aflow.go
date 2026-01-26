@@ -35,7 +35,7 @@ func main() {
 		flagWorkdir     = flag.String("workdir", "", "directory for kernel checkout, kernel builds, etc")
 		flagModel       = flag.String("model", "", "use this LLM model, if empty use default models")
 		flagCacheSize   = flag.String("cache-size", "10GB", "max cache size (e.g. 100MB, 5GB, 1TB)")
-		flagDownloadBug = flag.String("download-bug", "", "extid of a bug to download from the dashboard"+
+		flagDownloadBug = flag.String("download-bug", "", "extid or id of a bug to download from the dashboard"+
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
@@ -104,13 +104,17 @@ func onEvent(span *trajectory.Span) error {
 	return nil
 }
 
-func downloadBug(extID, inputFile, token string) error {
+func downloadBug(id, inputFile, token string) error {
 	if inputFile == "" {
 		return fmt.Errorf("-download-bug requires -input flag")
 	}
-	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", extID), token)
+	resp, err := get(fmt.Sprintf("/bug?extid=%v&json=1", id), token)
 	if err != nil {
-		return err
+		// Retry with "id=" if we failed with "extid="
+		resp, err = get(fmt.Sprintf("/bug?id=%v&json=1", id), token)
+		if err != nil {
+			return err
+		}
 	}
 	var info map[string]any
 	if err := json.Unmarshal([]byte(resp), &info); err != nil {
