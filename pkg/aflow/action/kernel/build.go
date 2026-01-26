@@ -34,42 +34,49 @@ type buildResult struct {
 	KernelObj string // Directory with build artifacts.
 }
 
+func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
+	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
+		return err
+	}
+	target := targets.List[targets.Linux][targets.AMD64]
+	image := filepath.FromSlash(build.LinuxKernelImage(targets.AMD64))
+	makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
+		"ccache", buildDir, runtime.NumCPU())
+	const compileCommands = "compile_commands.json"
+	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
+	if out, err := osutil.RunCmd(time.Hour, srcDir, "make", makeArgs...); err != nil {
+		return aflow.FlowError(fmt.Errorf("make failed: %w\n%s", err, out))
+	}
+	if !cleanup {
+		return nil
+	}
+	// Remove main intermediate build files, we don't need them anymore
+	// and they take lots of space. But keep generated source files.
+	keepFiles := map[string]bool{
+		image:               true,
+		target.KernelObject: true,
+		compileCommands:     true,
+	}
+	return filepath.WalkDir(buildDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(buildDir, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || keepFiles[relative] || codesearch.IsSourceFile(relative) {
+			return nil
+		}
+		return os.Remove(path)
+	})
+}
+
 func buildKernel(ctx *aflow.Context, args buildArgs) (buildResult, error) {
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v",
 		args.KernelCommit, hash.String(args.KernelConfig))
 	dir, err := ctx.Cache("build", desc, func(dir string) error {
-		if err := osutil.WriteFile(filepath.Join(dir, ".config"), []byte(args.KernelConfig)); err != nil {
-			return err
-		}
-		target := targets.List[targets.Linux][targets.AMD64]
-		image := filepath.FromSlash(build.LinuxKernelImage(targets.AMD64))
-		makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
-			"ccache", dir, runtime.NumCPU())
-		const compileCommands = "compile_commands.json"
-		makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
-		if out, err := osutil.RunCmd(time.Hour, args.KernelSrc, "make", makeArgs...); err != nil {
-			return aflow.FlowError(fmt.Errorf("make failed: %w\n%s", err, out))
-		}
-		// Remove main intermediate build files, we don't need them anymore
-		// and they take lots of space. But keep generated source files.
-		keepFiles := map[string]bool{
-			image:               true,
-			target.KernelObject: true,
-			compileCommands:     true,
-		}
-		return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			relative, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
-			}
-			if d.IsDir() || keepFiles[relative] || codesearch.IsSourceFile(relative) {
-				return nil
-			}
-			return os.Remove(path)
-		})
+		return BuildKernel(dir, args.KernelSrc, args.KernelConfig, true)
 	})
 	return buildResult{KernelObj: dir}, err
 }
