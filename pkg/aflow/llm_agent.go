@@ -110,6 +110,11 @@ Note: if you already provided you final reply, you will need to provide it again
 Or did you want to call some other tools, but did not actually do that?
 `
 
+const llmAnswerNow = `
+Provide a best-effort answer to the original question with all of the information
+you have so far without calling any more tools!
+`
+
 type llmOutputs struct {
 	tool           Tool
 	provideOutputs func(*verifyContext, string, bool)
@@ -178,22 +183,43 @@ func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]a
 func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools map[string]Tool,
 	prompt string, candidate int) (string, map[string]any, error) {
 	var outputs map[string]any
+	answerNow := false
 	req := []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
 	for {
-		reqSpan := &trajectory.Span{
+		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
 			Name:  a.Name,
 			Model: ctx.modelName(a.Model),
 		}
-		if err := ctx.startSpan(reqSpan); err != nil {
+		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		resp, err := a.generateContent(ctx, cfg, req, candidate)
-		if err != nil {
-			return "", nil, ctx.finishSpan(reqSpan, err)
+		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
+		if respErr != nil {
+			span.Error = respErr.Error()
+			if err := ctx.finishSpan(span, nil); err != nil {
+				return "", nil, err
+			}
+			// Input overflows maximum number of tokens.
+			// If this is an LLMTool, we remove the last tool reply,
+			// and replace it with an order to answer right now.
+			if isTokenOverflowError(respErr) &&
+				a.Reply == llmToolReply &&
+				len(req) >= 3 &&
+				!answerNow {
+				answerNow = true
+				cfg.ToolConfig = &genai.ToolConfig{
+					FunctionCallingConfig: &genai.FunctionCallingConfig{
+						Mode: genai.FunctionCallingConfigModeNone,
+					},
+				}
+				req[len(req)-1] = genai.NewContentFromText(llmAnswerNow, genai.RoleUser)
+				continue
+			}
+			return "", nil, respErr
 		}
-		reply, calls, respErr := a.parseResponse(resp, reqSpan)
-		if err := ctx.finishSpan(reqSpan, respErr); err != nil {
+		reply, calls, respErr := a.parseResponse(resp, span)
+		if err := ctx.finishSpan(span, respErr); err != nil {
 			return "", nil, err
 		}
 		req = append(req, resp.Candidates[0].Content)
@@ -361,13 +387,15 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 	for try := 0; ; try++ {
 		resp, err := a.generateContentCached(ctx, cfg, req, candidate)
 		var apiErr genai.APIError
-		if err != nil && try < 100 && errors.As(err, &apiErr) &&
-			apiErr.Code == http.StatusServiceUnavailable {
+		if err == nil || !errors.As(err, &apiErr) {
+			return resp, err
+		}
+		if try < 100 && apiErr.Code == http.StatusServiceUnavailable {
 			time.Sleep(backoff)
 			backoff = min(backoff+time.Second, 10*time.Second)
 			continue
 		}
-		if err != nil && errors.As(err, &apiErr) && apiErr.Code == http.StatusTooManyRequests &&
+		if apiErr.Code == http.StatusTooManyRequests &&
 			strings.Contains(apiErr.Message, "Quota exceeded for metric") {
 			if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
 				sec, _ := strconv.Atoi(match[1])
@@ -377,6 +405,10 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 			if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
 				return resp, &modelQuotaError{ctx.modelName(a.Model)}
 			}
+		}
+		if apiErr.Code == http.StatusBadRequest &&
+			strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
+			return resp, &tokenOverflowError{err}
 		}
 		return resp, err
 	}

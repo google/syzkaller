@@ -396,7 +396,7 @@
 				"parts": [
 					{
 						"functionCall": {
-							"id": "id2",
+							"id": "id3",
 							"args": {
 								"Something": "subtool input 2"
 							},
@@ -410,9 +410,219 @@
 				"parts": [
 					{
 						"functionResponse": {
-							"id": "id2",
+							"id": "id3",
 							"name": "researcher-tool"
 						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 2,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher-tool description",
+							"name": "researcher-tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Something": {
+										"description": "something",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Something"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Something": "subtool input 2"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Something": "subtool input 3"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "sub-agent-model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 2,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "researcher-tool description",
+							"name": "researcher-tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Something": {
+										"description": "something",
+										"type": "string"
+									}
+								},
+								"required": [
+									"Something"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"toolConfig": {
+				"functionCallingConfig": {
+					"mode": "NONE"
+				}
+			},
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "But really?"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"args": {
+								"Something": "subtool input 2"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"args": {
+								"Something": "subtool input 3"
+							},
+							"name": "researcher-tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"text": "\nProvide a best-effort answer to the original question with all of the information\nyou have so far without calling any more tools!\n"
 					}
 				],
 				"role": "user"

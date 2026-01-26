@@ -105,6 +105,15 @@ func (err *modelQuotaError) Error() string {
 	return fmt.Sprintf("model %q is over daily quota", err.model)
 }
 
+func isTokenOverflowError(err error) bool {
+	var overflowErr *tokenOverflowError
+	return errors.As(err, &overflowErr)
+}
+
+type tokenOverflowError struct {
+	error
+}
+
 // QuotaResetTime returns the time when RPD quota will be reset
 // for a quota overflow happened at time t.
 func QuotaResetTime(t time.Time) time.Time {

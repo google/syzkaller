@@ -4,6 +4,8 @@
 package aflow
 
 import (
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,7 +42,7 @@ func TestLLMTool(t *testing.T) {
 							NewFuncTool("researcher-tool", func(ctx *Context, state inputs, args toolArgs) (struct{}, error) {
 								// State passed all the way from the workflow inputs.
 								assert.Equal(t, state.Input, 42)
-								assert.True(t, args.Something == "subtool input 1" || args.Something == "subtool input 2",
+								assert.True(t, strings.HasPrefix(args.Something, "subtool input"),
 									"args.Something=%q", args.Something)
 								return struct{}{}, nil
 							}, "researcher-tool description"),
@@ -84,12 +86,26 @@ func TestLLMTool(t *testing.T) {
 			},
 			&genai.Part{
 				FunctionCall: &genai.FunctionCall{
-					ID:   "id2",
+					ID:   "id3",
 					Name: "researcher-tool",
 					Args: map[string]any{
 						"Something": "subtool input 2",
 					},
 				},
+			},
+			// Now model input token overflow.
+			&genai.Part{
+				FunctionCall: &genai.FunctionCall{
+					ID:   "id4",
+					Name: "researcher-tool",
+					Args: map[string]any{
+						"Something": "subtool input 3",
+					},
+				},
+			},
+			genai.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "The input token count exceeds the maximum number of tokens allowed 1048576.",
 			},
 			genai.NewPartFromText("Still nothing."),
 			// Main returns result.
