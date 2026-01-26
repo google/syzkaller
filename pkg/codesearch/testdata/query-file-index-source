@@ -3,6 +3,7 @@ file-index source0.c
 file source0.c defines the following entities:
 
 function close
+function field_refs
 function func_accepting_a_struct
 function function_with_comment_in_header
 function function_with_quotes_in_type

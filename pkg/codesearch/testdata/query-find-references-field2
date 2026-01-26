@@ -1,0 +1,10 @@
+find-references source0.c some_union::p "" 1 10
+
+some_union::p has 1 references:
+
+function field_refs writes it at source0.c:43
+  42:		*(&p->x) = 1;
+  43:		u->p = 0;
+  44:		u->s.x = 2;
+
+

@@ -1,6 +1,11 @@
 find-references source0.c some_struct "" 1 10
 
-some_struct has 2 references:
+some_struct has 3 references:
+
+function field_refs uses it at source0.c:39
+  39:	int field_refs(struct some_struct* p, union some_union* u)
+  40:	{
+
 
 function func_accepting_a_struct uses it at source0.c:29
   29:	int func_accepting_a_struct(struct some_struct* p)

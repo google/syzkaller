@@ -12,6 +12,73 @@
 			"comment": {}
 		},
 		{
+			"name": "field_refs",
+			"type": "int (struct some_struct *, union some_union *)",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 39,
+				"end_line": 46
+			},
+			"comment": {},
+			"refs": [
+				{
+					"name": "some_struct",
+					"kind": "uses",
+					"entity_kind": "struct",
+					"line": 39
+				},
+				{
+					"name": "some_union",
+					"kind": "uses",
+					"entity_kind": "union",
+					"line": 39
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 41
+				},
+				{
+					"name": "some_struct::y",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 41
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "takes-address-of",
+					"entity_kind": "field",
+					"line": 42
+				},
+				{
+					"name": "some_union::p",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 43
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "writes",
+					"entity_kind": "field",
+					"line": 44
+				},
+				{
+					"name": "some_union::s",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 44
+				},
+				{
+					"name": "some_struct::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 45
+				}
+			]
+		},
+		{
 			"name": "func_accepting_a_struct",
 			"type": "int (struct some_struct *)",
 			"kind": "function",
@@ -29,6 +96,12 @@
 					"line": 29
 				},
 				{
+					"name": "some_struct::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 31
+				},
+				{
 					"name": "some_struct_t",
 					"kind": "uses",
 					"entity_kind": "typedef",
@@ -39,6 +112,12 @@
 					"kind": "uses",
 					"entity_kind": "struct",
 					"line": 31
+				},
+				{
+					"name": "some_union::x",
+					"kind": "reads",
+					"entity_kind": "field",
+					"line": 32
 				},
 				{
 					"name": "some_union",
@@ -155,7 +234,7 @@
 			"body": {
 				"file": "source0.h",
 				"start_line": 40,
-				"end_line": 43
+				"end_line": 44
 			},
 			"comment": {}
 		},
@@ -164,8 +243,8 @@
 			"kind": "enum",
 			"body": {
 				"file": "source0.h",
-				"start_line": 45,
-				"end_line": 48
+				"start_line": 46,
+				"end_line": 49
 			},
 			"comment": {}
 		},
@@ -184,8 +263,8 @@
 			"kind": "typedef",
 			"body": {
 				"file": "source0.h",
-				"start_line": 50,
-				"end_line": 50
+				"start_line": 51,
+				"end_line": 51
 			},
 			"comment": {}
 		},

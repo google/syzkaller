@@ -259,8 +259,14 @@ type ReferenceInfo struct {
 
 func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextLines, outputLimit int) (
 	[]ReferenceInfo, int, error) {
+	// Just in case LLM decides to reference structs/fields with the tag.
+	name = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(name),
+		"struct "), "union "))
+	// We don't export each field as a separate definition,
+	// so we do just name-based match for them.
+	isField := strings.Contains(name, "::")
 	target := index.findDefinition(contextFile, name)
-	if target == nil {
+	if target == nil && !isField {
 		return nil, 0, aflow.BadCallError("requested entity does not exist")
 	}
 	if srcPrefix != "" {
@@ -278,8 +284,8 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 			// the target is a non-static 'foo' in some file,
 			// the reference is in another file and refers to a static 'foo'
 			// defined in that file (which is not the target 'foo').
-			if ref.EntityKind != target.Kind || ref.Name != target.Name ||
-				target.IsStatic && target.Body.File != def.Body.File {
+			if ref.Name != name || !isField && (ref.EntityKind != target.Kind ||
+				target.IsStatic && target.Body.File != def.Body.File) {
 				continue
 			}
 			totalCount++

@@ -40,6 +40,7 @@ typedef struct another_struct {
 union some_union {
 	int x;
 	void* p;
+	struct some_struct s;
 };
 
 enum some_enum {

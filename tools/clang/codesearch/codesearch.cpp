@@ -8,6 +8,7 @@
 #include "clang/AST/Comment.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclarationName.h"
+#include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -82,6 +83,7 @@ public:
   bool VisitDeclRefExpr(const DeclRefExpr*);
   bool VisitTagType(const TagType*);
   bool VisitTypedefType(const TypedefType*);
+  bool VisitMemberExpr(const MemberExpr*);
 
 private:
   ASTContext& Context;
@@ -92,7 +94,9 @@ private:
   // If set, record references to struct types as uses.
   SourceLocation TypeRefingLocation;
 
+  const Stmt* GetParent(const Stmt* S) const;
   void EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind);
+  void EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind);
 
   struct NamedDeclEmitter {
     NamedDeclEmitter(Indexer* Parent, const NamedDecl* Decl, const char* Kind, const std::string& Type, bool IsStatic);
@@ -247,11 +251,46 @@ bool Indexer::VisitTypedefType(const TypedefType* T) {
   return true;
 }
 
+bool Indexer::VisitMemberExpr(const MemberExpr* E) {
+  auto* Record = E->getBase()->getType()->getAsRecordDecl();
+  if (auto* Ptr = dyn_cast<PointerType>(E->getBase()->getType()))
+    Record = Ptr->getPointeeType()->getAsRecordDecl();
+  if (!Record)
+    return true;
+  const std::string Field = Record->getNameAsString() + "::" + E->getMemberDecl()->getNameAsString();
+  const char* RefKind = RefKindRead;
+  const Stmt* P = GetParent(E);
+  if (auto* BO = dyn_cast<BinaryOperator>(P)) {
+    if (E == BO->getLHS() && (BO->isAssignmentOp() || BO->isCompoundAssignmentOp() || BO->isShiftAssignOp()))
+      RefKind = RefKindWrite;
+  }
+  if (auto* UO = dyn_cast<UnaryOperator>(P))
+    RefKind = RefKindTakesAddr;
+  EmitReference(E->getMemberLoc(), Field, EntityKindField, RefKind);
+  return true;
+}
+
+const Stmt* Indexer::GetParent(const Stmt* S) const {
+  for (;;) {
+    const auto& Parents = Context.getParents(*S);
+    if (!Parents.empty())
+      S = Parents[0].get<Stmt>();
+    else
+      S = nullptr;
+    // Presumably ParentExpr is never interesting.
+    if (S && isa<ParenExpr>(S))
+      continue;
+    return S;
+  }
+}
+
 void Indexer::EmitReference(SourceLocation Loc, const NamedDecl* Named, const char* EntityKind, const char* RefKind) {
-  if (!Current || !Named || Named->getNameAsString().empty())
-    return;
-  const std::string& Name = Named->getNameAsString();
-  if (Name.empty())
+  if (Named)
+    EmitReference(Loc, Named->getNameAsString(), EntityKind, RefKind);
+}
+
+void Indexer::EmitReference(SourceLocation Loc, const std::string& Name, const char* EntityKind, const char* RefKind) {
+  if (!Current || Name.empty())
     return;
   Current->Refs.push_back(Reference{
       .Kind = RefKind,

@@ -48,7 +48,10 @@ For example, how a function works, what precondition error checks it has, etc.
 	aflow.NewFuncTool("codesearch-find-references", findReferences, `
 Tool finds and lists all references to (uses of) the given entity.
 Entity can be function, struct, or global variable.
-If can be used to find all calls or other uses of the given function.
+If can be used to find all calls or other uses of the given function,
+definition of the given struct/union/enum,
+or all reads/writes of the given struct/union field.
+To find field references use 'struct_name::field_name' syntax.
 `),
 }
 
