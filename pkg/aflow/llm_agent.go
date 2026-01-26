@@ -9,6 +9,8 @@ import (
 	"maps"
 	"net/http"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -355,13 +357,21 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 			continue
 		}
 		if err != nil && errors.As(err, &apiErr) && apiErr.Code == http.StatusTooManyRequests &&
-			strings.Contains(apiErr.Message, "Quota exceeded for metric") &&
-			strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-			return resp, &modelQuotaError{ctx.modelName(a.Model)}
+			strings.Contains(apiErr.Message, "Quota exceeded for metric") {
+			if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
+				sec, _ := strconv.Atoi(match[1])
+				time.Sleep(time.Duration(sec+1) * time.Second)
+				continue
+			}
+			if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
+				return resp, &modelQuotaError{ctx.modelName(a.Model)}
+			}
 		}
 		return resp, err
 	}
 }
+
+var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
 	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
