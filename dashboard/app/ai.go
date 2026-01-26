@@ -197,8 +197,10 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	})
 
 	correct := aiCorrectnessIncorrect
-	if !job.Finished.Valid {
+	if !job.Started.Valid {
 		correct = aiCorrectnessPending
+	} else if !job.Finished.Valid {
+		correct = aiCorrectnessRunning
 	} else if job.Error != "" {
 		correct = aiCorrectnessErrored
 	} else if !job.Correct.Valid {
@@ -616,6 +618,7 @@ const (
 	aiCorrectnessIncorrect = "❌"
 	aiCorrectnessUnset     = "❓"
 	aiCorrectnessPending   = "⏳"
+	aiCorrectnessRunning   = "🏃"
 	aiCorrectnessErrored   = "💥"
 )
 
