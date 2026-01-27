@@ -383,38 +383,17 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
 	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
-	backoff := time.Second
+	var backoff time.Duration
 	for try := 0; ; try++ {
 		resp, err := a.generateContentCached(ctx, cfg, req, candidate)
-		var apiErr genai.APIError
-		if err == nil || !errors.As(err, &apiErr) {
-			return resp, err
-		}
-		if try < 100 && apiErr.Code == http.StatusServiceUnavailable {
-			time.Sleep(backoff)
-			backoff = min(backoff+time.Second, 10*time.Second)
+		retry, err := parseLLMError(resp, err, ctx.modelName(a.Model), try, &backoff)
+		if retry != 0 {
+			time.Sleep(retry)
 			continue
-		}
-		if apiErr.Code == http.StatusTooManyRequests &&
-			strings.Contains(apiErr.Message, "Quota exceeded for metric") {
-			if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
-				sec, _ := strconv.Atoi(match[1])
-				time.Sleep(time.Duration(sec+1) * time.Second)
-				continue
-			}
-			if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-				return resp, &modelQuotaError{ctx.modelName(a.Model)}
-			}
-		}
-		if apiErr.Code == http.StatusBadRequest &&
-			strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
-			return resp, &tokenOverflowError{err}
 		}
 		return resp, err
 	}
 }
-
-var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
 	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
@@ -436,6 +415,40 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateConten
 	})
 	return cached.Reply, err
 }
+
+func parseLLMError(resp *genai.GenerateContentResponse, err error, model string,
+	try int, backoff *time.Duration) (time.Duration, error) {
+	var apiErr genai.APIError
+	if err == nil || !errors.As(err, &apiErr) {
+		return 0, err
+	}
+	if try < maxLLMRetryIters && apiErr.Code == http.StatusServiceUnavailable {
+		*backoff = min(*backoff+time.Second, maxLLMBackoff)
+		return *backoff, nil
+	}
+	if apiErr.Code == http.StatusTooManyRequests &&
+		strings.Contains(apiErr.Message, "Quota exceeded for metric") {
+		if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
+			sec, _ := strconv.Atoi(match[1])
+			return time.Duration(sec+1) * time.Second, nil
+		}
+		if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
+			return 0, &modelQuotaError{model}
+		}
+	}
+	if apiErr.Code == http.StatusBadRequest &&
+		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
+		return 0, &tokenOverflowError{err}
+	}
+	return 0, err
+}
+
+const (
+	maxLLMRetryIters = 100
+	maxLLMBackoff    = 10 * time.Second
+)
+
+var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
