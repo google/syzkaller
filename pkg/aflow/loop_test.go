@@ -47,7 +47,8 @@ func TestDoWhile(t *testing.T) {
 					return testResults{Diff: "diff"}, nil
 				}),
 			),
-			While: "TestError",
+			While:         "TestError",
+			MaxIterations: 10,
 		},
 		nil,
 	)
@@ -63,7 +64,8 @@ func TestDoWhileErrors(t *testing.T) {
 				}) (struct{}, error) {
 					return struct{}{}, nil
 				}),
-				While: "Condition",
+				While:         "Condition",
+				MaxIterations: 10,
 			},
 		))
 
@@ -76,6 +78,7 @@ func TestDoWhileErrors(t *testing.T) {
 				}) (struct{}, error) {
 					return struct{}{}, nil
 				}),
+				MaxIterations: 10,
 			},
 		))
 
@@ -90,7 +93,34 @@ func TestDoWhileErrors(t *testing.T) {
 				Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
 					return output{}, nil
 				}),
+				While:         "Output1",
+				MaxIterations: 10,
+			},
+		))
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action DoWhile: bad MaxIterations value 0, should be within [1, 1000]",
+		Pipeline(
+			&DoWhile{
+				Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
+					return output{}, nil
+				}),
 				While: "Output1",
 			},
 		))
+}
+
+func TestDoWhileMaxIters(t *testing.T) {
+	type actionResults struct {
+		Error string
+	}
+	testFlow[struct{}, struct{}](t, nil, "DoWhile loop is going in cycles for 3 iterations",
+		&DoWhile{
+			Do: NewFuncAction("nop", func(ctx *Context, args struct{}) (actionResults, error) {
+				return actionResults{"failed"}, nil
+			}),
+			While:         "Error",
+			MaxIterations: 3,
+		},
+		nil,
+	)
 }

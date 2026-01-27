@@ -78,7 +78,8 @@ func init() {
 						},
 						crash.TestPatch, // -> PatchDiff or TestError
 					),
-					While: "TestError",
+					While:         "TestError",
+					MaxIterations: 10,
 				},
 				&aflow.LLMAgent{
 					Name:        "description-generator",
