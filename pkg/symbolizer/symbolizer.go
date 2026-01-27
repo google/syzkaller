@@ -10,6 +10,7 @@ type Frame struct {
 	Func   string
 	File   string
 	Line   int
+	Column int
 	Inline bool
 }
 
@@ -18,6 +19,9 @@ type Symbolizer interface {
 	Close()
 }
 
-func Make(target *targets.Target) Symbolizer {
-	return &addr2Line{target: target}
+func Make(target *targets.Target) (Symbolizer, error) {
+	if target.Arch == targets.AMD64 {
+		return newELFSymbolizer(target.KernelObject)
+	}
+	return &addr2Line{target: target}, nil
 }

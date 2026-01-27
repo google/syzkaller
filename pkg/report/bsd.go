@@ -52,7 +52,10 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb := symbolizer.Make(ctx.config.target)
+	symb, err := symbolizer.Make(ctx.config.target)
+	if err != nil {
+		return err
+	}
 	defer symb.Close()
 	var symbolized []byte
 	prefix := rep.reportPrefixLen

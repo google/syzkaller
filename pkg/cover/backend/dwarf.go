@@ -513,7 +513,12 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	pcchan := make(chan []uint64, procs)
 	for p := 0; p < procs; p++ {
 		go func() {
-			symb := symbolizer.Make(target)
+			symb, err := symbolizer.Make(target)
+			if err != nil {
+				res.err = fmt.Errorf("failed to create symbolizer: %w", err)
+				symbolizerC <- res
+				return
+			}
 			defer symb.Close()
 			var res symbolizerResult
 			for pcs := range pcchan {
