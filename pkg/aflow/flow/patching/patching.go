@@ -38,7 +38,6 @@ type Inputs struct {
 type Outputs struct {
 	PatchDescription string
 	PatchDiff        string
-	KernelScratchSrc string // it's unused for now, but should be used by codeeditor tool later
 }
 
 func init() {
