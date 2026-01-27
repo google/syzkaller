@@ -301,6 +301,7 @@ func (ctx *Ctx) Close() {
 			}
 		}
 	}
+	aidb.CloseClient(ctx.ctx)
 	unregisterContext(ctx)
 	validateGlobalConfig()
 }
