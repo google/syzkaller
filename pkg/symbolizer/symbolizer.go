@@ -21,7 +21,9 @@ type Symbolizer interface {
 
 func Make(target *targets.Target) (Symbolizer, error) {
 	if target != nil && target.Arch == targets.AMD64 {
-		return newELFSymbolizer(target.KernelObject)
+		if s, err := newELFSymbolizer(target.KernelObject); err == nil {
+			return s, nil
+		}
 	}
 	return &addr2Line{target: target}, nil
 }
