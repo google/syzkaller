@@ -238,11 +238,8 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 
 	// Check Column.
 	if native.Column != ref.Column {
-		// Tolerating 0 vs non-0 if one didn't find it?
+		// We tolerate 0 vs non-0 if one symbolizer didn't find it.
 		// If native found it (non-0) and ref didn't (0) -> OK.
-		// If ref found it and native didn't -> maybe OK if we allow leniency?
-		// But user asked for correctness.
-		// Let's log it.
 		if native.Column == 0 && ref.Column != 0 {
 			t.Logf("frame %d column missing in native: native=%d ref=%d", i, native.Column, ref.Column)
 			// return false?
