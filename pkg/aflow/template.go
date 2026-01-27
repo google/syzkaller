@@ -94,6 +94,7 @@ func walkTemplate(n parse.Node, used map[string]bool, errp *error) {
 		used[n.Ident[0]] = true
 	case *parse.VariableNode:
 	case *parse.TextNode:
+	case *parse.IdentifierNode:
 	default:
 		noteError(errp, "unhandled node type %T", n)
 	}

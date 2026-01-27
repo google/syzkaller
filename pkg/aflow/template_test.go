@@ -64,6 +64,14 @@ func TestTemplate(t *testing.T) {
 			},
 			err: "input foo is not provided",
 		},
+		{
+			template: `{{if and .foo .bar}} yes {{end}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeFor[bool](),
+				"bar": reflect.TypeFor[int](),
+			},
+			used: []string{"foo", "bar"},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
