@@ -242,10 +242,8 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 		// If native found it (non-0) and ref didn't (0) -> OK.
 		if native.Column == 0 && ref.Column != 0 {
 			t.Logf("frame %d column missing in native: native=%d ref=%d", i, native.Column, ref.Column)
-			// return false?
 		} else if native.Column != 0 && ref.Column != 0 && native.Column != ref.Column {
 			t.Logf("frame %d column mismatch: native=%d ref=%d", i, native.Column, ref.Column)
-			// return false?
 		}
 	}
 
