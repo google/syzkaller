@@ -161,7 +161,7 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 			return nil, fmt.Errorf("failed to parse file:line in addr2line output: %v", ln)
 		}
 
-		// Helper to extract number
+		// Helper to extract number.
 		parseNum := func(start int) (int, int) {
 			end := start
 			for end < len(ln) && ln[end] >= '0' && ln[end] <= '9' {
@@ -185,20 +185,20 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 		// Check if we have another colon before this?
 		colon2 := strings.LastIndexByte(ln[:colon1], ':')
 		if colon2 != -1 {
-			// Try parsing between colon2 and colon1
+			// Try parsing between colon2 and colon1.
 			val2, end2 := parseNum(colon2 + 1)
 			if end2 == colon1 {
-				// It looks like ...:line:col
+				// It looks like ...:line:col.
 				line = val2
 				col = val1
 				fileEnd = colon2
 			} else {
-				// Just ...:line
+				// Just ...:line.
 				line = val1
 				fileEnd = colon1
 			}
 		} else {
-			// Just ...:line
+			// Just ...:line.
 			line = val1
 			fileEnd = colon1
 		}

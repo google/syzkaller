@@ -157,7 +157,7 @@ func (es *elfSymbolizer) getParsedCU(cu *dwarf.Entry) (*parsedCU, error) {
 		entries = append(entries, entry)
 	}
 
-	// Sort by address
+	// Sort by address.
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Address < entries[j].Address
 	})
@@ -286,10 +286,10 @@ func (es *elfSymbolizer) symbolizePC(pc uint64) []Frame {
 		}
 	}
 
-	funcEntry, err := es.getFunction(cu, pc)
+	funcEntry, _ := es.getFunction(cu, pc)
 	var frames []Frame
 	if funcEntry != nil {
-		// Only pass entry pointer if foundLine is true, otherwise pass nil
+		// Only pass entry pointer if foundLine is true, otherwise pass nil.
 		var entryPtr *dwarf.LineEntry
 		if foundLine {
 			entryPtr = &entry
@@ -418,47 +418,39 @@ func findCoveringInlined(dw *dwarf.Data, r *dwarf.Reader, pc uint64, stack *[]*d
 			return false
 		}
 
-		if entry.Tag == dwarf.TagInlinedSubroutine {
-			covers := false
-			if ranges, err := dw.Ranges(entry); err == nil {
-				for _, rng := range ranges {
-					if pc >= rng[0] && pc < rng[1] {
-						covers = true
-						break
-					}
+		covers := false
+		if ranges, err := dw.Ranges(entry); err == nil {
+			for _, rng := range ranges {
+				if pc >= rng[0] && pc < rng[1] {
+					covers = true
+					break
 				}
 			}
+		}
 
-			if covers {
-				if entry.Children {
-					if findCoveringInlined(dw, r, pc, stack) {
-						*stack = append(*stack, entry)
-						return true
-					}
-				}
-				*stack = append(*stack, entry)
-				return true
-			} else {
-				if entry.Children {
-					r.SkipChildren()
-				}
+		if !covers {
+			if entry.Children {
+				r.SkipChildren()
 			}
-		} else {
-			covers := false
-			if ranges, err := dw.Ranges(entry); err == nil {
-				for _, rng := range ranges {
-					if pc >= rng[0] && pc < rng[1] {
-						covers = true
-						break
-					}
-				}
-			}
-			if covers && entry.Children {
+			continue
+		}
+
+		// Entry covers PC.
+		if entry.Tag == dwarf.TagInlinedSubroutine {
+			if entry.Children {
 				if findCoveringInlined(dw, r, pc, stack) {
+					*stack = append(*stack, entry)
 					return true
 				}
-			} else if entry.Children {
-				r.SkipChildren()
+			}
+			*stack = append(*stack, entry)
+			return true
+		}
+
+		// Other tags (e.g. LexicalBlock).
+		if entry.Children {
+			if findCoveringInlined(dw, r, pc, stack) {
+				return true
 			}
 		}
 	}
