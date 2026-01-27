@@ -44,11 +44,11 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 	}
 	defer symb.Close()
 
-	// 1. Gather interesting PCs
+	// 1. Gather interesting PCs.
 	pcs := gatherPCs(t, vmlinux, 50)
-	t.Logf("Testing %v PCs...", len(pcs))
+	t.Logf("testing %v PCs...", len(pcs))
 
-	// 2. Run independent verification (llvm-symbolizer)
+	// 2. Run independent verification (llvm-symbolizer).
 	refSymbolizerPath, err := exec.LookPath("llvm-symbolizer")
 	if err != nil {
 		t.Skip("llvm-symbolizer not found")
@@ -56,13 +56,13 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 
 	refFrames := runLLVMSymbolizer(t, refSymbolizerPath, vmlinux, pcs)
 
-	// 3. Run native symbolizer
+	// 3. Run native symbolizer.
 	nativeFrames, err := symb.Symbolize(vmlinux, pcs...)
 	if err != nil {
 		t.Fatalf("native symbolizer failed: %v", err)
 	}
 
-	// 4. Compare
+	// 4. Compare.
 	if len(nativeFrames) != len(refFrames) {
 		t.Fatalf("mismatch in number of frames: native=%v ref=%v", len(nativeFrames), len(refFrames))
 	}
@@ -78,6 +78,21 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 		}
 	}
 }
+
+// ... (skipping gatherPCs which also likely has issues, wait, I see more lint errors for verification_test.go in output)
+// pkg/symbolizer/verification_test.go:49:2: lint: Don't start log/error messages with a Capital letter (syz-linter)
+// pkg/symbolizer/verification_test.go:163:7: lint: Add a period at the end of the comment (syz-linter)
+// pkg/symbolizer/verification_test.go:213:4: lint: Don't use period at the end of log/error messages (syz-linter)
+// pkg/symbolizer/verification_test.go:221:3: lint: Don't start log/error messages with a Capital letter (syz-linter)
+// pkg/symbolizer/verification_test.go:234:3: lint: Don't start log/error messages with a Capital letter (syz-linter)
+// pkg/symbolizer/verification_test.go:237:2: lint: Add a period at the end of the comment (syz-linter)
+// pkg/symbolizer/verification_test.go:245:4: lint: Don't start log/error messages with a Capital letter (syz-linter)
+// pkg/symbolizer/verification_test.go:246:4: lint: Standalone comments should be complete sentences with first word capitalized and a period at the end (syz-linter)
+// pkg/symbolizer/verification_test.go:248:4: lint: Don't start log/error messages with a Capital letter (syz-linter)
+// pkg/symbolizer/verification_test.go:249:4: lint: Standalone comments should be complete sentences with first word capitalized and a period at the end (syz-linter)
+
+// Only lines 47-80 cover TestNativeSymbolizerVerification main body.
+// I will also fix compareFrames (lines 196+).
 
 func gatherPCs(t *testing.T, bin string, count int) []uint64 {
 	cmd := exec.Command("nm", "-n", bin)
@@ -210,7 +225,7 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 
 	if !fileMatch {
 		if native.File != "" && (ref.File == "" || ref.File == "??") {
-			t.Logf("Frame %d: Native found file %q while ref didn't. accepting.", i, native.File)
+			t.Logf("frame %d: native found file %q while ref didn't. accepting", i, native.File)
 			fileMatch = true
 		} else if ref.File != "" && native.File == "" {
 			fileMatch = false
@@ -218,7 +233,7 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 	}
 
 	if !funcMatch || !fileMatch {
-		t.Logf("Frame %d mismatch:\n  Native: %s %s:%d:%d\n  Ref:    %s %s:%d:%d",
+		t.Logf("frame %d mismatch:\n  native: %s %s:%d:%d\n  ref:    %s %s:%d:%d",
 			i, native.Func, native.File, native.Line, native.Column, ref.Func, ref.File, ref.Line, ref.Column)
 		return false
 	}
@@ -231,10 +246,10 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 	}
 
 	if lineMismatch {
-		t.Logf("Frame %d Line mismatch: native=%d ref=%d", i, native.Line, ref.Line)
+		t.Logf("frame %d line mismatch: native=%d ref=%d", i, native.Line, ref.Line)
 	}
 
-	// Check Column
+	// Check Column.
 	if native.Column != ref.Column {
 		// Tolerating 0 vs non-0 if one didn't find it?
 		// If native found it (non-0) and ref didn't (0) -> OK.
@@ -242,10 +257,10 @@ func compareFrames(t *testing.T, i int, native, ref symbolizer.Frame) bool {
 		// But user asked for correctness.
 		// Let's log it.
 		if native.Column == 0 && ref.Column != 0 {
-			t.Logf("Frame %d Column missing in native: native=%d ref=%d", i, native.Column, ref.Column)
+			t.Logf("frame %d column missing in native: native=%d ref=%d", i, native.Column, ref.Column)
 			// return false?
 		} else if native.Column != 0 && ref.Column != 0 && native.Column != ref.Column {
-			t.Logf("Frame %d Column mismatch: native=%d ref=%d", i, native.Column, ref.Column)
+			t.Logf("frame %d column mismatch: native=%d ref=%d", i, native.Column, ref.Column)
 			// return false?
 		}
 	}
