@@ -145,7 +145,7 @@ func runLLVMSymbolizer(t *testing.T, path, bin string, pcs []uint64) []symbolize
 			currentFunc = line
 			continue
 		}
-		// Parse File:Line:Column.
+		// Parse "File:Line:Column" format.
 		// Logic: Find last colon -> Column. Next last -> Line.
 		// If only one colon -> File:Line.
 		// llvm-symbolizer output style GNU:
