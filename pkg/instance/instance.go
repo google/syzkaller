@@ -35,13 +35,15 @@ type Env interface {
 	CleanKernel(*BuildKernelConfig) error
 	BuildKernel(*BuildKernelConfig) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
+	EnableMemoryDumps(folder string)
 }
 
 type env struct {
-	cfg           *mgrconfig.Config
-	optionalFlags bool
-	buildSem      *osutil.Semaphore
-	testSem       *osutil.Semaphore
+	cfg              *mgrconfig.Config
+	optionalFlags    bool
+	buildSem         *osutil.Semaphore
+	testSem          *osutil.Semaphore
+	memoryDumpFolder string
 }
 
 type BuildKernelConfig struct {
@@ -79,6 +81,10 @@ func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *osutil.Semaphore) (Env, er
 		testSem:       testSem,
 	}
 	return env, nil
+}
+
+func (env *env) EnableMemoryDumps(folder string) {
+	env.memoryDumpFolder = folder
 }
 
 func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
@@ -279,14 +285,15 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 	res := make(chan EnvTestResult, numVMs)
 	for i := 0; i < numVMs; i++ {
 		inst := &inst{
-			cfg:           env.cfg,
-			optionalFlags: env.optionalFlags,
-			reporter:      reporter,
-			vmPool:        vmPool,
-			vmIndex:       i,
-			reproSyz:      reproSyz,
-			reproOpts:     reproOpts,
-			reproC:        reproC,
+			cfg:              env.cfg,
+			optionalFlags:    env.optionalFlags,
+			reporter:         reporter,
+			vmPool:           vmPool,
+			vmIndex:          i,
+			reproSyz:         reproSyz,
+			reproOpts:        reproOpts,
+			reproC:           reproC,
+			memoryDumpFolder: env.memoryDumpFolder,
 		}
 		go func() { res <- inst.test() }()
 	}
@@ -298,20 +305,22 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestR
 }
 
 type inst struct {
-	cfg           *mgrconfig.Config
-	optionalFlags bool
-	reporter      *report.Reporter
-	vmPool        *vm.Pool
-	vm            *vm.Instance
-	vmIndex       int
-	reproSyz      []byte
-	reproOpts     []byte
-	reproC        []byte
+	cfg              *mgrconfig.Config
+	optionalFlags    bool
+	reporter         *report.Reporter
+	vmPool           *vm.Pool
+	vm               *vm.Instance
+	vmIndex          int
+	reproSyz         []byte
+	reproOpts        []byte
+	reproC           []byte
+	memoryDumpFolder string
 }
 
 type EnvTestResult struct {
-	Error     error
-	RawOutput []byte
+	Error          error
+	RawOutput      []byte
+	MemoryDumpFile string
 }
 
 func (inst *inst) test() EnvTestResult {
@@ -359,12 +368,43 @@ func (inst *inst) test() EnvTestResult {
 	inst.vm = vmInst
 	ret := EnvTestResult{}
 	if ret.Error = inst.testInstance(); ret.Error != nil {
+		if inst.needDump(ret.Error) {
+			ret.MemoryDumpFile = inst.collectDump()
+		}
 		return ret
 	}
 	if len(inst.reproSyz) != 0 || len(inst.reproC) != 0 {
 		ret.RawOutput, ret.Error = inst.testRepro()
 	}
+	if ret.Error != nil && inst.needDump(ret.Error) {
+		ret.MemoryDumpFile = inst.collectDump()
+	}
 	return ret
+}
+
+func (inst *inst) needDump(err error) bool {
+	if inst.memoryDumpFolder == "" {
+		return false
+	}
+	var crashErr *CrashError
+	if errors.As(err, &crashErr) {
+		return true
+	}
+	var testErr *TestError
+	if errors.As(err, &testErr) {
+		return testErr.Report != nil && testErr.Report.Panicked
+	}
+	return false
+}
+
+func (inst *inst) collectDump() string {
+	name := fmt.Sprintf("kdump-%v-%v", inst.vmIndex, time.Now().UnixNano())
+	path := filepath.Join(inst.memoryDumpFolder, name)
+	if err := ExtractMemoryDump(inst.vm, targets.Get(inst.cfg.TargetOS, inst.cfg.TargetVMArch), path); err != nil {
+		log.Logf(0, "failed to collect memory dump: %v", err)
+		return ""
+	}
+	return path
 }
 
 // testInstance tests that the VM does not crash on a simple program.
