@@ -126,16 +126,31 @@ func downloadBug(id, inputFile, token string) error {
 	crash := info["crashes"].([]any)[0].(map[string]any)
 	inputs := map[string]any{
 		"SyzkallerCommit": crash["syzkaller-commit"],
+		"KernelRepo":      crash["kernel-source-git"],
+		"KernelCommit":    crash["kernel-source-commit"],
 	}
-	inputs["ReproSyz"], err = get(crash["syz-reproducer"].(string), token)
+
+	fetchText := func(key string) (string, error) {
+		path, ok := crash[key].(string)
+		if !ok || path == "" {
+			return "", nil
+		}
+		return get(path, token)
+	}
+
+	inputs["ReproSyz"], err = fetchText("syz-reproducer")
 	if err != nil {
 		return err
 	}
-	inputs["ReproC"], err = get(crash["c-reproducer"].(string), token)
+	inputs["ReproC"], err = fetchText("c-reproducer")
 	if err != nil {
 		return err
 	}
-	inputs["KernelConfig"], err = get(crash["kernel-config"].(string), token)
+	inputs["KernelConfig"], err = fetchText("kernel-config")
+	if err != nil {
+		return err
+	}
+	inputs["CrashReport"], err = fetchText("crash-report-link")
 	if err != nil {
 		return err
 	}
