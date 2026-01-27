@@ -515,8 +515,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 		go func() {
 			symb, err := symbolizer.Make(target)
 			if err != nil {
-				res.err = fmt.Errorf("failed to create symbolizer: %w", err)
-				symbolizerC <- res
+				symbolizerC <- symbolizerResult{err: fmt.Errorf("failed to create symbolizer: %w", err)}
 				return
 			}
 			defer symb.Close()
