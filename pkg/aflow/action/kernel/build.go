@@ -38,6 +38,13 @@ func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
 	if err := osutil.WriteFile(filepath.Join(buildDir, ".config"), []byte(cfg)); err != nil {
 		return err
 	}
+	// We don't fuzz x32 arch, and it's not very interesting,
+	// but building with this config and ld.lld fails with the following error:
+	// ld.lld: error: arch/x86/entry/vdso/vgetrandom-x32.o:(.note.gnu.property+0x0): data is too short
+	// ld.lld: error: arch/x86/entry/vdso/vgetcpu-x32.o:(.note.gnu.property+0x0): data is too short
+	if _, err := osutil.RunCmd(time.Hour, srcDir, filepath.Join("scripts", "config"), "-d", "X86_X32_ABI"); err != nil {
+		return err
+	}
 	target := targets.List[targets.Linux][targets.AMD64]
 	image := filepath.FromSlash(build.LinuxKernelImage(targets.AMD64))
 	makeArgs := build.LinuxMakeArgs(target, targets.DefaultLLVMCompiler, targets.DefaultLLVMLinker,
