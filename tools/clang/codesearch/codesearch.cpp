@@ -203,7 +203,7 @@ bool Indexer::TraverseCallExpr(CallExpr* CE) {
 }
 
 bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
-  if (const auto* Func = dyn_cast<FunctionDecl>(DeclRef->getDecl()))
+  if (const auto* Func = dyn_cast_if_present<FunctionDecl>(DeclRef->getDecl()))
     EmitReference(DeclRef->getBeginLoc(), DeclRef->getDecl(), EntityKindFunction,
                   InCallee ? RefKindCall : RefKindTakesAddr);
   return true;
@@ -246,25 +246,25 @@ bool Indexer::VisitTypedefType(const TypedefType* T) {
     return true;
   EmitReference(TypeRefingLocation, T->getDecl(), EntityKindTypedef, RefKindUses);
   // If it's a struct typedef, also note the struct use.
-  if (const auto* Tag = dyn_cast<TagType>(T->getCanonicalTypeInternal().getTypePtr()))
+  if (const auto* Tag = dyn_cast_if_present<TagType>(T->getCanonicalTypeInternal().getTypePtr()))
     VisitTagType(Tag);
   return true;
 }
 
 bool Indexer::VisitMemberExpr(const MemberExpr* E) {
   auto* Record = E->getBase()->getType()->getAsRecordDecl();
-  if (auto* Ptr = dyn_cast<PointerType>(E->getBase()->getType()))
+  if (auto* Ptr = dyn_cast_if_present<PointerType>(E->getBase()->getType()))
     Record = Ptr->getPointeeType()->getAsRecordDecl();
   if (!Record)
     return true;
   const std::string Field = Record->getNameAsString() + "::" + E->getMemberDecl()->getNameAsString();
   const char* RefKind = RefKindRead;
   const Stmt* P = GetParent(E);
-  if (auto* BO = dyn_cast<BinaryOperator>(P)) {
+  if (auto* BO = dyn_cast_if_present<BinaryOperator>(P)) {
     if (E == BO->getLHS() && (BO->isAssignmentOp() || BO->isCompoundAssignmentOp() || BO->isShiftAssignOp()))
       RefKind = RefKindWrite;
   }
-  if (auto* UO = dyn_cast<UnaryOperator>(P))
+  if (auto* UO = dyn_cast_if_present<UnaryOperator>(P))
     RefKind = RefKindTakesAddr;
   EmitReference(E->getMemberLoc(), Field, EntityKindField, RefKind);
   return true;
