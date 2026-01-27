@@ -945,7 +945,7 @@ func isCorrupted(title string, report []byte, format oopsFormat) (bool, string) 
 				break
 			}
 		}
-		if corrupted {
+		if key != riscvSpecialStackStart && corrupted {
 			return true, "no frames in a stack trace"
 		}
 	}
@@ -1141,6 +1141,10 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
 }
 
+// In riscv, if show_regs() is called from kernel space, the stack is dumped without a proper indicator. However a
+// missing stack trace does not necessarily mean the log is corrupted. Match the last line printed by show_regs(),
+// before the stack dump.
+var riscvSpecialStackStart = regexp.MustCompile(`status: [0-9a-f]{16} badaddr: [0-9a-f]{16} cause: [0-9a-f]{16}`)
 var linuxStackParams = &stackParams{
 	stackStartRes: []*regexp.Regexp{
 		regexp.MustCompile(`Call (?:T|t)race`),
@@ -1153,6 +1157,8 @@ var linuxStackParams = &stackParams{
 		regexp.MustCompile(`[^k] backtrace(?: \(crc [[:xdigit:]]*\))?:`),
 		regexp.MustCompile(`Backtrace:`),
 		regexp.MustCompile(`Uninit was stored to memory at`),
+		// A special stack trace for RISC-V is handled separately.
+		riscvSpecialStackStart,
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
