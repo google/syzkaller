@@ -329,24 +329,7 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 
 func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *trajectory.Span) (
 	reply string, calls []*genai.FunctionCall, err error) {
-	if len(resp.Candidates) == 0 || resp.Candidates[0] == nil {
-		err = fmt.Errorf("empty model response")
-		if resp.PromptFeedback != nil {
-			err = fmt.Errorf("request blocked: %v", resp.PromptFeedback.BlockReasonMessage)
-		}
-		return
-	}
 	candidate := resp.Candidates[0]
-	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-		err = fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
-		return
-	}
-	// We don't expect to receive these fields now.
-	// Note: CitationMetadata may be present sometimes, but we don't have uses for it.
-	if candidate.GroundingMetadata != nil || candidate.LogprobsResult != nil {
-		err = fmt.Errorf("unexpected reply fields (%+v)", *candidate)
-		return
-	}
 	if resp.UsageMetadata != nil {
 		// We add ToolUsePromptTokenCount just in case, but Gemini does not use/set it.
 		span.InputTokens = int(resp.UsageMetadata.PromptTokenCount) +
@@ -355,13 +338,6 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 		span.OutputThoughtsTokens = int(resp.UsageMetadata.ThoughtsTokenCount)
 	}
 	for _, part := range candidate.Content.Parts {
-		// We don't expect to receive these now.
-		if part.VideoMetadata != nil || part.InlineData != nil ||
-			part.FileData != nil || part.FunctionResponse != nil ||
-			part.CodeExecutionResult != nil || part.ExecutableCode != nil {
-			err = fmt.Errorf("unexpected reply part (%+v)", *part)
-			return
-		}
 		if part.FunctionCall != nil {
 			calls = append(calls, part.FunctionCall)
 		} else if part.Thought {
@@ -383,12 +359,10 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
 	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
-	var backoff time.Duration
 	for try := 0; ; try++ {
-		resp, err := a.generateContentCached(ctx, cfg, req, candidate)
-		retry, err := parseLLMError(resp, err, ctx.modelName(a.Model), try, &backoff)
-		if retry != 0 {
-			time.Sleep(retry)
+		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try)
+		if retryErr := new(retryError); errors.As(err, &retryErr) {
+			time.Sleep(retryErr.delay)
 			continue
 		}
 		return resp, err
@@ -396,7 +370,7 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 }
 
 func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateContentConfig,
-	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
+	req []*genai.Content, candidate, try int) (*genai.GenerateContentResponse, error) {
 	type Cached struct {
 		Config  *genai.GenerateContentConfig
 		Request []*genai.Content
@@ -407,6 +381,7 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateConten
 		model, hash.String(cfg), hash.String(req), candidate)
 	cached, err := CacheObject(ctx, "llm", desc, func() (Cached, error) {
 		resp, err := ctx.generateContent(model, cfg, req)
+		err = parseLLMError(resp, err, model, try)
 		return Cached{
 			Config:  cfg,
 			Request: req,
@@ -416,35 +391,78 @@ func (a *LLMAgent) generateContentCached(ctx *Context, cfg *genai.GenerateConten
 	return cached.Reply, err
 }
 
-func parseLLMError(resp *genai.GenerateContentResponse, err error, model string,
-	try int, backoff *time.Duration) (time.Duration, error) {
+func parseLLMError(resp *genai.GenerateContentResponse, err error, model string, try int) error {
+	err = parseLLMErrorImpl(resp, err, model, try)
+	if retryErr := new(retryError); errors.As(err, &retryErr) && try >= maxLLMRetryIters {
+		// We can't retry infinity, so revert back to the original error
+		// when we reach maxLLMRetryIters.
+		return retryErr.err
+	}
+	return err
+}
+
+func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model string, try int) error {
+	if err == nil {
+		return parseLLMResp(resp)
+	}
 	var apiErr genai.APIError
-	if err == nil || !errors.As(err, &apiErr) {
-		return 0, err
+	if !errors.As(err, &apiErr) {
+		return err
 	}
 	if try < maxLLMRetryIters && apiErr.Code == http.StatusServiceUnavailable {
-		*backoff = min(*backoff+time.Second, maxLLMBackoff)
-		return *backoff, nil
+		return &retryError{min(time.Duration(try+1)*time.Second, maxLLMBackoff), err}
 	}
 	if apiErr.Code == http.StatusTooManyRequests &&
 		strings.Contains(apiErr.Message, "Quota exceeded for metric") {
 		if match := rePleaseRetry.FindStringSubmatch(apiErr.Message); match != nil {
 			sec, _ := strconv.Atoi(match[1])
-			return time.Duration(sec+1) * time.Second, nil
+			return &retryError{time.Duration(sec+1) * time.Second, err}
 		}
 		if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
-			return 0, &modelQuotaError{model}
+			return &modelQuotaError{model}
 		}
 	}
 	if apiErr.Code == http.StatusBadRequest &&
 		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
-		return 0, &tokenOverflowError{err}
+		return &tokenOverflowError{err}
 	}
-	if apiErr.Code == http.StatusInternalServerError && try < maxLLMRetryIters {
+	if apiErr.Code == http.StatusInternalServerError {
 		// Let's assume ISE is just something temporal on the server side.
-		return time.Second, nil
+		return &retryError{time.Second, err}
 	}
-	return 0, err
+	return err
+}
+
+func parseLLMResp(resp *genai.GenerateContentResponse) error {
+	if len(resp.Candidates) == 0 || resp.Candidates[0] == nil {
+		if resp.PromptFeedback != nil {
+			return fmt.Errorf("request blocked: %v", resp.PromptFeedback.BlockReasonMessage)
+		}
+		return fmt.Errorf("empty model response")
+	}
+	candidate := resp.Candidates[0]
+	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
+		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall {
+			// Let's consider this as a temp error, and that the next time it won't
+			// generate the same buggy output. In either case we have maxLLMRetryIters.
+			return &retryError{0, errors.New(string(genai.FinishReasonMalformedFunctionCall))}
+		}
+		return fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
+	}
+	// We don't expect to receive these fields now.
+	// Note: CitationMetadata may be present sometimes, but we don't have uses for it.
+	if candidate.GroundingMetadata != nil || candidate.LogprobsResult != nil {
+		return fmt.Errorf("unexpected reply fields (%+v)", *candidate)
+	}
+	for _, part := range candidate.Content.Parts {
+		// We don't expect to receive these now.
+		if part.VideoMetadata != nil || part.InlineData != nil ||
+			part.FileData != nil || part.FunctionResponse != nil ||
+			part.CodeExecutionResult != nil || part.ExecutableCode != nil {
+			return fmt.Errorf("unexpected reply part (%+v)", *part)
+		}
+	}
+	return nil
 }
 
 const (
@@ -453,6 +471,19 @@ const (
 )
 
 var rePleaseRetry = regexp.MustCompile("Please retry in ([0-9]+)[.s]")
+
+type retryError struct {
+	delay time.Duration
+	err   error
+}
+
+func (err *retryError) Error() string {
+	return fmt.Sprintf("%s (should be retried after %v)", err.err, err.delay)
+}
+
+func (err *retryError) Unwrap() error {
+	return err.err
+}
 
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
