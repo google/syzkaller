@@ -1,5 +1,6 @@
 TITLE: kernel BUG in f2fs_sync_node_pages
 TYPE: BUG
+PANICKED: Y
 
 [  155.791771][ T1059] ------------[ cut here ]------------
 [  155.797494][ T1059] kernel BUG at mm/filemap.c:1498!

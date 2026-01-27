@@ -1,5 +1,6 @@
 TITLE: WARNING: locking bug in l2cap_sock_teardown_cb
 TYPE: LOCKDEP
+PANICKED: Y
 
 [  393.531131][   T12] ------------[ cut here ]------------
 [  393.536719][   T12] DEBUG_LOCKS_WARN_ON(1)

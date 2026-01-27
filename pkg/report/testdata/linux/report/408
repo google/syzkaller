@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in input_register_device
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [  116.957737] ------------[ cut here ]------------
 [  116.963070] refcount_t: increment on 0; use-after-free.

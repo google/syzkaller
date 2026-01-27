@@ -1,6 +1,7 @@
 TITLE: kernel panic: panic_on_warn set
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [  238.092073] page:ffffea000712e200 count:1 mapcount:0 mapping:ffff8801c4b88c00 index:0x0 compound_mapcount: 0
 [  238.102211] flags: 0x200000000008100(slab|head)

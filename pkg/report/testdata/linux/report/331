@@ -1,6 +1,7 @@
 TITLE: kernel panic: corrupted stack end in wb_workfn
 ALT: stack-overflow in wb_workfn
 TYPE: DoS
+PANICKED: Y
 
 [  839.617079] Kernel panic - not syncing: corrupted stack end detected inside scheduler
 [  839.619019] CPU: 0 PID: 7895 Comm: kworker/u12:6 Not tainted 4.20.0+ #11

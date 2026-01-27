@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  343.370355] ------------[ cut here ]------------
 [  343.375254] do_IRQ(): syz-executor1 has overflown the kernel stack (cur:ffff88806e810000,sp:ffff8880ac8e0c80,irq stk top-bottom:ffff8880ae600080-ffff8880ae608000,exception stk top-bottom:fffffe0000006080-fffffe0000010000,ip:__sanitizer_cov_trace_pc+0x8/0x50)

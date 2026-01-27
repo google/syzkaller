@@ -155,6 +155,8 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 
 const contextConsole = "console"
 
+var linuxPanickedRe = regexp.MustCompile(`Kernel panic - not syncing`)
+
 func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
@@ -196,6 +198,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = isCorrupted(title, report, format)
 		}
+		rep.Panicked = linuxPanickedRe.Match(output)
 		if rep.CorruptedReason == corruptedNoFrames && context != contextConsole && !questionable {
 			// We used to look at questionable frame with the following incentive:
 			// """

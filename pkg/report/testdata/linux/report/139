@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in hash_sendmsg
 ALT: bad-access in hash_sendmsg
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [   70.687256] sctp: [Deprecated]: syz-executor5 (pid 16777) Use of int in maxseg socket option.
 [   70.687256] Use struct sctp_assoc_value instead

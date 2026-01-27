@@ -2,6 +2,7 @@ TITLE: BUG: unable to handle kernel paging request in bpf_prog_kallsyms_find
 ALT: bad-access in bpf_prog_kallsyms_find
 TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
+PANICKED: Y
 
 [  235.855782] BUG: unable to handle kernel paging request at ffffc90001935030
 [  235.862918] PGD 1da95a067 P4D 1da95a067 PUD 1da95b067 PMD 1d418b067 PTE 0

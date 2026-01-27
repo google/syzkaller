@@ -1,5 +1,6 @@
 TITLE: WARNING in ext4_fileattr_get
 TYPE: WARNING
+PANICKED: Y
 
 [   86.958885][ T3004] ------------[ cut here ]------------
 [   86.960044][ T3004] WARNING: CPU: 0 PID: 3004 at lib/string_helpers.c:1029 __fortify_report+0x6c/0x74

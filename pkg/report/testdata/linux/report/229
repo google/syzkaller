@@ -1,6 +1,7 @@
 TITLE: WARNING: kmalloc bug in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  212.560360] FAULT_INJECTION: forcing a failure.
 [  212.560360] name failslab, interval 1, probability 0, space 0, times 0

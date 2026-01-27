@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in dev_activate
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [  359.890494] refcount_t: increment on 0; use-after-free.
 [  359.914113] ------------[ cut here ]------------

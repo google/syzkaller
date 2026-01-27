@@ -1,6 +1,7 @@
 TITLE: BUG: stack guard page was hit in corrupted
 ALT: stack-overflow in corrupted
 CORRUPTED: Y
+PANICKED: Y
 
 [  760.482711] BUG: stack guard page was hit at 00000000397c6d92 (stack is 00000000a0f6b86a..000000000e6f9570)
 [  760.492602] kernel stack overflow (double-fault): 0000 [#1] PREEMPT SMP

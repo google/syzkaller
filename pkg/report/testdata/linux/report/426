@@ -1,5 +1,6 @@
 TITLE: WARNING in pvr2_i2c_core_done
 TYPE: WARNING
+PANICKED: Y
 
 [  194.547018][  T102] ------------[ cut here ]------------
 [  194.552531][  T102] sysfs group 'power' not found for kobject '0-0011'

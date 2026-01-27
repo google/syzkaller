@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in ipcget
 ALT: bad-access in ipcget
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [   83.458005] BUG: unable to handle kernel paging request at ffffffffffffffd8
 [   83.465166] IP: memcmp+0x9/0x40

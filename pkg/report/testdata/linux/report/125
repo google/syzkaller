@@ -1,5 +1,6 @@
 TITLE: BUG: bad usercopy in sctp_getsockopt
 TYPE: BUG
+PANICKED: Y
 
 syzkaller login: [   55.288565] usercopy: kernel memory exposure attempt detected from ffff8801d4310630 (SCTPv6) (11 bytes)
 [   55.290089] ------------[ cut here ]------------

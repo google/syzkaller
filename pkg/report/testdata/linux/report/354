@@ -1,5 +1,6 @@
 TITLE: trusty: ASSERT FAILED: list_in_list(&ref->ref_node)
 TYPE: DoS
+PANICKED: Y
 
 [  740.950561] trusty: panic (caller 0xffffffffe000fbd0): DEBUG ASSERT FAILED at (trusty/kernel/include/shared/lk/reflist.h:63): list_in_list(&ref->ref_node)
 [  740.951499] trusty: HALT: (reason = 9)

@@ -1,5 +1,6 @@
 TITLE: kernel panic: stack is corrupted in ktime_get
 TYPE: DoS
+PANICKED: Y
 
 [ 1455.638039] Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: ktime_get+0x3f2/0x400
 [ 1455.648147] CPU: 0 PID: 26967 Comm: syz-executor3 Not tainted 4.20.0+ #172

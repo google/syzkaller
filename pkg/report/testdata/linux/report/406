@@ -1,5 +1,6 @@
 TITLE: WARNING: refcount bug in hci_register_dev
 TYPE: REFCOUNT_WARNING
+PANICKED: Y
 
 [   83.882482][T10363] ------------[ cut here ]------------
 [   83.894883][T10363] refcount_t: increment on 0; use-after-free.

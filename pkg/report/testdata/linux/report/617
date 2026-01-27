@@ -1,5 +1,6 @@
 TITLE: kernel panic: VFS: Unable to mount root fs on unknown-block(NUM,NUM)
 TYPE: DoS
+PANICKED: Y
 
 
 [    7.588873][    T1] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)

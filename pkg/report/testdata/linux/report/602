@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in vmx_vcpu_run
 ALT: bad-access in vmx_vcpu_run
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [   67.921889][T10420] Not enough msr switch entries. Can't add msr abd1e896
 [   67.932797][T10420] unchecked MSR access error: WRMSR to 0x3f1 (tried to write 0x0000000000000000) at rIP: 0xffffffff81123aff (add_atomic_switch_msr+0x5f/0x500)

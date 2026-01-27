@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in netdev_freemem
 TYPE: WARNING
+PANICKED: Y
 
 [ 7978.980484][ T7864] ------------[ cut here ]------------
 [ 7978.984043][ T7864] WARNING: CPU: 0 PID: 7864 at lib/debugobjects.c:505 debug_print_object+0xb0/0xc4

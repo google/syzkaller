@@ -1,5 +1,6 @@
 TITLE: stack segment fault in kernel_init
 TYPE: DoS
+PANICKED: Y
 
 [    7.793224] stack segment: 0000 [#1] PREEMPT SMP KASAN PTI
 [    7.794002] CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.5.0-rc5+ #606

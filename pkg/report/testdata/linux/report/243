@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in migrate_task_rq_fair
 ALT: bad-access in migrate_task_rq_fair
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 syzkaller login: Unable to handle kernel paging request at virtual address fc14ef08
 pgd = c60b8887

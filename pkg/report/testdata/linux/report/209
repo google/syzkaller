@@ -1,5 +1,6 @@
 TITLE: WARNING: kmalloc bug in cpu_map_update_elem
 TYPE: WARNING
+PANICKED: Y
 
 [   29.689945] WARNING: CPU: 1 PID: 4183 at mm/util.c:403 kvmalloc_node+0xc3/0xd0
 [   29.710797] audit: type=1400 audit(1518457683.474:8): avc:  denied  { map_create } for  pid=4183 comm="syzkaller238030" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tclass=bpf permissive=1

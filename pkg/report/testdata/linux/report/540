@@ -1,5 +1,6 @@
 TITLE: kernel BUG in xt_rateest_tg_checkentry
 TYPE: BUG
+PANICKED: Y
 
 [   70.516302][ T8713] detected buffer overflow in strlen
 [   70.527902][ T8713] ------------[ cut here ]------------

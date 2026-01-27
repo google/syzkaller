@@ -1,5 +1,6 @@
 TITLE: WARNING in xfrm_state_fini
 TYPE: WARNING
+PANICKED: Y
 
 [  560.713151][ T1194] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
 [  560.714556][ T1194] Kernel panic - not syncing: panic_on_warn set ...

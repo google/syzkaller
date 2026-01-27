@@ -1,6 +1,7 @@
 TITLE: general protection fault in x25_connect
 ALT: bad-access in x25_connect
 TYPE: DoS
+PANICKED: Y
 
 [ 2348.757430][ T1533] ==================================================================
 [ 2348.763145][ T1560] kasan: GPF could be caused by NULL-ptr deref or user memory access

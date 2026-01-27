@@ -1,5 +1,6 @@
 TITLE: WARNING in dbAdjTree
 TYPE: WARNING
+PANICKED: Y
 
 [  237.726449][  T112] WARNING: fs/jfs/jfs_dmap.c:2867 at dbAdjTree+0x454/0x4e0, CPU#0: jfsCommit/112
 [  237.729558][   T43] usb 1-1: config 1 interface 0 altsetting 0 has 1 endpoint descriptor, different from the interface descriptor's value: 0

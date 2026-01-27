@@ -1,5 +1,6 @@
 TITLE: WARNING in tcf_exts_destroy
 TYPE: WARNING
+PANICKED: Y
 
 [   85.150823][ T9436] ------------[ cut here ]------------
 [   85.156312][ T9436] virt_to_cache: Object is not a Slab page!

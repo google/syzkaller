@@ -1,6 +1,7 @@
 TITLE: BUG: soft lockup in ip_list_rcv
 ALT: stall in ip_list_rcv
 TYPE: HANG
+PANICKED: Y
 
 [  637.311457][    C0] watchdog: BUG: soft lockup - CPU#0 stuck for 22s! [ksoftirqd/0:9]
 [  637.387608][    C0] Modules linked in:

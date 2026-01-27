@@ -72,6 +72,8 @@ type Report struct {
 	MachineInfo []byte
 	// If the crash happened in the context of the syz-executor process, Executor will hold more info.
 	Executor *ExecutorInfo
+	// Whether the kernel has panicked after the report (Linux-specific).
+	Panicked bool
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized. It prevents double symbolization.

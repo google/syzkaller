@@ -1,5 +1,6 @@
 TITLE: WARNING in vkms_vblank_simulate
 TYPE: WARNING
+PANICKED: Y
 
 [  201.134276][    C1] ------------[ cut here ]------------
 [  201.134282][    C1] WARNING: CPU: 1 PID: 13426 at drivers/gpu/drm/vkms/vkms_crtc.c:21 vkms_vblank_simulate+0x209/0x210

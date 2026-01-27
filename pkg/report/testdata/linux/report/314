@@ -1,7 +1,7 @@
-# This is not corrupted but we don't understand this stack trace format.
 TITLE: PANIC: double fault in compat_sock_ioctl
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [   10.584905] PANIC: double fault, error_code: 0x0
 [   10.585372] CPU: 0 PID: 917 Comm: netifd Not tainted 4.14.0-rc1-00015-gf5caf62 #2

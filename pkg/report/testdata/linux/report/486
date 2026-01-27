@@ -1,5 +1,6 @@
 TITLE: WARNING in usb_remove_ep_devs
 TYPE: WARNING
+PANICKED: Y
 
 [  269.644007][ T4107] ------------[ cut here ]------------
 [  269.656738][ T4107] WARNING: CPU: 1 PID: 4107 at drivers/base/devres.c:526 devres_release_all+0x8c/0xc3

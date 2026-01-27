@@ -2,6 +2,7 @@ TITLE: KASAN: slab-use-after-free Read in mptcp_pm_del_add_timer
 ALT: bad-access in mptcp_pm_del_add_timer
 TYPE: KASAN-USE-AFTER-FREE-READ
 FRAME: mptcp_pm_del_add_timer
+PANICKED: Y
 
 [  366.491414][    C0] ==================================================================
 [  366.493841][    C0] BUG: KASAN: slab-use-after-free in lock_timer_base+0x1d9/0x220

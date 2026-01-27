@@ -1,5 +1,6 @@
 TITLE: WARNING: proc registration bug in clusterip_tg_check
 TYPE: WARNING
+PANICKED: Y
 
 [  126.768183] ------------[ cut here ]------------
 [  126.773124] proc_dir_entry 'ipt_CLUSTERIP/172.20.0.170' already registered

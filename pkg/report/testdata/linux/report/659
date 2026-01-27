@@ -1,6 +1,7 @@
 TITLE: BUG: corrupted list in nilfs_sysfs_delete_device_group
 ALT: bad-access in nilfs_sysfs_delete_device_group
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [  531.961656][ T3061] ------------[ cut here ]------------
 [  531.962869][ T3061] kernel BUG at lib/list_debug.c:64!

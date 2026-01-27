@@ -2,6 +2,7 @@ TITLE: BUG: unable to handle kernel paging request in corrupted
 ALT: bad-access in corrupted
 TYPE: MEMORY_SAFETY_BUG
 CORRUPTED: Y
+PANICKED: Y
 
 [  490.564553][T16898] BUG: unable to handle page fault for address: 0000000000ffff88
 [  490.572415][T16898] #PF: supervisor read access in kernel mode

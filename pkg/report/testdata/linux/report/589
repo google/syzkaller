@@ -1,5 +1,6 @@
 TITLE: WARNING in macvlan_broadcast
 TYPE: WARNING
+PANICKED: Y
 
 [   92.038906][   T19] ------------[ cut here ]------------
 [   92.039453][   T19] WARNING: CPU: 1 PID: 19 at include/linux/seqlock.h:271 __seqprop_assert.constprop.0+0xf0/0x11c

@@ -3,6 +3,7 @@ ALT: INFO: task hung in __synchronize_srcu
 ALT: hang in __synchronize_srcu
 ALT: hang in synchronize_rcu
 TYPE: HANG
+PANICKED: Y
 
 [  926.100386] INFO: task kworker/u4:12:9048 blocked for more than 140 seconds.
 [  926.107664]       Not tainted 4.19.0-rc2+ #6

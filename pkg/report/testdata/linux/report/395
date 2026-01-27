@@ -1,6 +1,7 @@
 TITLE: KASAN: use-after-free Write in usb_anchor_resume_wakeups
 ALT: bad-access in usb_anchor_resume_wakeups
 TYPE: KASAN-USE-AFTER-FREE-WRITE
+PANICKED: Y
 
 [  136.593735][    C1] ==================================================================
 [  136.593749][    C1] BUG: KASAN: use-after-free in register_lock_class+0xeb7/0x1240

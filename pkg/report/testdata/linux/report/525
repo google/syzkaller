@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in netdev_freemem
 TYPE: WARNING
+PANICKED: Y
 
 [  775.101040][  T126] ------------[ cut here ]------------
 [  775.104725][  T126] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0x90
