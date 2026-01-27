@@ -140,7 +140,7 @@ func (ctx *fuchsia) symbolize(output []byte) ([]byte, map[int]int) {
 	var inPos int
 	symb, err := symbolizer.Make(ctx.config.target)
 	if err != nil {
-		return output, nil // Fallback to raw output if symbolizer fails
+		return output, nil // Fallback to raw output if symbolizer fails.
 	}
 	defer symb.Close()
 	out := new(bytes.Buffer)

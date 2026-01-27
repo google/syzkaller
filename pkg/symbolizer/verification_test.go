@@ -24,17 +24,17 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 		t.Skip("skipping on non-linux/amd64")
 	}
 
-	// Find vmlinux
+	// Find vmlinux.
 	vmlinux := os.Getenv("VMLINUX")
 	if vmlinux == "" {
-		// Try default location
+		// Try default location.
 		vmlinux = filepath.Join(os.Getenv("HOME"), "projects/fuzzing-qemu/linux-stable/vmlinux")
 	}
 	if _, err := os.Stat(vmlinux); err != nil {
 		t.Skipf("vmlinux not found at %v: %v", vmlinux, err)
 	}
 
-	// Create native symbolizer
+	// Create native symbolizer.
 	target := targets.Get("linux", "amd64")
 	target.KernelObject = vmlinux
 
@@ -145,7 +145,7 @@ func runLLVMSymbolizer(t *testing.T, path, bin string, pcs []uint64) []symbolize
 			currentFunc = line
 			continue
 		}
-		// Parse File:Line:Column
+		// Parse File:Line:Column.
 		// Logic: Find last colon -> Column. Next last -> Line.
 		// If only one colon -> File:Line.
 		// llvm-symbolizer output style GNU:
