@@ -120,6 +120,7 @@ struct syzos_boot_args {
 struct syzos_globals {
 	uint64 alloc_offset;
 	uint64 total_size;
+	uint64 text_sizes[KVM_MAX_VCPU];
 };
 
 #ifdef __cplusplus
@@ -201,8 +202,10 @@ __attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
 // We add single-line comments to justify having the compound statements below.
 __attribute__((used))
 GUEST_CODE static void
-guest_main(uint64 size, uint64 cpu)
+guest_main(uint64 cpu)
 {
+	volatile struct syzos_globals* globals = (volatile struct syzos_globals*)X86_SYZOS_ADDR_GLOBALS;
+	uint64 size = globals->text_sizes[cpu];
 	uint64 addr = X86_SYZOS_ADDR_USER_CODE + cpu * KVM_PAGE_SIZE;
 
 	while (size >= sizeof(struct api_call_header)) {
@@ -295,6 +298,12 @@ guest_main(uint64 size, uint64 cpu)
 	};
 	guest_uexit((uint64)-1);
 }
+
+// Helpers to enter guest_main with a hardcoded CPU ID.
+__attribute__((used)) GUEST_CODE static void guest_entry_0(void) { guest_main(0); }
+__attribute__((used)) GUEST_CODE static void guest_entry_1(void) { guest_main(1); }
+__attribute__((used)) GUEST_CODE static void guest_entry_2(void) { guest_main(2); }
+__attribute__((used)) GUEST_CODE static void guest_entry_3(void) { guest_main(3); }
 
 GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
 {
