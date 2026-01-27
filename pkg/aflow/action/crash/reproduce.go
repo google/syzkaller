@@ -109,7 +109,7 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		if err != nil {
 			return res, err
 		}
-		res.Error, res.Report, err = ReproduceCrash(args, workdir)
+		res.Report, res.Error, err = ReproduceCrash(args, workdir)
 		return res, err
 	})
 	if err != nil {
