@@ -18,6 +18,9 @@ type DoWhile struct {
 	// Exit condition. It should be a string state variable.
 	// The loop exists when the variable is empty.
 	While string
+	// Max interations for the loop.
+	// Must be specified to avoid unintended effectively infinite loops.
+	MaxIterations int
 
 	loopVars map[string]reflect.Type
 }
@@ -43,8 +46,7 @@ func (dw *DoWhile) loop(ctx *Context) error {
 		}
 		ctx.state[name] = reflect.Zero(typ).Interface()
 	}
-	const maxIters = 100
-	for iter := 0; iter < maxIters; iter++ {
+	for iter := 0; iter < dw.MaxIterations; iter++ {
 		span := &trajectory.Span{
 			Type: trajectory.SpanLoopIteration,
 			Name: fmt.Sprint(iter),
@@ -60,10 +62,14 @@ func (dw *DoWhile) loop(ctx *Context) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("DoWhile loop is going in cycles for %v iterations", maxIters)
+	return fmt.Errorf("DoWhile loop is going in cycles for %v iterations", dw.MaxIterations)
 }
 
 func (dw *DoWhile) verify(ctx *verifyContext) {
+	if max := 1000; dw.MaxIterations <= 0 || dw.MaxIterations >= max {
+		ctx.errorf("DoWhile", "bad MaxIterations value %v, should be within [1, %v]",
+			dw.MaxIterations, max)
+	}
 	// Verification of loops is a bit tricky.
 	// Normally we require each variable to be defined before use, but loops violate
 	// the assumption. An action in a loop body may want to use a variable produced
