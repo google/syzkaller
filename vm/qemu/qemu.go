@@ -786,7 +786,7 @@ func (inst *instance) ssh(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
-	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.User, inst.Port, false), inst.User+"@localhost")
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false), inst.User+"@localhost")
 	return append(sshArgs, args...)
 }
 
