@@ -144,7 +144,7 @@ config:
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
  # For s390, it's always enabled after the `s390: always build relocatable kernel` commit.
- - RELOCATABLE: [n, -s390]
+ - RELOCATABLE: [n, -s390, -kexec]
  - RANDOMIZE_BASE: n
 
  # Print thread and CPU ids.
