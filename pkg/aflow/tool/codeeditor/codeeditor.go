@@ -79,7 +79,11 @@ func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
 		return struct{}{}, aflow.BadCallError("CurrentCode snippet matched %v places,"+
 			" increase context in CurrentCode to avoid ambiguity", matches)
 	}
-	err = osutil.WriteFile(file, slices.Concat(newLines...))
+	newFileData := slices.Concat(newLines...)
+	if bytes.Equal(fileData, newFileData) {
+		return struct{}{}, aflow.BadCallError("The edit does not change the code.")
+	}
+	err = osutil.WriteFile(file, newFileData)
 	return struct{}{}, err
 }
 
@@ -97,7 +101,7 @@ func replace(lines, src, dst [][]byte, fuzzy bool) (newLines [][]byte, matches i
 					si++
 					continue
 				}
-				if len(l) == 0 {
+				if len(l) == 0 && li != i {
 					li++
 					continue
 				}
