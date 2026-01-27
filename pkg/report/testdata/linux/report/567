@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in vhci_shutdown_connection
 ALT: bad-access in vhci_shutdown_connection
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [  775.896747][ T5109] 8<--- cut here ---
 [  775.897679][ T5109] Unable to handle kernel NULL pointer dereference at virtual address 00000004

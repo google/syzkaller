@@ -1,6 +1,7 @@
 TITLE: WARNING: kmalloc bug in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  102.088489] BFS-fs: bfs_fill_super(): loop1 is unclean, continuing
 [  102.095036] WARNING: CPU: 1 PID: 10275 at mm/slab_common.c:1012 kmalloc_slab+0x5d/0x70

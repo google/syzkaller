@@ -1,6 +1,7 @@
 TITLE: kernel stack overflow in rtnl_newlink
 ALT: stack-overflow in rtnl_newlink
 TYPE: DoS
+PANICKED: Y
 
 [ 1349.302803][    C1] Insufficient stack space to handle exception!
 [ 1349.302808][    C1] ESR: 0x0000000096000047 -- DABT (current EL)

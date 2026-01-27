@@ -2,6 +2,7 @@ TITLE: KASAN: slab-use-after-free Read in btrfs_evict_inode
 ALT: bad-access in btrfs_evict_inode
 TYPE: KASAN-USE-AFTER-FREE-READ
 FRAME: btrfs_evict_inode
+PANICKED: Y
 
 [  649.625993][ T6659] ==================================================================
 [  649.634110][ T6659] BUG: KASAN: slab-use-after-free in xas_start+0x1ef/0x7b0

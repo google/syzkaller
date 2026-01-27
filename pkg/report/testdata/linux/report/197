@@ -1,6 +1,7 @@
 TITLE: KASAN: global-out-of-bounds Read in show_timer
 ALT: bad-access in show_timer
 TYPE: KASAN-READ
+PANICKED: Y
 
 [   66.768767] ==================================================================
 [   66.776196] BUG: KASAN: global-out-of-bounds in show_timer+0x27a/0x2b0 at addr ffffffff82cda558

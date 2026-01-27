@@ -1,5 +1,6 @@
 TITLE: WARNING: kobject bug in br_add_if
 TYPE: WARNING
+PANICKED: Y
 
 [  179.154721] kobject_add_internal failed for brport (error: -12 parent: syz6)
 [  179.154909] ------------[ cut here ]------------

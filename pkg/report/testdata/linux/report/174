@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in rtnl_dump_ifinfo
 ALT: bad-access in rtnl_dump_ifinfo
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [  218.951194] BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
 [  218.959174] IP: strlen+0x0/0x30

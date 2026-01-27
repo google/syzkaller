@@ -2,6 +2,7 @@ TITLE: general protection fault in corrupted
 ALT: bad-access in corrupted
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [  888.868901] IPv6: ADDRCONF(NETDEV_UP): team_slave_0: link is not ready
 [  888.877662] kernel msg: ebtables bug: please report to author: Valid hook without chain

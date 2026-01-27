@@ -1,5 +1,6 @@
 TITLE: WARNING in em28xx_usb_disconnect
 TYPE: WARNING
+PANICKED: Y
 
 [   31.912260][   T21] ------------[ cut here ]------------
 [   31.917870][   T21] WARNING: CPU: 1 PID: 21 at kernel/workqueue.c:3031 __flush_work.cold+0x2c/0x36

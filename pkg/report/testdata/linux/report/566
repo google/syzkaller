@@ -1,5 +1,6 @@
 TITLE: WARNING in ip6_neigh_lookup
 TYPE: WARNING
+PANICKED: Y
 
 [ 1471.274677][    C1] ------------[ cut here ]------------
 [ 1471.278744][    C1] WARNING: CPU: 1 PID: 218 at kernel/softirq.c:175 __local_bh_enable_ip+0x18c/0x22c

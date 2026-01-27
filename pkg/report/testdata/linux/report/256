@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel NULL pointer dereference in sock_poll
 ALT: bad-access in sock_poll
 TYPE: NULL-POINTER-DEREFERENCE
+PANICKED: Y
 
 [   27.294614] random: sshd: uninitialized urandom read (32 bytes read)
 [   27.396136] BUG: unable to handle kernel NULL pointer dereference at 0000000000000000

@@ -1,5 +1,6 @@
 TITLE: WARNING: ODEBUG bug in usbhid_disconnect
 TYPE: WARNING
+PANICKED: Y
 
 [   40.696563][   T21] ------------[ cut here ]------------
 [   40.702869][   T21] ODEBUG: free active (active state 0) object type: timer_list hint: hid_retry_timeout+0x0/0xd0

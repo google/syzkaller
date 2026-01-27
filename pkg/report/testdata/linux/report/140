@@ -1,5 +1,6 @@
 TITLE: WARNING in strp_data_ready
 TYPE: WARNING
+PANICKED: Y
 
 [  251.257471] WARNING: CPU: 0 PID: 5944 at ./include/net/sock.h:1508 strp_data_ready+0x2b7/0x390
 [  251.266280] Kernel panic - not syncing: panic_on_warn set ...

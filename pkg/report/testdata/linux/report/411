@@ -1,5 +1,6 @@
 TITLE: WARNING in r871xu_dev_remove
 TYPE: WARNING
+PANICKED: Y
 
 [   26.966491][  T101] ------------[ cut here ]------------
 [   26.974331][ T1737] usb 5-1: Direct firmware load for rtlwifi/rtl8712u.bin failed with error -2

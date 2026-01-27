@@ -1,5 +1,6 @@
 TITLE: kernel BUG in __isolate_free_page
 TYPE: BUG
+PANICKED: Y
 
 [ 1191.669874][ T1043] ------------[ cut here ]------------
 [ 1191.678706][ T1043] kernel BUG at mm/page_alloc.c:3112!

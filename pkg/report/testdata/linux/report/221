@@ -1,6 +1,7 @@
 TITLE: kernel panic: hung_task: blocked tasks
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 [  246.756084] Kernel panic - not syncing: hung_task: blocked tasks
 [  246.762271] CPU: 1 PID: 870 Comm: khungtaskd Not tainted 4.16.0-rc7+ #5

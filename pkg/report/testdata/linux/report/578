@@ -1,5 +1,6 @@
 TITLE: kernel BUG in free_netdev
 TYPE: BUG
+PANICKED: Y
 
 [  429.970583][T14786] ------------[ cut here ]------------
 [  430.011828][T14786] kernel BUG at net/core/dev.c:10648!

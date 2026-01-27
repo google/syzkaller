@@ -1,5 +1,6 @@
 TITLE: WARNING: locking bug in do_ipv6_setsockopt
 TYPE: LOCKDEP
+PANICKED: Y
 
 [ 1056.836267] WARNING: CPU: 0 PID: 25919 at kernel/locking/lockdep.c:704 register_lock_class+0xce6/0x2650
 [ 1056.845843] Kernel panic - not syncing: panic_on_warn set ...

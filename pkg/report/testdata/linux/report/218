@@ -1,6 +1,7 @@
 TITLE: WARNING: ODEBUG bug in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  127.347754] xprt_adjust_timeout: rq_timeout = 0!
 [  127.359095] ------------[ cut here ]------------

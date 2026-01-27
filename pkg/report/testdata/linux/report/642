@@ -1,5 +1,6 @@
 TITLE: BUG: scheduling while atomic in exit_to_user_mode_prepare
 TYPE: ATOMIC_SLEEP
+PANICKED: Y
 
 [ 2500.529878][T12771] BUG: scheduling while atomic: syz-executor.1/12771/0x00000002
 [ 2500.537844][T12771] no locks held by syz-executor.1/12771.

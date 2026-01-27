@@ -1,5 +1,6 @@
 TITLE: WARNING in kvm_arch_vcpu_ioctl_run
 TYPE: WARNING
+PANICKED: Y
 
 [  114.858684] WARNING: CPU: 1 PID: 21961 at arch/x86/kvm/x86.c:7377 kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
 [  114.868227] Kernel panic - not syncing: panic_on_warn set ...

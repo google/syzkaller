@@ -1,5 +1,6 @@
 TITLE: WARNING in squashfs_read_table
 TYPE: WARNING
+PANICKED: Y
 
 [  549.217031][T11106] ------------[ cut here ]------------
 [  549.223064][T11106] WARNING: CPU: 0 PID: 11106 at mm/page_alloc.c:4944 __alloc_pages_nodemask+0x8cc/0xfb0

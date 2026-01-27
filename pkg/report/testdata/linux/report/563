@@ -1,5 +1,6 @@
 TITLE: WARNING in bpf_warn_invalid_xdp_action
 TYPE: WARNING
+PANICKED: Y
 
 [  459.035879][    C1] ------------[ cut here ]------------
 [  459.041441][    C1] Illegal XDP return value 4294967274, expect packet loss!

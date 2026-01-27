@@ -1,5 +1,6 @@
 TITLE: kernel panic: bad mode
 TYPE: DoS
+PANICKED: Y
 
 [    0.000000][    C0] Bad mode in Synchronous Abort handler detected on CPU0, code 0x34000001 -- BTI
 [    0.000000][    C0] CPU: 0 PID: 0 Comm: swapper Not tainted 5.10.2 #24

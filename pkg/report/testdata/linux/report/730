@@ -1,6 +1,7 @@
 TITLE: WARNING in udf_rmdir
 TYPE: WARNING
 FRAME: udf_rmdir
+PANICKED: Y
 
 [   62.102480][ T5830] ------------[ cut here ]------------
 [   62.108072][ T5830] WARNING: CPU: 1 PID: 5830 at fs/inode.c:336 drop_nlink+0xc4/0x110

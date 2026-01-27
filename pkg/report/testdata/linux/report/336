@@ -1,6 +1,7 @@
 TITLE: WARNING: ODEBUG bug in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  438.329938] ------------[ cut here ]------------
 [  438.335655] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0xa0

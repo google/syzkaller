@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 ------------[ cut here ]------------
 WARNING: CPU: 0 PID: 8775 at net/ipv6/xfrm6_tunnel.c:345 xfrm6_tunnel_net_exit+0x84/0x104

@@ -1,6 +1,7 @@
 TITLE: general protection fault in input_close_device
 ALT: bad-access in input_close_device
 TYPE: DoS
+PANICKED: Y
 
 [   28.272365][ T1713] general protection fault: 0000 [#1] SMP KASAN
 [   28.278580][ T1713] CPU: 0 PID: 1713 Comm: syz-executor493 Not tainted 5.4.0-rc6-syzkaller #0

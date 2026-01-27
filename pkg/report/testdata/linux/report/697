@@ -1,5 +1,6 @@
 TITLE: WARNING: zero-size vmalloc in xskq_create
 TYPE: WARNING
+PANICKED: Y
 
 ------------[ cut here ]------------
 WARNING: CPU: 1 PID: 2949 at mm/vmalloc.c:3132 __vmalloc_node_range+0x44c/0x584 mm/vmalloc.c:3132

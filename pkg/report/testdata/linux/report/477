@@ -1,6 +1,7 @@
 TITLE: BUG: corrupted list in ath9k_htc_wait_for_target
 ALT: bad-access in ath9k_htc_wait_for_target
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 [  348.947111][ T4333] ------------[ cut here ]------------
 [  348.947754][ T4333] kernel BUG at lib/list_debug.c:51!

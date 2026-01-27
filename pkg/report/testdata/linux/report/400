@@ -1,5 +1,6 @@
 TITLE: WARNING in blk_sync_queue
 TYPE: WARNING
+PANICKED: Y
 
 WARNING: CPU: 1 PID: 3214 at kernel/workqueue.c:2911 __flush_work+0x740/0x880 kernel/workqueue.c:2911
 Kernel panic - not syncing: panic_on_warn set ...

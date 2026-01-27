@@ -3,6 +3,7 @@ ALT: INFO: rcu detected stall in smp_call_function_single
 ALT: stall in smp_call_function
 ALT: stall in smp_call_function_single
 TYPE: HANG
+PANICKED: Y
 
 [  611.778481][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
 [  611.785841][    C1] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1):

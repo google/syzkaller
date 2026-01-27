@@ -1,5 +1,6 @@
 TITLE: WARNING in line6_pcm_acquire
 TYPE: WARNING
+PANICKED: Y
 
 [ 2337.297552][    C0] ------------[ cut here ]------------
 [ 2337.304396][    C0] do not call blocking ops when !TASK_RUNNING; state=1 set at [<000000008ed046ea>] do_nanosleep+0x10c/0x6a0

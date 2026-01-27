@@ -1,6 +1,7 @@
 TITLE: KASAN: use-after-free Read in nr_release
 ALT: bad-access in nr_release
 TYPE: KASAN-USE-AFTER-FREE-READ
+PANICKED: Y
 
 [  334.230640][T12837] ==================================================================
 [  334.239022][T12837] BUG: KASAN: use-after-free in refcount_inc_not_zero_checked+0x81/0x200

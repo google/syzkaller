@@ -1,6 +1,7 @@
 TITLE: general protection fault in xfrm_state_walk_done
 ALT: bad-access in xfrm_state_walk_done
 TYPE: DoS
+PANICKED: Y
 
 [   44.866009] kasan: CONFIG_KASAN_INLINE enabled
 [   44.870467] kasan: GPF could be caused by NULL-ptr deref or user memory accessgeneral protection fault: 0000 [#1] PREEMPT SMP KASAN

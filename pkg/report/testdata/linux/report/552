@@ -1,6 +1,7 @@
 TITLE: BUG: unable to handle kernel paging request in io_serial_out
 ALT: bad-access in io_serial_out
 TYPE: MEMORY_SAFETY_BUG
+PANICKED: Y
 
 8<--- cut here ---
 Unable to handle kernel paging request at virtual address fee00001

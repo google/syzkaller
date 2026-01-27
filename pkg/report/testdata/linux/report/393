@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 [  343.108919] netlink: 8 bytes leftover after parsing attributes in process `syz-executor.5'.
 [  343.124393] FAULT_INJECTION: forcing a failure.

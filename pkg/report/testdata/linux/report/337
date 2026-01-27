@@ -1,5 +1,6 @@
 TITLE: kernel panic: sysrq triggered crash
 TYPE: DoS
+PANICKED: Y
 
 [ 3416.916116][ T5831] Kernel panic - not syncing: sysrq triggered crash
 [ 3416.917520][ T5831] CPU: 0 PID: 5831 Comm: bash Not tainted 4.20.0-next-20190102 #3

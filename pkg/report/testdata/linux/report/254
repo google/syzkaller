@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in console_device
 ALT: hang in console_device
 TYPE: HANG
+PANICKED: Y
 
 [  962.377725] INFO: task init:2293 blocked for more than 120 seconds.
 [  962.377730]       Not tainted 4.4.132+ #53

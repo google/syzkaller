@@ -3,6 +3,7 @@ ALT: INFO: task hung in synchronize_rcu_expedited
 ALT: hang in synchronize_rcu
 ALT: hang in synchronize_rcu_expedited
 TYPE: HANG
+PANICKED: Y
 
 [ 1395.402634][ T1057] INFO: task kworker/u4:8:11933 blocked for more than 143 seconds.
 [ 1395.411524][ T1057]       Not tainted 5.3.0-rc7+ #0

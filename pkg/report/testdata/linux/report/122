@@ -1,5 +1,6 @@
 TITLE: BUG: bad usercopy in kvm_vcpu_ioctl_set_cpuid2
 TYPE: BUG
+PANICKED: Y
 
 [   40.633732] usercopy: kernel memory overwrite attempt detected to ffff8801d21c9bd4 (kvm_vcpu) (1320 bytes)
 [   40.635122] ------------[ cut here ]------------

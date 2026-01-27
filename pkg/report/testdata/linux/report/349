@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in jbd2_journal_commit_transaction
 ALT: hang in jbd2_journal_commit_transaction
 TYPE: HANG
+PANICKED: Y
 
 [ 1431.920513][ T1054] INFO: task jbd2/sda-8:3563 blocked for more than 140 seconds.
 [ 1431.921721][ T1054]       Not tainted 4.20.0-next-20190102+ #5

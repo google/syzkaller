@@ -3,6 +3,7 @@ ALT: INFO: task hung in synchronize_sched
 ALT: hang in synchronize_rcu
 ALT: hang in synchronize_sched
 TYPE: HANG
+PANICKED: Y
 
 [  716.122185] INFO: task syz-executor.0:16519 blocked for more than 140 seconds.
 [  716.129726]       Not tainted 4.15.0+ #0

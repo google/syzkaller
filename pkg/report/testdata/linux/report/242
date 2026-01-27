@@ -1,6 +1,7 @@
 TITLE: Alignment trap in corrupted
 TYPE: DoS
 CORRUPTED: Y
+PANICKED: Y
 
 Alignment trap: not handling instruction e1932f9f at [<8028bd58>]
 Unhandled fault: alignment exception (0x001) at 0x000008ad

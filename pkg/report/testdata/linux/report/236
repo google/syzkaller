@@ -1,6 +1,7 @@
 TITLE: WARNING in corrupted
 TYPE: WARNING
 CORRUPTED: Y
+PANICKED: Y
 
 ------------[ cut here ]------------
 WARNING: CPU: 0 PID: 2587 at drivers/i2c/i2c-core-base.c:1848 __i2c_transfer+0x310/0x380

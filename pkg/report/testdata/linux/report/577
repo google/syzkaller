@@ -1,5 +1,6 @@
 TITLE: kernel BUG in truncate_inode_partial_page
 TYPE: BUG
+PANICKED: Y
 
 [  413.263409][T16632] ------------[ cut here ]------------
 [  413.270117][T16632] kernel BUG at include/linux/highmem.h:202!

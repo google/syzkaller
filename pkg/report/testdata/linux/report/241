@@ -1,6 +1,7 @@
 TITLE: Unhandled fault in n_tty_set_termios
 ALT: bad-access in n_tty_set_termios
 TYPE: DoS
+PANICKED: Y
 
 Unhandled fault: page domain fault (0x81b) at 0x00001044
 pgd = 74561366

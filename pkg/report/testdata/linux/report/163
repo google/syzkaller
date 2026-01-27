@@ -1,5 +1,6 @@
 TITLE: WARNING: locking bug in sg_remove_request
 TYPE: LOCKDEP
+PANICKED: Y
 
 [   32.851928] ------------[ cut here ]------------
 [   32.851948] WARNING: CPU: 1 PID: 4085 at kernel/locking/lockdep.c:3190 __lock_acquire+0x23b3/0x4b50()

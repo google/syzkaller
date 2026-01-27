@@ -1,6 +1,7 @@
 TITLE: KASAN: global-out-of-bounds Read in __aa_lookupn_ns
 ALT: bad-access in __aa_lookupn_ns
 TYPE: KASAN-READ
+PANICKED: Y
 
 [  218.522865] ==================================================================
 [  218.530431] BUG: KASAN: global-out-of-bounds in memcmp+0xe3/0x160
