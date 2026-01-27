@@ -162,7 +162,7 @@ func runLLVMSymbolizer(t *testing.T, path, bin string, pcs []uint64) []symbolize
 				if colon2 != -1 {
 					num2, err2 := strconv.Atoi(line[colon2+1 : colon1])
 					if err2 == nil {
-						// Format: File:Line:Column
+						// Format: File:Line:Column.
 						f := symbolizer.Frame{
 							Func:   currentFunc,
 							File:   line[:colon2],
