@@ -1900,6 +1900,11 @@ var linuxOopses = append([]*oops{
 				stack: warningStackFmt(),
 			},
 			{
+				title: compile(`WARNING: \[.*\] {{SRC}} at {{FUNC}}.*`),
+				fmt:   "WARNING in %[3]v",
+				stack: warningStackFmt(),
+			},
+			{
 				title:  compile("WARNING: possible circular locking dependency detected"),
 				report: compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock"),
 				fmt:    "possible deadlock in %[1]v",
