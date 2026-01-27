@@ -79,20 +79,7 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 	}
 }
 
-// ... (skipping gatherPCs which also likely has issues, wait, I see more lint errors for verification_test.go in output)
-// pkg/symbolizer/verification_test.go:49:2: lint: Don't start log/error messages with a Capital letter (syz-linter)
-// pkg/symbolizer/verification_test.go:163:7: lint: Add a period at the end of the comment (syz-linter)
-// pkg/symbolizer/verification_test.go:213:4: lint: Don't use period at the end of log/error messages (syz-linter)
-// pkg/symbolizer/verification_test.go:221:3: lint: Don't start log/error messages with a Capital letter (syz-linter)
-// pkg/symbolizer/verification_test.go:234:3: lint: Don't start log/error messages with a Capital letter (syz-linter)
-// pkg/symbolizer/verification_test.go:237:2: lint: Add a period at the end of the comment (syz-linter)
-// pkg/symbolizer/verification_test.go:245:4: lint: Don't start log/error messages with a Capital letter (syz-linter)
-// pkg/symbolizer/verification_test.go:246:4: lint: Standalone comments should be complete sentences with first word capitalized and a period at the end (syz-linter)
-// pkg/symbolizer/verification_test.go:248:4: lint: Don't start log/error messages with a Capital letter (syz-linter)
-// pkg/symbolizer/verification_test.go:249:4: lint: Standalone comments should be complete sentences with first word capitalized and a period at the end (syz-linter)
-
-// Only lines 47-80 cover TestNativeSymbolizerVerification main body.
-// I will also fix compareFrames (lines 196+).
+// gatherPCs extracts valid text symbols from the binary.
 
 func gatherPCs(t *testing.T, bin string, count int) []uint64 {
 	cmd := exec.Command("nm", "-n", bin)
