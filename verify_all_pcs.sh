@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 # Verify native symbolizer against llvm-symbolizer for all KCOV PCs
 set -e
 
@@ -43,7 +46,7 @@ echo "Extracting KCOV PCs from $VMLINUX..."
 # Or the address of the call? syzkaller uses return addresses usually (PC).
 # Wait, KCOV instrumentation puts calls.
 # The PC recorded is usually the return address (IP).
-# Let's approximate by picking start of functions + 4? 
+# Let's approximate by picking start of functions + 4?
 # Correct approach: `objdump -d --no-show-raw-insn vmlinux | grep 'call.*<__sanitizer_cov_trace_pc>'`
 # output: ffffffff81000000: call   ffffffff81xxx <__sanitizer_cov_trace_pc>
 # We want ffffffff81000000 + 5 (size of call).
