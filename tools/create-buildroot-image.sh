@@ -19,6 +19,9 @@ set -eux
 
 NOMAKE="${NOMAKE:-}"
 TARGETARCH="${TARGETARCH:-amd64}"
+LINUX_VERSION="${LINUX_VERSION:-6.18.6}"
+LINUX_KERNEL_CONFIG="${LINUX_KERNEL_CONFIG:-$(pwd)/../dashboard/config/linux/upstream-kexec.config}"
+
 case "$TARGETARCH" in
 	amd64)
 		DEFCONFIG="pc_x86_64_bios_defconfig";;
@@ -52,6 +55,8 @@ BR2_ROOTFS_POST_FAKEROOT_SCRIPT="./rootfs_script.sh"
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_PACKAGE_DHCPCD=y
 BR2_PACKAGE_OPENSSH=y
+BR2_PACKAGE_MAKEDUMPFILE=y
+BR2_PACKAGE_KEXEC=y
 
 # This slows down boot.
 # BR2_PACKAGE_URANDOM_SCRIPTS is not set
@@ -112,6 +117,12 @@ BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="board/qemu/x86_64/linux.config"
 # This is used to create some device links in devfs (see udev rules below),
 # but this is too slow for emulated architectures.
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="${LINUX_VERSION}"
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${LINUX_KERNEL_CONFIG}"
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+BR2_KERNEL_HEADERS_5_10=y
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_10=y
 EOF
 ;;
         arm64)
@@ -212,6 +223,13 @@ cat >$1/etc/udev/rules.d/50-syzkaller.rules <<EOF
 ATTR{name}=="vim2m", SYMLINK+="vim2m"
 SUBSYSTEMS=="pci", DRIVERS=="i915", SYMLINK+="i915"
 EOF
+
+if [ -f $1/boot/bzImage ]; then
+    mv $1/boot/bzImage $1/boot/bzImageKexec
+else
+    echo "DEBUG: /boot/bzImage not found in \$1"
+    ls -R $1/boot || echo "/boot directory does not exist"
+fi
 
 # Override default grub config with timeout 0.
 cat >$1/boot/grub/grub.cfg <<EOF
