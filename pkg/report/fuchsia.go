@@ -138,7 +138,10 @@ func (ctx *fuchsia) shortenReport(report []byte) []byte {
 func (ctx *fuchsia) symbolize(output []byte) ([]byte, map[int]int) {
 	l2l := map[int]int{}
 	var inPos int
-	symb := symbolizer.Make(ctx.config.target)
+	symb, err := symbolizer.Make(ctx.config.target)
+	if err != nil {
+		return output, nil // Fallback to raw output if symbolizer fails
+	}
 	defer symb.Close()
 	out := new(bytes.Buffer)
 
