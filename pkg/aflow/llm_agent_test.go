@@ -59,6 +59,14 @@ func TestParseLLMError(t *testing.T) {
 				Message: `The input token count exceeds the maximum number of tokens allowed 1048576.`,
 			}},
 		},
+		{
+			resp: nil,
+			inputErr: genai.APIError{
+				Code:    500,
+				Message: `Internal error encountered.`,
+			},
+			retry: time.Second,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

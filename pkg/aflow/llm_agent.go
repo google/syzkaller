@@ -440,6 +440,10 @@ func parseLLMError(resp *genai.GenerateContentResponse, err error, model string,
 		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
 		return 0, &tokenOverflowError{err}
 	}
+	if apiErr.Code == http.StatusInternalServerError && try < maxLLMRetryIters {
+		// Let's assume ISE is just something temporal on the server side.
+		return time.Second, nil
+	}
 	return 0, err
 }
 
