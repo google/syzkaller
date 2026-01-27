@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -106,9 +107,19 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
-	result, err := triager.selectFromBlobs(series, trees)
-	if err != nil {
-		return nil, fmt.Errorf("selection by blob failed: %w", err)
+	var result *SelectResult
+	var err error
+	if series.BaseCommitHint != "" {
+		result, err = triager.selectFromBaseCommitHint(series.BaseCommitHint, trees)
+		if err != nil {
+			return nil, fmt.Errorf("selection by base-commit failed: %w", err)
+		}
+	}
+	if result == nil {
+		result, err = triager.selectFromBlobs(series, trees)
+		if err != nil {
+			return nil, fmt.Errorf("selection by blob failed: %w", err)
+		}
 	}
 	if result == nil {
 		result, err = triager.selectFromList(ctx, series, trees, target)
@@ -166,6 +177,31 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 		Commit: commit,
 		Arch:   fuzzArch,
 	}, nil
+}
+
+func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*api.Tree) (*SelectResult, error) {
+	triager.Log("attempting to use the base commit %s provided by author", commit)
+	commitExists, _ := triager.ops.Git.CommitExists(commit)
+	if !commitExists {
+		triager.Log("commit doesn't exist")
+		return nil, nil
+	}
+	const cutOffDays = 60
+	branchList, err := triager.ops.BranchesThatContain(commit, time.Now().Add(-time.Hour*24*cutOffDays))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query branches: %w", err)
+	}
+	for _, branch := range branchList {
+		treeIndex, _ := triage.FindTree(trees, branch.Branch)
+		if treeIndex != -1 {
+			return &SelectResult{
+				Tree:   trees[treeIndex],
+				Commit: commit,
+				Arch:   fuzzArch,
+			}, nil
+		}
+	}
+	return nil, nil
 }
 
 func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Series, trees []*api.Tree,
