@@ -95,6 +95,12 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 		return false, fmt.Errorf("report.AddTitleStat: %w", err)
 	}
 
+	if crash.MemoryDump != "" {
+		if err := osutil.Rename(crash.MemoryDump, filepath.Join(dir, "vmcore")); err != nil {
+			return false, fmt.Errorf("failed to move memory dump: %w", err)
+		}
+	}
+
 	return first, nil
 }
 
@@ -330,4 +336,8 @@ func crashHash(title string) string {
 
 func (cs *CrashStore) path(title string) string {
 	return filepath.Join(cs.BaseDir, "crashes", crashHash(title))
+}
+
+func (cs *CrashStore) HasMemoryDump(title string) bool {
+	return osutil.IsExist(filepath.Join(cs.path(title), "vmcore"))
 }
