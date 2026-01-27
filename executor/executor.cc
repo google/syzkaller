@@ -298,6 +298,7 @@ static bool in_execute_one = false;
 
 #define SYZ_EXECUTOR 1
 #include "common.h"
+#include "executor_common.h"
 
 const size_t kMaxInput = 4 << 20; // keep in sync with prog.ExecBufferSize
 const size_t kMaxCommands = 1000; // prog package knows about this constant (prog.execMaxCommands)
