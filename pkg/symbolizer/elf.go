@@ -43,12 +43,12 @@ type subprogram struct {
 func newELFSymbolizer(bin string) (Symbolizer, error) {
 	ef, err := elf.Open(bin)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open binary %v: %v", bin, err)
+		return nil, fmt.Errorf("failed to open binary %v: %w", bin, err)
 	}
 	dw, err := ef.DWARF()
 	if err != nil {
 		ef.Close()
-		return nil, fmt.Errorf("failed to parse DWARF %v: %v", bin, err)
+		return nil, fmt.Errorf("failed to parse DWARF %v: %w", bin, err)
 	}
 
 	symbols, _ := ef.Symbols()
@@ -78,7 +78,7 @@ func newELFSymbolizer(bin string) (Symbolizer, error) {
 
 	if err := es.buildIndex(); err != nil {
 		es.Close()
-		return nil, fmt.Errorf("failed to index DWARF %v: %v", bin, err)
+		return nil, fmt.Errorf("failed to index DWARF %v: %w", bin, err)
 	}
 
 	return es, nil
@@ -356,7 +356,8 @@ func (es *elfSymbolizer) findSymbol(pc uint64) string {
 	return ""
 }
 
-func (es *elfSymbolizer) unwindInlines(funcEntry *dwarf.Entry, pc uint64, lineEntry *dwarf.LineEntry, files []*dwarf.LineFile) []Frame {
+func (es *elfSymbolizer) unwindInlines(funcEntry *dwarf.Entry, pc uint64, lineEntry *dwarf.LineEntry,
+	files []*dwarf.LineFile) []Frame {
 	var stack []*dwarf.Entry
 
 	r := es.dw.Reader()
