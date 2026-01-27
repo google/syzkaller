@@ -118,7 +118,10 @@ func downloadBug(id, inputFile, token string) error {
 	}
 	var info map[string]any
 	if err := json.Unmarshal([]byte(resp), &info); err != nil {
-		return err
+		return fmt.Errorf(
+			"response for bug ID %v was not valid JSON: %w",
+			id, err,
+		)
 	}
 	crash := info["crashes"].([]any)[0].(map[string]any)
 	inputs := map[string]any{
