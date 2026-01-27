@@ -46,61 +46,425 @@ Detailed info on a single AI job execution.
 	<div id="crash_div"><pre>{{.CrashReport}}</pre></div><br>
 	{{end}}
 
-	<table class="list_table">
-		<caption>Trajectory:</caption>
-		<thead><tr>
-			<th>Seq</th>
-			<th>Timestamp</th>
-			<th>Type</th>
-			<th>Name</th>
-			<th>Duration</th>
-		</tr></thead>
-		<tbody>
-		{{range $span := $.Trajectory}}
-		<tr>
-			<td>{{$span.Seq}}/{{$span.Nesting}}</td>
-			<td>{{formatTime $span.Started}}</td>
-			<td>{{$span.Type}}</td>
-			<td>{{$span.Name}}</td>
-			<td>
-				<details>
-					<summary>{{formatDuration $span.Duration}}</summary>
-					{{if $span.Model}}
-						<b>Model:</b> <div id="ai_details_div"><pre>{{$span.Model}}</pre></div><br>
-					{{end}}
-					{{if $span.Error}}
-						<b>Error:</b> <div id="ai_details_div"><pre>{{$span.Error}}</pre></div><br>
-					{{end}}
-					{{if $span.Args}}
-						<b>Args:</b> <div id="ai_details_div"><pre>{{$span.Args}}</pre></div><br>
-					{{end}}
-					{{if $span.Results}}
-						<b>Results:</b> <div id="ai_details_div"><pre>{{$span.Results}}</pre></div><br>
-					{{end}}
-					{{if $span.Instruction}}
-						<b>Instruction:</b> <div id="ai_details_div"><pre>{{$span.Instruction}}</pre></div><br>
-					{{end}}
-					{{if $span.Prompt}}
-						<b>Prompt:</b> <div id="ai_details_div"><pre>{{$span.Prompt}}</pre></div><br>
-					{{end}}
-					{{if $span.Reply}}
-						<b>Reply:</b> <div id="ai_details_div"><pre>{{$span.Reply}}</pre></div><br>
-					{{end}}
-					{{if $span.InputTokens}}
-						<b>Tokens:</b> <div id="ai_details_div"><pre>
-							input: {{$span.InputTokens}}
-							output: {{$span.OutputTokens}}
-							thoughts: {{$span.OutputThoughtsTokens}}
-						</pre></div><br>
-					{{end}}
-					{{if $span.Thoughts}}
-						<b>Thoughts:</b> <div id="ai_details_div"><pre>{{$span.Thoughts}}</pre></div><br>
-					{{end}}
-				</details>
-			</td>
-		</tr>
+	<style>
+	/* Trajectory Node Styling */
+	.trajectory-root {
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		color: #333;
+	}
+
+	.trajectory-node {
+		margin-left: 4px; /* Reduced indentation */
+		margin-top: 6px;
+		margin-bottom: 6px;
+		background-color: #fff;
+		border-radius: 8px;
+		/* border: 1px solid #e0e0e0; Removed for cleaner look */
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Softer, slightly deeper shadow */
+		position: relative;
+	}
+
+	/* Hierarchy Guide Line (optional, subtle) */
+	.trajectory-node::before {
+		content: "";
+		position: absolute;
+		left: -10px;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background-color: #e0e0e0;
+		border-radius: 2px;
+	}
+	.trajectory-node-wrapper:first-child > .trajectory-node::before {
+		display: none; /* No line for root if we want, or adjust */
+	}
+	/* Actually, we need lines connecting parents. Simplest is bordering left of wrapper. */
+	.trajectory-node-wrapper {
+		position: relative;
+	}
+
+	.trajectory-node summary {
+		list-style: none; /* Hide default triangle */
+		cursor: pointer;
+		padding: 8px 12px;
+		background-color: #f8f9fa; /* Light gray header */
+		border-bottom: 1px solid #eaecf0;
+		border-radius: 6px 6px 0 0; /* Rounded top */
+		transition: background-color 0.2s;
+	}
+	
+	.trajectory-node:not([open]) summary {
+		border-bottom: none;
+		border-radius: 6px;
+	}
+
+	.trajectory-node summary:hover {
+		background-color: #f0f2f5;
+	}
+
+	.trajectory-node summary::-webkit-details-marker {
+		display: none;
+	}
+
+	/* Custom arrow */
+	.trajectory-node summary::after {
+		content: "";
+		position: absolute;
+		right: 12px;
+		top: 14px;
+		border: 5px solid transparent;
+		border-top-color: #999;
+		transition: transform 0.2s;
+	}
+	.trajectory-node[open] summary::after {
+		transform: rotate(180deg);
+		top: 9px; /* Adjust for rotation */
+	}
+
+	.summary-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.95em;
+	}
+
+	.node-name {
+		font-weight: 600;
+		color: #2c3e50;
+	}
+
+	/* Type Badges */
+	.node-type-badge {
+		font-size: 0.75em;
+		font-weight: 700;
+		text-transform: uppercase;
+		padding: 2px 6px;
+		border-radius: 4px;
+		letter-spacing: 0.5px;
+	}
+
+	.badge-agent {
+		background-color: #e3f2fd; /* Light Blue */
+		color: #1976d2;
+		border: 1px solid #bbdefb;
+	}
+
+	.badge-tool {
+		background-color: #fff3e0; /* Light Orange */
+		color: #f57c00;
+		border: 1px solid #ffe0b2;
+	}
+
+	.badge-flow {
+		background-color: #f3e5f5; /* Light Purple */
+		color: #7b1fa2;
+		border: 1px solid #e1bee7;
+	}
+	
+	.badge-unknown {
+		background-color: #eee;
+		color: #555;
+	}
+
+	/* Error State */
+	.trajectory-error {
+		border-color: #ffcdd2;
+		box-shadow: 0 1px 3px rgba(211, 47, 47, 0.1);
+	}
+	.trajectory-error > summary {
+		background-color: #ffebee;
+		border-bottom-color: #ffcdd2;
+	}
+	.trajectory-error > summary:hover {
+		background-color: #ffcdd2;
+	}
+
+	.node-meta {
+		margin-left: auto; /* Push to right */
+		margin-right: 24px; /* Space for arrow/link */
+		font-size: 0.85em;
+		color: #7f8c8d;
+	}
+	
+	.node-duration {
+		color: #95a5a6;
+		margin-left: 4px;
+	}
+
+	.node-link {
+		opacity: 0;
+		transition: opacity 0.2s;
+		text-decoration: none;
+		margin-right: 16px; /* Avoid overlapping arrow */
+	}
+	.trajectory-node:hover .node-link {
+		opacity: 0.6;
+	}
+	.node-link:hover {
+		opacity: 1 !important;
+	}
+
+	.trajectory-content {
+		padding: 12px;
+		background-color: #fff;
+		border-radius: 0 0 6px 6px; /* Rounded bottom */
+	}
+	
+	/* Refine inner details */
+	.node-details {
+		margin-bottom: 8px;
+		padding-bottom: 8px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	.node-details:last-child {
+		border-bottom: none;
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	/* Hierarchy Guide Lines */
+	.node-children {
+		margin-top: 4px;
+		margin-left: 4px;
+		padding-left: 4px;
+		/* border-left removed as requested */
+	}
+	/* JSON Nested & Value Styles */
+	.json-nested {
+		padding: 6px 10px;
+		border-left: 3px solid #eee; /* Softer gray */
+		margin-left: 4px;
+		margin-top: 4px;
+		background-color: #fafafa;
+		border-radius: 4px;
+		font-size: 0.95em;
+	}
+	
+	.json-value-block {
+		padding-left: 12px;
+		border-left: 2px solid #f0f0f0; /* Very subtle */
+		margin-left: 4px;
+	}
+
+	.json-toggle-btn {
+		font-size: 0.8em;
+		padding: 1px 4px;
+		margin-left: 5px;
+		cursor: pointer;
+		border: 1px solid #ccc;
+		background-color: #fff;
+		border-radius: 3px;
+		color: #555;
+	}
+	.json-toggle-btn:hover {
+		background-color: #f0f0f0;
+	}
+
+	.json-string-block {
+		white-space: pre-wrap;
+		background-color: #fff;
+		border: 1px solid #eee;
+		padding: 4px;
+		margin-top: 2px;
+		border-radius: 2px;
+		color: #333;
+		font-family: monospace;
+	}
+
+	.json-empty {
+		color: #999;
+		font-style: italic;
+		font-size: 0.9em;
+	}
+	</style>
+	
+	<h3>Trajectory</h3>
+	<div class="trajectory-root">
+		{{template "trajectory_node" .Trajectory}}
+	</div>
+	
+	{{define "json_view"}}
+	{{if isJSONKV .}}
+	<div class="json-object">
+		{{range .}}
+		<div class="json-entry">
+			{{if or (isJSONKV .Value) (isSlice .Value)}}
+			<details open class="json-details">
+				<summary class="json-key-summary">{{.Key}}</summary>
+				<div class="json-nested">
+					{{template "json_view" .Value}}
+				</div>
+			</details>
+			{{else}}
+			<div>
+				<div class="json-key-heading">{{.Key}}</div>
+				<div class="json-value-block">
+					{{template "json_view" .Value}}
+				</div>
+			</div>
+			{{end}}
+		</div>
 		{{end}}
-		</tbody>
-	</table>
+	</div>
+	{{else if isSlice .}}
+	<ul class="json-list">
+		{{range .}}<li>{{template "json_view" .}}</li>{{end}}
+	</ul>
+	{{else}}
+	{{formatJSONValue .}}
+	{{end}}
+	{{end}}
+
+	{{define "trajectory_node"}}
+	{{range .}}
+	<div class="trajectory-node-wrapper" id="node-{{.Seq}}-{{slugify .Name}}">
+		<details class="trajectory-node type-{{.Type}} {{if .Error}}trajectory-error{{end}}" open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-{{.Type}}">{{.Type}}</span>
+					<span class="node-name">{{.Name}}</span>
+					<span class="node-meta">
+						{{formatTime .Started}}
+						{{if .Duration}}<span class="node-duration">({{formatDuration .Duration}})</span>{{end}}
+						</span>
+					<a href="#node-{{.Seq}}-{{slugify .Name}}" class="node-link" title="Link to {{.Name}}"
+						onclick="copyLink(event, '{{.Seq}}-{{slugify .Name}}')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				{{if .Error}}
+				<div class="node-details details-error">
+					<div class="node-details-title">Error</div>
+					<pre>{{.Error}}</pre>
+				</div>
+				{{end}}
+				{{if .Prompt}}
+				<div class="node-details details-prompt">
+					<div class="node-details-title">Prompt</div>
+					<pre>{{.Prompt}}</pre>
+				</div>
+				{{end}}
+				{{/* Thoughts: If we have other content (Prompt/Reply), collapse it. Otherwise show it. */}}
+				{{if .Thoughts}}
+				{{if or .Prompt .Reply}}
+				<details class="node-details details-thoughts">
+					<summary class="thoughts-summary">Thoughts</summary>
+					<pre>{{.Thoughts}}</pre>
+				</details>
+				{{else}}
+				<div class="node-details details-thoughts">
+					<div class="node-details-title">Thoughts</div>
+					<pre>{{.Thoughts}}</pre>
+				</div>
+				{{end}}
+				{{end}}
+				{{if .Reply}}
+				<div class="node-details details-reply">
+					<div class="node-details-title">Reply</div>
+					<pre>{{.Reply}}</pre>
+				</div>
+				{{end}}
+				{{if .Args}}
+				<div class="node-details details-args">
+					<div class="node-details-title">Args</div>
+					{{with .Args | jsonParse}}
+					<div class="json-tree">{{template "json_view" .}}</div>
+					{{else}}
+						<pre>{{.Args}}</pre>
+					{{end}}
+				</div>
+				{{end}}
+				{{if .Results}}
+				<div class="node-details details-results">
+					<div class="node-details-title">Results</div>
+					{{with .Results | jsonParse}}
+					<div class="json-tree">{{template "json_view" .}}</div>
+					{{else}}
+						<pre>{{.Results}}</pre>
+					{{end}}
+					</div>
+				{{end}}
+					{{if .InputTokens}}
+					<div class="node-details" style="font-size: 0.8em; color: #888;">
+						<div class="node-details-title">Tokens</div>
+						<span>In: {{.InputTokens}}, Out: {{.OutputTokens}}</span>
+					</div>
+					{{end}}
+					{{if .Children}}
+					<div class="node-children">
+						{{template "trajectory_node" .Children}}
+					</div>
+					{{end}}
+				</div>
+			</details>
+		</div>
+		{{end}}
+	{{end}}
+<script>
+			function copyLink(event, idSuffix) {
+			// If we want to copy the link to clipboard:
+			// event.preventDefault();
+			// const url = window.location.href.split('#')[0] + '#node-' + idSuffix;
+			// navigator.clipboard.writeText(url);
+			// But the default anchor behavior is also fine for just navigating.
+	}
+
+	function toggleJson(btn) {
+		const container = btn.closest('.node-details');
+		const pretty = container.querySelector('.json-content-pretty');
+		const raw = container.querySelector('.json-content-raw');
+		if (raw.style.display === 'none') {
+			raw.style.display = 'block';
+			pretty.style.display = 'none';
+			btn.innerText = 'Pretty';
+		} else {
+			raw.style.display = 'none';
+			pretty.style.display = 'block';
+			btn.innerText = 'Raw';
+		}
+	}
+
+	function expandForHash() {
+		if (!window.location.hash) return;
+		const id = window.location.hash.substring(1); // remove #
+		const element = document.getElementById(id);
+		if (element) {
+			// Expand all parent details
+			let parent = element.parentElement;
+			while (parent) {
+				if (parent.tagName === 'DETAILS') {
+					parent.open = true;
+				}
+				parent = parent.parentElement;
+			}
+			// If the element itself contains a details (it is a wrapper), open it
+			const details = element.querySelector('details');
+			if (details) {
+				details.open = true;
+			}
+			// Scroll into view
+			element.scrollIntoView();
+		}
+	}
+
+	function toggleJson(btn) {
+		const container = btn.closest('.node-details');
+		const pretty = container.querySelector('.json-content-pretty');
+		const raw = container.querySelector('.json-content-raw');
+		if (raw.style.display === 'none') {
+			raw.style.display = 'block';
+			pretty.style.display = 'none';
+			btn.innerText = 'Pretty';
+		} else {
+			raw.style.display = 'none';
+			pretty.style.display = 'block';
+			btn.innerText = 'Raw';
+		}
+	}
+
+	window.addEventListener('hashchange', expandForHash);
+	window.addEventListener('load', expandForHash);
+</script>
 </body>
 </html>
+```
