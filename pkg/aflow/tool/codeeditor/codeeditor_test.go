@@ -105,6 +105,25 @@ foo`)
 	)
 }
 
+func TestCodeeditorNopEdit(t *testing.T) {
+	dir := writeTestFile(t, "src.c", `
+line0
+line1
+`)
+	aflow.TestTool(t, Tool,
+		state{
+			KernelScratchSrc: dir,
+		},
+		args{
+			SourceFile:  "src.c",
+			CurrentCode: "  line0",
+			NewCode:     "line0",
+		},
+		struct{}{},
+		`The edit does not change the code.`,
+	)
+}
+
 func TestCodeeditorReplacement(t *testing.T) {
 	type Test struct {
 		curFile string

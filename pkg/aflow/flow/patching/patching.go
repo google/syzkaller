@@ -131,13 +131,16 @@ The explanation of the root cause of the bug is:
 {{.BugExplanation}}
 
 {{if .TestError}}
-Another developer tried to fix this bug, and come up with the following patch:
 
-{{.PatchDiff}}
-
-and the following explanation:
+Another developer tried to fix this bug, and come up with the following strategy for fixing:
 
 {{.PatchExplanation}}
+
+{{/* A TestError without PatchDiff means the previous invocation did not generate any patch. */}}
+{{if .PatchDiff}}
+and the following patch:
+
+{{.PatchDiff}}
 
 However, the patch testing failed with the following error:
 
@@ -150,6 +153,9 @@ then create a new patch from scratch.
 Note: in both cases the source tree does not contain the patch yet
 (so if you want to create a new fixed patch, you need to recreate it
 in its entirety from scratch using the codeeditor tool).
+{{else}}
+If the strategy looks reasonable to you, proceed with patch generation.
+{{end}}
 {{end}}
 `
 

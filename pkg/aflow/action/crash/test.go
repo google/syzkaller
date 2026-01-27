@@ -47,6 +47,10 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 	if err != nil {
 		return res, err
 	}
+	if diff == "" {
+		res.TestError = "No patch to test."
+		return res, nil
+	}
 	res.PatchDiff = diff
 
 	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
