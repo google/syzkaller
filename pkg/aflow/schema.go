@@ -93,54 +93,62 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 			}
 		}
 		delete(m, name)
-		fType, fValue := reflect.TypeOf(f), reflect.ValueOf(f)
-		targetType := field.Type()
-		if targetType.Kind() == reflect.Ptr {
-			targetType = targetType.Elem()
-		}
-		if mm, ok := f.(map[string]any); ok && field.Type() == reflect.TypeFor[json.RawMessage]() {
-			raw, err := json.Marshal(mm)
-			if err != nil {
-				return val, err
-			}
-			field.Set(reflect.ValueOf(json.RawMessage(raw)))
-		} else if fType.Kind() == reflect.Float64 &&
-			(reflect.Zero(targetType).CanInt() || reflect.Zero(targetType).CanUint()) {
-			// Genai will send us integers as float64 after json conversion,
-			// so convert them back to ints.
-			iv := fValue.Convert(targetType)
-			if fv := iv.Convert(fType); !fValue.Equal(fv) {
-				if tool {
-					return val, BadCallError("argument %v: float value truncated from %v to %v",
-						name, f, iv.Interface())
-				} else {
-					return val, fmt.Errorf("%T: field %v: float value truncated from %v to %v",
-						val, name, f, iv.Interface())
-				}
-			}
-			if field.Kind() == reflect.Ptr {
-				ptr := reflect.New(targetType)
-				ptr.Elem().Set(iv)
-				field.Set(ptr)
-			} else {
-				field.Set(iv)
-			}
-		} else if field.Type() == fType {
-			field.Set(fValue)
-		} else {
-			if tool {
-				return val, BadCallError("argument %q has wrong type: got %T, want %v",
-					name, f, field.Type().Name())
-			} else {
-				return val, fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
-					val, name, f, field.Type().Name())
-			}
+		if err := setField(field, val, f, name, tool); err != nil {
+			return val, err
 		}
 	}
 	if strict && len(m) != 0 {
 		return val, fmt.Errorf("unused fields when converting map to %T: %v", val, m)
 	}
 	return val, nil
+}
+
+func setField(field reflect.Value, val, f any, name string, tool bool) error {
+	fType, fValue := reflect.TypeOf(f), reflect.ValueOf(f)
+	targetType := field.Type()
+	if targetType.Kind() == reflect.Ptr {
+		targetType = targetType.Elem()
+	}
+	if mm, ok := f.(map[string]any); ok && field.Type() == reflect.TypeFor[json.RawMessage]() {
+		raw, err := json.Marshal(mm)
+		if err != nil {
+			return err
+		}
+		field.Set(reflect.ValueOf(json.RawMessage(raw)))
+		return nil
+	}
+	if fType.Kind() == reflect.Float64 &&
+		(reflect.Zero(targetType).CanInt() || reflect.Zero(targetType).CanUint()) {
+		// Genai will send us integers as float64 after json conversion,
+		// so convert them back to ints.
+		iv := fValue.Convert(targetType)
+		if fv := iv.Convert(fType); !fValue.Equal(fv) {
+			if tool {
+				return BadCallError("argument %v: float value truncated from %v to %v",
+					name, f, iv.Interface())
+			}
+			return fmt.Errorf("%T: field %v: float value truncated from %v to %v",
+				val, name, f, iv.Interface())
+		}
+		if field.Kind() == reflect.Ptr {
+			ptr := reflect.New(targetType)
+			ptr.Elem().Set(iv)
+			field.Set(ptr)
+		} else {
+			field.Set(iv)
+		}
+		return nil
+	}
+	if field.Type() == fType {
+		field.Set(fValue)
+		return nil
+	}
+	if tool {
+		return BadCallError("argument %q has wrong type: got %T, want %v",
+			name, f, field.Type().Name())
+	}
+	return fmt.Errorf("%T: field %q has wrong type: got %T, want %v",
+		val, name, f, field.Type().Name())
 }
 
 // foreachField iterates over all public fields of the struct provided in data.
