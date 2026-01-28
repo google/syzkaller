@@ -305,7 +305,7 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
   if (!Decl->isThisDeclarationADefinition())
     return Base::TraverseRecordDecl(Decl);
   NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", false);
-  if (Decl->isCompleteDefinition() && !Decl->isInvalidDecl()) {
+  if (Decl->isCompleteDefinition()) {
     const auto& Layout = Context.getASTRecordLayout(Decl);
     for (const auto* Field : Decl->fields()) {
       uint64_t OffsetInBits = Layout.getFieldOffset(Field->getFieldIndex());

@@ -112,7 +112,7 @@ var Commands = []Command{
 		if len(args) == 3 {
 			val, err := strconv.ParseUint(args[2], 10, 64)
 			if err != nil {
-				return "", fmt.Errorf("bad offset: %v", err)
+				return "", fmt.Errorf("bad offset: %w", err)
 			}
 			fieldOffset = new(uint)
 			*fieldOffset = uint(val)
