@@ -1155,7 +1155,7 @@ static void install_syzos_code(void* host_mem, size_t mem_size)
 {
 	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
 	if (size > mem_size)
-		fail("SyzOS size exceeds guest memory");
+		fail("SYZOS size exceeds guest memory");
 	memcpy(host_mem, &__start_guest, size);
 }
 
