@@ -6,10 +6,11 @@
 
 // This file provides guest code running inside the AMD64 KVM.
 
-#include "common_kvm_syzos.h"
-#include "kvm.h"
 #include <linux/kvm.h>
 #include <stdbool.h>
+
+#include "common_kvm_syzos.h"
+#include "kvm.h"
 
 // There are no particular rules to assign numbers here, but changing them will
 // result in losing some existing reproducers. Therefore, we try to leave spaces
