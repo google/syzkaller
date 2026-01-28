@@ -103,6 +103,31 @@ var Commands = []Command{
 		}
 		return b.String(), nil
 	}},
+	{"struct-layout", 0, func(index *Index, args []string) (string, error) {
+		if len(args) != 2 && len(args) != 3 {
+			return "", fmt.Errorf("codesearch command struct-layout requires 2 or 3 args, but %v provided",
+				len(args))
+		}
+		var fieldOffset *uint
+		if len(args) == 3 {
+			val, err := strconv.ParseUint(args[2], 10, 64)
+			if err != nil {
+				return "", fmt.Errorf("bad offset: %v", err)
+			}
+			fieldOffset = new(uint)
+			*fieldOffset = uint(val)
+		}
+		fields, err := index.GetStructLayout(args[0], args[1], fieldOffset)
+		if err != nil {
+			return "", err
+		}
+		b := new(strings.Builder)
+		fmt.Fprintf(b, "struct %v has %v fields:\n", args[1], len(fields))
+		for _, f := range fields {
+			fmt.Fprintf(b, "[%v - %v] %v\n", f.OffsetBits, f.OffsetBits+f.SizeBits, f.Name)
+		}
+		return b.String(), nil
+	}},
 }
 
 func IsSourceFile(file string) bool {
@@ -131,7 +156,7 @@ func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
 func (index *Index) Command(cmd string, args []string) (string, error) {
 	for _, meta := range Commands {
 		if cmd == meta.Name {
-			if len(args) != meta.NArgs {
+			if meta.NArgs != 0 && len(args) != meta.NArgs {
 				return "", fmt.Errorf("codesearch command %v requires %v args, but %v provided",
 					cmd, meta.NArgs, len(args))
 			}
@@ -338,6 +363,27 @@ func (index *Index) findDefinition(contextFile, name string) *Definition {
 		return weakMatch
 	}
 	return veryWeakMatch
+}
+
+func (index *Index) GetStructLayout(contextFile, name string, fieldOffset *uint) ([]FieldInfo, error) {
+	def := index.findDefinition(contextFile, name)
+	if def == nil {
+		return nil, aflow.BadCallError("requested entity does not exist")
+	}
+	if def.Kind != EntityKindStruct && def.Kind != EntityKindUnion {
+		return nil, aflow.BadCallError("requested entity %v is not a struct/union (is %v)", name, def.Kind)
+	}
+	if fieldOffset == nil {
+		return def.Fields, nil
+	}
+	var res []FieldInfo
+	targetBits := uint64(*fieldOffset) * 8
+	for _, f := range def.Fields {
+		if f.OffsetBits <= targetBits && targetBits <= f.OffsetBits+f.SizeBits {
+			res = append(res, f)
+		}
+	}
+	return res, nil
 }
 
 func (index *Index) formatSource(lines LineRange, includeLines bool) (string, error) {

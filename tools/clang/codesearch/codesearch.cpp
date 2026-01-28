@@ -9,6 +9,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/ParentMapContext.h"
+#include "clang/AST/RecordLayout.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -304,6 +305,24 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
   if (!Decl->isThisDeclarationADefinition())
     return Base::TraverseRecordDecl(Decl);
   NamedDeclEmitter Emitter(this, Decl, Decl->isStruct() ? EntityKindStruct : EntityKindUnion, "", false);
+  if (Decl->isCompleteDefinition() && !Decl->isInvalidDecl()) {
+    const auto& Layout = Context.getASTRecordLayout(Decl);
+    for (const auto* Field : Decl->fields()) {
+      uint64_t OffsetInBits = Layout.getFieldOffset(Field->getFieldIndex());
+      uint64_t SizeInBits;
+      if (Field->isBitField()) {
+        SizeInBits = Field->getBitWidthValue(Context);
+      } else {
+        TypeInfo Info = Context.getTypeInfo(Field->getType());
+        SizeInBits = Info.Width;
+      }
+      Emitter.Def.Fields.push_back(FieldInfo{
+          .Name = Field->getNameAsString(),
+          .OffsetBits = OffsetInBits,
+          .SizeBits = SizeInBits,
+      });
+    }
+  }
   return Base::TraverseRecordDecl(Decl);
 }
 

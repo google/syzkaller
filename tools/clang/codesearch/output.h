@@ -40,6 +40,12 @@ struct Reference {
   int Line;
 };
 
+struct FieldInfo {
+  std::string Name;
+  uint64_t OffsetBits;
+  uint64_t SizeBits;
+};
+
 struct Definition {
   const char* Kind; // one of Kind* consts
   std::string Name;
@@ -51,6 +57,7 @@ struct Definition {
   // Location of the kernel-doc comment.
   LineRange Comment;
   std::vector<Reference> Refs;
+  std::vector<FieldInfo> Fields;
 };
 
 inline void print(JSONPrinter& Printer, const LineRange& V) {
@@ -68,6 +75,13 @@ inline void print(JSONPrinter& Printer, const Reference& V) {
   Printer.Field("line", V.Line, true);
 }
 
+inline void print(JSONPrinter& Printer, const FieldInfo& V) {
+  JSONPrinter::Scope Scope(Printer);
+  Printer.Field("name", V.Name);
+  Printer.Field("offset", V.OffsetBits);
+  Printer.Field("size", V.SizeBits, true);
+}
+
 inline void print(JSONPrinter& Printer, const Definition& V) {
   JSONPrinter::Scope Scope(Printer);
   Printer.Field("kind", V.Kind);
@@ -76,7 +90,8 @@ inline void print(JSONPrinter& Printer, const Definition& V) {
   Printer.Field("is_static", V.IsStatic);
   Printer.Field("body", V.Body);
   Printer.Field("comment", V.Comment);
-  Printer.Field("refs", V.Refs, true);
+  Printer.Field("refs", V.Refs);
+  Printer.Field("fields", V.Fields, true);
 }
 
 class Output {

@@ -116,6 +116,23 @@ func TestConvertFromMap(t *testing.T) {
 	}{},
 		``,
 		``)
+
+	val5 := uint(5)
+	testConvertFromMap(t, false, map[string]any{
+		"P": 5.0,
+	}, struct {
+		P *uint
+	}{
+		P: &val5,
+	}, "", "")
+
+	testConvertFromMap(t, true, map[string]any{
+		"P": 5.1,
+	}, struct {
+		P *uint
+	}{},
+		`argument P: float value truncated from 5.1 to 5`,
+		`struct { P *uint }: field P: float value truncated from 5.1 to 5`)
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {

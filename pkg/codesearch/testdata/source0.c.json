@@ -192,7 +192,14 @@
 				"start_line": 36,
 				"end_line": 38
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				}
+			]
 		},
 		{
 			"name": "some_struct",
@@ -202,7 +209,19 @@
 				"start_line": 17,
 				"end_line": 20
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "y",
+					"offset": 32,
+					"size": 32
+				}
+			]
 		},
 		{
 			"name": "some_struct_with_a_comment",
@@ -216,7 +235,19 @@
 				"file": "source0.h",
 				"start_line": 24,
 				"end_line": 26
-			}
+			},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "other_struct",
+					"offset": 64,
+					"size": 64
+				}
+			]
 		},
 		{
 			"name": "struct_in_c_file",
@@ -226,7 +257,19 @@
 				"start_line": 6,
 				"end_line": 9
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "X",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "by_value",
+					"offset": 32,
+					"size": 64
+				}
+			]
 		},
 		{
 			"name": "some_union",
@@ -236,7 +279,24 @@
 				"start_line": 40,
 				"end_line": 44
 			},
-			"comment": {}
+			"comment": {},
+			"fields": [
+				{
+					"name": "x",
+					"offset": 0,
+					"size": 32
+				},
+				{
+					"name": "p",
+					"offset": 0,
+					"size": 64
+				},
+				{
+					"name": "s",
+					"offset": 0,
+					"size": 64
+				}
+			]
 		},
 		{
 			"name": "some_enum",
