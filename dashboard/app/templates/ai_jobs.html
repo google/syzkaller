@@ -24,5 +24,18 @@ List of AI jobs page.
 		<input type="submit" value="Filter">
 	</form>
 	{{template "ai_job_list" .Jobs}}
+	{{if or (gt .Page 1) .ShowNext}}
+	<div style="margin-top: 10px;">
+		{{if gt .Page 1}}
+		<a href="/{{.Header.Namespace}}/ai?page={{(add .Page -1)}}&workflow={{.CurrentWorkflow}}">Previous</a>
+		{{end}}
+		{{if and (gt .Page 1) .ShowNext}}
+		|
+		{{end}}
+		{{if .ShowNext}}
+		<a href="/{{.Header.Namespace}}/ai?page={{(add .Page 1)}}&workflow={{.CurrentWorkflow}}">Next</a>
+		{{end}}
+	</div>
+	{{end}}
 </body>
 </html>

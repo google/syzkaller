@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,15 +31,8 @@ type uiAIJobsPage struct {
 	Jobs            []*uiAIJob
 	Workflows       []string
 	CurrentWorkflow string
-}
-
-type uiAIJobPage struct {
-	Header *uiHeader
-	Job    *uiAIJob
-	// The slice contains the same single Job, just for HTML templates convenience.
-	Jobs        []*uiAIJob
-	CrashReport template.HTML
-	Trajectory  []*uiAITrajectorySpan
+	Page            int
+	ShowNext        bool
 }
 
 type uiAIJob struct {
@@ -61,6 +55,20 @@ type uiAIResult struct {
 	Name   string
 	IsBool bool
 	Value  any
+}
+
+type uiAIJobPage struct {
+	Header *uiHeader
+	Job    *uiAIJob
+	// The slice contains the same single Job, just for HTML templates convenience.
+	Jobs        []*uiAIJob
+	CrashReport template.HTML
+	Trajectory  []*uiAITrajectoryNode
+}
+
+type uiAITrajectoryNode struct {
+	*uiAITrajectorySpan
+	Children []*uiAITrajectoryNode
 }
 
 type uiAITrajectorySpan struct {
@@ -91,10 +99,24 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace)
+	pageStr := r.FormValue("page")
+	pageNum := 1
+	if pageStr != "" {
+		if n, err := strconv.Atoi(pageStr); err == nil && n > 1 {
+			pageNum = n
+		}
+	}
+	const itemsPerPage = 20
+	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, itemsPerPage+1, (pageNum-1)*itemsPerPage)
 	if err != nil {
 		return err
 	}
+	showNext := false
+	if len(jobs) > itemsPerPage {
+		showNext = true
+		jobs = jobs[:itemsPerPage]
+	}
+
 	workflowParam := r.FormValue("workflow")
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
@@ -117,6 +139,8 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		Jobs:            uiJobs,
 		Workflows:       workflowNames,
 		CurrentWorkflow: workflowParam,
+		Page:            pageNum,
+		ShowNext:        showNext,
 	}
 	return serveTemplate(w, "ai_jobs.html", page)
 }
@@ -158,12 +182,14 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		args = job.Args.Value.(map[string]any)
 	}
 	var crashReport template.HTML
-	if reportID, _ := args["CrashReportID"].(json.Number).Int64(); reportID != 0 {
-		report, _, err := getText(ctx, textCrashReport, reportID)
-		if err != nil {
-			return err
+	if val, ok := args["CrashReportID"]; ok {
+		if reportID, _ := val.(json.Number).Int64(); reportID != 0 {
+			report, _, err := getText(ctx, textCrashReport, reportID)
+			if err != nil {
+				return err
+			}
+			crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 		}
-		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
 	page := &uiAIJobPage{
@@ -228,34 +254,81 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	}
 }
 
-func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan {
-	var res []*uiAITrajectorySpan
-	for _, span := range trajetory {
+func makeUIAITrajectory(trajectory []*aidb.TrajectorySpan) []*uiAITrajectoryNode {
+	// We need to reconstruct the tree from the flat list of spans.
+	// We assume that the spans are sorted by Seq and Nesting is consistent.
+	// We use a stack to keep track of the current path in the tree.
+	// The stack contains pointers to the nodes.
+	// stack[0] is the root (virtual).
+	// stack[i] is the parent of stack[i+1].
+	// root is a virtual node to hold top-level nodes.
+	root := &uiAITrajectoryNode{}
+	stack := []*uiAITrajectoryNode{root}
+
+	for _, span := range trajectory {
 		var duration time.Duration
 		if span.Finished.Valid {
 			duration = span.Finished.Time.Sub(span.Started)
 		}
-		res = append(res, &uiAITrajectorySpan{
-			Started:              span.Started,
-			Seq:                  span.Seq,
-			Nesting:              span.Nesting,
-			Type:                 span.Type,
-			Name:                 span.Name,
-			Model:                span.Model,
-			Duration:             duration,
-			Error:                nullString(span.Error),
-			Args:                 nullJSON(span.Args),
-			Results:              nullJSON(span.Results),
-			Instruction:          nullString(span.Instruction),
-			Prompt:               nullString(span.Prompt),
-			Reply:                nullString(span.Reply),
-			Thoughts:             nullString(span.Thoughts),
-			InputTokens:          nullInt64(span.InputTokens),
-			OutputTokens:         nullInt64(span.OutputTokens),
-			OutputThoughtsTokens: nullInt64(span.OutputThoughtsTokens),
-		})
+		node := &uiAITrajectoryNode{
+			uiAITrajectorySpan: &uiAITrajectorySpan{
+				Started:              span.Started,
+				Seq:                  span.Seq,
+				Nesting:              span.Nesting,
+				Type:                 span.Type,
+				Name:                 span.Name,
+				Model:                span.Model,
+				Duration:             duration,
+				Error:                nullString(span.Error),
+				Args:                 nullJSON(span.Args),
+				Results:              nullJSON(span.Results),
+				Instruction:          nullString(span.Instruction),
+				Prompt:               nullString(span.Prompt),
+				Reply:                nullString(span.Reply),
+				Thoughts:             nullString(span.Thoughts),
+				InputTokens:          nullInt64(span.InputTokens),
+				OutputTokens:         nullInt64(span.OutputTokens),
+				OutputThoughtsTokens: nullInt64(span.OutputThoughtsTokens),
+			},
+		}
+
+		// Adjust stack to the correct nesting level.
+		// Nesting 0 means direct children of root (stack len 1)
+		// Nesting N means direct children of stack[N] (stack len N+1)
+		targetLen := int(span.Nesting) + 1
+		targetLen = max(targetLen, 1)
+		// This implies missing intermediate levels or jump in nesting.
+		// Ideally shouldn't happen for strict tree traversal, but we just append to current parent.
+		targetLen = min(targetLen, len(stack))
+		stack = stack[:targetLen]
+
+		parent := stack[len(stack)-1]
+		parent.Children = append(parent.Children, node)
+		stack = append(stack, node)
 	}
-	return res
+
+	// Propagate errors specifically for:
+	// "If an agent only has a single entry that's a failed tool call, it should be considered failed / red as well."
+	var propagateErrors func(nodes []*uiAITrajectoryNode)
+	propagateErrors = func(nodes []*uiAITrajectoryNode) {
+		for _, node := range nodes {
+			if len(node.Children) > 0 {
+				propagateErrors(node.Children)
+				// If this node is an Agent (or just a parent) and has exactly 1 child
+				// and that child has an Error, propagate it if the parent doesn't have an error.
+				if len(node.Children) == 1 && node.Children[0].Error != "" && node.Error == "" {
+					// We copy the child's error to indicate failure at this level too.
+					// Or maybe we want a distinct message? The user said "considered failed / red as well".
+					// Copying the error makes it show up in the UI as if this node failed.
+					// Let's use a pointer or just copy the string.
+					node.Error = node.Children[0].Error
+				}
+			}
+		}
+	}
+	propagateErrors(root.Children)
+
+	return root.Children
 }
 
 func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
@@ -645,6 +718,9 @@ func nullString(v spanner.NullString) string {
 func nullJSON(v spanner.NullJSON) string {
 	if !v.Valid {
 		return ""
+	}
+	if b, err := json.Marshal(v.Value); err == nil {
+		return string(b)
 	}
 	return fmt.Sprint(v.Value)
 }

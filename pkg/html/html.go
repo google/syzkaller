@@ -4,10 +4,13 @@
 package html
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	texttemplate "text/template"
 	"time"
@@ -70,6 +73,122 @@ var Funcs = template.FuncMap{
 	"selectBisect":           selectBisect,
 	"dereference":            dereferencePointer,
 	"commitLink":             commitLink,
+	"tryFormatJSON":          tryFormatJSON,
+	"jsonParse":              jsonParse,
+	"isSlice":                isSlice,
+	"isJSONKV":               isJSONKV,
+	"formatJSONValue":        formatJSONValue,
+	"slugify":                slugify,
+	"add":                    add,
+}
+
+type JSONKV struct {
+	Key   string
+	Value any
+}
+
+type SortedJSONMap []JSONKV
+
+func jsonParse(v string) any {
+	var tmp any
+	d := json.NewDecoder(strings.NewReader(v))
+	d.UseNumber()
+	if err := d.Decode(&tmp); err != nil {
+		return nil
+	}
+	return toSortedJSON(tmp)
+}
+
+func toSortedJSON(v any) any {
+	switch v := v.(type) {
+	case map[string]any:
+		var out SortedJSONMap
+		for k, val := range v {
+			out = append(out, JSONKV{Key: k, Value: toSortedJSON(val)})
+		}
+		return sortJSONKVs(out)
+	case []any:
+		out := make([]any, len(v))
+		for i, val := range v {
+			out[i] = toSortedJSON(val)
+		}
+		return out
+	case string:
+		// Try to parse string as JSON if it looks like an object or array.
+		str := strings.TrimSpace(v)
+		if (strings.HasPrefix(str, "{") && strings.HasSuffix(str, "}")) ||
+			(strings.HasPrefix(str, "[") && strings.HasSuffix(str, "]")) {
+			var tmp any
+			d := json.NewDecoder(strings.NewReader(str))
+			d.UseNumber()
+			if err := d.Decode(&tmp); err == nil {
+				return toSortedJSON(tmp)
+			}
+		}
+		return v
+	}
+	return v
+}
+
+func sortJSONKVs(kvs SortedJSONMap) SortedJSONMap {
+	// Simple bubble sort for stability.
+	for i := 1; i < len(kvs); i++ {
+		for j := i; j > 0 && kvs[j-1].Key > kvs[j].Key; j-- {
+			kvs[j], kvs[j-1] = kvs[j-1], kvs[j]
+		}
+	}
+	return kvs
+}
+
+func tryFormatJSON(v string) string {
+	var out bytes.Buffer
+	if err := json.Indent(&out, []byte(v), "", "  "); err == nil {
+		return out.String()
+	}
+	return v
+}
+
+func isSlice(v any) bool {
+	return reflect.TypeOf(v).Kind() == reflect.Slice
+}
+
+var slugifyRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+func slugify(text string) string {
+	text = strings.ToLower(text)
+	text = slugifyRe.ReplaceAllString(text, "-")
+	text = strings.Trim(text, "-")
+	return text
+}
+
+func isJSONKV(v any) bool {
+	_, ok := v.(SortedJSONMap)
+	return ok
+}
+
+func formatJSONValue(v any) template.HTML {
+	switch val := v.(type) {
+	case string:
+		if val == "" {
+			return template.HTML(`<span class="json-empty">empty</span>`)
+		}
+		// If multiline, render as a block.
+		if strings.Contains(val, "\n") {
+			return template.HTML(fmt.Sprintf(`<div class="json-string-block">%s</div>`, template.HTMLEscapeString(val)))
+		}
+		return template.HTML(fmt.Sprintf(`<span class="json-string">%s</span>`, template.HTMLEscapeString(val)))
+	case json.Number:
+		return template.HTML(fmt.Sprintf(`<span class="json-number">%s</span>`, val.String()))
+	case bool:
+		return template.HTML(fmt.Sprintf(`<span class="json-bool">%v</span>`, val))
+	case nil:
+		return template.HTML(`<span class="json-null">null</span>`)
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return template.HTML(fmt.Sprintf(`<span class="json-number">%v</span>`, val))
+	default:
+		// Fallback for unknown types.
+		return template.HTML(template.HTMLEscapeString(fmt.Sprint(val)))
+	}
 }
 
 func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
@@ -218,4 +337,8 @@ func dereferencePointer(v any) any {
 
 func commitLink(repo, commit string) string {
 	return vcs.CommitLink(repo, commit)
+}
+
+func add(a, b int) int {
+	return a + b
 }

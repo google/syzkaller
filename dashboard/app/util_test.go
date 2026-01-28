@@ -293,7 +293,7 @@ func (ctx *Ctx) Close() {
 		if ctx.checkAI {
 			_, err = ctx.GET("/ains/ai/")
 			ctx.expectOK(err)
-			jobs, err := aidb.LoadNamespaceJobs(ctx.ctx, "ains")
+			jobs, err := aidb.LoadNamespaceJobs(ctx.ctx, "ains", 10, 0)
 			ctx.expectOK(err)
 			for _, job := range jobs {
 				_, err = ctx.GET(fmt.Sprintf("/ai_job?id=%v", job.ID))
