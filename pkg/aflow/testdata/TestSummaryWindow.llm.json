@@ -1,0 +1,471 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id1",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id1",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id2",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id2",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					},
+					{
+						"text": "\nYou MUST attach a summary of your most up-to-date findings/knowledge in your reply, which summarizes\nall the historical context, because I will remove old chats if they fall out of the context sliding window\n(for example, I will remove the oldest 3 chats if the sliding window is 10 but there have been 13 LLM chat\nmessages). In your summary, KEEP/INCLUDE ALL useful code. Because I will drop old messages, the code read\nby tools will also be tossed.\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tick"
+						},
+						"text": "This is the 1st summary of the history."
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id3",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id3",
+							"name": "tick"
+						},
+						"text": "This is the 1st summary of the history."
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id4",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id4",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					},
+					{
+						"text": "\nYou MUST attach a summary of your most up-to-date findings/knowledge in your reply, which summarizes\nall the historical context, because I will remove old chats if they fall out of the context sliding window\n(for example, I will remove the oldest 3 chats if the sliding window is 10 but there have been 13 LLM chat\nmessages). In your summary, KEEP/INCLUDE ALL useful code. Because I will drop old messages, the code read\nby tools will also be tossed.\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "logic ticker",
+							"name": "tick",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"ResFoo": {
+										"description": "foo",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"ResFoo"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id5",
+							"name": "tick"
+						},
+						"text": "This is the 2nd summary."
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id5",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
