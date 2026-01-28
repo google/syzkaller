@@ -313,7 +313,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	args := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, inst.cfg.SystemSSHCfg),
 		inst.User+"@"+inst.Addr)
 	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
@@ -352,8 +352,8 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("dmesg", dmesg)
-	merger.Add("ssh", rpipe)
+	merger.Add("dmesg", vmimpl.OutputConsole, dmesg)
+	merger.Add("ssh", vmimpl.OutputCommand, rpipe)
 
 	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,

@@ -464,19 +464,29 @@ func (inst *instance) Forward(port int) (string, error) {
 	return reply.ManagerAddress, nil
 }
 
-func buildMerger(names ...string) (*vmimpl.OutputMerger, []io.Writer) {
+func buildMerger(streams []struct {
+	name string
+	typ  vmimpl.OutputType
+}) (*vmimpl.OutputMerger, []io.Writer) {
 	var wPipes []io.Writer
 	merger := vmimpl.NewOutputMerger(nil)
-	for _, name := range names {
+	for _, stream := range streams {
 		rpipe, wpipe := io.Pipe()
 		wPipes = append(wPipes, wpipe)
-		merger.Add(name, rpipe)
+		merger.Add(stream.name, stream.typ, rpipe)
 	}
 	return merger, wPipes
 }
 
-func (inst *instance) Run(ctx context.Context, command string) (<-chan []byte, <-chan error, error) {
-	merger, wPipes := buildMerger("stdout", "stderr", "console")
+func (inst *instance) Run(ctx context.Context, command string) (<-chan vmimpl.Chunk, <-chan error, error) {
+	merger, wPipes := buildMerger([]struct {
+		name string
+		typ  vmimpl.OutputType
+	}{
+		{"stdout", vmimpl.OutputCommand},
+		{"stderr", vmimpl.OutputCommand},
+		{"console", vmimpl.OutputConsole},
+	})
 	receivedStdoutChunks := wPipes[0]
 	receivedStderrChunks := wPipes[1]
 	receivedConsoleChunks := wPipes[2]

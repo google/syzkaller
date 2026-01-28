@@ -178,7 +178,7 @@ func (inst *instance) boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("virtualbox", inst.rpipe)
+	inst.merger.Add("virtualbox", vmimpl.OutputConsole, inst.rpipe)
 	inst.rpipe = nil
 
 	// Connect to the serial console and add it to the merger.
@@ -190,7 +190,7 @@ func (inst *instance) boot() error {
 		}
 		return err
 	}
-	inst.merger.Add("dmesg", inst.uartConn)
+	inst.merger.Add("dmesg", vmimpl.OutputConsole, inst.uartConn)
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
@@ -198,7 +198,7 @@ func (inst *instance) boot() error {
 		for {
 			select {
 			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
+				bootOutput = append(bootOutput, out.Data...)
 			case <-bootOutputStop:
 				close(bootOutputStop)
 				return
@@ -264,7 +264,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	if inst.uartConn == nil {
 		if inst.debug {
 			log.Logf(0, "serial console not available; returning an error")
@@ -304,7 +304,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	wpipe.Close()
 
-	inst.merger.Add("ssh", rpipe)
+	inst.merger.Add("ssh", vmimpl.OutputCommand, rpipe)
 
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Console: inst.uartConn,

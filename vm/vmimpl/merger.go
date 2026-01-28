@@ -10,8 +10,20 @@ import (
 	"sync"
 )
 
+type OutputType int
+
+const (
+	OutputConsole OutputType = iota
+	OutputCommand
+)
+
+type Chunk struct {
+	Data []byte
+	Type OutputType
+}
+
 type OutputMerger struct {
-	Output chan []byte
+	Output chan Chunk
 	Err    chan error
 	teeMu  sync.Mutex
 	tee    io.Writer
@@ -30,7 +42,7 @@ func (err MergerError) Error() string {
 
 func NewOutputMerger(tee io.Writer) *OutputMerger {
 	return &OutputMerger{
-		Output: make(chan []byte, 1000),
+		Output: make(chan Chunk, 1000),
 		Err:    make(chan error, 1),
 		tee:    tee,
 	}
@@ -41,11 +53,11 @@ func (merger *OutputMerger) Wait() {
 	close(merger.Output)
 }
 
-func (merger *OutputMerger) Add(name string, r io.ReadCloser) {
-	merger.AddDecoder(name, r, nil)
+func (merger *OutputMerger) Add(name string, typ OutputType, r io.ReadCloser) {
+	merger.AddDecoder(name, typ, r, nil)
 }
 
-func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
+func (merger *OutputMerger) AddDecoder(name string, typ OutputType, r io.ReadCloser,
 	decoder func(data []byte) (start, size int, decoded []byte)) {
 	merger.wg.Add(1)
 	go func() {
@@ -60,7 +72,7 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 					start, size, decoded := decoder(proto)
 					proto = proto[start+size:]
 					if len(decoded) != 0 {
-						merger.Output <- decoded // note: this can block
+						merger.Output <- Chunk{decoded, typ} // note: this can block
 					}
 				}
 				// Remove all carriage returns.
@@ -77,7 +89,7 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 						merger.teeMu.Unlock()
 					}
 					select {
-					case merger.Output <- append([]byte{}, out...):
+					case merger.Output <- Chunk{append([]byte{}, out...), typ}:
 						r := copy(pending, pending[pos+1:])
 						pending = pending[:r]
 					default:
@@ -93,7 +105,7 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 						merger.teeMu.Unlock()
 					}
 					select {
-					case merger.Output <- pending:
+					case merger.Output <- Chunk{pending, typ}:
 					default:
 					}
 				}

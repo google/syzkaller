@@ -458,7 +458,7 @@ func TestInstance_RunReadProgress_OnErrorReceived(t *testing.T) {
 		Once()
 
 	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
-	output := string(<-outc)
+	output := string((<-outc).Data)
 
 	assert.Equal(t, "mock error\nSYZFAIL: proxy app plugin error\n", output)
 }
@@ -498,7 +498,7 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 		Once()
 
 	outc, _, _ := inst.Run(contextWithTimeout(t, 10*time.Second), "command")
-	output := string(<-outc)
+	output := string((<-outc).Data)
 
 	assert.Equal(t,
 		"error reading progress from instance_id_0:test_run_id: runreadprogresserror\nSYZFAIL: proxy app plugin error\n",

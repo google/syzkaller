@@ -532,7 +532,7 @@ func isRemoteCuttlefish(dev string) (bool, string) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	var tty io.ReadCloser
 	var err error
 
@@ -573,8 +573,8 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", tty)
-	merger.Add("adb", adbRpipe)
+	merger.Add("console", vmimpl.OutputConsole, tty)
+	merger.Add("adb", vmimpl.OutputCommand, adbRpipe)
 
 	return vmimpl.Multiplex(ctx, adb, merger, vmimpl.MultiplexConfig{
 		Console: tty,
