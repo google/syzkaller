@@ -178,7 +178,7 @@ func (inst *instance) Boot() error {
 	inst.consolew = inw
 	outw.Close()
 	inr.Close()
-	inst.merger.Add("console", outr)
+	inst.merger.Add("console", vmimpl.OutputConsole, outr)
 
 	inst.Addr, err = inst.lookupSSHAddress()
 	if err != nil {
@@ -187,7 +187,7 @@ func (inst *instance) Boot() error {
 
 	if err := vmimpl.WaitForSSH(20*time.Minute, inst.SSHOptions,
 		inst.os, nil, false, inst.debug); err != nil {
-		out := <-inst.merger.Output
+		out := (<-inst.merger.Output).Data
 		return vmimpl.BootError{Title: err.Error(), Output: out}
 	}
 	return nil
@@ -252,12 +252,12 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	inst.merger.Add("ssh", vmimpl.OutputCommand, rpipe)
 
 	args := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false),
 		inst.User+"@"+inst.Addr, command)

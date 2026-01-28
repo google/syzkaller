@@ -273,7 +273,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
@@ -315,7 +315,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if inst.env.OS == targets.Windows {
 		decoder = kd.Decode
 	}
-	merger.AddDecoder("console", conRpipe, decoder)
+	merger.AddDecoder("console", vmimpl.OutputConsole, conRpipe, decoder)
 	if err := waitForConsoleConnect(merger); err != nil {
 		con.Process.Kill()
 		merger.Wait()
@@ -339,7 +339,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		return nil, nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
 	sshWpipe.Close()
-	merger.Add("ssh", sshRpipe)
+	merger.Add("ssh", vmimpl.OutputCommand, sshRpipe)
 
 	return vmimpl.Multiplex(ctx, ssh, merger, vmimpl.MultiplexConfig{
 		Console: vmimpl.CmdCloser{Cmd: con},
@@ -383,7 +383,7 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 	for {
 		select {
 		case out := <-merger.Output:
-			output = append(output, out...)
+			output = append(output, out.Data...)
 			if bytes.Contains(output, connectedMsg) {
 				// Just to make sure (otherwise we still see trimmed reports).
 				time.Sleep(5 * time.Second)

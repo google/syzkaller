@@ -175,7 +175,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	vmxDir := filepath.Dir(inst.vmx)
 	serial := filepath.Join(vmxDir, "serial")
 	dmesg, err := net.Dial("unix", serial)
@@ -215,8 +215,8 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("dmesg", dmesg)
-	merger.Add("ssh", rpipe)
+	merger.Add("dmesg", vmimpl.OutputConsole, dmesg)
+	merger.Add("ssh", vmimpl.OutputCommand, rpipe)
 
 	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,

@@ -231,7 +231,7 @@ func (inst *instance) readOutput() []byte {
 	for {
 		select {
 		case out := <-inst.merger.Output:
-			output = append(output, out...)
+			output = append(output, out.Data...)
 			wait--
 		default:
 			if wait > 0 {
