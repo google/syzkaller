@@ -18,6 +18,7 @@ type kcsanInputs struct {
 	CodesearchToolBin string
 }
 
+// nolint:dupl
 func init() {
 	aflow.Register[kcsanInputs, ai.AssessmentKCSANOutputs](
 		ai.WorkflowAssessmentKCSAN,

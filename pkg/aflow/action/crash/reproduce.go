@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -39,22 +40,23 @@ type ReproduceArgs struct {
 }
 
 type reproduceResult struct {
+	BugTitle    string
 	CrashReport string
 }
 
-func ReproduceCrash(args ReproduceArgs, workdir string) (string, string, error) {
+func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string, error) {
 	if args.Type != "qemu" {
-		return "", "", errors.New("only qemu VM type is supported")
+		return nil, "", errors.New("only qemu VM type is supported")
 	}
 
 	var vmConfig map[string]any
 	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
-		return "", "", fmt.Errorf("failed to parse VM config: %w", err)
+		return nil, "", fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to serialize VM config: %w", err)
+		return nil, "", fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 
 	cfg := mgrconfig.DefaultValues()
@@ -67,27 +69,27 @@ func ReproduceCrash(args ReproduceArgs, workdir string) (string, string, error) 
 	cfg.Type = args.Type
 	cfg.VM = vmCfg
 	if err := mgrconfig.SetTargets(cfg); err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	env, err := instance.NewEnv(cfg, nil, nil)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	results, err := env.Test(1, nil, nil, []byte(args.ReproC))
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	if results[0].Error != nil {
 		if crashErr := new(instance.CrashError); errors.As(results[0].Error, &crashErr) {
-			return string(crashErr.Report.Report), "", nil
+			return crashErr.Report, "", nil
 		} else {
-			return "", results[0].Error.Error(), nil
+			return nil, results[0].Error.Error(), nil
 		}
 	}
-	return "", "", nil
+	return nil, "", nil
 }
 
 func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
@@ -96,12 +98,13 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		return reproduceResult{}, err
 	}
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, version 2",
+		" vm %v, vm config hash %v, C repro hash %v, version 3",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC))
 	type Cached struct {
-		Report string
-		Error  string
+		BugTitle string
+		Report   string
+		Error    string
 	}
 	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
 		var res Cached
@@ -109,7 +112,12 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		if err != nil {
 			return res, err
 		}
-		res.Report, res.Error, err = ReproduceCrash(args, workdir)
+		rep, buildError, err := ReproduceCrash(args, workdir)
+		if rep != nil {
+			res.BugTitle = rep.Title
+			res.Report = string(rep.Report)
+		}
+		res.Error = buildError
 		return res, err
 	})
 	if err != nil {
@@ -121,6 +129,7 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		return reproduceResult{}, aflow.FlowError(errors.New("reproducer did not crash"))
 	}
 	return reproduceResult{
+		BugTitle:    cached.BugTitle,
 		CrashReport: cached.Report,
 	}, nil
 }
