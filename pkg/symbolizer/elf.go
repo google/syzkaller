@@ -10,6 +10,8 @@ import (
 	"io"
 	"sort"
 	"sync"
+
+	"github.com/ianlancetaylor/demangle"
 )
 
 type elfSymbolizer struct {
@@ -374,39 +376,45 @@ func (es *elfSymbolizer) unwindInlines(funcEntry *dwarf.Entry, pc uint64, lineEn
 		f := Frame{}
 		f.Inline = (i > 0)
 
-		name, _ := die.Val(dwarf.AttrName).(string)
-		if name == "" {
-			name, _ = es.resolveAbstractOrigin(die)
-		}
-		if name == "" {
-			name = fmt.Sprintf("func_%x", die.Offset)
-		}
+		origin, _ := es.resolveAbstractOrigin(die)
+
+		name := es.getName(die, origin)
 		f.Func = name
 
-		if i == 0 {
-			if lineEntry != nil && lineEntry.Line != 0 {
-				f.File = lineEntry.File.Name
-				f.Line = lineEntry.Line
-				f.Column = lineEntry.Column
-			}
-		} else {
-			prev := stack[i-1]
-			callFileIdx, _ := prev.Val(dwarf.AttrCallFile).(int64)
-			callLine, _ := prev.Val(dwarf.AttrCallLine).(int64)
-			callCol, _ := prev.Val(dwarf.AttrCallColumn).(int64)
-
-			if files != nil && callFileIdx > 0 && int(callFileIdx) <= len(files) {
-				if lf := files[callFileIdx-1]; lf != nil {
-					f.File = lf.Name
-				}
-			}
-			f.Line = int(callLine)
-			f.Column = int(callCol)
-		}
+		es.fillLocation(&f, i, die, origin, stack, lineEntry, files)
 		frames = append(frames, f)
 	}
 
 	return frames
+}
+
+func (es *elfSymbolizer) getName(die, origin *dwarf.Entry) string {
+	// Try LinkageName first (for mangled names)
+	if name, ok := die.Val(dwarf.AttrLinkageName).(string); ok {
+		if d, err := demangle.ToString(name); err == nil {
+			return d
+		}
+		return name
+	}
+	if origin != nil {
+		if name, ok := origin.Val(dwarf.AttrLinkageName).(string); ok {
+			if d, err := demangle.ToString(name); err == nil {
+				return d
+			}
+			return name
+		}
+	}
+
+	// Fallback to Name.
+	if name, ok := die.Val(dwarf.AttrName).(string); ok {
+		return name
+	}
+	if origin != nil {
+		if name, ok := origin.Val(dwarf.AttrName).(string); ok {
+			return name
+		}
+	}
+	return fmt.Sprintf("func_%x", die.Offset)
 }
 
 func findCoveringInlined(dw *dwarf.Data, r *dwarf.Reader, pc uint64, stack *[]*dwarf.Entry) bool {
@@ -457,23 +465,62 @@ func findCoveringInlined(dw *dwarf.Data, r *dwarf.Reader, pc uint64, stack *[]*d
 	}
 }
 
-func (es *elfSymbolizer) resolveAbstractOrigin(die *dwarf.Entry) (string, error) {
+func (es *elfSymbolizer) resolveAbstractOrigin(die *dwarf.Entry) (*dwarf.Entry, error) {
 	ref, ok := die.Val(dwarf.AttrAbstractOrigin).(dwarf.Offset)
 	if !ok {
-		return "", nil
+		return nil, nil
 	}
 	r := es.dw.Reader()
 	r.Seek(ref)
 	entry, err := r.Next()
 	if err != nil || entry == nil {
-		return "", err
+		return nil, err
 	}
-	name, _ := entry.Val(dwarf.AttrName).(string)
-	return name, nil
+	return entry, nil
 }
 
 func (es *elfSymbolizer) Close() {
 	if es.ef != nil {
 		es.ef.Close()
 	}
+}
+
+func (es *elfSymbolizer) fillLocation(f *Frame, i int, die, origin *dwarf.Entry, stack []*dwarf.Entry,
+	lineEntry *dwarf.LineEntry, files []*dwarf.LineFile) {
+	if i == 0 {
+		if lineEntry != nil && lineEntry.Line != 0 {
+			f.File = lineEntry.File.Name
+			f.Line = lineEntry.Line
+			f.Column = lineEntry.Column
+			return
+		}
+		// Fallback to function declaration file/line.
+		target := die
+		if origin != nil {
+			target = origin
+		}
+
+		declFileIdx, _ := target.Val(dwarf.AttrDeclFile).(int64)
+		if files != nil && declFileIdx > 0 && int(declFileIdx) < len(files) {
+			if lf := files[declFileIdx]; lf != nil {
+				f.File = lf.Name
+			}
+		}
+		f.Line = 0
+		f.Column = 0
+		return
+	}
+
+	prev := stack[i-1]
+	callFileIdx, _ := prev.Val(dwarf.AttrCallFile).(int64)
+	callLine, _ := prev.Val(dwarf.AttrCallLine).(int64)
+	callCol, _ := prev.Val(dwarf.AttrCallColumn).(int64)
+
+	if files != nil && callFileIdx > 0 && int(callFileIdx) < len(files) {
+		if lf := files[callFileIdx]; lf != nil {
+			f.File = lf.Name
+		}
+	}
+	f.Line = int(callLine)
+	f.Column = int(callCol)
 }

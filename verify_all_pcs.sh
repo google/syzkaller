@@ -67,10 +67,10 @@ echo "Running llvm-symbolizer..."
 # Wait, we need to ensure inputs are formatted as 0x...
 awk '{print "0x" $1}' pcs.hex > pcs.in
 
-$LLVM_SYMBOLIZER --obj="$VMLINUX" --output-style=GNU --functions --inlining < pcs.in > llvm.out
+$LLVM_SYMBOLIZER --obj="$VMLINUX" --inlining < pcs.in | grep -v '^$' | sed 's|/\./|/|g' > llvm.out
 
 echo "Running syz-sym-check (native)..."
-$SYZ_SYM_CHECK -kernel_obj="$VMLINUX" < pcs.in > native.out
+$SYZ_SYM_CHECK -kernel_obj="$VMLINUX" < pcs.in | sed 's|/\./|/|g' > native.out
 
 echo "Comparing outputs..."
 # We expect exact match or close.

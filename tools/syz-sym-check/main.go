@@ -59,11 +59,11 @@ func main() {
 		// Print in llvm-symbolizer GNU style.
 		for _, frame := range frames {
 			fmt.Println(frame.Func)
-			if frame.Column == 0 {
-				fmt.Printf("%s:%d\n", frame.File, frame.Line)
-			} else {
-				fmt.Printf("%s:%d:%d\n", frame.File, frame.Line, frame.Column)
+			file := frame.File
+			if file == "" {
+				file = "??"
 			}
+			fmt.Printf("%s:%d:%d\n", file, frame.Line, frame.Column)
 		}
 	}
 }
