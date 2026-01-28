@@ -1,5 +1,6 @@
 TITLE: WARNING in xfrm_state_fini
 TYPE: WARNING
+CONTEXTS: ["[ T1194]","[ T1234]","[ T1194]"]
 
 [  560.713151][ T1194] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
 [ 3481.239960][ T1234] INFO: rcu_sched detected stalls on CPUs/tasks:
@@ -69,6 +70,66 @@ TYPE: WARNING
 
 REPORT:
 WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+Kernel panic - not syncing: panic_on_warn set ...
+CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Workqueue: netns cleanup_net
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ panic+0x2cb/0x65c
+ __warn.cold+0x20/0x48
+ report_bug+0x263/0x2b0
+ do_error_trap+0x11b/0x200
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:xfrm_state_fini+0x440/0x5c0
+RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+ xfrm_net_exit+0x25/0x70
+ ops_exit_list.isra.0+0xb0/0x160
+ cleanup_net+0x51d/0xb10
+ process_one_work+0xd0c/0x1ce0
+ worker_thread+0x143/0x14a0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
+TAIL REPORTS:
+INFO: rcu_sched detected stalls on CPUs/tasks:
+ 	(detected by 1, t=105002 jiffies, g=687946, c=687945, q=520)
+ All QSes seen, last rcu_sched kthread activity 103964 (4298143477-4298039513), jiffies_till_next_fqs=3, root ->qsmask 0x0
+ syz-executor0   R running task on cpu   1     0 315571 315308 0x0000000e 3375506638533
+ Call Trace:
+  <IRQ>  [<ffffffff816efb87>] _sched_show_task+0x31a/0x325
+  [<ffffffff816f030c>] sched_show_task+0x10/0x12
+  [<ffffffff816fabed>] rcu_check_callbacks.cold.76+0xbfa/0xc77
+  [<ffffffff814f5cdf>] update_process_times+0x3f/0x70
+  [<ffffffff8151f1ea>] tick_sched_handle.isra.16+0x5a/0x100
+  [<ffffffff8151f89a>] tick_sched_timer+0x7a/0x130
+  [<ffffffff814f8e15>] __hrtimer_run_queues+0x3a5/0xc50
+  [<ffffffff814fa03e>] hrtimer_interrupt+0x18e/0x400
+  [<ffffffff8129a744>] local_apic_timer_interrupt+0x74/0x90
+  [<ffffffff81012dff>] smp_apic_timer_interrupt+0xdf/0x130
+  [<ffffffff81011c72>] smp_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
+  <EOI>  [<ffffffff815bcdb1>] ? __sanitizer_cov_trace_pc+0x21/0x60
+  [<ffffffff8152dedc>] smp_call_function_single+0x26c/0x330
+  [<ffffffff8152eaa5>] smp_cfm_core+0x6a5/0x7e0
+  [<ffffffff8152ee6b>] on_each_cpu+0x6b/0x120
+  [<ffffffff812dd836>] flush_tlb_kernel_range+0x86/0xe0
+  [<ffffffff817ea3cc>] __purge_vmap_area_lazy+0x3ec/0xf40
+  [<ffffffff817eb5df>] free_vmap_area_noflush+0x1bf/0x200
+  [<ffffffff817ee77e>] remove_vm_area+0x13e/0x1c0
+  [<ffffffff817ee849>] __vunmap+0x49/0x330
+  [<ffffffff817eebf5>] vfree+0x55/0xe0
+  [<ffffffff8177bc6b>] kvfree+0x3b/0x60
+  [<ffffffff82430b98>] uhaul_rx_release+0x268/0x5a0
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
 Kernel panic - not syncing: panic_on_warn set ...
 CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
 Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014

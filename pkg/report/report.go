@@ -72,6 +72,10 @@ type Report struct {
 	MachineInfo []byte
 	// If the crash happened in the context of the syz-executor process, Executor will hold more info.
 	Executor *ExecutorInfo
+	// On Linux systems ContextID may be the ThreadID(enabled by CONFIG_PRINTK_CALLER)
+	// or alternatively CpuID.
+	ContextID string
+
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized. It prevents double symbolization.
@@ -278,16 +282,51 @@ func IsSuppressed(reporter *Reporter, output []byte) bool {
 }
 
 // ParseAll returns all successive reports in output.
-func ParseAll(reporter *Reporter, output []byte) (reports []*Report) {
-	skipPos := 0
+func ParseAll(reporter *Reporter, output []byte, startFrom int) []*Report {
+	skipPos := startFrom
+	var res []*Report
+	var scanFrom []int
 	for {
 		rep := reporter.ParseFrom(output, skipPos)
 		if rep == nil {
-			return
+			break
 		}
-		reports = append(reports, rep)
+		isTailReport := len(res) > 0
+		if isTailReport && rep.Type == crash.SyzFailure {
+			skipPos = rep.SkipPos
+			continue
+		}
+		res = append(res, rep)
+		scanFrom = append(scanFrom, skipPos)
 		skipPos = rep.SkipPos
 	}
+	return fixReports(reporter, res, scanFrom)
+}
+
+// fixReports truncates the report where possible.
+// Some reports last till the end of the output. If we have a few sequential reports, they intersect.
+// The idea is to cut the log into the chunks and generate the shorter but still valid(!corrupted) reports.
+func fixReports(reporter *Reporter, reports []*Report, skipPos []int) []*Report {
+	nextContextReportPos := map[string]int{}
+	for i := len(reports) - 1; i >= 0; i-- {
+		rep := reports[i]
+		if rep.Corrupted {
+			continue
+		}
+		nextReportPos := nextContextReportPos[rep.ContextID]
+		nextContextReportPos[rep.ContextID] = rep.StartPos
+		if nextReportPos == 0 {
+			continue
+		}
+		if nextReportPos < rep.EndPos {
+			shorterReport := reporter.ParseFrom(rep.Output[:nextReportPos], skipPos[i])
+			if shorterReport != nil && !shorterReport.Corrupted {
+				reports[i] = shorterReport
+				reports[i].Output = rep.Output
+			}
+		}
+	}
+	return reports
 }
 
 // GCE console connection sometimes fails with this message.
@@ -933,13 +972,15 @@ var groupGoRuntimeErrors = oops{
 	},
 }
 
-const reportSeparator = "\n<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>\n\n"
+const reportSeparator = "<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>"
 
 func MergeReportBytes(reps []*Report) []byte {
 	var res []byte
-	for _, rep := range reps {
+	for i, rep := range reps {
+		if i > 0 {
+			res = append(res, []byte(reportSeparator)...)
+		}
 		res = append(res, rep.Report...)
-		res = append(res, []byte(reportSeparator)...)
 	}
 	return res
 }

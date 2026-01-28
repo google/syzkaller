@@ -1,6 +1,7 @@
 TITLE: INFO: task hung in mount_bdev
 ALT: hang in mount_bdev
 TYPE: HANG
+CONTEXTS: ["[ T1042]","[ T1042]","[ T1042]","[ T1042]","[ T1042]","[ T1042]"]
 
 [  767.964958][ T1042] INFO: task syz-executor013:7561 blocked for more than 143 seconds.
 [  767.973200][ T1042]       Not tainted 5.1.0-rc6+ #90
@@ -280,7 +281,61 @@ RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
 RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
 R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
 R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
+TAIL REPORTS:
+      Not tainted 5.1.0-rc6+ #90
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor013 D29336  7561   7543 0x00000004
+Call Trace:
+ __schedule+0x813/0x1cc0
+ schedule+0x92/0x180
+ schedule_preempt_disabled+0x13/0x20
+ __mutex_lock+0x726/0x1310
+ mutex_lock_nested+0x16/0x20
+ mount_bdev+0x93/0x3c0
+ udf_mount+0x35/0x40
+ legacy_get_tree+0xf2/0x200
+ vfs_get_tree+0x123/0x450
+ do_mount+0x1436/0x2c40
+ ksys_mount+0xdb/0x150
+ __x64_sys_mount+0xbe/0x150
+ do_syscall_64+0x103/0x610
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x44a739
+Code: 00 49 6e 76 61 6c 69 64 20 22 24 41 63 74 69 6f 6e 51 75 65 75 65 43 68 65 63 6b 70 6f 69 6e 74 49 6e 74 65 72 76 61 6c 22 2c <20> 65 72 72 6f 72 20 25 64 2e 20 49 67 6e 6f 72 65 64 2c 20 72 75
+RSP: 002b:00007f9541ef0db8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00000000006dbc28 RCX: 000000000044a739
+RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
+RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
+R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
 INFO: task syz-executor013:7563 blocked for more than 143 seconds.
+      Not tainted 5.1.0-rc6+ #90
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor013 D29720  7563   7541 0x00000004
+Call Trace:
+ __schedule+0x813/0x1cc0
+ schedule+0x92/0x180
+ schedule_preempt_disabled+0x13/0x20
+ __mutex_lock+0x726/0x1310
+ mutex_lock_nested+0x16/0x20
+ mount_bdev+0x93/0x3c0
+ udf_mount+0x35/0x40
+ legacy_get_tree+0xf2/0x200
+ vfs_get_tree+0x123/0x450
+ do_mount+0x1436/0x2c40
+ ksys_mount+0xdb/0x150
+ __x64_sys_mount+0xbe/0x150
+ do_syscall_64+0x103/0x610
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x44a739
+Code: 00 49 6e 76 61 6c 69 64 20 22 24 41 63 74 69 6f 6e 51 75 65 75 65 43 68 65 63 6b 70 6f 69 6e 74 49 6e 74 65 72 76 61 6c 22 2c <20> 65 72 72 6f 72 20 25 64 2e 20 49 67 6e 6f 72 65 64 2c 20 72 75
+RSP: 002b:00007f9541ef0db8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00000000006dbc28 RCX: 000000000044a739
+RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
+RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
+R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
       Not tainted 5.1.0-rc6+ #90
 "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
 syz-executor013 D29720  7563   7541 0x00000004
@@ -337,7 +392,64 @@ RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
 RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
 R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
 R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+      Not tainted 5.1.0-rc6+ #90
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor013 D29096  7559   7544 0x00000004
+Call Trace:
+ __schedule+0x813/0x1cc0
+ schedule+0x92/0x180
+ rwsem_down_write_failed+0x774/0xc30
+ call_rwsem_down_write_failed+0x17/0x30
+ down_write+0x53/0x90
+ grab_super+0xb4/0x290
+ sget_userns+0x1ab/0x560
+ sget+0x10c/0x150
+ mount_bdev+0xff/0x3c0
+ udf_mount+0x35/0x40
+ legacy_get_tree+0xf2/0x200
+ vfs_get_tree+0x123/0x450
+ do_mount+0x1436/0x2c40
+ ksys_mount+0xdb/0x150
+ __x64_sys_mount+0xbe/0x150
+ do_syscall_64+0x103/0x610
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x44a739
+Code: 00 49 6e 76 61 6c 69 64 20 22 24 41 63 74 69 6f 6e 51 75 65 75 65 43 68 65 63 6b 70 6f 69 6e 74 49 6e 74 65 72 76 61 6c 22 2c <20> 65 72 72 6f 72 20 25 64 2e 20 49 67 6e 6f 72 65 64 2c 20 72 75
+RSP: 002b:00007f9541ef0db8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00000000006dbc28 RCX: 000000000044a739
+RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
+RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
+R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
 INFO: task syz-executor013:7565 blocked for more than 144 seconds.
+      Not tainted 5.1.0-rc6+ #90
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor013 D29720  7565   7542 0x00000004
+Call Trace:
+ __schedule+0x813/0x1cc0
+ schedule+0x92/0x180
+ schedule_preempt_disabled+0x13/0x20
+ __mutex_lock+0x726/0x1310
+ mutex_lock_nested+0x16/0x20
+ mount_bdev+0x93/0x3c0
+ udf_mount+0x35/0x40
+ legacy_get_tree+0xf2/0x200
+ vfs_get_tree+0x123/0x450
+ do_mount+0x1436/0x2c40
+ ksys_mount+0xdb/0x150
+ __x64_sys_mount+0xbe/0x150
+ do_syscall_64+0x103/0x610
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x44a739
+Code: 00 49 6e 76 61 6c 69 64 20 22 24 41 63 74 69 6f 6e 51 75 65 75 65 43 68 65 63 6b 70 6f 69 6e 74 49 6e 74 65 72 76 61 6c 22 2c <20> 65 72 72 6f 72 20 25 64 2e 20 49 67 6e 6f 72 65 64 2c 20 72 75
+RSP: 002b:00007f9541ef0db8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+RAX: ffffffffffffffda RBX: 00000000006dbc28 RCX: 000000000044a739
+RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
+RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
+R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
       Not tainted 5.1.0-rc6+ #90
 "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
 syz-executor013 D29720  7565   7542 0x00000004
@@ -491,3 +603,65 @@ RDX: 0000000020000240 RSI: 0000000020000200 RDI: 0000000020000080
 RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
 R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
 R13: 00007ffc6cf3cddf R14: 00007f9541ef19c0 R15: 0000000000000000
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+1 lock held by khungtaskd/1042:
+ #0: 000000006329251d (rcu_read_lock){....}, at: debug_show_all_locks+0x5f/0x27e
+1 lock held by rsyslogd/7425:
+ #0: 00000000d77ddd95 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0xee/0x110
+2 locks held by getty/7515:
+ #0: 000000004c45b4e6 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000cb1f5c30 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7516:
+ #0: 0000000061e5eac7 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000aab03c35 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7517:
+ #0: 00000000205ee5b4 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 0000000002712bdb (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7518:
+ #0: 000000000cc046b2 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000d5140a4a (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7519:
+ #0: 000000003624da6d (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000f5b16893 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7520:
+ #0: 0000000082294f91 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000870dfcb5 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by getty/7521:
+ #0: 000000000f72fa86 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+ #1: 00000000a044b2e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1b70
+2 locks held by syz-executor013/7547:
+1 lock held by syz-executor013/7561:
+ #0: 00000000d97cb347 (&bdev->bd_fsfreeze_mutex){+.+.}, at: mount_bdev+0x93/0x3c0
+1 lock held by syz-executor013/7563:
+ #0: 00000000d97cb347 (&bdev->bd_fsfreeze_mutex){+.+.}, at: mount_bdev+0x93/0x3c0
+2 locks held by syz-executor013/7559:
+ #0: 00000000d97cb347 (&bdev->bd_fsfreeze_mutex){+.+.}, at: mount_bdev+0x93/0x3c0
+ #1: 000000001ecfe564 (&type->s_umount_key#39){+.+.}, at: grab_super+0xb4/0x290
+1 lock held by syz-executor013/7565:
+ #0: 00000000d97cb347 (&bdev->bd_fsfreeze_mutex){+.+.}, at: mount_bdev+0x93/0x3c0
+1 lock held by syz-executor013/7562:
+ #0: 00000000d97cb347 (&bdev->bd_fsfreeze_mutex){+.+.}, at: mount_bdev+0x93/0x3c0
+=============================================
+NMI backtrace for cpu 1
+CPU: 1 PID: 1042 Comm: khungtaskd Not tainted 5.1.0-rc6+ #90
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x172/0x1f0
+ nmi_cpu_backtrace.cold+0x63/0xa4
+ nmi_trigger_cpumask_backtrace+0x1be/0x236
+ arch_trigger_cpumask_backtrace+0x14/0x20
+ watchdog+0x9b7/0xec0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Sending NMI from CPU 1 to CPUs 0:
+Kernel panic - not syncing: hung_task: blocked tasks
+CPU: 1 PID: 1042 Comm: khungtaskd Not tainted 5.1.0-rc6+ #90
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x172/0x1f0
+ panic+0x2cb/0x65c
+ watchdog+0x9c8/0xec0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

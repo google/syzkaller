@@ -494,30 +494,24 @@ func (mon *monitor) extractErrors(defaultError string) []*report.Report {
 		reps[0].Output = append(reps[0].Output, vmDiagnosisStart...)
 		reps[0].Output = append(reps[0].Output, diagOutput...)
 	}
-	return reps
+	threadID := reps[0].ContextID
+	return getReportChain(reps, threadID)
+}
+
+// getReportChain extracts the reports belonging to the specific context/thread ID.
+func getReportChain(reps []*report.Report, contextID string) []*report.Report {
+	var res []*report.Report
+	for _, rep := range reps {
+		if rep.ContextID == contextID {
+			res = append(res, rep)
+		}
+	}
+	return res
 }
 
 func (mon *monitor) createReports(defaultError string) []*report.Report {
-	curPos := mon.curPos
 	var res []*report.Report
-	for {
-		rep := mon.reporter.ParseFrom(mon.output, curPos)
-		if rep == nil {
-			if defaultError == "" || len(res) > 0 {
-				return res
-			}
-			typ := crash.UnknownType
-			if defaultError == lostConnectionCrash {
-				typ = crash.LostConnection
-			}
-			return []*report.Report{{
-				Title:      defaultError,
-				Output:     mon.output,
-				Suppressed: report.IsSuppressed(mon.reporter, mon.output),
-				Type:       typ,
-			}}
-		}
-		curPos = rep.SkipPos
+	for _, rep := range report.ParseAll(mon.reporter, mon.output, mon.curPos) {
 		start := max(rep.StartPos-mon.beforeContext, 0)
 		end := min(rep.EndPos+mon.afterContext, len(rep.Output))
 		rep.Output = rep.Output[start:end]
@@ -527,6 +521,19 @@ func (mon *monitor) createReports(defaultError string) []*report.Report {
 			res = append(res, rep)
 		}
 	}
+	if defaultError == "" || len(res) > 0 {
+		return res
+	}
+	typ := crash.UnknownType
+	if defaultError == lostConnectionCrash {
+		typ = crash.LostConnection
+	}
+	return []*report.Report{{
+		Title:      defaultError,
+		Output:     mon.output,
+		Suppressed: report.IsSuppressed(mon.reporter, mon.output),
+		Type:       typ,
+	}}
 }
 
 func (mon *monitor) waitForOutput() {

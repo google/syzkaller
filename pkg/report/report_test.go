@@ -6,6 +6,7 @@ package report
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -41,9 +42,14 @@ type ParseTest struct {
 	EndLine    string
 	Corrupted  bool
 	Suppressed bool
-	HasReport  bool
-	Report     []byte
+
+	// HasReport is in charge of both Report and TailReports.
+	HasReport   bool
+	Report      []byte
+	TailReports [][]byte
+
 	Executor   string
+	ContextIDs []string
 	// Only used in report parsing:
 	corruptedReason string
 }
@@ -55,6 +61,9 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 		test.Type != other.Type {
 		return false
 	}
+	if test.ContextIDs != nil && !reflect.DeepEqual(test.ContextIDs, other.ContextIDs) {
+		return false
+	}
 	if !reflect.DeepEqual(test.AltTitles, other.AltTitles) {
 		return false
 	}
@@ -62,6 +71,9 @@ func (test *ParseTest) Equal(other *ParseTest) bool {
 		return false
 	}
 	if test.HasReport && !bytes.Equal(test.Report, other.Report) {
+		return false
+	}
+	if test.HasReport && !reflect.DeepEqual(test.TailReports, other.TailReports) {
 		return false
 	}
 	return test.Executor == other.Executor
@@ -90,6 +102,10 @@ func (test *ParseTest) Headers() []byte {
 	if test.Executor != "" {
 		fmt.Fprintf(buf, "EXECUTOR: %s\n", test.Executor)
 	}
+	if strings.Join(test.ContextIDs, "") != "" {
+		jsonData, _ := json.Marshal(test.ContextIDs)
+		fmt.Fprintf(buf, "CONTEXTS: %s\n", jsonData)
+	}
 	return buf.Bytes()
 }
 
@@ -98,8 +114,8 @@ func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 	testParseImpl(t, reporter, test)
 }
 
-func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
-	data, err := os.ReadFile(fn)
+func parseReport(t *testing.T, reporter *Reporter, testFileName string) *ParseTest {
+	data, err := os.ReadFile(testFileName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,10 +125,11 @@ func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 		phaseHeaders = iota
 		phaseLog
 		phaseReport
+		phaseTailReports
 	)
 	phase := phaseHeaders
 	test := &ParseTest{
-		FileName: fn,
+		FileName: testFileName,
 	}
 	prevEmptyLine := false
 	s := bufio.NewScanner(bytes.NewReader(data))
@@ -134,8 +151,20 @@ func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 				test.Log = append(test.Log, '\n')
 			}
 		case phaseReport:
-			test.Report = append(test.Report, s.Bytes()...)
-			test.Report = append(test.Report, '\n')
+			if string(s.Bytes()) == "TAIL REPORTS:" {
+				test.TailReports = [][]byte{{}}
+				phase = phaseTailReports
+			} else {
+				test.Report = append(test.Report, s.Bytes()...)
+				test.Report = append(test.Report, '\n')
+			}
+		case phaseTailReports:
+			if string(s.Bytes()) == reportSeparator {
+				test.TailReports = append(test.TailReports, []byte{})
+				continue
+			}
+			test.TailReports[len(test.TailReports)-1] = append(test.TailReports[len(test.TailReports)-1], s.Bytes()...)
+			test.TailReports[len(test.TailReports)-1] = append(test.TailReports[len(test.TailReports)-1], []byte{'\n'}...)
 		}
 		prevEmptyLine = len(s.Bytes()) == 0
 	}
@@ -160,6 +189,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		corruptedPrefix  = "CORRUPTED: "
 		suppressedPrefix = "SUPPRESSED: "
 		executorPrefix   = "EXECUTOR: "
+		contextidPrefix  = "CONTEXTS: "
 	)
 	switch {
 	case strings.HasPrefix(ln, "#"):
@@ -195,46 +225,61 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 		}
 	case strings.HasPrefix(ln, executorPrefix):
 		test.Executor = ln[len(executorPrefix):]
+	case strings.HasPrefix(ln, contextidPrefix):
+		err := json.Unmarshal([]byte(ln[len(contextidPrefix):]), &test.ContextIDs)
+		if err != nil {
+			t.Fatalf("contextIDs unmarshaling error: %q", err)
+		}
 	default:
 		t.Fatalf("unknown header field %q", ln)
 	}
 }
 
-func testFromReport(rep *Report) *ParseTest {
-	if rep == nil {
+func testFromReports(reps ...*Report) *ParseTest {
+	if reps == nil || len(reps) > 0 && reps[0] == nil {
 		return &ParseTest{}
 	}
 	ret := &ParseTest{
-		Title:           rep.Title,
-		AltTitles:       rep.AltTitles,
-		Corrupted:       rep.Corrupted,
-		corruptedReason: rep.CorruptedReason,
-		Suppressed:      rep.Suppressed,
-		Type:            crash.TitleToType(rep.Title),
-		Frame:           rep.Frame,
-		Report:          rep.Report,
+		Title:           reps[0].Title,
+		AltTitles:       reps[0].AltTitles,
+		Corrupted:       reps[0].Corrupted,
+		corruptedReason: reps[0].CorruptedReason,
+		Suppressed:      reps[0].Suppressed,
+		Type:            crash.TitleToType(reps[0].Title),
+		Frame:           reps[0].Frame,
+		Report:          reps[0].Report,
 	}
-	if rep.Executor != nil {
-		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
+	if reps[0].Executor != nil {
+		ret.Executor = fmt.Sprintf("proc=%d, id=%d", reps[0].Executor.ProcID, reps[0].Executor.ExecID)
 	}
 	sort.Strings(ret.AltTitles)
+	ret.ContextIDs = append(ret.ContextIDs, reps[0].ContextID)
+	for i := 1; i < len(reps); i++ {
+		ret.TailReports = append(ret.TailReports, reps[i].Report)
+		ret.ContextIDs = append(ret.ContextIDs, reps[i].ContextID)
+	}
 	return ret
 }
 
 func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
-	rep := reporter.Parse(test.Log)
+	gotReports := ParseAll(reporter, test.Log, 0)
+
+	var firstReport *Report
+	if len(gotReports) > 0 {
+		firstReport = gotReports[0]
+	}
 	containsCrash := reporter.ContainsCrash(test.Log)
 	expectCrash := (test.Title != "")
 	if expectCrash && !containsCrash {
 		t.Fatalf("did not find crash")
 	}
 	if !expectCrash && containsCrash {
-		t.Fatalf("found unexpected crash")
+		t.Fatalf("found unexpected crash: %s", firstReport.Title)
 	}
-	if rep != nil && rep.Title == "" {
+	if firstReport != nil && firstReport.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	parsed := testFromReport(rep)
+	parsed := testFromReports(gotReports...)
 	if !test.Equal(parsed) {
 		if *flagUpdate && test.StartLine+test.EndLine == "" {
 			updateReportTest(t, test, parsed)
@@ -242,13 +287,13 @@ func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 		t.Fatalf("want:\n%s\ngot:\n%sCorrupted reason: %q",
 			test.Headers(), parsed.Headers(), parsed.corruptedReason)
 	}
-	if parsed.Title != "" && len(rep.Report) == 0 {
+	if parsed.Title != "" && len(firstReport.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")
 	}
-	if rep == nil {
+	if firstReport == nil {
 		return
 	}
-	checkReport(t, reporter, rep, test)
+	checkReport(t, reporter, firstReport, test)
 }
 
 func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest) {
@@ -285,11 +330,6 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != rep.StartPos {
 			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
 		}
-		// If we parse from EndPos, we must not find the same report.
-		rep2 := reporter.ParseFrom(test.Log, rep.EndPos)
-		if rep2 != nil && rep2.Title == rep.Title {
-			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
-		}
 	}
 }
 
@@ -303,6 +343,10 @@ func updateReportTest(t *testing.T, test, parsed *ParseTest) {
 	fmt.Fprintf(buf, "\n%s", test.Log)
 	if test.HasReport {
 		fmt.Fprintf(buf, "REPORT:\n%s", parsed.Report)
+		if len(parsed.TailReports) > 0 {
+			fmt.Fprintf(buf, "TAIL REPORTS:\n")
+			buf.Write(bytes.Join(parsed.TailReports, []byte(reportSeparator+"\n")))
+		}
 	}
 	if err := os.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
 		t.Logf("failed to update test file: %v", err)
@@ -395,7 +439,7 @@ func testSymbolizeFile(t *testing.T, reporter *Reporter, fn string) {
 	if err != nil {
 		t.Fatalf("failed to symbolize: %v", err)
 	}
-	parsed := testFromReport(rep)
+	parsed := testFromReports(rep)
 	if !test.Equal(parsed) {
 		if *flagUpdate {
 			updateReportTest(t, test, parsed)
