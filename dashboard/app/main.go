@@ -983,6 +983,8 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 		if err := recordEmergencyStop(ctx); err != nil {
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
 		}
+	case "create_codereview":
+		return createCodereview(ctx, w, r)
 	default:
 		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
 	}
