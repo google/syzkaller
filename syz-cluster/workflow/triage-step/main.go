@@ -106,9 +106,15 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
-	result, err := triager.selectFromBlobs(series, trees)
+	result, err := triager.selectFromBaseCommitHint(series.BaseCommitHint)
 	if err != nil {
-		return nil, fmt.Errorf("selection by blob failed: %w", err)
+		return nil, fmt.Errorf("selection by base-commit failed: %w", err)
+	}
+	if result == nil {
+		result, err = triager.selectFromBlobs(series, trees)
+		if err != nil {
+			return nil, fmt.Errorf("selection by blob failed: %w", err)
+		}
 	}
 	if result == nil {
 		result, err = triager.selectFromList(ctx, series, trees, target)
@@ -163,6 +169,29 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 	}
 	return &SelectResult{
 		Tree:   tree,
+		Commit: commit,
+		Arch:   fuzzArch,
+	}, nil
+}
+
+func (triager *seriesTriager) selectFromBaseCommitHint(commit string) (*SelectResult, error) {
+	triager.Log("attempting to use the base commit provided by author")
+	git := triager.ops.Git
+	tree, branch, err := triager.ops.TreeAndBranchForCommit(commit)
+	if err != nil {
+		return nil, err
+	}
+	url, err := git.GetURL(tree + "/" + branch)
+	if err != nil {
+		return nil, err
+	}
+	return &SelectResult{
+		Tree: &api.Tree{
+			Name:       tree,
+			URL:        url,
+			Branch:     branch,
+			EmailLists: []string{""},
+		},
 		Commit: commit,
 		Arch:   fuzzArch,
 	}, nil
