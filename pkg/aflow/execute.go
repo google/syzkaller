@@ -193,7 +193,16 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 			ThinkingBudget: genai.Ptr[int32](-1),
 		}
 	}
-	return client.Models.GenerateContent(ctx.Context, modelPrefix+model, req, cfg)
+	// Sometimes LLM requests just hang dead for tens of minutes,
+	// abort them after 10 minutes and retry. We don't stream reply tokens,
+	// so some large requests can take several minutes.
+	timedCtx, cancel := context.WithTimeout(ctx.Context, 10*time.Minute)
+	defer cancel()
+	resp, err := client.Models.GenerateContent(timedCtx, modelPrefix+model, req, cfg)
+	if err != nil && timedCtx.Err() == context.DeadlineExceeded {
+		return nil, &retryError{time.Second, err}
+	}
+	return resp, err
 }
 
 const modelPrefix = "models/"
