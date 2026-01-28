@@ -31,6 +31,7 @@ typedef enum {
 	SYZOS_API_NESTED_LOAD_CODE = 302,
 	SYZOS_API_NESTED_VMLAUNCH = 303,
 	SYZOS_API_NESTED_VMRESUME = 304,
+	SYZOS_API_NESTED_LOAD_SYZOS = 310,
 	SYZOS_API_NESTED_INTEL_VMWRITE_MASK = 340,
 	SYZOS_API_NESTED_AMD_VMCB_WRITE_MASK = 380,
 	SYZOS_API_NESTED_AMD_INVLPGA = 381,
@@ -62,6 +63,13 @@ struct api_call_nested_load_code {
 	struct api_call_header header;
 	uint64 vm_id;
 	uint8 insns[];
+};
+
+struct api_call_nested_load_syzos {
+	struct api_call_header header;
+	uint64 vm_id;
+	uint64 unused_pages;
+	uint8 program[];
 };
 
 struct api_call_cpuid {
@@ -143,6 +151,7 @@ GUEST_CODE static void guest_handle_set_irq_handler(struct api_call_2* cmd);
 GUEST_CODE static void guest_handle_enable_nested(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id);
+GUEST_CODE static void guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmlaunch(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_vmresume(struct api_call_1* cmd, uint64 cpu_id);
 GUEST_CODE static void guest_handle_nested_intel_vmwrite_mask(struct api_call_5* cmd, uint64 cpu_id);
@@ -259,6 +268,9 @@ guest_main(uint64 cpu)
 		} else if (call == SYZOS_API_NESTED_LOAD_CODE) {
 			// Load code into the nested VM.
 			guest_handle_nested_load_code((struct api_call_nested_load_code*)cmd, cpu);
+		} else if (call == SYZOS_API_NESTED_LOAD_SYZOS) {
+			// Load SYZOS into the nested VM.
+			guest_handle_nested_load_syzos((struct api_call_nested_load_syzos*)cmd, cpu);
 		} else if (call == SYZOS_API_NESTED_VMLAUNCH) {
 			// Launch the nested VM.
 			guest_handle_nested_vmlaunch((struct api_call_1*)cmd, cpu);
@@ -300,10 +312,22 @@ guest_main(uint64 cpu)
 }
 
 // Helpers to enter guest_main with a hardcoded CPU ID.
-__attribute__((used)) GUEST_CODE static void guest_entry_0(void) { guest_main(0); }
-__attribute__((used)) GUEST_CODE static void guest_entry_1(void) { guest_main(1); }
-__attribute__((used)) GUEST_CODE static void guest_entry_2(void) { guest_main(2); }
-__attribute__((used)) GUEST_CODE static void guest_entry_3(void) { guest_main(3); }
+__attribute__((used)) GUEST_CODE static void guest_entry_0(void)
+{
+	guest_main(0);
+}
+__attribute__((used)) GUEST_CODE static void guest_entry_1(void)
+{
+	guest_main(1);
+}
+__attribute__((used)) GUEST_CODE static void guest_entry_2(void)
+{
+	guest_main(2);
+}
+__attribute__((used)) GUEST_CODE static void guest_entry_3(void)
+{
+	guest_main(3);
+}
 
 GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
 {
@@ -321,8 +345,11 @@ __attribute__((used))
 GUEST_CODE static noinline void
 guest_uexit(uint64 exit_code)
 {
+	// Force exit_code into RAX using inline asm constraints ("a").
+	// We write to X86_SYZOS_ADDR_UEXIT (0x40100).
+	// This allows the L1 hypervisor to reliably read RAX during an EPT violation.
 	volatile uint64* ptr = (volatile uint64*)X86_SYZOS_ADDR_UEXIT;
-	*ptr = exit_code;
+	asm volatile("movq %0, (%1)" ::"a"(exit_code), "r"(ptr) : "memory");
 }
 
 GUEST_CODE static noinline void guest_handle_cpuid(uint32 eax, uint32 ecx)
@@ -781,15 +808,10 @@ GUEST_CODE static void l2_map_page(uint64 cpu_id, uint64 vm_id, uint64 gpa, uint
 		pt[pt_idx] = (host_pa & ~0xFFF) | flags;
 }
 
-GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id)
+GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint64 cpu_id, uint64 vm_id, uint64 unused_pages)
 {
-	// The Root PML4 remains at the fixed address assigned to this VM.
-	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
-
-	// Clear the root table.
-	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
-	guest_memset((void*)X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id), 0, KVM_PAGE_SIZE);
-
+	// Note: PML4 and MSR Bitmap must be zeroed by the caller (nested_create_vm)
+	// so that this function can be called additively by nested_load_syzos.
 	// Intel EPT: set Read, Write, Execute.
 	// AMD NPT: set Present, Write, User.
 	uint64 flags = X86_PDE64_PRESENT | X86_PDE64_RW | X86_PDE64_USER;
@@ -807,9 +829,18 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 		r.pages = args->regions[i].pages;
 		r.flags = args->regions[i].flags;
 
-		// Skip the huge unused heap for now, map fixed small heap if needed or handled by guest_alloc.
-		if (r.flags & MEM_REGION_FLAG_REMAINING)
+		// Skip NO_HOST_MEM regions (like the Exit/UEXIT region).
+		// This ensures that L2 accesses to these pages cause a nested page fault
+		// (EPT Violation / NPT Fault), allowing L1 to intercept and modify the exit code.
+		if (r.flags & MEM_REGION_FLAG_NO_HOST_MEM)
 			continue;
+
+		// Skip the huge unused heap for now, map fixed small heap if needed or handled by guest_alloc.
+		// If unused_pages > 0, we map that many pages from the unused region.
+		if (r.flags & MEM_REGION_FLAG_REMAINING) {
+			// Map at least a few pages for the allocator overhead if 0 is passed.
+			r.pages = (unused_pages < 16) ? 16 : unused_pages;
+		}
 
 		for (int p = 0; p < r.pages; p++) {
 			uint64 gpa = r.gpa + (p * KVM_PAGE_SIZE);
@@ -822,9 +853,9 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 				// Map stack to the VM's dedicated stack buffer
 				backing = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
 			} else if (r.gpa == X86_SYZOS_ADDR_ZERO ||
-			           r.gpa == X86_SYZOS_ADDR_VAR_IDT ||
-			           r.gpa == X86_SYZOS_ADDR_BOOT_ARGS ||
-			           r.gpa == X86_SYZOS_ADDR_PT_POOL) {
+				   r.gpa == X86_SYZOS_ADDR_VAR_IDT ||
+				   r.gpa == X86_SYZOS_ADDR_BOOT_ARGS ||
+				   r.gpa == X86_SYZOS_ADDR_PT_POOL) {
 				// Critical System Regions: Allocate and COPY from L1.
 				// We must copy the PT POOL because the PD entries in ADDR_ZERO
 				// point to tables allocated here. If we don't copy, L2 sees
@@ -832,6 +863,9 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 				// GDT/IDT/BootArgs are also copied for valid environment.
 				backing = guest_alloc_page();
 				guest_memcpy((void*)backing, (void*)gpa, KVM_PAGE_SIZE);
+			} else if (r.flags & MEM_REGION_FLAG_EXECUTOR_CODE) {
+				// Identity map the Executor Code.
+				backing = gpa;
 			} else {
 				// Allocate new backing memory
 				backing = guest_alloc_page();
@@ -914,8 +948,20 @@ typedef enum {
 	SYZOS_NESTED_EXIT_REASON_CPUID = 3,
 	SYZOS_NESTED_EXIT_REASON_RDTSC = 4,
 	SYZOS_NESTED_EXIT_REASON_RDTSCP = 5,
+	SYZOS_NESTED_EXIT_REASON_EPT_VIOLATION = 6,
 	SYZOS_NESTED_EXIT_REASON_UNKNOWN = 0xFF,
 } syz_nested_exit_reason;
+
+GUEST_CODE static void handle_nested_uexit(uint64 exit_code)
+{
+	// Increment the nesting level (top byte).
+	uint64 level = (exit_code >> 56) + 1;
+	exit_code = (exit_code & 0x00FFFFFFFFFFFFFFULL) | (level << 56);
+
+	// Perform L1 uexit with the modified code.
+	guest_uexit(exit_code);
+	// guest_uexit terminates, so we don't return.
+}
 
 GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason mapped_reason,
 				      cpu_vendor_id vendor)
@@ -932,6 +978,7 @@ GUEST_CODE static void guest_uexit_l2(uint64 exit_reason, syz_nested_exit_reason
 #define EXIT_REASON_CPUID 0xa
 #define EXIT_REASON_HLT 0xc
 #define EXIT_REASON_INVD 0xd
+#define EXIT_REASON_EPT_VIOLATION 0x30
 #define EXIT_REASON_RDTSC 0x10
 #define EXIT_REASON_RDTSCP 0x33
 
@@ -949,6 +996,8 @@ GUEST_CODE static syz_nested_exit_reason map_intel_exit_reason(uint64 basic_reas
 		return SYZOS_NESTED_EXIT_REASON_RDTSC;
 	if (reason == EXIT_REASON_RDTSCP)
 		return SYZOS_NESTED_EXIT_REASON_RDTSCP;
+	if (reason == EXIT_REASON_EPT_VIOLATION)
+		return SYZOS_NESTED_EXIT_REASON_EPT_VIOLATION;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -973,6 +1022,22 @@ GUEST_CODE static void
 nested_vm_exit_handler_intel(uint64 exit_reason, struct l2_guest_regs* regs)
 {
 	uint64 basic_reason = exit_reason & 0xFFFF;
+
+	// Handle EPT Violation (Nested UEXIT).
+	if (basic_reason == EXIT_REASON_EPT_VIOLATION) {
+		uint64 gpa = vmread(VMCS_GUEST_PHYSICAL_ADDRESS);
+		// Only handle violations on the specific UEXIT page.
+		if ((gpa & ~0xFFF) == X86_SYZOS_ADDR_EXIT) {
+			// This is a uexit from L2.
+			// We enforced usage of RAX in guest_uexit.
+			// Read RAX from the saved L2 guest registers.
+			// Note: On Intel exit, guest registers are NOT saved to VMCS.
+			// They are saved to 'regs' by our asm wrapper.
+			handle_nested_uexit(regs->rax);
+			return;
+		}
+	}
+
 	syz_nested_exit_reason mapped_reason = map_intel_exit_reason(basic_reason);
 	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_INTEL);
 	advance_l2_rip_intel(basic_reason);
@@ -983,22 +1048,22 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
 {
 	asm volatile(R"(
       // Save L2's GPRs. This creates the 'struct l2_guest_regs' on the stack.
-      // The order MUST match the struct.
-      push %%rax
-      push %%rbx
-      push %%rcx
-      push %%rdx
-      push %%rsi
-      push %%rdi
-      push %%rbp
-      push %%r8
-      push %%r9
-      push %%r10
-      push %%r11
-      push %%r12
-      push %%r13
-      push %%r14
+      // We push in reverse order so that RAX ends up at offset 0 (Top of Stack).
       push %%r15
+      push %%r14
+      push %%r13
+      push %%r12
+      push %%r11
+      push %%r10
+      push %%r9
+      push %%r8
+      push %%rbp
+      push %%rdi
+      push %%rsi
+      push %%rdx
+      push %%rcx
+      push %%rbx
+      push %%rax
 
       // Prepare arguments for the C handler:
       //    arg1 (RDI) = exit_reason
@@ -1026,6 +1091,7 @@ __attribute__((naked)) GUEST_CODE static void nested_vm_exit_handler_intel_asm(v
 #define VMEXIT_CPUID 0x72
 #define VMEXIT_INVD 0x76
 #define VMEXIT_HLT 0x78
+#define VMEXIT_NPF 0x400
 #define VMEXIT_RDTSCP 0x87
 
 GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason)
@@ -1042,6 +1108,8 @@ GUEST_CODE static syz_nested_exit_reason map_amd_exit_reason(uint64 basic_reason
 		return SYZOS_NESTED_EXIT_REASON_RDTSC;
 	if (reason == VMEXIT_RDTSCP)
 		return SYZOS_NESTED_EXIT_REASON_RDTSCP;
+	if (reason == VMEXIT_NPF)
+		return SYZOS_NESTED_EXIT_REASON_EPT_VIOLATION;
 	return SYZOS_NESTED_EXIT_REASON_UNKNOWN;
 }
 
@@ -1065,6 +1133,19 @@ __attribute__((used)) GUEST_CODE static void
 nested_vm_exit_handler_amd(uint64 exit_reason, uint64 cpu_id, uint64 vm_id)
 {
 	volatile uint64 basic_reason = exit_reason & 0xFFFF;
+
+	// Handle NPT Fault (Nested UEXIT).
+	if (basic_reason == VMEXIT_NPF) {
+		uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+		// EXITINFO2 contains the faulting GPA.
+		uint64 fault_gpa = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_EXITINFO2);
+		if ((fault_gpa & ~0xFFF) == X86_SYZOS_ADDR_EXIT) {
+			// RAX is in the VMCB save area.
+			uint64 val = vmcb_read64((volatile uint8*)vmcb_addr, VMCB_RAX);
+			handle_nested_uexit(val);
+		}
+	}
+
 	syz_nested_exit_reason mapped_reason = map_amd_exit_reason(basic_reason);
 	guest_uexit_l2(exit_reason, mapped_reason, CPU_VENDOR_AMD);
 	advance_l2_rip_amd(basic_reason, cpu_id, vm_id);
@@ -1088,10 +1169,7 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	vmwrite(VMCS_HOST_FS_BASE, rdmsr(X86_MSR_FS_BASE));
 	vmwrite(VMCS_HOST_GS_BASE, rdmsr(X86_MSR_GS_BASE));
 
-	// RIP and RSP.
-	uint64 tmpreg = 0; // nolint
-	asm volatile("mov %%rsp, %0" : "=r"(tmpreg));
-	vmwrite(VMCS_HOST_RSP, tmpreg);
+	// Exit handler in RIP.
 	vmwrite(VMCS_HOST_RIP, (uintptr_t)nested_vm_exit_handler_intel_asm);
 
 	// Control Registers.
@@ -1175,6 +1253,8 @@ nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 	uint64 vm_id = cmd->arg;
 	uint64 vmcs_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
 	uint8 error = 0; // nolint
+	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
+	uint64 l2_msr_bitmap = X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id);
 
 	*(uint32*)vmcs_addr = rdmsr(X86_MSR_IA32_VMX_BASIC);
 	asm volatile("vmclear %1; setna %0"
@@ -1187,7 +1267,11 @@ nested_create_vm_intel(struct api_call_1* cmd, uint64 cpu_id)
 	}
 	nested_vmptrld(cpu_id, vm_id);
 
-	setup_l2_page_tables(CPU_VENDOR_INTEL, cpu_id, vm_id);
+	// Zero out critical structures.
+	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
+	guest_memset((void*)l2_msr_bitmap, 0, KVM_PAGE_SIZE);
+
+	setup_l2_page_tables(CPU_VENDOR_INTEL, cpu_id, vm_id, 0);
 	init_vmcs_control_fields(cpu_id, vm_id);
 	init_vmcs_host_state();
 	init_vmcs_guest_state(cpu_id, vm_id);
@@ -1278,12 +1362,16 @@ nested_create_vm_amd(struct api_call_1* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->arg;
 	uint64 vmcb_addr = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+	uint64 l2_pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
+	uint64 l2_msr_bitmap = X86_SYZOS_ADDR_MSR_BITMAP(cpu_id, vm_id);
 
 	guest_memset((void*)vmcb_addr, 0, KVM_PAGE_SIZE);
 	guest_memset((void*)X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id), 0, KVM_PAGE_SIZE);
+	guest_memset((void*)l2_pml4_addr, 0, KVM_PAGE_SIZE);
+	guest_memset((void*)l2_msr_bitmap, 0, KVM_PAGE_SIZE);
 
 	// Setup NPT (Nested Page Tables)
-	setup_l2_page_tables(CPU_VENDOR_AMD, cpu_id, vm_id);
+	setup_l2_page_tables(CPU_VENDOR_AMD, cpu_id, vm_id, 0);
 
 	// Initialize VMCB Control and Guest State
 	init_vmcb_guest_state(cpu_id, vm_id);
@@ -1299,12 +1387,42 @@ guest_handle_nested_create_vm(struct api_call_1* cmd, uint64 cpu_id)
 	}
 }
 
+GUEST_CODE static uint64 l2_gpa_to_pa(uint64 cpu_id, uint64 vm_id, uint64 gpa)
+{
+	uint64 pml4_addr = X86_SYZOS_ADDR_VM_PGTABLE(cpu_id, vm_id);
+	volatile uint64* pml4 = (volatile uint64*)pml4_addr;
+	uint64 pml4_idx = (gpa >> 39) & 0x1FF;
+	if (!(pml4[pml4_idx] & X86_PDE64_PRESENT))
+		return 0;
+
+	volatile uint64* pdpt = (volatile uint64*)(pml4[pml4_idx] & ~0xFFF);
+	uint64 pdpt_idx = (gpa >> 30) & 0x1FF;
+	if (!(pdpt[pdpt_idx] & X86_PDE64_PRESENT))
+		return 0;
+
+	volatile uint64* pd = (volatile uint64*)(pdpt[pdpt_idx] & ~0xFFF);
+	uint64 pd_idx = (gpa >> 21) & 0x1FF;
+	if (!(pd[pd_idx] & X86_PDE64_PRESENT))
+		return 0;
+
+	volatile uint64* pt = (volatile uint64*)(pd[pd_idx] & ~0xFFF);
+	uint64 pt_idx = (gpa >> 12) & 0x1FF;
+	if (!(pt[pt_idx] & X86_PDE64_PRESENT))
+		return 0;
+
+	return (pt[pt_idx] & ~0xFFF) + (gpa & 0xFFF);
+}
+
 GUEST_CODE static noinline void
 guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_id)
 {
 	uint64 vm_id = cmd->vm_id;
 	// Backing address in L1 for the L2 User Code (mapped at X86_SYZOS_ADDR_USER_CODE)
-	uint64 l2_code_backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+	uint64 l2_code_backing = l2_gpa_to_pa(cpu_id, vm_id, X86_SYZOS_ADDR_USER_CODE);
+	if (!l2_code_backing) {
+		guest_uexit(0xE2BAD4);
+		return;
+	}
 
 	// Code size = command size - header size - vm_id size.
 	uint64 l2_code_size = cmd->header.size - sizeof(struct api_call_header) - sizeof(uint64);
@@ -1325,43 +1443,87 @@ guest_handle_nested_load_code(struct api_call_nested_load_code* cmd, uint64 cpu_
 	}
 }
 
-// Clang's LTO may ignore noinline and attempt to inline this function into both callers,
-// which results in duplicate declaration of after_vmentry_label.
-// Applying __optnone should prevent this behavior.
-GUEST_CODE static noinline __optnone void
+GUEST_CODE static noinline void
+guest_handle_nested_load_syzos(struct api_call_nested_load_syzos* cmd, uint64 cpu_id)
+{
+	uint64 vm_id = cmd->vm_id;
+	uint64 prog_size = cmd->header.size - __builtin_offsetof(struct api_call_nested_load_syzos, program);
+	uint64 l2_code_backing = X86_SYZOS_ADDR_VM_CODE(cpu_id, vm_id);
+
+	if (prog_size > KVM_PAGE_SIZE)
+		prog_size = KVM_PAGE_SIZE;
+
+	// Copy Payload to Code buffer.
+	guest_memcpy((void*)l2_code_backing, (void*)cmd->program, prog_size);
+
+	// Populate Globals.
+	uint64 globals_pa = l2_gpa_to_pa(cpu_id, vm_id, X86_SYZOS_ADDR_GLOBALS);
+	if (!globals_pa) {
+		guest_uexit(0xE2BAD3);
+		return;
+	}
+	volatile struct syzos_globals* l2_globals = (volatile struct syzos_globals*)globals_pa;
+	l2_globals->text_sizes[0] = prog_size;
+
+	// Set RIP to guest_entry_0.
+	// We use the wrapper function which hardcodes CPU_ID=0.
+	if (get_cpu_vendor() == CPU_VENDOR_INTEL) {
+		nested_vmptrld(cpu_id, vm_id);
+		vmwrite(VMCS_GUEST_RIP, executor_fn_guest_addr(guest_entry_0));
+		vmwrite(VMCS_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
+	} else {
+		uint64 vmcb = X86_SYZOS_ADDR_VMCS_VMCB(cpu_id, vm_id);
+		vmcb_write64(vmcb, VMCB_GUEST_RIP, executor_fn_guest_addr(guest_entry_0));
+		vmcb_write64(vmcb, VMCB_GUEST_RSP, X86_SYZOS_ADDR_STACK_BOTTOM + KVM_PAGE_SIZE - 8);
+	}
+}
+
+GUEST_CODE static noinline void
 guest_handle_nested_vmentry_intel(uint64 vm_id, uint64 cpu_id, bool is_launch)
 {
 	uint64 vmx_error_code = 0;
-	uint8 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
-
+	uint64 fail_flag = 0; // Will be 1 if EITHER CF or ZF is set
 	nested_vmptrld(cpu_id, vm_id);
 
-	if (is_launch) {
-		asm volatile(R"(
-	// Attempt to launch the L2 guest.
-	vmlaunch
-	// Set AL to 1 if CF=1 (VMfailValid)
-	setc %%al
-	// Set BL to 1 if ZF=1 (VMfailInvalid)
-	setz %%bl
-	or %%bl, %%al)"
-			     : "=a"(fail_flag)
-			     :
-			     : "rbx", "cc", "memory");
-	} else {
-		asm volatile(R"(
-	// Attempt to resume the L2 guest.
-	vmresume
-	// Set AL to 1 if CF=1 (VMfailValid)
-	setc %%al
-	// Set BL to 1 if ZF=1 (VMfailInvalid)
-	setz %%bl
-	or %%bl, %%al)"
-			     : "=a"(fail_flag)
-			     :
-			     : "rbx", "cc", "memory");
-	}
-	asm volatile(".globl after_vmentry_label\nafter_vmentry_label:");
+	asm volatile(R"(
+		// Manually save RBP (Frame Pointer).
+		// Adding "rbp" to the clobber list is risky.
+		push %%rbp
+
+		// Save HOST_RSP to VMCS.
+		// We use R10/R11 as scratch registers.
+		mov %[host_rsp_field], %%r10
+		mov %%rsp, %%r11
+		vmwrite %%r11, %%r10
+
+		// Execute Launch or Resume
+		cmp $0, %[launch]
+		je 1f
+		vmlaunch
+		jmp 2f
+
+	1:	vmresume
+
+	2:	// Failure path.
+		// If we fall through, the instruction failed (CF=1 or ZF=1).
+		mov $1, %[ret]
+		jmp 3f
+
+		// Success path (L2 Exit).
+		// The Host State RIP in VMCS points to the exit handler, which
+		// restores the machine state and jumps here.
+		.globl after_vmentry_label
+	after_vmentry_label:
+		xor %[ret], %[ret]
+
+	3:	// Restore RBP
+		pop %%rbp
+	)"
+		     : [ret] "=&r"(fail_flag)
+		     : [launch] "r"((uint64)is_launch),
+		       [host_rsp_field] "i"(VMCS_HOST_RSP)
+		     : "cc", "memory", "r10", "r11", "rbx", "r12", "r13", "r14", "r15");
+
 	if (fail_flag) {
 		// VMLAUNCH/VMRESUME failed, so VMCS is still valid and can be read.
 		vmx_error_code = vmread(VMCS_VM_INSTRUCTION_ERROR);
@@ -1380,12 +1542,14 @@ guest_run_amd_vm(uint64 cpu_id, uint64 vm_id)
 	uint8 fail_flag = 0;
 
 	asm volatile(
-	    "mov %1, %%rax\n\t" // Load VMCB physical address into RAX
-	    "vmrun\n\t" // Launch or resume L2 guest
+	    "vmrun\n\t" // Launch or resume L2 guest, VMCB is in RAX
 	    "setc %0\n\t"
-	    : "=q"(fail_flag)
-	    : "m"(vmcb_addr)
-	    : "rax", "cc", "memory");
+	    : "=b"(fail_flag)
+	    : "a"(vmcb_addr)
+	    : "cc", "memory",
+	      // Clobbers: All GPRs except RAX, RSP, RBP, and RBX (our output)
+	      "rcx", "rdx", "rsi", "rdi",
+	      "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15");
 
 	if (fail_flag) {
 		// VMRUN failed.

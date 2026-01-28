@@ -344,6 +344,7 @@
 // VMCS Guest State Fields.
 #define VMCS_GUEST_INTR_STATUS 0x00000810
 #define VMCS_GUEST_PML_INDEX 0x00000812
+#define VMCS_GUEST_PHYSICAL_ADDRESS 0x00002400
 #define VMCS_GUEST_IA32_DEBUGCTL 0x00002802
 #define VMCS_GUEST_IA32_PAT 0x00002804
 #define VMCS_GUEST_IA32_EFER 0x00002806
@@ -410,6 +411,7 @@
 
 #define VMCB_CTRL_ASID 0x058
 #define VMCB_EXIT_CODE 0x070
+#define VMCB_EXITINFO2 0x098
 
 // NP_ENABLE is actually 1 byte, but the 7 following bytes are reserved, so it's okay
 #define VMCB_CTRL_NP_ENABLE 0x090
@@ -471,6 +473,7 @@
 #define VMCB_GUEST_RSP 0x5d8
 #define VMCB_GUEST_PAT 0x668
 #define VMCB_GUEST_DEBUGCTL 0x670
+#define VMCB_RAX 0x5f8
 
 // SVM Segment Attribute Defines
 #define SVM_ATTR_G (1 << 15)

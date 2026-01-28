@@ -1109,10 +1109,14 @@ static void install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, cons
 	// Select the specific entry point for this VCPU ID.
 	// This allows the guest to know its ID without reading registers or CPUID.
 	uint64 entry_rip = 0;
-	if (cpu_id == 0) entry_rip = executor_fn_guest_addr(guest_entry_0);
-	else if (cpu_id == 1) entry_rip = executor_fn_guest_addr(guest_entry_1);
-	else if (cpu_id == 2) entry_rip = executor_fn_guest_addr(guest_entry_2);
-	else if (cpu_id == 3) entry_rip = executor_fn_guest_addr(guest_entry_3);
+	if (cpu_id == 0)
+		entry_rip = executor_fn_guest_addr(guest_entry_0);
+	else if (cpu_id == 1)
+		entry_rip = executor_fn_guest_addr(guest_entry_1);
+	else if (cpu_id == 2)
+		entry_rip = executor_fn_guest_addr(guest_entry_2);
+	else if (cpu_id == 3)
+		entry_rip = executor_fn_guest_addr(guest_entry_3);
 
 	reset_cpu_regs(cpufd, entry_rip);
 
