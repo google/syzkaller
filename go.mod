@@ -1,6 +1,6 @@
 module github.com/google/syzkaller
 
-go 1.24.4
+go 1.25.0
 
 require (
 	cloud.google.com/go v0.123.0
@@ -40,7 +40,7 @@ require (
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.34.2
+	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/yaml v1.6.0
 )
