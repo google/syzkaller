@@ -4447,7 +4447,8 @@ static void getcon(char* context, size_t context_size)
 	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
 	if (fd < 0)
 		fail("getcon: couldn't open context file");
-
+	memset(context, 0, context_size);
+	
 	ssize_t nread = read(fd, context, context_size);
 
 	close(fd);
@@ -4467,7 +4468,7 @@ static void getcon(char* context, size_t context_size)
 // - Uses fail() instead of returning an error code
 static void setcon(const char* context)
 {
-	char new_context[512];
+	char new_context[512] = {0};
 
 	// Attempt to write the new context
 	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
@@ -4497,7 +4498,7 @@ static void setcon(const char* context)
 // - Uses fail() instead of returning an error code
 static void setfilecon(const char* path, const char* context)
 {
-	char new_context[512];
+	char new_context[512] = {0};
 
 	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
 		fail("setfilecon: setxattr failed");
