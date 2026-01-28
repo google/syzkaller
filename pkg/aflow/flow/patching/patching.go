@@ -36,8 +36,18 @@ type Inputs struct {
 }
 
 type Outputs struct {
+	// Base repo/commit for the patch.
+	KernelRepo       string
+	KernelCommit     string
 	PatchDescription string
 	PatchDiff        string
+	Recipients       []Recipient
+}
+
+type Recipient struct {
+	Name  string
+	Email string
+	To    bool // whether the recipient should be on the To or Cc line
 }
 
 func init() {
@@ -80,6 +90,7 @@ func init() {
 					While:         "TestError",
 					MaxIterations: 10,
 				},
+				getMaintainers,
 				&aflow.LLMAgent{
 					Name:        "description-generator",
 					Model:       aflow.BestExpensiveModel,
