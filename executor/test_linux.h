@@ -314,7 +314,7 @@ static int test_syzos()
 		printf("mmap failed (%d)\n", errno);
 		return 1;
 	}
-	// Right now SyzOS testing just boils down to installing code into memory.
+	// Right now SYZOS testing just boils down to installing code into memory.
 	install_syzos_code(mem, mem_size);
 	munmap(mem, mem_size);
 	return 0;

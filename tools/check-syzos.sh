@@ -151,7 +151,7 @@ if [ -n "$FOUND_INSTRUCTIONS" ]; then
     echo
     echo "------------------------------------------------------------------"
     echo "[FAIL] Found problematic data access instructions in '$SECTION_TO_CHECK'."
-    echo "The following instructions are likely to cause crashes in SyzOS:"
+    echo "The following instructions are likely to cause crashes in SYZOS:"
     echo "$FOUND_INSTRUCTIONS" | sed 's/^/  /'
     echo "------------------------------------------------------------------"
     echo

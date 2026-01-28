@@ -70,8 +70,8 @@ static void vm_set_user_memory_region(int vmfd, uint32 slot, uint32 flags, uint6
 #define ADRP_OPCODE 0x90000000
 #define ADRP_OPCODE_MASK 0x9f000000
 
-// Code loading SyzOS into guest memory does not handle data relocations (see
-// https://github.com/google/syzkaller/issues/5565), so SyzOS will crash soon after encountering an
+// Code loading SYZOS into guest memory does not handle data relocations (see
+// https://github.com/google/syzkaller/issues/5565), so SYZOS will crash soon after encountering an
 // ADRP instruction. Detect these instructions to catch regressions early.
 // The most common reason for using data relocaions is accessing global variables and constants.
 // Sometimes the compiler may choose to emit a read-only constant to zero-initialize a structure
@@ -81,7 +81,7 @@ static void validate_guest_code(void* mem, size_t size)
 	uint32* insns = (uint32*)mem;
 	for (size_t i = 0; i < size / 4; i++) {
 		if ((insns[i] & ADRP_OPCODE_MASK) == ADRP_OPCODE)
-			fail("ADRP instruction detected in SyzOS, exiting");
+			fail("ADRP instruction detected in SYZOS, exiting");
 	}
 }
 
@@ -89,7 +89,7 @@ static void install_syzos_code(void* host_mem, size_t mem_size)
 {
 	size_t size = (char*)&__stop_guest - (char*)&__start_guest;
 	if (size > mem_size)
-		fail("SyzOS size exceeds guest memory");
+		fail("SYZOS size exceeds guest memory");
 	memcpy(host_mem, &__start_guest, size);
 	validate_guest_code(host_mem, size);
 }

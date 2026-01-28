@@ -1219,7 +1219,7 @@ GUEST_CODE static void its_send_sync_cmd(uint64 cmdq_base, uint32 vcpu_id)
 }
 
 // This function is carefully written in a way that prevents jump table emission.
-// SyzOS cannot reference global constants, and compilers are very eager to generate a jump table
+// SYZOS cannot reference global constants, and compilers are very eager to generate a jump table
 // for a switch over GITS commands.
 // To work around that, we replace the switch statement with a series of if statements.
 // In addition, cmd->type is stored in a volatile variable, so that it is read on each if statement,
