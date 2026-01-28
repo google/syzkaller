@@ -1,0 +1,5 @@
+struct-layout testdata/source0.h some_struct
+
+struct some_struct has 2 fields:
+[0 - 32] x
+[32 - 64] y

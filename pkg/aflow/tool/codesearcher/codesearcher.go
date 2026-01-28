@@ -53,6 +53,15 @@ definition of the given struct/union/enum,
 or all reads/writes of the given struct/union field.
 To find field references use 'struct_name::field_name' syntax.
 `),
+	aflow.NewFuncTool("codesearch-struct-layout", structLayout, `
+Tool provides layout of a struct/union (fields, offsets, sizes).
+It can be used to understand the full memory layout of a struct,
+or to find which field is located at a specific offset.
+The response contains ALL fields of the struct. If you don't see
+a field in the output, it is NOT present in the struct definition
+(e.g. due to #ifdefs).
+You can strictly trust the response to be complete and accurate.
+`),
 }
 
 // This action needs to run before any agents that use codesearch tools.
@@ -243,4 +252,37 @@ func findReferences(ctx *aflow.Context, state prepareResult, args findReferences
 		TruncatedOutput: totalCount > len(refs),
 		References:      refs,
 	}, nil
+}
+
+// nolint: lll
+type structLayoutArgs struct {
+	ContextFile string `jsonschema:"Source file path that references the entity. It helps to restrict scope of the search, if there are different definitions with the same name in different source files." json:",omitempty"`
+	Name        string `jsonschema:"Name of the struct/union."`
+	FieldOffset *uint  `jsonschema:"Byte offset to query. If set to null (or missing), the tool returns the whole struct layout. Otherwise, it returns only the field(s) overlapping with this byte." json:",omitempty"`
+}
+
+type structLayoutResult struct {
+	Fields []structLayoutField `jsonschema:"List of fields."`
+}
+
+type structLayoutField struct {
+	Name       string `jsonschema:"Name of the field."`
+	OffsetBits uint64 `jsonschema:"Offset of the field in bits."`
+	SizeBits   uint64 `jsonschema:"Size of the field in bits."`
+}
+
+func structLayout(ctx *aflow.Context, state prepareResult, args structLayoutArgs) (structLayoutResult, error) {
+	fields, err := state.Index.GetStructLayout(args.ContextFile, args.Name, args.FieldOffset)
+	if err != nil {
+		return structLayoutResult{}, err
+	}
+	res := structLayoutResult{}
+	for _, f := range fields {
+		res.Fields = append(res.Fields, structLayoutField{
+			Name:       f.Name,
+			OffsetBits: f.OffsetBits,
+			SizeBits:   f.SizeBits,
+		})
+	}
+	return res, nil
 }

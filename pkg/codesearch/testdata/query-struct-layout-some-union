@@ -1,0 +1,6 @@
+struct-layout testdata/source0.h some_union
+
+struct some_union has 3 fields:
+[0 - 32] x
+[0 - 64] p
+[0 - 64] s

@@ -31,6 +31,13 @@ type Definition struct {
 	Body     LineRange   `json:"body,omitempty"`
 	Comment  LineRange   `json:"comment,omitempty"`
 	Refs     []Reference `json:"refs,omitempty"`
+	Fields   []FieldInfo `json:"fields,omitempty"`
+}
+
+type FieldInfo struct {
+	Name       string `json:"name,omitempty"`
+	OffsetBits uint64 `json:"offset"`
+	SizeBits   uint64 `json:"size"`
 }
 
 type Reference struct {
@@ -152,7 +159,7 @@ func (v *RefKind) UnmarshalJSON(data []byte) error {
 var DatabaseFormatHash = func() string {
 	// Semantic version should be bumped when the schema does not change,
 	// but stored values changes.
-	const semanticVersion = "3"
+	const semanticVersion = "4"
 	schema, err := jsonschema.For[Database](nil)
 	if err != nil {
 		panic(err)
@@ -183,6 +190,9 @@ func (db *Database) Merge(other *Database, v *clangtool.Verifier) {
 		db.intern(&def.Comment.File)
 		for _, ref := range def.Refs {
 			db.intern(&ref.Name)
+		}
+		for i := range def.Fields {
+			db.intern(&def.Fields[i].Name)
 		}
 	}
 }
