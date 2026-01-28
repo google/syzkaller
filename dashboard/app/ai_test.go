@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -285,4 +286,43 @@ func TestAIJobsFiltering(t *testing.T) {
 	resp, err = c.GET("/ains/ai?workflow=patching")
 	require.NoError(t, err)
 	require.NotContains(t, string(resp), "KCSAN: data-race")
+}
+
+func TestAIJobsPagination(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// Direct DB insertion is faster and enough for this test.
+	for i := 0; i < 25; i++ {
+		c.advanceTime(time.Minute)
+		job := &aidb.Job{
+			Type:        ai.WorkflowAssessmentKCSAN,
+			Workflow:    "assessment-kcsan",
+			Namespace:   "ains",
+			Description: fmt.Sprintf("Job %d", i),
+		}
+		require.NoError(t, aidb.CreateJob(c.ctx, job))
+	}
+
+	// Page 1: Should have 20 items (itemsPerPage).
+	resp, err := c.GET("/ains/ai")
+	require.NoError(t, err)
+	// We expect 20 items. logic: 25 items total.
+	// Sorted by Created DESC.
+	// Page 1: 24, 23, ..., 5 (20 items).
+	// Page 2: 4, 3, 2, 1, 0 (5 items).
+	
+	// Check content.
+	require.Contains(t, string(resp), "Job 24")
+	require.Contains(t, string(resp), "Job 5")
+	require.NotContains(t, string(resp), "Job 4")
+	require.Contains(t, string(resp), "Next")
+
+	// Page 2:
+	resp, err = c.GET("/ains/ai?page=2")
+	require.NoError(t, err)
+	require.Contains(t, string(resp), "Job 4")
+	require.Contains(t, string(resp), "Job 0")
+	require.NotContains(t, string(resp), "Job 5")
+	require.Contains(t, string(resp), "Previous")
 }

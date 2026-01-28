@@ -138,11 +138,13 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	return job, err
 }
 
-func LoadNamespaceJobs(ctx context.Context, ns string) ([]*Job, error) {
+func LoadNamespaceJobs(ctx context.Context, ns string, limit, offset int) ([]*Job, error) {
 	return selectAll[Job](ctx, spanner.Statement{
-		SQL: selectJobs() + `WHERE Namespace = @ns ORDER BY Created DESC`,
+		SQL: selectJobs() + `WHERE Namespace = @ns ORDER BY Created DESC LIMIT @limit OFFSET @offset`,
 		Params: map[string]any{
-			"ns": ns,
+			"ns":     ns,
+			"limit":  limit,
+			"offset": offset,
 		},
 	})
 }

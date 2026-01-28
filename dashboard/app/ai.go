@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ type uiAIJobsPage struct {
 	Jobs            []*uiAIJob
 	Workflows       []string
 	CurrentWorkflow string
+	Page            int
+	ShowNext        bool
 }
 
 type uiAIJob struct {
@@ -96,10 +99,24 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace)
+	pageStr := r.FormValue("page")
+	pageNum := 1
+	if pageStr != "" {
+		if n, err := strconv.Atoi(pageStr); err == nil && n > 1 {
+			pageNum = n
+		}
+	}
+	const itemsPerPage = 20
+	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace, itemsPerPage+1, (pageNum-1)*itemsPerPage)
 	if err != nil {
 		return err
 	}
+	showNext := false
+	if len(jobs) > itemsPerPage {
+		showNext = true
+		jobs = jobs[:itemsPerPage]
+	}
+
 	workflowParam := r.FormValue("workflow")
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
@@ -122,6 +139,8 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		Jobs:            uiJobs,
 		Workflows:       workflowNames,
 		CurrentWorkflow: workflowParam,
+		Page:            pageNum,
+		ShowNext:        showNext,
 	}
 	return serveTemplate(w, "ai_jobs.html", page)
 }
@@ -163,12 +182,14 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		args = job.Args.Value.(map[string]any)
 	}
 	var crashReport template.HTML
-	if reportID, _ := args["CrashReportID"].(json.Number).Int64(); reportID != 0 {
-		report, _, err := getText(ctx, textCrashReport, reportID)
-		if err != nil {
-			return err
+	if val, ok := args["CrashReportID"]; ok {
+		if reportID, _ := val.(json.Number).Int64(); reportID != 0 {
+			report, _, err := getText(ctx, textCrashReport, reportID)
+			if err != nil {
+				return err
+			}
+			crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 		}
-		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
 	page := &uiAIJobPage{

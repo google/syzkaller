@@ -79,6 +79,7 @@ var Funcs = template.FuncMap{
 	"isJSONKV":               isJSONKV,
 	"formatJSONValue":        formatJSONValue,
 	"slugify":                slugify,
+	"add":                    add,
 }
 
 type JSONKV struct {
@@ -336,4 +337,8 @@ func dereferencePointer(v any) any {
 
 func commitLink(repo, commit string) string {
 	return vcs.CommitLink(repo, commit)
+}
+
+func add(a, b int) int {
+	return a + b
 }
