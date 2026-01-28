@@ -1,0 +1,847 @@
+
+
+<!doctype html>
+<html>
+<head>
+	
+	<link rel="stylesheet" href="/static/style.css"/>
+	<script src="/static/common.js"></script>
+	
+
+	<title>syzbot</title>
+</head>
+<body>
+	
+	<header id="topbar">
+		<table class="position_table">
+			<tr>
+				<td>
+					<h1><a href="/test-ns">syzbot</a></h1>
+				</td>
+				<td class="namespace_td">
+					<select class="namespace" onchange="window.location.href = '/' + this.value + '';">
+						</select>
+				</td>
+				<td class="search">
+					
+					
+					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
+					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
+				</td>
+			</tr>
+		</table>
+		
+		<div class="navigation">
+			<div class="navigation_tab">
+				<a href='/test-ns'><span style="color:DeepPink;">🐞 Open [0]</span></a>
+			</div>
+
+			
+
+			<div class="navigation_tab">
+				<a href='/test-ns/fixed'><span style="color:ForestGreen;">🐞 Fixed [0]</span></a>
+			</div>
+
+			<div class="navigation_tab" href='/test-ns/invalid'>
+				<a href='/test-ns/invalid'><span style="color:RoyalBlue;">🐞 Invalid [0]</span></a>
+			</div>
+
+			
+
+			<div class="navigation_tab">
+				<a href='/test-ns/graph/crashes'><span style="color:ForestGreen;">≡</span> Crashes</a>
+			</div>
+
+			<div class="dropdown navigation_tab">
+				<button class="dropbtn"><span style="color:DarkOrange;">📈</span>Graphs</button>
+				<div class="dropdown-content">
+					<a class="navigation_tab"
+						href='/test-ns/graph/bugs'>Kernel&nbsp;Health</a>
+					<a class="navigation_tab"
+						href='/test-ns/graph/found-bugs'>Bugs/Month</a>
+					<a class="navigation_tab"
+						href='/test-ns/graph/lifetimes'>Bug&nbsp;Lifetimes</a>
+					<a class="navigation_tab"
+						href='/test-ns/graph/fuzzing'>Fuzzing</a>
+				</div>
+			</div>
+
+			
+			
+			
+		</div>
+		
+	</header>
+	<br>
+	
+
+	
+<table class="list_table">
+	<thead><tr>
+		<th><a onclick="return sortTable(this, 'ID', textSort)" href="#">ID</a></th>
+		<th><a onclick="return sortTable(this, 'Workflow', textSort)" href="#">Workflow</a></th>
+		<th><a onclick="return sortTable(this, 'Result', textSort)" href="#">Result</a></th>
+		<th><a onclick="return sortTable(this, 'Correct', textSort)" href="#">Correct</a></th>
+		<th><a onclick="return sortTable(this, 'Bug', textSort)" href="#">Bug</a></th>
+		<th><a onclick="return sortTable(this, 'Created', textSort)" href="#">Created</a></th>
+		<th><a onclick="return sortTable(this, 'Started', textSort)" href="#">Started</a></th>
+		<th><a onclick="return sortTable(this, 'Finished', textSort)" href="#">Finished</a></th>
+		<th><a onclick="return sortTable(this, 'Revision', textSort)" href="#">Revision</a></th>
+		<th><a onclick="return sortTable(this, 'Error', textSort)" href="#">Error</a></th>
+	</tr></thead>
+	<tbody>
+	
+	</tbody>
+</table>
+
+
+	
+		<form method="POST">
+			<fieldset>
+				<legend>Result correct:</legend>
+				<input type="radio" name="correct" id="✅" value="✅" >
+				<label for="✅">✅</label>
+				<input type="radio" name="correct" id="❌" value="❌" >
+				<label for="❌">❌</label>
+				<input type="radio" name="correct" id="❓" value="❓" checked>
+				<label for="❓">❓</label>
+				<button type="submit">Set</button>
+			</fieldset>
+		</form>
+		<br>
+	
+
+	
+
+	
+	<br><b>Crash report:</b><br>
+	<div id="crash_div"><pre>Crash report content</pre></div><br>
+	
+
+	<style>
+	 
+	.trajectory-root {
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		color: #333;
+	}
+
+	.trajectory-node {
+		margin-left: 4px;  
+		margin-top: 6px;
+		margin-bottom: 6px;
+		background-color: #fff;
+		border-radius: 8px;
+		 
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);  
+		position: relative;
+	}
+
+	 
+	.trajectory-node::before {
+		content: "";
+		position: absolute;
+		left: -10px;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background-color: #e0e0e0;
+		border-radius: 2px;
+	}
+	.trajectory-node-wrapper:first-child > .trajectory-node::before {
+		display: none;  
+	}
+	 
+	.trajectory-node-wrapper {
+		position: relative;
+	}
+
+	.trajectory-node summary {
+		list-style: none;  
+		cursor: pointer;
+		padding: 8px 12px;
+		background-color: #f8f9fa;  
+		border-bottom: 1px solid #eaecf0;
+		border-radius: 6px 6px 0 0;  
+		transition: background-color 0.2s;
+	}
+	
+	.trajectory-node:not([open]) summary {
+		border-bottom: none;
+		border-radius: 6px;
+	}
+
+	.trajectory-node summary:hover {
+		background-color: #f0f2f5;
+	}
+
+	.trajectory-node summary::-webkit-details-marker {
+		display: none;
+	}
+
+	 
+	.trajectory-node summary::after {
+		content: "";
+		position: absolute;
+		right: 12px;
+		top: 14px;
+		border: 5px solid transparent;
+		border-top-color: #999;
+		transition: transform 0.2s;
+	}
+	.trajectory-node[open] summary::after {
+		transform: rotate(180deg);
+		top: 9px;  
+	}
+
+	.summary-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.95em;
+	}
+
+	.node-name {
+		font-weight: 600;
+		color: #2c3e50;
+	}
+
+	 
+	.node-type-badge {
+		font-size: 0.75em;
+		font-weight: 700;
+		text-transform: uppercase;
+		padding: 2px 6px;
+		border-radius: 4px;
+		letter-spacing: 0.5px;
+	}
+
+	.badge-agent {
+		background-color: #e3f2fd;  
+		color: #1976d2;
+		border: 1px solid #bbdefb;
+	}
+
+	.badge-tool {
+		background-color: #fff3e0;  
+		color: #f57c00;
+		border: 1px solid #ffe0b2;
+	}
+
+	.badge-flow {
+		background-color: #f3e5f5;  
+		color: #7b1fa2;
+		border: 1px solid #e1bee7;
+	}
+	
+	.badge-unknown {
+		background-color: #eee;
+		color: #555;
+	}
+
+	 
+	.trajectory-error {
+		border-color: #ffcdd2;
+		box-shadow: 0 1px 3px rgba(211, 47, 47, 0.1);
+	}
+	.trajectory-error > summary {
+		background-color: #ffebee;
+		border-bottom-color: #ffcdd2;
+	}
+	.trajectory-error > summary:hover {
+		background-color: #ffcdd2;
+	}
+
+	.node-meta {
+		margin-left: auto;  
+		margin-right: 24px;  
+		font-size: 0.85em;
+		color: #7f8c8d;
+	}
+	
+	.node-duration {
+		color: #95a5a6;
+		margin-left: 4px;
+	}
+
+	.node-link {
+		opacity: 0;
+		transition: opacity 0.2s;
+		text-decoration: none;
+		margin-right: 16px;  
+	}
+	.trajectory-node:hover .node-link {
+		opacity: 0.6;
+	}
+	.node-link:hover {
+		opacity: 1 !important;
+	}
+
+	.trajectory-content {
+		padding: 12px;
+		background-color: #fff;
+		border-radius: 0 0 6px 6px;  
+	}
+	
+	 
+	.node-details {
+		margin-bottom: 8px;
+		padding-bottom: 8px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	.node-details:last-child {
+		border-bottom: none;
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	 
+	.node-children {
+		margin-top: 4px;
+		margin-left: 4px;
+		padding-left: 4px;
+		 
+	}
+	 
+	.json-nested {
+		padding: 6px 10px;
+		border-left: 3px solid #eee;  
+		margin-left: 4px;
+		margin-top: 4px;
+		background-color: #fafafa;
+		border-radius: 4px;
+		font-size: 0.95em;
+	}
+	
+	.json-value-block {
+		padding-left: 12px;
+		border-left: 2px solid #f0f0f0;  
+		margin-left: 4px;
+	}
+
+	.json-toggle-btn {
+		font-size: 0.8em;
+		padding: 1px 4px;
+		margin-left: 5px;
+		cursor: pointer;
+		border: 1px solid #ccc;
+		background-color: #fff;
+		border-radius: 3px;
+		color: #555;
+	}
+	.json-toggle-btn:hover {
+		background-color: #f0f0f0;
+	}
+
+	.json-string-block {
+		white-space: pre-wrap;
+		background-color: #fff;
+		border: 1px solid #eee;
+		padding: 4px;
+		margin-top: 2px;
+		border-radius: 2px;
+		color: #333;
+		font-family: monospace;
+	}
+
+	.json-empty {
+		color: #999;
+		font-style: italic;
+		font-size: 0.9em;
+	}
+	</style>
+	
+	<h3>Trajectory</h3>
+	<div class="trajectory-root">
+		
+	
+	<div class="trajectory-node-wrapper" id="node-1-root-flow">
+		<details class="trajectory-node type-flow " open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-flow">flow</span>
+					<span class="node-name">Root Flow</span>
+					<span class="node-meta">
+						2026/01/27 23:32
+						<span class="node-duration">(0m)</span>
+						</span>
+					<a href="#node-1-root-flow" class="node-link" title="Link to Root Flow"
+						onclick="copyLink(event, '1-root-flow')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				
+				
+				
+				
+				
+				
+				
+					
+					
+					<div class="node-children">
+						
+	
+	<div class="trajectory-node-wrapper" id="node-2-coordinator-agent">
+		<details class="trajectory-node type-agent " open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-agent">agent</span>
+					<span class="node-name">Coordinator Agent</span>
+					<span class="node-meta">
+						2026/01/27 23:32
+						<span class="node-duration">(0m)</span>
+						</span>
+					<a href="#node-2-coordinator-agent" class="node-link" title="Link to Coordinator Agent"
+						onclick="copyLink(event, '2-coordinator-agent')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				
+				
+				<div class="node-details details-prompt">
+					<div class="node-details-title">Prompt</div>
+					<pre>Coordinate the task</pre>
+				</div>
+				
+				
+				
+				
+				<div class="node-details details-reply">
+					<div class="node-details-title">Reply</div>
+					<pre>Task coordinated</pre>
+				</div>
+				
+				
+				
+					
+					
+					<div class="node-children">
+						
+	
+	<div class="trajectory-node-wrapper" id="node-3-search">
+		<details class="trajectory-node type-tool " open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-tool">tool</span>
+					<span class="node-name">Search</span>
+					<span class="node-meta">
+						2026/01/27 23:32
+						<span class="node-duration">(0m)</span>
+						</span>
+					<a href="#node-3-search" class="node-link" title="Link to Search"
+						onclick="copyLink(event, '3-search')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				
+				
+				
+				
+				
+				
+				<div class="node-details details-args">
+					<div class="node-details-title">Args</div>
+					
+					<div class="json-tree">
+	
+	<div class="json-object">
+		
+		<div class="json-entry">
+			
+			<details open class="json-details">
+				<summary class="json-key-summary">options</summary>
+				<div class="json-nested">
+					
+	
+	<div class="json-object">
+		
+		<div class="json-entry">
+			
+			<details open class="json-details">
+				<summary class="json-key-summary">advanced</summary>
+				<div class="json-nested">
+					
+	
+	<div class="json-object">
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">depth</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-number">5</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">empty_check</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-empty">empty</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<details open class="json-details">
+				<summary class="json-key-summary">meta</summary>
+				<div class="json-nested">
+					
+	
+	<div class="json-object">
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">author</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-string">dmnk</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">timestamp</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-number">1234567890</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+	
+	
+				</div>
+			</details>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">strategy</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-string">recursive</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+	
+	
+				</div>
+			</details>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<details open class="json-details">
+				<summary class="json-key-summary">filters</summary>
+				<div class="json-nested">
+					
+	
+	<ul class="json-list">
+		<li>
+	
+	<span class="json-string">linux</span>
+	
+	</li><li>
+	
+	<span class="json-string">kernel</span>
+	
+	</li><li>
+	
+	<span class="json-string">fuzzing</span>
+	
+	</li>
+	</ul>
+	
+	
+				</div>
+			</details>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">verbose</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-bool">true</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+	
+	
+				</div>
+			</details>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">query</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-string">syzkaller</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+	
+	</div>
+					
+				</div>
+				
+				
+				<div class="node-details details-results">
+					<div class="node-details-title">Results</div>
+					
+					<div class="json-tree">
+	
+	<div class="json-object">
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">count</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-number">100</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+		<div class="json-entry">
+			
+			<div>
+				<div class="json-key-heading">empty_result</div>
+				<div class="json-value-block">
+					
+	
+	<span class="json-empty">empty</span>
+	
+	
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+	
+	</div>
+					
+					</div>
+				
+					
+					
+				</div>
+			</details>
+		</div>
+		
+	<div class="trajectory-node-wrapper" id="node-4-sub-flow-analysis">
+		<details class="trajectory-node type-flow " open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-flow">flow</span>
+					<span class="node-name">Sub Flow (Analysis)</span>
+					<span class="node-meta">
+						2026/01/27 23:32
+						<span class="node-duration">(0m)</span>
+						</span>
+					<a href="#node-4-sub-flow-analysis" class="node-link" title="Link to Sub Flow (Analysis)"
+						onclick="copyLink(event, '4-sub-flow-analysis')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				
+				
+				
+				
+				
+				
+				
+					
+					
+					<div class="node-children">
+						
+	
+	<div class="trajectory-node-wrapper" id="node-5-analyzer-agent">
+		<details class="trajectory-node type-agent " open>
+			<summary>
+				<div class="summary-header">
+					<span class="node-type-badge badge-agent">agent</span>
+					<span class="node-name">Analyzer Agent</span>
+					<span class="node-meta">
+						2026/01/27 23:32
+						<span class="node-duration">(0m)</span>
+						</span>
+					<a href="#node-5-analyzer-agent" class="node-link" title="Link to Analyzer Agent"
+						onclick="copyLink(event, '5-analyzer-agent')">🔗</a>
+					</div>
+			</summary>
+			<div class="trajectory-content">
+				
+				
+				
+				
+				
+				<div class="node-details details-thoughts">
+					<div class="node-details-title">Thoughts</div>
+					<pre>Analyzing the crash dump...</pre>
+				</div>
+				
+				
+				
+				
+				
+					
+					
+				</div>
+			</details>
+		</div>
+		
+	
+					</div>
+					
+				</div>
+			</details>
+		</div>
+		
+	
+					</div>
+					
+				</div>
+			</details>
+		</div>
+		
+	
+					</div>
+					
+				</div>
+			</details>
+		</div>
+		
+	
+	</div>
+	
+	
+
+	
+<script>
+			function copyLink(event, idSuffix) {
+			
+			
+			
+			
+			
+	}
+
+	function toggleJson(btn) {
+		const container = btn.closest('.node-details');
+		const pretty = container.querySelector('.json-content-pretty');
+		const raw = container.querySelector('.json-content-raw');
+		if (raw.style.display === 'none') {
+			raw.style.display = 'block';
+			pretty.style.display = 'none';
+			btn.innerText = 'Pretty';
+		} else {
+			raw.style.display = 'none';
+			pretty.style.display = 'block';
+			btn.innerText = 'Raw';
+		}
+	}
+
+	function expandForHash() {
+		if (!window.location.hash) return;
+		const id = window.location.hash.substring(1); 
+		const element = document.getElementById(id);
+		if (element) {
+			
+			let parent = element.parentElement;
+			while (parent) {
+				if (parent.tagName === 'DETAILS') {
+					parent.open = true;
+				}
+				parent = parent.parentElement;
+			}
+			
+			const details = element.querySelector('details');
+			if (details) {
+				details.open = true;
+			}
+			
+			element.scrollIntoView();
+		}
+	}
+
+	function toggleJson(btn) {
+		const container = btn.closest('.node-details');
+		const pretty = container.querySelector('.json-content-pretty');
+		const raw = container.querySelector('.json-content-raw');
+		if (raw.style.display === 'none') {
+			raw.style.display = 'block';
+			pretty.style.display = 'none';
+			btn.innerText = 'Pretty';
+		} else {
+			raw.style.display = 'none';
+			pretty.style.display = 'block';
+			btn.innerText = 'Raw';
+		}
+	}
+
+	window.addEventListener('hashchange', expandForHash);
+	window.addEventListener('load', expandForHash);
+</script>
+</body>
+</html>
+```
