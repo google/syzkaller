@@ -103,8 +103,6 @@ You are an experienced Linux kernel developer tasked with debugging a kernel cra
 You need to provide a detailed explanation of the root cause for another developer to be
 able to write a fix for the bug based on your explanation.
 Your final reply must contain only the explanation.
-
-Call some codesearch tools first.
 `
 
 const debuggingPrompt = `
@@ -118,6 +116,12 @@ You are an experienced Linux kernel developer tasked with creating a fix for a k
 Use the codeedit tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
 Your final reply should contain explanation of what you did in the patch and why.
+
+{{if titleIsWarning .BugTitle}}
+If you will end up removing the WARN_ON macro because the condition can legitimately happen,
+add a pr_err call that logs that the unlikely condition has happened. The pr_err message
+must not include "WARNING" string.
+{{end}}
 `
 
 const patchPrompt = `
@@ -183,4 +187,10 @@ The diff of the bug fix is:
 Additional description of the patch:
 
 {{.PatchExplanation}}
+
+{{if titleIsWarning .BugTitle}}
+If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
+must not be used for conditions that can legitimately happen, and that pr_err
+should be used instead if necessary.
+{{end}}
 `

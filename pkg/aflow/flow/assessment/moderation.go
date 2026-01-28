@@ -25,6 +25,7 @@ type moderationOutputs struct {
 	Explanation string
 }
 
+// nolint:dupl
 func init() {
 	aflow.Register[moderationInputs, moderationOutputs](
 		ai.WorkflowModeration,
