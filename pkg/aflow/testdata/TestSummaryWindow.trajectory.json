@@ -1,0 +1,234 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Initial Prompt"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:05Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:05Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:07Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:09Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:10Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:11Z",
+		"Finished": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:13Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:13Z",
+		"Finished": "0001-01-01T00:00:14Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 8,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:15Z",
+		"Finished": "0001-01-01T00:00:16Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:17Z"
+	},
+	{
+		"Seq": 9,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:17Z",
+		"Finished": "0001-01-01T00:00:18Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 10,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:19Z"
+	},
+	{
+		"Seq": 10,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:19Z",
+		"Finished": "0001-01-01T00:00:20Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:21Z"
+	},
+	{
+		"Seq": 11,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:21Z",
+		"Finished": "0001-01-01T00:00:22Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:23Z"
+	},
+	{
+		"Seq": 12,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:23Z",
+		"Finished": "0001-01-01T00:00:24Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "agent",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:25Z",
+		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Prompt": "Initial Prompt",
+		"Reply": "Done"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"Results": {
+			"Reply": "Done"
+		}
+	}
+]

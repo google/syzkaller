@@ -50,58 +50,71 @@ type Recipient struct {
 	To    bool // whether the recipient should be on the To or Cc line
 }
 
-func init() {
+func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...))
+	return &aflow.Flow{
+		Name: name,
+		Root: aflow.Pipeline(
+			baseCommitPicker,
+			kernel.Checkout,
+			kernel.Build,
+			// Ensure we can reproduce the crash (and the build boots).
+			crash.Reproduce,
+			codesearcher.PrepareIndex,
+			&aflow.LLMAgent{
+				Name:          "debugger",
+				Model:         aflow.BestExpensiveModel,
+				Reply:         "BugExplanation",
+				Temperature:   1,
+				Instruction:   debuggingInstruction,
+				Prompt:        debuggingPrompt,
+				Tools:         commonTools,
+				SummaryWindow: summaryWindow,
+			},
+			kernel.CheckoutScratch,
+			&aflow.DoWhile{
+				Do: aflow.Pipeline(
+					&aflow.LLMAgent{
+						Name:          "patch-generator",
+						Model:         aflow.BestExpensiveModel,
+						Reply:         "PatchExplanation",
+						Temperature:   1,
+						Instruction:   patchInstruction,
+						Prompt:        patchPrompt,
+						Tools:         append(commonTools, codeeditor.Tool),
+						SummaryWindow: summaryWindow,
+					},
+					crash.TestPatch, // -> PatchDiff or TestError
+				),
+				While:         "TestError",
+				MaxIterations: 10,
+			},
+			getMaintainers,
+			&aflow.LLMAgent{
+				Name:          "description-generator",
+				Model:         aflow.BestExpensiveModel,
+				Reply:         "PatchDescription",
+				Temperature:   1,
+				Instruction:   descriptionInstruction,
+				Prompt:        descriptionPrompt,
+				Tools:         commonTools,
+				SummaryWindow: summaryWindow,
+			},
+		),
+	}
+}
 
+func init() {
 	aflow.Register[Inputs, Outputs](
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
-		&aflow.Flow{
-			Root: aflow.Pipeline(
-				baseCommitPicker,
-				kernel.Checkout,
-				kernel.Build,
-				// Ensure we can reproduce the crash (and the build boots).
-				crash.Reproduce,
-				codesearcher.PrepareIndex,
-				&aflow.LLMAgent{
-					Name:        "debugger",
-					Model:       aflow.BestExpensiveModel,
-					Reply:       "BugExplanation",
-					Temperature: 1,
-					Instruction: debuggingInstruction,
-					Prompt:      debuggingPrompt,
-					Tools:       commonTools,
-				},
-				kernel.CheckoutScratch,
-				&aflow.DoWhile{
-					Do: aflow.Pipeline(
-						&aflow.LLMAgent{
-							Name:        "patch-generator",
-							Model:       aflow.BestExpensiveModel,
-							Reply:       "PatchExplanation",
-							Temperature: 1,
-							Instruction: patchInstruction,
-							Prompt:      patchPrompt,
-							Tools:       append(commonTools, codeeditor.Tool),
-						},
-						crash.TestPatch, // -> PatchDiff or TestError
-					),
-					While:         "TestError",
-					MaxIterations: 10,
-				},
-				getMaintainers,
-				&aflow.LLMAgent{
-					Name:        "description-generator",
-					Model:       aflow.BestExpensiveModel,
-					Reply:       "PatchDescription",
-					Temperature: 1,
-					Instruction: descriptionInstruction,
-					Prompt:      descriptionPrompt,
-					Tools:       commonTools,
-				},
-			),
-		},
+		createPatchingFlow("", 0),
+	)
+
+	aflow.Register[Inputs, Outputs](
+		ai.WorkflowPatching,
+		"generate a kernel patch fixing a provided bug reproducer, with the summary feature",
+		createPatchingFlow("summary", 10),
 	)
 }
 

@@ -48,6 +48,9 @@ type LLMAgent struct {
 	Prompt string
 	// Set of tools for the agent to use.
 	Tools []Tool
+	// Number of historical message (sliding window) to keep. If zero, we don't enable the sliding
+	// window summary feature (don't toss old messages).
+	SummaryWindow int
 }
 
 // Consts to use for LLMAgent.Model.
@@ -113,6 +116,14 @@ Or did you want to call some other tools, but did not actually do that?
 const llmAnswerNow = `
 Provide a best-effort answer to the original question with all of the information
 you have so far without calling any more tools!
+`
+
+const slidingWindowInstruction = `
+You MUST attach a summary of your most up-to-date findings/knowledge in your reply, which summarizes
+all the historical context, because I will remove old chats if they fall out of the context sliding window
+(for example, I will remove the oldest 3 chats if the sliding window is 10 but there have been 13 LLM chat
+messages). In your summary, KEEP/INCLUDE ALL useful code. Because I will drop old messages, the code read
+by tools will also be tossed.
 `
 
 type llmOutputs struct {
@@ -185,6 +196,10 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	var outputs map[string]any
 	answerNow := false
 	req := []*genai.Content{genai.NewContentFromText(prompt, genai.RoleUser)}
+	// It points to the summary message if the sliding window summary feature is enabled.
+	// We need it to check if the message-to-be-popped is a summary - if so, we need to add
+	// a new summary.
+	summaryMessage := (*genai.Content)(nil)
 	for {
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
@@ -193,6 +208,45 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
+		}
+		// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1
+		// messages (recent history), then discard the old ones with stale context and to
+		// free up tokens.
+		// We need to add a new summary if we don't have one yet, or existing summary is
+		// going to be popped.
+		addNewSummary := false
+		if a.SummaryWindow > 0 && len(req) > a.SummaryWindow {
+			// popEnd is the last index of elements to be popped
+			popEnd := len(req) - a.SummaryWindow
+			if summaryMessage == nil {
+				// If we haven't created a summary, surely need to create one.
+				addNewSummary = true
+			} else {
+				// If we already have a summary, we iterate through the elements being popped
+				// (index 1 to popEnd), and see if the summary would be popped (hence needing
+				// a new summary).
+				for i := 1; i <= popEnd; i++ {
+					if req[i] == summaryMessage {
+						// The existing summary message is among the summary message.
+						addNewSummary = true
+						break
+					}
+				}
+			}
+			// Append the very prompt, asking LLM to add summary.
+			if addNewSummary {
+				req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
+					Text: slidingWindowInstruction,
+				})
+			}
+			// The actual popping.
+			if addNewSummary && (summaryMessage != nil) {
+				// Before we actually pop the old summary, save it so the new summary can
+				// incorporate enough old information.
+				req = append([]*genai.Content{req[0], summaryMessage}, req[popEnd+1:]...)
+			} else {
+				req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
+			}
 		}
 		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
 		if respErr != nil {
@@ -223,6 +277,10 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			return "", nil, err
 		}
 		req = append(req, resp.Candidates[0].Content)
+		// We told LLM to add a new summary. Let's re-direct the pointer to it.
+		if addNewSummary {
+			summaryMessage = req[len(req)-1]
+		}
 		if len(calls) == 0 {
 			if a.Outputs != nil && outputs == nil {
 				// LLM did not call set-results.
