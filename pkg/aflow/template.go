@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"text/template"
 	"text/template/parse"
+
+	"github.com/google/syzkaller/pkg/report/crash"
 )
 
 // formatTemplate formats template 'text' using the standard text/template logic.
@@ -101,5 +104,16 @@ func walkTemplate(n parse.Node, used map[string]bool, errp *error) {
 }
 
 func parseTemplate(prompt string) (*template.Template, error) {
-	return template.New("").Option("missingkey=error").Parse(prompt)
+	return template.New("").Option("missingkey=error").Funcs(templateFuncs).Parse(prompt)
+}
+
+var templateFuncs = template.FuncMap{
+	"titleIsUAF":     titleIs(crash.KASANUseAfterFreeRead, crash.KASANUseAfterFreeWrite),
+	"titleIsWarning": titleIs(crash.Warning),
+}
+
+func titleIs(types ...crash.Type) func(string) bool {
+	return func(title string) bool {
+		return slices.Contains(types, crash.TitleToType(title))
+	}
 }

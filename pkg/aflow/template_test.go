@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"bytes"
 	"fmt"
 	"maps"
 	"reflect"
@@ -84,4 +85,23 @@ func TestTemplate(t *testing.T) {
 			assert.ElementsMatch(t, slices.Collect(maps.Keys(used)), test.used)
 		})
 	}
+}
+
+func TestTemplateRender(t *testing.T) {
+	data := map[string]any{
+		"Title": "WARNING: something is wrong",
+	}
+	const text = `
+{{if titleIsUAF .Title}}It is UAF.{{end}}
+{{if titleIsWarning .Title}}It is WARNING.{{end}}
+`
+	const want = `
+
+It is WARNING.
+`
+	templ, err := parseTemplate(text)
+	require.NoError(t, err)
+	buf := new(bytes.Buffer)
+	require.NoError(t, templ.Execute(buf, data))
+	require.Equal(t, want, buf.String())
 }
