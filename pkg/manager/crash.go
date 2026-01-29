@@ -220,17 +220,18 @@ type CrashInfo struct {
 }
 
 type BugInfo struct {
-	ID            string
-	Title         string
-	TailTitles    []*report.TitleFreqRank
-	FirstTime     time.Time
-	LastTime      time.Time
-	HasRepro      bool
-	HasCRepro     bool
-	StraceFile    string // relative to the workdir
-	ReproAttempts int
-	Crashes       []*CrashInfo
-	Rank          int
+	ID             string
+	Title          string
+	TailTitles     []*report.TitleFreqRank
+	FirstTime      time.Time
+	LastTime       time.Time
+	HasRepro       bool
+	HasCRepro      bool
+	StraceFile     string // relative to the workdir
+	MemoryDumpFile string // relative to the workdir
+	ReproAttempts  int
+	Crashes        []*CrashInfo
+	Rank           int
 }
 
 func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
@@ -277,6 +278,8 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 			ret.StraceFile = filepath.Join(dir, f)
 		} else if strings.HasPrefix(f, "repro") {
 			ret.ReproAttempts++
+		} else if f == "vmcore" {
+			ret.MemoryDumpFile = filepath.Join("crashes", id, f)
 		}
 	}
 	if !full {
