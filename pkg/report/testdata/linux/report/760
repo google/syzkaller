@@ -1,0 +1,50 @@
+TITLE: WARNING in report0_first_line
+TYPE: WARNING
+CONTEXTS: ["[    C1]","[    C2]","[    C1]"]
+
+[  0.0][    C1] WARNING: net/mac80211/tx.c:0 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+[  0.0][    C1] Call Trace:
+[  0.0][    C1]  <IRQ>
+[  0.0][    C1]  report0_first_line+0x0/0x0
+[  0.0][    C1]  report0_middle_line+0x0/0x0
+[  0.0][    C1]  report0_last_line+0x0/0x0
+[  0.0][    C1]  </IRQ>
+[  0.0][    C2] WARNING: net/mac80211/tx.c:1 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+[  0.0][    C2] Call Trace:
+[  0.0][    C2]  <IRQ>
+[  0.0][    C2]  report1_first_line+0x0/0x0
+[  0.0][    C2]  report1_middle_line+0x0/0x0
+[  0.0][    C1] WARNING: net/mac80211/tx.c:2 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+[  0.0][    C1] Call Trace:
+[  0.0][    C1]  <IRQ>
+[  0.0][    C1]  report2_first_line+0x0/0x0
+[  0.0][    C1]  report2_middle_line+0x0/0x0
+[  0.0][    C1]  report2_last_line+0x0/0x0
+[  0.0][    C1]  </IRQ>
+[  0.0][    C2]  report1_last_line+0x0/0x0
+[  0.0][    C2]  </IRQ>
+
+REPORT:
+WARNING: net/mac80211/tx.c:0 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+Call Trace:
+ <IRQ>
+ report0_first_line+0x0/0x0
+ report0_middle_line+0x0/0x0
+ report0_last_line+0x0/0x0
+ </IRQ>
+TAIL REPORTS:
+WARNING: net/mac80211/tx.c:1 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+Call Trace:
+ <IRQ>
+ report1_first_line+0x0/0x0
+ report1_middle_line+0x0/0x0
+ report1_last_line+0x0/0x0
+ </IRQ>
+<<<<<<<<<<<<<<< tail report >>>>>>>>>>>>>>>
+WARNING: net/mac80211/tx.c:2 at __ieee80211_beacon_get+0x125d/0x1630, CPU#1: syz.9.803/11907
+Call Trace:
+ <IRQ>
+ report2_first_line+0x0/0x0
+ report2_middle_line+0x0/0x0
+ report2_last_line+0x0/0x0
+ </IRQ>

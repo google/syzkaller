@@ -1,0 +1,790 @@
+TITLE: UBSAN: array-index-out-of-bounds in bpf_link_show_fdinfo
+ALT: bad-access in bpf_link_show_fdinfo
+TYPE: MEMORY_SAFETY_UBSAN
+EXECUTOR: proc=1, id=86
+CONTEXTS: ["[ T5524]","[ T5524]"]
+
+
+[   39.835000][   T38] audit: type=1400 audit(1758704777.688:82): avc:  denied  { name_bind } for  pid=5118 comm="sshd" src=30000 scontext=system_u:system_r:sshd_t tcontext=system_u:object_r:unreserved_port_t tclass=tcp_socket permissive=1
+[   39.869794][   T38] audit: type=1400 audit(1758704777.718:83): avc:  denied  { execute } for  pid=5120 comm="sh" name="syz-executor" dev="sda1" ino=1924 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:etc_runtime_t tclass=file permissive=1
+[   39.872429][   T38] audit: type=1400 audit(1758704777.718:84): avc:  denied  { execute_no_trans } for  pid=5120 comm="sh" path="/syz-executor" dev="sda1" ino=1924 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:etc_runtime_t tclass=file permissive=1
+[   41.164784][   T38] audit: type=1400 audit(1758704779.018:85): avc:  denied  { mounton } for  pid=5120 comm="syz-executor" path="/syzcgroup/unified" dev="sda1" ino=1926 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:root_t tclass=dir permissive=1
+[   41.167868][   T38] audit: type=1400 audit(1758704779.018:86): avc:  denied  { mount } for  pid=5120 comm="syz-executor" name="/" dev="cgroup2" ino=1 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:cgroup_t tclass=filesystem permissive=1
+[   41.168575][ T5120] cgroup: Unknown subsys name 'net'
+[   41.357923][ T5120] cgroup: Unknown subsys name 'rlimit'
+[   41.638488][ T5125] SELinux:  Context root:object_r:swapfile_t is not valid (left unmapped).
+Setting up swapspace version 1, size = 127995904 bytes
+[   42.415599][ T5120] Adding 124996k swap on ./swap-file.  Priority:0 extents:1 across:124996k
+[   44.893809][   T38] kauditd_printk_skb: 17 callbacks suppressed
+[   44.893822][   T38] audit: type=1400 audit(1758704782.748:104): avc:  denied  { execmem } for  pid=5127 comm="syz-executor" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=process permissive=1
+[   45.138492][   T38] audit: type=1400 audit(1758704782.988:105): avc:  denied  { create } for  pid=5131 comm="syz-executor" scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=bluetooth_socket permissive=1
+[   45.141571][   T38] audit: type=1400 audit(1758704782.988:106): avc:  denied  { read write } for  pid=5131 comm="syz-executor" name="vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.144546][   T38] audit: type=1400 audit(1758704782.988:107): avc:  denied  { open } for  pid=5131 comm="syz-executor" path="/dev/vhci" dev="devtmpfs" ino=1103 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:vhost_device_t tclass=chr_file permissive=1
+[   45.150162][   T38] audit: type=1400 audit(1758704782.998:108): avc:  denied  { ioctl } for  pid=5133 comm="syz-executor" path="socket:[5449]" dev="sockfs" ino=5449 ioctlcmd=0x48c9 scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=bluetooth_socket permissive=1
+[   45.179370][ T5142] Bluetooth: hci0: unexpected cc 0x0c03 length: 249 > 1
+[   45.181827][ T5142] Bluetooth: hci0: unexpected cc 0x1003 length: 249 > 9
+[   45.183020][ T5142] Bluetooth: hci0: unexpected cc 0x1001 length: 249 > 9
+[   45.184364][ T5142] Bluetooth: hci0: unexpected cc 0x0c23 length: 249 > 4
+[   45.185536][ T5142] Bluetooth: hci0: unexpected cc 0x0c25 length: 249 > 3
+[   45.186308][ T5144] Bluetooth: hci2: unexpected cc 0x0c03 length: 249 > 1
+[   45.186479][ T5142] Bluetooth: hci0: unexpected cc 0x0c38 length: 249 > 2
+[   45.188303][ T5144] Bluetooth: hci2: unexpected cc 0x1003 length: 249 > 9
+[   45.191335][ T5145] Bluetooth: hci1: unexpected cc 0x0c03 length: 249 > 1
+[   45.191378][ T5142] Bluetooth: hci2: unexpected cc 0x1001 length: 249 > 9
+[   45.194049][ T5142] Bluetooth: hci1: unexpected cc 0x1003 length: 249 > 9
+[   45.195201][   T38] audit: type=1400 audit(1758704783.048:109): avc:  denied  { read } for  pid=5131 comm="syz-executor" dev="nsfs" ino=4026531840 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:nsfs_t tclass=file permissive=1
+[   45.195925][ T5146] Bluetooth: hci3: unexpected cc 0x0c03 length: 249 > 1
+[   45.197643][   T38] audit: type=1400 audit(1758704783.048:110): avc:  denied  { open } for  pid=5131 comm="syz-executor" path="net:[4026531840]" dev="nsfs" ino=4026531840 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:nsfs_t tclass=file permissive=1
+[   45.197673][   T38] audit: type=1400 audit(1758704783.048:111): avc:  denied  { mounton } for  pid=5131 comm="syz-executor" path="/" dev="sda1" ino=2 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:root_t tclass=dir permissive=1
+[   45.201391][ T5144] Bluetooth: hci2: unexpected cc 0x0c23 length: 249 > 4
+[   45.201877][ T5144] Bluetooth: hci2: unexpected cc 0x0c25 length: 249 > 3
+[   45.202276][ T5145] Bluetooth: hci1: unexpected cc 0x1001 length: 249 > 9
+[   45.205686][ T5146] Bluetooth: hci3: unexpected cc 0x1003 length: 249 > 9
+[   45.205730][ T5145] Bluetooth: hci1: unexpected cc 0x0c23 length: 249 > 4
+[   45.206463][ T5144] Bluetooth: hci2: unexpected cc 0x0c38 length: 249 > 2
+[   45.206551][ T5145] Bluetooth: hci1: unexpected cc 0x0c25 length: 249 > 3
+[   45.206817][ T5145] Bluetooth: hci1: unexpected cc 0x0c38 length: 249 > 2
+[   45.207587][ T5145] Bluetooth: hci3: unexpected cc 0x1001 length: 249 > 9
+[   45.219550][ T4580] Bluetooth: hci3: unexpected cc 0x0c23 length: 249 > 4
+[   45.220975][ T4580] Bluetooth: hci3: unexpected cc 0x0c25 length: 249 > 3
+[   45.222136][ T4580] Bluetooth: hci3: unexpected cc 0x0c38 length: 249 > 2
+[   45.485957][   T38] audit: type=1400 audit(1758704783.338:112): avc:  denied  { module_request } for  pid=5132 comm="syz-executor" kmod="rtnl-link-nicvf" scontext=root:sysadm_r:sysadm_t tcontext=system_u:system_r:kernel_t tclass=system permissive=1
+[   45.509602][ T5132] chnl_net:caif_netlink_parms(): no params data found
+[   45.576649][ T5131] chnl_net:caif_netlink_parms(): no params data found
+[   45.580556][ T5133] chnl_net:caif_netlink_parms(): no params data found
+[   45.732650][ T5132] bridge0: port 1(bridge_slave_0) entered blocking state
+[   45.733696][ T5132] bridge0: port 1(bridge_slave_0) entered disabled state
+[   45.735043][ T5132] bridge_slave_0: entered allmulticast mode
+[   45.736899][ T5132] bridge_slave_0: entered promiscuous mode
+[   45.744409][ T5135] chnl_net:caif_netlink_parms(): no params data found
+[   45.758337][ T5132] bridge0: port 2(bridge_slave_1) entered blocking state
+[   45.759288][ T5132] bridge0: port 2(bridge_slave_1) entered disabled state
+[   45.760272][ T5132] bridge_slave_1: entered allmulticast mode
+[   45.761790][ T5132] bridge_slave_1: entered promiscuous mode
+[   45.896141][ T5133] bridge0: port 1(bridge_slave_0) entered blocking state
+[   45.897350][ T5133] bridge0: port 1(bridge_slave_0) entered disabled state
+[   45.898296][ T5133] bridge_slave_0: entered allmulticast mode
+[   45.899842][ T5133] bridge_slave_0: entered promiscuous mode
+[   45.924638][ T5132] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   45.926077][ T5131] bridge0: port 1(bridge_slave_0) entered blocking state
+[   45.926996][ T5131] bridge0: port 1(bridge_slave_0) entered disabled state
+[   45.928044][ T5131] bridge_slave_0: entered allmulticast mode
+[   45.929616][ T5131] bridge_slave_0: entered promiscuous mode
+[   45.932634][ T5131] bridge0: port 2(bridge_slave_1) entered blocking state
+[   45.933556][ T5131] bridge0: port 2(bridge_slave_1) entered disabled state
+[   45.934421][ T5131] bridge_slave_1: entered allmulticast mode
+[   45.936042][ T5131] bridge_slave_1: entered promiscuous mode
+[   45.937879][ T5133] bridge0: port 2(bridge_slave_1) entered blocking state
+[   45.939250][ T5133] bridge0: port 2(bridge_slave_1) entered disabled state
+[   45.940226][ T5133] bridge_slave_1: entered allmulticast mode
+[   45.942033][ T5133] bridge_slave_1: entered promiscuous mode
+[   45.949782][ T5132] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   46.108189][ T5132] team0: Port device team_slave_0 added
+[   46.111846][ T5133] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   46.135687][ T5131] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   46.137436][ T5135] bridge0: port 1(bridge_slave_0) entered blocking state
+[   46.138582][ T5135] bridge0: port 1(bridge_slave_0) entered disabled state
+[   46.139732][ T5135] bridge_slave_0: entered allmulticast mode
+[   46.141305][ T5135] bridge_slave_0: entered promiscuous mode
+[   46.145279][ T5132] team0: Port device team_slave_1 added
+[   46.147956][ T5133] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   46.151498][ T5131] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   46.194087][ T5135] bridge0: port 2(bridge_slave_1) entered blocking state
+[   46.195302][ T5135] bridge0: port 2(bridge_slave_1) entered disabled state
+[   46.196453][ T5135] bridge_slave_1: entered allmulticast mode
+[   46.198230][ T5135] bridge_slave_1: entered promiscuous mode
+[   46.261863][ T5133] team0: Port device team_slave_0 added
+[   46.264679][ T5131] team0: Port device team_slave_0 added
+[   46.309179][ T5131] team0: Port device team_slave_1 added
+[   46.311567][ T5133] team0: Port device team_slave_1 added
+[   46.356146][ T5132] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   46.357087][ T5132] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.360170][ T5132] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   46.404184][ T5135] bond0: (slave bond_slave_0): Enslaving as an active interface with an up link
+[   46.405686][ T5131] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   46.406546][ T5131] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.409655][ T5131] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   46.411926][ T5132] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   46.412851][ T5132] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.415919][ T5132] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   46.419662][ T5135] bond0: (slave bond_slave_1): Enslaving as an active interface with an up link
+[   46.440940][ T5131] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   46.441963][ T5131] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.445292][ T5131] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   46.447181][ T5133] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   46.448002][ T5133] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.451438][ T5133] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   46.478841][ T5133] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   46.479693][ T5133] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.482923][ T5133] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   46.544576][ T5135] team0: Port device team_slave_0 added
+[   46.596807][ T5132] hsr_slave_0: entered promiscuous mode
+[   46.598418][ T5132] hsr_slave_1: entered promiscuous mode
+[   46.602758][ T5135] team0: Port device team_slave_1 added
+[   46.628907][ T5131] hsr_slave_0: entered promiscuous mode
+[   46.630226][ T5131] hsr_slave_1: entered promiscuous mode
+[   46.631481][ T5131] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   46.632587][ T5131] Cannot create hsr debugfs directory
+[   46.737614][ T5135] batman_adv: batadv0: Adding interface: batadv_slave_0
+[   46.738746][ T5135] batman_adv: batadv0: The MTU of interface batadv_slave_0 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.742031][ T5135] batman_adv: batadv0: Not using interface batadv_slave_0 (retrying later): interface not active
+[   46.748286][ T5135] batman_adv: batadv0: Adding interface: batadv_slave_1
+[   46.749255][ T5135] batman_adv: batadv0: The MTU of interface batadv_slave_1 is too small (1500) to handle the transport of batman-adv packets. Packets going over this interface will be fragmented on layer2 which could impact the performance. Setting the MTU to 1560 would solve the problem.
+[   46.752590][ T5135] batman_adv: batadv0: Not using interface batadv_slave_1 (retrying later): interface not active
+[   46.757586][ T5133] hsr_slave_0: entered promiscuous mode
+[   46.759141][ T5133] hsr_slave_1: entered promiscuous mode
+[   46.760609][ T5133] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   46.761824][ T5133] Cannot create hsr debugfs directory
+[   46.963539][ T5135] hsr_slave_0: entered promiscuous mode
+[   46.965413][ T5135] hsr_slave_1: entered promiscuous mode
+[   46.966616][ T5135] debugfs: Directory 'hsr0' with parent 'hsr' already present!
+[   46.967477][ T5135] Cannot create hsr debugfs directory
+[   47.211025][ T5140] Bluetooth: hci0: command 0x0409 tx timeout
+[   47.233029][ T5132] netdevsim netdevsim0 netdevsim0: renamed from eth0
+[   47.243944][ T5132] netdevsim netdevsim0 netdevsim1: renamed from eth1
+[   47.248610][ T5132] netdevsim netdevsim0 netdevsim2: renamed from eth2
+[   47.254618][ T5132] netdevsim netdevsim0 netdevsim3: renamed from eth3
+[   47.284088][ T5140] Bluetooth: hci1: command 0x0409 tx timeout
+[   47.284149][ T4580] Bluetooth: hci2: command 0x0409 tx timeout
+[   47.285328][ T5140] Bluetooth: hci3: command 0x0409 tx timeout
+[   47.294371][ T5131] netdevsim netdevsim2 netdevsim0: renamed from eth0
+[   47.299589][ T5131] netdevsim netdevsim2 netdevsim1: renamed from eth1
+[   47.304260][ T5131] netdevsim netdevsim2 netdevsim2: renamed from eth2
+[   47.311375][ T5131] netdevsim netdevsim2 netdevsim3: renamed from eth3
+[   47.352888][ T5133] netdevsim netdevsim3 netdevsim0: renamed from eth0
+[   47.357245][ T5133] netdevsim netdevsim3 netdevsim1: renamed from eth1
+[   47.369386][ T5133] netdevsim netdevsim3 netdevsim2: renamed from eth2
+[   47.375130][ T5133] netdevsim netdevsim3 netdevsim3: renamed from eth3
+[   47.451901][ T5132] 8021q: adding VLAN 0 to HW filter on device bond0
+[   47.455887][ T5135] netdevsim netdevsim1 netdevsim0: renamed from eth0
+[   47.459791][ T5135] netdevsim netdevsim1 netdevsim1: renamed from eth1
+[   47.463710][ T5135] netdevsim netdevsim1 netdevsim2: renamed from eth2
+[   47.466820][ T5135] netdevsim netdevsim1 netdevsim3: renamed from eth3
+[   47.482968][ T5132] 8021q: adding VLAN 0 to HW filter on device team0
+[   47.515451][ T1418] bridge0: port 1(bridge_slave_0) entered blocking state
+[   47.516482][ T1418] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   47.518990][ T1418] bridge0: port 2(bridge_slave_1) entered blocking state
+[   47.519920][ T1418] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   47.532445][ T5131] 8021q: adding VLAN 0 to HW filter on device bond0
+[   47.576092][ T5131] 8021q: adding VLAN 0 to HW filter on device team0
+[   47.590562][ T5178] bridge0: port 1(bridge_slave_0) entered blocking state
+[   47.591475][ T5178] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   47.599002][ T5133] 8021q: adding VLAN 0 to HW filter on device bond0
+[   47.611010][   T39] bridge0: port 2(bridge_slave_1) entered blocking state
+[   47.612023][   T39] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   47.640939][ T5133] 8021q: adding VLAN 0 to HW filter on device team0
+[   47.663012][ T5178] bridge0: port 1(bridge_slave_0) entered blocking state
+[   47.663911][ T5178] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   47.668088][ T5178] bridge0: port 2(bridge_slave_1) entered blocking state
+[   47.669241][ T5178] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   47.697366][   T38] audit: type=1400 audit(1758704785.548:113): avc:  denied  { sys_module } for  pid=5132 comm="syz-executor" capability=16  scontext=root:sysadm_r:sysadm_t tcontext=root:sysadm_r:sysadm_t tclass=capability permissive=1
+[   47.727292][ T5135] 8021q: adding VLAN 0 to HW filter on device bond0
+[   47.738624][ T5135] 8021q: adding VLAN 0 to HW filter on device team0
+[   47.746608][ T5177] bridge0: port 1(bridge_slave_0) entered blocking state
+[   47.747485][ T5177] bridge0: port 1(bridge_slave_0) entered forwarding state
+[   47.763025][ T5179] bridge0: port 2(bridge_slave_1) entered blocking state
+[   47.764003][ T5179] bridge0: port 2(bridge_slave_1) entered forwarding state
+[   47.792967][ T5132] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   47.845041][ T5131] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   47.854533][ T5132] veth0_vlan: entered promiscuous mode
+[   47.872097][ T5132] veth1_vlan: entered promiscuous mode
+[   47.888372][ T5133] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   47.898395][ T5131] veth0_vlan: entered promiscuous mode
+[   47.912645][ T5131] veth1_vlan: entered promiscuous mode
+[   47.936560][ T5132] veth0_macvtap: entered promiscuous mode
+[   47.943762][ T5132] veth1_macvtap: entered promiscuous mode
+[   47.973888][ T5135] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   47.979225][ T5132] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   47.985148][ T5133] veth0_vlan: entered promiscuous mode
+[   47.991960][ T5131] veth0_macvtap: entered promiscuous mode
+[   47.999046][ T5133] veth1_vlan: entered promiscuous mode
+[   48.003403][ T5132] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   48.011259][ T5131] veth1_macvtap: entered promiscuous mode
+[   48.015906][ T5132] netdevsim netdevsim0 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.017189][ T5132] netdevsim netdevsim0 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.018230][ T5132] netdevsim netdevsim0 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.019347][ T5132] netdevsim netdevsim0 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.033581][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.035237][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.037825][ T5131] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   48.054609][ T5131] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.055960][ T5131] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.058431][ T5131] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   48.078545][ T5135] veth0_vlan: entered promiscuous mode
+[   48.087588][ T5133] veth0_macvtap: entered promiscuous mode
+[   48.094864][ T5133] veth1_macvtap: entered promiscuous mode
+[   48.101584][ T5131] netdevsim netdevsim2 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.102649][ T5131] netdevsim netdevsim2 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.103714][ T5131] netdevsim netdevsim2 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.105042][ T5131] netdevsim netdevsim2 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.110502][ T5135] veth1_vlan: entered promiscuous mode
+[   48.135464][ T5133] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.137109][ T5133] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.138290][ T5133] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.139547][ T5133] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.142519][ T5133] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   48.145836][ T5133] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.147089][ T5133] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.148259][ T5133] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.149609][ T5133] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.152479][ T5133] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   48.182681][ T5133] netdevsim netdevsim3 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.183942][ T5133] netdevsim netdevsim3 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.185144][ T5133] netdevsim netdevsim3 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.186167][ T5133] netdevsim netdevsim3 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.197503][ T1081] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.198619][ T1081] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.238678][   T11] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.239871][   T11] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.241976][ T5135] veth0_macvtap: entered promiscuous mode
+[   48.270584][ T5135] veth1_macvtap: entered promiscuous mode
+[   48.272319][   T11] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.273325][   T11] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.285745][ T1081] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.286731][ T1081] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.295143][   T60] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.296240][   T60] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.315270][   T60] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.315991][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.316269][   T60] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.317645][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.319623][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.321973][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.323132][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3e) already exists on: batadv_slave_0
+[   48.324285][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.326884][ T5135] batman_adv: batadv0: Interface activated: batadv_slave_0
+[   48.334208][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.335441][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.336547][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.337737][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.338865][ T5135] batman_adv: The newly added mac address (aa:aa:aa:aa:aa:3f) already exists on: batadv_slave_1
+[   48.340035][ T5135] batman_adv: It is strongly recommended to keep mac addresses unique to avoid problems!
+[   48.342940][ T5135] batman_adv: batadv0: Interface activated: batadv_slave_1
+[   48.347450][ T5135] netdevsim netdevsim1 netdevsim0: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.348540][ T5135] netdevsim netdevsim1 netdevsim1: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.349757][ T5135] netdevsim netdevsim1 netdevsim2: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.350785][ T5135] netdevsim netdevsim1 netdevsim3: set [1, 0] type 2 family 0 port 6081 - 0
+[   48.395652][ T1081] wlan0: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.396752][ T1081] wlan0: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.422769][ T1081] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   48.423780][ T1081] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   48.445181][ T5204] netlink: 8 bytes leftover after parsing attributes in process `syz.0.1'.
+[   48.570012][ T5219] syz.0.10[5219]: memfd_create() called without MFD_EXEC or MFD_NOEXEC_SEAL set
+[   48.595951][ T5219] loop0: detected capacity change from 0 to 2048
+[   48.627475][ T5219] EXT4-fs (loop0): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: none.
+[   48.629929][ T5219] ext4 filesystem being mounted at /2/file0 supports timestamps until 2038-01-19 (0x7fffffff)
+[   48.638954][ T5224] netlink: 12 bytes leftover after parsing attributes in process `syz.2.12'.
+[   48.648725][ T5229] loop3: detected capacity change from 0 to 256
+[   48.678033][ T5229] FAT-fs (loop3): Directory bread(block 64) failed
+[   48.679692][ T5229] FAT-fs (loop3): Directory bread(block 65) failed
+[   48.681825][ T5229] FAT-fs (loop3): Directory bread(block 66) failed
+[   48.682987][ T5229] FAT-fs (loop3): Directory bread(block 67) failed
+[   48.683766][ T5229] FAT-fs (loop3): Directory bread(block 68) failed
+[   48.684537][ T5229] FAT-fs (loop3): Directory bread(block 69) failed
+[   48.685331][ T5229] FAT-fs (loop3): Directory bread(block 70) failed
+[   48.685375][ T5132] EXT4-fs (loop0): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   48.686097][ T5229] FAT-fs (loop3): Directory bread(block 71) failed
+[   48.688492][ T5229] FAT-fs (loop3): Directory bread(block 72) failed
+[   48.689367][ T5229] FAT-fs (loop3): Directory bread(block 73) failed
+[   49.281017][ T5145] Bluetooth: hci0: command 0x041b tx timeout
+[   49.370841][ T5145] Bluetooth: hci3: command 0x041b tx timeout
+[   49.371812][ T5145] Bluetooth: hci2: command 0x041b tx timeout
+[   49.372647][ T5145] Bluetooth: hci1: command 0x041b tx timeout
+[   49.846600][ T5250] loop0: detected capacity change from 0 to 32768
+[   49.848550][ T5253] loop3: detected capacity change from 0 to 32768
+[   49.852937][ T5250] BTRFS: device fsid 395ef67a-297e-477c-816d-cd80a5b93e5d devid 1 transid 8 /dev/loop0 scanned by syz.0.22 (5250)
+[   49.858424][ T5253] BTRFS: device fsid ed167579-eb65-4e76-9a50-61ac97e9b59d devid 1 transid 8 /dev/loop3 scanned by syz.3.24 (5253)
+[   49.863451][ T5250] BTRFS info (device loop0): first mount of filesystem 395ef67a-297e-477c-816d-cd80a5b93e5d
+[   49.864847][ T5250] BTRFS info (device loop0): using sha256 (sha256-ni) checksum algorithm
+[   49.865966][ T5250] BTRFS info (device loop0): using free space tree
+[   49.869047][ T5253] BTRFS info (device loop3): first mount of filesystem ed167579-eb65-4e76-9a50-61ac97e9b59d
+[   49.870278][ T5253] BTRFS info (device loop3): using sha256 (sha256-ni) checksum algorithm
+[   49.872488][ T5253] BTRFS info (device loop3): setting incompat feature flag for COMPRESS_LZO (0x8)
+[   49.874152][ T5253] BTRFS info (device loop3): use lzo compression, level 0
+[   49.875207][ T5253] BTRFS info (device loop3): max_inline at 0
+[   49.875913][ T5253] BTRFS info (device loop3): force clearing of disk cache
+[   49.876754][ T5253] BTRFS info (device loop3): turning on sync discard
+[   49.877579][ T5253] BTRFS info (device loop3): disabling free space tree
+[   49.878776][ T5253] BTRFS info (device loop3): setting nodatasum
+[   49.902574][ T5257] loop1: detected capacity change from 0 to 32768
+[   49.903857][ T5257] =======================================================
+[   49.903857][ T5257] WARNING: The mand mount option has been deprecated and
+[   49.903857][ T5257]          and is ignored by this kernel. Remove the mand
+[   49.903857][ T5257]          option from the mount to silence this warning.
+[   49.903857][ T5257] =======================================================
+[   49.915808][ T5250] BTRFS info (device loop0): enabling ssd optimizations
+[   49.916680][ T5250] BTRFS info (device loop0): auto enabling async discard
+[   49.929826][ T5253] BTRFS info (device loop3): enabling ssd optimizations
+[   49.932363][ T5253] BTRFS info (device loop3): rebuilding free space tree
+[   49.967775][ T5253] BTRFS info (device loop3): disabling free space tree
+[   49.968739][ T5253] BTRFS info (device loop3): clearing compat-ro feature flag for FREE_SPACE_TREE (0x1)
+[   49.970063][ T5253] BTRFS info (device loop3): clearing compat-ro feature flag for FREE_SPACE_TREE_VALID (0x2)
+[   49.970419][ T5257] JBD2: Ignoring recovery information on journal
+[   49.976378][   T38] kauditd_printk_skb: 59 callbacks suppressed
+[   49.976386][   T38] audit: type=1400 audit(1758704787.828:173): avc:  denied  { write } for  pid=5249 comm="syz.0.22" name="file0" dev="loop0" ino=257 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   49.986975][   T38] audit: type=1400 audit(1758704787.838:174): avc:  denied  { add_name } for  pid=5249 comm="syz.0.22" name="bus" scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   49.990049][   T38] audit: type=1400 audit(1758704787.838:175): avc:  denied  { create } for  pid=5249 comm="syz.0.22" name="bus" scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=file permissive=1
+[   49.997065][   T38] audit: type=1400 audit(1758704787.848:176): avc:  denied  { read write open } for  pid=5249 comm="syz.0.22" path="/4/file0/file0/bus" dev="loop0" ino=263 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=file permissive=1
+[   50.005354][ T5257] ocfs2: Mounting device (7,1) on (node local, slot 0) with ordered data mode.
+[   50.026454][   T38] audit: type=1400 audit(1758704787.878:177): avc:  denied  { setattr } for  pid=5251 comm="syz.3.24" path="/5/file1" dev="loop3" ino=256 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   50.029430][   T38] audit: type=1400 audit(1758704787.878:178): avc:  denied  { write } for  pid=5256 comm="syz.1.25" name="/" dev="loop1" ino=65 scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   50.034583][   T38] audit: type=1400 audit(1758704787.878:179): avc:  denied  { add_name } for  pid=5256 comm="syz.1.25" name="cgroup.controllers" scontext=root:sysadm_r:sysadm_t tcontext=system_u:object_r:unlabeled_t tclass=dir permissive=1
+[   50.047265][   T38] audit: type=1400 audit(1758704787.878:180): avc:  denied  { associate } for  pid=5256 comm="syz.1.25" name="cgroup.controllers" scontext=root:object_r:unlabeled_t tcontext=system_u:object_r:unlabeled_t tclass=filesystem permissive=1
+[   50.050306][   T38] audit: type=1400 audit(1758704787.878:181): avc:  denied  { create } for  pid=5251 comm="syz.3.24" name="file0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=chr_file permissive=1
+[   50.055698][   T38] audit: type=1400 audit(1758704787.898:182): avc:  denied  { append } for  pid=5256 comm="syz.1.25" path="/4/file1/cgroup.controllers" dev="loop1" ino=17058 scontext=root:sysadm_r:sysadm_t tcontext=root:object_r:unlabeled_t tclass=file permissive=1
+[   50.078339][ T5132] BTRFS info (device loop0): last unmount of filesystem 395ef67a-297e-477c-816d-cd80a5b93e5d
+[   50.082029][ T5133] BTRFS info (device loop3): last unmount of filesystem ed167579-eb65-4e76-9a50-61ac97e9b59d
+[   50.233130][ T5135] ocfs2: Unmounting device (7,1) on (node local)
+[   50.328206][ T5301] loop0: detected capacity change from 0 to 4096
+[   50.336458][ T5301] ntfs3: loop0: Different NTFS sector size (1024) and media sector size (512).
+[   50.349871][ T5301] ntfs3: loop0: ino=3, ntfs_iget5
+[   50.350643][ T5301] ntfs3: loop0: Mark volume as dirty due to NTFS errors
+[   50.413872][ T5305] loop1: detected capacity change from 0 to 512
+[   50.421893][ T5299] loop3: detected capacity change from 0 to 32768
+[   50.421968][ T5305] EXT4-fs error (device loop1): ext4_xattr_ibody_find:2263: inode #15: comm syz.1.31: corrupted in-inode xattr: invalid ea_ino
+[   50.423674][ T5299] BTRFS: device fsid ed167579-eb65-4e76-9a50-61ac97e9b59d devid 1 transid 8 /dev/loop3 scanned by syz.3.29 (5299)
+[   50.424852][ T5305] EXT4-fs error (device loop1): ext4_orphan_get:1397: comm syz.1.31: couldn't read orphan inode 15 (err -117)
+[   50.428626][ T5305] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: none.
+[   50.435145][ T5299] BTRFS info (device loop3): first mount of filesystem ed167579-eb65-4e76-9a50-61ac97e9b59d
+[   50.436869][ T5299] BTRFS info (device loop3): using sha256 (sha256-ni) checksum algorithm
+[   50.437952][ T5299] BTRFS info (device loop3): using free space tree
+[   50.459303][ T5299] BTRFS info (device loop3): enabling ssd optimizations
+[   50.460198][ T5299] BTRFS info (device loop3): auto enabling async discard
+[   50.462860][ T5135] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   50.517050][ T5299] BTRFS info (device loop3): balance: start -d -m
+[   50.526156][ T5299] BTRFS info (device loop3): relocating block group 6881280 flags data|metadata
+[   50.573524][ T5299] BTRFS info (device loop3): found 2 extents, stage: move data extents
+[   50.598078][ T5299] BTRFS info (device loop3): relocating block group 5242880 flags data|metadata
+[   50.658122][ T5299] BTRFS info (device loop3): found 9 extents, stage: move data extents
+[   50.696712][ T5299] BTRFS info (device loop3): found 1 extents, stage: update data pointers
+[   50.717964][ T5299] BTRFS info (device loop3): balance: ended with status: 0
+[   50.753551][ T5133] BTRFS info (device loop3): last unmount of filesystem ed167579-eb65-4e76-9a50-61ac97e9b59d
+[   50.770223][ T5338] loop2: detected capacity change from 0 to 2048
+[   50.799636][ T5338] UDF-fs: INFO Mounting volume 'LinuxUDF', timestamp 2022/11/22 14:59 (1000)
+[   51.012539][ T5358] loop2: detected capacity change from 0 to 512
+[   51.027843][ T5358] EXT4-fs error (device loop2): ext4_orphan_get:1394: inode #15: comm syz.2.46: casefold flag without casefold feature
+[   51.029589][ T5358] EXT4-fs error (device loop2): ext4_orphan_get:1397: comm syz.2.46: couldn't read orphan inode 15 (err -117)
+[   51.033727][ T5358] EXT4-fs (loop2): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   51.071995][ T5360] kvm: kvm [5359]: vcpu1, guest rIP: 0xfff0 Unhandled WRMSR(0xc0010015) = 0xfffffeb7
+[   51.152826][ T5353] loop0: detected capacity change from 0 to 32768
+[   51.155490][ T5353] BTRFS: device fsid c9fe44da-de57-406a-8241-57ec7d4412cf devid 1 transid 8 /dev/loop0 scanned by syz.0.43 (5353)
+[   51.187417][ T5353] BTRFS info (device loop0): first mount of filesystem c9fe44da-de57-406a-8241-57ec7d4412cf
+[   51.188876][ T5353] BTRFS info (device loop0): using crc32c (crc32c-intel) checksum algorithm
+[   51.190563][ T5353] BTRFS info (device loop0): metadata ratio 4
+[   51.191978][ T5353] BTRFS info (device loop0): setting incompat feature flag for COMPRESS_LZO (0x8)
+[   51.193193][ T5353] BTRFS info (device loop0): force lzo compression, level 0
+[   51.194664][ T5353] BTRFS warning (device loop0): 'usebackuproot' is deprecated, use 'rescue=usebackuproot' instead
+[   51.196582][ T5353] BTRFS info (device loop0): trying to use backup root at mount time
+[   51.197853][ T5353] BTRFS info (device loop0): use zlib compression, level 3
+[   51.198464][ T5131] EXT4-fs (loop2): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   51.199170][ T5353] BTRFS info (device loop0): enabling ssd optimizations
+[   51.208422][ T5353] BTRFS info (device loop0): disabling tree log
+[   51.209601][ T5353] BTRFS info (device loop0): using free space tree
+[   51.251540][ T1082] BTRFS warning (device loop0): checksum verify failed on logical 5332992 mirror 1 wanted 0x0a5e5d25 found 0x26333c6f level 0
+[   51.254245][ T5353] BTRFS warning (device loop0): couldn't read tree root
+[   51.255048][ T5353] BTRFS warning (device loop0): try to load backup roots slot 1
+[   51.255988][ T5365] loop3: detected capacity change from 0 to 32768
+[   51.261942][ T1082] BTRFS warning (device loop0): checksum verify failed on logical 5324800 mirror 1 wanted 0x9f73850b found 0x78ca8373 level 0
+[   51.263651][ T5353] BTRFS warning (device loop0): couldn't read tree root
+[   51.264519][ T5353] BTRFS warning (device loop0): try to load backup roots slot 2
+[   51.267868][ T1082] BTRFS error (device loop0): level verify failed on logical 5255168 mirror 1 wanted 0 found 1
+[   51.269914][ T5353] BTRFS warning (device loop0): couldn't read tree root
+[   51.272209][ T5353] BTRFS warning (device loop0): try to load backup roots slot 3
+[   51.295287][ T5353] BTRFS info (device loop0): auto enabling async discard
+[   51.301566][ T5353] BTRFS info (device loop0): rebuilding free space tree
+[   51.321216][ T5353] BTRFS info (device loop0): checking UUID tree
+[   51.344723][ T5393] loop2: detected capacity change from 0 to 256
+[   51.371601][ T5140] Bluetooth: hci0: command 0x040f tx timeout
+[   51.384144][ T5393] exFAT-fs (loop2): failed to load upcase table (idx : 0x00010000, chksum : 0xbe675ead, utbl_chksum : 0xe619d30d)
+[   51.392397][ T5365] ERROR: (device loop3): jfs_readdir: JFS:Dtree error: ino = 2, bn=44, index = 1
+[   51.392397][ T5365]
+[   51.395546][ T5365] ERROR: (device loop3): remounting filesystem as read-only
+[   51.396491][ T5365] non-latin1 character 0x3ff found in JFS file name
+[   51.397305][ T5365] mount with iocharset=utf8 to access
+[   51.441987][ T5140] Bluetooth: hci2: command 0x040f tx timeout
+[   51.442120][ T5145] Bluetooth: hci3: command 0x040f tx timeout
+[   51.455909][ T5145] Bluetooth: hci1: command 0x040f tx timeout
+[   51.499246][ T5132] BTRFS info (device loop0): last unmount of filesystem c9fe44da-de57-406a-8241-57ec7d4412cf
+[   51.502598][ T5396] UDPLite6: UDP-Lite is deprecated and scheduled to be removed in 2025, please contact the netdev mailing list
+[   51.517180][ T5392] loop1: detected capacity change from 0 to 32768
+[   51.531113][ T5392] BTRFS: device fsid e417788f-7a09-42b2-9266-8ddc5d5d35d2 devid 1 transid 8 /dev/loop1 scanned by syz.1.53 (5392)
+[   51.575676][ T5392] BTRFS info (device loop1): first mount of filesystem e417788f-7a09-42b2-9266-8ddc5d5d35d2
+[   51.577191][ T5392] BTRFS info (device loop1): using xxhash64 (xxhash64-generic) checksum algorithm
+[   51.578308][ T5392] BTRFS info (device loop1): force zlib compression, level 3
+[   51.579437][ T5392] BTRFS info (device loop1): force clearing of disk cache
+[   51.580372][ T5392] BTRFS info (device loop1): setting nodatasum
+[   51.586801][ T5392] BTRFS info (device loop1): disabling tree log
+[   51.587765][ T5392] BTRFS info (device loop1): enabling disk space caching
+[   51.588619][ T5392] BTRFS info (device loop1): disk space caching is enabled
+[   51.708284][ T5392] BTRFS info (device loop1): auto enabling async discard
+[   51.709872][ T5392] BTRFS info (device loop1): rebuilding free space tree
+[   51.740155][ T5392] BTRFS info (device loop1): disabling free space tree
+[   51.744753][ T5392] BTRFS info (device loop1): clearing compat-ro feature flag for FREE_SPACE_TREE (0x1)
+[   51.746028][ T5392] BTRFS info (device loop1): clearing compat-ro feature flag for FREE_SPACE_TREE_VALID (0x2)
+[   51.814448][ T5411] loop0: detected capacity change from 0 to 32768
+[   51.821960][ T5411] BTRFS: device fsid 24c7a497-3402-47dd-bef8-82358f5f30e0 devid 1 transid 8 /dev/loop0 scanned by syz.0.56 (5411)
+[   51.841191][ T5411] BTRFS info (device loop0): first mount of filesystem 24c7a497-3402-47dd-bef8-82358f5f30e0
+[   51.842549][ T5411] BTRFS info (device loop0): using crc32c (crc32c-intel) checksum algorithm
+[   51.843782][ T5411] BTRFS info (device loop0): enabling disk space caching
+[   51.844657][ T5411] BTRFS info (device loop0): force clearing of disk cache
+[   51.845693][ T5411] BTRFS info (device loop0): setting incompat feature flag for COMPRESS_ZSTD (0x10)
+[   51.846954][ T5411] BTRFS info (device loop0): use zstd compression, level 3
+[   51.847811][ T5411] BTRFS info (device loop0): disk space caching is enabled
+[   51.930759][ T5411] BTRFS info (device loop0): enabling ssd optimizations
+[   51.931699][ T5411] BTRFS info (device loop0): auto enabling async discard
+[   51.933758][ T5411] BTRFS info (device loop0): rebuilding free space tree
+[   51.935760][ T5427] loop2: detected capacity change from 0 to 40427
+[   51.942814][ T5411] BTRFS info (device loop0): disabling free space tree
+[   51.943701][ T5411] BTRFS info (device loop0): clearing compat-ro feature flag for FREE_SPACE_TREE (0x1)
+[   51.949470][ T5411] BTRFS info (device loop0): clearing compat-ro feature flag for FREE_SPACE_TREE_VALID (0x2)
+[   51.956478][ T5427] F2FS-fs (loop2): invalid crc value
+[   51.965345][ T5427] F2FS-fs (loop2): Found nat_bits in checkpoint
+[   51.997821][ T5427] F2FS-fs (loop2): Mounted with checkpoint version = 48b305e5
+[   52.023703][ T5427] syz.2.61: attempt to access beyond end of device
+[   52.023703][ T5427] loop2: rw=2049, sector=45096, nr_sectors = 8 limit=40427
+[   52.101931][ T5132] BTRFS info (device loop0): last unmount of filesystem 24c7a497-3402-47dd-bef8-82358f5f30e0
+[   52.115284][ T5392] BTRFS warning (device loop1): this kernel does not support the compat:5,compat:6,compat:8,compat:13,compat:14,compat:21,compat:24,compat:29,compat:30,compat:32,compat:34,compat:37,compat:38,compat:41,compat:42,compat:43,compat:45,compat:46,compat:50,compat:52,compat:53,compat:54,compat:56,compat:61 feature bits
+[   52.157866][ T5135] BTRFS info (device loop1): last unmount of filesystem e417788f-7a09-42b2-9266-8ddc5d5d35d2
+[   52.467439][ T5463] Bluetooth: MGMT ver 1.22
+[   52.468396][ T5463] Bluetooth: hci1: too big key_count value 32778
+[   52.504091][ T5465] loop1: detected capacity change from 0 to 1024
+[   52.507100][ T5465] EXT4-fs (loop1): stripe (65535) is not aligned with cluster size (4096), stripe is disabled
+[   52.510219][ T5465] EXT4-fs (loop1): revision level too high, forcing read-only mode
+[   52.516295][ T5465] EXT4-fs (loop1): orphan cleanup on readonly fs
+[   52.518464][ T5465] EXT4-fs warning (device loop1): ext4_enable_quotas:7093: Failed to enable quota tracking (type=0, err=-5, ino=3). Please run e2fsck to fix.
+[   52.520628][ T5465] EXT4-fs (loop1): Cannot turn on quotas: error -5
+[   52.528177][ T5465] EXT4-fs (loop1): 1 truncate cleaned up
+[   52.529056][ T5465] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 ro without journal. Quota mode: writeback.
+[   52.582308][ T5135] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   52.699031][ T5476] loop1: detected capacity change from 0 to 1024
+[   52.700442][ T5476] EXT4-fs: Ignoring removed nobh option
+[   52.701923][ T5476] EXT4-fs: Ignoring removed bh option
+[   52.703083][ T5476] EXT4-fs: Warning: mounting with an experimental mount option 'dioread_nolock' for blocksize < PAGE_SIZE
+[   52.704993][ T5476] EXT4-fs (loop1): stripe (8) is not aligned with cluster size (16), stripe is disabled
+[   52.714318][ T5476] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: none.
+[   52.756292][ T5459] loop2: detected capacity change from 0 to 65536
+[   52.768122][ T5459] XFS (loop2): DAX unsupported by block device. Turning off DAX.
+[   52.771022][ T5459] XFS (loop2): Mounting V5 Filesystem 9b7348e5-2fa0-41a5-9526-c53a678b01f3
+[   52.778303][ T5135] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   52.819009][ T5459] XFS (loop2): Ending clean mount
+[   52.832677][ T5488] loop1: detected capacity change from 0 to 2048
+[   52.860641][ T5489] NILFS (loop1): segctord starting. Construction interval = 5 seconds, CP frequency < 30 seconds
+[   52.909960][ T5131] XFS (loop2): Unmounting Filesystem 9b7348e5-2fa0-41a5-9526-c53a678b01f3
+[   52.996385][ T5489] NILFS (loop1): vblocknr = 23 has abnormal lifetime: start cno (= 4294967298) > current cno (= 3)
+[   52.998313][ T5489] NILFS error (device loop1): nilfs_bmap_propagate: broken bmap (inode number=4)
+[   53.013417][ T5489] Remounting filesystem read-only
+[   53.020726][ T1082] NILFS (loop1): discard dirty page: offset=4096, ino=6
+[   53.021878][ T1082] NILFS (loop1): discard dirty block: blocknr=39, size=1024
+[   53.022799][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.023917][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.025023][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.026116][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=3
+[   53.026946][ T1082] NILFS (loop1): discard dirty block: blocknr=42, size=1024
+[   53.027853][ T1082] NILFS (loop1): discard dirty block: blocknr=43, size=1024
+[   53.028836][ T1082] NILFS (loop1): discard dirty block: blocknr=44, size=1024
+[   53.029723][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.037018][ T1082] NILFS (loop1): discard dirty page: offset=65536, ino=3
+[   53.037896][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.039299][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.040461][ T1082] NILFS (loop1): discard dirty block: blocknr=0, size=1024
+[   53.050934][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.052080][ T1082] NILFS (loop1): discard dirty page: offset=98304, ino=3
+[   53.052974][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.054228][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.055469][ T1082] NILFS (loop1): discard dirty block: blocknr=0, size=1024
+[   53.056321][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.057434][ T1082] NILFS (loop1): discard dirty page: offset=196608, ino=3
+[   53.058284][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.059373][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.060436][ T1082] NILFS (loop1): discard dirty block: blocknr=49, size=1024
+[   53.066586][ T5491] loop0: detected capacity change from 0 to 16
+[   53.069517][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.071300][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=18
+[   53.072740][ T1082] NILFS (loop1): discard dirty block: blocknr=0, size=1024
+[   53.073661][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.074875][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.076011][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.082347][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=2
+[   53.083159][ T1082] NILFS (loop1): discard dirty block: blocknr=18, size=1024
+[   53.084008][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.085065][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.086287][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.087409][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=19
+[   53.088238][ T1082] NILFS (loop1): discard dirty block: blocknr=0, size=1024
+[   53.089186][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.090269][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.093140][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.094283][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=5
+[   53.095662][ T1082] NILFS (loop1): discard dirty block: blocknr=41, size=1024
+[   53.096554][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.097620][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.098750][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.099834][ T1082] NILFS (loop1): discard dirty page: offset=0, ino=4
+[   53.101548][ T1082] NILFS (loop1): discard dirty block: blocknr=40, size=1024
+[   53.102461][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.103551][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.104653][ T1082] NILFS (loop1): discard dirty block: blocknr=18446744073709551615, size=1024
+[   53.109636][ T5491] cramfs: Error -3 while decompressing!
+[   53.109721][ T5493] syz_tun: entered allmulticast mode
+[   53.111218][ T5135] NILFS (loop1): disposed unprocessed dirty file(s) when stopping log writer
+[   53.112445][ T5491] cramfs: ffffffff9216c968(27)->ffff88804a16c000(4096)
+[   53.114360][ T5491] cramfs: Error -3 while decompressing!
+[   53.114394][ T5135] NILFS (loop1): discard dirty page: offset=0, ino=6
+[   53.115062][ T5491] cramfs: ffffffff9216c983(16)->ffff88802df68000(4096)
+[   53.115873][ T5135] NILFS (loop1): discard dirty block: blocknr=35, size=1024
+[   53.117075][ T5491] cramfs: Error -3 while decompressing!
+[   53.117174][ T5492] syz_tun: left allmulticast mode
+[   53.117915][ T5135] NILFS (loop1): discard dirty block: blocknr=36, size=1024
+[   53.129390][ T5135] NILFS (loop1): discard dirty block: blocknr=37, size=1024
+[   53.131016][ T5135] NILFS (loop1): discard dirty block: blocknr=38, size=1024
+[   53.133263][ T5491] cramfs: ffffffff9216c968(27)->ffff88804a16c000(4096)
+[   53.417942][ T5499] loop0: detected capacity change from 0 to 32768
+[   53.440806][ T5145] Bluetooth: hci0: command 0x0419 tx timeout
+[   53.444796][ T5499] XFS (loop0): Mounting V5 Filesystem bfdc47fc-10d8-4eed-a562-11a831b3f791
+[   53.484771][ T5499] XFS (loop0): Ending clean mount
+[   53.492456][ T5499] XFS (loop0): Quotacheck needed: Please wait.
+[   53.519682][ T5499] XFS (loop0): Quotacheck: Done.
+[   53.529930][ T5145] Bluetooth: hci2: command 0x0419 tx timeout
+[   53.530848][ T5140] Bluetooth: hci1: command 0x0419 tx timeout
+[   53.530898][ T5140] Bluetooth: hci3: command 0x0419 tx timeout
+[   53.582010][ T5516] loop1: detected capacity change from 0 to 2048
+[   53.619577][ T5516] EXT4-fs (loop1): mounted filesystem 00000000-0000-0000-0000-000000000000 r/w without journal. Quota mode: writeback.
+[   53.649204][ T5132] XFS (loop0): Unmounting Filesystem bfdc47fc-10d8-4eed-a562-11a831b3f791
+[   53.661880][ T5135] EXT4-fs (loop1): unmounting filesystem 00000000-0000-0000-0000-000000000000.
+[   53.743252][ T5524] ================================================================================
+[   53.744600][ T5524] UBSAN: array-index-out-of-bounds in kernel/bpf/syscall.c:2906:24
+[   53.745559][ T5524] index 11 is out of range for type 'char *[10]'
+[   53.746432][ T5524] CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
+[   53.747299][ T5524] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[   53.748858][ T5524] Call Trace:
+[   53.749302][ T5524]  <TASK>
+[   53.750442][ T5524]  dump_stack_lvl+0x131/0x1a0
+[   53.751285][ T5524]  ubsan_epilogue+0xa/0x40
+[   53.752399][ T5524]  __ubsan_handle_out_of_bounds+0x7d/0x8d
+[   53.753198][ T5524]  bpf_link_show_fdinfo+0x2e1/0x330
+[   53.753861][ T5524]  ? __bpf_prog_put_rcu+0xf0/0xf0
+[   53.754727][ T5524]  ? spin_bug+0x160/0x1d0
+[   53.755358][ T5524]  ? __bpf_prog_put_rcu+0xf0/0xf0
+[   53.755961][ T5524]  seq_show+0x56d/0x890
+[   53.756468][ T5524]  seq_read_iter+0x318/0x1230
+[   53.757065][ T5524]  seq_read+0x196/0x240
+[   53.757593][ T5524]  ? seq_read_iter+0x1230/0x1230
+[   53.758209][ T5524]  ? avc_policy_seqno+0x9/0x10
+[   53.758909][ T5524]  ? selinux_file_permission+0x9b/0x5d0
+[   53.759778][ T5524]  ? security_file_permission+0x9d/0x6f0
+[   53.760485][ T5524]  vfs_read+0x1dd/0x930
+[   53.761503][ T5524]  ? seq_read_iter+0x1230/0x1230
+[   53.762123][ T5524]  ? kernel_read+0x1b0/0x1b0
+[   53.762710][ T5524]  ? __fget_files+0x272/0x410
+[   53.763307][ T5524]  __x64_sys_pread64+0x1fa/0x250
+[   53.763926][ T5524]  ? ksys_pread64+0x1a0/0x1a0
+[   53.764516][ T5524]  ? syscall_enter_from_user_mode+0x7f/0x120
+[   53.765285][ T5524]  do_syscall_64+0x3a/0xb0
+[   53.765861][ T5524]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   53.766655][ T5524] RIP: 0033:0x7f141b78ebe9
+[   53.767232][ T5524] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[   53.769961][ T5524] RSP: 002b:00007f141c634038 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   53.771225][ T5524] RAX: ffffffffffffffda RBX: 00007f141b9c5fa0 RCX: 00007f141b78ebe9
+[   53.772404][ T5524] RDX: 0000000000000011 RSI: 0000200000002140 RDI: 0000000000000005
+[   53.773454][ T5524] RBP: 00007f141b811e19 R08: 0000000000000000 R09: 0000000000000000
+[   53.774432][ T5524] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[   53.775493][ T5524] R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
+[   53.776491][ T5524]  </TASK>
+[   53.786402][ T5524] ================================================================================
+[   53.787528][ T5524] ==================================================================
+[   53.788518][ T5524] BUG: KASAN: global-out-of-bounds in bpf_link_show_fdinfo+0x2c5/0x330
+[   53.789600][ T5524] Read of size 8 at addr ffffffff8a73d798 by task syz.1.86/5524
+[   53.790577][ T5524]
+[   53.790885][ T5524] CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
+[   53.791742][ T5524] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+[   53.793125][ T5524] Call Trace:
+[   53.793691][ T5524]  <TASK>
+[   53.794161][ T5524]  dump_stack_lvl+0xd7/0x1a0
+[   53.794737][ T5524]  print_report+0xc4/0x630
+[   53.795294][ T5524]  ? __virt_addr_valid+0x5e/0x2d0
+[   53.795938][ T5524]  ? __phys_addr+0xc6/0x140
+[   53.796533][ T5524]  kasan_report+0xd8/0x110
+[   53.797158][ T5524]  ? bpf_link_show_fdinfo+0x2c5/0x330
+[   53.797830][ T5524]  ? bpf_link_show_fdinfo+0x2c5/0x330
+[   53.798483][ T5524]  bpf_link_show_fdinfo+0x2c5/0x330
+[   53.799155][ T5524]  ? __bpf_prog_put_rcu+0xf0/0xf0
+[   53.799785][ T5524]  ? spin_bug+0x160/0x1d0
+[   53.800353][ T5524]  ? __bpf_prog_put_rcu+0xf0/0xf0
+[   53.801030][ T5524]  seq_show+0x56d/0x890
+[   53.801644][ T5524]  seq_read_iter+0x318/0x1230
+[   53.802321][ T5524]  seq_read+0x196/0x240
+[   53.802851][ T5524]  ? seq_read_iter+0x1230/0x1230
+[   53.803460][ T5524]  ? avc_policy_seqno+0x9/0x10
+[   53.804065][ T5524]  ? selinux_file_permission+0x9b/0x5d0
+[   53.804791][ T5524]  ? security_file_permission+0x9d/0x6f0
+[   53.805493][ T5524]  vfs_read+0x1dd/0x930
+[   53.806009][ T5524]  ? seq_read_iter+0x1230/0x1230
+[   53.806632][ T5524]  ? kernel_read+0x1b0/0x1b0
+[   53.807219][ T5524]  ? __fget_files+0x272/0x410
+[   53.807820][ T5524]  __x64_sys_pread64+0x1fa/0x250
+[   53.808496][ T5524]  ? ksys_pread64+0x1a0/0x1a0
+[   53.809229][ T5524]  ? syscall_enter_from_user_mode+0x7f/0x120
+[   53.810018][ T5524]  do_syscall_64+0x3a/0xb0
+[   53.810627][ T5524]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   53.811384][ T5524] RIP: 0033:0x7f141b78ebe9
+[   53.811947][ T5524] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+[   53.814558][ T5524] RSP: 002b:00007f141c634038 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   53.815656][ T5524] RAX: ffffffffffffffda RBX: 00007f141b9c5fa0 RCX: 00007f141b78ebe9
+[   53.816689][ T5524] RDX: 0000000000000011 RSI: 0000200000002140 RDI: 0000000000000005
+[   53.817695][ T5524] RBP: 00007f141b811e19 R08: 0000000000000000 R09: 0000000000000000
+[   53.818717][ T5524] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[   53.819728][ T5524] R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
+[   53.820720][ T5524]  </TASK>
+[   53.821137][ T5524]
+[   53.821426][ T5524] The buggy address belongs to the variable:
+[   53.822144][ T5524]  bpf_link_type_strs+0x58/0x80
+[   53.822731][ T5524]
+[   53.823024][ T5524] The buggy address belongs to the physical page:
+[   53.823821][ T5524] page:ffffea000029cf40 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0xa73d
+[   53.825084][ T5524] flags: 0xfff00000004000(reserved|node=0|zone=1|lastcpupid=0x7ff)
+[   53.826033][ T5524] page_type: 0xffffffff()
+[   53.826559][ T5524] raw: 00fff00000004000 ffffea000029cf48 ffffea000029cf48 0000000000000000
+[   53.827596][ T5524] raw: 0000000000000000 0000000000000000 00000001ffffffff 0000000000000000
+[   53.828662][ T5524] page dumped because: kasan: bad access detected
+[   53.829531][ T5524] page_owner info is not present (never set?)
+[   53.830313][ T5524]
+[   53.830599][ T5524] Memory state around the buggy address:
+[   53.831291][ T5524]  ffffffff8a73d680: 05 f9 f9 f9 f9 f9 f9 f9 00 05 f9 f9 f9 f9 f9 f9
+[   53.832290][ T5524]  ffffffff8a73d700: 00 03 f9 f9 f9 f9 f9 f9 00 00 00 00 00 00 00 00
+[   53.833311][ T5524] >ffffffff8a73d780: 00 00 f9 f9 f9 f9 f9 f9 00 00 00 00 00 00 00 00
+[   53.834304][ T5524]                             ^
+[   53.834910][ T5524]  ffffffff8a73d800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   53.835873][ T5524]  ffffffff8a73d880: 00 00 00 00 00 00 00 00 00 f9 f9 f9 f9 f9 f9 f9
+[   53.836853][ T5524] ==================================================================
+[   53.847664][ T5524] Disabling lock debugging due to kernel taint
+[   53.978580][ T5526] loop0: detected capacity change from 0 to 32768
+[   53.986688][ T5526] BTRFS: device fsid 14d642db-7b15-43e4-81e6-4b8fac6a25f8 devid 1 transid 8 /dev/loop0 scanned by syz.0.84 (5526)
+[   53.989868][ T5526] BTRFS info (device loop0): first mount of filesystem 14d642db-7b15-43e4-81e6-4b8fac6a25f8
+[   53.991513][ T5526] BTRFS info (device loop0): using blake2b (blake2b-256-generic) checksum algorithm
+[   53.992719][ T5526] BTRFS info (device loop0): setting incompat feature flag for COMPRESS_ZSTD (0x10)
+[   53.994392][ T5526] BTRFS info (device loop0): use zstd compression, level 3
+[   53.995398][ T5526] BTRFS info (device loop0): using free space tree
+[   54.000483][ T5473] loop3: detected capacity change from 0 to 262144
+[   54.006498][ T5473] BTRFS: device fsid 7e32c2af-f87a-45a1-bcba-64dea7c56a53 devid 1 transid 8 /dev/loop3 scanned by syz.3.71 (5473)
+[   54.009302][ T5473] BTRFS info (device loop3): first mount of filesystem 7e32c2af-f87a-45a1-bcba-64dea7c56a53
+[   54.009415][ T5526] BTRFS info (device loop0): enabling ssd optimizations
+[   54.010598][ T5473] BTRFS info (device loop3): using xxhash64 (xxhash64-generic) checksum algorithm
+[   54.012832][ T5526] BTRFS info (device loop0): auto enabling async discard
+[   54.013930][ T5473] BTRFS info (device loop3): turning on sync discard
+[   54.014820][ T5473] BTRFS info (device loop3): using free space tree
+[   54.066018][ T5132] BTRFS info (device loop0): last unmount of filesystem 14d642db-7b15-43e4-81e6-4b8fac6a25f8
+[   54.099107][ T5473] BTRFS info (device loop3): enabling ssd optimizations
+[   54.139536][ T5473] BTRFS info (device loop3): balance: start -d -msoft,profiles=data|system|metadata|raid1|dup|raid5|0x800,usage=4294478459,devid=18446744065119619255,vrange=18446744039349813511..42175,limit=18446744069414593304,stripes=0..0 -ssoft,profiles=data|system|metadata|raid1|dup|raid5|0x800,usage=4294478459,devid=18446744065119619255,vrange=18446744039349813511..42175,limit=18446744069414593304,stripes=0..0
+[   54.144968][ T5473] BTRFS info (device loop3): left=0, need=393216, flags=34
+[   54.145948][ T5473] BTRFS info (device loop3): space_info SYSTEM has 0 free, is not full
+[   54.147108][ T5473] BTRFS info (device loop3): space_info total=8388608, used=16384, pinned=0, reserved=0, may_use=0, readonly=8372224 zone_unusable=0
+[   54.149006][ T5473] BTRFS info (device loop3): global_block_rsv: size 5767168 reserved 5767168
+[   54.150227][ T5473] BTRFS info (device loop3): trans_block_rsv: size 0 reserved 0
+[   54.151305][ T5473] BTRFS info (device loop3): chunk_block_rsv: size 0 reserved 0
+[   54.152292][ T5473] BTRFS info (device loop3): delayed_block_rsv: size 0 reserved 0
+[   54.153376][ T5473] BTRFS info (device loop3): delayed_refs_rsv: size 0 reserved 0
+[   54.156100][ T5473] BTRFS info (device loop3): relocating block group 22020096 flags system|dup
+[   54.170238][ T5473] BTRFS info (device loop3): relocating block group 13631488 flags data
+
+REPORT:
+================================================================================
+UBSAN: array-index-out-of-bounds in kernel/bpf/syscall.c:2906:24
+index 11 is out of range for type 'char *[10]'
+CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x131/0x1a0
+ ubsan_epilogue+0xa/0x40
+ __ubsan_handle_out_of_bounds+0x7d/0x8d
+ bpf_link_show_fdinfo+0x2e1/0x330
+ seq_show+0x56d/0x890
+ seq_read_iter+0x318/0x1230
+ seq_read+0x196/0x240
+ vfs_read+0x1dd/0x930
+ __x64_sys_pread64+0x1fa/0x250
+ do_syscall_64+0x3a/0xb0
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7f141b78ebe9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f141c634038 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+RAX: ffffffffffffffda RBX: 00007f141b9c5fa0 RCX: 00007f141b78ebe9
+RDX: 0000000000000011 RSI: 0000200000002140 RDI: 0000000000000005
+RBP: 00007f141b811e19 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
+ </TASK>
+================================================================================
+==================================================================
+TAIL REPORTS:
+index 11 is out of range for type 'char *[10]'
+CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x131/0x1a0
+ ubsan_epilogue+0xa/0x40
+ __ubsan_handle_out_of_bounds+0x7d/0x8d
+ bpf_link_show_fdinfo+0x2e1/0x330
+ seq_show+0x56d/0x890
+ seq_read_iter+0x318/0x1230
+ seq_read+0x196/0x240
+ vfs_read+0x1dd/0x930
+ __x64_sys_pread64+0x1fa/0x250
+ do_syscall_64+0x3a/0xb0
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7f141b78ebe9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f141c634038 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+RAX: ffffffffffffffda RBX: 00007f141b9c5fa0 RCX: 00007f141b78ebe9
+RDX: 0000000000000011 RSI: 0000200000002140 RDI: 0000000000000005
+RBP: 00007f141b811e19 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
+ </TASK>
+================================================================================
+==================================================================
+BUG: KASAN: global-out-of-bounds in bpf_link_show_fdinfo+0x2c5/0x330
+Read of size 8 at addr ffffffff8a73d798 by task syz.1.86/5524
+CPU: 0 PID: 5524 Comm: syz.1.86 Not tainted 6.6.6 #3
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xd7/0x1a0
+ print_report+0xc4/0x630
+ kasan_report+0xd8/0x110
+ bpf_link_show_fdinfo+0x2c5/0x330
+ seq_show+0x56d/0x890
+ seq_read_iter+0x318/0x1230
+ seq_read+0x196/0x240
+ vfs_read+0x1dd/0x930
+ __x64_sys_pread64+0x1fa/0x250
+ do_syscall_64+0x3a/0xb0
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7f141b78ebe9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f141c634038 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+RAX: ffffffffffffffda RBX: 00007f141b9c5fa0 RCX: 00007f141b78ebe9
+RDX: 0000000000000011 RSI: 0000200000002140 RDI: 0000000000000005
+RBP: 00007f141b811e19 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f141b9c6038 R14: 00007f141b9c5fa0 R15: 00007ffc73fe9088
+ </TASK>
+The buggy address belongs to the variable:
+ bpf_link_type_strs+0x58/0x80
+The buggy address belongs to the physical page:
+page:ffffea000029cf40 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0xa73d
+flags: 0xfff00000004000(reserved|node=0|zone=1|lastcpupid=0x7ff)
+page_type: 0xffffffff()
+raw: 00fff00000004000 ffffea000029cf48 ffffea000029cf48 0000000000000000
+raw: 0000000000000000 0000000000000000 00000001ffffffff 0000000000000000
+page dumped because: kasan: bad access detected
+page_owner info is not present (never set?)
+Memory state around the buggy address:
+ ffffffff8a73d680: 05 f9 f9 f9 f9 f9 f9 f9 00 05 f9 f9 f9 f9 f9 f9
+ ffffffff8a73d700: 00 03 f9 f9 f9 f9 f9 f9 00 00 00 00 00 00 00 00
+>ffffffff8a73d780: 00 00 f9 f9 f9 f9 f9 f9 00 00 00 00 00 00 00 00
+                            ^
+ ffffffff8a73d800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ ffffffff8a73d880: 00 00 00 00 00 00 00 00 00 f9 f9 f9 f9 f9 f9 f9
+==================================================================

@@ -1,5 +1,6 @@
 TITLE: WARNING in xfrm_state_fini
 TYPE: WARNING
+CONTEXTS: ["[ T1194]","[ T1194]"]
 
 [  560.713151][ T1194] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
 [  560.714556][ T1194] Kernel panic - not syncing: panic_on_warn set ...
@@ -52,6 +53,38 @@ TYPE: WARNING
 
 REPORT:
 WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+Kernel panic - not syncing: panic_on_warn set ...
+CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Workqueue: netns cleanup_net
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ panic+0x2cb/0x65c
+ __warn.cold+0x20/0x48
+ report_bug+0x263/0x2b0
+ do_error_trap+0x11b/0x200
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:xfrm_state_fini+0x440/0x5c0
+Code: c3 e8 d4 94 be fa 0f 0b e9 d5 fd ff ff e8 c8 94 be fa 0f 0b e9 9d fe ff ff e8 bc 94 be fa 0f 0b e9 65 ff ff ff e8 b0 94 be fa <0f> 0b e9 d1 fc ff ff e8 94 87 02 fb e9 f4 fc ff ff 48 89 85 08 ff
+RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+ xfrm_net_exit+0x25/0x70
+ ops_exit_list.isra.0+0xb0/0x160
+ cleanup_net+0x51d/0xb10
+ process_one_work+0xd0c/0x1ce0
+ worker_thread+0x143/0x14a0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
+TAIL REPORTS:
 Kernel panic - not syncing: panic_on_warn set ...
 CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
 Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
