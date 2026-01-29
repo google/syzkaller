@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -57,7 +58,11 @@ func TestAIBugWorkflows(t *testing.T) {
 	requireWorkflows := func(bug *Bug, want []string) {
 		got, err := aiBugWorkflows(c.ctx, bug)
 		require.NoError(t, err)
-		require.Equal(t, got, want)
+		var names []string
+		for _, w := range got {
+			names = append(names, w.Name)
+		}
+		require.Equal(t, want, names)
 	}
 	requireWorkflows(kcsanBug, nil)
 	requireWorkflows(kasanBug, nil)
@@ -303,4 +308,42 @@ func TestAIJobsFiltering(t *testing.T) {
 	resp, err = c.GET("/ains/ai?workflow=patching")
 	require.NoError(t, err)
 	require.NotContains(t, string(resp), "KCSAN: data-race")
+}
+
+func TestAIJobCustomCommit(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+	bug, _, _ := c.loadBug(extID)
+
+	_, err := c.aiClient.AIJobPoll(&dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatching, Name: "patching"},
+		},
+	})
+	require.NoError(t, err)
+
+	vals := url.Values{}
+	vals.Add("ai-job-create", string(ai.WorkflowPatching))
+	vals.Add("base_commit_type", "custom")
+	vals.Add("base_commit", "custom123")
+
+	_, err = c.POSTForm(fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)), vals)
+	require.NoError(t, err)
+
+	jobs, err := aidb.LoadBugJobs(c.ctx, bug.keyHash(c.ctx))
+	require.NoError(t, err)
+	require.Len(t, jobs, 1)
+	job := jobs[0]
+
+	require.True(t, job.Args.Valid)
+	args := job.Args.Value.(map[string]any)
+	require.Equal(t, "custom123", args["FixedBaseCommit"])
 }

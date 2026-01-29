@@ -40,11 +40,23 @@ Page with details about a single bug.
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
 	{{if .AIWorkflows}}
 		<form method="POST">
-			<select name="ai-job-create">
+			<select name="ai-job-create" onchange="displayAICreateJobArgs(this)">
 				{{range $flow := .AIWorkflows}}
-					<option>{{$flow}}</option>
+					<option value="{{$flow.Name}}" {{if $flow.CustomBaseCommit}}data-custom-base-commit="true" {{end}}>{{$flow.Name}}
+					</option>
 				{{end}}
 			</select>
+			<span id="ai-set-base-commit" class="ai-create-job-args" style="display: none">
+				<input type="radio" name="base_commit_type" id="base_commit_latest" value="latest" checked
+					onchange="displayAICreateJobArgs()">
+				<label for="base_commit_latest">Latest RC</label>
+				<input type="radio" name="base_commit_type" id="base_commit_custom" value="custom"
+					onchange="displayAICreateJobArgs()">
+				<label for="base_commit_custom">Custom commit</label>
+				<input type="text" name="base_commit" id="base_commit_input" style="display: none" size="40"
+					placeholder="Base commit hash"
+					value="{{with index .Crashes.Crashes 0}}{{.KernelCommit}}{{end}}">
+			</span>
 			<input type="submit" value="✨ Create"/>
 		</form>
 	{{end}}
