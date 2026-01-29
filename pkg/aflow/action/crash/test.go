@@ -6,10 +6,12 @@ package crash
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -53,35 +55,50 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 	}
 	res.PatchDiff = diff
 
-	if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
-		res.TestError = fmt.Sprintf("Building the kernel failed with %v", err)
-		return res, nil
-	}
-
-	workdir, err := ctx.TempDir()
+	imageData, err := os.ReadFile(args.Image)
 	if err != nil {
 		return res, err
 	}
-	reproduceArgs := ReproduceArgs{
-		Syzkaller:       args.Syzkaller,
-		Image:           args.Image,
-		Type:            args.Type,
-		VM:              args.VM,
-		ReproOpts:       args.ReproOpts,
-		ReproSyz:        args.ReproSyz,
-		ReproC:          args.ReproC,
-		SyzkallerCommit: args.SyzkallerCommit,
-		KernelSrc:       args.KernelScratchSrc,
-		KernelObj:       args.KernelScratchSrc,
-		KernelCommit:    args.KernelCommit,
-		KernelConfig:    args.KernelConfig,
+	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
+		" vm %v, vm config hash %v, C repro hash %v, patch hash %v, version 1",
+		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
+		args.Type, hash.String(args.VM), hash.String(args.ReproC), hash.String(diff))
+	type Cached struct {
+		TestError string
 	}
-	rep, reportLog, err := ReproduceCrash(reproduceArgs, workdir)
-	if rep != nil {
-		res.TestError = string(rep.Report)
-	} else {
-		res.TestError = reportLog
-	}
+	cached, err := aflow.CacheObject(ctx, "patch-test", desc, func() (Cached, error) {
+		var res Cached
+		if err := kernel.BuildKernel(args.KernelScratchSrc, args.KernelScratchSrc, args.KernelConfig, false); err != nil {
+			res.TestError = fmt.Sprintf("Building the kernel failed with %v", err)
+			return res, nil
+		}
+		workdir, err := ctx.TempDir()
+		if err != nil {
+			return res, err
+		}
+		reproduceArgs := ReproduceArgs{
+			Syzkaller:       args.Syzkaller,
+			Image:           args.Image,
+			Type:            args.Type,
+			VM:              args.VM,
+			ReproOpts:       args.ReproOpts,
+			ReproSyz:        args.ReproSyz,
+			ReproC:          args.ReproC,
+			SyzkallerCommit: args.SyzkallerCommit,
+			KernelSrc:       args.KernelScratchSrc,
+			KernelObj:       args.KernelScratchSrc,
+			KernelCommit:    args.KernelCommit,
+			KernelConfig:    args.KernelConfig,
+		}
+		rep, reportLog, err := ReproduceCrash(reproduceArgs, workdir)
+		if rep != nil {
+			res.TestError = string(rep.Report)
+		} else {
+			res.TestError = reportLog
+		}
+		return res, err
+	})
+	res.TestError = cached.TestError
 	return res, err
 }
 
