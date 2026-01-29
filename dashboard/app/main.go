@@ -297,7 +297,7 @@ type uiBugPage struct {
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
 	Bug             *uiBugDetails
-	AIWorkflows     []string
+	AIWorkflows     []*uiWorkflow
 	AIJobs          []*uiAIJob
 }
 
@@ -1108,7 +1108,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	var aiWorkflows []string
+	var aiWorkflows []*uiWorkflow
 	var aiJobs []*uiAIJob
 	if hdr.AI {
 		aiWorkflows, err = aiBugWorkflows(ctx, bug)
@@ -1140,10 +1140,15 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		if !hdr.AI {
 			return ErrAccess
 		}
-		if err := aiBugJobCreate(ctx, workflow, bug); err != nil {
-			return err
+		args, err := parseAIJobArgs(r, workflow, aiWorkflows)
+		if err != nil {
+			hdr.Message = err.Error()
+		} else {
+			if err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
+				return err
+			}
+			hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 		}
-		hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)
 	}
 	if r.FormValue("json") == "1" {
 		w.Header().Set("Content-Type", "application/json")
@@ -1151,6 +1156,24 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 
 	return serveTemplate(w, "bug.html", data)
+}
+
+func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow) (map[string]any, error) {
+	args := map[string]any{}
+	var selected *uiWorkflow
+	for _, w := range aiWorkflows {
+		if w.Name == workflow {
+			selected = w
+			break
+		}
+	}
+	if selected != nil && selected.CustomBaseCommit && r.FormValue("base_commit_type") == "custom" {
+		if r.FormValue("base_commit") == "" {
+			return nil, fmt.Errorf("custom base commit is empty")
+		}
+		args["FixedBaseCommit"] = r.FormValue("base_commit")
+	}
+	return args, nil
 }
 
 func createBugSections(ctx context.Context, cfg *Config, accessLevel AccessLevel,

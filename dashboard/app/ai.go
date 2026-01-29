@@ -489,25 +489,37 @@ func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any,
 	return nil, err
 }
 
+type uiWorkflow struct {
+	Name             string
+	CustomBaseCommit bool
+}
+
 // aiBugWorkflows returns active workflows that are applicable for the bug.
-func aiBugWorkflows(ctx context.Context, bug *Bug) ([]string, error) {
+func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 	workflows, err := aidb.LoadWorkflows(ctx)
 	if err != nil {
 		return nil, err
 	}
 	applicable := workflowsForBug(bug, true)
-	var result []string
+	var result []*uiWorkflow
 	for _, flow := range workflows {
 		// Also check that the workflow is active on some syz-agent's.
 		if applicable[flow.Type] && timeSince(ctx, flow.LastActive) < 25*time.Hour {
-			result = append(result, flow.Name)
+			result = append(result, &uiWorkflow{
+				Name:             flow.Name,
+				CustomBaseCommit: flow.Type == ai.WorkflowPatching,
+			})
 		}
 	}
-	slices.Sort(result)
+	slices.SortFunc(result, func(a, b *uiWorkflow) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return result, nil
 }
 
-func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug) error {
+// aiBugWorkflows returns active workflows that are applicable for the bug.
+
+func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs map[string]any) error {
 	workflows, err := aidb.LoadWorkflows(ctx)
 	if err != nil {
 		return err
@@ -522,10 +534,10 @@ func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug) error {
 	if typ == "" {
 		return fmt.Errorf("workflow %v does not exist", workflow)
 	}
-	return bugJobCreate(ctx, workflow, typ, bug)
+	return bugJobCreate(ctx, workflow, typ, bug, extraArgs)
 }
 
-func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug) error {
+func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug, extraArgs map[string]any) error {
 	crash, crashKey, err := findCrashForBug(ctx, bug)
 	if err != nil {
 		return err
@@ -543,6 +555,20 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	}); err != nil {
 		return fmt.Errorf("addCrashReference failed: %w", err)
 	}
+	args := map[string]any{
+		"BugTitle":        bug.Title,
+		"ReproOpts":       string(crash.ReproOpts),
+		"ReproSyzID":      crash.ReproSyz,
+		"ReproCID":        crash.ReproC,
+		"CrashReportID":   crash.Report,
+		"KernelRepo":      build.KernelRepo,
+		"KernelCommit":    build.KernelCommit,
+		"KernelConfigID":  build.KernelConfig,
+		"SyzkallerCommit": build.SyzkallerCommit,
+	}
+	for k, v := range extraArgs {
+		args[k] = v
+	}
 	return aidb.CreateJob(ctx, &aidb.Job{
 		Type:        typ,
 		Workflow:    workflow,
@@ -550,17 +576,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		BugID:       spanner.NullString{StringVal: bug.keyHash(ctx), Valid: true},
 		Description: bug.displayTitle(),
 		Link:        fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)),
-		Args: spanner.NullJSON{Valid: true, Value: map[string]any{
-			"BugTitle":        bug.Title,
-			"ReproOpts":       string(crash.ReproOpts),
-			"ReproSyzID":      crash.ReproSyz,
-			"ReproCID":        crash.ReproC,
-			"CrashReportID":   crash.Report,
-			"KernelRepo":      build.KernelRepo,
-			"KernelCommit":    build.KernelCommit,
-			"KernelConfigID":  build.KernelConfig,
-			"SyzkallerCommit": build.SyzkallerCommit,
-		}},
+		Args:        spanner.NullJSON{Valid: true, Value: args},
 	})
 }
 
@@ -642,7 +658,7 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 		}
 	}
 	for workflow := range workflows {
-		if err := bugJobCreate(ctx, string(workflow), workflow, bug); err != nil {
+		if err := bugJobCreate(ctx, string(workflow), workflow, bug, nil); err != nil {
 			return false, err
 		}
 	}
