@@ -149,6 +149,7 @@ func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
 		UIPageHeader: serv.pageHeader(r, "syzkaller"),
 		Log:          log.CachedLogOutput(),
+		ShowCore:     serv.Cfg.MemoryDump,
 	}
 
 	level := stat.Simple
@@ -751,7 +752,12 @@ func (serv *HTTPServer) httpFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
 		return
 	}
-	data, err := os.ReadFile(filepath.Join(serv.Cfg.Workdir, file))
+	absPath := filepath.Join(serv.Cfg.Workdir, file)
+	if r.FormValue("raw") != "" {
+		http.ServeFile(w, r, absPath)
+		return
+	}
+	data, err := os.ReadFile(absPath)
 	if err != nil {
 		http.Error(w, "failed to read the file", http.StatusInternalServerError)
 		return
@@ -1052,6 +1058,7 @@ type UISummaryData struct {
 	AffectsBoth *UIDiffTable
 	InProgress  *UIDiffTable
 	Log         string
+	ShowCore    bool
 }
 
 type UIDiffTable struct {
