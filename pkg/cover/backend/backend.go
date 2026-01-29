@@ -18,6 +18,7 @@ type Impl struct {
 	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error)
 	CallbackPoints  []uint64
 	PreciseCoverage bool
+	SymbolizerName  string
 }
 
 type CompileUnit struct {

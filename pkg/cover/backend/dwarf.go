@@ -249,6 +249,12 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y on linux)")
 	}
 	var interner symbolizer.Interner
+	symb, _ := symbolizer.Make(target)
+	symbName := "unknown"
+	if symb != nil {
+		symbName = symb.Name()
+		symb.Close()
+	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
@@ -257,6 +263,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		},
 		CallbackPoints:  allCoverPoints[0],
 		PreciseCoverage: preciseCoverage,
+		SymbolizerName:  symbName,
 	}
 	return impl, nil
 }

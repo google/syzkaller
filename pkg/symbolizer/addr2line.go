@@ -48,6 +48,10 @@ func (s *addr2Line) Close() {
 	}
 }
 
+func (s *addr2Line) Name() string {
+	return "addr2line"
+}
+
 func (s *addr2Line) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
