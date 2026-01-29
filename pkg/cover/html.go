@@ -25,15 +25,16 @@ import (
 )
 
 type HandlerParams struct {
-	Progs  []Prog
-	Filter map[uint64]struct{}
-	Debug  bool
-	Force  bool
+	Progs      []Prog
+	Filter     map[uint64]struct{}
+	Debug      bool
+	Force      bool
+	Symbolizer string
 }
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug, params.Symbolizer)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ type lineCoverExport struct {
 
 func (rg *ReportGenerator) DoLineJSON(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug, params.Symbolizer)
 	if err != nil {
 		return err
 	}
@@ -178,7 +179,7 @@ func fileLineContents(file *file, lines [][]byte) lineCoverExport {
 
 func (rg *ReportGenerator) DoRawCoverFiles(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...), params.Symbolizer); err != nil {
 		return err
 	}
 
@@ -218,12 +219,12 @@ type CoverageInfo struct {
 // DoCoverJSONL is a handler for "/cover?jsonl=1".
 func (rg *ReportGenerator) DoCoverJSONL(w io.Writer, params HandlerParams) error {
 	if rg.CallbackPoints != nil {
-		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
+		if err := rg.symbolizePCs(rg.CallbackPoints, params.Symbolizer); err != nil {
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
 	progs := fixUpPCs(params.Progs, params.Filter)
-	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
+	if err := rg.symbolizePCs(uniquePCs(progs...), params.Symbolizer); err != nil {
 		return err
 	}
 	pcProgCount := make(map[uint64]int)
@@ -288,7 +289,7 @@ type Block struct {
 // Each line is a single ProgramCoverage record.
 func (rg *ReportGenerator) DoCoverPrograms(w io.Writer, params HandlerParams) error {
 	if rg.CallbackPoints != nil {
-		if err := rg.symbolizePCs(rg.CallbackPoints); err != nil {
+		if err := rg.symbolizePCs(rg.CallbackPoints, params.Symbolizer); err != nil {
 			return fmt.Errorf("failed to symbolize PCs(): %w", err)
 		}
 	}
@@ -432,8 +433,8 @@ var csvFilesHeader = []string{
 	"TotalPCsInCoveredFunctions",
 }
 
-func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
-	files, err := rg.prepareFileMap(progs, false, false)
+func (rg *ReportGenerator) convertToStats(progs []Prog, symbolizer string) ([]fileStats, error) {
+	files, err := rg.prepareFileMap(progs, false, false, symbolizer)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +486,7 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 
 func (rg *ReportGenerator) DoFileCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	data, err := rg.convertToStats(progs)
+	data, err := rg.convertToStats(progs, params.Symbolizer)
 	if err != nil {
 		return err
 	}
@@ -608,7 +609,7 @@ func isExcluded(path string, excludes []string) bool {
 
 func (rg *ReportGenerator) DoSubsystemCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	data, err := rg.convertToStats(progs)
+	data, err := rg.convertToStats(progs, params.Symbolizer)
 	if err != nil {
 		return err
 	}
@@ -684,7 +685,7 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 
 func (rg *ReportGenerator) DoModuleCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	data, err := rg.convertToStats(progs)
+	data, err := rg.convertToStats(progs, params.Symbolizer)
 	if err != nil {
 		return err
 	}
@@ -704,7 +705,7 @@ var csvHeader = []string{
 
 func (rg *ReportGenerator) DoFuncCover(w io.Writer, params HandlerParams) error {
 	var progs = fixUpPCs(params.Progs, params.Filter)
-	files, err := rg.prepareFileMap(progs, params.Force, params.Debug)
+	files, err := rg.prepareFileMap(progs, params.Force, params.Debug, params.Symbolizer)
 	if err != nil {
 		return err
 	}

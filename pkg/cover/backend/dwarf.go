@@ -259,8 +259,8 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
-		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
-			return symbolize(target, &interner, kernelDirs, splitBuildDelimiters, pcs)
+		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64, symbolizer string) ([]*Frame, error) {
+			return symbolize(target, &interner, kernelDirs, splitBuildDelimiters, pcs, symbolizer)
 		},
 		CallbackPoints:  allCoverPoints[0],
 		PreciseCoverage: preciseCoverage,
@@ -504,7 +504,7 @@ func rustRanges(debugInfo *dwarf.Data, ent *dwarf.Entry) ([]rustRange, error) {
 }
 
 func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
-	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64) ([]*Frame, error) {
+	splitBuildDelimiters []string, mod *vminfo.KernelModule, pcs []uint64, symbolizerType string) ([]*Frame, error) {
 	procs := min(runtime.GOMAXPROCS(0)/2, len(pcs)/1000)
 	const (
 		minProcs = 1
@@ -520,8 +520,13 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	symbolizerC := make(chan symbolizerResult, procs)
 	pcchan := make(chan []uint64, procs)
 
+	bin := mod.Path
+	if symbolizerType == "addr2line" {
+		bin = "" // Forces fallback to addr2line in symbolizer.Make
+	}
+
 	var sharedSymb symbolizer.Symbolizer
-	if s, err := symbolizer.Make(target, mod.Path); err == nil {
+	if s, err := symbolizer.Make(target, bin); err == nil {
 		if s.Name() == "native" {
 			sharedSymb = s
 			defer s.Close()
@@ -537,7 +542,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 			if sharedSymb != nil {
 				symb = sharedSymb
 			} else {
-				symb, err = symbolizer.Make(target, mod.Path)
+				symb, err = symbolizer.Make(target, bin)
 				if err != nil {
 					symbolizerC <- symbolizerResult{err: fmt.Errorf("failed to create symbolizer: %w", err)}
 					return
@@ -604,7 +609,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 }
 
 func symbolize(target *targets.Target, interner *symbolizer.Interner, kernelDirs *mgrconfig.KernelDirs,
-	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error) {
+	splitBuildDelimiters []string, pcs map[*vminfo.KernelModule][]uint64, symbolizerType string) ([]*Frame, error) {
 	var frames []*Frame
 	type frameResult struct {
 		frames []*Frame
@@ -613,7 +618,7 @@ func symbolize(target *targets.Target, interner *symbolizer.Interner, kernelDirs
 	frameC := make(chan frameResult, len(pcs))
 	for mod, pcs1 := range pcs {
 		go func(mod *vminfo.KernelModule, pcs []uint64) {
-			frames, err := symbolizeModule(target, interner, kernelDirs, splitBuildDelimiters, mod, pcs)
+			frames, err := symbolizeModule(target, interner, kernelDirs, splitBuildDelimiters, mod, pcs, symbolizerType)
 			frameC <- frameResult{frames: frames, err: err}
 		}(mod, pcs1)
 	}

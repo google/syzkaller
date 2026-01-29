@@ -15,7 +15,7 @@ type Impl struct {
 	Units           []*CompileUnit
 	Symbols         []*Symbol
 	Frames          []*Frame
-	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64) ([]*Frame, error)
+	Symbolize       func(pcs map[*vminfo.KernelModule][]uint64, symbolizer string) ([]*Frame, error)
 	CallbackPoints  []uint64
 	PreciseCoverage bool
 	SymbolizerName  string
