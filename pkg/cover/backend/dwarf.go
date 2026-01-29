@@ -522,7 +522,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 
 	bin := mod.Path
 	if symbolizerType == "addr2line" {
-		bin = "" // Forces fallback to addr2line in symbolizer.Make
+		bin = "" // Forces fallback to addr2line in symbolizer.Make.
 	}
 
 	var sharedSymb symbolizer.Symbolizer

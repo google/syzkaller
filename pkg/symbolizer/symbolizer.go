@@ -30,7 +30,8 @@ func Make(target *targets.Target, bin string) (Symbolizer, error) {
 		cacheMu.Lock()
 		defer cacheMu.Unlock()
 		if entry, ok := cache[bin]; ok {
-			if info, err := os.Stat(bin); err == nil && os.SameFile(info, entry.info) && info.ModTime().Equal(entry.info.ModTime()) {
+			if info, err := os.Stat(bin); err == nil && os.SameFile(info, entry.info) &&
+				info.ModTime().Equal(entry.info.ModTime()) {
 				return &sharedSymbolizer{entry.sym}, nil
 			}
 			delete(cache, bin)
