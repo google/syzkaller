@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
@@ -17,6 +18,7 @@ import (
 
 var (
 	flagKernelObj = flag.String("kernel_obj", "", "path to kernel build/obj dir")
+	flagWorkers   = flag.Int("workers", 1, "number of concurrent workers")
 )
 
 func main() {
@@ -37,6 +39,8 @@ func main() {
 	}
 	defer symb.Close()
 
+	// Read all PCs first to avoid race on scanner
+	var pcs []uint64
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -48,22 +52,41 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to parse PC %q: %v\n", line, err)
 			continue
 		}
-
-		frames, err := symb.Symbolize(*flagKernelObj, pc)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to symbolize %x: %v\n", pc, err)
-			// Print something to keep sync?
-			continue
-		}
-
-		// Print in llvm-symbolizer GNU style.
-		for _, frame := range frames {
-			fmt.Println(frame.Func)
-			file := frame.File
-			if file == "" {
-				file = "??"
-			}
-			fmt.Printf("%s:%d:%d\n", file, frame.Line, frame.Column)
-		}
+		pcs = append(pcs, pc)
 	}
+
+	pcChan := make(chan uint64, len(pcs))
+	for _, pc := range pcs {
+		pcChan <- pc
+	}
+	close(pcChan)
+
+	var wg sync.WaitGroup
+	wg.Add(*flagWorkers)
+
+	for i := 0; i < *flagWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for pc := range pcChan {
+				frames, err := symb.Symbolize(*flagKernelObj, pc)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "failed to symbolize %x: %v\n", pc, err)
+					continue
+				}
+
+				if *flagWorkers == 1 {
+					// Print in llvm-symbolizer GNU style only for single worker
+					for _, frame := range frames {
+						fmt.Println(frame.Func)
+						file := frame.File
+						if file == "" {
+							file = "??"
+						}
+						fmt.Printf("%s:%d:%d\n", file, frame.Line, frame.Column)
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
