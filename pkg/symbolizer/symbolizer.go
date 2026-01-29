@@ -20,9 +20,9 @@ type Symbolizer interface {
 	Name() string
 }
 
-func Make(target *targets.Target) (Symbolizer, error) {
-	if target != nil && target.Arch == targets.AMD64 {
-		if s, err := newELFSymbolizer(target.KernelObject); err == nil {
+func Make(target *targets.Target, bin string) (Symbolizer, error) {
+	if target != nil && target.Arch == targets.AMD64 && bin != "" {
+		if s, err := newELFSymbolizer(bin); err == nil {
 			return s, nil
 		}
 	}

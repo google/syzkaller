@@ -52,7 +52,7 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb, err := symbolizer.Make(ctx.config.target)
+	symb, err := symbolizer.Make(ctx.config.target, ctx.kernelObject)
 	if err != nil {
 		return err
 	}

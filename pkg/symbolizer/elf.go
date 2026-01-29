@@ -418,6 +418,7 @@ func (es *elfSymbolizer) symbolizePC(pc uint64) []Frame {
 	var frames []Frame
 	for i, sub := range stack {
 		f := Frame{
+			PC:     pc,
 			Func:   sub.Name,
 			Inline: sub.Inlined,
 		}
