@@ -519,14 +519,31 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	}
 	symbolizerC := make(chan symbolizerResult, procs)
 	pcchan := make(chan []uint64, procs)
+
+	var sharedSymb symbolizer.Symbolizer
+	if s, err := symbolizer.Make(target, mod.Path); err == nil {
+		if s.Name() == "native" {
+			sharedSymb = s
+			defer s.Close()
+		} else {
+			s.Close()
+		}
+	}
+
 	for p := 0; p < procs; p++ {
 		go func() {
-			symb, err := symbolizer.Make(target, mod.Path)
-			if err != nil {
-				symbolizerC <- symbolizerResult{err: fmt.Errorf("failed to create symbolizer: %w", err)}
-				return
+			var symb symbolizer.Symbolizer
+			var err error
+			if sharedSymb != nil {
+				symb = sharedSymb
+			} else {
+				symb, err = symbolizer.Make(target, mod.Path)
+				if err != nil {
+					symbolizerC <- symbolizerResult{err: fmt.Errorf("failed to create symbolizer: %w", err)}
+					return
+				}
+				defer symb.Close()
 			}
-			defer symb.Close()
 			var res symbolizerResult
 			for pcs := range pcchan {
 				for i, pc := range pcs {
