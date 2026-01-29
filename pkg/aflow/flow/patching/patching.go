@@ -35,21 +35,6 @@ type Inputs struct {
 	FixedRepository string
 }
 
-type Outputs struct {
-	// Base repo/commit for the patch.
-	KernelRepo       string
-	KernelCommit     string
-	PatchDescription string
-	PatchDiff        string
-	Recipients       []Recipient
-}
-
-type Recipient struct {
-	Name  string
-	Email string
-	To    bool // whether the recipient should be on the To or Cc line
-}
-
 func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...))
 	return &aflow.Flow{
@@ -105,15 +90,10 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 }
 
 func init() {
-	aflow.Register[Inputs, Outputs](
+	aflow.Register[Inputs, ai.PatchingOutputs](
 		ai.WorkflowPatching,
 		"generate a kernel patch fixing a provided bug reproducer",
 		createPatchingFlow("", 0),
-	)
-
-	aflow.Register[Inputs, Outputs](
-		ai.WorkflowPatching,
-		"generate a kernel patch fixing a provided bug reproducer, with the summary feature",
 		createPatchingFlow("summary", 10),
 	)
 }

@@ -17,6 +17,22 @@ const (
 // Outputs of various workflow types.
 // Should be changed carefully since old outputs are stored in the dashboard database.
 
+type PatchingOutputs struct {
+	// Base repo/commit for the patch.
+	KernelRepo       string
+	KernelBranch     string
+	KernelCommit     string
+	PatchDescription string
+	PatchDiff        string
+	Recipients       []Recipient
+}
+
+type Recipient struct {
+	Name  string
+	Email string
+	To    bool // whether the recipient should be on the To or Cc line
+}
+
 type AssessmentKCSANOutputs struct {
 	Confident   bool
 	Benign      bool
