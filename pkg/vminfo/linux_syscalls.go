@@ -74,7 +74,7 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_emit_ethernet":             linuxNetInjectionSupported,
 	"syz_extract_tcp_res":           linuxNetInjectionSupported,
 	"syz_usb_connect":               linuxCheckUSBEmulation,
-	"syz_usb_connect_ath9k":         linuxCheckUSBEmulation,
+	"syz_usb_finish_probe":          linuxCheckUSBEmulation,
 	"syz_usb_disconnect":            linuxCheckUSBEmulation,
 	"syz_usb_control_io":            linuxCheckUSBEmulation,
 	"syz_usb_ep_write":              linuxCheckUSBEmulation,
