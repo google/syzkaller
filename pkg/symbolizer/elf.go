@@ -136,7 +136,7 @@ func (es *elfSymbolizer) finishBuildIndex(cus []*dwarf.Entry) error {
 			defer wg.Done()
 			var res parseResult
 
-			// We define a helper to get file name from nil-able table
+			// We define a helper to get file name from nil-able table.
 			getFile := func(files []*dwarf.LineFile, idx int64) string {
 				if idx >= 0 && int(idx) < len(files) {
 					if f := files[idx]; f != nil {
@@ -146,11 +146,11 @@ func (es *elfSymbolizer) finishBuildIndex(cus []*dwarf.Entry) error {
 				return ""
 			}
 
-			// We need a fresh reader for each worker to navigate DWARF safely
+			// We need a fresh reader for each worker to navigate DWARF safely.
 			dwReader := es.dw.Reader()
 
 			for cu := range work {
-				// We need line table both for lines AND for resolving CallFile in subprograms
+				// We need line table both for lines AND for resolving CallFile in subprograms.
 				lr, err := es.dw.LineReader(cu)
 				var files []*dwarf.LineFile
 				if err == nil && lr != nil {
@@ -229,19 +229,15 @@ func (es *elfSymbolizer) finishBuildIndex(cus []*dwarf.Entry) error {
 	// And sort
 	var maxLen uint64
 	for _, s := range es.subprograms {
-		if l := s.High - s.Low; l > maxLen {
-			maxLen = l
-		}
+		maxLen = max(maxLen, s.High-s.Low)
 	}
 	// Cap maxLen to avoid crazy scans?
 	// If maxLen is huge (e.g. broken DWARF), we might scan too much.
 	// But let's trust DWARF for now.
 	// We can implement a hard cap (e.g. 10MB) if needed.
 	es.maxSubLen = maxLen
-	// Align maxLen for safety
-	if es.maxSubLen < 4096 {
-		es.maxSubLen = 4096
-	}
+	// Align maxLen for safety.
+	es.maxSubLen = max(es.maxSubLen, 4096)
 
 	sort.Slice(es.subprograms, func(i, j int) bool {
 		if es.subprograms[i].Low != es.subprograms[j].Low {
@@ -256,9 +252,8 @@ func (es *elfSymbolizer) finishBuildIndex(cus []*dwarf.Entry) error {
 
 func (es *elfSymbolizer) parseSubprograms(r *dwarf.Reader, cu *dwarf.Entry, files []*dwarf.LineFile,
 	getFile func([]*dwarf.LineFile, int64) string) ([]SubprogramInfo, error) {
-
 	r.Seek(cu.Offset)
-	r.Next() // Skip CU itself
+	r.Next() // Skip CU itself.
 
 	var subs []SubprogramInfo
 	var depth int
@@ -281,39 +276,8 @@ func (es *elfSymbolizer) parseSubprograms(r *dwarf.Reader, cu *dwarf.Entry, file
 			isInlined := entry.Tag == dwarf.TagInlinedSubroutine
 
 			if isSub || isInlined {
-				if ranges, err := es.dw.Ranges(entry); err == nil {
-					name := es.getName(entry)
-
-					var callFile string
-					var callLine, callCol int
-
-					if isInlined {
-						if idx, ok := entry.Val(dwarf.AttrCallFile).(int64); ok {
-							callFile = getFile(files, idx)
-						}
-						if val, ok := entry.Val(dwarf.AttrCallLine).(int64); ok {
-							callLine = int(val)
-						}
-						if val, ok := entry.Val(dwarf.AttrCallColumn).(int64); ok {
-							callCol = int(val)
-						}
-					}
-
-					for _, rng := range ranges {
-						if rng[1] <= rng[0] {
-							continue
-						}
-						subs = append(subs, SubprogramInfo{
-							Low:      rng[0],
-							High:     rng[1],
-							Name:     name,
-							CallFile: callFile,
-							CallLine: callLine,
-							CallCol:  callCol,
-							Inlined:  isInlined,
-							Depth:    depth,
-						})
-					}
+				if s, ok := es.processSubprogram(entry, files, getFile, depth); ok {
+					subs = append(subs, s...)
 				}
 			}
 
@@ -333,13 +297,56 @@ func (es *elfSymbolizer) parseSubprograms(r *dwarf.Reader, cu *dwarf.Entry, file
 	return subs, nil
 }
 
-func (s *elfSymbolizer) Name() string {
+func (es *elfSymbolizer) processSubprogram(entry *dwarf.Entry, files []*dwarf.LineFile,
+	getFile func([]*dwarf.LineFile, int64) string, depth int) ([]SubprogramInfo, bool) {
+	ranges, err := es.dw.Ranges(entry)
+	if err != nil {
+		return nil, false
+	}
+
+	name := es.getName(entry)
+	var callFile string
+	var callLine, callCol int
+	isInlined := entry.Tag == dwarf.TagInlinedSubroutine
+
+	if isInlined {
+		if idx, ok := entry.Val(dwarf.AttrCallFile).(int64); ok {
+			callFile = getFile(files, idx)
+		}
+		if val, ok := entry.Val(dwarf.AttrCallLine).(int64); ok {
+			callLine = int(val)
+		}
+		if val, ok := entry.Val(dwarf.AttrCallColumn).(int64); ok {
+			callCol = int(val)
+		}
+	}
+
+	var subs []SubprogramInfo
+	for _, rng := range ranges {
+		if rng[1] <= rng[0] {
+			continue
+		}
+		subs = append(subs, SubprogramInfo{
+			Low:      rng[0],
+			High:     rng[1],
+			Name:     name,
+			CallFile: callFile,
+			CallLine: callLine,
+			CallCol:  callCol,
+			Inlined:  isInlined,
+			Depth:    depth,
+		})
+	}
+	return subs, true
+}
+
+func (es *elfSymbolizer) Name() string {
 	return "native"
 }
 
-func (s *elfSymbolizer) Close() {
-	if s.ef != nil {
-		s.ef.Close()
+func (es *elfSymbolizer) Close() {
+	if es.ef != nil {
+		es.ef.Close()
 	}
 }
 
@@ -359,7 +366,7 @@ func (es *elfSymbolizer) symbolizePC(pc uint64) []Frame {
 	var file string
 	var line, col int
 
-	// Binary search for lines
+	// Binary search for lines.
 	idx := sort.Search(len(es.lines), func(i int) bool {
 		return es.lines[i].PC > pc
 	})
@@ -383,9 +390,9 @@ func (es *elfSymbolizer) symbolizePC(pc uint64) []Frame {
 
 	var stack []SubprogramInfo
 
-	// Scan backwards
+	// Scan backwards.
 	minLow := pc - es.maxSubLen
-	if minLow > pc { // Underflow check
+	if minLow > pc { // Underflow check.
 		minLow = 0
 	}
 
@@ -395,7 +402,7 @@ func (es *elfSymbolizer) symbolizePC(pc uint64) []Frame {
 			break
 		}
 		if s.High > pc {
-			// Matches PC
+			// Matches PC.
 			stack = append(stack, s)
 		}
 	}
@@ -501,7 +508,7 @@ func (es *elfSymbolizer) getName(entry *dwarf.Entry) string {
 		return name
 	}
 
-	// Try abstract origin
+	// Try abstract origin.
 	if ref, ok := entry.Val(dwarf.AttrAbstractOrigin).(dwarf.Offset); ok {
 		// Read abstract origin
 		// We need random access. es.dw.Reader().Seek(ref).
