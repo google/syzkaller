@@ -11,6 +11,9 @@
 // (e.g. generate switch tables).
 #define noinline __attribute__((noinline))
 
+// Force inlining as much as possible.
+#define always_inline __attribute__((always_inline)) inline
+
 // __no_stack_protector disables -fstack-protector which may introduce unwanted global accesses.
 // TODO(glider): once syz-env-old migrates to GCC>11 we can just use
 // __attribute__((no_stack_protector)).
