@@ -6,10 +6,11 @@
 
 // This file provides guest code running inside the ARM64 KVM.
 
-#include "common_kvm_syzos.h"
-#include "kvm.h"
 #include <linux/kvm.h>
 #include <stdbool.h>
+
+#include "common_kvm_syzos.h"
+#include "kvm.h"
 
 // Compilers will eagerly try to transform the switch statement in guest_main()
 // into a jump table, unless the cases are sparse enough.
