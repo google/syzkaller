@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"maps"
@@ -25,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/updater"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -90,6 +92,9 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	}
 	buildSem := osutil.NewSemaphore(1)
 	updater, err := updater.New(&updater.Config{
+		ReportBuildError: func(commit *vcs.Commit, _ string, buildErr error) {
+			reportBuildError(commit, buildErr)
+		},
 		ExitOnUpdate:    exitOnUpgrade,
 		BuildSem:        buildSem,
 		SyzkallerRepo:   cfg.SyzkallerRepo,
@@ -162,6 +167,22 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 		updater.UpdateAndRestart()
 	}
 	return nil
+}
+
+func reportBuildError(commit *vcs.Commit, buildErr error) {
+	var output []byte
+	var verbose *osutil.VerboseError
+	title := buildErr.Error()
+	if errors.As(buildErr, &verbose) {
+		output = verbose.Output
+	}
+	path, err := osutil.WriteTempFile(output)
+	if err != nil {
+		log.Logf(0, "failed to record syzkaller build error: %v", err)
+		return
+	}
+	log.Logf(0, "syzkaller (rev. %v) failed to build: %v, see more details in %v",
+		commit.Hash, title, path)
 }
 
 type Server struct {
