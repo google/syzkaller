@@ -519,6 +519,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
+	start := time.Now()
 
 	corpus := serv.Corpus.Load()
 	if corpus == nil {
@@ -619,6 +620,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
+	log.Logf(0, "generated coverage report: symbolizer=%v duration=%v", rg.SymbolizerName, time.Since(start))
 }
 
 type coverProgRaw struct {

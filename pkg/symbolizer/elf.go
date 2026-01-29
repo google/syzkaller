@@ -333,9 +333,13 @@ func (es *elfSymbolizer) parseSubprograms(r *dwarf.Reader, cu *dwarf.Entry, file
 	return subs, nil
 }
 
-func (es *elfSymbolizer) Close() {
-	if es.ef != nil {
-		es.ef.Close()
+func (s *elfSymbolizer) Name() string {
+	return "native"
+}
+
+func (s *elfSymbolizer) Close() {
+	if s.ef != nil {
+		s.ef.Close()
 	}
 }
 

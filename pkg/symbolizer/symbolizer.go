@@ -17,6 +17,7 @@ type Frame struct {
 type Symbolizer interface {
 	Symbolize(bin string, pcs ...uint64) ([]Frame, error)
 	Close()
+	Name() string
 }
 
 func Make(target *targets.Target) (Symbolizer, error) {
