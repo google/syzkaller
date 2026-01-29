@@ -38,7 +38,7 @@ func TestNativeSymbolizerVerification(t *testing.T) {
 	target := targets.Get("linux", "amd64")
 	target.KernelObject = vmlinux
 
-	symb, err := symbolizer.Make(target)
+	symb, err := symbolizer.Make(target, vmlinux)
 	if err != nil {
 		t.Fatalf("failed to create symbolizer: %v", err)
 	}

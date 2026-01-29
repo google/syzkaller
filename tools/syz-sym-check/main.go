@@ -30,7 +30,7 @@ func main() {
 	target.KernelObject = *flagKernelObj
 
 	// Force native symbolizer (though symbolizer.Make should do it for AMD64)
-	symb, err := symbolizer.Make(target)
+	symb, err := symbolizer.Make(target, *flagKernelObj)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create symbolizer: %v\n", err)
 		os.Exit(1)
