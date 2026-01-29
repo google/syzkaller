@@ -14,7 +14,8 @@ type OutputType int
 
 const (
 	OutputConsole OutputType = iota
-	OutputCommand
+	OutputStdout
+	OutputStderr
 )
 
 type Chunk struct {

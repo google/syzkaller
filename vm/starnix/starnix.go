@@ -473,7 +473,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", vmimpl.OutputCommand, rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	// Run `command` on the instance over ssh.
 	const useSystemSSHCfg = false
@@ -488,12 +495,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	cmd := osutil.Command(sshCmd[0], sshCmd[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,

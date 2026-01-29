@@ -554,19 +554,29 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		tty.Close()
 		return nil, nil, err
 	}
+	adbRpipeErr, adbWpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		tty.Close()
+		adbRpipe.Close()
+		adbWpipe.Close()
+		return nil, nil, err
+	}
 	if inst.debug {
 		log.Logf(0, "starting: adb shell %v", command)
 	}
 	adb := osutil.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
-	adb.Stderr = adbWpipe
+	adb.Stderr = adbWpipeErr
 	if err := adb.Start(); err != nil {
 		tty.Close()
 		adbRpipe.Close()
 		adbWpipe.Close()
+		adbRpipeErr.Close()
+		adbWpipeErr.Close()
 		return nil, nil, fmt.Errorf("failed to start adb: %w", err)
 	}
 	adbWpipe.Close()
+	adbWpipeErr.Close()
 
 	var tee io.Writer
 	if inst.debug {
@@ -574,7 +584,8 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("console", vmimpl.OutputConsole, tty)
-	merger.Add("adb", vmimpl.OutputCommand, adbRpipe)
+	merger.Add("adb", vmimpl.OutputStdout, adbRpipe)
+	merger.Add("adb-err", vmimpl.OutputStderr, adbRpipeErr)
 
 	return vmimpl.Multiplex(ctx, adb, merger, vmimpl.MultiplexConfig{
 		Console: tty,

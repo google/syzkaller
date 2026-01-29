@@ -326,6 +326,13 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		dmesg.Close()
 		return nil, nil, err
 	}
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		dmesg.Close()
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
 
 	args = vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, inst.cfg.SystemSSHCfg)
 	if inst.cfg.Pstore {
@@ -338,14 +345,17 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		dmesg.Close()
 		rpipe.Close()
 		wpipe.Close()
+		rpipeErr.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 
 	var tee io.Writer
 	if inst.debug {
@@ -353,7 +363,8 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("dmesg", vmimpl.OutputConsole, dmesg)
-	merger.Add("ssh", vmimpl.OutputCommand, rpipe)
+	merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Console: dmesg,

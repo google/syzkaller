@@ -310,9 +310,18 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		return nil, nil, err
 	}
 	defer wpipe.Close()
-	inst.merger.Add("cmd", vmimpl.OutputCommand, rpipe)
+	inst.merger.Add("cmd", vmimpl.OutputStdout, rpipe)
+
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		return nil, nil, err
+	}
+	defer wpipeErr.Close()
+	inst.merger.Add("cmd-err", vmimpl.OutputStderr, rpipeErr)
+
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 
 	guestSock, err := inst.guestProxy()
 	if err != nil {

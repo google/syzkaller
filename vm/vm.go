@@ -256,7 +256,7 @@ const (
 
 type RunOptions struct {
 	// exitCondition says which exit modes should be considered as errors/OK
-	exitCondition     ExitCondition
+	exitCondition ExitCondition
 	// BeforeContext is how many bytes BEFORE the crash description to keep in the report.
 	beforeContext int
 	// afterContext is how many bytes AFTER the crash description to keep in the report.
@@ -272,7 +272,6 @@ func WithExitCondition(exitCondition ExitCondition) func(*RunOptions) {
 		opts.exitCondition = exitCondition
 	}
 }
-
 
 func WithBeforeContext(beforeContext int) func(*RunOptions) {
 	return func(opts *RunOptions) {

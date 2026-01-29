@@ -483,8 +483,8 @@ func (inst *instance) Run(ctx context.Context, command string) (<-chan vmimpl.Ch
 		name string
 		typ  vmimpl.OutputType
 	}{
-		{"stdout", vmimpl.OutputCommand},
-		{"stderr", vmimpl.OutputCommand},
+		{"stdout", vmimpl.OutputStdout},
+		{"stderr", vmimpl.OutputStderr},
 		{"console", vmimpl.OutputConsole},
 	})
 	receivedStdoutChunks := wPipes[0]
