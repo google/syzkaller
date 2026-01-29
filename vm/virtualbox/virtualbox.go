@@ -292,19 +292,35 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		}
 		return nil, nil, err
 	}
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		if inst.debug {
+			log.Logf(0, "LongPipe failed: %v", err)
+		}
+		if inst.uartConn != nil {
+			inst.uartConn.Close()
+		}
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
 		rpipe.Close()
+		wpipeErr.Close()
+		rpipeErr.Close()
 		if inst.uartConn != nil {
 			inst.uartConn.Close()
 		}
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 
-	inst.merger.Add("ssh", vmimpl.OutputCommand, rpipe)
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Console: inst.uartConn,

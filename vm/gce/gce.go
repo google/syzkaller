@@ -325,21 +325,32 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if err != nil {
 		con.Process.Kill()
 		merger.Wait()
+		return nil, nil, err
+	}
+	sshRpipeErr, sshWpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		con.Process.Kill()
+		merger.Wait()
 		sshRpipe.Close()
+		sshWpipe.Close()
 		return nil, nil, err
 	}
 	ssh := osutil.Command("ssh", inst.sshArgs(command)...)
 	ssh.Stdout = sshWpipe
-	ssh.Stderr = sshWpipe
+	ssh.Stderr = sshWpipeErr
 	if err := ssh.Start(); err != nil {
 		con.Process.Kill()
 		merger.Wait()
 		sshRpipe.Close()
 		sshWpipe.Close()
+		sshRpipeErr.Close()
+		sshWpipeErr.Close()
 		return nil, nil, fmt.Errorf("failed to connect to instance: %w", err)
 	}
 	sshWpipe.Close()
-	merger.Add("ssh", vmimpl.OutputCommand, sshRpipe)
+	sshWpipeErr.Close()
+	merger.Add("ssh", vmimpl.OutputStdout, sshRpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, sshRpipeErr)
 
 	return vmimpl.Multiplex(ctx, ssh, merger, vmimpl.MultiplexConfig{
 		Console: vmimpl.CmdCloser{Cmd: con},

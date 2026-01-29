@@ -257,7 +257,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", vmimpl.OutputCommand, rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	args := append(vmimpl.SSHArgs(inst.debug, inst.Key, inst.Port, false),
 		inst.User+"@"+inst.Addr, command)
@@ -266,12 +273,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	errc := make(chan error, 1)
 	signal := func(err error) {
 		select {
