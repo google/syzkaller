@@ -108,8 +108,9 @@ func parseTemplate(prompt string) (*template.Template, error) {
 }
 
 var templateFuncs = template.FuncMap{
-	"titleIsUAF":     titleIs(crash.KASANUseAfterFreeRead, crash.KASANUseAfterFreeWrite),
-	"titleIsWarning": titleIs(crash.Warning),
+	"titleIsUAF":            titleIs(crash.KASANUseAfterFreeRead, crash.KASANUseAfterFreeWrite),
+	"titleIsKASANNullDeref": titleIs(crash.KASANNullPtrDerefRead, crash.KASANNullPtrDerefWrite),
+	"titleIsWarning":        titleIs(crash.Warning),
 }
 
 func titleIs(types ...crash.Type) func(string) bool {
