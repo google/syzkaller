@@ -153,7 +153,7 @@ func TestSummaryWindow(t *testing.T) {
 					Candidates: []*genai.Candidate{{
 						Content: &genai.Content{
 							Parts: reply,
-							Role:  genai.RoleUser,
+							Role:  genai.RoleModel,
 						}}}}, nil
 			},
 		},
