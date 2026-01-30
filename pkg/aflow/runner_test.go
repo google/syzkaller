@@ -41,6 +41,7 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	var requests []llmRequest
 	var stubTime time.Time
 	var lastConfig genai.GenerateContentConfig
+	generateContentStub := false
 	stub := &stubContext{
 		timeNow: func() time.Time {
 			stubTime = stubTime.Add(time.Second)
@@ -61,6 +62,11 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 			requests = append(requests, llmRequest{model, storeCfg, slices.Clone(req)})
 			require.NotEmpty(t, llmReplies, "unexpected LLM call")
 			reply := llmReplies[0]
+			if cb, ok := reply.(func(string, *genai.GenerateContentConfig, []*genai.Content) (
+				*genai.GenerateContentResponse, error)); ok {
+				generateContentStub = true
+				return cb(model, cfg, req)
+			}
 			llmReplies = llmReplies[1:]
 			switch reply := reply.(type) {
 			case error:
@@ -136,7 +142,7 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	} else {
 		require.False(t, osutil.IsExist(requestsFile))
 	}
-	require.Empty(t, llmReplies)
+	require.True(t, len(llmReplies) == 0 || generateContentStub)
 }
 
 func testRegistrationError[Inputs, Outputs any](t *testing.T, expected string, root Action) {
