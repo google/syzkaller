@@ -234,6 +234,10 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 				}
 			}
 			// Append the very prompt, asking LLM to add summary.
+			// TODO: what if it is ready to provide an answer right now,
+			// and don't want to call any tools anymore, but instead we
+			// ask it to summarize? We may get the summary as the final reply...
+			// Or, what if it summarizes w/o calling any tools?
 			if addNewSummary {
 				req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
 					Text: slidingWindowInstruction,
