@@ -1268,3 +1268,16 @@ codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855"
 codepages_names = "macceltic", "maccenteuro", "maccroatian", "maccyrillic", "macgaelic", "macgreek", "maciceland", "macinuit", "macroman", "macromanian", "macturkish", "ascii", "default", "cp1250", "cp1251", "cp1255", "cp437", "cp737", "cp775", "cp850", "cp852", "cp855", "cp857", "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp866", "cp869", "cp874", "cp932", "cp936", "cp949", "cp950", "euc-jp", "iso8859-13", "iso8859-14", "iso8859-15", "iso8859-1", "iso8859-2", "iso8859-3", "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-9", "koi8-r", "koi8-ru", "koi8-u", "utf8", "none"
 mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, MS_NODIRATIME, MS_NOEXEC, MS_NOSUID, MS_RDONLY, MS_RELATIME, MS_REMOUNT, MS_SILENT, MS_STRICTATIME, MS_SYNCHRONOUS, MS_REC, MS_POSIXACL, MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED, MS_I_VERSION, MS_LAZYTIME
 umount_flags = MNT_FORCE, MNT_DETACH, MNT_EXPIRE, UMOUNT_NOFOLLOW
+
+file_getattr(dfd fd_dir[opt], filename ptr[in, filename], ufattr ptr[out, file_attr], usize len[ufattr], flags flags[at_flags])
+file_setattr(dfd fd_dir[opt], filename ptr[in, filename], ufattr ptr[in, file_attr], usize len[ufattr], flags flags[at_flags])
+
+file_attr {
+	fa_xflags	flags[file_attr_flags, int64]
+	fa_extsize	int32
+	fa_nextents	int32
+	fa_projid	int32
+	fa_cowextsize	int32
+}
+
+file_attr_flags = FS_XFLAG_REALTIME, FS_XFLAG_PREALLOC, FS_XFLAG_IMMUTABLE, FS_XFLAG_APPEND, FS_XFLAG_SYNC, FS_XFLAG_NOATIME, FS_XFLAG_NODUMP, FS_XFLAG_RTINHERIT, FS_XFLAG_PROJINHERIT, FS_XFLAG_NOSYMLINKS, FS_XFLAG_EXTSIZE, FS_XFLAG_EXTSZINHERIT, FS_XFLAG_NODEFRAG, FS_XFLAG_FILESTREAM, FS_XFLAG_DAX, FS_XFLAG_COWEXTSIZE, FS_XFLAG_VERITY, FS_XFLAG_HASATTR
