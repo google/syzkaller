@@ -208,6 +208,10 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 			Name: flow.Name,
 		})
 	}
+	if len(req.Workflows) == 0 {
+		log.Logf(0, "no workflows to query")
+		return false, nil
+	}
 	log.Logf(0, "querying jobs for %v", req.Workflows)
 	resp, err := s.dash.AIJobPoll(req)
 	if err != nil {

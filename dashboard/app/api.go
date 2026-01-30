@@ -226,7 +226,11 @@ func typedHandler[Req any](handler func(context.Context, *Req) (any, error)) API
 				return nil, fmt.Errorf("failed to unmarshal request %T: %w", req, err)
 			}
 		}
-		return handler(ctx, req)
+		res, err := handler(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("%w\nrequest: %+v", err, *req)
+		}
+		return res, nil
 	}
 }
 
