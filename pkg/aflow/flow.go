@@ -53,6 +53,9 @@ func Register[Inputs, Outputs any](typ ai.WorkflowType, description string, flow
 
 func register[Inputs, Outputs any](typ ai.WorkflowType, description string,
 	all map[string]*Flow, flows []*Flow) error {
+	if typ == "" {
+		return fmt.Errorf("empty flow type")
+	}
 	t := &FlowType{
 		Type:        typ,
 		Description: description,
