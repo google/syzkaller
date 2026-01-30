@@ -9,6 +9,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -34,11 +35,12 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	require.NoError(t, err)
 	type llmRequest struct {
 		Model   string
-		Config  genai.GenerateContentConfig
+		Config  *genai.GenerateContentConfig `json:",omitempty"`
 		Request []*genai.Content
 	}
 	var requests []llmRequest
 	var stubTime time.Time
+	var lastConfig genai.GenerateContentConfig
 	stub := &stubContext{
 		timeNow: func() time.Time {
 			stubTime = stubTime.Add(time.Second)
@@ -48,7 +50,15 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 			*genai.GenerateContentResponse, error) {
 			// Copy config and req slices, so that future changes to these objects
 			// don't affect our stored requests.
-			requests = append(requests, llmRequest{model, *cfg, slices.Clone(req)})
+			var storeCfg *genai.GenerateContentConfig
+			if !reflect.DeepEqual(*cfg, lastConfig) {
+				// Memorize config only if it has changed from the previous request.
+				// Most of the time it's repeated for the same agent.
+				lastConfig = *cfg
+				cfgCopy := *cfg
+				storeCfg = &cfgCopy
+			}
+			requests = append(requests, llmRequest{model, storeCfg, slices.Clone(req)})
 			require.NotEmpty(t, llmReplies, "unexpected LLM call")
 			reply := llmReplies[0]
 			llmReplies = llmReplies[1:]
