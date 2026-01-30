@@ -73,7 +73,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -111,7 +111,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -155,7 +155,7 @@
 						"text": "summary 3"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -196,7 +196,7 @@
 						"text": "summary 3"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -207,7 +207,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -251,7 +251,7 @@
 						"text": "summary 5"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -292,7 +292,7 @@
 						"text": "summary 5"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -303,7 +303,7 @@
 						}
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
@@ -347,7 +347,7 @@
 						"text": "summary 7"
 					}
 				],
-				"role": "user"
+				"role": "model"
 			},
 			{
 				"parts": [
