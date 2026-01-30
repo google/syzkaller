@@ -557,7 +557,7 @@ func handleMain(ctx context.Context, w http.ResponseWriter, r *http.Request) err
 	accessLevel := accessLevel(ctx, r)
 	filter, err := MakeBugFilter(r)
 	if err != nil {
-		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+		return badRequestErr("failed to parse URL parameters: %v", err)
 	}
 	managers, err := CachedUIManagers(ctx, accessLevel, hdr.Namespace, filter)
 	if err != nil {
@@ -625,7 +625,7 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		manager = findManager(managers, r.URL.Path[pos+len("/manager/"):])
 	}
 	if manager == nil {
-		return fmt.Errorf("%w: manager is unknown", ErrClientBadRequest)
+		return badRequestErr("manager is unknown")
 	}
 	builds, err := loadBuilds(ctx, hdr.Namespace, manager.Name, BuildNormal)
 	if err != nil {
@@ -666,7 +666,7 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 	service := getNsConfig(ctx, hdr.Namespace).Subsystems.Service
 	if service == nil {
-		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
+		return badRequestErr("the namespace does not have subsystems")
 	}
 	var subsystem *subsystem.Subsystem
 	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
@@ -678,7 +678,7 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 		subsystem = service.ByName(name)
 	}
 	if subsystem == nil {
-		return fmt.Errorf("%w: the subsystem is not found in the path %v", ErrClientBadRequest, r.URL.Path)
+		return badRequestErr("the subsystem is not found in the path %v", r.URL.Path)
 	}
 	groups, err := fetchNamespaceBugs(ctx, accessLevel(ctx, r),
 		hdr.Namespace, &userBugFilter{
@@ -927,7 +927,7 @@ func handleTerminalBugList(ctx context.Context, w http.ResponseWriter, r *http.R
 	hdr.Subpage = typ.Subpage
 	typ.Filter, err = MakeBugFilter(r)
 	if err != nil {
-		return fmt.Errorf("%w: failed to parse URL parameters", ErrClientBadRequest)
+		return badRequestErr("failed to parse URL parameters")
 	}
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
@@ -984,7 +984,7 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 			return fmt.Errorf("failed to record an emergency stop: %w", err)
 		}
 	default:
-		return fmt.Errorf("%w: unknown action %q", ErrClientBadRequest, action)
+		return badRequestErr("unknown action %q", action)
 	}
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
@@ -1018,7 +1018,7 @@ func handleAdmin(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 	if r.FormValue("job_type") != "" {
 		value, err := strconv.Atoi(r.FormValue("job_type"))
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrClientBadRequest, err)
+			return badRequestErr("%v", err)
 		}
 		g.Go(func() error {
 			var err error
@@ -1532,7 +1532,7 @@ func handleSubsystemsList(ctx context.Context, w http.ResponseWriter, r *http.Re
 	}
 	service := getNsConfig(ctx, hdr.Namespace).Subsystems.Service
 	if service == nil {
-		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
+		return badRequestErr("the namespace does not have subsystems")
 	}
 	nonEmpty := r.FormValue("all") != "true"
 	list := []*uiSubsystem{}
@@ -1592,14 +1592,14 @@ func handleTextImpl(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("%w: failed to parse text id: %w", ErrClientBadRequest, err)
+			return badRequestErr("failed to parse text id: %v", err)
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return fmt.Errorf("%w: failed to parse text id: %w", ErrClientBadRequest, err)
+			return badRequestErr("failed to parse text id: %v", err)
 		}
 		id = xid
 	}

@@ -615,7 +615,7 @@ func createCheckBox(r *http.Request, caption string, values []string) (*uiCheckb
 	id := caption
 	for _, formVal := range r.Form[id] {
 		if !stringInList(values, formVal) {
-			return nil, ErrClientBadRequest
+			return nil, badRequestErr("invalid value %q for %s", formVal, id)
 		}
 	}
 	ui := &uiCheckbox{

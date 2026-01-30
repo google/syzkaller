@@ -182,16 +182,17 @@ type (
 )
 
 var ErrClientNotFound = &ErrClient{errors.New("resource not found")}
-var ErrClientBadRequest = &ErrClient{errors.New("bad request")}
 
 func (ce *ErrClient) HTTPStatus() int {
 	switch ce {
 	case ErrClientNotFound:
 		return http.StatusNotFound
-	case ErrClientBadRequest:
-		return http.StatusBadRequest
 	}
-	return http.StatusInternalServerError
+	return http.StatusBadRequest
+}
+
+func badRequestErr(format string, args ...any) error {
+	return &ErrClient{fmt.Errorf(format, args...)}
 }
 
 func handleAuth(fn contextHandler) contextHandler {
@@ -390,7 +391,7 @@ func (g *gzipResponseWriterCloser) writeResult(r *http.Request) error {
 		return err
 	}
 	if g.plainResponseSize > 31<<20 { // 32MB is the AppEngine hard limit for the response size.
-		return fmt.Errorf("len(response) > 31M, try to request gzipped: %w", ErrClientBadRequest)
+		return badRequestErr("len(response) > 31M, try to request gzipped")
 	}
 	gzr, err := gzip.NewReader(g.buf)
 	if err != nil {

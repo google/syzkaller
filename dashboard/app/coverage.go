@@ -75,8 +75,8 @@ func makeHeatmapParams(ctx context.Context, r *http.Request) (*coverageHeatmapPa
 	onlyUnique := getParam[bool](r, UniqueOnly.ParamName(), false)
 	periodType := getParam[string](r, PeriodType.ParamName())
 	if !slices.Contains(coveragedb.AllPeriods, periodType) {
-		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead, %w",
-			strings.Join(coveragedb.AllPeriods, ", "), periodType, ErrClientBadRequest)
+		return nil, fmt.Errorf("only {%s} are allowed, but received %s instead",
+			strings.Join(coveragedb.AllPeriods, ", "), periodType)
 	}
 	nPeriods := getParam[int](r, PeriodCount.ParamName(), 4)
 	if nPeriods > maxPeriodsOnThePage || nPeriods < minPeriodsOnThePage {
@@ -135,7 +135,7 @@ func handleCoverageHeatmap(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 	params, err := makeHeatmapParams(ctx, r)
 	if err != nil {
-		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+		return badRequestErr("%v", err)
 	}
 	if getParam[bool](r, "jsonl") {
 		ns := hdr.Namespace
@@ -153,7 +153,7 @@ func handleSubsystemsCoverageHeatmap(ctx context.Context, w http.ResponseWriter,
 	}
 	params, err := makeHeatmapParams(ctx, r)
 	if err != nil {
-		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+		return badRequestErr("%v", err)
 	}
 	return handleHeatmap(ctx, w, hdr, params, cover.DoSubsystemsHeatMapStyleBodyJS)
 }
@@ -209,7 +209,7 @@ func handleHeatmap(ctx context.Context, w http.ResponseWriter, hdr *uiHeader, p 
 
 	periods, err := coveragedb.GenNPeriodsTill(p.nPeriods, p.dateTo, p.periodType)
 	if err != nil {
-		return fmt.Errorf("%s: %w", err.Error(), ErrClientBadRequest)
+		return badRequestErr("%v", err)
 	}
 	managers, err := CachedManagerList(ctx, hdr.Namespace)
 	if err != nil {
@@ -281,11 +281,11 @@ func handleFileCoverage(ctx context.Context, w http.ResponseWriter, r *http.Requ
 			validator.Allowlisted(manager, []string{"", "*"}, ManagerName.ParamName()),
 			validator.ManagerName(manager, ManagerName.ParamName())),
 	); err != nil {
-		return fmt.Errorf("%w: %w", err, ErrClientBadRequest)
+		return badRequestErr("%v", err)
 	}
 	targetDate, err := civil.ParseDate(dateToStr)
 	if err != nil {
-		return fmt.Errorf("%w: civil.ParseDate(%s): %w", ErrClientBadRequest, dateToStr, err)
+		return badRequestErr("civil.ParseDate(%s): %v", dateToStr, err)
 	}
 	tp, err := coveragedb.MakeTimePeriod(targetDate, periodType)
 	if err != nil {

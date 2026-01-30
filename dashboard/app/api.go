@@ -135,7 +135,7 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	log.Infof(ctx, "api %q from %q", method, client)
 	if client == "" {
 		// Don't log as error if somebody just invokes /api.
-		return nil, fmt.Errorf("client is empty: %w", ErrClientBadRequest)
+		return nil, badRequestErr("client is empty")
 	}
 	auth := auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint)
 	subj, err := auth.DetermineAuthSubj(timeNow(ctx), r.Header["Authorization"])
@@ -151,7 +151,7 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	if str := r.PostFormValue("payload"); str != "" {
 		gr, err := gzip.NewReader(strings.NewReader(str))
 		if err != nil {
-			return nil, fmt.Errorf("failed to ungzip payload: %w", err)
+			return nil, badRequestErr("failed to ungzip payload: %v", err)
 		}
 		payloadReader = gr
 		// Ignore Close() error because we may not read all data.
@@ -159,7 +159,7 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	}
 	handler, exists := apiHandlers[method]
 	if !exists {
-		return nil, fmt.Errorf("unknown api method %q", method)
+		return nil, badRequestErr("unknown api method %q", method)
 	}
 	reply, err := handler(contextWithNamespace(ctx, ns), payloadReader)
 	if err != nil {
@@ -184,7 +184,7 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 	return func(ctx context.Context, payload io.Reader) (any, error) {
 		var gcsURL string
 		if err := json.NewDecoder(payload).Decode(&gcsURL); err != nil {
-			return nil, fmt.Errorf("json.NewDecoder(payload).Decode(&gcsURL): %w", err)
+			return nil, badRequestErr("json.NewDecoder(payload).Decode(&gcsURL): %v", err)
 		}
 		gcsURL = strings.TrimPrefix(gcsURL, "gs://")
 		clientGCS, err := gcs.NewClient(ctx)
@@ -212,7 +212,7 @@ func nsHandler[Req any](handler func(context.Context, string, *Req) (any, error)
 	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
 		ns := contextNamespace(ctx)
 		if ns == "" {
-			return nil, fmt.Errorf("must be called within a namespace")
+			return nil, badRequestErr("must be called within a namespace")
 		}
 		return handler(ctx, ns, req)
 	})
@@ -223,7 +223,7 @@ func typedHandler[Req any](handler func(context.Context, *Req) (any, error)) API
 		req := new(Req)
 		if payload != nil {
 			if err := json.NewDecoder(payload).Decode(req); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal request %T: %w", req, err)
+				return nil, badRequestErr("failed to unmarshal request %T: %v", req, err)
 			}
 		}
 		return handler(ctx, req)
@@ -453,7 +453,7 @@ func apiJobPoll(ctx context.Context, req *dashapi.JobPollReq) (any, error) {
 		return &dashapi.JobPollResp{}, err
 	}
 	if len(req.Managers) == 0 {
-		return nil, fmt.Errorf("no managers")
+		return nil, badRequestErr("no managers")
 	}
 	return pollPendingJobs(ctx, req.Managers)
 }
@@ -522,7 +522,7 @@ func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Bui
 	for i, toAdd := range req.Assets {
 		newAsset, err := parseIncomingAsset(ctx, toAdd, ns)
 		if err != nil {
-			return nil, false, fmt.Errorf("failed to parse asset #%d: %w", i, err)
+			return nil, false, badRequestErr("failed to parse asset #%d: %v", i, err)
 		}
 		newAssets = append(newAssets, newAsset)
 	}
@@ -531,10 +531,10 @@ func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Bui
 	}
 	checkStrLen := func(str, name string, maxLen int) error {
 		if str == "" {
-			return fmt.Errorf("%v is empty", name)
+			return badRequestErr("%v is empty", name)
 		}
 		if len(str) > maxLen {
-			return fmt.Errorf("%v is too long (%v)", name, len(str))
+			return badRequestErr("%v is too long (%v)", name, len(str))
 		}
 		return nil
 	}
@@ -548,16 +548,16 @@ func uploadBuild(ctx context.Context, now time.Time, ns string, req *dashapi.Bui
 		return nil, false, err
 	}
 	if len(req.KernelBranch) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
+		return nil, false, badRequestErr("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
 	}
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
 		return nil, false, err
 	}
 	if len(req.CompilerID) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
+		return nil, false, badRequestErr("Build.CompilerID is too long (%v)", len(req.CompilerID))
 	}
 	if len(req.KernelCommit) > MaxStringLen {
-		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
+		return nil, false, badRequestErr("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
 	}
 	configID, err := putText(ctx, ns, textKernelConfig, req.KernelConfig)
 	if err != nil {

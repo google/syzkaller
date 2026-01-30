@@ -141,7 +141,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	}
 	if correct := r.FormValue("correct"); correct != "" {
 		if !job.Finished.Valid || job.Error != "" {
-			return fmt.Errorf("job is in wrong state to set correct status")
+			return badRequestErr("job is in wrong state to set correct status")
 		}
 		switch correct {
 		case aiCorrectnessCorrect:
@@ -310,11 +310,11 @@ func makeUIJobReviewHistory(history []*aidb.Journal) []*uiJobReviewHistory {
 
 func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if len(req.Workflows) == 0 || req.CodeRevision == "" {
-		return nil, fmt.Errorf("invalid request")
+		return nil, badRequestErr("invalid request")
 	}
 	for _, flow := range req.Workflows {
 		if flow.Type == "" || flow.Name == "" {
-			return nil, fmt.Errorf("invalid request")
+			return nil, badRequestErr("invalid request")
 		}
 	}
 	if err := aidb.UpdateWorkflows(ctx, req.Workflows); err != nil {
@@ -385,7 +385,7 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, err
 	}
 	if job.Finished.Valid {
-		return nil, fmt.Errorf("the job %v is already finished", req.ID)
+		return nil, badRequestErr("the job %v is already finished", req.ID)
 	}
 	job.Finished = spanner.NullTime{Time: timeNow(ctx), Valid: true}
 	job.Error = req.Error[:min(len(req.Error), 4<<10)]
@@ -532,7 +532,7 @@ func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs ma
 		}
 	}
 	if typ == "" {
-		return fmt.Errorf("workflow %v does not exist", workflow)
+		return badRequestErr("workflow %v does not exist", workflow)
 	}
 	return bugJobCreate(ctx, workflow, typ, bug, extraArgs)
 }
