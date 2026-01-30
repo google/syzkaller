@@ -63,14 +63,7 @@ func register[Inputs, Outputs any](typ ai.WorkflowType, description string,
 			_, err := convertFromMap[Inputs](inputs, false, false)
 			return err
 		},
-		extractOutputs: func(state map[string]any) map[string]any {
-			// Ensure that we actually have all outputs.
-			tmp, err := convertFromMap[Outputs](state, false, false)
-			if err != nil {
-				panic(err)
-			}
-			return convertToMap(tmp)
-		},
+		extractOutputs: extractOutputs[Outputs],
 	}
 	for _, flow := range flows {
 		if flow.Name == "" {

@@ -5,8 +5,11 @@ package aflow
 
 import (
 	"maps"
+	"reflect"
+	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	"github.com/stretchr/testify/require"
 )
 
 func NewFuncAction[Args, Results any](name string, fn func(*Context, Args) (Results, error)) Action {
@@ -43,4 +46,14 @@ func (a *funcAction[Args, Results]) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.name, "Name", a.name)
 	requireInputs[Args](ctx, a.name)
 	provideOutputs[Results](ctx, a.name)
+}
+
+func (a *funcAction[Args, Results]) testVerify(t *testing.T, ctx *verifyContext, args, results any) (
+	map[string]any, map[string]any, func(map[string]any) map[string]any) {
+	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))
+	require.Equal(t, reflect.TypeFor[Results](), reflect.TypeOf(results))
+	provideOutputs[Args](ctx, "args")
+	a.verify(ctx)
+	requireInputs[Results](ctx, "results")
+	return convertToMap(args.(Args)), convertToMap(results.(Results)), extractOutputs[Results]
 }

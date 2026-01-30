@@ -17,9 +17,7 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	vctx := newVerifyContext()
 	state, args, results := tool.(toolTester).checkTestTypes(t, vctx, initState, initArgs, wantResults)
 	tool.verify(vctx)
-	if err := vctx.finalize(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, vctx.finalize())
 	// Just ensure it does not crash.
 	_ = tool.declaration()
 	// We don't init all fields, init more, if necessary.
