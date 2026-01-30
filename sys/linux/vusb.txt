@@ -1951,12 +1951,10 @@ uac3_feature_unit_controls = UAC3_FUNCTION_SUBCLASS_UNDEFINED, UAC3_FUNCTION_DES
 # https://elixir.bootlin.com/linux/latest/source/sound/usb/midi.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_midi.c
 
-resource fd_usb_midi[fd_usb]
-syz_usb_connect$midi(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_midi], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_midi (timeout[3000], prog_timeout[3000], remote_cover)
-syz_usb_control_io$midi(fd fd_usb_midi, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1]) (timeout[300], remote_cover)
+syz_usb_connect$midi(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_midi], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000], remote_cover)
 
 usb_device_descriptor_midi {
-	inner	usb_device_descriptor_verbose_t[flags[usb_versions, int16], 0, 0, 0, flags[usb_device_max_packet_sizes, int8], flags[midi_vendor_ids, int16], flags[midi_device_ids, int16], 64, array[usb_config_descriptor_midi, 1]]
+	inner	usb_device_descriptor_t[0, 0, 0, 0x1430, 0x474b, 64, array[usb_config_descriptor_midi, 1]]
 } [packed]
 
 usb_config_descriptor_midi {
@@ -1976,8 +1974,6 @@ usb_endpoint_descriptor_midi {
 	inner	usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], flags[usb_endpoint_attributes, int8], usb_ms_endpoint_descriptor]
 } [packed]
 
-midi_vendor_ids = 0x403, 0x41e, 0x424, 0x45e, 0x499, 0x582, 0x763, 0x7cf, 0x86a, 0x9e8, 0xa12, 0xccd, 0xdba, 0x1235, 0x1395, 0x1686, 0x19b5, 0x1a86, 0x1f38, 0x200c, 0x4752, 0x7104
-midi_device_ids = 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xe, 0x10, 0x11, 0x12, 0x14, 0x16, 0x18, 0x1b, 0x1d, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2d, 0x2f, 0x33, 0x35, 0x37, 0x40, 0x42, 0x44, 0x47, 0x48, 0x4c, 0x4d, 0x50, 0x52, 0x60, 0x62, 0x64, 0x65, 0x6d, 0x75, 0x7d, 0x80, 0x8b, 0x8d, 0xa3, 0xc4, 0xdd, 0x113, 0x120, 0x12f, 0x159, 0x283, 0x300, 0x1000, 0x100b, 0x1243, 0x1503, 0x1507, 0x1509, 0x150a, 0x150c, 0x2019, 0x2202, 0x3000, 0x6801, 0x6802, 0x752d, 0xb832, 0xb8d8
 midi_jack_type = USB_MS_EMBEDDED, USB_MS_EXTERNAL
 uac_version_types = UAC_VERSION_1, UAC_VERSION_2, UAC_VERSION_3
 
