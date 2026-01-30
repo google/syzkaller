@@ -118,47 +118,6 @@
 	},
 	{
 		"Model": "sub-agent-model",
-		"Config": {
-			"systemInstruction": {
-				"parts": [
-					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
-					}
-				],
-				"role": "user"
-			},
-			"temperature": 2,
-			"tools": [
-				{
-					"functionDeclarations": [
-						{
-							"description": "researcher-tool description",
-							"name": "researcher-tool",
-							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"properties": {
-									"Something": {
-										"description": "something",
-										"type": "string"
-									}
-								},
-								"required": [
-									"Something"
-								],
-								"type": "object"
-							},
-							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
-							}
-						}
-					]
-				}
-			],
-			"responseModalities": [
-				"TEXT"
-			]
-		},
 		"Request": [
 			{
 				"parts": [
@@ -342,47 +301,6 @@
 	},
 	{
 		"Model": "sub-agent-model",
-		"Config": {
-			"systemInstruction": {
-				"parts": [
-					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
-					}
-				],
-				"role": "user"
-			},
-			"temperature": 2,
-			"tools": [
-				{
-					"functionDeclarations": [
-						{
-							"description": "researcher-tool description",
-							"name": "researcher-tool",
-							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"properties": {
-									"Something": {
-										"description": "something",
-										"type": "string"
-									}
-								},
-								"required": [
-									"Something"
-								],
-								"type": "object"
-							},
-							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
-							}
-						}
-					]
-				}
-			],
-			"responseModalities": [
-				"TEXT"
-			]
-		},
 		"Request": [
 			{
 				"parts": [
@@ -421,47 +339,6 @@
 	},
 	{
 		"Model": "sub-agent-model",
-		"Config": {
-			"systemInstruction": {
-				"parts": [
-					{
-						"text": "researcher instruction\nPrefer calling several tools at the same time to save round-trips.\n"
-					}
-				],
-				"role": "user"
-			},
-			"temperature": 2,
-			"tools": [
-				{
-					"functionDeclarations": [
-						{
-							"description": "researcher-tool description",
-							"name": "researcher-tool",
-							"parametersJsonSchema": {
-								"additionalProperties": false,
-								"properties": {
-									"Something": {
-										"description": "something",
-										"type": "string"
-									}
-								},
-								"required": [
-									"Something"
-								],
-								"type": "object"
-							},
-							"responseJsonSchema": {
-								"additionalProperties": false,
-								"type": "object"
-							}
-						}
-					]
-				}
-			],
-			"responseModalities": [
-				"TEXT"
-			]
-		},
 		"Request": [
 			{
 				"parts": [
