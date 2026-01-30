@@ -149,8 +149,10 @@
 						"functionCall": {
 							"id": "id3",
 							"name": "tick"
-						},
-						"text": "This is the 1st summary of the history."
+						}
+					},
+					{
+						"text": "summary 3"
 					}
 				],
 				"role": "user"
@@ -188,8 +190,10 @@
 						"functionCall": {
 							"id": "id3",
 							"name": "tick"
-						},
-						"text": "This is the 1st summary of the history."
+						}
+					},
+					{
+						"text": "summary 3"
 					}
 				],
 				"role": "user"
@@ -241,8 +245,10 @@
 						"functionCall": {
 							"id": "id5",
 							"name": "tick"
-						},
-						"text": "This is the 2nd summary."
+						}
+					},
+					{
+						"text": "summary 5"
 					}
 				],
 				"role": "user"
@@ -252,6 +258,102 @@
 					{
 						"functionResponse": {
 							"id": "id5",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id5",
+							"name": "tick"
+						}
+					},
+					{
+						"text": "summary 5"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id6",
+							"name": "tick"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id6",
+							"name": "tick",
+							"response": {
+								"ResFoo": 123
+							}
+						}
+					},
+					{
+						"text": "\nYou MUST attach a summary of your most up-to-date findings/knowledge in your reply, which summarizes\nall the historical context, because I will remove old chats if they fall out of the context sliding window\n(for example, I will remove the oldest 3 chats if the sliding window is 10 but there have been 13 LLM chat\nmessages). In your summary, KEEP/INCLUDE ALL useful code. Because I will drop old messages, the code read\nby tools will also be tossed.\n"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"id": "id7",
+							"name": "tick"
+						}
+					},
+					{
+						"text": "summary 7"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"id": "id7",
 							"name": "tick",
 							"response": {
 								"ResFoo": 123

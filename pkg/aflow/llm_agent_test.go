@@ -129,73 +129,33 @@ func TestSummaryWindow(t *testing.T) {
 		},
 	}
 
+	requestSeq := 0
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
 		Pipeline(agent),
 		[]any{
-			// 1st Call: req len is 1 (User Prompt).
-			// We return a tool call. req will become 3 (Prompt + Call + Resp).
-			[]*genai.Part{
-				{
+			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
+				*genai.GenerateContentResponse, error) {
+				requestSeq++
+				reply := []*genai.Part{{
 					FunctionCall: &genai.FunctionCall{
-						ID: "id1", Name: "tick", Args: map[string]any{},
-					},
-				},
+						ID:   fmt.Sprintf("id%v", requestSeq),
+						Name: "tick",
+					}}}
+				lastReq := req[len(req)-1]
+				lastPart := lastReq.Parts[len(lastReq.Parts)-1]
+				if lastPart.Text == slidingWindowInstruction {
+					reply = append(reply, genai.NewPartFromText(fmt.Sprintf("summary %v", requestSeq)))
+				} else if requestSeq > 6 {
+					reply = []*genai.Part{genai.NewPartFromText("Done")}
+				}
+				return &genai.GenerateContentResponse{
+					Candidates: []*genai.Candidate{{
+						Content: &genai.Content{
+							Parts: reply,
+							Role:  genai.RoleUser,
+						}}}}, nil
 			},
-
-			// 2nd Call: req len is 3. SummaryWindow is 3.
-			// len(req) > SummaryWindow is FALSE (3 is not > 3).
-			// We return another tool call. req will become 5.
-			[]*genai.Part{
-				{
-					FunctionCall: &genai.FunctionCall{
-						ID: "id2", Name: "tick", Args: map[string]any{},
-					},
-				},
-			},
-
-			// 3rd Call: req len is 5. len(req) > 3 is TRUE.
-			// summaryMessage is nil, so addNewSummary = true.
-			// The code should append 'slidingWindowInstruction' to this request.
-			// The initial prompt should stay in the history.
-			// We return a summary. req will be 5.
-			[]*genai.Part{
-				{
-					FunctionCall: &genai.FunctionCall{
-						ID: "id3", Name: "tick", Args: map[string]any{},
-					},
-					Text: "This is the 1st summary of the history.",
-				},
-			},
-
-			// 4th Call: req len is 5. len(req) > 3 is TRUE.
-			// summaryMessage is not nil and not popped, so addNewSummary = false.
-			// We return a tool call. req will be 5.
-			[]*genai.Part{
-				{
-					FunctionCall: &genai.FunctionCall{
-						ID: "id4", Name: "tick", Args: map[string]any{},
-					},
-				},
-			},
-
-			// 5th Call: req len is 5, len(req) > 3 is TRUE.
-			// summaryMessage is not nil and popped, so addNewSummary = true.
-			// The code should keep the old summary (we popped it and the msg
-			// before it, but we insert the old summary back to ensure that
-			// the new summary can be based on the old summary. It should also
-			// request a new summary.
-			[]*genai.Part{
-				{
-					FunctionCall: &genai.FunctionCall{
-						ID: "id5", Name: "tick", Args: map[string]any{},
-					},
-					Text: "This is the 2nd summary.",
-				},
-			},
-
-			// Return done.
-			genai.NewPartFromText("Done"),
 		},
 	)
 }

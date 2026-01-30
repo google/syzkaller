@@ -101,7 +101,8 @@
 		"Name": "summary_agent",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:11Z",
-		"Finished": "0001-01-01T00:00:12Z"
+		"Finished": "0001-01-01T00:00:12Z",
+		"Thoughts": "\nsummary 3"
 	},
 	{
 		"Seq": 7,
@@ -171,7 +172,8 @@
 		"Name": "summary_agent",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:19Z",
-		"Finished": "0001-01-01T00:00:20Z"
+		"Finished": "0001-01-01T00:00:20Z",
+		"Thoughts": "\nsummary 5"
 	},
 	{
 		"Seq": 11,
@@ -209,13 +211,84 @@
 		"Finished": "0001-01-01T00:00:24Z"
 	},
 	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:25Z"
+	},
+	{
+		"Seq": 13,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:26Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:27Z"
+	},
+	{
+		"Seq": 14,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:27Z",
+		"Finished": "0001-01-01T00:00:28Z",
+		"Thoughts": "\nsummary 7"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:29Z"
+	},
+	{
+		"Seq": 15,
+		"Nesting": 2,
+		"Type": "tool",
+		"Name": "tick",
+		"Started": "0001-01-01T00:00:29Z",
+		"Finished": "0001-01-01T00:00:30Z",
+		"Results": {
+			"ResFoo": 123
+		}
+	},
+	{
+		"Seq": 16,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:31Z"
+	},
+	{
+		"Seq": 16,
+		"Nesting": 2,
+		"Type": "llm",
+		"Name": "summary_agent",
+		"Model": "model",
+		"Started": "0001-01-01T00:00:31Z",
+		"Finished": "0001-01-01T00:00:32Z"
+	},
+	{
 		"Seq": 1,
 		"Nesting": 1,
 		"Type": "agent",
 		"Name": "summary_agent",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Finished": "0001-01-01T00:00:25Z",
+		"Finished": "0001-01-01T00:00:33Z",
 		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Initial Prompt",
 		"Reply": "Done"
@@ -226,7 +299,7 @@
 		"Type": "flow",
 		"Name": "test",
 		"Started": "0001-01-01T00:00:01Z",
-		"Finished": "0001-01-01T00:00:26Z",
+		"Finished": "0001-01-01T00:00:34Z",
 		"Results": {
 			"Reply": "Done"
 		}
