@@ -135,8 +135,6 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 		var idProduct uint16
 		quirksIDs := [][2]uint16{
 			// sound/usb/quirks.c
-			{0x041e, 0x3000},
-			{0x041e, 0x3020},
 			{0x10f5, 0x0200},
 			{0x0d8c, 0x0102},
 			{0x0ccd, 0x00b1},
@@ -145,8 +143,9 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0763, 0x2012},
 			{0x047f, 0xc010},
 			{0x2466, 0x8010},
-			// sound/usb/stream.c ?
+			// sound/usb/stream.c
 			{0x04fa, 0x4201},
+			{0x0763, 0x2003},
 			// sound/usb/midi.c
 			{0x0a67, 0x5011},
 			{0x0a92, 0x1020},
@@ -158,8 +157,44 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0644, 0x800e},
 			{0x0644, 0x800f},
 			{0x0763, 0x0150},
-			// Test if this covers midi.c | grep USB_VID_VENDOR
-			{0x0582, 0x0582},
+			{0x0499, 0x105c},
+			{0x0582, 0x0000},
+			{0x0582, 0x0003},
+			{0x0582, 0x0004},
+			{0x0582, 0x0007},
+			{0x0582, 0x000b},
+			{0x0582, 0x000c},
+			{0x0582, 0x0014},
+			{0x0582, 0x0016},
+			{0x0582, 0x0023},
+			{0x0582, 0x0027},
+			{0x0582, 0x0029},
+			{0x0582, 0x002b},
+			{0x0582, 0x002f},
+			{0x0582, 0x0033},
+			{0x0582, 0x003b},
+			{0x0582, 0x0048},
+			{0x0582, 0x004d},
+			{0x0582, 0x0089},
+			{0x0582, 0x009a},
+			{0x0582, 0x00b2},
+			{0x0582, 0x00eb},
+			{0x0582, 0x0102},
+			{0x0582, 0x010f},
+			{0x0582, 0x0114},
+			{0x0582, 0x0120},
+			{0x0582, 0x0121},
+			{0x0582, 0x0145},
+			{0x0582, 0x0156},
+			{0x0582, 0x015b},
+			{0x0763, 0x1031},
+			{0x0763, 0x1033},
+			{0x07fd, 0x0001},
+			{0x086a, 0x0001},
+			{0x086a, 0x0002},
+			{0x086a, 0x0003},
+			{0x09e8, 0x0062},
+			{0x133e, 0x0815},
 			// sound/usb/card.c
 			{0x18d1, 0x2d04},
 			{0x18d1, 0x2d05},
@@ -167,13 +202,9 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0582, 0x0016},
 			{0x0582, 0x000c},
 			{0x0d8c, 0x0201},
-			{0x0d8c, 0x0102},
 			{0x0d8c, 0x0078},
-			{0x0ccd, 0x00b1},
 			{0x041e, 0x4064},
 			{0x041e, 0x4068},
-			{0x194f, 0x010c},
-			{0x0e41, 0x4241},
 			{0x0e41, 0x4241},
 			{0x0e41, 0x4242},
 			{0x0e41, 0x4244},
@@ -186,7 +217,6 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x0e41, 0x3000},
 			{0x0e41, 0x3020},
 			{0x0e41, 0x3061},
-			{0x0a67, 0x5011},
 			// sound/usb/mixer_quirks.c
 			{0x041e, 0x3000},
 			{0x041e, 0x3020},
@@ -228,9 +258,6 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 			{0x2a39, 0x3fd2},
 			{0x2a39, 0x3fd3},
 			{0x2a39, 0x3fd4},
-			// yamaha
-			{0x0499, 0x0499},
-			{0x0582, 0x0582},
 		}
 		idx := g.Rand().Intn(len(quirksIDs))
 		idVendor = quirksIDs[idx][0]
@@ -242,7 +269,6 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 		// Patch in IDs auto-extracted from the matching rules for the USB audio class.
 		// Do not patch IDs that are not used in the matching rules to avoid subverting
 		// the kernel into matching the device to a different driver.
-		// TODO: some of these strings might be missing is dict, check
 		ids := usbIds["snd-bcd2000"] +
 			usbIds["snd-ua101"] +
 			usbIds["snd-usb-6fire"] +
