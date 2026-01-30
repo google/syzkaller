@@ -151,6 +151,15 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		val, name, f, field.Type().Name())
 }
 
+func extractOutputs[T any](state map[string]any) map[string]any {
+	// Ensure that we actually have all outputs.
+	tmp, err := convertFromMap[T](state, false, false)
+	if err != nil {
+		panic(err)
+	}
+	return convertToMap(tmp)
+}
+
 // foreachField iterates over all public fields of the struct provided in data.
 func foreachField(data any) iter.Seq2[string, reflect.Value] {
 	return func(yield func(string, reflect.Value) bool) {

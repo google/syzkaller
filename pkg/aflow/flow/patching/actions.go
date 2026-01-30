@@ -4,6 +4,8 @@
 package patching
 
 import (
+	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -106,5 +108,35 @@ func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, e
 			To:    recipient.Type == vcs.To,
 		})
 	}
+	return res, nil
+}
+
+var getRecentCommits = aflow.NewFuncAction("get-recent-commits", recentCommits)
+
+type recentCommitsArgs struct {
+	KernelSrc    string
+	KernelCommit string
+	PatchDiff    string
+}
+
+type recentCommitsResult struct {
+	RecentCommits string
+}
+
+func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsResult, error) {
+	var res recentCommitsResult
+	var files []string
+	for _, file := range vcs.ParseGitDiff([]byte(args.PatchDiff)) {
+		files = append(files, file.Name)
+	}
+	if len(files) == 0 {
+		return res, aflow.FlowError(errors.New("patch diff does not contain any modified files"))
+	}
+	gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
+	output, err := osutil.RunCmd(10*time.Minute, args.KernelSrc, "git", gitArgs...)
+	if err != nil {
+		return res, aflow.FlowError(fmt.Errorf("%w\n%s", err, output))
+	}
+	res.RecentCommits = string(output)
 	return res, nil
 }

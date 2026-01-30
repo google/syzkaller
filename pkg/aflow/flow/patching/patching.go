@@ -75,6 +75,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 				MaxIterations: 10,
 			},
 			getMaintainers,
+			getRecentCommits,
 			&aflow.LLMAgent{
 				Name:          "description-generator",
 				Model:         aflow.BestExpensiveModel,
@@ -221,6 +222,12 @@ The diff of the bug fix is:
 Additional description of the patch:
 
 {{.PatchExplanation}}
+
+Here are summaries of recent commits that touched the same files.
+Format the summary line consistently with these, look how prefixes
+are specified, letter capitalization, style, etc. 
+
+{{.RecentCommits}}
 
 {{if titleIsWarning .BugTitle}}
 If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
