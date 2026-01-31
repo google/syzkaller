@@ -178,8 +178,11 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	// Remove temp files from previous runs.
 	// rm chokes on bad symlinks so we must remove them first
 	if _, err := inst.adb("shell", "ls /data/syzkaller*"); err == nil {
-		if _, err := inst.adb("shell", "find /data/syzkaller* -type l -exec unlink {} \\;"+
-			" && rm -Rf /data/syzkaller*"); err != nil {
+		if _, err := inst.adb("shell", "find /data/syzkaller* 2>&1 | grep 'No such file' "+
+			"| sed 's/.*\\/data/\\/data/;s/:.*//' | xargs -r unlink"); err != nil {
+			return nil, err
+		}
+		if _, err := inst.adb("shell", "rm -Rf /data/syzkaller*"); err != nil {
 			return nil, err
 		}
 	}
