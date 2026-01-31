@@ -81,13 +81,24 @@ func (t *funcTool[State, Args, Results]) verify(ctx *verifyContext) {
 	requireInputs[State](ctx, t.Name)
 }
 
-func (*funcTool[State, Args, Results]) checkTestTypes(t *testing.T, ctx *verifyContext, state, args, results any) (
-	map[string]any, map[string]any, map[string]any) {
+func (tool *funcTool[State, Args, Results]) testVerify(t *testing.T, ctx *verifyContext, state, args, results any) (
+	map[string]any, map[string]any, func(map[string]any)) {
 	require.Equal(t, reflect.TypeFor[State](), reflect.TypeOf(state))
 	require.Equal(t, reflect.TypeFor[Args](), reflect.TypeOf(args))
-	require.Equal(t, reflect.TypeFor[Results](), reflect.TypeOf(results))
+	resultChecker := func(got map[string]any) {
+		require.Equal(t, reflect.TypeFor[Results](), reflect.TypeOf(results))
+		require.Equal(t, convertToMap(results.(Results)), got)
+	}
+	if fn, ok := results.(func(Results)); ok {
+		resultChecker = func(got map[string]any) {
+			res, err := convertFromMap[Results](got, true, true)
+			require.NoError(t, err)
+			fn(res)
+		}
+	}
 	provideOutputs[State](ctx, "state")
-	return convertToMap(state.(State)), convertToMap(args.(Args)), convertToMap(results.(Results))
+	tool.verify(ctx)
+	return convertToMap(state.(State)), convertToMap(args.(Args)), resultChecker
 }
 
 func (*funcTool[State, Args, Results]) checkFuzzTypes(t *testing.T, state, args any) (
