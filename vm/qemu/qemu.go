@@ -101,17 +101,18 @@ type instance struct {
 	os         string
 	workdir    string
 	vmimpl.SSHOptions
-	timeouts    targets.Timeouts
-	monport     int
-	forwardPort int
-	mon         net.Conn
-	monEnc      *json.Encoder
-	monDec      *json.Decoder
-	rpipe       io.ReadCloser
-	wpipe       io.WriteCloser
-	qemu        *exec.Cmd
-	merger      *vmimpl.OutputMerger
-	files       map[string]string
+	timeouts      targets.Timeouts
+	monport       int
+	forwardPort   int
+	mon           net.Conn
+	monEnc        *json.Encoder
+	monDec        *json.Decoder
+	rpipe         io.ReadCloser
+	wpipe         io.WriteCloser
+	qemu          *exec.Cmd
+	fanout        *vmimpl.FanOut
+	consoleReader *vmimpl.FanOutReader // Persistent reader for boot monitoring and snapshots.
+	files         map[string]string
 	*snapshot
 }
 
@@ -423,8 +424,8 @@ func (inst *instance) Close() error {
 		inst.qemu.Process.Kill()
 		inst.qemu.Wait()
 	}
-	if inst.merger != nil {
-		inst.merger.Wait()
+	if inst.fanout != nil {
+		inst.fanout.Close()
 	}
 	if inst.rpipe != nil {
 		inst.rpipe.Close()
@@ -462,25 +463,28 @@ func (inst *instance) boot() error {
 	inst.qemu = qemu
 	// Qemu has started.
 
-	// Start output merger.
-	var tee io.Writer
-	if inst.debug {
-		tee = os.Stdout
-	}
-	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("qemu", inst.rpipe)
+	inst.fanout = vmimpl.NewFanOut(inst.rpipe)
+	inst.consoleReader = inst.fanout.NewReader()
 	inst.rpipe = nil
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
+	bootOutputStopped := make(chan bool)
 	go func() {
+		defer close(bootOutputStopped)
+		buf := make([]byte, 1024)
 		for {
-			select {
-			case out := <-inst.merger.Output:
-				bootOutput = append(bootOutput, out...)
-			case <-bootOutputStop:
-				close(bootOutputStop)
-				return
+			n, _ := inst.consoleReader.Read(buf)
+			if n > 0 {
+				if inst.debug {
+					os.Stdout.Write(buf[:n])
+				}
+				bootOutput = append(bootOutput, buf[:n]...)
+				select {
+				case <-bootOutputStop:
+					return
+				default:
+				}
 			}
 		}
 	}()
@@ -490,15 +494,26 @@ func (inst *instance) boot() error {
 			return err
 		}
 	}
-
-	if err := vmimpl.WaitForSSH(10*time.Minute*inst.timeouts.Scale, inst.SSHOptions,
-		inst.os, inst.merger.Err, false, inst.debug); err != nil {
-		bootOutputStop <- true
-		<-bootOutputStop
+	if err := inst.waitForSSH(5*time.Minute*inst.timeouts.Scale, bootOutputStop); err != nil {
+		close(bootOutputStop)
+		<-bootOutputStopped
 		return vmimpl.MakeBootError(err, bootOutput)
 	}
-	bootOutputStop <- true
+	close(bootOutputStop)
+	<-bootOutputStopped
 	return nil
+}
+
+func (inst *instance) waitForSSH(timeout time.Duration, outputStop chan bool) error {
+	stop := make(chan error, 1)
+	go func() {
+		<-inst.fanout.Wait()
+		stop <- fmt.Errorf("console failed: %w", inst.fanout.Error())
+	}()
+
+	err := vmimpl.WaitForSSH(timeout, inst.SSHOptions,
+		inst.os, stop, false, inst.debug)
+	return err
 }
 
 func (inst *instance) buildQemuArgs() ([]string, error) {
@@ -679,12 +694,26 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	// If we are in debug mode, we want to see console output on stdout.
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	merger := vmimpl.NewOutputMerger(tee)
+	merger.Add("console", vmimpl.OutputConsole, inst.fanout.NewReader())
+	merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.Key, inst.Port, inst.forwardPort, false)
 	args := strings.Split(command, " ")
@@ -712,13 +741,15 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	cmd := osutil.Command(args[0], args[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
-	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
+	wpipeErr.Close()
+	return vmimpl.Multiplex(ctx, cmd, merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,
 	})

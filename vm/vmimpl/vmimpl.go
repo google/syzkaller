@@ -49,7 +49,7 @@ type Instance interface {
 	// outc receives combined cmd and kernel console output.
 	// errc receives either command Wait return error or vmimpl.ErrTimeout.
 	// Command terminates with context. Use context.WithTimeout to terminate it earlier.
-	Run(ctx context.Context, command string) (outc <-chan []byte, errc <-chan error, err error)
+	Run(ctx context.Context, command string) (outc <-chan Chunk, errc <-chan error, err error)
 
 	// Diagnose retrieves additional debugging info from the VM
 	// (e.g. by sending some sys-rq's or SIGABORT'ing a Go program).
@@ -178,7 +178,7 @@ type MultiplexConfig struct {
 }
 
 func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config MultiplexConfig) (
-	<-chan []byte, <-chan error, error) {
+	<-chan Chunk, <-chan error, error) {
 	if config.Scale <= 0 {
 		panic("slowdown must be set")
 	}

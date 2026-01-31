@@ -251,7 +251,7 @@ func (inst *instance) startFuchsiaLogs() error {
 		"--exclude-tags", "netlink")
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
-	inst.merger.Add("fuchsia", inst.rpipe)
+	inst.merger.Add("fuchsia", vmimpl.OutputConsole, inst.rpipe)
 	if inst.debug {
 		log.Logf(1, "instance %s: starting ffx log", inst.name)
 	}
@@ -468,12 +468,19 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(ctx context.Context, command string) (
-	<-chan []byte, <-chan error, error) {
+	<-chan vmimpl.Chunk, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	rpipeErr, wpipeErr, err := osutil.LongPipe()
+	if err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, nil, err
+	}
+	inst.merger.Add("ssh", vmimpl.OutputStdout, rpipe)
+	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	// Run `command` on the instance over ssh.
 	const useSystemSSHCfg = false
@@ -488,12 +495,14 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	cmd := osutil.Command(sshCmd[0], sshCmd[1:]...)
 	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
+	cmd.Stderr = wpipeErr
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		wpipeErr.Close()
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,

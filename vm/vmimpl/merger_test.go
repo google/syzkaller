@@ -22,14 +22,14 @@ func TestMerger(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer wp1.Close()
-	merger.Add("pipe1", rp1)
+	merger.Add("pipe1", OutputConsole, rp1)
 
 	rp2, wp2, err := osutil.LongPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wp2.Close()
-	merger.Add("pipe2", rp2)
+	merger.Add("pipe2", OutputConsole, rp2)
 
 	wp1.Write([]byte("111"))
 	select {
@@ -46,20 +46,23 @@ func TestMerger(t *testing.T) {
 	}
 
 	wp1.Write([]byte("333\n444\r"))
-	got := string(<-merger.Output)
-	if want := "111333\n"; got != want {
+	got := (<-merger.Output).Data
+	if want := "111333\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
 	wp2.Write([]byte("555\r\n666\n\r\r777"))
-	got = string(<-merger.Output)
-	if want := "222555\n666\n"; got != want {
+	got = (<-merger.Output).Data
+	if want := "222555\n666\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
+	// We need to robustly read until we get what we want if we want to be safe.
+	// But for now let's just match what the implementation does.
+	// The implementation sends everything it read.
 
 	wp1.Close()
-	got = string(<-merger.Output)
-	if want := "444\n"; got != want {
+	got = (<-merger.Output).Data
+	if want := "444\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
@@ -71,8 +74,8 @@ func TestMerger(t *testing.T) {
 	}
 
 	wp2.Close()
-	got = string(<-merger.Output)
-	if want := "777\n"; got != want {
+	got = (<-merger.Output).Data
+	if want := "777\n"; string(got) != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 

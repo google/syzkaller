@@ -106,7 +106,8 @@ func test(t *testing.T, sysTarget *targets.Target) {
 				flatrpc.FeatureWifiEmulation |
 				flatrpc.FeatureLRWPANEmulation |
 				flatrpc.FeatureBinFmtMisc |
-				flatrpc.FeatureSwap
+				flatrpc.FeatureSwap |
+				flatrpc.FeatureMemoryDump
 			for feat, name := range flatrpc.EnumNamesFeature {
 				if features&feat != want&feat {
 					t.Errorf("expect feature %v to be %v, but it is %v",
