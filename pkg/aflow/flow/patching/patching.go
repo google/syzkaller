@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 type Inputs struct {
@@ -36,7 +37,7 @@ type Inputs struct {
 }
 
 func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
-	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool}, codesearcher.Tools...))
+	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool, grepper.Tool}, codesearcher.Tools...))
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
