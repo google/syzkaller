@@ -273,10 +273,10 @@ func TestObject(t *testing.T) {
 	firstRev := []byte("First revision")
 	secondRev := []byte("Second revision")
 
-	repo.commitChangeset("first",
-		writeFile{"object.txt", string(firstRev)})
-	repo.commitChangeset("second",
-		writeFile{"object.txt", string(secondRev)})
+	repo.CommitChangeset("first",
+		FileContent{"object.txt", string(firstRev)})
+	repo.CommitChangeset("second",
+		FileContent{"object.txt", string(secondRev)})
 
 	commits, err := repo.repo.LatestCommits("", time.Time{})
 	if err != nil {
@@ -489,8 +489,8 @@ index f70f10e..0000000
 
 func TestGitFileHashes(t *testing.T) {
 	repo := MakeTestRepo(t, t.TempDir())
-	commit1 := repo.commitChangeset("first commit", writeFile{"object.txt", "some text"})
-	commit2 := repo.commitChangeset("second commit", writeFile{"object2.txt", "some text2"})
+	commit1 := repo.CommitChangeset("first commit", FileContent{"object.txt", "some text"})
+	commit2 := repo.CommitChangeset("second commit", FileContent{"object2.txt", "some text2"})
 
 	map1, err := repo.repo.fileHashes(commit1.Hash, []string{"object.txt", "object2.txt"})
 	require.NoError(t, err)
@@ -504,17 +504,17 @@ func TestGitFileHashes(t *testing.T) {
 
 func TestBaseForDiff(t *testing.T) {
 	repo := MakeTestRepo(t, t.TempDir())
-	repo.commitChangeset("first commit",
-		writeFile{"a.txt", "content of a.txt"},
-		writeFile{"b.txt", "content of b.txt"},
+	repo.CommitChangeset("first commit",
+		FileContent{"a.txt", "content of a.txt"},
+		FileContent{"b.txt", "content of b.txt"},
 	)
-	commit2 := repo.commitChangeset("second commit",
-		writeFile{"c.txt", "content of c.txt"},
-		writeFile{"d.txt", "content of d.txt"},
+	commit2 := repo.CommitChangeset("second commit",
+		FileContent{"c.txt", "content of c.txt"},
+		FileContent{"d.txt", "content of d.txt"},
 	)
 	// Create a diff.
-	commit3 := repo.commitChangeset("third commit",
-		writeFile{"a.txt", "update a.txt"},
+	commit3 := repo.CommitChangeset("third commit",
+		FileContent{"a.txt", "update a.txt"},
 	)
 	diff, err := repo.repo.Diff(commit2.Hash, commit3.Hash)
 	require.NoError(t, err)
@@ -523,8 +523,8 @@ func TestBaseForDiff(t *testing.T) {
 		require.NoError(t, err)
 		// Create a different change on top of commit2.
 		repo.Git("checkout", "-b", "branch-a")
-		repo.commitChangeset("patch a.txt",
-			writeFile{"a.txt", "another change to a.txt"},
+		repo.CommitChangeset("patch a.txt",
+			FileContent{"a.txt", "another change to a.txt"},
 		)
 		// Yet the patch could only be applied to commit1 or commit2.
 		base, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
@@ -544,8 +544,8 @@ func TestBaseForDiff(t *testing.T) {
 		// Git does not remember milliseconds, so otherwise the commit sorting may be flaky.
 		time.Sleep(time.Second)
 		repo.Git("checkout", "-b", "branch-b")
-		commit4 := repo.commitChangeset("unrelated commit",
-			writeFile{"new.txt", "create new file"},
+		commit4 := repo.CommitChangeset("unrelated commit",
+			FileContent{"new.txt", "create new file"},
 		)
 		// Since the commit did not touch a.txt, it's the expected one.
 		base, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
