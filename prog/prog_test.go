@@ -201,7 +201,10 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 	if testing.Short() {
 		iters /= 10
 	}
-	for i := 0; i < iters; i++ {
+	// The test is de facto O(N^2) for the number of arguments in the program.
+	// Let's filter out particularly large programs to avoid timeouts.
+	const maxArgCount = 10000
+	for i := 0; i < iters; {
 		p := target.Generate(rs, 20, ct)
 		testCrossArchProg(t, p, crossTargets)
 		p, err := target.Deserialize(p.Serialize(), NonStrict)
@@ -211,6 +214,10 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 		testCrossArchProg(t, p, crossTargets)
 		p.Mutate(rs, 20, ct, nil, nil)
 		testCrossArchProg(t, p, crossTargets)
+		if p.countArgs() > maxArgCount {
+			continue
+		}
+		i++
 		p, _ = Minimize(p, -1, MinimizeCorpus, func(*Prog, int) bool {
 			return rs.Int63()%2 == 0
 		})
