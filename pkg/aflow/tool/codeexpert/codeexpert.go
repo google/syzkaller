@@ -11,7 +11,7 @@ import (
 var Tool = &aflow.LLMTool{
 	Name:        "codeexpert",
 	Model:       aflow.GoodBalancedModel,
-	Temperature: 1,
+	TaskType:    aflow.FormalReasoningTask,
 	Description: description,
 	Instruction: instruction,
 	Tools:       codesearcher.Tools,

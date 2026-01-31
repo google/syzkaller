@@ -10,7 +10,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 0,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
