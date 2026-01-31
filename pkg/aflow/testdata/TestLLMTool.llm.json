@@ -10,7 +10,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -73,7 +73,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 2,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -165,7 +165,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -256,7 +256,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 2,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -411,7 +411,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 2,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [
@@ -517,7 +517,7 @@
 				],
 				"role": "user"
 			},
-			"temperature": 1,
+			"temperature": 0.3,
 			"tools": [
 				{
 					"functionDeclarations": [

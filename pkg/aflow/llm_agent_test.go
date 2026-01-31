@@ -119,7 +119,7 @@ func TestSummaryWindow(t *testing.T) {
 		Model:         "model",
 		Reply:         "Reply",
 		SummaryWindow: 3,
-		Temperature:   0.0,
+		TaskType:      FormalReasoningTask,
 		Instruction:   "Instructions",
 		Prompt:        "Initial Prompt",
 		Tools: []Tool{
