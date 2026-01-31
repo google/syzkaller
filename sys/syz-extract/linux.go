@@ -112,6 +112,8 @@ struct kvm_sync_regs {};
 		"-e", "SECURITY_SMACK",
 		// include/net/nl802154.h does not define some consts without this.
 		"-e", "IEEE802154", "-e", "IEEE802154_NL802154_EXPERIMENTAL",
+		// Needed for socket_vnet.txt includes.
+		"-e", "VSOCKETS",
 	)
 	if err != nil {
 		return err
@@ -136,6 +138,8 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-fshort-wchar",
 		// Avoid implicit declaration errors.
 		"-Wno-implicit-function-declaration",
+		// Otherwise it does not recognize anonymous struct members.
+		"-fms-extensions",
 		// This makes the build completely hermetic, only kernel headers are used.
 		"-nostdinc",
 		"-w", "-fmessage-length=0",
