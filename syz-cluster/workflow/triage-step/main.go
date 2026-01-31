@@ -106,9 +106,15 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
 	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
-	result, err := triager.selectFromBlobs(series, trees)
+	result, err := triager.selectFromBaseCommitHint(series.BaseCommitHint, trees)
 	if err != nil {
-		return nil, fmt.Errorf("selection by blob failed: %w", err)
+		return nil, fmt.Errorf("selection by base-commit failed: %w", err)
+	}
+	if result == nil {
+		result, err = triager.selectFromBlobs(series, trees)
+		if err != nil {
+			return nil, fmt.Errorf("selection by blob failed: %w", err)
+		}
 	}
 	if result == nil {
 		result, err = triager.selectFromList(ctx, series, trees, target)
@@ -163,6 +169,23 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 	}
 	return &SelectResult{
 		Tree:   tree,
+		Commit: commit,
+		Arch:   fuzzArch,
+	}, nil
+}
+
+func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*api.Tree) (*SelectResult, error) {
+	triager.Log("attempting to use the base commit provided by author")
+	branch, err := triager.ops.BranchForCommit(commit)
+	if err != nil {
+		return nil, err
+	}
+	treeIndex, _ := triage.FindTree(trees, branch)
+	if treeIndex < 0 {
+		return nil, fmt.Errorf("failed to find tree for branch %s", branch)
+	}
+	return &SelectResult{
+		Tree:   trees[treeIndex],
 		Commit: commit,
 		Arch:   fuzzArch,
 	}, nil

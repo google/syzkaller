@@ -68,8 +68,8 @@ func filterEnv() []string {
 
 func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 	git.Reset()
-	origin, err := git.Run("remote", "get-url", "origin")
-	if err != nil || strings.TrimSpace(string(origin)) != repo {
+	origin, err := git.GetURL("origin")
+	if err != nil || strings.TrimSpace(origin) != repo {
 		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
@@ -100,6 +100,14 @@ func (git *gitRepo) Poll(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	return git.Commit(HEAD)
+}
+
+func (git Git) GetURL(branch string) (string, error) {
+	url, err := git.Run("remote", "get-url", branch)
+	if err != nil {
+		return "", err
+	}
+	return string(url), nil
 }
 
 func (git *gitRepo) isNetworkError(output []byte) bool {
@@ -752,6 +760,23 @@ type BaseCommit struct {
 	Branches []string
 }
 
+func (git Git) BranchForCommit(commit string) (branch string, err error) {
+	const cutOffDays = 60
+	branchList, err := git.BranchesThatContain(commit, time.Now().Add(-time.Hour*24*cutOffDays))
+	if err == nil {
+		return "", fmt.Errorf("failed to query branches: %w", err)
+	}
+	for _, branch := range branchList {
+		if strings.Contains(branch.Branch, "/") {
+			return branch.Branch, nil
+		}
+	}
+	if len(branchList) != 0 {
+		return branchList[0].Branch, nil
+	}
+	return "", fmt.Errorf("failed to find a branch containing commit")
+}
+
 // BaseForDiff returns a list of commits that could have been the base commit
 // for the specified git patch.
 // The returned list is minimized to only contain the commits that are represented in different
@@ -830,7 +855,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		}
 		// Only focus on branches that are still alive.
 		const cutOffDays = 60
-		list, err := git.branchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
+		list, err := git.BranchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
 		if err != nil {
 			return nil, fmt.Errorf("failed to query branches: %w", err)
 		}
@@ -924,7 +949,7 @@ type branchCommit struct {
 	Commit string
 }
 
-func (git Git) branchesThatContain(commit string, since time.Time) ([]branchCommit, error) {
+func (git Git) BranchesThatContain(commit string, since time.Time) ([]branchCommit, error) {
 	output, err := git.Run(
 		"branch", "-a",
 		"--contains", commit,
