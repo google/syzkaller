@@ -206,14 +206,6 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_add_vcpu
-// Flags for mem_region
-#define MEM_REGION_FLAG_USER_CODE (1 << 0)
-#define MEM_REGION_FLAG_DIRTY_LOG (1 << 1)
-#define MEM_REGION_FLAG_READONLY (1 << 2)
-#define MEM_REGION_FLAG_EXECUTOR_CODE (1 << 3)
-#define MEM_REGION_FLAG_GPA0 (1 << 5)
-#define MEM_REGION_FLAG_NO_HOST_MEM (1 << 6)
-#define MEM_REGION_FLAG_REMAINING (1 << 7)
 
 // SYZOS guest virtual memory layout (must be in sync with executor/kvm.h):
 static const struct mem_region syzos_mem_regions[] = {
@@ -259,6 +251,7 @@ struct kvm_syz_vm {
 	void* user_text;
 	void* gpa0_mem;
 	void* pt_pool_mem;
+	void* globals_mem;
 };
 #endif
 
@@ -1090,19 +1083,15 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 #define RFLAGS_1_BIT (1ULL << 1)
 #define RFLAGS_IF_BIT (1ULL << 9)
 
-static void reset_cpu_regs(int cpufd, int cpu_id, size_t text_size)
+static void reset_cpu_regs(int cpufd, uint64 rip)
 {
 	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
 
 	// RFLAGS.1 must be 1, RFLAGS.IF enables interrupts.
 	regs.rflags |= RFLAGS_1_BIT | RFLAGS_IF_BIT;
-	// PC points to the relative offset of guest_main() within the guest code.
-	regs.rip = executor_fn_guest_addr(guest_main);
+	regs.rip = rip;
 	regs.rsp = X86_SYZOS_ADDR_STACK0;
-	// Pass parameters to guest_main().
-	regs.rdi = text_size;
-	regs.rsi = cpu_id;
 	ioctl(cpufd, KVM_SET_REGS, &regs);
 }
 
@@ -1116,7 +1105,26 @@ static void install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, cons
 	memcpy(target, text, text_size);
 	setup_gdt_ldt_pg(vm, cpufd);
 	setup_cpuid(cpufd);
-	reset_cpu_regs(cpufd, cpu_id, text_size);
+
+	// Select the specific entry point for this VCPU ID.
+	// This allows the guest to know its ID without reading registers or CPUID.
+	uint64 entry_rip = 0;
+	if (cpu_id == 0)
+		entry_rip = executor_fn_guest_addr(guest_entry_0);
+	else if (cpu_id == 1)
+		entry_rip = executor_fn_guest_addr(guest_entry_1);
+	else if (cpu_id == 2)
+		entry_rip = executor_fn_guest_addr(guest_entry_2);
+	else if (cpu_id == 3)
+		entry_rip = executor_fn_guest_addr(guest_entry_3);
+
+	reset_cpu_regs(cpufd, entry_rip);
+
+	// Pass the text size via the shared globals page.
+	if (vm->globals_mem) {
+		struct syzos_globals* globals = (struct syzos_globals*)vm->globals_mem;
+		globals->text_sizes[cpu_id] = text_size;
+	}
 }
 #endif
 
@@ -1186,6 +1194,8 @@ static void setup_vm(int vmfd, struct kvm_syz_vm* vm)
 			vm->gpa0_mem = next.addr;
 		if (r->gpa == X86_SYZOS_ADDR_PT_POOL)
 			vm->pt_pool_mem = next.addr;
+		if (r->gpa == X86_SYZOS_ADDR_GLOBALS)
+			vm->globals_mem = next.addr;
 
 		if (r->gpa == X86_SYZOS_ADDR_BOOT_ARGS) {
 			boot_args = (struct syzos_boot_args*)next.addr;
