@@ -1,0 +1,154 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/ioctl.h>
+include <linux/dvb/frontend.h>
+
+resource fd_dvb_frontend[fd]
+
+syz_open_dev$dvb_frontend(dev ptr[in, string["/dev/dvb/adapter#/frontend#"]], id intptr, flags flags[open_flags]) fd_dvb_frontend
+ioctl$FE_SET_PROPERTY(fd fd_dvb_frontend, cmd const[FE_SET_PROPERTY], arg ptr[in, dtv_properties])
+ioctl$FE_GET_PROPERTY(fd fd_dvb_frontend, cmd const[FE_GET_PROPERTY], arg ptr[inout, dtv_properties])
+ioctl$FE_GET_INFO(fd fd_dvb_frontend, cmd const[FE_GET_INFO], arg ptr[out, dvb_frontend_info])
+ioctl$FE_READ_STATUS(fd fd_dvb_frontend, cmd const[FE_READ_STATUS], arg ptr[out, flags[fe_status, int32]])
+ioctl$FE_DISEQC_RESET_OVERLOAD(fd fd_dvb_frontend, cmd const[FE_DISEQC_RESET_OVERLOAD], arg const[0])
+ioctl$FE_DISEQC_SEND_MASTER_CMD(fd fd_dvb_frontend, cmd const[FE_DISEQC_SEND_MASTER_CMD], arg ptr[in, dvb_diseqc_master_cmd])
+ioctl$FE_DISEQC_SEND_BURST(fd fd_dvb_frontend, cmd const[FE_DISEQC_SEND_BURST], arg ptr[in, flags[fe_sec_mini_cmd, int32]])
+ioctl$FE_SET_TONE(fd fd_dvb_frontend, cmd const[FE_SET_TONE], arg ptr[in, flags[fe_sec_tone_mode, int32]])
+ioctl$FE_SET_VOLTAGE(fd fd_dvb_frontend, cmd const[FE_SET_VOLTAGE], arg ptr[in, flags[fe_sec_voltage, int32]])
+ioctl$FE_DISEQC_RECV_SLAVE_REPLY(fd fd_dvb_frontend, cmd const[FE_DISEQC_RECV_SLAVE_REPLY], arg ptr[out, dvb_diseqc_slave_reply])
+ioctl$FE_ENABLE_HIGH_LNB_VOLTAGE(fd fd_dvb_frontend, cmd const[FE_ENABLE_HIGH_LNB_VOLTAGE], arg intptr)
+ioctl$FE_SET_FRONTEND_TUNE_MODE(fd fd_dvb_frontend, cmd const[FE_SET_FRONTEND_TUNE_MODE], arg ptr[in, flags[fe_tune_mode, intptr]])
+ioctl$FE_DISHNETWORK_SEND_LEGACY_CMD(fd fd_dvb_frontend, cmd const[FE_DISHNETWORK_SEND_LEGACY_CMD], arg intptr)
+ioctl$FE_READ_BER(fd fd_dvb_frontend, cmd const[FE_READ_BER], arg ptr[out, int32])
+ioctl$FE_READ_SIGNAL_STRENGTH(fd fd_dvb_frontend, cmd const[FE_READ_SIGNAL_STRENGTH], arg ptr[out, int32])
+ioctl$FE_READ_SNR(fd fd_dvb_frontend, cmd const[FE_READ_SNR], arg ptr[out, int32])
+ioctl$FE_READ_UNCORRECTED_BLOCKS(fd fd_dvb_frontend, cmd const[FE_READ_UNCORRECTED_BLOCKS], arg ptr[out, int32])
+ioctl$FE_SET_FRONTEND(fd fd_dvb_frontend, cmd const[FE_SET_FRONTEND], arg ptr[in, dvb_frontend_parameters])
+ioctl$FE_GET_EVENT(fd fd_dvb_frontend, cmd const[FE_GET_EVENT], arg ptr[out, dvb_frontend_event])
+ioctl$FE_GET_FRONTEND(fd fd_dvb_frontend, cmd const[FE_GET_FRONTEND], arg ptr[out, dvb_frontend_parameters])
+
+dtv_property_cmd = DTV_UNDEFINED, DTV_TUNE, DTV_CLEAR, DTV_FREQUENCY, DTV_MODULATION, DTV_BANDWIDTH_HZ, DTV_INVERSION, DTV_DISEQC_MASTER, DTV_SYMBOL_RATE, DTV_INNER_FEC, DTV_VOLTAGE, DTV_TONE, DTV_PILOT, DTV_ROLLOFF, DTV_DISEQC_SLAVE_REPLY, DTV_FE_CAPABILITY_COUNT, DTV_FE_CAPABILITY, DTV_DELIVERY_SYSTEM, DTV_ISDBT_PARTIAL_RECEPTION, DTV_ISDBT_SOUND_BROADCASTING, DTV_ISDBT_SB_SUBCHANNEL_ID, DTV_ISDBT_SB_SEGMENT_IDX, DTV_ISDBT_SB_SEGMENT_COUNT, DTV_ISDBT_LAYERA_FEC, DTV_ISDBT_LAYERA_MODULATION, DTV_ISDBT_LAYERA_SEGMENT_COUNT, DTV_ISDBT_LAYERA_TIME_INTERLEAVING, DTV_ISDBT_LAYERB_FEC, DTV_ISDBT_LAYERB_MODULATION, DTV_ISDBT_LAYERB_SEGMENT_COUNT, DTV_ISDBT_LAYERB_TIME_INTERLEAVING, DTV_ISDBT_LAYERC_FEC, DTV_ISDBT_LAYERC_MODULATION, DTV_ISDBT_LAYERC_SEGMENT_COUNT, DTV_ISDBT_LAYERC_TIME_INTERLEAVING, DTV_CODE_RATE_HP, DTV_CODE_RATE_LP, DTV_GUARD_INTERVAL, DTV_TRANSMISSION_MODE, DTV_HIERARCHY, DTV_ISDBT_LAYER_ENABLED, DTV_STREAM_ID, DTV_DVBT2_PLP_ID_LEGACY, DTV_ENUM_DELSYS, DTV_ATSCMH_FIC_VER, DTV_ATSCMH_PARADE_ID, DTV_ATSCMH_NOG, DTV_ATSCMH_TNOG, DTV_ATSCMH_SGN, DTV_ATSCMH_PRC, DTV_ATSCMH_RS_FRAME_MODE, DTV_ATSCMH_RS_FRAME_ENSEMBLE, DTV_ATSCMH_RS_CODE_MODE_PRI, DTV_ATSCMH_RS_CODE_MODE_SEC, DTV_ATSCMH_SCCC_BLOCK_MODE, DTV_ATSCMH_SCCC_CODE_MODE_A, DTV_ATSCMH_SCCC_CODE_MODE_B, DTV_ATSCMH_SCCC_CODE_MODE_C, DTV_ATSCMH_SCCC_CODE_MODE_D, DTV_INTERLEAVING, DTV_LNA, DTV_STAT_SIGNAL_STRENGTH, DTV_STAT_CNR, DTV_STAT_PRE_ERROR_BIT_COUNT, DTV_STAT_PRE_TOTAL_BIT_COUNT, DTV_STAT_POST_ERROR_BIT_COUNT, DTV_STAT_POST_TOTAL_BIT_COUNT, DTV_STAT_ERROR_BLOCK_COUNT, DTV_STAT_TOTAL_BLOCK_COUNT, DTV_SCRAMBLING_SEQUENCE_INDEX
+fe_type = FE_QPSK, FE_QAM, FE_OFDM, FE_ATSC
+fe_caps = FE_IS_STUPID, FE_CAN_INVERSION_AUTO, FE_CAN_FEC_1_2, FE_CAN_FEC_2_3, FE_CAN_FEC_3_4, FE_CAN_FEC_4_5, FE_CAN_FEC_5_6, FE_CAN_FEC_6_7, FE_CAN_FEC_7_8, FE_CAN_FEC_8_9, FE_CAN_FEC_AUTO, FE_CAN_QPSK, FE_CAN_QAM_16, FE_CAN_QAM_32, FE_CAN_QAM_64, FE_CAN_QAM_128, FE_CAN_QAM_256, FE_CAN_QAM_AUTO, FE_CAN_TRANSMISSION_MODE_AUTO, FE_CAN_BANDWIDTH_AUTO, FE_CAN_GUARD_INTERVAL_AUTO, FE_CAN_HIERARCHY_AUTO, FE_CAN_8VSB, FE_CAN_16VSB, FE_HAS_EXTENDED_CAPS, FE_CAN_MULTISTREAM, FE_CAN_TURBO_FEC, FE_CAN_2G_MODULATION, FE_NEEDS_BENDING, FE_CAN_RECOVER, FE_CAN_MUTE_TS
+fe_status = FE_NONE, FE_HAS_SIGNAL, FE_HAS_CARRIER, FE_HAS_VITERBI, FE_HAS_SYNC, FE_HAS_LOCK, FE_TIMEDOUT, FE_REINIT
+fe_sec_mini_cmd = SEC_MINI_A, SEC_MINI_B
+fe_sec_tone_mode = SEC_TONE_ON, SEC_TONE_OFF
+fe_sec_voltage = SEC_VOLTAGE_13, SEC_VOLTAGE_18, SEC_VOLTAGE_OFF
+fe_tune_mode = FE_TUNE_MODE_ONESHOT
+fe_spectral_inversion = INVERSION_OFF, INVERSION_ON, INVERSION_AUTO
+fe_code_rate = FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_4_5, FEC_5_6, FEC_6_7, FEC_7_8, FEC_8_9, FEC_AUTO, FEC_3_5, FEC_9_10, FEC_2_5, FEC_1_3, FEC_1_4, FEC_5_9, FEC_7_9, FEC_8_15, FEC_11_15, FEC_13_18, FEC_9_20, FEC_11_20, FEC_23_36, FEC_25_36, FEC_13_45, FEC_26_45, FEC_28_45, FEC_32_45, FEC_77_90, FEC_11_45, FEC_4_15, FEC_14_45, FEC_7_15
+fe_modulation = QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO, VSB_8, VSB_16, PSK_8, APSK_16, APSK_32, DQPSK, QAM_4_NR, QAM_1024, QAM_4096, APSK_8_L, APSK_16_L, APSK_32_L, APSK_64, APSK_64_L
+fe_transmit_mode = TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K, TRANSMISSION_MODE_AUTO, TRANSMISSION_MODE_4K, TRANSMISSION_MODE_1K, TRANSMISSION_MODE_16K, TRANSMISSION_MODE_32K, TRANSMISSION_MODE_C1, TRANSMISSION_MODE_C3780
+fe_guard_interval = GUARD_INTERVAL_1_32, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_4, GUARD_INTERVAL_AUTO, GUARD_INTERVAL_1_128, GUARD_INTERVAL_19_128, GUARD_INTERVAL_19_256, GUARD_INTERVAL_PN420, GUARD_INTERVAL_PN595, GUARD_INTERVAL_PN945, GUARD_INTERVAL_1_64
+fe_hierarchy = HIERARCHY_NONE, HIERARCHY_1, HIERARCHY_2, HIERARCHY_4, HIERARCHY_AUTO
+fecap_scale = FE_SCALE_NOT_AVAILABLE, FE_SCALE_DECIBEL, FE_SCALE_RELATIVE, FE_SCALE_COUNTER
+fe_bandwidth = BANDWIDTH_8_MHZ, BANDWIDTH_7_MHZ, BANDWIDTH_6_MHZ, BANDWIDTH_AUTO, BANDWIDTH_5_MHZ, BANDWIDTH_10_MHZ, BANDWIDTH_1_712_MHZ
+
+dtv_properties {
+	num	int32[0:DTV_IOCTL_MAX_MSGS]
+	props	ptr[in, array[dtv_property]]
+}
+
+dtv_property {
+	cmd		flags[dtv_property_cmd, int32]
+	reserved	array[const[0, int32], 3]
+	u		dtv_property_u
+	result		int32
+} [packed]
+
+dtv_property_u [
+	data	int32
+	st	dtv_fe_stats
+	buffer	dtv_property_u_buffer
+]
+
+dtv_fe_stats {
+	len	len[stat, int8]
+	stat	array[dtv_stats, MAX_DTV_STATS]
+}
+
+dtv_property_u_buffer {
+	data		array[int8, 32]
+	len		len[data, int32]
+	reserved1	array[const[0, int32], 3]
+	reserved2	const[0, intptr]
+}
+
+dtv_stats {
+	scale	flags[fecap_scale, int8]
+	u	dtv_stats_u
+} [packed]
+
+dtv_stats_u [
+	uvalue	int64
+	svalue	int64
+]
+
+dvb_frontend_info {
+	name			array[int8, 128]
+	type			flags[fe_type, int32]
+	frequency_min		int32
+	frequency_max		int32
+	frequency_stepsize	int32
+	frequency_tolerance	int32
+	symbol_rate_min		int32
+	symbol_rate_max		int32
+	symbol_rate_tolerance	int32
+	notifier_delay		int32
+	caps			flags[fe_caps, int32]
+}
+
+dvb_diseqc_master_cmd {
+	msg	array[int8, 6]
+	msg_len	len[msg, int8]
+}
+
+dvb_diseqc_slave_reply {
+	msg	array[int8, 4]
+	msg_len	len[msg, int8]
+	timeout	int32
+}
+
+dvb_qpsk_parameters {
+	symbol_rate	int32
+	fec_inner	flags[fe_code_rate, int32]
+}
+
+dvb_qam_parameters {
+	symbol_rate	int32
+	fec_inner	flags[fe_code_rate, int32]
+	modulation	flags[fe_modulation, int32]
+}
+
+dvb_ofdm_parameters {
+	bandwidth		flags[fe_bandwidth, int32]
+	code_rate_HP		flags[fe_code_rate, int32]
+	code_rate_LP		flags[fe_code_rate, int32]
+	constellation		flags[fe_modulation, int32]
+	transmission_mode	flags[fe_transmit_mode, int32]
+	guard_interval		flags[fe_guard_interval, int32]
+	hierarchy_information	flags[fe_hierarchy, int32]
+}
+
+dvb_vsb_parameters {
+	modulation	flags[fe_modulation, int32]
+}
+
+dvb_frontend_parameters {
+	frequency	int32
+	inversion	flags[fe_spectral_inversion, int32]
+	u		dvb_frontend_parameters_u
+}
+
+dvb_frontend_parameters_u [
+	qpsk	dvb_qpsk_parameters
+	qam	dvb_qam_parameters
+	ofdm	dvb_ofdm_parameters
+	vsb	dvb_vsb_parameters
+]
+
+dvb_frontend_event {
+	status		flags[fe_status, int32]
+	parameters	dvb_frontend_parameters
+}
