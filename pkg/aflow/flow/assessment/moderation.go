@@ -8,6 +8,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
 type moderationInputs struct {
@@ -46,7 +47,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: moderationInstruction,
 					Prompt:      moderationPrompt,
-					Tools:       codesearcher.Tools,
+					Tools:       append(codesearcher.Tools, grepper.Tool),
 				},
 			),
 		},
