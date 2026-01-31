@@ -52,6 +52,17 @@ func (p *Prog) FilterInplace(allowed map[*Syscall]bool) {
 	}
 }
 
+// countArgs is used in tests to filter out particularly large programs.
+func (p *Prog) countArgs() int {
+	total := 0
+	for _, call := range p.Calls {
+		ForeachArg(call, func(_ Arg, _ *ArgCtx) {
+			total++
+		})
+	}
+	return total
+}
+
 // These properties are parsed and serialized according to the tag and the type
 // of the corresponding fields.
 // IMPORTANT: keep the exact values of "key" tag for existing props unchanged,
