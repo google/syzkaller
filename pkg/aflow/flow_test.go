@@ -105,7 +105,7 @@ func TestWorkflow(t *testing.T) {
 				Model:       "model1",
 				Reply:       "OutFoo",
 				Outputs:     LLMOutputs[agentOutputs](),
-				Temperature: 0,
+				TaskType:    FormalReasoningTask,
 				Instruction: "You are smarty. {{.InBaz}}",
 				Prompt:      "Prompt: {{.InBaz}} {{.TmpFuncOutput}}",
 				Tools: []Tool{
@@ -143,7 +143,7 @@ func TestWorkflow(t *testing.T) {
 				Reply:       "OutSwarm",
 				Candidates:  2,
 				Outputs:     LLMOutputs[swarmOutputs](),
-				Temperature: 0,
+				TaskType:    FormalReasoningTask,
 				Instruction: "Do something. {{.InBaz}}",
 				Prompt:      "Prompt: {{.InBaz}}",
 			},
@@ -151,7 +151,7 @@ func TestWorkflow(t *testing.T) {
 				Name:        "aggregator",
 				Model:       "model3",
 				Reply:       "OutAggregator",
-				Temperature: 0,
+				TaskType:    FormalReasoningTask,
 				Instruction: "Aggregate!",
 				Prompt: `Prompt: {{.InBaz}}
 {{range $i, $v := .OutSwarm}}#{{$i}}: {{$v}}
@@ -322,10 +322,10 @@ func TestToolMisbehavior(t *testing.T) {
 		},
 		Pipeline(
 			&LLMAgent{
-				Name:        "smarty",
-				Model:       "model",
-				Temperature: 0.5,
-				Reply:       "Reply",
+				Name:     "smarty",
+				Model:    "model",
+				TaskType: FormalReasoningTask,
+				Reply:    "Reply",
 
 				Outputs: LLMOutputs[struct {
 					AdditionalOutput int `jsonschema:"arg"`

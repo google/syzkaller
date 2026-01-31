@@ -43,7 +43,7 @@ func init() {
 						Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
 						Actionable bool `jsonschema:"If the report is actionable or not."`
 					}](),
-					Temperature: 1,
+					TaskType:    aflow.FormalReasoningTask,
 					Instruction: moderationInstruction,
 					Prompt:      moderationPrompt,
 					Tools:       codesearcher.Tools,
