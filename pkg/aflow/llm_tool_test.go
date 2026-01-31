@@ -27,7 +27,7 @@ func TestLLMTool(t *testing.T) {
 			&LLMAgent{
 				Name:        "smarty",
 				Model:       "model",
-				Temperature: 1,
+				TaskType:    FormalReasoningTask,
 				Reply:       "Reply",
 				Instruction: "Do something!",
 				Prompt:      "Prompt",
@@ -35,7 +35,7 @@ func TestLLMTool(t *testing.T) {
 					&LLMTool{
 						Name:        "researcher",
 						Model:       "sub-agent-model",
-						Temperature: 2,
+						TaskType:    FormalReasoningTask,
 						Description: "researcher description",
 						Instruction: "researcher instruction",
 						Tools: []Tool{

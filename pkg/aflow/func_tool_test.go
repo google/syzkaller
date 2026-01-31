@@ -23,7 +23,7 @@ func TestToolErrors(t *testing.T) {
 			Name:        "smarty",
 			Model:       "model",
 			Reply:       "Reply",
-			Temperature: 0,
+			TaskType:    FormalReasoningTask,
 			Instruction: "Do something!",
 			Prompt:      "Prompt",
 			Tools: []Tool{

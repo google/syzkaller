@@ -32,11 +32,8 @@ type LLMAgent struct {
 	// Optional additional structured outputs besides the final text reply.
 	// Use LLMOutputs function to create it.
 	Outputs *llmOutputs
-	// Value that controls the degree of randomness in token selection.
-	// Lower temperatures are good for prompts that require a less open-ended or creative response,
-	// while higher temperatures can lead to more diverse or creative results.
-	// Must be assigned a number in the range [0, 2].
-	Temperature any
+	// Task type controls various LLM parameters, see TaskType consts below.
+	TaskType TaskType
 	// If set, the agent will generate that many candidates and the outputs will be arrays
 	// instead of scalars.
 	Candidates int
@@ -59,6 +56,27 @@ const (
 	BestExpensiveModel = "gemini-3-pro-preview"
 	GoodBalancedModel  = "gemini-3-flash-preview"
 )
+
+type TaskType int
+
+const (
+	FormalReasoningTask TaskType = iota + 1
+)
+
+// Currently we use task type to control temperature only,
+// but potentially we can use it to control other parameters too
+// (TopN, TopK, etc).
+// Temperature controls the degree of randomness in token selection.
+// Lower temperatures are good for prompts that require less open-ended
+// or creative responses, while higher temperatures can lead to more
+// diverse or creative results. The default temperature is 1,
+// for Gemini models in value range is [0, 2].
+var taskParameters = map[TaskType]float32{
+	// The amount of thought put into this number is low.
+	// It's basically just "we want something less random
+	// for formal tasks like coding/debugging".
+	FormalReasoningTask: 0.3,
+}
 
 // Tool represents a custom tool an LLMAgent can invoke.
 // Use NewFuncTool to create function-based tools.
@@ -332,7 +350,7 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 	}
 	return &genai.GenerateContentConfig{
 		ResponseModalities: []string{"TEXT"},
-		Temperature:        genai.Ptr(float32(a.Temperature.(float64))),
+		Temperature:        genai.Ptr(taskParameters[a.TaskType]),
 		SystemInstruction:  genai.NewContentFromText(instruction, genai.RoleUser),
 		Tools:              tools,
 	}, instruction, toolMap
@@ -551,11 +569,8 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
 	ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
-	if temp, ok := a.Temperature.(int); ok {
-		a.Temperature = float64(temp)
-	}
-	if temp, ok := a.Temperature.(float64); !ok || temp < 0 || temp > 2 {
-		ctx.errorf(a.Name, "Temperature must be a number in the range [0, 2]")
+	if _, ok := taskParameters[a.TaskType]; !ok {
+		ctx.errorf(a.Name, "bad or missing TaskType (%v)", a.TaskType)
 	}
 	if a.Candidates < 0 || a.Candidates > 100 {
 		ctx.errorf(a.Name, "Candidates must be in the range [0, 100]")
