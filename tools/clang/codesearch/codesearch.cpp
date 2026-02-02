@@ -161,6 +161,21 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
+
+  // Clang's SourceRange begin and end locations can resolve to different files
+  // when a declaration is produced by nested macro expansions (e.g. Linux kernel
+  // DEFINE_MUTEX, DEFINE_PER_CPU). This happens because getExpansionLoc()
+  // resolves each token independently to its outermost call site, and with
+  // multi-level macros the opening and closing tokens of the range may originate
+  // from different headers. EndLine < StartLine can occur when the end location
+  // is invalid or synthetic (e.g. compiler-generated declarations). In both
+  // cases, clamp to a single line so the database always records a valid,
+  // same-file range anchored at the macro invocation site.
+  if (EndLine < StartLine ||
+      SM.getFileID(SM.getExpansionLoc(Range.getBegin())) != SM.getFileID(SM.getExpansionLoc(Range.getEnd()))) {
+    EndLine = StartLine;
+  }
+
   Def = Definition{
       .Kind = Kind,
       .Name = Decl->getNameAsString(),
@@ -215,6 +230,15 @@ bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
 }
 
 bool Indexer::TraverseVarDecl(VarDecl* Decl) {
+  if (Decl->isFileVarDecl() && Decl->isThisDeclarationADefinition() == VarDecl::Definition) {
+    // Preserves whether this variable can be referenced from other translation
+    // units. A static global (internal linkage) is only referenceable within
+    // its own file, while a non-static global (external linkage) can be
+    // referenced from anywhere in the kernel.
+    const bool IsInternalLinkage = Decl->getStorageClass() == SC_Static;
+    NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(), IsInternalLinkage);
+  }
+
   ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
   return Base::TraverseVarDecl(Decl);
 }

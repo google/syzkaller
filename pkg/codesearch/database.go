@@ -60,7 +60,7 @@ const (
 	EntityKindFunction
 	EntityKindStruct
 	EntityKindUnion
-	EntityKindVariable
+	EntityKindGlobalVariable
 	EntityKindMacro
 	EntityKindEnum
 	EntityKindTypedef
@@ -69,14 +69,14 @@ const (
 )
 
 var entityKindNames = [...]string{
-	EntityKindFunction: "function",
-	EntityKindStruct:   "struct",
-	EntityKindUnion:    "union",
-	EntityKindVariable: "variable",
-	EntityKindMacro:    "macro",
-	EntityKindEnum:     "enum",
-	EntityKindTypedef:  "typedef",
-	EntityKindField:    "field",
+	EntityKindFunction:       "function",
+	EntityKindStruct:         "struct",
+	EntityKindUnion:          "union",
+	EntityKindGlobalVariable: "global_variable",
+	EntityKindMacro:          "macro",
+	EntityKindEnum:           "enum",
+	EntityKindTypedef:        "typedef",
+	EntityKindField:          "field",
 }
 
 var entityKindBytes = func() [entityKindLast][]byte {
