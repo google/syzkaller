@@ -44,14 +44,14 @@ func TestLocalUI(t *testing.T) {
 	}
 	c := NewSpannerCtx(t)
 	defer c.Close()
-	checkConfig(localUIConfig)
+	checkConfig(testConfig)
 	c.transformContext = func(ctx context.Context) context.Context {
-		return contextWithConfig(ctx, localUIConfig)
+		return contextWithConfig(ctx, testConfig)
 	}
 	ln, err := net.Listen("tcp4", *flagLocalUIAddr)
 	require.NoError(t, err)
 	url := fmt.Sprintf("http://%v", ln.Addr())
-	exec.Command("xdg-open", url+"/linux").Start()
+	exec.Command("xdg-open", url+"/test1").Start()
 	go func() {
 		populateLocalUIDB(t, c)
 		// Let the dev_appserver print tons of unuseful garbage to the console
@@ -75,41 +75,6 @@ func TestLocalUI(t *testing.T) {
 		aetest.Login(makeUser(AuthorizedAdmin), req)
 		http.DefaultServeMux.ServeHTTP(w, req)
 	})))
-}
-
-var localUIConfig = &GlobalConfig{
-	AccessLevel:      AccessPublic,
-	DefaultNamespace: "linux",
-	Namespaces: map[string]*Config{
-		"linux": {
-			DisplayTitle: "Linux",
-			AccessLevel:  AccessPublic,
-			AI:           true,
-			Key:          password1,
-			Clients: map[string]string{
-				client1: password1,
-			},
-			Repos: []KernelRepo{
-				{
-					URL:    "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
-					Branch: "master",
-					Alias:  "upstream",
-				},
-			},
-			Reporting: []Reporting{
-				{
-					AccessLevel: AccessPublic,
-					Name:        "email-reporting",
-					DailyLimit:  1000,
-					Config: &EmailConfig{
-						Email:            "test@syzkaller.com",
-						HandleListEmails: true,
-						SubjectPrefix:    "[syzbot]",
-					},
-				},
-			},
-		},
-	},
 }
 
 func populateLocalUIDB(t *testing.T, c *Ctx) {

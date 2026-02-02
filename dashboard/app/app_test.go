@@ -72,6 +72,7 @@ var testConfig = &GlobalConfig{
 	Namespaces: map[string]*Config{
 		"test1": {
 			AccessLevel:           AccessAdmin,
+			AI:                    true,
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
 			SimilarityDomain:      testDomain,
