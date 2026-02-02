@@ -225,6 +225,9 @@ type Config struct {
 	// More details can be found in pkg/asset/config.go.
 	AssetStorage *asset.Config `json:"asset_storage"`
 
+	// MemoryDump enables feature to dump memory of the target VM on crash.
+	MemoryDump bool `json:"memory_dump"`
+
 	// Experimental options.
 	Experimental Experimental
 

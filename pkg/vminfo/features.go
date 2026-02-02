@@ -115,6 +115,9 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 	if feat := features[flatrpc.FeatureCoverage]; ctx.cfg.Cover && !feat.Enabled {
 		return features, fmt.Errorf("coverage is not supported: %v", feat.Reason)
 	}
+	if feat := features[flatrpc.FeatureMemoryDump]; ctx.cfg.MemoryDump && !feat.Enabled {
+		return features, fmt.Errorf("memory dump is not supported: %v", feat.Reason)
+	}
 	return features, nil
 }
 
@@ -171,6 +174,7 @@ func (ctx *checkContext) featureToFlags(feat flatrpc.Feature) (flatrpc.ExecEnv, 
 	case flatrpc.FeatureLRWPANEmulation:
 	case flatrpc.FeatureBinFmtMisc:
 	case flatrpc.FeatureSwap:
+	case flatrpc.FeatureMemoryDump:
 	default:
 		panic(fmt.Sprintf("unknown feature %v", flatrpc.EnumNamesFeature[feat]))
 	}

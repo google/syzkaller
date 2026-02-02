@@ -51,6 +51,7 @@ type Config struct {
 	Syscalls   []int
 	Debug      bool
 	Cover      bool
+	MemoryDump bool
 	Sandbox    flatrpc.ExecEnv
 	SandboxArg int64
 }

@@ -164,7 +164,7 @@ func (inst *instance) SetupSnapshot(input []byte) error {
 	// Tell executor that we are ready to snapshot and wait for an ack.
 	inst.header.UpdateState(flatrpc.SnapshotStateHandshake)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateHandshake, 10*time.Minute) {
-		return fmt.Errorf("executor does not start snapshot handshake\n%s", inst.readOutput())
+		return fmt.Errorf("executor does not start snapshot handshake\n%s", inst.readSnapshotOutput())
 	}
 	if _, err := inst.hmp("migrate_set_capability x-ignore-shared on", 0); err != nil {
 		return err
@@ -177,7 +177,7 @@ func (inst *instance) SetupSnapshot(input []byte) error {
 	}
 	inst.header.UpdateState(flatrpc.SnapshotStateSnapshotted)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateSnapshotted, time.Minute) {
-		return fmt.Errorf("executor has not confirmed snapshot handshake\n%s", inst.readOutput())
+		return fmt.Errorf("executor has not confirmed snapshot handshake\n%s", inst.readSnapshotOutput())
 	}
 	return nil
 }
@@ -188,7 +188,7 @@ func (inst *instance) RunSnapshot(timeout time.Duration, input []byte) (result, 
 	inst.header.OutputSize = 0
 	inst.header.UpdateState(flatrpc.SnapshotStateExecute)
 	if _, err := inst.hmp("loadvm syz", 0); err != nil {
-		return nil, nil, fmt.Errorf("%w\n%s", err, inst.readOutput())
+		return nil, nil, fmt.Errorf("%w\n%s", err, inst.readSnapshotOutput())
 	}
 	inst.waitSnapshotStateChange(flatrpc.SnapshotStateExecute, timeout)
 	resStart := int(flatrpc.ConstMaxInputSize) + int(atomic.LoadUint32(&inst.header.OutputOffset))
@@ -197,7 +197,7 @@ func (inst *instance) RunSnapshot(timeout time.Duration, input []byte) (result, 
 	if resEnd <= len(inst.shmem) {
 		res = inst.shmem[resStart:resEnd:resEnd]
 	}
-	output = inst.readOutput()
+	output = inst.readSnapshotOutput()
 	return res, output, nil
 }
 
@@ -224,23 +224,15 @@ func (inst *instance) waitSnapshotStateChange(state flatrpc.SnapshotState, timeo
 	}
 }
 
-func (inst *instance) readOutput() []byte {
-	var output []byte
-	// If output channel has overflown, then wait for more output from the merger goroutine.
-	wait := cap(inst.merger.Output)
-	for {
-		select {
-		case out := <-inst.merger.Output:
-			output = append(output, out...)
-			wait--
-		default:
-			if wait > 0 {
-				return output
-			}
-			// After the first overflow we wait after every read because the goroutine
-			// may be running and sending more output to the channel concurrently.
-			wait = 1
-			time.Sleep(10 * time.Millisecond)
+func (inst *instance) readSnapshotOutput() []byte {
+	output, _ := inst.consoleReader.ReadAll()
+	for len(output) > 0 {
+		time.Sleep(10 * time.Millisecond)
+		more, _ := inst.consoleReader.ReadAll()
+		if len(more) == 0 {
+			break
 		}
+		output = append(output, more...)
 	}
+	return output
 }
