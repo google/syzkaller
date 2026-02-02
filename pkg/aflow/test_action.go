@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAction(t *testing.T, a Action, initArgs, wantResults any, wantError string) {
+func TestAction(t *testing.T, a Action, workdir string, initArgs, wantResults any, wantError string) {
 	type tester interface {
 		testVerify(t *testing.T, ctx *verifyContext, args, results any) (
 			map[string]any, map[string]any, func(map[string]any) map[string]any)
@@ -22,6 +22,7 @@ func TestAction(t *testing.T, a Action, initArgs, wantResults any, wantError str
 	// We don't init all fields, init more, if necessary.
 	ctx := &Context{
 		state:   args,
+		Workdir: workdir,
 		onEvent: func(*trajectory.Span) error { return nil },
 		stubContext: stubContext{
 			timeNow: time.Now,

@@ -114,7 +114,6 @@ func maintainers(ctx *aflow.Context, args maintainersArgs) (maintainersResult, e
 var getRecentCommits = aflow.NewFuncAction("get-recent-commits", recentCommits)
 
 type recentCommitsArgs struct {
-	KernelSrc    string
 	KernelCommit string
 	PatchDiff    string
 }
@@ -132,11 +131,16 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 	if len(files) == 0 {
 		return res, aflow.FlowError(errors.New("patch diff does not contain any modified files"))
 	}
-	gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
-	output, err := osutil.RunCmd(10*time.Minute, args.KernelSrc, "git", gitArgs...)
-	if err != nil {
-		return res, aflow.FlowError(fmt.Errorf("%w\n%s", err, output))
-	}
-	res.RecentCommits = string(output)
-	return res, nil
+	// We need to run git log in the master git repo b/c out KernelSrc/KernelScratchSrc
+	// are shallow checkouts that don't have history.
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, _ vcs.Repo) error {
+		gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
+		output, err := osutil.RunCmd(10*time.Minute, kernelRepoDir, "git", gitArgs...)
+		if err != nil {
+			return aflow.FlowError(fmt.Errorf("%w\n%s", err, output))
+		}
+		res.RecentCommits = string(output)
+		return nil
+	})
+	return res, err
 }
