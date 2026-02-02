@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecentCommits(t *testing.T) {
@@ -17,8 +19,11 @@ func TestRecentCommits(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("skipping on CI because of shallow git checkout")
 	}
-	aflow.TestAction(t, getRecentCommits, recentCommitsArgs{
-		KernelSrc:    filepath.FromSlash("../../../.."),
+	dir := t.TempDir()
+	require.NoError(t, osutil.MkdirAll(filepath.Join(dir, "repo")))
+	require.NoError(t, os.Symlink(osutil.Abs(filepath.FromSlash("../../../..")),
+		filepath.Join(dir, "repo", "linux")))
+	aflow.TestAction(t, getRecentCommits, dir, recentCommitsArgs{
 		KernelCommit: "e01a0ca6c12c9851ea7090f13879255ef82291e7",
 		PatchDiff: `
 diff --git a/dashboard/app/ai.go b/dashboard/app/ai.go
