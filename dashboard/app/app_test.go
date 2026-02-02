@@ -36,6 +36,16 @@ func init() {
 	notifyAboutUnsuccessfulBisections = true
 	ensureConfigImmutability = true
 	initMocks()
+	// Insert namespaces from localUIConfig into testConfig.
+	// This is required b/c main.go registers HTTP handlers for all namespaces
+	// in the main installed config only, so if we don't do that the localUIConfig
+	// namespaces won't have handlers. // It's not important if there are duplicates
+	// b/c registration code mostly looks at namespace names.
+	for ns, cfg := range localUIConfig.Namespaces {
+		if testConfig.Namespaces[ns] == nil {
+			testConfig.Namespaces[ns] = cfg
+		}
+	}
 	installConfig(testConfig)
 }
 
