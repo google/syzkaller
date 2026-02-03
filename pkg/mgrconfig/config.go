@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	SeedSelectionWeighted = "weighted"
-	SeedSelectionRandomPC = "random_pc"
+	SeedSelectionWeighted   = "weighted"
+	SeedSelectionRandomPC   = "random_pc"
+	SeedSelectionWeightedPC = "weighted_pc"
 )
 
 type Config struct {
