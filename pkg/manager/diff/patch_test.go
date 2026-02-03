@@ -57,14 +57,16 @@ index 103167d..fbf7a68 100644
 			Filter: mgrconfig.CovFilterCfg{
 				Functions: []string{"^function$"},
 			},
-			Weight: 6.0,
+			SeedSelection: mgrconfig.SeedSelectionRandomPC,
+			Weight:        6.0,
 		},
 		{
 			Name: filesArea,
 			Filter: mgrconfig.CovFilterCfg{
 				Files: []string{"b.c", "header.h"},
 			},
-			Weight: 3.0,
+			SeedSelection: mgrconfig.SeedSelectionRandomPC,
+			Weight:        3.0,
 		},
 		{
 			Name: includesArea,
