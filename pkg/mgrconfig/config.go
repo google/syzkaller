@@ -9,6 +9,11 @@ import (
 	"github.com/google/syzkaller/pkg/asset"
 )
 
+const (
+	SeedSelectionWeighted = "weighted"
+	SeedSelectionRandomPC = "random_pc"
+)
+
 type Config struct {
 	// Instance name (used for identification and as GCE instance prefix).
 	Name string `json:"name"`
@@ -278,6 +283,12 @@ type FocusArea struct {
 
 	// Weight is a positive number that determines how much focus should be put on this area.
 	Weight float64 `json:"weight"`
+
+	// Defines how the next specific candidate is selected from the corpus.
+	// Supported values:
+	// - "weighted": (default) prioritize programs that cover more new bits (WeightedSelection)
+	// - "random_pc": prioritize programs that cover "rare" paths (RandomPCSelection)
+	SeedSelection string `json:"seed_selection,omitempty"`
 }
 
 type Subsystem struct {

@@ -13,7 +13,7 @@ func (corpus *Corpus) Minimize(cover bool) {
 	corpus.mu.Lock()
 	defer corpus.mu.Unlock()
 
-	inputs := make([]signal.Context, 0, len(corpus.selection.Programs()))
+	inputs := make([]signal.Context, 0, len(corpus.progsMap))
 	for _, inp := range corpus.progsMap {
 		inputs = append(inputs, signal.Context{
 			Signal:  inp.Signal,
@@ -40,9 +40,10 @@ func (corpus *Corpus) Minimize(cover bool) {
 	corpus.progsMap = make(map[string]*Item)
 
 	// Overwrite the program lists.
+	// Overwrite the program lists.
 	corpus.selection = corpus.selection.Empty()
 	for _, area := range corpus.focusAreas {
-		area.selection = &WeightedSelection{}
+		area.selection = area.selection.Empty()
 	}
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(*Item)

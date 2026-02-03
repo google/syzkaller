@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -392,7 +393,27 @@ func (cfg *Config) completeFocusAreas() error {
 		}
 		cfg.CovFilter = CovFilterCfg{}
 	}
+
+	for i, area := range cfg.Experimental.FocusAreas {
+		if area.SeedSelection == "" {
+			continue
+		}
+		if !seedSelectionValues[area.SeedSelection] {
+			var okList []string
+			for name := range seedSelectionValues {
+				okList = append(okList, name)
+			}
+			sort.Strings(okList)
+			return fmt.Errorf("focus area #%d: unknown seed selection: %q (supported: %s)",
+				i, area.SeedSelection, strings.Join(okList, ", "))
+		}
+	}
 	return nil
+}
+
+var seedSelectionValues = map[string]bool{
+	SeedSelectionWeighted: true,
+	SeedSelectionRandomPC: true,
 }
 
 func SplitTarget(str string) (os, vmarch, arch string, target *prog.Target, sysTarget *targets.Target, err error) {

@@ -36,13 +36,15 @@ type Corpus struct {
 
 type focusAreaState struct {
 	FocusArea
-	selection *WeightedSelection
+	selection SeedSelection
 }
 
 type FocusArea struct {
 	Name     string // can be empty
 	CoverPCs map[uint64]struct{}
 	Weight   float64
+	// If nil, WeightedSelection is used.
+	NewEmptySelection func() SeedSelection
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -67,7 +69,12 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 	corpus.StatCover = stat.New("coverage", "Source coverage in the corpus", stat.Console,
 		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
 	for _, area := range areas {
-		obj := &WeightedSelection{}
+		var obj SeedSelection
+		if area.NewEmptySelection != nil {
+			obj = area.NewEmptySelection()
+		} else {
+			obj = &WeightedSelection{}
+		}
 		if len(areas) > 1 && area.Name != "" {
 			// Only show extra statistics if there's more than one area.
 			stat.New("corpus ["+area.Name+"]",
