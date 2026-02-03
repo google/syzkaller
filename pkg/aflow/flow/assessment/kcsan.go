@@ -65,6 +65,20 @@ effectively as atomic. A common example of a "harmful" data races is race on
 a complex container (list/hashmap/etc), where accesses are supposed to be protected
 by a mutual exclusion primitive.
 
+Also consider races that happen at the same time with the given one.
+If there is no synchronization in between, other memory accesses in the involved threads
+race with each other if they access the same memory. For example, if both threads execute:
+
+	some_struct->have_elements = true;
+	list_add(new_node, &some_struct->list_head);
+
+the race on some_struct->have_elements may appear benign, however it also implies there
+is a race on some_struct->list_head which is not benign, since the list is not thread-safe.
+
+Take into account that on 32-bit systems 64-bit memory accesses may be split into two accesses,
+and thus even with a conservative compiler may not be fully atomic. However, such races may
+still be benign depending on how writes are done, and how read data is used.
+
 In the final reply explain why you think the given data race is benign or is harmful.
 
 Use the provided tools to confirm any assumptions, variables/fields being accessed, etc.
