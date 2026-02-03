@@ -11,31 +11,50 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-type ProgramsList struct {
+type SeedSelection interface {
+	ChooseProgram(r *rand.Rand) *prog.Prog
+	SaveProgram(p *prog.Prog, signal signal.Signal, cover []uint64)
+	Programs() []*prog.Prog
+	Empty() SeedSelection
+}
+
+func NewWeightedSelection() SeedSelection {
+	return &WeightedSelection{}
+}
+
+type WeightedSelection struct {
 	progs    []*prog.Prog
 	sumPrios int64
 	accPrios []int64
 }
 
-func (pl *ProgramsList) chooseProgram(r *rand.Rand) *prog.Prog {
-	if len(pl.progs) == 0 {
-		return nil
-	}
-	randVal := r.Int63n(pl.sumPrios + 1)
-	idx := sort.Search(len(pl.accPrios), func(i int) bool {
-		return pl.accPrios[i] >= randVal
-	})
-	return pl.progs[idx]
+func (s *WeightedSelection) Empty() SeedSelection {
+	return &WeightedSelection{}
 }
 
-func (pl *ProgramsList) saveProgram(p *prog.Prog, signal signal.Signal) {
+func (s *WeightedSelection) ChooseProgram(r *rand.Rand) *prog.Prog {
+	if len(s.progs) == 0 {
+		return nil
+	}
+	randVal := r.Int63n(s.sumPrios) + 1
+	idx := sort.Search(len(s.accPrios), func(i int) bool {
+		return s.accPrios[i] >= randVal
+	})
+	return s.progs[idx]
+}
+
+func (s *WeightedSelection) SaveProgram(p *prog.Prog, signal signal.Signal, cover []uint64) {
 	prio := int64(len(signal))
 	if prio == 0 {
 		prio = 1
 	}
-	pl.sumPrios += prio
-	pl.accPrios = append(pl.accPrios, pl.sumPrios)
-	pl.progs = append(pl.progs, p)
+	s.sumPrios += prio
+	s.accPrios = append(s.accPrios, s.sumPrios)
+	s.progs = append(s.progs, p)
+}
+
+func (s *WeightedSelection) Programs() []*prog.Prog {
+	return s.progs
 }
 
 func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
@@ -51,7 +70,7 @@ func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
 		sum := 0.0
 		nonEmpty := make([]*focusAreaState, 0, len(corpus.focusAreas))
 		for _, area := range corpus.focusAreas {
-			if len(area.progs) == 0 {
+			if len(area.selection.Programs()) == 0 {
 				continue
 			}
 			sum += area.Weight
@@ -67,13 +86,13 @@ func (corpus *Corpus) ChooseProgram(r *rand.Rand) *prog.Prog {
 		}
 	}
 	if randArea != nil {
-		return randArea.chooseProgram(r)
+		return randArea.selection.ChooseProgram(r)
 	}
-	return corpus.chooseProgram(r)
+	return corpus.selection.ChooseProgram(r)
 }
 
 func (corpus *Corpus) Programs() []*prog.Prog {
 	corpus.mu.RLock()
 	defer corpus.mu.RUnlock()
-	return corpus.progs
+	return corpus.selection.Programs()
 }
