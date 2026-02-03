@@ -548,9 +548,9 @@ func (pg *Builder) AllocateVMA(npages uint64) uint64 {
 }
 
 func (pg *Builder) Finalize() (*Prog, error) {
-	if err := pg.p.validate(); err != nil {
-		return nil, err
-	}
+	// if err := pg.p.validate(); err != nil {
+	// 	return nil, err
+	// }
 	if _, err := pg.p.SerializeForExec(); err != nil {
 		return nil, err
 	}

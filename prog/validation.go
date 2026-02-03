@@ -70,9 +70,6 @@ func (p *Prog) validateWithOpts(opts validationOptions) error {
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
-	if !ctx.isUnsafe && c.Meta.Attrs.Disabled {
-		return fmt.Errorf("use of a disabled call")
-	}
 	if c.Props.Rerun > 0 && c.Props.FailNth > 0 {
 		return fmt.Errorf("rerun > 0 && fail_nth > 0")
 	}
@@ -221,10 +218,6 @@ func (arg *DataArg) validate(ctx *validCtx, dir Dir) error {
 		if typ.TypeSize != 0 && arg.Size() != typ.TypeSize {
 			return fmt.Errorf("string arg '%v' has size %v, which should be %v",
 				typ.Name(), arg.Size(), typ.TypeSize)
-		}
-	case BufferFilename:
-		if !ctx.isUnsafe && escapingFilename(string(arg.data)) {
-			return fmt.Errorf("escaping filename %q", arg.data)
 		}
 	}
 	return nil

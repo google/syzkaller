@@ -67,13 +67,26 @@ syscall:
             $$ = NewSyscall(-1, "tmp", nil, -1, true, true);
             Stracelex.(*Stracelexer).result = $$
         }
+    | IDENTIFIER LPAREN RESUMED UNFINISHED %prec NOFLAG
+        {
+            $$ = NewSyscall(-1, $1, nil, -1, true, true);
+            Stracelex.(*Stracelexer).result = $$
+        }
     | IDENTIFIER LPAREN RESUMED RPAREN EQUALS INT %prec NOFLAG
         {
             $$ = NewSyscall(-1, $1, nil, int64($6), false, false);
             Stracelex.(*Stracelexer).result = $$
         }
 
+    | IDENTIFIER LPAREN RESUMED ARROW types RPAREN EQUALS INT %prec NOFLAG
+        {
+            $$ = NewSyscall(-1, $1, nil, int64($8), false, false);
+            Stracelex.(*Stracelexer).result = $$
+        }
+
     | RESUMED types RPAREN EQUALS ret_type %prec NOFLAG { $$ = NewSyscall(-1, "tmp", $2, $5, false, true);
+                                                        Stracelex.(*Stracelexer).result = $$ }
+    | RESUMED ARROW LBRACKET type RBRACKET COMMA types RPAREN EQUALS ret_type %prec NOFLAG { $$ = NewSyscall(-1, "tmp", $7, $10, false, true);
                                                         Stracelex.(*Stracelexer).result = $$ }
     | RESUMED types RPAREN EQUALS QUESTION %prec NOFLAG { $$ = NewSyscall(-1, "tmp", $2, -1, false, true);
                                                         Stracelex.(*Stracelexer).result = $$ }
@@ -135,6 +148,7 @@ constant:
     | UINT {$$ = Constant($1)}
     | NULL {$$ = Constant(uint64(0))}
     | constant OR constant {$$ = $1 | $3}
+    | OR constant {$$ = $2}
     | constant AND constant {$$ = $1 & $3}
     | constant LSHIFT constant {$$ = $1 << $3}
     | constant RSHIFT constant {$$ = $1 >> $3}
@@ -162,4 +176,4 @@ buf_type:
     | IDENTIFIER %prec LOWEST {$$ = newBufferType($1)}
     | DATETIME {$$ = newBufferType($1)}
     | MAC {$$ = newBufferType($1)}
-
+    | FLAG {$$ = newBufferType($1)}

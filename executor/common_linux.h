@@ -83,7 +83,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static bool write_file(const char* file, const char* what, ...)
+static bool UNIQUE_FUNC(write_file)(const char* file, const char* what, ...)
 {
 	char buf[1024];
 	va_list args;
@@ -746,11 +746,11 @@ static void initialize_tun(void)
 	// Don't panic because this is an optional config.
 	char sysctl[64];
 	sprintf(sysctl, "/proc/sys/net/ipv6/conf/%s/accept_dad", TUN_IFACE);
-	write_file(sysctl, "0");
+	UNIQUE_FUNC(write_file)(sysctl, "0");
 	// Disable IPv6 router solicitation to prevent IPv6 spam.
 	// Don't panic because this is an optional config.
 	sprintf(sysctl, "/proc/sys/net/ipv6/conf/%s/router_solicitations", TUN_IFACE);
-	write_file(sysctl, "0");
+	UNIQUE_FUNC(write_file)(sysctl, "0");
 	// There seems to be no way to disable IPv6 MTD to prevent more IPv6 spam.
 
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -1229,8 +1229,8 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 {
 	// These devices are sticky and are not deleted on net namespace destruction.
 	// So try to delete the previous version of the device.
-	write_file("/sys/bus/netdevsim/del_device", "%u", addr);
-	if (write_file("/sys/bus/netdevsim/new_device", "%u %u", addr, port_count)) {
+	UNIQUE_FUNC(write_file)("/sys/bus/netdevsim/del_device", "%u", addr);
+	if (UNIQUE_FUNC(write_file)("/sys/bus/netdevsim/new_device", "%u %u", addr, port_count)) {
 		char buf[32];
 		snprintf(buf, sizeof(buf), "netdevsim%d", addr);
 		initialize_devlink_ports("netdevsim", buf, "netdevsim");
@@ -2099,7 +2099,7 @@ static long syz_usbip_server_init(volatile long a0)
 	char buffer[100];
 	sprintf(buffer, "%d %d %s %d", port_num, client_fd, "0", speed);
 
-	write_file("/sys/devices/platform/vhci_hcd.0/attach", buffer);
+	UNIQUE_FUNC(write_file)("/sys/devices/platform/vhci_hcd.0/attach", buffer);
 	return server_fd;
 }
 
@@ -3839,8 +3839,8 @@ static void setup_cgroups()
 	mount_cgroups2(unified_controllers, sizeof(unified_controllers) / sizeof(unified_controllers[0]));
 	mount_cgroups("/syzcgroup/net", net_controllers, sizeof(net_controllers) / sizeof(net_controllers[0]));
 	mount_cgroups("/syzcgroup/cpu", cpu_controllers, sizeof(cpu_controllers) / sizeof(cpu_controllers[0]));
-	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
-	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
+	UNIQUE_FUNC(write_file)("/syzcgroup/cpu/cgroup.clone_children", "1");
+	UNIQUE_FUNC(write_file)("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
 }
 
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
@@ -3861,16 +3861,16 @@ static void setup_cgroups_loop()
 	// We have up to 16 threads + main process + loop.
 	// 32 pids should be enough for everyone.
 	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
-	write_file(file, "32");
+	UNIQUE_FUNC(write_file)(file, "32");
 	// Setup some v1 groups to make things more interesting.
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
+	UNIQUE_FUNC(write_file)(file, "%d", pid);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
+	UNIQUE_FUNC(write_file)(file, "%d", pid);
 	// Restrict memory consumption.
 	// We have some syscalls that inherently consume lots of memory,
 	// e.g. mounting some filesystem images requires at least 128MB
@@ -3883,15 +3883,15 @@ static void setup_cgroups_loop()
 	// allow to allocate any memory in the parent and in the new test process.
 	// The current limit of 300MB supports up to 9.6GB RAM (quarantine is 1/32).
 	snprintf(file, sizeof(file), "%s/memory.soft_limit_in_bytes", cgroupdir);
-	write_file(file, "%d", 299 << 20);
+	UNIQUE_FUNC(write_file)(file, "%d", 299 << 20);
 	snprintf(file, sizeof(file), "%s/memory.limit_in_bytes", cgroupdir);
-	write_file(file, "%d", 300 << 20);
+	UNIQUE_FUNC(write_file)(file, "%d", 300 << 20);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
+	UNIQUE_FUNC(write_file)(file, "%d", pid);
 }
 
 static void setup_cgroups_test()
@@ -3957,7 +3957,7 @@ static void sandbox_common_mount_tmpfs(void)
 {
 	// Android systems set fs.mount-max to a very low value, causing ENOSPC when doing the mounts below
 	// (see https://github.com/google/syzkaller/issues/4972). 100K mounts should be enough for everyone.
-	write_file("/proc/sys/fs/mount-max", "100000");
+	UNIQUE_FUNC(write_file)("/proc/sys/fs/mount-max", "100000");
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
 	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
@@ -4088,7 +4088,11 @@ static void setup_binderfs()
 #include <sys/time.h>
 #include <sys/wait.h>
 
-static void loop();
+#if CSB
+static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, size_t op_id);
+#else
+static void UNIQUE_FUNC(loop)();
+#endif
 
 static void sandbox_common()
 {
@@ -4164,7 +4168,7 @@ static void sandbox_common()
 	};
 	unsigned i;
 	for (i = 0; i < sizeof(sysctls) / sizeof(sysctls[0]); i++)
-		write_file(sysctls[i].name, sysctls[i].value);
+		UNIQUE_FUNC(write_file)(sysctls[i].name, sysctls[i].value);
 }
 #endif
 
@@ -4216,7 +4220,11 @@ static void drop_caps(void)
 #include <sched.h>
 #include <sys/types.h>
 
+#if CSB
+static int do_sandbox_none(thread_ctx_t *ctx)
+#else
 static int do_sandbox_none(void)
+#endif
 {
 	// CLONE_NEWPID takes effect for the first child of the current process,
 	// so we do it before fork to make the loop "init" process of the namespace.
@@ -4243,7 +4251,7 @@ static int do_sandbox_none(void)
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
 	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
-	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
+	UNIQUE_FUNC(write_file)("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4257,8 +4265,12 @@ static int do_sandbox_none(void)
 	initialize_wifi_devices();
 #endif
 	sandbox_common_mount_tmpfs();
-	loop();
-	doexit(1);
+#if CSB
+	UNIQUE_FUNC(loop)(ctx, op_id);
+#else
+	UNIQUE_FUNC(loop)();
+#endif
+	UNIQUE_FUNC(doexit)(1);
 }
 #endif
 
@@ -4268,7 +4280,11 @@ static int do_sandbox_none(void)
 #include <sys/prctl.h>
 
 #define SYZ_HAVE_SANDBOX_SETUID 1
+#if CSB
+static int do_sandbox_setuid(thread_ctx_t *ctx)
+#else
 static int do_sandbox_setuid(void)
+#endif
 {
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
@@ -4317,8 +4333,12 @@ static int do_sandbox_setuid(void)
 	// See task_dump_owner function in kernel.
 	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
 
-	loop();
-	doexit(1);
+#if CSB
+	UNIQUE_FUNC(loop)(ctx, op_id);
+#else
+	UNIQUE_FUNC(loop)();
+#endif
+	UNIQUE_FUNC(doexit)(1);
 }
 #endif
 
@@ -4333,13 +4353,16 @@ __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static int namespace_sandbox_proc(void* arg)
 {
+#if CSB
+	thread_ctx_t *ctx = (thread_ctx_t*) arg;
+#endif
 	sandbox_common();
 
 	// /proc/self/setgroups is not present on some systems, ignore error.
-	write_file("/proc/self/setgroups", "deny");
-	if (!write_file("/proc/self/uid_map", "0 %d 1\n", real_uid))
+	UNIQUE_FUNC(write_file)("/proc/self/setgroups", "deny");
+	if (!UNIQUE_FUNC(write_file)("/proc/self/uid_map", "0 %d 1\n", real_uid))
 		fail("write of /proc/self/uid_map failed");
-	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
+	if (!UNIQUE_FUNC(write_file)("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
@@ -4350,7 +4373,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
 	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
-	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
+	UNIQUE_FUNC(write_file)("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4372,12 +4395,20 @@ static int namespace_sandbox_proc(void* arg)
 	sandbox_common_mount_tmpfs();
 	drop_caps();
 
-	loop();
-	doexit(1);
+#if CSB
+	UNIQUE_FUNC(loop)(ctx, op_id);
+#else
+	UNIQUE_FUNC(loop)();
+#endif
+	UNIQUE_FUNC(doexit)(1);
 }
 
 #define SYZ_HAVE_SANDBOX_NAMESPACE 1
+#if CSB
+static int do_sandbox_namespace(thread_ctx_t *ctx)
+#else
 static int do_sandbox_namespace(void)
+#endif
 {
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	// HCIDEVUP requires CAP_ADMIN, so this needs to happen early.
@@ -4386,8 +4417,13 @@ static int do_sandbox_namespace(void)
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
+#if CSB
+	int pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+			CLONE_NEWUSER | CLONE_NEWPID, ctx);
+#else
 	int pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 			CLONE_NEWUSER | CLONE_NEWPID, 0);
+#endif
 	return wait_for_loop(pid);
 }
 #endif
@@ -4534,7 +4570,11 @@ static void setfilecon(const char* path, const char* context)
 
 #define SYZ_HAVE_SANDBOX_ANDROID 1
 
+#if CSB
+static int do_sandbox_android(uint64 sandbox_arg, thread_ctx_t *ctx)
+#else
 static int do_sandbox_android(uint64 sandbox_arg)
+#endif
 {
 	setup_fusectl();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
@@ -4553,7 +4593,7 @@ static int do_sandbox_android(uint64 sandbox_arg)
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
 	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
-	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
+	UNIQUE_FUNC(write_file)("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4607,8 +4647,12 @@ static int do_sandbox_android(uint64 sandbox_arg)
 	if (uid == UNTRUSTED_APP_UID)
 		setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
-	loop();
-	doexit(1);
+#if CSB
+	UNIQUE_FUNC(loop)(ctx, op_id);
+#else
+	UNIQUE_FUNC(loop)();
+#endif
+	UNIQUE_FUNC(doexit)(1);
 }
 #endif
 
@@ -4626,7 +4670,7 @@ static int do_sandbox_android(uint64 sandbox_arg)
 // Moreover, a mount can be mounted several times, so we need to try to umount in a loop.
 // Moreover, after umount a dir can become non-empty again, so we need another loop.
 // Moreover, a mount can be re-mounted as read-only and then we will fail to make a dir empty.
-static void remove_dir(const char* dir)
+static void UNIQUE_FUNC(remove_dir)(const char* dir)
 {
 	int iter = 0;
 	DIR* dp = 0;
@@ -4642,14 +4686,20 @@ static void remove_dir(const char* dir)
 	const int umount_flags = MNT_FORCE | UMOUNT_NOFOLLOW;
 #endif
 
+#if !CSB
 retry:
+#endif
 #if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
 #if SYZ_EXECUTOR
 	if (!flag_sandbox_android)
 #endif
+#if !CSB
 		while (umount2(dir, umount_flags) == 0) {
 			debug("umount(%s)\n", dir);
 		}
+#else
+		umount2(dir, umount_flags);
+#endif
 #endif
 	dp = opendir(dir);
 	if (dp == NULL) {
@@ -4681,11 +4731,15 @@ retry:
 		if (lstat(filename, &st))
 			exitf("lstat(%s) failed", filename);
 		if (S_ISDIR(st.st_mode)) {
-			remove_dir(filename);
+			UNIQUE_FUNC(remove_dir)(filename);
 			continue;
 		}
 		int i;
+#if !CSB
 		for (i = 0;; i++) {
+#else
+		for (i = 0;i < 100; i++) {
+#endif
 			if (unlink(filename) == 0)
 				break;
 			if (errno == EPERM) {
@@ -4720,7 +4774,11 @@ retry:
 		}
 	}
 	closedir(dp);
+#if !CSB
 	for (int i = 0;; i++) {
+#else
+	for (int i = 0;i < 100; i++) {
+#endif
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
@@ -4757,11 +4815,15 @@ retry:
 			if (errno == ENOTEMPTY) {
 				if (iter < 100) {
 					iter++;
+#if !CSB
 					goto retry;
+#endif
 				}
 			}
 		}
+#if !CSB
 		exitf("rmdir(%s) failed", dir);
+#endif
 	}
 }
 #endif
@@ -4815,11 +4877,12 @@ static int fault_injected(int fail_fd)
 #include <sys/types.h>
 #include <sys/wait.h>
 
-static void kill_and_wait(int pid, int* status)
+static void UNIQUE_FUNC(kill_and_wait)(int pid, int* status)
 {
 	kill(-pid, SIGKILL);
 	kill(pid, SIGKILL);
 	// First, give it up to 100 ms to surrender.
+#if !CSB
 	for (int i = 0; i < 100; i++) {
 		if (waitpid(-1, status, WNOHANG | __WALL) == pid)
 			return;
@@ -4859,6 +4922,7 @@ static void kill_and_wait(int pid, int* status)
 	// Now, just wait, no other options.
 	while (waitpid(-1, status, __WALL) != pid) {
 	}
+#endif
 }
 #endif
 
@@ -4905,7 +4969,7 @@ static void reset_loop()
 #include <unistd.h>
 
 #define SYZ_HAVE_SETUP_TEST 1
-static void setup_test()
+static void UNIQUE_FUNC(setup_test)()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	// We don't check for getppid() == 1 here b/c of unshare(CLONE_NEWPID),
@@ -4915,7 +4979,7 @@ static void setup_test()
 	setup_cgroups_test();
 #endif
 	// It's the leaf test process we want to be always killed first.
-	write_file("/proc/self/oom_score_adj", "1000");
+	UNIQUE_FUNC(write_file)("/proc/self/oom_score_adj", "1000");
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	// Read all remaining packets from tun to better
 	// isolate consequently executing programs.
@@ -4982,7 +5046,7 @@ static const char* setup_fault()
 	};
 	unsigned i;
 	for (i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
-		if (!write_file(files[i].file, files[i].val)) {
+		if (!UNIQUE_FUNC(write_file)(files[i].file, files[i].val)) {
 			debug("failed to write %s: %d\n", files[i].file, errno);
 			if (files[i].fatal)
 				return "failed to write fault injection file";
@@ -5003,19 +5067,19 @@ static const char* setup_fault()
 
 static const char* setup_leak()
 {
-	if (!write_file(KMEMLEAK_FILE, "scan=off")) {
+	if (!UNIQUE_FUNC(write_file)(KMEMLEAK_FILE, "scan=off")) {
 		if (errno == EBUSY)
 			return "KMEMLEAK disabled: increase CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE"
 			       " or unset CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF";
 		return "failed to write(kmemleak, \"scan=off\")";
 	}
 	// Flush boot leaks.
-	if (!write_file(KMEMLEAK_FILE, "scan"))
+	if (!UNIQUE_FUNC(write_file)(KMEMLEAK_FILE, "scan"))
 		return "failed to write(kmemleak, \"scan\")";
 	sleep(5); // account for MSECS_MIN_AGE
-	if (!write_file(KMEMLEAK_FILE, "scan"))
+	if (!UNIQUE_FUNC(write_file)(KMEMLEAK_FILE, "scan"))
 		return "failed to write(kmemleak, \"scan\")";
-	if (!write_file(KMEMLEAK_FILE, "clear"))
+	if (!UNIQUE_FUNC(write_file)(KMEMLEAK_FILE, "clear"))
 		return "failed to write(kmemleak, \"clear\")";
 	return NULL;
 }
@@ -5094,7 +5158,7 @@ static void check_leaks(void)
 		fail("failed to write(kmemleak, \"clear\")");
 	close(fd);
 	if (nleaks)
-		doexit(1);
+		UNIQUE_FUNC(doexit)(1);
 }
 #endif
 
@@ -5111,8 +5175,8 @@ static const char* setup_binfmt_misc()
 		debug("mount(binfmt_misc) failed: %d\n", errno);
 		return NULL;
 	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
-	    !write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
+	if (!UNIQUE_FUNC(write_file)("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:") ||
+	    !UNIQUE_FUNC(write_file)("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC"))
 		return "write(/proc/sys/fs/binfmt_misc/register) failed";
 	return NULL;
 }
@@ -5121,7 +5185,7 @@ static const char* setup_binfmt_misc()
 #if SYZ_EXECUTOR || SYZ_KCSAN
 static const char* setup_kcsan()
 {
-	if (!write_file("/sys/kernel/debug/kcsan", "on"))
+	if (!UNIQUE_FUNC(write_file)("/sys/kernel/debug/kcsan", "on"))
 		return "write(/sys/kernel/debug/kcsan, on) failed";
 	return NULL;
 }
@@ -5201,7 +5265,7 @@ static void setup_sysctl()
 
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
-		if (!write_file(files[i].name, files[i].data)) {
+		if (!UNIQUE_FUNC(write_file)(files[i].name, files[i].data)) {
 			debug("write to %s failed: %s\n", files[i].name, strerror(errno));
 		}
 	}

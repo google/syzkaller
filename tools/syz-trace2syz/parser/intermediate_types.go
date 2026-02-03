@@ -32,7 +32,7 @@ func (tree *TraceTree) add(call *Syscall) {
 		tree.TraceMap[call.Pid] = new(Trace)
 	}
 	c := tree.TraceMap[call.Pid].add(call)
-	if c.CallName == "clone" && !c.Paused {
+	if (c.CallName == "clone" || c.CallName == "clone3") && !c.Paused {
 		tree.Ptree[c.Pid] = append(tree.Ptree[c.Pid], c.Ret)
 	}
 }

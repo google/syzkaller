@@ -381,17 +381,27 @@ clone3(args ptr[in, clone_args], size bytesize[args]) pid (breaks_returns, disab
 
 clone_args {
 	flags		flags[clone3_flags, int64]
-	pidfd		ptr64[out, fd_pidfd]
 	child_tid	ptr64[out, pid]
 	parent_tid	ptr64[out, pid]
-	exit_signal	align64[signalno]
+	exit_signal	signalno
 	stack		ptr64[out, array[int8]]
 	stack_size	bytesize[stack, int64]
 	tls		ptr64[out, array[int8]]
-	set_tid		ptr64[in, array[pid]]
-	set_tid_size	len[set_tid, int64]
-	cgroup		align64[fd_cgroup]
 }
+
+# clone_args {
+# 	flags		flags[clone3_flags, int64]
+# 	pidfd		ptr64[out, fd_pidfd]
+# 	child_tid	ptr64[out, pid]
+# 	parent_tid	ptr64[out, pid]
+# 	exit_signal	align64[signalno]
+# 	stack		ptr64[out, array[int8]]
+# 	stack_size	bytesize[stack, int64]
+# 	tls		ptr64[out, array[int8]]
+# 	set_tid		ptr64[in, array[pid]]
+# 	set_tid_size	len[set_tid, int64]
+# 	cgroup		align64[fd_cgroup]
+# }
 
 resource pid[int32]: 0, -1
 resource uid[int32]: 0, -1, 0xee00, 0xee01
@@ -421,9 +431,10 @@ setgroups(size len[list], list ptr[in, array[gid]])
 personality(persona flags[personality_flags])
 # Don't mess with parent (fuzzer). If we ptrace attach to it, it will hang.
 # If we setrlimit for parent, it will misbehave. Killing - the same. Nothing good.
-#getppid() pid
-#getsid(pid pid) pid
-#setsid() pid
+
+getppid() pid
+getsid(pid pid) pid
+setsid() pid
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -827,7 +838,6 @@ statx {
 	ino		int64
 	size		int64
 	blocks		int64
-	__spare1	int64
 	atime		statx_timestamp
 	btime		statx_timestamp
 	ctime		statx_timestamp
@@ -849,9 +859,7 @@ pollfd {
 	revents	const[0, int16]
 }
 
-sigset_t {
-	mask	array[intptr, _NSIG_WORDS]
-}
+type sigset_t array[intptr, _NSIG_WORDS]
 
 sigset_size {
 	ss	ptr[inout, sigset_t]
@@ -1451,8 +1459,9 @@ _ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, P
 # Hardcode KCOV_REMOTE_ENABLE value for amd64 until new kcov patches reach mainline.
 define KCOV_REMOTE_ENABLE	1075340134
 
+umask(mode flags[open_mode])
+
 # Not yet implemented syscalls:
-# umask
 # vhangup
 # _sysctl
 # nfsservctl

@@ -78,10 +78,6 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 			// 2179  --- SIGUSR1 {si_signo=SIGUSR1, si_code=SI_USER, si_pid=2180, si_uid=0} ---
 			continue
 		}
-		if shouldSkip(sCall) {
-			log.Logf(2, "skipping call: %s", sCall.CallName)
-			continue
-		}
 		ctx.currentStraceCall = sCall
 		call := ctx.genCall()
 		if call == nil {
@@ -338,6 +334,8 @@ func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType 
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
+	case *parser.GroupType:
+		bufVal = []byte(a.String())
 	default:
 		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}

@@ -26,6 +26,7 @@ const (
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
 	defines := defineList(p, mmapProg, opts)
+	defines = defineListUnique(defines)
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	// Note: -fdirectives-only isn't supported by clang. This code is relevant
 	// for producing C++ reproducers. Hence reproducers don't work when setting
@@ -88,6 +89,17 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 	return
 }
 
+func defineListUnique(defines []string) (uniq_defines []string) {
+	define_last := ""
+	for _, def := range defines {
+		if def != define_last {
+			uniq_defines = append(uniq_defines, def)
+			define_last = def
+		}
+	}
+	return
+}
+
 func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	features := p.RequiredFeatures()
@@ -127,6 +139,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_SYSCTL":                    opts.Sysctl,
 		"SYZ_SWAP":                      opts.Swap,
 		"SYZ_EXECUTOR_USES_FORK_SERVER": sysTarget.ExecutorUsesForkServer,
+		"CSB":						 	 opts.CSB,
 	}
 }
 

@@ -12,7 +12,7 @@ resource ptr_binfmt_file[intptr]
 
 syz_create_resource$binfmt(file ptr[in, filename]) ptr_binfmt_file
 
-execve(file ptr[in, filename], argv ptr[in, argv_array], envp ptr[in, argv_array])
+execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
 execveat(dirfd fd_dir, file ptr[in, filename], argv ptr[in, argv_array], envp ptr[in, argv_array], flags flags[at_flags])
 execveat$binfmt(dirfd fd_dir, file ptr_binfmt_file, argv ptr[in, argv_array], envp ptr[in, argv_array], flags flags[at_flags])
 

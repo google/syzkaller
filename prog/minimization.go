@@ -47,6 +47,30 @@ const (
 	MinimizeCallsOnly
 )
 
+func RemoveUnrelatedCalls(p0 *Prog, callIndex0 int, pred minimizePred, processedCallsIn map[int]bool) (*Prog, int, map[int]bool) {
+	var processedCalls map[int]bool
+	if callIndex0 >= 0 && callIndex0+2 < len(p0.Calls) {
+		// It's frequently the case that all subsequent calls were not necessary.
+		// Try to drop them all at once.
+		p := p0.Clone()
+		for i := len(p0.Calls) - 1; i > callIndex0; i-- {
+			p.RemoveCall(i)
+		}
+		if pred(p, callIndex0, statMinRemoveCall, "trailing calls") {
+			p0 = p
+		}
+	}
+
+	if callIndex0 != -1 {
+		p0, callIndex0, processedCalls = removeUnrelatedCallsInfo(p0, callIndex0, pred, processedCallsIn)
+	}
+
+	mAddrs := usedMemory(p0, processedCalls)
+	mAddrs, processedCalls = keepMemRelation(p0, mAddrs, processedCalls)
+
+	return p0, callIndex0, processedCalls
+}
+
 // Minimize minimizes program p into an equivalent program using the equivalence
 // predicate pred. It iteratively generates simpler programs and asks pred
 // whether it is equal to the original program or not. If it is equivalent then
@@ -153,6 +177,28 @@ func removeCalls(p0 *Prog, callIndex0 int, pred minimizePred) (*Prog, int) {
 	return p0, callIndex0
 }
 
+func removeUnrelatedCallsInfo(p0 *Prog, callIndex0 int, pred minimizePred, processedCallsIn map[int]bool) (*Prog, int, map[int]bool) {
+	keepCalls := relatedCalls(p0, callIndex0)
+	if len(p0.Calls)-len(keepCalls) < 3 {
+		return p0, callIndex0, processedCallsIn
+	}
+	p, callIndex := p0.Clone(), callIndex0
+	for i := len(p0.Calls) - 1; i >= 0; i-- {
+		if keepCalls[i] {
+			continue
+		}
+		p.RemoveCall(i)
+		if i < callIndex {
+			callIndex--
+		}
+	}
+	if !pred(p, callIndex, statMinRemoveCall, "unrelated calls") {
+		return p0, callIndex0, processedCallsIn
+	}
+	processedCalls := mapsor(processedCallsIn, keepCalls)
+	return p, callIndex, processedCalls
+}
+
 // removeUnrelatedCalls tries to remove all "unrelated" calls at once.
 // Unrelated calls are the calls that don't use any resources/files from
 // the transitive closure of the resources/files used by the target call.
@@ -201,6 +247,58 @@ func relatedCalls(p0 *Prog, callIndex0 int) map[int]bool {
 	}
 }
 
+func usedMemory(p0 *Prog, keptCalls map[int]bool) map[uint64]bool {
+	addrs := make(map[uint64]bool) 
+	for i, call := range p0.Calls {
+		if keptCalls[i] {
+			continue
+		}
+		ForeachArg(call, func(arg Arg, _ *ArgCtx) {
+			switch arg.Type().(type) {
+			case *PtrType:
+				a := arg.(*PointerArg)
+				addrs[a.Address] = true
+			}
+		})
+	}
+	return addrs
+}
+
+func keepMemRelation(p0 *Prog, mAddrs map[uint64]bool, keptCalls map[int]bool) (map[uint64]bool,map[int]bool) {
+	n := 0
+	for n < len(keptCalls) {
+		// print(mAddrs)
+		n = len(keptCalls)
+		for i, call := range p0.Calls {
+			if keptCalls[i] {
+				continue
+			}
+			argMatch := false
+			ForeachArg(call, func(arg Arg, _ *ArgCtx) {
+				switch arg.Type().(type) {
+				case *PtrType:
+					a := arg.(*PointerArg)
+					if mAddrs[a.Address] {
+						argMatch = true
+						break
+					}
+				}
+			})
+			if argMatch {
+				keptCalls[i] = true
+				ForeachArg(call, func(arg Arg, _ *ArgCtx) {
+					switch arg.Type().(type) {
+					case *PtrType:
+						a := arg.(*PointerArg)
+						mAddrs[a.Address] = true
+					}
+				})
+			}
+		}
+	}
+	return mAddrs,keptCalls
+}
+
 func uses(call *Call) map[any]bool {
 	used := make(map[any]bool)
 	ForeachArg(call, func(arg Arg, _ *ArgCtx) {
@@ -232,6 +330,15 @@ func intersects(list, list1 map[any]bool) bool {
 		}
 	}
 	return false
+}
+
+func mapsor(list map[int]bool, list1 map[int]bool) map[int]bool {
+	for what := range list1 {
+		if list1[what] {
+			list[what] = true
+		}
+	}
+	return list
 }
 
 func resetCallProps(p0 *Prog, callIndex0 int, pred minimizePred) *Prog {

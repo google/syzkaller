@@ -31,7 +31,7 @@ static long syz_errno(volatile long v)
 // syz_exit(status int32)
 static long syz_exit(volatile long status)
 {
-	doexit(status);
+	UNIQUE_FUNC(doexit)(status);
 	return 0;
 }
 #endif
@@ -130,7 +130,11 @@ static long syz_compare_zlib(volatile long data, volatile long size, volatile lo
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
-static void loop();
+#if CSB
+static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx);
+#else
+static void UNIQUE_FUNC(loop)();
+#endif
 static int do_sandbox_none(void)
 {
 	// Test various ways how feature setup can fail.
@@ -148,7 +152,11 @@ static int do_sandbox_none(void)
 #endif
 		exitf("devlink_pci is not supported");
 #endif
-	loop();
+#if CSB
+	UNIQUE_FUNC(loop)();
+#else
+	UNIQUE_FUNC(loop)(ctx);
+#endif
 	return 0;
 }
 #endif
@@ -158,7 +166,7 @@ static int do_sandbox_none(void)
 static void fake_crash(const char* name)
 {
 	failmsg("crash", "{{CRASH: %s}}", name);
-	doexit(1);
+	UNIQUE_FUNC(doexit)(1);
 }
 
 static long syz_test_fuzzer1(volatile long a, volatile long b, volatile long c)

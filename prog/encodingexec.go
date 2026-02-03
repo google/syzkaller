@@ -56,10 +56,10 @@ const (
 )
 
 const (
-	ExecBufferSize = 4 << 20 // keep in sync with kMaxInput in executor.cc
+	ExecBufferSize = 4 << 25 // keep in sync with kMaxInput in executor.cc
 	ExecNoCopyout  = ^uint64(0)
 
-	execMaxCommands = 1000 // executor knows about this constant (kMaxCommands)
+	execMaxCommands = 100000 // executor knows about this constant (kMaxCommands)
 )
 
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
