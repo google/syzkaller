@@ -274,7 +274,7 @@ format_keep_sorted:
 
 format_cpp:
 	# Exclude auto-generated and canned files.
-	git ls-files *.h *.c *.cc *.cpp | grep -Ev \
+	git ls-files '*.h' '*.c' '*.cc' '*.cpp' | grep -Ev \
 "executor/_include/flatbuffers/\
 |pkg/flatrpc/flatrpc.h\
 |pkg/covermerger/testdata/integration/\
