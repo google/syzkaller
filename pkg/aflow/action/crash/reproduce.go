@@ -44,6 +44,13 @@ type reproduceResult struct {
 	CrashReport string
 }
 
+// ReproduceCrash tests reproducer and returns:
+//   - Report: if the reproducer caused the kernel crash
+//   - boot failure: if the kernel failed to boot or function properly
+//     (if kernel crashed during build/boot, the Report is not returned)
+//   - error: for unexpected failures
+//
+// All 3 values are empty, if everything went well, and kernel has not crashed.
 func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string, error) {
 	if args.Type != "qemu" {
 		return nil, "", errors.New("only qemu VM type is supported")
@@ -78,18 +85,38 @@ func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string,
 	if err != nil {
 		return nil, "", err
 	}
+	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
 	results, err := env.Test(1, nil, nil, []byte(args.ReproC))
 	if err != nil {
 		return nil, "", err
 	}
-	if results[0].Error != nil {
-		if crashErr := new(instance.CrashError); errors.As(results[0].Error, &crashErr) {
+	if err := results[0].Error; err != nil {
+		if crashErr := new(instance.CrashError); errors.As(err, &crashErr) {
 			return crashErr.Report, "", nil
+		} else if testErr := new(instance.TestError); errors.As(err, &testErr) {
+			return parseTestError(testErr)
 		} else {
-			return nil, results[0].Error.Error(), nil
+			return nil, err.Error(), nil
 		}
 	}
 	return nil, "", nil
+}
+
+func parseTestError(err *instance.TestError) (*report.Report, string, error) {
+	if err.Infra {
+		// No point in showing this to LLM and asking to fix.
+		return nil, "", fmt.Errorf("%v\n%v\n%s", err.Error(), err.Title, err.Output)
+	}
+	what := "Basic kernel testing failed"
+	if err.Boot {
+		what = "Kernel failed to boot"
+	}
+	extraInfo := err.Output
+	// Don't use TestError.Report for crashes like "lost connection" that don't have a report.
+	if err.Report != nil && err.Report.Report != nil {
+		extraInfo = err.Report.Report
+	}
+	return nil, fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo), nil
 }
 
 func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
@@ -112,12 +139,12 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		if err != nil {
 			return res, err
 		}
-		rep, buildError, err := ReproduceCrash(args, workdir)
+		rep, bootError, err := ReproduceCrash(args, workdir)
 		if rep != nil {
 			res.BugTitle = rep.Title
 			res.Report = string(rep.Report)
 		}
-		res.Error = buildError
+		res.Error = bootError
 		return res, err
 	})
 	if err != nil {
