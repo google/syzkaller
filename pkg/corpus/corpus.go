@@ -26,7 +26,7 @@ type Corpus struct {
 	cover    cover.Cover   // total coverage of all items
 	updates  chan<- NewItemEvent
 
-	*ProgramsList
+	selection  SeedSelection
 	StatProgs  *stat.Val
 	StatSignal *stat.Val
 	StatCover  *stat.Val
@@ -36,13 +36,15 @@ type Corpus struct {
 
 type focusAreaState struct {
 	FocusArea
-	*ProgramsList
+	selection SeedSelection
 }
 
 type FocusArea struct {
 	Name     string // can be empty
 	CoverPCs map[uint64]struct{}
 	Weight   float64
+	// If nil, WeightedSelection is used.
+	NewEmptySelection func() SeedSelection
 }
 
 func NewCorpus(ctx context.Context) *Corpus {
@@ -55,10 +57,10 @@ func NewMonitoredCorpus(ctx context.Context, updates chan<- NewItemEvent) *Corpu
 
 func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []FocusArea) *Corpus {
 	corpus := &Corpus{
-		ctx:          ctx,
-		progsMap:     make(map[string]*Item),
-		updates:      updates,
-		ProgramsList: &ProgramsList{},
+		ctx:       ctx,
+		progsMap:  make(map[string]*Item),
+		updates:   updates,
+		selection: &WeightedSelection{},
 	}
 	corpus.StatProgs = stat.New("corpus", "Number of test programs in the corpus", stat.Console,
 		stat.Link("/corpus"), stat.Graph("corpus"), stat.LenOf(&corpus.progsMap, &corpus.mu))
@@ -67,17 +69,26 @@ func NewFocusedCorpus(ctx context.Context, updates chan<- NewItemEvent, areas []
 	corpus.StatCover = stat.New("coverage", "Source coverage in the corpus", stat.Console,
 		stat.Link("/cover"), stat.Prometheus("syz_corpus_cover"), stat.LenOf(&corpus.cover, &corpus.mu))
 	for _, area := range areas {
-		obj := &ProgramsList{}
+		var obj SeedSelection
+		if area.NewEmptySelection != nil {
+			obj = area.NewEmptySelection()
+		} else {
+			obj = &WeightedSelection{}
+		}
 		if len(areas) > 1 && area.Name != "" {
 			// Only show extra statistics if there's more than one area.
 			stat.New("corpus ["+area.Name+"]",
 				fmt.Sprintf("Corpus programs of the focus area %q", area.Name),
 				stat.Console, stat.Graph("corpus"),
-				stat.LenOf(&obj.progs, &corpus.mu))
+				func() int {
+					corpus.mu.RLock()
+					defer corpus.mu.RUnlock()
+					return len(obj.Programs())
+				})
 		}
 		corpus.focusAreas = append(corpus.focusAreas, &focusAreaState{
-			FocusArea:    area,
-			ProgramsList: obj,
+			FocusArea: area,
+			selection: obj,
 		})
 	}
 	return corpus
@@ -171,7 +182,7 @@ func (corpus *Corpus) Save(inp NewInput) {
 		}
 		corpus.progsMap[sig] = item
 		corpus.applyFocusAreas(item, inp.Cover)
-		corpus.saveProgram(inp.Prog, inp.Signal)
+		corpus.selection.SaveProgram(inp.Prog, inp.Signal, inp.Cover)
 	}
 	corpus.signal.Merge(inp.Signal)
 	newCover := corpus.cover.MergeDiff(inp.Cover)
@@ -200,7 +211,7 @@ func (corpus *Corpus) applyFocusAreas(item *Item, coverDelta []uint64) {
 		if !matches {
 			continue
 		}
-		area.saveProgram(item.Prog, item.Signal)
+		area.selection.SaveProgram(item.Prog, item.Signal, coverDelta)
 		if item.areas == nil {
 			item.areas = make(map[*focusAreaState]struct{})
 			item.areas[area] = struct{}{}
@@ -256,7 +267,7 @@ func (corpus *Corpus) ProgsPerArea() map[string]int {
 	defer corpus.mu.RUnlock()
 	ret := map[string]int{}
 	for _, item := range corpus.focusAreas {
-		ret[item.Name] = len(item.progs)
+		ret[item.Name] = len(item.selection.Programs())
 	}
 	return ret
 }
