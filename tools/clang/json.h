@@ -5,6 +5,7 @@
 #define SYZ_DECLEXTRACT_JSON_H
 
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <string>
