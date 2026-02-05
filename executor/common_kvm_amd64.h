@@ -436,9 +436,17 @@ static void setup_gdt_64(struct gdt_entry* gdt)
 	// We'll keep the base 0 for simplicity, so the second entry (index 4) can remain 0.
 }
 
+static void get_cpuid(uint32 eax, uint32 ecx, uint32* a, uint32* b, uint32* c, uint32* d)
+{
+	*a = *b = *c = *d = 0;
+	asm volatile("cpuid"
+		     : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d)
+		     : "a"(eax), "c"(ecx));
+}
+
 // This only sets up a 64-bit VCPU.
 // TODO: Should add support for other modes.
-static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd)
+static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd, int cpu_id)
 {
 	struct kvm_sregs sregs;
 	ioctl(cpufd, KVM_GET_SREGS, &sregs);
@@ -507,6 +515,17 @@ static void setup_gdt_ldt_pg(struct kvm_syz_vm* vm, int cpufd)
 	sregs.cr0 = X86_CR0_PE | X86_CR0_NE | X86_CR0_PG;
 	sregs.cr4 |= X86_CR4_PAE | X86_CR4_OSFXSR;
 	sregs.efer |= (X86_EFER_LME | X86_EFER_LMA | X86_EFER_NXE);
+
+	uint32 eax = 0, ebx = 0, ecx = 0, edx = 0;
+	get_cpuid(0, 0, &eax, &ebx, &ecx, &edx);
+	if (ebx == 0x68747541 && edx == 0x69746e65 && ecx == 0x444d4163) { // "AuthenticAMD"
+		sregs.efer |= X86_EFER_SVME;
+
+		// Zero out the HSAVE area for AMD.
+		void* hsave_host = (void*)((uint64)vm->host_mem + X86_SYZOS_ADDR_VM_ARCH_SPECIFIC(cpu_id));
+		memset(hsave_host, 0, KVM_PAGE_SIZE);
+	}
+
 	sregs.cr3 = X86_ADDR_PML4;
 
 	ioctl(cpufd, KVM_SET_SREGS, &sregs);
@@ -1105,7 +1124,7 @@ static void install_user_code(struct kvm_syz_vm* vm, int cpufd, int cpu_id, cons
 		text_size = KVM_PAGE_SIZE;
 	void* target = (void*)((uint64)vm->user_text + (KVM_PAGE_SIZE * cpu_id));
 	memcpy(target, text, text_size);
-	setup_gdt_ldt_pg(vm, cpufd);
+	setup_gdt_ldt_pg(vm, cpufd, cpu_id);
 	setup_cpuid(cpufd);
 	reset_cpu_regs(cpufd, cpu_id, text_size);
 }
