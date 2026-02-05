@@ -156,7 +156,7 @@
 #define X86_CR4_MCE (1ULL << 6)
 #define X86_CR4_PGE (1ULL << 7)
 #define X86_CR4_PCE (1ULL << 8)
-#define X86_CR4_OSFXSR (1ULL << 8)
+#define X86_CR4_OSFXSR (1ULL << 9)
 #define X86_CR4_OSXMMEXCPT (1ULL << 10)
 #define X86_CR4_UMIP (1ULL << 11)
 #define X86_CR4_VMXE (1ULL << 13)
