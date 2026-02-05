@@ -114,7 +114,7 @@ endif
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
 	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
-	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old codesearch
+	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
 
 all: host target
 host: manager repro mutate prog2c db upgrade
@@ -173,7 +173,8 @@ hub: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 agent: descriptions
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent
+	# syz-agent uses codesearch clang tool which requires cgo.
+	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent
 
 repro: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
@@ -239,16 +240,6 @@ extract: bin/syz-extract
 
 bin/syz-extract:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-extract
-
-codesearch: bin/syz-codesearch
-
-bin/syz-codesearch: tools/clang/codesearch/* tools/clang/*
-	mkdir -p bin
-	$(CXX) -Itools/clang $(shell llvm-config --cxxflags) -O2 -o $@ tools/clang/codesearch/codesearch.cpp \
-		-lclangTooling -lclangFrontend -lclangSerialization -lclangDriver \
-		-lclangToolingCore -lclangParse -lclangSema -lclangAPINotes -lclangAnalysis \
-		-lclangASTMatchers -lclangRewrite -lclangEdit -lclangAST -lclangLex -lclangBasic -lclangSupport \
-		$(shell llvm-config --ldflags --libs --system-libs)
 
 # `generate` does *not* depend on any kernel sources, and generates everything
 # in one pass, for all arches. It can be run on a bare syzkaller checkout.
@@ -407,7 +398,8 @@ presubmit_gvisor: host target
 	./tools/gvisor-smoke-test.sh
 
 test: descriptions
-	$(GO) test -short -coverprofile=.coverage.txt ./...
+	# Clang tools require cgo.
+	CGO_ENABLED=1 $(GO) test -short -coverprofile=.coverage.txt ./...
 
 clean:
 	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h sys/gen sys/register.go

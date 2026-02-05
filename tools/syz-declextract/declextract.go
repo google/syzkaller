@@ -29,6 +29,7 @@ import (
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/syzkaller/tools/clang/declextract"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -38,7 +39,6 @@ var target = targets.Get(targets.Linux, targets.AMD64)
 func main() {
 	var (
 		flagConfig   = flag.String("config", "", "manager config file")
-		flagBinary   = flag.String("binary", "syz-declextract", "path to syz-declextract binary")
 		flagCoverage = flag.String("coverage", "", "syzbot coverage jsonl file")
 		flagArches   = flag.String("arches", "", "comma-separated list of arches to extract (all if empty)")
 	)
@@ -56,7 +56,7 @@ func main() {
 		coverFile:     *flagCoverage,
 		loadProbeInfo: loadProbeInfo,
 		Config: &clangtool.Config{
-			ToolBin:    *flagBinary,
+			Tool:       clangtoolimpl.Tool,
 			KernelSrc:  mgrcfg.KernelSrc,
 			KernelObj:  mgrcfg.KernelObj,
 			CacheFile:  filepath.Join(mgrcfg.Workdir, "declextract.cache"),

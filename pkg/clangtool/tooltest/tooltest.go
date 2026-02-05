@@ -18,16 +18,10 @@ import (
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
-var (
-	FlagBin    = flag.String("bin", "", "path to the clang tool binary to use")
-	FlagUpdate = flag.Bool("update", false, "update golden files")
-)
+var FlagUpdate = flag.Bool("update", false, "update golden files")
 
-func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T) {
-	if *FlagBin == "" {
-		t.Skipf("clang tool path is not specified, run with -bin=clangtool flag")
-	}
-	ForEachTestFile(t, func(t *testing.T, cfg *clangtool.Config, file string) {
+func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T, tool string) {
+	ForEachTestFile(t, tool, func(t *testing.T, cfg *clangtool.Config, file string) {
 		out, err := clangtool.Run[Output, OutputPtr](cfg)
 		if err != nil {
 			t.Fatal(err)
@@ -57,7 +51,7 @@ func LoadOutput[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testin
 	return out
 }
 
-func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, file string)) {
+func ForEachTestFile(t *testing.T, tool string, fn func(t *testing.T, cfg *clangtool.Config, file string)) {
 	forEachTestFile(t, func(t *testing.T, file string) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			t.Parallel()
@@ -73,7 +67,7 @@ func ForEachTestFile(t *testing.T, fn func(t *testing.T, cfg *clangtool.Config, 
 				t.Fatal(err)
 			}
 			cfg := &clangtool.Config{
-				ToolBin:    *FlagBin,
+				Tool:       tool,
 				KernelSrc:  osutil.Abs("testdata"),
 				KernelObj:  buildDir,
 				CacheFile:  filepath.Join(buildDir, filepath.Base(file)+".json"),

@@ -12,10 +12,11 @@ import (
 
 	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 func TestClangTool(t *testing.T) {
-	tooltest.TestClangTool[Database](t)
+	tooltest.TestClangTool[Database](t, clangtoolimpl.Tool)
 }
 
 func TestCommands(t *testing.T) {
