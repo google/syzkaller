@@ -12,12 +12,11 @@ import (
 )
 
 type moderationInputs struct {
-	BugTitle          string
-	CrashReport       string
-	KernelRepo        string
-	KernelCommit      string
-	KernelConfig      string
-	CodesearchToolBin string
+	BugTitle     string
+	CrashReport  string
+	KernelRepo   string
+	KernelCommit string
+	KernelConfig string
 }
 
 type moderationOutputs struct {

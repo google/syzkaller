@@ -32,19 +32,17 @@ import (
 
 type Config struct {
 	// Currently serves only net/http/pprof handlers.
-	HTTP            string `json:"http"`
-	DashboardAddr   string `json:"dashboard_addr"`
-	DashboardClient string `json:"dashboard_client"` // Global non-namespace client.
-	DashboardKey    string `json:"dashboard_key"`
-	SyzkallerRepo   string `json:"syzkaller_repo"`
-	SyzkallerBranch string `json:"syzkaller_branch"`
-	// Pre-built tools/clang/codesearch clang tool.
-	CodesearchToolBin string          `json:"codesearch_tool_bin"`
-	KernelConfig      string          `json:"kernel_config"`
-	Target            string          `json:"target"`
-	Image             string          `json:"image"`
-	Type              string          `json:"type"`
-	VM                json.RawMessage `json:"vm"`
+	HTTP            string          `json:"http"`
+	DashboardAddr   string          `json:"dashboard_addr"`
+	DashboardClient string          `json:"dashboard_client"` // Global non-namespace client.
+	DashboardKey    string          `json:"dashboard_key"`
+	SyzkallerRepo   string          `json:"syzkaller_repo"`
+	SyzkallerBranch string          `json:"syzkaller_branch"`
+	KernelConfig    string          `json:"kernel_config"`
+	Target          string          `json:"target"`
+	Image           string          `json:"image"`
+	Type            string          `json:"type"`
+	VM              json.RawMessage `json:"vm"`
 	// Max workdir cache size (defaults to 1TB).
 	// The whole workdir may be slightly larger, since e.g. kernel checkout is not accounted here.
 	CacheSize uint64 `json:"cache_size"`
@@ -263,13 +261,12 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
 	inputs := map[string]any{
-		"Syzkaller":         osutil.Abs(filepath.FromSlash("syzkaller/current")),
-		"CodesearchToolBin": s.cfg.CodesearchToolBin,
-		"Image":             s.cfg.Image,
-		"Type":              s.cfg.Type,
-		"VM":                s.cfg.VM,
-		"FixedBaseCommit":   s.cfg.FixedBaseCommit,
-		"FixedRepository":   s.cfg.FixedRepository,
+		"Syzkaller":       osutil.Abs(filepath.FromSlash("syzkaller/current")),
+		"Image":           s.cfg.Image,
+		"Type":            s.cfg.Type,
+		"VM":              s.cfg.VM,
+		"FixedBaseCommit": s.cfg.FixedBaseCommit,
+		"FixedRepository": s.cfg.FixedRepository,
 	}
 	maps.Insert(inputs, maps.All(req.Args))
 	onEvent := func(span *trajectory.Span) error {

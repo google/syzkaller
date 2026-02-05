@@ -18,12 +18,11 @@ import (
 )
 
 type Inputs struct {
-	ReproOpts         string
-	ReproSyz          string
-	ReproC            string
-	KernelConfig      string
-	SyzkallerCommit   string
-	CodesearchToolBin string
+	ReproOpts       string
+	ReproSyz        string
+	ReproC          string
+	KernelConfig    string
+	SyzkallerCommit string
 
 	// Same as in the manager config.
 	Syzkaller string

@@ -12,11 +12,10 @@ import (
 )
 
 type kcsanInputs struct {
-	CrashReport       string
-	KernelRepo        string
-	KernelCommit      string
-	KernelConfig      string
-	CodesearchToolBin string
+	CrashReport  string
+	KernelRepo   string
+	KernelCommit string
+	KernelConfig string
 }
 
 // nolint:dupl
