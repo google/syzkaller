@@ -69,11 +69,10 @@ You can strictly trust the response to be complete and accurate.
 var PrepareIndex = aflow.NewFuncAction("codesearch-prepare", prepare)
 
 type prepareArgs struct {
-	KernelCommit      string
-	KernelConfig      string
-	KernelSrc         string
-	KernelObj         string
-	CodesearchToolBin string
+	KernelCommit string
+	KernelConfig string
+	KernelSrc    string
+	KernelObj    string
 }
 
 type prepareResult struct {
