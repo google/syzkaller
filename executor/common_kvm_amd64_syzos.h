@@ -841,12 +841,13 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 			} else if (r.gpa == X86_SYZOS_ADDR_ZERO ||
 				   r.gpa == X86_SYZOS_ADDR_VAR_IDT ||
 				   r.gpa == X86_SYZOS_ADDR_BOOT_ARGS ||
-				   r.gpa == X86_SYZOS_ADDR_PT_POOL) {
+				   r.gpa == X86_SYZOS_ADDR_PT_POOL ||
+				   r.gpa == X86_SYZOS_ADDR_VAR_TSS) {
 				// Critical System Regions: Allocate and COPY from L1.
 				// We must copy the PT POOL because the PD entries in ADDR_ZERO
 				// point to tables allocated here. If we don't copy, L2 sees
 				// empty page tables and cannot resolve addresses like 0x50000.
-				// GDT/IDT/BootArgs are also copied for valid environment.
+				// GDT/IDT/TSS/BootArgs are also copied for valid environment.
 				backing = guest_alloc_page();
 				guest_memcpy((void*)backing, (void*)gpa, KVM_PAGE_SIZE);
 			} else if (r.flags & MEM_REGION_FLAG_EXECUTOR_CODE) {
@@ -1330,7 +1331,7 @@ GUEST_CODE static noinline void init_vmcb_guest_state(uint64 cpu_id, uint64 vm_i
 	SETUP_L2_SEGMENT_SVM(vmcb_addr, GS, X86_SYZOS_SEL_DATA, 0, 0xFFFFFFFF, SVM_ATTR_64BIT_DATA);
 
 	// Task Register (TR). Must point to a valid, present, 64-bit TSS.
-	SETUP_L2_SEGMENT_SVM(vmcb_addr, TR, X86_SYZOS_SEL_TSS64, X86_SYZOS_ADDR_VAR_TSS, 0x67, VMX_AR_TSS_AVAILABLE);
+	SETUP_L2_SEGMENT_SVM(vmcb_addr, TR, X86_SYZOS_SEL_TSS64, X86_SYZOS_ADDR_VAR_TSS, 0x67, SVM_ATTR_TSS_BUSY);
 
 	// LDT Register (LDTR) - Mark as unusable.
 	// A null selector and attribute is the correct way to disable LDTR.
