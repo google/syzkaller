@@ -146,6 +146,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-O3", // required to get expected values for some __builtin_constant_p
 		"-I.",
 		"-D__KERNEL__",
+		"-D__DVB_CORE__",
 		"-DKBUILD_MODNAME=\"-\"",
 		"-DKBUILD_MODFILE=\"-\"",
 		"-D__LINUX_ARM_ARCH__=7", // arm does not build w/o this
