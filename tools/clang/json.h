@@ -1,8 +1,8 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#ifndef SYZ_DECLEXTRACT_JSON_H
-#define SYZ_DECLEXTRACT_JSON_H
+#ifndef SYZ_CLANGTOOL_JSON_H
+#define SYZ_CLANGTOOL_JSON_H
 
 #include <cassert>
 #include <cstdint>

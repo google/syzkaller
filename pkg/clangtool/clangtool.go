@@ -23,7 +23,7 @@ import (
 )
 
 type Config struct {
-	ToolBin    string
+	Tool       string // one of compiled-in tool names
 	KernelSrc  string
 	KernelObj  string
 	CacheFile  string
@@ -137,7 +137,7 @@ func (v *Verifier) Filename(file string) {
 		return
 	}
 	v.fileCache[file] = -1
-	fmt.Fprintf(&v.err, "missing file: %v\n", file)
+	fmt.Fprintf(&v.err, "missing file: %v (src dirs %+v)\n", file, v.srcDirs)
 }
 
 func (v *Verifier) LineRange(file string, start, end int) {
@@ -160,8 +160,12 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 	// version that produces more warnings.
 	// Comments are needed for codesearch tool, but may be useful for declextract
 	// in the future if we try to parse them with LLMs.
-	data, err := exec.Command(cfg.ToolBin, "-p", dbFile,
-		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file).Output()
+	cmd := exec.Command(os.Args[0], "-p", dbFile,
+		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file)
+	cmd.Dir = cfg.KernelObj
+	// This tells the C++ clang tool to execute in a constructor.
+	cmd.Env = append([]string{fmt.Sprintf("%v=%v", runToolEnv, cfg.Tool)}, os.Environ()...)
+	data, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -183,6 +187,16 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 		return filename
 	})
 	return out, nil
+}
+
+const runToolEnv = "SYZ_RUN_CLANGTOOL"
+
+func init() {
+	// The C++ clang tool was supposed to intercept execution in a constructor,
+	// execute and exit. If we got here with the env var set, something is wrong.
+	if name := os.Getenv(runToolEnv); name != "" {
+		panic(fmt.Sprintf("clang tool %q is not compiled in", name))
+	}
 }
 
 type compileCommand struct {

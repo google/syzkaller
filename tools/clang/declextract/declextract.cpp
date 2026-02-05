@@ -21,6 +21,7 @@
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TypeTraits.h"
+#include "clang/Basic/Version.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
@@ -297,7 +298,12 @@ FieldType Extractor::extractRecord(QualType QT, const RecordType* Typ, const std
       IsAnonymous = true;
     }
     FieldType FieldType = genType(F->getType(), BackupFieldName);
-    int BitWidth = F->isBitField() ? F->getBitWidthValue() : 0;
+    int BitWidth = F->isBitField() ? F->getBitWidthValue(
+#if CLANG_VERSION_MAJOR == 19
+                                         *Context
+#endif
+                                         )
+                                   : 0;
     int CountedBy = F->getType()->isCountAttributedType()
                         ? llvm::dyn_cast<FieldDecl>(
                               F->getType()->getAs<CountAttributedType>()->getCountExpr()->getReferencedDeclOfCallee())
@@ -338,9 +344,16 @@ std::string Extractor::extractEnum(QualType QT, const EnumDecl* Decl) {
   if (Name.empty()) {
     // This is an unnamed enum declared with a typedef:
     //   typedef enum {...} enum_name;
-    auto Typedef = dyn_cast<TypedefType>(QT.getTypePtr());
-    if (Typedef)
-      Name = Typedef->getDecl()->getNameAsString();
+    auto Elaborated = dyn_cast<ElaboratedType>(QT.getTypePtr());
+    if (Elaborated) {
+      auto Typedef = dyn_cast<TypedefType>(Elaborated->getNamedType().getTypePtr());
+      if (Typedef)
+        Name = Typedef->getDecl()->getNameAsString();
+    }
+    // This is the code we will need for one of future versions (past 21).
+    // auto Typedef = dyn_cast<TypedefType>(QT.getTypePtr());
+    // if (Typedef)
+    //   Name = Typedef->getDecl()->getNameAsString();
     if (Name.empty()) {
       QT.dump();
       llvm::report_fatal_error("enum with empty name");
@@ -993,8 +1006,8 @@ void Extractor::extractIoctl(const Expr* Cmd, const ConstDesc& Const) {
   });
 }
 
-int main(int argc, const char** argv) {
-  llvm::cl::OptionCategory Options("syz-declextract options");
+static int Main(int argc, const char** argv) {
+  llvm::cl::OptionCategory Options("declextract options");
   auto OptionsParser = tooling::CommonOptionsParser::create(argc, argv, Options);
   if (!OptionsParser) {
     llvm::errs() << OptionsParser.takeError();
@@ -1005,5 +1018,12 @@ int main(int argc, const char** argv) {
   if (Tool.run(tooling::newFrontendActionFactory(&Ex, &Ex).get()))
     return 1;
   Ex.print();
+  fflush(stdout);
   return 0;
+}
+
+__attribute__((constructor(1000))) static void ctor(int argc, const char** argv) {
+  const char* run = getenv("SYZ_RUN_CLANGTOOL");
+  if (run && !strcmp(run, "declextract"))
+    exit(Main(argc, argv));
 }

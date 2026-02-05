@@ -11,6 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 var Tools = []aflow.Tool{
@@ -154,7 +155,7 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 		args.KernelCommit, hash.String(args.KernelConfig), codesearch.DatabaseFormatHash)
 	dir, err := ctx.Cache("codesearch", desc, func(dir string) error {
 		cfg := &clangtool.Config{
-			ToolBin:   args.CodesearchToolBin,
+			Tool:      clangtoolimpl.Tool,
 			KernelSrc: args.KernelSrc,
 			KernelObj: args.KernelObj,
 			CacheFile: filepath.Join(dir, "index.json"),

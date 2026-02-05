@@ -1,6 +1,9 @@
 // Copyright 2025 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Clang-based tool that indexes kernel source code to power
+// pkg/aflow/tool/codesearcher/codesearcher.go agentic tool.
+
 #include "json.h"
 #include "output.h"
 
@@ -12,6 +15,7 @@
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/Version.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
@@ -311,7 +315,11 @@ bool Indexer::TraverseRecordDecl(RecordDecl* Decl) {
       uint64_t OffsetInBits = Layout.getFieldOffset(Field->getFieldIndex());
       uint64_t SizeInBits;
       if (Field->isBitField()) {
-        SizeInBits = Field->getBitWidthValue(Context);
+        SizeInBits = Field->getBitWidthValue(
+#if CLANG_VERSION_MAJOR == 19
+            Context
+#endif
+        );
       } else {
         TypeInfo Info = Context.getTypeInfo(Field->getType());
         SizeInBits = Info.Width;
@@ -338,8 +346,8 @@ bool Indexer::TraverseTypedefDecl(TypedefDecl* Decl) {
   return Base::TraverseTypedefDecl(Decl);
 }
 
-int main(int argc, const char** argv) {
-  llvm::cl::OptionCategory Options("syz-indexer options");
+static int Main(int argc, const char** argv) {
+  llvm::cl::OptionCategory Options("codesearch options");
   auto OptionsParser = tooling::CommonOptionsParser::create(argc, argv, Options);
   if (!OptionsParser) {
     llvm::errs() << OptionsParser.takeError();
@@ -351,5 +359,12 @@ int main(int argc, const char** argv) {
   if (Tool.run(tooling::newFrontendActionFactory(&Instance, &Instance).get()))
     return 1;
   Output.print();
+  fflush(stdout);
   return 0;
+}
+
+__attribute__((constructor(1000))) static void ctor(int argc, const char** argv) {
+  const char* run = getenv("SYZ_RUN_CLANGTOOL");
+  if (run && !strcmp(run, "codesearch"))
+    exit(Main(argc, argv));
 }
