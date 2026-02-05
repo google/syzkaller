@@ -485,6 +485,8 @@
 #define SVM_ATTR_TYPE_A (1 << 0)
 #define SVM_ATTR_TYPE_RW (1 << 1)
 #define SVM_ATTR_TYPE_E (1 << 3)
+// Present, DPL=0, 64-bit TSS (Busy).
+#define SVM_ATTR_TSS_BUSY 0x008b
 
 // 64-bit Code Segment: P=1, S=1, Type=11 (E/R/A), L=1, G=1
 #define SVM_ATTR_64BIT_CODE                                             \
