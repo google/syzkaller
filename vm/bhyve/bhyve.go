@@ -29,12 +29,13 @@ func init() {
 }
 
 type Config struct {
-	Bridge  string `json:"bridge"`  // name of network bridge device, optional
-	Count   int    `json:"count"`   // number of VMs to use
-	CPU     int    `json:"cpu"`     // number of VM vCPU
-	HostIP  string `json:"hostip"`  // VM host IP address
-	Mem     string `json:"mem"`     // amount of VM memory
-	Dataset string `json:"dataset"` // ZFS dataset containing VM image
+	Bridge    string `json:"bridge"`     // name of network bridge device, optional
+	Count     int    `json:"count"`      // number of VMs to use
+	CPU       int    `json:"cpu"`        // number of VM vCPU
+	HostIP    string `json:"hostip"`     // VM host IP address
+	Mem       string `json:"mem"`        // amount of VM memory
+	Dataset   string `json:"dataset"`    // ZFS dataset containing VM image
+	BhyveArgs string `json:"bhyve_args"` // extra arguments to bhyve
 }
 
 type Pool struct {
@@ -186,8 +187,10 @@ func (inst *instance) Boot() error {
 		"-s", fmt.Sprintf("2:0,virtio-net,%v", netdev),
 		"-s", fmt.Sprintf("3:0,virtio-blk,%v", inst.image),
 		"-l", "com1,stdio",
-		inst.vmName,
 	}
+
+	bhyveArgs = append(bhyveArgs, strings.Split(inst.cfg.BhyveArgs, "  ")...)
+	bhyveArgs = append(bhyveArgs, inst.vmName)
 
 	outr, outw, err := osutil.LongPipe()
 	if err != nil {
