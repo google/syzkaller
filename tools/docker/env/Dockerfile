@@ -79,9 +79,10 @@ ENV GOMODCACHE /syzkaller/.cache/gomod
 # Install clang.
 RUN apt-get install -y -q gnupg apt-transport-https
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm-snapshot.gpg
-RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
+# It uses SHA-1 signatures which are deprecated since 2026, so we have to use trusted=yes.
+RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
 RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends clang-21 clang-format-21 clang-tidy-21 lld-21
+RUN apt-get install -y -q --no-install-recommends clang-21 clang-format-21 clang-tidy-21 lld-21 llvm-21-dev libclang-cpp21-dev libclang-21-dev
 RUN apt-get install -y -q --no-install-recommends flatbuffers-compiler
 RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
 RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
