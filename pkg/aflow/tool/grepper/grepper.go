@@ -5,9 +5,10 @@ package grepper
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"os/exec"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -44,14 +45,16 @@ type results struct {
 
 func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 	output, err := osutil.RunCmd(time.Hour, state.KernelSrc, "git", "grep", "--extended-regexp",
-		"--line-number", "--show-function", "-C1", "--no-color", args.Expression)
+		"--line-number", "--show-function", "-C1", "--no-color", "--", args.Expression)
 	if err != nil {
-		// This should mean an invalid expression.
-		if bytes.Contains(output, []byte("fatal:")) {
-			return results{}, aflow.BadCallError("bad expression: %s", bytes.TrimSpace(output))
-		}
-		if strings.Contains(err.Error(), "exit status 1") && len(output) == 0 {
-			return results{}, aflow.BadCallError("no matches")
+		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 1 && len(output) == 0 {
+				return results{}, aflow.BadCallError("no matches")
+			}
+			// This should mean an invalid expression.
+			if exitErr.ExitCode() == 128 && bytes.Contains(output, []byte("fatal:")) {
+				return results{}, aflow.BadCallError("bad expression: %s", bytes.TrimSpace(output))
+			}
 		}
 		return results{}, fmt.Errorf("%w\n%s", err, output)
 	}
