@@ -64,7 +64,7 @@
 #define X86_SYZOS_ADDR_STACK0 0x60f80
 
 // Base address for all per-L1-VCPU regions.
-#define X86_SYZOS_PER_VCPU_REGIONS_BASE 0x70000
+#define X86_SYZOS_PER_VCPU_REGIONS_BASE 0x400000
 // Size of the entire memory block allocated for a single L1 VCPU to manage its L2 VMs.
 // We need space for 1 VMXON page + 4 L2 VMs. Let's allocate 256KB per L1 VCPU for ample space.
 #define X86_SYZOS_L1_VCPU_REGION_SIZE 0x40000
@@ -98,7 +98,7 @@
 #define X86_SYZOS_L2_VM_OFFSET_MSR_BITMAP 0x7000
 
 // Subsequent addresses are shifted to accommodate all L1 VCPU regions.
-#define X86_SYZOS_ADDR_UNUSED 0x200000
+#define X86_SYZOS_ADDR_UNUSED 0x1000000
 #define X86_SYZOS_ADDR_IOAPIC 0xfec00000
 
 #define X86_SYZOS_ADDR_VMCS_VMCB(cpu, vm)                                            \
@@ -156,7 +156,7 @@
 #define X86_CR4_MCE (1ULL << 6)
 #define X86_CR4_PGE (1ULL << 7)
 #define X86_CR4_PCE (1ULL << 8)
-#define X86_CR4_OSFXSR (1ULL << 8)
+#define X86_CR4_OSFXSR (1ULL << 9)
 #define X86_CR4_OSXMMEXCPT (1ULL << 10)
 #define X86_CR4_UMIP (1ULL << 11)
 #define X86_CR4_VMXE (1ULL << 13)
@@ -344,6 +344,7 @@
 // VMCS Guest State Fields.
 #define VMCS_GUEST_INTR_STATUS 0x00000810
 #define VMCS_GUEST_PML_INDEX 0x00000812
+#define VMCS_GUEST_PHYSICAL_ADDRESS 0x00002400
 #define VMCS_GUEST_IA32_DEBUGCTL 0x00002802
 #define VMCS_GUEST_IA32_PAT 0x00002804
 #define VMCS_GUEST_IA32_EFER 0x00002806
@@ -410,6 +411,7 @@
 
 #define VMCB_CTRL_ASID 0x058
 #define VMCB_EXIT_CODE 0x070
+#define VMCB_EXITINFO2 0x080
 
 // NP_ENABLE is actually 1 byte, but the 7 following bytes are reserved, so it's okay
 #define VMCB_CTRL_NP_ENABLE 0x090
@@ -471,6 +473,7 @@
 #define VMCB_GUEST_RSP 0x5d8
 #define VMCB_GUEST_PAT 0x668
 #define VMCB_GUEST_DEBUGCTL 0x670
+#define VMCB_RAX 0x5f8
 
 // SVM Segment Attribute Defines
 #define SVM_ATTR_G (1 << 15)
@@ -482,6 +485,8 @@
 #define SVM_ATTR_TYPE_A (1 << 0)
 #define SVM_ATTR_TYPE_RW (1 << 1)
 #define SVM_ATTR_TYPE_E (1 << 3)
+// Present, DPL=0, 64-bit TSS (Busy).
+#define SVM_ATTR_TSS_BUSY 0x008b
 
 // 64-bit Code Segment: P=1, S=1, Type=11 (E/R/A), L=1, G=1
 #define SVM_ATTR_64BIT_CODE                                             \
@@ -498,6 +503,7 @@
 #endif // x86-specific definitions.
 
 #define KVM_MAX_VCPU 4
+#define KVM_MAX_L2_VMS 4
 #define KVM_PAGE_SIZE (1 << 12)
 #define KVM_GUEST_PAGES 1024
 #define KVM_GUEST_MEM_SIZE (KVM_GUEST_PAGES * KVM_PAGE_SIZE)

@@ -11,11 +11,11 @@
 #include "common_kvm_syzos.h"
 #include "kvm.h"
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit
 extern char* __start_guest;
 
 // executor_fn_guest_addr() is compiled into both the host and the guest code.
-static inline uintptr_t executor_fn_guest_addr(void* fn)
+static always_inline uintptr_t executor_fn_guest_addr(void* fn)
 {
 	// Prevent the compiler from creating a .rodata constant for
 	// &__start_guest + SYZOS_ADDR_EXECUTOR_CODE.
@@ -28,7 +28,7 @@ static inline uintptr_t executor_fn_guest_addr(void* fn)
 // In Clang-based C++ builds, use template magic to ensure that only guest functions can be passed
 // to executor_fn_guest_addr().
 template <typename R, typename... A>
-uintptr_t static inline executor_fn_guest_addr(__addrspace_guest R (*fn)(A...))
+uintptr_t static always_inline executor_fn_guest_addr(__addrspace_guest R (*fn)(A...))
 {
 	return executor_fn_guest_addr((void*)fn);
 }
