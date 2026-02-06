@@ -81,4 +81,14 @@ foo.c-6-	line;
 		args{Expression: "bad expression ("},
 		results{},
 		`bad expression: fatal: command line, 'bad expression (': Unmatched ( or \(`)
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: "->root"},
+		results{},
+		"no matches")
+	aflow.TestTool(t, Tool,
+		state{KernelSrc: repo.Dir},
+		args{Expression: `-\>root`},
+		results{},
+		"no matches")
 }
