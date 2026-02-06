@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -249,6 +250,7 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y on linux)")
 	}
 	var interner symbolizer.Interner
+	var lcCache sync.Map
 	bin := filepath.Join(kernelDirs.Obj, target.KernelObject)
 	symb, _ := symbolizer.Make(target, bin)
 	symbName := "unknown"
@@ -260,6 +262,9 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*vminfo.KernelModule][]uint64, symbolizer string) ([]*Frame, error) {
+			if symbolizer == "source" {
+				return symbolizeSource(target, &interner, kernelDirs, splitBuildDelimiters, pcs, &lcCache)
+			}
 			return symbolize(target, &interner, kernelDirs, splitBuildDelimiters, pcs, symbolizer)
 		},
 		CallbackPoints:  allCoverPoints[0],
