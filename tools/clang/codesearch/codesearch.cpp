@@ -161,6 +161,13 @@ Indexer::NamedDeclEmitter::NamedDeclEmitter(Indexer* Parent, const NamedDecl* De
       EndLine = std::max(EndLine, CommentEndLine);
     }
   }
+
+  // Ensure StartLine and EndLine are in the same file.
+  if (EndLine < StartLine ||
+      SM.getFileID(SM.getExpansionLoc(Range.getBegin())) != SM.getFileID(SM.getExpansionLoc(Range.getEnd()))) {
+    EndLine = StartLine;
+  }
+
   Def = Definition{
       .Kind = Kind,
       .Name = Decl->getNameAsString(),
@@ -215,6 +222,13 @@ bool Indexer::VisitDeclRefExpr(const DeclRefExpr* DeclRef) {
 }
 
 bool Indexer::TraverseVarDecl(VarDecl* Decl) {
+  if (Decl->isFileVarDecl() && Decl->isThisDeclarationADefinition() == VarDecl::Definition) {
+    NamedDeclEmitter Emitter(this, Decl, EntityKindGlobalVariable, Decl->getType().getAsString(),
+                             Decl->getStorageClass() == SC_Static);
+    ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
+    return Base::TraverseVarDecl(Decl);
+  }
+
   ScopedState<SourceLocation> Scoped(&TypeRefingLocation, Decl->getBeginLoc());
   return Base::TraverseVarDecl(Decl);
 }
