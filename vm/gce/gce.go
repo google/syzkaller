@@ -195,8 +195,17 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
-		string(gceKeyPub), pool.cfg.Tags, pool.cfg.Preemptible, pool.cfg.DisplayDevice)
+	instCfg := &gce.InstanceConfig{
+		Name:          name,
+		MachineType:   pool.cfg.MachineType,
+		Image:         pool.cfg.GCEImage,
+		SSHKey:        string(gceKeyPub),
+		Tags:          pool.cfg.Tags,
+		Preemptible:   pool.cfg.Preemptible,
+		DisplayDevice: pool.cfg.DisplayDevice,
+		VMRunningTime: pool.env.Timeouts.VMRunningTime,
+	}
+	ip, err := pool.GCE.CreateInstance(instCfg)
 	if err != nil {
 		return nil, err
 	}
