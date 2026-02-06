@@ -380,7 +380,7 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1,
 		return -1;
 	}
 
-	uint64_t actual_code = ((uint64_t*)(run->mmio.data))[0];
+	uint64 actual_code = ((uint64*)(run->mmio.data))[0];
 	if (actual_code != expect) {
 #if !SYZ_EXECUTOR
 		fprintf(stderr, "[SYZOS-DEBUG] Exit Code Mismatch on VCPU %d\n", cpufd);
