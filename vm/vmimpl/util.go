@@ -30,7 +30,7 @@ type SSHOptions struct {
 	Key  string
 }
 
-func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop chan error, systemSSHCfg, debug bool) error {
+func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop <-chan error, systemSSHCfg, debug bool) error {
 	pwd := "pwd"
 	if OS == targets.Windows {
 		pwd = "dir"
