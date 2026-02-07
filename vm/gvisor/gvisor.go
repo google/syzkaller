@@ -198,6 +198,8 @@ func (inst *instance) waitBoot() error {
 	timeout := time.NewTimer(time.Minute)
 	defer timeout.Stop()
 	var output []byte
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		select {
 		case out := <-inst.merger.Output:
@@ -217,7 +219,7 @@ func (inst *instance) waitBoot() error {
 			if bytes.Contains(output, bootedMsg) {
 				return nil
 			}
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(ctx):
 			return vmimpl.BootError{
 				Title:  fmt.Sprintf("runsc failed: %v", err),
 				Output: output,
@@ -344,10 +346,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(errCtx):
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.

@@ -190,6 +190,8 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 		}
 	}
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(ErrTimeout)
@@ -198,7 +200,7 @@ func Multiplex(ctx context.Context, cmd *exec.Cmd, merger *OutputMerger, config 
 				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
+		case err := <-merger.Errors(errCtx):
 			// EOF is not always in perfect sync with exit, so we should wait a bit.
 			if cmdErr := waitAndKill(ctx, cmd); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
