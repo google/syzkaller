@@ -173,8 +173,12 @@ hub: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 agent: descriptions
-	# syz-agent uses codesearch clang tool which requires cgo.
+ifeq ("$(HOSTOS)", "linux")
+	# syz-agent uses codesearch clang tool which requires cgo on linux.
 	CGO_ENABLED=1 GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent
+else
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-agent github.com/google/syzkaller/syz-agent
+endif
 
 repro: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
