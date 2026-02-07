@@ -162,6 +162,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,
 		"-I" + sourceDir + "/include/linux",
+		"-I" + sourceDir + "/fs/xfs/libxfs",
 		"-I" + buildDir + "/syzkaller",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
