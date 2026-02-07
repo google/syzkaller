@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
@@ -172,6 +174,89 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
 		},
 	})
+	seq := 1
+	ts := c.mockedTime
+	client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		JobID: resp.ID,
+		Span: &trajectory.Span{
+			Seq:      seq,
+			Nesting:  1,
+			Type:     trajectory.SpanAction,
+			Name:     "test-action",
+			Started:  tickRandom(&ts),
+			Finished: ts,
+		},
+	})
+	seq++
+	for agentID := 1; agentID <= 3; agentID++ {
+		agentName := fmt.Sprintf("agent-%d", agentID)
+		agentStart := ts
+		agentSeq := seq
+		seq++
+		for llmCall := 1; llmCall <= 3; llmCall++ {
+			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+				JobID: resp.ID,
+				Span: &trajectory.Span{
+					Seq:                  seq,
+					Nesting:              2,
+					Type:                 trajectory.SpanLLM,
+					Name:                 agentName,
+					Started:              tickRandom(&ts),
+					Finished:             ts,
+					InputTokens:          rand.IntN(1000),
+					OutputTokens:         rand.IntN(100),
+					OutputThoughtsTokens: rand.IntN(100),
+				},
+			})
+			seq++
+			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+				JobID: resp.ID,
+				Span: &trajectory.Span{
+					Seq:      seq,
+					Nesting:  2,
+					Type:     trajectory.SpanTool,
+					Name:     "tool-1",
+					Started:  tickRandom(&ts),
+					Finished: ts,
+				},
+			})
+			seq++
+			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+				JobID: resp.ID,
+				Span: &trajectory.Span{
+					Seq:      seq,
+					Nesting:  2,
+					Type:     trajectory.SpanTool,
+					Name:     "tool-2",
+					Started:  tickRandom(&ts),
+					Finished: ts,
+				},
+			})
+			seq++
+		}
+		client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+			JobID: resp.ID,
+			Span: &trajectory.Span{
+				Seq:      agentSeq,
+				Nesting:  1,
+				Type:     trajectory.SpanAgent,
+				Name:     agentName,
+				Started:  agentStart,
+				Finished: ts,
+			},
+		})
+	}
+	client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		JobID: resp.ID,
+		Span: &trajectory.Span{
+			Seq:      0,
+			Nesting:  0,
+			Type:     trajectory.SpanFlow,
+			Name:     "test-flow",
+			Started:  c.mockedTime,
+			Finished: ts,
+		},
+	})
 	client.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
@@ -180,4 +265,11 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			"Explanation": "ISO C says data races result in undefined program behavior.",
 		},
 	})
+}
+
+// Advance the timer with random duration. Return the (copied) old time.
+func tickRandom(t *time.Time) time.Time {
+	oldTime := *t
+	*t = t.Add(time.Duration(rand.IntN(10)+1) * time.Minute)
+	return oldTime
 }
