@@ -5,12 +5,14 @@ package vmimpl
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMerger(t *testing.T) {
@@ -67,7 +69,9 @@ func TestMerger(t *testing.T) {
 	}
 
 	var merr MergerError
-	if err := <-merger.Err; err == nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := <-merger.Errors(ctx); err == nil {
 		t.Fatalf("merger did not produce an error on pipe close")
 	} else if !errors.As(err, &merr) || merr.Name != "pipe1" || merr.R != rp1 || merr.Err != io.EOF {
 		t.Fatalf("merger produced wrong error: %v", err)
@@ -84,4 +88,61 @@ func TestMerger(t *testing.T) {
 	if got := tee.String(); got != want {
 		t.Fatalf("bad tee: '%s', want '%s'", got, want)
 	}
+}
+
+type brokenReader struct {
+	err error
+}
+
+func (r *brokenReader) Read(p []byte) (int, error) {
+	return 0, r.err
+}
+
+func (r *brokenReader) Close() error { return nil }
+
+func TestMergerErrors(t *testing.T) {
+	merger := NewOutputMerger(nil)
+
+	r1 := &brokenReader{errors.New("foo")}
+	merger.Add("foo", OutputConsole, r1)
+
+	ctx := context.Background()
+	var merr MergerError
+
+	// Add a background reader that will just hang.
+	rHang, wHang, err := osutil.LongPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	merger.Add("background", OutputConsole, rHang)
+
+	err = <-merger.Errors(ctx)
+	if assert.Error(t, err) {
+		assert.True(t, errors.As(err, &merr))
+		assert.Equal(t, "foo", merr.Name)
+		assert.EqualError(t, merr.Err, "foo")
+	}
+
+	// The error must persist.
+	err = <-merger.Errors(ctx)
+	if assert.Error(t, err) {
+		assert.True(t, errors.As(err, &merr))
+		assert.Equal(t, "foo", merr.Name)
+		assert.EqualError(t, merr.Err, "foo")
+	}
+
+	// We re-add the decoder as "foo".
+	// The previous error should be gone.
+	r2 := &brokenReader{errors.New("bar")}
+	merger.Add("foo", OutputConsole, r2)
+
+	err = <-merger.Errors(ctx)
+	if assert.Error(t, err) {
+		assert.True(t, errors.As(err, &merr))
+		assert.Equal(t, "foo", merr.Name)
+		assert.EqualError(t, merr.Err, "bar")
+	}
+
+	wHang.Close()
+	merger.Wait()
 }
