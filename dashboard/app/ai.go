@@ -39,10 +39,11 @@ type uiAIJobPage struct {
 	Header *uiHeader
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
-	Jobs        []*uiAIJob
-	CrashReport template.HTML
-	Trajectory  []*uiAITrajectorySpan
-	History     []*uiJobReviewHistory
+	Jobs           []*uiAIJob
+	CrashReport    template.HTML
+	Trajectory     []*uiAITrajectorySpan
+	History        []*uiJobReviewHistory
+	TrajectoryJSON template.JS
 }
 
 type uiJobReviewHistory struct {
@@ -194,13 +195,15 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
+	trajectoryJSON, _ := json.Marshal(makeUIAITrajectory(trajectory))
 	page := &uiAIJobPage{
-		Header:      hdr,
-		Job:         uiJob,
-		Jobs:        []*uiAIJob{uiJob},
-		CrashReport: crashReport,
-		Trajectory:  makeUIAITrajectory(trajectory),
-		History:     makeUIJobReviewHistory(history),
+		Header:         hdr,
+		Job:            uiJob,
+		Jobs:           []*uiAIJob{uiJob},
+		CrashReport:    crashReport,
+		Trajectory:     makeUIAITrajectory(trajectory),
+		History:        makeUIJobReviewHistory(history),
+		TrajectoryJSON: template.JS(trajectoryJSON),
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }
