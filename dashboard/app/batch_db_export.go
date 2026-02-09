@@ -36,6 +36,6 @@ func exportDBScript(srcNamespace, archivePath string) string {
 		"CI=1 ./tools/syz-env \"" + // CI=1 to suppress "The input device is not a TTY".
 		"go run ./tools/syz-db-export/... -namespace " + srcNamespace + " -output export -token $token -j 10 && " +
 		"tar -czf export.tar.gz ./export/ && " +
-		"gsutil -q -m cp export.tar.gz " + archivePath +
+		"gcloud storage cp export.tar.gz " + archivePath +
 		"\""
 }
