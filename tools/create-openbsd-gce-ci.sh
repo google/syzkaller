@@ -213,7 +213,7 @@ Done.
 
 To create GCE image run the following commands:
 
-gcloud storage cp --predefined-acl=public-read "$i" gs://syzkaller/
+gcloud storage cp --predefined-acl=publicRead "$i" gs://syzkaller/
 gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i"
 
 EOF
