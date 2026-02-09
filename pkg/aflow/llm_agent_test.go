@@ -154,3 +154,35 @@ func TestSummaryWindow(t *testing.T) {
 		},
 	)
 }
+
+func TestSetResultsToolIsNotLast(t *testing.T) {
+	type flowOutputs struct {
+		Reply  string
+		Result int
+	}
+	type flowResults struct {
+		Result int `jsonschema:"Result"`
+	}
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Reply": "Done", "Result": 42},
+		&LLMAgent{
+			Name:        "smarty",
+			Model:       "model",
+			Reply:       "Reply",
+			Outputs:     LLMOutputs[flowResults](),
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instructions",
+			Prompt:      "Initial Prompt",
+			Tools: []Tool{
+				NewFuncTool("tool", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+					return struct{}{}, nil
+				}, "tool"),
+			},
+		},
+		[]any{
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool"}},
+			genai.NewPartFromText("Done"),
+		},
+	)
+}
