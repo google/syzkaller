@@ -111,28 +111,23 @@ func TestSummaryWindow(t *testing.T) {
 	type toolResults struct {
 		ResFoo int `jsonschema:"foo"`
 	}
-
-	// The history (req) starts with 1 message (User Prompt).
-	// Each tool call cycle adds 2 messages (Model Response + Tool Response).
-	agent := &LLMAgent{
-		Name:          "summary_agent",
-		Model:         "model",
-		Reply:         "Reply",
-		SummaryWindow: 3,
-		TaskType:      FormalReasoningTask,
-		Instruction:   "Instructions",
-		Prompt:        "Initial Prompt",
-		Tools: []Tool{
-			NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
-				return toolResults{123}, nil
-			}, "logic ticker"),
-		},
-	}
-
 	requestSeq := 0
 	testFlow[struct{}, flowOutputs](t, nil,
 		map[string]any{"Reply": "Done"},
-		Pipeline(agent),
+		&LLMAgent{
+			Name:          "summary_agent",
+			Model:         "model",
+			Reply:         "Reply",
+			SummaryWindow: 3,
+			TaskType:      FormalReasoningTask,
+			Instruction:   "Instructions",
+			Prompt:        "Initial Prompt",
+			Tools: []Tool{
+				NewFuncTool("tick", func(ctx *Context, state struct{}, args struct{}) (toolResults, error) {
+					return toolResults{123}, nil
+				}, "logic ticker"),
+			},
+		},
 		[]any{
 			func(model string, cfg *genai.GenerateContentConfig, req []*genai.Content) (
 				*genai.GenerateContentResponse, error) {
