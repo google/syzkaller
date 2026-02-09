@@ -1,0 +1,179 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool",
+							"name": "tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				},
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "Result",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "Result",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"args": {
+								"Result": 42
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"name": "set-results",
+							"response": {
+								"Result": 42
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"args": {
+								"Result": 42
+							},
+							"name": "set-results"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"name": "set-results",
+							"response": {
+								"Result": 42
+							}
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"name": "tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"name": "tool"
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

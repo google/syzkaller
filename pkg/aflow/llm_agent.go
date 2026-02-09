@@ -325,7 +325,9 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		// Overwrite previous outputs, if LLM calls the tool more than once.
 		// It shouldn't, but this seems to be the easiest way to handle it gracefully.
-		outputs = outputs1
+		if outputs1 != nil {
+			outputs = outputs1
+		}
 		req = append(req, responses)
 	}
 }
