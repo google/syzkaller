@@ -16,6 +16,8 @@
 #define _GNU_SOURCE
 #endif
 
+
+#if CSB
 #define BM_CAT(a,b) a ## b
 #define UNIQUE_ID
 #define UNIQUE_ID_TOK_TOK(...) BM_CAT(__VA_OPT__(_),UNIQUE_ID)

@@ -300,8 +300,9 @@ static bool in_execute_one = false;
 #include "common.h"
 #include "executor_common.h"
 
-const size_t kMaxInput = 4 << 25; // keep in sync with prog.ExecBufferSize
-const size_t kMaxCommands = 100000; // prog package knows about this constant (prog.execMaxCommands)
+// A go byte[] cannot exceed a size of 2^32, use INT_MAX (2147483647)
+const size_t kMaxInput = static_cast<size_t>(INT32_MAX); // keep in sync with prog.ExecBufferSize
+const size_t kMaxCommands = 1000000; // prog package knows about this constant (prog.execMaxCommands)
 
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;

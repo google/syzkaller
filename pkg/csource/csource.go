@@ -37,6 +37,10 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+var (
+	missedFDResources 	   = make(map[uint64](bool))
+)
+
 // Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
@@ -153,7 +157,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 
 	varsBuf := new(bytes.Buffer)
 	if len(vars) != 0 {
-		fmt.Fprintf(varsBuf, "uint64 R_UNIQUE[%v] = {", len(vars))
+		fmt.Fprintf(varsBuf, "uint64 UNIQUE_VAR(r)[%v] = {", len(vars))
 		for i, v := range vars {
 			if i != 0 {
 				fmt.Fprintf(varsBuf, ", ")
@@ -162,6 +166,14 @@ func (ctx *context) generateSource() ([]byte, error) {
 		}
 		fmt.Fprintf(varsBuf, "};\n")
 	}
+
+	closeBuf := new(bytes.Buffer)
+	for fdRes, open := range missedFDResources {
+		if (open) {
+			fmt.Fprintf(closeBuf, "\tclose(UNIQUE_VAR(r)[%v]);\n", fdRes)
+		}
+	}
+
 
 	// sub directories for mkdir
 	subdirs := ctx.mapToArrayStringBool(ctx.opts.SubDirs)
@@ -173,23 +185,33 @@ func (ctx *context) generateSource() ([]byte, error) {
 	filenames := ctx.mapToArrayUint64String(ctx.opts.FileNames)
 
 	sandboxFunc := generateSandboxFunctionSignature(ctx.opts.Sandbox, ctx.opts.SandboxArg, ctx)
-	replacements := map[string]string{
-		"PROCS":           fmt.Sprint(ctx.opts.Procs),
-		"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),
-		"NUM_CALLS":       fmt.Sprint(len(ctx.p.Calls)),
-		"MMAP_DATA":       strings.Join(mmapCalls, ""),
-		"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
-		"SANDBOX_FUNC":    sandboxFunc,
-		"RESULTS":         varsBuf.String(),
-		"SYSCALLS":        ctx.generateSyscalls(calls, len(vars) != 0),
-		"NUM_NOP":         fmt.Sprint(ctx.opts.NumNop),
-		"NUMSUBDIRS":      fmt.Sprint(len(ctx.opts.SubDirs)),
-		"SUBDIRS":         subdirs,
-		"NUMFILESIZES":    fmt.Sprint(len(ctx.opts.FileSizes)),
-		"FILESIZES":       filesizes,
-		"NUMFILENAMES":    fmt.Sprint(len(ctx.opts.FileNames)),
-		"FILENAMES":       filenames,
+
+	results := varsBuf.String()
+	syscalls := ctx.generateSyscalls(calls, len(vars) != 0)
+
+	if ctx.opts.CSB {
+		results = ""
+		syscalls = varsBuf.String() + "\n" + syscalls + "\n" + closeBuf.String()
 	}
+	
+	replacements := map[string]string{
+			"PROCS":           fmt.Sprint(ctx.opts.Procs),
+			"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),
+			"NUM_CALLS":       fmt.Sprint(len(ctx.p.Calls)),
+			"MMAP_DATA":       strings.Join(mmapCalls, ""),
+			"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
+			"SANDBOX_FUNC":    sandboxFunc,
+			"RESULTS":         results,
+			"SYSCALLS":        syscalls,
+			"NUM_NOP":         fmt.Sprint(ctx.opts.NumNop),
+			"NUMSUBDIRS":      fmt.Sprint(len(ctx.opts.SubDirs)),
+			"SUBDIRS":         subdirs,
+			"NUMFILESIZES":    fmt.Sprint(len(ctx.opts.FileSizes)),
+			"FILESIZES":       filesizes,
+			"NUMFILENAMES":    fmt.Sprint(len(ctx.opts.FileNames)),
+			"FILENAMES":       filenames,
+	}
+	
 	if !ctx.opts.Threaded && !ctx.opts.Repeat && ctx.opts.Sandbox == "" {
 		// This inlines syscalls right into main for the simplest case.
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
@@ -239,6 +261,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 		header += "#define UNIQUE_STR_STR(str) #str\n"
 		header += "#define UNIQUE_STR() UNIQUE_STR_STR(RESOLVE(UNIQUE_ID))\n"
 		header += "#define MMAP_OFFSET " + fmt.Sprintf("0x%x", ctx.target.DataOffset) + "ul\n"
+		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages * ctx.target.PageSize) + "ul\n"
 	}
 	header += "\n"
 
@@ -417,7 +440,25 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 			ctx.copyout(w, call, resCopyout)
 		}
 		calls = append(calls, w.String())
+
+		// get resource indices for filedescriptor related calls
+		if(resCopyout) {
+			fdRes := call.Index
+			missedFDResources[fdRes] = true
+		}
+
+		callName, ok := ctx.sysTarget.SyscallTrampolines[call.Meta.CallName]
+		if !ok {
+			callName = call.Meta.CallName
+		}
+		if callName == "close" {
+			arg := call.Args[0]
+			fdRes := arg.(prog.ExecArgResult).Index
+			missedFDResources[fdRes] = false
+		}
+
 	}
+
 	return calls, p.Vars
 }
 
@@ -471,7 +512,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 
 func valInMMapRange(ctx *context, val uint64) bool {
 	argValOffsetRangeMin := ctx.sysTarget.DataOffset - 0x1000
-	argValOffsetRangeMax := ctx.sysTarget.DataOffset + 0x1000000 + 0x1000
+	argValOffsetRangeMax := ctx.sysTarget.DataOffset + (ctx.target.NumPages*ctx.target.PageSize) + 0x1000
 
 	if val >= argValOffsetRangeMin && val <= argValOffsetRangeMax {
 		return true
@@ -741,14 +782,14 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	}
 	fmt.Fprintf(w, "\n")
 	if resCopyout {
-		fmt.Fprintf(w, "\t\tR_UNIQUE[%v] = res;\n", call.Index)
+		fmt.Fprintf(w, "\t\tUNIQUE_VAR(r)[%v] = res;\n", call.Index)
 	}
 	for _, copyout := range call.Copyout {
 		PTR_OFFSET_STR_ADDR := ""
 		if valInMMapRange(ctx, copyout.Addr) {
 			PTR_OFFSET_STR_ADDR = "+PTR_OFFSET"
 		}
-		fmt.Fprintf(w, "\t\tNONFAILING(R_UNIQUE[%v] = *(uint%v*)(0x%xul%v));\n", copyout.Index, copyout.Size*8, copyout.Addr, PTR_OFFSET_STR_ADDR)
+		fmt.Fprintf(w, "\t\tNONFAILING(UNIQUE_VAR(r)[%v] = *(uint%v*)(0x%xul%v));\n", copyout.Index, copyout.Size*8, copyout.Addr, PTR_OFFSET_STR_ADDR)
 	}
 	if copyoutMultiple {
 		fmt.Fprintf(w, "\t}\n")
@@ -868,7 +909,7 @@ func handleBigEndian(arg prog.ExecArgConst, val string) string {
 }
 
 func (ctx *context) resultArgToStr(arg prog.ExecArgResult) string {
-	res := fmt.Sprintf("R_UNIQUE[%v]", arg.Index)
+	res := fmt.Sprintf("UNIQUE_VAR(r)[%v]", arg.Index)
 	if arg.DivOp != 0 {
 		res = fmt.Sprintf("%v/%v", res, arg.DivOp)
 	}
@@ -888,7 +929,7 @@ func (ctx *context) postProcess(result []byte) []byte {
 	}
 	result = bytes.ReplaceAll(result, []byte("NORETURN"), nil)
 	if ctx.opts.CSB {
-		result = bytes.ReplaceAll(result, []byte("DOEXIT_UNIQUE("), []byte("exit("))
+		result = bytes.ReplaceAll(result, []byte("UNIQUE_FUNC(doexit)("), []byte("exit("))
 	} else {
 		result = bytes.ReplaceAll(result, []byte("doexit("), []byte("exit("))
 	}

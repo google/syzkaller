@@ -56,10 +56,11 @@ const (
 )
 
 const (
-	ExecBufferSize = 4 << 25 // keep in sync with kMaxInput in executor.cc
+	// A go byte[] cannot exceed a value of (2^31-1), use INT32_MAX (2147483647)
+	ExecBufferSize = 2147483647 // keep in sync with kMaxInput in executor.cc
 	ExecNoCopyout  = ^uint64(0)
 
-	execMaxCommands = 100000 // executor knows about this constant (kMaxCommands)
+	execMaxCommands = 1000000 // executor knows about this constant (kMaxCommands)
 )
 
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
