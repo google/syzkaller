@@ -28,11 +28,11 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 #	fuchsia/out/arm64/arm64-shared/*.so
 #
 # And then uploaded to GCS with:
-# Note: Non-Atomic Operation: Like gsutil mv, gcloud storage mv is not an atomic operation. It performs a copy from the source to the destination, followed by a deletion of the source object. This means that for a period, the data exists in both locations, and if the operation is interrupted, the source object may not be deleted.
+
 # gcloud storage mv gs://syzkaller/GOOS-toolchain.tar.gz gs://syzkaller/GOOS-toolchain.old.tar.gz
-# Note: Parallelism by Default: gcloud storage cp performs parallel uploads and downloads by default for improved performance. gsutil requires the top-level -m flag to enable this behavior.
+
 # gcloud storage cp GOOS-toolchain.tar.gz gs://syzkaller/
-# Note: Command Structure: gsutil uses subcommands (get, set, ch) for the acl command. gcloud storage integrates this into the standard describe and update commands for buckets and objects.
+
 # gcloud storage objects update gs://syzkaller/GOOS-toolchain.tar.gz --add-acl-grant=entity=allUsers,role=READER
 #
 # NetBSD toolchain can be re-built with:
