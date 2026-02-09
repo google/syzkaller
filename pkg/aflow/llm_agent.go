@@ -218,7 +218,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	// It points to the summary message if the sliding window summary feature is enabled.
 	// We need it to check if the message-to-be-popped is a summary - if so, we need to add
 	// a new summary.
-	summaryMessage := (*genai.Content)(nil)
+	var summaryMessage *genai.Content
 	for {
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
@@ -228,49 +228,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1
-		// messages (recent history), then discard the old ones with stale context and to
-		// free up tokens.
-		// We need to add a new summary if we don't have one yet, or existing summary is
-		// going to be popped.
 		addNewSummary := false
-		if a.SummaryWindow > 0 && len(req) > a.SummaryWindow {
-			// popEnd is the last index of elements to be popped
-			popEnd := len(req) - a.SummaryWindow
-			if summaryMessage == nil {
-				// If we haven't created a summary, surely need to create one.
-				addNewSummary = true
-			} else {
-				// If we already have a summary, we iterate through the elements being popped
-				// (index 1 to popEnd), and see if the summary would be popped (hence needing
-				// a new summary).
-				for i := 1; i <= popEnd; i++ {
-					if req[i] == summaryMessage {
-						// The existing summary message is among the summary message.
-						addNewSummary = true
-						break
-					}
-				}
-			}
-			// Append the very prompt, asking LLM to add summary.
-			// TODO: what if it is ready to provide an answer right now,
-			// and don't want to call any tools anymore, but instead we
-			// ask it to summarize? We may get the summary as the final reply...
-			// Or, what if it summarizes w/o calling any tools?
-			if addNewSummary {
-				req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
-					Text: slidingWindowInstruction,
-				})
-			}
-			// The actual popping.
-			if addNewSummary && (summaryMessage != nil) {
-				// Before we actually pop the old summary, save it so the new summary can
-				// incorporate enough old information.
-				req = append([]*genai.Content{req[0], summaryMessage}, req[popEnd+1:]...)
-			} else {
-				req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
-			}
-		}
+		req, addNewSummary = a.slide(req, summaryMessage)
 		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
 		if respErr != nil {
 			span.Error = respErr.Error()
@@ -334,6 +293,48 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		req = append(req, responses)
 	}
+}
+
+func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {
+	// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1 messages
+	// (recent history), then discard the old ones with stale context and to free up tokens.
+	// We need to add a new summary if we don't have one yet, or existing summary is going to be popped.
+	if a.SummaryWindow <= 0 || len(req) <= a.SummaryWindow {
+		return req, false
+	}
+	// If we haven't created a summary, surely need to create one.
+	addNewSummary := summary == nil
+	// popEnd is the last index of elements to be popped
+	popEnd := len(req) - a.SummaryWindow
+	// If we already have a summary, we iterate through the elements being popped
+	// (index 1 to popEnd), and see if the summary would be popped (hence needing
+	// a new summary).
+	for i := 1; i <= popEnd; i++ {
+		if req[i] == summary {
+			// The existing summary message is among the summary message.
+			addNewSummary = true
+			break
+		}
+	}
+	// Append the very prompt, asking LLM to add summary.
+	// TODO: what if it is ready to provide an answer right now,
+	// and don't want to call any tools anymore, but instead we
+	// ask it to summarize? We may get the summary as the final reply...
+	// Or, what if it summarizes w/o calling any tools?
+	if addNewSummary {
+		req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
+			Text: slidingWindowInstruction,
+		})
+	}
+	// The actual popping.
+	if addNewSummary && (summary != nil) {
+		// Before we actually pop the old summary, save it so the new summary can
+		// incorporate enough old information.
+		req = append([]*genai.Content{req[0], summary}, req[popEnd+1:]...)
+	} else {
+		req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
+	}
+	return req, addNewSummary
 }
 
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, map[string]Tool) {
