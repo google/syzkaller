@@ -186,3 +186,26 @@ func TestSetResultsToolIsNotLast(t *testing.T) {
 		},
 	)
 }
+
+func TestOnlyStructuredOutputs(t *testing.T) {
+	type flowOutputs struct {
+		Result int
+	}
+	type flowResults struct {
+		Result int `jsonschema:"Result"`
+	}
+	testFlow[struct{}, flowOutputs](t, nil,
+		map[string]any{"Result": 42},
+		&LLMAgent{
+			Name:        "smarty",
+			Model:       "model",
+			Outputs:     LLMOutputs[flowResults](),
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instructions",
+			Prompt:      "Initial Prompt",
+		},
+		[]any{
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+		},
+	)
+}

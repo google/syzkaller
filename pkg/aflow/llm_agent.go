@@ -28,6 +28,7 @@ type LLMAgent struct {
 	// Name of the state variable to store the final reply of the agent.
 	// These names can be used in subsequent action instructions/prompts,
 	// and as final workflow outputs.
+	// Reply should not be empty unless Outputs are specified.
 	Reply string
 	// Optional additional structured outputs besides the final text reply.
 	// Use LLMOutputs function to create it.
@@ -327,6 +328,9 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		// It shouldn't, but this seems to be the easiest way to handle it gracefully.
 		if outputs1 != nil {
 			outputs = outputs1
+			if a.Reply == "" {
+				return "", outputs, nil
+			}
 		}
 		req = append(req, responses)
 	}
@@ -570,7 +574,9 @@ func (err *retryError) Unwrap() error {
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
-	ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+	if a.Outputs == nil {
+		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+	}
 	if _, ok := taskParameters[a.TaskType]; !ok {
 		ctx.errorf(a.Name, "bad or missing TaskType (%v)", a.TaskType)
 	}
@@ -589,7 +595,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if a.Candidates > 1 {
 			replyType = reflect.TypeFor[[]string]()
 		}
-		ctx.provideOutput(a.Name, a.Reply, replyType)
+		if a.Reply != "" {
+			ctx.provideOutput(a.Name, a.Reply, replyType)
+		}
 		if a.Outputs != nil {
 			a.Outputs.provideOutputs(ctx, a.Name, a.Candidates > 1)
 		}
