@@ -55,6 +55,7 @@ type Config struct {
 	SyzkallerBranch       string
 	SyzkallerDescriptions string
 	Targets               map[Target]bool
+	MakeTargets           []string // host make targets to build besides the targets-specific ones
 }
 
 type Target struct {
@@ -85,11 +86,11 @@ func New(cfg *Config) (*Updater, error) {
 
 	// List of required files in syzkaller build (contents of latest/current dirs).
 	syzFiles := map[string]bool{
-		"tag":             true, // contains syzkaller repo git hash
-		"bin/syz-ci":      true, // these are just copied from syzkaller dir
-		"bin/syz-manager": true,
-		"bin/syz-agent":   true,
-		"sys/*/test/*":    true,
+		"tag":          true, // contains syzkaller repo git hash
+		"sys/*/test/*": true,
+	}
+	for _, target := range cfg.MakeTargets {
+		syzFiles[fmt.Sprintf("bin/syz-%v", target)] = true
 	}
 	for target := range cfg.Targets {
 		sysTarget := targets.Get(target.OS, target.VMArch)
@@ -277,7 +278,7 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 		}
 	}
 	// This will also generate descriptions and should go before the 'go test' below.
-	cmd := osutil.Command(instance.MakeBin, "host", "ci", "agent")
+	cmd := osutil.Command(instance.MakeBin, upd.cfg.MakeTargets...)
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
