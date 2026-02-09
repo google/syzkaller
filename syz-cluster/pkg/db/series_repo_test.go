@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,6 +172,22 @@ func TestSeriesRepositoryList(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, list, 1)
 		assert.Equal(t, 0, list[0].Findings)
+	})
+
+	t.Run("steps_failed", func(t *testing.T) {
+		list, err := repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusStepsFailed}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 0)
+		err = NewSessionTestRepository(client).InsertOrUpdate(ctx, &SessionTest{
+			SessionID: session.ID,
+			TestName:  "test",
+			Result:    api.TestFailed,
+			UpdatedAt: time.Now(),
+		}, nil)
+		assert.NoError(t, err)
+		list, err = repo.ListLatest(ctx, SeriesFilter{Status: SessionStatusStepsFailed}, time.Time{})
+		assert.NoError(t, err)
+		assert.Len(t, list, 1)
 	})
 }
 
