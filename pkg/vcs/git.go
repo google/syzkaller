@@ -770,6 +770,8 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		"log",
 		"--all",
 		"--no-renames",
+		// Merge commits sometimes also change the file hashes.
+		"-m",
 		// Note that we cannot accelerate it by specifying "--since"
 		"-n", "100",
 		`--format=%H:%P`,
