@@ -104,6 +104,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 				Arch:   arch,
 			}: true,
 		},
+		MakeTargets: []string{"agent"},
 	})
 	if err != nil {
 		return err
