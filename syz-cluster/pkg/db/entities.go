@@ -87,7 +87,8 @@ const (
 	SessionStatusFinished   SessionStatus = "finished"
 	SessionStatusSkipped    SessionStatus = "skipped"
 	// To be used in filters.
-	SessionStatusAny SessionStatus = ""
+	SessionStatusAny         SessionStatus = ""
+	SessionStatusStepsFailed SessionStatus = "steps_failed"
 )
 
 // It could have been a calculated field in Spanner, but the Go library for Spanner currently
