@@ -64,6 +64,7 @@ type uiAIJob struct {
 	CodeRevisionLink string
 	Error            string
 	Correct          string
+	CorrectTitle     string
 	Results          []*uiAIResult
 }
 
@@ -228,16 +229,22 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	})
 
 	correct := aiCorrectnessIncorrect
+	title := "Incorrect"
 	if !job.Started.Valid {
 		correct = aiCorrectnessPending
+		title = "Job is pending"
 	} else if !job.Finished.Valid {
 		correct = aiCorrectnessRunning
+		title = "Job is running"
 	} else if job.Error != "" {
 		correct = aiCorrectnessErrored
+		title = "Job failed with an error"
 	} else if !job.Correct.Valid {
 		correct = aiCorrectnessUnset
+		title = "Not yet reviewed"
 	} else if job.Correct.Bool {
 		correct = aiCorrectnessCorrect
+		title = "Correct"
 	}
 	return &uiAIJob{
 		ID:               job.ID,
@@ -252,6 +259,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		CodeRevisionLink: vcs.LogLink(vcs.SyzkallerRepo, job.CodeRevision),
 		Error:            job.Error,
 		Correct:          correct,
+		CorrectTitle:     title,
 		Results:          results,
 	}
 }

@@ -19,12 +19,12 @@ Detailed info on a single AI job execution.
 		<form method="POST">
 			<fieldset>
 				<legend>Result correct:</legend>
-				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅"}}checked{{end}}>
-				<label for="✅">✅</label>
-				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌"}}checked{{end}}>
-				<label for="❌">❌</label>
-				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓"}}checked{{end}}>
-				<label for="❓">❓</label>
+				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅" }}checked{{end}} title="Correct">
+				<label for="✅" title="Correct">✅</label>
+				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌" }}checked{{end}} title="Incorrect">
+				<label for="❌" title="Incorrect">❌</label>
+				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓" }}checked{{end}} title="Not yet reviewed">
+				<label for="❓" title="Not yet reviewed">❓</label>
 				<button type="submit">Set</button>
 			</fieldset>
 		</form>
