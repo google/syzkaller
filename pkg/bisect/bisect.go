@@ -1061,7 +1061,7 @@ func (env *env) logf(msg string, args ...any) {
 	if false {
 		_ = fmt.Sprintf(msg, args...) // enable printf checker
 	}
-	env.cfg.Trace.Log(msg, args...)
+	env.cfg.Trace.Logf(msg, args...)
 }
 
 // pickReleaseTags() picks a subset of revisions to test.

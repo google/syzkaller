@@ -428,7 +428,7 @@ func (git *gitRepo) Bisect(bad, good string, dt debugtracer.DebugTracer, pred fu
 		return nil, err
 	}
 	defer git.Reset()
-	dt.Log("# git bisect start %v %v\n%s", bad, good, output)
+	dt.Logf("# git bisect start %v %v\n%s", bad, good, output)
 	current, err := git.Commit(HEAD)
 	if err != nil {
 		return nil, err
@@ -449,7 +449,7 @@ func (git *gitRepo) Bisect(bad, good string, dt debugtracer.DebugTracer, pred fu
 			firstBad = current
 		}
 		output, err = git.Run("bisect", bisectTerms[res])
-		dt.Log("# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
+		dt.Logf("# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
 		if err != nil {
 			if bytes.Contains(output, []byte("There are only 'skip'ped commits left to test")) {
 				return git.bisectInconclusive(output)
@@ -802,7 +802,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 			return nil, fmt.Errorf("hash verification failed: %w", err)
 		} else if !ok {
 			// The object is not known in this repository, so we won't find the exact base commit.
-			tracer.Log("unknown object %s, stopping base commit search", file.LeftHash)
+			tracer.Logf("unknown object %s, stopping base commit search", file.LeftHash)
 			return nil, nil
 		}
 		if _, ok := nameToHash[file.Name]; !ok {
@@ -813,7 +813,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		}
 		args = append(args, "--find-object="+file.LeftHash)
 	}
-	tracer.Log("extracted %d left blob hashes", len(nameToHash))
+	tracer.Logf("extracted %d left blob hashes", len(nameToHash))
 	if len(nameToHash) == 0 {
 		return nil, nil
 	}
@@ -853,7 +853,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 	}
 	var ret []*BaseCommit
 	for commit, branches := range commitBranches {
-		tracer.Log("considering %q [%q]", commit, branches)
+		tracer.Logf("considering %q [%q]", commit, branches)
 		fileHashes, err := git.fileHashes(commit, fileNames)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract hashes for %s: %w", commit, err)
@@ -865,7 +865,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 			}
 		}
 		if len(noMatch) != 0 {
-			tracer.Log("hashes don't match for %q", noMatch)
+			tracer.Logf("hashes don't match for %q", noMatch)
 			continue
 		}
 		var branchList []string
@@ -877,7 +877,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract commit info: %w", err)
 		}
-		tracer.Log("hashes match, commit date is %v, branches %v", info.CommitDate, branchList)
+		tracer.Logf("hashes match, commit date is %v, branches %v", info.CommitDate, branchList)
 		ret = append(ret, &BaseCommit{Commit: info, Branches: branchList})
 	}
 	return git.minimizeBaseCommits(ret)

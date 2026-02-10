@@ -14,7 +14,7 @@ import (
 )
 
 type DebugTracer interface {
-	Log(msg string, args ...any)
+	Logf(msg string, args ...any)
 	SaveFile(filename string, data []byte)
 }
 
@@ -31,7 +31,7 @@ type TestTracer struct {
 type NullTracer struct {
 }
 
-func (gt *GenericTracer) Log(msg string, args ...any) {
+func (gt *GenericTracer) Logf(msg string, args ...any) {
 	if gt.WithTime {
 		timeStr := time.Now().Format("02-Jan-2006 15:04:05")
 		newArgs := append([]any{timeStr}, args...)
@@ -49,15 +49,15 @@ func (gt *GenericTracer) SaveFile(filename string, data []byte) {
 	osutil.WriteFile(filepath.Join(gt.OutDir, filename), data)
 }
 
-func (tt *TestTracer) Log(msg string, args ...any) {
-	tt.T.Log(msg, args)
+func (tt *TestTracer) Logf(msg string, args ...any) {
+	tt.T.Logf(msg, args...)
 }
 
 func (tt *TestTracer) SaveFile(filename string, data []byte) {
 	// Not implemented.
 }
 
-func (nt *NullTracer) Log(msg string, args ...any) {
+func (nt *NullTracer) Logf(msg string, args ...any) {
 	// Not implemented.
 }
 
