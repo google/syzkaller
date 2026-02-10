@@ -45,6 +45,7 @@ var (
 	flagCSB        = flag.Bool("csb", false, "generate CSB test header instead of c file")
 	flagNumNop     = flag.Int("num_nop", 0, "number of NOPs per operation")
 	flagCFile      = flag.String("cfile", "", "output c file instead of stdout")
+	flagNumInvoc   = flag.Int("num_invoc", 10000, "max number of invocations per syscall")
 )
 
 type BMConfigApps struct {
@@ -316,6 +317,27 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 	return p, subdirs, filesizes, filemap
 }
 
+// returns limited program with regard to having a maximum number of *flagNumInvoc invocations per syscall
+func limitProgram(p *prog.Prog) *prog.Prog {
+	pLim := p.Clone()
+	pLim.Calls = nil
+	invocations := make(map[string](int))
+	for _, call := range p.Calls {
+		callName := call.Meta.Name
+		_, ok := invocations[callName]
+		if !ok {
+			invocations[callName] = 1
+		} else {
+			invocations[callName]++
+		}
+
+		if invocations[callName] <= *flagNumInvoc {
+			pLim.Calls = append(pLim.Calls, call)
+		}
+	}
+	return pLim
+}
+
 func main() {
 	flag.Usage = func() {
 		flag.PrintDefaults()
@@ -358,6 +380,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)
 	}
+
+	// limit size of program
+	pLim := limitProgram(p)
+	p = pLim
 
 	// sanitize program
 	pSan, subDirs, filesize, filemap := sanitizeProgram(p, progName)
