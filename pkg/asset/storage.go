@@ -131,7 +131,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 	res, err := compressor(req, storage.backend.upload)
 	var existsErr *FileExistsError
 	if errors.As(err, &existsErr) {
-		storage.tracer.Log("asset %s already exists", path)
+		storage.tracer.Logf("asset %s already exists", path)
 		if extra == nil || !extra.SkipIfExists {
 			return "", err
 		}
@@ -245,7 +245,7 @@ func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 		needed[path] = true
 	}
 	stats.Needed = len(needed)
-	storage.tracer.Log("queried needed assets: %#v", needed)
+	storage.tracer.Logf("queried needed assets: %#v", needed)
 
 	existing, err := storage.backend.list()
 	if err != nil {
@@ -265,7 +265,7 @@ func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 			keep = true
 			intersection++
 		}
-		storage.tracer.Log("-- object %v, %v: keep %t", obj.Path, obj.CreatedAt, keep)
+		storage.tracer.Logf("-- object %v, %v: keep %t", obj.Path, obj.CreatedAt, keep)
 		if !keep {
 			toDelete = append(toDelete, obj.Path)
 		}
@@ -279,7 +279,7 @@ func (storage *Storage) DeprecateAssets() (DeprecateStats, error) {
 	}
 	for _, path := range toDelete {
 		err := storage.backend.remove(path)
-		storage.tracer.Log("-- deleted %v: %v", path, err)
+		storage.tracer.Logf("-- deleted %v: %v", path, err)
 		// Several syz-ci's might be sharing the same storage. So let's tolerate
 		// races during file deletion.
 		if err != nil && err != ErrAssetDoesNotExist {
