@@ -54,6 +54,7 @@ static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 	if (run->exit_reason != expect) {
 #if !SYZ_EXECUTOR
 		fprintf(stderr, "[SYZOS-DEBUG] KVM Exit Reason Mismatch\n");
+		fprintf(stderr, "   is_write: %d\n", run->mmio.is_write);
 		fprintf(stderr, "   Expected: 0x%lx\n", (unsigned long)expect);
 		fprintf(stderr, "   Actual:   0x%lx\n", (unsigned long)run->exit_reason);
 #endif
