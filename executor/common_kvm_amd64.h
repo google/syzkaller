@@ -1288,6 +1288,9 @@ static void dump_vcpu_state(int cpufd, struct kvm_run* run)
 	fprintf(stderr, "VCPU registers:\n");
 	fprintf(stderr, "  rip: 0x%llx, rsp: 0x%llx, rflags: 0x%llx\n", regs.rip,
 		regs.rsp, regs.rflags);
+	fprintf(stderr, "  rax: 0x%llx, rbx: 0x%llx, rcx: 0x%llx, rdx: 0x%llx\n",
+		regs.rax, regs.rbx, regs.rcx, regs.rdx);
+	fprintf(stderr, "  rsi: 0x%llx, rdi: 0x%llx\n", regs.rsi, regs.rdi);
 	fprintf(stderr, "VCPU sregs:\n");
 	fprintf(stderr, "  cr0: 0x%llx, cr2: 0x%llx, cr3: 0x%llx, cr4: 0x%llx\n",
 		sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4);
