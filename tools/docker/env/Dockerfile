@@ -49,25 +49,33 @@ FROM debian:trixie
 
 LABEL homepage="https://github.com/google/syzkaller"
 
-RUN apt-get update --allow-releaseinfo-change
+# Install Python and core build tools.
+RUN apt-get update --allow-releaseinfo-change && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+    python3 python-is-python3 python3-legacy-cgi git \
+    make nano unzip curl ca-certificates binutils flex bison bc libelf-dev libssl-dev
+
+# Install heavy cross-compilers.
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make nano unzip curl ca-certificates binutils g++ \
-	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
-	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
-	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-14-dev lib32stdc++-14-dev \
-	python3 python-is-python3 python3-legacy-cgi git \
-	# These are needed to build Linux kernel:
-	flex bison bc libelf-dev libssl-dev \
-	# qemu-user is required to run alien arch binaries in pkg/cover tests.
-	qemu-user \
-	# These are various fsck-like commands needed for prog/fsck:
-	dosfstools e2fsprogs btrfs-progs util-linux f2fs-tools jfsutils \
-	util-linux dosfstools ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
-	exfatprogs gfs2-utils \
-	&& \
-	apt-get -y autoremove && \
-	apt-get clean autoclean && \
-	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
+    g++ \
+    g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
+    g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu
+
+# Install architecture-specific packages (only for amd64).
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+        libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-14-dev lib32stdc++-14-dev; \
+    fi
+
+# Install filesystem tools and qemu-user, clean up.
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+    qemu-user \
+    dosfstools e2fsprogs btrfs-progs util-linux f2fs-tools jfsutils \
+    ocfs2-tools reiserfsprogs xfsprogs erofs-utils \
+    exfatprogs gfs2-utils && \
+    apt-get -y autoremove && \
+    apt-get clean autoclean && \
+    rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
 # Since go 1.21 the toolchain required by go.mod is automatically downloaded.
 # There is no need to version up golang here after go.mod changes.
@@ -78,17 +86,17 @@ ENV GOMODCACHE /syzkaller/.cache/gomod
 
 # Install clang.
 RUN apt-get install -y -q gnupg apt-transport-https
-RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm-snapshot.gpg
+RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | tee /usr/share/keyrings/llvm-snapshot.gpg
 # It uses SHA-1 signatures which are deprecated since 2026, so we have to use trusted=yes.
-RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
+RUN echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/llvm-snapshot.gpg trusted=yes] http://apt.llvm.org/trixie/ llvm-toolchain-trixie-21 main" | tee /etc/apt/sources.list.d/llvm-21.list
 RUN apt-get update --allow-releaseinfo-change
 RUN apt-get install -y -q --no-install-recommends clang-21 clang-format-21 clang-tidy-21 lld-21 llvm-21-dev libclang-cpp21-dev libclang-21-dev
 RUN apt-get install -y -q --no-install-recommends flatbuffers-compiler
-RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
-RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
-RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100
-RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
-RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-21 100
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+RUN update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100
+RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
+RUN update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-21 100
 RUN apt autoremove -y -q
 
 # Install the Spanner emulator.
