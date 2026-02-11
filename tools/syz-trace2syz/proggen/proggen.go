@@ -78,6 +78,9 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 			// 2179  --- SIGUSR1 {si_signo=SIGUSR1, si_code=SI_USER, si_pid=2180, si_uid=0} ---
 			continue
 		}
+		if shouldSkip(sCall) {
+			continue
+		}
 		ctx.currentStraceCall = sCall
 		call := ctx.genCall()
 		if call == nil {
@@ -475,9 +478,16 @@ func (ctx *context) addr(syzType prog.Type, dir prog.Dir, size uint64, data prog
 
 func shouldSkip(c *parser.Syscall) bool {
 	switch c.CallName {
+	// We skip all writes to stdout and stderr because they can corrupt our crash summary.
 	case "write":
-		// We skip all writes to stdout and stderr because they can corrupt our crash summary.
-		// Also there will be nothing on stdin, so any reads will hang.
+		switch a := c.Args[0].(type) {
+		case parser.Constant:
+			if a.Val() <= 2 {
+				return true
+			}
+		}
+	// Also there will be nothing on stdin, so any reads will hang.
+	case "read":
 		switch a := c.Args[0].(type) {
 		case parser.Constant:
 			if a.Val() <= 2 {
