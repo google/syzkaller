@@ -45,7 +45,7 @@ static long syz_sleep_ms(volatile long ms)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_compare
+#if SYZ_EXECUTOR || __NR_syz_compare || __NR_syz_compare_zlib
 #include <errno.h>
 #include <string.h>
 
