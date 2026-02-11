@@ -14,31 +14,55 @@ docker pull gcr.io/syzkaller/env
 docker run -it gcr.io/syzkaller/env
 ```
 
-To build and push a new version:
-```
-DOCKER_BUILDKIT=1 docker build -t gcr.io/syzkaller/env tools/docker/env
-gcloud auth login && gcloud auth configure-docker
-docker push gcr.io/syzkaller/env
-```
+## Building Multi-arch Images
 
-[DEPRECATED] Github packages are not supported (if you can't access gcr.io, please contact us)
-```
-docker tag gcr.io/syzkaller/env docker.pkg.github.com/google/syzkaller/env
-docker login https://docker.pkg.github.com
-docker push docker.pkg.github.com/google/syzkaller/env
-```
+The `syzbot` and `env` images support multiple architectures (amd64, arm64). To build and push them, we use [Docker buildx](https://docs.docker.com/build/building/multi-platform/) to build a multi-arch image in a way that allows distributing it under one tag name.
 
-## Syzbot image
+### 1. One-time Setup
 
-The syzbot image supports two architectures (arm64, amd64), so we need to build it with care.
-
-The example below uses [the standard Docker functionality](https://docs.docker.com/build/building/multi-platform/) to build a
-multi-arch image in a way that allows to distribute it under one tag names.
+Install the QEMU emulators and create a new builder instance:
 
 ```bash
+# Install QEMU emulators for multi-arch support
 docker run --privileged --rm tonistiigi/binfmt --install all
+
+# Create and bootstrap a new builder
 docker buildx create --name mybuilder --driver docker-container --bootstrap
 docker buildx use mybuilder
+```
+
+### 2. Build and Push
+
+Once the builder is configured, you can build and push the images. Ensure you are authenticated with Google Cloud:
+
+```bash
 gcloud auth login && gcloud auth configure-docker
-docker buildx build --platform linux/amd64,linux/arm64 -t gcr.io/syzkaller/syzbot tools/docker/syzbot --push
+```
+
+**Building the `syzbot` image:**
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t gcr.io/syzkaller/syzbot \
+  tools/docker/syzbot \
+  --push
+```
+
+**Building the `env` image:**
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t gcr.io/syzkaller/env \
+  tools/docker/env \
+  --push
+```
+
+## [DEPRECATED] Github Packages
+
+Github packages are not supported (if you can't access gcr.io, please contact us).
+
+```
+docker tag gcr.io/syzkaller/env [docker.pkg.github.com/google/syzkaller/env](https://docker.pkg.github.com/google/syzkaller/env)
+docker login [https://docker.pkg.github.com](https://docker.pkg.github.com)
+docker push [docker.pkg.github.com/google/syzkaller/env](https://docker.pkg.github.com/google/syzkaller/env)
 ```
