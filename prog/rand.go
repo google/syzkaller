@@ -674,12 +674,6 @@ func (target *Target) PseudoSyscalls() []*Syscall {
 			meta.Attrs.Disabled {
 			continue
 		}
-		// TODO: enable syz_kfuzztest_run.
-		// Use of global cache in KFuzzTestRunID causes problems when running multiple
-		// targets in the same process (e.g. in TestGenerate).
-		if meta.Attrs.KFuzzTest {
-			continue
-		}
 		ret = append(ret, meta)
 		handled[meta.CallName] = true
 	}
