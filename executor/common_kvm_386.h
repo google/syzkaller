@@ -27,7 +27,7 @@ static long syz_kvm_assert_syzos_uexit(volatile long a0, volatile long a1, volat
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_uexit
+#if SYZ_EXECUTOR || __NR_syz_kvm_assert_syzos_kvm_exit
 static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 {
 	return 0;

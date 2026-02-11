@@ -11,7 +11,7 @@
 #include "common_kvm_syzos.h"
 #include "kvm.h"
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit || __NR_syz_kvm_assert_syzos_kvm_exit
 extern char* __start_guest;
 
 // executor_fn_guest_addr() is compiled into both the host and the guest code.
