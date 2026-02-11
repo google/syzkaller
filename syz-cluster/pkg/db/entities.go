@@ -172,8 +172,9 @@ type ReportReply struct {
 // BaseFinding collects all crashes observed on the base kernel tree.
 // It will be used to avoid unnecessary bug reproduction attempts.
 type BaseFinding struct {
-	CommitHash string `spanner:"CommitHash"`
-	Config     string `spanner:"Config"`
-	Arch       string `spanner:"Arch"`
-	Title      string `spanner:"Title"`
+	CommitHash string           `spanner:"CommitHash"`
+	CommitDate spanner.NullTime `spanner:"CommitDate"`
+	Config     string           `spanner:"Config"`
+	Arch       string           `spanner:"Arch"`
+	Title      string           `spanner:"Title"`
 }
