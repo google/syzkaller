@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
+	"github.com/google/syzkaller/pkg/image"
 )
 
 const (
@@ -837,7 +838,18 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 		}
 		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
 	case BufferCompressed:
-		panic(fmt.Sprintf("can't generate compressed type %v", a))
+		// Not super useful data, but we need something for pkg/csource tests.
+		// During fuzzing, such syscalls are marked as no_generate and we only take
+		// the compressed data from the seeds or corpus.
+		sz := r.randBufLen()
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, sz), nil
+		}
+		data := make([]byte, sz)
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		return MakeDataArg(a, dir, image.Compress(data)), nil
 	default:
 		panic("unknown buffer kind")
 	}
