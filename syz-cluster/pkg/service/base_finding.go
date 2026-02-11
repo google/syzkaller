@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
@@ -59,6 +60,7 @@ func (s *BaseFindingService) makeBaseFinding(ctx context.Context, info *api.Base
 	}
 	return &db.BaseFinding{
 		CommitHash: build.CommitHash,
+		CommitDate: spanner.NullTime{Time: build.CommitDate, Valid: true},
 		Config:     build.ConfigName,
 		Arch:       build.Arch,
 		Title:      info.Title,
