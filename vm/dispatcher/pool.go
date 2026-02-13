@@ -158,6 +158,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 func (p *Pool[T]) reportBootError(ctx context.Context, err error) {
 	select {
 	case p.BootErrors <- err:
+		log.Logf(0, "boot error: %s", err)
 		return
 	default:
 		// Print some log message to make it visible.

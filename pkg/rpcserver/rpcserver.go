@@ -162,6 +162,9 @@ func New(cfg *RemoteConfig) (Server, error) {
 	if !cfg.Experimental.RemoteCover {
 		features &= ^flatrpc.FeatureExtraCoverage
 	}
+	if !cfg.MemoryDump {
+		features &= ^flatrpc.FeatureMemoryDump
+	}
 	return newImpl(&Config{
 		Config: vminfo.Config{
 			Target:     cfg.Target,
@@ -170,6 +173,7 @@ func New(cfg *RemoteConfig) (Server, error) {
 			Syscalls:   cfg.Syscalls,
 			Debug:      cfg.Debug,
 			Cover:      cfg.Cover,
+			MemoryDump: cfg.MemoryDump,
 			Sandbox:    sandbox,
 			SandboxArg: cfg.SandboxArg,
 		},

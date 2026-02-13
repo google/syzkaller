@@ -248,6 +248,8 @@ func (inst *instance) Boot() error {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	select {
 	case ip := <-ipch:
 		if inst.tapdev != "" {
@@ -255,7 +257,7 @@ func (inst *instance) Boot() error {
 		} else {
 			inst.Addr = "localhost"
 		}
-	case <-inst.merger.Err:
+	case <-inst.merger.Errors(ctx):
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.BootError{Title: "bhyve exited", Output: bootOutput}
@@ -369,10 +371,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(errCtx):
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.

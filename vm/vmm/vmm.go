@@ -290,10 +290,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	}
 
 	go func() {
+		errCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		select {
 		case <-ctx.Done():
 			signal(vmimpl.ErrTimeout)
-		case err := <-inst.merger.Err:
+		case err := <-inst.merger.Errors(errCtx):
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.

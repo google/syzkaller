@@ -62,6 +62,7 @@ const (
 	FeatureLRWPANEmulation  Feature = 524288
 	FeatureBinFmtMisc       Feature = 1048576
 	FeatureSwap             Feature = 2097152
+	FeatureMemoryDump       Feature = 4194304
 )
 
 var EnumNamesFeature = map[Feature]string{
@@ -87,6 +88,7 @@ var EnumNamesFeature = map[Feature]string{
 	FeatureLRWPANEmulation:  "LRWPANEmulation",
 	FeatureBinFmtMisc:       "BinFmtMisc",
 	FeatureSwap:             "Swap",
+	FeatureMemoryDump:       "MemoryDump",
 }
 
 var EnumValuesFeature = map[string]Feature{
@@ -112,6 +114,7 @@ var EnumValuesFeature = map[string]Feature{
 	"LRWPANEmulation":  FeatureLRWPANEmulation,
 	"BinFmtMisc":       FeatureBinFmtMisc,
 	"Swap":             FeatureSwap,
+	"MemoryDump":       FeatureMemoryDump,
 }
 
 func (v Feature) String() string {

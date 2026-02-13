@@ -34,6 +34,7 @@ enum Feature : uint64 (bit_flags) {
 	LRWPANEmulation,	// 802.15.4 standard
 	BinFmtMisc,
 	Swap,
+	MemoryDump,
 }
 
 table ConnectHelloRaw {
