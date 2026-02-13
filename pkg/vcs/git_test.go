@@ -4,6 +4,8 @@
 package vcs
 
 import (
+	"fmt"
+	"os/exec"
 	"reflect"
 	"sort"
 	"testing"
@@ -597,4 +599,75 @@ index fa49b07..01c887f 100644
 		require.NoError(t, err)
 		require.Nil(t, base)
 	})
+}
+
+func TestBaseForDiffMerge(t *testing.T) {
+	// This is a quite convoluted setup that somewhat resembles the
+	// situations observed in the Linux kernel.
+
+	repo := MakeTestRepo(t, t.TempDir())
+	repo.Git("checkout", "-b", "master")
+	repo.CommitChangeset("init", FileContent{"readme.txt", "readme"})
+
+	repo.Git("checkout", "-b", "branchA")
+	repo.CommitChangeset("c1", FileContent{"a.txt", "A"})
+
+	repo.Git("checkout", "master")
+	repo.Git("checkout", "-b", "branchB")
+	repo.CommitChangeset("c2", FileContent{"b.txt", "B"})
+
+	// Merge branchB into branchA. Resolve conflict to "Merged".
+	repo.Git("checkout", "branchA")
+	repo.Git("merge", "branchB")
+	commitM, err := repo.repo.Commit(HEAD)
+	require.NoError(t, err)
+
+	// Prepare a merge conflict of master with branchA and branchB.
+	repo.Git("checkout", "master")
+	repo.CommitChangeset("c3",
+		FileContent{"a.txt", "A2"}, FileContent{"b.txt", "B2"})
+
+	// Merge master into branchA, resolve the conflict.
+	repo.Git("checkout", "branchA")
+	if err := exec.Command("git", "-C", repo.Dir, "merge", "master").Run(); err == nil {
+		t.Fatalf("conflict expected during merge -> branchA")
+	}
+	repo.CommitChangeset("merge master->branchA",
+		FileContent{"a.txt", "Merged"}, FileContent{"b.txt", "Merged"})
+	// Further bury the changes.
+	repo.CommitChangeset("unrelated", FileContent{"c.txt", "C"})
+
+	// Merge master into branchB, resolve the conflict.
+	repo.Git("checkout", "branchB")
+	if err := exec.Command("git", "-C", repo.Dir, "merge", "master").Run(); err == nil {
+		t.Fatalf("conflict expected during merge -> branchB")
+	}
+	repo.CommitChangeset("merge master->branchB",
+		FileContent{"a.txt", "MergedB"}, FileContent{"b.txt", "MergedB"})
+	// Further bury the changes.
+	repo.CommitChangeset("unrelated", FileContent{"d.txt", "D"})
+
+	hashes, err := repo.repo.fileHashes(commitM.Hash, []string{"a.txt", "b.txt"})
+	require.NoError(t, err)
+
+	diff := []byte(fmt.Sprintf(`diff --git a/a.txt b/a.txt
+index %s..123456 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-Merged
++WorkDir
+
+diff --git a/b.txt b/b.txt
+index %s..123456 100644
+--- a/b.txt
++++ b/b.txt
+@@ -1 +1 @@
+-Merged
++WorkDir
+`, hashes["a.txt"], hashes["b.txt"]))
+	bases, err := repo.repo.BaseForDiff(diff, &debugtracer.TestTracer{T: t})
+	require.NoError(t, err)
+	require.Len(t, bases, 1)
+	assert.Equal(t, commitM.Hash, bases[0].Hash)
 }
