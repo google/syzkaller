@@ -237,7 +237,7 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
-		if err := ctx.waitForCompletion("zone", "delete image", op.Name, true); err != nil {
+		if err := ctx.waitForCompletion("zone", "delete instance", op.Name, true); err != nil {
 			return err
 		}
 	}
