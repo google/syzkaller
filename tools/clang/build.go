@@ -11,10 +11,11 @@ package clangtoolimpl
 // #cgo CXXFLAGS: -std=c++23 -O2 -fno-exceptions -I..
 // #cgo CXXFLAGS: -Wno-changes-meaning -Wno-deprecated-enum-enum-conversion
 //
-// #cgo LDFLAGS: -lclangTooling -lclangFrontend -lclangSerialization -lclangDriver
-// #cgo LDFLAGS: -lclangToolingCore -lclangParse -lclangSema -lclangAPINotes -lclangAnalysis
-// #cgo LDFLAGS: -lclangASTMatchers -lclangRewrite -lclangEdit -lclangAST -lclangLex
-// #cgo LDFLAGS: -lclangBasic -lclangSupport -lLLVM
+//// Link in dynamic libraries rather than static ones.
+//// This is simpler (there are fewer of them), and static clang libraries are broken
+//// as they don't enforce linking of global constructors, so plugins for compilation
+//// database loading are not registered and the database is not loaded.
+// #cgo LDFLAGS: -lclang-cpp -lclang -lLLVM
 //
 //// These flags are distro/version specific.
 //// Cgo does not support running shell commands to produce flags.
