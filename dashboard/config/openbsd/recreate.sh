@@ -38,7 +38,7 @@ IMAGE="${INSTANCE}"-"${TODAY}"-root
 
 "${SYZ_DIR}"/tools/create-openbsd-gce-ci.sh
 
-gsutil -u syzkaller cp -a public-read openbsd-amd64-snapshot-gce.tar.gz gs://syzkaller/openbsd-amd64-"${TODAY}"-gce.tar.gz
+gcloud storage cp --predefined-acl=publicRead openbsd-amd64-snapshot-gce.tar.gz gs://syzkaller/openbsd-amd64-"${TODAY}"-gce.tar.gz
 
 ssh root@"${HOST}" halt -p || true
 

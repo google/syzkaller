@@ -28,9 +28,12 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 #	fuchsia/out/arm64/arm64-shared/*.so
 #
 # And then uploaded to GCS with:
-# gsutil mv gs://syzkaller/GOOS-toolchain.tar.gz gs://syzkaller/GOOS-toolchain.old.tar.gz
-# gsutil cp GOOS-toolchain.tar.gz gs://syzkaller/
-# gsutil acl ch -g all:R gs://syzkaller/GOOS-toolchain.tar.gz
+
+# gcloud storage mv gs://syzkaller/GOOS-toolchain.tar.gz gs://syzkaller/GOOS-toolchain.old.tar.gz
+
+# gcloud storage cp GOOS-toolchain.tar.gz gs://syzkaller/
+
+# gcloud storage objects update gs://syzkaller/GOOS-toolchain.tar.gz --add-acl-grant=entity=allUsers,role=READER
 #
 # NetBSD toolchain can be re-built with:
 # ./build.sh -j72 -m amd64 -U -T ../tools tools
