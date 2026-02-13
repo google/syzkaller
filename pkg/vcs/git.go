@@ -782,8 +782,8 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		"log",
 		"--all",
 		"--no-renames",
-		// Note that we cannot accelerate it by specifying "--since"
-		"-n", "100",
+		"-m",
+		"-n", "500",
 		`--format=%H:%P`,
 	}
 	var fileNames []string
@@ -834,21 +834,21 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		// TODO: we can further reduce the search space by adding "--raw" to args
 		// and only considering the commits that introduce the blobs from the diff.
 		commit, parents, _ := strings.Cut(s.Text(), ":")
-		// Focus on the first parent.
-		candidate, _, _ := strings.Cut(parents, " ")
-		if candidate == "" {
-			// For the first commit, there's no parent.
-			candidate = commit
+		candidates := []string{commit}
+		if parents != "" {
+			candidates = append(candidates, strings.Split(parents, " ")...)
 		}
-		// Only focus on branches that are still alive.
-		const cutOffDays = 60
-		list, err := git.BranchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
-		if err != nil {
-			return nil, fmt.Errorf("failed to query branches: %w", err)
-		}
-		for _, info := range list {
-			record(candidate, info.Branch)
-			record(info.Commit, info.Branch)
+		for _, candidate := range candidates {
+			// Only focus on branches that are still alive.
+			const cutOffDays = 60
+			list, err := git.BranchesThatContain(candidate, time.Now().Add(-time.Hour*24*cutOffDays))
+			if err != nil {
+				return nil, fmt.Errorf("failed to query branches: %w", err)
+			}
+			for _, info := range list {
+				record(candidate, info.Branch)
+				record(info.Commit, info.Branch)
+			}
 		}
 	}
 	var ret []*BaseCommit
