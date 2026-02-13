@@ -14,6 +14,7 @@ constexpr char EntityKindFunction[] = "function";
 constexpr char EntityKindStruct[] = "struct";
 constexpr char EntityKindUnion[] = "union";
 constexpr char EntityKindVariable[] = "variable";
+constexpr char EntityKindGlobalVariable[] = "global_variable";
 constexpr char EntityKindMacro[] = "macro";
 constexpr char EntityKindEnum[] = "enum";
 constexpr char EntityKindTypedef[] = "typedef";
