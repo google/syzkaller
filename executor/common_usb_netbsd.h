@@ -9,6 +9,7 @@
 #include <dev/usb/usbhid.h>
 #include <dev/usb/vhci.h>
 #include <fcntl.h>
+#include <stddef.h>
 #include <sys/ioctl.h>
 
 // Redefinitions to match the linux types used in common_usb.h.
@@ -205,8 +206,7 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 }
 
 static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
-					  const char* dev, const struct vusb_connect_descriptors* descs,
-					  lookup_connect_out_response_t lookup_connect_response_out)
+					  const char* dev, const struct vusb_connect_descriptors* descs)
 {
 	struct usb_device_index* index = add_usb_index(fd, dev, dev_len);
 	if (!index) {
@@ -228,8 +228,8 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	}
 	debug("syz_usb_connect: vhci_usb_attach success\n");
 
-	bool done = false;
-	while (!done) {
+	int done = 1;
+	while (done > 0) {
 		vhci_request_t req;
 
 		if (vhci_usb_recv(fd, &req, sizeof(req))) {
@@ -255,12 +255,13 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 		char data[4096];
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
-			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &qual, &response_data, &response_length)) {
+			if (!lookup_connect_response_in(fd, descs, NULL, (const struct usb_ctrlrequest*)&req.u.ctrl, &qual,
+							&response_data, &response_length, NULL)) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				return -1;
 			}
 		} else {
-			if (!lookup_connect_response_out(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &done)) {
+			if (!lookup_connect_response_out(fd, descs, NULL, (const struct usb_ctrlrequest*)&req.u.ctrl, &done)) {
 				debug("syz_usb_connect: unknown control OUT request\n");
 				return -1;
 			}
@@ -328,7 +329,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	int fd = vhci_open();
 	if (fd < 0)
 		fail("syz_usb_connect: vhci_open failed");
-	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
+	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs);
 	close(fd);
 	return res;
 }
