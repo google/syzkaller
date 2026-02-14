@@ -92,8 +92,8 @@ func (client Client) UploadTestArtifacts(ctx context.Context, sessionID, testNam
 	return err
 }
 
-func (client Client) UploadFinding(ctx context.Context, req *NewFinding) error {
-	_, err := postJSON[NewFinding, any](ctx, client.baseURL+"/findings/upload", req)
+func (client Client) UploadFinding(ctx context.Context, req *RawFinding) error {
+	_, err := postJSON[RawFinding, any](ctx, client.baseURL+"/findings/upload", req)
 	return err
 }
 

@@ -22,6 +22,7 @@ type FindingService struct {
 	buildRepo       *db.BuildRepository
 	urls            *api.URLGenerator
 	blobStorage     blob.Storage
+	seriesRepo      *db.SeriesRepository
 }
 
 func NewFindingService(env *app.AppEnvironment) *FindingService {
@@ -31,10 +32,11 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 		urls:            env.URLs,
 		buildRepo:       db.NewBuildRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
+		seriesRepo:      db.NewSeriesRepository(env.Spanner),
 	}
 }
 
-func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
+func (s *FindingService) Save(ctx context.Context, req *api.RawFinding) error {
 	return s.findingRepo.Store(ctx, &db.FindingID{
 		SessionID: req.SessionID,
 		TestName:  req.TestName,
@@ -63,7 +65,7 @@ func (s *FindingService) Save(ctx context.Context, req *api.NewFinding) error {
 	})
 }
 
-func (s *FindingService) saveAssets(finding *db.Finding, req *api.NewFinding) error {
+func (s *FindingService) saveAssets(finding *db.Finding, req *api.RawFinding) error {
 	type saveAsset struct {
 		saveTo *string
 		value  []byte

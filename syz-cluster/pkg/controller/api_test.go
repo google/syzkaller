@@ -61,7 +61,7 @@ func TestAPISaveFinding(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("not existing test", func(t *testing.T) {
-		err = client.UploadFinding(ctx, &api.NewFinding{
+		err = client.UploadFinding(ctx, &api.RawFinding{
 			SessionID: ids.SessionID,
 			TestName:  "unknown test",
 		})
@@ -69,7 +69,7 @@ func TestAPISaveFinding(t *testing.T) {
 	})
 
 	t.Run("must succeed", func(t *testing.T) {
-		finding := &api.NewFinding{
+		finding := &api.RawFinding{
 			SessionID:    ids.SessionID,
 			TestName:     "test",
 			Title:        "title",
@@ -86,7 +86,7 @@ func TestAPISaveFinding(t *testing.T) {
 	})
 
 	t.Run("add C repro", func(t *testing.T) {
-		finding := &api.NewFinding{
+		finding := &api.RawFinding{
 			SessionID:    ids.SessionID,
 			TestName:     "test",
 			Title:        "title",
@@ -108,7 +108,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	t.Run("session stopped", func(t *testing.T) {
 		MarkSessionFinished(t, env, ids.SessionID)
-		finding := &api.NewFinding{
+		finding := &api.RawFinding{
 			SessionID: ids.SessionID,
 			TestName:  "test",
 			Title:     "new title",

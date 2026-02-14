@@ -334,7 +334,7 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 }
 
 func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *diff.Bug) error {
-	finding := &api.NewFinding{
+	finding := &api.RawFinding{
 		SessionID: *flagSession,
 		TestName:  getTestName(config),
 		Title:     bug.Report.Title,

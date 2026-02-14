@@ -114,8 +114,9 @@ type BootResult struct {
 	Success bool `json:"success"`
 }
 
-// NewFinding is a kernel crash, boot error, etc. found during a test.
-type NewFinding struct {
+// RawFinding is a kernel crash, boot error, etc. found during a test.
+// It's reported as RawFinding, but for the report purposes it's converted to Finding.
+type RawFinding struct {
 	SessionID    string `json:"session_id"`
 	TestName     string `json:"test_name"`
 	Title        string `json:"title"`
