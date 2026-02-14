@@ -115,7 +115,7 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 	}
 	if *flagFindings {
 		tracer.Logf("reporting the finding")
-		findingErr := client.UploadFinding(ctx, &api.NewFinding{
+		findingErr := client.UploadFinding(ctx, &api.RawFinding{
 			SessionID: *flagSession,
 			TestName:  *flagTestName,
 			Title:     rep.Title,

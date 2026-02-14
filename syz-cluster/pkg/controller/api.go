@@ -152,7 +152,7 @@ func (c APIServer) uploadTestArtifact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.NewFinding](w, r)
+	req := api.ParseJSON[api.RawFinding](w, r)
 	if req == nil {
 		return
 	}

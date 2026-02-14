@@ -114,7 +114,7 @@ func main() {
 }
 
 func reportResults(ctx context.Context, client *api.Client,
-	uploadReq *api.UploadBuildReq, finding *api.NewFinding, output []byte) {
+	uploadReq *api.UploadBuildReq, finding *api.RawFinding, output []byte) {
 	var buildID string
 	status := api.TestPassed
 	if uploadReq != nil {
@@ -215,7 +215,7 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 type BuildResult struct {
 	Config   []byte
 	Compiler string
-	Finding  *api.NewFinding
+	Finding  *api.RawFinding
 }
 
 func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildResult, error) {
@@ -249,7 +249,7 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 	}
 	ret.Config, _ = os.ReadFile(filepath.Join(*flagOutput, "kernel.config"))
 	if err != nil {
-		ret.Finding = &api.NewFinding{
+		ret.Finding = &api.RawFinding{
 			SessionID: *flagSession,
 			TestName:  *flagTestName,
 			Title:     "kernel build error",
