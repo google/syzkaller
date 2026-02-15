@@ -1268,7 +1268,6 @@ uac_format_type_i_discrete_descriptor {
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 
 	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
-#flags[uac_usb_format_types_i, int8]
 	bNrChannels		int8
 	bSubframeSize		int8[1:4]
 	bBitResolution		int8
@@ -1282,7 +1281,6 @@ uac_format_type_ii_discrete_descriptor {
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 
 	bFormatType		const[UAC_FORMAT_TYPE_II, int8]
-#flags[uac_usb_format_types_i, int8]
 	wMaxBitRate		int16
 	wSamplesPerFrame	int16
 	bSamFreqType		int8
@@ -1453,7 +1451,6 @@ uac2_format_type_i_ext_descriptor {
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 
 	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
-#flags[uac_usb_format_types_i, int8]
 	bSubslotSize		int8
 	bBitResolution		int8
 	bHeaderLength		int8
@@ -1466,7 +1463,6 @@ uac_format_type_ii_ext_descriptor {
 	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 	bFormatType		const[UAC_FORMAT_TYPE_II, int8]
-#flags[uac_usb_format_types_i, int8]
 	wMaxBitRate		int16
 	wSamplesPerFrame	int16
 	bHeaderLength		int8
@@ -1478,7 +1474,6 @@ uac_format_type_i_ext_descriptor {
 	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
 	bDescriptorSubType	const[UAC_FORMAT_TYPE, int8]
 	bFormatType		const[UAC_FORMAT_TYPE_I, int8]
-#flags[uac_usb_format_types_i, int8]
 	bSubslotSize		int8
 	bBitResolution		int8
 	bHeaderLength		int8
