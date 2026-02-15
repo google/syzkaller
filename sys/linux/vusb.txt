@@ -50,8 +50,8 @@ type usb_device_descriptor_verbose_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VEN
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
 	bMaxPacketSize0		PACKET
-	idVendor		VENDOR
-	idProduct		PRODUCT
+	idVendor		const[VENDOR, int16]
+	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
 	iManufacturer		const[1, int8]
 	iProduct		const[2, int8]
@@ -61,8 +61,8 @@ type usb_device_descriptor_verbose_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VEN
 	configs			CFS
 } [packed]
 
-type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[flags[usb_versions, int16], CLASS, SUBCLASS, PROTOCOL, flags[usb_device_max_packet_sizes, int8], const[VENDOR, int16], const[PRODUCT, int16], DEVICE, CFS]
-type usb_device_descriptor_fixed_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[const[USB, int16], CLASS, SUBCLASS, PROTOCOL, const[PACKET, int8], const[VENDOR, int16], const[PRODUCT, int16], DEVICE, CFS]
+type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[flags[usb_versions, int16], CLASS, SUBCLASS, PROTOCOL, flags[usb_device_max_packet_sizes, int8], VENDOR, PRODUCT, DEVICE, CFS]
+type usb_device_descriptor_fixed_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[const[USB, int16], CLASS, SUBCLASS, PROTOCOL, const[PACKET, int8], VENDOR, PRODUCT, DEVICE, CFS]
 
 usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
