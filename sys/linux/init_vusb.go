@@ -269,19 +269,28 @@ func (arch *arch) generateAudioDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir
 		// Patch in IDs auto-extracted from the matching rules for the USB audio class.
 		// Do not patch IDs that are not used in the matching rules to avoid subverting
 		// the kernel into matching the device to a different driver.
-		ids := usbIds["snd-bcd2000"] +
-			usbIds["snd-ua101"] +
-			usbIds["snd-usb-6fire"] +
-			usbIds["snd-usb-audio"] +
-			usbIds["snd-usb-caiaq"] +
-			usbIds["snd-usb-hiface"] +
-			usbIds["snd-usb-us122l"] +
-			usbIds["snd-usb-usx2y"] +
-			usbIds["snd_usb_pod"] +
-			usbIds["snd_usb_podhd"] +
-			usbIds["snd_usb_toneport"] +
-			usbIds["snd_usb_variax"]
-		patchUsbDeviceID(g, &arg, calls, ids, false)
+		var ids string
+		for _, name := range []string{
+			"snd-bcd2000",
+			"snd-ua101",
+			"snd-usb-6fire",
+			"snd-usb-audio",
+			"snd-usb-caiaq",
+			"snd-usb-hiface",
+			"snd-usb-us122l",
+			"snd-usb-usx2y",
+			"snd_usb_pod",
+			"snd_usb_podhd",
+			"snd_usb_toneport",
+			"snd_usb_variax",
+		} {
+			if driverIDs, ok := usbIds[name]; ok {
+				ids += driverIDs
+			}
+		}
+		if ids != "" {
+			patchUsbDeviceID(g, &arg, calls, ids, false)
+		}
 	}
 	return
 }
