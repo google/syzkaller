@@ -350,7 +350,7 @@ func TestMonitorExecution(t *testing.T) {
 	}
 }
 
-func makeLinuxAMD64Futex(t *testing.T) (*Instance, *report.Reporter) {
+func makeLinuxAMD64Futex(t *testing.T, poolName string) (*Instance, *report.Reporter) {
 	cfg := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
@@ -364,7 +364,7 @@ func makeLinuxAMD64Futex(t *testing.T) (*Instance, *report.Reporter) {
 			SysTarget: targets.Get(targets.Linux, targets.AMD64),
 		},
 		Workdir: t.TempDir(),
-		Type:    "test",
+		Type:    poolName,
 	}
 	pool, err := Create(cfg, false)
 	if err != nil {
@@ -384,7 +384,7 @@ func makeLinuxAMD64Futex(t *testing.T) (*Instance, *report.Reporter) {
 }
 
 func testMonitorExecution(t *testing.T, test *Test) {
-	inst, reporter := makeLinuxAMD64Futex(t)
+	inst, reporter := makeLinuxAMD64Futex(t, "test")
 	testInst := inst.impl.(*testInstance)
 	testInst.diagnoseBug = test.DiagnoseBug
 	testInst.diagnoseNoWait = test.DiagnoseNoWait
@@ -458,7 +458,7 @@ func TestVMType(t *testing.T) {
 }
 
 func TestExtractMultipleErrors(t *testing.T) {
-	inst, reporter := makeLinuxAMD64Futex(t)
+	inst, reporter := makeLinuxAMD64Futex(t, "test")
 	mon := &monitor{
 		RunOptions: &RunOptions{},
 		inst:       inst,
