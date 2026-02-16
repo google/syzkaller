@@ -7,7 +7,7 @@
 
 # Mostly derived from Go buildlet generator with blessing from bradfitz@.
 
-set -eu -o pipefail
+set -eux -o pipefail
 
 readonly MIRROR="${MIRROR:-cdn.openbsd.org}"
 # The only supported setting.
@@ -213,7 +213,7 @@ Done.
 
 To create GCE image run the following commands:
 
-gsutil cp -a public-read "$i" gs://syzkaller/
+gcloud storage cp --billing-project=syzkaller --predefined-acl=publicRead "$i" gs://syzkaller/
 gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i"
 
 EOF
