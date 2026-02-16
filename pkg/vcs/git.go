@@ -764,10 +764,12 @@ type BaseCommit struct {
 	Branches []string
 }
 
-// BaseForDiff returns a list of commits that could have been the base commit
-// for the specified git patch.
-// The returned list is minimized to only contain the commits that are represented in different
-// subsets of branches.
+// BaseForDiff returns a list of commits that could have been the base
+// commit for the specified git patch.
+// For the purposes of optimization, the function only considers the
+// commits that are newer than one year.
+// The returned list is minimized to only contain the commits that are
+// represented in different subsets of branches.
 func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*BaseCommit, error) {
 	// We can't just query git log with --find-object=HASH because that will only return
 	// the revisions where the hashed content was introduced or removed, while what we actually
@@ -784,6 +786,11 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		"--no-renames",
 		"-m",
 		"-n", "500",
+		// With -m and -n 500, de facto we have scan all repo commits, which takes
+		// significant time on a Linux kernel checkout.
+		// If the blob hashes haven't been touched since one year, any reasonably
+		// fresh kernel branch will pass, so BaseForDiff is not really needed.
+		`--since="1 year ago"`,
 		`--format=%H:%P`,
 	}
 	var fileNames []string
