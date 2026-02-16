@@ -726,6 +726,7 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		return nil, nil, err
 	}
 	wpipe.Close()
+	wpipeErr.Close()
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
 		Debug: inst.debug,
 		Scale: inst.timeouts.Scale,
