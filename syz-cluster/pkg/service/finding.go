@@ -6,6 +6,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -145,6 +146,44 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 		}
 		finding.Report = string(bytes)
 		ret = append(ret, finding)
+	}
+	return ret, nil
+}
+
+var ErrFindingNotFound = fmt.Errorf("finding not found")
+
+func (s *FindingService) Get(ctx context.Context, id string) (*api.RawFinding, error) {
+	finding, err := s.findingRepo.GetByID(ctx, id)
+	if errors.Is(err, db.ErrEntityNotFound) {
+		return nil, ErrFindingNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get finding: %w", err)
+	}
+	if finding == nil {
+		return nil, ErrFindingNotFound
+	}
+	ret := &api.RawFinding{
+		Title:     finding.Title,
+		SessionID: finding.SessionID,
+		TestName:  finding.TestName,
+	}
+	if finding.CReproURI != "" {
+		ret.CRepro, err = blob.ReadAllBytes(s.blobStorage, finding.CReproURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read c repro: %w", err)
+		}
+	}
+	if finding.SyzReproURI != "" {
+		ret.SyzRepro, err = blob.ReadAllBytes(s.blobStorage, finding.SyzReproURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read syz repro: %w", err)
+		}
+	}
+	if finding.SyzReproOptsURI != "" {
+		ret.SyzReproOpts, err = blob.ReadAllBytes(s.blobStorage, finding.SyzReproOptsURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read syz repro opts: %w", err)
+		}
 	}
 	return ret, nil
 }
