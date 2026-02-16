@@ -38,7 +38,7 @@ IMAGE="${INSTANCE}"-"${TODAY}"-root
 
 "${SYZ_DIR}"/tools/create-openbsd-gce-ci.sh
 
-gsutil -u syzkaller cp -a public-read openbsd-amd64-snapshot-gce.tar.gz gs://syzkaller/openbsd-amd64-"${TODAY}"-gce.tar.gz
+gcloud storage cp --billing-project=syzkaller --predefined-acl=publicRead openbsd-amd64-snapshot-gce.tar.gz gs://syzkaller/openbsd-amd64-"${TODAY}"-gce.tar.gz
 
 ssh root@"${HOST}" halt -p || true
 
@@ -71,9 +71,9 @@ mv  ~/.ssh/known_hosts{.new,}
 
 "${SYZ_DIR}"/tools/create-openbsd-vmm-worker.sh
 
-ssh syzkaller@"${HOST}" mkdir -p /syzkaller/userspace
-ssh syzkaller@"${HOST}" ln -sf /syzkaller/{gopath/src/github.com/google/syzkaller/dashboard/,}config
-scp worker_key syzkaller@"${HOST}":/syzkaller/userspace/key
-scp -C worker_disk.raw syzkaller@"${HOST}":/syzkaller/userspace/image
-ssh syzkaller@"${HOST}" 'D=/syzkaller/userspace-multicore && mkdir -p $D && ln -sf ../userspace/{image,key} $D && ln -sf ../config/openbsd/overlays/ci-openbsd-multicore $D/overlay'
-ssh root@"${HOST}" reboot
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no syzkaller@"${HOST}" mkdir -p /syzkaller/userspace
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no syzkaller@"${HOST}" ln -sf /syzkaller/{gopath/src/github.com/google/syzkaller/dashboard/,}config
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no worker_key syzkaller@"${HOST}":/syzkaller/userspace/key
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -C worker_disk.raw syzkaller@"${HOST}":/syzkaller/userspace/image
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no syzkaller@"${HOST}" 'D=/syzkaller/userspace-multicore && mkdir -p $D && ln -sf ../userspace/{image,key} $D && ln -sf ../config/openbsd/overlays/ci-openbsd-multicore $D/overlay'
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@"${HOST}" reboot
