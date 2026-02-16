@@ -208,3 +208,43 @@ var testBuild = &api.Build{
 	CommitDate:   time.Date(2020, time.January, 1, 3, 0, 0, 0, time.UTC),
 	BuildSuccess: true,
 }
+
+func TestAPIGetFinding(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
+	buildResp := UploadTestBuild(t, ctx, client, testBuild)
+	require.NoError(t, client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:   ids.SessionID,
+		BaseBuildID: buildResp.ID,
+		TestName:    "test",
+		Result:      api.TestRunning,
+	}))
+
+	finding := &api.RawFinding{
+		SessionID:    ids.SessionID,
+		TestName:     "test",
+		Title:        "title",
+		SyzRepro:     []byte("syz repro"),
+		SyzReproOpts: []byte("syz repro opts"),
+		CRepro:       []byte("c repro"),
+	}
+	require.NoError(t, client.UploadFinding(ctx, finding))
+
+	findingRepo := db.NewFindingRepository(env.Spanner)
+	findings, err := findingRepo.ListForSession(ctx, ids.SessionID, 0)
+	require.NoError(t, err)
+	require.Len(t, findings, 1)
+	findingID := findings[0].ID
+
+	resp, err := client.GetFinding(ctx, findingID)
+	require.NoError(t, err)
+	assert.Equal(t, finding.Title, resp.Title)
+	assert.Equal(t, finding.SyzRepro, resp.SyzRepro)
+	assert.Equal(t, finding.SyzReproOpts, resp.SyzReproOpts)
+	assert.Equal(t, finding.SyzReproOpts, resp.SyzReproOpts)
+	assert.Equal(t, finding.CRepro, resp.CRepro)
+
+	_, err = client.GetFinding(ctx, "unknown-id")
+	assert.Error(t, err)
+}

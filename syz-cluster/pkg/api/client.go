@@ -132,6 +132,10 @@ func (client Client) BaseFindingStatus(ctx context.Context, req *BaseFindingInfo
 	return postJSON[BaseFindingInfo, BaseFindingStatus](ctx, client.baseURL+"/base_findings/status", req)
 }
 
+func (client Client) GetFinding(ctx context.Context, id string) (*RawFinding, error) {
+	return getJSON[RawFinding](ctx, client.baseURL+"/findings/"+id)
+}
+
 const requestTimeout = time.Minute
 
 func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {
