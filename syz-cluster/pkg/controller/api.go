@@ -40,6 +40,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
+	mux.HandleFunc("/findings/previous", c.getPreviousFindings)
 	mux.HandleFunc("/findings/{finding_id}", c.getFinding)
 	mux.HandleFunc("/series/upload", c.uploadSeries)
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
@@ -164,6 +165,19 @@ func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[any](w, nil)
+}
+
+func (c APIServer) getPreviousFindings(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.ListPreviousFindingsReq](w, r)
+	if req == nil {
+		return
+	}
+	findings, err := c.findingService.ListPreviousFindings(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, findings)
 }
 
 func (c APIServer) getFinding(w http.ResponseWriter, r *http.Request) {

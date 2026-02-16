@@ -209,6 +209,113 @@ var testBuild = &api.Build{
 	BuildSuccess: true,
 }
 
+func TestAPIListPreviousFindings(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+
+	// Setup v1 Series.
+	// It has "Crash in foo" and "Crash in bar".
+	seriesV1 := DummySeries()
+	seriesV1.Version = 1
+	seriesV1.ExtID = "ext-id-1"
+	idsV1 := UploadTestSeries(t, ctx, client, seriesV1)
+
+	buildV1 := DummyBuild()
+	buildV1.ConfigName = "config-1"
+	buildV1Resp := UploadTestBuild(t, ctx, client, buildV1)
+
+	require.NoError(t, client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:      idsV1.SessionID,
+		TestName:       "test",
+		Result:         api.TestPassed,
+		PatchedBuildID: buildV1Resp.ID,
+		Log:            []byte("log"),
+	}))
+
+	require.NoError(t, client.UploadFinding(ctx, &api.RawFinding{
+		SessionID: idsV1.SessionID,
+		Title:     "Crash in foo",
+		TestName:  "test",
+	}))
+	require.NoError(t, client.UploadFinding(ctx, &api.RawFinding{
+		SessionID: idsV1.SessionID,
+		Title:     "Crash in bar",
+		TestName:  "test",
+	}))
+	MarkSessionFinished(t, env, idsV1.SessionID)
+
+	// Setup v2 Series.
+	seriesV2 := DummySeries()
+	seriesV2.Version = 2
+	seriesV2.ExtID = "ext-id-2"
+	idsV2 := UploadTestSeries(t, ctx, client, seriesV2)
+
+	buildV2 := DummyBuild()
+	buildV2.ConfigName = "config-1"
+	buildV2Resp := UploadTestBuild(t, ctx, client, buildV2)
+
+	require.NoError(t, client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:      idsV2.SessionID,
+		TestName:       "test",
+		Result:         api.TestPassed,
+		PatchedBuildID: buildV2Resp.ID,
+		Log:            []byte("log"),
+	}))
+
+	require.NoError(t, client.UploadFinding(ctx, &api.RawFinding{
+		SessionID: idsV2.SessionID,
+		Title:     "Crash in foo",
+		TestName:  "test",
+	}))
+	MarkSessionFinished(t, env, idsV2.SessionID)
+
+	// Setup v3 Series.
+	seriesV3 := DummySeries()
+	seriesV3.Version = 3
+	seriesV3.ExtID = "ext-id-3"
+	idsV3 := UploadTestSeries(t, ctx, client, seriesV3)
+
+	list, err := client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+		SeriesID: idsV3.SeriesID,
+	})
+	require.NoError(t, err)
+	require.Len(t, list, 2)
+
+	finding1, err := client.GetFinding(ctx, list[0])
+	require.NoError(t, err)
+	assert.Equal(t, "Crash in foo", finding1.Title)
+	assert.Equal(t, idsV2.SessionID, finding1.SessionID)
+
+	finding2, err := client.GetFinding(ctx, list[1])
+	require.NoError(t, err)
+	assert.Equal(t, "Crash in bar", finding2.Title)
+	assert.Equal(t, idsV1.SessionID, finding2.SessionID)
+
+	list, err = client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+		SeriesID: idsV3.SeriesID,
+		Arch:     buildV1.Arch,
+		Config:   buildV1.ConfigName,
+	})
+	require.NoError(t, err)
+	require.Len(t, list, 2)
+
+	list, err = client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+		SeriesID: idsV3.SeriesID,
+		Arch:     "wrong-arch",
+		Config:   buildV1.ConfigName,
+	})
+	require.NoError(t, err)
+	require.Empty(t, list)
+
+	list, err = client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+		SeriesID: idsV2.SeriesID,
+		Arch:     buildV1.Arch,
+		Config:   "wrong-config",
+	})
+	require.NoError(t, err)
+	require.Empty(t, list)
+}
+
 func TestAPIGetFinding(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	client := TestServer(t, env)

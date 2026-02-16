@@ -134,6 +134,16 @@ type SessionTest struct {
 	ArtifactsArchiveURI string             `spanner:"ArtifactsArchiveURI"`
 }
 
+func (t *SessionTest) AnyBuildID() string {
+	if !t.PatchedBuildID.IsNull() {
+		return t.PatchedBuildID.StringVal
+	}
+	if !t.BaseBuildID.IsNull() {
+		return t.BaseBuildID.StringVal
+	}
+	return ""
+}
+
 type Finding struct {
 	ID              string           `spanner:"ID"`
 	SessionID       string           `spanner:"SessionID"`

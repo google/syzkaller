@@ -24,6 +24,7 @@ type FindingService struct {
 	urls            *api.URLGenerator
 	blobStorage     blob.Storage
 	seriesRepo      *db.SeriesRepository
+	sessionRepo     *db.SessionRepository
 }
 
 func NewFindingService(env *app.AppEnvironment) *FindingService {
@@ -34,6 +35,7 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 		buildRepo:       db.NewBuildRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
 	}
 }
 
@@ -150,6 +152,65 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 	return ret, nil
 }
 
+func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.ListPreviousFindingsReq) ([]string, error) {
+	series, err := s.seriesRepo.GetByID(ctx, req.SeriesID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get series: %w", err)
+	}
+	if series == nil {
+		return nil, fmt.Errorf("series not found: %w", db.ErrEntityNotFound)
+	}
+	allVersions, err := s.seriesRepo.ListAllVersions(ctx, series.Title)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all versions: %w", err)
+	}
+	var ret []string
+	seenTitles := map[string]bool{}
+	// Prefer newer versions.
+	for i := len(allVersions) - 1; i >= 0; i-- {
+		ver := allVersions[i]
+		if ver.ID == req.SeriesID {
+			continue
+		}
+		if ver.PublishedAt.After(series.PublishedAt) {
+			continue
+		}
+
+		sessions, err := s.sessionRepo.ListForSeries(ctx, ver)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list sessions for series %s: %w", ver.ID, err)
+		}
+		if len(sessions) == 0 {
+			continue
+		}
+		// For now let's only consider the latest session.
+		sessionID := sessions[0].ID
+		matches, err := s.matchesPrevFindingsReq(ctx, sessionID, req)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			continue
+		}
+
+		findings, err := s.findingRepo.ListForSession(ctx, sessionID, 0)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list findings for session %s: %w", sessionID, err)
+		}
+		for _, f := range findings {
+			if !f.InvalidatedAt.IsNull() {
+				continue
+			}
+			if seenTitles[f.Title] {
+				continue
+			}
+			seenTitles[f.Title] = true
+			ret = append(ret, f.ID)
+		}
+	}
+	return ret, nil
+}
+
 var ErrFindingNotFound = fmt.Errorf("finding not found")
 
 func (s *FindingService) Get(ctx context.Context, id string) (*api.RawFinding, error) {
@@ -186,4 +247,34 @@ func (s *FindingService) Get(ctx context.Context, id string) (*api.RawFinding, e
 		}
 	}
 	return ret, nil
+}
+
+func (s *FindingService) matchesPrevFindingsReq(
+	ctx context.Context, sessionID string, req *api.ListPreviousFindingsReq) (bool, error) {
+	if req.Arch == "" && req.Config == "" {
+		return true, nil
+	}
+	tests, err := s.sessionTestRepo.BySession(ctx, sessionID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get session tests: %w", err)
+	}
+	if len(tests) == 0 {
+		return false, nil
+	}
+	// It's enough to check one test.
+	buildID := tests[0].AnyBuildID()
+	if buildID == "" {
+		return false, nil
+	}
+	build, err := s.buildRepo.GetByID(ctx, buildID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get build %s: %w", buildID, err)
+	}
+	if req.Arch != "" && build.Arch != req.Arch {
+		return false, nil
+	}
+	if req.Config != "" && build.ConfigName != req.Config {
+		return false, nil
+	}
+	return true, nil
 }
