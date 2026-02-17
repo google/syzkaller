@@ -14,24 +14,26 @@ import (
 	"github.com/google/syzkaller/tools/clang/codesearch"
 )
 
-var Tools = []aflow.Tool{
-	aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
+var (
+	ToolDirIndex = aflow.NewFuncTool("codesearch-dir-index", dirIndex, `
 Tool provides list of source files and subdirectories in the given directory in the source tree.
-`),
-	aflow.NewFuncTool("read-file", readFile, `
+`)
+
+	ToolReadFile = aflow.NewFuncTool("read-file", readFile, `
 Tool provides full contents of a single source file as is. Avoid using this tool if there are better
 and more specialized tools for the job, because source files may be large and contain lots
 of unrelated information.
-`),
-	aflow.NewFuncTool("codesearch-file-index", fileIndex, `
+`)
+	ToolFileIndex = aflow.NewFuncTool("codesearch-file-index", fileIndex, `
 Tool provides list of entities defined in the given source file.
 Entity can be function, struct, or global variable.
 Use it to understand what other things of interest exist in a file.
 For example, to locate some initialization function that sets up invariants,
 or to find a group of similar functions to later assess similarities/differences
 in their implementations.
-`),
-	aflow.NewFuncTool("codesearch-definition-comment", definitionComment, `
+`)
+
+	ToolDefinitionComment = aflow.NewFuncTool("codesearch-definition-comment", definitionComment, `
 Tool provides source code comment for an entity with the given name.
 Entity can be function, struct, or global variable.
 Use it to understand how an entity is supposed to be used.
@@ -39,22 +41,25 @@ For example, what a function does, or if it may be invoked with NULL pointer arg
 But an entity may not have a comment, in which case an empty comment is returned.
 In such case, you may consider using codesearch-definition-source tool to look
 at the full source code of the entity.
-`),
-	aflow.NewFuncTool("codesearch-definition-source", definitionSource, `
+`)
+
+	ToolDefinitionSource = aflow.NewFuncTool("codesearch-definition-source", definitionSource, `
 Tool provides full source code for an entity with the given name.
 Entity can be function, struct, or global variable.
 Use it to understand implementation details of an entity.
 For example, how a function works, what precondition error checks it has, etc.
-`),
-	aflow.NewFuncTool("codesearch-find-references", findReferences, `
+`)
+
+	ToolFindReferences = aflow.NewFuncTool("codesearch-find-references", findReferences, `
 Tool finds and lists all references to (uses of) the given entity.
 Entity can be function, struct, or global variable.
 If can be used to find all calls or other uses of the given function,
 definition of the given struct/union/enum,
 or all reads/writes of the given struct/union field.
 To find field references use 'struct_name::field_name' syntax.
-`),
-	aflow.NewFuncTool("codesearch-struct-layout", structLayout, `
+`)
+
+	ToolStructLayout = aflow.NewFuncTool("codesearch-struct-layout", structLayout, `
 Tool provides layout of a struct/union (fields, offsets, sizes).
 It can be used to understand the full memory layout of a struct,
 or to find which field is located at a specific offset.
@@ -62,8 +67,11 @@ The response contains ALL fields of the struct. If you don't see
 a field in the output, it is NOT present in the struct definition
 (e.g. due to #ifdefs).
 You can strictly trust the response to be complete and accurate.
-`),
-}
+`)
+
+	Tools = []aflow.Tool{ToolDirIndex, ToolReadFile, ToolFileIndex, ToolDefinitionComment,
+		ToolDefinitionSource, ToolFindReferences, ToolStructLayout}
+)
 
 // This action needs to run before any agents that use codesearch tools.
 var PrepareIndex = aflow.NewFuncAction("codesearch-prepare", prepare)

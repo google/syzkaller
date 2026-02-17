@@ -13,8 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/clangtool/tooltest"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -151,6 +153,11 @@ func NewIndex(databaseFile string, srcDirs []string) (*Index, error) {
 		db:      db,
 		srcDirs: srcDirs,
 	}, nil
+}
+
+func NewTestIndex(t *testing.T, dir string) *Index {
+	db := tooltest.LoadOutput[Database](t, dir)
+	return &Index{db, []string{dir}}
 }
 
 func (index *Index) Command(cmd string, args []string) (string, error) {
