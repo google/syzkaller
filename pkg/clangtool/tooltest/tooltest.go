@@ -10,17 +10,22 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var FlagUpdate = flag.Bool("update", false, "update golden files")
 
 func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *testing.T, tool string) {
+	if runtime.GOOS != targets.Linux {
+		t.Skip("clang tools can only be tested on linux")
+	}
 	ForEachTestFile(t, tool, func(t *testing.T, cfg *clangtool.Config, file string) {
 		out, err := clangtool.Run[Output, OutputPtr](cfg)
 		if err != nil {
