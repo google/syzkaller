@@ -21,11 +21,13 @@ import (
 // (they are not exposed to the LLM agent).
 func NewFuncTool[State, Args, Results any](name string, fn func(*Context, State, Args) (Results, error),
 	description string) Tool {
-	return &funcTool[State, Args, Results]{
+	t := &funcTool[State, Args, Results]{
 		Name:        name,
 		Description: description,
 		Func:        fn,
 	}
+	registerMCPTool(t)
+	return t
 }
 
 // BadCallError creates an error that means that LLM made a bad tool call,
@@ -55,7 +57,7 @@ func (t *funcTool[State, Args, Results]) declaration() *genai.FunctionDeclaratio
 }
 
 func (t *funcTool[State, Args, Results]) execute(ctx *Context, args map[string]any) (map[string]any, error) {
-	state, err := convertFromMap[State](ctx.state, false, false)
+	state, err := convertFromMap[State](ctx.state, false, true)
 	if err != nil {
 		return nil, err
 	}
