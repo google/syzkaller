@@ -150,6 +150,11 @@ func (client Client) GetFinding(ctx context.Context, id string) (*RawFinding, er
 	return getJSON[RawFinding](ctx, client.baseURL+"/findings/"+id)
 }
 
+func (client Client) UploadTestStep(ctx context.Context, sessionID string, step *SessionTestStep) error {
+	_, err := postJSON[SessionTestStep, any](ctx, client.baseURL+"/sessions/"+sessionID+"/upload_test_step", step)
+	return err
+}
+
 const requestTimeout = time.Minute
 
 func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {

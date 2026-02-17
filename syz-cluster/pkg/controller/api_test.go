@@ -355,3 +355,46 @@ func TestAPIGetFinding(t *testing.T) {
 	_, err = client.GetFinding(ctx, "unknown-id")
 	assert.Error(t, err)
 }
+
+func TestAPIUploadTestStep(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
+
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID: ids.SessionID,
+		TestName:  "test",
+		Result:    api.TestRunning,
+	})
+	require.NoError(t, err)
+
+	err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+		TestName:  "test",
+		FindingID: "",
+		Target:    api.StepTargetPatched,
+		Title:     "some title",
+		Log:       []byte("log"),
+		Result:    api.StepResultPassed,
+	})
+	require.NoError(t, err)
+
+	repo := db.NewSessionTestStepRepository(env.Spanner)
+	steps, err := repo.ListForSession(ctx, ids.SessionID, "test")
+	require.NoError(t, err)
+	require.Len(t, steps, 1)
+
+	// Overwrite the step.
+	err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+		TestName:  "test",
+		FindingID: "",
+		Target:    api.StepTargetPatched,
+		Title:     "some title",
+		Result:    api.StepResultFailed,
+	})
+	require.NoError(t, err)
+
+	steps, err = repo.ListForSession(ctx, ids.SessionID, "test")
+	require.NoError(t, err)
+	require.Len(t, steps, 1)
+	assert.Equal(t, api.StepResultFailed, steps[0].Result)
+}

@@ -144,6 +144,18 @@ func (t *SessionTest) AnyBuildID() string {
 	return ""
 }
 
+type SessionTestStep struct {
+	ID        string             `spanner:"ID"`
+	SessionID string             `spanner:"SessionID"`
+	TestName  string             `spanner:"TestName"`
+	Title     string             `spanner:"Title"`
+	LogURI    string             `spanner:"LogURI"`
+	FindingID spanner.NullString `spanner:"FindingID"`
+	Target    string             `spanner:"Target"`
+	Result    string             `spanner:"Result"`
+	CreatedAt time.Time          `spanner:"CreatedAt"`
+}
+
 type Finding struct {
 	ID              string           `spanner:"ID"`
 	SessionID       string           `spanner:"SessionID"`
