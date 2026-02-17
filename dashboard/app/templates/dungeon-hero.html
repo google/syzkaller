@@ -1,0 +1,125 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+<!doctype html>
+<html>
+
+<head>
+  <title>{{.HeroName}} - Syzkaller Dungeon</title>
+  {{template "dungeon-theme"}}
+</head>
+
+<body>
+
+  <div class="header">
+    <a href="/syz-dungeon"><img src="/static/dungeon.png" alt="SYZKALLER DUNGEON" class="title-img"></a>
+  </div>
+
+  {{if and .Has1Y .HasAll}}
+    <div class="menu">
+        <div>
+            &gt; ERA:&nbsp;&nbsp;&nbsp;
+      <span onclick="switchEra('1y')" id="btn-1y" class="toggle-btn {{if eq .CurrentEra "1y"}}active{{end}}">[ 1 YEAR ]</span>
+      <span onclick="switchEra('all')" id="btn-all" class="toggle-btn {{if eq .CurrentEra "all"}}active{{end}}">[ ALL TIME ]</span>
+        </div>
+    </div>
+  {{end}}
+
+  {{if .Has1Y}}
+  <div class="board-container era-board" id="board-1y" style="display: {{if eq .CurrentEra "1y"}}block{{else}}none{{end}};">
+    {{template "hero_profile" .Hero1Y}}
+  </div>
+  {{end}}
+
+  {{if .HasAll}}
+  <div class="board-container era-board" id="board-all" style="display: {{if eq .CurrentEra "all"}}block{{else}}none{{end}};">
+    {{template "hero_profile" .HeroAll}}
+  </div>
+  {{end}}
+
+  <a href="/upstream/syz-dungeon" class="back-link">&lt; Return to Leaderboard</a>
+
+    {{template "dungeon-js"}}
+</body>
+
+</html>
+
+{{define "hero_profile"}}
+    {{with .}}
+    <div class="hero-header">
+      <span>{{.Name}}</span>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-box">
+        <div>LEVEL</div>
+        <div class="stat-val" style="color: #ffeb3b;">{{.Level}}</div>
+      </div>
+      <div class="stat-box">
+        <div>TROPHIES</div>
+        <div class="stat-val" style="color: var(--text-main);">{{.BugCount}}</div>
+      </div>
+      <div class="stat-box">
+        <div>TOTAL XP</div>
+        <div class="stat-val">{{.Score}}</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+      {{if gt .Level 0}}
+      <div class="inventory-box" style="flex: 1; margin-bottom: 0;">
+        <div class="inventory-title">Attributes</div>
+        <ul class="attributes-list">
+          <li><span class="tooltip"><strong>STR:</strong> <span class="attribute-val">{{printf "%2d" .Str}}</span><div class="tooltiptext">Scaled based on the maximum number of crashes a single bug caused.</div></span></li>
+          <li><span class="tooltip"><strong>INT:</strong> <span class="attribute-val">{{printf "%2d" .Int}}</span><div class="tooltiptext">Scaled based on the number of fixes entirely written without a reproducer.</div></span></li>
+          <li><span class="tooltip"><strong>WIS:</strong> <span class="attribute-val">{{printf "%2d" .Wis}}</span><div class="tooltiptext">Scaled based on the longest time it took to fix a bug.</div></span></li>
+        </ul>
+      </div>
+
+      <div class="inventory-box" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column;">
+        <div class="inventory-title">Class</div>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">
+          <span class="tooltip" style="font-size: 3rem;">
+            {{.ClassEmoji}} {{.ClassName}}
+            <div class="tooltiptext" style="font-size: 0.9rem;">{{.ClassDesc}}</div>
+          </span>
+        </div>
+      </div>
+      {{else}}
+      <div class="inventory-box" style="flex: 1; margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 1.2rem; letter-spacing: normal; color: var(--text-muted); font-style: italic;">"This hero was resting at the tavern during this era."</span>
+      </div>
+      {{end}}
+    </div>
+
+    <div class="inventory-box">
+      <div class="inventory-title">Inventory</div>
+      <div class="badges">
+        {{range $badge := .Badges}}
+        <div class="tooltip">
+          <span>{{$badge.Emoji}}</span>
+          <div class="tooltiptext"><b>{{$badge.Name}}</b>: {{$badge.Desc}}</div>
+        </div>
+        {{else}}
+        <span style="font-size: 1.2rem; letter-spacing: normal; color: var(--text-muted);">Inventory is empty.</span>
+        {{end}}
+      </div>
+    </div>
+
+    <table style="width: 100%; color: var(--text-muted); margin-top: 10px; font-size: 1.2rem; border-collapse: collapse;">
+      <tr>
+        <td style="text-align: right; white-space: nowrap;">
+          Rank: <span style="color: var(--text-main);">#{{.Rank}}</span> &nbsp;|&nbsp; 
+          Kingdom: {{if .KingdomID}}
+          <a href="/upstream/syz-dungeon/kingdom/{{.KingdomID}}" style="color: var(--text-main); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{.Kingdom}}</a>
+          {{else}}
+          <span style="color: var(--text-main);">{{.Kingdom}}</span>
+          {{end}}
+          &nbsp;|&nbsp;
+          ID: <span class="tooltip" onclick="copyLinkToClipboard()" style="cursor: pointer;"><span style="color: var(--text-main);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-main)'">{{.ID}}</span><div class="tooltiptext" id="copy-tooltip">Copy link</div></span>
+        </td>
+      </tr>
+    </table>
+    {{end}}
+{{end}}

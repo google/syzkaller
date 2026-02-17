@@ -80,6 +80,9 @@ func initHTTPHandlers() {
 		}
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-summaries", handlerWrapper(handleBugSummaries))
+		http.Handle("/"+ns+"/syz-dungeon", handlerWrapper(handleDungeon))
+		http.Handle("/"+ns+"/syz-dungeon/hero/{id}", handlerWrapper(handleHeroProfile))
+		http.Handle("/"+ns+"/syz-dungeon/kingdom/{id}", handlerWrapper(handleKingdomProfile))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 		http.Handle("/"+ns+"/backports", handlerWrapper(handleBackports))
 		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))

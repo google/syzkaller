@@ -1,0 +1,333 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+<!doctype html>
+<html>
+
+<head>
+  <title>Syzkaller Dungeon</title>
+  {{template "dungeon-theme"}}
+</head>
+
+<body>
+
+  <div class="header">
+    <a href="/syz-dungeon"><img src="/static/dungeon.png" alt="SYZKALLER DUNGEON" class="title-img"></a>
+  </div>
+
+    <div class="menu">
+        <div>
+            &gt; ERA:&nbsp;&nbsp;&nbsp;
+            [ <span class="toggle-btn era-toggle" data-val="1y">1 YEAR</span> ]
+            [ <span class="toggle-btn era-toggle active" data-val="all">ALL TIME</span> ]
+        </div>
+        <div>
+            &gt; ENTITY:
+            [ <span class="toggle-btn entity-toggle active" data-val="heroes">HEROES</span> ]
+            [ <span class="toggle-btn entity-toggle" data-val="kingdoms">KINGDOMS</span> ]
+        </div>
+        <div id="pagination-container">
+            &gt; PAGE:&nbsp;&nbsp;
+            [ <span class="toggle-btn page-nav" id="page-prev">&lt; PREV</span> ]
+            <span id="page-numbers"></span>
+            [ <span class="toggle-btn page-nav" id="page-next">NEXT &gt;</span> ]
+        </div>
+    </div>
+    
+    {{define "hero_row"}}
+    <tr class="data-row">
+        <td class="rank">{{.Rank}}</td>
+        <td>
+            <div class="tooltip">
+                <div class="character">
+                    <a href="/upstream/syz-dungeon/hero/{{.ID}}" class="name" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--border);">{{.Name}}</a>
+                    <span>{{.ClassEmoji}}</span>
+                </div>
+                <div class="tooltiptext">
+                    <div class="char-sheet">
+                        <p><strong>NAME:</strong> {{.Name}}</p>
+                        <p><strong>CLASS:</strong> {{.ClassEmoji}} ({{.ClassName}})</p>
+                        <p><strong>LEVEL:</strong> {{.Level}}</p>
+                        <hr style="border-top:1px dashed #444; margin:5px 0;">
+                        <p><strong>STATS:</strong></p>
+                        <ul style="list-style:none; padding-left:10px; margin:0;">
+                            <li><strong>STR:</strong> <span style="white-space: pre;">{{printf "%2d" .Str}}</span></li>
+                            <li><strong>INT:</strong> <span style="white-space: pre;">{{printf "%2d" .Int}}</span></li>
+                            <li><strong>WIS:</strong> <span style="white-space: pre;">{{printf "%2d" .Wis}}</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </td>
+        <td class="level">{{.Level}}</td>
+        <td class="inventory">
+            {{range $badge := .Badges}}
+            <div class="tooltip">
+                <span>{{$badge.Emoji}}</span>
+                <div class="tooltiptext">{{$badge.Name}}</div>
+            </div>
+            {{end}}
+        </td>
+        <td class="num">{{.BugCount}}</td>
+        <td class="score">{{.Score}}</td>
+        </tr>
+{{end}}
+
+{{define "kingdom_row"}}
+<tr class="data-row">
+        <td class="rank">{{.Rank}}</td>
+        <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="tooltip">
+                    <div class="name" style="white-space: nowrap;">
+                        <a href="/upstream/syz-dungeon/kingdom/{{.ID}}" style="color: var(--text-main); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{.Name}}</a>
+                    </div>
+                    <div class="tooltiptext">
+                        <div class="char-sheet">
+                            <p><strong>KINGDOM:</strong> {{.Name}}</p>
+                            <p><strong>HEROES:</strong> {{.Heroes}}</p>
+                        </div>
+                    </div>
+                </div>
+                <span class="tooltip" style="color: var(--text-main);">{{.TierEmoji}}
+                    <span class="tooltiptext">Tier: {{.Tier}}</span>
+                </span>
+            </div>
+        </td>
+        <td class="level">{{.Heroes}}</td>
+        <td class="inventory">
+            {{range $badge := .Guilds}}
+            <div class="tooltip">
+                <span>{{$badge.Emoji}}</span>
+                <div class="tooltiptext">{{$badge.Name}}</div>
+            </div>
+            {{end}}
+            </td>
+        <td class="num">{{.Trophies}}</td>
+        <td class="score">{{.Score}}</td>
+        </tr>
+        {{end}}
+        
+        <div class="board-container">
+            <!-- Heroes 1Y -->
+            <table class="leaderboard board" id="board-heroes-1y">
+                <thead>
+                    <tr>
+                        <th class="rank">#</th>
+                        <th>Character</th>
+                        <th class="level">Lvl</th>
+                        <th>Inventory</th>
+                        <th class="num">Trophies</th>
+                        <th class="score">XP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $p := .Heroes1Y}}
+                    {{template "hero_row" $p}}
+                    {{else}}
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">The dungeon is
+                            silent. No heroes have emerged yet this year.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        
+            <!-- Heroes All -->
+            <table class="leaderboard board active" id="board-heroes-all">
+                <thead>
+                    <tr>
+                        <th class="rank">#</th>
+                        <th>Character</th>
+                        <th class="level">Lvl</th>
+                        <th>Inventory</th>
+                        <th class="num">Trophies</th>
+                        <th class="score">XP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $p := .HeroesAll}}
+                    {{template "hero_row" $p}}
+                    {{else}}
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">The dungeon is
+                            silent.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        
+            <!-- Kingdoms 1Y -->
+            <table class="leaderboard board" id="board-kingdoms-1y">
+                <thead>
+                    <tr>
+                        <th class="rank">#</th>
+                        <th>Kingdom</th>
+                        <th class="level">Heroes</th>
+                        <th>Guilds</th>
+                        <th class="num">Trophies</th>
+                        <th class="score">Total XP</th>
+                    </tr>
+            </thead>
+            <tbody>
+                {{range $k := .Kingdoms1Y}}
+                {{template "kingdom_row" $k}}
+                {{else}}
+                <tr>
+                    <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No kingdoms have risen this
+                        year.</td>
+                </tr>
+                {{end}}
+                </tbody>
+                </table>
+                
+                <!-- Kingdoms All -->
+                <table class="leaderboard board active" id="board-kingdoms-all">
+                    <thead>
+                <tr>
+                    <th class="rank">#</th>
+                    <th>Kingdom</th>
+                    <th class="level">Heroes</th>
+                    <th>Guilds</th>
+                    <th class="num">Trophies</th>
+                    <th class="score">Total XP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $k := .KingdomsAll}}
+                {{template "kingdom_row" $k}}
+                {{else}}
+                <tr>
+                    <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No kingdoms have risen yet.
+                    </td>
+                </tr>
+                {{end}}
+                </tbody>
+                </table>
+    </div>
+
+  <a href="/{{.Header.Namespace}}" class="back-link">Return to the Surface</a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+      // Append era to hero links dynamically
+      document.querySelectorAll('.board').forEach(board => {
+        const is1Y = board.id.includes('-1y');
+        const suffix = is1Y ? '?era=1y' : '?era=all';
+        board.querySelectorAll('a.name').forEach(link => {
+          // only append if it doesn't already have one to avoid stacking
+          if (!link.href.includes('?era=')) {
+            link.href += suffix;
+          }
+        });
+      });
+
+            let entity = 'heroes';
+            let era = 'all';
+            let currentPages = {};
+            const ITEMS_PER_PAGE = 100;
+
+            function updatePagination(targetId) {
+                const board = document.getElementById(targetId);
+                const rows = board.querySelectorAll('tbody tr.data-row');
+                const totalItems = rows.length;
+                const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
+                if (!currentPages[targetId]) {
+                    currentPages[targetId] = 1;
+                }
+
+                let currentPage = currentPages[targetId];
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                rows.forEach((row, index) => {
+                    if (index >= (currentPage - 1) * ITEMS_PER_PAGE && index < currentPage * ITEMS_PER_PAGE) {
+                        row.style.display = 'table-row';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                const paginationContainer = document.getElementById('pagination-container');
+                paginationContainer.style.display = 'block';
+                const pageNumbers = document.getElementById('page-numbers');
+                pageNumbers.innerHTML = '';
+
+                for (let i = 1; i <= totalPages; i++) {
+                        const pgSpan = document.createElement('span');
+                        pgSpan.className = 'toggle-btn page-num ' + (i === currentPage ? 'active' : '');
+                        pgSpan.textContent = ' ' + i + ' ';
+                        pgSpan.onclick = () => {
+                            currentPages[targetId] = i;
+                            updatePagination(targetId);
+                        };
+
+                        if (i === currentPage) {
+                            pageNumbers.appendChild(document.createTextNode('['));
+                            pageNumbers.appendChild(pgSpan);
+                            pageNumbers.appendChild(document.createTextNode(']'));
+                        } else {
+                            pageNumbers.appendChild(pgSpan);
+                        }
+                }
+            }
+
+            function updateBoard() {
+                document.querySelectorAll('.board').forEach(b => b.classList.remove('active'));
+                const targetId = 'board-' + entity + '-' + era;
+                document.getElementById(targetId).classList.add('active');
+                updatePagination(targetId);
+            }
+
+            document.getElementById('page-prev').addEventListener('click', () => {
+                const targetId = 'board-' + entity + '-' + era;
+                if (currentPages[targetId] > 1) {
+                    currentPages[targetId]--;
+                    updatePagination(targetId);
+                }
+            });
+
+            document.getElementById('page-next').addEventListener('click', () => {
+                const targetId = 'board-' + entity + '-' + era;
+                const totalRows = document.getElementById(targetId).querySelectorAll('tbody tr.data-row').length;
+                const totalPages = Math.ceil(totalRows / ITEMS_PER_PAGE);
+                if (currentPages[targetId] < totalPages) {
+                    currentPages[targetId]++;
+                    updatePagination(targetId);
+                }
+            });
+
+            document.querySelectorAll('.entity-toggle').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.entity-toggle').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    entity = e.target.getAttribute('data-val');
+                    updateBoard();
+                });
+            });
+
+            document.querySelectorAll('.era-toggle').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.era-toggle').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    era = e.target.getAttribute('data-val');
+                    updateBoard();
+                });
+            });
+
+            // Initialize the board and pagination on page load
+            updateBoard();
+
+            // Format numbers with thousands separators
+            document.querySelectorAll('td.level, td.num, td.score').forEach(td => {
+                let text = td.innerText.trim();
+                let num = parseInt(text, 10);
+                if (!isNaN(num)) {
+                    td.innerText = num.toLocaleString();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

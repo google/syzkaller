@@ -1,0 +1,116 @@
+{{/*
+Copyright 2026 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+<!doctype html>
+<html>
+
+<head>
+  <title>{{.KingdomName}} - Syzkaller Dungeon</title>
+  {{template "dungeon-theme"}}
+</head>
+
+<body>
+
+  <div class="header">
+    <a href="/syz-dungeon"><img src="/static/dungeon.png" alt="SYZKALLER DUNGEON" class="title-img"></a>
+  </div>
+
+  {{if and .Has1Y .HasAll}}
+    <div class="menu">
+        <div>
+            &gt; ERA:&nbsp;&nbsp;&nbsp;
+      <span onclick="switchEra('1y')" id="btn-1y" class="toggle-btn {{if eq .CurrentEra "1y"}}active{{end}}">[ 1 YEAR ]</span>
+      <span onclick="switchEra('all')" id="btn-all" class="toggle-btn {{if eq .CurrentEra "all"}}active{{end}}">[ ALL TIME ]</span>
+        </div>
+    </div>
+  {{end}}
+
+  {{if .Has1Y}}
+  <div class="board-container era-board" id="board-1y" style="display: {{if eq .CurrentEra "1y"}}block{{else}}none{{end}};">
+    {{template "kingdom_profile" .Kingdom1Y}}
+  </div>
+  {{end}}
+
+  {{if .HasAll}}
+  <div class="board-container era-board" id="board-all" style="display: {{if eq .CurrentEra "all"}}block{{else}}none{{end}};">
+    {{template "kingdom_profile" .KingdomAll}}
+  </div>
+  {{end}}
+
+  <a href="/upstream/syz-dungeon" class="back-link">&lt; Return to Leaderboard</a>
+
+    {{template "dungeon-js"}}
+</body>
+
+</html>
+
+{{define "kingdom_profile"}}
+    {{with .}}
+    <div class="hero-header">
+      <span>{{.Name}}</span>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-box">
+        <div class="subtitle">TIER</div>
+        <div class="stat-val tooltip" style="font-size: 3.5rem; margin-top: 0px;">{{.TierEmoji}}
+          <span class="tooltiptext">{{.TierDesc}}</span>
+        </div>
+        <div style="font-size: 1.2rem; margin-top: 10px; color: var(--accent);">{{.Tier}}</div>
+      </div>
+      <div class="stat-box">
+        <div>TROPHIES</div>
+        <div class="stat-val" style="color: var(--text-main);">{{.Trophies}}</div>
+      </div>
+      <div class="stat-box">
+        <div>TOTAL XP</div>
+        <div class="stat-val">{{.Score}}</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+      <div class="inventory-box" style="flex: 1; margin-bottom: 0;">
+        <div class="inventory-title">Attributes</div>
+        <ul class="attributes-list">
+          <li><span class="tooltip"><strong>HEROES:</strong> <span class="attribute-val">{{printf "%2d" .Heroes}}</span><div class="tooltiptext">Number of individual heroes who fixed bugs for this kingdom.</div></span></li>
+        </ul>
+      </div>
+
+      <div class="inventory-box" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column;">
+        <div class="inventory-title">Royal Champion</div>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">
+          <a href="/upstream/syz-dungeon/hero/{{.ChampionID}}" style="color: var(--accent); text-decoration: none; font-size: 1.5rem; font-weight: bold;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+            {{.ChampionName}}
+          </a>
+        </div>
+        <div style="text-align: center; color: var(--text-muted); font-size: 1rem;">
+          Contributed <span style="color: var(--text-main);">{{.ChampionScore}}</span> XP
+        </div>
+      </div>
+    </div>
+
+    <div class="inventory-box">
+      <div class="inventory-title">Guilds</div>
+      <div class="badges">
+        {{range $badge := .Guilds}}
+        <div class="tooltip">
+          <span>{{$badge.Emoji}}</span>
+          <div class="tooltiptext"><b>{{$badge.Name}}</b></div>
+        </div>
+        {{else}}
+        <span style="font-size: 1.2rem; letter-spacing: normal; color: var(--text-muted);">No guilds established.</span>
+        {{end}}
+      </div>
+    </div>
+
+    <table style="width: 100%; color: var(--text-muted); margin-top: 10px; font-size: 1.2rem; border-collapse: collapse;">
+      <tr>
+        <td style="text-align: right; white-space: nowrap;">
+          Rank: <span style="color: var(--text-main);">#{{.Rank}}</span> &nbsp;|&nbsp; 
+          ID: <span class="tooltip" onclick="copyLinkToClipboard()" style="cursor: pointer;"><span style="color: var(--text-main);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-main)'">{{.ID}}</span><div class="tooltiptext" id="copy-tooltip">Copy link</div></span>
+        </td>
+      </tr>
+    </table>
+    {{end}}
+{{end}}
