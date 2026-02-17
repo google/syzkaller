@@ -180,14 +180,9 @@ typedef enum {
 	CPU_VENDOR_AMD,
 } cpu_vendor_id;
 
-__attribute__((naked))
-GUEST_CODE static void
-dummy_null_handler()
+__attribute__((naked)) GUEST_CODE static void dummy_null_handler()
 {
-	asm volatile(R"(
-	    movq $-2, %%rdi
-	    call guest_uexit
-	)" ::: "memory", "rdi", "cc");
+	asm("iretq");
 }
 
 __attribute__((naked)) GUEST_CODE static void uexit_irq_handler()
