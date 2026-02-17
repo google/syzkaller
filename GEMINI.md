@@ -55,3 +55,9 @@ tests that eventually use `prog.Target` or `targets.Target`.
 -   **Formatting:** Always run `make format` before committing.
 -   **Syscall Descriptions:** When modifying `sys/*/*.txt`, `make generate` must be run to update generated code.
 -   **Copyright:** When you add new .go files, make sure to add the copyright header to them (use other .go files for reference and update the year to the current one).
+
+## Other GEMINI.md files
+
+There exist other GEMINI.md files:
+- `sys/GEMINI.md` - consider it when you are asked to write/modify syzlang descriptions.
+- `syz-cluster/GEMINI.md` - consider it when working on the syz-cluster (patch fuzzing) functionality.
