@@ -22,7 +22,6 @@ import (
 )
 
 var (
-	flagConfig       = flag.String("config", "", "syzkaller config")
 	flagSession      = flag.String("session", "", "session ID")
 	flagTestName     = flag.String("test_name", "", "test name")
 	flagBaseBuild    = flag.String("base_build", "", "base build ID")
@@ -33,8 +32,8 @@ var (
 
 func main() {
 	flag.Parse()
-	if *flagConfig == "" || *flagSession == "" || *flagTestName == "" {
-		app.Fatalf("--config, --session and --test_name must be set")
+	if *flagSession == "" || *flagTestName == "" {
+		app.Fatalf("--session and --test_name must be set")
 	}
 
 	ctx := context.Background()

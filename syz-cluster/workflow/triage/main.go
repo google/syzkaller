@@ -96,9 +96,9 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 		} else if err != nil {
 			return nil, err
 		}
-		ret.Fuzz = append(ret.Fuzz, fuzzTask)
+		ret.Targets = append(ret.Targets, fuzzTask)
 	}
-	if len(ret.Fuzz) > 0 {
+	if len(ret.Targets) > 0 {
 		// If we have prepared at least one fuzzing task, the series was not skipped.
 		ret.SkipReason = ""
 	}
@@ -106,7 +106,7 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 }
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, trees []*api.Tree,
-	target *triage.MergedFuzzConfig) (*api.FuzzTask, error) {
+	target *triage.MergedFuzzConfig) (*api.TestTarget, error) {
 	var result *SelectResult
 	var err error
 	if series.BaseCommitHint != "" {
@@ -136,13 +136,14 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			CommitHash: result.Commit,
 			Arch:       result.Arch,
 		}
-		fuzz := &api.FuzzTask{
-			Base:       base,
-			Patched:    base,
-			FuzzConfig: *target.FuzzConfig,
+		testTarget := &api.TestTarget{
+			Base:    base,
+			Patched: base,
+			Track:   target.Track,
+			Fuzz:    target.FuzzConfig,
 		}
-		fuzz.Patched.SeriesID = series.ID
-		return fuzz, nil
+		testTarget.Patched.SeriesID = series.ID
+		return testTarget, nil
 	}
 	return nil, SkipError("no base commit found")
 }

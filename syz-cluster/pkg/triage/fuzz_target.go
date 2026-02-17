@@ -36,6 +36,7 @@ func SelectFuzzConfigs(series *api.Series, fuzzConfigs []*api.FuzzTriageTarget) 
 
 type MergedFuzzConfig struct {
 	KernelConfig string
+	Track        string
 	FuzzConfig   *api.FuzzConfig
 }
 
@@ -61,6 +62,7 @@ func MergeKernelFuzzConfigs(configs []*api.KernelFuzzConfig) []*MergedFuzzConfig
 		// TODO: is there way to auto-generate a prefix?
 		ret = append(ret, &MergedFuzzConfig{
 			KernelConfig: key.config,
+			Track:        key.track,
 			FuzzConfig:   mergeFuzzConfigs(groups[key]),
 		})
 	}
@@ -79,7 +81,6 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 		ret.SkipCoverCheck = ret.SkipCoverCheck || config.SkipCoverCheck
 		// Must be the same.
 		ret.BugTitleRe = config.BugTitleRe
-		ret.Track = config.Track
 	}
 	ret.Focus = unique(ret.Focus)
 	ret.CorpusURLs = unique(ret.CorpusURLs)
