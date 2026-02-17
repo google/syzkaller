@@ -20,8 +20,7 @@ func TestClangTool(t *testing.T) {
 }
 
 func TestCommands(t *testing.T) {
-	db := tooltest.LoadOutput[Database](t)
-	index := &Index{db, []string{"testdata"}}
+	index := NewTestIndex(t, "testdata")
 	files, err := filepath.Glob(filepath.Join(osutil.Abs("testdata"), "query*"))
 	if err != nil {
 		t.Fatal(err)
