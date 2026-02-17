@@ -110,6 +110,26 @@ type SessionTest struct {
 	Log            []byte `json:"log"`
 }
 
+type SessionTestStep struct {
+	TestName  string `json:"test_name"`
+	Title     string `json:"title"`
+	Log       []byte `json:"log"`
+	FindingID string `json:"finding_id"`
+	Target    string `json:"target"`
+	Result    string `json:"result"`
+}
+
+const (
+	StepTargetPatched = "patched"
+	StepTargetBase    = "base"
+)
+
+const (
+	StepResultPassed = "passed"
+	StepResultFailed = "failed"
+	StepResultError  = "error"
+)
+
 type BootResult struct {
 	Success bool `json:"success"`
 }

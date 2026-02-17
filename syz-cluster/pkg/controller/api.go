@@ -6,6 +6,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,22 +17,24 @@ import (
 )
 
 type APIServer struct {
-	seriesService      *service.SeriesService
-	sessionService     *service.SessionService
-	buildService       *service.BuildService
-	testService        *service.SessionTestService
-	findingService     *service.FindingService
-	baseFindingService *service.BaseFindingService
+	seriesService          *service.SeriesService
+	sessionService         *service.SessionService
+	buildService           *service.BuildService
+	testService            *service.SessionTestService
+	findingService         *service.FindingService
+	baseFindingService     *service.BaseFindingService
+	sessionTestStepService *service.SessionTestStepService
 }
 
 func NewAPIServer(env *app.AppEnvironment) *APIServer {
 	return &APIServer{
-		seriesService:      service.NewSeriesService(env),
-		sessionService:     service.NewSessionService(env),
-		buildService:       service.NewBuildService(env),
-		testService:        service.NewSessionTestService(env),
-		findingService:     service.NewFindingService(env),
-		baseFindingService: service.NewBaseFindingService(env),
+		seriesService:          service.NewSeriesService(env),
+		sessionService:         service.NewSessionService(env),
+		buildService:           service.NewBuildService(env),
+		testService:            service.NewSessionTestService(env),
+		findingService:         service.NewFindingService(env),
+		baseFindingService:     service.NewBaseFindingService(env),
+		sessionTestStepService: service.NewSessionTestStepService(env),
 	}
 }
 
@@ -52,6 +55,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/trees", c.getTrees)
 	mux.HandleFunc("/base_findings/upload", c.uploadBaseFinding)
 	mux.HandleFunc("/base_findings/status", c.baseFindingStatus)
+	mux.HandleFunc("/sessions/{session_id}/upload_test_step", c.uploadTestStep)
 	return mux
 }
 
@@ -265,4 +269,18 @@ func (c APIServer) baseFindingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[*api.BaseFindingStatus](w, resp)
+}
+
+func (c APIServer) uploadTestStep(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("session_id")
+	req := &api.SessionTestStep{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := c.sessionTestStepService.Save(r.Context(), sessionID, req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON[any](w, nil)
 }
