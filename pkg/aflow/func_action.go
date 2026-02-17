@@ -13,10 +13,12 @@ import (
 )
 
 func NewFuncAction[Args, Results any](name string, fn func(*Context, Args) (Results, error)) Action {
-	return &funcAction[Args, Results]{
+	a := &funcAction[Args, Results]{
 		name: name,
 		fn:   fn,
 	}
+	registerMCPAction(a)
+	return a
 }
 
 type funcAction[Args, Results any] struct {

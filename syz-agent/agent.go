@@ -10,7 +10,9 @@ import (
 	"flag"
 	"fmt"
 	"maps"
+	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -33,6 +35,7 @@ import (
 type Config struct {
 	// Currently serves only net/http/pprof handlers.
 	HTTP            string          `json:"http"`
+	MCP             bool            `json:"mcp"` // Start MCP server on the HTTP address, and don't connect to dashboard.
 	DashboardAddr   string          `json:"dashboard_addr"`
 	DashboardClient string          `json:"dashboard_client"` // Global non-namespace client.
 	DashboardKey    string          `json:"dashboard_key"`
@@ -54,6 +57,8 @@ type Config struct {
 	Model string `json:"model"`
 	// Names of workflows to serve (all if not set, mainly for testing/local experimentation).
 	Workflows []string `json:"workflows"`
+
+	kernelConfigData string
 }
 
 func main() {
@@ -61,7 +66,7 @@ func main() {
 		flagConfig        = flag.String("config", "", "config file")
 		flagExitOnUpgrade = flag.Bool("exit-on-upgrade", false,
 			"exit after a syz-ci upgrade is applied; otherwise syz-ci restarts")
-		flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary (for testing)")
+		flagAutoUpdate = flag.Bool("autoupdate", false, "auto-update the binary")
 	)
 	defer tool.Init()()
 	log.SetName("syz-agent")
@@ -69,6 +74,8 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+const workdir = "workdir"
 
 func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	cfg := &Config{
@@ -79,12 +86,14 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	tool.ServeHTTP(cfg.HTTP)
-	os, vmarch, arch, _, _, err := mgrconfig.SplitTarget(cfg.Target)
+	kernelConfig, err := os.ReadFile(cfg.KernelConfig)
 	if err != nil {
 		return err
 	}
-	dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+	cfg.kernelConfigData = string(kernelConfig)
+
+	tool.ServeHTTP(cfg.HTTP)
+	os, vmarch, arch, _, _, err := mgrconfig.SplitTarget(cfg.Target)
 	if err != nil {
 		return err
 	}
@@ -109,13 +118,22 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	if err != nil {
 		return err
 	}
+	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cfg.CacheSize)
+	if err != nil {
+		return err
+	}
+
+	if cfg.MCP {
+		http.Handle("/", mcpHandler(cfg, cache))
+		select {}
+	}
+
 	updatePending := make(chan struct{})
 	shutdownPending := make(chan struct{})
 	osutil.HandleInterrupts(shutdownPending)
 	updater.UpdateOnStart(autoUpdate, updatePending, shutdownPending)
 
-	const workdir = "workdir"
-	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cfg.CacheSize)
+	dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 	if err != nil {
 		return err
 	}
@@ -261,14 +279,7 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 	if flow == nil {
 		return nil, fmt.Errorf("unsupported flow %q", req.Workflow)
 	}
-	inputs := map[string]any{
-		"Syzkaller":       osutil.Abs(filepath.FromSlash("syzkaller/current")),
-		"Image":           s.cfg.Image,
-		"Type":            s.cfg.Type,
-		"VM":              s.cfg.VM,
-		"FixedBaseCommit": s.cfg.FixedBaseCommit,
-		"FixedRepository": s.cfg.FixedRepository,
-	}
+	inputs := initState(s.cfg)
 	maps.Insert(inputs, maps.All(req.Args))
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
@@ -298,5 +309,17 @@ func (s *Server) resetModelQuota() {
 			log.Logf(0, "model %v daily quota is replenished", model)
 			delete(s.overQuotaModels, model)
 		}
+	}
+}
+
+func initState(cfg *Config) map[string]any {
+	return map[string]any{
+		"Syzkaller":       osutil.Abs(filepath.FromSlash("syzkaller/current")),
+		"Image":           cfg.Image,
+		"Type":            cfg.Type,
+		"VM":              cfg.VM,
+		"KernelConfig":    cfg.kernelConfigData,
+		"FixedBaseCommit": cfg.FixedBaseCommit,
+		"FixedRepository": cfg.FixedRepository,
 	}
 }
