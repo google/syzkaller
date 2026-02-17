@@ -39,16 +39,16 @@ spec:
         - - name: abort-on-skip-outcome
             template: exit-workflow
             when: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.skip_reason') != ''}}"
-        - - name: run-process-fuzz
-            template: process-fuzz
+        - - name: run-process-target
+            template: process-target
             arguments:
               parameters:
                 - name: element
                   value: "{{item}}"
-            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.fuzz')}}"
+            withParam: "{{=jsonpath(steps['run-triage'].outputs.parameters.result, '$.targets')}}"
             continueOn:
               failed: true
-    - name: process-fuzz
+    - name: process-target
       inputs:
         parameters:
           - name: element
@@ -90,8 +90,6 @@ spec:
                 - name: kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
               parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
@@ -126,8 +124,6 @@ spec:
                 - name: kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
               parameters:
-                - name: config
-                  value: "{{=jsonpath(inputs.parameters.element, '$.config')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: report-findings
@@ -137,12 +133,42 @@ spec:
         - - name: abort-if-patched-boot-failed
             template: exit-workflow
             when: "{{=jsonpath(steps['boot-test-patched'].outputs.parameters.result, '$.success') == false}}"
+        - - name: run-fuzz
+            template: fuzz-campaign
+            when: "{{=jsonpath(inputs.parameters.element, '$.fuzz') != nil}}"
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{=jsonpath(inputs.parameters.element, '$.fuzz')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: track
+                  value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
+              artifacts:
+                - name: base-kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                - name: patched-kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+
+    - name: fuzz-campaign
+      inputs:
+        parameters:
+          - name: config
+          - name: track
+          - name: base-build-id
+          - name: patched-build-id
+        artifacts:
+          - name: base-kernel
+          - name: patched-kernel
+      steps:
         - - name: save-fuzz-config
             template: convert-artifact
             arguments:
               parameters:
                 - name: data
-                  value: "{{=jsonpath(inputs.parameters.element, '$')}}"
+                  value: "{{inputs.parameters.config}}"
         - - name: fuzz
             templateRef:
               name: fuzz-action-template
@@ -150,14 +176,16 @@ spec:
             arguments:
               parameters:
                 - name: patched-build-id
-                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                  value: "{{inputs.parameters.patched-build-id}}"
                 - name: base-build-id
-                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                  value: "{{inputs.parameters.base-build-id}}"
+                - name: test-name
+                  value: "[{{inputs.parameters.track}}] Fuzz"
               artifacts:
                 - name: base-kernel
-                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                  from: "{{inputs.artifacts.base-kernel}}"
                 - name: patched-kernel
-                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+                  from: "{{inputs.artifacts.patched-kernel}}"
                 - name: config
                   from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
     - name: convert-artifact

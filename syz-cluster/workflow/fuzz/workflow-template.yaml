@@ -14,6 +14,8 @@ spec:
             value: ""
           - name: patched-build-id
             value: ""
+          - name: test-name
+            value: "Fuzz"
         artifacts:
           - name: base-kernel
             path: /base
@@ -31,6 +33,7 @@ spec:
           "--session", "{{workflow.parameters.session-id}}",
           "--base_build", "{{inputs.parameters.base-build-id}}",
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
+          "--test_name", "{{inputs.parameters.test-name}}",
           "--time", "3h",
           "--workdir", "/workdir",
           "--vv", "1"

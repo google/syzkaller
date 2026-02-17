@@ -38,12 +38,13 @@ var (
 	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
 	flagTime         = flag.String("time", "1h", "how long to fuzz")
 	flagWorkdir      = flag.String("workdir", "/workdir", "base workdir path")
+	flagTestName     = flag.String("test_name", "", "test name")
 )
 
 func main() {
 	flag.Parse()
-	if *flagConfig == "" || *flagSession == "" || *flagTime == "" {
-		app.Fatalf("--config, --session and --time must be set")
+	if *flagConfig == "" || *flagSession == "" || *flagTime == "" || *flagTestName == "" {
+		app.Fatalf("--config, --session, --time and --test_name must be set")
 	}
 	client := app.DefaultClient()
 	d, err := time.ParseDuration(*flagTime)
@@ -303,10 +304,9 @@ func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Conf
 
 func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	status string, store *manager.DiffFuzzerStore) error {
-	testName := getTestName(config)
 	testResult := &api.SessionTest{
 		SessionID:      *flagSession,
-		TestName:       testName,
+		TestName:       *flagTestName,
 		BaseBuildID:    *flagBaseBuild,
 		PatchedBuildID: *flagPatchedBuild,
 		Result:         status,
@@ -325,7 +325,7 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 	} else if err != nil {
 		return fmt.Errorf("failed to compress the artifacts dir: %w", err)
 	} else {
-		err = client.UploadTestArtifacts(ctx, *flagSession, testName, tarGzReader)
+		err = client.UploadTestArtifacts(ctx, *flagSession, *flagTestName, tarGzReader)
 		if err != nil {
 			return fmt.Errorf("failed to upload the status: %w", err)
 		}
@@ -336,7 +336,7 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Client, bug *diff.Bug) error {
 	finding := &api.RawFinding{
 		SessionID: *flagSession,
-		TestName:  getTestName(config),
+		TestName:  *flagTestName,
 		Title:     bug.Report.Title,
 		Report:    bug.Report.Report,
 		Log:       bug.Report.Output,
@@ -355,10 +355,6 @@ func reportFinding(ctx context.Context, config *api.FuzzConfig, client *api.Clie
 		}
 	}
 	return client.UploadFinding(ctx, finding)
-}
-
-func getTestName(config *api.FuzzConfig) string {
-	return fmt.Sprintf("[%s] Fuzzing", config.Track)
 }
 
 var ignoreLinuxVariables = map[string]bool{
