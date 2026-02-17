@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/aetest"
+	db "google.golang.org/appengine/v2/datastore"
 )
 
 var (
@@ -166,6 +167,109 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			}
 		}
 	}
+	fixedBugs := []struct {
+		Title      string
+		Author     string
+		Crashes    int64
+		DaysToFix  int
+		ReproLevel dashapi.ReproLevel
+	}{
+		{
+			Title:      "net: use-after-free in socket_close",
+			Author:     "Aidan Black <aidan@kernel.syz>",
+			Crashes:    1200,
+			DaysToFix:  2,
+			ReproLevel: dashapi.ReproLevelC,
+		},
+		{
+			Title:      "mm: slab-out-of-bounds in kfree",
+			Author:     "Balthazar White <balthazar@kernel.syz>",
+			Crashes:    550,
+			DaysToFix:  5,
+			ReproLevel: dashapi.ReproLevelSyz,
+		},
+		{
+			Title:      "fs: scary data corruption",
+			Author:     "Cedric Green <cedric@kernel.syz>",
+			Crashes:    100,
+			DaysToFix:  0,
+			ReproLevel: dashapi.ReproLevelNone,
+		},
+		{
+			Title:      "security: stack overflow in io_uring",
+			Author:     "Doran Brown <doran@kernel.syz>",
+			Crashes:    5000,
+			DaysToFix:  400,
+			ReproLevel: dashapi.ReproLevelC,
+		},
+		{
+			Title:      "drivers/usb: memory leak in hub_probe",
+			Author:     "Elara Blue <elara@kernel.syz>",
+			Crashes:    150,
+			DaysToFix:  10,
+			ReproLevel: dashapi.ReproLevelSyz,
+		},
+	}
+	for i, fb := range fixedBugs {
+		buildID := fmt.Sprintf("fixed-build-%d", i)
+		client.UploadBuild(&dashapi.Build{
+			Manager:           "manager0",
+			ID:                buildID,
+			OS:                targets.Linux,
+			Arch:              targets.AMD64,
+			VMArch:            targets.AMD64,
+			KernelRepo:        "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+			KernelBranch:      "master",
+			KernelCommit:      fmt.Sprintf("fixed_commit%d", i),
+			KernelCommitTitle: "kernel commit",
+			SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%d", i),
+			CompilerID:        "compiler0",
+			KernelConfig:      []byte("config"),
+		})
+
+		crash := &dashapi.Crash{
+			BuildID: buildID,
+			Title:   fb.Title,
+			Log:     []byte("log"),
+			Report:  []byte("report"),
+		}
+		switch fb.ReproLevel {
+		case dashapi.ReproLevelC:
+			crash.ReproC = []byte("int main() {}")
+		case dashapi.ReproLevelSyz:
+			crash.ReproSyz = []byte("sync")
+		}
+		client.ReportCrash(crash)
+
+		// Manual Datastore update to mark as Fixed.
+		var bugs []*Bug
+		keys, err := db.NewQuery("Bug").Filter("Title=", fb.Title).GetAll(c.ctx, &bugs)
+		require.NoError(t, err)
+		if len(bugs) == 0 {
+			t.Fatalf("failed to find bug: %v", fb.Title)
+		}
+		bug := bugs[0]
+		bug.Status = BugStatusFixed
+		bug.NumCrashes = fb.Crashes
+		bug.ReproLevel = fb.ReproLevel
+		// Set dates to match DaysToFix.
+		bug.Closed = time.Now()
+		bug.FirstTime = bug.Closed.AddDate(0, 0, -fb.DaysToFix)
+		if fb.DaysToFix == 0 {
+			bug.FirstTime = bug.Closed.Add(-1 * time.Hour) // Fixed within an hour.
+		}
+		bug.Commits = []string{"fix: " + fb.Title}
+		bug.CommitInfo = []Commit{
+			{
+				Title:  "fix: " + fb.Title,
+				Author: fb.Author,
+				Date:   bug.Closed,
+			},
+		}
+		_, err = db.Put(c.ctx, keys[0], bug)
+		require.NoError(t, err)
+	}
+
 	resp, _ := client.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: "xxx",
 		Workflows: []dashapi.AIWorkflow{
