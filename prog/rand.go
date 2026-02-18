@@ -35,6 +35,7 @@ type randGen struct {
 	patchConditionalDepth int
 	genKFuzzTest          bool
 	recDepth              map[string]int
+	genDefaultResource    bool
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
@@ -683,6 +684,8 @@ func (target *Target) PseudoSyscalls() []*Syscall {
 // GenSampleProg generates a single sample program for the call.
 func (target *Target) GenSampleProg(meta *Syscall, rs rand.Source, ct *ChoiceTable) *Prog {
 	r := newRand(target, rs)
+	// Make sure no additional calls are created to provide the resources used by meta.
+	r.genDefaultResource = true
 	s := newState(target, ct, nil)
 	p := &Prog{
 		Target: target,
@@ -770,14 +773,14 @@ func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls [
 		defer func() { r.inGenerateResource = false }()
 		canRecurse = true
 	}
-	if canRecurse && r.nOutOf(8, 10) ||
-		!canRecurse && r.nOutOf(19, 20) {
+	if (canRecurse && r.nOutOf(8, 10) ||
+		!canRecurse && r.nOutOf(19, 20)) && !r.genDefaultResource {
 		arg = r.existingResource(s, a, dir)
 		if arg != nil {
 			return
 		}
 	}
-	if canRecurse {
+	if canRecurse && !r.genDefaultResource {
 		if r.oneOf(4) {
 			arg, calls = r.resourceCentric(s, a, dir)
 			if arg != nil {
