@@ -27,11 +27,12 @@ $(eval $(call build_image_rules,./email-reporter,email-reporter))
 $(eval $(call build_image_rules,./workflow/triage,triage-action))
 $(eval $(call build_image_rules,./workflow/build,build-action))
 $(eval $(call build_image_rules,./workflow/fuzz,fuzz-action))
+$(eval $(call build_image_rules,./workflow/retest,retest-action))
 $(eval $(call build_image_rules,./workflow/boot,boot-action))
 $(eval $(call build_image_rules,./tools/db-mgmt,db-mgmt))
 $(eval $(call build_image_rules,./tools/send-test-email,send-test-email))
 
-IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-action build-action boot-action fuzz-action send-test-email email-reporter
+IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-action build-action boot-action fuzz-action retest-action send-test-email email-reporter
 BUILD_TARGETS := $(addprefix build-, $(IMAGES))
 PUSH_TARGETS := $(addprefix push-, $(IMAGES))
 
