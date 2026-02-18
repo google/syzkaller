@@ -39,7 +39,7 @@ func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map
 		onEvent:  onEvent,
 	}
 
-	defer c.close()
+	defer c.Close()
 	if s := ctx.Value(stubContextKey); s != nil {
 		c.stubContext = *s.(*stubContext)
 	}
@@ -292,7 +292,7 @@ func (ctx *Context) TempDir() (string, error) {
 	return dir, nil
 }
 
-func (ctx *Context) close() {
+func (ctx *Context) Close() {
 	for _, dir := range ctx.cachedDirs {
 		ctx.cache.Release(dir)
 	}

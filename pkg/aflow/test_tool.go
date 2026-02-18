@@ -28,7 +28,7 @@ func TestTool(t *testing.T, tool Tool, initState, initArgs, wantResults any, wan
 	ctx := &Context{
 		state: state,
 	}
-	defer ctx.close()
+	defer ctx.Close()
 	gotResults, err := tool.execute(ctx, args)
 	gotError := ""
 	if err != nil {
@@ -46,6 +46,6 @@ func FuzzTool(t *testing.T, tool Tool, initState, initArgs any) (map[string]any,
 	ctx := &Context{
 		state: state,
 	}
-	defer ctx.close()
+	defer ctx.Close()
 	return tool.execute(ctx, args)
 }

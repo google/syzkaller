@@ -28,7 +28,7 @@ func TestAction(t *testing.T, a Action, workdir string, initArgs, wantResults an
 			timeNow: time.Now,
 		},
 	}
-	defer ctx.close()
+	defer ctx.Close()
 	err := a.execute(ctx)
 	gotResults := map[string]any{}
 	gotError := ""
