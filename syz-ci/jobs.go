@@ -756,46 +756,30 @@ type patchTestResult struct {
 
 func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, error) {
 	// We can have transient errors and other errors of different types.
-	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
-	// If any of the instances crash during testing, we report this with the highest priority.
-	// Then if any of the runs succeed, we report that (to avoid transient errors).
-	// If all instances failed to boot, then we report one of these errors.
-	var anyErr, testErr error
-	var resReport, resSuccess *patchTestResult
-	anyErr = fmt.Errorf("no env test runs")
-	for _, res := range results {
-		if res.Error == nil {
-			resSuccess = &patchTestResult{rawOutput: res.RawOutput}
-			continue
+	// We report crashes with the highest priority.
+	res, err := instance.AggregateTestResults(results)
+	if err != nil {
+		return nil, err
+	} else if res.Error == nil {
+		return &patchTestResult{rawOutput: res.RawOutput}, nil
+	}
+
+	var testError *instance.TestError
+	var crashError *instance.CrashError
+
+	switch {
+	case errors.As(res.Error, &testError):
+		// We should not put rep into resp.CrashTitle/CrashReport,
+		// because that will be treated as patch not fixing the bug.
+		if rep := testError.Report; rep != nil {
+			return nil, fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
 		}
-		anyErr = res.Error
-		var testError *instance.TestError
-		var crashError *instance.CrashError
-		switch {
-		case errors.As(res.Error, &testError):
-			// We should not put rep into resp.CrashTitle/CrashReport,
-			// because that will be treated as patch not fixing the bug.
-			if rep := testError.Report; rep != nil {
-				testErr = fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
-			} else {
-				testErr = fmt.Errorf("%v\n\n%s", testError.Title, testError.Output)
-			}
-		case errors.As(res.Error, &crashError):
-			if resReport == nil || (len(resReport.report.Report) == 0 && len(crashError.Report.Report) != 0) {
-				resReport = &patchTestResult{report: crashError.Report, rawOutput: res.RawOutput}
-			}
-		}
+		return nil, fmt.Errorf("%v\n\n%s", testError.Title, testError.Output)
+	case errors.As(res.Error, &crashError):
+		return &patchTestResult{report: crashError.Report, rawOutput: res.RawOutput}, nil
+	default:
+		return nil, res.Error
 	}
-	if resReport != nil {
-		return resReport, nil
-	}
-	if resSuccess != nil {
-		return resSuccess, nil
-	}
-	if testErr != nil {
-		return nil, testErr
-	}
-	return nil, anyErr
 }
 
 func (jp *JobProcessor) Logf(level int, msg string, args ...any) {
