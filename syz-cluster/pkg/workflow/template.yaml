@@ -151,6 +151,24 @@ spec:
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
                 - name: patched-kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
+          - name: run-retest
+            template: retest-campaign
+            when: "{{=jsonpath(inputs.parameters.element, '$.retest') != nil}}"
+            arguments:
+              parameters:
+                - name: retest-data
+                  value: "{{=jsonpath(inputs.parameters.element, '$.retest')}}"
+                - name: patched-build-id
+                  value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: base-build-id
+                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                - name: track
+                  value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
+              artifacts:
+                - name: base-kernel
+                  from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                - name: patched-kernel
+                  from: "{{steps.patched-build.outputs.artifacts.kernel}}"
 
     - name: fuzz-campaign
       inputs:
@@ -188,6 +206,43 @@ spec:
                   from: "{{inputs.artifacts.patched-kernel}}"
                 - name: config
                   from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
+
+    - name: retest-campaign
+      inputs:
+        parameters:
+          - name: retest-data
+          - name: base-build-id
+          - name: patched-build-id
+          - name: track
+        artifacts:
+          - name: base-kernel
+          - name: patched-kernel
+      steps:
+        - - name: save-retest-task
+            template: convert-artifact
+            arguments:
+              parameters:
+                - name: data
+                  value: "{{inputs.parameters.retest-data}}"
+        - - name: retest
+            templateRef:
+              name: retest-action-template
+              template: retest-action
+            arguments:
+              parameters:
+                - name: patched-build-id
+                  value: "{{inputs.parameters.patched-build-id}}"
+                - name: base-build-id
+                  value: "{{inputs.parameters.base-build-id}}"
+                - name: test-name
+                  value: "[{{inputs.parameters.track}}] Previous reproducers"
+              artifacts:
+                - name: base-kernel
+                  from: "{{inputs.artifacts.base-kernel}}"
+                - name: patched-kernel
+                  from: "{{inputs.artifacts.patched-kernel}}"
+                - name: retest-task
+                  from: "{{steps.save-retest-task.outputs.artifacts.artifact}}"
     - name: convert-artifact
       inputs:
         parameters:
