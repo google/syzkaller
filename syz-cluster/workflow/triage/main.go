@@ -143,6 +143,21 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			Fuzz:    target.FuzzConfig,
 		}
 		testTarget.Patched.SeriesID = series.ID
+
+		retestFindings, err := triager.client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+			SeriesID: series.ID,
+			Arch:     result.Arch,
+			Config:   target.KernelConfig,
+		})
+		if err != nil {
+			// This is sad, but not critical.
+			app.Errorf("failed to query previous findings: %v", err)
+		} else if len(retestFindings) > 0 {
+			triager.Logf("scheduling retest for %d findings", len(retestFindings))
+			testTarget.Retest = &api.RetestTask{
+				Findings: retestFindings,
+			}
+		}
 		return testTarget, nil
 	}
 	return nil, SkipError("no base commit found")
