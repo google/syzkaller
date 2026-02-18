@@ -19,6 +19,12 @@ type TestTarget struct {
 	Patched BuildRequest `json:"patched"`
 	Track   string       `json:"track"` // E.g. KASAN.
 	Fuzz    *FuzzConfig  `json:"fuzz"`
+	Retest  *RetestTask  `json:"retest"`
+}
+
+// RetestTask re(runs) the reproducers of the specified findings.
+type RetestTask struct {
+	Findings []string `json:"findings"`
 }
 
 const (

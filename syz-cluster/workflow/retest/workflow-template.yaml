@@ -1,0 +1,58 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: retest-action-template
+spec:
+  templates:
+    - name: retest-action
+      inputs:
+        parameters:
+          - name: base-build-id
+          - name: patched-build-id
+          - name: test-name
+        artifacts:
+          - name: base-kernel
+            path: /base
+          - name: patched-kernel
+            path: /patched
+          - name: retest-task
+            path: /data/retest.json
+      timeout: 4h
+      container:
+        image: ${IMAGE_PREFIX}retest-action:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/retest-action"]
+        args: [
+          "--retest_task", "/data/retest.json",
+          "--base_build", "{{inputs.parameters.base-build-id}}",
+          "--patched_build", "{{inputs.parameters.patched-build-id}}",
+          "--session", "{{workflow.parameters.session-id}}",
+          "--test_name", "{{inputs.parameters.test-name}}",
+          "--workdir", "/workdir"
+          ]
+        resources:
+          requests:
+            cpu: 6
+            memory: 24G
+          limits:
+            cpu: 8
+            memory: 32G
+        volumeMounts:
+        - name: workdir
+          mountPath: /workdir
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        # Needed for /dev/kvm.
+        # TODO: there's a "device plugin" mechanism in k8s that can share it more safely.
+        securityContext:
+          privileged: true
+      volumes:
+        - name: workdir
+          emptyDir: {}
+        - name: dev-kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
