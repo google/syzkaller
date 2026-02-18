@@ -81,6 +81,8 @@ type Target struct {
 	// The default ChoiceTable is used only by tests and utilities, so we initialize it lazily.
 	defaultOnce        sync.Once
 	defaultChoiceTable *ChoiceTable
+
+	kFuzzTestID int
 }
 
 const maxSpecialPointers = 16
@@ -146,6 +148,16 @@ func (target *Target) lazyInit() {
 	target.initUselessHints()
 	target.initRelatedFields()
 	target.initArch(target)
+
+	// We ignore the return value here as they are cached, and it makes more
+	// sense to react to them when we attempt to execute a KFuzzTest call.
+	target.kFuzzTestID = -1
+	for _, call := range target.Syscalls {
+		if call.Attrs.KFuzzTest {
+			target.kFuzzTestID = call.ID
+			break
+		}
+	}
 	// We ignore the return value here as they are cached, and it makes more
 	// sense to react to them when we attempt to execute a KFuzzTest call.
 	_, _ = target.KFuzzTestRunID()
@@ -547,23 +559,12 @@ func (pg *Builder) Finalize() (*Prog, error) {
 	return p, nil
 }
 
-var kFuzzTestIDCache struct {
-	sync.Once
-	id  int
-	err error
-}
-
 // KFuzzTestRunID returns the ID for the syz_kfuzztest_run pseudo-syscall,
 // or an error if it is not found in the target.
 func (t *Target) KFuzzTestRunID() (int, error) {
-	kFuzzTestIDCache.Do(func() {
-		for _, call := range t.Syscalls {
-			if call.Attrs.KFuzzTest {
-				kFuzzTestIDCache.id = call.ID
-				return
-			}
-		}
-		kFuzzTestIDCache.err = fmt.Errorf("could not find ID for syz_kfuzztest_run - does it exist?")
-	})
-	return kFuzzTestIDCache.id, kFuzzTestIDCache.err
+	// The ID is initialized in lazyInit.
+	if t.kFuzzTestID == -1 {
+		return 0, fmt.Errorf("syz_kfuzztest_run syscall is missing")
+	}
+	return t.kFuzzTestID, nil
 }

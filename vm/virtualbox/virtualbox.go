@@ -205,8 +205,10 @@ func (inst *instance) boot() error {
 			}
 		}
 	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if err := vmimpl.WaitForSSH(10*time.Minute*inst.timeouts.Scale, inst.SSHOptions,
-		inst.os, inst.merger.Err, false, inst.debug); err != nil {
+		inst.os, inst.merger.Errors(ctx), false, inst.debug); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
@@ -242,6 +244,12 @@ func (inst *instance) Close() error {
 	}
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
+	}
+	if inst.uartConn != nil {
+		inst.uartConn.Close()
+	}
+	if inst.merger != nil {
+		inst.merger.Wait()
 	}
 	return nil
 }
@@ -287,18 +295,12 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		if inst.debug {
 			log.Logf(0, "LongPipe failed: %v", err)
 		}
-		if inst.uartConn != nil {
-			inst.uartConn.Close()
-		}
 		return nil, nil, err
 	}
 	rpipeErr, wpipeErr, err := osutil.LongPipe()
 	if err != nil {
 		if inst.debug {
 			log.Logf(0, "LongPipe failed: %v", err)
-		}
-		if inst.uartConn != nil {
-			inst.uartConn.Close()
 		}
 		rpipe.Close()
 		wpipe.Close()
@@ -311,9 +313,6 @@ func (inst *instance) Run(ctx context.Context, command string) (
 		rpipe.Close()
 		wpipeErr.Close()
 		rpipeErr.Close()
-		if inst.uartConn != nil {
-			inst.uartConn.Close()
-		}
 		return nil, nil, err
 	}
 	wpipe.Close()
@@ -323,10 +322,9 @@ func (inst *instance) Run(ctx context.Context, command string) (
 	inst.merger.Add("ssh-err", vmimpl.OutputStderr, rpipeErr)
 
 	return vmimpl.Multiplex(ctx, cmd, inst.merger, vmimpl.MultiplexConfig{
-		Console: inst.uartConn,
-		Close:   inst.closed,
-		Debug:   inst.debug,
-		Scale:   inst.timeouts.Scale,
+		Close: inst.closed,
+		Debug: inst.debug,
+		Scale: inst.timeouts.Scale,
 	})
 }
 

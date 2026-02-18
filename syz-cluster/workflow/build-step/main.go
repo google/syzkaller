@@ -192,7 +192,7 @@ func readRequest() *api.BuildRequest {
 }
 
 func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, series *api.Series) (*vcs.Commit, error) {
-	tracer.Log("checking out %q", req.CommitHash)
+	tracer.Logf("checking out %q", req.CommitHash)
 	ops, err := triage.NewGitTreeOps(*flagRepository, true)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 		patches = series.PatchBodies()
 	}
 	if len(patches) > 0 {
-		tracer.Log("applying %d patches", len(patches))
+		tracer.Logf("applying %d patches", len(patches))
 	}
 	err = ops.ApplySeries(commit.Hash, patches)
 	return commit, err
@@ -239,10 +239,10 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 		Config:       kernelConfig,
 		Tracer:       tracer,
 	}
-	tracer.Log("started build: %q", req)
+	tracer.Logf("started build: %q", req)
 	info, err := build.Image(params)
-	tracer.Log("compiler: %q", info.CompilerID)
-	tracer.Log("signature: %q", info.Signature)
+	tracer.Logf("compiler: %q", info.CompilerID)
+	tracer.Logf("signature: %q", info.Signature)
 	// We can fill this regardless of whether it succeeded.
 	ret := &BuildResult{
 		Compiler: info.CompilerID,
@@ -258,25 +258,25 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 		var verboseError *osutil.VerboseError
 		switch {
 		case errors.As(err, &kernelError):
-			tracer.Log("kernel error: %q / %s", kernelError.Report, kernelError.Output)
+			tracer.Logf("kernel error: %q / %s", kernelError.Report, kernelError.Output)
 			ret.Finding.Report = kernelError.Report
 			ret.Finding.Log = kernelError.Output
 			return ret, nil
 		case errors.As(err, &verboseError):
-			tracer.Log("verbose error: %s / %s", verboseError, verboseError.Output)
+			tracer.Logf("verbose error: %s / %s", verboseError, verboseError.Output)
 			ret.Finding.Report = []byte(verboseError.Error())
 			ret.Finding.Log = verboseError.Output
 			return ret, nil
 		default:
-			tracer.Log("other error: %v", err)
+			tracer.Logf("other error: %v", err)
 		}
 		return nil, err
 	}
-	tracer.Log("build finished successfully")
+	tracer.Logf("build finished successfully")
 
 	err = saveSymbolHashes(tracer)
 	if err != nil {
-		tracer.Log("failed to save symbol hashes: %s", err)
+		tracer.Logf("failed to save symbol hashes: %s", err)
 	}
 	// Note: Output directory has the following structure:
 	//   |-- image
@@ -293,7 +293,7 @@ func saveSymbolHashes(tracer debugtracer.DebugTracer) error {
 	if err != nil {
 		return fmt.Errorf("failed to query symbol hashes: %w", err)
 	}
-	tracer.Log("extracted hashes for %d text symbols and %d data symbols",
+	tracer.Logf("extracted hashes for %d text symbols and %d data symbols",
 		len(hashes.Text), len(hashes.Data))
 	file, err := os.Create(filepath.Join(*flagOutput, "symbol_hashes.json"))
 	if err != nil {

@@ -47,7 +47,7 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 	for i, crash := range crashes {
 		if crash.GuiltyPath != "" {
 			extracted := e.raw.FromPath(crash.GuiltyPath)
-			tracer.Log("Crash #%d: guilty=%s subsystems=%s", i+1,
+			tracer.Logf("crash #%d: guilty=%s subsystems=%s", i+1,
 				crash.GuiltyPath, e.readableSubsystems(extracted))
 			subsystems = append(subsystems, extracted...)
 		}
@@ -69,11 +69,11 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 			continue
 		}
 		reproSubsystems := e.raw.FromProg(crash.SyzRepro)
-		tracer.Log("Crash #%d: repro subsystems=%s", i+1, e.readableSubsystems(reproSubsystems))
+		tracer.Logf("crash #%d: repro subsystems=%s", i+1, e.readableSubsystems(reproSubsystems))
 		for _, subsystem := range reproSubsystems {
 			reproCounts[subsystem]++
 			if reproCounts[subsystem] == reproCount {
-				tracer.Log("Subsystem %s exists in all reproducers", subsystem.Name)
+				tracer.Logf("subsystem %s exists in all reproducers", subsystem.Name)
 				fromRepro = append(fromRepro, subsystem)
 			}
 		}
@@ -90,7 +90,7 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 			parents[reproSubsystem] = struct{}{} // also include the subsystem itself
 			for _, subsystem := range subsystems {
 				if _, ok := parents[subsystem]; ok {
-					tracer.Log("Picking %s because %s is one of its parents",
+					tracer.Logf("picking %s because %s is one of its parents",
 						reproSubsystem.Name, subsystem.Name)
 					newSubsystems = append(newSubsystems, reproSubsystem)
 					break
@@ -99,7 +99,7 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 		}
 		if len(newSubsystems) > 0 {
 			// Just pick those subsystems.
-			tracer.Log("Set %s because they appear both in repros and stack tracex",
+			tracer.Logf("set %s because they appear both in repros and stack tracex",
 				e.readableSubsystems(newSubsystems))
 			return newSubsystems
 		}
@@ -110,7 +110,7 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 		if reproCount >= cutOff {
 			// But if the guilty paths are non-controversial, also take the leading candidate.
 			fromStacks := mostVoted(counts, 0.66)
-			tracer.Log("There are %d reproducers, so take %s from them and %s from stack traces",
+			tracer.Logf("there are %d reproducers, so take %s from them and %s from stack traces",
 				reproCount, e.readableSubsystems(fromRepro), e.readableSubsystems(fromStacks))
 			return append(fromRepro, fromStacks...)
 		}
@@ -123,7 +123,7 @@ func (e *Extractor) TracedExtract(crashes []*Crash, tracer debugtracer.DebugTrac
 
 	// Let's pick all subsystems that received >= 33% of votes (thus no more than 3).
 	afterVoting := mostVoted(counts, 0.33)
-	tracer.Log("Take %s from voting results", e.readableSubsystems(afterVoting))
+	tracer.Logf("take %s from voting results", e.readableSubsystems(afterVoting))
 	return removeParents(afterVoting)
 }
 

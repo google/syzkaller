@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 )
@@ -168,22 +169,33 @@ WHERE SEARCH(Patches.TitleTokens, @name)
 		// It could have been an INNER JOIN in the main query, but let's favor the simpler code
 		// in this function.
 		// The optimizer should transform the query to a JOIN anyway.
-		var statusCond = "EXISTS(SELECT 1 FROM Sessions WHERE"
-		switch filter.Status {
-		case SessionStatusWaiting:
-			statusCond += " Sessions.SeriesID = Series.ID AND Sessions.StartedAt IS NULL"
-		case SessionStatusInProgress:
-			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
-		case SessionStatusFinished:
-			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL" +
-				" AND Sessions.SkipReason IS NULL"
-		case SessionStatusSkipped:
-			statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.SkipReason IS NOT NULL"
-		default:
-			return nil, fmt.Errorf("unknown status value: %q", filter.Status)
+		if filter.Status == SessionStatusStepsFailed {
+			// Ideally we should have also considered all Sessions related to each Series,
+			// but for the current use cases this extra complication is not worth it, so
+			// let's just look at the session steps of the latest session.
+			conds = append(conds, "Series.LatestSessionID IS NOT NULL")
+			conds = append(conds, "EXISTS("+
+				"SELECT 1 FROM SessionTests WHERE "+
+				"SessionTests.SessionID = Series.LatestSessionID AND SessionTests.Result = @testResult)")
+			stmt.Params["testResult"] = api.TestFailed
+		} else {
+			var statusCond = "EXISTS(SELECT 1 FROM Sessions WHERE"
+			switch filter.Status {
+			case SessionStatusWaiting:
+				statusCond += " Sessions.SeriesID = Series.ID AND Sessions.StartedAt IS NULL"
+			case SessionStatusInProgress:
+				statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NULL"
+			case SessionStatusFinished:
+				statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.FinishedAt IS NOT NULL" +
+					" AND Sessions.SkipReason IS NULL"
+			case SessionStatusSkipped:
+				statusCond += " Sessions.ID = Series.LatestSessionID AND Sessions.SkipReason IS NOT NULL"
+			default:
+				return nil, fmt.Errorf("unknown status value: %q", filter.Status)
+			}
+			statusCond += ")"
+			conds = append(conds, statusCond)
 		}
-		statusCond += ")"
-		conds = append(conds, statusCond)
 	}
 	if filter.WithFindings {
 		conds = append(conds, "Series.LatestSessionID IS NOT NULL AND EXISTS("+

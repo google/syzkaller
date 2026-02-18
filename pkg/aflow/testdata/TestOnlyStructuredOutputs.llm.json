@@ -1,0 +1,65 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\n\nUse set-results tool to provide results of the analysis.\nIt must be called exactly once before the final reply.\nIgnore results of this tool.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "Use this tool to provide results of the analysis.",
+							"name": "set-results",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "Result",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Result": {
+										"description": "Result",
+										"type": "integer"
+									}
+								},
+								"required": [
+									"Result"
+								],
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]

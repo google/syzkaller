@@ -127,6 +127,7 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 			{db.SessionStatusInProgress, "in progress"},
 			{db.SessionStatusFinished, "finished"},
 			{db.SessionStatusSkipped, "skipped"},
+			{db.SessionStatusStepsFailed, "steps failed"},
 		},
 	}
 

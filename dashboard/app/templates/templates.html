@@ -704,7 +704,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{end}}
 			{{end}}
 		</td>
-		<td class="ai_correct">{{$job.Correct}}</td>
+		<td class="ai_correct" title="{{$job.CorrectTitle}}">{{$job.Correct}}</td>
 		<td class="title">{{link $job.DescriptionLink $job.Description}}</td>
 		<td>{{formatTime $job.Created}}</td>
 		<td>{{formatTime $job.Started}}</td>

@@ -4,8 +4,10 @@
 package manager
 
 import (
+	"path/filepath"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/prog"
@@ -112,4 +114,31 @@ func TestCrashRepro(t *testing.T) {
 	assert.Equal(t, []byte("prog text"), report.Prog)
 	assert.Equal(t, []byte("c prog text"), report.CProg)
 	assert.Equal(t, []byte("Some report"), report.Report)
+}
+
+func TestCrashMemoryDump(t *testing.T) {
+	crashStore := &CrashStore{
+		BaseDir:      t.TempDir(),
+		MaxCrashLogs: 5,
+	}
+
+	tmpDir := t.TempDir()
+	sourceDump := filepath.Join(tmpDir, "vmcore_source")
+	osutil.WriteFile(sourceDump, []byte("VMCORE"))
+
+	_, err := crashStore.SaveCrash(&Crash{
+		Report: &report.Report{
+			Title:  "Title With Dump",
+			Output: []byte("Output"),
+		},
+		MemoryDump: sourceDump,
+	})
+	assert.NoError(t, err)
+
+	info, err := crashStore.BugInfo(crashHash("Title With Dump"), false)
+	assert.NoError(t, err)
+
+	assert.NotEmpty(t, info.MemoryDumpFile)
+	assert.Contains(t, info.MemoryDumpFile, "vmcore")
+	assert.FileExists(t, filepath.Join(crashStore.BaseDir, info.MemoryDumpFile))
 }

@@ -11,7 +11,7 @@
 #include "common_kvm_syzos.h"
 #include "kvm.h"
 
-#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit
+#if SYZ_EXECUTOR || __NR_syz_kvm_add_vcpu || __NR_syz_kvm_setup_cpu || __NR_syz_kvm_setup_syzos_vm || __NR_syz_kvm_assert_syzos_uexit || __NR_syz_kvm_assert_syzos_kvm_exit
 extern char* __start_guest;
 
 // executor_fn_guest_addr() is compiled into both the host and the guest code.
@@ -54,6 +54,7 @@ static long syz_kvm_assert_syzos_kvm_exit(volatile long a0, volatile long a1)
 	if (run->exit_reason != expect) {
 #if !SYZ_EXECUTOR
 		fprintf(stderr, "[SYZOS-DEBUG] KVM Exit Reason Mismatch\n");
+		fprintf(stderr, "   is_write: %d\n", run->mmio.is_write);
 		fprintf(stderr, "   Expected: 0x%lx\n", (unsigned long)expect);
 		fprintf(stderr, "   Actual:   0x%lx\n", (unsigned long)run->exit_reason);
 #endif

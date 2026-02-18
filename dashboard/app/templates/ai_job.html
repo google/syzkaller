@@ -10,6 +10,144 @@ Detailed info on a single AI job execution.
 <head>
 	{{template "head" .Header}}
 	<title>syzbot</title>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+
+		function drawCharts() {
+			const rawData = {{.TrajectoryJSON}};
+			if (!rawData || rawData.length === 0) return;
+
+			drawSummaryTables(rawData);
+			drawDurationChart(rawData);
+			drawTokenConsumptionChart(rawData);
+		}
+
+		function drawSummaryTables(rawData) {
+			const stats = {
+				llm: { count: 0, tokens: 0, duration: 0 },
+				tool: { count: 0, duration: 0 }
+			};
+
+			rawData.forEach(s => {
+				const dur = s.Duration / 1000000000; // Convert ns to s
+				if (s.Type === "llm") {
+					stats.llm.count++;
+					stats.llm.tokens += (s.InputTokens + s.OutputTokens + s.OutputThoughtsTokens);
+					stats.llm.duration += dur;
+				} else if (s.Type === "tool") {
+					stats.tool.count++;
+					stats.tool.duration += dur;
+				}
+			});
+
+			const avgLlmDur = stats.llm.count > 0 ? (stats.llm.duration / stats.llm.count).toFixed(2) : 0;
+			const avgLlmToken = stats.llm.count > 0 ? (stats.llm.tokens / stats.llm.count).toFixed(2) : 0;
+			const avgToolDur = stats.tool.count > 0 ? (stats.tool.duration / stats.tool.count).toFixed(2) : 0;
+
+			const llmSumaryCells = [stats.llm.count, stats.llm.tokens, avgLlmToken, stats.llm.duration, avgLlmDur];
+			const toolSummaryCells = [stats.tool.count, stats.tool.duration, avgToolDur];
+
+			const llmSummaryBody = document.getElementById('llm_summary_stats_body');
+			llmSummaryBody.innerHTML = "";
+			const llmTr = document.createElement('tr');
+			llmSumaryCells.forEach(cell => {
+				const td = document.createElement('td');
+				td.textContent = cell;
+				llmTr.appendChild(td);
+			});
+			llmSummaryBody.appendChild(llmTr);
+
+			const toolSummaryBody = document.getElementById('tool_summary_stats_body');
+			toolSummaryBody.innerHTML = "";
+			const toolTr = document.createElement('tr');
+			toolSummaryCells.forEach(cell => {
+				const td = document.createElement('td');
+				td.textContent = cell;
+				toolTr.appendChild(td);
+			});
+			toolSummaryBody.appendChild(toolTr);
+		}
+
+		function drawDurationChart(rawData) {
+			const filteredSteps = rawData.filter(d => ["llm", "tool"].includes(d.Type));
+			const data = new google.visualization.DataTable();
+			data.addColumn('string', 'Step');
+			data.addColumn('number', 'Duration');
+			data.addColumn({type: 'string', role: 'tooltip'}); // Hover info
+
+			filteredSteps.forEach(s => {
+				// Convert Go duration (nanoseconds) to seconds
+				const dur = s.Duration / 1000000000;
+				data.addRow([`${s.Seq}`, dur, s.Name]);
+			});
+
+			const options = {
+				title: 'Time Consumption of LLM/Tool Calls',
+				hAxis: {
+					title: 'LLM/Tool Steps',
+				},
+				vAxis: { title: 'Seconds' },
+				legend: { position: 'none' },
+				bar: { groupWidth: '75%' },
+				chartArea: { width: '85%', height: '70%' },
+				height: 400
+			};
+
+			const chart = new google.visualization.ColumnChart(document.getElementById('duration_chart_div'));
+			chart.draw(data, options);
+		}
+
+		function drawTokenConsumptionChart(rawData) {
+			// Filter only LLM steps
+			const llmSteps = rawData.filter(d => d.Type === "llm");
+			if (llmSteps.length === 0) return;
+
+			const data = new google.visualization.DataTable();
+			data.addColumn('string', 'Step');			// X-Axis (Label)
+			data.addColumn('number', 'Tokens');			// Y-Axis (Value)
+			data.addColumn({type: 'string', role: 'style'});	// Bar Color
+			data.addColumn({type: 'string', role: 'tooltip'});	// Hover info
+
+			// Define a palette or a dynamic color generator
+			const agentColors = {};
+			const palette = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1'];
+			let colorIdx = 0;
+			// Tracks count per agent
+			const agentLLMCounts = {};
+			llmSteps.forEach(s => {
+				// Assign color to agent if not already assigned
+				if (!agentColors[s.Name]) {
+					agentColors[s.Name] = palette[colorIdx % palette.length];
+					colorIdx++;
+				}
+
+				agentLLMCounts[s.Name] = (agentLLMCounts[s.Name] || 0) + 1;
+				const label = `${s.Name}-${agentLLMCounts[s.Name]}`;
+				const totalTokens = s.InputTokens + s.OutputTokens + s.OutputThoughtsTokens;
+				const style = `color: ${agentColors[s.Name]}`;
+				const tooltip = `Total Tokens: ${totalTokens}\n(In: ${s.InputTokens}, Out: ${s.OutputTokens}, Thoughts: ${s.OutputThoughtsTokens})`;
+
+				data.addRow([label, totalTokens, style, tooltip]);
+			});
+
+			const options = {
+				title: 'Token Consumption by LLM Calls',
+				hAxis: {
+					title: 'LLM Call Sequence',
+				},
+				vAxis: { title: 'Consumed Tokens' },
+				legend: { position: 'none' },
+				bar: { groupWidth: '75%' },
+				chartArea: { width: '85%', height: '70%' },
+				height: 400
+			};
+
+			const chart = new google.visualization.ColumnChart(document.getElementById('token_chart_div'));
+			chart.draw(data, options);
+		}
+	</script>
 </head>
 <body>
 	{{template "header" .Header}}
@@ -19,12 +157,12 @@ Detailed info on a single AI job execution.
 		<form method="POST">
 			<fieldset>
 				<legend>Result correct:</legend>
-				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅"}}checked{{end}}>
-				<label for="✅">✅</label>
-				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌"}}checked{{end}}>
-				<label for="❌">❌</label>
-				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓"}}checked{{end}}>
-				<label for="❓">❓</label>
+				<input type="radio" name="correct" id="✅" value="✅" {{if eq .Job.Correct "✅" }}checked{{end}} title="Correct">
+				<label for="✅" title="Correct">✅</label>
+				<input type="radio" name="correct" id="❌" value="❌" {{if eq .Job.Correct "❌" }}checked{{end}} title="Incorrect">
+				<label for="❌" title="Incorrect">❌</label>
+				<input type="radio" name="correct" id="❓" value="❓" {{if eq .Job.Correct "❓" }}checked{{end}} title="Not yet reviewed">
+				<label for="❓" title="Not yet reviewed">❓</label>
 				<button type="submit">Set</button>
 			</fieldset>
 		</form>
@@ -125,5 +263,38 @@ Detailed info on a single AI job execution.
 		{{end}}
 		</tbody>
 	</table>
+
+	<div id="llm_summary_table_div" style="margin: 20px 0;">
+		<table class="list_table">
+			<caption>LLM Calls Summary:</caption>
+			<thead>
+				<tr>
+					<th>Total Calls</th>
+					<th>Total Tokens</th>
+					<th>Avg Tokens</th>
+					<th>Total Duration (Seconds)</th>
+					<th>Avg Duration (Seconds)</th>
+				</tr>
+			</thead>
+			<tbody id="llm_summary_stats_body"></tbody>
+		</table>
+	</div>
+
+	<div id="tool_summary_table_div" style="margin: 20px 0;">
+		<table class="list_table">
+			<caption>Tool Calls Summary:</caption>
+			<thead>
+				<tr>
+					<th>Total Calls</th>
+					<th>Total Duration (Seconds)</th>
+					<th>Avg Duration (Seconds)</th>
+				</tr>
+			</thead>
+			<tbody id="tool_summary_stats_body"></tbody>
+		</table>
+	</div>
+
+	<div id="duration_chart_div" style="width: 100%; margin: 20px 0; border: 1px;"></div>
+	<div id="token_chart_div" style="width: 100%; margin: 20px 0; border: 1px;"></div>
 </body>
 </html>

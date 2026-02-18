@@ -45,6 +45,6 @@ func main() {
 	}
 	log.Printf("found %d candidates:", len(commits))
 	for _, commit := range commits {
-		log.Printf("%+v", commit)
+		log.Printf("%+v %v", commit.Commit, commit.Branches)
 	}
 }

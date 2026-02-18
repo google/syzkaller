@@ -176,7 +176,7 @@ func runMake(params Params, extraArgs ...string) error {
 		"KBUILD_BUILD_HOST=syzkaller",
 	)
 	output, err := osutil.Run(time.Hour, cmd)
-	params.Tracer.Log("Build log:\n%s", output)
+	params.Tracer.Logf("build log:\n%s", output)
 	return err
 }
 
@@ -364,7 +364,7 @@ func elfBinarySignature(bin string, tracer debugtracer.DebugTracer) (string, err
 		hasher1.Write(data)
 		hash := hasher1.Sum(nil)
 		hasher.Write(hash)
-		tracer.Log("section %v: size %v signature %v", sec.Name, len(data), hex.EncodeToString(hash[:8]))
+		tracer.Logf("section %v: size %v signature %v", sec.Name, len(data), hex.EncodeToString(hash[:8]))
 		tracer.SaveFile(sec.Name, data)
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil

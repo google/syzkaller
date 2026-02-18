@@ -28,6 +28,7 @@ type LLMAgent struct {
 	// Name of the state variable to store the final reply of the agent.
 	// These names can be used in subsequent action instructions/prompts,
 	// and as final workflow outputs.
+	// Reply should not be empty unless Outputs are specified.
 	Reply string
 	// Optional additional structured outputs besides the final text reply.
 	// Use LLMOutputs function to create it.
@@ -217,7 +218,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 	// It points to the summary message if the sliding window summary feature is enabled.
 	// We need it to check if the message-to-be-popped is a summary - if so, we need to add
 	// a new summary.
-	summaryMessage := (*genai.Content)(nil)
+	var summaryMessage *genai.Content
 	for {
 		span := &trajectory.Span{
 			Type:  trajectory.SpanLLM,
@@ -227,49 +228,8 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if err := ctx.startSpan(span); err != nil {
 			return "", nil, err
 		}
-		// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1
-		// messages (recent history), then discard the old ones with stale context and to
-		// free up tokens.
-		// We need to add a new summary if we don't have one yet, or existing summary is
-		// going to be popped.
 		addNewSummary := false
-		if a.SummaryWindow > 0 && len(req) > a.SummaryWindow {
-			// popEnd is the last index of elements to be popped
-			popEnd := len(req) - a.SummaryWindow
-			if summaryMessage == nil {
-				// If we haven't created a summary, surely need to create one.
-				addNewSummary = true
-			} else {
-				// If we already have a summary, we iterate through the elements being popped
-				// (index 1 to popEnd), and see if the summary would be popped (hence needing
-				// a new summary).
-				for i := 1; i <= popEnd; i++ {
-					if req[i] == summaryMessage {
-						// The existing summary message is among the summary message.
-						addNewSummary = true
-						break
-					}
-				}
-			}
-			// Append the very prompt, asking LLM to add summary.
-			// TODO: what if it is ready to provide an answer right now,
-			// and don't want to call any tools anymore, but instead we
-			// ask it to summarize? We may get the summary as the final reply...
-			// Or, what if it summarizes w/o calling any tools?
-			if addNewSummary {
-				req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
-					Text: slidingWindowInstruction,
-				})
-			}
-			// The actual popping.
-			if addNewSummary && (summaryMessage != nil) {
-				// Before we actually pop the old summary, save it so the new summary can
-				// incorporate enough old information.
-				req = append([]*genai.Content{req[0], summaryMessage}, req[popEnd+1:]...)
-			} else {
-				req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
-			}
-		}
+		req, addNewSummary = a.slide(req, summaryMessage)
 		resp, respErr := a.generateContent(ctx, cfg, req, candidate)
 		if respErr != nil {
 			span.Error = respErr.Error()
@@ -325,9 +285,56 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		}
 		// Overwrite previous outputs, if LLM calls the tool more than once.
 		// It shouldn't, but this seems to be the easiest way to handle it gracefully.
-		outputs = outputs1
+		if outputs1 != nil {
+			outputs = outputs1
+			if a.Reply == "" {
+				return "", outputs, nil
+			}
+		}
 		req = append(req, responses)
 	}
+}
+
+func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai.Content, bool) {
+	// Sliding window optimization: keep index 0 (anchor) and the last SummaryWindow-1 messages
+	// (recent history), then discard the old ones with stale context and to free up tokens.
+	// We need to add a new summary if we don't have one yet, or existing summary is going to be popped.
+	if a.SummaryWindow <= 0 || len(req) <= a.SummaryWindow {
+		return req, false
+	}
+	// If we haven't created a summary, surely need to create one.
+	addNewSummary := summary == nil
+	// popEnd is the last index of elements to be popped
+	popEnd := len(req) - a.SummaryWindow
+	// If we already have a summary, we iterate through the elements being popped
+	// (index 1 to popEnd), and see if the summary would be popped (hence needing
+	// a new summary).
+	for i := 1; i <= popEnd; i++ {
+		if req[i] == summary {
+			// The existing summary message is among the summary message.
+			addNewSummary = true
+			break
+		}
+	}
+	// Append the very prompt, asking LLM to add summary.
+	// TODO: what if it is ready to provide an answer right now,
+	// and don't want to call any tools anymore, but instead we
+	// ask it to summarize? We may get the summary as the final reply...
+	// Or, what if it summarizes w/o calling any tools?
+	if addNewSummary {
+		req[len(req)-1].Parts = append(req[len(req)-1].Parts, &genai.Part{
+			Text: slidingWindowInstruction,
+		})
+	}
+	// The actual popping.
+	if addNewSummary && (summary != nil) {
+		// Before we actually pop the old summary, save it so the new summary can
+		// incorporate enough old information.
+		req = append([]*genai.Content{req[0], summary}, req[popEnd+1:]...)
+	} else {
+		req = append([]*genai.Content{req[0]}, req[popEnd+1:]...)
+	}
+	return req, addNewSummary
 }
 
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, map[string]Tool) {
@@ -568,7 +575,9 @@ func (err *retryError) Unwrap() error {
 func (a *LLMAgent) verify(ctx *verifyContext) {
 	ctx.requireNotEmpty(a.Name, "Name", a.Name)
 	ctx.requireNotEmpty(a.Name, "Model", a.Model)
-	ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+	if a.Outputs == nil {
+		ctx.requireNotEmpty(a.Name, "Reply", a.Reply)
+	}
 	if _, ok := taskParameters[a.TaskType]; !ok {
 		ctx.errorf(a.Name, "bad or missing TaskType (%v)", a.TaskType)
 	}
@@ -587,7 +596,9 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 		if a.Candidates > 1 {
 			replyType = reflect.TypeFor[[]string]()
 		}
-		ctx.provideOutput(a.Name, a.Reply, replyType)
+		if a.Reply != "" {
+			ctx.provideOutput(a.Name, a.Reply, replyType)
+		}
 		if a.Outputs != nil {
 			a.Outputs.provideOutputs(ctx, a.Name, a.Candidates > 1)
 		}

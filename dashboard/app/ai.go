@@ -39,10 +39,11 @@ type uiAIJobPage struct {
 	Header *uiHeader
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
-	Jobs        []*uiAIJob
-	CrashReport template.HTML
-	Trajectory  []*uiAITrajectorySpan
-	History     []*uiJobReviewHistory
+	Jobs           []*uiAIJob
+	CrashReport    template.HTML
+	Trajectory     []*uiAITrajectorySpan
+	History        []*uiJobReviewHistory
+	TrajectoryJSON template.JS
 }
 
 type uiJobReviewHistory struct {
@@ -64,6 +65,7 @@ type uiAIJob struct {
 	CodeRevisionLink string
 	Error            string
 	Correct          string
+	CorrectTitle     string
 	Results          []*uiAIResult
 }
 
@@ -193,13 +195,15 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
+	trajectoryJSON, _ := json.Marshal(makeUIAITrajectory(trajectory))
 	page := &uiAIJobPage{
-		Header:      hdr,
-		Job:         uiJob,
-		Jobs:        []*uiAIJob{uiJob},
-		CrashReport: crashReport,
-		Trajectory:  makeUIAITrajectory(trajectory),
-		History:     makeUIJobReviewHistory(history),
+		Header:         hdr,
+		Job:            uiJob,
+		Jobs:           []*uiAIJob{uiJob},
+		CrashReport:    crashReport,
+		Trajectory:     makeUIAITrajectory(trajectory),
+		History:        makeUIJobReviewHistory(history),
+		TrajectoryJSON: template.JS(trajectoryJSON),
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }
@@ -228,16 +232,22 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	})
 
 	correct := aiCorrectnessIncorrect
+	title := "Incorrect"
 	if !job.Started.Valid {
 		correct = aiCorrectnessPending
+		title = "Job is pending"
 	} else if !job.Finished.Valid {
 		correct = aiCorrectnessRunning
+		title = "Job is running"
 	} else if job.Error != "" {
 		correct = aiCorrectnessErrored
+		title = "Job failed with an error"
 	} else if !job.Correct.Valid {
 		correct = aiCorrectnessUnset
+		title = "Not yet reviewed"
 	} else if job.Correct.Bool {
 		correct = aiCorrectnessCorrect
+		title = "Correct"
 	}
 	return &uiAIJob{
 		ID:               job.ID,
@@ -252,6 +262,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		CodeRevisionLink: vcs.LogLink(vcs.SyzkallerRepo, job.CodeRevision),
 		Error:            job.Error,
 		Correct:          correct,
+		CorrectTitle:     title,
 		Results:          results,
 	}
 }

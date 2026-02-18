@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"cloud.google.com/go/spanner"
 )
@@ -32,18 +33,28 @@ func (repo *BaseFindingRepository) Save(ctx context.Context, info *BaseFinding) 
 }
 
 func (repo *BaseFindingRepository) Exists(ctx context.Context, info *BaseFinding) (bool, error) {
+	const baseFindingSearchSpan = 7 * 24 * time.Hour
+
+	params := map[string]any{
+		"commit": info.CommitHash,
+		"config": info.Config,
+		"arch":   info.Arch,
+		"title":  info.Title,
+	}
+	filters := "CommitHash = @commit"
+	if !info.CommitDate.IsNull() {
+		// Since we may use different base commits, looking only at the exact
+		// commit hash is not enough.
+		filters = "(" + filters + " OR (CommitDate >= @minDate AND CommitDate <= @maxDate))"
+		params["minDate"] = info.CommitDate.Time.Add(-baseFindingSearchSpan)
+		params["maxDate"] = info.CommitDate.Time
+	}
 	entity, err := readEntity[BaseFinding](ctx, repo.client.Single(), spanner.Statement{
 		SQL: `SELECT * FROM BaseFindings WHERE
-CommitHash = @commit AND
 Config = @config AND
 Arch = @arch AND
-Title = @title`,
-		Params: map[string]any{
-			"commit": info.CommitHash,
-			"config": info.Config,
-			"arch":   info.Arch,
-			"title":  info.Title,
-		},
+Title = @title AND ` + filters,
+		Params: params,
 	})
 	return entity != nil, err
 }

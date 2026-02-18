@@ -103,7 +103,7 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 
 	var rep *report.Report
 	for i := 0; i < retryCount; i++ {
-		tracer.Log("starting attempt #%d", i)
+		tracer.Logf("starting attempt #%d", i)
 		var err error
 		rep, err = instance.RunSmokeTest(cfg)
 		if err != nil {
@@ -111,10 +111,10 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 		} else if rep == nil {
 			return true, nil
 		}
-		tracer.Log("attempt failed: %q", rep.Title)
+		tracer.Logf("attempt failed: %q", rep.Title)
 	}
 	if *flagFindings {
-		tracer.Log("reporting the finding")
+		tracer.Logf("reporting the finding")
 		findingErr := client.UploadFinding(ctx, &api.NewFinding{
 			SessionID: *flagSession,
 			TestName:  *flagTestName,
@@ -126,8 +126,8 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 			return false, fmt.Errorf("failed to report the finding: %w", findingErr)
 		}
 	} else {
-		tracer.Log("report:\n%s", rep.Report)
-		tracer.Log("output:\n%s", rep.Output)
+		tracer.Logf("report:\n%s", rep.Report)
+		tracer.Logf("output:\n%s", rep.Output)
 	}
 	return false, nil
 }

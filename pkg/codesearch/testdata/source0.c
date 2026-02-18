@@ -44,3 +44,10 @@ int field_refs(struct some_struct* p, union some_union* u)
 	u->s.x = 2;
 	return p->x;
 }
+
+// compile_commands.json we create for tests defines KBUILD_BASENAME.
+// If it's not defined, compile_commands.json is not properly loaded.
+// This is supposed to fail builds, if that happens.
+#ifndef KBUILD_BASENAME
+#error "compile_commands.json is not loaded"
+#endif

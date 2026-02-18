@@ -172,6 +172,7 @@ typedef enum {
 	UEXIT_END = (uint64)-1,
 	UEXIT_IRQ = (uint64)-2,
 	UEXIT_ASSERT = (uint64)-3,
+	UEXIT_INVALID_MAIN = (uint64)-4,
 } uexit_code;
 
 typedef enum {
@@ -179,9 +180,7 @@ typedef enum {
 	CPU_VENDOR_AMD,
 } cpu_vendor_id;
 
-__attribute__((naked))
-GUEST_CODE static void
-dummy_null_handler()
+__attribute__((naked)) GUEST_CODE static void dummy_null_handler()
 {
 	asm("iretq");
 }
@@ -223,11 +222,11 @@ guest_main(uint64 cpu)
 
 	while (size >= sizeof(struct api_call_header)) {
 		struct api_call_header* cmd = (struct api_call_header*)addr;
-		if (cmd->call >= SYZOS_API_STOP)
-			return;
-		if (cmd->size > size)
-			return;
 		volatile uint64 call = cmd->call;
+		if ((call >= SYZOS_API_STOP) || (cmd->size > size)) {
+			guest_uexit(UEXIT_INVALID_MAIN);
+			return;
+		}
 		if (call == SYZOS_API_UEXIT) {
 			// Issue a user exit.
 			struct api_call_uexit* ucmd = (struct api_call_uexit*)cmd;
@@ -312,7 +311,7 @@ guest_main(uint64 cpu)
 		addr += cmd->size;
 		size -= cmd->size;
 	};
-	guest_uexit((uint64)-1);
+	guest_uexit(UEXIT_END);
 }
 
 GUEST_CODE static noinline void guest_execute_code(uint8* insns, uint64 size)
@@ -838,24 +837,10 @@ GUEST_CODE static noinline void setup_l2_page_tables(cpu_vendor_id vendor, uint6
 			} else if (r.gpa == X86_SYZOS_ADDR_STACK_BOTTOM) {
 				// Map stack to the VM's dedicated stack buffer
 				backing = X86_SYZOS_ADDR_VM_STACK(cpu_id, vm_id);
-			} else if (r.gpa == X86_SYZOS_ADDR_ZERO ||
-				   r.gpa == X86_SYZOS_ADDR_VAR_IDT ||
-				   r.gpa == X86_SYZOS_ADDR_BOOT_ARGS ||
-				   r.gpa == X86_SYZOS_ADDR_PT_POOL ||
-				   r.gpa == X86_SYZOS_ADDR_VAR_TSS) {
-				// Critical System Regions: Allocate and COPY from L1.
-				// We must copy the PT POOL because the PD entries in ADDR_ZERO
-				// point to tables allocated here. If we don't copy, L2 sees
-				// empty page tables and cannot resolve addresses like 0x50000.
-				// GDT/IDT/TSS/BootArgs are also copied for valid environment.
-				backing = guest_alloc_page();
-				guest_memcpy((void*)backing, (void*)gpa, KVM_PAGE_SIZE);
-			} else if (r.flags & MEM_REGION_FLAG_EXECUTOR_CODE) {
-				// Identity map the Executor Code.
-				backing = gpa;
 			} else {
-				// Allocate new backing memory
-				backing = guest_alloc_page();
+				// Identity map all other regions to prevent L1 OOM exhaustion.
+				// The L2 guest is transient and does not need duplicates of L1's GDT/IDT/TSS/Heap.
+				backing = gpa;
 			}
 			l2_map_page(cpu_id, vm_id, gpa, backing, flags);
 		}
@@ -1194,7 +1179,7 @@ GUEST_CODE static noinline void init_vmcs_host_state(void)
 	vmwrite(VMCS_HOST_TR_SELECTOR, X86_SYZOS_SEL_TSS64);
 
 	// Base addresses.
-	vmwrite(VMCS_HOST_TR_BASE, 0);
+	vmwrite(VMCS_HOST_TR_BASE, X86_SYZOS_ADDR_VAR_TSS);
 	vmwrite(VMCS_HOST_GDTR_BASE, X86_SYZOS_ADDR_GDT);
 	vmwrite(VMCS_HOST_IDTR_BASE, X86_SYZOS_ADDR_VAR_IDT);
 	vmwrite(VMCS_HOST_FS_BASE, rdmsr(X86_MSR_FS_BASE));
