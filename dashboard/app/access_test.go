@@ -305,12 +305,12 @@ func TestAccess(t *testing.T) {
 
 			crashInvalid := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashInvalid)
-			repInvalid := client.pollBug()
+			repInvalid := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repInvalid.ID, dashapi.BugStatusUpstream, "")
-				repInvalid = client.pollBug()
+				c.globalClient.updateBug(repInvalid.ID, dashapi.BugStatusUpstream, "")
+				repInvalid = c.globalClient.pollBug()
 			}
-			client.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
+			c.globalClient.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
 			// Invalid bugs become visible up to the last reporting.
 			finalLevel := c.config().Namespaces[ns].
 				Reporting[len(c.config().Namespaces[ns].Reporting)-1].AccessLevel
@@ -318,12 +318,12 @@ func TestAccess(t *testing.T) {
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashFixed)
-			repFixed := client.pollBug()
+			repFixed := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repFixed.ID, dashapi.BugStatusUpstream, "")
-				repFixed = client.pollBug()
+				c.globalClient.updateBug(repFixed.ID, dashapi.BugStatusUpstream, "")
+				repFixed = c.globalClient.pollBug()
 			}
-			reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+			reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 				ID:         repFixed.ID,
 				Status:     dashapi.BugStatusOpen,
 				FixCommits: []string{ns + "-patch0"},
@@ -354,21 +354,21 @@ func TestAccess(t *testing.T) {
 				},
 			}
 			client.ReportCrash(crashOpen)
-			repOpen := client.pollBug()
+			repOpen := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repOpen.ID, dashapi.BugStatusUpstream, "")
-				repOpen = client.pollBug()
+				c.globalClient.updateBug(repOpen.ID, dashapi.BugStatusUpstream, "")
+				repOpen = c.globalClient.pollBug()
 			}
 			noteBugAccessLevel(repOpen.ID, accessLevel, nsLevel)
 
 			crashPatched := testCrashWithRepro(build, reportingIdx*10+1)
 			client.ReportCrash(crashPatched)
-			repPatched := client.pollBug()
+			repPatched := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repPatched.ID, dashapi.BugStatusUpstream, "")
-				repPatched = client.pollBug()
+				c.globalClient.updateBug(repPatched.ID, dashapi.BugStatusUpstream, "")
+				repPatched = c.globalClient.pollBug()
 			}
-			reply, _ = client.ReportingUpdate(&dashapi.BugUpdate{
+			reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 				ID:         repPatched.ID,
 				Status:     dashapi.BugStatusOpen,
 				FixCommits: []string{ns + "-patch0"},
@@ -381,12 +381,12 @@ func TestAccess(t *testing.T) {
 
 			crashDup := testCrashWithRepro(build, reportingIdx*10+2)
 			client.ReportCrash(crashDup)
-			repDup := client.pollBug()
+			repDup := c.globalClient.pollBug()
 			if reportingIdx != 0 {
-				client.updateBug(repDup.ID, dashapi.BugStatusUpstream, "")
-				repDup = client.pollBug()
+				c.globalClient.updateBug(repDup.ID, dashapi.BugStatusUpstream, "")
+				repDup = c.globalClient.pollBug()
 			}
-			client.updateBug(repDup.ID, dashapi.BugStatusDup, repOpen.ID)
+			c.globalClient.updateBug(repDup.ID, dashapi.BugStatusDup, repOpen.ID)
 			noteBugAccessLevel(repDup.ID, accessLevel, nsLevel)
 		}
 	}

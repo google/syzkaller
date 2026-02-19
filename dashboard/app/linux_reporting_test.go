@@ -69,8 +69,8 @@ func TestFsSubsystemFlow(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// As there's no other information, the bug is left at the first reporting.
-	c.client.pollNotifs(0)
-	vfsBug := client.pollBug()
+	c.globalClient.pollNotifs(0)
+	vfsBug := c.globalClient.pollBug()
 
 	// D. Now report a reproducer for the (C) bug that does image mounting.
 	// -----------------------------------------
@@ -89,8 +89,8 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	client.ReportCrash(crash)
 
 	// Check that we're ready for upstreaming.
-	c.client.pollNotifs(1)
-	client.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.pollNotifs(1)
+	c.globalClient.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
 	// .. and poll the email.
 	reply = c.pollEmailBug()
 	c.expectEQ(reply.Subject, "[syzbot] [ntfs3?] WARNING in do_mkdirat")
@@ -127,8 +127,8 @@ func TestVfsSubsystemFlow(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// As there's no other information, the bug is left at the first reporting.
-	c.client.pollNotifs(0)
-	vfsBug := client.pollBug()
+	c.globalClient.pollNotifs(0)
+	vfsBug := c.globalClient.pollBug()
 
 	// B. Now report a reproducer for the (C) bug that does NO image mounting.
 	// -----------------------------------------
@@ -145,8 +145,8 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	client.ReportCrash(crash)
 
 	// Check that we're ready for upstreaming.
-	c.client.pollNotifs(1)
-	client.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.pollNotifs(1)
+	c.globalClient.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
 	// .. and poll the email.
 	reply := c.pollEmailBug()
 	c.expectEQ(reply.Subject, "[syzbot] [fs?] WARNING in do_mkdirat2")

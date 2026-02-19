@@ -47,7 +47,7 @@ func TestPeriodicSubsystemRefresh(t *testing.T) {
 	crash.Title = "WARNING: abcd"
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
@@ -90,7 +90,7 @@ func TestOpenBugRevRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Initially there should be no subsystems.
@@ -126,11 +126,11 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// "Fix" the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix the crash"},
@@ -140,7 +140,7 @@ func TestClosedBugSubsystemRefresh(t *testing.T) {
 	build2.Manager = build.Manager
 	build2.Commits = []string{"foo: fix the crash"}
 	client.UploadBuild(build2)
-	client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 	bug, _, _ := c.loadBug(rep.ID)
 	c.expectEQ(bug.Status, BugStatusFixed)
 
@@ -175,11 +175,11 @@ func TestInvalidBugSubsystemRefresh(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.GuiltyFiles = []string{"test.c"}
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 	extID := rep.ID
 
 	// Invalidate the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusInvalid,
 	})
@@ -347,7 +347,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	crash.Title = `WARNING: a third, keep in moderation` // see the config in app_test.go
 	crash.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 	c.advanceTime(time.Hour)
 
 	_, err := c.GET("/cron/subsystem_reports")
@@ -551,7 +551,7 @@ func TestSubsystemReportGeneration(t *testing.T) {
 	client.ReportCrash(aFixed)
 	bugToExtID[aFixed.Title] = client.pollEmailExtID()
 	c.advanceTime(time.Hour)
-	updReply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	updReply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         bugToExtID[aFixed.Title],
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1"},
@@ -762,7 +762,7 @@ func TestNoRemindersWithDiscussions(t *testing.T) {
 	client.ReportCrash(aThird)
 
 	// Add a recent discussion to the second bug.
-	c.expectOK(client.SaveDiscussion(&dashapi.SaveDiscussionReq{
+	c.expectOK(c.globalClient.SaveDiscussion(&dashapi.SaveDiscussionReq{
 		Discussion: &dashapi.Discussion{
 			ID:      "123",
 			Source:  dashapi.DiscussionLore,

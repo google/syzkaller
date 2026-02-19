@@ -63,7 +63,7 @@ var testConfig = &GlobalConfig{
 		},
 	},
 	Clients: map[string]string{
-		"reporting": "reportingkeyreportingkeyreportingkey",
+		reportingClient: reportingKey,
 	},
 	EmailBlocklist: []string{
 		"\"Bar\" <Blocked@Domain.com>",
@@ -739,6 +739,8 @@ const (
 	keyAI                 = "clientaikeyclientaikeyclientaikey"
 	clientSkipStage       = "client-skip-stage"
 	keySkipStage          = "skipstagekeyskipstagekeyskipstagekey"
+	reportingClient       = "reporting"
+	reportingKey          = "reportingkeyreportingkeyreportingkey"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
@@ -847,14 +849,14 @@ func TestApp(t *testing.T) {
 
 	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Test that namespace isolation works.
 	c.expectFail("unknown build", apiClient2.Query("report_crash", crash1, nil))
 
 	crash2 := testCrashWithRepro(build, 2)
 	c.client.ReportCrash(crash2)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Provoke purgeOldCrashes.
 	const purgeTestIters = 30
@@ -868,7 +870,7 @@ func TestApp(t *testing.T) {
 		crash.Report = []byte(fmt.Sprintf("report%v", i))
 		c.client.ReportCrash(crash)
 	}
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	bug, _, _ := c.loadBug(rep.ID)
 	c.expectNE(bug, nil)
 	c.expectEQ(bug.DailyStats, []BugDailyStats{
@@ -882,9 +884,9 @@ func TestApp(t *testing.T) {
 	}
 	c.client.ReportFailedRepro(cid)
 
-	c.client.ReportingPollBugs("test")
+	c.globalClient.ReportingPollBugs("test")
 
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
+	c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         "id",
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
@@ -990,17 +992,17 @@ func TestPurgeOldCrashes(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.ReproOpts = []byte("no repro")
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	crash.ReproSyz = []byte("getpid()")
 	crash.ReproOpts = []byte("syz repro")
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	crash.ReproC = []byte("int main() {}")
 	crash.ReproOpts = []byte("C repro")
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// Now report lots of bugs with/without repros. Some of the older ones should be purged.
 	var totalReported = 3 * maxCrashes()
@@ -1071,7 +1073,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 
 	// Unreport the first crash.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:               rep.ID,
 		Status:           dashapi.BugStatusUpdate,
 		ReproLevel:       dashapi.ReproLevelC,

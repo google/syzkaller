@@ -42,11 +42,11 @@ func TestReportBug(t *testing.T) {
 	c.client.ReportCrash(crash1)
 
 	// Must get no reports for "unknown" type.
-	resp, _ := c.client.ReportingPollBugs("unknown")
+	resp, _ := c.globalClient.ReportingPollBugs("unknown")
 	c.expectEQ(len(resp.Reports), 0)
 
 	// Must get a proper report for "test" type.
-	resp, _ = c.client.ReportingPollBugs("test")
+	resp, _ = c.globalClient.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep := resp.Reports[0]
 	c.expectNE(rep.ID, "")
@@ -104,7 +104,7 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(want, rep)
 
 	// Since we did not update bug status yet, should get the same report again.
-	c.expectEQ(c.client.pollBug(), want)
+	c.expectEQ(c.globalClient.pollBug(), want)
 
 	// Now add syz repro and check that we get another bug report.
 	crash1.ReproOpts = []byte("some opts")
@@ -114,7 +114,7 @@ func TestReportBug(t *testing.T) {
 	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
 	want.ReproOpts = []byte("some opts")
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 	c.expectNE(want.CrashID, rep1.CrashID)
 	_, dbCrash, _ = c.loadBug(rep.ID)
 	want.CrashID = rep1.CrashID
@@ -124,7 +124,7 @@ func TestReportBug(t *testing.T) {
 	want.ReportLink = externalLink(c.ctx, textCrashReport, dbCrash.Report)
 	c.expectEQ(want, rep1)
 
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelSyz,
@@ -132,13 +132,13 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(reply.OK, true)
 
 	// After bug update should not get the report again.
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now close the bug in the first reporting.
-	c.client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
 
 	// Check that bug updates for the first reporting fail now.
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{ID: rep.ID, Status: dashapi.BugStatusOpen})
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{ID: rep.ID, Status: dashapi.BugStatusOpen})
 	c.expectEQ(reply.OK, false)
 
 	// Report another crash with syz repro for this bug,
@@ -147,7 +147,7 @@ func TestReportBug(t *testing.T) {
 	c.client.ReportCrash(crash1)
 
 	// Check that we get the report in the second reporting.
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectNE(rep2.ID, "")
 	c.expectNE(rep2.ID, rep.ID)
 	want.Type = dashapi.ReportNew
@@ -167,7 +167,7 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(want, rep2)
 
 	// Check that that we can't upstream the bug in the final reporting.
-	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep2.ID,
 		Status: dashapi.BugStatusUpstream,
 	})
@@ -184,10 +184,10 @@ func TestInvalidBug(t *testing.T) {
 	crash1 := testCrashWithRepro(build, 1)
 	c.client.ReportCrash(crash1)
 
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(rep.Title, "title1")
 
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
@@ -195,21 +195,21 @@ func TestInvalidBug(t *testing.T) {
 	c.expectEQ(reply.OK, true)
 
 	{
-		closed, _ := c.client.ReportingPollClosed([]string{rep.ID, "foobar"})
+		closed, _ := c.globalClient.ReportingPollClosed([]string{rep.ID, "foobar"})
 		c.expectEQ(len(closed), 0)
 	}
 
 	// Mark the bug as invalid.
-	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	{
-		closed, _ := c.client.ReportingPollClosed([]string{rep.ID, "foobar"})
+		closed, _ := c.globalClient.ReportingPollClosed([]string{rep.ID, "foobar"})
 		c.expectEQ(len(closed), 1)
 		c.expectEQ(closed[0], rep.ID)
 	}
 
 	// Now it should not be reported in either reporting.
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now a similar crash happens again.
 	crash2 := &dashapi.Crash{
@@ -222,7 +222,7 @@ func TestInvalidBug(t *testing.T) {
 	c.client.ReportCrash(crash2)
 
 	// Now it should be reported again.
-	rep = c.client.pollBug()
+	rep = c.globalClient.pollBug()
 	c.expectNE(rep.ID, "")
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
@@ -292,9 +292,9 @@ func TestReportingQuota(t *testing.T) {
 
 	for _, reports := range []int{2, 2, 1, 0, 0} {
 		c.advanceTime(24 * time.Hour)
-		c.client.pollBugs(reports)
+		c.globalClient.pollBugs(reports)
 		// Out of quota for today, so must get 0 reports.
-		c.client.pollBugs(0)
+		c.globalClient.pollBugs(0)
 	}
 }
 
@@ -317,24 +317,24 @@ func TestReproReportingQuota(t *testing.T) {
 	// First report of two.
 	c.advanceTime(time.Minute)
 	client.ReportCrash(testCrash(build, 1))
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Second report of two.
 	c.advanceTime(time.Minute)
 	crash := testCrash(build, 2)
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Now we "find" a reproducer.
 	c.advanceTime(time.Minute)
 	client.ReportCrash(testCrashWithRepro(build, 1))
 
 	// But there's no quota for it.
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Wait a day and the quota appears.
 	c.advanceTime(time.Hour * 24)
-	client.pollBug()
+	c.globalClient.pollBug()
 }
 
 // Basic dup scenario: mark one bug as dup of another.
@@ -351,45 +351,45 @@ func TestReportingDup(t *testing.T) {
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
 
-	reports := c.client.pollBugs(2)
+	reports := c.globalClient.pollBugs(2)
 	rep1 := reports[0]
 	rep2 := reports[1]
 
 	// Dup.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 	{
 		// Both must be reported as open.
-		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+		closed, _ := c.globalClient.ReportingPollClosed([]string{rep1.ID, rep2.ID})
 		c.expectEQ(len(closed), 0)
 	}
 
 	// Undup.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
 
 	// Dup again.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Dup crash happens again, new bug must not be created.
 	c.client.ReportCrash(crash2)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now close the original bug, and check that new bugs for dup are now created.
-	c.client.updateBug(rep1.ID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(rep1.ID, dashapi.BugStatusInvalid, "")
 	{
 		// Now both must be reported as closed.
-		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+		closed, _ := c.globalClient.ReportingPollClosed([]string{rep1.ID, rep2.ID})
 		c.expectEQ(len(closed), 2)
 		c.expectEQ(closed[0], rep1.ID)
 		c.expectEQ(closed[1], rep2.ID)
 	}
 
 	c.client.ReportCrash(crash2)
-	rep3 := c.client.pollBug()
+	rep3 := c.globalClient.pollBug()
 	c.expectEQ(rep3.Title, crash2.Title+" (2)")
 
 	// Unduping after the canonical bugs was closed must not work
 	// (we already created new bug for this report).
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep2.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -411,12 +411,12 @@ func TestReportingDupToClosed(t *testing.T) {
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
 
-	reports := c.client.pollBugs(2)
-	c.client.updateBug(reports[0].ID, dashapi.BugStatusInvalid, "")
-	c.client.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
+	reports := c.globalClient.pollBugs(2)
+	c.globalClient.updateBug(reports[0].ID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
 
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(rep2.Title, crash2.Title+" (2)")
 }
 
@@ -434,16 +434,16 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
 
-	reports := c.client.pollBugs(2)
+	reports := c.globalClient.pollBugs(2)
 	rep1 := reports[0]
 	rep2 := reports[1]
 
 	// Upstream second bug.
-	c.client.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
-	rep3 := c.client.pollBug()
+	c.globalClient.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
+	rep3 := c.globalClient.pollBug()
 
 	{
-		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID, rep3.ID})
+		closed, _ := c.globalClient.ReportingPollClosed([]string{rep1.ID, rep2.ID, rep3.ID})
 		c.expectEQ(len(closed), 1)
 		c.expectEQ(closed[0], rep2.ID)
 	}
@@ -462,7 +462,7 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	for _, cmd := range cmds {
 		t.Logf("duping %v -> %v", cmd.ID, cmd.DupOf)
 		cmd.Status = dashapi.BugStatusDup
-		reply, _ := c.client.ReportingUpdate(cmd)
+		reply, _ := c.globalClient.ReportingUpdate(cmd)
 		c.expectEQ(reply.OK, false)
 	}
 	// Special case of cross-reporting duping:
@@ -472,7 +472,7 @@ func TestReportingDupCrossReporting(t *testing.T) {
 		DupOf:  rep3.ID,
 	}
 	t.Logf("duping %v -> %v", cmd.ID, cmd.DupOf)
-	reply, _ := c.client.ReportingUpdate(cmd)
+	reply, _ := c.globalClient.ReportingUpdate(cmd)
 	c.expectTrue(reply.OK)
 }
 
@@ -490,18 +490,18 @@ func TestReportingDupCycle(t *testing.T) {
 	for i := 0; i < N; i++ {
 		t.Logf("*************** %v ***************", i)
 		c.client.ReportCrash(testCrash(build, i))
-		reps[i] = c.client.pollBug()
+		reps[i] = c.globalClient.pollBug()
 		replyError := "Can't dup bug to itself."
 		if i != 0 {
 			replyError = "Setting this dup would lead to a bug cycle, cycles are not allowed."
-			reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+			reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 				Status: dashapi.BugStatusDup,
 				ID:     reps[i-1].ID,
 				DupOf:  reps[i].ID,
 			})
 			c.expectEQ(reply.OK, true)
 		}
-		reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 			Status: dashapi.BugStatusDup,
 			ID:     reps[i].ID,
 			DupOf:  reps[0].ID,
@@ -525,7 +525,7 @@ func TestReportingFilter(t *testing.T) {
 	c.client.ReportCrash(crash1)
 
 	// This does not skip first reporting, because it does not have repro.
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 	c.expectEQ(string(rep1.Config), `{"Index":1}`)
 
 	crash1.ReproSyz = []byte("getpid()")
@@ -533,13 +533,13 @@ func TestReportingFilter(t *testing.T) {
 
 	// This has repro but was already reported to first reporting,
 	// so repro must go to the first reporting as well.
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectEQ(string(rep2.Config), `{"Index":1}`)
 
 	// Now upstream it and it must go to the second reporting.
-	c.client.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
+	c.globalClient.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
 
-	rep3 := c.client.pollBug()
+	rep3 := c.globalClient.pollBug()
 	c.expectEQ(string(rep3.Config), `{"Index":2}`)
 
 	// Now report a bug that must go to the second reporting right away.
@@ -548,7 +548,7 @@ func TestReportingFilter(t *testing.T) {
 	crash2.ReproSyz = []byte("getpid()")
 	c.client.ReportCrash(crash2)
 
-	rep4 := c.client.pollBug()
+	rep4 := c.globalClient.pollBug()
 	c.expectEQ(string(rep4.Config), `{"Index":2}`)
 }
 
@@ -572,7 +572,7 @@ func TestMachineInfo(t *testing.T) {
 		MachineInfo: machineInfo,
 	}
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(machineInfo, rep.MachineInfo)
 
 	// Check that a link to machine information page is created on the dashboard,
@@ -609,12 +609,12 @@ func TestAltTitles1(t *testing.T) {
 	crash2.AltTitles = []string{crash1.Title}
 
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash1.Title)
 	c.expectEQ(rep.Log, crash1.Log)
 
 	c.client.ReportCrash(crash2)
-	rep = c.client.pollBug()
+	rep = c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash1.Title)
 	c.expectEQ(rep.Log, crash2.Log)
 }
@@ -632,12 +632,12 @@ func TestAltTitles2(t *testing.T) {
 	crash2.AltTitles = []string{crash1.Title}
 
 	c.client.ReportCrash(crash2)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash2.Title)
 	c.expectEQ(rep.Log, crash2.Log)
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestAltTitles3(t *testing.T) {
@@ -654,9 +654,9 @@ func TestAltTitles3(t *testing.T) {
 	crash2.AltTitles = crash1.AltTitles
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 	c.client.ReportCrash(crash2)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestAltTitles4(t *testing.T) {
@@ -675,11 +675,11 @@ func TestAltTitles4(t *testing.T) {
 	crash3.AltTitles = []string{"foobar2"}
 
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 	c.client.ReportCrash(crash2)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestAltTitles5(t *testing.T) {
@@ -693,25 +693,25 @@ func TestAltTitles5(t *testing.T) {
 	crash1 := testCrash(build, 1)
 	crash1.AltTitles = []string{"foo"}
 	c.client.ReportCrash(crash1)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 
 	crash2 := testCrash(build, 2)
 	crash2.Title = "bar"
 	c.client.ReportCrash(crash2)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 
 	crash3 := testCrash(build, 3)
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 	crash3.AltTitles = []string{"bar"}
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	crash := testCrashWithRepro(build, 10)
 	crash.Title = "foo"
 	crash.AltTitles = []string{"bar"}
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash2.Title)
 	c.expectEQ(rep.Log, crash.Log)
 }
@@ -727,30 +727,30 @@ func TestAltTitles6(t *testing.T) {
 	crash1 := testCrash(build, 1)
 	crash1.AltTitles = []string{"foo"}
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
-	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	rep := c.globalClient.pollBug()
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 	c.client.ReportCrash(crash1)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	crash2 := testCrash(build, 2)
 	crash2.Title = "bar"
 	c.client.ReportCrash(crash2)
-	rep = c.client.pollBug()
-	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	rep = c.globalClient.pollBug()
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	c.advanceTime(24 * time.Hour)
 	crash3 := testCrash(build, 3)
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 	crash3.AltTitles = []string{"foo"}
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	crash := testCrashWithRepro(build, 10)
 	crash.Title = "foo"
 	crash.AltTitles = []string{"bar"}
 	c.client.ReportCrash(crash)
-	rep = c.client.pollBug()
+	rep = c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash1.Title+" (2)")
 	c.expectEQ(rep.Log, crash.Log)
 }
@@ -767,28 +767,28 @@ func TestAltTitles7(t *testing.T) {
 	crash1 := testCrash(build, 1)
 	crash1.AltTitles = []string{"foo"}
 	c.client.ReportCrash(crash1)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	// This will be merged into crash1.
 	crash2 := testCrash(build, 2)
 	crash2.AltTitles = []string{"foo"}
 	c.client.ReportCrash(crash2)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now report a better candidate.
 	crash3 := testCrash(build, 3)
 	crash3.Title = "aaa"
 	c.client.ReportCrash(crash3)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 	crash3.AltTitles = []string{crash2.Title}
 	c.client.ReportCrash(crash3)
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	// Now report crash2 with a repro and ensure that it's still merged into crash1.
 	crash2.ReproOpts = []byte("some opts")
 	crash2.ReproSyz = []byte("getpid()")
 	c.client.ReportCrash(crash2)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	c.expectEQ(rep.Title, crash1.Title)
 	c.expectEQ(rep.Log, crash2.Log)
 }
@@ -804,14 +804,14 @@ func TestDetachExternalTracker(t *testing.T) {
 	c.client.ReportCrash(crash1)
 
 	// Get single report for "test" type.
-	resp, _ := c.client.ReportingPollBugs("test")
+	resp, _ := c.globalClient.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep1 := resp.Reports[0]
 	c.expectNE(rep1.ID, "")
 	c.expectEQ(string(rep1.Config), `{"Index":1}`)
 
 	// Signal detach_reporting for current bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep1.ID,
 		Status:     dashapi.BugStatusUpstream,
 		ReproLevel: dashapi.ReproLevelNone,
@@ -826,11 +826,11 @@ func TestDetachExternalTracker(t *testing.T) {
 	c.client.ReportCrash(crash1)
 
 	// Fetch bug and check reporting path (Config) is different.
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 	c.expectNE(rep2.ID, "")
 	c.expectEQ(string(rep2.Config), `{"Index":2}`)
 
-	closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+	closed, _ := c.globalClient.ReportingPollClosed([]string{rep1.ID, rep2.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep1.ID)
 }
@@ -994,7 +994,7 @@ func TestFullBugInfo(t *testing.T) {
 	crashStrace.Flags = dashapi.CrashUnderStrace
 	crashStrace.Report = []byte("with strace")
 	c.client.ReportCrash(crashStrace)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Newer: just with repro.
 	c.advanceTime(24 * 7 * time.Hour)
@@ -1004,7 +1004,7 @@ func TestFullBugInfo(t *testing.T) {
 	c.client.ReportCrash(crashRepro)
 
 	// Ensure we have some bisect jobs done.
-	pollResp := c.client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
@@ -1021,8 +1021,8 @@ func TestFullBugInfo(t *testing.T) {
 			},
 		},
 	}
-	c.client.expectOK(c.client.JobDone(done))
-	c.client.pollBug()
+	c.client.expectOK(c.globalClient.JobDone(done))
+	c.globalClient.pollBug()
 
 	// Yet newer: no repro.
 	c.advanceTime(24 * 7 * time.Hour)
@@ -1067,7 +1067,7 @@ For more options, visit https://groups.google.com/d/optout.
 	_, otherExtBugID, _ := email.RemoveAddrContext(otherPollMsg.Sender)
 
 	// Query the full bug info.
-	info, err := c.client.LoadFullBug(&dashapi.LoadFullBugReq{BugID: rep.ID})
+	info, err := c.globalClient.LoadFullBug(&dashapi.LoadFullBugReq{BugID: rep.ID})
 	c.expectOK(err)
 	if info.BisectCause == nil {
 		t.Fatalf("info.BisectCause is empty")
@@ -1101,7 +1101,7 @@ func TestUpdateReportApi(t *testing.T) {
 
 	// Report a crash.
 	c.client.ReportCrash(testCrashWithRepro(build, 1))
-	c.client.pollBug()
+	c.globalClient.pollBug()
 
 	listResp, err := c.client.BugList()
 	c.expectOK(err)
@@ -1144,15 +1144,15 @@ func TestReportDecommissionedBugs(t *testing.T) {
 
 	crash := testCrash(build, 1)
 	client.ReportCrash(crash)
-	rep := client.pollBug()
+	rep := c.globalClient.pollBug()
 
-	closed, _ := client.ReportingPollClosed([]string{rep.ID})
+	closed, _ := c.globalClient.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 0)
 
 	// And now let's decommission the namespace.
 	c.decommission(rep.Namespace)
 
-	closed, _ = client.ReportingPollClosed([]string{rep.ID})
+	closed, _ = c.globalClient.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep.ID)
 }
@@ -1240,14 +1240,14 @@ func TestReportRevokedRepro(t *testing.T) {
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	client.ReportCrash(crash)
-	rep1 := client.pollBug()
+	rep1 := c.globalClient.pollBug()
 	client.expectNE(rep1.ReproSyz, nil)
 
 	// Revoke the reproducer.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
-	jobResp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	jobResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 	c.expectEQ(jobResp.Type, dashapi.JobTestPatch)
-	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+	client.expectOK(c.globalClient.JobDone(&dashapi.JobDoneReq{
 		ID: jobResp.ID,
 	}))
 
@@ -1256,15 +1256,15 @@ func TestReportRevokedRepro(t *testing.T) {
 
 	// Upstream the bug.
 	c.advanceTime(time.Hour)
-	client.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
-	rep2 := client.pollBug()
+	c.globalClient.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
+	rep2 := c.globalClient.pollBug()
 
 	// Also ensure that we do not report the revoked reproducer.
 	client.expectEQ(rep2.Type, dashapi.ReportNew)
 	client.expectEQ(rep2.ReproSyz, []byte(nil))
 
 	// Expect no further reports.
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestWaitForRepro(t *testing.T) {
@@ -1279,28 +1279,28 @@ func TestWaitForRepro(t *testing.T) {
 
 	// Normal crash witout repro.
 	client.ReportCrash(testCrash(build, 1))
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 	c.advanceTime(time.Hour * 24)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// A crash first without repro, then with it.
 	client.ReportCrash(testCrash(build, 2))
 	c.advanceTime(time.Hour * 12)
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 	client.ReportCrash(testCrashWithRepro(build, 2))
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// A crash with a reproducer.
 	c.advanceTime(time.Minute)
 	client.ReportCrash(testCrashWithRepro(build, 3))
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// A crahs that will never have a reproducer.
 	c.advanceTime(time.Minute)
 	crash := testCrash(build, 4)
 	crash.Title = "upstream test error: abcd"
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 }
 
 // The test mimics the failure described in #5829.
@@ -1320,7 +1320,7 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 	client.ReportCrash(crashRepro)
 
 	// Do a bisection.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
@@ -1336,23 +1336,23 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 			},
 		},
 	}
-	client.expectOK(client.JobDone(done))
-	report := client.pollBug()
+	client.expectOK(c.globalClient.JobDone(done))
+	report := c.globalClient.pollBug()
 
 	// Revoke the reproducer.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
-	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
 		TestPatches: true,
 	})
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
-	client.expectOK(client.JobDone(&dashapi.JobDoneReq{
+	client.expectOK(c.globalClient.JobDone(&dashapi.JobDoneReq{
 		ID: resp.ID,
 	}))
 
 	// Move to the next reporting stage.
 	c.advanceTime(time.Hour)
-	client.updateBug(report.ID, dashapi.BugStatusUpstream, "")
-	report = client.pollBug()
+	c.globalClient.updateBug(report.ID, dashapi.BugStatusUpstream, "")
+	report = c.globalClient.pollBug()
 	client.expectNE(report.ReproCLink, "")
 	client.expectEQ(report.ReproIsRevoked, true)
 
@@ -1366,7 +1366,7 @@ func TestReportRevokedBisectCrash(t *testing.T) {
 
 	// There should be no new report.
 	// We already reported that the bug has a reproducer.
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestCoverageRegression(t *testing.T) {
@@ -1430,41 +1430,41 @@ func TestSkipStage(t *testing.T) {
 	{
 		// Normal scenario - manual upstreaming.
 		client.ReportCrash(testCrash(build, 1))
-		rep := client.pollBug()
+		rep := c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":1}`)
-		c.client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
-		client.pollNotifs(0)
-		rep = client.pollBug()
+		c.globalClient.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+		c.globalClient.pollNotifs(0)
+		rep = c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":3}`)
-		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 	}
 
 	{
 		// Auto-upstreamed.
 		client.ReportCrash(testCrash(build, 2))
-		rep := client.pollBug()
+		rep := c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":1}`)
 		c.advanceTime(5 * 24 * time.Hour)
-		notifs := client.pollNotifs(1)
-		reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		notifs := c.globalClient.pollNotifs(1)
+		reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 			ID:           notifs[0].ID,
 			Status:       dashapi.BugStatusUpstream,
 			Notification: true,
 		})
 		c.expectEQ(reply.OK, true)
-		rep = client.pollBug()
+		rep = c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":2}`)
-		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 	}
 
 	{
 		// Manually invalidated.
 		client.ReportCrash(testCrash(build, 3))
-		rep := client.pollBug()
+		rep := c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":1}`)
-		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
-		client.pollNotifs(0)
-		client.pollBugs(0)
+		c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.pollNotifs(0)
+		c.globalClient.pollBugs(0)
 	}
 
 	{
@@ -1472,10 +1472,10 @@ func TestSkipStage(t *testing.T) {
 		crash := testCrash(build, 4)
 		crash.Title = "skip reporting1"
 		client.ReportCrash(crash)
-		rep := client.pollBug()
+		rep := c.globalClient.pollBug()
 		c.expectEQ(string(rep.Config), `{"Index":2}`)
 		// If we do react, there would be an upstreaming notification.
-		client.pollNotifs(0)
-		c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.pollNotifs(0)
+		c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 	}
 }

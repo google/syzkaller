@@ -46,23 +46,23 @@ func initAPIHandlers() {
 }
 
 var apiHandlers = map[string]APIHandler{
-	"log_error":             typedHandler(apiLogError),
-	"job_poll":              typedHandler(apiJobPoll),
-	"job_reset":             typedHandler(apiJobReset),
-	"job_done":              typedHandler(apiJobDone),
-	"reporting_poll_bugs":   typedHandler(apiReportingPollBugs),
-	"reporting_poll_notifs": typedHandler(apiReportingPollNotifications),
-	"reporting_poll_closed": typedHandler(apiReportingPollClosed),
-	"reporting_update":      typedHandler(apiReportingUpdate),
-	"new_test_job":          typedHandler(apiNewTestJob),
-	"needed_assets":         typedHandler(apiNeededAssetsList),
-	"load_full_bug":         typedHandler(apiLoadFullBug),
-	"save_discussion":       typedHandler(apiSaveDiscussion),
-	"create_upload_url":     typedHandler(apiCreateUploadURL),
-	"send_email":            typedHandler(apiSendEmail),
-	"ai_job_poll":           typedHandler(apiAIJobPoll),
-	"ai_job_done":           typedHandler(apiAIJobDone),
-	"ai_trajectory_log":     typedHandler(apiAITrajectoryLog),
+	"log_error":             anyHandler(apiLogError),
+	"job_poll":              globalHandler(apiJobPoll),
+	"job_reset":             globalHandler(apiJobReset),
+	"job_done":              globalHandler(apiJobDone),
+	"reporting_poll_bugs":   globalHandler(apiReportingPollBugs),
+	"reporting_poll_notifs": globalHandler(apiReportingPollNotifications),
+	"reporting_poll_closed": globalHandler(apiReportingPollClosed),
+	"reporting_update":      globalHandler(apiReportingUpdate),
+	"new_test_job":          globalHandler(apiNewTestJob),
+	"needed_assets":         globalHandler(apiNeededAssetsList),
+	"load_full_bug":         globalHandler(apiLoadFullBug),
+	"save_discussion":       globalHandler(apiSaveDiscussion),
+	"create_upload_url":     globalHandler(apiCreateUploadURL),
+	"send_email":            globalHandler(apiSendEmail),
+	"ai_job_poll":           globalHandler(apiAIJobPoll),
+	"ai_job_done":           globalHandler(apiAIJobDone),
+	"ai_trajectory_log":     globalHandler(apiAITrajectoryLog),
 	"save_coverage":         gcsPayloadHandler(apiSaveCoverage),
 	"upload_build":          nsHandler(apiUploadBuild),
 	"builder_poll":          nsHandler(apiBuilderPoll),
@@ -147,6 +147,11 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
+	apiContext := &APIContext{
+		client: client,
+		ns:     ns,
+	}
+	ctx = context.WithValue(ctx, &apiContextKey, apiContext)
 	var payloadReader io.Reader
 	if str := r.PostFormValue("payload"); str != "" {
 		gr, err := gzip.NewReader(strings.NewReader(str))
@@ -161,21 +166,26 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 	if !exists {
 		return nil, fmt.Errorf("unknown api method %q", method)
 	}
-	reply, err := handler(contextWithNamespace(ctx, ns), payloadReader)
+	reply, err := handler(ctx, payloadReader)
+	if err == nil && !apiContext.nsChecked {
+		err = fmt.Errorf("API handler did not check namespace")
+	}
 	if err != nil {
-		err = fmt.Errorf("method '%s' ns '%s' err: %w", method, ns, err)
+		err = fmt.Errorf("method %q ns %q err: %w", method, ns, err)
 	}
 	return reply, err
 }
 
-var contextKeyNamespace = "context namespace available for any APIHandler"
+var apiContextKey = "context available for any APIHandler"
 
-func contextWithNamespace(ctx context.Context, ns string) context.Context {
-	return context.WithValue(ctx, &contextKeyNamespace, ns)
+type APIContext struct {
+	client    string
+	ns        string
+	nsChecked bool
 }
 
-func contextNamespace(ctx context.Context) string {
-	return ctx.Value(&contextKeyNamespace).(string)
+func apiContext(ctx context.Context) *APIContext {
+	return ctx.Value(&apiContextKey).(*APIContext)
 }
 
 // gcsPayloadHandler json.Decode the gcsURL from payload and stream pointed content.
@@ -210,11 +220,31 @@ func gcsPayloadHandler(handler APIHandler) APIHandler {
 
 func nsHandler[Req any](handler func(context.Context, string, *Req) (any, error)) APIHandler {
 	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
-		ns := contextNamespace(ctx)
+		ns := apiContext(ctx).ns
 		if ns == "" {
 			return nil, fmt.Errorf("must be called within a namespace")
 		}
+		apiContext(ctx).nsChecked = true
 		return handler(ctx, ns, req)
+	})
+}
+
+func globalHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHandler {
+	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
+		ns := apiContext(ctx).ns
+		if ns != "" {
+			return nil, fmt.Errorf("must not be called within a namespace")
+		}
+		apiContext(ctx).nsChecked = true
+		return handler(ctx, req)
+	})
+}
+
+// anyHandler can be used by both global and namespace-specific clients.
+func anyHandler[Req any](handler func(context.Context, *Req) (any, error)) APIHandler {
+	return typedHandler(func(ctx context.Context, req *Req) (any, error) {
+		apiContext(ctx).nsChecked = true
+		return handler(ctx, req)
 	})
 }
 

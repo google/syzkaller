@@ -7,12 +7,14 @@ import (
 	"context"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientSecretOK(t *testing.T) {
@@ -70,6 +72,23 @@ func TestClientNamespaceOK(t *testing.T) {
 	if err != nil || got != "ns1" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
+}
+
+func TestClientNamespaceAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// A global client must not be able to call per-namespace APIs.
+	globalClient := c.makeClient(reportingClient, reportingKey, false)
+	err := globalClient.UploadBuild(testBuild(1))
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "must be called within a namespace"))
+
+	// A namespace client must not be able to call global APIs.
+	nsClient := c.makeClient(client1, password1, false)
+	_, err = nsClient.ReportingPollBugs("test")
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "must not be called within a namespace"))
 }
 
 func TestEmergentlyStoppedEmail(t *testing.T) {
@@ -135,7 +154,7 @@ func TestEmergentlyStoppedExternalReport(t *testing.T) {
 
 	// There should be no email.
 	c.advanceTime(time.Hour)
-	client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 }
 
 func TestEmergentlyStoppedEmailJob(t *testing.T) {
@@ -162,7 +181,7 @@ func TestEmergentlyStoppedEmailJob(t *testing.T) {
 	c.expectNoEmail()
 
 	// Emulate a finished job.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 
 	c.advanceTime(time.Hour)
@@ -173,7 +192,7 @@ func TestEmergentlyStoppedEmailJob(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 
 	// Now we emergently stop syzbot.
 	c.advanceTime(time.Hour)
@@ -313,7 +332,7 @@ func TestCreateUploadURL(t *testing.T) {
 		return contextWithConfig(c, &newConfig)
 	}
 
-	url, err := c.client.CreateUploadURL()
+	url, err := c.globalClient.CreateUploadURL()
 	assert.NoError(t, err)
 	assert.Regexp(t, "blobstorage/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.upload", url)
 }

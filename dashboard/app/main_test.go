@@ -63,9 +63,9 @@ func TestOnlyManagerFilter(t *testing.T) {
 	}
 
 	// Invalidate all these bugs.
-	polledBugs := client.pollBugs(3)
+	polledBugs := c.globalClient.pollBugs(3)
 	for _, bug := range polledBugs {
-		client.updateBug(bug.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.updateBug(bug.ID, dashapi.BugStatusInvalid, "")
 	}
 
 	// Verify that the filtering works on the invalid bugs page.
@@ -104,7 +104,7 @@ func TestSubsystemFilterMain(t *testing.T) {
 	crash2.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(crash2)
 
-	client.pollBugs(2)
+	c.globalClient.pollBugs(2)
 	// Make sure all those bugs are present on the main page.
 	reply, err := c.AuthGET(AccessAdmin, "/test1")
 	c.expectOK(err)
@@ -145,9 +145,9 @@ func TestSubsystemFilterTerminal(t *testing.T) {
 	client.ReportCrash(crash2)
 
 	// Invalidate all these bugs.
-	polledBugs := client.pollBugs(2)
+	polledBugs := c.globalClient.pollBugs(2)
 	for _, bug := range polledBugs {
-		client.updateBug(bug.ID, dashapi.BugStatusInvalid, "")
+		c.globalClient.updateBug(bug.ID, dashapi.BugStatusInvalid, "")
 	}
 
 	// Verify that the filtering works on the invalid bugs page.
@@ -175,7 +175,7 @@ func TestMainBugFilters(t *testing.T) {
 	crash1 := testCrash(build1, 1)
 	crash1.Title = "my-crash-title"
 	client.ReportCrash(crash1)
-	client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 
 	// The normal main page.
 	reply, err := c.AuthGET(AccessAdmin, "/test1")
@@ -205,12 +205,12 @@ func TestSubsystemsList(t *testing.T) {
 	crash1 := testCrash(build, 1)
 	crash1.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash1)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	crash2 := testCrash(build, 2)
 	crash2.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(crash2)
-	client.updateBug(client.pollBug().ID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(c.globalClient.pollBug().ID, dashapi.BugStatusInvalid, "")
 
 	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
 	c.expectOK(err)
@@ -238,13 +238,13 @@ func TestSubsystemPage(t *testing.T) {
 	crash1.Title = "test crash title"
 	crash1.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash1)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	crash2 := testCrash(build, 2)
 	crash2.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(crash2)
 	crash2.Title = "crash that must not be present"
-	client.updateBug(client.pollBug().ID, dashapi.BugStatusInvalid, "")
+	c.globalClient.updateBug(c.globalClient.pollBug().ID, dashapi.BugStatusInvalid, "")
 
 	reply, err := c.AuthGET(AccessAdmin, "/test1/s/subsystemA")
 	c.expectOK(err)
@@ -319,7 +319,7 @@ func TestAdminJobList(t *testing.T) {
 
 	c.advanceTime(24 * time.Hour)
 
-	pollResp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{BisectCause: true})
+	pollResp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{BisectCause: true})
 	c.expectNE(pollResp.ID, "")
 
 	causeJobsLink := "/admin?job_type=1"
