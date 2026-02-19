@@ -209,3 +209,33 @@ func TestOnlyStructuredOutputs(t *testing.T) {
 		},
 	)
 }
+
+func TestNilToolArg(t *testing.T) {
+	type flowResults struct {
+		Result string
+	}
+	type toolArgs struct {
+		Optional *int `jsonschema:"An optional arg."`
+	}
+	testFlow[struct{}, flowResults](t, nil,
+		map[string]any{"Result": "Result"},
+		&LLMAgent{
+			Name:        "smarty",
+			Model:       "model",
+			Reply:       "Result",
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instructions",
+			Prompt:      "Initial Prompt",
+			Tools: []Tool{
+				NewFuncTool("tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+					require.Equal(t, args.Optional, nil)
+					return struct{}{}, nil
+				}, "tool"),
+			},
+		},
+		[]any{
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool", Args: map[string]any{"Optional": nil}}},
+			genai.NewPartFromText("Result"),
+		},
+	)
+}

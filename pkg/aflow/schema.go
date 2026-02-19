@@ -81,7 +81,7 @@ func convertFromMap[T any](m map[string]any, strict, tool bool) (T, error) {
 	var val T
 	for name, field := range foreachField(&val) {
 		f, ok := m[name]
-		if !ok {
+		if !ok || f == nil {
 			fieldType, _ := reflect.TypeFor[T]().FieldByName(name)
 			if strings.Contains(fieldType.Tag.Get("json"), ",omitempty") {
 				continue
