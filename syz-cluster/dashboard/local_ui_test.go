@@ -109,4 +109,77 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 		err = client.UploadFinding(ctx, finding)
 		require.NoError(t, err)
 	}
+
+	// Upload test steps.
+	err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+		TestName: "test_failed",
+		Title:    "crash in foo",
+		Result:   api.StepResultPassed,
+		Target:   api.StepTargetBase,
+		Log:      []byte("base log"),
+	})
+	require.NoError(t, err)
+
+	err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+		TestName: "test_failed",
+		Title:    "crash in foo",
+		Result:   api.StepResultFailed,
+		Target:   api.StepTargetPatched,
+		Log:      []byte("patched log"),
+	})
+	require.NoError(t, err)
+
+	// Upload a test result (Complex Steps)
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:   ids.SessionID,
+		BaseBuildID: buildResp.ID,
+		TestName:    "test_complex",
+		Result:      api.TestPassed,
+		Log:         []byte("complex log"),
+	})
+	require.NoError(t, err)
+
+	// Upload test steps for complex test.
+	limit := 5
+	for i := 0; i < limit; i++ {
+		title := "crash in loop " + string(rune('A'+i))
+		// Base passed.
+		err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+			TestName: "test_complex",
+			Title:    title,
+			Result:   api.StepResultPassed,
+			Target:   api.StepTargetBase,
+			Log:      []byte("base log " + title),
+		})
+		require.NoError(t, err)
+
+		// Patched passed too.
+		err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+			TestName: "test_complex",
+			Title:    title,
+			Result:   api.StepResultPassed,
+			Target:   api.StepTargetPatched,
+			Log:      []byte("patched log " + title),
+		})
+		require.NoError(t, err)
+	}
+
+	// Upload a test result (Error Step)
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:   ids.SessionID,
+		BaseBuildID: buildResp.ID,
+		TestName:    "test_error",
+		Result:      api.TestFailed,
+		Log:         []byte("error log"),
+	})
+	require.NoError(t, err)
+
+	err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{
+		TestName: "test_error",
+		Title:    "crash in bar",
+		Result:   api.StepResultError,
+		Target:   api.StepTargetBase,
+		Log:      []byte("base error log"),
+	})
+	require.NoError(t, err)
 }
