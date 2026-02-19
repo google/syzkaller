@@ -21,15 +21,16 @@ import (
 )
 
 type dashboardHandler struct {
-	title           string
-	buildRepo       *db.BuildRepository
-	seriesRepo      *db.SeriesRepository
-	sessionRepo     *db.SessionRepository
-	sessionTestRepo *db.SessionTestRepository
-	findingRepo     *db.FindingRepository
-	statsRepo       *db.StatsRepository
-	blobStorage     blob.Storage
-	templates       map[string]*template.Template
+	title               string
+	buildRepo           *db.BuildRepository
+	seriesRepo          *db.SeriesRepository
+	sessionRepo         *db.SessionRepository
+	sessionTestRepo     *db.SessionTestRepository
+	sessionTestStepRepo *db.SessionTestStepRepository
+	findingRepo         *db.FindingRepository
+	statsRepo           *db.StatsRepository
+	blobStorage         blob.Storage
+	templates           map[string]*template.Template
 }
 
 //go:embed templates/*
@@ -46,15 +47,16 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 		}
 	}
 	return &dashboardHandler{
-		title:           env.Config.Name,
-		templates:       perFile,
-		blobStorage:     env.BlobStorage,
-		buildRepo:       db.NewBuildRepository(env.Spanner),
-		seriesRepo:      db.NewSeriesRepository(env.Spanner),
-		sessionRepo:     db.NewSessionRepository(env.Spanner),
-		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
-		findingRepo:     db.NewFindingRepository(env.Spanner),
-		statsRepo:       db.NewStatsRepository(env.Spanner),
+		title:               env.Config.Name,
+		templates:           perFile,
+		blobStorage:         env.BlobStorage,
+		buildRepo:           db.NewBuildRepository(env.Spanner),
+		seriesRepo:          db.NewSeriesRepository(env.Spanner),
+		sessionRepo:         db.NewSessionRepository(env.Spanner),
+		sessionTestRepo:     db.NewSessionTestRepository(env.Spanner),
+		sessionTestStepRepo: db.NewSessionTestStepRepository(env.Spanner),
+		findingRepo:         db.NewFindingRepository(env.Spanner),
+		statsRepo:           db.NewStatsRepository(env.Spanner),
 	}, nil
 }
 
@@ -66,6 +68,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/{id}/log", errToStatus(h.sessionLog))
 	mux.HandleFunc("/sessions/{id}/triage_log", errToStatus(h.sessionTriageLog))
 	mux.HandleFunc("/sessions/{id}/test_logs", errToStatus(h.sessionTestLog))
+	mux.HandleFunc("/test_steps/{step_id}/log", errToStatus(h.sessionTestStepLog))
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
 	mux.HandleFunc("/series/{id}/all_patches", errToStatus(h.allPatches))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
@@ -164,6 +167,7 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 	type SessionTest struct {
 		*db.FullSessionTest
 		Findings []*db.Finding
+		Steps    []*db.TestStepGroup
 	}
 	type SessionData struct {
 		*db.Session
@@ -213,9 +217,15 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 			Session: session,
 		}
 		for _, test := range rawTests {
+			steps, err := h.sessionTestStepRepo.ListForSession(ctx, session.ID, test.TestName)
+			if err != nil {
+				return fmt.Errorf("failed to query session test steps: %w", err)
+			}
+			groupedSteps := db.GroupTestSteps(steps)
 			sessionData.Tests = append(sessionData.Tests, SessionTest{
 				FullSessionTest: test,
 				Findings:        perName[test.TestName],
+				Steps:           groupedSteps,
 			})
 		}
 		data.Sessions = append(data.Sessions, sessionData)
@@ -400,6 +410,17 @@ func (h *dashboardHandler) sessionTestArtifacts(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	return h.streamBlob(w, test.ArtifactsArchiveURI)
+}
+
+func (h *dashboardHandler) sessionTestStepLog(w http.ResponseWriter, r *http.Request) error {
+	stepID := r.PathValue("step_id")
+	step, err := h.sessionTestStepRepo.GetByID(r.Context(), stepID)
+	if err != nil {
+		return err
+	} else if step == nil {
+		return fmt.Errorf("%w: step", errNotFound)
+	}
+	return h.streamBlob(w, step.LogURI)
 }
 
 func (h *dashboardHandler) streamBlob(w http.ResponseWriter, uri string) error {
