@@ -215,6 +215,7 @@ func serveTemplate(w http.ResponseWriter, name string, data any) error {
 type uiHeader struct {
 	Admin               bool
 	AI                  bool // Enable UI elements related to AI
+	AIActions           bool // Allow actions related to AI (create/assess jobs)
 	URLPath             string
 	LoginLink           string
 	AnalyticsTrackingID string
@@ -303,7 +304,8 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 	if ns != adminPage {
 		cfg := getNsConfig(ctx, ns)
 		h.Namespace = ns
-		h.AI = cfg.AI != nil && accessLevel >= AIAccessLevel
+		h.AI = cfg.AI != nil
+		h.AIActions = cfg.AI != nil && accessLevel >= AccessUser
 		h.ShowSubsystems = cfg.Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)

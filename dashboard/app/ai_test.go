@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 	"testing"
 	"time"
 
@@ -330,13 +329,7 @@ func TestAIJobCustomCommit(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	vals := url.Values{}
-	vals.Add("ai-job-create", string(ai.WorkflowPatching))
-	vals.Add("base_commit_type", "custom")
-	vals.Add("base_commit", "custom123")
-
-	_, err = c.POSTForm(fmt.Sprintf("/bug?id=%v", bug.keyHash(c.ctx)), vals)
-	require.NoError(t, err)
+	c.createAIJob(extID, string(ai.WorkflowPatching), "custom123")
 
 	jobs, err := aidb.LoadBugJobs(c.ctx, bug.keyHash(c.ctx))
 	require.NoError(t, err)
