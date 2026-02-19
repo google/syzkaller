@@ -1,0 +1,1 @@
+ALTER TABLE Findings DROP COLUMN CreatedAt;

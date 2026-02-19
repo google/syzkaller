@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -58,6 +59,7 @@ func (s *FindingService) Save(ctx context.Context, req *api.RawFinding) error {
 			SessionID: req.SessionID,
 			TestName:  req.TestName,
 			Title:     req.Title,
+			CreatedAt: spanner.NullTime{Time: time.Now(), Valid: true},
 		}
 		// TODO: if it's not actually addded, these blobs will be orphaned.
 		err := s.saveAssets(finding, req)

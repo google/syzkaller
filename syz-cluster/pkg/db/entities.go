@@ -167,6 +167,7 @@ type Finding struct {
 	SyzReproOptsURI string           `spanner:"SyzReproOptsURI"`
 	CReproURI       string           `spanner:"CReproURI"`
 	InvalidatedAt   spanner.NullTime `spanner:"InvalidatedAt"`
+	CreatedAt       spanner.NullTime `spanner:"CreatedAt"`
 }
 
 func (f *Finding) SetInvalidatedAt(t time.Time) {
