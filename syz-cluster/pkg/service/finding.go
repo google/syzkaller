@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -117,6 +119,7 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query the list: %w", err)
 	}
+	list = deduplicateFindings(list)
 	tests, err := s.sessionTestRepo.BySession(ctx, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query session tests: %w", err)
@@ -167,7 +170,7 @@ func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.List
 		return nil, fmt.Errorf("failed to list all versions: %w", err)
 	}
 	var ret []string
-	seenTitles := map[string]bool{}
+	var allFindings []*db.Finding
 	// Prefer newer versions.
 	for i := len(allVersions) - 1; i >= 0; i-- {
 		ver := allVersions[i]
@@ -199,16 +202,16 @@ func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.List
 		if err != nil {
 			return nil, fmt.Errorf("failed to list findings for session %s: %w", sessionID, err)
 		}
-		for _, f := range findings {
-			if !f.InvalidatedAt.IsNull() {
+		for _, finding := range findings {
+			if !finding.InvalidatedAt.IsNull() {
 				continue
 			}
-			if seenTitles[f.Title] {
-				continue
-			}
-			seenTitles[f.Title] = true
-			ret = append(ret, f.ID)
+			allFindings = append(allFindings, finding)
 		}
+	}
+	allFindings = deduplicateFindings(allFindings)
+	for _, f := range allFindings {
+		ret = append(ret, f.ID)
 	}
 	return ret, nil
 }
@@ -279,4 +282,52 @@ func (s *FindingService) matchesPrevFindingsReq(
 		return false, nil
 	}
 	return true, nil
+}
+
+func deduplicateFindings(findings []*db.Finding) []*db.Finding {
+	grouped := make(map[string][]*db.Finding)
+	for _, f := range findings {
+		grouped[f.Title] = append(grouped[f.Title], f)
+	}
+
+	var ret []*db.Finding
+	for _, group := range grouped {
+		best := group[0]
+		for _, f := range group[1:] {
+			if isBetterFinding(f, best) {
+				best = f
+			}
+		}
+		ret = append(ret, best)
+	}
+	// Ensure the result is deterministic.
+	slices.SortFunc(ret, func(a, b *db.Finding) int {
+		return strings.Compare(a.Title, b.Title)
+	})
+	return ret
+}
+
+func isBetterFinding(newF, oldF *db.Finding) bool {
+	// 1. Prefer C repro.
+	if newF.CReproURI != "" && oldF.CReproURI == "" {
+		return true
+	}
+	if newF.CReproURI == "" && oldF.CReproURI != "" {
+		return false
+	}
+	// 2. Prefer Syz repro.
+	if newF.SyzReproURI != "" && oldF.SyzReproURI == "" {
+		return true
+	}
+	if newF.SyzReproURI == "" && oldF.SyzReproURI != "" {
+		return false
+	}
+	// 3. First reporterd come first.
+	if newF.CreatedAt.Valid != oldF.CreatedAt.Valid {
+		return newF.CreatedAt.Valid
+	}
+	if newF.CreatedAt.Valid {
+		return newF.CreatedAt.Time.Before(oldF.CreatedAt.Time)
+	}
+	return newF.ID < oldF.ID
 }
