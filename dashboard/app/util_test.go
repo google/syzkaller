@@ -38,6 +38,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	spannertest "github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
@@ -770,6 +771,17 @@ Content-Type: text/plain
 	log.Infof(ctx.ctx, "sending %s", email)
 	_, err := ctx.POST("/_ah/mail/"+to, email)
 	ctx.expectOK(err)
+}
+
+func (ctx *Ctx) createAIJob(bugExitID, workflow, baseCommit string) string {
+	bug, _, _ := ctx.loadBug(bugExitID)
+	args := map[string]any{}
+	if baseCommit != "" {
+		args["FixedBaseCommit"] = baseCommit
+	}
+	id, err := aiBugJobCreate(ctx.ctx, workflow, bug, args)
+	require.NoError(ctx.t, err)
+	return id
 }
 
 func initMocks() {

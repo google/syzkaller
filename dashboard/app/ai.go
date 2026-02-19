@@ -26,8 +26,6 @@ import (
 	"google.golang.org/appengine/v2/log"
 )
 
-const AIAccessLevel = AccessUser
-
 type uiAIJobsPage struct {
 	Header          *uiHeader
 	Jobs            []*uiAIJob
@@ -96,14 +94,15 @@ type uiAITrajectorySpan struct {
 }
 
 func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if err := checkAccessLevel(ctx, r, AIAccessLevel); err != nil {
-		return err
-	}
 	hdr, err := commonHeader(ctx, r, w, "")
 	if err != nil {
 		return err
 	}
 	jobs, err := aidb.LoadNamespaceJobs(ctx, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	jobs, err = filterJobsAccess(ctx, r, jobs)
 	if err != nil {
 		return err
 	}
@@ -134,14 +133,23 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 }
 
 func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if err := checkAccessLevel(ctx, r, AIAccessLevel); err != nil {
-		return err
-	}
 	job, err := aidb.LoadJob(ctx, r.FormValue("id"))
 	if err != nil {
 		return err
 	}
+	if jobs, err := filterJobsAccess(ctx, r, []*aidb.Job{job}); err != nil {
+		return err
+	} else if len(jobs) == 0 {
+		return ErrAccess
+	}
+	hdr, err := commonHeader(ctx, r, w, job.Namespace)
+	if err != nil {
+		return err
+	}
 	if correct := r.FormValue("correct"); correct != "" {
+		if !hdr.AIActions {
+			return ErrAccess
+		}
 		if !job.Finished.Valid || job.Error != "" {
 			return fmt.Errorf("job is in wrong state to set correct status")
 		}
@@ -178,10 +186,6 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-	hdr, err := commonHeader(ctx, r, w, job.Namespace)
-	if err != nil {
-		return err
-	}
 	var args map[string]any
 	if job.Args.Valid {
 		args = job.Args.Value.(map[string]any)
@@ -206,6 +210,32 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		TrajectoryJSON: template.JS(trajectoryJSON),
 	}
 	return serveTemplate(w, "ai_job.html", page)
+}
+
+func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([]*aidb.Job, error) {
+	bugKeyIDs := map[string]bool{}
+	for _, job := range jobs {
+		if job.BugID.Valid {
+			bugKeyIDs[job.BugID.StringVal] = true
+		}
+	}
+	var bugKeys []*db.Key
+	for id := range bugKeyIDs {
+		bugKeys = append(bugKeys, db.NewKey(ctx, "Bug", id, 0, nil))
+	}
+	bugs := make([]*Bug, len(bugKeys))
+	if err := db.GetMulti(ctx, bugKeys, bugs); err != nil {
+		return nil, err
+	}
+	accessLevel := accessLevel(ctx, r)
+	bugAccess := map[string]AccessLevel{}
+	for _, bug := range bugs {
+		bugAccess[bug.keyHash(ctx)] = bug.sanitizeAccess(ctx, accessLevel)
+	}
+	jobs = slices.DeleteFunc(jobs, func(job *aidb.Job) bool {
+		return accessLevel < bugAccess[job.BugID.StringVal]
+	})
+	return jobs, nil
 }
 
 func makeUIAIJob(job *aidb.Job) *uiAIJob {
@@ -544,10 +574,10 @@ func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 
 // aiBugWorkflows returns active workflows that are applicable for the bug.
 
-func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs map[string]any) error {
+func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs map[string]any) (string, error) {
 	workflows, err := aidb.LoadWorkflows(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	var typ ai.WorkflowType
 	for _, flow := range workflows {
@@ -557,19 +587,20 @@ func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs ma
 		}
 	}
 	if typ == "" {
-		return fmt.Errorf("workflow %v does not exist", workflow)
+		return "", fmt.Errorf("workflow %v does not exist", workflow)
 	}
 	return bugJobCreate(ctx, workflow, typ, bug, extraArgs)
 }
 
-func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug, extraArgs map[string]any) error {
+func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug *Bug, extraArgs map[string]any) (
+	string, error) {
 	crash, crashKey, err := findCrashForBug(ctx, bug)
 	if err != nil {
-		return err
+		return "", err
 	}
 	build, err := loadBuild(ctx, bug.Namespace, crash.BuildID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	tx := func(ctx context.Context) error {
 		return addCrashReference(ctx, crashKey.IntID(), bug.key(ctx),
@@ -578,7 +609,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	if err := runInTransaction(ctx, tx, &db.TransactionOptions{
 		XG: true,
 	}); err != nil {
-		return fmt.Errorf("addCrashReference failed: %w", err)
+		return "", fmt.Errorf("addCrashReference failed: %w", err)
 	}
 	args := map[string]any{
 		"BugTitle":        bug.Title,
@@ -683,7 +714,7 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 		}
 	}
 	for workflow := range workflows {
-		if err := bugJobCreate(ctx, string(workflow), workflow, bug, nil); err != nil {
+		if _, err := bugJobCreate(ctx, string(workflow), workflow, bug, nil); err != nil {
 			return false, err
 		}
 	}
