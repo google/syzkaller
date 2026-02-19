@@ -283,12 +283,12 @@ func TestAPIListPreviousFindings(t *testing.T) {
 
 	finding1, err := client.GetFinding(ctx, list[0])
 	require.NoError(t, err)
-	assert.Equal(t, "Crash in foo", finding1.Title)
-	assert.Equal(t, idsV2.SessionID, finding1.SessionID)
+	assert.Equal(t, "Crash in bar", finding1.Title)
+	assert.Equal(t, idsV1.SessionID, finding1.SessionID)
 
 	finding2, err := client.GetFinding(ctx, list[1])
 	require.NoError(t, err)
-	assert.Equal(t, "Crash in bar", finding2.Title)
+	assert.Equal(t, "Crash in foo", finding2.Title)
 	assert.Equal(t, idsV1.SessionID, finding2.SessionID)
 
 	list, err = client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
