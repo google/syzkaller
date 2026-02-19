@@ -33,7 +33,7 @@ var (
 
 // Run the test with:
 //
-//	DOCKERARGS=-p=50556:50556 tools/syz-env go test -run TestLocalUI -timeout=0 -v ./dashboard/app \
+//	DOCKERARGS=-p=127.0.0.1:50556:50556 tools/syz-env go test -run TestLocalUI -timeout=0 -v ./dashboard/app \
 //		-local-ui -local-ui-addr=:50556
 //
 // or if you have gcloud installed (faster, and opens the browser):
