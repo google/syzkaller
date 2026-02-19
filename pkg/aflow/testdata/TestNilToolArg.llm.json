@@ -1,0 +1,98 @@
+[
+	{
+		"Model": "model",
+		"Config": {
+			"systemInstruction": {
+				"parts": [
+					{
+						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+					}
+				],
+				"role": "user"
+			},
+			"temperature": 0.3,
+			"tools": [
+				{
+					"functionDeclarations": [
+						{
+							"description": "tool",
+							"name": "tool",
+							"parametersJsonSchema": {
+								"additionalProperties": false,
+								"properties": {
+									"Optional": {
+										"description": "An optional arg.",
+										"type": [
+											"null",
+											"integer"
+										]
+									}
+								},
+								"required": [
+									"Optional"
+								],
+								"type": "object"
+							},
+							"responseJsonSchema": {
+								"additionalProperties": false,
+								"type": "object"
+							}
+						}
+					]
+				}
+			],
+			"responseModalities": [
+				"TEXT"
+			]
+		},
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			}
+		]
+	},
+	{
+		"Model": "model",
+		"Request": [
+			{
+				"parts": [
+					{
+						"text": "Initial Prompt"
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionCall": {
+							"args": {
+								"Optional": null
+							},
+							"name": "tool"
+						}
+					}
+				],
+				"role": "user"
+			},
+			{
+				"parts": [
+					{
+						"functionResponse": {
+							"name": "tool",
+							"response": {
+								"error": "missing argument \"Optional\""
+							}
+						}
+					}
+				],
+				"role": "user"
+			}
+		]
+	}
+]
