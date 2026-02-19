@@ -149,6 +149,38 @@
                         {{end}}
                     </th>
                 </tr>
+                {{range .Steps}}
+                <tr>
+                    <td class="pl-4"><small class="text-muted">&#8627;</small> <span class="text-muted">{{.Title}}</span></td>
+                    <td>
+                        {{if .Base}}
+                        <span class="{{if eq .Base.Result "passed"}}text-success{{else if eq .Base.Result "failed"
+                            }}text-danger{{else}}text-warning{{end}}">
+                            {{.Base.Result}}
+                        </span>
+                        {{if .Base.LogURI}}
+                        <a href="/test_steps/{{.Base.ID}}/log" class="modal-link-raw">[Log]</a>
+                        {{end}}
+                        {{else}}
+                        <span class="text-muted">-</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        {{if .Patched}}
+                        <span class="{{if eq .Patched.Result "passed"}}text-success{{else if eq .Patched.Result "failed"
+                            }}text-danger{{else}}text-warning{{end}}">
+                            {{.Patched.Result}}
+                        </span>
+                        {{if .Patched.LogURI}}
+                        <a href="/test_steps/{{.Patched.ID}}/log" class="modal-link-raw">[Log]</a>
+                        {{end}}
+                        {{else}}
+                        <span class="text-muted">-</span>
+                        {{end}}
+                    </td>
+                    <td></td>
+                </tr>
+                {{end}}
                 {{if .Findings}}
                 <tr>
                   <td colspan="4">

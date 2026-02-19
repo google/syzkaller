@@ -6,6 +6,8 @@ package db
 import (
 	"context"
 
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
+
 	"cloud.google.com/go/spanner"
 	"github.com/google/uuid"
 )
@@ -87,4 +89,31 @@ func (r *SessionTestStepRepository) ListForSession(ctx context.Context, sessionI
 		Params: map[string]any{"sessionID": sessionID, "testName": testName},
 	}
 	return readEntities[SessionTestStep](ctx, r.client.Single(), stmt)
+}
+
+type TestStepGroup struct {
+	Title   string
+	Base    *SessionTestStep
+	Patched *SessionTestStep
+}
+
+func GroupTestSteps(steps []*SessionTestStep) []*TestStepGroup {
+	rowMap := map[string]*TestStepGroup{}
+	var orderedRows []*TestStepGroup
+
+	for _, step := range steps {
+		row, ok := rowMap[step.Title]
+		if !ok {
+			row = &TestStepGroup{Title: step.Title}
+			rowMap[step.Title] = row
+			orderedRows = append(orderedRows, row)
+		}
+		switch step.Target {
+		case api.StepTargetBase:
+			row.Base = step
+		case api.StepTargetPatched:
+			row.Patched = step
+		}
+	}
+	return orderedRows
 }
