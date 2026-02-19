@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -327,6 +328,9 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		if flow.Type == "" || flow.Name == "" {
 			return nil, fmt.Errorf("invalid request")
 		}
+		if err := aiCheckClientWorkflow(ctx, flow.Name); err != nil {
+			return nil, err
+		}
 	}
 	if err := aidb.UpdateWorkflows(ctx, req.Workflows); err != nil {
 		return nil, fmt.Errorf("failed UpdateWorkflows: %w", err)
@@ -395,6 +399,9 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := aiCheckClientWorkflow(ctx, job.Workflow); err != nil {
+		return nil, err
+	}
 	if job.Finished.Valid {
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
@@ -413,6 +420,22 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	}
 	return nil, nil
 }
+
+func aiCheckClientWorkflow(ctx context.Context, workflow string) error {
+	client := apiContext(ctx).client
+	if !strings.HasPrefix(client, "agent") {
+		return fmt.Errorf("only agent clients can execute AI jobs")
+	}
+	if match := aiUserClientRe.FindStringSubmatch(client); match != nil {
+		suffix := match[1]
+		if !strings.HasSuffix(workflow, suffix) {
+			return fmt.Errorf("the client is not allowed to execute AI jobs without %q suffix", suffix)
+		}
+	}
+	return nil
+}
+
+var aiUserClientRe = regexp.MustCompile("^agent-restricted(-.*)$")
 
 func aiJobUpdate(ctx context.Context, job *aidb.Job) error {
 	if err := aidb.UpdateJob(ctx, job); err != nil {

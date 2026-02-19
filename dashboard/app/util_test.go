@@ -53,6 +53,7 @@ type Ctx struct {
 	emailSink        chan *aemail.Message
 	transformContext func(context.Context) context.Context
 	globalClient     *apiClient
+	agentClient      *apiClient
 	client           *apiClient
 	client2          *apiClient
 	publicClient     *apiClient
@@ -99,6 +100,7 @@ func newCtx(t *testing.T, appID string) *Ctx {
 		checkAI:          appID != "",
 	}
 	ctx.globalClient = ctx.makeClient(reportingClient, reportingKey, true)
+	ctx.agentClient = ctx.makeClient(agentClient, agentKey, true)
 	ctx.client = ctx.makeClient(client1, password1, true)
 	ctx.client2 = ctx.makeClient(client2, password2, true)
 	ctx.publicClient = ctx.makeClient(clientPublicEmail, keyPublicEmail, true)
