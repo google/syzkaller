@@ -87,8 +87,8 @@ type Config struct {
 	// If set, this namespace is not actively tested, no notifications are sent, etc.
 	// It's kept mostly read-only for historical reference.
 	Decommissioned bool
-	// Enable AI workflows for the namespace.
-	AI bool
+	// Enable AI workflows for the namespace if non-nil.
+	AI *AIConfig
 	// Name used in UI.
 	DisplayTitle string
 	// Unique string that allows to show "similar bugs" across different namespaces.
@@ -141,6 +141,9 @@ type Config struct {
 	Coverage *CoverageConfig
 	// Reproducers export path.
 	ReproExportPath string
+}
+
+type AIConfig struct {
 }
 
 // ACLItem is an Access Control List item.

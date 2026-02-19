@@ -303,7 +303,7 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 	if ns != adminPage {
 		cfg := getNsConfig(ctx, ns)
 		h.Namespace = ns
-		h.AI = cfg.AI && accessLevel >= AIAccessLevel
+		h.AI = cfg.AI != nil && accessLevel >= AIAccessLevel
 		h.ShowSubsystems = cfg.Subsystems.Service != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)

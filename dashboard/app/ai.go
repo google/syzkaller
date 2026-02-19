@@ -611,7 +611,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 // Do we want to automatically restart them or not?
 func autoCreateAIJobs(ctx context.Context) (bool, error) {
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if !cfg.AI {
+		if cfg.AI == nil {
 			continue
 		}
 		var bugs []*Bug
