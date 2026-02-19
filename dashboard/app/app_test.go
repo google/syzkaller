@@ -224,6 +224,7 @@ var testConfig = &GlobalConfig{
 		// Namespaces for access level testing.
 		"access-admin": {
 			AccessLevel: AccessAdmin,
+			AI:          &AIConfig{},
 			Key:         "adminkeyadminkeyadminkey",
 			Clients: map[string]APIClient{
 				clientAdmin: {Key: keyAdmin},
@@ -250,6 +251,7 @@ var testConfig = &GlobalConfig{
 		},
 		"access-user": {
 			AccessLevel: AccessUser,
+			AI:          &AIConfig{},
 			Key:         "userkeyuserkeyuserkey",
 			Clients: map[string]APIClient{
 				clientUser: {Key: keyUser},
@@ -277,6 +279,7 @@ var testConfig = &GlobalConfig{
 		},
 		"access-public": {
 			AccessLevel: AccessPublic,
+			AI:          &AIConfig{},
 			Key:         "publickeypublickeypublickey",
 			Clients: map[string]APIClient{
 				clientPublic: {Key: keyPublic},

@@ -72,19 +72,19 @@ func UpdateWorkflows(ctx context.Context, active []dashapi.AIWorkflow) error {
 	return err
 }
 
-func CreateJob(ctx context.Context, job *Job) error {
+func CreateJob(ctx context.Context, job *Job) (string, error) {
 	job.ID = uuid.NewString()
 	job.Created = TimeNow(ctx)
 	client, err := dbClient(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	mut, err := spanner.InsertStruct("Jobs", job)
 	if err != nil {
-		return err
+		return "", err
 	}
 	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
-	return err
+	return job.ID, err
 }
 
 func UpdateJob(ctx context.Context, job *Job) error {

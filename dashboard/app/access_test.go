@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -45,8 +47,13 @@ func TestAccessConfig(t *testing.T) {
 // TestAccess checks that all UIs respect access levels.
 // nolint: funlen, gocyclo
 func TestAccess(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
+
+	c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
+	})
 
 	// entity describes pages/bugs/texts/etc.
 	type entity struct {
@@ -63,6 +70,10 @@ func TestAccess(t *testing.T) {
 		{
 			level: AccessPublic,
 			url:   "/access-public",
+		},
+		{
+			level: AccessPublic,
+			url:   "/access-public/ai",
 		},
 		{
 			level: AccessPublic,
@@ -94,6 +105,10 @@ func TestAccess(t *testing.T) {
 		},
 		{
 			level: AccessUser,
+			url:   "/access-user/ai",
+		},
+		{
+			level: AccessUser,
 			url:   "/access-user/fixed",
 		},
 		{
@@ -119,6 +134,10 @@ func TestAccess(t *testing.T) {
 		{
 			level: AccessAdmin,
 			url:   "/access-admin",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/ai",
 		},
 		{
 			level: AccessAdmin,
@@ -361,6 +380,13 @@ func TestAccess(t *testing.T) {
 			}
 			noteBugAccessLevel(repOpen.ID, accessLevel, nsLevel)
 
+			jobID := c.createAIJob(repOpen.ID, "patching", "")
+			entities = append(entities, entity{
+				level: accessLevel,
+				ref:   jobID,
+				url:   fmt.Sprintf("/ai_job?id=%v", jobID),
+			})
+
 			crashPatched := testCrashWithRepro(build, reportingIdx*10+1)
 			client.ReportCrash(crashPatched)
 			repPatched := c.globalClient.pollBug()
@@ -415,7 +441,7 @@ func TestAccess(t *testing.T) {
 			if err1 != nil {
 				t.Fatal(err1)
 			}
-			assert.NotNil(t, err)
+			require.NotNil(t, err)
 			var httpErr *HTTPError
 			assert.True(t, errors.As(err, &httpErr))
 			assert.Equal(t, httpErr.Code, http.StatusTemporaryRedirect)

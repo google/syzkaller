@@ -1111,9 +1111,11 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	var aiWorkflows []*uiWorkflow
 	var aiJobs []*uiAIJob
 	if hdr.AI {
-		aiWorkflows, err = aiBugWorkflows(ctx, bug)
-		if err != nil {
-			return err
+		if hdr.AIActions {
+			aiWorkflows, err = aiBugWorkflows(ctx, bug)
+			if err != nil {
+				return err
+			}
 		}
 		jobs, err := aidb.LoadBugJobs(ctx, bug.keyHash(ctx))
 		if err != nil {
@@ -1137,14 +1139,14 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
 	}
 	if workflow := r.FormValue("ai-job-create"); workflow != "" {
-		if !hdr.AI {
+		if !hdr.AIActions {
 			return ErrAccess
 		}
 		args, err := parseAIJobArgs(r, workflow, aiWorkflows)
 		if err != nil {
 			hdr.Message = err.Error()
 		} else {
-			if err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
+			if _, err := aiBugJobCreate(ctx, workflow, bug, args); err != nil {
 				return err
 			}
 			hdr.Message = fmt.Sprintf("AI workflow %v is created", workflow)

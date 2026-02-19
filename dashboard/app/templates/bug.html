@@ -61,7 +61,7 @@ Page with details about a single bug.
 		</form>
 	{{end}}
 	{{if .AIJobs}}
-		<div class="collapsible collapsible-show">
+		<div class="collapsible collapsible-{{if .Header.AIActions}}show{{else}}hide{{end}}">
 			<div class="head">
 				<span class="show-icon">&#9654;</span>
 				<span class="hide-icon">&#9660;</span>

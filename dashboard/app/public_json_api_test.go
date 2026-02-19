@@ -251,7 +251,7 @@ func TestJSONAPICauseBisection(t *testing.T) {
 }
 
 func TestPublicJSONAPI(t *testing.T) {
-	c := NewCtx(t)
+	c := NewSpannerCtx(t)
 	defer c.Close()
 
 	client := c.makeClient(clientPublic, keyPublic, true)
