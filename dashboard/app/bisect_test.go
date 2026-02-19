@@ -29,7 +29,7 @@ func TestBisectCause(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// No repro - no bisection.
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// Now upload 4 crashes with repros.
@@ -69,7 +69,7 @@ func TestBisectCause(t *testing.T) {
 	//		BisectFix   #4
 
 	// BisectCause #3
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -88,13 +88,13 @@ func TestBisectCause(t *testing.T) {
 		Log:   []byte("bisect log 3"),
 		Error: []byte("bisect error 3"),
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 	c.expectNoEmail()
 
 	// BisectCause #2
 	pollResp2 := pollResp
 	c.advanceTime(time.Minute)
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, pollResp2.ID)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
 
@@ -125,7 +125,7 @@ func TestBisectCause(t *testing.T) {
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	_, extBugID, err := email.RemoveAddrContext(msg2.Sender)
 	c.expectOK(err)
@@ -267,7 +267,7 @@ If you want to undo deduplication, reply with:
 		"default2@maintainers.com",
 	})
 	c.advanceTime(time.Minute)
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 
 	// Bisection succeeded.
 	jobID = pollResp.ID
@@ -296,7 +296,7 @@ If you want to undo deduplication, reply with:
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	{
 		msg := c.pollEmailBug()
@@ -327,7 +327,7 @@ If you want to undo deduplication, reply with:
 
 	// BisectFix #2
 	c.advanceTime(time.Minute)
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
@@ -337,11 +337,11 @@ If you want to undo deduplication, reply with:
 		Log:   []byte("bisect log 2"),
 		Error: []byte("bisect error 2"),
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	// BisectFix #3
 	c.advanceTime(time.Minute)
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 3"))
@@ -350,11 +350,11 @@ If you want to undo deduplication, reply with:
 		Log:   []byte("bisect log 3"),
 		Error: []byte("bisect error 3"),
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	// BisectFix #4
 	c.advanceTime(time.Minute)
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 4"))
@@ -384,7 +384,7 @@ If you want to undo deduplication, reply with:
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	_, extBugID, err = email.RemoveAddrContext(msg4.Sender)
 	c.expectOK(err)
@@ -437,7 +437,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 	}
 
 	// No more bisection jobs.
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -451,7 +451,7 @@ func TestBisectCauseInconclusive(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	msg := c.client2.pollEmailBug()
 
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:    jobID,
@@ -477,7 +477,7 @@ func TestBisectCauseInconclusive(t *testing.T) {
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	c.expectOK(err)
@@ -588,7 +588,7 @@ func TestUnreliableBisect(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	_ = c.client2.pollEmailBug()
 
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:    jobID,
@@ -607,7 +607,7 @@ func TestUnreliableBisect(t *testing.T) {
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	// The bisection result is unreliable - it shouldn't be reported.
 	c.expectNoEmail()
@@ -660,7 +660,7 @@ func TestBisectWrong(t *testing.T) {
 		c.client2.pollEmailBug()
 
 		{
-			pollResp := c.client2.pollJobs(build.Manager)
+			pollResp := c.globalClient.pollJobs(build.Manager)
 			done := &dashapi.JobDoneReq{
 				ID:    pollResp.ID,
 				Flags: flags,
@@ -677,7 +677,7 @@ func TestBisectWrong(t *testing.T) {
 				},
 			}
 			done.Build.ID = pollResp.ID
-			c.expectOK(c.client2.JobDone(done))
+			c.expectOK(c.globalClient.JobDone(done))
 			if i == 0 {
 				msg := c.pollEmailBug()
 				c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
@@ -687,7 +687,7 @@ func TestBisectWrong(t *testing.T) {
 		}
 		{
 			c.advanceTime(31 * 24 * time.Hour)
-			pollResp := c.client2.pollJobs(build.Manager)
+			pollResp := c.globalClient.pollJobs(build.Manager)
 			done := &dashapi.JobDoneReq{
 				ID:          pollResp.ID,
 				Flags:       flags,
@@ -707,7 +707,7 @@ func TestBisectWrong(t *testing.T) {
 				},
 			}
 			done.Build.ID = pollResp.ID
-			c.expectOK(c.client2.JobDone(done))
+			c.expectOK(c.globalClient.JobDone(done))
 			if i == 0 {
 				msg := c.pollEmailBug()
 				c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
@@ -749,7 +749,7 @@ func TestBisectCauseAncient(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	msg := c.client2.pollEmailBug()
 
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:          jobID,
@@ -760,7 +760,7 @@ func TestBisectCauseAncient(t *testing.T) {
 		CrashReport: []byte("bisect crash report"),
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
 	c.expectOK(err)
@@ -869,9 +869,9 @@ func TestBisectCauseExternal(t *testing.T) {
 	c.client.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
-	pollResp := c.client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
@@ -890,14 +890,14 @@ func TestBisectCauseExternal(t *testing.T) {
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
-	resp, _ := c.client.ReportingPollBugs("test")
+	resp, _ := c.globalClient.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	// Still reported because we did not ack.
-	bisect := c.client.pollBug()
+	bisect := c.globalClient.pollBug()
 	// pollBug acks, must not be reported after that.
-	c.client.pollBugs(0)
+	c.globalClient.pollBugs(0)
 
 	c.expectEQ(bisect.Type, dashapi.ReportBisectCause)
 	c.expectEQ(bisect.Title, rep.Title)
@@ -911,21 +911,21 @@ func TestBisectFixExternal(t *testing.T) {
 	c.client.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 	{
 		// Cause bisection fails.
-		pollResp := c.client.pollJobs(build.Manager)
+		pollResp := c.globalClient.pollJobs(build.Manager)
 		done := &dashapi.JobDoneReq{
 			ID:    pollResp.ID,
 			Log:   []byte("bisect log"),
 			Error: []byte("bisect error"),
 		}
-		c.expectOK(c.client.JobDone(done))
+		c.expectOK(c.globalClient.JobDone(done))
 	}
 	c.advanceTime(31 * 24 * time.Hour)
 	{
 		// Fix bisection succeeds.
-		pollResp := c.client.pollJobs(build.Manager)
+		pollResp := c.globalClient.pollJobs(build.Manager)
 		done := &dashapi.JobDoneReq{
 			ID:          pollResp.ID,
 			Build:       *build,
@@ -944,8 +944,8 @@ func TestBisectFixExternal(t *testing.T) {
 			},
 		}
 		done.Build.ID = pollResp.ID
-		c.expectOK(c.client.JobDone(done))
-		rep := c.client.pollBug()
+		c.expectOK(c.globalClient.JobDone(done))
+		rep := c.globalClient.pollBug()
 		c.expectEQ(rep.Type, dashapi.ReportBisectFix)
 	}
 	{
@@ -967,7 +967,7 @@ func TestBisectCauseReproSyz(t *testing.T) {
 	crash.ReproC = nil
 	c.client2.ReportCrash(crash)
 
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:         jobID,
@@ -977,7 +977,7 @@ func TestBisectCauseReproSyz(t *testing.T) {
 		CrashLog:   []byte("bisect crash log"),
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	crash.ReproC = []byte("int main")
 	c.client2.ReportCrash(crash)
@@ -1001,7 +1001,7 @@ func TestBisectCauseReproSyz2(t *testing.T) {
 	crash.ReproC = nil
 	c.client2.ReportCrash(crash)
 
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:         jobID,
@@ -1011,7 +1011,7 @@ func TestBisectCauseReproSyz2(t *testing.T) {
 		CrashLog:   []byte("bisect crash log"),
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	msg := c.client2.pollEmailBug()
 	if !strings.Contains(msg.Body, "syzbot found the following issue") {
@@ -1121,7 +1121,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 
 	// Wait 30 days, no new cause bisection jobs should be created.
 	c.advanceTime(24 * 30 * time.Hour)
-	resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
 		BisectCause: true,
 	})
 	c.expectEQ(resp.ID, "")
@@ -1135,7 +1135,7 @@ func TestBugBisectionInvalidation(t *testing.T) {
 
 	// The bisection should be started again.
 	c.advanceTime(time.Hour)
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 }
@@ -1159,7 +1159,7 @@ func addBuildAndCrash(c *Ctx) (*dashapi.Build, *dashapi.Crash) {
 
 // Poll a JobBisectCause and send cause information.
 func addBisectCauseJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dashapi.JobDoneReq, string) {
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	jobID := resp.ID
@@ -1187,7 +1187,7 @@ func addBisectCauseJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *das
 			},
 		},
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	c.advanceTime(24 * time.Hour)
 	msg := c.client2.pollEmailBug()
@@ -1198,7 +1198,7 @@ func addBisectCauseJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *das
 
 // Poll a JobBisectfix and send fix information.
 func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dashapi.JobDoneReq, string) {
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	jobID := resp.ID
@@ -1226,7 +1226,7 @@ func addBisectFixJob(c *Ctx, build *dashapi.Build) (*dashapi.JobPollResp, *dasha
 			},
 		},
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 	msg := c.client2.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))
 

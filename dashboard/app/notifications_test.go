@@ -366,17 +366,17 @@ func TestExtNotifUpstreamEmbargo(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 	})
 	c.expectEQ(reply.OK, true)
-	c.client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 	c.advanceTime(20 * 24 * time.Hour)
-	notif := c.client.pollNotifs(1)[0]
+	notif := c.globalClient.pollNotifs(1)[0]
 	c.expectEQ(notif.ID, rep.ID)
 	c.expectEQ(notif.Type, dashapi.BugNotifUpstream)
 }
@@ -390,15 +390,15 @@ func TestExtNotifUpstreamOnHold(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep := c.client.pollBug()
+	rep := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 		OnHold: true,
 	})
 	c.expectEQ(reply.OK, true)
 	c.advanceTime(20 * 24 * time.Hour)
-	c.client.pollNotifs(0)
+	c.globalClient.pollNotifs(0)
 }

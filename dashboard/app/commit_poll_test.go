@@ -19,11 +19,11 @@ func TestCommitPoll(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	crash2 := testCrash(build1, 2)
 	c.client.ReportCrash(crash2)
-	rep2 := c.client.pollBug()
+	rep2 := c.globalClient.pollBug()
 
 	// No commits in commit poll.
 	commitPollResp, err := c.client.CommitPoll()
@@ -36,7 +36,7 @@ func TestCommitPoll(t *testing.T) {
 	c.expectEQ(len(commitPollResp.Commits), 0)
 
 	// Specify fixing commit for the bug.
-	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep1.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1", "foo: fix2"},

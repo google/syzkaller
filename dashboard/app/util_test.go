@@ -52,6 +52,7 @@ type Ctx struct {
 	mockedTime       time.Time
 	emailSink        chan *aemail.Message
 	transformContext func(context.Context) context.Context
+	globalClient     *apiClient
 	client           *apiClient
 	client2          *apiClient
 	publicClient     *apiClient
@@ -97,6 +98,7 @@ func newCtx(t *testing.T, appID string) *Ctx {
 		transformContext: func(ctx context.Context) context.Context { return ctx },
 		checkAI:          appID != "",
 	}
+	ctx.globalClient = ctx.makeClient(reportingClient, reportingKey, true)
 	ctx.client = ctx.makeClient(client1, password1, true)
 	ctx.client2 = ctx.makeClient(client2, password2, true)
 	ctx.publicClient = ctx.makeClient(clientPublicEmail, keyPublicEmail, true)
@@ -286,7 +288,7 @@ func (ctx *Ctx) Close() {
 			ctx.t.Errorf("ERROR: leftover email: %v", (<-ctx.emailSink).Body)
 		}
 		// No pending external reports (tests need to consume them).
-		resp, _ := ctx.client.ReportingPollBugs("test")
+		resp, _ := ctx.globalClient.ReportingPollBugs("test")
 		for _, rep := range resp.Reports {
 			ctx.t.Errorf("ERROR: leftover external report:\n%#v", rep)
 		}

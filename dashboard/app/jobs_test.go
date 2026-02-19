@@ -58,7 +58,7 @@ func TestJob(t *testing.T) {
 	crash.ReproSyz = []byte("repro syz")
 	crash.ReproC = []byte("repro C")
 	client.ReportCrash(crash)
-	client.pollAndFailBisectJob(build.Manager)
+	c.globalClient.pollAndFailBisectJob(build.Manager)
 
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "syzbot has found a reproducer"), true)
@@ -84,7 +84,7 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// This submits actual test request.
@@ -99,9 +99,9 @@ func TestJob(t *testing.T) {
 		EmailOptCC([]string{"somebody@else.com", "test@syzkaller.com"}))
 	c.expectNoEmail()
 
-	pollResp = client.pollJobs("foobar")
+	pollResp = c.globalClient.pollJobs("foobar")
 	c.expectEQ(pollResp.ID, "")
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -124,7 +124,7 @@ func TestJob(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
@@ -161,14 +161,14 @@ patch:          %[1]v
 
 	// Testing fails with an error.
 	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(2))
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: []byte("failed to apply patch"),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -198,14 +198,14 @@ patch:          %[1]v
 
 	// Testing fails with a huge error that can't be inlined in email.
 	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(3))
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: bytes.Repeat([]byte{'a', 'b', 'c'}, (maxInlineError+100)/3),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -240,14 +240,14 @@ patch:          %[3]v
 	}
 
 	c.incomingEmail(sender, syzTestGitBranchSamplePatch, EmailOptMessageID(4))
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:       pollResp.ID,
 		Build:    *build,
 		CrashLog: []byte("console output"),
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -278,7 +278,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -301,7 +301,7 @@ func TestBootErrorPatch(t *testing.T) {
 	c.incomingEmail(report.Sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC(report.To))
 	c.expectNoEmail()
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 }
 
@@ -325,7 +325,7 @@ func TestTestErrorPatch(t *testing.T) {
 	c.incomingEmail(report.Sender, syzTestGitBranchSamplePatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC(report.To))
 	c.expectNoEmail()
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 }
 
@@ -343,7 +343,7 @@ func TestJobWithoutPatch(t *testing.T) {
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	client.ReportCrash(crash)
-	client.pollAndFailBisectJob(build.Manager)
+	c.globalClient.pollAndFailBisectJob(build.Manager)
 	sender := c.pollEmailBug().Sender
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
@@ -353,7 +353,7 @@ func TestJobWithoutPatch(t *testing.T) {
 
 	c.incomingEmail(sender, "#syz test git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
 	c.expectNoEmail()
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	testBuild := testBuild(2)
@@ -364,7 +364,7 @@ func TestJobWithoutPatch(t *testing.T) {
 		ID:    pollResp.ID,
 		Build: *testBuild,
 	}
-	client.JobDone(jobDoneReq)
+	c.globalClient.JobDone(jobDoneReq)
 	{
 		_, dbBuild, _ := c.loadJob(pollResp.ID)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
@@ -391,7 +391,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
 	}
 
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -436,7 +436,7 @@ func TestReproRetestJob(t *testing.T) {
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
 	for i := 0; i < 2; i++ {
-		resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+		resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 		c.expectEQ(resp.Type, dashapi.JobTestPatch)
 		c.expectEQ(resp.KernelRepo, build.KernelRepo)
 		c.expectEQ(resp.KernelBranch, build.KernelBranch)
@@ -457,7 +457,7 @@ func TestReproRetestJob(t *testing.T) {
 				ID: resp.ID,
 			}
 		}
-		client.expectOK(client.JobDone(done))
+		client.expectOK(c.globalClient.JobDone(done))
 	}
 	// Expect that the repro level is no longer ReproLevelC.
 	c.expectNoEmail()
@@ -466,7 +466,7 @@ func TestReproRetestJob(t *testing.T) {
 	// Let's also deprecate the syz repro.
 	c.advanceTime(c.config().Obsoleting.ReproRetestPeriod + time.Hour)
 
-	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
 	c.expectEQ(resp.KernelBranch, build.KernelBranch)
 	c.expectEQ(resp.ReproC, []uint8(nil))
@@ -474,7 +474,7 @@ func TestReproRetestJob(t *testing.T) {
 	done := &dashapi.JobDoneReq{
 		ID: resp.ID,
 	}
-	client.expectOK(client.JobDone(done))
+	client.expectOK(c.globalClient.JobDone(done))
 	// Expect that the repro level is no longer ReproLevelC.
 	bug, _, _ = c.loadBug(extBugID)
 	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
@@ -533,7 +533,7 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(c.config().Obsoleting.ReproRetestPeriod + time.Hour)
 
-	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
 	c.expectEQ(resp.KernelRepo, build.KernelRepo)
 	c.expectEQ(resp.KernelBranch, build.KernelBranch)
@@ -545,7 +545,7 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 		ID: resp.ID,
 	}
 
-	client.expectOK(client.JobDone(done))
+	client.expectOK(c.globalClient.JobDone(done))
 
 	// If it has worked, the repro is revoked and the bug is obsoleted.
 	c.pollEmailBug()
@@ -567,19 +567,19 @@ func TestJobRestrictedManager(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.ReproSyz = []byte("repro syz")
 	client.ReportCrash(crash)
-	client.pollAndFailBisectJob(build.Manager)
+	c.globalClient.pollAndFailBisectJob(build.Manager)
 	sender := c.pollEmailBug().Sender
 
 	// Testing on a wrong repo must fail and no test jobs passed to manager.
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git master\n", EmailOptMessageID(1))
 	reply := c.pollEmailBug()
 	c.expectEQ(strings.Contains(reply.Body, "you should test only on restricted.git"), true)
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// Testing on the right repo must succeed.
 	c.incomingEmail(sender, "#syz test: git://restricted.git/restricted.git master\n", EmailOptMessageID(2))
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -599,17 +599,17 @@ func TestBisectFixJob(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// Receive the JobBisectCause.
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixJob:JobBisectCause"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Ensure no more jobs.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectEQ(resp.ID, "")
 
 	// Advance time by 30 days and read out any notification emails.
@@ -625,14 +625,14 @@ func TestBisectFixJob(t *testing.T) {
 	}
 
 	// Ensure that we get a JobBisectFix.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	done = &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixJob:JobBisectFix"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 }
 
 // Test that JobBisectFix jobs are re-tried if crash occurs on ToT.
@@ -648,14 +648,14 @@ func TestBisectFixRetry(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// Receive the JobBisectCause.
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectCause"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Advance time by 30 days and read out any notification emails.
 	{
@@ -670,7 +670,7 @@ func TestBisectFixRetry(t *testing.T) {
 	}
 
 	// Ensure that we get a JobBisectFix. We send back a crashlog, no error, no commits.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	done = &dashapi.JobDoneReq{
@@ -681,7 +681,7 @@ func TestBisectFixRetry(t *testing.T) {
 		CrashLog:    []byte("this is a crashlog"),
 		CrashReport: []byte("this is a crashreport"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Advance time by 30 days. No notification emails.
 	{
@@ -689,14 +689,14 @@ func TestBisectFixRetry(t *testing.T) {
 	}
 
 	// Ensure that we get a JobBisectFix retry.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	done = &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectFix"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 }
 
 // Test that bisection results are not reported for bugs that are already marked as fixed.
@@ -712,14 +712,14 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// Receive the JobBisectCause.
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectCause"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	sender := ""
 	// Advance time by 30 days and read out any notification emails.
@@ -736,7 +736,7 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 	}
 
 	// Poll for a BisectFix job.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 
@@ -774,7 +774,7 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 			},
 		},
 	}
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	// No reporting should come in at this point. If there is reporting, c.Close()
 	// will fail.
@@ -794,14 +794,14 @@ func TestFixBisectionsListed(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// Receive the JobBisectCause.
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectCause"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// At this point, no fix bisections should be listed out.
 	var bugs []*Bug
@@ -827,7 +827,7 @@ func TestFixBisectionsListed(t *testing.T) {
 
 	// Ensure that we get a JobBisectFix. We send back a crashlog, no error,
 	// no commits.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	done = &dashapi.JobDoneReq{
@@ -840,7 +840,7 @@ func TestFixBisectionsListed(t *testing.T) {
 		CrashReport: []byte("this is a crashreport"),
 		Log:         []byte("this is a log"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Check the bug page and ensure that a bisection is listed out.
 	content, err = c.GET(url)
@@ -853,14 +853,14 @@ func TestFixBisectionsListed(t *testing.T) {
 	}
 
 	// Ensure that we get a JobBisectFix retry.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
 	done = &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectFix"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Check the bug page and ensure that no bisections are listed out.
 	content, err = c.GET(url)
@@ -882,14 +882,14 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// Receive the JobBisectCause.
-	resp := c.client2.pollJobs(build.Manager)
+	resp := c.globalClient.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
 	done := &dashapi.JobDoneReq{
 		ID:    resp.ID,
 		Error: []byte("testBisectFixRetry:JobBisectCause"),
 	}
-	c.client2.expectOK(c.client2.JobDone(done))
+	c.client2.expectOK(c.globalClient.JobDone(done))
 
 	// Advance time by 30 days and read out any notification emails.
 	{
@@ -904,7 +904,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	}
 
 	// Ensure that we do not get a JobBisectFix.
-	resp = c.client2.pollJobs(build.Manager)
+	resp = c.globalClient.pollJobs(build.Manager)
 	c.client2.expectEQ(resp.ID, "")
 }
 
@@ -922,12 +922,12 @@ func TestExternalPatchFlow(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// Confirm the report.
-	reports, err := client.ReportingPollBugs("test")
+	reports, err := c.globalClient.ReportingPollBugs("test")
 	origReport := reports.Reports[0]
 	c.expectOK(err)
 	c.expectEQ(len(reports.Reports), 1)
 
-	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -935,7 +935,7 @@ func TestExternalPatchFlow(t *testing.T) {
 	client.expectEQ(reply.OK, true)
 
 	// Create a new patch testing job.
-	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+	ret, err := c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
 		BugID:  origReport.ID,
 		Link:   "http://some-link.com/",
 		User:   "developer@kernel.org",
@@ -947,7 +947,7 @@ func TestExternalPatchFlow(t *testing.T) {
 	c.expectEQ(ret.ErrorText, "")
 
 	// Make sure the job will be passed to the job processor.
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.KernelRepo, "git://git.git/git.git")
 	c.expectEQ(pollResp.KernelBranch, "kernel-branch")
@@ -962,11 +962,11 @@ func TestExternalPatchFlow(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	err = c.client2.JobDone(jobDoneReq)
+	err = c.globalClient.JobDone(jobDoneReq)
 	c.expectOK(err)
 
 	// Verify that we do get the bug update about the completed request.
-	jobDoneUpdates, err := client.ReportingPollBugs("test")
+	jobDoneUpdates, err := c.globalClient.ReportingPollBugs("test")
 	c.expectOK(err)
 	c.expectEQ(len(jobDoneUpdates.Reports), 1)
 
@@ -976,7 +976,7 @@ func TestExternalPatchFlow(t *testing.T) {
 	c.expectEQ(newReport.Report, []byte("test crash report"))
 
 	// Confirm the patch testing result.
-	reply, _ = client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ = c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		JobID:  pollResp.ID,
 		Status: dashapi.BugStatusOpen,
@@ -999,12 +999,12 @@ func TestExternalPatchTestError(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// Confirm the report.
-	reports, err := client.ReportingPollBugs("test")
+	reports, err := c.globalClient.ReportingPollBugs("test")
 	origReport := reports.Reports[0]
 	c.expectOK(err)
 	c.expectEQ(len(reports.Reports), 1)
 
-	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -1012,7 +1012,7 @@ func TestExternalPatchTestError(t *testing.T) {
 	client.expectEQ(reply.OK, true)
 
 	// Create a new patch testing job.
-	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+	ret, err := c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
 		BugID:  origReport.ID,
 		User:   "developer@kernel.org",
 		Branch: "kernel-branch",
@@ -1038,12 +1038,12 @@ func TestExternalPatchCompletion(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// Confirm the report.
-	reports, err := client.ReportingPollBugs("test")
+	reports, err := c.globalClient.ReportingPollBugs("test")
 	origReport := reports.Reports[0]
 	c.expectOK(err)
 	c.expectEQ(len(reports.Reports), 1)
 
-	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -1051,7 +1051,7 @@ func TestExternalPatchCompletion(t *testing.T) {
 	client.expectEQ(reply.OK, true)
 
 	// Create a new patch testing job.
-	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+	ret, err := c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
 		BugID: origReport.ID,
 		User:  "developer@kernel.org",
 		Patch: []byte(sampleGitPatch),
@@ -1060,7 +1060,7 @@ func TestExternalPatchCompletion(t *testing.T) {
 	c.expectEQ(ret.ErrorText, "")
 
 	// Make sure branch and repo are correct.
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
 	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
 }
@@ -1079,12 +1079,12 @@ func TestParallelJobs(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// Confirm the report.
-	reports, err := client.ReportingPollBugs("test")
+	reports, err := c.globalClient.ReportingPollBugs("test")
 	origReport := reports.Reports[0]
 	c.expectOK(err)
 	c.expectEQ(len(reports.Reports), 1)
 
-	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -1104,48 +1104,48 @@ func TestParallelJobs(t *testing.T) {
 		Repo:   repo1,
 		Patch:  []byte(sampleGitPatch),
 	}
-	ret, err := client.NewTestJob(testPatchReq)
+	ret, err := c.globalClient.NewTestJob(testPatchReq)
 	c.expectOK(err)
 	c.expectEQ(ret.ErrorText, "")
 
 	// Make sure the job will be passed to the job processor.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.KernelRepo, repo1)
 
 	// This job is already taken, there are no other jobs.
-	emptyPollResp := client.pollJobs(build.Manager)
+	emptyPollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 
 	// Create another job.
 	testPatchReq.Repo = repo2
-	ret, err = client.NewTestJob(testPatchReq)
+	ret, err = c.globalClient.NewTestJob(testPatchReq)
 	c.expectOK(err)
 	c.expectEQ(ret.ErrorText, "")
 
 	// Make sure the new job will be passed to the job processor.
-	pollResp = client.pollJobs(build.Manager)
+	pollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.KernelRepo, repo2)
 
 	// .. and then there'll be no other jobs.
-	emptyPollResp = client.pollJobs(build.Manager)
+	emptyPollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 
 	// Emulate a syz-ci restart.
-	client.JobReset(&dashapi.JobResetReq{Managers: []string{build.Manager}})
+	c.globalClient.JobReset(&dashapi.JobResetReq{Managers: []string{build.Manager}})
 
 	// .. and re-query both jobs.
 	repos := []string{}
 	for i := 0; i < 2; i++ {
-		pollResp = client.pollJobs(build.Manager)
+		pollResp = c.globalClient.pollJobs(build.Manager)
 		c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 		repos = append(repos, pollResp.KernelRepo)
 	}
 	assert.ElementsMatch(t, repos, []string{repo1, repo2}, "two patch testing requests are expected")
 
 	// .. but nothing else is to be expected.
-	emptyPollResp = client.pollJobs(build.Manager)
+	emptyPollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 
 	// Emulate the job's completion.
@@ -1157,12 +1157,12 @@ func TestParallelJobs(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	err = client.JobDone(jobDoneReq)
+	err = c.globalClient.JobDone(jobDoneReq)
 	c.expectOK(err)
-	client.pollBugs(1)
+	c.globalClient.pollBugs(1)
 
 	// .. and make sure it doesn't appear again.
-	emptyPollResp = client.pollJobs(build.Manager)
+	emptyPollResp = c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 }
 
@@ -1185,7 +1185,7 @@ func TestJobCauseRetry(t *testing.T) {
 	client.pollEmailBug() // New report.
 
 	// Emulate an infra failure.
-	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+	resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
 		BisectCause: true,
 	})
 	client.expectNE(resp.ID, "")
@@ -1195,19 +1195,19 @@ func TestJobCauseRetry(t *testing.T) {
 		Error: []byte("infra problem"),
 		Flags: dashapi.BisectResultInfraError,
 	}
-	client.expectOK(client.JobDone(done))
+	client.expectOK(c.globalClient.JobDone(done))
 	c.expectNoEmail()
 
 	// Ensure we don't recreate the job right away.
 	c.advanceTime(24 * time.Hour)
-	resp = client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+	resp = c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
 		BisectCause: true,
 	})
 	client.expectEQ(resp.ID, "")
 
 	// Wait the end of the freeze period.
 	c.advanceTime(7 * 24 * time.Hour)
-	resp = client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
+	resp = c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{
 		BisectCause: true,
 	})
 	client.expectNE(resp.ID, "")
@@ -1231,7 +1231,7 @@ func TestJobCauseRetry(t *testing.T) {
 		},
 	}
 	done.Build.ID = resp.ID
-	c.expectOK(client.JobDone(done))
+	c.expectOK(c.globalClient.JobDone(done))
 
 	msg := c.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
@@ -1257,7 +1257,7 @@ func TestEmailTestCommandNoArgs(t *testing.T) {
 	c.incomingEmail(sender, "#syz test\n"+sampleGitPatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectNoEmail()
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
 	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
@@ -1278,11 +1278,11 @@ func TestAliasPatchTestingJob(t *testing.T) {
 	client.ReportCrash(crash)
 
 	// Confirm the report.
-	reports, err := client.ReportingPollBugs("test")
+	reports, err := c.globalClient.ReportingPollBugs("test")
 	origReport := reports.Reports[0]
 	c.expectOK(err)
 
-	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+	reply, _ := c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     origReport.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -1290,7 +1290,7 @@ func TestAliasPatchTestingJob(t *testing.T) {
 	client.expectEQ(reply.OK, true)
 
 	// Create a new patch testing job.
-	_, err = client.NewTestJob(&dashapi.TestPatchRequest{
+	_, err = c.globalClient.NewTestJob(&dashapi.TestPatchRequest{
 		BugID:  origReport.ID,
 		User:   "developer@kernel.org",
 		Branch: "some-branch",
@@ -1300,7 +1300,7 @@ func TestAliasPatchTestingJob(t *testing.T) {
 	c.expectOK(err)
 
 	// Make sure branch and repo are correct.
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.KernelRepo, "git://syzkaller.org")
 	c.expectEQ(pollResp.KernelBranch, "some-branch")
 }

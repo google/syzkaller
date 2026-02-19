@@ -109,17 +109,17 @@ func TestJSONAPIIntegration(t *testing.T) {
 	crash1 := testCrash(build, 1)
 	c.advanceTime(time.Minute)
 	c.client.ReportCrash(crash1)
-	bugReport1 := c.client.pollBug()
+	bugReport1 := c.globalClient.pollBug()
 	checkBugPageJSONIs(c, bugReport1.ID, sampleCrashDescr)
 
 	crash2 := testCrashWithRepro(build, 2)
 	c.client.ReportCrash(crash2)
-	bugReport2 := c.client.pollBug()
+	bugReport2 := c.globalClient.pollBug()
 	checkBugPageJSONIs(c, bugReport2.ID, sampleCrashWithReproDescr)
 
 	checkBugGroupPageJSONIs(c, "/test1?json=1", sampleOpenBugGroupDescr)
 
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
+	c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         bugReport2.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1", "foo: fix2"},
@@ -157,11 +157,11 @@ func TestJSONAPIFixCommits(t *testing.T) {
 
 	crash1 := testCrash(build1, 1)
 	c.client.ReportCrash(crash1)
-	rep1 := c.client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	// Specify fixing commit for the bug.
 	c.advanceTime(time.Hour)
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
+	c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep1.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"foo: fix1", "foo: fix2"},
@@ -258,9 +258,9 @@ func TestPublicJSONAPI(t *testing.T) {
 	build := testBuild(1)
 	client.UploadBuild(build)
 	client.ReportCrash(testCrashWithRepro(build, 1))
-	rep := client.pollBug()
-	client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
-	_ = client.pollBug()
+	rep := c.globalClient.pollBug()
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
+	_ = c.globalClient.pollBug()
 
 	cli := c.makeAPIClient()
 	bugs, err := cli.BugGroups("access-public", api.BugGroupAll)

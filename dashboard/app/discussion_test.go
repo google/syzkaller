@@ -26,19 +26,19 @@ func TestDiscussionAccess(t *testing.T) {
 	// Bug at the first (AccesUser) stage of reporting.
 	crash := testCrash(build, 1)
 	client.ReportCrash(crash)
-	rep1 := client.pollBug()
+	rep1 := c.globalClient.pollBug()
 
 	// Bug at the second (AccessPublic) stage.
 	crash2 := testCrash(build, 2)
 	client.ReportCrash(crash2)
-	rep2user := client.pollBug()
-	client.updateBug(rep2user.ID, dashapi.BugStatusUpstream, "")
-	rep2 := client.pollBug()
+	rep2user := c.globalClient.pollBug()
+	c.globalClient.updateBug(rep2user.ID, dashapi.BugStatusUpstream, "")
+	rep2 := c.globalClient.pollBug()
 
 	// Patch to both bugs.
 	firstTime := timeNow(c.ctx)
 	c.advanceTime(time.Hour)
-	c.expectOK(client.SaveDiscussion(&dashapi.SaveDiscussionReq{
+	c.expectOK(c.globalClient.SaveDiscussion(&dashapi.SaveDiscussionReq{
 		Discussion: &dashapi.Discussion{
 			ID:      "123",
 			Source:  dashapi.DiscussionLore,
@@ -58,7 +58,7 @@ func TestDiscussionAccess(t *testing.T) {
 	// Discussion about the second bug.
 	secondTime := timeNow(c.ctx)
 	c.advanceTime(time.Hour)
-	c.expectOK(client.SaveDiscussion(&dashapi.SaveDiscussionReq{
+	c.expectOK(c.globalClient.SaveDiscussion(&dashapi.SaveDiscussionReq{
 		Discussion: &dashapi.Discussion{
 			ID:      "456",
 			Source:  dashapi.DiscussionLore,

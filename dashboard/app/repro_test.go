@@ -62,7 +62,7 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
 	if newBug {
-		c.client.pollBug()
+		c.globalClient.pollBug()
 	}
 }
 
@@ -86,7 +86,7 @@ func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, false)
 	if newBug {
-		c.client.pollBug()
+		c.globalClient.pollBug()
 	}
 }
 
@@ -139,7 +139,7 @@ func normalCrash(c *Ctx) *dashapi.Crash {
 	c.client.UploadBuild(build)
 	crash := testCrash(build, 1)
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 	return crash
 }
 
@@ -149,8 +149,8 @@ func dupCrash(c *Ctx) *dashapi.Crash {
 	c.client.ReportCrash(testCrash(build, 1))
 	crash2 := testCrash(build, 2)
 	c.client.ReportCrash(crash2)
-	reports := c.client.pollBugs(2)
-	c.client.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
+	reports := c.globalClient.pollBugs(2)
+	c.globalClient.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
 	return crash2
 }
 
@@ -173,12 +173,12 @@ func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	resp, _ := c.client.ReportCrash(crash)
 	c.expectEQ(resp.NeedRepro, !withRepro)
 
-	rep := c.client.pollBug()
-	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	rep := c.globalClient.pollBug()
+	c.globalClient.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	crash.ReproC = nil
 	c.client.ReportCrash(crash)
-	c.client.pollBug()
+	c.globalClient.pollBug()
 	return crash
 }
 
@@ -359,10 +359,10 @@ func TestFailedReproLogs(t *testing.T) {
 	}
 	c.client.ReportCrash(crash1)
 
-	resp, _ := c.client.ReportingPollBugs("test")
+	resp, _ := c.globalClient.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep := resp.Reports[0]
-	c.client.ReportingUpdate(&dashapi.BugUpdate{
+	c.globalClient.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep.ID,
 		Status: dashapi.BugStatusOpen,
 	})
@@ -414,12 +414,12 @@ func TestLogToReproduce(t *testing.T) {
 	build2 := testBuild(2)
 	client.UploadBuild(build2)
 	client.ReportCrash(testCrash(build2, 3))
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Bug with a reproducer.
 	crash1 := testCrashWithRepro(build, 1)
 	client.ReportCrash(crash1)
-	client.pollBug()
+	c.globalClient.pollBug()
 	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
 	c.expectOK(err)
 	c.expectEQ(resp.CrashLog, []byte(nil))
@@ -432,7 +432,7 @@ func TestLogToReproduce(t *testing.T) {
 		Report:  []byte("report2"),
 	}
 	client.ReportCrash(crash2)
-	client.pollBug()
+	c.globalClient.pollBug()
 	resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build1"})
 	c.expectOK(err)
 	c.expectEQ(resp.Title, "title2")
@@ -472,7 +472,7 @@ func TestReproForDifferentCrash(t *testing.T) {
 		Report:  []byte("report1"),
 	}
 	client.ReportCrash(crash)
-	oldBug := client.pollBug()
+	oldBug := c.globalClient.pollBug()
 
 	// Now we have "found" a reproducer with a different title.
 	crash.Title = "new title"
@@ -481,7 +481,7 @@ func TestReproForDifferentCrash(t *testing.T) {
 	crash.ReproLog = []byte("repro log")
 	crash.OriginalTitle = "title1"
 	client.ReportCrash(crash)
-	client.pollBug()
+	c.globalClient.pollBug()
 
 	// Ensure that we have saved the reproduction log in this case.
 	dbBug, _, _ := c.loadBug(oldBug.ID)

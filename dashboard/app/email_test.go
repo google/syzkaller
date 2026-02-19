@@ -1141,7 +1141,7 @@ func TestEmailPatchTestingAccess(t *testing.T) {
 	c.expectNoEmail()
 
 	// The patch test job should also not be created.
-	pollResp := client.pollJobs(build.Manager)
+	pollResp := c.globalClient.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
