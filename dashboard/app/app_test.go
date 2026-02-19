@@ -63,7 +63,9 @@ var testConfig = &GlobalConfig{
 		},
 	},
 	Clients: map[string]string{
-		reportingClient: reportingKey,
+		reportingClient:       reportingKey,
+		agentClient:           agentKey,
+		agentRestrictedClient: agentRestrictedKey,
 	},
 	EmailBlocklist: []string{
 		"\"Bar\" <Blocked@Domain.com>",
@@ -735,12 +737,18 @@ const (
 	keySubsystemRemind    = "keySubsystemRemindkeySubsystemRemind"
 	clientTreeTests       = "clientTreeTestsclientTreeTests"
 	keyTreeTests          = "keyTreeTestskeyTreeTestskeyTreeTests"
+	clientGlobalAI        = "ai-ns-global-client"
+	keyGlobalAI           = "ai-ns-global-clientai-ns-global-client"
 	clientAI              = "client-ai"
 	keyAI                 = "clientaikeyclientaikeyclientaikey"
 	clientSkipStage       = "client-skip-stage"
 	keySkipStage          = "skipstagekeyskipstagekeyskipstagekey"
 	reportingClient       = "reporting"
 	reportingKey          = "reportingkeyreportingkeyreportingkey"
+	agentClient           = "agent"
+	agentKey              = "agentagentagentagentagentagentagentagentagentagent"
+	agentRestrictedClient = "agent-restricted-foobar"
+	agentRestrictedKey    = "agentrestrictedagentrestrictedagentrestrictedagentrestricted"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
