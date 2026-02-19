@@ -615,7 +615,7 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"ains": {
-			AI:          true,
+			AI:          &AIConfig{},
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
 			Clients: map[string]string{

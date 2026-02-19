@@ -93,7 +93,7 @@ var localUIConfig = &GlobalConfig{
 		"linux": {
 			DisplayTitle: "Linux",
 			AccessLevel:  AccessPublic,
-			AI:           true,
+			AI:           &AIConfig{},
 			Key:          password1,
 			Clients: map[string]string{
 				localUIClient: localUIPassword,
