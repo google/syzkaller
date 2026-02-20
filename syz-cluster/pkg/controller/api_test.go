@@ -51,7 +51,7 @@ func TestAPISaveFinding(t *testing.T) {
 
 	ids := UploadTestSeries(t, ctx, client, testSeries)
 	buildResp := UploadTestBuild(t, ctx, client, testBuild)
-	err := client.UploadTestResult(ctx, &api.TestResult{
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",
@@ -127,7 +127,7 @@ func TestAPIUploadTestArtifacts(t *testing.T) {
 
 	ids := UploadTestSeries(t, ctx, client, testSeries)
 	buildResp := UploadTestBuild(t, ctx, client, testBuild)
-	err := client.UploadTestResult(ctx, &api.TestResult{
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",

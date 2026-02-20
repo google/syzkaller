@@ -40,7 +40,7 @@ func main() {
 	ctx := context.Background()
 	client := app.DefaultClient()
 
-	testResult := &api.TestResult{
+	testResult := &api.SessionTest{
 		SessionID:      *flagSession,
 		TestName:       *flagTestName,
 		BaseBuildID:    *flagBaseBuild,
@@ -48,7 +48,7 @@ func main() {
 		Result:         api.TestRunning,
 	}
 	// Report that we've begun the test -- it will let us report the findings.
-	err := client.UploadTestResult(ctx, testResult)
+	err := client.UploadSessionTest(ctx, testResult)
 	if err != nil {
 		app.Fatalf("failed to upload test result: %v", err)
 	}
@@ -70,7 +70,7 @@ func main() {
 	}
 
 	// Report the test results.
-	err = client.UploadTestResult(ctx, testResult)
+	err = client.UploadSessionTest(ctx, testResult)
 	if err != nil {
 		app.Fatalf("failed to upload test result: %v", err)
 	}

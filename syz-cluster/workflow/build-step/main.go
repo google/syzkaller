@@ -137,7 +137,7 @@ func reportResults(ctx context.Context, client *api.Client,
 	if *flagSmokeBuild {
 		return
 	}
-	testResult := &api.TestResult{
+	testResult := &api.SessionTest{
 		SessionID: *flagSession,
 		TestName:  *flagTestName,
 		Result:    status,
@@ -150,7 +150,7 @@ func reportResults(ctx context.Context, client *api.Client,
 			testResult.BaseBuildID = buildID
 		}
 	}
-	err := client.UploadTestResult(ctx, testResult)
+	err := client.UploadSessionTest(ctx, testResult)
 	if err != nil {
 		app.Fatalf("failed to report the test result: %v", err)
 	}

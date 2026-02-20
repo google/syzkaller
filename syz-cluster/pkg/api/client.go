@@ -77,8 +77,8 @@ func (client Client) UploadBuild(ctx context.Context, req *UploadBuildReq) (*Upl
 	return postJSON[UploadBuildReq, UploadBuildResp](ctx, client.baseURL+"/builds/upload", req)
 }
 
-func (client Client) UploadTestResult(ctx context.Context, req *TestResult) error {
-	_, err := postJSON[TestResult, any](ctx, client.baseURL+"/tests/upload", req)
+func (client Client) UploadSessionTest(ctx context.Context, req *SessionTest) error {
+	_, err := postJSON[SessionTest, any](ctx, client.baseURL+"/tests/upload", req)
 	return err
 }
 

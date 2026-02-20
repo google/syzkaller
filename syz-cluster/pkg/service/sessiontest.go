@@ -29,7 +29,7 @@ func NewSessionTestService(env *app.AppEnvironment) *SessionTestService {
 	}
 }
 
-func (s *SessionTestService) Save(ctx context.Context, req *api.TestResult) error {
+func (s *SessionTestService) Save(ctx context.Context, req *api.SessionTest) error {
 	entity, err := s.testRepo.Get(ctx, req.SessionID, req.TestName)
 	if err != nil {
 		return fmt.Errorf("failed to query the test: %w", err)
