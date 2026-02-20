@@ -40,10 +40,7 @@ var (
 //
 //	go test -run TestLocalUI -timeout=0 -v ./dashboard/app -local-ui
 func TestLocalUI(t *testing.T) {
-	if !*flagLocalUI {
-		t.Skip("local UI wasn't requested with -local-ui flag")
-	}
-	if _, deadline := t.Deadline(); deadline || !testing.Verbose() {
+	if _, deadline := t.Deadline(); *flagLocalUI && (deadline || !testing.Verbose()) {
 		t.Fatal("TestLocalUI should be run with -timeout=0 -v flags")
 	}
 	c := NewSpannerCtx(t)
@@ -53,6 +50,9 @@ func TestLocalUI(t *testing.T) {
 		return contextWithConfig(ctx, localUIConfig)
 	}
 	populateLocalUIDB(t, c)
+	if !*flagLocalUI {
+		return
+	}
 	ln, err := net.Listen("tcp4", *flagLocalUIAddr)
 	require.NoError(t, err)
 	url := fmt.Sprintf("http://%v", ln.Addr())
@@ -89,6 +89,9 @@ func TestLocalUI(t *testing.T) {
 var localUIConfig = &GlobalConfig{
 	AccessLevel:      AccessPublic,
 	DefaultNamespace: "linux",
+	Clients: map[string]APIClient{
+		localUIGlobalClient: {Key: localUIGlobalPassword},
+	},
 	Namespaces: map[string]*Config{
 		"linux": {
 			DisplayTitle: "Linux",
@@ -122,12 +125,15 @@ var localUIConfig = &GlobalConfig{
 }
 
 const (
-	localUIClient   = "local_ui_client"
-	localUIPassword = "localuipasswordlocaluipasswordlocaluipassword"
+	localUIClient         = "local_ui_client"
+	localUIPassword       = "localuipasswordlocaluipasswordlocaluipassword"
+	localUIGlobalClient   = "local_ui_global_client"
+	localUIGlobalPassword = "localuiglobalpasswordlocaluiglobalpasswordlocaluiglobalpassword"
 )
 
 func populateLocalUIDB(t *testing.T, c *Ctx) {
 	client := c.makeClient(localUIClient, localUIPassword, true)
+	globalClient := c.makeClient(localUIGlobalClient, localUIGlobalPassword, true)
 	bugTitles := []string{
 		"KASAN: slab-use-after-free Write in nr_neigh_put",
 		"KCSAN: data-race in mISDN_ioctl / mISDN_read",
@@ -166,7 +172,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			}
 		}
 	}
-	resp, _ := client.AIJobPoll(&dashapi.AIJobPollReq{
+	resp, _ := globalClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: "xxx",
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)},
@@ -176,7 +182,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 	})
 	seq := 1
 	ts := c.mockedTime
-	client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+	globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 		JobID: resp.ID,
 		Span: &trajectory.Span{
 			Seq:      seq,
@@ -194,7 +200,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		agentSeq := seq
 		seq++
 		for llmCall := 1; llmCall <= 3; llmCall++ {
-			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+			globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 				JobID: resp.ID,
 				Span: &trajectory.Span{
 					Seq:                  seq,
@@ -209,7 +215,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 				},
 			})
 			seq++
-			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+			globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 				JobID: resp.ID,
 				Span: &trajectory.Span{
 					Seq:      seq,
@@ -221,7 +227,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 				},
 			})
 			seq++
-			client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+			globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 				JobID: resp.ID,
 				Span: &trajectory.Span{
 					Seq:      seq,
@@ -234,7 +240,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			})
 			seq++
 		}
-		client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 			JobID: resp.ID,
 			Span: &trajectory.Span{
 				Seq:      agentSeq,
@@ -246,7 +252,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			},
 		})
 	}
-	client.AITrajectoryLog(&dashapi.AITrajectoryReq{
+	globalClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
 		JobID: resp.ID,
 		Span: &trajectory.Span{
 			Seq:      0,
@@ -257,7 +263,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			Finished: ts,
 		},
 	})
-	client.AIJobDone(&dashapi.AIJobDoneReq{
+	globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
 			"Benign":      false,

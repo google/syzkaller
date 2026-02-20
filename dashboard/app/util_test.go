@@ -260,7 +260,8 @@ func caller(skip int) string {
 
 func (ctx *Ctx) Close() {
 	defer ctx.inst.Close()
-	if !ctx.t.Failed() {
+	// transformContext may substitute config.
+	if ctx.transformContext == nil && !ctx.t.Failed() {
 		// To avoid per-day reporting limits for left-over emails.
 		ctx.advanceTime(25 * time.Hour)
 		// Ensure that we can render main page and all bugs in the final test state.
