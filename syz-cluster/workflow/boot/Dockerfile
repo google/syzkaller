@@ -11,7 +11,7 @@ RUN go mod download
 COPY --exclude=syz-cluster . .
 RUN make TARGETARCH=amd64
 
-FROM golang:1.24-alpine AS boot-step-builder
+FROM golang:1.24-alpine AS boot-action-builder
 WORKDIR /build
 
 # Copy the code and the dependencies.
@@ -21,7 +21,7 @@ COPY . .
 # Copying from the builder to take the `make descriptions` result.
 COPY --from=syzkaller-builder /build/sys/ sys/
 
-RUN go build -o /bin/boot-step /build/syz-cluster/workflow/boot-step
+RUN go build -o /bin/boot-action /build/syz-cluster/workflow/boot
 
 FROM debian:bookworm
 
@@ -32,6 +32,6 @@ RUN apt-get update && \
 RUN useradd --create-home syzkaller
 
 COPY --from=syzkaller-builder /build/bin/ /syzkaller/bin/
-COPY --from=boot-step-builder /bin/boot-step /bin/boot-step
+COPY --from=boot-action-builder /bin/boot-action /bin/boot-action
 
-ENTRYPOINT ["/bin/boot-step"]
+ENTRYPOINT ["/bin/boot-action"]

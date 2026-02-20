@@ -3,7 +3,7 @@
 
 resources:
   - rebuild-kernels-cron.yaml
-  - triage-step/workflow-template.yaml
-  - build-step/workflow-template.yaml
-  - boot-step/workflow-template.yaml
-  - fuzz-step/workflow-template.yaml
+  - triage/workflow-template.yaml
+  - build/workflow-template.yaml
+  - boot/workflow-template.yaml
+  - fuzz/workflow-template.yaml

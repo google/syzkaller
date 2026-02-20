@@ -4,50 +4,47 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: boot-step-template
+  name: fuzz-action-template
 spec:
   templates:
-    - name: boot-step
+    - name: fuzz-action
       inputs:
         parameters:
-          - name: config
-            value: ""
           - name: base-build-id
             value: ""
           - name: patched-build-id
             value: ""
-          - name: test-name
-            value: ""
-          - name: report-findings
-            value: "false"
         artifacts:
-          - name: kernel
+          - name: base-kernel
             path: /base
+          - name: patched-kernel
+            path: /patched
+          - name: config
+            path: /tmp/config.json
+      timeout: 4h
       container:
-        image: ${IMAGE_PREFIX}boot-step:${IMAGE_TAG}
+        image: ${IMAGE_PREFIX}fuzz-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
-        command: ["/bin/boot-step"]
+        command: ["/bin/fuzz-action"]
         args: [
-          "--config", "{{inputs.parameters.config}}",
-          "--output", "/output/result.json",
+          "--config", "/tmp/config.json",
           "--session", "{{workflow.parameters.session-id}}",
-          "--test_name", "{{inputs.parameters.test-name}}",
           "--base_build", "{{inputs.parameters.base-build-id}}",
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
-          "-findings={{inputs.parameters.report-findings}}"
+          "--time", "3h",
+          "--workdir", "/workdir",
+          "--vv", "1"
           ]
         resources:
           requests:
-            cpu: 6
-            memory: 24G
+            cpu: 24
+            memory: 90G
           limits:
-            cpu: 8
-            memory: 32G
+            cpu: 30
+            memory: 96G
         volumeMounts:
         - name: workdir
           mountPath: /workdir
-        - name: output
-          mountPath: /output
         - name: dev-kvm
           mountPath: /dev/kvm
         # Needed for /dev/kvm.
@@ -63,8 +60,3 @@ spec:
           hostPath:
             path: /dev/kvm
             type: CharDevice
-      outputs:
-        parameters:
-          - name: result
-            valueFrom:
-              path: /output/result.json

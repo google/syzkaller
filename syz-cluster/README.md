@@ -15,10 +15,10 @@ The system is to be deployed on a K8S cluster. The main services are:
 The actual patch processing is orchestrated by Argo Workflows: see [the
 template](./pkg/workflow/template.yaml). It relies on the following processing
 steps:
-* `workflow/triage-step`
-* `workflow/build-step`
-* `workflow/boot-step`
-* `workflow/fuzz-step`
+* `workflow/triage`
+* `workflow/build`
+* `workflow/boot`
+* `workflow/fuzz`
 
 Triage and build steps need the actual kernel checkouts. The base kernel repo is
 hosted on a shared network disk and is regularly updated by the scripts in
