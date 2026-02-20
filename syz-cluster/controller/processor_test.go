@@ -104,7 +104,7 @@ func TestFinishRunningSteps(t *testing.T) {
 		ConfigName: "config",
 		CommitHash: "abcd",
 	})
-	err := client.UploadTestResult(ctx, &api.TestResult{
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test",

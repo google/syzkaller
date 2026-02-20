@@ -101,7 +101,7 @@ const (
 	TestError   string = "error"
 )
 
-type TestResult struct {
+type SessionTest struct {
 	SessionID      string `json:"session_id"`
 	BaseBuildID    string `json:"base_build_id"`
 	PatchedBuildID string `json:"patched_build_id"`

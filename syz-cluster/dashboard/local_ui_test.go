@@ -82,7 +82,7 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 	buildResp := controller.UploadTestBuild(t, ctx, client, build)
 
 	// Upload a test result (Running)
-	err = client.UploadTestResult(ctx, &api.TestResult{
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test_running",
@@ -92,7 +92,7 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 	require.NoError(t, err)
 
 	// Upload a test result (Failed)
-	err = client.UploadTestResult(ctx, &api.TestResult{
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:   ids.SessionID,
 		BaseBuildID: buildResp.ID,
 		TestName:    "test_failed",

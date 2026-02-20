@@ -108,7 +108,7 @@ func (c APIServer) uploadBuild(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c APIServer) uploadTest(w http.ResponseWriter, r *http.Request) {
-	req := api.ParseJSON[api.TestResult](w, r)
+	req := api.ParseJSON[api.SessionTest](w, r)
 	if req == nil {
 		return
 	}

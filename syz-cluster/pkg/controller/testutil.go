@@ -108,7 +108,7 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 	ids := UploadTestSeries(t, ctx, client, series)
 	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
 	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
-	err := client.UploadTestResult(ctx, &api.TestResult{
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID:      ids.SessionID,
 		BaseBuildID:    baseBuild.ID,
 		PatchedBuildID: patchedBuild.ID,

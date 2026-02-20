@@ -304,7 +304,7 @@ func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Conf
 func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Client,
 	status string, store *manager.DiffFuzzerStore) error {
 	testName := getTestName(config)
-	testResult := &api.TestResult{
+	testResult := &api.SessionTest{
 		SessionID:      *flagSession,
 		TestName:       testName,
 		BaseBuildID:    *flagBaseBuild,
@@ -312,7 +312,7 @@ func reportStatus(ctx context.Context, config *api.FuzzConfig, client *api.Clien
 		Result:         status,
 		Log:            []byte(log.CachedLogOutput()),
 	}
-	err := client.UploadTestResult(ctx, testResult)
+	err := client.UploadSessionTest(ctx, testResult)
 	if err != nil {
 		return fmt.Errorf("failed to upload the status: %w", err)
 	}
