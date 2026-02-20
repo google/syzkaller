@@ -4,10 +4,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: build-step-template
+  name: build-action-template
 spec:
   templates:
-    - name: build-step
+    - name: build-action
       retryStrategy:
         limit: "3"
         backoff:
@@ -31,7 +31,7 @@ spec:
             path: /tmp/request.json
       initContainers:
       - name: setup-repo
-        image: ${IMAGE_PREFIX}build-step:${IMAGE_TAG}
+        image: ${IMAGE_PREFIX}build-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
         command:
           - sh
@@ -50,9 +50,9 @@ spec:
         - name: workdir
           mountPath: /workdir
       container:
-        image: ${IMAGE_PREFIX}build-step:${IMAGE_TAG}
+        image: ${IMAGE_PREFIX}build-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
-        command: ["/bin/build-step"]
+        command: ["/bin/build-action"]
         args: [
           "--request", "/tmp/request.json",
           "--repository", "/workdir",

@@ -2,7 +2,7 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM golang:1.24-alpine AS triage-step-builder
+FROM golang:1.24-alpine AS triage-action-builder
 
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN go mod download
 
 # Build the tool.
 COPY --exclude=.git . .
-RUN go build -o /build/triage-step-bin /build/syz-cluster/workflow/triage-step
+RUN go build -o /build/triage-action-bin /build/syz-cluster/workflow/triage
 
 FROM ubuntu:latest
 
@@ -25,6 +25,6 @@ RUN useradd -u 10000 --create-home syzkaller
 RUN git config --system --add safe.directory /workdir
 RUN git config --system --add safe.directory /kernel-repo
 
-COPY --from=triage-step-builder /build/triage-step-bin /bin/triage-step
+COPY --from=triage-action-builder /build/triage-action-bin /bin/triage-action
 
-ENTRYPOINT ["/bin/series-tracker"]
+ENTRYPOINT ["/bin/triage-action"]

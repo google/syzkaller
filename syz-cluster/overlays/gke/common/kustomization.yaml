@@ -13,7 +13,7 @@ resources:
 patches:
   - target:
       kind: WorkflowTemplate
-      name: (boot|fuzz)-step-template
+      name: (boot|fuzz)-action-template
     patch: |-
       - op: replace
         path: /spec/templates/0/tolerations
@@ -24,7 +24,7 @@ patches:
               effect: "NoSchedule"
   - target:
       kind: WorkflowTemplate
-      name: (boot|fuzz)-step-template
+      name: (boot|fuzz)-action-template
     patch: |-
       - op: replace
         path: /spec/templates/0/nodeSelector

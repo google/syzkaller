@@ -4,10 +4,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: triage-step-template
+  name: triage-action-template
 spec:
   templates:
-    - name: triage-step
+    - name: triage-action
       retryStrategy:
         limit: "3"
         backoff:
@@ -17,7 +17,7 @@ spec:
         fsGroup: 10000
       initContainers:
         - name: setup-repo
-          image: ${IMAGE_PREFIX}triage-step:${IMAGE_TAG}
+          image: ${IMAGE_PREFIX}triage-action:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -35,9 +35,9 @@ spec:
             - name: workdir
               mountPath: /workdir
       container:
-          image: ${IMAGE_PREFIX}triage-step:${IMAGE_TAG}
+          image: ${IMAGE_PREFIX}triage-action:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
-          command: ["/bin/triage-step"]
+          command: ["/bin/triage-action"]
           args: [
             "--session", "{{workflow.parameters.session-id}}",
             "--repository", "/workdir",
