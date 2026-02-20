@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -422,20 +421,12 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 }
 
 func aiCheckClientWorkflow(ctx context.Context, workflow string) error {
-	client := apiContext(ctx).client
-	if !strings.HasPrefix(client, "agent") {
-		return fmt.Errorf("only agent clients can execute AI jobs")
-	}
-	if match := aiUserClientRe.FindStringSubmatch(client); match != nil {
-		suffix := match[1]
-		if !strings.HasSuffix(workflow, suffix) {
-			return fmt.Errorf("the client is not allowed to execute AI jobs without %q suffix", suffix)
-		}
+	suffix := apiContext(ctx).client.AIWorkflowSuffix
+	if !strings.HasSuffix(workflow, suffix) {
+		return fmt.Errorf("the client is not allowed to execute AI jobs without %q suffix", suffix)
 	}
 	return nil
 }
-
-var aiUserClientRe = regexp.MustCompile("^agent-restricted(-.*)$")
 
 func aiJobUpdate(ctx context.Context, job *aidb.Job) error {
 	if err := aidb.UpdateJob(ctx, job); err != nil {

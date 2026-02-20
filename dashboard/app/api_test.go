@@ -18,58 +18,86 @@ import (
 )
 
 func TestClientSecretOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "secr1t",
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "secr1t"},
 		},
-	}, "user", "secr1t", "")
+	}, "user", "secr1t", "", "method")
 	if err != nil || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientOauthOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "OauthSubject:public",
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "OauthSubject:public"},
 		},
-	}, "user", "", "OauthSubject:public")
+	}, "user", "", "OauthSubject:public", "method")
 	if err != nil || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientSecretFail(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{
-			"user": "secr1t",
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {Key: "secr1t"},
 		},
-	}, "user", "wrong", "")
+	}, "user", "wrong", "", "method")
 	if err != ErrAccess || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientSecretMissing(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
-		Clients: map[string]string{},
-	}, "user", "ignored", "")
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{},
+	}, "user", "ignored", "", "method")
 	if err != ErrAccess || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }
 
 func TestClientNamespaceOK(t *testing.T) {
-	got, err := checkClient(&GlobalConfig{
+	_, got, err := checkClient(&GlobalConfig{
 		Namespaces: map[string]*Config{
 			"ns1": {
-				Clients: map[string]string{
-					"user": "secr1t",
+				Clients: map[string]APIClient{
+					"user": {Key: "secr1t"},
 				},
 			},
 		},
-	}, "user", "secr1t", "")
+	}, "user", "secr1t", "", "method")
 	if err != nil || got != "ns1" {
+		t.Errorf("unexpected error %v %v", got, err)
+	}
+}
+
+func TestClientMethodOK(t *testing.T) {
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {
+				Key:     "secr1t",
+				Methods: map[string]bool{"method": true, "other": true},
+			},
+		},
+	}, "user", "secr1t", "", "method")
+	if err != nil || got != "" {
+		t.Errorf("unexpected error %v %v", got, err)
+	}
+}
+
+func TestClientMethodNotOK(t *testing.T) {
+	_, got, err := checkClient(&GlobalConfig{
+		Clients: map[string]APIClient{
+			"user": {
+				Key:     "secr1t",
+				Methods: map[string]bool{"method": true, "other": true},
+			},
+		},
+	}, "user", "secr1t", "", "yetanother")
+	if err != ErrAccess || got != "" {
 		t.Errorf("unexpected error %v %v", got, err)
 	}
 }

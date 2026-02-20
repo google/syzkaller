@@ -95,8 +95,8 @@ var localUIConfig = &GlobalConfig{
 			AccessLevel:  AccessPublic,
 			AI:           &AIConfig{},
 			Key:          password1,
-			Clients: map[string]string{
-				localUIClient: localUIPassword,
+			Clients: map[string]APIClient{
+				localUIClient: {Key: localUIPassword},
 			},
 			Repos: []KernelRepo{
 				{

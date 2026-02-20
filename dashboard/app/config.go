@@ -36,8 +36,8 @@ type GlobalConfig struct {
 	// syz-ci can upload these reports to GCS.
 	CoverPath string
 	// Global API clients that work across namespaces (e.g. external reporting).
-	// The keys are client identities (names), the values are their passwords.
-	Clients map[string]string
+	// The keys are client identities (names).
+	Clients map[string]APIClient
 	// List of emails blocked from issuing test requests.
 	EmailBlocklist []string
 	// Bug obsoleting settings. See ObsoletingConfig for details.
@@ -95,8 +95,8 @@ type Config struct {
 	// Similar bugs are shown only across namespaces with the same value of SimilarityDomain.
 	SimilarityDomain string
 	// Per-namespace clients that act only on a particular namespace.
-	// The keys are client identities (names), the values are their passwords.
-	Clients map[string]string
+	// The keys are client identities (names).
+	Clients map[string]APIClient
 	// A random string used for hashing, can be anything, but once fixed it can't
 	// be changed as it becomes a part of persistent bug identifiers.
 	Key string
@@ -145,6 +145,24 @@ type Config struct {
 
 type AIConfig struct {
 }
+
+type APIClient struct {
+	// Secret key or OAuth subject.
+	Key string
+	// Set of allowed API methods (all if empty).
+	// See predefined vars below.
+	Methods map[string]bool
+	// Suffix of AI jobs this client is allowed to execute.
+	AIWorkflowSuffix string
+}
+
+var (
+	AIMethods = map[string]bool{
+		"ai_job_poll":       true,
+		"ai_job_done":       true,
+		"ai_trajectory_log": true,
+	}
+)
 
 // ACLItem is an Access Control List item.
 // Authorization target may be Email or Domain, not both.
@@ -839,13 +857,13 @@ func checkConfigAccessLevel(current *AccessLevel, parent AccessLevel, what strin
 	}
 }
 
-func checkClients(clientNames map[string]bool, clients map[string]string) {
-	for name, key := range clients {
+func checkClients(clientNames map[string]bool, clients map[string]APIClient) {
+	for name, client := range clients {
 		if !validator.DashClientName(name).Ok {
 			panic(fmt.Sprintf("bad client name: %v", name))
 		}
-		if !validator.DashClientKey(key).Ok {
-			panic(fmt.Sprintf("bad client key: %v", key))
+		if !validator.DashClientKey(client.Key).Ok {
+			panic(fmt.Sprintf("bad client key: %v", client.Key))
 		}
 		if clientNames[name] {
 			panic(fmt.Sprintf("duplicate client name: %v", name))

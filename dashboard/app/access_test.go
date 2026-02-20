@@ -289,7 +289,7 @@ func TestAccess(t *testing.T) {
 	for _, ns := range []string{"access-admin", "access-user", "access-public"} {
 		clientName, clientKey := "", ""
 		for k, v := range c.config().Namespaces[ns].Clients {
-			clientName, clientKey = k, v
+			clientName, clientKey = k, v.Key
 		}
 		nsLevel := c.config().Namespaces[ns].AccessLevel
 		namespaceAccessPrefix := accessLevelPrefix(nsLevel)
