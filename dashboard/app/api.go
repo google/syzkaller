@@ -143,12 +143,12 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 		return nil, fmt.Errorf("failed to auth.DetermineAuthSubj(): %w", err)
 	}
 	password := r.PostFormValue("key")
-	ns, err := checkClient(getConfig(ctx), client, password, subj)
+	apiClient, ns, err := checkClient(getConfig(ctx), client, password, subj, method)
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
 	apiContext := &APIContext{
-		client: client,
+		client: apiClient,
 		ns:     ns,
 	}
 	ctx = context.WithValue(ctx, &apiContextKey, apiContext)
@@ -179,7 +179,7 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 var apiContextKey = "context available for any APIHandler"
 
 type APIContext struct {
-	client    string
+	client    APIClient
 	ns        string
 	nsChecked bool
 }
@@ -1704,30 +1704,37 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 
 // Verifies that the given credentials are acceptable and returns the
 // corresponding namespace.
-func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
-	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(a, auth.OauthMagic) &&
-			subtle.ConstantTimeCompare([]byte(a), []byte(oauthSubject)) == 1 {
-			return ns, nil
+func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject, method string) (APIClient, string, error) {
+	checkAuth := func(client APIClient) bool {
+		if strings.HasPrefix(client.Key, auth.OauthMagic) &&
+			subtle.ConstantTimeCompare([]byte(client.Key), []byte(oauthSubject)) == 1 {
+			return true
 		}
-		if subtle.ConstantTimeCompare([]byte(a), []byte(secretPassword)) == 0 {
-			return ns, ErrAccess
+		if subtle.ConstantTimeCompare([]byte(client.Key), []byte(secretPassword)) == 1 {
+			return true
 		}
-		return ns, nil
+		return false
 	}
-	for name, authenticator := range conf.Clients {
+	checkClient := func(client APIClient, ns string) (APIClient, string, error) {
+		if !checkAuth(client) ||
+			len(client.Methods) != 0 && !client.Methods[method] {
+			return APIClient{}, "", ErrAccess
+		}
+		return client, ns, nil
+	}
+	for name, client := range conf.Clients {
 		if name == name0 {
-			return checkAuth("", authenticator)
+			return checkClient(client, "")
 		}
 	}
 	for ns, cfg := range conf.Namespaces {
-		for name, authenticator := range cfg.Clients {
+		for name, client := range cfg.Clients {
 			if name == name0 {
-				return checkAuth(ns, authenticator)
+				return checkClient(client, ns)
 			}
 		}
 	}
-	return "", ErrAccess
+	return APIClient{}, "", ErrAccess
 }
 
 func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {

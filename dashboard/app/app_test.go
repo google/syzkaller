@@ -62,10 +62,17 @@ var testConfig = &GlobalConfig{
 			Access: AccessPublic,
 		},
 	},
-	Clients: map[string]string{
-		reportingClient:       reportingKey,
-		agentClient:           agentKey,
-		agentRestrictedClient: agentRestrictedKey,
+	Clients: map[string]APIClient{
+		reportingClient: {Key: reportingKey},
+		agentClient: {
+			Key:     agentKey,
+			Methods: AIMethods,
+		},
+		agentRestrictedClient: {
+			Key:              agentRestrictedKey,
+			Methods:          AIMethods,
+			AIWorkflowSuffix: "-foobar",
+		},
 	},
 	EmailBlocklist: []string{
 		"\"Bar\" <Blocked@Domain.com>",
@@ -87,9 +94,9 @@ var testConfig = &GlobalConfig{
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
 			SimilarityDomain:      testDomain,
-			Clients: map[string]string{
-				client1: password1,
-				"oauth": auth.OauthMagic + "111111122222222",
+			Clients: map[string]APIClient{
+				client1: {Key: password1},
+				"oauth": {Key: auth.OauthMagic + "111111122222222"},
 			},
 			Repos: []KernelRepo{
 				{
@@ -147,8 +154,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "test2keytest2keytest2key",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				client2: password2,
+			Clients: map[string]APIClient{
+				client2: {Key: password2},
 			},
 			Repos: []KernelRepo{
 				{
@@ -218,8 +225,8 @@ var testConfig = &GlobalConfig{
 		"access-admin": {
 			AccessLevel: AccessAdmin,
 			Key:         "adminkeyadminkeyadminkey",
-			Clients: map[string]string{
-				clientAdmin: keyAdmin,
+			Clients: map[string]APIClient{
+				clientAdmin: {Key: keyAdmin},
 			},
 			Repos: []KernelRepo{
 				{
@@ -244,8 +251,8 @@ var testConfig = &GlobalConfig{
 		"access-user": {
 			AccessLevel: AccessUser,
 			Key:         "userkeyuserkeyuserkey",
-			Clients: map[string]string{
-				clientUser: keyUser,
+			Clients: map[string]APIClient{
+				clientUser: {Key: keyUser},
 			},
 			Repos: []KernelRepo{
 				{
@@ -271,8 +278,8 @@ var testConfig = &GlobalConfig{
 		"access-public": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublic: keyPublic,
+			Clients: map[string]APIClient{
+				clientPublic: {Key: keyPublic},
 			},
 			Repos: []KernelRepo{
 				{
@@ -302,8 +309,8 @@ var testConfig = &GlobalConfig{
 		"access-public-email": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicEmail: keyPublicEmail,
+			Clients: map[string]APIClient{
+				clientPublicEmail: {Key: keyPublicEmail},
 			},
 			Managers: map[string]ConfigManager{
 				restrictedManager: {
@@ -348,8 +355,8 @@ var testConfig = &GlobalConfig{
 		"access-public-email-2": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicEmail2: keyPublicEmail2,
+			Clients: map[string]APIClient{
+				clientPublicEmail2: {Key: keyPublicEmail2},
 			},
 			Repos: []KernelRepo{
 				{
@@ -373,8 +380,8 @@ var testConfig = &GlobalConfig{
 		"fs-bugs-reporting": {
 			AccessLevel: AccessPublic,
 			Key:         "fspublickeypublickeypublickey",
-			Clients: map[string]string{
-				clientPublicFs: keyPublicFs,
+			Clients: map[string]APIClient{
+				clientPublicFs: {Key: keyPublicFs},
 			},
 			Repos: []KernelRepo{
 				{
@@ -417,8 +424,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "testdecommissiontestdecommission",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				clientTestDecomm: keyTestDecomm,
+			Clients: map[string]APIClient{
+				clientTestDecomm: {Key: keyTestDecomm},
 			},
 			Repos: []KernelRepo{
 				{
@@ -450,8 +457,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:      AccessAdmin,
 			Key:              "testmgrdecommissiontestmgrdecommission",
 			SimilarityDomain: testDomain,
-			Clients: map[string]string{
-				clientMgrDecommission: keyMgrDecommission,
+			Clients: map[string]APIClient{
+				clientMgrDecommission: {Key: keyMgrDecommission},
 			},
 			Managers: map[string]ConfigManager{
 				notYetDecommManger: {},
@@ -491,8 +498,8 @@ var testConfig = &GlobalConfig{
 		"subsystem-reminders": {
 			AccessLevel: AccessPublic,
 			Key:         "subsystemreminderssubsystemreminders",
-			Clients: map[string]string{
-				clientSubsystemRemind: keySubsystemRemind,
+			Clients: map[string]APIClient{
+				clientSubsystemRemind: {Key: keySubsystemRemind},
 			},
 			Repos: []KernelRepo{
 				{
@@ -549,8 +556,8 @@ var testConfig = &GlobalConfig{
 			AccessLevel:           AccessPublic,
 			FixBisectionAutoClose: true,
 			Key:                   "treeteststreeteststreeteststreeteststreeteststreetests",
-			Clients: map[string]string{
-				clientTreeTests: keyTreeTests,
+			Clients: map[string]APIClient{
+				clientTreeTests: {Key: keyTreeTests},
 			},
 			Repos: []KernelRepo{
 				{
@@ -620,8 +627,8 @@ var testConfig = &GlobalConfig{
 			AI:          &AIConfig{},
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientAI: keyAI,
+			Clients: map[string]APIClient{
+				clientAI: {Key: keyAI},
 			},
 			Repos: []KernelRepo{
 				{
@@ -646,8 +653,8 @@ var testConfig = &GlobalConfig{
 		"skip-stage": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
-			Clients: map[string]string{
-				clientSkipStage: keySkipStage,
+			Clients: map[string]APIClient{
+				clientSkipStage: {Key: keySkipStage},
 			},
 			Repos: []KernelRepo{
 				{
@@ -747,7 +754,7 @@ const (
 	reportingKey          = "reportingkeyreportingkeyreportingkey"
 	agentClient           = "agent"
 	agentKey              = "agentagentagentagentagentagentagentagentagentagent"
-	agentRestrictedClient = "agent-restricted-foobar"
+	agentRestrictedClient = "agent-foobar"
 	agentRestrictedKey    = "agentrestrictedagentrestrictedagentrestrictedagentrestricted"
 
 	restrictedManager     = "restricted-manager"
