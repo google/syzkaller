@@ -639,6 +639,7 @@ static struct nlmsg nlmsg;
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include <linux/if_ether.h>
 #include <linux/if_tun.h>
@@ -665,12 +666,36 @@ static int tun_frags_enabled;
 #endif
 #endif
 
+// Sometimes, executors like to delete or replace /dev/net/tun and this causes
+// all further executors to fail. Let's make sure it's the right char device.
+static void correct_dev_net_tun(void)
+{
+	struct stat st;
+	if (stat("/dev/net/tun", &st) == 0) {
+		if (S_ISCHR(st.st_mode) && major(st.st_rdev) == 10 && minor(st.st_rdev) == 200)
+			return;
+		if (unlink("/dev/net/tun")) {
+			debug("tun: unlink(/dev/net/tun) failed: %d\n", errno);
+		}
+	}
+	if (mkdir("/dev/net", 0755) && errno != EEXIST) {
+		debug("tun: mkdir(/dev/net) failed: %d\n", errno);
+	}
+	if (mknod("/dev/net/tun", S_IFCHR | 0666, makedev(10, 200))) {
+		debug("tun: mknod(/dev/net/tun) failed: %d\n", errno);
+	}
+	if (chmod("/dev/net/tun", 0666)) {
+		debug("tun: chmod(/dev/net/tun) failed: %d\n", errno);
+	}
+}
+
 static void initialize_tun(void)
 {
 #if SYZ_EXECUTOR
 	if (!flag_net_injection)
 		return;
 #endif
+	correct_dev_net_tun();
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
