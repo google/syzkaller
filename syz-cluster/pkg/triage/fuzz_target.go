@@ -80,6 +80,7 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 		// Must be the same.
 		ret.BugTitleRe = config.BugTitleRe
 		ret.Track = config.Track
+		ret.KMSAN = config.KMSAN
 	}
 	ret.Focus = unique(ret.Focus)
 	ret.CorpusURLs = unique(ret.CorpusURLs)

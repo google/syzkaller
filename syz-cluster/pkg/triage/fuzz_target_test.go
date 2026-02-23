@@ -74,6 +74,7 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 				FuzzConfig: &api.FuzzConfig{
 					Track: "KMSAN",
 					Focus: []string{"net"},
+					KMSAN: true,
 				},
 			},
 		}, MergeKernelFuzzConfigs([]*api.KernelFuzzConfig{
@@ -86,6 +87,7 @@ func TestMergeKernelFuzzConfigs(t *testing.T) {
 				Track:        "KMSAN",
 				KernelConfig: "kmsan_config",
 				Focus:        "net",
+				KMSAN:        true,
 			},
 		}))
 	})
