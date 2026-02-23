@@ -172,6 +172,118 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			}
 		}
 	}
+	c.advanceTime(24 * time.Hour)
+
+	fixedBugs := []struct {
+		Title  string
+		Author string
+		Commit string
+	}{
+		{
+			Title:  "use-after-free in socket_close",
+			Author: "Aidan Black <aidan@kernel.syz>",
+			Commit: "net: fix use-after-free in socket_close",
+		},
+		{
+			Title:  "slab-out-of-bounds in kfree",
+			Author: "Balthazar White <balthazar@kernel.syz>",
+			Commit: "mm: fix slab-out-of-bounds in kfree",
+		},
+		{
+			Title:  "memory corruption in ext4_foo_bar",
+			Author: "Cedric Green <cedric@kernel.syz>",
+			Commit: "ext4: fix memory corruption in ext4_foo_bar",
+		},
+		{
+			Title:  "stack overflow in io_uring",
+			Author: "Doran Brown <doran@kernel.syz>",
+			Commit: "io_uring: fix stack overflow",
+		},
+		{
+			Title:  "memory leak in hub_probe",
+			Author: "Elara Blue <elara@kernel.syz>",
+			Commit: "usb: fix memory leak in hub_probe",
+		},
+	}
+
+	for _, bug := range fixedBugs {
+		client.ReportCrash(&dashapi.Crash{
+			BuildID:  "build0",
+			Title:    bug.Title,
+			Report:   []byte("report"),
+			ReproC:   []byte("int main() {}"),
+			ReproSyz: []byte("syncfs"),
+		})
+	}
+
+	for i := 0; i < 4; i++ {
+		t.Logf("polling bugs iteration %v", i)
+		respBugs, err := globalClient.ReportingPollBugs("email")
+		if err != nil {
+			t.Fatalf("ReportingPollBugs failed: %v", err)
+		}
+		if respBugs == nil || len(respBugs.Reports) == 0 {
+			break
+		}
+		var fixCommits []dashapi.Commit
+		for _, rep := range respBugs.Reports {
+			isFixed := false
+			for _, bug := range fixedBugs {
+				if rep.Title == bug.Title {
+					fixCommits = append(fixCommits, dashapi.Commit{
+						Title:  bug.Commit,
+						Author: bug.Author,
+						BugIDs: []string{rep.ID},
+					})
+					isFixed = true
+					break
+				}
+			}
+			if !isFixed {
+				t.Logf("acknowledging bug %q without fixing it", rep.Title)
+				reproLevel := dashapi.ReproLevelNone
+				if len(rep.ReproC) != 0 {
+					reproLevel = dashapi.ReproLevelC
+				} else if len(rep.ReproSyz) != 0 {
+					reproLevel = dashapi.ReproLevelSyz
+				}
+				_, err := globalClient.ReportingUpdate(&dashapi.BugUpdate{
+					ID:         rep.ID,
+					Status:     dashapi.BugStatusOpen,
+					ReproLevel: reproLevel,
+				})
+				if err != nil {
+					t.Fatalf("ReportingUpdate failed for %q: %v", rep.Title, err)
+				}
+			}
+		}
+		if len(fixCommits) == 0 {
+			continue
+		}
+		// Now upload a build that includes these fix commits for ALL managers.
+		for buildID := 0; buildID < 3; buildID++ {
+			err := client.UploadBuild(&dashapi.Build{
+				Manager:           fmt.Sprintf("manager%v", buildID),
+				ID:                fmt.Sprintf("build_fixing_%v_%v", i, buildID),
+				OS:                targets.Linux,
+				Arch:              targets.AMD64,
+				VMArch:            targets.AMD64,
+				SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", buildID),
+				CompilerID:        fmt.Sprintf("compiler%v", buildID),
+				KernelRepo:        "repo0",
+				KernelBranch:      "branch0",
+				KernelCommit:      fmt.Sprintf("kernel_commit_fixing_%v_%v", i, buildID),
+				KernelCommitTitle: fmt.Sprintf("kernel_commit_title_fixing_%v_%v", i, buildID),
+				KernelCommitDate:  timeNow(c.ctx),
+				KernelConfig:      []byte("config"),
+				FixCommits:        fixCommits,
+			})
+			if err != nil {
+				t.Fatalf("UploadBuild failed: %v", err)
+			}
+		}
+	}
+	t.Logf("done populating DB")
 	resp, _ := globalClient.AIJobPoll(&dashapi.AIJobPollReq{
 		CodeRevision: "xxx",
 		Workflows: []dashapi.AIWorkflow{
