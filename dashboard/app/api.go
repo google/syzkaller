@@ -143,7 +143,7 @@ func handleAPI(ctx context.Context, r *http.Request) (any, error) {
 		return nil, fmt.Errorf("failed to auth.DetermineAuthSubj(): %w", err)
 	}
 	password := r.PostFormValue("key")
-	apiClient, ns, err := checkClient(getConfig(ctx), client, password, subj, method)
+	apiClient, ns, err := checkClient(ctx, client, password, subj, method)
 	if err != nil {
 		return nil, fmt.Errorf("checkClient('%s') error: %w", client, err)
 	}
@@ -1704,7 +1704,8 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 
 // Verifies that the given credentials are acceptable and returns the
 // corresponding namespace.
-func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject, method string) (APIClient, string, error) {
+func checkClient(ctx context.Context, name0, secretPassword, oauthSubject, method string) (
+	APIClient, string, error) {
 	checkAuth := func(client APIClient) bool {
 		if strings.HasPrefix(client.Key, auth.OauthMagic) &&
 			subtle.ConstantTimeCompare([]byte(client.Key), []byte(oauthSubject)) == 1 {
@@ -1716,12 +1717,17 @@ func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject, method
 		return false
 	}
 	checkClient := func(client APIClient, ns string) (APIClient, string, error) {
-		if !checkAuth(client) ||
-			len(client.Methods) != 0 && !client.Methods[method] {
+		if !checkAuth(client) {
+			log.Warningf(ctx, "client %q key is wrong", name0)
+			return APIClient{}, "", ErrAccess
+		}
+		if len(client.Methods) != 0 && !client.Methods[method] {
+			log.Warningf(ctx, "client %q is not authorized to execute method %q", name0, method)
 			return APIClient{}, "", ErrAccess
 		}
 		return client, ns, nil
 	}
+	conf := getConfig(ctx)
 	for name, client := range conf.Clients {
 		if name == name0 {
 			return checkClient(client, "")
@@ -1734,6 +1740,7 @@ func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject, method
 			}
 		}
 	}
+	log.Warningf(ctx, "unknown client %q", name0)
 	return APIClient{}, "", ErrAccess
 }
 
