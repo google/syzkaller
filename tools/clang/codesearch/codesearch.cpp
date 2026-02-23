@@ -4,6 +4,8 @@
 // Clang-based tool that indexes kernel source code to power
 // pkg/aflow/tool/codesearcher/codesearcher.go agentic tool.
 
+//go:build linux
+
 #include "json.h"
 #include "output.h"
 
