@@ -656,22 +656,12 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 // autoCreateAIJobs incrementally creates AI jobs for existing bugs, returns if any new jobs were created.
 //
 // The idea is as follows. We have a predicate (workflowsForBug) which says what workflows need to be
-// created for a bug. Each bug has AIJobCheck integer field, which holds version of the predicate
-// that was applied to the bug. The current/latest version is stored in currentAIJobCheckSeq.
-// We fetch some number of bugs with AIJobCheck<currentAIJobCheckSeq and check if we need to create
+// created for a bug. Each bug has AIJobCheck integer field, which holds date when the predicate was
+// applied to the bug. We fetch some number of bugs with AIJobCheck<currentDate and check if we need to create
 // new jobs for them. The check is done by executing workflowsForBug for the bug, loading existing
 // pending/finished jobs for the bug, and finding any jobs returned by workflowsForBug that don't exist yet.
-//
-// If the predicate workflowsForBug is updated, currentAIJobCheckSeq needs to be incremented as well.
-// This will trigger immediate incremental re-checking of all existing bugs to create new jobs.
-// AIJobCheck can always be reset to 0 for a particular bug to trigger re-checking for this single bug.
-// This may be useful when, for example, a bug gets the first reproducer, and some jobs are created
-// only for bugs with reproducers. AIJobCheck may also be reset to 0 when a job finishes with an error
-// to trigger creation of a new job of the same type.
-//
-// TODO(dvyukov): figure out how to handle jobs with errors and unfinished jobs.
-// Do we want to automatically restart them or not?
 func autoCreateAIJobs(ctx context.Context) (bool, error) {
+	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
 		if cfg.AI == nil {
 			continue
@@ -680,7 +670,7 @@ func autoCreateAIJobs(ctx context.Context) (bool, error) {
 		keys, err := db.NewQuery("Bug").
 			Filter("Namespace=", ns).
 			Filter("Status=", BugStatusOpen).
-			Filter("AIJobCheck<", currentAIJobCheckSeq).
+			Filter("AIJobCheck<", date).
 			Limit(100).
 			GetAll(ctx, &bugs)
 		if err != nil {
@@ -702,7 +692,7 @@ func autoCreateAIJobs(ctx context.Context) (bool, error) {
 			}
 		}
 		if err := updateBatch(ctx, updateKeys, func(_ *db.Key, bug *Bug) {
-			bug.AIJobCheck = currentAIJobCheckSeq
+			bug.AIJobCheck = date
 		}); err != nil {
 			return false, err
 		}
@@ -722,12 +712,37 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 	if err != nil {
 		return false, err
 	}
+	workflowAttempts := map[ai.WorkflowType]struct {
+		count int
+		last  time.Time
+	}{}
 	for _, job := range jobs {
-		// Already have a pending unfinished job.
-		if !job.Finished.Valid ||
-			// Have finished successful job.
-			job.Finished.Valid && job.Error == "" {
-			delete(workflows, ai.WorkflowType(job.Workflow))
+		typ := ai.WorkflowType(job.Workflow)
+		// Have finished successful job.
+		if job.Finished.Valid && job.Error == "" ||
+			// Or already have a pending or a running job.
+			!job.Started.Valid || timeSince(ctx, job.Started.Time) < 24*time.Hour {
+			// Don't create new jobs for these types.
+			delete(workflows, typ)
+			continue
+		}
+		// Have a failed, or aborted job.
+		attempts := workflowAttempts[typ]
+		attempts.count++
+		if job.Started.Time.After(attempts.last) {
+			attempts.last = job.Started.Time
+		}
+		workflowAttempts[typ] = attempts
+	}
+	// For failed/aborted jobs, we don't know if the reason was temporary or permanent.
+	// Failed kernel builds and failed repros may be permanent, but also may be flakes,
+	// or may be fixed over time. So we retry failed/aborted jobs with an exponential
+	// backoff based on attempts count. 1 job is retried in 1 day; 2 jobs - in 2 days;
+	// 3 jobs - in 4 days, and so on up to the cap of 30 days.
+	for typ, attempts := range workflowAttempts {
+		retryPeriod := time.Duration(min(30, 1<<(attempts.count-1))) * 24 * time.Hour
+		if timeSince(ctx, attempts.last) < retryPeriod {
+			delete(workflows, typ)
 		}
 	}
 	for workflow := range workflows {
@@ -737,8 +752,6 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 	}
 	return len(workflows) != 0, nil
 }
-
-const currentAIJobCheckSeq = 1
 
 func workflowsForBug(bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	workflows := make(map[ai.WorkflowType]bool)

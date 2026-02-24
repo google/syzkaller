@@ -468,3 +468,65 @@ func TestAIJobCustomCommit(t *testing.T) {
 	args := job.Args.Value.(map[string]any)
 	require.Equal(t, "custom123", args["FixedBaseCommit"])
 }
+
+func TestAIJobAutoCreate(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	crash.Title = "KCSAN: data-race in foo / bar"
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	pollReq := &dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
+		},
+	}
+	// KCSAN job should be created.
+	pollResp0, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp0.ID, "")
+
+	// No new jobs while the first one is running.
+	pollResp1, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp1.ID, "")
+	c.advanceTime(20 * time.Hour)
+	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp2.ID, "")
+
+	// Since the first job never finished,
+	// a new job must be created after a day or so.
+	c.advanceTime(24 * time.Hour)
+	pollResp3, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp3.ID, "")
+	require.NotEqual(t, pollResp3.ID, pollResp0.ID)
+
+	// This job failed, and should also be recreated, but now after 2 days.
+	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    pollResp3.ID,
+		Error: "error",
+	})
+	c.advanceTime(36 * time.Hour)
+	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp4.ID, "")
+
+	c.advanceTime(24 * time.Hour)
+	pollResp5, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp5.ID, "")
+	require.NotEqual(t, pollResp5.ID, pollResp3.ID)
+
+	// This finishes successfully, and must never be recreated again.
+	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: pollResp5.ID,
+	})
+
+	c.advanceTime(10 * 24 * time.Hour)
+	pollResp6, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp6.ID, "")
+	c.advanceTime(30 * 24 * time.Hour)
+	pollResp7, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp7.ID, "")
+}
