@@ -20,6 +20,7 @@ const (
 	OriginLabel          BugLabelType = "origin"
 	MissingBackportLabel BugLabelType = "missing-backport"
 	RaceLabel            BugLabelType = "race"
+	ActionableLabel      BugLabelType = "actionable"
 )
 
 type BugPrio string
@@ -48,6 +49,7 @@ func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 		}),
 		NoRemindersLabel:     trueFalse{},
 		MissingBackportLabel: trueFalse{},
+		ActionableLabel:      trueFalse{},
 	}
 	typ := crash.TitleToType(bug.Title)
 	if typ == crash.KCSANDataRace {

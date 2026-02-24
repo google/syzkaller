@@ -19,15 +19,9 @@ type moderationInputs struct {
 	KernelConfig string
 }
 
-type moderationOutputs struct {
-	Confident   bool
-	Actionable  bool
-	Explanation string
-}
-
 // nolint:dupl
 func init() {
-	aflow.Register[moderationInputs, moderationOutputs](
+	aflow.Register[moderationInputs, ai.ModerationOutputs](
 		ai.WorkflowModeration,
 		"assess if a bug report is consistent and actionable or not",
 		&aflow.Flow{

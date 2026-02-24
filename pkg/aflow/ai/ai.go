@@ -38,3 +38,9 @@ type AssessmentKCSANOutputs struct {
 	Benign      bool
 	Explanation string
 }
+
+type ModerationOutputs struct {
+	Confident   bool
+	Actionable  bool
+	Explanation string
+}
