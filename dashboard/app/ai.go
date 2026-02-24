@@ -106,19 +106,36 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-	workflowParam := r.FormValue("workflow")
+	const (
+		workflowAll             = "ALL"
+		workflowNeedsModeration = "NEEDS MODERATION"
+	)
+	currentWorkflow := r.FormValue("workflow")
+	if currentWorkflow == "" {
+		currentWorkflow = workflowAll
+	}
 	var uiJobs []*uiAIJob
 	for _, job := range jobs {
-		if workflowParam != "" && job.Workflow != workflowParam {
-			continue
+		matched := false
+		switch currentWorkflow {
+		case workflowAll:
+			matched = true
+		case workflowNeedsModeration:
+			matched = string(job.Type) == job.Workflow &&
+				job.Finished.Valid && job.Error == "" &&
+				!job.Correct.Valid
+		default:
+			matched = job.Workflow == currentWorkflow
 		}
-		uiJobs = append(uiJobs, makeUIAIJob(job))
+		if matched {
+			uiJobs = append(uiJobs, makeUIAIJob(job))
+		}
 	}
 	workflows, err := aidb.LoadWorkflows(ctx)
 	if err != nil {
 		return err
 	}
-	var workflowNames []string
+	workflowNames := []string{workflowAll, workflowNeedsModeration}
 	for _, w := range workflows {
 		workflowNames = append(workflowNames, w.Name)
 	}
@@ -127,7 +144,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		Header:          hdr,
 		Jobs:            uiJobs,
 		Workflows:       workflowNames,
-		CurrentWorkflow: workflowParam,
+		CurrentWorkflow: currentWorkflow,
 	}
 	return serveTemplate(w, "ai_jobs.html", page)
 }
