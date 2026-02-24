@@ -227,6 +227,12 @@ var archConfigs = map[string]*archConfig{
 		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
 	},
+	"openbsd/amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -cpu host,migratable=off",
+		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-pci",
+	},
 	"darwin/amd64": {
 		Qemu: "qemu-system-x86_64",
 		QemuArgs: strings.Join([]string{
