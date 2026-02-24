@@ -462,11 +462,13 @@ func addCommitInfoToBugImpl(ctx context.Context, bug *Bug, com dashapi.Commit) (
 	hash0 := bug.CommitInfo[ci].Hash
 	date0 := bug.CommitInfo[ci].Date
 	author0 := bug.CommitInfo[ci].Author
+	authorName0 := bug.CommitInfo[ci].AuthorName
 	needCommitInfo0 := bug.NeedCommitInfo
 
 	bug.CommitInfo[ci].Hash = com.Hash
 	bug.CommitInfo[ci].Date = com.Date
 	bug.CommitInfo[ci].Author = com.Author
+	bug.CommitInfo[ci].AuthorName = com.AuthorName
 	bug.NeedCommitInfo = false
 	for i := range bug.CommitInfo {
 		if bug.CommitInfo[i].Hash == "" {
@@ -477,6 +479,7 @@ func addCommitInfoToBugImpl(ctx context.Context, bug *Bug, com dashapi.Commit) (
 	changed := hash0 != bug.CommitInfo[ci].Hash ||
 		date0 != bug.CommitInfo[ci].Date ||
 		author0 != bug.CommitInfo[ci].Author ||
+		authorName0 != bug.CommitInfo[ci].AuthorName ||
 		needCommitInfo0 != bug.NeedCommitInfo
 	return changed, nil
 }

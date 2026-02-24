@@ -170,7 +170,13 @@ func TestJSONAPIFixCommits(t *testing.T) {
 	})
 
 	c.client.UploadCommits([]dashapi.Commit{
-		{Hash: "hash1", Title: "foo: fix1"},
+		{
+			Hash:       "hash1",
+			Title:      "foo: fix1",
+			Author:     "aidan@black.com",
+			AuthorName: "Aidan Black",
+			Date:       time.Date(2026, 2, 24, 12, 0, 0, 0, time.UTC),
+		},
 	})
 
 	c.client.CommitPoll()
@@ -188,7 +194,10 @@ func TestJSONAPIFixCommits(t *testing.T) {
 			"title": "foo: fix1",
 			"hash": "hash1",
 			"repo": "git://syzkaller.org",
-			"branch": "branch10"
+			"branch": "branch10",
+			"author": "aidan@black.com",
+			"author-name": "Aidan Black",
+			"date": "2026-02-24T12:00:00Z"
 		},
 		{
 			"title": "foo: fix2",

@@ -52,10 +52,12 @@ type Crash struct {
 }
 
 type Commit struct {
-	Title  string     `json:"title"`
-	Link   string     `json:"link,omitempty"`
-	Hash   string     `json:"hash,omitempty"`
-	Repo   string     `json:"repo,omitempty"`
-	Branch string     `json:"branch,omitempty"`
-	Date   *time.Time `json:"date,omitempty"`
+	Title      string     `json:"title"`
+	Link       string     `json:"link,omitempty"`
+	Hash       string     `json:"hash,omitempty"`
+	Repo       string     `json:"repo,omitempty"`
+	Branch     string     `json:"branch,omitempty"`
+	Author     string     `json:"author,omitempty"`
+	AuthorName string     `json:"author-name,omitempty"`
+	Date       *time.Time `json:"date,omitempty"`
 }
