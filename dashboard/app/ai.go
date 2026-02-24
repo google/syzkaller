@@ -514,6 +514,23 @@ func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 e
 			return RaceLabel, BenignRace, true, nil
 		}
 		return RaceLabel, HarmfulRace, true, nil
+	case ai.WorkflowModeration:
+		// For now we require a manual correctness check.
+		if !job.Correct.Valid {
+			return
+		}
+		if !job.Correct.Bool {
+			return ActionableLabel, "", false, nil
+		}
+		res, err := castJobResults[ai.ModerationOutputs](job)
+		if err != nil {
+			err0 = err
+			return
+		}
+		if !res.Confident {
+			return
+		}
+		return ActionableLabel, "", res.Actionable, nil
 	}
 	return
 }
