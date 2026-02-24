@@ -235,11 +235,12 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 	results := make([]dashapi.Commit, 0, len(commits))
 	for _, com := range commits {
 		results = append(results, dashapi.Commit{
-			Hash:   com.Hash,
-			Title:  com.Title,
-			Author: com.Author,
-			BugIDs: com.Tags,
-			Date:   com.Date,
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.Author,
+			AuthorName: com.AuthorName,
+			BugIDs:     com.Tags,
+			Date:       com.Date,
 		})
 	}
 	return mgr.dash.UploadCommits(results)

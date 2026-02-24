@@ -372,14 +372,15 @@ type uiJobList struct {
 }
 
 type uiCommit struct {
-	Hash   string
-	Repo   string
-	Branch string
-	Title  string
-	Link   string
-	Author string
-	CC     []string
-	Date   time.Time
+	Hash       string
+	Repo       string
+	Branch     string
+	Title      string
+	Link       string
+	Author     string
+	AuthorName string
+	CC         []string
+	Date       time.Time
 }
 
 type uiBug struct {
@@ -844,11 +845,14 @@ func loadAllBackports(ctx context.Context, loadCrashes bool) ([]*rawBackport, er
 		to := &uiRepo{URL: job.MergeBaseRepo, Branch: job.MergeBaseBranch}
 		from := &uiRepo{URL: job.KernelRepo, Branch: job.KernelBranch}
 		commit := &uiCommit{
-			Hash:   jobCommit.Hash,
-			Title:  jobCommit.Title,
-			Link:   vcs.CommitLink(from.URL, jobCommit.Hash),
-			Repo:   from.URL,
-			Branch: from.Branch,
+			Hash:       jobCommit.Hash,
+			Title:      jobCommit.Title,
+			Link:       vcs.CommitLink(from.URL, jobCommit.Hash),
+			Repo:       from.URL,
+			Branch:     from.Branch,
+			Author:     jobCommit.Author,
+			AuthorName: jobCommit.AuthorName,
+			Date:       jobCommit.Date,
 		}
 
 		hash := from.String() + to.String() + commit.Hash
@@ -2058,11 +2062,14 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 			mainNsRepo, mainNsBranch := getNsConfig(ctx, bug.Namespace).mainRepoBranch()
 			info := bug.getCommitInfo(i)
 			uiBug.Commits = append(uiBug.Commits, &uiCommit{
-				Hash:   info.Hash,
-				Title:  com,
-				Link:   vcs.CommitLink(mainNsRepo, info.Hash),
-				Repo:   mainNsRepo,
-				Branch: mainNsBranch,
+				Hash:       info.Hash,
+				Title:      com,
+				Link:       vcs.CommitLink(mainNsRepo, info.Hash),
+				Repo:       mainNsRepo,
+				Branch:     mainNsBranch,
+				Author:     info.Author,
+				AuthorName: info.AuthorName,
+				Date:       info.Date,
 			})
 		}
 		for _, mgr := range managers {

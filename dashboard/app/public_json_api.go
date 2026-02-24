@@ -86,11 +86,13 @@ func getBugFixCommits(bug *uiBug) []api.Commit {
 	var res []api.Commit
 	for _, commit := range bug.Commits {
 		apiCommit := api.Commit{
-			Title:  commit.Title,
-			Link:   commit.Link,
-			Hash:   commit.Hash,
-			Repo:   commit.Repo,
-			Branch: commit.Branch,
+			Title:      commit.Title,
+			Link:       commit.Link,
+			Hash:       commit.Hash,
+			Repo:       commit.Repo,
+			Branch:     commit.Branch,
+			Author:     commit.Author,
+			AuthorName: commit.AuthorName,
 		}
 		if !commit.Date.IsZero() {
 			apiCommit.Date = &commit.Date
