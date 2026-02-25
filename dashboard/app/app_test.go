@@ -46,6 +46,7 @@ func init() {
 			testConfig.Namespaces[ns] = cfg
 		}
 	}
+	checkConfig(localUIConfig)
 	installConfig(testConfig)
 }
 
