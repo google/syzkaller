@@ -841,7 +841,7 @@ statx {
 	atime		statx_timestamp
 	btime		statx_timestamp
 	ctime		statx_timestamp
-	mtime		statx_timestamp
+#	mtime		statx_timestamp
 	rdev_major	int32
 	rdev_minor	int32
 	dev_major	int32
