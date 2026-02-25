@@ -218,7 +218,7 @@ func coverageTable(ctx context.Context, ns string, fromTo []coveragedb.TimePerio
 	if err != nil {
 		return "", fmt.Errorf("coveragedb.FilesCoverageWithDetails: %w", err)
 	}
-	templData := cover.FilesCoverageToTemplateData(covAndDates)
+	templData := cover.FilesCoverageToTemplateData(covAndDates, ns)
 	cover.FormatResult(templData, cover.Format{
 		OrderByCoveredLinesDrop:   true,
 		FilterMinCoveredLinesDrop: minDrop,
