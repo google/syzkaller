@@ -4,15 +4,17 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/stat"
@@ -69,25 +71,27 @@ func predTrue(*prog.Prog, int, *stat.Val, string) bool {
 	return true
 }
 
-func generateMinimizedProg(p *prog.Prog, callIndex0 int, processedCallsIn map[int]bool) (pOut *prog.Prog, processedCalls map[int]bool) {
-	pOut, _, processedCalls = prog.RemoveUnrelatedCalls(p, callIndex0, predTrue, processedCallsIn)
+func generateMinimizedProg(p *prog.Prog, callIndex0 int, processedCallsIn []bool, c *prog.Cache, resChanges []int) (pOut *prog.Prog, processedCalls []bool) {
+	pOut, processedCalls = prog.RemoveUnrelatedCallsFast(p, callIndex0, predTrue, processedCallsIn, c, resChanges)
 	return
 }
 
-func generateAllProgs(p0 *prog.Prog) (pF *prog.Prog) {
-	numCalls := len(p0.Calls)
-	processedCalls := map[int]bool{numCalls - 1: false}
-	p := p0.Clone()
+func generateAllProgs(p *prog.Prog, resChanges []int) (pF *prog.Prog) {
+	numCalls := len(p.Calls)
+	processedCalls := make([]bool, numCalls)
+	processedCalls[numCalls - 1] = false
 	outPrefixesIdx := make(map[string]int)
 	prefixLen := 2
-
+	c := new(prog.Cache)
+	c.Uses = make([]map[any]bool, numCalls)
+	c.Bfs = make([]*bloom.BloomFilter, numCalls)
 	fmt.Fprintf(os.Stderr, "Number of syscalls before: %d\n", numCalls)
 	for i := numCalls - 1; i > 0; {
 		if i%1000 == 0 {
-			fmt.Fprintf(os.Stderr, "(%d/%d) Finished.\n", i, numCalls)
+			fmt.Fprintf(os.Stderr, "(%d/%d) Finished (cache: %d entries) @ %s.\n", i, numCalls, len(c.Uses), time.Now())
 		}
 		if !processedCalls[i] {
-			pF, processedCalls = generateMinimizedProg(p, i, processedCalls)
+			pF, processedCalls = generateMinimizedProg(p, i, processedCalls, c, resChanges)
 			if len(pF.Calls) >= *flagMinCalls {
 				fmt.Fprintf(os.Stderr, "(%d/%d) Number of syscalls after: %d\n", i, len(p.Calls), len(pF.Calls))
 				prefixLen = 2
@@ -168,26 +172,56 @@ func saveProg2File(p *prog.Prog, prefix string, index int) {
 	log.Logf(0, "Stored program %s", outName)
 }
 
-func filterProgram(p *prog.Prog) *prog.Prog {
-	syscall_blacklist := []string{
-		"futex",
-		"accept",
-		"execve",
-		"recvfrom",
-		"sendto",
-		"exit",
-		"clone",
-		"clone3",
-		"clock_nanosleep",
-	}
+func extractResources(c *prog.Call) map[any]bool {
+	used := make(map[any]bool)
 
-	for i := len(p.Calls)-1; i >= 0; i-- {
-		if slices.Contains(syscall_blacklist,p.Calls[i].Meta.CallName) {
-			p.Calls = append(p.Calls[:i], p.Calls[i+1:]...)
+	prog.ForeachArg(c, func(arg prog.Arg, _ *prog.ArgCtx) {
+		switch typ := arg.Type().(type) {
+		case *prog.ResourceType:
+			a := arg.(*prog.ResultArg)
+			used[a] = true
+			if a.Res != nil {
+				used[a.Res] = true
+			}
+			for use := range prog.GetUses(a) {
+				used[use] = true
+			}
+		case *prog.BufferType:
+			a := arg.(*prog.DataArg)
+			if a.Dir() != prog.DirOut && typ.Kind == prog.BufferFilename {
+				val := string(bytes.TrimRight(a.Data(), "\x00"))
+				used[val] = true
+			}
+		}
+	})
+
+	return used
+}
+
+// subtracts list1 from list, returns true if there are elements in list1, that are not present in list
+func mapsNewInRightAny(list map[any]bool, list1 map[any]bool) bool {
+	for what := range list1 {
+		if !list[what] {
+			return true
 		}
 	}
+	return false
+}
 
-	return p
+// returns a slice with indices in increasing order
+// and index is added to the slice if a new resource was found at this index
+func generateResChanges(p *prog.Prog) []int {
+	resSlice := make([]int, 0)
+	lastResources := make(map[any](bool))
+	for idx, call := range p.Calls {
+		nextResources := extractResources(call)
+		newELem := mapsNewInRightAny(lastResources, nextResources)
+		if newELem {
+			resSlice = append(resSlice, idx)
+		}
+		lastResources = nextResources
+	}
+	return resSlice
 }
 
 func main() {
@@ -195,7 +229,7 @@ func main() {
 
 	p := readProg()
 
-	p = filterProgram(p)
+	resChanges := generateResChanges(p)
 
-	generateAllProgs(p)
+	generateAllProgs(p, resChanges)
 }

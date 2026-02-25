@@ -344,6 +344,10 @@ type ResultArg struct {
 	uses  map[*ResultArg]bool // args that use this arg
 }
 
+func GetUses(r *ResultArg) map[*ResultArg]bool {
+	return r.uses
+}
+
 func MakeResultArg(t Type, dir Dir, r *ResultArg, v uint64) *ResultArg {
 	arg := &ResultArg{ArgCommon: ArgCommon{ref: t.ref(), dir: dir}, Res: r, Val: v}
 	if r == nil {

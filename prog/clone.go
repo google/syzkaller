@@ -11,6 +11,50 @@ func (p *Prog) Clone() *Prog {
 	return p.cloneWithMap(make(map[*ResultArg]*ResultArg))
 }
 
+func (p *Prog) CloneUpTo(maxIdx int) *Prog {
+	return p.cloneWithMapMax(make(map[*ResultArg]*ResultArg), maxIdx)
+}
+
+func (p *Prog) CloneFilter(keepCalls []bool) *Prog {
+	return p.cloneWithMapAndFilter(make(map[*ResultArg]*ResultArg), keepCalls)
+}
+
+func (p *Prog) cloneWithMapAndFilter(newargs map[*ResultArg]*ResultArg, keepCalls []bool) *Prog {
+	if p.isUnsafe {
+		// We could clone it, but since we prohibit mutation
+		// of unsafe programs, it's unclear why we would clone it.
+		// Note: this also covers cloning of corpus programs
+		// during mutation, so if this is removed, we may need
+		// additional checks during mutation.
+		panic("cloning of unsafe programs is not supposed to be done")
+	}
+	p1 := &Prog{
+		Target: p.Target,
+		Calls:  cloneCallsFilter(p.Calls, newargs, keepCalls),
+	}
+	p1.debugValidate()
+	return p1
+}
+
+func cloneCallsFilter(origCalls []*Call, newargs map[*ResultArg]*ResultArg, keepCalls []bool) []*Call {
+	l := 0
+	i := 0
+	for ci := range origCalls {
+		if keepCalls[ci] {
+			l++
+		}
+	}
+	calls := make([]*Call, l)
+	for ci, c := range origCalls {
+		if !keepCalls[ci] {
+			continue
+		}
+		calls[i] = cloneCall(c, newargs)
+		i++
+	}
+	return calls
+}
+
 func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
 	if p.isUnsafe {
 		// We could clone it, but since we prohibit mutation
@@ -28,10 +72,37 @@ func (p *Prog) cloneWithMap(newargs map[*ResultArg]*ResultArg) *Prog {
 	return p1
 }
 
+func (p *Prog) cloneWithMapMax(newargs map[*ResultArg]*ResultArg, maxIdx int) *Prog {
+	if p.isUnsafe {
+		// We could clone it, but since we prohibit mutation
+		// of unsafe programs, it's unclear why we would clone it.
+		// Note: this also covers cloning of corpus programs
+		// during mutation, so if this is removed, we may need
+		// additional checks during mutation.
+		panic("cloning of unsafe programs is not supposed to be done")
+	}
+	p1 := &Prog{
+		Target: p.Target,
+		Calls:  cloneCallsMax(p.Calls, maxIdx, newargs),
+	}
+	p1.debugValidate()
+	return p1
+}
+
 func cloneCalls(origCalls []*Call, newargs map[*ResultArg]*ResultArg) []*Call {
 	calls := make([]*Call, len(origCalls))
 	for ci, c := range origCalls {
 		calls[ci] = cloneCall(c, newargs)
+	}
+	return calls
+}
+
+func cloneCallsMax(origCalls []*Call, maxIdx int, newargs map[*ResultArg]*ResultArg) []*Call {
+	calls := make([]*Call, maxIdx)
+	for ci, c := range origCalls {
+		if maxIdx >= ci {
+			calls[ci] = cloneCall(c, newargs)
+		}
 	}
 	return calls
 }
