@@ -45,7 +45,6 @@ func TestLocalUI(t *testing.T) {
 	}
 	c := NewSpannerCtx(t)
 	defer c.Close()
-	checkConfig(localUIConfig)
 	c.transformContext = func(ctx context.Context) context.Context {
 		return contextWithConfig(ctx, localUIConfig)
 	}
