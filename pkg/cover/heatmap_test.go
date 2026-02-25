@@ -52,7 +52,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 								"Instrumented:\t1 blocks\nCovered:\t1 blocks",
 							},
 							FileCoverageLink: []string{
-								"/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=file1"},
+								"/test-ns/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=file1"},
 						},
 					},
 					Name:     "",
@@ -103,8 +103,8 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t0 blocks\nCovered:\t0 blocks",
 									},
 									FileCoverageLink: []string{
-										"/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file1",
-										"/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
+										"/test-ns/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file1",
+										"/test-ns/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file1"},
 								},
 								{
 									Name:     "file2",
@@ -118,8 +118,8 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 										"Instrumented:\t1 blocks\nCovered:\t0 blocks",
 									},
 									FileCoverageLink: []string{
-										"/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file2",
-										"/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file2"},
+										"/test-ns/coverage/file?dateto=2024-07-01&period=day&commit=commit1&filepath=dir/file2",
+										"/test-ns/coverage/file?dateto=2024-07-02&period=day&commit=commit2&filepath=dir/file2"},
 								},
 							},
 							Name:     "dir",
@@ -150,7 +150,7 @@ func TestFilesCoverageToTemplateData(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := FilesCoverageToTemplateData(test.input)
+			got := FilesCoverageToTemplateData(test.input, "test-ns")
 			assert.EqualExportedValues(t, test.want, got)
 		})
 	}
