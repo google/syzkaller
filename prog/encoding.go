@@ -128,6 +128,9 @@ func (ctx *serializer) call(c *Call) {
 		ctx.printf(")")
 	}
 
+	// serialize original return value
+	ctx.printf("[%d]", c.StraceRetVal)
+
 	ctx.printf("\n")
 }
 
@@ -362,6 +365,18 @@ func (p *parser) parseProg() (*Prog, error) {
 			}
 		}
 		p.Parse(')')
+
+		// parse original strace return value
+		if !p.EOF() && p.Char() == '[' {
+			p.Parse('[')
+			val := p.Ident()
+			v, err := strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				panic("Unable to parse original strace return value " + fmt.Sprintf("%s", val) + "\n")
+			}
+			c.StraceRetVal = v
+			p.Parse(']')
+		}
 
 		if !p.EOF() && p.Char() == '(' {
 			p.Parse('(')
@@ -1274,7 +1289,8 @@ func (p *parser) Ident() string {
 		(p.s[p.i] >= 'a' && p.s[p.i] <= 'z' ||
 			p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' ||
 			p.s[p.i] >= '0' && p.s[p.i] <= '9' ||
-			p.s[p.i] == '_' || p.s[p.i] == '$') {
+			p.s[p.i] == '_' || p.s[p.i] == '$' ||
+			p.s[p.i] == '-') {
 		p.i++
 	}
 	if i == p.i {

@@ -74,11 +74,12 @@ type CallProps struct {
 }
 
 type Call struct {
-	Meta    *Syscall
-	Args    []Arg
-	Ret     *ResultArg
-	Props   CallProps
-	Comment string
+	Meta			*Syscall
+	Args			[]Arg
+	Ret				*ResultArg
+	StraceRetVal	int64
+	Props			CallProps
+	Comment			string
 }
 
 func MakeCall(meta *Syscall, args []Arg) *Call {
