@@ -12,6 +12,7 @@ const (
 	WorkflowPatching        = WorkflowType("patching")
 	WorkflowModeration      = WorkflowType("moderation")
 	WorkflowAssessmentKCSAN = WorkflowType("assessment-kcsan")
+	WorkflowRepro           = WorkflowType("repro")
 )
 
 // Outputs of various workflow types.
