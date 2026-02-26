@@ -530,3 +530,42 @@ func TestAIJobAutoCreate(t *testing.T) {
 	pollResp7, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp7.ID, "")
 }
+
+func TestAIRepro(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	pollReq := &dashapi.AIJobPollReq{
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+	// No job should be created initially.
+	pollResp0, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp0.ID, "")
+
+	c.advanceTime(15 * 24 * time.Hour)
+	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp2.ID, "")
+
+	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: pollResp2.ID,
+	})
+
+	// A second bug with a repro.
+	crash2 := testCrashWithRepro(build, 2)
+	c.aiClient.ReportCrash(crash2)
+	c.aiClient.pollEmailExtID()
+
+	c.advanceTime(15 * 24 * time.Hour)
+	// No AI job should be created.
+	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp4.ID, "")
+}
