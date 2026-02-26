@@ -554,6 +554,7 @@ func TestAIRepro(t *testing.T) {
 	c.advanceTime(15 * 24 * time.Hour)
 	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
 	require.NotEqual(t, pollResp2.ID, "")
+	require.Equal(t, pollResp2.Args["CrashLog"], "log1")
 
 	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: pollResp2.ID,
