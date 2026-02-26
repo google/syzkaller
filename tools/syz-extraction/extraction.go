@@ -103,7 +103,7 @@ func generateAllProgs(p *prog.Prog, resChanges []int) (pF *prog.Prog) {
 				}
 
 				scallHist := genSyscallHist(pF)
-				topNames := topKNames(scallHist, *flagTopCalls)
+				topNames := stat.TopKNames(scallHist, *flagTopCalls)
 				outPrefix := strings.Join(strings.Split(progBase, "_")[:prefixLen], "_") + "_" + strings.Join(topNames, "_")
 				_, ok := outPrefixesIdx[outPrefix]
 				if !ok {
@@ -134,34 +134,6 @@ func genSyscallHist(p *prog.Prog) map[string]int {
 	}
 
 	return hist
-}
-
-func topKNames(hist map[string]int, k int) []string {
-	var names []string
-	var counts []int
-
-	if k > len(hist) {
-		k = len(hist)
-	}
-
-	i := 0
-	for i < k {
-		names = append(names, "")
-		counts = append(counts, 0)
-		i++
-	}
-
-	for name, count := range hist {
-		for idx, c := range counts {
-			if count > c {
-				names[idx] = name
-				counts[idx] = count
-				break
-			}
-		}
-	}
-
-	return names
 }
 
 func saveProg2File(p *prog.Prog, prefix string, index int) {

@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/stat"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -79,34 +80,6 @@ func genSyscallHist(p *prog.Prog) map[string]int {
 	return hist
 }
 
-func topKNames(hist map[string]int, k int) []string {
-	var names []string
-	var counts []int
-
-	if k > len(hist) {
-		k = len(hist)
-	}
-
-	i := 0
-	for i < k {
-		names = append(names, "")
-		counts = append(counts, 0)
-		i++
-	}
-
-	for name, count := range hist {
-		for idx, c := range counts {
-			if count > c {
-				names[idx] = name
-				counts[idx] = count
-				break
-			}
-		}
-	}
-
-	return names
-}
-
 func parseTraces(target *prog.Target) []*prog.Prog {
 	var ret []*prog.Prog
 	var names []string
@@ -141,7 +114,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	i := 0
 	for _, p := range ret {
 		scallHist := genSyscallHist(p)
-		topNames := topKNames(scallHist, *flagTopCalls)
+		topNames := stat.TopKNames(scallHist, *flagTopCalls)
 		outPrefix := progPrefix[p] + "_" + strings.Join(topNames, "_")
 		_, ok := outPrefixesIdx[outPrefix]
 		if !ok {
