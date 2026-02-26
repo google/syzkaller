@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestRecentCommits(t *testing.T) {
 	require.NoError(t, osutil.MkdirAll(filepath.Join(dir, "repo")))
 	require.NoError(t, os.Symlink(osutil.Abs(filepath.FromSlash("../../../..")),
 		filepath.Join(dir, "repo", "linux")))
-	aflow.TestAction(t, getRecentCommits, dir, recentCommitsArgs{
+	aflow.TestAction(t, kernel.GetRecentCommits, dir, kernel.RecentCommitsArgs{
 		KernelCommit: "e01a0ca6c12c9851ea7090f13879255ef82291e7",
 		PatchDiff: `
 diff --git a/dashboard/app/ai.go b/dashboard/app/ai.go
@@ -43,7 +44,7 @@ index fa7d082e6..74ec57b49 100644
 +// Copyright 2026 syzkaller project authors. All rights reserved.
  // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 `,
-	}, recentCommitsResult{RecentCommits: `dashboard: run patching ai jobs on custom base commits
+	}, kernel.RecentCommitsResult{RecentCommits: `dashboard: run patching ai jobs on custom base commits
 dashboard/app: upload AI-generated patches to gerrit
 dashboard: journal user actions on the ai dashboard
 pkg/aflow/trajectory: add token usage

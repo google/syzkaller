@@ -45,3 +45,8 @@ type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
 }
+
+type ReproOutputs struct {
+	Syzlang string
+	Success bool
+}
