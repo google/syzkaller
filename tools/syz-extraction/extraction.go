@@ -97,7 +97,7 @@ func generateAllProgs(p *prog.Prog, resChanges []int) (pF *prog.Prog) {
 				prefixLen = 2
 				progBase := filepath.Base(*flagProg)
 				splitBase := strings.Split(progBase, "_")
-				if len(splitBase) > 1 && splitBase[0] == "thread" {
+				if len(splitBase) > 1 && (splitBase[0] == "thread" || splitBase[0] == "program") {
 					progBase = strings.Join(splitBase[1:], "_")
 					prefixLen = 1
 				}

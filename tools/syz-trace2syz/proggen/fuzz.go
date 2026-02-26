@@ -12,7 +12,7 @@ import (
 )
 
 var linuxTarget = func() *prog.Target {
-	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
+	target, err := prog.GetTarget(targets.Linux, targets.ARM64)
 	if err != nil {
 		panic(err)
 	}
@@ -24,7 +24,7 @@ var linuxTarget = func() *prog.Target {
 }()
 
 func Fuzz(data []byte) int {
-	progs, err := ParseData(data, linuxTarget)
+	progs, err := ParseData(data, linuxTarget, false)
 	if err != nil {
 		return 0
 	}
