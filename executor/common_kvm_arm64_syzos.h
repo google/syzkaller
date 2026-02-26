@@ -32,29 +32,9 @@ typedef enum {
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
-struct api_call_header {
-	uint64 call;
-	uint64 size;
-};
-
 struct api_call_uexit {
 	struct api_call_header header;
 	uint64 exit_code;
-};
-
-struct api_call_1 {
-	struct api_call_header header;
-	uint64 arg;
-};
-
-struct api_call_2 {
-	struct api_call_header header;
-	uint64 args[2];
-};
-
-struct api_call_3 {
-	struct api_call_header header;
-	uint64 args[3];
 };
 
 struct api_call_code {

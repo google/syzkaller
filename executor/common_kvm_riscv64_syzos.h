@@ -20,24 +20,9 @@ typedef enum {
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
-struct api_call_header {
-	uint64 call;
-	uint64 size;
-};
-
 struct api_call_code {
 	struct api_call_header header;
 	uint32 insns[];
-};
-
-struct api_call_1 {
-	struct api_call_header header;
-	uint64 arg;
-};
-
-struct api_call_2 {
-	struct api_call_header header;
-	uint64 args[2];
 };
 
 GUEST_CODE static void guest_uexit(uint64 exit_code);
