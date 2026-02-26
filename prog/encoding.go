@@ -86,6 +86,10 @@ func (ctx *serializer) allocVarID(arg *ResultArg) int {
 }
 
 func (ctx *serializer) call(c *Call) {
+	if c.StraceTid > 0 {
+		ctx.printf("<%d>", c.StraceTid)
+	}
+
 	if c.Ret != nil && len(c.Ret.uses) != 0 {
 		ctx.printf("r%v = ", ctx.allocVarID(c.Ret))
 	}
@@ -317,6 +321,7 @@ func (p *parser) parseProg() (*Prog, error) {
 		isUnsafe: p.unsafe,
 	}
 	for p.Scan() {
+		var straceTID int64
 		if p.EOF() {
 			if p.comment != "" {
 				prog.Comments = append(prog.Comments, p.comment)
@@ -331,6 +336,18 @@ func (p *parser) parseProg() (*Prog, error) {
 			p.comment = strings.TrimSpace(p.s[p.i+1:])
 			continue
 		}
+		// parse original strace TID
+		if !p.EOF() && p.Char() == '<' {
+			p.Parse('<')
+			val := p.Ident()
+			v, err := strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				panic("Unable to parse original strace tid " + fmt.Sprintf("%s", val) + "\n")
+			}
+			straceTID = v
+			p.Parse(']')
+		}
+
 		name := p.Ident()
 		r := ""
 		if p.Char() == '=' {
@@ -344,6 +361,7 @@ func (p *parser) parseProg() (*Prog, error) {
 		}
 		c := MakeCall(meta, nil)
 		c.Comment = p.comment
+		c.StraceTid = straceTID
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {

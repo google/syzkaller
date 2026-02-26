@@ -78,6 +78,7 @@ type Call struct {
 	Args			[]Arg
 	Ret				*ResultArg
 	StraceRetVal	int64
+	StraceTid		int64
 	Props			CallProps
 	Comment			string
 }
