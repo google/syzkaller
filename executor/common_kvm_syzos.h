@@ -53,4 +53,30 @@
 // Start/end of the guest section.
 extern char *__start_guest, *__stop_guest;
 
+// Common SYZOS API call descriptors.
+struct api_call_header {
+	uint64 call;
+	uint64 size;
+};
+
+struct api_call_1 {
+	struct api_call_header header;
+	uint64 arg;
+};
+
+struct api_call_2 {
+	struct api_call_header header;
+	uint64 args[2];
+};
+
+struct api_call_3 {
+	struct api_call_header header;
+	uint64 args[3];
+};
+
+struct api_call_5 {
+	struct api_call_header header;
+	uint64 args[5];
+};
+
 #endif // EXECUTOR_COMMON_KVM_SYZOS_H

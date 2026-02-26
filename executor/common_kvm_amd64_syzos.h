@@ -45,11 +45,6 @@ typedef enum {
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
-struct api_call_header {
-	uint64 call;
-	uint64 size;
-};
-
 struct api_call_uexit {
 	struct api_call_header header;
 	uint64 exit_code;
@@ -77,26 +72,6 @@ struct api_call_cpuid {
 	struct api_call_header header;
 	uint32 eax;
 	uint32 ecx;
-};
-
-struct api_call_1 {
-	struct api_call_header header;
-	uint64 arg;
-};
-
-struct api_call_2 {
-	struct api_call_header header;
-	uint64 args[2];
-};
-
-struct api_call_3 {
-	struct api_call_header header;
-	uint64 args[3];
-};
-
-struct api_call_5 {
-	struct api_call_header header;
-	uint64 args[5];
 };
 
 // This struct must match the push/pop order in nested_vm_exit_handler_intel_asm().
