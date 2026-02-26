@@ -295,7 +295,7 @@ var List = map[string]map[string]*Target{
 		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			Triple:           "aarch64-linux-gnu",
+			Triple:           getEnvOrDefault("SYZ_TRIPLE_LINUX_ARM64", "aarch64-linux-gnu"),
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
 		},
@@ -1124,3 +1124,10 @@ int main() { printf("Hello, World!\n"); }
 int main() { std::vector<int> v(10); }
 `
 )
+
+func getEnvOrDefault(env, defaultVal string) string {
+	if val, exists := os.LookupEnv(env); exists {
+		return val
+	}
+	return defaultVal
+}
