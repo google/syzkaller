@@ -209,6 +209,7 @@ func TestAIJob(t *testing.T) {
 	require.Equal(t, resp.Args, map[string]any{
 		"BugTitle":        "KCSAN: data-race in foo / bar",
 		"CrashReport":     "report1",
+		"CrashLog":        "log1",
 		"KernelRepo":      "repo1",
 		"KernelCommit":    "1111111111111111111111111111111111111111",
 		"KernelConfig":    "config1",
@@ -554,6 +555,7 @@ func TestAIRepro(t *testing.T) {
 	c.advanceTime(15 * 24 * time.Hour)
 	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
 	require.NotEqual(t, pollResp2.ID, "")
+	require.Equal(t, pollResp2.Args["CrashLog"], "log1")
 
 	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: pollResp2.ID,
