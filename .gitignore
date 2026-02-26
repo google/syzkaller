@@ -25,3 +25,8 @@ executor/syscalls.h
 
 # vscode
 .vscode
+
+# ignore generated binaries
+tools/syz-extraction/syz-extraction
+tools/syz-prog2c/syz-prog2c
+tools/syz-trace2syz/syz-trace2syz
