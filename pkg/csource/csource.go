@@ -262,6 +262,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 		header += "#define UNIQUE_STR() UNIQUE_STR_STR(RESOLVE(UNIQUE_ID))\n"
 		header += "#define MMAP_OFFSET " + fmt.Sprintf("0x%x", ctx.target.DataOffset) + "ul\n"
 		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages * ctx.target.PageSize) + "ul\n"
+		header += "const static uint64_t UNIQUE_VAR(maxWriteBufferSize) = " + fmt.Sprintf("%d", ctx.opts.MaxWriteSize) + "ul;\n"
 	}
 	header += "\n"
 
@@ -574,6 +575,13 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 					continue
 				case "fchmodat":
 					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->dirfd)")
+					continue
+				}
+			}
+			if i == 1 {
+				switch callName {
+				case "write", "pwrite64",  "send",  "sendto":
+					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->writeBuffer)")
 					continue
 				}
 			}

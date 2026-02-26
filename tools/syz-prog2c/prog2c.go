@@ -45,7 +45,6 @@ var (
 	flagCSB        = flag.Bool("csb", false, "generate CSB test header instead of c file")
 	flagNumNop     = flag.Int("num_nop", 0, "number of NOPs per operation")
 	flagCFile      = flag.String("cfile", "", "output c file instead of stdout")
-	flagNumInvoc   = flag.Int("num_invoc", 10000, "max number of invocations per syscall")
 )
 
 type BMConfigApps struct {
@@ -58,6 +57,25 @@ type BMConfig struct {
 	Duration                int            `json:"duration"`
 	Repeat                  int            `json:"repeat"`
 	Applications            []BMConfigApps `json:"applications"`
+}
+
+func sanitizeMaxWriteSize(call *prog.Call, idxBuffer int, idxSize int, maxWriteSizeIn uint64) uint64 {
+	newMaxWriteSize := maxWriteSizeIn
+	// get the count
+	if idxSize >= len(call.Args) {
+		panic("Specified index out of range of arguments.\n")
+	}
+
+	a := call.Args[idxSize].(*prog.ConstArg)
+	if a.Val > newMaxWriteSize {
+		newMaxWriteSize = a.Val
+	}
+
+	a2 := call.Args[idxBuffer].(*prog.PointerArg).Res.(*prog.DataArg)
+	a2.SetData([]byte(""))
+
+	return newMaxWriteSize
+
 }
 
 func sanitizePath(path []byte) ([]byte, string) {
@@ -252,16 +270,18 @@ func sanitizeBind(call *prog.Call, subdirs map[string](bool)) map[string](bool) 
 }
 
 // returns (sanitzed program,map with all sub to be accessed directories,map with resultnum/filesize)
-func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](bool), map[uint64](uint64), map[uint64](string)) {
+func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](bool), map[uint64](uint64), map[uint64](string), uint64) {
 	subdirs := make(map[string](bool))
 	filesizes := make(map[uint64](uint64))
 	filemap := make(map[uint64](string))
+	maxWriteSize := uint64(0)
 	for _, call := range p.Calls {
 		switch call.Meta.Name {
 		case "openat":
 			subdirs, filemap = sanitizeOpenAt(call, subdirs, filemap)
 		case "pwrite64":
 			filesizes = sanitizePwrite64(call, filesizes)
+			maxWriteSize = sanitizeMaxWriteSize(call, 1, 2, maxWriteSize)
 		case "pread64":
 			filesizes = sanitizePread64(call, filesizes)
 		case "faccessat":
@@ -291,6 +311,8 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 		case "fchmodat":
 			subdirPath := sanitizePathArg(call, 1)
 			subdirs[subdirPath] = true
+		case "write", "send$inet6", "send$inet", "send$unix",  "sendto$inet6",  "sendto$unix":
+			maxWriteSize = sanitizeMaxWriteSize(call, 1, 2, maxWriteSize)
 		}
 	}
 
@@ -314,28 +336,7 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 		fmt.Fprintf(os.Stderr, "Differing filenames and filesizes length!\n Check %s\n", progName)
 	}
 
-	return p, subdirs, filesizes, filemap
-}
-
-// returns limited program with regard to having a maximum number of *flagNumInvoc invocations per syscall
-func limitProgram(p *prog.Prog) *prog.Prog {
-	pLim := p.Clone()
-	pLim.Calls = nil
-	invocations := make(map[string](int))
-	for _, call := range p.Calls {
-		callName := call.Meta.Name
-		_, ok := invocations[callName]
-		if !ok {
-			invocations[callName] = 1
-		} else {
-			invocations[callName]++
-		}
-
-		if invocations[callName] <= *flagNumInvoc {
-			pLim.Calls = append(pLim.Calls, call)
-		}
-	}
-	return pLim
+	return p, subdirs, filesizes, filemap, maxWriteSize
 }
 
 func main() {
@@ -381,12 +382,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// limit size of program
-	pLim := limitProgram(p)
-	p = pLim
-
 	// sanitize program
-	pSan, subDirs, filesize, filemap := sanitizeProgram(p, progName)
+	pSan, subDirs, filesize, filemap, maxWriteSize := sanitizeProgram(p, progName)
 	p = pSan
 
 	opts := csource.Options{
@@ -422,6 +419,7 @@ func main() {
 		FileSizes:     filesize,
 		FileNames:     filemap,
 		CallComments:  true,
+		MaxWriteSize:  maxWriteSize,
 	}
 
 	src, err := csource.Write(p, opts)

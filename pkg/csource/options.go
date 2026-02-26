@@ -58,6 +58,7 @@ type Options struct {
 	FileSizes  map[uint64](uint64) `json:"filesizes"`
 	FileNames  map[uint64](string) `json:"filenames"`
 	NumNop     int    `json:"numnop"`
+	MaxWriteSize uint64 `json:"maxWriteSize"`
 
 	LegacyOptions
 }
