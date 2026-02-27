@@ -805,6 +805,10 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		if _, ignore := ignoreFiles[file.Name]; ignore {
 			continue
 		}
+		if _, ok := nameToHash[file.Name]; ok {
+			// We only care about the first occurrence of a file in the diff series.
+			continue
+		}
 		if ok, err := git.verifyHash(file.LeftHash); err != nil {
 			return nil, fmt.Errorf("hash verification failed: %w", err)
 		} else if !ok {
@@ -812,12 +816,8 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 			tracer.Logf("unknown object %s, stopping base commit search", file.LeftHash)
 			return nil, nil
 		}
-		if _, ok := nameToHash[file.Name]; !ok {
-			// If the diff is actually a concatenation of several diffs, we only
-			// want to remember the first left side hash for each file.
-			fileNames = append(fileNames, file.Name)
-			nameToHash[file.Name] = file.LeftHash
-		}
+		fileNames = append(fileNames, file.Name)
+		nameToHash[file.Name] = file.LeftHash
 		args = append(args, "--find-object="+file.LeftHash)
 	}
 	tracer.Logf("extracted %d left blob hashes", len(nameToHash))
