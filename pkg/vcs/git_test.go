@@ -599,6 +599,31 @@ index fa49b07..01c887f 100644
 		require.NoError(t, err)
 		require.Nil(t, base)
 	})
+	t.Run("multiple modifications", func(t *testing.T) {
+		map1, _ := repo.repo.fileHashes(commit3.Hash, []string{"a.txt"})
+
+		twoDiffs := []byte(fmt.Sprintf(`diff --git a/a.txt b/a.txt
+index %s..1111111 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-update a.txt
++update a.txt again
+diff --git a/a.txt b/a.txt
+index 1111111..2222222 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1 @@
+-update a.txt again
++update a.txt again and again
+`, map1["a.txt"]))
+
+		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
+		require.NoError(t, err)
+		require.Len(t, base, 1)
+
+		assert.Equal(t, commit3.Hash, base[0].Hash)
+	})
 }
 
 func TestBaseForDiffMerge(t *testing.T) {
