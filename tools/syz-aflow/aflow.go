@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
@@ -126,16 +125,9 @@ func downloadBug(id, inputFile, token string) error {
 	}
 	crash := info["crashes"].([]any)[0].(map[string]any)
 
-	repoURL, _ := crash["kernel-source-git"].(string)
-
-	// Clean the URL to end at .git.
-	if dotGitIndex := strings.Index(repoURL, ".git"); dotGitIndex != -1 {
-		repoURL = repoURL[:dotGitIndex+4]
-	}
-
 	inputs := map[string]any{
 		"SyzkallerCommit": crash["syzkaller-commit"],
-		"KernelRepo":      repoURL,
+		"KernelRepo":      crash["kernel-source-git"],
 		"KernelCommit":    crash["kernel-source-commit"],
 	}
 

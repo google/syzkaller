@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/civil"
@@ -64,11 +65,16 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 			var res []api.Crash
 			for _, crash := range bug.Crashes {
 				res = append(res, api.Crash{
-					Title:              crash.Title,
-					SyzReproducerLink:  crash.ReproSyzLink,
-					CReproducerLink:    crash.ReproCLink,
-					KernelConfigLink:   crash.KernelConfigLink,
-					KernelSourceGit:    crash.KernelCommitLink,
+					Title:             crash.Title,
+					SyzReproducerLink: crash.ReproSyzLink,
+					CReproducerLink:   crash.ReproCLink,
+					KernelConfigLink:  crash.KernelConfigLink,
+					KernelSourceGit: func() string {
+						if dotGitIndex := strings.Index(crash.KernelCommitLink, ".git"); dotGitIndex != -1 {
+							return crash.KernelCommitLink[:dotGitIndex+4]
+						}
+						return crash.KernelCommitLink
+					}(),
 					KernelSourceCommit: crash.KernelCommit,
 					SyzkallerGit:       crash.SyzkallerCommitLink,
 					SyzkallerCommit:    crash.SyzkallerCommit,
