@@ -38,6 +38,7 @@ var (
 	flagSkipCorpus   = flag.Bool("nocorpus", false, "(Optional) skip generating corpus.db")
 	flagTopCalls     = flag.Int("topCalls", 2, "number of most used usyscalls to be used for file name generation")
 	flagSplitThreads = flag.Bool("splitThreads", false, "stores one program program per thread")
+	flagArgLength    = flag.Bool("argLength", false, "trim the length syscall arguments to the actual data size")
 )
 
 const (
@@ -49,7 +50,7 @@ func main() {
 	flag.Parse()
 	target := initializeTarget(goos, arch)
 	progs := parseTraces(target)
-	if ! *flagSkipCorpus {
+	if !*flagSkipCorpus {
 		log.Logf(0, "successfully converted traces; generating corpus.db")
 		pack(progs)
 	}
@@ -103,10 +104,10 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	log.Logf(0, "parsing %v traces", totalFiles)
 	for i, file := range names {
 		log.Logf(1, "parsing file %v/%v: %v", i+1, totalFiles, filepath.Base(names[i]))
-		progs, err := proggen.ParseFile(file, target, *flagSplitThreads)
-		fmt.Fprintf(os.Stderr, "Generated %d programs\n", len(progs));
+		progs, err := proggen.ParseFile(file, target, *flagSplitThreads, *flagArgLength)
+		fmt.Fprintf(os.Stderr, "Generated %d programs\n", len(progs))
 		for idx, p := range progs {
-			fmt.Fprintf(os.Stderr, "Length of program %d: %d\n", idx, len(p.Calls));
+			fmt.Fprintf(os.Stderr, "Length of program %d: %d\n", idx, len(p.Calls))
 			progPrefix[p] = filepath.Base(names[i])[:5]
 		}
 		if err != nil {
@@ -126,15 +127,15 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 		}
 		_, ok := outPrefixesIdx[outPrefix]
 		if !ok {
-			outPrefixesIdx[outPrefix]=0
+			outPrefixesIdx[outPrefix] = 0
 		} else {
 			outPrefixesIdx[outPrefix]++
 		}
-		progName := filepath.Join(deserializeDir, outDescr + "_"+outPrefix+"_"+strconv.Itoa(outPrefixesIdx[outPrefix])+".prog")
+		progName := filepath.Join(deserializeDir, outDescr+"_"+outPrefix+"_"+strconv.Itoa(outPrefixesIdx[outPrefix])+".prog")
 		if err := osutil.WriteFile(progName, p.Serialize()); err != nil {
 			log.Fatalf("failed to output file: %v", err)
 		}
-		log.Logf(0, "Stored program %s", progName);
+		log.Logf(0, "Stored program %s", progName)
 		i++
 	}
 	return ret

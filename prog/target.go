@@ -532,8 +532,10 @@ func MakeProgGen(target *Target) *Builder {
 	}
 }
 
-func (pg *Builder) Append(c *Call) error {
-	pg.target.assignSizesCall(c)
+func (pg *Builder) Append(c *Call, argLength bool) error {
+	if argLength {
+		pg.target.assignSizesCall(c)
+	}
 	pg.target.sanitize(c, true)
 	pg.p.Calls = append(pg.p.Calls, c)
 	return nil

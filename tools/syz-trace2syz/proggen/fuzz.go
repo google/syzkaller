@@ -24,7 +24,7 @@ var linuxTarget = func() *prog.Target {
 }()
 
 func Fuzz(data []byte) int {
-	progs, err := ParseData(data, linuxTarget, false)
+	progs, err := ParseData(data, linuxTarget, false, true)
 	if err != nil {
 		return 0
 	}

@@ -16,15 +16,15 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-func ParseFile(filename string, target *prog.Target, splitThreads bool) ([]*prog.Prog, error) {
+func ParseFile(filename string, target *prog.Target, splitThreads bool, argLength bool) ([]*prog.Prog, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %v", err)
 	}
-	return ParseData(data, target, splitThreads)
+	return ParseData(data, target, splitThreads, argLength)
 }
 
-func ParseData(data []byte, target *prog.Target, splitThreads bool) ([]*prog.Prog, error) {
+func ParseData(data []byte, target *prog.Target, splitThreads bool, argLength bool) ([]*prog.Prog, error) {
 	tree, trace, err := parser.ParseData(data, splitThreads)
 	if err != nil {
 		return nil, err
@@ -38,23 +38,23 @@ func ParseData(data []byte, target *prog.Target, splitThreads bool) ([]*prog.Pro
 	}
 	var progs []*prog.Prog
 	if splitThreads {
-		parseTree(tree, tree.RootPid, target, &progs)
+		parseTree(tree, tree.RootPid, target, &progs, argLength)
 	} else {
-		progs = append(progs, genProg(trace, target))
+		progs = append(progs, genProg(trace, target, argLength))
 	}
 	return progs, nil
 }
 
 // parseTree groups system calls in the trace by process id.
 // The tree preserves process hierarchy i.e. parent->[]child
-func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target, progs *[]*prog.Prog) {
+func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target, progs *[]*prog.Prog, argLength bool) {
 	log.Logf(2, "parsing trace pid %v", pid)
-	if p := genProg(tree.TraceMap[pid], target); p != nil {
+	if p := genProg(tree.TraceMap[pid], target, argLength); p != nil {
 		*progs = append(*progs, p)
 	}
 	for _, childPid := range tree.Ptree[pid] {
 		if tree.TraceMap[childPid] != nil {
-			parseTree(tree, childPid, target, progs)
+			parseTree(tree, childPid, target, progs, argLength)
 		}
 	}
 }
@@ -70,7 +70,7 @@ type context struct {
 }
 
 // genProg converts a trace to one of our programs.
-func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
+func genProg(trace *parser.Trace, target *prog.Target, argLength bool) *prog.Prog {
 	retCache := newRCache()
 	ctx := &context{
 		builder:     prog.MakeProgGen(target),
@@ -94,7 +94,7 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 		if call == nil {
 			continue
 		}
-		if err := ctx.builder.Append(call); err != nil {
+		if err := ctx.builder.Append(call, argLength); err != nil {
 			log.Fatalf("%v", err)
 		}
 	}
@@ -173,7 +173,7 @@ func (ctx *context) genArg(syzType prog.Type, dir prog.Dir, traceArg parser.IrTy
 	case *prog.IntType, *prog.ConstType, *prog.FlagsType, *prog.CsumType:
 		return ctx.genConst(a, dir, traceArg)
 	case *prog.LenType:
-		return syzType.DefaultArg(dir)
+		return ctx.genConst(a, dir, traceArg)
 	case *prog.ProcType:
 		return ctx.parseProc(a, dir, traceArg)
 	case *prog.ResourceType:
