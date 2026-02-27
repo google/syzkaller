@@ -179,14 +179,20 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	if runType == LogFile {
 		opts := csource.DefaultOpts(cfg)
 		opts.Repeat, opts.Threaded = true, true
-		res, err = inst.RunSyzProgFile(file, timeout, opts, instance.SyzExitConditions)
+		res, err = inst.RunSyzProgFile(file, instance.RunOptions{
+			Duration:       timeout,
+			Opts:           opts,
+			ExitConditions: instance.SyzExitConditions,
+		})
 	} else {
 		var src []byte
 		src, err = os.ReadFile(file)
 		if err != nil {
 			log.Fatalf("error reading source file from '%s'", file)
 		}
-		res, err = inst.RunCProgRaw(src, cfg.Target, timeout)
+		res, err = inst.RunCProgRaw(src, cfg.Target, instance.RunOptions{
+			Duration: timeout,
+		})
 	}
 	if err != nil {
 		log.Printf("failed to execute program: %v", err)

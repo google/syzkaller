@@ -116,12 +116,13 @@ type testExecInterface struct {
 	run func([]byte) (*instance.RunResult, error)
 }
 
-func (tei *testExecInterface) Run(_ context.Context, params instance.ExecParams,
+func (tei *testExecInterface) RunC(_ context.Context, p *prog.Prog, _ instance.RunOptions,
 	_ instance.ExecutorLogger) (*instance.RunResult, error) {
-	syzProg := params.SyzProg
-	if params.CProg != nil {
-		syzProg = params.CProg.Serialize()
-	}
+	return tei.run(p.Serialize())
+}
+
+func (tei *testExecInterface) RunSyz(_ context.Context, syzProg []byte, _ instance.RunOptions,
+	_ instance.ExecutorLogger) (*instance.RunResult, error) {
 	return tei.run(syzProg)
 }
 

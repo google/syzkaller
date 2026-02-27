@@ -83,8 +83,7 @@ func (rr *reproRunner) Run(ctx context.Context, k Kernel, r *repro.Result, fullR
 			if err != nil {
 				return
 			}
-			result, err = ret.RunSyzProg(instance.ExecParams{
-				SyzProg:  r.Prog.Serialize(),
+			result, err = ret.RunSyzProg(r.Prog.Serialize(), instance.RunOptions{
 				Duration: max(r.Duration, time.Minute),
 				Opts:     opts,
 			})
