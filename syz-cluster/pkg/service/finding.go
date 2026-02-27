@@ -6,9 +6,13 @@ package service
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
@@ -23,6 +27,7 @@ type FindingService struct {
 	urls            *api.URLGenerator
 	blobStorage     blob.Storage
 	seriesRepo      *db.SeriesRepository
+	sessionRepo     *db.SessionRepository
 }
 
 func NewFindingService(env *app.AppEnvironment) *FindingService {
@@ -33,6 +38,7 @@ func NewFindingService(env *app.AppEnvironment) *FindingService {
 		buildRepo:       db.NewBuildRepository(env.Spanner),
 		sessionTestRepo: db.NewSessionTestRepository(env.Spanner),
 		seriesRepo:      db.NewSeriesRepository(env.Spanner),
+		sessionRepo:     db.NewSessionRepository(env.Spanner),
 	}
 }
 
@@ -55,6 +61,7 @@ func (s *FindingService) Save(ctx context.Context, req *api.RawFinding) error {
 			SessionID: req.SessionID,
 			TestName:  req.TestName,
 			Title:     req.Title,
+			CreatedAt: spanner.NullTime{Time: time.Now(), Valid: true},
 		}
 		// TODO: if it's not actually addded, these blobs will be orphaned.
 		err := s.saveAssets(finding, req)
@@ -112,6 +119,7 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query the list: %w", err)
 	}
+	list = deduplicateFindings(list)
 	tests, err := s.sessionTestRepo.BySession(ctx, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query session tests: %w", err)
@@ -147,4 +155,182 @@ func (s *FindingService) List(ctx context.Context, sessionID string, limit int) 
 		ret = append(ret, finding)
 	}
 	return ret, nil
+}
+
+func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.ListPreviousFindingsReq) ([]string, error) {
+	series, err := s.seriesRepo.GetByID(ctx, req.SeriesID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get series: %w", err)
+	}
+	if series == nil {
+		return nil, fmt.Errorf("series not found: %w", db.ErrEntityNotFound)
+	}
+	allVersions, err := s.seriesRepo.ListAllVersions(ctx, series.Title)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all versions: %w", err)
+	}
+	var ret []string
+	var allFindings []*db.Finding
+	// Prefer newer versions.
+	for i := len(allVersions) - 1; i >= 0; i-- {
+		ver := allVersions[i]
+		if ver.ID == req.SeriesID {
+			continue
+		}
+		if ver.PublishedAt.After(series.PublishedAt) {
+			continue
+		}
+
+		sessions, err := s.sessionRepo.ListForSeries(ctx, ver)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list sessions for series %s: %w", ver.ID, err)
+		}
+		if len(sessions) == 0 {
+			continue
+		}
+		// For now let's only consider the latest session.
+		sessionID := sessions[0].ID
+		matches, err := s.matchesPrevFindingsReq(ctx, sessionID, req)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			continue
+		}
+
+		findings, err := s.findingRepo.ListForSession(ctx, sessionID, 0)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list findings for session %s: %w", sessionID, err)
+		}
+		for _, finding := range findings {
+			if !finding.InvalidatedAt.IsNull() {
+				continue
+			}
+			if finding.CReproURI == "" && finding.SyzReproURI == "" {
+				continue
+			}
+			allFindings = append(allFindings, finding)
+		}
+	}
+	allFindings = deduplicateFindings(allFindings)
+	for _, f := range allFindings {
+		ret = append(ret, f.ID)
+	}
+	return ret, nil
+}
+
+var ErrFindingNotFound = fmt.Errorf("finding not found")
+
+func (s *FindingService) Get(ctx context.Context, id string) (*api.RawFinding, error) {
+	finding, err := s.findingRepo.GetByID(ctx, id)
+	if errors.Is(err, db.ErrEntityNotFound) {
+		return nil, ErrFindingNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get finding: %w", err)
+	}
+	if finding == nil {
+		return nil, ErrFindingNotFound
+	}
+	ret := &api.RawFinding{
+		Title:     finding.Title,
+		SessionID: finding.SessionID,
+		TestName:  finding.TestName,
+	}
+	if finding.CReproURI != "" {
+		ret.CRepro, err = blob.ReadAllBytes(s.blobStorage, finding.CReproURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read c repro: %w", err)
+		}
+	}
+	if finding.SyzReproURI != "" {
+		ret.SyzRepro, err = blob.ReadAllBytes(s.blobStorage, finding.SyzReproURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read syz repro: %w", err)
+		}
+	}
+	if finding.SyzReproOptsURI != "" {
+		ret.SyzReproOpts, err = blob.ReadAllBytes(s.blobStorage, finding.SyzReproOptsURI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read syz repro opts: %w", err)
+		}
+	}
+	return ret, nil
+}
+
+func (s *FindingService) matchesPrevFindingsReq(
+	ctx context.Context, sessionID string, req *api.ListPreviousFindingsReq) (bool, error) {
+	if req.Arch == "" && req.Config == "" {
+		return true, nil
+	}
+	tests, err := s.sessionTestRepo.BySession(ctx, sessionID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get session tests: %w", err)
+	}
+	if len(tests) == 0 {
+		return false, nil
+	}
+	// It's enough to check one test.
+	buildID := tests[0].AnyBuildID()
+	if buildID == "" {
+		return false, nil
+	}
+	build, err := s.buildRepo.GetByID(ctx, buildID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get build %s: %w", buildID, err)
+	}
+	if req.Arch != "" && build.Arch != req.Arch {
+		return false, nil
+	}
+	if req.Config != "" && build.ConfigName != req.Config {
+		return false, nil
+	}
+	return true, nil
+}
+
+func deduplicateFindings(findings []*db.Finding) []*db.Finding {
+	grouped := make(map[string][]*db.Finding)
+	for _, f := range findings {
+		grouped[f.Title] = append(grouped[f.Title], f)
+	}
+
+	var ret []*db.Finding
+	for _, group := range grouped {
+		best := group[0]
+		for _, f := range group[1:] {
+			if isBetterFinding(f, best) {
+				best = f
+			}
+		}
+		ret = append(ret, best)
+	}
+	// Ensure the result is deterministic.
+	slices.SortFunc(ret, func(a, b *db.Finding) int {
+		return strings.Compare(a.Title, b.Title)
+	})
+	return ret
+}
+
+func isBetterFinding(newF, oldF *db.Finding) bool {
+	// 1. Prefer C repro.
+	if newF.CReproURI != "" && oldF.CReproURI == "" {
+		return true
+	}
+	if newF.CReproURI == "" && oldF.CReproURI != "" {
+		return false
+	}
+	// 2. Prefer Syz repro.
+	if newF.SyzReproURI != "" && oldF.SyzReproURI == "" {
+		return true
+	}
+	if newF.SyzReproURI == "" && oldF.SyzReproURI != "" {
+		return false
+	}
+	// 3. First reporterd come first.
+	if newF.CreatedAt.Valid != oldF.CreatedAt.Valid {
+		return newF.CreatedAt.Valid
+	}
+	if newF.CreatedAt.Valid {
+		return newF.CreatedAt.Time.Before(oldF.CreatedAt.Time)
+	}
+	return newF.ID < oldF.ID
 }

@@ -6,6 +6,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,22 +17,24 @@ import (
 )
 
 type APIServer struct {
-	seriesService      *service.SeriesService
-	sessionService     *service.SessionService
-	buildService       *service.BuildService
-	testService        *service.SessionTestService
-	findingService     *service.FindingService
-	baseFindingService *service.BaseFindingService
+	seriesService          *service.SeriesService
+	sessionService         *service.SessionService
+	buildService           *service.BuildService
+	testService            *service.SessionTestService
+	findingService         *service.FindingService
+	baseFindingService     *service.BaseFindingService
+	sessionTestStepService *service.SessionTestStepService
 }
 
 func NewAPIServer(env *app.AppEnvironment) *APIServer {
 	return &APIServer{
-		seriesService:      service.NewSeriesService(env),
-		sessionService:     service.NewSessionService(env),
-		buildService:       service.NewBuildService(env),
-		testService:        service.NewSessionTestService(env),
-		findingService:     service.NewFindingService(env),
-		baseFindingService: service.NewBaseFindingService(env),
+		seriesService:          service.NewSeriesService(env),
+		sessionService:         service.NewSessionService(env),
+		buildService:           service.NewBuildService(env),
+		testService:            service.NewSessionTestService(env),
+		findingService:         service.NewFindingService(env),
+		baseFindingService:     service.NewBaseFindingService(env),
+		sessionTestStepService: service.NewSessionTestStepService(env),
 	}
 }
 
@@ -40,6 +43,8 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/builds/last", c.getLastBuild)
 	mux.HandleFunc("/builds/upload", c.uploadBuild)
 	mux.HandleFunc("/findings/upload", c.uploadFinding)
+	mux.HandleFunc("/findings/previous", c.getPreviousFindings)
+	mux.HandleFunc("/findings/{finding_id}", c.getFinding)
 	mux.HandleFunc("/series/upload", c.uploadSeries)
 	mux.HandleFunc("/series/{series_id}", c.getSeries)
 	mux.HandleFunc("/sessions/upload", c.uploadSession)
@@ -50,6 +55,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/trees", c.getTrees)
 	mux.HandleFunc("/base_findings/upload", c.uploadBaseFinding)
 	mux.HandleFunc("/base_findings/status", c.baseFindingStatus)
+	mux.HandleFunc("/sessions/{session_id}/upload_test_step", c.uploadTestStep)
 	return mux
 }
 
@@ -165,6 +171,31 @@ func (c APIServer) uploadFinding(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON[any](w, nil)
 }
 
+func (c APIServer) getPreviousFindings(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.ListPreviousFindingsReq](w, r)
+	if req == nil {
+		return
+	}
+	findings, err := c.findingService.ListPreviousFindings(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, findings)
+}
+
+func (c APIServer) getFinding(w http.ResponseWriter, r *http.Request) {
+	finding, err := c.findingService.Get(r.Context(), r.PathValue("finding_id"))
+	if errors.Is(err, service.ErrFindingNotFound) {
+		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, finding)
+}
+
 func (c APIServer) getLastBuild(w http.ResponseWriter, r *http.Request) {
 	req := api.ParseJSON[api.LastBuildReq](w, r)
 	if req == nil {
@@ -238,4 +269,18 @@ func (c APIServer) baseFindingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[*api.BaseFindingStatus](w, resp)
+}
+
+func (c APIServer) uploadTestStep(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("session_id")
+	req := &api.SessionTestStep{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := c.sessionTestStepService.Save(r.Context(), sessionID, req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON[any](w, nil)
 }

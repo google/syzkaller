@@ -134,6 +134,28 @@ type SessionTest struct {
 	ArtifactsArchiveURI string             `spanner:"ArtifactsArchiveURI"`
 }
 
+func (t *SessionTest) AnyBuildID() string {
+	if !t.PatchedBuildID.IsNull() {
+		return t.PatchedBuildID.StringVal
+	}
+	if !t.BaseBuildID.IsNull() {
+		return t.BaseBuildID.StringVal
+	}
+	return ""
+}
+
+type SessionTestStep struct {
+	ID        string             `spanner:"ID"`
+	SessionID string             `spanner:"SessionID"`
+	TestName  string             `spanner:"TestName"`
+	Title     string             `spanner:"Title"`
+	LogURI    string             `spanner:"LogURI"`
+	FindingID spanner.NullString `spanner:"FindingID"`
+	Target    string             `spanner:"Target"`
+	Result    string             `spanner:"Result"`
+	CreatedAt time.Time          `spanner:"CreatedAt"`
+}
+
 type Finding struct {
 	ID              string           `spanner:"ID"`
 	SessionID       string           `spanner:"SessionID"`
@@ -145,6 +167,7 @@ type Finding struct {
 	SyzReproOptsURI string           `spanner:"SyzReproOptsURI"`
 	CReproURI       string           `spanner:"CReproURI"`
 	InvalidatedAt   spanner.NullTime `spanner:"InvalidatedAt"`
+	CreatedAt       spanner.NullTime `spanner:"CreatedAt"`
 }
 
 func (f *Finding) SetInvalidatedAt(t time.Time) {

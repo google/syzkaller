@@ -132,6 +132,29 @@ func (client Client) BaseFindingStatus(ctx context.Context, req *BaseFindingInfo
 	return postJSON[BaseFindingInfo, BaseFindingStatus](ctx, client.baseURL+"/base_findings/status", req)
 }
 
+type ListPreviousFindingsReq struct {
+	SeriesID string `json:"series_id"`
+	Arch     string `json:"arch"`
+	Config   string `json:"config"`
+}
+
+func (client Client) ListPreviousFindings(ctx context.Context, req *ListPreviousFindingsReq) ([]string, error) {
+	res, err := postJSON[ListPreviousFindingsReq, []string](ctx, client.baseURL+"/findings/previous", req)
+	if err != nil {
+		return nil, err
+	}
+	return *res, nil
+}
+
+func (client Client) GetFinding(ctx context.Context, id string) (*RawFinding, error) {
+	return getJSON[RawFinding](ctx, client.baseURL+"/findings/"+id)
+}
+
+func (client Client) UploadTestStep(ctx context.Context, sessionID string, step *SessionTestStep) error {
+	_, err := postJSON[SessionTestStep, any](ctx, client.baseURL+"/sessions/"+sessionID+"/upload_test_step", step)
+	return err
+}
+
 const requestTimeout = time.Minute
 
 func finishRequest[Resp any](httpReq *http.Request) (*Resp, error) {

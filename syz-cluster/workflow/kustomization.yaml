@@ -7,3 +7,4 @@ resources:
   - build/workflow-template.yaml
   - boot/workflow-template.yaml
   - fuzz/workflow-template.yaml
+  - retest/workflow-template.yaml

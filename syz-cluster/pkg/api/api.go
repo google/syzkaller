@@ -19,6 +19,12 @@ type TestTarget struct {
 	Patched BuildRequest `json:"patched"`
 	Track   string       `json:"track"` // E.g. KASAN.
 	Fuzz    *FuzzConfig  `json:"fuzz"`
+	Retest  *RetestTask  `json:"retest"`
+}
+
+// RetestTask re(runs) the reproducers of the specified findings.
+type RetestTask struct {
+	Findings []string `json:"findings"`
 }
 
 const (
@@ -109,6 +115,26 @@ type SessionTest struct {
 	Result         string `json:"result"`
 	Log            []byte `json:"log"`
 }
+
+type SessionTestStep struct {
+	TestName  string `json:"test_name"`
+	Title     string `json:"title"`
+	Log       []byte `json:"log"`
+	FindingID string `json:"finding_id"`
+	Target    string `json:"target"`
+	Result    string `json:"result"`
+}
+
+const (
+	StepTargetPatched = "patched"
+	StepTargetBase    = "base"
+)
+
+const (
+	StepResultPassed = "passed"
+	StepResultFailed = "failed"
+	StepResultError  = "error"
+)
 
 type BootResult struct {
 	Success bool `json:"success"`
