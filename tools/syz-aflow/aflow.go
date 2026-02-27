@@ -139,6 +139,12 @@ func downloadBug(id, inputFile, token string) error {
 		"KernelCommit":    crash["kernel-source-commit"],
 	}
 
+	if title, ok := info["title"].(string); ok {
+		inputs["BugTitle"] = title
+	} else if title, ok := crash["title"].(string); ok {
+		inputs["BugTitle"] = title
+	}
+
 	fetchText := func(key string) (string, error) {
 		path, ok := crash[key].(string)
 		if !ok || path == "" {

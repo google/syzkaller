@@ -40,7 +40,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
-			baseCommitPicker,
+			kernel.BaseCommitPicker,
 			kernel.Checkout,
 			kernel.Build,
 			// Ensure we can reproduce the crash (and the build boots).
@@ -74,8 +74,8 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 				While:         "TestError",
 				MaxIterations: 10,
 			},
-			getMaintainers,
-			getRecentCommits,
+			kernel.GetMaintainers,
+			kernel.GetRecentCommits,
 			&aflow.LLMAgent{
 				Name:          "description-generator",
 				Model:         aflow.BestExpensiveModel,

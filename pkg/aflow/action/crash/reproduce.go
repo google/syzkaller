@@ -86,7 +86,7 @@ func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string,
 		return nil, "", err
 	}
 	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
-	results, err := env.Test(1, nil, nil, []byte(args.ReproC))
+	results, err := env.Test(1, []byte(args.ReproSyz), []byte(args.ReproOpts), []byte(args.ReproC))
 	if err != nil {
 		return nil, "", err
 	}
@@ -158,5 +158,87 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 	return reproduceResult{
 		BugTitle:    cached.BugTitle,
 		CrashReport: cached.Report,
+	}, nil
+}
+
+var ReproduceSyzlang = aflow.NewFuncAction("crash-reproducer", reproduceSyzlang)
+
+type ReproduceSyzlangArgs struct {
+	Syzkaller        string
+	Image            string
+	Type             string
+	VM               json.RawMessage
+	CandidateSyzlang string
+	SyzkallerCommit  string
+	KernelSrc        string
+	KernelObj        string
+	KernelCommit     string
+	KernelConfig     string
+}
+
+type reproduceSyzlangResult struct {
+	ProducedBugTitle    string
+	ProducedCrashReport string
+	ReproduceErrors     string
+}
+
+func reproduceSyzlang(ctx *aflow.Context, args ReproduceSyzlangArgs) (reproduceSyzlangResult, error) {
+	imageData, err := os.ReadFile(args.Image)
+	if err != nil {
+		return reproduceSyzlangResult{}, err
+	}
+	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
+		" vm %v, vm config hash %v, syz repro hash %v, version 4",
+		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
+		args.Type, hash.String(args.VM), hash.String(args.CandidateSyzlang))
+
+	type Cached struct {
+		BugTitle string
+		Report   string
+		Error    string
+	}
+
+	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
+		var res Cached
+		workdir, err := ctx.TempDir()
+		if err != nil {
+			return res, err
+		}
+
+		reproArgs := ReproduceArgs{
+			Syzkaller:       args.Syzkaller,
+			Image:           args.Image,
+			Type:            args.Type,
+			VM:              args.VM,
+			ReproOpts:       "",
+			ReproSyz:        args.CandidateSyzlang,
+			ReproC:          "",
+			SyzkallerCommit: args.SyzkallerCommit,
+			KernelSrc:       args.KernelSrc,
+			KernelObj:       args.KernelObj,
+			KernelCommit:    args.KernelCommit,
+			KernelConfig:    args.KernelConfig,
+		}
+
+		rep, buildError, err := ReproduceCrash(reproArgs, workdir)
+		if rep != nil {
+			res.BugTitle = rep.Title
+			res.Report = string(rep.Report)
+		}
+		res.Error = buildError
+		return res, err
+	})
+
+	if err != nil {
+		return reproduceSyzlangResult{}, err
+	}
+	if cached.Error != "" {
+		return reproduceSyzlangResult{ReproduceErrors: cached.Error}, nil
+	} else if cached.Report == "" {
+		return reproduceSyzlangResult{ReproduceErrors: "reproducer did not crash"}, nil
+	}
+	return reproduceSyzlangResult{
+		ProducedBugTitle:    cached.BugTitle,
+		ProducedCrashReport: cached.Report,
 	}, nil
 }
