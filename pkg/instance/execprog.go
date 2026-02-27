@@ -40,6 +40,8 @@ type RunResult struct {
 	Output   []byte
 	Report   *report.Report
 	Duration time.Duration
+	// If not empty, contains path to the file containing a kernel crash dump.
+	CrashDump string
 }
 
 const (
@@ -104,7 +106,7 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 }
 
 func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
-	exitCondition vm.ExitCondition) (*RunResult, error) {
+	exitCondition vm.ExitCondition, crashDump bool) (*RunResult, error) {
 	start := time.Now()
 
 	var prefixOutput []byte
@@ -145,19 +147,41 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration,
 		}
 		inst.Logf(2, "program crashed: %v", rep.Title)
 	}
-	return &RunResult{
+	res := &RunResult{
 		Output:   append(prefixOutput, output...),
 		Report:   rep,
 		Duration: time.Since(start),
-	}, nil
+	}
+	if crashDump {
+		res.CrashDump = inst.extractDump(rep)
+	}
+	return res, nil
 }
 
-func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration) (*RunResult, error) {
+func (inst *ExecProgInstance) extractDump(rep *report.Report) string {
+	if rep == nil || !rep.Panicked {
+		return ""
+	}
+	dumpPath, err := osutil.TempFile("syz-dump-*")
+	if err != nil {
+		inst.Logf(1, "failed to create temp file for dump: %v", err)
+		return ""
+	}
+	if err := ExtractMemoryDump(inst.VMInstance, inst.mgrCfg.SysTarget, dumpPath); err != nil {
+		inst.Logf(1, "failed to extract memory dump: %v", err)
+		os.Remove(dumpPath)
+		return ""
+	}
+
+	return dumpPath
+}
+
+func (inst *ExecProgInstance) runBinary(bin string, duration time.Duration, crashDump bool) (*RunResult, error) {
 	bin, err := inst.VMInstance.Copy(bin)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy binary to VM: %v", err)}
 	}
-	return inst.runCommand(bin, duration, binExitConditions)
+	return inst.runCommand(bin, duration, binExitConditions, crashDump)
 }
 
 type RunOptions struct {
@@ -166,6 +190,8 @@ type RunOptions struct {
 	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
 	// RunCProg() always runs with binExitConditions.
 	ExitConditions vm.ExitCondition
+	// If CrashDump is set, the package will attempt to extract a memory dump from the VM.
+	CrashDump bool
 }
 
 func (inst *ExecProgInstance) RunCProg(p *prog.Prog, opts RunOptions) (*RunResult, error) {
@@ -184,7 +210,7 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target, opts 
 		return nil, err
 	}
 	defer os.Remove(bin)
-	return inst.runBinary(bin, opts.Duration)
+	return inst.runBinary(bin, opts.Duration, opts.CrashDump)
 }
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (*RunResult, error) {
@@ -194,7 +220,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, opts RunOptions) (
 	}
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, inst.mgrCfg.TargetOS, inst.mgrCfg.TargetArch,
 		inst.mgrCfg.Type, opts.Opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, opts.Duration, opts.ExitConditions)
+	return inst.runCommand(command, opts.Duration, opts.ExitConditions, opts.CrashDump)
 }
 
 func (inst *ExecProgInstance) RunSyzProg(syzProg []byte, opts RunOptions) (*RunResult, error) {
