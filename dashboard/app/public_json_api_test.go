@@ -31,6 +31,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 		{
 			"title": "title1",
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+			"kernel-source-git": "repo1",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
 			"syzkaller-commit": "syzkaller_commit1",
@@ -53,6 +54,7 @@ func TestJSONAPIIntegration(t *testing.T) {
 			"syz-reproducer": "/text?tag=ReproSyz\u0026x=13000000000000",
 			"c-reproducer": "/text?tag=ReproC\u0026x=17000000000000",
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+			"kernel-source-git": "repo1",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
 			"syzkaller-commit": "syzkaller_commit1",
@@ -198,6 +200,7 @@ func TestJSONAPIFixCommits(t *testing.T) {
 		{
 			"title": "title1",
 			"kernel-config": "/text?tag=KernelConfig\u0026x=a989f27ebc47e2dc",
+			"kernel-source-git": "repo1",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
 			"syzkaller-commit": "syzkaller_commit1",
@@ -241,6 +244,7 @@ func TestJSONAPICauseBisection(t *testing.T) {
 			"syz-reproducer": "/text?tag=ReproSyz\u0026x=16000000000000",
 			"c-reproducer": "/text?tag=ReproC\u0026x=11000000000000",
 			"kernel-config": "/text?tag=KernelConfig\u0026x=4d11162a90e18f28",
+			"kernel-source-git": "repo1",
 			"kernel-source-commit": "1111111111111111111111111111111111111111",
 			"syzkaller-git": "https://github.com/google/syzkaller/commits/syzkaller_commit1",
 			"syzkaller-commit": "syzkaller_commit1",
