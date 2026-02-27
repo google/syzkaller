@@ -236,10 +236,17 @@ func TestAPIListPreviousFindings(t *testing.T) {
 		SessionID: idsV1.SessionID,
 		Title:     "Crash in foo",
 		TestName:  "test",
+		SyzRepro:  []byte("syz repro"),
 	}))
 	require.NoError(t, client.UploadFinding(ctx, &api.RawFinding{
 		SessionID: idsV1.SessionID,
 		Title:     "Crash in bar",
+		TestName:  "test",
+		SyzRepro:  []byte("syz repro"),
+	}))
+	require.NoError(t, client.UploadFinding(ctx, &api.RawFinding{
+		SessionID: idsV1.SessionID,
+		Title:     "Build error without repro",
 		TestName:  "test",
 	}))
 	MarkSessionFinished(t, env, idsV1.SessionID)
@@ -266,6 +273,7 @@ func TestAPIListPreviousFindings(t *testing.T) {
 		SessionID: idsV2.SessionID,
 		Title:     "Crash in foo",
 		TestName:  "test",
+		SyzRepro:  []byte("syz repro"),
 	}))
 	MarkSessionFinished(t, env, idsV2.SessionID)
 

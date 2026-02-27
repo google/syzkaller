@@ -206,6 +206,9 @@ func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.List
 			if !finding.InvalidatedAt.IsNull() {
 				continue
 			}
+			if finding.CReproURI == "" && finding.SyzReproURI == "" {
+				continue
+			}
 			allFindings = append(allFindings, finding)
 		}
 	}
