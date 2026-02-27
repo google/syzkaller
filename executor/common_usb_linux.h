@@ -81,7 +81,7 @@ struct usb_raw_eps_info {
 #define USB_RAW_IOCTL_EP_CLEAR_HALT _IOW('U', 14, __u32)
 #define USB_RAW_IOCTL_EP_SET_WEDGE _IOW('U', 15, __u32)
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 static int usb_raw_open()
 {
 	return open("/dev/raw-gadget", O_RDWR);
@@ -100,7 +100,7 @@ static int usb_raw_run(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #if SYZ_EXECUTOR || __NR_syz_usb_ep_write
 static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
@@ -116,7 +116,7 @@ static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_ep_read
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 static int usb_raw_configure(int fd)
 {
@@ -128,9 +128,9 @@ static int usb_raw_vbus_draw(int fd, uint32 power)
 	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
 }
 
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe || __NR_syz_usb_control_io
 static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
@@ -160,9 +160,9 @@ static int usb_raw_ep0_stall(int fd)
 {
 	return ioctl(fd, USB_RAW_IOCTL_EP0_STALL, 0);
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe || __NR_syz_usb_control_io
 
-#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_control_io || __NR_syz_usb_finish_probe
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -176,7 +176,7 @@ static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSett
 	}
 	return -1;
 }
-#endif // SYZ_EXECUTOR || __NR_syz_usb_control_io
+#endif // SYZ_EXECUTOR || __NR_syz_usb_control_io || __NR_syz_usb_finish_probe
 
 #if SYZ_EXECUTOR || __NR_syz_usb_ep_write || __NR_syz_usb_ep_read
 static int lookup_endpoint(int fd, uint8 bEndpointAddress)
@@ -207,7 +207,7 @@ struct usb_raw_ep_io_data {
 	char data[USB_MAX_PACKET_SIZE];
 };
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe || __NR_syz_usb_control_io
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -241,9 +241,9 @@ static void set_interface(int fd, int n)
 		index->iface_cur = n;
 	}
 }
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_usb_control_io
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe || __NR_syz_usb_control_io
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 static int configure_device(int fd)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -266,8 +266,7 @@ static int configure_device(int fd)
 }
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
-					  const struct vusb_connect_descriptors* descs,
-					  lookup_connect_out_response_t lookup_connect_response_out)
+					  const struct vusb_connect_descriptors* descs)
 {
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev) {
@@ -319,8 +318,8 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 	}
 	debug("syz_usb_connect: usb_raw_run success\n");
 
-	bool done = false;
-	while (!done) {
+	int done = 1;
+	while (done > 0) {
 		struct usb_raw_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
@@ -345,13 +344,14 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 		struct usb_qualifier_descriptor qual;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &qual, &response_data, &response_length)) {
+			if (!lookup_connect_response_in(fd, descs, NULL, &event.ctrl, &qual,
+							&response_data, &response_length, NULL)) {
 				debug("syz_usb_connect: unknown request, stalling\n");
 				usb_raw_ep0_stall(fd);
 				continue;
 			}
 		} else {
-			if (!lookup_connect_response_out(fd, descs, &event.ctrl, &done)) {
+			if (!lookup_connect_response_out(fd, descs, NULL, &event.ctrl, &done)) {
 				debug("syz_usb_connect: unknown request, stalling\n");
 				usb_raw_ep0_stall(fd);
 				continue;
@@ -403,7 +403,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 	return fd;
 }
 
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
@@ -413,21 +413,124 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 	const char* dev = (const char*)a2;
 	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
 
-	return syz_usb_connect_impl(speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
+	return syz_usb_connect_impl(speed, dev_len, dev, descs);
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
-static volatile long syz_usb_connect_ath9k(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
-{
-	uint64 speed = a0;
-	uint64 dev_len = a1;
-	const char* dev = (const char*)a2;
-	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
+// syz_usb_finish_probe pseudo-syscall should be used to achieve better code coverage in those select usb drivers
+// that require a multitude of IN/OUT control requests during probe. Provided necessary syzlang
+// descriptions of vusb_responses are prepared, this call will run after initial steps are
+// performed by syz_usb_connect. During such run, syz_usb_finish_probe will attempt to satisfy
+// driver-specific requests until, ideally, driver probe finishes well.
 
-	return syz_usb_connect_impl(speed, dev_len, dev, descs, &lookup_connect_response_out_ath9k);
+#if SYZ_EXECUTOR || __NR_syz_usb_finish_probe
+static volatile long syz_usb_finish_probe(volatile long a0, volatile long a1, volatile long a2)
+{
+	int fd = a0;
+	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a1;
+	const struct vusb_responses* resps = (const struct vusb_responses*)a2;
+
+	// Calculate the total number of expected CTRL requests to process during probe to properly finish it.
+	// Start with 0, as universally required SET_CONFIGURATION request should have been processed already.
+	int done = 0;
+	if (resps) {
+		int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+		for (int i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (resp->expected != 0)
+				done += resp->expected;
+		}
+	}
+	debug("syz_usb_finish_probe: total number of control requests to process: %d", done);
+
+	while (done > 0) {
+		struct usb_raw_control_event event;
+		event.inner.type = 0;
+		event.inner.length = USB_MAX_PACKET_SIZE;
+
+		int rv = usb_raw_event_fetch(fd, (struct usb_raw_event*)&event);
+		if (rv < 0) {
+			debug("syz_usb_finish_probe: usb_raw_event_fetch failed with %d\n", rv);
+			return rv;
+		}
+		if (event.inner.type != USB_RAW_EVENT_CONTROL)
+			continue;
+
+		debug("syz_usb_finish_probe: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
+		      event.ctrl.bRequestType, (event.ctrl.bRequestType & USB_DIR_IN) ? "IN" : "OUT",
+		      event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
+
+#if USB_DEBUG
+		analyze_control_request(fd, &event.ctrl);
+#endif
+
+		char* response_data = NULL;
+		uint32 response_length = 0;
+		struct usb_qualifier_descriptor qual;
+
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			if (!lookup_connect_response_in(fd, descs, resps, &event.ctrl, &qual,
+							&response_data, &response_length, &done)) {
+				debug("syz_usb_finish_probe: unknown request (IN), stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
+			}
+		} else {
+			if (!lookup_connect_response_out(fd, descs, resps, &event.ctrl, &done)) {
+				debug("syz_usb_finish_probe: unknown request (OUT), stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
+			}
+			response_data = NULL;
+			response_length = event.ctrl.wLength;
+		}
+
+		if ((event.ctrl.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
+		    event.ctrl.bRequest == USB_REQ_SET_INTERFACE) {
+			int iface_num = event.ctrl.wIndex;
+			int alt_set = event.ctrl.wValue;
+			debug("syz_usb_finish_probe: setting interface (%d, %d)\n", iface_num, alt_set);
+			int iface_index = lookup_interface(fd, iface_num, alt_set);
+			if (iface_index < 0) {
+				debug("syz_usb_finish_probe: interface (%d, %d) not found\n", iface_num, alt_set);
+			} else {
+				set_interface(fd, iface_index);
+				debug("syz_usb_finish_probe: interface (%d, %d) set\n", iface_num, alt_set);
+			}
+		}
+
+		struct usb_raw_ep_io_data response;
+		response.inner.ep = 0;
+		response.inner.flags = 0;
+		if (response_length > sizeof(response.data))
+			response_length = 0;
+		if (event.ctrl.wLength < response_length)
+			response_length = event.ctrl.wLength;
+		response.inner.length = response_length;
+		if (response_data)
+			memcpy(&response.data[0], response_data, response_length);
+		else
+			memset(&response.data[0], 0, response_length);
+
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			debug("syz_usb_finish_probe: writing %d bytes\n", response.inner.length);
+			rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io*)&response);
+		} else {
+			rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io*)&response);
+			debug("syz_usb_finish_probe: read %d bytes\n", response.inner.length);
+			debug_dump_data(&event.data[0], response.inner.length);
+		}
+		if (rv < 0) {
+			debug("syz_usb_finish_probe: usb_raw_ep0_read/write failed with %d\n", rv);
+			return rv;
+		}
+	}
+
+	sleep_ms(200);
+
+	return 0;
 }
-#endif // SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+#endif // SYZ_EXECUTOR || __NR_syz_usb_finish_probe || __NR_syz_usb_connect
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)

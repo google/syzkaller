@@ -73,7 +73,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
     SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
-    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
+    (__NR_syz_usb_connect && USB_DEBUG) ||                                              \
     __NR_syz_usbip_server_init
 #include <errno.h>
 #include <fcntl.h>
@@ -2412,11 +2412,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect
 #define MAX_FDS 30
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||       \
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe ||        \
     __NR_syz_usb_ep_write || __NR_syz_usb_ep_read || __NR_syz_usb_control_io || \
     __NR_syz_usb_disconnect
 #include <errno.h>

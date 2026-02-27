@@ -47,7 +47,7 @@ struct usb_info {
 	struct usb_device_index index;
 };
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || \
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe || \
     __NR_syz_usb_control_io || __NR_syz_usb_ep_read || __NR_syz_usb_ep_write
 static struct usb_info usb_devices[USB_MAX_FDS];
 
@@ -61,7 +61,7 @@ static struct usb_device_index* lookup_usb_index(int fd)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 static int usb_devices_num;
 
 static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
@@ -128,7 +128,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	return &usb_devices[i].index;
 }
 
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #if USB_DEBUG
 
@@ -567,7 +567,39 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_control_io || __NR_syz_usb_finish_probe
+
+struct vusb_descriptor {
+	uint8 req_type;
+	uint8 desc_type;
+	uint32 len;
+	char data[0];
+} __attribute__((packed));
+
+struct vusb_descriptors {
+	uint32 len;
+	struct vusb_descriptor* generic;
+	struct vusb_descriptor* descs[0];
+} __attribute__((packed));
+
+struct vusb_response {
+	uint8 type;
+	uint8 req;
+	uint32 len;
+	// Number of times this request *should* be processed. 0 by default.
+	uint32 expected;
+	char data[0];
+} __attribute__((packed));
+
+struct vusb_responses {
+	uint32 len;
+	struct vusb_response* generic;
+	struct vusb_response* resps[0];
+} __attribute__((packed));
+
+#endif // SYZ_EXECUTOR || __NR_syz_usb_control_io || __NR_syz_usb_finish_probe
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe
 
 static const char default_string[] = {
     8, USB_DT_STRING,
@@ -580,24 +612,32 @@ static const char default_lang_id[] = {
 };
 
 // lookup_connect_response_in() is a helper function that returns a response to a USB IN request
-// based on syzkaller-generated arguments provided to syz_usb_connect* pseudo-syscalls. The data
-// and its length to be used as a response are returned in *response_data and *response_length.
-// The return value of this function lookup_connect_response_inindicates whether the request is known to syzkaller.
+// based on syzkaller-generated arguments provided to syz_usb_connect* and syz_usb_finish_probe*
+// pseudo-syscalls. The data and its length to be used as a response are returned in *response_data
+// and *response_length. The return value of this function lookup_connect_response_in indicates
+// whether the request is known to syzkaller.
+
+// Use *done counter (for instance, in syz_usb_finish_probe variants) to keep track of requests
+// which remain to be processed.
 
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
+				       const struct vusb_responses* resps,
 				       const struct usb_ctrlrequest* ctrl,
 				       struct usb_qualifier_descriptor* qual,
-				       char** response_data, uint32* response_length)
+				       char** response_data, uint32* response_length, int* done)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
 	uint8 str_idx;
+	int resps_num = 0;
+	uint8 req = ctrl->bRequest;
+	uint8 req_type = ctrl->bRequestType;
 
 	if (!index)
 		return false;
 
-	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	switch (req_type & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
-		switch (ctrl->bRequest) {
+		switch (req) {
 		case USB_REQ_GET_DESCRIPTOR:
 			switch (ctrl->wValue >> 8) {
 			case USB_DT_DEVICE:
@@ -655,6 +695,37 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 		}
 		break;
 	default:
+		if (!resps || !done)
+			break;
+
+		resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+
+		int i;
+		for (i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (!resp)
+				continue;
+
+			if (resp->type == req_type && resp->req == req) {
+				*response_length = resp->len;
+
+				if (*response_length != 0)
+					*response_data = &resp->data[0];
+				else
+					*response_data = NULL;
+
+				if (resp->expected != 0)
+					*done -= 1;
+
+				return true;
+			}
+		}
+
+		if (resps->generic) {
+			*response_data = &resps->generic->data[0];
+			*response_length = resps->generic->len;
+			return true;
+		}
 		break;
 	}
 
@@ -662,26 +733,45 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	return false;
 }
 
-#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
-
 // lookup_connect_response_out() functions process a USB OUT request and return in *done
-// whether this is the last request that must be handled by syz_usb_connect* pseudo-syscalls.
+// whether the number of requests left to be handled by syz_usb_connect* or syz_usb_finish_probe*
+// pseudo-syscalls.
 
-typedef bool (*lookup_connect_out_response_t)(int fd, const struct vusb_connect_descriptors* descs,
-					      const struct usb_ctrlrequest* ctrl, bool* done);
-
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
-static bool lookup_connect_response_out_generic(int fd, const struct vusb_connect_descriptors* descs,
-						const struct usb_ctrlrequest* ctrl, bool* done)
+static bool lookup_connect_response_out(int fd, const struct vusb_connect_descriptors* descs,
+					const struct vusb_responses* resps, const struct usb_ctrlrequest* ctrl, int* done)
 {
-	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	uint8 req = ctrl->bRequest;
+	uint8 req_type = ctrl->bRequestType;
+	int resps_num = 0;
+
+	switch (req_type & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
-		switch (ctrl->bRequest) {
+		switch (req) {
 		case USB_REQ_SET_CONFIGURATION:
-			*done = true;
+			*done -= 1;
 			return true;
 		default:
 			break;
+		}
+
+	default:
+		if (!resps)
+			break;
+
+		resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+
+		int i;
+		for (i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (!resp)
+				continue;
+
+			if (resp->type == req_type && resp->req == req) {
+				if (resp->expected != 0)
+					*done -= 1;
+
+				return true;
+			}
 		}
 		break;
 	}
@@ -689,72 +779,10 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 	debug("lookup_connect_response_out: unknown request");
 	return false;
 }
-#endif // SYZ_EXECUTOR || __NR_syz_usb_connect
 
-#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
-
-// drivers/net/wireless/ath/ath9k/hif_usb.h
-#define ATH9K_FIRMWARE_DOWNLOAD 0x30
-#define ATH9K_FIRMWARE_DOWNLOAD_COMP 0x31
-
-static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_descriptors* descs,
-					      const struct usb_ctrlrequest* ctrl, bool* done)
-{
-	switch (ctrl->bRequestType & USB_TYPE_MASK) {
-	case USB_TYPE_STANDARD:
-		switch (ctrl->bRequest) {
-		case USB_REQ_SET_CONFIGURATION:
-			return true;
-		default:
-			break;
-		}
-		break;
-	case USB_TYPE_VENDOR:
-		switch (ctrl->bRequest) {
-		case ATH9K_FIRMWARE_DOWNLOAD:
-			return true;
-		case ATH9K_FIRMWARE_DOWNLOAD_COMP:
-			*done = true;
-			return true;
-		default:
-			break;
-		}
-		break;
-	}
-
-	debug("lookup_connect_response_out_ath9k: unknown request");
-	return false;
-}
-
-#endif // SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+#endif // #if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_finish_probe
 
 #if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
-
-struct vusb_descriptor {
-	uint8 req_type;
-	uint8 desc_type;
-	uint32 len;
-	char data[0];
-} __attribute__((packed));
-
-struct vusb_descriptors {
-	uint32 len;
-	struct vusb_descriptor* generic;
-	struct vusb_descriptor* descs[0];
-} __attribute__((packed));
-
-struct vusb_response {
-	uint8 type;
-	uint8 req;
-	uint32 len;
-	char data[0];
-} __attribute__((packed));
-
-struct vusb_responses {
-	uint32 len;
-	struct vusb_response* generic;
-	struct vusb_response* resps[0];
-} __attribute__((packed));
 
 // lookup_control_response() is a helper function that returns a response to a USB IN request based
 // on syzkaller-generated arguments provided to syz_usb_control_io* pseudo-syscalls. The data and its
