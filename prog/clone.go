@@ -118,6 +118,8 @@ func cloneCall(c *Call, newargs map[*ResultArg]*ResultArg) *Call {
 		c1.Args[ai] = clone(arg, newargs)
 	}
 	c1.Props = c.Props
+	c1.StraceRetVal = c.StraceRetVal
+	c1.StraceTid = c.StraceTid
 	return c1
 }
 

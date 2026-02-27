@@ -345,7 +345,7 @@ func (p *parser) parseProg() (*Prog, error) {
 				panic("Unable to parse original strace tid " + fmt.Sprintf("%s", val) + "\n")
 			}
 			straceTID = v
-			p.Parse(']')
+			p.Parse('>')
 		}
 
 		name := p.Ident()
