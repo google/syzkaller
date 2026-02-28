@@ -397,6 +397,9 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 			return &dashapi.AIJobPollResp{}, nil
 		}
 	}
+	if !job.Args.Valid {
+		job.Args.Value = map[string]any{}
+	}
 	args := make(map[string]any)
 	var textErr error
 	assignText := func(anyID any, tag, name string) {
@@ -413,20 +416,17 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		}
 		args[name] = string(data)
 	}
-	if !job.Args.Valid {
-		job.Args.Value = map[string]any{}
+	textFields := map[string]struct{ tag, name string }{
+		"ReproSyzID":     {textReproSyz, "ReproSyz"},
+		"ReproCID":       {textReproC, "ReproC"},
+		"CrashReportID":  {textCrashReport, "CrashReport"},
+		"CrashLogID":     {textCrashLog, "CrashLog"},
+		"KernelConfigID": {textKernelConfig, "KernelConfig"},
 	}
 	for name, val := range job.Args.Value.(map[string]any) {
-		switch name {
-		case "ReproSyzID":
-			assignText(val, textReproSyz, "ReproSyz")
-		case "ReproCID":
-			assignText(val, textReproC, "ReproC")
-		case "CrashReportID":
-			assignText(val, textCrashReport, "CrashReport")
-		case "KernelConfigID":
-			assignText(val, textKernelConfig, "KernelConfig")
-		default:
+		if text, ok := textFields[name]; ok {
+			assignText(val, text.tag, text.name)
+		} else {
 			args[name] = val
 		}
 	}
@@ -589,7 +589,7 @@ func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 	if err != nil {
 		return nil, err
 	}
-	applicable := workflowsForBug(bug, true)
+	applicable := workflowsForBug(ctx, bug, true)
 	var result []*uiWorkflow
 	for _, flow := range workflows {
 		// Also check that the workflow is active on some syz-agent's.
@@ -656,6 +656,9 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"KernelConfigID":  build.KernelConfig,
 		"SyzkallerCommit": build.SyzkallerCommit,
 	}
+	if typ == ai.WorkflowRepro {
+		args["CrashLogID"] = crash.Log
+	}
 	for k, v := range extraArgs {
 		args[k] = v
 	}
@@ -669,6 +672,12 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		Args:        spanner.NullJSON{Valid: true, Value: args},
 	})
 }
+
+const (
+	// In how many days after a bug is reported we create the first AI repro job
+	// (provided no reproducer has been found in the meanwhile).
+	aiReproTriggerDays = 14
+)
 
 // autoCreateAIJobs incrementally creates AI jobs for existing bugs, returns if any new jobs were created.
 //
@@ -721,7 +730,7 @@ func autoCreateAIJobs(ctx context.Context) (bool, error) {
 }
 
 func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error) {
-	workflows := workflowsForBug(bug, false)
+	workflows := workflowsForBug(ctx, bug, false)
 	if len(workflows) == 0 {
 		return false, nil
 	}
@@ -770,7 +779,7 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 	return len(workflows) != 0, nil
 }
 
-func workflowsForBug(bug *Bug, manual bool) map[ai.WorkflowType]bool {
+func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	workflows := make(map[ai.WorkflowType]bool)
 	typ := crash.TitleToType(bug.Title)
 	// UAF bugs stuck in last but one reporting.
@@ -781,6 +790,9 @@ func workflowsForBug(bug *Bug, manual bool) map[ai.WorkflowType]bool {
 	}
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
+	}
+	if bug.ReproLevel == dashapi.ReproLevelNone && timeSince(ctx, bug.FirstTime) > aiReproTriggerDays*24*time.Hour {
+		workflows[ai.WorkflowRepro] = true
 	}
 	if manual {
 		// Types we don't create automatically yet, but can be created manually.
