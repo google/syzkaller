@@ -520,6 +520,7 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
+	start := time.Now()
 
 	corpus := serv.Corpus.Load()
 	if corpus == nil {
@@ -589,10 +590,11 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 	}
 
 	params := cover.HandlerParams{
-		Progs:  serv.serializeCoverProgs(progs),
-		Filter: coverFilter,
-		Debug:  r.FormValue("debug") != "",
-		Force:  r.FormValue("force") != "",
+		Progs:      serv.serializeCoverProgs(progs),
+		Filter:     coverFilter,
+		Debug:      r.FormValue("debug") != "",
+		Force:      r.FormValue("force") != "",
+		Symbolizer: r.FormValue("symbolizer"),
 	}
 
 	type handlerFuncType func(w io.Writer, params cover.HandlerParams) error
@@ -620,6 +622,11 @@ func (serv *HTTPServer) httpCoverCover(w http.ResponseWriter, r *http.Request, f
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
+	symbName := rg.SymbolizerName
+	if params.Symbolizer != "" {
+		symbName = params.Symbolizer
+	}
+	log.Logf(0, "generated coverage report: symbolizer=%v duration=%v", symbName, time.Since(start))
 }
 
 type coverProgRaw struct {

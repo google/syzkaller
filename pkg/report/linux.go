@@ -389,7 +389,10 @@ func (ctx *linux) extractContext(line []byte) string {
 func (ctx *linux) Symbolize(rep *Report) error {
 	var symbFunc symbFuncCb
 	if ctx.vmlinux != "" {
-		symb := symbolizer.Make(ctx.config.target)
+		symb, err := symbolizer.Make(ctx.config.target, ctx.vmlinux)
+		if err != nil {
+			return err
+		}
 		defer symb.Close()
 		symbFunc = func(bin string, pc uint64) ([]symbolizer.Frame, error) {
 			return ctx.symbolizerCache.Symbolize(symb.Symbolize, bin, pc)
