@@ -42,21 +42,17 @@ There are several PC values associated to the line and not all of these are exec
 
 ![Code line has executed and not executed PC values](coverage_both.png?raw=true)
 
-###  Weak-uncovered: crimson red (#c80000)
-
-Function (symbol) this line is in doesn't have any coverage. I.e. the function is not executed at all. Please note that if compiler have optimized certain symbol out and made the code inline instead symbol associated with this line is the one where the code is compiled into. This makes it sometimes real hard to figure out meaning of coloring. Example below shows how single line which is uncovered and PC values associated to it are in function(s) that are not executed either is shown.
-
-![PC values associated to the line are not executed and these PC values are in functions that are not executed either](coverage_weak-uncovered.png?raw=true)
-
 ### Uncovered: red (#ff0000)
 
 Line is uncovered. Function (symbol) this line is in is executed and one of the PC values associated to this line. Example below shows how single line which is not covered is shown.
 
 ![Code line has no executed PC values associated. Function it is in is executed](coverage_uncovered.png?raw=true)
 
-### Not instrumented: grey (#505050)
+### Not executed or non-instrumented code: grey (#505050)
 
-PC values associated to the line are not instrumented or source line doesn't generate code at all. Example below shows how all not instrumented code is shown.
+If an entire function was never executed, all its lines are shown in grey. This color is also used for lines that are not instrumented or do not generate code (e.g., comments, macros, or empty lines).
+
+Note that if a function was executed but some lines within it were not covered, those lines are shown in red, not grey.
 
 ![Not instrumented code lines](coverage_not_instrumented.png?raw=true)
 
