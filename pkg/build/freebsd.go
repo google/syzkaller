@@ -105,9 +105,12 @@ __EOF__
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
 net.inet.sctp.udp_tunneling_port=9899
 net.inet.tcp.udp_tunneling_port=9811
+# Enable BBLog for all TCP endpoints
 net.inet.tcp.bb.log_auto_all=1
 net.inet.tcp.bb.log_auto_ratio=1
+# Keep the last 1000 BBLog entries (use log state TCP_LOG_STATE_TAIL)
 net.inet.tcp.bb.log_auto_mode=1
+net.inet.tcp.bb.log_session_limit=1000
 vm.redzone.panic=1
 __EOF__
 
