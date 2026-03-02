@@ -1,7 +1,7 @@
 // Copyright 2026 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package patching
+package kernel
 
 import (
 	"os"
@@ -23,7 +23,7 @@ func TestRecentCommits(t *testing.T) {
 	require.NoError(t, osutil.MkdirAll(filepath.Join(dir, "repo")))
 	require.NoError(t, os.Symlink(osutil.Abs(filepath.FromSlash("../../../..")),
 		filepath.Join(dir, "repo", "linux")))
-	aflow.TestAction(t, getRecentCommits, dir, recentCommitsArgs{
+	aflow.TestAction(t, GetRecentCommits, dir, recentCommitsArgs{
 		KernelCommit: "e01a0ca6c12c9851ea7090f13879255ef82291e7",
 		PatchDiff: `
 diff --git a/dashboard/app/ai.go b/dashboard/app/ai.go
