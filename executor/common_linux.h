@@ -4089,7 +4089,7 @@ static void setup_binderfs()
 #include <sys/wait.h>
 
 #if CSB
-static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, size_t op_id);
+static void UNIQUE_FUNC(loop)(thread_ctx_t* ctx, size_t op_id);
 #else
 static void UNIQUE_FUNC(loop)();
 #endif
@@ -4221,7 +4221,7 @@ static void drop_caps(void)
 #include <sys/types.h>
 
 #if CSB
-static int do_sandbox_none(thread_ctx_t *ctx)
+static int do_sandbox_none(thread_ctx_t* ctx)
 #else
 static int do_sandbox_none(void)
 #endif
@@ -4281,7 +4281,7 @@ static int do_sandbox_none(void)
 
 #define SYZ_HAVE_SANDBOX_SETUID 1
 #if CSB
-static int do_sandbox_setuid(thread_ctx_t *ctx)
+static int do_sandbox_setuid(thread_ctx_t* ctx)
 #else
 static int do_sandbox_setuid(void)
 #endif
@@ -4354,7 +4354,7 @@ __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 static int namespace_sandbox_proc(void* arg)
 {
 #if CSB
-	thread_ctx_t *ctx = (thread_ctx_t*) arg;
+	thread_ctx_t* ctx = (thread_ctx_t*)arg;
 #endif
 	sandbox_common();
 
@@ -4405,7 +4405,7 @@ static int namespace_sandbox_proc(void* arg)
 
 #define SYZ_HAVE_SANDBOX_NAMESPACE 1
 #if CSB
-static int do_sandbox_namespace(thread_ctx_t *ctx)
+static int do_sandbox_namespace(thread_ctx_t* ctx)
 #else
 static int do_sandbox_namespace(void)
 #endif
@@ -4571,7 +4571,7 @@ static void setfilecon(const char* path, const char* context)
 #define SYZ_HAVE_SANDBOX_ANDROID 1
 
 #if CSB
-static int do_sandbox_android(uint64 sandbox_arg, thread_ctx_t *ctx)
+static int do_sandbox_android(uint64 sandbox_arg, thread_ctx_t* ctx)
 #else
 static int do_sandbox_android(uint64 sandbox_arg)
 #endif
@@ -4698,7 +4698,7 @@ retry:
 			debug("umount(%s)\n", dir);
 		}
 #else
-		umount2(dir, umount_flags);
+	umount2(dir, umount_flags);
 #endif
 #endif
 	dp = opendir(dir);
@@ -4738,7 +4738,7 @@ retry:
 #if !CSB
 		for (i = 0;; i++) {
 #else
-		for (i = 0;i < 100; i++) {
+		for (i = 0; i < 100; i++) {
 #endif
 			if (unlink(filename) == 0)
 				break;
@@ -4777,7 +4777,7 @@ retry:
 #if !CSB
 	for (int i = 0;; i++) {
 #else
-	for (int i = 0;i < 100; i++) {
+	for (int i = 0; i < 100; i++) {
 #endif
 		if (rmdir(dir) == 0)
 			break;

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -264,9 +265,65 @@ func sanitizeReadlinkat(call *prog.Call, subdirs map[string](bool)) map[string](
 	return subdirs
 }
 
-func sanitizeBind(call *prog.Call, subdirs map[string](bool)) map[string](bool) {
-	//TODO: Add support for bind
-	return subdirs
+func sanitizeBindInet(call *prog.Call) {
+	a1 := call.Args[1].(*prog.PointerArg)
+	// path argument
+	d1 := a1.Res.(*prog.UnionArg).Option.(*prog.GroupArg).Inner
+	sockType := d1[0].(*prog.ConstArg).Val
+
+	if sockType != syscall.AF_INET {
+		panic("Expected type AF_INET for bind$inet sockaddr")
+	}
+}
+
+func sanitizeBindInet6(call *prog.Call) {
+	a1 := call.Args[1].(*prog.PointerArg)
+	// path argument
+	d1 := a1.Res.(*prog.GroupArg).Inner
+	sockType := d1[0].(*prog.ConstArg).Val
+
+	if sockType != syscall.AF_INET6 {
+		panic("Expected type AF_INET6 for bind$inet sockaddr")
+	}
+}
+
+//	addr: ptr[in, sockaddr_in] {
+//	  sockaddr_in {
+//	    family: const = 0x2 (2 bytes)
+//	    port: int16be = 0xc38 (2 bytes)
+//	    addr: union ipv4_addr {
+//	      rand_addr: int32be = 0x7f000001 (4 bytes)
+//	    }
+//	    pad = 0x0 (8 bytes)
+//	  }
+//	}
+func sanitizeConnect(call *prog.Call) {
+	a1 := call.Args[1].(*prog.PointerArg)
+	// struct sockaddr *addr
+	d1 := a1.Res.(*prog.GroupArg)
+	// struct sockaddr
+	data := d1.Inner
+
+	port := data[1].(*prog.ConstArg).Val
+	addr := data[2].(*prog.UnionArg).Option.(*prog.ConstArg).Val
+
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(addr))
+
+	fmt.Fprintf(os.Stderr, "Connect Port: %d\n", port)
+	fmt.Fprintf(os.Stderr, "Connect Addr: %d.%d.%d.%d\n", b[0], b[1], b[2], b[3])
+
+	b[0] = 127
+	b[1] = 0
+	b[2] = 0
+	b[3] = 1
+	port = 31334
+	addr = uint64(binary.BigEndian.Uint32(b))
+
+	// set port
+	data[1].(*prog.ConstArg).Val = port
+	// set IP
+	data[2].(*prog.UnionArg).Option.(*prog.ConstArg).Val = addr
 }
 
 // returns (sanitzed program,map with all sub to be accessed directories,map with resultnum/filesize)
@@ -275,6 +332,7 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 	filesizes := make(map[uint64](uint64))
 	filemap := make(map[uint64](string))
 	maxWriteSize := uint64(0)
+	unixsockets := make(map[string](bool))
 	for _, call := range p.Calls {
 		switch call.Meta.Name {
 		case "openat":
@@ -297,8 +355,6 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 			subdirs = sanitizeReadlinkat(call, subdirs)
 		case "fallocate":
 			filesizes = sanitizeFallocate(call, filesizes)
-		case "bind":
-			sanitizeBind(call, subdirs)
 		case "unlinkat":
 			subdirPath := sanitizePathArg(call, 1)
 			subdirs[subdirPath] = true
@@ -311,8 +367,14 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 		case "fchmodat":
 			subdirPath := sanitizePathArg(call, 1)
 			subdirs[subdirPath] = true
-		case "write", "send$inet6", "send$inet", "send$unix",  "sendto$inet6",  "sendto$unix":
+		case "write", "send$inet6", "send$inet", "send$unix", "sendto$inet6", "sendto$unix":
 			maxWriteSize = sanitizeMaxWriteSize(call, 1, 2, maxWriteSize)
+		case "connect$inet":
+			sanitizeConnect(call)
+		case "bind$inet":
+			sanitizeBindInet(call)
+		case "bind$inet6":
+			sanitizeBindInet6(call)
 		}
 	}
 

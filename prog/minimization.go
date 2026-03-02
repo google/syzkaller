@@ -419,7 +419,6 @@ func relatedCallsFullThread(p0 *Prog, callIndex0 int, c *Cache, processedCallsIn
 		}
 	}
 }
-
 func usesToNewBloom(uses map[any](bool)) *bloom.BloomFilter {
 	bf := bloom.NewWithEstimates(500, 1)
 	for what := range uses {

@@ -27,8 +27,8 @@ var (
 		"madvise":  true,
 		"munmap":   true,
 		// Not interesting coverage
-		"getcwd": true,
-		"getcpu": true,
+		// "getcwd": true,
+		// "getcpu": true,
 		// Cannot evaluate sigset
 		"rt_sigprocmask":  true,
 		"rt_sigtimedwait": true,

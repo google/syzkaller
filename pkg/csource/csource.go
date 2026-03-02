@@ -27,6 +27,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/bits"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -37,9 +38,87 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+type NetOp int
+
+const (
+	NetRead NetOp = iota
+	NetWrite
+)
+
+type NetOpSize struct {
+	Op   NetOp
+	Num  uint64
+	Size uint64
+}
+
 var (
 	missedFDResources = make(map[uint64](bool))
+	connectFDs        = make(map[uint64](bool))
+	readFDSizes       = make(map[uint64](uint64))
+	NetOpsFDs         = make(map[uint64]([]NetOpSize))
 )
+
+func AddToNetOps(res uint64, op NetOp, size uint64) {
+	netops, ok := NetOpsFDs[res]
+
+	// no operation for this file descriptor recorded yet, initialize
+	if !ok {
+		NetOpsFDs[res] = make([]NetOpSize, 0)
+		netops = NetOpsFDs[res]
+	}
+
+	// empty list of operations, or current operation is write -> append
+	if len(netops) == 0 || op == NetWrite {
+		nosNew := NetOpSize{op, 1, size}
+		netops = append(netops, nosNew)
+		NetOpsFDs[res] = netops
+		return
+	}
+
+	// op is Read
+	nosLast := netops[len(netops)-1]
+	if nosLast.Op == NetWrite {
+		nosNew := NetOpSize{op, 1, size}
+		netops = append(netops, nosNew)
+		NetOpsFDs[res] = netops
+		return
+	}
+
+	// Last op was also Read, combine into total
+	nosNew := NetOpSize{op, nosLast.Num + 1, nosLast.Size + size}
+	netops[len(netops)-1] = nosNew
+	NetOpsFDs[res] = netops
+}
+
+var netOpName = map[NetOp]string{
+	NetRead:  "r",
+	NetWrite: "w",
+}
+
+func (no NetOp) String() string {
+	return netOpName[no]
+}
+
+func (nos NetOpSize) String() string {
+	return strconv.FormatUint(nos.Num, 10) + netOpName[nos.Op] + strconv.FormatUint(nos.Size, 10)
+}
+
+func NetOpsString(res uint64) string {
+	netops, ok := NetOpsFDs[res]
+	var netopstring string
+	// no operation for this file descriptor recorded yet, initialize
+	if !ok {
+		return ""
+	}
+
+	for idx, nos := range netops {
+		if idx != 0 {
+			netopstring += "-"
+		}
+		netopstring += nos.String()
+	}
+	return netopstring
+}
 
 // Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
@@ -262,6 +341,19 @@ func (ctx *context) generateSource() ([]byte, error) {
 		header += "#define MMAP_OFFSET " + fmt.Sprintf("0x%x", ctx.target.DataOffset) + "ul\n"
 		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages*ctx.target.PageSize) + "ul\n"
 		header += "const static uint64_t UNIQUE_VAR(maxWriteBufferSize) = " + fmt.Sprintf("%d", ctx.opts.MaxWriteSize) + "ul;\n"
+
+		numNetRes := len(NetOpsFDs)
+
+		idx := 0
+		header += "const char* UNIQUE_VAR(netops)[" + fmt.Sprintf("%d", numNetRes) + "] = {"
+		for res := range NetOpsFDs {
+			if idx > 0 {
+				header += ", "
+			}
+			header += "\"" + NetOpsString(res) + "\""
+			idx++
+		}
+		header += "};\n"
 	}
 	header += "\n"
 
@@ -386,11 +478,36 @@ func generateComment(call *prog.Call) string {
 }
 
 func (ctx *context) generateProgCalls(p *prog.Prog, trace, addComments bool) ([]string, []uint64, error) {
+	msgSizes := make([]uint64, len(p.Calls))
 	var comments []string
 	if addComments {
 		comments = make([]string, len(p.Calls))
 		for i, call := range p.Calls {
 			comments[i] = generateComment(call)
+		}
+	}
+
+	// generate sendmsg, recvmsg sizes
+	for i, call := range p.Calls {
+		if call.Meta.CallName == "recvmsg" || call.Meta.CallName == "sendmsg" {
+			arg1 := call.Args[1]
+			msghdr := arg1.(*prog.PointerArg).Res.(*prog.GroupArg).Inner
+
+			// arg3 is array of iovec *msg_iov
+			data3 := msghdr[3].(*prog.PointerArg).Res.(*prog.GroupArg).Inner
+
+			// arg4 is number of iovec *msg_iov
+			// data4 := msghdr[4].(*prog.ConstArg).Val
+
+			totalLength := uint64(0)
+			for idx, msg := range data3 {
+				iov := msg.(*prog.GroupArg).Inner
+				msglen := iov[1].(*prog.ConstArg).Val
+				totalLength += msglen
+				fmt.Fprintf(os.Stderr, "Message %d (%s) size: %d\n", idx, call.Meta.CallName, msglen)
+			}
+
+			msgSizes[i] = totalLength
 		}
 	}
 
@@ -402,12 +519,12 @@ func (ctx *context) generateProgCalls(p *prog.Prog, trace, addComments bool) ([]
 	if err != nil {
 		return nil, nil, err
 	}
-	calls, vars := ctx.generateCalls(decoded, trace, addComments, comments)
+	calls, vars := ctx.generateCalls(decoded, trace, addComments, comments, msgSizes)
 	return calls, vars, nil
 }
 
 func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
-	callComments []string) ([]string, []uint64) {
+	callComments []string, msgSizes []uint64) ([]string, []uint64) {
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
@@ -457,7 +574,57 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 			missedFDResources[fdRes] = false
 		}
 
+		if callName == "read" || callName == "pread" || callName == "pread64" || callName == "recv" || callName == "recvfrom" {
+			arg0 := call.Args[0]
+			fdRes := arg0.(prog.ExecArgResult).Index
+
+			arg2 := call.Args[2]
+			size := arg2.(prog.ExecArgConst).Value
+			AddToNetOps(fdRes, NetRead, size)
+		}
+
+		if callName == "recvmsg" {
+			arg0 := call.Args[0]
+			fdRes := arg0.(prog.ExecArgResult).Index
+
+			AddToNetOps(fdRes, NetRead, msgSizes[ci])
+		}
+
+		if callName == "write" || callName == "pwrite" || callName == "pwrite64" || callName == "send" || callName == "sendto" {
+			arg0 := call.Args[0]
+			fdRes := arg0.(prog.ExecArgResult).Index
+
+			arg2 := call.Args[2]
+			size := arg2.(prog.ExecArgConst).Value
+			AddToNetOps(fdRes, NetWrite, size)
+		}
+
+		if callName == "sendmsg" {
+			arg0 := call.Args[0]
+			fdRes := arg0.(prog.ExecArgResult).Index
+
+			AddToNetOps(fdRes, NetWrite, msgSizes[ci])
+		}
+
+		if callName == "connect" {
+			arg0 := call.Args[0]
+			fdRes := arg0.(prog.ExecArgResult).Index
+
+			connectFDs[fdRes] = true
+		}
 	}
+
+	// remove resources from network ops which are not created by a connect
+
+	tmpOps := make(map[uint64]([]NetOpSize))
+	for res := range connectFDs {
+		nop, ok := NetOpsFDs[res]
+		if ok {
+			tmpOps[res] = nop
+		}
+	}
+
+	NetOpsFDs = tmpOps
 
 	return calls, p.Vars
 }
@@ -545,7 +712,9 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 		metaArg := &call.Meta.Args[i].Type
 
 		if ctx.opts.CSB {
-			if i == 0 {
+			switch i {
+			// argument index 0
+			case 0:
 				//TODO: check if argument is dirfd already and keep it in that case
 				switch callName {
 				case "readlinkat":
@@ -576,6 +745,40 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->dirfd)")
 					continue
 				}
+			// argument index 1
+			case 1:
+				switch call.Meta.Name {
+				case "connect$inet4":
+					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->connect4_arg)")
+					continue
+				case "bind$inet4":
+					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->bind4_arg)")
+					continue
+				case "connect$inet6":
+					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->connect6_arg)")
+					continue
+				case "bind$inet6":
+					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->bind6_arg)")
+					continue
+				}
+			case 2:
+				switch call.Meta.Name {
+				case "connect$inet4":
+					argsStrs = append(argsStrs, "sizeof(*(UNIQUE_VAR(ctx->connect4_arg)))")
+					continue
+				case "bind$inet4":
+					argsStrs = append(argsStrs, "sizeof(*(UNIQUE_VAR(ctx->bind4_arg)))")
+					continue
+				case "connect$inet6":
+					argsStrs = append(argsStrs, "sizeof(*(UNIQUE_VAR(ctx->connect6_arg)))")
+					continue
+				case "bind$inet6":
+					argsStrs = append(argsStrs, "sizeof(*(UNIQUE_VAR(ctx->bind6_arg)))")
+					continue
+				case "bind$unix":
+					argsStrs = append(argsStrs, "sizeof(sa_family_t)")
+					continue
+				}
 			}
 			if i == 1 {
 				switch callName {
@@ -591,7 +794,6 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("string format in syscall argument")
 			}
-			// fmt.Fprintf(os.Stderr, "Arg %d: %v\n", i, .Type)
 			com := ctx.argComment(call.Meta.Args[i], arg)
 
 			PTR_OFFSET_STR := ""
@@ -607,9 +809,13 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 						PTR_OFFSET_STR = "+PTR_OFFSET"
 					}
 				case *prog.StructType:
-					PTR_OFFSET_STR = "+PTR_OFFSET"
+					if valInMMapRange(ctx, arg.Value) {
+						PTR_OFFSET_STR = "+PTR_OFFSET"
+					}
 				case *prog.UnionType:
-					PTR_OFFSET_STR = "+PTR_OFFSET"
+					if valInMMapRange(ctx, arg.Value) {
+						PTR_OFFSET_STR = "+PTR_OFFSET"
+					}
 				case *prog.ResourceType, *prog.BufferType, *prog.VmaType:
 					if valInMMapRange(ctx, arg.Value) {
 						PTR_OFFSET_STR = "+PTR_OFFSET"
@@ -619,7 +825,9 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 					// PTR_OFFSET_STR = "+PTR_OFFSET"
 					// no offset
 				case prog.Ref:
-					PTR_OFFSET_STR = "+PTR_OFFSET"
+					if valInMMapRange(ctx, arg.Value) {
+						PTR_OFFSET_STR = "+PTR_OFFSET"
+					}
 					// This is only needed for pkg/compiler.
 				default:
 					panic("unknown type")
@@ -738,12 +946,11 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 
 	strVal := val
 	if strings.HasPrefix(strVal, "0x") {
-		strVal = trimLeftChars(strVal, 2)
-		PTR_OFFSET_STR_VAL = "+PTR_OFFSET"
-	}
-	n, err := strconv.ParseUint(strVal, 16, 64)
-	if err != nil && valInMMapRange(ctx, n) {
-		PTR_OFFSET_STR_VAL = "+PTR_OFFSET"
+		strVal = strVal[2:]
+		n, err := strconv.ParseUint(strVal, 16, 64)
+		if err == nil && valInMMapRange(ctx, n) {
+			PTR_OFFSET_STR_VAL = "+PTR_OFFSET"
+		}
 	}
 
 	switch bf {

@@ -131,7 +131,7 @@ static long syz_compare_zlib(volatile long data, volatile long size, volatile lo
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 #if CSB
-static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx);
+static void UNIQUE_FUNC(loop)(thread_ctx_t* ctx);
 #else
 static void UNIQUE_FUNC(loop)();
 #endif

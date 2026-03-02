@@ -16,13 +16,12 @@
 #define _GNU_SOURCE
 #endif
 
-
-#define BM_CAT(a,b) a ## b
+#define BM_CAT(a, b) a##b
 #define UNIQUE_ID
-#define UNIQUE_ID_TOK_TOK(...) BM_CAT(__VA_OPT__(_),UNIQUE_ID)
+#define UNIQUE_ID_TOK_TOK(...) BM_CAT(__VA_OPT__(_), UNIQUE_ID)
 #define UNIQUE_ID_TOK UNIQUE_ID_TOK_TOK(UNIQUE_ID)
 #define RESOLVE(x) x
-#define UNIQUE_NAME(prefix, tok) BM_CAT(prefix,tok)
+#define UNIQUE_NAME(prefix, tok) BM_CAT(prefix, tok)
 #define UNIQUE_VAR(var) UNIQUE_NAME(var, UNIQUE_ID_TOK)
 #define UNIQUE_FUNC(func) UNIQUE_NAME(func, RESOLVE(UNIQUE_ID_TOK))
 #define UNIQUE_GOTO(mark) UNIQUE_NAME(mark, UNIQUE_ID_TOK)
@@ -64,9 +63,9 @@ typedef signed int ssize_t;
 #endif
 
 #if CSB
-#include <fcntl.h>           /* Definition of AT_* constants */
+#include <fcntl.h> /* Definition of AT_* constants */
 #include <sys/stat.h>
-// expect a 
+// expect a
 // #define BM_THREAD_NUM <uint>
 // to have the number of threads for syz_thread or 1 otherwise
 /*#ifndef*/ BM_THREAD_NUM
@@ -79,13 +78,13 @@ typedef signed int ssize_t;
 #define BM_CTX_TID 0
 /*#endif*/
 #define MMAP_LEN (0x1000 + 0x1000000 + 0x1000)
-#define MMAP_SIZE_TOTAL ((BM_THREAD_NUM)*(MMAP_LEN))
+#define MMAP_SIZE_TOTAL ((BM_THREAD_NUM) * (MMAP_LEN))
 // #define PTR_OFFSET (((BM_THREAD_IDX)*(MMAP_LEN))+((BM_CTX_TID)*(MMAP_SIZE_TOTAL)))
 
 const static int UNIQUE_VAR(num_subdirs) = /*{{{NUMSUBDIRS}}}*/;
-const static char *UNIQUE_VAR(subdirs)[/*{{{NUMSUBDIRS}}}*/] = {/*{{{SUBDIRS}}}*/};
+const static char* UNIQUE_VAR(subdirs)[/*{{{NUMSUBDIRS}}}*/] = {/*{{{SUBDIRS}}}*/};
 const static int UNIQUE_VAR(num_filenames) = /*{{{NUMFILENAMES}}}*/;
-const static char *UNIQUE_VAR(filenames)[/*{{{NUMFILENAMES}}}*/] = {/*{{{FILENAMES}}}*/};
+const static char* UNIQUE_VAR(filenames)[/*{{{NUMFILENAMES}}}*/] = {/*{{{FILENAMES}}}*/};
 const static int UNIQUE_VAR(num_filesizes) = /*{{{NUMFILESIZES}}}*/;
 const static uint64 UNIQUE_VAR(filesizes)[/*{{{NUMFILESIZES}}}*/] = {/*{{{FILESIZES}}}*/};
 #endif
@@ -249,31 +248,31 @@ static uint64 UNIQUE_FUNC(current_time_ms)(void)
 #include <unistd.h>
 
 #if CSB
-static void UNIQUE_FUNC(use_temporary_dir)(thread_ctx_t *ctx)
+static void UNIQUE_FUNC(use_temporary_dir)(thread_ctx_t* ctx)
 #else
 static void UNIQUE_FUNC(use_temporary_dir)(void)
 #endif
 {
-	#if CSB
-	if (ctx->iteration == 0 && (!ctx->aggregation_threads || ( BM_THREAD_IDX == 0 && ctx->tid == 0))) {
-	#endif
+#if CSB
+	if (ctx->iteration == 0 && (!ctx->aggregation_threads || (BM_THREAD_IDX == 0 && ctx->tid == 0))) {
+#endif
 #if SYZ_SANDBOX_ANDROID
-	char tmpdir_template[] = "/data/local/tmp/syzkaller_" UNIQUE_STR() ".XXXXXX";
+		char tmpdir_template[] = "/data/local/tmp/syzkaller_" UNIQUE_STR() ".XXXXXX";
 #elif GOOS_fuchsia
 	char tmpdir_template[] = "/tmp/syzkaller_" UNIQUE_STR() ".XXXXXX";
 #else
 	char tmpdir_template[] = "./syzkaller_" UNIQUE_STR() ".XXXXXX";
 #endif
-	char* tmpdir = mkdtemp(tmpdir_template);
-	if (!tmpdir)
-		fail("failed to mkdtemp");
-	if (chmod(tmpdir, 0777))
-		fail("failed to chmod");
-	if (chdir(tmpdir))
-		fail("failed to chdir");
-	#if CSB
+		char* tmpdir = mkdtemp(tmpdir_template);
+		if (!tmpdir)
+			fail("failed to mkdtemp");
+		if (chmod(tmpdir, 0777))
+			fail("failed to chmod");
+		if (chdir(tmpdir))
+			fail("failed to chdir");
+#if CSB
 	}
-	#endif
+#endif
 }
 #endif
 #endif
@@ -645,13 +644,13 @@ static void* UNIQUE_FUNC(thr)(void* arg)
 
 #if SYZ_REPEAT
 #if CSB
-static void UNIQUE_FUNC(execute_one)(thread_ctx_t *ctx)
+static void UNIQUE_FUNC(execute_one)(thread_ctx_t* ctx)
 #else
 static void UNIQUE_FUNC(execute_one)(void)
 #endif
 #else
 #if CSB
-static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, size_t op_id)
+static void UNIQUE_FUNC(loop)(thread_ctx_t* ctx, size_t op_id)
 #else
 static void UNIQUE_FUNC(loop)(void)
 #endif
@@ -705,7 +704,7 @@ static void UNIQUE_FUNC(loop)(void)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
 #if CSB
-static void UNIQUE_FUNC(execute_one)(thread_ctx_t *ctx);
+static void UNIQUE_FUNC(execute_one)(thread_ctx_t* ctx);
 #else
 static void UNIQUE_FUNC(execute_one)(void);
 #endif
@@ -722,7 +721,7 @@ static void UNIQUE_FUNC(execute_one)(void);
 #include <sys/wait.h>
 
 #if CSB
-static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, size_t op_id)
+static void UNIQUE_FUNC(loop)(thread_ctx_t* ctx, size_t op_id)
 #else
 static void UNIQUE_FUNC(loop)(void)
 #endif
@@ -745,7 +744,7 @@ static void UNIQUE_FUNC(loop)(void)
 		// Create a new private work dir for this test (removed at the end of the loop).
 		char cwdbuf[64];
 #if CSB
-		sprintf(cwdbuf, "./%ld_%ld_%d_" UNIQUE_STR() , ctx->tid, op_id, iter);
+		sprintf(cwdbuf, "./%ld_%ld_%d_" UNIQUE_STR(), ctx->tid, op_id, iter);
 #else
 		sprintf(cwdbuf, "./%d_" UNIQUE_STR(), iter);
 #endif
@@ -850,12 +849,13 @@ static void UNIQUE_FUNC(loop)(void)
 			// If it keeps completing syscalls, then don't kill it.
 			if (now - last_executed < inactive_timeout_ms)
 				continue;
-		UNIQUE_GOTO(kill_test):
+			UNIQUE_GOTO(kill_test)
+			    :
 #else
 			if (UNIQUE_FUNC(current_time_ms)() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 				continue;
 #endif
-			debug("killing hanging pid %d\n", pid);
+			      debug("killing hanging pid %d\n", pid);
 			UNIQUE_FUNC(kill_and_wait)(pid, &status);
 			break;
 		}
@@ -878,7 +878,7 @@ static void UNIQUE_FUNC(loop)(void)
 }
 #else
 #if CSB
-static void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, size_t op_id)
+static void UNIQUE_FUNC(loop)(thread_ctx_t* ctx, size_t op_id)
 {
 	UNIQUE_FUNC(execute_one)(ctx);
 }
@@ -900,13 +900,13 @@ static void UNIQUE_FUNC(loop)(void)
 void UNIQUE_FUNC(execute_call)(int call)
 #elif SYZ_REPEAT
 #if CSB
-void UNIQUE_FUNC(execute_one)(thread_ctx_t *ctx)
+void UNIQUE_FUNC(execute_one)(thread_ctx_t* ctx)
 #else
 void UNIQUE_FUNC(execute_one)()
 #endif
 #else
 #if CSB
-void UNIQUE_FUNC(loop)(thread_ctx_t *ctx, op_id)
+void UNIQUE_FUNC(loop)(thread_ctx_t* ctx, op_id)
 #else
 void UNIQUE_FUNC(loop)(void)
 #endif
@@ -921,7 +921,7 @@ void UNIQUE_FUNC(loop)(void)
 
 #if CSB
 static inline int
-UNIQUE_FUNC(bm_dispatch_operation)(thread_ctx_t *ctx, size_t op_id)
+UNIQUE_FUNC(bm_dispatch_operation)(thread_ctx_t* ctx, size_t op_id)
 #else
 // This is the main function for csource.
 int main(void)

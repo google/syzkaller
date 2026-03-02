@@ -188,6 +188,7 @@ pselect6(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[in
 resource fd_epoll[fd]
 epoll_create(size int32) fd_epoll
 epoll_create1(flags flags[epoll_flags]) fd_epoll
+epoll_ctl(epfd fd_epoll, op int32, fd fd, ev ptr[in, epoll_event])
 epoll_ctl$EPOLL_CTL_ADD(epfd fd_epoll, op const[EPOLL_CTL_ADD], fd fd, ev ptr[in, epoll_event])
 epoll_ctl$EPOLL_CTL_MOD(epfd fd_epoll, op const[EPOLL_CTL_MOD], fd fd, ev ptr[in, epoll_event])
 epoll_ctl$EPOLL_CTL_DEL(epfd fd_epoll, op const[EPOLL_CTL_DEL], fd fd)

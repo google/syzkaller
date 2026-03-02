@@ -139,7 +139,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_SYSCTL":                    opts.Sysctl,
 		"SYZ_SWAP":                      opts.Swap,
 		"SYZ_EXECUTOR_USES_FORK_SERVER": sysTarget.ExecutorUsesForkServer,
-		"CSB":						 	 opts.CSB,
+		"CSB":                           opts.CSB,
 	}
 }
 
