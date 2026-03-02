@@ -1,0 +1,22 @@
+name: CSB actions
+on: [workflow_dispatch, push, pull_request]
+
+jobs:
+   Compile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [syz-trace2syz, syz-prog2c, syz-extraction]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Compile ${{ matrix.tool }}
+        run: |
+          go env -w GOBIN=$HOME/.local/bin
+          make
+          cd tools/${{ matrix.tool }}
+          go build

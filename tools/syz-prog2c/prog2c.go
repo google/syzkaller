@@ -332,7 +332,6 @@ func sanitizeProgram(p *prog.Prog, progName string) (*prog.Prog, map[string](boo
 	filesizes := make(map[uint64](uint64))
 	filemap := make(map[uint64](string))
 	maxWriteSize := uint64(0)
-	unixsockets := make(map[string](bool))
 	for _, call := range p.Calls {
 		switch call.Meta.Name {
 		case "openat":
