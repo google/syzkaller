@@ -36,7 +36,7 @@ func (bo BinaryExpression) Evaluate(finder ArgFinder) (uint64, bool) {
 		}
 		return 0, true
 	}
-	panic(fmt.Sprintf("unknown operator %q", bo.Operator))
+	panic(fmt.Sprintf("unknown operator %v", bo.Operator))
 }
 
 func (v *Value) Evaluate(finder ArgFinder) (uint64, bool) {

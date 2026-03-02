@@ -950,7 +950,7 @@ func TestSubjectTitleParser(t *testing.T) {
 		} else if title != test.outTitle {
 			t.Fatalf("subj: %q, expected title=%q, got %q", test.inSubject, test.outTitle, title)
 		} else if seq != test.outSeq {
-			t.Fatalf("subj: %q, expected seq=%q, got %q", test.inSubject, test.outSeq, seq)
+			t.Fatalf("subj: %q, expected seq=%v, got %v", test.inSubject, test.outSeq, seq)
 		}
 	}
 }
