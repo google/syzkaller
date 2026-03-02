@@ -15,7 +15,9 @@ jobs:
           go-version: '1.25'
       - name: Compile syzkaller
         run: |
-          go env -w GOBIN=$HOME/.local/bin
           make
+      - name: Compile ${{ matrix.tool }}
+        run: |
+          go env -w GOBIN=$HOME/.local/bin
           cd tools/${{ matrix.tool }}
           go build
