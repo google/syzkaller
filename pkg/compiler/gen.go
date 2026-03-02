@@ -144,7 +144,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		case flagAttr:
 			fld.SetBool(val != 0)
 		default:
-			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+			panic(fmt.Sprintf("unexpected attrDesc type: %v", desc.Type))
 		}
 	}
 	for desc, val := range stringAttrs {
@@ -153,7 +153,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		case stringAttr:
 			fld.SetString(val)
 		default:
-			panic(fmt.Sprintf("unexpected attrDesc type: %q", desc.Type))
+			panic(fmt.Sprintf("unexpected attrDesc type: %v", desc.Type))
 		}
 	}
 	fields, _ := comp.genFieldArray(n.Args, argSizes)

@@ -360,12 +360,7 @@ func dbClient(ctx context.Context) (*spanner.Client, error) {
 	path := fmt.Sprintf("projects/%v/instances/%v/databases/%v",
 		appID, Instance, Database)
 	// We use background context for the client, so that it survives the request.
-	client, err := spanner.NewClientWithConfig(context.Background(), path, spanner.ClientConfig{
-		SessionPoolConfig: spanner.SessionPoolConfig{
-			MinOpened: 1,
-			MaxOpened: 20,
-		},
-	})
+	client, err := spanner.NewClientWithConfig(context.Background(), path, spanner.ClientConfig{})
 	if err != nil {
 		return nil, err
 	}

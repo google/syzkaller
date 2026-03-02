@@ -82,7 +82,7 @@ func init() {
 		if tok == tokIllegal {
 			continue
 		}
-		tok2str[tok] = fmt.Sprintf("%q", ch)
+		tok2str[tok] = fmt.Sprintf("%q", rune(ch))
 	}
 }
 
