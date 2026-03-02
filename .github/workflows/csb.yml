@@ -8,6 +8,8 @@ jobs:
       matrix:
         tool: [trace2syz, prog2c, extraction]
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
