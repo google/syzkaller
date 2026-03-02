@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tool: [trace2syz, prog2c, extraction]
+        tool: [syz-trace2syz, syz-prog2c, syz-extraction]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
