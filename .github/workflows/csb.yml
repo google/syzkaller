@@ -17,5 +17,5 @@ jobs:
         run: |
           go env -w GOBIN=$HOME/.local/bin
           make
-          cd ${{ matrix.tool }}
+          cd tools/${{ matrix.tool }}
           go build
