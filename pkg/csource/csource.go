@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	missedFDResources 	   = make(map[uint64](bool))
+	missedFDResources = make(map[uint64](bool))
 )
 
 // Write generates C source for program p based on the provided options opt.
@@ -169,11 +169,10 @@ func (ctx *context) generateSource() ([]byte, error) {
 
 	closeBuf := new(bytes.Buffer)
 	for fdRes, open := range missedFDResources {
-		if (open) {
+		if open {
 			fmt.Fprintf(closeBuf, "\tclose(UNIQUE_VAR(r)[%v]);\n", fdRes)
 		}
 	}
-
 
 	// sub directories for mkdir
 	subdirs := ctx.mapToArrayStringBool(ctx.opts.SubDirs)
@@ -193,25 +192,25 @@ func (ctx *context) generateSource() ([]byte, error) {
 		results = ""
 		syscalls = varsBuf.String() + "\n" + syscalls + "\n" + closeBuf.String()
 	}
-	
+
 	replacements := map[string]string{
-			"PROCS":           fmt.Sprint(ctx.opts.Procs),
-			"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),
-			"NUM_CALLS":       fmt.Sprint(len(ctx.p.Calls)),
-			"MMAP_DATA":       strings.Join(mmapCalls, ""),
-			"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
-			"SANDBOX_FUNC":    sandboxFunc,
-			"RESULTS":         results,
-			"SYSCALLS":        syscalls,
-			"NUM_NOP":         fmt.Sprint(ctx.opts.NumNop),
-			"NUMSUBDIRS":      fmt.Sprint(len(ctx.opts.SubDirs)),
-			"SUBDIRS":         subdirs,
-			"NUMFILESIZES":    fmt.Sprint(len(ctx.opts.FileSizes)),
-			"FILESIZES":       filesizes,
-			"NUMFILENAMES":    fmt.Sprint(len(ctx.opts.FileNames)),
-			"FILENAMES":       filenames,
+		"PROCS":           fmt.Sprint(ctx.opts.Procs),
+		"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),
+		"NUM_CALLS":       fmt.Sprint(len(ctx.p.Calls)),
+		"MMAP_DATA":       strings.Join(mmapCalls, ""),
+		"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
+		"SANDBOX_FUNC":    sandboxFunc,
+		"RESULTS":         results,
+		"SYSCALLS":        syscalls,
+		"NUM_NOP":         fmt.Sprint(ctx.opts.NumNop),
+		"NUMSUBDIRS":      fmt.Sprint(len(ctx.opts.SubDirs)),
+		"SUBDIRS":         subdirs,
+		"NUMFILESIZES":    fmt.Sprint(len(ctx.opts.FileSizes)),
+		"FILESIZES":       filesizes,
+		"NUMFILENAMES":    fmt.Sprint(len(ctx.opts.FileNames)),
+		"FILENAMES":       filenames,
 	}
-	
+
 	if !ctx.opts.Threaded && !ctx.opts.Repeat && ctx.opts.Sandbox == "" {
 		// This inlines syscalls right into main for the simplest case.
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
@@ -261,7 +260,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 		header += "#define UNIQUE_STR_STR(str) #str\n"
 		header += "#define UNIQUE_STR() UNIQUE_STR_STR(RESOLVE(UNIQUE_ID))\n"
 		header += "#define MMAP_OFFSET " + fmt.Sprintf("0x%x", ctx.target.DataOffset) + "ul\n"
-		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages * ctx.target.PageSize) + "ul\n"
+		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages*ctx.target.PageSize) + "ul\n"
 		header += "const static uint64_t UNIQUE_VAR(maxWriteBufferSize) = " + fmt.Sprintf("%d", ctx.opts.MaxWriteSize) + "ul;\n"
 	}
 	header += "\n"
@@ -443,7 +442,7 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 		calls = append(calls, w.String())
 
 		// get resource indices for filedescriptor related calls
-		if(resCopyout) {
+		if resCopyout {
 			fdRes := call.Index
 			missedFDResources[fdRes] = true
 		}
@@ -513,7 +512,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 
 func valInMMapRange(ctx *context, val uint64) bool {
 	argValOffsetRangeMin := ctx.sysTarget.DataOffset - 0x1000
-	argValOffsetRangeMax := ctx.sysTarget.DataOffset + (ctx.target.NumPages*ctx.target.PageSize) + 0x1000
+	argValOffsetRangeMax := ctx.sysTarget.DataOffset + (ctx.target.NumPages * ctx.target.PageSize) + 0x1000
 
 	if val >= argValOffsetRangeMin && val <= argValOffsetRangeMax {
 		return true
@@ -580,7 +579,7 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 			}
 			if i == 1 {
 				switch callName {
-				case "write", "pwrite64",  "send",  "sendto":
+				case "write", "pwrite64", "send", "sendto":
 					argsStrs = append(argsStrs, "UNIQUE_VAR(ctx->writeBuffer)")
 					continue
 				}

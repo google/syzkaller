@@ -33,10 +33,10 @@ var (
 )
 
 type Cache struct {
-	Uses []map[any]bool
-	Rets []map[any]bool
-	UsesBFs  []*bloom.BloomFilter
-	RetsBFs  []*bloom.BloomFilter
+	Uses    []map[any]bool
+	Rets    []map[any]bool
+	UsesBFs []*bloom.BloomFilter
+	RetsBFs []*bloom.BloomFilter
 }
 
 type MinimizeMode int
@@ -291,27 +291,26 @@ func relatedCalls(p0 *Prog, callIndex0 int) map[int]bool {
 }
 
 func checkAllowedCalls(call *Call) bool {
-	allowed := []string {"accept",
-						"bind",
-						"connect",
-						"dup",
-						"dup3",
-						"epoll_create1",
-						"epoll_pwait",
-						"eventfd2",
-						"fallocate",
-						"fcntl",
-						"ioctl",
-						"listen",
-						"lseek",
-						"pipe2",
-						"ppoll",
-						"setsockopt",
-						"socket",
-						"umask",
-						"uname",
-						}
-	for _,allowedName := range allowed {
+	allowed := []string{"bind",
+		"connect",
+		"dup",
+		"dup3",
+		"epoll_create1",
+		"epoll_pwait",
+		"eventfd2",
+		"fallocate",
+		"fcntl",
+		"ioctl",
+		"listen",
+		"lseek",
+		"pipe2",
+		"ppoll",
+		"setsockopt",
+		"socket",
+		"umask",
+		"uname",
+	}
+	for _, allowedName := range allowed {
 		if call.Meta.CallName == allowedName {
 			return true
 		}
@@ -339,7 +338,6 @@ func relatedCallsFullProgram(p0 *Prog, callIndex0 int, c *Cache, processedCallsI
 			if intersectBFs(usedBF, usedBF1) {
 				used1 := usesCache(call, i, c)
 				if intersects(used, used1) {
-					// fmt.Fprintf(os.Stderr, "Found an intersection %d\n", i)
 					keepCalls[i] = true
 					usedBF.Merge(usedBF1)
 					for what := range used1 {
@@ -366,6 +364,7 @@ func relatedCallsFullThread(p0 *Prog, callIndex0 int, c *Cache, processedCallsIn
 		removeCalls[callIndex0] = true
 	}
 	numCalls := len(p0.Calls)
+	matchingTIDOrAllowed := true
 
 	for {
 		n := len(used)
@@ -375,17 +374,21 @@ func relatedCallsFullThread(p0 *Prog, callIndex0 int, c *Cache, processedCallsIn
 			}
 
 			call := p0.Calls[i]
-
+			if call.StraceTid == tid || checkAllowedCalls(call) {
+				matchingTIDOrAllowed = true
+			} else {
+				matchingTIDOrAllowed = false
+			}
 			var used1 map[any]bool
 			var usedBF1 *bloom.BloomFilter
-			if call.StraceTid == tid || checkAllowedCalls(call) {
+			if matchingTIDOrAllowed {
 				usedBF1 = usesBF(call, i, c)
 			} else {
 				usedBF1 = retBF(call, i, c)
 			}
 
 			if intersectBFs(usedBF, usedBF1) {
-				if call.StraceTid == tid || checkAllowedCalls(call) {
+				if matchingTIDOrAllowed {
 					used1 = usesCache(call, i, c)
 				} else {
 					used1 = retCache(call, i, c)
@@ -399,8 +402,10 @@ func relatedCallsFullThread(p0 *Prog, callIndex0 int, c *Cache, processedCallsIn
 					}
 
 					// actually include all resources for this syscall so we get dependent resource creation as well
-					usedBF1 = usesBF(call, i, c)
-					used1 = usesCache(call, i, c)
+					if !matchingTIDOrAllowed {
+						usedBF1 = usesBF(call, i, c)
+						used1 = usesCache(call, i, c)
+					}
 
 					usedBF.Merge(usedBF1)
 					for what := range used1 {
@@ -502,7 +507,6 @@ func usesRet(call *Call) map[any]bool {
 	})
 	return used
 }
-
 
 func uses(call *Call) map[any]bool {
 	used := make(map[any]bool)
