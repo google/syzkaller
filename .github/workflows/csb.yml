@@ -1,0 +1,19 @@
+name: CSB actions
+on: [workflow_dispatch, push, pull_request]
+
+jobs:
+   Compile:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tool: [trace2syz, prog2c, extraction]
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Compile syzkaller
+        run: |
+          go env -w GOBIN=$HOME/.local/bin
+          make
+          cd ${{ matrix.tool }}
+          go build
