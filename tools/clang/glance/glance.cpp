@@ -20,27 +20,49 @@
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
 
-#include <string>
-#include <vector>
 #include <set>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 using namespace clang;
 using namespace clang::ast_matchers;
 
 struct ComplexityVisitor : public RecursiveASTVisitor<ComplexityVisitor> {
   int Score = 1;
-  bool VisitIfStmt(IfStmt* S) { Score++; return true; }
-  bool VisitForStmt(ForStmt* S) { Score++; return true; }
-  bool VisitWhileStmt(WhileStmt* S) { Score++; return true; }
-  bool VisitDoStmt(DoStmt* S) { Score++; return true; }
-  bool VisitCaseStmt(CaseStmt* S) { Score++; return true; }
-  bool VisitDefaultStmt(DefaultStmt* S) { Score++; return true; }
-  bool VisitBinaryOperator(BinaryOperator* S) {
-    if (S->isLogicalOp()) Score++;
+  bool VisitIfStmt(IfStmt* S) {
+    Score++;
     return true;
   }
-  bool VisitConditionalOperator(ConditionalOperator* S) { Score++; return true; }
+  bool VisitForStmt(ForStmt* S) {
+    Score++;
+    return true;
+  }
+  bool VisitWhileStmt(WhileStmt* S) {
+    Score++;
+    return true;
+  }
+  bool VisitDoStmt(DoStmt* S) {
+    Score++;
+    return true;
+  }
+  bool VisitCaseStmt(CaseStmt* S) {
+    Score++;
+    return true;
+  }
+  bool VisitDefaultStmt(DefaultStmt* S) {
+    Score++;
+    return true;
+  }
+  bool VisitBinaryOperator(BinaryOperator* S) {
+    if (S->isLogicalOp())
+      Score++;
+    return true;
+  }
+  bool VisitConditionalOperator(ConditionalOperator* S) {
+    Score++;
+    return true;
+  }
 };
 
 struct LockVisitor : public RecursiveASTVisitor<LockVisitor> {
@@ -48,8 +70,7 @@ struct LockVisitor : public RecursiveASTVisitor<LockVisitor> {
   bool VisitCallExpr(CallExpr* S) {
     if (FunctionDecl* FD = S->getDirectCallee()) {
       std::string Name = FD->getNameAsString();
-      if (Name.find("lock") != std::string::npos || 
-          Name.find("unlock") != std::string::npos ||
+      if (Name.find("lock") != std::string::npos || Name.find("unlock") != std::string::npos ||
           Name.find("rcu_read") != std::string::npos) {
         Locks.insert(Name);
       }
@@ -69,20 +90,31 @@ struct JITIVisitor : public RecursiveASTVisitor<JITIVisitor> {
     QualType QT = TL.getType();
     if (const RecordType* RT = QT->getAs<RecordType>()) {
       RecordDecl* RD = RT->getDecl();
+      if (RecordDecl* Def = RD->getDefinition()) {
+        RD = Def;
+      }
       emitSymbol(RD, "struct");
+
     } else if (const EnumType* ET = QT->getAs<EnumType>()) {
       EnumDecl* ED = ET->getDecl();
+      if (EnumDecl* Def = ED->getDefinition()) {
+        ED = Def;
+      }
       emitSymbol(ED, "enum");
     }
+
     return true;
   }
 
   void emitSymbol(NamedDecl* D, const std::string& Kind) {
-    if (!D || D->getNameAsString().empty()) return;
-    if (SeenSymbols.count(D->getNameAsString())) return;
-    
+    if (!D || D->getNameAsString().empty())
+      return;
+    if (SeenSymbols.count(D->getNameAsString()))
+      return;
+
     SourceManager& SM = Context.getSourceManager();
-    if (SM.isInMainFile(D->getLocation())) return;
+    if (SM.isInMainFile(D->getLocation()))
+      return;
 
     SeenSymbols.insert(D->getNameAsString());
 
@@ -105,19 +137,21 @@ struct JITIVisitor : public RecursiveASTVisitor<JITIVisitor> {
   }
 };
 
-class GlanceExtractor : public MatchFinder::MatchCallback, public tooling::SourceFileCallbacks {
+class GlanceExtractor : public MatchFinder::MatchCallback {
+
 public:
   void run(const MatchFinder::MatchResult& Result) override {
     if (const FunctionDecl* FD = Result.Nodes.getNodeAs<FunctionDecl>("func")) {
       SourceManager& SM = *Result.SourceManager;
-      if (!SM.isInMainFile(FD->getLocation())) return;
+      if (!SM.isInMainFile(FD->getLocation()))
+        return;
 
       GlanceFunction GF;
       GF.Name = FD->getNameAsString();
       GF.File = SM.getFilename(FD->getLocation()).str();
       GF.StartLine = SM.getExpansionLineNumber(FD->getBeginLoc());
       GF.EndLine = SM.getExpansionLineNumber(FD->getEndLoc());
-      
+
       ComplexityVisitor CV;
       CV.TraverseStmt(FD->getBody());
       GF.Complexity = CV.Score;
@@ -149,34 +183,37 @@ class GlancePPCallbacks : public PPCallbacks {
 public:
   GlanceExtractor& Extractor;
   const SourceManager& SM;
-  
+
   GlancePPCallbacks(GlanceExtractor& Extractor, const SourceManager& SM) : Extractor(Extractor), SM(SM) {}
 
-  void MacroExpands(const Token& MacroNameTok, const MacroDefinition& MD, SourceRange Range, const MacroArgs* Args) override {
-    if (!SM.isInMainFile(Range.getBegin())) return;
+  void MacroExpands(const Token& MacroNameTok, const MacroDefinition& MD, SourceRange Range,
+                    const MacroArgs* Args) override {
+    if (!SM.isInMainFile(Range.getBegin()))
+      return;
 
-    std::string Name = MacroNameTok.getIdentifierInfo()->getName().str();
+    auto* II = MacroNameTok.getIdentifierInfo();
+    if (!II)
+      return;
+    std::string Name = II->getName().str();
+
     if (Name == "EXPORT_SYMBOL" || Name == "EXPORT_SYMBOL_GPL") {
       if (Args && Args->getNumMacroArguments() > 0) {
         const Token* T = Args->getUnexpArgument(0);
         if (T && T->isAnyIdentifier()) {
-             std::string Sym = T->getIdentifierInfo()->getName().str();
-             Extractor.ExportedSymbols.insert(Sym);
+          std::string Sym = T->getIdentifierInfo()->getName().str();
+          Extractor.ExportedSymbols.insert(Sym);
         }
       }
     }
   }
 
-  void InclusionDirective(SourceLocation HashLoc,
-                          const Token &IncludeTok, StringRef FileName,
-                          bool IsAngled, CharSourceRange FilenameRange,
-                          OptionalFileEntryRef File,
-                          StringRef SearchPath, StringRef RelativePath,
-                          const Module *SuggestedModule,
-                          bool ModuleImported,
+  void InclusionDirective(SourceLocation HashLoc, const Token& IncludeTok, StringRef FileName, bool IsAngled,
+                          CharSourceRange FilenameRange, OptionalFileEntryRef File, StringRef SearchPath,
+                          StringRef RelativePath, const Module* SuggestedModule, bool ModuleImported,
                           SrcMgr::CharacteristicKind FileType) override {
     llvm::errs() << "DEBUG: InclusionDirective: " << FileName << " InMain: " << SM.isInMainFile(HashLoc) << "\n";
-    if (!SM.isInMainFile(HashLoc)) return;
+    if (!SM.isInMainFile(HashLoc))
+      return;
     Extractor.Output.emitInclude(FileName.str());
   }
 };
@@ -196,20 +233,22 @@ class GlanceActionFactory : public tooling::FrontendActionFactory {
 public:
   GlanceExtractor& Extractor;
   GlanceActionFactory(GlanceExtractor& Extractor) : Extractor(Extractor) {}
-  
-  std::unique_ptr<FrontendAction> create() override {
-    return std::make_unique<GlanceFrontendAction>(Extractor);
-  }
+
+  std::unique_ptr<FrontendAction> create() override { return std::make_unique<GlanceFrontendAction>(Extractor); }
 };
 
 static int Main(int argc, const char** argv) {
   llvm::cl::OptionCategory Options("glance options");
   auto OptionsParser = tooling::CommonOptionsParser::create(argc, argv, Options);
-  if (!OptionsParser) return 1;
+  if (!OptionsParser) {
+    llvm::errs() << llvm::toString(OptionsParser.takeError()) << "\n";
+    return 1;
+  }
+
   tooling::ClangTool Tool(OptionsParser->getCompilations(), OptionsParser->getSourcePathList());
-  
+
   GlanceExtractor Extractor;
-  
+
   if (!OptionsParser->getSourcePathList().empty()) {
     std::string FirstFile = OptionsParser->getSourcePathList()[0];
     // Check if we have compile commands for this file
@@ -220,58 +259,58 @@ static int Main(int argc, const char** argv) {
     // But we want to intercept it or check beforehand.
     auto Cmds = OptionsParser->getCompilations().getCompileCommands(FirstFile);
     if (Cmds.empty()) {
-       // Only if it's not a header file? Headers usually don't have compile commands.
-       // But glance runs on .c files.
-       Extractor.Output.MissingCompileCommand = FirstFile;
-       // Inject a fallback command to ensure the tool runs.
-       // We need to const_cast because getCompilations() returns const ref?
-       // Actually, we can't easily modify the CompilationDatabase.
-       // But we can create a FixedCompilationDatabase or just rely on ClangTool's behavior?
-       // ClangTool::run() will error out if no command found.
-       // We can append a "fake" command to the arguments?
-       // No, ClangTool uses the database.
-       // We can use `FixedCompilationDatabase::loadFromCommandLine` approach but we are already past that.
-       // Wait, `tooling::ClangTool` has `appendArgumentsAdjuster`.
-       // But that adjusts *existing* commands.
-       // If there are NO commands, ClangTool fails.
-       
-       // We can try to construct a new ClangTool with a FixedCompilationDatabase if the original is empty for this file.
+      // Only if it's not a header file? Headers usually don't have compile commands.
+      // But glance runs on .c files.
+      Extractor.Output.MissingCompileCommand = FirstFile;
+      // Inject a fallback command to ensure the tool runs.
+      // We need to const_cast because getCompilations() returns const ref?
+      // Actually, we can't easily modify the CompilationDatabase.
+      // But we can create a FixedCompilationDatabase or just rely on ClangTool's behavior?
+      // ClangTool::run() will error out if no command found.
+      // We can append a "fake" command to the arguments?
+      // No, ClangTool uses the database.
+      // We can use `FixedCompilationDatabase::loadFromCommandLine` approach but we are already past that.
+      // Wait, `tooling::ClangTool` has `appendArgumentsAdjuster`.
+      // But that adjusts *existing* commands.
+      // If there are NO commands, ClangTool fails.
+
+      // We can try to construct a new ClangTool with a FixedCompilationDatabase if the original is empty for this file.
     }
   }
 
   // Check if we need to fallback
   if (!Extractor.Output.MissingCompileCommand.empty()) {
-     std::string ErrorMsg;
-     // Create a minimal compile command: clang -c <file> -I./include -I./arch/x86/include ...
-     // It's hard to guess all flags. But for includes, we just need basic parsing.
-     // Let's try to create a FixedCompilationDatabase.
-     int Argc = 3;
-     const char* Argv[] = {"glance", Extractor.Output.MissingCompileCommand.c_str(), "--"};
-     // This doesn't help create the DB.
-     
-     // Actually, we can just *not* run the tool if we can't parse it?
-     // OR, we can use `tooling::FixedCompilationDatabase`.
-     std::vector<std::string> Args = {"clang", "-c", Extractor.Output.MissingCompileCommand};
-     // Add some reasonable defaults for kernel?
-     Args.push_back("-I.");
-     Args.push_back("-Iinclude");
-     Args.push_back("-Iarch/x86/include"); // Assumption!
-     
-     llvm::SmallString<128> Cwd;
-     llvm::sys::fs::current_path(Cwd);
-     
-     auto FixedDB = std::make_unique<tooling::FixedCompilationDatabase>(Cwd, Args);
-     tooling::ClangTool FallbackTool(*FixedDB, OptionsParser->getSourcePathList());
-     
-     llvm::errs() << "DEBUG: Running fallback tool for " << Extractor.Output.MissingCompileCommand << "\n";
-     Extractor.Finder.addMatcher(functionDecl(isDefinition()).bind("func"), &Extractor);
-     int Res = FallbackTool.run(std::make_unique<GlanceActionFactory>(Extractor).get());
-     Extractor.print();
-     return Res;
+    // Create a minimal compile command: clang -c <file> -I./include -I./arch/x86/include ...
+    // It's hard to guess all flags. But for includes, we just need basic parsing.
+    // Let's try to create a FixedCompilationDatabase.
+
+    // Actually, we can just *not* run the tool if we can't parse it?
+    // OR, we can use `tooling::FixedCompilationDatabase`.
+    std::vector<std::string> Args = {"clang", "-c", Extractor.Output.MissingCompileCommand};
+    // Add some reasonable defaults for kernel?
+    Args.push_back("-I.");
+    Args.push_back("-Iinclude");
+    Args.push_back("-Iarch/x86/include"); // Assumption!
+
+    llvm::SmallString<128> Cwd;
+    llvm::sys::fs::current_path(Cwd);
+
+    auto FixedDB = std::make_unique<tooling::FixedCompilationDatabase>(Cwd, Args);
+    tooling::ClangTool FallbackTool(*FixedDB, OptionsParser->getSourcePathList());
+
+    llvm::errs() << "DEBUG: Running fallback tool for " << Extractor.Output.MissingCompileCommand << "\n";
+    Extractor.Finder.addMatcher(functionDecl(isDefinition()).bind("func"), &Extractor);
+
+    GlanceActionFactory Factory(Extractor);
+    int Res = FallbackTool.run(&Factory);
+
+    Extractor.print();
+    return Res;
   }
 
   Extractor.Finder.addMatcher(functionDecl(isDefinition()).bind("func"), &Extractor);
-  int Res = Tool.run(std::make_unique<GlanceActionFactory>(Extractor).get());
+  GlanceActionFactory Factory(Extractor);
+  int Res = Tool.run(&Factory);
   Extractor.print();
   return Res;
 }
