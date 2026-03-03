@@ -1,0 +1,162 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fs.h>
+include <fs/ocfs2/ocfs2_fs.h>
+include <fs/ocfs2/ocfs2_ioctl.h>
+
+define OIU_UUID_STR_LEN	OCFS2_TEXT_UUID_LEN + 1
+
+ioctl$OCFS2_IOC_RESVSP(fd fd, cmd const[OCFS2_IOC_RESVSP], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_RESVSP64(fd fd, cmd const[OCFS2_IOC_RESVSP64], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_UNRESVSP(fd fd, cmd const[OCFS2_IOC_UNRESVSP], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_UNRESVSP64(fd fd, cmd const[OCFS2_IOC_UNRESVSP64], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_GROUP_EXTEND(fd fd, cmd const[OCFS2_IOC_GROUP_EXTEND], arg ptr[in, int32])
+ioctl$OCFS2_IOC_GROUP_ADD(fd fd, cmd const[OCFS2_IOC_GROUP_ADD], arg ptr[in, ocfs2_new_group_input])
+ioctl$OCFS2_IOC_GROUP_ADD64(fd fd, cmd const[OCFS2_IOC_GROUP_ADD64], arg ptr[in, ocfs2_new_group_input])
+ioctl$OCFS2_IOC_REFLINK(fd fd, cmd const[OCFS2_IOC_REFLINK], arg ptr[in, reflink_arguments])
+ioctl$OCFS2_IOC_INFO(fd fd, cmd const[OCFS2_IOC_INFO], arg ptr[in, ocfs2_info])
+ioctl$OCFS2_IOC_MOVE_EXT(fd fd, cmd const[OCFS2_IOC_MOVE_EXT], arg ptr[inout, ocfs2_move_extents])
+
+ocfs2_l_type = F_RDLCK, F_WRLCK, F_UNLCK
+ocfs2_l_whence = SEEK_SET, SEEK_CUR, SEEK_END
+ocfs2_move_ext_flags = OCFS2_MOVE_EXT_FL_AUTO_DEFRAG, OCFS2_MOVE_EXT_FL_PART_DEFRAG, OCFS2_MOVE_EXT_FL_COMPLETE
+ocfs2_info_flags = OCFS2_INFO_FL_ERROR, OCFS2_INFO_FL_FILLED, OCFS2_INFO_FL_NON_COHERENT
+
+ocfs2_space_resv {
+	l_type		flags[ocfs2_l_type, int16]
+	l_whence	flags[ocfs2_l_whence, int16]
+	l_start		int64
+	l_len		int64
+	l_sysid		int32
+	l_pid		int32
+	l_pad		array[const[0, int32], 4]
+}
+
+ocfs2_new_group_input {
+	group		int64
+	clusters	int32
+	frees		int32
+	chain		int16
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+}
+
+reflink_arguments {
+	old_path	ptr64[in, string]
+	new_path	ptr64[in, string]
+	preserve	int64
+}
+
+ocfs2_info {
+	oi_requests	ptr64[in, array[ptr64[inout, ocfs2_info_request_union], OCFS2_INFO_MAX_REQUEST]]
+	oi_count	len[oi_requests, int32]
+	oi_pad		const[0, int32]
+}
+
+ocfs2_info_request_union [
+	clustersize	ocfs2_info_clustersize
+	blocksize	ocfs2_info_blocksize
+	maxslots	ocfs2_info_maxslots
+	label		ocfs2_info_label
+	uuid		ocfs2_info_uuid
+	features	ocfs2_info_fs_features
+	journal		ocfs2_info_journal_size
+	freeinode	ocfs2_info_freeinode
+	freefrag	ocfs2_info_freefrag
+] [varlen]
+
+ocfs2_info_clustersize {
+	ic_req		ocfs2_info_request_typed[OCFS2_INFO_CLUSTERSIZE]
+	ic_clustersize	int32	(out)
+	ic_pad		const[0, int32]
+}
+
+ocfs2_info_blocksize {
+	ib_req		ocfs2_info_request_typed[OCFS2_INFO_BLOCKSIZE]
+	ib_blocksize	int32	(out)
+	ib_pad		const[0, int32]
+}
+
+ocfs2_info_maxslots {
+	im_req		ocfs2_info_request_typed[OCFS2_INFO_MAXSLOTS]
+	im_max_slots	int32	(out)
+	im_pad		const[0, int32]
+}
+
+ocfs2_info_label {
+	il_req		ocfs2_info_request_typed[OCFS2_INFO_LABEL]
+	il_label	array[int8, OCFS2_MAX_VOL_LABEL_LEN]	(out)
+} [packed]
+
+ocfs2_info_uuid {
+	iu_req		ocfs2_info_request_typed[OCFS2_INFO_UUID]
+	iu_uuid_str	array[int8, OIU_UUID_STR_LEN]	(out)
+} [packed]
+
+ocfs2_info_fs_features {
+	if_req			ocfs2_info_request_typed[OCFS2_INFO_FS_FEATURES]
+	if_compat_features	int32	(out)
+	if_incompat_features	int32	(out)
+	if_ro_compat_features	int32	(out)
+	if_pad			const[0, int32]
+}
+
+ocfs2_info_journal_size {
+	ij_req		ocfs2_info_request_typed[OCFS2_INFO_JOURNAL_SIZE]
+	ij_journal_size	int64	(out)
+}
+
+ocfs2_info_freeinode {
+	ifi_req		ocfs2_info_request_typed[OCFS2_INFO_FREEINODE]
+	ifi_stat	array[ocfs2_info_local_freeinode, OCFS2_MAX_SLOTS]
+	ifi_slotnum	int32	(out)
+	ifi_pad		const[0, int32]
+}
+
+ocfs2_info_local_freeinode {
+	lfi_total	int64
+	lfi_free	int64
+}
+
+ocfs2_info_freefrag {
+	iff_req		ocfs2_info_request_typed[OCFS2_INFO_FREEFRAG]
+	iff_ffs		ocfs2_info_freefrag_stats	(out)
+	iff_chunksize	int32
+	iff_pad		const[0, int32]
+}
+
+ocfs2_info_freefrag_stats {
+	ffs_fc_hist		ocfs2_info_free_chunk_list
+	ffs_clusters		int32
+	ffs_free_clusters	int32
+	ffs_free_chunks		int32
+	ffs_free_chunks_real	int32
+	ffs_min			int32
+	ffs_max			int32
+	ffs_avg			int32
+	ffs_pad			const[0, int32]
+}
+
+ocfs2_info_free_chunk_list {
+	fc_chunks	array[int32, OCFS2_INFO_MAX_HIST]
+	fc_clusters	array[int32, OCFS2_INFO_MAX_HIST]
+}
+
+type ocfs2_info_request_typed[CODE] {
+	ir_magic	const[OCFS2_INFO_MAGIC, int32]
+	ir_code		const[CODE, int32]
+	ir_size		len[parent, int32]
+	ir_flags	flags[ocfs2_info_flags, int32]
+}
+
+ocfs2_move_extents {
+	me_start	int64	(in)
+	me_len		int64	(in)
+	me_goal		int64	(in)
+	me_threshold	int64	(in)
+	me_flags	flags[ocfs2_move_ext_flags, int64]	(in)
+	me_moved_len	int64	(out)
+	me_new_offset	int64	(out)
+	me_reserved	array[const[0, int32], 2]
+}
