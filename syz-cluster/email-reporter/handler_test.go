@@ -134,6 +134,7 @@ func TestInvalidReply(t *testing.T) {
 			Commands: []*email.SingleCommand{
 				{
 					Command: email.CmdFix,
+					Str:     "fix:",
 				},
 			},
 			Body: `#syz fix: abcd`,
@@ -148,7 +149,7 @@ func TestInvalidReply(t *testing.T) {
 			InReplyTo: "user-reply-msg-id",
 			Body: []byte(`> #syz fix: abcd
 
-Unknown command
+syzbot-ci does not support` + " `fix:` " + `command
 
 `),
 		}, reply)

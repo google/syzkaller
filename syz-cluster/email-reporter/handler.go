@@ -136,6 +136,10 @@ func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 		case email.CmdInvalid:
 			// Reply nothing on success.
 			err = h.apiClient.InvalidateReport(ctx, reportID)
+		case email.CmdFix, email.CmdUnFix, email.CmdDup, email.CmdUnDup,
+			email.CmdTest, email.CmdUnCC, email.CmdSet, email.CmdUnset,
+			email.CmdRegenerate:
+			reply = fmt.Sprintf("syzbot-ci does not support `%s` command", command.Str)
 		default:
 			reply = "Unknown command"
 		}
