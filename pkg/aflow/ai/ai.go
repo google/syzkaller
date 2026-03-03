@@ -45,3 +45,9 @@ type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
 }
+
+type ReproOutputs struct {
+	ReproSyz              string
+	CrashSignatureMatches bool
+	ReproducedCrashReport string
+}
