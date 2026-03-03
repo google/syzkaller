@@ -54,8 +54,11 @@ type NetOpSize struct {
 var (
 	missedFDResources = make(map[uint64](bool))
 	connectFDs        = make(map[uint64](bool))
+	acceptFDs         = make(map[uint64](bool))
 	readFDSizes       = make(map[uint64](uint64))
 	NetOpsFDs         = make(map[uint64]([]NetOpSize))
+	NetOpsFDsConnect  = make(map[uint64]([]NetOpSize))
+	NetOpsFDsAccept   = make(map[uint64]([]NetOpSize))
 )
 
 func AddToNetOps(res uint64, op NetOp, size uint64) {
@@ -103,8 +106,8 @@ func (nos NetOpSize) String() string {
 	return strconv.FormatUint(nos.Num, 10) + netOpName[nos.Op] + strconv.FormatUint(nos.Size, 10)
 }
 
-func NetOpsString(res uint64) string {
-	netops, ok := NetOpsFDs[res]
+func NetOpsString(res uint64, ops map[uint64][]NetOpSize) string {
+	netops, ok := ops[res]
 	var netopstring string
 	// no operation for this file descriptor recorded yet, initialize
 	if !ok {
@@ -342,15 +345,30 @@ func (ctx *context) generateSource() ([]byte, error) {
 		header += "#define MMAP_LENGTH " + fmt.Sprintf("0x%x", ctx.target.NumPages*ctx.target.PageSize) + "ul\n"
 		header += "const static uint64_t UNIQUE_VAR(maxWriteBufferSize) = " + fmt.Sprintf("%d", ctx.opts.MaxWriteSize) + "ul;\n"
 
-		numNetRes := len(NetOpsFDs)
+		// Connect NetOps
+		numNetResConnect := len(NetOpsFDsConnect)
 
 		idx := 0
-		header += "const char* UNIQUE_VAR(netops)[" + fmt.Sprintf("%d", numNetRes) + "] = {"
-		for res := range NetOpsFDs {
+		header += "const char* UNIQUE_VAR(netops_connect)[" + fmt.Sprintf("%d", numNetResConnect) + "] = {"
+		for res := range NetOpsFDsConnect {
 			if idx > 0 {
 				header += ", "
 			}
-			header += "\"" + NetOpsString(res) + "\""
+			header += "\"" + NetOpsString(res, NetOpsFDsConnect) + "\""
+			idx++
+		}
+		header += "};\n"
+
+		// Accept NetOps
+		numNetResAccept := len(NetOpsFDsAccept)
+
+		idx = 0
+		header += "const char* UNIQUE_VAR(netops_accept)[" + fmt.Sprintf("%d", numNetResAccept) + "] = {"
+		for res := range NetOpsFDsAccept {
+			if idx > 0 {
+				header += ", "
+			}
+			header += "\"" + NetOpsString(res, NetOpsFDsAccept) + "\""
 			idx++
 		}
 		header += "};\n"
@@ -612,6 +630,12 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 
 			connectFDs[fdRes] = true
 		}
+
+		if callName == "accept" || callName == "accept4" {
+			fdRes := call.Index
+
+			acceptFDs[fdRes] = true
+		}
 	}
 
 	// remove resources from network ops which are not created by a connect
@@ -624,7 +648,17 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace, addComments bool,
 		}
 	}
 
-	NetOpsFDs = tmpOps
+	NetOpsFDsConnect = tmpOps
+
+	tmpOps = make(map[uint64]([]NetOpSize))
+	for res := range acceptFDs {
+		nop, ok := NetOpsFDs[res]
+		if ok {
+			tmpOps[res] = nop
+		}
+	}
+
+	NetOpsFDsAccept = tmpOps
 
 	return calls, p.Vars
 }
