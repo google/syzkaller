@@ -33,15 +33,24 @@ jobs:
        - name: run bm-generator from CSB
          env:
            BRANCH_NAME: ${{ github.ref_name }}
+           FORK_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
          run: |
            git clone https://github.com/open-s4c/csb.git
            cd csb
            git submodule update --init
 
            cd deps/syzkaller/
-           git fetch
+           echo "Adding fork remote: https://github.com/${FORK_OWNER}/syzkaller.git"
+           git remote add fork "https://github.com/${FORK_OWNER}/syzkaller.git" || true
+           git fetch fork || true
+
            echo "checking out $BRANCH_NAME"
-           git checkout "$BRANCH_NAME"
+           if git rev-parse --verify "fork/${BRANCH_NAME}" >/dev/null 2>&1; then
+            git checkout "fork/${BRANCH_NAME}"
+           else
+            git checkout .
+           fi
+
            git log
 
            cd ../../
