@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 name: oss-fuzz
-on: [pull_request]
+on: [workflow_dispatch]
 jobs:
   Fuzzing:
     runs-on: ubuntu-latest

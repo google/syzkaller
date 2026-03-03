@@ -4,7 +4,7 @@
 # GitHub workflow reference:
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 name: 'Dependency Review'
-on: [pull_request]
+on: [workflow_dispatch]
 
 permissions:
   contents: read
