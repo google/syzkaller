@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
@@ -63,6 +64,13 @@ type InstanceConfig struct {
 	DisplayDevice bool
 	VMRunningTime time.Duration
 }
+
+const (
+	VMDeletionGracePeriod = time.Hour
+	// We allow an instance to exist for VMRunningTime + VMDeletionGracePeriod, allow an image to exist for an extra hour.
+	ImageDeletionGracePeriod = VMDeletionGracePeriod + time.Hour
+)
+const DeleteAfterFormat = "20060102-150405"
 
 func NewContext(customZoneID string) (*Context, error) {
 	ctx := &Context{
@@ -179,8 +187,8 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 	}
 	if cfg.VMRunningTime != 0 {
 		instance.Scheduling.MaxRunDuration = &compute.Duration{
-			// Give the manager an extra hour to ensure it has time to do its own cleanup.
-			Seconds: int64((cfg.VMRunningTime + time.Hour) / time.Second),
+			// Give the manager some extra time to ensure it has time to do its own cleanup.
+			Seconds: int64((cfg.VMRunningTime + VMDeletionGracePeriod) / time.Second),
 		}
 		instance.Scheduling.InstanceTerminationAction = "DELETE"
 	}
@@ -207,6 +215,32 @@ retry:
 		return "", err
 	}
 
+	// Attempt 3 times to update the label.
+	for range 3 {
+		image, err := ctx.getImage(cfg.Image)
+		if err != nil {
+			break
+		}
+		deleteAfter, ok := image.Labels["delete-after"]
+		if !ok {
+			break
+		}
+		// Update only if the new deadline extends the current one by >10 minutes. This ensures shorter-lived instances
+		// don't truncate the retention period required by longer-running ones and performs one less API call.
+		deleteAfterTime, _ := time.ParseInLocation(DeleteAfterFormat, deleteAfter, time.UTC)
+		imageRetentionTime := cfg.VMRunningTime + ImageDeletionGracePeriod
+		if time.Until(deleteAfterTime) > imageRetentionTime-10*time.Minute {
+			break
+		}
+		newDeleteAfter := time.Now().UTC().Add(imageRetentionTime).Format(DeleteAfterFormat)
+		err = ctx.updateDeleteAfter(image, newDeleteAfter)
+		// Error code 412 means the fingerprint is no longer valid, i.e. some other process modified the labels map first.
+		var gErr *googleapi.Error
+		if !errors.As(err, &gErr) || gErr.Code != 412 {
+			break
+		}
+	}
+
 	var inst *compute.Instance
 	err = ctx.apiCall(func() (err error) {
 		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, cfg.Name).Do()
@@ -228,6 +262,44 @@ retry:
 		return "", fmt.Errorf("didn't find instance internal IP address")
 	}
 	return ip, nil
+}
+
+func (ctx *Context) getImage(imageName string) (*compute.Image, error) {
+	var image *compute.Image
+	err := ctx.apiCall(func() (err error) {
+		image, err = ctx.computeService.Images.Get(ctx.ProjectID, imageName).Do()
+		return
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting image %s details: %w", imageName, err)
+	}
+	return image, nil
+}
+
+func (ctx *Context) shouldDeleteImage(image *compute.Image) bool {
+	deleteAfter, ok := image.Labels["delete-after"]
+	if !ok {
+		return false
+	}
+	deleteAfterTime, err := time.ParseInLocation(DeleteAfterFormat, deleteAfter, time.UTC)
+	return err == nil && time.Now().UTC().After(deleteAfterTime)
+}
+
+// Updates an image's delete-after label. If the image has no labels, it makes a new map with the provided value, and
+// gives it a uuid label.
+func (ctx *Context) updateDeleteAfter(image *compute.Image, deleteAfter string) error {
+	if image.Labels == nil {
+		image.Labels = make(map[string]string)
+		image.Labels["uuid"] = uuid.NewString()
+	}
+	image.Labels["delete-after"] = deleteAfter
+	return ctx.apiCall(func() (err error) {
+		_, err = ctx.computeService.Images.SetLabels(ctx.ProjectID, image.Name, &compute.GlobalSetLabelsRequest{
+			LabelFingerprint: image.LabelFingerprint,
+			Labels:           image.Labels,
+		}).Do()
+		return
+	})
 }
 
 func diskSizeGB(machineType string) int {
@@ -273,7 +345,7 @@ func (ctx *Context) IsInstanceRunning(name string) bool {
 	return inst.Status == "RUNNING"
 }
 
-func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
+func (ctx *Context) CreateImage(imageName, gcsFile, OS string, autoDelete bool, VMRunningTime time.Duration) error {
 	var features []*compute.GuestOsFeature
 	if OS == targets.Linux {
 		features = []*compute.GuestOsFeature{
@@ -292,8 +364,31 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 		},
 		GuestOsFeatures: features,
 	}
-	var op *compute.Operation
+
+	if autoDelete {
+		image.Labels = map[string]string{
+			// Whenever we create an instance, we update the label to allow the image to exist for VMRunningTime + 2 hours. If
+			// we fail and no images were created, we should still delete the image.
+			"delete-after": time.Now().UTC().Add(VMRunningTime + ImageDeletionGracePeriod).Format(DeleteAfterFormat),
+			"uuid":         uuid.NewString(), // To be used as a request id.
+		}
+	}
+	// Before creating a new image, delete overdue images.
+	var existingImages *compute.ImageList
 	err := ctx.apiCall(func() (err error) {
+		existingImages, err = ctx.computeService.Images.List(ctx.ProjectID).Do()
+		return
+	})
+	if err == nil { // While it's important to delete stale images, a failure to do so should not crash the manager.
+		for _, image := range existingImages.Items {
+			if ctx.shouldDeleteImage(image) {
+				ctx.DeleteImageWithRequestID(image.Name, image.Labels["uuid"])
+			}
+		}
+	}
+
+	var op *compute.Operation
+	err = ctx.apiCall(func() (err error) {
 		op, err = ctx.computeService.Images.Insert(ctx.ProjectID, image).Do()
 		return
 	})
@@ -316,8 +411,7 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 
 func (ctx *Context) deleteImage(imageName, requestID string) error {
 	var op *compute.Operation
-	var err error
-	err = ctx.apiCall(func() (err error) {
+	err := ctx.apiCall(func() (err error) {
 		if requestID == "" {
 			op, err = ctx.computeService.Images.Delete(ctx.ProjectID, imageName).Do()
 		} else {
