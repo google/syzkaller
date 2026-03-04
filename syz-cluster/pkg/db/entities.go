@@ -201,3 +201,11 @@ type BaseFinding struct {
 	Arch       string           `spanner:"Arch"`
 	Title      string           `spanner:"Title"`
 }
+
+// SeriesStats stores statistics about a patch series.
+type SeriesStats struct {
+	ID            string    `spanner:"ID"`
+	StatsVersion  string    `spanner:"StatsVersion"`
+	PreventedBugs int64     `spanner:"PreventedBugs"`
+	UpdatedAt     time.Time `spanner:"UpdatedAt"`
+}
