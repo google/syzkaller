@@ -1,0 +1,43 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Deletes GCE images with last-active and auto-delete labels older than 12 hours.
+
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: delete-stale-images
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: main
+    serviceAccountName: delete-stale-images-ksa
+    podMetadata:
+      labels:
+        tier: workflow
+    podGC:
+      strategy: OnPodCompletion
+      deleteDelayDuration: 12h
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    templates:
+    - name: main
+      script:
+        image: gcr.io/google.com/cloudsdktool/google-cloud-cli:slim
+        command: [bash, -e, -c]
+        source: |
+          CUTOFF=$(date -u -d "12 hours ago" +%Y%m%d-%H%M%S)
+          echo "Cutoff time for stale images is: $CUTOFF"
+          gcloud compute images list --filter="labels.last-active:* AND labels.auto-delete:*" --format="value(name, labels.last-active)" | while read -r name last_active; do
+              if [[ -z "$name" ]]; then
+                  continue
+              fi
+              if [[ "$last_active" < "$CUTOFF" ]]; then
+                  echo "Deleting image $name (last active: $last_active)"
+                  gcloud compute images delete "$name" --quiet || echo "Failed to delete $name"
+              else
+                  echo "Keeping image $name (last active: $last_active)"
+              fi
+          done

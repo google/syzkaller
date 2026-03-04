@@ -6,6 +6,7 @@ resources:
   - global-config-env.yaml
   - kernel-disk-pvc.yaml
   - workflow-artifacts.yaml
+  - ../../../workflow/delete-stale-images
 
 # Unlike the minikube environment, GKE Terraform scripts will
 # pre-create the service accounts.

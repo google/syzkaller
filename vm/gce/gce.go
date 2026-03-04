@@ -64,8 +64,9 @@ type Config struct {
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise generate one and upload it:
 	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
-	SerialPortKey string   `json:"serial_port_key"`
-	Tags          []string `json:"tags"` // GCE instance tags
+	SerialPortKey   string   `json:"serial_port_key"`
+	Tags            []string `json:"tags"`              // GCE instance tags
+	AutoDeleteImage bool     `json:"auto_delete_image"` // Auto delete GCE image; Requires gce_image be empty.
 }
 
 type Pool struct {
@@ -74,6 +75,8 @@ type Pool struct {
 	GCE            *gce.Context
 	consoleReadCmd string   // optional: command to read non-standard kernel console
 	alreadyCreated sync.Map // Tracks the first creation per instance.
+	stop           chan struct{}
+	wg             sync.WaitGroup
 }
 
 type instance struct {
@@ -97,6 +100,39 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 }
 
 func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
+	cfg, err := parseAndValidateConfig(env)
+	if err != nil {
+		return nil, err
+	}
+
+	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
+		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
+
+	if cfg.GCEImage == "" {
+		if err := uploadAndCreateImage(env, cfg, GCE); err != nil {
+			return nil, err
+		}
+	}
+	pool := &Pool{
+		cfg:            cfg,
+		env:            env,
+		GCE:            GCE,
+		consoleReadCmd: consoleReadCmd,
+		stop:           make(chan struct{}),
+	}
+	if cfg.AutoDeleteImage {
+		pool.wg.Add(1)
+		go pool.keepImageActive()
+	}
+	return pool, nil
+}
+
+func parseAndValidateConfig(env *vmimpl.Env) (*Config, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
@@ -115,46 +151,60 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 	if cfg.MachineType == "" {
 		return nil, fmt.Errorf("machine_type parameter is empty")
 	}
-	if cfg.GCEImage == "" && cfg.GCSPath == "" {
-		return nil, fmt.Errorf("gcs_path parameter is empty")
-	}
-	if cfg.GCEImage == "" && env.Image == "" {
-		return nil, fmt.Errorf("config param image is empty (required for GCE)")
-	}
-	if cfg.GCEImage != "" && env.Image != "" {
-		return nil, fmt.Errorf("both image and gce_image are specified")
-	}
-
-	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
-		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
-
 	if cfg.GCEImage == "" {
-		cfg.GCEImage = env.Name
-		gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
-		log.Logf(0, "uploading image %v to %v...", env.Image, gcsImage)
-		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
-			return nil, err
+		if cfg.GCSPath == "" {
+			return nil, fmt.Errorf("gcs_path parameter is empty")
 		}
-		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
-		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
-			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
+		if env.Image == "" {
+			return nil, fmt.Errorf("config param image is empty (required for GCE)")
 		}
-		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS); err != nil {
-			return nil, fmt.Errorf("failed to create GCE image: %w", err)
+	} else {
+		if env.Image != "" {
+			return nil, fmt.Errorf("both image and gce_image are specified")
+		}
+		if cfg.AutoDeleteImage {
+			return nil, fmt.Errorf("can't specify gce_image when auto_delete_image is true")
 		}
 	}
-	pool := &Pool{
-		cfg:            cfg,
-		env:            env,
-		GCE:            GCE,
-		consoleReadCmd: consoleReadCmd,
+	return cfg, nil
+}
+
+func uploadAndCreateImage(env *vmimpl.Env, cfg *Config, GCE *gce.Context) error {
+	cfg.GCEImage = env.Name
+	gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
+	log.Logf(0, "uploading image %v to %v...", env.Image, gcsImage)
+	if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
+		return err
 	}
-	return pool, nil
+	log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
+	if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
+		return fmt.Errorf("failed to delete GCE image: %w", err)
+	}
+	if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS, cfg.AutoDeleteImage); err != nil {
+		return fmt.Errorf("failed to create GCE image: %w", err)
+	}
+	if err := deleteImageFromGCS(gcsImage); err != nil {
+		return fmt.Errorf("failed to delete GCS image file: %w", err)
+	}
+	return nil
+}
+
+func (pool *Pool) keepImageActive() {
+	defer pool.wg.Done()
+	// Update the image last-active label periodically to prevent it from becoming stale.
+	ticker := time.NewTicker(gce.LabelUpdateInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := pool.GCE.UpdateLastActive(pool.cfg.GCEImage); err != nil {
+				// We have a generous 12 hour grace period, it's okay to fail to update the label.
+				log.Logf(0, "GCE: failed to update image last-active label: %v", err)
+			}
+		case <-pool.stop:
+			return
+		}
+	}
 }
 
 func initGCE(zoneID, projectID string) (*gce.Context, error) {
@@ -275,6 +325,12 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	}
 	ok = true
 	return inst, nil
+}
+
+func (pool *Pool) Close() error {
+	close(pool.stop)
+	pool.wg.Wait()
+	return nil
 }
 
 func (inst *instance) Close() error {
@@ -564,6 +620,15 @@ func (inst *instance) getSerialPortOutput() ([]byte, error) {
 	close(done)
 	con.Wait()
 	return output, nil
+}
+
+func deleteImageFromGCS(image string) error {
+	GCS, err := gcs.NewClient(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %w", err)
+	}
+	defer GCS.Close()
+	return GCS.DeleteFile(image)
 }
 
 func uploadImageToGCS(localImage, gcsImage string) error {
