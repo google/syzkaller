@@ -249,6 +249,20 @@ func (repo *SeriesRepository) ListAllVersions(ctx context.Context, title string)
 	})
 }
 
+func (repo *SeriesRepository) ListPreviousVersions(ctx context.Context, series *Series) ([]*Series, error) {
+	ro := repo.client.ReadOnlyTransaction()
+	defer ro.Close()
+	return readEntities[Series](ctx, ro, spanner.Statement{
+		SQL: "SELECT * FROM Series WHERE Title = @title " +
+			"AND PublishedAt <= @publishedAt AND Version < @version ORDER BY Version",
+		Params: map[string]any{
+			"title":       series.Title,
+			"publishedAt": series.PublishedAt,
+			"version":     series.Version,
+		},
+	})
+}
+
 func (repo *SeriesRepository) querySessions(ctx context.Context, ro *spanner.ReadOnlyTransaction,
 	seriesList []*SeriesWithSession) error {
 	idToSeries := map[string]*SeriesWithSession{}

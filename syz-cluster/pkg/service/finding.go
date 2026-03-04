@@ -165,21 +165,13 @@ func (s *FindingService) ListPreviousFindings(ctx context.Context, req *api.List
 	if series == nil {
 		return nil, fmt.Errorf("series not found: %w", db.ErrEntityNotFound)
 	}
-	allVersions, err := s.seriesRepo.ListAllVersions(ctx, series.Title)
+	previousVersions, err := s.seriesRepo.ListPreviousVersions(ctx, series)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list all versions: %w", err)
+		return nil, fmt.Errorf("failed to list previous versions: %w", err)
 	}
 	var ret []string
 	var allFindings []*db.Finding
-	// Prefer newer versions.
-	for _, ver := range slices.Backward(allVersions) {
-		if ver.ID == req.SeriesID {
-			continue
-		}
-		if ver.PublishedAt.After(series.PublishedAt) {
-			continue
-		}
-
+	for _, ver := range previousVersions {
 		sessions, err := s.sessionRepo.ListForSeries(ctx, ver)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list sessions for series %s: %w", ver.ID, err)
