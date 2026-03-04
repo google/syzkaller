@@ -126,9 +126,8 @@ func downloadBug(id, inputFile, token string) error {
 	crash := info["crashes"].([]any)[0].(map[string]any)
 
 	inputs := map[string]any{
-		"SyzkallerCommit": crash["syzkaller-commit"],
-		"KernelRepo":      crash["kernel-source-git"],
-		"KernelCommit":    crash["kernel-source-commit"],
+		"KernelRepo":   crash["kernel-source-git"],
+		"KernelCommit": crash["kernel-source-commit"],
 	}
 
 	fetchText := func(key string) (string, error) {

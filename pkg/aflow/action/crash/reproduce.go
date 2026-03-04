@@ -25,18 +25,17 @@ import (
 var Reproduce = aflow.NewFuncAction("crash-reproducer", reproduce)
 
 type ReproduceArgs struct {
-	Syzkaller       string
-	Image           string
-	Type            string
-	VM              json.RawMessage
-	ReproOpts       string
-	ReproSyz        string
-	ReproC          string
-	SyzkallerCommit string
-	KernelSrc       string
-	KernelObj       string
-	KernelCommit    string
-	KernelConfig    string
+	Syzkaller    string
+	Image        string
+	Type         string
+	VM           json.RawMessage
+	ReproOpts    string
+	ReproSyz     string
+	ReproC       string
+	KernelSrc    string
+	KernelObj    string
+	KernelCommit string
+	KernelConfig string
 }
 
 type reproduceResult struct {
