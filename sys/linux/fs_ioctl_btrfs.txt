@@ -61,6 +61,9 @@ ioctl$BTRFS_IOC_SET_FEATURES(fd fd, cmd const[BTRFS_IOC_SET_FEATURES], arg ptr[i
 ioctl$BTRFS_IOC_GET_SUBVOL_INFO(fd fd, cmd const[BTRFS_IOC_GET_SUBVOL_INFO], arg ptr[out, btrfs_ioctl_get_subvol_info_args])
 ioctl$BTRFS_IOC_GET_SUBVOL_ROOTREF(fd fd, cmd const[BTRFS_IOC_GET_SUBVOL_ROOTREF], arg ptr[inout, btrfs_ioctl_get_subvol_rootref_args])
 ioctl$BTRFS_IOC_INO_LOOKUP_USER(fd fd, cmd const[BTRFS_IOC_INO_LOOKUP_USER], arg ptr[inout, btrfs_ioctl_ino_lookup_user_args])
+ioctl$BTRFS_IOC_ENCODED_READ(fd fd, cmd const[BTRFS_IOC_ENCODED_READ], arg ptr[inout, btrfs_ioctl_encoded_io_args])
+ioctl$BTRFS_IOC_ENCODED_WRITE(fd fd, cmd const[BTRFS_IOC_ENCODED_WRITE], arg ptr[in, btrfs_ioctl_encoded_io_args])
+ioctl$BTRFS_IOC_SUBVOL_SYNC_WAIT(fd fd, cmd const[BTRFS_IOC_SUBVOL_SYNC_WAIT], arg ptr[inout, btrfs_ioctl_subvol_wait])
 
 resource transid[int64]
 resource devid[int64]
@@ -425,6 +428,25 @@ btrfs_ioctl_resize_size_num {
 	kKmM		flags[all_these_kKmM, int8]
 } [packed]
 
+btrfs_ioctl_encoded_io_args {
+	iov			ptr[in, array[iovec_out, 1]]
+	iovcnt			len[iov, int64]
+	offset			int64
+	flags			const[0, int64]
+	len			int64
+	unencoded_len		int64
+	unencoded_offset	int64
+	compression		flags[btrfs_encoded_io_compression, int32]
+	encryption		int32
+	reserved		array[const[0, int32], 2]
+}
+
+btrfs_ioctl_subvol_wait {
+	subvolid	subvolid
+	mode		flags[btrfs_ioctl_subvol_wait_mode, int32]
+	count		int32
+}
+
 plus_minus = '+', '-'
 all_these_kKmM = 'k', 'K', 'm', 'M', 'g', 'G', 't', 'T', 'p', 'P', 'e', 'E'
 
@@ -448,3 +470,5 @@ cont_reading_from_srcdev_mode_flags = BTRFS_IOCTL_DEV_REPLACE_CONT_READING_FROM_
 btrfs_ioctl_feature_compat_flags = btrfs_ioctl_feature_compat_ro_flags
 btrfs_ioctl_feature_compat_ro_flags = BTRFS_FEATURE_COMPAT_RO_FREE_SPACE_TREE, BTRFS_FEATURE_COMPAT_RO_FREE_SPACE_TREE_VALID
 btrfs_ioctl_feature_incompat_flags = BTRFS_FEATURE_INCOMPAT_MIXED_BACKREF, BTRFS_FEATURE_INCOMPAT_DEFAULT_SUBVOL, BTRFS_FEATURE_INCOMPAT_MIXED_GROUPS, BTRFS_FEATURE_INCOMPAT_COMPRESS_LZO, BTRFS_FEATURE_INCOMPAT_COMPRESS_ZSTD
+btrfs_encoded_io_compression = BTRFS_ENCODED_IO_COMPRESSION_NONE, BTRFS_ENCODED_IO_COMPRESSION_ZLIB, BTRFS_ENCODED_IO_COMPRESSION_ZSTD, BTRFS_ENCODED_IO_COMPRESSION_LZO_4K, BTRFS_ENCODED_IO_COMPRESSION_LZO_8K, BTRFS_ENCODED_IO_COMPRESSION_LZO_16K, BTRFS_ENCODED_IO_COMPRESSION_LZO_32K, BTRFS_ENCODED_IO_COMPRESSION_LZO_64K, BTRFS_ENCODED_IO_COMPRESSION_TYPES
+btrfs_ioctl_subvol_wait_mode = BTRFS_SUBVOL_SYNC_WAIT_FOR_ONE, BTRFS_SUBVOL_SYNC_WAIT_FOR_QUEUED, BTRFS_SUBVOL_SYNC_COUNT, BTRFS_SUBVOL_SYNC_PEEK_FIRST, BTRFS_SUBVOL_SYNC_PEEK_LAST
