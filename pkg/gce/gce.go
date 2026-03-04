@@ -314,10 +314,15 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 	return nil
 }
 
-func (ctx *Context) DeleteImage(imageName string) error {
+func (ctx *Context) deleteImage(imageName, requestID string) error {
 	var op *compute.Operation
-	err := ctx.apiCall(func() (err error) {
-		op, err = ctx.computeService.Images.Delete(ctx.ProjectID, imageName).Do()
+	var err error
+	err = ctx.apiCall(func() (err error) {
+		if requestID == "" {
+			op, err = ctx.computeService.Images.Delete(ctx.ProjectID, imageName).Do()
+		} else {
+			op, err = ctx.computeService.Images.Delete(ctx.ProjectID, imageName).RequestId(requestID).Do()
+		}
 		return
 	})
 	var apiErr *googleapi.Error
@@ -331,6 +336,15 @@ func (ctx *Context) DeleteImage(imageName string) error {
 		return err
 	}
 	return nil
+}
+
+func (ctx *Context) DeleteImage(imageName string) error {
+	return ctx.deleteImage(imageName, "")
+}
+
+func (ctx *Context) DeleteImageWithRequestID(imageName, requestID string) error {
+	// A request ID ensures that if two managers send the same request, deletion will only be attempted once.
+	return ctx.deleteImage(imageName, requestID)
 }
 
 type resourcePoolExhaustedError string
