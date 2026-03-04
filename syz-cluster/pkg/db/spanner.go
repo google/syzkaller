@@ -351,6 +351,18 @@ func (g *genericEntityOps[EntityType, KeyType]) Insert(ctx context.Context, obj 
 	return err
 }
 
+func (g *genericEntityOps[EntityType, KeyType]) Upsert(ctx context.Context, obj *EntityType) error {
+	_, err := g.client.ReadWriteTransaction(ctx,
+		func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+			m, err := spanner.InsertOrUpdateStruct(g.table, obj)
+			if err != nil {
+				return err
+			}
+			return txn.BufferWrite([]*spanner.Mutation{m})
+		})
+	return err
+}
+
 func (g *genericEntityOps[EntityType, KeyType]) readEntities(ctx context.Context, stmt spanner.Statement) (
 	[]*EntityType, error) {
 	return readEntities[EntityType](ctx, g.client.Single(), stmt)
