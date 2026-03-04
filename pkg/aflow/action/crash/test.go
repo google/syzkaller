@@ -34,7 +34,6 @@ type testArgs struct {
 	ReproOpts        string
 	ReproSyz         string
 	ReproC           string
-	SyzkallerCommit  string
 	KernelScratchSrc string
 	KernelCommit     string
 	KernelConfig     string
@@ -81,18 +80,17 @@ func testPatch(ctx *aflow.Context, args testArgs) (testResult, error) {
 			return res, err
 		}
 		reproduceArgs := ReproduceArgs{
-			Syzkaller:       args.Syzkaller,
-			Image:           args.Image,
-			Type:            args.Type,
-			VM:              args.VM,
-			ReproOpts:       args.ReproOpts,
-			ReproSyz:        args.ReproSyz,
-			ReproC:          args.ReproC,
-			SyzkallerCommit: args.SyzkallerCommit,
-			KernelSrc:       args.KernelScratchSrc,
-			KernelObj:       args.KernelScratchSrc,
-			KernelCommit:    args.KernelCommit,
-			KernelConfig:    args.KernelConfig,
+			Syzkaller:    args.Syzkaller,
+			Image:        args.Image,
+			Type:         args.Type,
+			VM:           args.VM,
+			ReproOpts:    args.ReproOpts,
+			ReproSyz:     args.ReproSyz,
+			ReproC:       args.ReproC,
+			KernelSrc:    args.KernelScratchSrc,
+			KernelObj:    args.KernelScratchSrc,
+			KernelCommit: args.KernelCommit,
+			KernelConfig: args.KernelConfig,
 		}
 		rep, bootError, err := ReproduceCrash(reproduceArgs, workdir)
 		if rep != nil {
