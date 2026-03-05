@@ -62,7 +62,11 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 	}
 	log.Printf("queried %d unfinished sessions", len(activeSessions))
 	for _, session := range activeSessions {
-		ch <- session
+		select {
+		case ch <- session:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	// Then, monitor the DB for the new series.
 	wg.Add(1)
@@ -94,7 +98,11 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 			continue
 		}
 		for _, session := range list {
-			ch <- session
+			select {
+			case ch <- session:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
