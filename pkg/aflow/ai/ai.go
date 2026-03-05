@@ -45,3 +45,9 @@ type ModerationOutputs struct {
 	Actionable  bool
 	Explanation string
 }
+
+type ReproOutputs struct {
+	ReproSyz        string
+	ReproOpts       string
+	SyzkallerCommit string
+}

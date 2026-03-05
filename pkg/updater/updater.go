@@ -136,7 +136,7 @@ func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan 
 	}
 
 	os.RemoveAll(upd.currentDir)
-	latestTag := upd.checkLatest()
+	latestTag := upd.CheckLatest()
 	if latestTag != "" {
 		var exeMod time.Time
 		if st, err := os.Stat(upd.exe); err == nil {
@@ -168,7 +168,7 @@ func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan 
 	}
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
-		latestTag := upd.checkLatest()
+		latestTag := upd.CheckLatest()
 		if latestTag != "" {
 			// The build was successful or we had the latest build from previous runs.
 			// Either way, use the latest build.
@@ -196,11 +196,11 @@ func (upd *Updater) UpdateOnStart(autoupdate bool, updatePending, shutdown chan 
 // Returns when we have a new good build in latest.
 func (upd *Updater) waitForUpdate() {
 	time.Sleep(RebuildPeriod)
-	latestTag := upd.checkLatest()
+	latestTag := upd.CheckLatest()
 	lastCommit := latestTag
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
-		if latestTag != upd.checkLatest() {
+		if latestTag != upd.CheckLatest() {
 			break
 		}
 		time.Sleep(BuildRetryPeriod)
@@ -317,9 +317,9 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 	return nil
 }
 
-// checkLatest returns tag of the latest build,
+// CheckLatest returns tag of the latest build,
 // or an empty string if latest build is missing/broken.
-func (upd *Updater) checkLatest() string {
+func (upd *Updater) CheckLatest() string {
 	if !osutil.FilesExist(upd.latestDir, upd.syzFiles) {
 		return ""
 	}
