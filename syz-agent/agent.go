@@ -41,7 +41,6 @@ type Config struct {
 	DashboardKey    string          `json:"dashboard_key"`
 	SyzkallerRepo   string          `json:"syzkaller_repo"`
 	SyzkallerBranch string          `json:"syzkaller_branch"`
-	SyzkallerCommit string          `json:"syzkaller_commit"` // Commit used to build syz-agent.
 	KernelConfig    string          `json:"kernel_config"`
 	Target          string          `json:"target"`
 	Image           string          `json:"image"`
@@ -133,7 +132,6 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool) error {
 	shutdownPending := make(chan struct{})
 	osutil.HandleInterrupts(shutdownPending)
 	updater.UpdateOnStart(autoUpdate, updatePending, shutdownPending)
-	cfg.SyzkallerCommit = updater.CheckLatest()
 
 	dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 	if err != nil {
@@ -317,7 +315,6 @@ func (s *Server) resetModelQuota() {
 func initState(cfg *Config) map[string]any {
 	return map[string]any{
 		"Syzkaller":       osutil.Abs(filepath.FromSlash("syzkaller/current")),
-		"SyzkallerCommit": cfg.SyzkallerCommit,
 		"Image":           cfg.Image,
 		"Type":            cfg.Type,
 		"VM":              cfg.VM,
