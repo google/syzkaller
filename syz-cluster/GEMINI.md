@@ -23,8 +23,8 @@ The system is deployed on a GKE cluster and uses Argo Workflows for orchestratio
 ## Testing approach
 * Each DB repository should have low level tests, for which we use a Spanner emulator. Each test runs with its own temporary DB with already all migrations applied.
   * Whenever you need a repository object for tests, don't mock it directly, but instead just create one and fill it with test data.
-* When writing tests, always verify if there exist helper methods in the package that may let you write them more concisely.
-* `controller` API tests are in `pkg/controller/api_test.go`.
+* When writing tests, always verify if there exist helper methods in the package that may let you write them more concisely. For DB tests, check `pkg/db/util_test.go` for useful `dummyTestData` helper methods to easily populate test entities.
+* `controller` API tests are in `pkg/controller/api_test.go`. DO NOT write component tests with Spanner emulators or HTTP requests within `pkg/service`, instead write them in `pkg/controller/api_test.go` and use the defined API.
 * Don't try to build the docker containers and don't try to deploy them to K8S.
 * ALWAYS run all Go tests in `syz-cluster`, they are fast:
   `CI=true ./tools/syz-env go test ./syz-cluster/...`
