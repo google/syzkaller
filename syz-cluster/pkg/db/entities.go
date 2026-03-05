@@ -75,6 +75,7 @@ type Session struct {
 	LogURI       string             `spanner:"LogURI"`
 	TriageLogURI string             `spanner:"TriageLogURI"`
 	Tags         []string           `spanner:"Tags"`
+	JobID        spanner.NullString `spanner:"JobID"`
 	// TODO: to accept more specific fuzzing assignment,
 	// add Triager, BaseRepo, BaseCommit, Config fields.
 }
@@ -102,6 +103,10 @@ func (s *Session) Status() SessionStatus {
 		return SessionStatusSkipped
 	}
 	return SessionStatusFinished
+}
+
+func (s *Session) SetJobID(id string) {
+	s.JobID = spanner.NullString{StringVal: id, Valid: true}
 }
 
 func (s *Session) Duration() time.Duration {
@@ -208,4 +213,20 @@ type SeriesStats struct {
 	StatsVersion  string    `spanner:"StatsVersion"`
 	PreventedBugs int64     `spanner:"PreventedBugs"`
 	UpdatedAt     time.Time `spanner:"UpdatedAt"`
+}
+
+const (
+	JobPatchTest = "patch_test"
+)
+
+type Job struct {
+	ID        string    `spanner:"ID"`
+	Type      string    `spanner:"Type"`
+	CreatedAt time.Time `spanner:"CreatedAt"`
+	Reporter  string    `spanner:"Reporter"`
+	User      string    `spanner:"User"`
+	ExtID     string    `spanner:"ExtID"`
+	PatchURI  string    `spanner:"PatchURI"`
+	ReportID  string    `spanner:"ReportID"`
+	Cc        []string  `spanner:"Cc"`
 }

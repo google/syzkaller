@@ -75,6 +75,17 @@ func (d *dummyTestData) setLatestSession(series *Series, session *Session) {
 	assert.NoError(d.t, err)
 }
 
+func (d *dummyTestData) dummyReport(session *Session) *SessionReport {
+	reportRepo := NewReportRepository(d.client)
+	report := &SessionReport{
+		SessionID: session.ID,
+		Reporter:  "dummy-reporter",
+	}
+	err := reportRepo.Insert(d.ctx, report)
+	assert.NoError(d.t, err)
+	return report
+}
+
 func (d *dummyTestData) addFinding(session *Session, title, test string) *Finding {
 	findingRepo := NewFindingRepository(d.client)
 	finding := &Finding{

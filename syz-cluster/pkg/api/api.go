@@ -213,3 +213,24 @@ type BuildInfo struct {
 	Compiler   string `json:"compiler"`
 	ConfigLink string `json:"config_link"`
 }
+
+type JobType string
+
+const (
+	JobPatchTest JobType = "patch_test"
+)
+
+type SubmitJobRequest struct {
+	Type      JobType  `json:"type"`
+	ReportID  string   `json:"report_id"`
+	Reporter  string   `json:"reporter"`
+	User      string   `json:"user"`
+	ExtID     string   `json:"ext_id"`
+	Cc        []string `json:"cc"`
+	PatchData []byte   `json:"patch_data"`
+}
+
+type SubmitJobResponse struct {
+	JobID     string `json:"job_id"`
+	SessionID string `json:"session_id"`
+}

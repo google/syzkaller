@@ -24,6 +24,7 @@ type APIServer struct {
 	findingService         *service.FindingService
 	baseFindingService     *service.BaseFindingService
 	sessionTestStepService *service.SessionTestStepService
+	jobService             *service.JobService
 	config                 *app.AppConfig
 }
 
@@ -36,6 +37,7 @@ func NewAPIServer(env *app.AppEnvironment) *APIServer {
 		findingService:         service.NewFindingService(env),
 		baseFindingService:     service.NewBaseFindingService(env),
 		sessionTestStepService: service.NewSessionTestStepService(env),
+		jobService:             service.NewJobService(env),
 		config:                 env.Config,
 	}
 }
@@ -58,6 +60,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/base_findings/upload", c.uploadBaseFinding)
 	mux.HandleFunc("/base_findings/status", c.baseFindingStatus)
 	mux.HandleFunc("/sessions/{session_id}/upload_test_step", c.uploadTestStep)
+	mux.HandleFunc("/jobs/submit", c.submitJob)
 	return mux
 }
 
@@ -285,4 +288,21 @@ func (c APIServer) uploadTestStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.ReplyJSON[any](w, nil)
+}
+
+func (c APIServer) submitJob(w http.ResponseWriter, r *http.Request) {
+	req := api.ParseJSON[api.SubmitJobRequest](w, r)
+	if req == nil {
+		return
+	}
+	resp, err := c.jobService.SubmitJob(r.Context(), req)
+	if err != nil {
+		if errors.Is(err, service.ErrPatchTooLarge) {
+			http.Error(w, fmt.Sprint(err), http.StatusBadRequest)
+		} else {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		}
+		return
+	}
+	api.ReplyJSON(w, resp)
 }

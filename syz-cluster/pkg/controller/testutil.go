@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type EntityIDs struct {
@@ -144,4 +145,19 @@ func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string
 		return nil
 	})
 	assert.NoError(t, err)
+}
+
+// TODO: this is temporary.
+// We need to move pkg/controller/api_test.go and pkg/reporter/api_test.go to some other
+// place, so that we can always use both API servers in the tests.
+func UploadTestSessionReport(t *testing.T, env *app.AppEnvironment,
+	sessionID string) *db.SessionReport {
+	reportRepo := db.NewReportRepository(env.Spanner)
+	report := &db.SessionReport{
+		ID:        "report-123",
+		SessionID: sessionID,
+		Reporter:  "test-reporter",
+	}
+	require.NoError(t, reportRepo.Insert(context.Background(), report))
+	return report
 }

@@ -187,3 +187,7 @@ func ensure200(resp *http.Response) error {
 	}
 	return nil
 }
+
+func (client Client) SubmitJob(ctx context.Context, req *SubmitJobRequest) (*SubmitJobResponse, error) {
+	return postJSON[SubmitJobRequest, SubmitJobResponse](ctx, client.baseURL+"/jobs/submit", req)
+}
