@@ -378,6 +378,13 @@ import (
 	"github.com/google/syzkaller/sys/{{$os.GOOS}}"{{end}}
 )
 
+// Files are needed only for pkg/aflow/tool/syzlang.
+// For simplicity we embed them here for now, since go:embed patterns can't contain "..".
+// Ideally we move this to a separate package, but this will require some restructuring.
+
+//go:embed linux/*.txt
+var Files embed.FS
+
 //go:embed gen/*.gob.flate
 var files embed.FS
 
