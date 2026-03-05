@@ -8,13 +8,12 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/syzlang"
+	"github.com/google/syzkaller/prog"
 )
 
 type ReproInputs struct {
-	BugTitle        string
-	CrashReport     string
-	SyzkallerCommit string // Forwarded to output.
-
+	BugTitle     string
+	CrashReport  string
 	KernelRepo   string
 	KernelCommit string
 	KernelConfig string
@@ -26,7 +25,13 @@ func init() {
 		"reproduce a kernel crash and generate a syzlang program",
 		&aflow.Flow{
 			Root: aflow.Pipeline(
-				aflow.Provide(struct{ DescriptionFiles []string }{syzlang.DescriptionFiles()}),
+				aflow.Provide(struct {
+					SyzkallerCommit  string
+					DescriptionFiles []string
+				}{
+					prog.GitRevisionBase,
+					syzlang.DescriptionFiles(),
+				}),
 				kernel.Checkout,
 				kernel.Build,
 				&aflow.LLMAgent{
