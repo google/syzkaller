@@ -154,3 +154,23 @@ func (repo *StatsRepository) CountPreventedBugs(ctx context.Context, seriesID st
 	}
 	return row.Count, nil
 }
+
+type PreventedBugsStats struct {
+	Date   time.Time `spanner:"Date"`
+	Series int64     `spanner:"Series"`
+	Bugs   int64     `spanner:"Bugs"`
+}
+
+func (repo *StatsRepository) PreventedBugsPerMonth(ctx context.Context) ([]*PreventedBugsStats, error) {
+	return readEntities[PreventedBugsStats](ctx, repo.client.Single(), spanner.Statement{
+		SQL: `SELECT
+  TIMESTAMP_TRUNC(Series.PublishedAt, MONTH, 'UTC') as Date,
+  COUNT(Series.ID) as Series,
+  SUM(SeriesStats.PreventedBugs) as Bugs
+FROM Series
+JOIN SeriesStats ON SeriesStats.ID = Series.ID
+WHERE SeriesStats.PreventedBugs > 0
+GROUP BY Date
+ORDER BY Date`,
+	})
+}

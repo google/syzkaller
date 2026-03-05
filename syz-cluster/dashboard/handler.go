@@ -115,12 +115,13 @@ func (h *dashboardHandler) seriesList(w http.ResponseWriter, r *http.Request) er
 	baseURL := r.URL.RequestURI()
 	data := MainPageData{
 		Filter: db.SeriesFilter{
-			Cc:           r.FormValue("cc"),
-			Status:       db.SessionStatus(r.FormValue("status")),
-			WithFindings: r.FormValue("with_findings") != "",
-			Limit:        perPage,
-			Offset:       offset,
-			Name:         r.FormValue("name"),
+			Cc:            r.FormValue("cc"),
+			Status:        db.SessionStatus(r.FormValue("status")),
+			WithFindings:  r.FormValue("with_findings") != "",
+			PreventedBugs: r.FormValue("prevented_bugs") != "",
+			Limit:         perPage,
+			Offset:        offset,
+			Name:          r.FormValue("name"),
 		},
 		// If the filters are changed, the old offset value is irrelevant.
 		FilterFormURL: urlutil.DropParam(baseURL, "offset", ""),
@@ -235,11 +236,12 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 
 func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) error {
 	type StatsPageData struct {
-		Processed    []*db.CountPerWeek
-		Findings     []*db.CountPerWeek
-		Reports      []*db.CountPerWeek
-		Delay        []*db.DelayPerWeek
-		Distribution []*db.StatusPerWeek
+		Processed     []*db.CountPerWeek
+		Findings      []*db.CountPerWeek
+		Reports       []*db.CountPerWeek
+		Delay         []*db.DelayPerWeek
+		Distribution  []*db.StatusPerWeek
+		PreventedBugs []*db.PreventedBugsStats
 	}
 	var data StatsPageData
 	var err error
@@ -262,6 +264,10 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	data.Distribution, err = h.statsRepo.SessionStatusPerWeek(r.Context())
 	if err != nil {
 		return fmt.Errorf("failed to query distribution data: %w", err)
+	}
+	data.PreventedBugs, err = h.statsRepo.PreventedBugsPerMonth(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query prevented bugs data: %w", err)
 	}
 	return h.renderTemplate(w, "graphs.html", data)
 }

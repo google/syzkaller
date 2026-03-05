@@ -127,12 +127,13 @@ type SeriesWithSession struct {
 }
 
 type SeriesFilter struct {
-	Cc           string
-	Status       SessionStatus
-	WithFindings bool
-	Limit        int
-	Offset       int
-	Name         string
+	Cc            string
+	Status        SessionStatus
+	WithFindings  bool
+	PreventedBugs bool
+	Limit         int
+	Offset        int
+	Name          string
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -201,6 +202,10 @@ WHERE SEARCH(Patches.TitleTokens, @name)
 		conds = append(conds, "Series.LatestSessionID IS NOT NULL AND EXISTS("+
 			"SELECT 1 FROM Findings WHERE "+
 			"Findings.SessionID = Series.LatestSessionID AND Findings.InvalidatedAt IS NULL)")
+	}
+	if filter.PreventedBugs {
+		conds = append(conds, "EXISTS("+
+			"SELECT 1 FROM SeriesStats WHERE SeriesStats.ID = Series.ID AND SeriesStats.PreventedBugs > 0)")
 	}
 	if len(conds) != 0 {
 		stmt.SQL += " WHERE " + strings.Join(conds, " AND ")

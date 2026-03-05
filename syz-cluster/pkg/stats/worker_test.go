@@ -98,4 +98,10 @@ func TestWorker(t *testing.T) {
 	stat2, err = seriesStatsRepo.GetByID(ctx, dataV2.SeriesID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), stat2.PreventedBugs)
+
+	stats, err := statsRepo.PreventedBugsPerMonth(ctx)
+	require.NoError(t, err)
+	require.Len(t, stats, 1)
+	assert.Equal(t, int64(1), stats[0].Series)
+	assert.Equal(t, int64(1), stats[0].Bugs)
 }
