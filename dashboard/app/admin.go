@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -375,6 +376,40 @@ func updateBatch[T any](ctx context.Context, keys []*db.Key, transform func(key 
 		log.Warningf(ctx, "updated %v bugs", len(batchKeys))
 	}
 	return nil
+}
+
+func forceCommitInfoUpdate(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	// Read an optional "?limit=X" parameter from the URL.
+	limit := 0
+	if limitStr := r.FormValue("limit"); limitStr != "" {
+		parsed, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return fmt.Errorf("invalid limit parameter %q: %w", limitStr, err)
+		}
+		if parsed <= 0 {
+			return fmt.Errorf("limit parameter must be positive")
+		}
+		limit = parsed
+	}
+
+	var keys []*db.Key
+	err := foreachBug(ctx, nil, func(bug *Bug, key *db.Key) error {
+		if limit > 0 && len(keys) >= limit {
+			return nil // Stop accumulating if we hit our requested limit.
+		}
+		if len(bug.Commits) > 0 && !bug.NeedCommitInfo {
+			keys = append(keys, key)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Warningf(ctx, "fetched %v bugs for commit info update", len(keys))
+	return updateBatch(ctx, keys, func(_ *db.Key, bug *Bug) {
+		bug.NeedCommitInfo = true
+	})
 }
 
 // Prevent warnings about dead code.
