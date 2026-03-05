@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
 type StatsRepository struct {
@@ -124,4 +125,32 @@ WHERE StartedAt IS NOT NULL
 GROUP BY Date
 ORDER BY Date`,
 	})
+}
+
+func (repo *StatsRepository) CountPreventedBugs(ctx context.Context, seriesID string) (int64, error) {
+	type countRow struct {
+		Count int64 `spanner:"Count"`
+	}
+	stmt := spanner.Statement{
+		SQL: `SELECT COUNT(DISTINCT SessionTestSteps.FindingID) AS Count
+			FROM SessionTestSteps
+			JOIN Series ON SessionTestSteps.SessionID = Series.LatestSessionID
+			WHERE Series.ID = @seriesID
+			  AND SessionTestSteps.Target = @target
+			  AND SessionTestSteps.Result = @result
+			  AND SessionTestSteps.FindingID IS NOT NULL`,
+		Params: map[string]any{
+			"seriesID": seriesID,
+			"target":   api.StepTargetPatched,
+			"result":   api.StepResultPassed,
+		},
+	}
+	row, err := readEntity[countRow](ctx, repo.client.Single(), stmt)
+	if err != nil {
+		return 0, err
+	}
+	if row == nil {
+		return 0, nil
+	}
+	return row.Count, nil
 }
