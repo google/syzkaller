@@ -46,6 +46,36 @@
         <div id="distribution_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
       </div>
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4">
+        <h2 class="h4">Prevented Bugs Statistics (monthly)</h2>
+        <p class="text-muted small">
+          How many bugs were found in the early series versions, but not in the final one. Data is aggregated by the month the patch series was published.
+        </p>
+        {{if .PreventedBugs}}
+        <table class="table table-striped table-sm" style="max-width: 600px;">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Series with Prevented Bugs</th>
+              <th>Total Prevented Bugs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .PreventedBugs}}
+            <tr>
+              <td>{{.Date.Format "2006-01"}}</td>
+              <td>{{.Series}}</td>
+              <td>{{.Bugs}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{else}}
+        <p>No data available yet.</p>
+        {{end}}
+      </div>
     </main>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
