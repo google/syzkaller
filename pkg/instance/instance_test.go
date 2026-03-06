@@ -50,7 +50,7 @@ func TestExecprogCmd(t *testing.T) {
 				FaultCall: 2,
 				FaultNth:  3,
 			},
-		}, true, 10, "myprog")
+		}, true, 10, "", "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := tool.ParseFlags(flags, args); err != nil {
 		t.Fatal(err)

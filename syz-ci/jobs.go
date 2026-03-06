@@ -659,7 +659,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		}
 	}
 	jp.Logf(0, "job: testing...")
-	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
+	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC, false)
 	if err != nil {
 		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)
 	}
