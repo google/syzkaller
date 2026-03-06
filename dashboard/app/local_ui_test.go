@@ -284,6 +284,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 	}
 	t.Logf("done populating DB")
 	resp, _ := globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-local-ui",
 		CodeRevision: "xxx",
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)},

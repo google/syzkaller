@@ -129,6 +129,7 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 		}
 		job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
 		job.CodeRevision = req.CodeRevision
+		job.AgentName = toNullString(req.AgentName)
 		mut, err := spanner.InsertOrUpdateStruct("Jobs", job)
 		if err != nil {
 			return err
