@@ -212,7 +212,9 @@ type Server struct {
 
 func (s *Server) poll(ctx context.Context) (bool, error) {
 	s.resetModelQuota()
+	agentName := s.cfg.DashboardClient
 	req := &dashapi.AIJobPollReq{
+		AgentName:    agentName,
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {
