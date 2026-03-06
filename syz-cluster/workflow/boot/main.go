@@ -28,6 +28,7 @@ var (
 	flagPatchedBuild = flag.String("patched_build", "", "patched build ID")
 	flagOutput       = flag.String("output", "", "where to store the result")
 	flagFindings     = flag.Bool("findings", false, "report failur as findings")
+	flagVMType       = flag.String("vm_type", "qemu", "VM type to use")
 )
 
 func main() {
@@ -88,7 +89,7 @@ const retryCount = 3
 const vmCount = 3
 
 func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTracer) (bool, error) {
-	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
+	cfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{VMType: *flagVMType})
 	if err != nil {
 		return false, err
 	}

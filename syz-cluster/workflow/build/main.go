@@ -219,18 +219,21 @@ type BuildResult struct {
 }
 
 func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildResult, error) {
-	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
+	if req.VMType != "gce" && req.VMType != "qemu" {
+		return nil, fmt.Errorf("only gce and qemu vms are supported now. %s is not supported", req.VMType)
 	}
 	if req.Arch != "amd64" {
 		// TODO: lift this restriction.
 		return nil, fmt.Errorf("only amd64 builds are supported now")
 	}
+	kernelConfig, err := os.ReadFile(filepath.Join("/kernel-configs", req.ConfigName))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the kernel config: %w", err)
+	}
 	params := build.Params{
 		TargetOS:     targets.Linux,
 		TargetArch:   req.Arch,
-		VMType:       "qemu", // TODO: support others.
+		VMType:       req.VMType,
 		KernelDir:    *flagRepository,
 		OutputDir:    *flagOutput,
 		Compiler:     "clang",
