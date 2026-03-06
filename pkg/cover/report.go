@@ -78,8 +78,8 @@ type line struct {
 
 type fileMap map[string]*file
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (fileMap, error) {
-	if err := rg.symbolizePCs(uniquePCs(progs...)); err != nil {
+func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool, symbolizer string) (fileMap, error) {
+	if err := rg.symbolizePCs(uniquePCs(progs...), symbolizer); err != nil {
 		return nil, err
 	}
 	files := make(fileMap)
@@ -206,7 +206,7 @@ func uniquePCs(progs ...Prog) []uint64 {
 	return maps.Keys(PCs)
 }
 
-func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
+func (rg *ReportGenerator) symbolizePCs(PCs []uint64, symbolizer string) error {
 	if len(PCs) == 0 {
 		return fmt.Errorf("no coverage collected so far to symbolize")
 	}
@@ -223,7 +223,7 @@ func (rg *ReportGenerator) symbolizePCs(PCs []uint64) error {
 		symbolize[sym] = true
 		pcs[sym.Module] = append(pcs[sym.Module], sym.PCs...)
 	}
-	frames, err := rg.Symbolize(pcs)
+	frames, err := rg.Symbolize(pcs, symbolizer)
 	if err != nil {
 		return err
 	}

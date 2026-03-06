@@ -48,6 +48,10 @@ func (s *addr2Line) Close() {
 	}
 }
 
+func (s *addr2Line) Name() string {
+	return "addr2line"
+}
+
 func (s *addr2Line) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
@@ -150,17 +154,62 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 			return nil, fmt.Errorf("failed to read file:line from addr2line: %w", err)
 		}
 		ln = s.Text()
-		colon := strings.LastIndexByte(ln, ':')
-		if colon == -1 {
+		// addr2line output can be:
+		// /path/to/file.c:123
+		// /path/to/file.c:123:45 (if column info is present, e.g. llvm-symbolizer)
+		// /path/to/file.c:123 (discriminator 1) ?
+
+		// Find the last colon, check if it looks like column.
+		colon1 := strings.LastIndexByte(ln, ':')
+		if colon1 == -1 {
 			return nil, fmt.Errorf("failed to parse file:line in addr2line output: %v", ln)
 		}
-		lineEnd := colon + 1
-		for lineEnd < len(ln) && ln[lineEnd] >= '0' && ln[lineEnd] <= '9' {
-			lineEnd++
+
+		// Helper to extract number.
+		parseNum := func(start int) (int, int) {
+			end := start
+			for end < len(ln) && ln[end] >= '0' && ln[end] <= '9' {
+				end++
+			}
+			if start == end {
+				return 0, start
+			}
+			val, err := strconv.Atoi(ln[start:end])
+			if err != nil {
+				return 0, start
+			}
+			return val, end
 		}
-		file := ln[:colon]
-		line, err := strconv.Atoi(ln[colon+1 : lineEnd])
-		if err != nil || fn == "" || fn == "??" || file == "" || file == "??" || line < 0 {
+
+		var line, col int
+		fileEnd := colon1
+
+		val1, _ := parseNum(colon1 + 1)
+
+		// Check if we have another colon before this?
+		colon2 := strings.LastIndexByte(ln[:colon1], ':')
+		if colon2 != -1 {
+			// Try parsing between colon2 and colon1.
+			val2, end2 := parseNum(colon2 + 1)
+			if end2 == colon1 {
+				// It looks like ...:line:col.
+				line = val2
+				col = val1
+				fileEnd = colon2
+			} else {
+				// Just ...:line.
+				line = val1
+				fileEnd = colon1
+			}
+		} else {
+			// Just ...:line.
+			line = val1
+			fileEnd = colon1
+		}
+
+		file := ln[:fileEnd]
+
+		if fn == "" || fn == "??" || file == "" || file == "??" {
 			continue
 		}
 		if line == 0 {
@@ -171,6 +220,7 @@ func parse(interner *Interner, s *bufio.Scanner) ([]Frame, error) {
 			Func:   interner.Do(fn),
 			File:   interner.Do(file),
 			Line:   line,
+			Column: col,
 			Inline: true,
 		})
 	}
