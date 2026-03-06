@@ -13,8 +13,11 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
-//go:embed base.cfg
-var baseConfigJSON []byte
+//go:embed qemu_base.cfg
+var qemuBaseConfigJSON []byte
+
+//go:embed gce_base.cfg
+var gceBaseConfigJSON []byte
 
 //go:embed patched.cfg
 var patchedConfigJSON []byte
@@ -23,7 +26,7 @@ var patchedConfigJSON []byte
 // The caller must still invoke mgrconfig.Complete.
 func GenerateBase(cfg *api.FuzzConfig) (*mgrconfig.Config, error) {
 	var baseRaw json.RawMessage
-	err := config.LoadData(baseConfigJSON, &baseRaw)
+	err := config.LoadData(getBaseConfig(cfg.VMType), &baseRaw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the base config: %w", err)
 	}
@@ -42,7 +45,7 @@ func GenerateBase(cfg *api.FuzzConfig) (*mgrconfig.Config, error) {
 // The caller must still invoke mgrconfig.Complete.
 func GeneratePatched(cfg *api.FuzzConfig) (*mgrconfig.Config, error) {
 	var baseRaw, deltaRaw json.RawMessage
-	err := config.LoadData(baseConfigJSON, &baseRaw)
+	err := config.LoadData(getBaseConfig(cfg.VMType), &baseRaw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the base config: %w", err)
 	}
@@ -107,8 +110,10 @@ var setFocus = map[string]func(*mgrconfig.Config) error{
 			"write$eventfd",
 		)
 		var err error
-		mgrCfg.VM, err = config.MergeJSONs(mgrCfg.VM, []byte(
-			`{"qemu_args": "-machine q35,nvdimm=on,accel=kvm,kernel-irqchip=split -cpu max,migratable=off -enable-kvm -smp 2,sockets=2,cores=1"}`))
+		if mgrCfg.Type == "qemu" {
+			mgrCfg.VM, err = config.MergeJSONs(mgrCfg.VM, []byte(
+				`{"qemu_args": "-machine q35,nvdimm=on,accel=kvm,kernel-irqchip=split -cpu max,migratable=off -enable-kvm -smp 2,sockets=2,cores=1"}`))
+		}
 		return err
 	},
 	api.FocusNet: func(mgrCfg *mgrconfig.Config) error {
@@ -198,4 +203,12 @@ func noFlakyFsCalls(mgrCfg *mgrconfig.Config) {
 func noFlakyTraceCalls(mgrCfg *mgrconfig.Config) {
 	mgrCfg.DisabledSyscalls = append(mgrCfg.DisabledSyscalls,
 		"perf_event_open*", "ioctl$PERF*", "bpf$BPF_RAW_TRACEPOINT_OPEN")
+}
+
+// qemu unless argument is "gce".
+func getBaseConfig(vmType string) []byte {
+	if vmType == "gce" {
+		return gceBaseConfigJSON
+	}
+	return qemuBaseConfigJSON
 }
