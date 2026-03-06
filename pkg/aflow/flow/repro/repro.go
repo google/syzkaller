@@ -6,6 +6,7 @@ package repro
 import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
+	syzaction "github.com/google/syzkaller/pkg/aflow/action/syzlang"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/syzlang"
 	"github.com/google/syzkaller/prog"
@@ -44,7 +45,9 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
+					Tools:       []aflow.Tool{syzlang.Reproduce},
 				},
+				syzaction.Format,
 			),
 		},
 	)
