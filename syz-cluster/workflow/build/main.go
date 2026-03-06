@@ -247,7 +247,7 @@ func buildKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest) (*BuildR
 	params := build.Params{
 		TargetOS:     targets.Linux,
 		TargetArch:   req.Arch,
-		VMType:       "qemu", // TODO: support others.
+		VMType:       req.VMType,
 		KernelDir:    *flagRepository,
 		OutputDir:    *flagOutput,
 		Compiler:     "clang",

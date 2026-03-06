@@ -46,13 +46,21 @@ func MergeKernelFuzzConfigs(configs []*api.KernelFuzzConfig) []*MergedFuzzConfig
 		config     string
 		track      string
 		bugTitleRe string
+		vmType     string
+		arch       string
 	}
 	groups := map[groupKey][]*api.KernelFuzzConfig{}
 	var orderedKeys []groupKey
 	for _, config := range configs {
 		// Some of the different fuzz configs may still be merged together,
 		// e.g. if they only differ in the syscall lists and corpuses.
-		key := groupKey{config.KernelConfig, config.Track, config.BugTitleRe}
+		key := groupKey{
+			config:     config.KernelConfig,
+			track:      config.Track,
+			bugTitleRe: config.BugTitleRe,
+			vmType:     config.VMType,
+			arch:       config.Arch,
+		}
 		if _, ok := groups[key]; !ok {
 			orderedKeys = append(orderedKeys, key)
 		}
@@ -82,6 +90,9 @@ func mergeFuzzConfigs(configs []*api.KernelFuzzConfig) *api.FuzzConfig {
 		ret.SkipCoverCheck = ret.SkipCoverCheck || config.SkipCoverCheck
 		// Must be the same.
 		ret.BugTitleRe = config.BugTitleRe
+		ret.GCSPath = config.GCSPath
+		ret.VMType = config.VMType
+		ret.Arch = config.Arch
 	}
 	ret.Focus = unique(ret.Focus)
 	ret.CorpusURLs = unique(ret.CorpusURLs)

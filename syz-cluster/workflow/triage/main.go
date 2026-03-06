@@ -122,43 +122,109 @@ func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) 
 
 func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *api.Series, forceTriage bool,
 	trees []*api.Tree, target *triage.MergedFuzzConfig) (*api.TestTarget, error) {
-	var result *SelectResult
 	var err error
-	if series.BaseCommitHint != "" {
-		result, err = triager.selectFromBaseCommitHint(series.BaseCommitHint, trees)
-		if err != nil {
-			return nil, fmt.Errorf("selection by base-commit failed: %w", err)
-		}
-	}
-	if result == nil {
-		result, err = triager.selectFromBlobs(series, trees)
-		if err != nil {
-			return nil, fmt.Errorf("selection by blob failed: %w", err)
-		}
-	}
-	if result == nil {
-		result, err = triager.selectFromList(ctx, series, trees, target)
-		if err != nil {
-			return nil, fmt.Errorf("selection from the list failed: %w", err)
-		}
-	}
-	if result == nil {
-		return nil, SkipError("no base commit found")
+	if target.FuzzConfig, err = prepareFuzzConfig(target.FuzzConfig); err != nil {
+		return nil, err
 	}
 
+	result, err := triager.selectBaseCommit(ctx, series, trees, target)
+	if err != nil {
+		return nil, err
+	}
 	triager.Logf("continuing with %v in %v", result.Commit, result.Tree.Name)
 
 	if err := triager.ops.ApplySeries(result.Commit, series.PatchBodies()); err != nil {
 		return nil, fmt.Errorf("failed to apply series to base commit: %w", err)
 	}
 
+	if err := triager.evaluateAI(ctx, series, forceTriage); err != nil {
+		return nil, err
+	}
+	base := api.BuildRequest{
+		TreeName:      result.Tree.Name,
+		TreeURL:       result.Tree.URL,
+		ConfigName:    target.KernelConfig,
+		CommitHash:    result.Commit,
+		Arch:          target.FuzzConfig.Arch,
+		EnableConfigs: triager.aiVerdict.EnableConfigs,
+		VMType:        target.FuzzConfig.VMType,
+	}
+	fuzzCfg := new(api.FuzzConfig)
+	*fuzzCfg = *target.FuzzConfig
+	fuzzCfg.FocusSymbols = triager.aiVerdict.FocusSymbols
+	testTarget := &api.TestTarget{
+		Base:    base,
+		Patched: base,
+		Track:   target.Track,
+		Fuzz:    fuzzCfg,
+	}
+	testTarget.Patched.SeriesID = series.ID
+	retestFindings, err := triager.client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
+		SeriesID: series.ID,
+		Arch:     target.FuzzConfig.Arch,
+		Config:   target.KernelConfig,
+	})
+	if err != nil {
+		// This is sad, but not critical.
+		app.Errorf("failed to query previous findings: %v", err)
+	} else if len(retestFindings) > 0 {
+		triager.Logf("scheduling retest for %d findings", len(retestFindings))
+		testTarget.Retest = &api.RetestTask{
+			Findings: retestFindings,
+		}
+	}
+	return testTarget, nil
+}
+
+func prepareFuzzConfig(cfg *api.FuzzConfig) (*api.FuzzConfig, error) {
+	if cfg == nil {
+		cfg = &api.FuzzConfig{}
+	}
+	if cfg.Arch == "" {
+		cfg.Arch = "amd64"
+	}
+	if cfg.VMType == "" {
+		cfg.VMType = "qemu"
+	}
+	if cfg.VMType != "gce" && cfg.VMType != "qemu" {
+		return nil, SkipError(fmt.Sprintf("only gce and qemu vms are supported now. %s is not supported", cfg.VMType))
+	}
+	return cfg, nil
+}
+
+func (triager *seriesTriager) selectBaseCommit(
+	ctx context.Context, series *api.Series, trees []*api.Tree, target *triage.MergedFuzzConfig,
+) (*SelectResult, error) {
+	if result, err := triager.selectFromBaseCommitHint(series.BaseCommitHint, trees); err != nil {
+		return nil, fmt.Errorf("selection by base-commit failed: %w", err)
+	} else if result != nil {
+		return result, nil
+	}
+
+	if result, err := triager.selectFromBlobs(series, trees); err != nil {
+		return nil, fmt.Errorf("selection by blob failed: %w", err)
+	} else if result != nil {
+		return result, nil
+	}
+
+	if result, err := triager.selectFromList(ctx, series, trees, target); err != nil {
+		return nil, fmt.Errorf("selection from the list failed: %w", err)
+	} else if result != nil {
+		return result, nil
+	}
+
+	return nil, SkipError("no base commit found")
+}
+
+func (triager *seriesTriager) evaluateAI(ctx context.Context, series *api.Series, forceTriage bool) error {
 	if triager.aiVerdict == nil {
 		triager.aiVerdict = &triage.AITriageResult{WorthFuzzing: true}
 		if !triager.config.AI.Empty() {
 			if err := triage.CommitPatchForAflow(triager.ops); err != nil {
-				return nil, fmt.Errorf("failed to commit patch for aflow: %w", err)
+				return fmt.Errorf("failed to commit patch for aflow: %w", err)
 			}
-			if aiResult, err := triage.EvaluatePatch(ctx, triager.config, series, triager.DebugTracer, "/workdir"); err != nil {
+			aiResult, err := triage.EvaluatePatch(ctx, triager.config, series, triager.DebugTracer, "/workdir")
+			if err != nil {
 				triager.Logf("AI evaluation failed: %v", err)
 			} else if aiResult != nil {
 				triager.aiVerdict = aiResult
@@ -172,44 +238,9 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	}
 
 	if !triager.aiVerdict.WorthFuzzing {
-		return nil, SkipError("AI determined the patch has no functional impact")
+		return SkipError("AI determined the patch has no functional impact")
 	}
-
-	base := api.BuildRequest{
-		TreeName:      result.Tree.Name,
-		TreeURL:       result.Tree.URL,
-		ConfigName:    target.KernelConfig,
-		CommitHash:    result.Commit,
-		Arch:          result.Arch,
-		EnableConfigs: triager.aiVerdict.EnableConfigs,
-	}
-	fuzzCfg := new(api.FuzzConfig)
-	if target.FuzzConfig != nil {
-		*fuzzCfg = *target.FuzzConfig
-	}
-	fuzzCfg.FocusSymbols = triager.aiVerdict.FocusSymbols
-	testTarget := &api.TestTarget{
-		Base:    base,
-		Patched: base,
-		Track:   target.Track,
-		Fuzz:    fuzzCfg,
-	}
-	testTarget.Patched.SeriesID = series.ID
-	retestFindings, err := triager.client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
-		SeriesID: series.ID,
-		Arch:     result.Arch,
-		Config:   target.KernelConfig,
-	})
-	if err != nil {
-		// This is sad, but not critical.
-		app.Errorf("failed to query previous findings: %v", err)
-	} else if len(retestFindings) > 0 {
-		triager.Logf("scheduling retest for %d findings", len(retestFindings))
-		testTarget.Retest = &api.RetestTask{
-			Findings: retestFindings,
-		}
-	}
-	return testTarget, nil
+	return nil
 }
 
 func (triager *seriesTriager) prepareJobTask(
@@ -256,11 +287,7 @@ func (triager *seriesTriager) prepareJobTask(
 type SelectResult struct {
 	Tree   *api.Tree
 	Commit string
-	Arch   string
 }
-
-// For now, only amd64 fuzzing is supported.
-const fuzzArch = "amd64"
 
 func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.Tree) (*SelectResult, error) {
 	triager.Logf("attempting to guess the base commit by blob hashes")
@@ -281,11 +308,13 @@ func (triager *seriesTriager) selectFromBlobs(series *api.Series, trees []*api.T
 	return &SelectResult{
 		Tree:   tree,
 		Commit: commit,
-		Arch:   fuzzArch,
 	}, nil
 }
 
 func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*api.Tree) (*SelectResult, error) {
+	if commit == "" {
+		return nil, nil
+	}
 	triager.Logf("attempting to use the base commit %s provided by author", commit)
 	commitExists, _ := triager.ops.Git.CommitExists(commit)
 	if !commitExists {
@@ -303,7 +332,6 @@ func (triager *seriesTriager) selectFromBaseCommitHint(commit string, trees []*a
 			return &SelectResult{
 				Tree:   trees[treeIndex],
 				Commit: commit,
-				Arch:   fuzzArch,
 			}, nil
 		}
 	}
@@ -320,7 +348,7 @@ func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Se
 	for _, tree := range selectedTrees {
 		triager.Logf("considering tree %q", tree.Name)
 		lastBuild, err := triager.client.LastBuild(ctx, &api.LastBuildReq{
-			Arch:       fuzzArch,
+			Arch:       target.FuzzConfig.Arch,
 			ConfigName: target.KernelConfig,
 			TreeName:   tree.Name,
 			Status:     api.BuildSuccess,
@@ -347,7 +375,6 @@ func (triager *seriesTriager) selectFromList(ctx context.Context, series *api.Se
 		return &SelectResult{
 			Tree:   tree,
 			Commit: result.Commit,
-			Arch:   fuzzArch,
 		}, nil
 	}
 	return nil, skipErr

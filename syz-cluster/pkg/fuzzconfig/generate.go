@@ -9,10 +9,12 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
+	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
 
 //go:embed qemu_base.cfg
@@ -91,6 +93,13 @@ func applyFuzzConfig(mgrCfg *mgrconfig.Config, cfg *api.FuzzConfig) error {
 	// there are not too many such cases.
 	if haveFocus[api.FocusNet] && !haveFocus[api.FocusBPF] {
 		noFlakyTraceCalls(mgrCfg)
+	}
+	if mgrCfg.Type == "gce" && cfg.GCSPath != "" {
+		var err error
+		mgrCfg.VM, err = config.MergeJSONs(mgrCfg.VM, []byte(fmt.Sprintf(`{"gcs_path": %q}`, cfg.GCSPath)))
+		if err != nil {
+			return fmt.Errorf("failed to apply custom GCS path: %w", err)
+		}
 	}
 	return nil
 }
@@ -215,4 +224,19 @@ func getBaseConfig(vmType string) []byte {
 		return gceBaseConfigJSON
 	}
 	return qemuBaseConfigJSON
+}
+
+func ReadFromFile(config string) *api.FuzzConfig {
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		app.Fatalf("failed to read config: %v", err)
+		return nil
+	}
+	var req api.FuzzConfig
+	err = json.Unmarshal(raw, &req)
+	if err != nil {
+		app.Fatalf("failed to unmarshal request: %v, %s", err, raw)
+		return nil
+	}
+	return &req
 }
