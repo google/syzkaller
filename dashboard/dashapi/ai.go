@@ -9,6 +9,7 @@ import (
 )
 
 type AIJobPollReq struct {
+	AgentName    string
 	CodeRevision string // git commit of the syz-agent server
 	Workflows    []AIWorkflow
 }

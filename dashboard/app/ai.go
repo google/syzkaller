@@ -56,6 +56,7 @@ type uiAIJob struct {
 	Workflow         string
 	Description      string
 	DescriptionLink  string
+	AgentName        string
 	Created          time.Time
 	Started          time.Time
 	Finished         time.Time
@@ -302,6 +303,7 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		Workflow:         job.Workflow,
 		Description:      job.Description,
 		DescriptionLink:  job.Link,
+		AgentName:        nullString(job.AgentName),
 		Created:          job.Created,
 		Started:          nullTime(job.Started),
 		Finished:         nullTime(job.Finished),

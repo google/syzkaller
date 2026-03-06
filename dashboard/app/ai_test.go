@@ -70,6 +70,7 @@ func TestAIBugWorkflows(t *testing.T) {
 	requireWorkflows(kasanBug, nil)
 
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-bug-workflow",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -198,6 +199,7 @@ func TestAIJob(t *testing.T) {
 	c.aiClient.pollEmailBug()
 
 	resp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-job",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
@@ -342,6 +344,7 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	extID := c.aiClient.pollEmailExtID()
 
 	resp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-assessment",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
@@ -482,6 +485,7 @@ func TestAIJobAutoCreate(t *testing.T) {
 	c.aiClient.pollEmailExtID()
 
 	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "agent-test-auto-create",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},

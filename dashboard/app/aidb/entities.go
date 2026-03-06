@@ -38,6 +38,7 @@ type Job struct {
 	Finished     spanner.NullTime
 	CodeRevision string // syzkaller revision, filled when the job is started
 	Error        string // for finished jobs
+	AgentName    spanner.NullString
 	Args         spanner.NullJSON
 	Results      spanner.NullJSON
 	Correct      spanner.NullBool
