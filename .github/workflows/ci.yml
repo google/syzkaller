@@ -70,7 +70,7 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_build
       - name: codecov
-        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
         with:
           codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
           file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
@@ -100,7 +100,7 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
       - name: codecov
-        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
         with:
           codecov_yml_path: ${{env.GOPATH}}/src/github.com/google/syzkaller/.github/codecov.yml
           file: ${{env.GOPATH}}/src/github.com/google/syzkaller/.coverage.txt
