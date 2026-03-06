@@ -4003,6 +4003,28 @@ static void sandbox_common_mount_tmpfs(void)
 	if (mount("/syz-inputs", "./syz-tmp/newroot/syz-inputs", NULL, bind_mount_flags | MS_RDONLY, NULL) && errno != ENOENT)
 		fail("mount(syz-inputs) failed");
 
+	if (mkdir("./syz-tmp/newroot/bin", 0700))
+		fail("mkdir(/bin) failed");
+	if (mount("/bin", "./syz-tmp/newroot/bin", 0, bind_mount_flags | MS_RDONLY, NULL))
+		fail("mount(bin) failed");
+
+	if (mkdir("./syz-tmp/newroot/usr", 0700))
+		fail("mkdir(/usr) failed");
+	if (mkdir("./syz-tmp/newroot/usr/bin", 0700))
+		fail("mkdir(/usr/bin) failed");
+	if (mount("/usr/bin", "./syz-tmp/newroot/usr/bin", 0, bind_mount_flags | MS_RDONLY, NULL))
+		fail("mount(usr/bin) failed");
+
+	if (mkdir("./syz-tmp/newroot/lib", 0700))
+		fail("mkdir(/lib) failed");
+	if (mount("/lib", "./syz-tmp/newroot/lib", 0, bind_mount_flags | MS_RDONLY, NULL))
+		fail("mount(lib) failed");
+
+	if (mkdir("./syz-tmp/newroot/lib64", 0700))
+		fail("mkdir(/lib64) failed");
+	if (mount("/lib64", "./syz-tmp/newroot/lib64", 0, bind_mount_flags | MS_RDONLY, NULL))
+		fail("mount(lib64) failed");
+
 #if SYZ_EXECUTOR || SYZ_CGROUPS
 	initialize_cgroups();
 #endif
