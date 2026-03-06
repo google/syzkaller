@@ -19,10 +19,11 @@ import (
 )
 
 type Handler struct {
-	reporter    string
-	apiClient   *api.ReporterClient
-	emailConfig *app.EmailConfig
-	sender      emailclient.Sender
+	reporter       string
+	reporterClient *api.ReporterClient
+	apiClient      *api.Client
+	emailConfig    *app.EmailConfig
+	sender         emailclient.Sender
 }
 
 func (h *Handler) PollReportsLoop(ctx context.Context, pollPeriod time.Duration) {
@@ -43,7 +44,7 @@ func (h *Handler) PollReportsLoop(ctx context.Context, pollPeriod time.Duration)
 }
 
 func (h *Handler) PollAndReport(ctx context.Context) (*api.SessionReport, error) {
-	reply, err := h.apiClient.GetNextReport(ctx, h.reporter)
+	reply, err := h.reporterClient.GetNextReport(ctx, h.reporter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to poll the next report: %w", err)
 	} else if reply == nil || reply.Report == nil {
@@ -61,7 +62,7 @@ func (h *Handler) PollAndReport(ctx context.Context) (*api.SessionReport, error)
 
 func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	// Start by confirming the report - it's better to not send an email at all than to send it multiple times.
-	err := h.apiClient.ConfirmReport(ctx, rep.ID)
+	err := h.reporterClient.ConfirmReport(ctx, rep.ID)
 	if err != nil {
 		return fmt.Errorf("failed to confirm: %w", err)
 	}
@@ -87,7 +88,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 			toSend.Subject = fmt.Sprintf("[%s] %s", h.emailConfig.Name, toSend.Subject)
 		}
 		// We assume that email reporting is used for series received over emails.
-		toSend.InReplyTo = rep.Series.ExtID
+		toSend.InReplyTo = rep.InReplyTo
 		toSend.To = rep.Series.Cc
 		toSend.Cc = append(toSend.Cc, h.emailConfig.ReportCC...)
 	}
@@ -98,7 +99,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 	// Senders may not always know the MessageID of the newly sent messages (that's the case of dashapi).
 	if msgID != "" {
 		// Record MessageID so that we could later trace user replies back to it.
-		_, err = h.apiClient.RecordReply(ctx, &api.RecordReplyReq{
+		_, err = h.reporterClient.RecordReply(ctx, &api.RecordReplyReq{
 			// TODO: for Lore emails, set Link = lore.Link(msgID).
 			MessageID: msgID,
 			Time:      time.Now(),
@@ -130,16 +131,32 @@ func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 		switch command.Command {
 		case email.CmdUpstream:
 			// Reply nothing on success.
-			err = h.apiClient.UpstreamReport(ctx, reportID, &api.UpstreamReportReq{
+			err = h.reporterClient.UpstreamReport(ctx, reportID, &api.UpstreamReportReq{
 				User: msg.Author,
 			})
 		case email.CmdInvalid:
 			// Reply nothing on success.
-			err = h.apiClient.InvalidateReport(ctx, reportID)
+			err = h.reporterClient.InvalidateReport(ctx, reportID)
 		case email.CmdFix, email.CmdUnFix, email.CmdDup, email.CmdUnDup,
-			email.CmdTest, email.CmdUnCC, email.CmdSet, email.CmdUnset,
+			email.CmdUnCC, email.CmdSet, email.CmdUnset,
 			email.CmdRegenerate:
 			reply = fmt.Sprintf("syzbot-ci does not support `%s` command", command.Str)
+		case email.CmdTest:
+			if command.Args != "" {
+				reply = "syzbot-ci does not support `#syz test` with arguments."
+			} else if msg.Patch == "" {
+				reply = "Please attach the patch to act upon."
+			} else {
+				// We don't reply immediately on success.
+				_, err = h.apiClient.SubmitJob(ctx, &api.SubmitJobRequest{
+					Type:      api.JobPatchTest,
+					ReportID:  reportID,
+					Reporter:  h.reporter,
+					User:      msg.Author,
+					ExtID:     msg.MessageID,
+					PatchData: []byte(msg.Patch),
+				})
+			}
 		default:
 			reply = "Unknown command"
 		}

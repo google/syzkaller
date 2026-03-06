@@ -37,3 +37,7 @@ func (g *URLGenerator) BuildConfig(buildID string) string {
 func (g *URLGenerator) BuildLog(buildID string) string {
 	return fmt.Sprintf("%s/builds/%s/log", g.baseURL, buildID)
 }
+
+func (g *URLGenerator) JobPatch(jobID string) string {
+	return fmt.Sprintf("%s/jobs/%s/patch", g.baseURL, jobID)
+}

@@ -124,6 +124,7 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
 	}
+	StartSession(t, env, ids.SessionID)
 	MarkSessionFinished(t, env, ids.SessionID)
 	return SeriesWithFindingIDs{
 		EntityIDs:      ids,
@@ -141,6 +142,9 @@ func StartSession(t *testing.T, env *app.AppEnvironment, sessionID string) {
 func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
 	repo := db.NewSessionRepository(env.Spanner)
 	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {
+		if session.StartedAt.IsNull() {
+			session.SetStartedAt(time.Now())
+		}
 		session.SetFinishedAt(time.Now())
 		return nil
 	})
@@ -160,4 +164,35 @@ func UploadTestSessionReport(t *testing.T, env *app.AppEnvironment,
 	}
 	require.NoError(t, reportRepo.Insert(context.Background(), report))
 	return report
+}
+
+// FakeJobSession uploads a fake test and step via the provided client,
+// and marks the given session as finished in the DB.
+func FakeJobSession(t *testing.T, env *app.AppEnvironment, client *api.Client, sessionID string) string {
+	ctx := context.Background()
+
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID: sessionID,
+		TestName:  "build",
+		Result:    api.TestPassed,
+	})
+	require.NoError(t, err)
+
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID: sessionID,
+		TestName:  "run repros",
+		Result:    api.TestPassed,
+	})
+	require.NoError(t, err)
+
+	err = client.UploadTestStep(ctx, sessionID, &api.SessionTestStep{
+		TestName: "run repros",
+		Title:    "repro A",
+		Target:   api.StepTargetPatched,
+		Result:   api.StepResultPassed,
+	})
+	require.NoError(t, err)
+
+	MarkSessionFinished(t, env, sessionID)
+	return sessionID
 }

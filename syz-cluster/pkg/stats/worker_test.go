@@ -32,7 +32,6 @@ func TestWorker(t *testing.T) {
 		series.Version = version
 		series.PublishedAt = time.Now()
 		data := controller.FakeSeriesWithFindings(t, ctx, env, client, series)
-		controller.StartSession(t, env, data.SessionID)
 		return data
 	}
 

@@ -126,8 +126,8 @@ func (repo *SessionRepository) MissingReportList(ctx context.Context, from time.
 		SQL: "SELECT * FROM Sessions WHERE FinishedAt IS NOT NULL " +
 			" AND NOT EXISTS (" +
 			"SELECT 1 FROM SessionReports WHERE SessionReports.SessionID = Sessions.ID" +
-			") AND EXISTS (" +
-			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID)",
+			") AND (JobID IS NOT NULL OR EXISTS (" +
+			"SELECT 1 FROM Findings WHERE Findings.SessionID = Sessions.ID))",
 		Params: map[string]any{},
 	}
 	if !from.IsZero() {

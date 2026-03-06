@@ -29,6 +29,7 @@ type dashboardHandler struct {
 	sessionTestStepRepo *db.SessionTestStepRepository
 	findingRepo         *db.FindingRepository
 	statsRepo           *db.StatsRepository
+	jobRepo             *db.JobRepository
 	blobStorage         blob.Storage
 	templates           map[string]*template.Template
 }
@@ -57,6 +58,7 @@ func newHandler(env *app.AppEnvironment) (*dashboardHandler, error) {
 		sessionTestStepRepo: db.NewSessionTestStepRepository(env.Spanner),
 		findingRepo:         db.NewFindingRepository(env.Spanner),
 		statsRepo:           db.NewStatsRepository(env.Spanner),
+		jobRepo:             db.NewJobRepository(env.Spanner),
 	}, nil
 }
 
@@ -73,6 +75,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/series/{id}/all_patches", errToStatus(h.allPatches))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
+	mux.HandleFunc("/jobs/{id}/patch", errToStatus(h.jobPatchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
 	mux.HandleFunc("/builds/{id}/{key}", errToStatus(h.buildInfo))
 	mux.HandleFunc("/stats", errToStatus(h.statsPage))
@@ -350,6 +353,17 @@ func (h *dashboardHandler) patchContent(w http.ResponseWriter, r *http.Request) 
 		return fmt.Errorf("%w: patch", errNotFound)
 	}
 	return h.streamBlob(w, patch.BodyURI)
+}
+
+// nolint:dupl
+func (h *dashboardHandler) jobPatchContent(w http.ResponseWriter, r *http.Request) error {
+	job, err := h.jobRepo.GetByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return err
+	} else if job == nil {
+		return fmt.Errorf("%w: job", errNotFound)
+	}
+	return h.streamBlob(w, job.PatchURI)
 }
 
 func (h *dashboardHandler) allPatches(w http.ResponseWriter, r *http.Request) error {

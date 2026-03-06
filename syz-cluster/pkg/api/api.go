@@ -214,6 +214,7 @@ type SessionReport struct {
 	Link       string       `json:"link"` // URL to the web dashboard.
 	Tests      []ReportTest `json:"tests,omitempty"`
 	PatchLink  string       `json:"patch_link,omitempty"`
+	InReplyTo  string       `json:"in_reply_to,omitempty"`
 }
 
 type Finding struct {
