@@ -54,7 +54,8 @@ func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, b
 	return "", details, nil
 }
 
-func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]instance.EnvTestResult, error) {
+func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) (
+	[]instance.EnvTestResult, error) {
 	commit := env.headCommit()
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
 		env.config == "baseline-skip" {

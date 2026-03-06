@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/build"
@@ -16,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -43,26 +46,35 @@ type reproduceResult struct {
 	CrashReport string
 }
 
-// ReproduceCrash tests reproducer and returns:
-//   - Report: if the reproducer caused the kernel crash
-//   - boot failure: if the kernel failed to boot or function properly
-//     (if kernel crashed during build/boot, the Report is not returned)
-//   - error: for unexpected failures
-//
-// All 3 values are empty, if everything went well, and kernel has not crashed.
-func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string, error) {
+type RunTestResult struct {
+	// Returned if the program caused a kernel crash.
+	Report *report.Report
+	// Returned if the kernel failed to boot or function properly
+	// (Report is not returned in this case).
+	BootError string
+	// Per-call coverage, if requested with collectCoverage
+	// and the kernel has not crashed.
+	Coverage [][]symbolizer.Frame
+}
+
+// RunTest boots the kernel and runs a single test program.
+func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestResult, error) {
+	res := RunTestResult{}
 	if args.Type != "qemu" {
-		return nil, "", errors.New("only qemu VM type is supported")
+		return res, errors.New("RunTest: only qemu VM type is supported")
+	}
+	if collectCoverage && args.ReproSyz == "" {
+		return res, errors.New("RunTest: coverage collection requires a syzkaller program")
 	}
 
 	var vmConfig map[string]any
 	if err := json.Unmarshal(args.VM, &vmConfig); err != nil {
-		return nil, "", fmt.Errorf("failed to parse VM config: %w", err)
+		return res, fmt.Errorf("failed to parse VM config: %w", err)
 	}
 	vmConfig["kernel"] = filepath.Join(args.KernelObj, filepath.FromSlash(build.LinuxKernelImage(targets.AMD64)))
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to serialize VM config: %w", err)
+		return res, fmt.Errorf("failed to serialize VM config: %w", err)
 	}
 
 	cfg := mgrconfig.DefaultValues()
@@ -75,37 +87,43 @@ func ReproduceCrash(args ReproduceArgs, workdir string) (*report.Report, string,
 	cfg.Type = args.Type
 	cfg.VM = vmCfg
 	if err := mgrconfig.SetTargets(cfg); err != nil {
-		return nil, "", err
+		return res, err
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
-		return nil, "", err
+		return res, err
 	}
 	env, err := instance.NewEnv(cfg, nil, nil)
 	if err != nil {
-		return nil, "", err
+		return res, err
 	}
 	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
-	results, err := env.Test(1, nil, nil, []byte(args.ReproC))
+	results, err := env.Test(1, nil, nil, []byte(args.ReproC), collectCoverage)
 	if err != nil {
-		return nil, "", err
+		return res, err
 	}
 	if err := results[0].Error; err != nil {
 		if crashErr := new(instance.CrashError); errors.As(err, &crashErr) {
-			return crashErr.Report, "", nil
+			res.Report = crashErr.Report
 		} else if testErr := new(instance.TestError); errors.As(err, &testErr) {
-			return parseTestError(testErr)
+			if testErr.Infra {
+				// No point in showing this to LLM and asking to fix.
+				return res, fmt.Errorf("%v\n%v\n%s",
+					testErr.Error(), testErr.Title, testErr.Output)
+			}
+			res.BootError = parseTestError(testErr)
 		} else {
-			return nil, err.Error(), nil
+			res.BootError = err.Error()
 		}
 	}
-	return nil, "", nil
+	coverage, err := symbolize(args.KernelObj, results[0].Coverage)
+	if err != nil {
+		return res, fmt.Errorf("failed to symbolize coverage: %w", err)
+	}
+	res.Coverage = coverage
+	return res, nil
 }
 
-func parseTestError(err *instance.TestError) (*report.Report, string, error) {
-	if err.Infra {
-		// No point in showing this to LLM and asking to fix.
-		return nil, "", fmt.Errorf("%v\n%v\n%s", err.Error(), err.Title, err.Output)
-	}
+func parseTestError(err *instance.TestError) string {
 	what := "Basic kernel testing failed"
 	if err.Boot {
 		what = "Kernel failed to boot"
@@ -115,7 +133,7 @@ func parseTestError(err *instance.TestError) (*report.Report, string, error) {
 	if err.Report != nil && err.Report.Report != nil {
 		extraInfo = err.Report.Report
 	}
-	return nil, fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo), nil
+	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
 func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
@@ -138,12 +156,12 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		if err != nil {
 			return res, err
 		}
-		rep, bootError, err := ReproduceCrash(args, workdir)
-		if rep != nil {
-			res.BugTitle = rep.Title
-			res.Report = string(rep.Report)
+		testRes, err := RunTest(args, workdir, false)
+		if testRes.Report != nil {
+			res.BugTitle = testRes.Report.Title
+			res.Report = string(testRes.Report.Report)
 		}
-		res.Error = bootError
+		res.Error = testRes.BootError
 		return res, err
 	})
 	if err != nil {
@@ -158,4 +176,37 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		BugTitle:    cached.BugTitle,
 		CrashReport: cached.Report,
 	}, nil
+}
+
+func symbolize(kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {
+	pcs := make(map[uint64][]symbolizer.Frame)
+	for _, call := range coverage {
+		for _, pc := range call {
+			pcs[pc] = nil
+		}
+	}
+	target := targets.Get(targets.Linux, targets.AMD64)
+	vmlinux := filepath.Join(kernelObj, target.KernelObject)
+	symb := symbolizer.Make(target)
+	defer symb.Close()
+	frames, err := symb.Symbolize(vmlinux, slices.Collect(maps.Keys(pcs))...)
+	if err != nil {
+		return nil, err
+	}
+	for _, frame := range frames {
+		pcs[frame.PC] = append(pcs[frame.PC], frame)
+	}
+	var res [][]symbolizer.Frame
+	// TODO(dvyukov): figure out how we want to aggregate/deduplicate frames
+	// We may leave only the last call. We also most likely want to handle
+	// inline frames in some way. We may also want to deduplicate/aggregate
+	// the full trace in some way.
+	for _, call := range coverage {
+		var frames []symbolizer.Frame
+		for _, pc := range call {
+			frames = append(frames, pcs[pc]...)
+		}
+		res = append(res, frames)
+	}
+	return res, nil
 }
