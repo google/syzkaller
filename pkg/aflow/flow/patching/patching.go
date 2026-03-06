@@ -5,7 +5,6 @@ package patching
 
 import (
 	"encoding/json"
-	"slices"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
@@ -35,7 +34,7 @@ type Inputs struct {
 }
 
 func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
-	commonTools := slices.Clip(append([]aflow.Tool{codeexpert.Tool, grepper.Tool}, codesearcher.Tools...))
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool)
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
@@ -65,7 +64,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 						TaskType:      aflow.FormalReasoningTask,
 						Instruction:   patchInstruction,
 						Prompt:        patchPrompt,
-						Tools:         append(commonTools, codeeditor.Tool),
+						Tools:         aflow.Tools(commonTools, codeeditor.Tool),
 						SummaryWindow: summaryWindow,
 					},
 					crash.TestPatch, // -> PatchDiff or TestError

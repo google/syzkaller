@@ -40,7 +40,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: moderationInstruction,
 					Prompt:      moderationPrompt,
-					Tools:       append(codesearcher.Tools, grepper.Tool),
+					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
 				},
 			),
 		},
