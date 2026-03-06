@@ -575,3 +575,50 @@ func TestAIRepro(t *testing.T) {
 	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp4.ID, "")
 }
+
+func TestAIAgentLastActive(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	agentName := "test-agent-123"
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    agentName,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+	c.advanceTime(15 * 24 * time.Hour)
+
+	// Poll, get the repro job and verify the last active timestamp.
+	pollResp, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp.ID, "")
+
+	agent, err := aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
+
+	c.advanceTime(24 * time.Hour)
+
+	// Send trajectory, verify the last active timestamp;
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: agentName,
+		JobID:     pollResp.ID,
+		Span: &trajectory.Span{
+			Seq:     0,
+			Type:    trajectory.SpanFlow,
+			Name:    string(ai.WorkflowRepro),
+			Started: c.mockedTime,
+		},
+	}))
+
+	agent, err = aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
+}

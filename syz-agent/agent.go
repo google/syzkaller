@@ -286,8 +286,9 @@ func (s *Server) executeJob(ctx context.Context, req *dashapi.AIJobPollResp) (ma
 	onEvent := func(span *trajectory.Span) error {
 		log.Logf(0, "%v", span)
 		return s.dash.AITrajectoryLog(&dashapi.AITrajectoryReq{
-			JobID: req.ID,
-			Span:  span,
+			AgentName: s.cfg.DashboardClient,
+			JobID:     req.ID,
+			Span:      span,
 		})
 	}
 	return flow.Execute(ctx, s.cfg.Model, s.workdir, inputs, s.cache, onEvent)

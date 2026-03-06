@@ -372,6 +372,11 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if len(req.Workflows) == 0 || req.CodeRevision == "" {
 		return nil, fmt.Errorf("invalid request")
 	}
+	if req.AgentName != "" {
+		if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
+			log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
+		}
+	}
 	for _, flow := range req.Workflows {
 		if flow.Type == "" || flow.Name == "" {
 			return nil, fmt.Errorf("invalid request")
@@ -576,6 +581,11 @@ func parseJSON[T any](val spanner.NullJSON) (T, error) {
 }
 
 func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any, error) {
+	if req.AgentName != "" {
+		if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
+			log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
+		}
+	}
 	err := aidb.StoreTrajectorySpan(ctx, req.JobID, req.Span)
 	return nil, err
 }
