@@ -72,6 +72,31 @@ func UpdateWorkflows(ctx context.Context, active []dashapi.AIWorkflow) error {
 	return err
 }
 
+func AgentIsAlive(ctx context.Context, agentName string) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.InsertOrUpdateStruct("Agents", &Agent{
+		AgentName:  agentName,
+		LastActive: TimeNow(ctx),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func LoadAgent(ctx context.Context, agentName string) (*Agent, error) {
+	return selectOne[Agent](ctx, spanner.Statement{
+		SQL: selectAgents() + `WHERE AgentName = @name`,
+		Params: map[string]any{
+			"name": agentName,
+		},
+	})
+}
+
 func CreateJob(ctx context.Context, job *Job) (string, error) {
 	job.ID = uuid.NewString()
 	job.Created = TimeNow(ctx)
@@ -100,6 +125,27 @@ func UpdateJob(ctx context.Context, job *Job) error {
 	return err
 }
 
+func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
+	job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
+	job.CodeRevision = req.CodeRevision
+	job.AgentName = toNullString(req.AgentName)
+	return spanner.InsertOrUpdateStruct("Jobs", job)
+}
+
+func cloneJob(ctx context.Context, orig *Job) *Job {
+	return &Job{
+		ID:          uuid.NewString(),
+		Created:     TimeNow(ctx),
+		Type:        orig.Type,
+		Workflow:    orig.Workflow,
+		Namespace:   orig.Namespace,
+		BugID:       orig.BugID,
+		Description: orig.Description,
+		Link:        orig.Link,
+		Args:        orig.Args,
+	}
+}
+
 func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	var workflows []string
 	for _, flow := range req.Workflows {
@@ -111,25 +157,94 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	}
 	var job *Job
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		{
+		iter := txn.Query(ctx, spanner.Statement{
+			SQL: selectJobs() + `WHERE Workflow IN UNNEST(@workflows)
+					AND Started IS NULL
+				ORDER BY Created ASC LIMIT 1`,
+			Params: map[string]any{
+				"workflows": workflows,
+			},
+		})
+		defer iter.Stop()
+		var jobs []*Job
+		if err := spanner.SelectAll(iter, &jobs); err != nil || len(jobs) == 0 {
+			return err
+		}
+		job = jobs[0]
+		mut, err := startJob(ctx, req, job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return job, err
+}
+
+func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cutoff := TimeNow(ctx).Add(-8 * time.Hour)
+	var job *Job
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		var jobs []*Job
+
+		// First, check if the requesting agent has any unfinished jobs (implying a restart).
+		if req.AgentName != "" {
 			iter := txn.Query(ctx, spanner.Statement{
-				SQL: selectJobs() + `WHERE Workflow IN UNNEST(@workflows)
-						AND Started IS NULL
-					ORDER BY Created ASC LIMIT 1`,
+				SQL: selectJobs() + ` WHERE Started IS NOT NULL AND Finished IS NULL
+					AND AgentName = @agentName LIMIT 1`,
 				Params: map[string]any{
-					"workflows": workflows,
+					"agentName": req.AgentName,
 				},
 			})
 			defer iter.Stop()
-			var jobs []*Job
-			if err := spanner.SelectAll(iter, &jobs); err != nil || len(jobs) == 0 {
+			if err := spanner.SelectAll(iter, &jobs); err != nil {
 				return err
 			}
-			job = jobs[0]
 		}
-		job.Started = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
-		job.CodeRevision = req.CodeRevision
-		mut, err := spanner.InsertOrUpdateStruct("Jobs", job)
+
+		// Check if any other agent has stale/abandoned jobs.
+		if len(jobs) == 0 {
+			iter := txn.Query(ctx, spanner.Statement{
+				SQL: selectJobs() + ` JOIN Agents USING(AgentName)
+					WHERE Started IS NOT NULL AND Finished IS NULL
+					AND LastActive <= @cutoff LIMIT 1`,
+				Params: map[string]any{
+					"cutoff": cutoff,
+				},
+			})
+			defer iter.Stop()
+			if err := spanner.SelectAll(iter, &jobs); err != nil {
+				return err
+			}
+		}
+
+		if len(jobs) == 0 {
+			return nil
+		}
+
+		origJob := jobs[0]
+
+		// Fail the original job.
+		origJob.Finished = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
+		if origJob.AgentName.StringVal == req.AgentName {
+			origJob.Error = "Aborted: assigned agent restarted"
+		} else {
+			origJob.Error = "Aborted: assigned agent has been inactive for too long"
+		}
+
+		mut, err := spanner.UpdateStruct("Jobs", origJob)
+		if err != nil {
+			return err
+		}
+		if err := txn.BufferWrite([]*spanner.Mutation{mut}); err != nil {
+			return err
+		}
+
+		job = cloneJob(ctx, origJob)
+		mut, err = startJob(ctx, req, job)
 		if err != nil {
 			return err
 		}
@@ -272,6 +387,10 @@ var TimeNow = func(ctx context.Context) time.Time {
 
 func selectWorkflows() string {
 	return selectAllFrom[Workflow]("Workflows")
+}
+
+func selectAgents() string {
+	return selectAllFrom[Agent]("Agents")
 }
 
 func selectJobs() string {

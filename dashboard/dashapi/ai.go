@@ -9,6 +9,7 @@ import (
 )
 
 type AIJobPollReq struct {
+	AgentName    string
 	CodeRevision string // git commit of the syz-agent server
 	Workflows    []AIWorkflow
 }
@@ -31,8 +32,9 @@ type AIJobDoneReq struct {
 }
 
 type AITrajectoryReq struct {
-	JobID string
-	Span  *trajectory.Span
+	AgentName string
+	JobID     string
+	Span      *trajectory.Span
 }
 
 func (dash *Dashboard) AIJobPoll(req *AIJobPollReq) (*AIJobPollResp, error) {

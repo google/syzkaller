@@ -70,6 +70,7 @@ func TestAIBugWorkflows(t *testing.T) {
 	requireWorkflows(kasanBug, nil)
 
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-bug-workflow",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -198,6 +199,7 @@ func TestAIJob(t *testing.T) {
 	c.aiClient.pollEmailBug()
 
 	resp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-job",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
@@ -342,6 +344,7 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	extID := c.aiClient.pollEmailExtID()
 
 	resp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-assessment",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
@@ -482,6 +485,7 @@ func TestAIJobAutoCreate(t *testing.T) {
 	c.aiClient.pollEmailExtID()
 
 	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "agent-test-auto-create",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
@@ -491,15 +495,11 @@ func TestAIJobAutoCreate(t *testing.T) {
 	pollResp0, _ := c.agentClient.AIJobPoll(pollReq)
 	require.NotEqual(t, pollResp0.ID, "")
 
-	// No new jobs while the first one is running.
-	pollResp1, _ := c.agentClient.AIJobPoll(pollReq)
-	require.Equal(t, pollResp1.ID, "")
-	c.advanceTime(20 * time.Hour)
-	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
-	require.Equal(t, pollResp2.ID, "")
-
-	// Since the first job never finished,
-	// a new job must be created after a day or so.
+	// This job failed, and should be recreated after a day or so.
+	c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:    pollResp0.ID,
+		Error: "error",
+	})
 	c.advanceTime(24 * time.Hour)
 	pollResp3, _ := c.agentClient.AIJobPoll(pollReq)
 	require.NotEqual(t, pollResp3.ID, "")
@@ -570,4 +570,157 @@ func TestAIRepro(t *testing.T) {
 	// No AI job should be created.
 	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp4.ID, "")
+}
+
+func TestAIAgentLastActive(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	agentName := "test-agent-123"
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    agentName,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+	c.advanceTime(15 * 24 * time.Hour)
+
+	// Poll, get the repro job and verify the last active timestamp.
+	pollResp, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp.ID, "")
+
+	agent, err := aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
+
+	c.advanceTime(24 * time.Hour)
+
+	// Send trajectory, verify the last active timestamp;
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: agentName,
+		JobID:     pollResp.ID,
+		Span: &trajectory.Span{
+			Seq:     0,
+			Type:    trajectory.SpanFlow,
+			Name:    string(ai.WorkflowRepro),
+			Started: c.mockedTime,
+		},
+	}))
+
+	agent, err = aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
+}
+
+const (
+	testAgentRestart = "test-agent-restarts"
+	testAgentStalled = "test-agent-stalled"
+	testAgentFresh   = "test-agent-fresh"
+)
+
+func TestAIAgentRestart(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    testAgentRestart,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+
+	// Poll first to register the workflow in the Agents table.
+	c.agentClient.AIJobPoll(pollReq)
+
+	jobID := c.createAIJob(extID, string(ai.WorkflowRepro), "")
+	c.advanceTime(1 * time.Hour)
+
+	pollResp1, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp1.ID, jobID)
+
+	// Emulate agent restart.
+
+	c.advanceTime(1 * time.Hour)
+	pollResp2, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp2.ID, "")
+	require.NotEqual(t, pollResp2.ID, pollResp1.ID)
+	require.Equal(t, pollResp1.Workflow, pollResp2.Workflow)
+	require.Equal(t, pollResp1.Args, pollResp2.Args)
+
+	job1, err := aidb.LoadJob(c.ctx, pollResp1.ID)
+	require.NoError(t, err)
+	require.True(t, job1.Finished.Valid)
+	require.Contains(t, job1.Error, "restarted")
+}
+
+func TestAIAgentJobOvertake(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    testAgentStalled,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+
+	// Poll first to register the workflow in the Agents table.
+	c.agentClient.AIJobPoll(pollReq)
+
+	jobID := c.createAIJob(extID, string(ai.WorkflowRepro), "")
+	c.advanceTime(1 * time.Hour)
+
+	// Too early to give the job to another agent.
+	pollResp1, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp1.ID, jobID)
+
+	pollReq2 := &dashapi.AIJobPollReq{
+		AgentName:    testAgentFresh,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+
+	c.advanceTime(1 * time.Hour)
+	pollResp2, _ := c.agentClient.AIJobPoll(pollReq2)
+	require.Equal(t, pollResp2.ID, "")
+
+	c.advanceTime(8 * time.Hour)
+
+	pollResp3, _ := c.agentClient.AIJobPoll(pollReq2)
+	require.NotEqual(t, pollResp3.ID, "")
+	require.NotEqual(t, pollResp3.ID, pollResp1.ID)
+
+	job1, err := aidb.LoadJob(c.ctx, pollResp1.ID)
+	require.NoError(t, err)
+	require.True(t, job1.Finished.Valid)
+	require.Contains(t, job1.Error, "inactive")
+
+	job2, err := aidb.LoadJob(c.ctx, pollResp3.ID)
+	require.NoError(t, err)
+	require.True(t, job2.Started.Valid)
+	require.False(t, job2.Finished.Valid)
+	require.Equal(t, job2.Error, "")
 }
