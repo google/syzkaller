@@ -83,7 +83,7 @@ func TestExecprogCmd(t *testing.T) {
 		t.Errorf("bad sandbox: %q, want: %q", *flagSandbox, "namespace")
 	}
 	if *flagSandboxArg != 3 {
-		t.Errorf("bad sandbox_arg: %q, want: %q", *flagSandboxArg, 3)
+		t.Errorf("bad sandbox_arg: %v, want: %v", *flagSandboxArg, 3)
 	}
 	if *flagSignal {
 		t.Errorf("bad signal: %v, want: %v", *flagSignal, false)
