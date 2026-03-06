@@ -53,6 +53,17 @@ type CreateArgs struct {
 	DisplayDevice bool
 }
 
+type InstanceConfig struct {
+	Name          string
+	MachineType   string
+	Image         string
+	SSHKey        string
+	Tags          []string
+	Preemptible   bool
+	DisplayDevice bool
+	VMRunningTime time.Duration
+}
+
 func NewContext(customZoneID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate: time.NewTicker(time.Second).C,
@@ -117,25 +128,24 @@ func NewContext(customZoneID string) (*Context, error) {
 	return ctx, nil
 }
 
-func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
-	tags []string, preemptible, displayDevice bool) (string, error) {
+func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
-	sshkeyAttr := "syzkaller:" + sshkey
+	sshkeyAttr := "syzkaller:" + cfg.SSHKey
 	oneAttr := "1"
 	falseAttr := false
 	instance := &compute.Instance{
-		Name:        name,
+		Name:        cfg.Name,
 		Description: "syzkaller worker",
-		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + machineType,
+		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + cfg.MachineType,
 		Disks: []*compute.AttachedDisk{
 			{
 				AutoDelete: true,
 				Boot:       true,
 				Type:       "PERSISTENT",
-				DiskSizeGb: int64(diskSizeGB(machineType)),
+				DiskSizeGb: int64(diskSizeGB(cfg.MachineType)),
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					DiskName:    name,
-					SourceImage: prefix + "/global/images/" + image,
+					DiskName:    cfg.Name,
+					SourceImage: prefix + "/global/images/" + cfg.Image,
 				},
 			},
 		},
@@ -159,16 +169,23 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 		},
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  &falseAttr,
-			Preemptible:       preemptible,
+			Preemptible:       cfg.Preemptible,
 			OnHostMaintenance: "TERMINATE",
 		},
 		DisplayDevice: &compute.DisplayDevice{
-			EnableDisplay: displayDevice,
+			EnableDisplay: cfg.DisplayDevice,
 		},
-		Tags: &compute.Tags{Items: tags},
+		Tags: &compute.Tags{Items: cfg.Tags},
+	}
+	if cfg.VMRunningTime != 0 {
+		instance.Scheduling.MaxRunDuration = &compute.Duration{
+			// Give the manager an extra hour to ensure it has time to do its own cleanup.
+			Seconds: int64((cfg.VMRunningTime + time.Hour) / time.Second),
+		}
+		instance.Scheduling.InstanceTerminationAction = "DELETE"
 	}
 retry:
-	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {
+	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
 		// onHostMaintenance=TERMINATE unless they are preemptible".
 		instance.Scheduling.OnHostMaintenance = "MIGRATE"
@@ -192,11 +209,11 @@ retry:
 
 	var inst *compute.Instance
 	err = ctx.apiCall(func() (err error) {
-		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, name).Do()
+		inst, err = ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, cfg.Name).Do()
 		return
 	})
 	if err != nil {
-		return "", fmt.Errorf("error getting instance %s details after creation: %w", name, err)
+		return "", fmt.Errorf("error getting instance %s details after creation: %w", cfg.Name, err)
 	}
 
 	// Finds its internal IP.
