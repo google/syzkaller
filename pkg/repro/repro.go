@@ -69,8 +69,10 @@ type reproContext struct {
 
 // execInterface describes the interfaces needed by pkg/repro.
 type execInterface interface {
-	// Run() will either run a C repro or a syz repro depending on params.
-	Run(ctx context.Context, params instance.ExecParams, logf instance.ExecutorLogger) (*instance.RunResult, error)
+	RunC(ctx context.Context, p *prog.Prog, opts instance.RunOptions,
+		logf instance.ExecutorLogger) (*instance.RunResult, error)
+	RunSyz(ctx context.Context, syzProg []byte, opts instance.RunOptions,
+		logf instance.ExecutorLogger) (*instance.RunResult, error)
 }
 
 type Environment struct {
@@ -747,8 +749,7 @@ func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Durat
 	ctx.reproLogf(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLogf(3, "detailed listing:\n%s", pstr)
 	return ctx.getVerdict(func() (*instance.RunResult, error) {
-		return ctx.exec.Run(ctx.ctx, instance.ExecParams{
-			SyzProg:  pstr,
+		return ctx.exec.RunSyz(ctx.ctx, pstr, instance.RunOptions{
 			Opts:     opts,
 			Duration: duration,
 		}, ctx.reproLogf)
@@ -758,8 +759,7 @@ func (ctx *reproContext) testProgs(entries []*prog.LogEntry, duration time.Durat
 func (ctx *reproContext) testCProg(p *prog.Prog, duration time.Duration, opts csource.Options,
 	strict bool) (ret verdict, err error) {
 	return ctx.getVerdict(func() (*instance.RunResult, error) {
-		return ctx.exec.Run(ctx.ctx, instance.ExecParams{
-			CProg:    p,
+		return ctx.exec.RunC(ctx.ctx, p, instance.RunOptions{
 			Opts:     opts,
 			Duration: duration,
 		}, ctx.reproLogf)
@@ -818,40 +818,51 @@ type poolWrapper struct {
 	pool     *vm.Dispatcher
 }
 
-func (pw *poolWrapper) Run(ctx context.Context, params instance.ExecParams,
+func (pw *poolWrapper) RunC(ctx context.Context, p *prog.Prog, opts instance.RunOptions,
 	logf instance.ExecutorLogger) (*instance.RunResult, error) {
+	var result *instance.RunResult
+	err := pw.run(ctx, opts.Duration, logf, "C", func(ret *instance.ExecProgInstance) error {
+		var err error
+		result, err = ret.RunCProg(p, opts)
+		return err
+	})
+	return result, err
+}
+
+func (pw *poolWrapper) RunSyz(ctx context.Context, syzProg []byte, opts instance.RunOptions,
+	logf instance.ExecutorLogger) (*instance.RunResult, error) {
+	var result *instance.RunResult
+	err := pw.run(ctx, opts.Duration, logf, "syz", func(ret *instance.ExecProgInstance) error {
+		var err error
+		result, err = ret.RunSyzProg(syzProg, opts)
+		return err
+	})
+	return result, err
+}
+
+func (pw *poolWrapper) run(ctx context.Context, duration time.Duration, logf instance.ExecutorLogger, typ string,
+	fn func(*instance.ExecProgInstance) error) error {
 	if err := ctx.Err(); err != nil {
 		// Note that we could also propagate ctx down to SetupExecProg() and RunCProg() operations,
 		// but so far it does not seem to be worth the effort.
-		return nil, err
+		return err
 	}
-
-	var result *instance.RunResult
-	var err error
-	runErr := pw.pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
+	var runErr error
+	err := pw.pool.Run(ctx, func(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 		updInfo(func(info *dispatcher.Info) {
-			typ := "syz"
-			if params.CProg != nil {
-				typ = "C"
-			}
-			info.Status = fmt.Sprintf("reproducing (%s, %.1f min)", typ, params.Duration.Minutes())
+			info.Status = fmt.Sprintf("reproducing (%s, %.1f min)", typ, duration.Minutes())
 		})
-		var ret *instance.ExecProgInstance
-		ret, err = instance.SetupExecProg(inst, pw.cfg, pw.reporter,
-			&instance.OptionalConfig{Logf: logf})
+		ret, err := instance.SetupExecProg(inst, pw.cfg, pw.reporter, &instance.OptionalConfig{Logf: logf})
 		if err != nil {
+			runErr = err
 			return
 		}
-		if params.CProg != nil {
-			result, err = ret.RunCProg(params)
-		} else {
-			result, err = ret.RunSyzProg(params)
-		}
+		runErr = fn(ret)
 	})
-	if runErr != nil {
-		return nil, runErr
+	if err != nil {
+		return err
 	}
-	return result, err
+	return runErr
 }
 
 type Simplify func(opts *csource.Options) bool

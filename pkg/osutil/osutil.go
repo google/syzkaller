@@ -308,7 +308,13 @@ func WriteExecFile(filename string, data []byte) error {
 // TempFile creates a unique temp filename.
 // Note: the file already exists when the function returns.
 func TempFile(prefix string) (string, error) {
-	f, err := os.CreateTemp("", prefix)
+	return TempFileIn("", prefix)
+}
+
+// An extended version of TempFileIn that allows to configure
+// the folder in which the file will be created.
+func TempFileIn(dir, prefix string) (string, error) {
+	f, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}

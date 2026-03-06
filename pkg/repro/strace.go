@@ -44,18 +44,16 @@ func RunStrace(result *Result, cfg *mgrconfig.Config, reporter *report.Reporter,
 			err = fmt.Errorf("failed to set up instance: %w", setupErr)
 			return
 		}
-		params := instance.ExecParams{
+		opts := instance.RunOptions{
 			Opts:     result.Opts,
 			Duration: result.Duration,
 		}
 		if result.CRepro {
 			log.Logf(1, "running C repro under strace")
-			params.CProg = result.Prog
-			runRes, err = ret.RunCProg(params)
+			runRes, err = ret.RunCProg(result.Prog, opts)
 		} else {
 			log.Logf(1, "running syz repro under strace")
-			params.SyzProg = result.Prog.Serialize()
-			runRes, err = ret.RunSyzProg(params)
+			runRes, err = ret.RunSyzProg(result.Prog.Serialize(), opts)
 		}
 	})
 	if runErr != nil {
