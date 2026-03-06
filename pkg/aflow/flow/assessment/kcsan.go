@@ -39,7 +39,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: kcsanInstruction,
 					Prompt:      kcsanPrompt,
-					Tools:       append(codesearcher.Tools, grepper.Tool),
+					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
 				},
 			),
 		},

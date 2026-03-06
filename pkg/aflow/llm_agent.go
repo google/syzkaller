@@ -87,6 +87,24 @@ type Tool interface {
 	execute(*Context, map[string]any) (map[string]any, error)
 }
 
+// Tools combine all passed tools into a single slice
+// avoiding aliasing issues with existing slices.
+// The passed elements can be either Tool, or []Tool.
+func Tools(tools ...any) []Tool {
+	var res []Tool
+	for _, t := range tools {
+		switch tool := t.(type) {
+		case Tool:
+			res = append(res, tool)
+		case []Tool:
+			res = append(res, tool...)
+		default:
+			panic(fmt.Sprintf("unsupported type %T", t))
+		}
+	}
+	return res
+}
+
 // LLMOutputs creates a special tool that can be used by LLM to provide structured outputs.
 func LLMOutputs[Args any]() *llmOutputs {
 	return &llmOutputs{
