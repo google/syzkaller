@@ -1,0 +1,63 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fs.h>
+include <fs/ocfs2/ocfs2_fs.h>
+include <fs/ocfs2/ocfs2_ioctl.h>
+
+ioctl$OCFS2_IOC_RESVSP(fd fd, cmd const[OCFS2_IOC_RESVSP], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_RESVSP64(fd fd, cmd const[OCFS2_IOC_RESVSP64], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_UNRESVSP(fd fd, cmd const[OCFS2_IOC_UNRESVSP], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_UNRESVSP64(fd fd, cmd const[OCFS2_IOC_UNRESVSP64], arg ptr[in, ocfs2_space_resv])
+ioctl$OCFS2_IOC_GROUP_EXTEND(fd fd, cmd const[OCFS2_IOC_GROUP_EXTEND], arg ptr[in, int32])
+ioctl$OCFS2_IOC_GROUP_ADD(fd fd, cmd const[OCFS2_IOC_GROUP_ADD], arg ptr[in, ocfs2_new_group_input])
+ioctl$OCFS2_IOC_GROUP_ADD64(fd fd, cmd const[OCFS2_IOC_GROUP_ADD64], arg ptr[in, ocfs2_new_group_input])
+ioctl$OCFS2_IOC_REFLINK(fd fd, cmd const[OCFS2_IOC_REFLINK], arg ptr[in, reflink_arguments])
+ioctl$OCFS2_IOC_INFO(fd fd, cmd const[OCFS2_IOC_INFO], arg ptr[in, ocfs2_info])
+ioctl$OCFS2_IOC_MOVE_EXT(fd fd, cmd const[OCFS2_IOC_MOVE_EXT], arg ptr[inout, ocfs2_move_extents])
+
+ocfs2_l_type = F_RDLCK, F_WRLCK, F_UNLCK
+ocfs2_l_whence = SEEK_SET, SEEK_CUR, SEEK_END
+ocfs2_move_ext_flags = OCFS2_MOVE_EXT_FL_AUTO_DEFRAG, OCFS2_MOVE_EXT_FL_PART_DEFRAG, OCFS2_MOVE_EXT_FL_COMPLETE
+
+ocfs2_space_resv {
+	l_type		flags[ocfs2_l_type, int16]
+	l_whence	flags[ocfs2_l_whence, int16]
+	l_start		int64
+	l_len		int64
+	l_sysid		int32
+	l_pid		int32
+	l_pad		array[const[0, int32], 4]
+}
+
+ocfs2_new_group_input {
+	group		int64
+	clusters	int32
+	frees		int32
+	chain		int16
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+}
+
+reflink_arguments {
+	old_path	ptr[in, string]
+	new_path	ptr[in, string]
+	preserve	const[0, int64]
+}
+
+ocfs2_info {
+	oi_requests	ptr[in, array[int64]]
+	oi_count	int32
+	oi_pad		const[0, int32]
+}
+
+ocfs2_move_extents {
+	me_start	int64	(in)
+	me_len		int64	(in)
+	me_goal		int64	(in)
+	me_threshold	int64	(in)
+	me_flags	flags[ocfs2_move_ext_flags, int64]	(in)
+	me_moved_len	int64	(out)
+	me_new_offset	int64	(out)
+	me_reserved	array[const[0, int32], 2]
+}
