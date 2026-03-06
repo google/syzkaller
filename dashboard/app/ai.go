@@ -388,21 +388,12 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if err := aidb.UpdateWorkflows(ctx, req.Workflows); err != nil {
 		return nil, fmt.Errorf("failed UpdateWorkflows: %w", err)
 	}
-	job, err := aidb.StartJob(ctx, req)
+	job, err := pollAIJob(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed StartJob: %w", err)
+		return &dashapi.AIJobPollResp{}, err
 	}
 	if job == nil {
-		if created, err := autoCreateAIJobs(ctx); err != nil || !created {
-			return &dashapi.AIJobPollResp{}, err
-		}
-		job, err = aidb.StartJob(ctx, req)
-		if err != nil {
-			return nil, fmt.Errorf("failed StartJob: %w", err)
-		}
-		if job == nil {
-			return &dashapi.AIJobPollResp{}, nil
-		}
+		return &dashapi.AIJobPollResp{}, nil
 	}
 	if !job.Args.Valid {
 		job.Args.Value = map[string]any{}
@@ -445,6 +436,29 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 		Workflow: job.Workflow,
 		Args:     args,
 	}, nil
+}
+
+func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq) (*aidb.Job, error) {
+	job, err := aidb.StartJob(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed StartJob: %w", err)
+	} else if job != nil {
+		return job, nil
+	}
+	job, err = aidb.NextStaleJob(ctx, req)
+	if err != nil {
+		log.Errorf(ctx, "NextStaleJob failed: %v", err)
+	} else if job != nil {
+		return job, nil
+	}
+	if created, err := autoCreateAIJobs(ctx); err != nil || !created {
+		return nil, err
+	}
+	job, err = aidb.StartJob(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed StartJob after autoCreate: %w", err)
+	}
+	return job, nil
 }
 
 func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
@@ -755,7 +769,7 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 		// Have finished successful job.
 		if job.Finished.Valid && job.Error == "" ||
 			// Or already have a pending or a running job.
-			!job.Started.Valid || timeSince(ctx, job.Started.Time) < 24*time.Hour {
+			!job.Finished.Valid {
 			// Don't create new jobs for these types.
 			delete(workflows, typ)
 			continue
