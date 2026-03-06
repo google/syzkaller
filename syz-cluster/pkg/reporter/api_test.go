@@ -50,6 +50,7 @@ func TestAPIReportFlow(t *testing.T) {
 	}
 
 	assert.Equal(t, &api.SessionReport{
+		Type:       api.ReportTypeBug,
 		Moderation: true,
 		Link:       env.URLs.Series(ids.SeriesID),
 		Series: &api.Series{

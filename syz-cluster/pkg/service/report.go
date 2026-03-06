@@ -98,6 +98,7 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 	return &api.NextReportResp{
 		Report: &api.SessionReport{
 			ID:         report.ID,
+			Type:       api.ReportTypeBug,
 			Moderation: report.Moderation,
 			Series:     series,
 			Link:       rs.urls.Series(series.ID),

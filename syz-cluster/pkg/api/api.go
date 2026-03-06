@@ -187,12 +187,33 @@ type NewSession struct {
 	Tags  []string `json:"tags"`
 }
 
+type ReportType string
+
+const (
+	ReportTypeBug       ReportType = "bug"
+	ReportTypePatchTest ReportType = "patch-test"
+)
+
+type ReportTestStep struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type ReportTest struct {
+	Name   string           `json:"name"`
+	Status string           `json:"status"`
+	Steps  []ReportTestStep `json:"steps"`
+}
+
 type SessionReport struct {
-	ID         string     `json:"id"`
-	Moderation bool       `json:"moderation"`
-	Series     *Series    `json:"series"`
-	Findings   []*Finding `json:"findings"`
-	Link       string     `json:"link"` // URL to the web dashboard.
+	ID         string       `json:"id"`
+	Type       ReportType   `json:"type"`
+	Moderation bool         `json:"moderation"`
+	Series     *Series      `json:"series"`
+	Findings   []*Finding   `json:"findings"`
+	Link       string       `json:"link"` // URL to the web dashboard.
+	Tests      []ReportTest `json:"tests,omitempty"`
+	PatchLink  string       `json:"patch_link,omitempty"`
 }
 
 type Finding struct {
