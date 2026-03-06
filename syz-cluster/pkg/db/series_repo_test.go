@@ -306,3 +306,34 @@ func TestSeriesRepositoryUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "updated title", series2.Title)
 }
+
+func TestSeriesRepositoryListPreviousVersions(t *testing.T) {
+	client, ctx := NewTransientDB(t)
+	repo := NewSeriesRepository(client)
+
+	baseTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+	v1 := &Series{ExtID: "series-v1", Title: "My Series", Version: 1, PublishedAt: baseTime}
+	v2 := &Series{ExtID: "series-v2", Title: "My Series", Version: 2, PublishedAt: baseTime.Add(time.Hour)}
+	v3 := &Series{ExtID: "series-v3", Title: "My Series", Version: 3, PublishedAt: baseTime.Add(2 * time.Hour)}
+	other := &Series{ExtID: "series-other", Title: "Other Series", Version: 1, PublishedAt: baseTime.Add(3 * time.Hour)}
+
+	for _, series := range []*Series{v1, v2, v3, other} {
+		err := repo.Insert(ctx, series, nil)
+		assert.NoError(t, err)
+	}
+
+	list, err := repo.ListPreviousVersions(ctx, v3)
+	assert.NoError(t, err)
+	assert.Len(t, list, 2)
+	assert.Equal(t, "series-v1", list[0].ExtID)
+	assert.Equal(t, "series-v2", list[1].ExtID)
+
+	list, err = repo.ListPreviousVersions(ctx, v2)
+	assert.NoError(t, err)
+	assert.Len(t, list, 1)
+	assert.Equal(t, "series-v1", list[0].ExtID)
+
+	list, err = repo.ListPreviousVersions(ctx, v1)
+	assert.NoError(t, err)
+	assert.Len(t, list, 0)
+}

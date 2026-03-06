@@ -27,6 +27,8 @@ func TestStatsSQLs(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = statsRepo.ReportsPerWeek(ctx)
 		assert.NoError(t, err)
+		_, err = statsRepo.PreventedBugsPerMonth(ctx)
+		assert.NoError(t, err)
 	}
 
 	dtd := &dummyTestData{t, ctx, client}

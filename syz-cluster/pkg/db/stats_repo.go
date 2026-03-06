@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 )
 
 type StatsRepository struct {
@@ -121,6 +122,54 @@ func (repo *StatsRepository) DelayPerWeek(ctx context.Context) (
   AVG(TIMESTAMP_DIFF(Sessions.StartedAt,Sessions.CreatedAt, HOUR)) as AvgDelayHours
 FROM Sessions
 WHERE StartedAt IS NOT NULL
+GROUP BY Date
+ORDER BY Date`,
+	})
+}
+
+func (repo *StatsRepository) CountPreventedBugs(ctx context.Context, seriesID string) (int64, error) {
+	type countRow struct {
+		Count int64 `spanner:"Count"`
+	}
+	stmt := spanner.Statement{
+		SQL: `SELECT COUNT(DISTINCT SessionTestSteps.FindingID) AS Count
+			FROM SessionTestSteps
+			JOIN Series ON SessionTestSteps.SessionID = Series.LatestSessionID
+			WHERE Series.ID = @seriesID
+			  AND SessionTestSteps.Target = @target
+			  AND SessionTestSteps.Result = @result
+			  AND SessionTestSteps.FindingID IS NOT NULL`,
+		Params: map[string]any{
+			"seriesID": seriesID,
+			"target":   api.StepTargetPatched,
+			"result":   api.StepResultPassed,
+		},
+	}
+	row, err := readEntity[countRow](ctx, repo.client.Single(), stmt)
+	if err != nil {
+		return 0, err
+	}
+	if row == nil {
+		return 0, nil
+	}
+	return row.Count, nil
+}
+
+type PreventedBugsStats struct {
+	Date   time.Time `spanner:"Date"`
+	Series int64     `spanner:"Series"`
+	Bugs   int64     `spanner:"Bugs"`
+}
+
+func (repo *StatsRepository) PreventedBugsPerMonth(ctx context.Context) ([]*PreventedBugsStats, error) {
+	return readEntities[PreventedBugsStats](ctx, repo.client.Single(), spanner.Statement{
+		SQL: `SELECT
+  TIMESTAMP_TRUNC(Series.PublishedAt, MONTH, 'UTC') as Date,
+  COUNT(Series.ID) as Series,
+  SUM(SeriesStats.PreventedBugs) as Bugs
+FROM Series
+JOIN SeriesStats ON SeriesStats.ID = Series.ID
+WHERE SeriesStats.PreventedBugs > 0
 GROUP BY Date
 ORDER BY Date`,
 	})

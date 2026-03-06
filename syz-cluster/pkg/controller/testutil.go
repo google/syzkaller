@@ -131,6 +131,12 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 	}
 }
 
+func StartSession(t *testing.T, env *app.AppEnvironment, sessionID string) {
+	repo := db.NewSessionRepository(env.Spanner)
+	err := repo.Start(context.Background(), sessionID)
+	assert.NoError(t, err)
+}
+
 func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
 	repo := db.NewSessionRepository(env.Spanner)
 	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {

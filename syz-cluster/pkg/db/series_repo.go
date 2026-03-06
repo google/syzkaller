@@ -127,12 +127,13 @@ type SeriesWithSession struct {
 }
 
 type SeriesFilter struct {
-	Cc           string
-	Status       SessionStatus
-	WithFindings bool
-	Limit        int
-	Offset       int
-	Name         string
+	Cc            string
+	Status        SessionStatus
+	WithFindings  bool
+	PreventedBugs bool
+	Limit         int
+	Offset        int
+	Name          string
 }
 
 // ListLatest() returns the list of series ordered by the decreasing PublishedAt value.
@@ -202,6 +203,10 @@ WHERE SEARCH(Patches.TitleTokens, @name)
 			"SELECT 1 FROM Findings WHERE "+
 			"Findings.SessionID = Series.LatestSessionID AND Findings.InvalidatedAt IS NULL)")
 	}
+	if filter.PreventedBugs {
+		conds = append(conds, "EXISTS("+
+			"SELECT 1 FROM SeriesStats WHERE SeriesStats.ID = Series.ID AND SeriesStats.PreventedBugs > 0)")
+	}
 	if len(conds) != 0 {
 		stmt.SQL += " WHERE " + strings.Join(conds, " AND ")
 	}
@@ -245,6 +250,20 @@ func (repo *SeriesRepository) ListAllVersions(ctx context.Context, title string)
 		SQL: "SELECT ID, Version FROM SERIES where Title = @title ORDER BY Version",
 		Params: map[string]any{
 			"title": title,
+		},
+	})
+}
+
+func (repo *SeriesRepository) ListPreviousVersions(ctx context.Context, series *Series) ([]*Series, error) {
+	ro := repo.client.ReadOnlyTransaction()
+	defer ro.Close()
+	return readEntities[Series](ctx, ro, spanner.Statement{
+		SQL: "SELECT * FROM Series WHERE Title = @title " +
+			"AND PublishedAt <= @publishedAt AND Version < @version ORDER BY Version",
+		Params: map[string]any{
+			"title":       series.Title,
+			"publishedAt": series.PublishedAt,
+			"version":     series.Version,
 		},
 	})
 }
