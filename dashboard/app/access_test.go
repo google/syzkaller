@@ -51,6 +51,7 @@ func TestAccess(t *testing.T) {
 	defer c.Close()
 
 	c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
 		CodeRevision: prog.GitRevision,
 		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
 	})

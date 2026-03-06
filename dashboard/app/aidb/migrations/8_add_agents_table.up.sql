@@ -1,0 +1,4 @@
+CREATE TABLE Agents (
+    AgentName STRING(100) NOT NULL,
+    LastActive TIMESTAMP NOT NULL,
+) PRIMARY KEY(AgentName);
