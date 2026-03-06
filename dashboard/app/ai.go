@@ -369,8 +369,11 @@ func makeUIJobReviewHistory(history []*aidb.Journal) []*uiJobReviewHistory {
 }
 
 func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
-	if len(req.Workflows) == 0 || req.CodeRevision == "" {
+	if len(req.Workflows) == 0 || req.CodeRevision == "" || req.AgentName == "" {
 		return nil, fmt.Errorf("invalid request")
+	}
+	if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
+		log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
 	}
 	for _, flow := range req.Workflows {
 		if flow.Type == "" || flow.Name == "" {
@@ -576,6 +579,11 @@ func parseJSON[T any](val spanner.NullJSON) (T, error) {
 }
 
 func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any, error) {
+	if req.AgentName != "" {
+		if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
+			log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
+		}
+	}
 	err := aidb.StoreTrajectorySpan(ctx, req.JobID, req.Span)
 	return nil, err
 }

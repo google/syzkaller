@@ -84,6 +84,7 @@ func TestAIBugWorkflows(t *testing.T) {
 	c.advanceTime(2 * 24 * time.Hour)
 
 	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-bug-workflow",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -95,6 +96,7 @@ func TestAIBugWorkflows(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-bug-workflow",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -115,6 +117,7 @@ func TestAIRestrictedClient(t *testing.T) {
 	defer c.Close()
 
 	c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -134,6 +137,7 @@ func TestAIRestrictedClient(t *testing.T) {
 
 	restrictedClient := c.makeClient(agentRestrictedClient, agentRestrictedKey, false)
 	_, err = restrictedClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -144,6 +148,7 @@ func TestAIRestrictedClient(t *testing.T) {
 		`the client is not allowed to execute AI jobs without "-foobar" suffix`))
 
 	job, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -153,6 +158,7 @@ func TestAIRestrictedClient(t *testing.T) {
 	require.True(t, job.ID != "")
 
 	job, err = restrictedClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching-foobar"},
@@ -166,6 +172,7 @@ func TestAIRestrictedClient(t *testing.T) {
 	require.NoError(t, err)
 
 	job, err = restrictedClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching-foobar"},
@@ -176,6 +183,7 @@ func TestAIRestrictedClient(t *testing.T) {
 	require.Equal(t, job.Workflow, "patching-foobar")
 
 	_, err = restrictedClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "restricted-client",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -220,6 +228,7 @@ func TestAIJob(t *testing.T) {
 	})
 
 	resp2, err2 := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-test-job",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "assessment-kcsan", Name: "assessment-kcsan"},
@@ -296,6 +305,7 @@ func TestAIJobActions(t *testing.T) {
 	bug, _, _ := c.loadBug(extID)
 
 	_, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -312,6 +322,7 @@ func TestAIJobActions(t *testing.T) {
 	require.NoError(t, err)
 
 	resp, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},
@@ -417,6 +428,7 @@ func TestAIJobsFiltering(t *testing.T) {
 	c.aiClient.pollEmailBug()
 
 	pollResp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "some-agent",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowAssessmentKCSAN, Name: string(ai.WorkflowAssessmentKCSAN)},
@@ -454,6 +466,7 @@ func TestAIJobCustomCommit(t *testing.T) {
 	bug, _, _ := c.loadBug(extID)
 
 	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "some-agent",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowPatching, Name: "patching"},
@@ -547,6 +560,7 @@ func TestAIRepro(t *testing.T) {
 	c.aiClient.pollEmailExtID()
 
 	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "agent-repro",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
@@ -574,4 +588,51 @@ func TestAIRepro(t *testing.T) {
 	// No AI job should be created.
 	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp4.ID, "")
+}
+
+func TestAIAgentLastActive(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrash(build, 1)
+	c.aiClient.ReportCrash(crash)
+	c.aiClient.pollEmailExtID()
+
+	agentName := "test-agent-123"
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    agentName,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+	c.advanceTime(15 * 24 * time.Hour)
+
+	// Poll, get the repro job and verify the last active timestamp.
+	pollResp, _ := c.agentClient.AIJobPoll(pollReq)
+	require.NotEqual(t, pollResp.ID, "")
+
+	agent, err := aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
+
+	c.advanceTime(24 * time.Hour)
+
+	// Send trajectory, verify the last active timestamp;
+	require.NoError(t, c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		AgentName: agentName,
+		JobID:     pollResp.ID,
+		Span: &trajectory.Span{
+			Seq:     0,
+			Type:    trajectory.SpanFlow,
+			Name:    string(ai.WorkflowRepro),
+			Started: c.mockedTime,
+		},
+	}))
+
+	agent, err = aidb.LoadAgent(c.ctx, agentName)
+	require.NoError(t, err)
+	require.WithinDuration(t, c.mockedTime, agent.LastActive, 30*time.Second)
 }

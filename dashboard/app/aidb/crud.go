@@ -72,6 +72,31 @@ func UpdateWorkflows(ctx context.Context, active []dashapi.AIWorkflow) error {
 	return err
 }
 
+func AgentIsAlive(ctx context.Context, agentName string) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.InsertOrUpdateStruct("Agents", &Agent{
+		AgentName:  agentName,
+		LastActive: TimeNow(ctx),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
+}
+
+func LoadAgent(ctx context.Context, agentName string) (*Agent, error) {
+	return selectOne[Agent](ctx, spanner.Statement{
+		SQL: selectAgents() + `WHERE AgentName = @name`,
+		Params: map[string]any{
+			"name": agentName,
+		},
+	})
+}
+
 func CreateJob(ctx context.Context, job *Job) (string, error) {
 	job.ID = uuid.NewString()
 	job.Created = TimeNow(ctx)
@@ -273,6 +298,10 @@ var TimeNow = func(ctx context.Context) time.Time {
 
 func selectWorkflows() string {
 	return selectAllFrom[Workflow]("Workflows")
+}
+
+func selectAgents() string {
+	return selectAllFrom[Agent]("Agents")
 }
 
 func selectJobs() string {

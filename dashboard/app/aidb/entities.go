@@ -24,6 +24,11 @@ type Workflow struct {
 	LastActive time.Time
 }
 
+type Agent struct {
+	AgentName  string
+	LastActive time.Time
+}
+
 type Job struct {
 	ID        string
 	Type      ai.WorkflowType
