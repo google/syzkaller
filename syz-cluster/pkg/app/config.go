@@ -142,6 +142,13 @@ func (c AppConfig) Validate() error {
 			return fmt.Errorf("emailReporting: %w", err)
 		}
 	}
+	for _, target := range c.FuzzTargets {
+		for _, campaign := range target.Campaigns {
+			if campaign.Arch != "" && campaign.Arch != "amd64" {
+				return fmt.Errorf("only amd64 builds are supported now")
+			}
+		}
+	}
 	return nil
 }
 

@@ -23,7 +23,11 @@ func TestSingularFocus(t *testing.T) {
 	focusList := []string{api.FocusKVM, api.FocusIoUring, api.FocusBPF, api.FocusNet, api.FocusFS}
 	for _, focus := range focusList {
 		t.Run(focus, func(t *testing.T) {
-			cfg := &api.FuzzConfig{Focus: []string{focus}}
+			cfg := &api.FuzzConfig{
+				SyzkallerConfig: api.SyzkallerConfig{
+					Focus: []string{focus},
+				},
+			}
 			runTest(t, cfg, filepath.Join("testdata", "singular", focus))
 		})
 	}
@@ -35,8 +39,29 @@ func TestNoFocus(t *testing.T) {
 
 func TestMultipleFocus(t *testing.T) {
 	runTest(t, &api.FuzzConfig{
-		Focus: []string{api.FocusBPF, api.FocusIoUring},
+		SyzkallerConfig: api.SyzkallerConfig{
+			Focus: []string{api.FocusBPF, api.FocusIoUring},
+		},
 	}, filepath.Join("testdata", "mixed", "bpf_io_uring"))
+}
+
+func TestGCSPath(t *testing.T) {
+	cfg := &api.FuzzConfig{
+		SyzkallerConfig: api.SyzkallerConfig{
+			VMType:  "gce",
+			GCSPath: "custom/gcs/path",
+		},
+	}
+	base, err := GenerateBase(cfg)
+	require.NoError(t, err)
+
+	type GCEVMConfig struct {
+		GCSPath string `json:"gcs_path"`
+	}
+	var vmCfg GCEVMConfig
+	err = json.Unmarshal(base.VM, &vmCfg)
+	require.NoError(t, err)
+	assert.Equal(t, "custom/gcs/path", vmCfg.GCSPath)
 }
 
 func runTest(t *testing.T, cfg *api.FuzzConfig, baseName string) {
