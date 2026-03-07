@@ -683,7 +683,7 @@ func (env *env) test() (*testResult, error) {
 
 	testStart := time.Now()
 
-	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
+	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C, false)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		problem := fmt.Sprintf("repro testing failure: %v", err)

@@ -81,7 +81,7 @@ type testResult struct {
 
 func testOnEnv(env instance.Env, finding *api.RawFinding) *testResult {
 	const runAttempts = 3
-	results, err := env.Test(runAttempts, finding.SyzRepro, finding.SyzReproOpts, finding.CRepro)
+	results, err := env.Test(runAttempts, finding.SyzRepro, finding.SyzReproOpts, finding.CRepro, false)
 
 	ret := &testResult{
 		Status: api.StepResultPassed,

@@ -4,9 +4,14 @@
 package instance
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
@@ -40,6 +45,7 @@ type RunResult struct {
 	Output   []byte
 	Report   *report.Report
 	Duration time.Duration
+	Coverage [][]uint64
 }
 
 const (
@@ -165,8 +171,9 @@ type ExecParams struct {
 	CProg   *prog.Prog
 	SyzProg []byte
 
-	Opts     csource.Options
-	Duration time.Duration
+	Opts            csource.Options
+	Duration        time.Duration
+	CollectCoverage bool
 	// If ExitConditions is empty, RunSyzProg() will assume instance.SyzExitConditions.
 	// RunCProg() always runs with binExitConditions.
 	ExitConditions vm.ExitCondition
@@ -193,14 +200,41 @@ func (inst *ExecProgInstance) RunCProgRaw(src []byte, target *prog.Target,
 }
 
 func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Duration,
-	opts csource.Options, exitCondition vm.ExitCondition) (*RunResult, error) {
+	opts csource.Options, collectCoverage bool, exitCondition vm.ExitCondition) (*RunResult, error) {
+	coverFile := ""
+	if collectCoverage {
+		coverDir, err := os.MkdirTemp("", "syz-cover")
+		if err != nil {
+			return nil, err
+		}
+		defer osutil.RemoveAll(coverDir)
+		coverFile = filepath.Join(coverDir, "cover")
+	}
 	vmProgFile, err := inst.VMInstance.Copy(progFile)
 	if err != nil {
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy prog to VM: %v", err)}
 	}
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, inst.mgrCfg.TargetOS, inst.mgrCfg.TargetArch,
-		inst.mgrCfg.Type, opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
-	return inst.runCommand(command, duration, exitCondition)
+		inst.mgrCfg.Type, opts, !inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, coverFile, vmProgFile)
+	res, err := inst.runCommand(command, duration, exitCondition)
+	if err != nil {
+		return nil, err
+	}
+	if coverFile != "" {
+		files, err := filepath.Glob(coverFile + "*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to glob cover files: %w", err)
+		}
+		slices.Sort(files)
+		for _, f := range files {
+			cover, err := parseCoverageFile(f)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse cover file: %w", err)
+			}
+			res.Coverage = append(res.Coverage, cover)
+		}
+	}
+	return res, nil
 }
 
 func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) {
@@ -213,5 +247,22 @@ func (inst *ExecProgInstance) RunSyzProg(params ExecParams) (*RunResult, error) 
 	if params.ExitConditions == 0 {
 		params.ExitConditions = SyzExitConditions
 	}
-	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts, params.ExitConditions)
+	return inst.RunSyzProgFile(progFile, params.Duration, params.Opts,
+		params.CollectCoverage, params.ExitConditions)
+}
+
+func parseCoverageFile(filename string) ([]uint64, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var res []uint64
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		v, err := strconv.ParseUint(s.Text(), 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, v)
+	}
+	return res, nil
 }
