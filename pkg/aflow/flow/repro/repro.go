@@ -44,6 +44,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
+					Tools:       aflow.Tools(syzlang.Reproduce),
 				},
 			),
 		},
