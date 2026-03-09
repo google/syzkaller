@@ -14,3 +14,12 @@ func TestDescriptionFiles(t *testing.T) {
 	require.Greater(t, len(files), 50)
 	require.Contains(t, files, "sys.txt")
 }
+
+func TestReadDescription(t *testing.T) {
+	res, err := readDescription(nil, struct{}{}, readDescArgs{File: "sys.txt"})
+	require.NoError(t, err)
+	require.Contains(t, res.Output, "meta")
+
+	_, err2 := readDescription(nil, struct{}{}, readDescArgs{File: "non_existent_file.txt"})
+	require.Error(t, err2)
+}
