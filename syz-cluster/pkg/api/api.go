@@ -217,6 +217,7 @@ type SessionReport struct {
 	Tests      []ReportTest `json:"tests,omitempty"`
 	PatchLink  string       `json:"patch_link,omitempty"`
 	InReplyTo  string       `json:"in_reply_to,omitempty"`
+	Error      string       `json:"error,omitempty"`
 }
 
 type Finding struct {

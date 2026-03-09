@@ -170,7 +170,6 @@ func UploadTestSessionReport(t *testing.T, env *app.AppEnvironment,
 // and marks the given session as finished in the DB.
 func FakeJobSession(t *testing.T, env *app.AppEnvironment, client *api.Client, sessionID string) string {
 	ctx := context.Background()
-
 	err := client.UploadSessionTest(ctx, &api.SessionTest{
 		SessionID: sessionID,
 		TestName:  "build",

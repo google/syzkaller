@@ -5,6 +5,12 @@
 
 Patch: {{.Report.PatchLink}}
 
+{{- if .Report.Error}}
+
+The patch testing request could not be completed:
+{{.Report.Error}}
+{{- end}}
+
 {{- if .Report.Tests}}
 Testing results:
 {{- range .Report.Tests}}

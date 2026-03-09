@@ -173,7 +173,9 @@ func (triager *seriesTriager) prepareJobTask(
 	for i, task := range job.FindingGroups {
 		treeIndex, _ := triage.FindTree(trees, task.Build.TreeName)
 		if treeIndex == -1 {
-			return nil, fmt.Errorf("tree %q is no longer known", task.Build.TreeName)
+			return &api.TriageResult{
+				SkipReason: fmt.Sprintf("tree %q is no longer known", task.Build.TreeName),
+			}, nil
 		}
 		triager.Logf("continuing with job's original tree %q", task.Build.TreeName)
 		testTarget := &api.TestTarget{
@@ -196,7 +198,9 @@ func (triager *seriesTriager) prepareJobTask(
 		targets = append(targets, testTarget)
 	}
 	if len(targets) == 0 {
-		return nil, fmt.Errorf("job has no testing tasks available")
+		return &api.TriageResult{
+			SkipReason: "job has no testing tasks available",
+		}, nil
 	}
 	return &api.TriageResult{
 		Targets: targets,

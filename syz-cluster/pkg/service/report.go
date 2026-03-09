@@ -147,11 +147,17 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 	if err != nil {
 		return fmt.Errorf("failed to query session tests: %w", err)
 	}
+	if session.Status() == db.SessionStatusSkipped {
+		reportObj.Error = session.SkipReason.StringVal
+	}
 	var apiTests []api.ReportTest
 	for _, t := range tests {
 		rt := api.ReportTest{
 			Name:   t.TestName,
 			Status: t.Result,
+		}
+		if t.Result == api.TestError && reportObj.Error == "" {
+			reportObj.Error = "Testing failed due to an infrastructure error."
 		}
 		steps, err := rs.testStepRepo.ListForSession(ctx, session.ID, t.TestName)
 		if err != nil {
@@ -166,6 +172,9 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 				Name:   name,
 				Status: step.Result,
 			})
+			if step.Result == api.StepResultError && reportObj.Error == "" {
+				reportObj.Error = "Testing failed due to an infrastructure error."
+			}
 		}
 		apiTests = append(apiTests, rt)
 	}
