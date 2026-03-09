@@ -46,6 +46,7 @@ type Build struct {
 	CommitHash string             `spanner:"CommitHash"`
 	CommitDate time.Time          `spanner:"CommitDate"`
 	SeriesID   spanner.NullString `spanner:"SeriesID"`
+	JobID      spanner.NullString `spanner:"JobID"`
 	Arch       string             `spanner:"Arch"`
 	ConfigName string             `spanner:"ConfigName"`
 	ConfigURI  string             `spanner:"ConfigURI"`
@@ -54,8 +55,12 @@ type Build struct {
 	Compiler   string             `spanner:"Compiler"`
 }
 
-func (b *Build) SetSeriesID(val string) {
-	b.SeriesID = spanner.NullString{StringVal: val, Valid: true}
+func (b *Build) SetSeriesID(id string) {
+	b.SeriesID = spanner.NullString{StringVal: id, Valid: true}
+}
+
+func (b *Build) SetJobID(id string) {
+	b.JobID = spanner.NullString{StringVal: id, Valid: true}
 }
 
 const (

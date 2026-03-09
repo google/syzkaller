@@ -65,6 +65,7 @@ func main() {
 			TreeName:   req.TreeName,
 			TreeURL:    req.TreeURL,
 			SeriesID:   req.SeriesID,
+			JobID:      req.JobID,
 		},
 	}
 	output := new(bytes.Buffer)

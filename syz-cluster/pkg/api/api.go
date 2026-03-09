@@ -79,6 +79,7 @@ type BuildRequest struct {
 	CommitHash string `json:"commit_hash"`
 	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
 	SeriesID   string `json:"series_id"`
+	JobID      string `json:"job_id,omitempty"`
 }
 
 // BuildResult is returned from the build workflow step.
@@ -95,6 +96,7 @@ type Build struct {
 	CommitDate   time.Time `json:"commit_date"`
 	ConfigName   string    `json:"config_name"`
 	SeriesID     string    `json:"series_id"`
+	JobID        string    `json:"job_id,omitempty"`
 	Compiler     string    `json:"compiler"`
 	BuildSuccess bool      `json:"build_success"`
 }
