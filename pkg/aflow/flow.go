@@ -24,8 +24,9 @@ import (
 // Actions are nodes of the graph, and they consume/produce some named values
 // (input/output fields, and intermediate values consumed by other actions).
 type Flow struct {
-	Name string // Empty for the main workflow for the workflow type.
-	Root Action
+	Name   string         // Empty for the main workflow for the workflow type.
+	Consts map[string]any // Additional fixed inputs for the workflow.
+	Root   Action
 
 	Models []string // LLM models used in this workflow.
 	*FlowType
@@ -84,6 +85,7 @@ func registerOne[Inputs, Outputs any](all map[string]*Flow, flow *Flow) error {
 		return fmt.Errorf("flow %v is already registered", flow.Name)
 	}
 	ctx := newVerifyContext()
+	provideOutputsMap(ctx, "flow consts", flow.Consts)
 	provideOutputs[Inputs](ctx, "flow inputs")
 	flow.Root.verify(ctx)
 	requireInputs[Outputs](ctx, "flow outputs")

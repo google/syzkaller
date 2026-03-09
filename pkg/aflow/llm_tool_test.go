@@ -111,5 +111,6 @@ func TestLLMTool(t *testing.T) {
 			// Main returns result.
 			genai.NewPartFromText("YES"),
 		},
+		nil,
 	)
 }

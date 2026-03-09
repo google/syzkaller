@@ -55,5 +55,6 @@ func TestToolErrors(t *testing.T) {
 				},
 			},
 		},
+		nil,
 	)
 }

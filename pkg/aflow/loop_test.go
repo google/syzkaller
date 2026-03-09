@@ -51,36 +51,33 @@ func TestDoWhile(t *testing.T) {
 			MaxIterations: 10,
 		},
 		nil,
+		nil,
 	)
 }
 
 func TestDoWhileErrors(t *testing.T) {
 	testRegistrationError[struct{}, struct{}](t,
 		"flow test: action body: no input Missing, available inputs: []",
-		Pipeline(
-			&DoWhile{
-				Do: NewFuncAction("body", func(ctx *Context, args struct {
-					Missing string
-				}) (struct{}, error) {
-					return struct{}{}, nil
-				}),
-				While:         "Condition",
-				MaxIterations: 10,
-			},
-		))
+		&Flow{Root: &DoWhile{
+			Do: NewFuncAction("body", func(ctx *Context, args struct {
+				Missing string
+			}) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+			While:         "Condition",
+			MaxIterations: 10,
+		}})
 
 	testRegistrationError[struct{ Input string }, struct{}](t,
 		"flow test: action DoWhile: While must not be empty",
-		Pipeline(
-			&DoWhile{
-				Do: NewFuncAction("body", func(ctx *Context, args struct {
-					Input string
-				}) (struct{}, error) {
-					return struct{}{}, nil
-				}),
-				MaxIterations: 10,
-			},
-		))
+		&Flow{Root: &DoWhile{
+			Do: NewFuncAction("body", func(ctx *Context, args struct {
+				Input string
+			}) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+			MaxIterations: 10,
+		}})
 
 	type output struct {
 		Output1 string
@@ -88,25 +85,22 @@ func TestDoWhileErrors(t *testing.T) {
 	}
 	testRegistrationError[struct{}, struct{}](t,
 		"flow test: action body: output Output2 is unused",
-		Pipeline(
-			&DoWhile{
-				Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
-					return output{}, nil
-				}),
-				While:         "Output1",
-				MaxIterations: 10,
-			},
-		))
+		&Flow{Root: &DoWhile{
+			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
+				return output{}, nil
+			}),
+			While:         "Output1",
+			MaxIterations: 10,
+		}})
+
 	testRegistrationError[struct{}, struct{}](t,
 		"flow test: action DoWhile: bad MaxIterations value 0, should be within [1, 1000]",
-		Pipeline(
-			&DoWhile{
-				Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
-					return output{}, nil
-				}),
-				While: "Output1",
-			},
-		))
+		&Flow{Root: &DoWhile{
+			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (output, error) {
+				return output{}, nil
+			}),
+			While: "Output1",
+		}})
 }
 
 func TestDoWhileMaxIters(t *testing.T) {
@@ -121,6 +115,7 @@ func TestDoWhileMaxIters(t *testing.T) {
 			While:         "Error",
 			MaxIterations: 3,
 		},
+		nil,
 		nil,
 	)
 }

@@ -152,6 +152,7 @@ func TestSummaryWindow(t *testing.T) {
 						}}}}, nil
 			},
 		},
+		nil,
 	)
 }
 
@@ -184,6 +185,7 @@ func TestSetResultsToolIsNotLast(t *testing.T) {
 			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool"}},
 			genai.NewPartFromText("Done"),
 		},
+		nil,
 	)
 }
 
@@ -207,6 +209,7 @@ func TestOnlyStructuredOutputs(t *testing.T) {
 		[]any{
 			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
 		},
+		nil,
 	)
 }
 
@@ -237,5 +240,6 @@ func TestNilToolArg(t *testing.T) {
 			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool", Args: map[string]any{"Optional": nil}}},
 			genai.NewPartFromText("Result"),
 		},
+		nil,
 	)
 }
