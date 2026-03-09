@@ -807,7 +807,8 @@ func loadAllManagers(ctx context.Context, ns string) ([]*Manager, []*db.Key, err
 	var result []*Manager
 	var resultKeys []*db.Key
 	for i, mgr := range managers {
-		if getNsConfig(ctx, mgr.Namespace).Managers[mgr.Name].Decommissioned {
+		cfg := getNsConfig(ctx, mgr.Namespace)
+		if cfg == nil || cfg.Managers[mgr.Name].Decommissioned {
 			continue
 		}
 		result = append(result, mgr)
