@@ -27,18 +27,13 @@ func init() {
 		ai.WorkflowRepro,
 		"reproduce a kernel crash and generate a syzlang program",
 		&aflow.Flow{
+			Consts: map[string]any{
+				"SyzkallerCommit":              prog.GitRevisionBase,
+				"DescriptionFiles":             syzlang.DescriptionFiles(),
+				"DocProgramSyntax":             docs.ProgramSyntax,
+				"DocSyscallDescriptionsSyntax": docs.SyscallDescriptionsSyntax,
+			},
 			Root: aflow.Pipeline(
-				aflow.Provide(struct {
-					SyzkallerCommit              string
-					DescriptionFiles             []string
-					DocProgramSyntax             string
-					DocSyscallDescriptionsSyntax string
-				}{
-					prog.GitRevisionBase,
-					syzlang.DescriptionFiles(),
-					docs.ProgramSyntax,
-					docs.SyscallDescriptionsSyntax,
-				}),
 				kernel.Checkout,
 				kernel.Build,
 				codesearcher.PrepareIndex,
@@ -79,7 +74,7 @@ Document about syzkaller program syntax:
 
 Document about syzlang system call descriptions syntax:
 ===
-{{.SyscallDescriptionsSyntax}}
+{{.DocSyscallDescriptionsSyntax}}
 ===
 `
 

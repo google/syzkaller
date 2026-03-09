@@ -30,12 +30,14 @@ func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map
 	if err := flow.checkInputs(inputs); err != nil {
 		return nil, fmt.Errorf("flow inputs are missing: %w", err)
 	}
+	inputs = maps.Clone(inputs)
+	maps.Insert(inputs, maps.All(flow.Consts))
 	c := &Context{
 		Context:  ctx,
 		Workdir:  osutil.Abs(workdir),
 		llmModel: model,
 		cache:    cache,
-		state:    maps.Clone(inputs),
+		state:    inputs,
 		onEvent:  onEvent,
 	}
 

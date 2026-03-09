@@ -240,6 +240,7 @@ func TestWorkflow(t *testing.T) {
 			genai.NewPartFromText("swarm candidate 2"),
 			genai.NewPartFromText("aggregated"),
 		},
+		nil,
 	)
 }
 
@@ -429,5 +430,35 @@ func TestToolMisbehavior(t *testing.T) {
 			genai.NewPartFromText(""),
 			genai.NewPartFromText("Finally done"),
 		},
+		nil,
 	)
+}
+
+func TestFlowConsts(t *testing.T) {
+	testFlow[struct{}, struct{}](t, nil, map[string]any{},
+		NewFuncAction("input-consumer", func(ctx *Context, args struct{ Const int }) (struct{}, error) {
+			return struct{}{}, nil
+		}),
+		nil,
+		map[string]any{"Const": 42},
+	)
+}
+
+func TestFlowRegistrationErrors(t *testing.T) {
+	testRegistrationError[struct{ Foo int }, struct{}](t,
+		"flow test: action flow inputs: output Foo is already set by flow consts",
+		&Flow{
+			Consts: map[string]any{
+				"Foo": 0,
+			},
+			Root: Pipeline(),
+		})
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action flow consts: output Foo is unused",
+		&Flow{
+			Consts: map[string]any{
+				"Foo": 0,
+			},
+			Root: Pipeline(),
+		})
 }

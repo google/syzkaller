@@ -29,9 +29,13 @@ var flagUpdate = flag.Bool("update", false, "update golden test files to match t
 // Requests sent to LLM are compared against "testdata/TestName.llm.json" file.
 // Resulting trajectory is compared against "testdata/TestName.trajectory.json" file.
 // If -update flag is provided, the golden testdata files are updated to match the actual execution.
-func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result any, root Action, llmReplies []any) {
+func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result any, root Action,
+	llmReplies []any, consts map[string]any) {
 	flows := make(map[string]*Flow)
-	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{{Root: root}})
+	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{{
+		Consts: consts,
+		Root:   root,
+	}})
 	require.NoError(t, err)
 	type llmRequest struct {
 		Model   string
@@ -145,9 +149,9 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	require.True(t, len(llmReplies) == 0 || generateContentStub)
 }
 
-func testRegistrationError[Inputs, Outputs any](t *testing.T, expected string, root Action) {
+func testRegistrationError[Inputs, Outputs any](t *testing.T, expected string, flow *Flow) {
 	flows := map[string]*Flow{}
-	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{{Root: root}})
+	err := register[Inputs, Outputs]("test", "description", flows, []*Flow{flow})
 	require.Error(t, err)
 	require.Equal(t, expected, err.Error())
 }

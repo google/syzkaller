@@ -35,9 +35,3 @@ func (p *pipeline) verify(ctx *verifyContext) {
 		a.verify(ctx)
 	}
 }
-
-func Provide[T any](value T) Action {
-	return NewFuncAction("provide-var", func(*Context, struct{}) (T, error) {
-		return value, nil
-	})
-}

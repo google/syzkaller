@@ -66,7 +66,7 @@ func (ctx *verifyContext) provideOutput(who, name string, typ reflect.Type) {
 	}
 	state := ctx.state[name]
 	if state != nil {
-		ctx.errorf(who, "output %v is already set", name)
+		ctx.errorf(who, "output %v is already set by %v", name, state.action)
 	}
 	ctx.state[name] = &varState{
 		action: who,
@@ -98,6 +98,12 @@ func requireInputs[T any](ctx *verifyContext, who string) {
 func provideOutputs[T any](ctx *verifyContext, who string) {
 	for name, typ := range foreachFieldOf[T]() {
 		ctx.provideOutput(who, name, typ)
+	}
+}
+
+func provideOutputsMap(ctx *verifyContext, who string, m map[string]any) {
+	for name, val := range m {
+		ctx.provideOutput(who, name, reflect.TypeOf(val))
 	}
 }
 
