@@ -15,6 +15,7 @@ spec:
           - name: test-name
         artifacts:
           - name: base-kernel
+            optional: true
             path: /base
           - name: patched-kernel
             path: /patched

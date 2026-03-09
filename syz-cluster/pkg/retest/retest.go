@@ -37,9 +37,15 @@ func (r *Runner) retestFinding(ctx context.Context, findingID string) error {
 		return fmt.Errorf("failed to get finding: %w", err)
 	}
 
-	baseRes := testOnEnv(r.Base, finding)
-	if err := r.uploadStep(ctx, finding, findingID, api.StepTargetBase, baseRes); err != nil {
-		return fmt.Errorf("failed to upload base step: %w", err)
+	baseCrashed := false
+	if r.Base != nil {
+		baseRes := testOnEnv(r.Base, finding)
+		if err := r.uploadStep(ctx, finding, findingID, api.StepTargetBase, baseRes); err != nil {
+			return fmt.Errorf("failed to upload base step: %w", err)
+		}
+		if baseRes.Status != api.StepResultPassed {
+			baseCrashed = true
+		}
 	}
 
 	patchedRes := testOnEnv(r.Patched, finding)
@@ -48,7 +54,7 @@ func (r *Runner) retestFinding(ctx context.Context, findingID string) error {
 	}
 
 	// If the base did not crash and patched crashed, a finding should be reported.
-	if baseRes.Status == api.StepResultPassed && patchedRes.Status == api.StepResultFailed {
+	if !baseCrashed && patchedRes.Status == api.StepResultFailed {
 		title := patchedRes.Title
 		if title == "" {
 			title = finding.Title
