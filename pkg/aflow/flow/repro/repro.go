@@ -4,6 +4,7 @@
 package repro
 
 import (
+	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -28,11 +29,15 @@ func init() {
 		&aflow.Flow{
 			Root: aflow.Pipeline(
 				aflow.Provide(struct {
-					SyzkallerCommit  string
-					DescriptionFiles []string
+					SyzkallerCommit              string
+					DescriptionFiles             []string
+					DocProgramSyntax             string
+					DocSyscallDescriptionsSyntax string
 				}{
 					prog.GitRevisionBase,
 					syzlang.DescriptionFiles(),
+					docs.ProgramSyntax,
+					docs.SyscallDescriptionsSyntax,
 				}),
 				kernel.Checkout,
 				kernel.Build,
@@ -66,6 +71,16 @@ without backticks.
 
 Don't make assumptions about the kernel source code, use the provided codesearch tools
 to examine the kernel code instead.
+
+Document about syzkaller program syntax:
+===
+{{.DocProgramSyntax}}
+===
+
+Document about syzlang system call descriptions syntax:
+===
+{{.SyscallDescriptionsSyntax}}
+===
 `
 
 const reproPrompt = `
