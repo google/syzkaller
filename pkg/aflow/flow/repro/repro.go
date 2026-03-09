@@ -41,10 +41,13 @@ func init() {
 					Outputs: aflow.LLMOutputs[struct {
 						ReproOpts string `jsonschema:"The repro configuration options."`
 					}](),
+					Tools: aflow.Tools(
+						syzlang.ReadDescription,
+						syzlang.Reproduce,
+					),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
-					Tools:       aflow.Tools(syzlang.Reproduce),
 				},
 			),
 		},
