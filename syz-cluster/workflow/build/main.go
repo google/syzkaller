@@ -50,12 +50,21 @@ func main() {
 	ctx := context.Background()
 	client := app.DefaultClient()
 	// TODO: (optimization) query whether the same BuildRequest has already been completed.
-	var series *api.Series
+	var patches [][]byte
 	if req.SeriesID != "" {
-		var err error
-		series, err = client.GetSeries(ctx, req.SeriesID)
+		series, err := client.GetSeries(ctx, req.SeriesID)
 		if err != nil {
 			app.Fatalf("failed to query the series info: %v", err)
+		}
+		patches = append(patches, series.PatchBodies()...)
+	}
+	if req.JobID != "" {
+		job, err := client.GetJob(ctx, req.JobID)
+		if err != nil {
+			app.Fatalf("failed to query the job info: %v", err)
+		}
+		if len(job.Patch) > 0 {
+			patches = append(patches, job.Patch)
 		}
 	}
 	uploadReq := &api.UploadBuildReq{
@@ -74,7 +83,7 @@ func main() {
 		TraceWriter: output,
 		OutDir:      "",
 	}
-	commit, err := checkoutKernel(tracer, req, series)
+	commit, err := checkoutKernel(tracer, req, patches)
 	if commit != nil {
 		uploadReq.CommitHash = commit.Hash
 		uploadReq.CommitDate = commit.CommitDate
@@ -192,7 +201,7 @@ func readRequest() *api.BuildRequest {
 	return &req
 }
 
-func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, series *api.Series) (*vcs.Commit, error) {
+func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, patches [][]byte) (*vcs.Commit, error) {
 	tracer.Logf("checking out %q", req.CommitHash)
 	ops, err := triage.NewGitTreeOps(*flagRepository, true)
 	if err != nil {
@@ -201,10 +210,6 @@ func checkoutKernel(tracer debugtracer.DebugTracer, req *api.BuildRequest, serie
 	commit, err := ops.Commit(req.TreeName, req.CommitHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit info: %w", err)
-	}
-	var patches [][]byte
-	if series != nil {
-		patches = series.PatchBodies()
 	}
 	if len(patches) > 0 {
 		tracer.Logf("applying %d patches", len(patches))
