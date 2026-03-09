@@ -45,6 +45,11 @@ Workflows are typically registered using `aflow.Register`.
 - First commit is better to be the simplest possible workflow definition without new tools.
     Commit `pkg/aflow: repro workflow skeleton` is an example.
 
+### Implementing Tools
+- Tool names (the first string argument to `aflow.NewFuncTool`) should use `lowercase-with-dashes` instead of `CamelCase`.
+- If a tool does not refer to the kernel state or checkout path, declare its state parameter directly as `state struct{}` in the function signature, instead of defining an empty struct type.
+- When registering tools for an `LLMAgent`, **always** use `aflow.Tools(tool1, tool2, toolSlice...)` to avoid aliasing issues that can occur when combining slices of tools. Do not use standard `append()` or `[]aflow.Tool{...}` literal initializations when combining or adding to existing tool sets.
+
 ### LLM Integration
 
 - **Models**: Prefer `aflow.GoodBalancedModel` (Flash) for simple tasks and `aflow.BestExpensiveModel` (Pro)
