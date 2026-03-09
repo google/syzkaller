@@ -137,7 +137,7 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 	if err != nil {
 		return fmt.Errorf("failed to query job: %w", err)
 	}
-	reportObj.InReplyTo = job.MessageID
+	reportObj.InReplyTo = job.ExtID
 	if reportObj.InReplyTo == "" {
 		reportObj.InReplyTo = reportObj.Series.ExtID
 	}
