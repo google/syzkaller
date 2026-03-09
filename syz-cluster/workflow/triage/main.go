@@ -71,14 +71,18 @@ type seriesTriager struct {
 }
 
 func (triager *seriesTriager) GetVerdict(ctx context.Context, sessionID string) (*api.TriageResult, error) {
-	series, err := triager.client.GetSessionSeries(ctx, sessionID)
+	sessionInfo, err := triager.client.GetSessionInfo(ctx, sessionID)
 	if err != nil {
 		// TODO: the workflow step must be retried.
 		return nil, fmt.Errorf("failed to query series: %w", err)
 	}
+	series := sessionInfo.Series
 	treesResp, err := triager.client.GetTrees(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trees: %w", err)
+	}
+	if sessionInfo.Job != nil {
+		return triager.prepareJobTask(series, sessionInfo.Job, treesResp.Trees)
 	}
 	fuzzConfigs := triage.MergeKernelFuzzConfigs(triage.SelectFuzzConfigs(series, treesResp.FuzzTargets))
 	if len(fuzzConfigs) == 0 {
@@ -143,7 +147,6 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 			Fuzz:    target.FuzzConfig,
 		}
 		testTarget.Patched.SeriesID = series.ID
-
 		retestFindings, err := triager.client.ListPreviousFindings(ctx, &api.ListPreviousFindingsReq{
 			SeriesID: series.ID,
 			Arch:     result.Arch,
@@ -161,6 +164,43 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 		return testTarget, nil
 	}
 	return nil, SkipError("no base commit found")
+}
+
+func (triager *seriesTriager) prepareJobTask(
+	series *api.Series, job *api.Job, trees []*api.Tree,
+) (*api.TriageResult, error) {
+	var targets []*api.TestTarget
+	for i, task := range job.FindingGroups {
+		treeIndex, _ := triage.FindTree(trees, task.Build.TreeName)
+		if treeIndex == -1 {
+			return nil, fmt.Errorf("tree %q is no longer known", task.Build.TreeName)
+		}
+		triager.Logf("continuing with job's original tree %q", task.Build.TreeName)
+		testTarget := &api.TestTarget{
+			Track: fmt.Sprintf("build %d", i),
+		}
+		testTarget.Patched = api.BuildRequest{
+			TreeName:   task.Build.TreeName,
+			TreeURL:    task.Build.TreeURL,
+			ConfigName: task.Build.ConfigName,
+			CommitHash: task.Build.CommitHash,
+			Arch:       task.Build.Arch,
+			SeriesID:   series.ID,
+			JobID:      job.ID,
+		}
+		if len(task.FindingIDs) > 0 {
+			testTarget.Retest = &api.RetestTask{
+				Findings: task.FindingIDs,
+			}
+		}
+		targets = append(targets, testTarget)
+	}
+	if len(targets) == 0 {
+		return nil, fmt.Errorf("job has no testing tasks available")
+	}
+	return &api.TriageResult{
+		Targets: targets,
+	}, nil
 }
 
 type SelectResult struct {
