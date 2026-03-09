@@ -27,8 +27,13 @@ type Config struct {
 	KernelSrc  string
 	KernelObj  string
 	CacheFile  string
+	Files      []string // optional list of files to run the tool on
+	// If Fallback is true, the tool will try to generate a compile command for files
+	// that are missing from the compilation database, using the first available command as a template.
+	Fallback   bool
 	DebugTrace io.Writer
 }
+
 
 type OutputDataPtr[T any] interface {
 	*T
@@ -40,19 +45,160 @@ type OutputDataPtr[T any] interface {
 // Run runs the clang tool on all files in the compilation database
 // in the kernel build dir and returns combined output for all files.
 // It always caches results, and optionally reuses previously cached results.
-func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, error) {
+// It also returns a list of files that were requested but not found in the compilation database.
+func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, []string, error) {
 	if cfg.CacheFile != "" {
 		out, err := osutil.ReadJSON[OutputPtr](cfg.CacheFile)
 		if err == nil {
-			return out, nil
+			return out, nil, nil
 		}
 	}
 
 	dbFile := filepath.Join(cfg.KernelObj, "compile_commands.json")
 	cmds, err := loadCompileCommands(dbFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load compile commands: %w", err)
+		return nil, nil, fmt.Errorf("failed to load compile commands: %w", err)
 	}
+
+	// User requested to remove relocation logic and rely on correct paths.
+
+
+	// Find a template command for fallback (if enabled).
+	// We use the first valid command as a template.
+	var templateCmd *compileCommand
+	if len(cmds) > 0 {
+		templateCmd = &cmds[0]
+	}
+
+
+
+	// If files lists is empty, we process all commands.
+	var missingFiles []string
+	cmdsModified := false
+
+	if len(cfg.Files) != 0 {
+		cmdsModified = true
+
+		filesMap := make(map[string]bool)
+		for _, f := range cfg.Files {
+			abs, err := filepath.Abs(filepath.Join(cfg.KernelSrc, f))
+			if err == nil {
+				filesMap[abs] = true
+			} else {
+				filesMap[filepath.Clean(f)] = true
+			}
+		}
+		if cfg.DebugTrace != nil {
+			fmt.Fprintf(cfg.DebugTrace, "Filtering for files: %+v\n", cfg.Files)
+			fmt.Fprintf(cfg.DebugTrace, "Absolute filesMap: %+v\n", filesMap)
+		}
+		cmds = slices.DeleteFunc(cmds, func(cmd compileCommand) bool {
+			absFile := cmd.File
+			if !filepath.IsAbs(absFile) {
+				absFile = filepath.Join(cmd.Directory, absFile)
+			}
+			absFile = filepath.Clean(absFile)
+			if filesMap[absFile] {
+				return false
+			}
+			// Try matching against KernelSrc too if relative
+			if !filepath.IsAbs(cmd.File) {
+				absFile = filepath.Clean(filepath.Join(cfg.KernelSrc, cmd.File))
+				if filesMap[absFile] {
+					return false
+				}
+			}
+			// Fallback for container mounts: try matching the suffix.
+			// If absFile ends with / + relative path of any of our target files, it's a match.
+			for relF := range filesMap {
+				// Extract the relative part if it was absolute
+				rf := relF
+				if rel, err := filepath.Rel(cfg.KernelSrc, relF); err == nil {
+					rf = rel
+				}
+				suffix := "/" + filepath.Clean(rf)
+				if strings.HasSuffix(absFile, suffix) {
+					return false
+				}
+			}
+			return true
+		})
+
+		// Check if any requested files were filtered out (not in the DB).
+		// We still want to run the tool on them (it might have fallback logic).
+		found := make(map[string]bool)
+		for _, cmd := range cmds {
+			absFile := cmd.File
+			if !filepath.IsAbs(absFile) {
+				absFile = filepath.Join(cmd.Directory, absFile)
+			}
+			found[filepath.Clean(absFile)] = true
+		}
+
+		for _, f := range cfg.Files {
+			abs, err := filepath.Abs(filepath.Join(cfg.KernelSrc, f))
+			if err != nil {
+				continue
+			}
+			abs = filepath.Clean(abs)
+			if !found[abs] {
+				if cfg.DebugTrace != nil {
+					fmt.Fprintf(cfg.DebugTrace, "Force adding missing file: %s\n", f)
+				}
+				missingFiles = append(missingFiles, f)
+
+				// Create a dummy command to force execution.
+				// Heuristic: Use the first available command as a template if possible,
+				// assuming flags are somewhat compatible.
+				if cfg.Fallback && templateCmd != nil {
+					if cfg.DebugTrace != nil {
+						fmt.Fprintf(cfg.DebugTrace,
+							"File %s is missing from compile_commands.json, creating fallback command.\n", f)
+					}
+					fallback := *templateCmd
+					fallback.File = f
+					cmds = append(cmds, fallback)
+				} else {
+					if cfg.DebugTrace != nil {
+						fmt.Fprintf(cfg.DebugTrace, "File %s is missing from compile_commands.json, skipping static analysis.\n", f)
+					}
+				}
+
+
+
+			}
+		}
+
+		if cfg.DebugTrace != nil {
+			fmt.Fprintf(cfg.DebugTrace, "Found %d matching commands (after forcing)\n", len(cmds))
+		}
+	}
+
+	// ALWAYS write the (potentially modified/filtered) commands to a temp directory,
+	// UNLESS we are processing the original DB as-is (no filtering, no fallback additions).
+	if cmdsModified {
+		tmpDir, err := os.MkdirTemp("", "compile_commands_*")
+		if err == nil {
+			defer os.RemoveAll(tmpDir)
+			tmpDb := filepath.Join(tmpDir, "compile_commands.json")
+			data, err := json.Marshal(cmds)
+			if err == nil {
+				if err := os.WriteFile(tmpDb, data, 0644); err == nil {
+					dbFile = tmpDir // -p expects directory
+					if cfg.DebugTrace != nil {
+						fmt.Fprintf(cfg.DebugTrace, "Using temporary compilation database: %s\n", dbFile)
+					}
+				}
+			}
+		}
+	} else {
+		// Use the directory containing the original compile_commands.json
+		dbFile = filepath.Dir(dbFile)
+		if cfg.DebugTrace != nil {
+			fmt.Fprintf(cfg.DebugTrace, "Using original compilation database: %s\n", dbFile)
+		}
+	}
+
 
 	type result struct {
 		out OutputPtr
@@ -78,7 +224,7 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	for range cmds {
 		res := <-results
 		if res.err != nil {
-			return nil, res.err
+			return nil, nil, res.err
 		}
 		out.Merge(res.out, v)
 	}
@@ -89,19 +235,19 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	// Some of the source files (generated) may be in the obj dir.
 	out.Finalize(v)
 	if err := v.Error(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if cfg.CacheFile != "" {
 		osutil.MkdirAll(filepath.Dir(cfg.CacheFile))
 		data, err := json.MarshalIndent(out, "", "\t")
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal output data: %w", err)
+			return nil, nil, fmt.Errorf("failed to marshal output data: %w", err)
 		}
 		if err := osutil.WriteFile(cfg.CacheFile, data); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return out, nil
+	return out, missingFiles, nil
 }
 
 type Verifier struct {
@@ -160,11 +306,17 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 	// version that produces more warnings.
 	// Comments are needed for codesearch tool, but may be useful for declextract
 	// in the future if we try to parse them with LLMs.
+	absToolFile := file
+	if !filepath.IsAbs(absToolFile) {
+		absToolFile = filepath.Join(cfg.KernelSrc, file)
+	}
+
 	cmd := exec.Command(osutil.Abs(os.Args[0]), "-p", dbFile,
-		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file)
+		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", absToolFile)
 	cmd.Dir = cfg.KernelObj
 	// This tells the C++ clang tool to execute in a constructor.
 	cmd.Env = append([]string{fmt.Sprintf("%v=%v", runToolEnv, cfg.Tool)}, os.Environ()...)
+	cmd.Stderr = os.Stderr
 	data, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -200,9 +352,9 @@ func init() {
 }
 
 type compileCommand struct {
-	Command   string
-	Directory string
-	File      string
+	Command   string `json:"command"`
+	Directory string `json:"directory"`
+	File      string `json:"file"`
 }
 
 func loadCompileCommands(dbFile string) ([]compileCommand, error) {

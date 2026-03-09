@@ -12,7 +12,9 @@ You are an expert Linux Kernel developer. Your goal is to provide a semantic sum
 - path: [string]
 - source_hash: [string]
 - related_files: [list of files included via headers]
+- important_headers: [list of most significant headers (e.g. subsystem definitions)]
 - provided_apis: [list of exported functions]
+
 - description: [string] // One-line summary
 - locks_used: [list of spinlocks/mutexes mentioned]
 

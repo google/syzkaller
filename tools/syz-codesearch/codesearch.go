@@ -11,7 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/tool"
-	"github.com/google/syzkaller/tools/clang/codesearch"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 func main() {
@@ -34,10 +34,12 @@ func main() {
 			KernelSrc:  *flagKernelSrc,
 			KernelObj:  *flagKernelObj,
 			CacheFile:  *flagDatabase,
+			Fallback:   true,
 			DebugTrace: os.Stderr,
 		}
 
-		if _, err := clangtool.Run[codesearch.Database](cfg); err != nil {
+
+		if _, _, err := clangtool.Run[codesearch.Database](cfg); err != nil {
 			tool.Fail(err)
 		}
 		return

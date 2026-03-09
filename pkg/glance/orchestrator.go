@@ -177,12 +177,22 @@ func (orc *Orchestrator) Summarize(ctx context.Context, filePath string, force b
 						description = strings.Trim(description, `"'`)
 					}
 				}
+				if idx := strings.Index(frontmatter, "important_headers: ["); idx != -1 {
+					rest := frontmatter[idx+len("important_headers: ["):]
+					if endIdx := strings.Index(rest, "]"); endIdx != -1 {
+						headers := rest[:endIdx]
+						if len(headers) > 0 {
+							out.Includes = strings.Split(headers, ", ")
+						}
+					}
+				}
 				summaryBody = strings.TrimSpace(parts[2])
 			}
 		}
 	}
 
 	var providedAPIs []string
+
 	for _, fn := range out.Functions {
 		if fn.IsExported && fn.File == filePath {
 			providedAPIs = append(providedAPIs, fn.Name)
