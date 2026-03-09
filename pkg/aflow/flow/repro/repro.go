@@ -7,6 +7,8 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/syzlang"
 	"github.com/google/syzkaller/prog"
 )
@@ -34,6 +36,7 @@ func init() {
 				}),
 				kernel.Checkout,
 				kernel.Build,
+				codesearcher.PrepareIndex,
 				&aflow.LLMAgent{
 					Name:  "crash-repro-finder",
 					Model: aflow.BestExpensiveModel,
@@ -44,6 +47,8 @@ func init() {
 					Tools: aflow.Tools(
 						syzlang.ReadDescription,
 						syzlang.Reproduce,
+						codesearcher.Tools,
+						grepper.Tool,
 					),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: reproInstruction,
@@ -55,16 +60,18 @@ func init() {
 }
 
 const reproInstruction = `
-You are an expert in linux kernel fuzzing. Your goal is to write a syzkaller program to trigger a specific bug.
-Print only the syz program that could be executed directly, without backticks.
+You are an expert in the Linux kernel fuzzing. Your goal is to write a syzkaller program to trigger a specific bug.
+In the final output provide only the syz program that triggers the bug, and could be executed directly,
+without backticks.
 
-{{if .KernelObj}}{{end}}
+Don't make assumptions about the kernel source code, use the provided codesearch tools
+to examine the kernel code instead.
 `
 
 const reproPrompt = `
-Bug Title: {{.BugTitle}}
+Bug title: {{.BugTitle}}
 
-Original Crash Report:
+The bug report to reproduce:
 {{.CrashReport}}
 
 The list of existing description files:
