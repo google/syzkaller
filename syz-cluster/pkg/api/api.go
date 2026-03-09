@@ -258,3 +258,20 @@ type SubmitJobResponse struct {
 	JobID     string `json:"job_id"`
 	SessionID string `json:"session_id"`
 }
+
+type FindingGroup struct {
+	Build      Build    `json:"build"`
+	FindingIDs []string `json:"finding_ids"`
+}
+
+type Job struct {
+	ID            string         `json:"id"`
+	Patch         []byte         `json:"patch"`
+	ReportID      string         `json:"report_id"`
+	FindingGroups []FindingGroup `json:"finding_groups,omitempty"`
+}
+
+type SessionInfo struct {
+	Series *Series `json:"series"`
+	Job    *Job    `json:"job,omitempty"`
+}

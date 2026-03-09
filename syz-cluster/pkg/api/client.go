@@ -26,8 +26,16 @@ func (client Client) GetSessionSeries(ctx context.Context, sessionID string) (*S
 	return getJSON[Series](ctx, client.baseURL+"/sessions/"+sessionID+"/series")
 }
 
+func (client Client) GetSessionInfo(ctx context.Context, sessionID string) (*SessionInfo, error) {
+	return getJSON[SessionInfo](ctx, client.baseURL+"/sessions/"+sessionID)
+}
+
 func (client Client) GetSeries(ctx context.Context, seriesID string) (*Series, error) {
 	return getJSON[Series](ctx, client.baseURL+"/series/"+seriesID)
+}
+
+func (client Client) GetJob(ctx context.Context, jobID string) (*Job, error) {
+	return getJSON[Job](ctx, client.baseURL+"/jobs/"+jobID)
 }
 
 type UploadTriageResultReq struct {

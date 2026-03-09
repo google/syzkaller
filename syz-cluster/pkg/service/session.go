@@ -17,16 +17,20 @@ import (
 )
 
 type SessionService struct {
-	sessionRepo *db.SessionRepository
-	seriesRepo  *db.SeriesRepository
-	blobStorage blob.Storage
+	sessionRepo   *db.SessionRepository
+	seriesRepo    *db.SeriesRepository
+	seriesService *SeriesService
+	jobService    *JobService
+	blobStorage   blob.Storage
 }
 
 func NewSessionService(env *app.AppEnvironment) *SessionService {
 	return &SessionService{
-		sessionRepo: db.NewSessionRepository(env.Spanner),
-		seriesRepo:  db.NewSeriesRepository(env.Spanner),
-		blobStorage: env.BlobStorage,
+		sessionRepo:   db.NewSessionRepository(env.Spanner),
+		seriesRepo:    db.NewSeriesRepository(env.Spanner),
+		seriesService: NewSeriesService(env),
+		jobService:    NewJobService(env),
+		blobStorage:   env.BlobStorage,
 	}
 }
 
@@ -71,4 +75,32 @@ func (s *SessionService) UploadSession(ctx context.Context, req *api.NewSession)
 		return nil, err
 	}
 	return &api.UploadSessionResp{ID: session.ID}, nil
+}
+
+func (s *SessionService) GetSessionInfo(ctx context.Context, sessionID string) (*api.SessionInfo, error) {
+	series, err := s.seriesService.GetSessionSeries(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session series: %w", err)
+	}
+
+	session, err := s.sessionRepo.GetByID(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch the session: %w", err)
+	} else if session == nil {
+		return nil, fmt.Errorf("%w: %q", ErrSessionNotFound, sessionID)
+	}
+
+	info := &api.SessionInfo{
+		Series: series,
+	}
+
+	if session.JobID.Valid {
+		job, err := s.jobService.GetJob(ctx, session.JobID.StringVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch job %s: %w", session.JobID.StringVal, err)
+		}
+		info.Job = job
+	}
+
+	return info, nil
 }

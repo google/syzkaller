@@ -441,3 +441,99 @@ func TestAPISubmitJob(t *testing.T) {
 	// Job already exists.
 	assert.Error(t, err)
 }
+
+func TestAPIGetSessionInfo(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+	ids := UploadTestSeries(t, ctx, client, testSeries)
+
+	baseBuild := UploadTestBuild(t, ctx, client, DummyBuild())
+	patchedBuild := UploadTestBuild(t, ctx, client, DummyBuild())
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:      ids.SessionID,
+		BaseBuildID:    baseBuild.ID,
+		PatchedBuildID: patchedBuild.ID,
+		TestName:       "test",
+		Result:         api.TestRunning,
+	})
+	require.NoError(t, err)
+
+	findings := DummyFindings()
+	for _, finding := range findings {
+		finding.SessionID = ids.SessionID
+		err = client.UploadFinding(ctx, finding)
+		require.NoError(t, err)
+	}
+
+	// Add a second distinct build test to the original session.
+	build2 := DummyBuild()
+	build2.ConfigName = "config2"
+	pb2 := UploadTestBuild(t, ctx, client, build2)
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID:      ids.SessionID,
+		BaseBuildID:    pb2.ID,
+		PatchedBuildID: pb2.ID,
+		TestName:       "test-2",
+		Result:         api.TestRunning,
+	})
+	require.NoError(t, err)
+
+	finding2 := &api.RawFinding{
+		SessionID:    ids.SessionID,
+		TestName:     "test-2",
+		Title:        "second finding",
+		Report:       []byte("report 2"),
+		Log:          []byte("log 2"),
+		SyzRepro:     []byte("syz repro 2"),
+		SyzReproOpts: []byte("syz_repro_opts 2"),
+	}
+	err = client.UploadFinding(ctx, finding2)
+	require.NoError(t, err)
+
+	MarkSessionFinished(t, env, ids.SessionID)
+
+	// Test without job.
+	info, err := client.GetSessionInfo(ctx, ids.SessionID)
+	require.NoError(t, err)
+	assert.NotNil(t, info.Series)
+	assert.Nil(t, info.Job)
+	assert.Equal(t, testSeries.Title, info.Series.Title)
+
+	report := UploadTestSessionReport(t, env, ids.SessionID)
+
+	resp, err := client.SubmitJob(ctx, &api.SubmitJobRequest{
+		Type:      api.JobPatchTest,
+		ReportID:  report.ID,
+		Reporter:  api.LKMLReporter,
+		User:      "test-user@vger.kernel.org",
+		ExtID:     "test-message-id",
+		PatchData: []byte("patch content"),
+	})
+	require.NoError(t, err)
+
+	sessionID := FakeJobSession(t, env, client, resp.SessionID)
+
+	// Test with a job.
+	info, err = client.GetSessionInfo(ctx, sessionID)
+	require.NoError(t, err)
+	assert.NotNil(t, info.Series)
+	assert.NotNil(t, info.Job)
+	assert.Equal(t, report.ID, info.Job.ReportID)
+	assert.Len(t, info.Job.FindingGroups, 2)
+	assert.Len(t, info.Job.FindingGroups[1].FindingIDs, 2)
+	assert.Equal(t, api.Build{
+		Arch:       "amd64",
+		TreeName:   "mainline",
+		TreeURL:    "https://git/repo",
+		ConfigName: "config",
+		CommitHash: "abcd",
+	}, info.Job.FindingGroups[1].Build)
+	assert.Len(t, info.Job.FindingGroups[0].FindingIDs, 1)
+	assert.Equal(t, api.Build{
+		Arch:       "amd64",
+		TreeName:   "mainline",
+		TreeURL:    "https://git/repo",
+		ConfigName: "config2",
+		CommitHash: "abcd",
+	}, info.Job.FindingGroups[0].Build)
+}

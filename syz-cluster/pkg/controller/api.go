@@ -54,6 +54,7 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/upload", c.uploadSession)
 	mux.HandleFunc("/sessions/{session_id}/series", c.getSessionSeries)
 	mux.HandleFunc("/sessions/{session_id}/triage_result", c.triageResult)
+	mux.HandleFunc("/sessions/{session_id}", c.getSessionInfo)
 	mux.HandleFunc("/tests/upload_artifacts", c.uploadTestArtifact)
 	mux.HandleFunc("/tests/upload", c.uploadTest)
 	mux.HandleFunc("/trees", c.getTrees)
@@ -61,11 +62,24 @@ func (c APIServer) Mux() *http.ServeMux {
 	mux.HandleFunc("/base_findings/status", c.baseFindingStatus)
 	mux.HandleFunc("/sessions/{session_id}/upload_test_step", c.uploadTestStep)
 	mux.HandleFunc("/jobs/submit", c.submitJob)
+	mux.HandleFunc("/jobs/{job_id}", c.getJob)
 	return mux
 }
 
 func (c APIServer) getSessionSeries(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.seriesService.GetSessionSeries(r.Context(), r.PathValue("session_id"))
+	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
+		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, resp)
+}
+
+func (c APIServer) getSessionInfo(w http.ResponseWriter, r *http.Request) {
+	resp, err := c.sessionService.GetSessionInfo(r.Context(), r.PathValue("session_id"))
 	if err == service.ErrSeriesNotFound || err == service.ErrSessionNotFound {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
@@ -98,6 +112,15 @@ func (c APIServer) getSeries(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprint(err), http.StatusNotFound)
 		return
 	} else if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	api.ReplyJSON(w, resp)
+}
+
+func (c APIServer) getJob(w http.ResponseWriter, r *http.Request) {
+	resp, err := c.jobService.GetJob(r.Context(), r.PathValue("job_id"))
+	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 		return
 	}
