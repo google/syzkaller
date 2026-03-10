@@ -91,6 +91,10 @@ type flowError struct {
 	error
 }
 
+func (e *flowError) Unwrap() error {
+	return e.error
+}
+
 func IsModelQuotaError(err error) string {
 	var quotaErr *modelQuotaError
 	if errors.As(err, &quotaErr) {

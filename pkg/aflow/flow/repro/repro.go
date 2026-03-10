@@ -4,6 +4,8 @@
 package repro
 
 import (
+	"encoding/json"
+
 	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
@@ -20,6 +22,11 @@ type ReproInputs struct {
 	KernelRepo   string
 	KernelCommit string
 	KernelConfig string
+
+	Image     string
+	Type      string
+	VM        json.RawMessage
+	Syzkaller string
 }
 
 func init() {
