@@ -68,17 +68,19 @@ func main() {
 			"exit after a syz-ci upgrade is applied; otherwise syz-ci restarts")
 		flagAutoUpdate = flag.Bool("autoupdate", false, "auto-update the binary")
 		flagSyzkaller  = flag.String("syzkaller", "", "path to syzkaller checkout (bypasses updater)")
+		flagName       = flag.String("name", "", "agent name (must be unique!)")
 	)
 	defer tool.Init()()
 	log.SetName("syz-agent")
-	if err := run(*flagConfig, *flagExitOnUpgrade, *flagAutoUpdate, *flagSyzkaller); err != nil {
+	if err := run(*flagConfig, *flagExitOnUpgrade, *flagAutoUpdate,
+		*flagSyzkaller, *flagName); err != nil {
 		log.Fatal(err)
 	}
 }
 
 const workdir = "workdir"
 
-func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir string) error {
+func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name string) error {
 	cfg := &Config{
 		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
 		SyzkallerBranch: "master",
@@ -86,6 +88,9 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir string)
 	}
 	if err := config.LoadFile(configFile, cfg); err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+	if name == "" {
+		return fmt.Errorf("agent name must be specified")
 	}
 	kernelConfig, err := os.ReadFile(cfg.KernelConfig)
 	if err != nil {
@@ -117,6 +122,7 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir string)
 	}
 
 	s := &Server{
+		name:            name,
 		cfg:             cfg,
 		dash:            dash,
 		cache:           cache,
@@ -221,6 +227,7 @@ func setupUpdater(cfg *Config, target string, exitOnUpgrade bool) (*updater.Upda
 }
 
 type Server struct {
+	name            string
 	cfg             *Config
 	dash            *dashapi.Dashboard
 	cache           *aflow.Cache
@@ -231,9 +238,8 @@ type Server struct {
 
 func (s *Server) poll(ctx context.Context) (bool, error) {
 	s.resetModelQuota()
-	agentName := s.cfg.DashboardClient
 	req := &dashapi.AIJobPollReq{
-		AgentName:    agentName,
+		AgentName:    s.name,
 		CodeRevision: prog.GitRevision,
 	}
 	for _, flow := range aflow.Flows {

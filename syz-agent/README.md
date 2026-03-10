@@ -41,7 +41,9 @@ approach for testing and development.
        --privileged \
        -e GOOGLE_API_KEY=$GOOGLE_API_KEY \
        -v $(pwd)/config.json:/etc/syz-agent/config.json:ro \
-       syz-agent:local -config=/etc/syz-agent/config.json
+       syz-agent:local \
+       -name=$MY_UNIQUE_AGENT_NAME \
+       -config=/etc/syz-agent/config.json
    ```
   *Note: `pkg/updater` is bypassed inside Docker because the
   `-syzkaller=/syzkaller` flag is passed via the Dockerfile's
