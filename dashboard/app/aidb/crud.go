@@ -28,47 +28,43 @@ func init() {
 	spanner.UseNumberWithJSONDecoderEncoder(true)
 }
 
-func LoadWorkflows(ctx context.Context) ([]*Workflow, error) {
-	return selectAll[Workflow](ctx, spanner.Statement{
-		SQL: selectWorkflows(),
+func LoadActiveWorkflows(ctx context.Context) ([]*ActiveWorkflow, error) {
+	return selectAll[ActiveWorkflow](ctx, spanner.Statement{
+		SQL: `SELECT Name, Type, MAX(Agents.LastActive) AS LastActive
+			FROM Workflows JOIN Agents USING(AgentName)
+			GROUP BY Name, Type`,
 	})
 }
 
-func UpdateWorkflows(ctx context.Context, active []dashapi.AIWorkflow) error {
-	workflows, err := LoadWorkflows(ctx)
-	if err != nil {
-		return err
-	}
-	m := make(map[string]*Workflow)
-	for _, f := range workflows {
-		m[f.Name] = f
-	}
-	// Truncate the time so that we don't need to update the database on each poll.
-	nowDate := TimeNow(ctx).Truncate(24 * time.Hour)
-	var mutations []*spanner.Mutation
-	for _, f := range active {
-		flow := &Workflow{
-			Name:       f.Name,
-			Type:       f.Type,
-			LastActive: nowDate,
-		}
-		if have := m[flow.Name]; reflect.DeepEqual(have, flow) {
-			continue
-		}
-		mut, err := spanner.InsertOrUpdateStruct("Workflows", flow)
-		if err != nil {
-			return err
-		}
-		mutations = append(mutations, mut)
-	}
-	if len(mutations) == 0 {
-		return nil
-	}
+func UpdateWorkflows(ctx context.Context, agentName string, active []dashapi.AIWorkflow) error {
 	client, err := dbClient(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = client.Apply(ctx, mutations)
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		var mutations []*spanner.Mutation
+		mutations = append(mutations, spanner.Delete("Workflows", spanner.KeyRange{
+			Start: spanner.Key{agentName},
+			End:   spanner.Key{agentName},
+			Kind:  spanner.ClosedClosed,
+		}))
+		for _, f := range active {
+			flow := &Workflow{
+				AgentName: agentName,
+				Name:      f.Name,
+				Type:      f.Type,
+			}
+			mut, err := spanner.InsertStruct("Workflows", flow)
+			if err != nil {
+				return err
+			}
+			mutations = append(mutations, mut)
+		}
+		if len(mutations) == 0 {
+			return nil
+		}
+		return txn.BufferWrite(mutations)
+	})
 	return err
 }
 
@@ -383,10 +379,6 @@ func CloseClient(ctx context.Context) {
 
 var TimeNow = func(ctx context.Context) time.Time {
 	return time.Now()
-}
-
-func selectWorkflows() string {
-	return selectAllFrom[Workflow]("Workflows")
 }
 
 func selectAgents() string {

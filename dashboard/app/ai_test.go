@@ -96,7 +96,7 @@ func TestAIBugWorkflows(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
-		AgentName:    "agent-test-bug-workflow",
+		AgentName:    "agent-test-bug-workflow-2",
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
 			{Type: "patching", Name: "patching"},

@@ -18,10 +18,16 @@ type JobReviewDetails struct {
 	Correct bool
 }
 
-type Workflow struct {
+type ActiveWorkflow struct {
 	Name       string
 	Type       ai.WorkflowType
 	LastActive time.Time
+}
+
+type Workflow struct {
+	AgentName string
+	Name      string
+	Type      ai.WorkflowType
 }
 
 type Agent struct {
