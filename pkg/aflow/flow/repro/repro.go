@@ -40,9 +40,9 @@ func init() {
 				&aflow.LLMAgent{
 					Name:  "crash-repro-finder",
 					Model: aflow.BestExpensiveModel,
-					Reply: "ReproSyz",
 					Outputs: aflow.LLMOutputs[struct {
 						ReproOpts string `jsonschema:"The repro configuration options."`
+						ReproSyz  string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
 					}](),
 					Tools: aflow.Tools(
 						syzlang.ReadDescription,
@@ -61,8 +61,6 @@ func init() {
 
 const reproInstruction = `
 You are an expert in the Linux kernel fuzzing. Your goal is to write a syzkaller program to trigger a specific bug.
-In the final output provide only the syz program that triggers the bug, and could be executed directly,
-without backticks.
 
 Don't make assumptions about the kernel source code, use the provided codesearch tools
 to examine the kernel code instead.
