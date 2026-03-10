@@ -108,7 +108,7 @@ func Tools(tools ...any) []Tool {
 // LLMOutputs creates a special tool that can be used by LLM to provide structured outputs.
 func LLMOutputs[Args any]() *llmOutputs {
 	return &llmOutputs{
-		tool: NewFuncTool("set-results", func(ctx *Context, state struct{}, args Args) (Args, error) {
+		tool: NewFuncTool(llmSetResultsTool, func(ctx *Context, state struct{}, args Args) (Args, error) {
 			return args, nil
 		}, "Use this tool to provide results of the analysis."),
 		provideOutputs: func(ctx *verifyContext, who string, many bool) {
@@ -128,6 +128,8 @@ func LLMOutputs[Args any]() *llmOutputs {
 		},
 	}
 }
+
+const llmSetResultsTool = "set-results"
 
 const llmOutputsInstruction = `
 

@@ -6,6 +6,7 @@ package aflow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -51,7 +52,7 @@ func registerMCPTool[State, Args, Results any](t *funcTool[State, Args, Results]
 		}
 		return reply, nil
 	}
-	MCPTools[tool] = handler
+	registerMCP(tool, handler)
 }
 
 func registerMCPAction[Args, Results any](a *funcAction[Args, Results]) {
@@ -68,5 +69,21 @@ func registerMCPAction[Args, Results any](a *funcAction[Args, Results]) {
 		}
 		return reply, err
 	}
+	registerMCP(tool, handler)
+}
+
+var (
+	registerMCPTools = true
+	mcpToolNames     = map[string]bool{}
+)
+
+func registerMCP(tool *mcp.Tool, handler MCPToolFunc) {
+	if !registerMCPTools || tool.Name == llmSetResultsTool {
+		return
+	}
+	if mcpToolNames[tool.Name] {
+		panic(fmt.Sprintf("MCP tool %q is already registered", tool.Name))
+	}
+	mcpToolNames[tool.Name] = true
 	MCPTools[tool] = handler
 }
