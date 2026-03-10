@@ -208,6 +208,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		DisplayDevice:        pool.cfg.DisplayDevice,
 		NestedVirtualization: pool.cfg.NestedVirtualization,
 		NicType:              pool.cfg.NicType,
+		VMRunningTime:        pool.env.Timeouts.VMRunningTime,
 	}
 	ip, err := pool.GCE.CreateInstance(instCfg)
 	if err != nil {
