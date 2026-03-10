@@ -2,4 +2,4 @@
 bin/
 dashboard/
 !dashboard/dashapi/
-docs/
+workdir/
