@@ -26,7 +26,7 @@ line = assignment | call
 assignment = variable " = " call
 call = syscall-name "(" [arg ["," arg]*] ")"  ["(" [call-prop ["," call-prop*] ")"]
 arg = "nil" | "AUTO" | const-arg | resource-arg | result-arg | pointer-arg | string-arg | struct-arg | array-arg | union-arg
-const-arg = "0x" hex-integer
+const-arg = integer
 resource-arg = variable ["/" hex-integer] ["+" hex-integer]
 result-arg = "<" variable "=>" arg
 pointer-arg = "&" pointer-arg-addr ["=ANY"] "=" arg
@@ -37,8 +37,9 @@ array-arg = "[" [arg ["," arg]*] "]"
 union-arg = "@" field-name ["=" arg]
 call-prop = prop-name ": " prop-value
 variable = "r" dec-integer
-pointer-addr = hex-integer
-region-size = hex-integer
+pointer-addr = integer
+region-size = integer
+integer = dec-integer | oct-integer | "0x" hex-integer
 ```
 
 Programs may also contain blank lines and comments.

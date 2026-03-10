@@ -469,9 +469,10 @@ func (p *parser) parseArgImpl(typ Type, dir Dir) (Arg, error) {
 		p.eatExcessive(true, "non-nil argument for nil type")
 		return nil, nil
 	}
-	switch p.Char() {
-	case '0':
+	if ch := p.Char(); ch >= '0' && ch <= '9' {
 		return p.parseArgInt(typ, dir)
+	}
+	switch p.Char() {
 	case 'r':
 		return p.parseArgRes(typ, dir)
 	case '&':

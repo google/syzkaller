@@ -245,6 +245,14 @@ func TestDeserialize(t *testing.T) {
 			In: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 		{
+			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 300000)`,
+			Out: `serialize1(&(0x7f0000000000)=""/8, 0x493e0)`,
+		},
+		{
+			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 010)`,
+			Out: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
+		},
+		{
 			In: `test$excessive_fields1(0xfffffffffffffffe)`,
 		},
 		{
