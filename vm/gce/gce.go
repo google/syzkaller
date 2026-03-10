@@ -203,6 +203,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		Tags:          pool.cfg.Tags,
 		Preemptible:   pool.cfg.Preemptible,
 		DisplayDevice: pool.cfg.DisplayDevice,
+		VMRunningTime: pool.env.Timeouts.VMRunningTime,
 	}
 	ip, err := pool.GCE.CreateInstance(instCfg)
 	if err != nil {

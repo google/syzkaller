@@ -61,6 +61,7 @@ type InstanceConfig struct {
 	Tags          []string
 	Preemptible   bool
 	DisplayDevice bool
+	VMRunningTime time.Duration
 }
 
 func NewContext(customZoneID string) (*Context, error) {
@@ -175,6 +176,13 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 			EnableDisplay: cfg.DisplayDevice,
 		},
 		Tags: &compute.Tags{Items: cfg.Tags},
+	}
+	if cfg.VMRunningTime != 0 {
+		instance.Scheduling.MaxRunDuration = &compute.Duration{
+			// Give the manager an extra hour to ensure it has time to do its own cleanup.
+			Seconds: int64((cfg.VMRunningTime + time.Hour) / time.Second),
+		}
+		instance.Scheduling.InstanceTerminationAction = "DELETE"
 	}
 retry:
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
