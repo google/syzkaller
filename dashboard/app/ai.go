@@ -812,8 +812,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	}
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
-	}
-	if bug.ReproLevel == dashapi.ReproLevelNone && timeSince(ctx, bug.FirstTime) > aiReproTriggerDays*24*time.Hour {
+	} else if bug.ReproLevel == dashapi.ReproLevelNone && timeSince(ctx, bug.FirstTime) > aiReproTriggerDays*24*time.Hour {
 		workflows[ai.WorkflowRepro] = true
 	}
 	if manual {

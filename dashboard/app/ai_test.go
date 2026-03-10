@@ -584,6 +584,17 @@ func TestAIRepro(t *testing.T) {
 	// No AI job should be created.
 	pollResp4, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp4.ID, "")
+
+	// A third bug which is a KCSAN data race.
+	crash3 := testCrash(build, 3)
+	crash3.Title = "KCSAN: data-race in foo / bar"
+	c.aiClient.ReportCrash(crash3)
+	c.aiClient.pollEmailExtID()
+
+	c.advanceTime(15 * 24 * time.Hour)
+	// No AI job should be created because of the bug type.
+	pollResp5, _ := c.agentClient.AIJobPoll(pollReq)
+	require.Equal(t, pollResp5.ID, "")
 }
 
 func TestAIAgentLastActive(t *testing.T) {
