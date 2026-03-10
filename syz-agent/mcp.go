@@ -15,11 +15,11 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func mcpHandler(cfg *Config, cache *aflow.Cache) http.Handler {
+func mcpHandler(initState map[string]any, workdir string, cache *aflow.Cache) http.Handler {
 	serv := mcp.NewServer(&mcp.Implementation{Name: "syzkaller", Version: "v1.0.0"}, nil)
 	sessions := new(sync.Map) // Session ID string -> *Session.
 	for tool, fn := range aflow.MCPTools {
-		serv.AddTool(tool, toolHandler(cfg, workdir, cache, sessions, fn))
+		serv.AddTool(tool, toolHandler(initState, workdir, cache, sessions, fn))
 	}
 	return mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return serv
@@ -29,7 +29,7 @@ func mcpHandler(cfg *Config, cache *aflow.Cache) http.Handler {
 	})
 }
 
-func toolHandler(cfg *Config, workdir string, cache *aflow.Cache, sessions *sync.Map,
+func toolHandler(initState map[string]any, workdir string, cache *aflow.Cache, sessions *sync.Map,
 	fn aflow.MCPToolFunc) mcp.ToolHandler {
 	type Session struct {
 		mu   sync.Mutex
@@ -50,7 +50,7 @@ func toolHandler(cfg *Config, workdir string, cache *aflow.Cache, sessions *sync
 		if s.actx == nil {
 			// Unclear if we can use the ctx as context. It may be per-request
 			// context that's cancelled at the end of the current request.
-			s.actx = aflow.NewMCPContext(context.Background(), workdir, cache, initState(cfg))
+			s.actx = aflow.NewMCPContext(context.Background(), workdir, cache, initState)
 			go func() {
 				req.Session.Wait()
 				s.actx.Close()
