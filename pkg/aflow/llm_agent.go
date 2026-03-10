@@ -514,7 +514,8 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 	if !errors.As(err, &apiErr) {
 		return err
 	}
-	if try < maxLLMRetryIters && apiErr.Code == http.StatusServiceUnavailable {
+	if try < maxLLMRetryIters && (apiErr.Code == http.StatusServiceUnavailable ||
+		apiErr.Code == http.StatusGatewayTimeout) {
 		return &retryError{min(time.Duration(try+1)*time.Second, maxLLMBackoff), err}
 	}
 	if apiErr.Code == http.StatusTooManyRequests &&
@@ -526,6 +527,12 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 		if strings.Contains(apiErr.Message, "generate_requests_per_model_per_day") {
 			return &modelQuotaError{model}
 		}
+	}
+	if apiErr.Code == http.StatusTooManyRequests &&
+		strings.Contains(apiErr.Message, "You exceeded your current quota") {
+		// Unclear what this is, the error does not contain details
+		// (see the test for exact error message). But presumably this is some per-minute quota.
+		return &retryError{time.Minute, err}
 	}
 	if apiErr.Code == http.StatusBadRequest &&
 		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {

@@ -21,12 +21,17 @@ func TestParseLLMError(t *testing.T) {
 		inputErr  error
 		outputErr error
 	}
-	tpsError := genai.APIError{
+	tpmError1 := genai.APIError{
 		Code: 429,
 		// nolint:lll
 		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_input_token_count, limit: 1000000, model: gemini-3-flash Please retry in 24.180878813s.`,
 	}
-	rpmError := genai.APIError{
+	tpmError2 := genai.APIError{
+		Code: 429,
+		// nolint:lll
+		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit.`,
+	}
+	rpdError := genai.APIError{
 		Code: 429,
 		// nolint:lll
 		Message: `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model_per_day, limit: 0`,
@@ -38,6 +43,14 @@ func TestParseLLMError(t *testing.T) {
 	iseError := genai.APIError{
 		Code:    500,
 		Message: `Internal error encountered.`,
+	}
+	gatewayError1 := genai.APIError{
+		Code:    504,
+		Message: `Cancelled while waiting for stream data; Failed to close the streaming context.`,
+	}
+	gatewayError2 := genai.APIError{
+		Code:    504,
+		Message: `Deadline expired before operation could complete.`,
 	}
 	normalResp := &genai.GenerateContentResponse{
 		Candidates: []*genai.Candidate{{
@@ -56,12 +69,17 @@ func TestParseLLMError(t *testing.T) {
 		},
 		{
 			resp:      nil,
-			inputErr:  tpsError,
-			outputErr: &retryError{25 * time.Second, tpsError},
+			inputErr:  tpmError1,
+			outputErr: &retryError{25 * time.Second, tpmError1},
 		},
 		{
 			resp:      nil,
-			inputErr:  rpmError,
+			inputErr:  tpmError2,
+			outputErr: &retryError{time.Minute, tpmError2},
+		},
+		{
+			resp:      nil,
+			inputErr:  rpdError,
 			outputErr: &modelQuotaError{"smarty"},
 		},
 		{
@@ -73,6 +91,16 @@ func TestParseLLMError(t *testing.T) {
 			resp:      nil,
 			inputErr:  iseError,
 			outputErr: &retryError{time.Second, iseError},
+		},
+		{
+			resp:      nil,
+			inputErr:  gatewayError1,
+			outputErr: &retryError{time.Second, gatewayError1},
+		},
+		{
+			resp:      nil,
+			inputErr:  gatewayError2,
+			outputErr: &retryError{time.Second, gatewayError2},
 		},
 		{
 			resp: &genai.GenerateContentResponse{
