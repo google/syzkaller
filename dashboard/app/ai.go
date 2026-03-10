@@ -132,7 +132,7 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 			uiJobs = append(uiJobs, makeUIAIJob(job))
 		}
 	}
-	workflows, err := aidb.LoadWorkflows(ctx)
+	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {
 		return err
 	}
@@ -383,7 +383,7 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 			return nil, err
 		}
 	}
-	if err := aidb.UpdateWorkflows(ctx, req.Workflows); err != nil {
+	if err := aidb.UpdateWorkflows(ctx, req.AgentName, req.Workflows); err != nil {
 		return nil, fmt.Errorf("failed UpdateWorkflows: %w", err)
 	}
 	job, err := pollAIJob(ctx, req)
@@ -611,7 +611,7 @@ type uiWorkflow struct {
 
 // aiBugWorkflows returns active workflows that are applicable for the bug.
 func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
-	workflows, err := aidb.LoadWorkflows(ctx)
+	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -635,7 +635,7 @@ func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 // aiBugWorkflows returns active workflows that are applicable for the bug.
 
 func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs map[string]any) (string, error) {
-	workflows, err := aidb.LoadWorkflows(ctx)
+	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {
 		return "", err
 	}
