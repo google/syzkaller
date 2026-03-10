@@ -709,7 +709,7 @@ func TestAIAgentJobOvertake(t *testing.T) {
 	pollResp1, _ := c.agentClient.AIJobPoll(pollReq)
 	require.Equal(t, pollResp1.ID, jobID)
 
-	pollReq2 := &dashapi.AIJobPollReq{
+	pollReqFresh := &dashapi.AIJobPollReq{
 		AgentName:    testAgentFresh,
 		CodeRevision: prog.GitRevision,
 		Workflows: []dashapi.AIWorkflow{
@@ -718,21 +718,33 @@ func TestAIAgentJobOvertake(t *testing.T) {
 	}
 
 	c.advanceTime(1 * time.Hour)
-	pollResp2, _ := c.agentClient.AIJobPoll(pollReq2)
-	require.Equal(t, pollResp2.ID, "")
+	pollRespFresh, _ := c.agentClient.AIJobPoll(pollReqFresh)
+	require.Equal(t, pollRespFresh.ID, "")
 
 	c.advanceTime(8 * time.Hour)
 
-	pollResp3, _ := c.agentClient.AIJobPoll(pollReq2)
-	require.NotEqual(t, pollResp3.ID, "")
-	require.NotEqual(t, pollResp3.ID, pollResp1.ID)
+	// An agent requesting a different workflow should not get the stale repro job.
+	pollReqPatching := &dashapi.AIJobPollReq{
+		AgentName:    testAgentFresh,
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatching, Name: string(ai.WorkflowPatching)},
+		},
+	}
+	pollRespPatching, _ := c.agentClient.AIJobPoll(pollReqPatching)
+	require.Equal(t, pollRespPatching.ID, "")
+
+	// But if workflow matches, it should get the job.
+	pollRespFreshOvertake, _ := c.agentClient.AIJobPoll(pollReqFresh)
+	require.NotEqual(t, pollRespFreshOvertake.ID, "")
+	require.NotEqual(t, pollRespFreshOvertake.ID, pollResp1.ID)
 
 	job1, err := aidb.LoadJob(c.ctx, pollResp1.ID)
 	require.NoError(t, err)
 	require.True(t, job1.Finished.Valid)
 	require.Contains(t, job1.Error, "inactive")
 
-	job2, err := aidb.LoadJob(c.ctx, pollResp3.ID)
+	job2, err := aidb.LoadJob(c.ctx, pollRespFreshOvertake.ID)
 	require.NoError(t, err)
 	require.True(t, job2.Started.Valid)
 	require.False(t, job2.Finished.Valid)

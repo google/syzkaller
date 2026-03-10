@@ -177,6 +177,10 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 }
 
 func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
+	var workflows []string
+	for _, flow := range req.Workflows {
+		workflows = append(workflows, flow.Name)
+	}
 	client, err := dbClient(ctx)
 	if err != nil {
 		return nil, err
@@ -190,9 +194,10 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 		if req.AgentName != "" {
 			iter := txn.Query(ctx, spanner.Statement{
 				SQL: selectJobs() + ` WHERE Started IS NOT NULL AND Finished IS NULL
-					AND AgentName = @agentName LIMIT 1`,
+					AND AgentName = @agentName AND Workflow IN UNNEST(@workflows) LIMIT 1`,
 				Params: map[string]any{
 					"agentName": req.AgentName,
+					"workflows": workflows,
 				},
 			})
 			defer iter.Stop()
@@ -206,9 +211,10 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 			iter := txn.Query(ctx, spanner.Statement{
 				SQL: selectJobs() + ` JOIN Agents USING(AgentName)
 					WHERE Started IS NOT NULL AND Finished IS NULL
-					AND LastActive <= @cutoff LIMIT 1`,
+					AND LastActive <= @cutoff AND Workflow IN UNNEST(@workflows) LIMIT 1`,
 				Params: map[string]any{
-					"cutoff": cutoff,
+					"cutoff":    cutoff,
+					"workflows": workflows,
 				},
 			})
 			defer iter.Stop()
