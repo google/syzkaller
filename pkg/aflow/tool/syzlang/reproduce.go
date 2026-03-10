@@ -9,7 +9,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-var Reproduce = aflow.NewFuncTool("crash-reproducer", reproduce, `
+var Reproduce = aflow.NewFuncTool("reproduce-crash", reproduce, `
 Tool evaluates whether the given syz repro program crashes the kernel.
 It will compile the program and execute it in a VM.
 `)

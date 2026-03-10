@@ -15,6 +15,11 @@ import (
 	"google.golang.org/genai"
 )
 
+func init() {
+	// Tests register tools with duplicate names.
+	registerMCPTools = false
+}
+
 func TestWorkflow(t *testing.T) {
 	type flowInputs struct {
 		InFoo int
