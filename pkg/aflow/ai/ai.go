@@ -47,7 +47,9 @@ type ModerationOutputs struct {
 }
 
 type ReproOutputs struct {
-	ReproSyz        string
-	ReproOpts       string
-	SyzkallerCommit string
+	ReproSyz              string
+	ReproOpts             string
+	SyzkallerCommit       string
+	Reproduced            bool
+	ReproducedCrashReport string
 }
