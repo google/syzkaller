@@ -6,6 +6,7 @@ package repro
 import (
 	"github.com/google/syzkaller/docs"
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
@@ -41,8 +42,8 @@ func init() {
 					Name:  "crash-repro-finder",
 					Model: aflow.BestExpensiveModel,
 					Outputs: aflow.LLMOutputs[struct {
-						ReproOpts string `jsonschema:"The repro configuration options."`
-						ReproSyz  string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
+						ReproOpts         string `jsonschema:"The repro configuration options."`
+						CandidateReproSyz string `jsonschema:"Valid syzkaller reproducer program without triple backticks."`
 					}](),
 					Tools: aflow.Tools(
 						syzlang.ReadDescription,
@@ -54,6 +55,7 @@ func init() {
 					Instruction: reproInstruction,
 					Prompt:      reproPrompt,
 				},
+				actionsyzlang.Format,
 			),
 		},
 	)
