@@ -231,10 +231,21 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 }
 
 func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([]*aidb.Job, error) {
+	if accessLevel(ctx, r) == AccessAdmin {
+		return jobs, nil
+	}
 	bugKeyIDs := map[string]bool{}
+	bugAccess := map[string]AccessLevel{}
+	// Datastore has this limit for number of entities selected with GetMulti.
+	// Pretend that older bugs are AccessAdmin for simplicity until we have proper pagination/filtering.
+	const maxBugs = 1000
 	for _, job := range jobs {
-		if job.BugID.Valid {
+		if !job.BugID.Valid {
+			// Jobs not associated with bugs are considered public.
+		} else if len(bugKeyIDs) < maxBugs {
 			bugKeyIDs[job.BugID.StringVal] = true
+		} else {
+			bugAccess[job.BugID.StringVal] = AccessAdmin
 		}
 	}
 	var bugKeys []*db.Key
@@ -246,12 +257,11 @@ func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([
 		return nil, err
 	}
 	accessLevel := accessLevel(ctx, r)
-	bugAccess := map[string]AccessLevel{}
 	for _, bug := range bugs {
 		bugAccess[bug.keyHash(ctx)] = bug.sanitizeAccess(ctx, accessLevel)
 	}
 	jobs = slices.DeleteFunc(jobs, func(job *aidb.Job) bool {
-		return accessLevel < bugAccess[job.BugID.StringVal]
+		return job.BugID.Valid && accessLevel < bugAccess[job.BugID.StringVal]
 	})
 	return jobs, nil
 }
