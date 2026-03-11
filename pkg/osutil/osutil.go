@@ -125,6 +125,14 @@ func (err *VerboseError) Unwrap() error {
 	return err.Err
 }
 
+func VerboseMessage(err error) string {
+	msg := err.Error()
+	if verr := new(VerboseError); errors.As(err, &verr) {
+		msg += "\n" + string(verr.Output)
+	}
+	return msg
+}
+
 func IsDir(name string) bool {
 	fileInfo, err := os.Stat(name)
 	return err == nil && fileInfo.IsDir()
