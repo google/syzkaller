@@ -44,6 +44,7 @@ type FuzzConfig struct {
 	SkipCoverCheck bool `json:"skip_cover_check"`
 	// Only report the bugs that match the regexp.
 	BugTitleRe string `json:"bug_title_re"`
+	VMType     string `json:"vm_type"`
 }
 
 // The triage step of the workflow will request these from controller.
@@ -79,6 +80,7 @@ type BuildRequest struct {
 	CommitHash string `json:"commit_hash"`
 	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
 	SeriesID   string `json:"series_id"`
+	VMType     string `json:"vm_type"`
 }
 
 // BuildResult is returned from the build workflow step.

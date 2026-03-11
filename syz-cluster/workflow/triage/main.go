@@ -129,12 +129,18 @@ func (triager *seriesTriager) prepareFuzzingTask(ctx context.Context, series *ap
 	}
 	if result != nil {
 		triager.Logf("continuing with %v in %v", result.Commit, result.Tree.Name)
+		vmType := target.FuzzConfig.VMType
+		if vmType == "" {
+			vmType = "qemu"
+		}
+		target.FuzzConfig.VMType = vmType
 		base := api.BuildRequest{
 			TreeName:   result.Tree.Name,
 			TreeURL:    result.Tree.URL,
 			ConfigName: target.KernelConfig,
 			CommitHash: result.Commit,
 			Arch:       result.Arch,
+			VMType:     vmType,
 		}
 		testTarget := &api.TestTarget{
 			Base:    base,

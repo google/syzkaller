@@ -59,8 +59,10 @@ type Config struct {
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise generate one and upload it:
 	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
-	SerialPortKey string   `json:"serial_port_key"`
-	Tags          []string `json:"tags"` // GCE instance tags
+	SerialPortKey   string        `json:"serial_port_key"`
+	Tags            []string      `json:"tags"` // GCE instance tags
+	AutoDeleteImage bool          `json:"auto_delete_image"`
+	VMRunningTime   time.Duration // Allows us to schedule deletion of images.
 }
 
 type Pool struct {
@@ -97,6 +99,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		Preemptible: true,
 		// Display device is not supported on other platforms.
 		DisplayDevice: env.Arch == targets.AMD64,
+		VMRunningTime: env.Timeouts.VMRunningTime,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse gce vm config: %w", err)
@@ -136,7 +139,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
 		}
-		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS); err != nil {
+		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS, cfg.AutoDeleteImage, cfg.VMRunningTime); err != nil {
 			return nil, fmt.Errorf("failed to create GCE image: %w", err)
 		}
 	}
@@ -195,8 +198,17 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
-		string(gceKeyPub), pool.cfg.Tags, pool.cfg.Preemptible, pool.cfg.DisplayDevice)
+	instCfg := &gce.InstanceConfig{
+		Name:          name,
+		MachineType:   pool.cfg.MachineType,
+		Image:         pool.cfg.GCEImage,
+		SSHKey:        string(gceKeyPub),
+		Tags:          pool.cfg.Tags,
+		Preemptible:   pool.cfg.Preemptible,
+		DisplayDevice: pool.cfg.DisplayDevice,
+		VMRunningTime: pool.env.Timeouts.VMRunningTime,
+	}
+	ip, err := pool.GCE.CreateInstance(instCfg)
 	if err != nil {
 		return nil, err
 	}

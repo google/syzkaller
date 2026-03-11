@@ -26,6 +26,7 @@ var (
 	flagSession      = flag.String("session", "", "session ID")
 	flagWorkdir      = flag.String("workdir", "", "workdir")
 	flagTestName     = flag.String("test_name", "", "test name")
+	flagVMType       = flag.String("vm_type", "qemu", "VM type to use")
 )
 
 const (
@@ -66,11 +67,11 @@ func run(ctx context.Context, client *api.Client) error {
 		return fmt.Errorf("failed to parse retest task: %w", err)
 	}
 
-	baseCfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
+	baseCfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{VMType: *flagVMType})
 	if err != nil {
 		return fmt.Errorf("failed to generate base config: %w", err)
 	}
-	patchedCfg, err := fuzzconfig.GeneratePatched(&api.FuzzConfig{})
+	patchedCfg, err := fuzzconfig.GeneratePatched(&api.FuzzConfig{VMType: *flagVMType})
 	if err != nil {
 		return fmt.Errorf("failed to generate patched config: %w", err)
 	}
