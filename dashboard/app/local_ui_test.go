@@ -55,7 +55,7 @@ func TestLocalUI(t *testing.T) {
 	ln, err := net.Listen("tcp4", *flagLocalUIAddr)
 	require.NoError(t, err)
 	url := fmt.Sprintf("http://%v", ln.Addr())
-	exec.Command("xdg-open", url+"/linux").Start()
+	exec.Command("xdg-open", url+"/upstream").Start()
 	go func() {
 		// Let the dev_appserver print tons of unuseful garbage to the console
 		// before we print the serving address, so it's possible to find it in all the garbage.
@@ -87,12 +87,12 @@ func TestLocalUI(t *testing.T) {
 
 var localUIConfig = &GlobalConfig{
 	AccessLevel:      AccessPublic,
-	DefaultNamespace: "linux",
+	DefaultNamespace: "upstream",
 	Clients: map[string]APIClient{
 		localUIGlobalClient: {Key: localUIGlobalPassword},
 	},
 	Namespaces: map[string]*Config{
-		"linux": {
+		"upstream": {
 			DisplayTitle: "Linux",
 			AccessLevel:  AccessPublic,
 			AI:           &AIConfig{},
