@@ -247,7 +247,11 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 	results, jobErr := s.executeJob(ctx, resp)
 	doneReq.Results = results
 	if jobErr != nil {
-		doneReq.Error = jobErr.Error()
+		// Errors may include verbose errors from running git/make/grep/etc binaries.
+		// By default the verbose stdout/stderr output is not included in errors,
+		// but we want to include it here (otherwise it will be lost, and the error
+		// will just say "command X failed with exit status Y").
+		doneReq.Error = osutil.VerboseMessage(jobErr)
 		if model := aflow.IsModelQuotaError(jobErr); model != "" {
 			// If a model is over quota, we will avoid requesting more jobs
 			// for workflows that use the model.

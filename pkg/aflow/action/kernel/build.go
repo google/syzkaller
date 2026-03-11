@@ -52,8 +52,8 @@ func BuildKernel(buildDir, srcDir, cfg string, cleanup bool) error {
 		"ccache", buildDir, runtime.NumCPU())
 	const compileCommands = "compile_commands.json"
 	makeArgs = append(makeArgs, "-s", path.Base(image), compileCommands)
-	if out, err := osutil.RunCmd(time.Hour, srcDir, "make", makeArgs...); err != nil {
-		return aflow.FlowError(fmt.Errorf("make failed: %w\n%s", err, out))
+	if _, err := osutil.RunCmd(time.Hour, srcDir, "make", makeArgs...); err != nil {
+		return aflow.FlowError(err)
 	}
 	if !cleanup {
 		return nil

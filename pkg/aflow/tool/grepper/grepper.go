@@ -56,7 +56,7 @@ func grepper(ctx *aflow.Context, state state, args args) (results, error) {
 				return results{}, aflow.BadCallError("bad expression: %s", bytes.TrimSpace(output))
 			}
 		}
-		return results{}, fmt.Errorf("%w\n%s", err, output)
+		return results{}, err
 	}
 	// There is a potential DoS by LLM is it searches for ".*",
 	// "kmalloc" would be pretty bad (and useless) too.

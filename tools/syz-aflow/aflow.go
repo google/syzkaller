@@ -69,7 +69,7 @@ func main() {
 		tool.Fail(err)
 	}
 	if err := run(context.Background(), *flagModel, *flagFlow, *flagInput, *flagWorkdir, cacheSize); err != nil {
-		tool.Fail(err)
+		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
 }
 

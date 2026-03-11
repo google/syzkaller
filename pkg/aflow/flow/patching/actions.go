@@ -5,7 +5,6 @@ package patching
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -137,7 +136,7 @@ func recentCommits(ctx *aflow.Context, args recentCommitsArgs) (recentCommitsRes
 		gitArgs := append([]string{"log", "--format=%s", "--no-merges", "-n", "20", args.KernelCommit}, files...)
 		output, err := osutil.RunCmd(10*time.Minute, kernelRepoDir, "git", gitArgs...)
 		if err != nil {
-			return aflow.FlowError(fmt.Errorf("%w\n%s", err, output))
+			return aflow.FlowError(err)
 		}
 		res.RecentCommits = string(output)
 		return nil
