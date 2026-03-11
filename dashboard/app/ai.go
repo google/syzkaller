@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -461,7 +462,7 @@ func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq) (*aidb.Job, error
 	if job != nil {
 		return job, nil
 	}
-	if created, err := autoCreateAIJobs(ctx); err != nil || !created {
+	if created, err := autoCreateAIJobs(ctx, req.Workflows); err != nil || !created {
 		return nil, err
 	}
 	job, err = aidb.StartJob(ctx, req)
@@ -711,64 +712,133 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 // (provided no reproducer has been found in the meanwhile).
 const aiReproTriggerDays = 14
 
-// autoCreateAIJobs incrementally creates AI jobs for existing bugs, returns if any new jobs were created.
+// autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
+// To avoid race conditions between concurrent agents, it operates in two phases,
+// both leveraging Datastore transactions:
+//  1. findPendingJobs: checks bugs that have matching AIPendingWorkflows.
+//  2. processStaleBugs: evaluates stale bugs (AIJobCheck < currentDate).
 //
-// The idea is as follows. We have a predicate (workflowsForBug) which says what workflows need to be
-// created for a bug. Each bug has AIJobCheck integer field, which holds date when the predicate was
-// applied to the bug. We fetch some number of bugs with AIJobCheck<currentDate and check if we need to create
-// new jobs for them. The check is done by executing workflowsForBug for the bug, loading existing
-// pending/finished jobs for the bug, and finding any jobs returned by workflowsForBug that don't exist yet.
-func autoCreateAIJobs(ctx context.Context) (bool, error) {
+// Both phases (re-)compute applicable workflows and update AIJobCheck and AIPendingWorkflows.
+func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
 	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
 		if cfg.AI == nil {
 			continue
 		}
-		var bugs []*Bug
-		keys, err := db.NewQuery("Bug").
-			Filter("Namespace=", ns).
-			Filter("Status=", BugStatusOpen).
-			Filter("AIJobCheck<", date).
-			Limit(100).
-			GetAll(ctx, &bugs)
-		if err != nil {
-			return false, fmt.Errorf("failed to fetch bugs: %w", err)
-		}
-		if len(bugs) == 0 {
-			continue
-		}
-		created := false
-		var updateKeys []*db.Key
-		for i, bug := range bugs {
-			updateKeys = append(updateKeys, keys[i])
-			created, err = autoCreateAIJob(ctx, bug, keys[i])
-			if err != nil {
-				return false, err
-			}
-			if created {
-				break
-			}
-		}
-		if err := updateBatch(ctx, updateKeys, func(_ *db.Key, bug *Bug) {
-			bug.AIJobCheck = date
-		}); err != nil {
+		if created, err := findPendingJobs(ctx, ns, date, reqWorkflows); err != nil {
 			return false, err
+		} else if created {
+			return true, nil
 		}
-		if created {
+		if created, err := processStaleBugs(ctx, ns, date, reqWorkflows); err != nil {
+			return false, err
+		} else if created {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error) {
+func findPendingJobs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	for _, req := range reqWorkflows {
+		var bugs []*Bug
+		keys, err := db.NewQuery("Bug").
+			Filter("Namespace=", ns).
+			Filter("Status=", BugStatusOpen).
+			Filter("AIPendingWorkflows=", string(req.Type)).
+			Limit(1).
+			GetAll(ctx, &bugs)
+		if err != nil {
+			return false, fmt.Errorf("failed to fetch pending bugs: %w", err)
+		}
+		if len(bugs) == 0 {
+			continue
+		}
+		created, err := tryCreateAIJobForBug(ctx, bugs[0], keys[0], date, reqWorkflows)
+		if created || err != nil {
+			return created, err
+		}
+	}
+	return false, nil
+}
+
+func processStaleBugs(ctx context.Context, ns string, date int64, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	var bugs []*Bug
+	keys, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Status=", BugStatusOpen).
+		Filter("AIJobCheck<", date).
+		Limit(100).
+		GetAll(ctx, &bugs)
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch stale bugs: %w", err)
+	}
+
+	for i, bug := range bugs {
+		created, err := tryCreateAIJobForBug(ctx, bug, keys[i], date, reqWorkflows)
+		if created || err != nil {
+			return created, err
+		}
+	}
+	return false, nil
+}
+
+func tryCreateAIJobForBug(ctx context.Context, bug *Bug, bugKey *db.Key, date int64,
+	reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+	pending, err := pendingWorkflowsForBug(ctx, bug, bugKey)
+	if err != nil {
+		log.Errorf(ctx, "failed to LoadBugJobs for bug %v: %v", bugKey.StringID(), err)
+		return false, nil
+	}
+
+	created := false
+	var matchedReq dashapi.AIWorkflow
+	for _, req := range reqWorkflows {
+		idx := slices.Index(pending, string(req.Type))
+		if idx != -1 {
+			pending = slices.Delete(pending, idx, idx+1)
+			created = true
+			matchedReq = req
+			break
+		}
+	}
+
+	errConflict := fmt.Errorf("bug already evaluated or modified")
+	err = updateSingleBug(ctx, bugKey, func(txBug *Bug) error {
+		if txBug.AIJobCheck != bug.AIJobCheck || !slices.Equal(txBug.AIPendingWorkflows, bug.AIPendingWorkflows) {
+			return errConflict
+		}
+		txBug.AIJobCheck = max(txBug.AIJobCheck, date)
+		txBug.AIPendingWorkflows = pending
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errConflict) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if created {
+		if _, createErr := bugJobCreate(ctx, matchedReq.Name, matchedReq.Type, bug, nil); createErr != nil {
+			return false, fmt.Errorf("failed to create ai job %v for bug %v: %w", matchedReq.Type, bugKey.StringID(), createErr)
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+// pendingWorkflowsForBug returns a list of workflow types that the bug qualifies for,
+// excluding workflows that already have running or completed jobs, or jobs that are
+// in exponential backoff.
+func pendingWorkflowsForBug(ctx context.Context, bug *Bug, bugKey *db.Key) ([]string, error) {
 	workflows := workflowsForBug(ctx, bug, false)
 	if len(workflows) == 0 {
-		return false, nil
+		return nil, nil
 	}
 	jobs, err := aidb.LoadBugJobs(ctx, bugKey.StringID())
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	workflowAttempts := map[ai.WorkflowType]struct {
 		count int
@@ -803,12 +873,12 @@ func autoCreateAIJob(ctx context.Context, bug *Bug, bugKey *db.Key) (bool, error
 			delete(workflows, typ)
 		}
 	}
+	var pending []string
 	for workflow := range workflows {
-		if _, err := bugJobCreate(ctx, string(workflow), workflow, bug, nil); err != nil {
-			return false, err
-		}
+		pending = append(pending, string(workflow))
 	}
-	return len(workflows) != 0, nil
+	slices.Sort(pending)
+	return pending, nil
 }
 
 func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.WorkflowType]bool {
