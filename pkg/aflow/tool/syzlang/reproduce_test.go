@@ -36,7 +36,7 @@ ioctl(r0, 0x4c80, 0x0)`,
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := reproduce(&aflow.Context{}, struct{}{}, ReproduceArgs{
+			_, err := reproduce(&aflow.Context{}, reproduceState{}, ReproduceArgs{
 				ReproSyz: tc.syzProg,
 			})
 			if tc.wantError != "" {

@@ -22,10 +22,12 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+var ErrDidNotCrash = errors.New("reproducer did not crash")
+
 // Reproduce action tries to reproduce a crash with the given reproducer,
 // and outputs the resulting crash report.
 // If the reproducer does not trigger a crash, action fails.
-var Reproduce = aflow.NewFuncAction("crash-reproducer", reproduce)
+var Reproduce = aflow.NewFuncAction("crash-reproducer", ReproduceFunc)
 
 type ReproduceArgs struct {
 	Syzkaller    string
@@ -41,7 +43,7 @@ type ReproduceArgs struct {
 	KernelConfig string
 }
 
-type reproduceResult struct {
+type ReproduceResult struct {
 	BugTitle    string
 	CrashReport string
 }
@@ -97,7 +99,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 		return res, err
 	}
 	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
-	results, err := env.Test(1, nil, nil, []byte(args.ReproC), collectCoverage)
+	results, err := env.Test(1, []byte(args.ReproSyz), []byte(args.ReproOpts), []byte(args.ReproC), collectCoverage)
 	if err != nil {
 		return res, err
 	}
@@ -136,15 +138,16 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
-func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
+func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (ReproduceResult, error) {
 	imageData, err := os.ReadFile(args.Image)
 	if err != nil {
-		return reproduceResult{}, err
+		return ReproduceResult{}, err
 	}
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, version 3",
+		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, version 4",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
-		args.Type, hash.String(args.VM), hash.String(args.ReproC))
+		args.Type, hash.String(args.VM), hash.String(args.ReproC),
+		hash.String(args.ReproSyz), hash.String(args.ReproOpts))
 	type Cached struct {
 		BugTitle string
 		Report   string
@@ -165,14 +168,14 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		return res, err
 	})
 	if err != nil {
-		return reproduceResult{}, err
+		return ReproduceResult{}, err
 	}
 	if cached.Error != "" {
-		return reproduceResult{}, errors.New(cached.Error)
+		return ReproduceResult{}, errors.New(cached.Error)
 	} else if cached.Report == "" {
-		return reproduceResult{}, aflow.FlowError(errors.New("reproducer did not crash"))
+		return ReproduceResult{}, aflow.FlowError(ErrDidNotCrash)
 	}
-	return reproduceResult{
+	return ReproduceResult{
 		BugTitle:    cached.BugTitle,
 		CrashReport: cached.Report,
 	}, nil
