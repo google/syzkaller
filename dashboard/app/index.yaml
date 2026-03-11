@@ -268,3 +268,10 @@ indexes:
   - name: Namespace
   - name: Manager
   - name: AttemptsLeft
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: AIJobCheck
+  - name: AIPendingWorkflows

@@ -131,7 +131,10 @@ type Bug struct {
 	// FixCandidateJob holds the key of the latest successful cross-tree fix bisection job.
 	FixCandidateJob string
 	ReproAttempts   []BugReproAttempt
-	AIJobCheck      int64
+	// AIJobCheck holds the date (YYYYMMDD) when AI jobs were last checked for this bug.
+	AIJobCheck int64
+	// AIPendingWorkflows holds the list of AI workflow types that are pending for this bug.
+	AIPendingWorkflows []string
 }
 
 type BugTreeTestInfo struct {
