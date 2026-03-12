@@ -54,7 +54,7 @@ type LLMAgent struct {
 // Consts to use for LLMAgent.Model.
 // See https://ai.google.dev/gemini-api/docs/models
 const (
-	BestExpensiveModel = "gemini-3-pro-preview"
+	BestExpensiveModel = "gemini-3.1-pro-preview"
 	GoodBalancedModel  = "gemini-3-flash-preview"
 )
 
