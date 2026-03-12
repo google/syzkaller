@@ -44,13 +44,15 @@ func init() {
 }
 
 type Config struct {
-	Count         int    `json:"count"`          // number of VMs to use
-	ZoneID        string `json:"zone_id"`        // GCE zone (if it's different from that of syz-manager)
-	MachineType   string `json:"machine_type"`   // GCE machine type (e.g. "n1-highcpu-2")
-	GCSPath       string `json:"gcs_path"`       // GCS path to upload image
-	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
-	Preemptible   bool   `json:"preemptible"`    // use preemptible VMs if available (defaults to true)
-	DisplayDevice bool   `json:"display_device"` // enable a virtual display device
+	Count                int    `json:"count"`                 // number of VMs to use
+	ZoneID               string `json:"zone_id"`               // GCE zone (if it's different from that of syz-manager)
+	MachineType          string `json:"machine_type"`          // GCE machine type (e.g. "n1-highcpu-2")
+	GCSPath              string `json:"gcs_path"`              // GCS path to upload image
+	GCEImage             string `json:"gce_image"`             // pre-created GCE image to use
+	Preemptible          bool   `json:"preemptible"`           // use preemptible VMs if available (defaults to true)
+	DisplayDevice        bool   `json:"display_device"`        // enable a virtual display device
+	NicType              string `json:"nic_type"`              // type of vNIC to be used (e.g. GVNIC).
+	NestedVirtualization bool   `json:"nested_virtualization"` // Whether to enable nested virtualization or not.
 	// Username to connect to ssh-serialport.googleapis.com.
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise take the user from `gcloud compute connect-to-serial-port --dry-run`.
@@ -196,13 +198,15 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	}
 	log.Logf(0, "creating instance: %v", name)
 	instCfg := &gce.InstanceConfig{
-		Name:          name,
-		MachineType:   pool.cfg.MachineType,
-		Image:         pool.cfg.GCEImage,
-		SSHKey:        string(gceKeyPub),
-		Tags:          pool.cfg.Tags,
-		Preemptible:   pool.cfg.Preemptible,
-		DisplayDevice: pool.cfg.DisplayDevice,
+		Name:                 name,
+		MachineType:          pool.cfg.MachineType,
+		Image:                pool.cfg.GCEImage,
+		SSHKey:               string(gceKeyPub),
+		Tags:                 pool.cfg.Tags,
+		Preemptible:          pool.cfg.Preemptible,
+		DisplayDevice:        pool.cfg.DisplayDevice,
+		NestedVirtualization: pool.cfg.NestedVirtualization,
+		NicType:              pool.cfg.NicType,
 	}
 	ip, err := pool.GCE.CreateInstance(instCfg)
 	if err != nil {
