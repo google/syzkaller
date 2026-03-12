@@ -1,0 +1,78 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["amd64"]
+
+include <fcntl.h>
+include <ioccom.h>
+include <sys/types.h>
+include <sys/param.h>
+include <x86/include/apm_bios.h>
+
+resource fd_apm[fd]
+
+openat$apm(fd const[AT_FDCWD], file ptr[in, string["/dev/apm"]], flags flags[open_flags], mode const[0]) fd_apm
+
+ioctl$APMIO_SUSPEND(fd fd_apm, cmd const[APMIO_SUSPEND])
+ioctl$APMIO_STANDBY(fd fd_apm, cmd const[APMIO_STANDBY])
+ioctl$APMIO_NEXTEVENT(fd fd_apm, cmd const[APMIO_NEXTEVENT], arg ptr[out, apm_event_info])
+ioctl$APMIO_GETINFO_OLD(fd fd_apm, cmd const[APMIO_GETINFO_OLD], arg ptr[out, apm_info_old])
+ioctl$APMIO_GETINFO(fd fd_apm, cmd const[APMIO_GETINFO], arg ptr[out, apm_info])
+ioctl$APMIO_GETPWSTATUS(fd fd_apm, cmd const[APMIO_GETPWSTATUS], arg ptr[inout, apm_pwstatus])
+ioctl$APMIO_ENABLE(fd fd_apm, cmd const[APMIO_ENABLE])
+ioctl$APMIO_DISABLE(fd fd_apm, cmd const[APMIO_DISABLE])
+ioctl$APMIO_HALTCPU(fd fd_apm, cmd const[APMIO_HALTCPU])
+ioctl$APMIO_NOTHALTCPU(fd fd_apm, cmd const[APMIO_NOTHALTCPU])
+ioctl$APMIO_DISPLAY(fd fd_apm, cmd const[APMIO_DISPLAY])
+ioctl$APMIO_BIOS(fd fd_apm, cmd const[APMIO_BIOS], arg ptr[out, apm_bios_arg])
+
+apm_batt_status = APM_BATT_HIGH, APM_BATT_LOW, APM_BATT_CRITICAL, APM_BATT_CHARGING, APM_BATT_NOT_PRESENT, APM_BATT_NO_SYSTEM
+apm_event_types = PMEV_STANDBYREQ, PMEV_SUSPENDREQ, PMEV_NORMRESUME, PMEV_CRITRESUME, PMEV_BATTERYLOW, PMEV_POWERSTATECHANGE, PMEV_UPDATETIME, PMEV_CRITSUSPEND, PMEV_USERSTANDBYREQ, PMEV_USERSUSPENDREQ, PMEV_STANDBYRESUME, PMEV_CAPABILITIESCHANGE
+apm_device_codes = PMDV_APMBIOS, PMDV_ALLDEV, PMDV_DISP0, PMDV_DISP1, PMDV_DISPALL, PMDV_2NDSTORAGE0, PMDV_2NDSTORAGE1, PMDV_2NDSTORAGE2, PMDV_2NDSTORAGE3, PMDV_PARALLEL0, PMDV_PARALLEL1, PMDV_SERIAL0, PMDV_SERIAL1, PMDV_SERIAL2, PMDV_SERIAL3, PMDV_SERIAL4, PMDV_SERIAL5, PMDV_SERIAL6, PMDV_SERIAL7, PMDV_NET0, PMDV_NET1, PMDV_NET2, PMDV_NET3, PMDV_PCMCIA0, PMDV_PCMCIA1, PMDV_PCMCIA2, PMDV_PCMCIA3, PMDV_BATT_BASE, PMDV_BATT0, PMDV_BATT1, PMDV_BATT_ALL
+
+apm_event_info {
+	type	flags[apm_event_types, int32]
+	index	int32
+	spare	array[const[0, int32], 8]
+}
+
+apm_bios_arg {
+	eax	int32
+	ebx	int32
+	ecx	int32
+	edx	int32
+	esi	int32
+	edi	int32
+}
+
+apm_info {
+	ai_infoversion	int32
+	ai_major	int32
+	ai_minor	int32
+	ai_acline	int32
+	ai_batt_stat	flags[apm_batt_status, int32]
+	ai_batt_life	int32
+	ai_batt_time	int32
+	ai_status	int32
+	ai_batteries	int32
+	ai_capabilities	int32
+	ai_spare	array[const[0, int32], 6]
+}
+
+apm_info_old {
+	ai_major	int32
+	ai_minor	int32
+	ai_acline	int32
+	ai_batt_stat	flags[apm_batt_status, int32]
+	ai_batt_life	int32
+	ai_status	int32
+}
+
+apm_pwstatus {
+	ap_device	flags[apm_device_codes, int32]
+	ap_acline	int32	(out)
+	ap_batt_stat	int32	(out)
+	ap_batt_flag	int32	(out)
+	ap_batt_life	int32	(out)
+	ap_batt_time	int32	(out)
+}

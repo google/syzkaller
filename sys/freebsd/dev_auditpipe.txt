@@ -1,0 +1,60 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <fcntl.h>
+include <ioccom.h>
+include <sys/types.h>
+include <sys/param.h>
+include <sys/filio.h>
+include <security/audit/audit_ioctl.h>
+
+resource fd_auditpipe[fd]
+
+define AUDIT_PIPE_QLIMIT_MIN	(1)
+define AUDIT_PIPE_QLIMIT_MAX	(1024)
+
+openat$auditpipe(fd const[AT_FDCWD], file ptr[in, string["/dev/auditpipe"]], flags flags[open_flags], mode const[0]) fd_auditpipe
+
+ioctl$FIONBIO(fd fd_auditpipe, cmd const[FIONBIO], arg ptr[in, int32])
+ioctl$FIONREAD(fd fd_auditpipe, cmd const[FIONREAD], arg ptr[out, int32])
+ioctl$FIOASYNC(fd fd_auditpipe, cmd const[FIOASYNC], arg ptr[in, int32])
+ioctl$FIOSETOWN(fd fd_auditpipe, cmd const[FIOSETOWN], arg ptr[in, pid])
+ioctl$FIOGETOWN(fd fd_auditpipe, cmd const[FIOGETOWN], arg ptr[out, pid])
+ioctl$AUDITPIPE_GET_QLEN(fd fd_auditpipe, cmd const[AUDITPIPE_GET_QLEN], arg ptr[out, int32])
+ioctl$AUDITPIPE_GET_QLIMIT(fd fd_auditpipe, cmd const[AUDITPIPE_GET_QLIMIT], arg ptr[out, int32])
+ioctl$AUDITPIPE_SET_QLIMIT(fd fd_auditpipe, cmd const[AUDITPIPE_SET_QLIMIT], arg ptr[in, int32[AUDIT_PIPE_QLIMIT_MIN:AUDIT_PIPE_QLIMIT_MAX]])
+ioctl$AUDITPIPE_GET_QLIMIT_MIN(fd fd_auditpipe, cmd const[AUDITPIPE_GET_QLIMIT_MIN], arg ptr[out, int32])
+ioctl$AUDITPIPE_GET_QLIMIT_MAX(fd fd_auditpipe, cmd const[AUDITPIPE_GET_QLIMIT_MAX], arg ptr[out, int32])
+ioctl$AUDITPIPE_GET_PRESELECT_FLAGS(fd fd_auditpipe, cmd const[AUDITPIPE_GET_PRESELECT_FLAGS], arg ptr[out, au_mask])
+ioctl$AUDITPIPE_SET_PRESELECT_FLAGS(fd fd_auditpipe, cmd const[AUDITPIPE_SET_PRESELECT_FLAGS], arg ptr[in, au_mask])
+ioctl$AUDITPIPE_GET_PRESELECT_NAFLAGS(fd fd_auditpipe, cmd const[AUDITPIPE_GET_PRESELECT_NAFLAGS], arg ptr[out, au_mask])
+ioctl$AUDITPIPE_SET_PRESELECT_NAFLAGS(fd fd_auditpipe, cmd const[AUDITPIPE_SET_PRESELECT_NAFLAGS], arg ptr[in, au_mask_t])
+ioctl$AUDITPIPE_GET_PRESELECT_AUID(fd fd_auditpipe, cmd const[AUDITPIPE_GET_PRESELECT_AUID], arg ptr[inout, auditpipe_ioctl_preselect])
+ioctl$AUDITPIPE_SET_PRESELECT_AUID(fd fd_auditpipe, cmd const[AUDITPIPE_SET_PRESELECT_AUID], arg ptr[in, auditpipe_ioctl_preselect])
+ioctl$AUDITPIPE_DELETE_PRESELECT_AUID(fd fd_auditpipe, cmd const[AUDITPIPE_DELETE_PRESELECT_AUID], arg ptr[in, int32])
+ioctl$AUDITPIPE_FLUSH_PRESELECT_AUID(fd fd_auditpipe, cmd const[AUDITPIPE_FLUSH_PRESELECT_AUID])
+ioctl$AUDITPIPE_GET_PRESELECT_MODE(fd fd_auditpipe, cmd const[AUDITPIPE_GET_PRESELECT_MODE], arg ptr[out, int32])
+ioctl$AUDITPIPE_SET_PRESELECT_MODE(fd fd_auditpipe, cmd const[AUDITPIPE_SET_PRESELECT_MODE], mode ptr[in, flags[auditpipe_preselect_modes, int32]])
+ioctl$AUDITPIPE_FLUSH(fd fd_auditpipe, cmd const[AUDITPIPE_FLUSH])
+ioctl$AUDITPIPE_GET_MAXAUDITDATA(fd fd_auditpipe, cmd const[AUDITPIPE_GET_MAXAUDITDATA], arg ptr[out, int32])
+ioctl$AUDITPIPE_GET_INSERTS(fd fd_auditpipe, cmd const[AUDITPIPE_GET_INSERTS], arg ptr[out, int64])
+ioctl$AUDITPIPE_GET_READS(fd fd_auditpipe, cmd const[AUDITPIPE_GET_READS], arg ptr[out, int64])
+ioctl$AUDITPIPE_GET_DROPS(fd fd_auditpipe, cmd const[AUDITPIPE_GET_DROPS], arg ptr[out, int64])
+ioctl$AUDITPIPE_GET_TRUNCATES(fd fd_auditpipe, cmd const[AUDITPIPE_GET_TRUNCATES], arg ptr[out, int64])
+
+auditpipe_preselect_modes = AUDITPIPE_PRESELECT_MODE_TRAIL, AUDITPIPE_PRESELECT_MODE_LOCAL
+
+au_mask {
+	am_success	int32
+	am_failure	int32
+}
+
+auditpipe_ioctl_preselect {
+	aip_auid	int32
+	aip_mask	au_mask
+}
+
+au_mask_t {
+	am_success	int32
+	am_failure	int32
+}
