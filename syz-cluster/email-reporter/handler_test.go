@@ -205,6 +205,7 @@ func TestSyzTestFlow(t *testing.T) {
 		Author:    "user@email.com",
 		BugIDs:    []string{report.ID},
 		MessageID: "user-reply-msg-id",
+		Cc:        []string{"test-cc@email.com", "other@email.com"},
 		Patch:     "--- a/file\n+++ b/file\n@@ -1,1 +1,1 @@\n-a\n+b\n",
 		Commands: []*email.SingleCommand{
 			{
@@ -233,6 +234,8 @@ func TestSyzTestFlow(t *testing.T) {
 	reportReply := emailServer.email()
 	require.NotNil(t, reportReply, "an email must be sent with the test results")
 	assert.Equal(t, "user-reply-msg-id", reportReply.InReplyTo)
+	assert.Equal(t, []string{"user@email.com", "test-cc@email.com", "other@email.com"}, reportReply.To)
+	assert.Equal(t, append([]string{testEmailConfig.ArchiveList}, testEmailConfig.ReportCC...), reportReply.Cc)
 	assert.Contains(t, string(reportReply.Body), "passed")
 
 	// Some error cases.
@@ -242,6 +245,7 @@ func TestSyzTestFlow(t *testing.T) {
 			Subject:   "Command",
 			BugIDs:    []string{report.ID},
 			MessageID: "user-reply-msg-id-2",
+			Cc:        []string{"error-cc1@email.com"},
 			Commands: []*email.SingleCommand{
 				{
 					Command: email.CmdTest,
@@ -253,6 +257,8 @@ func TestSyzTestFlow(t *testing.T) {
 		reply = emailServer.email()
 		require.NotNil(t, reply)
 		assert.Contains(t, string(reply.Body), "Please attach the patch to act upon")
+		assert.Equal(t, []string{"user@email.com"}, reply.To)
+		assert.Equal(t, []string{"error-cc1@email.com"}, reply.Cc)
 	})
 
 	t.Run("with args", func(t *testing.T) {
@@ -261,6 +267,7 @@ func TestSyzTestFlow(t *testing.T) {
 			Subject:   "Command",
 			BugIDs:    []string{report.ID},
 			MessageID: "user-reply-msg-id-3",
+			Cc:        []string{"error-cc2@email.com"},
 			Commands: []*email.SingleCommand{
 				{
 					Command: email.CmdTest,
@@ -273,6 +280,8 @@ func TestSyzTestFlow(t *testing.T) {
 		reply = emailServer.email()
 		require.NotNil(t, reply)
 		assert.Contains(t, string(reply.Body), "does not support `#syz test` with arguments.")
+		assert.Equal(t, []string{"user@email.com"}, reply.To)
+		assert.Equal(t, []string{"error-cc2@email.com"}, reply.Cc)
 	})
 }
 

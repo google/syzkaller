@@ -124,6 +124,7 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 	} else {
 		reportObj.Type = api.ReportTypeBug
 		reportObj.InReplyTo = series.ExtID
+		reportObj.Cc = series.Cc
 	}
 
 	return &api.NextReportResp{
@@ -142,6 +143,8 @@ func (rs *ReportService) populatePatchTestReport(ctx context.Context, reportObj 
 		reportObj.InReplyTo = reportObj.Series.ExtID
 	}
 	reportObj.PatchLink = rs.urls.JobPatch(job.ID)
+	// Route patch testing replies to the Cc list extracted from the job request email.
+	reportObj.Cc = job.Cc
 
 	tests, err := rs.sessionTestRepo.BySessionRaw(ctx, session.ID)
 	if err != nil {

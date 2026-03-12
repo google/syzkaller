@@ -54,6 +54,7 @@ func TestAPIReportFlow(t *testing.T) {
 		Moderation: true,
 		Link:       env.URLs.Series(ids.SeriesID),
 		InReplyTo:  testSeries.ExtID,
+		Cc:         []string{"first@user.com", "second@user.com"},
 		Series: &api.Series{
 			ExtID: testSeries.ExtID,
 			Title: testSeries.Title,

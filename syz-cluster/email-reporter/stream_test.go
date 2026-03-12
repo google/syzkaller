@@ -22,9 +22,10 @@ import (
 func TestEmailStream(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, reporterClient, _, _ := setupHandlerTest(t, ctx, env, testSeries)
+	handler, reporterClient, emailServer, _ := setupHandlerTest(t, ctx, env, testSeries)
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
+	_ = emailServer.email() // Consume the moderation email for the original bug report.
 
 	// Simulate our reply.
 	err = reporterClient.ConfirmReport(ctx, report.ID)
@@ -85,6 +86,7 @@ Content-Type: text/plain
 		Reporter:  api.LKMLReporter,
 		User:      "testuser@domain.com",
 		ExtID:     "doesnt-matter",
+		Cc:        []string{"testuser@domain.com", "stream-test-cc@domain.com"},
 		PatchData: []byte("--- a\n+++ b\n"),
 	})
 	assert.NoError(t, err)
@@ -95,6 +97,10 @@ Content-Type: text/plain
 	assert.NoError(t, err)
 	patchTestReport, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
+
+	reportReply := emailServer.email()
+	assert.NotNil(t, reportReply, "an email must be sent")
+	assert.Equal(t, []string{"testuser@domain.com", "stream-test-cc@domain.com"}, reportReply.To)
 
 	const patchTestMessageID = "<patch-test-reply>"
 	_, err = reporterClient.RecordReply(ctx, &api.RecordReplyReq{

@@ -89,7 +89,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 		}
 		// We assume that email reporting is used for series received over emails.
 		toSend.InReplyTo = rep.InReplyTo
-		toSend.To = rep.Series.Cc
+		toSend.To = rep.Cc
 		toSend.Cc = append(toSend.Cc, h.emailConfig.ReportCC...)
 	}
 	msgID, err := h.sender(ctx, toSend)
@@ -154,6 +154,7 @@ func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 					Reporter:  h.reporter,
 					User:      msg.Author,
 					ExtID:     msg.MessageID,
+					Cc:        append([]string{msg.Author}, msg.Cc...),
 					PatchData: []byte(msg.Patch),
 				})
 			}
