@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -43,7 +42,7 @@ func (s *SessionTestStepService) Save(ctx context.Context, sessionID string, ste
 			FindingID: spanner.NullString{StringVal: step.FindingID, Valid: step.FindingID != ""},
 			Target:    step.Target,
 			Result:    step.Result,
-			CreatedAt: time.Now(),
+			CreatedAt: spanner.CommitTimestamp,
 		}
 		if old != nil {
 			newStep.ID = old.ID
