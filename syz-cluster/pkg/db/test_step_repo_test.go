@@ -5,7 +5,6 @@ package db
 
 import (
 	"testing"
-	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -33,7 +32,7 @@ func TestSessionTestStepRepository(t *testing.T) {
 		FindingID: spanner.NullString{StringVal: finding1.ID, Valid: true},
 		Target:    api.StepTargetPatched,
 		Result:    api.StepResultPassed,
-		CreatedAt: time.Now(),
+		CreatedAt: spanner.CommitTimestamp,
 	}
 	require.NoError(t, repo.Store(ctx, SessionTestStepID{
 		SessionID: step.SessionID,
@@ -59,7 +58,7 @@ func TestSessionTestStepRepository(t *testing.T) {
 		FindingID: spanner.NullString{StringVal: finding2.ID, Valid: true},
 		Target:    api.StepTargetBase,
 		Result:    api.StepResultFailed,
-		CreatedAt: time.Now(),
+		CreatedAt: spanner.CommitTimestamp,
 	}
 	require.NoError(t, repo.Store(ctx, SessionTestStepID{
 		SessionID: step2.SessionID,
