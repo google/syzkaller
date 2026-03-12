@@ -708,10 +708,6 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	})
 }
 
-// In how many days after a bug is reported we create the first AI repro job
-// (provided no reproducer has been found in the meanwhile).
-const aiReproTriggerDays = 14
-
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
 // To avoid race conditions between concurrent agents, it operates in two phases,
 // both leveraging Datastore transactions:
@@ -892,9 +888,6 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	}
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
-	}
-	if bug.ReproLevel == dashapi.ReproLevelNone && timeSince(ctx, bug.FirstTime) > aiReproTriggerDays*24*time.Hour {
-		workflows[ai.WorkflowRepro] = true
 	}
 	if manual {
 		// Types we don't create automatically yet, but can be created manually.
