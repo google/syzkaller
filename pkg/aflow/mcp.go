@@ -60,14 +60,20 @@ func registerMCPAction[Args, Results any](a *funcAction[Args, Results]) {
 		Name:         a.name,
 		Description:  a.name,
 		InputSchema:  mustSchemaFor[struct{}](),
-		OutputSchema: mustSchemaFor[struct{}](),
+		OutputSchema: uncheckedSchemaFor[Results](),
 	}
 	handler := func(ctx *Context, args map[string]any) (*mcp.CallToolResult, error) {
 		err := a.execute(ctx)
-		reply := &mcp.CallToolResult{
-			StructuredContent: struct{}{},
+		if err != nil {
+			return nil, err
 		}
-		return reply, err
+		res, err := convertFromMap[Results](ctx.state, false, false)
+		if err != nil {
+			return nil, err
+		}
+		return &mcp.CallToolResult{
+			StructuredContent: res,
+		}, nil
 	}
 	registerMCP(tool, handler)
 }
@@ -86,4 +92,20 @@ func registerMCP(tool *mcp.Tool, handler MCPToolFunc) {
 	}
 	mcpToolNames[tool.Name] = true
 	MCPTools[tool] = handler
+}
+
+func init() {
+	NewFuncTool("session-initializer", func(ctx *Context, state struct{}, args struct {
+		ReproSyz  string `jsonschema:"syzkaller program that reproduces the bug."`
+		ReproOpts string `jsonschema:"syzkaller program execution options."`
+		ReproC    string `jsonschema:"C program that reproduces the bug."`
+	}) (struct{}, error) {
+		ctx.state["ReproSyz"] = args.ReproSyz
+		ctx.state["ReproOpts"] = args.ReproOpts
+		ctx.state["ReproC"] = args.ReproC
+		return struct{}{}, nil
+	}, `
+The tool populates session state for other tools/actions to use.
+It is supposed to be called first, and substitutes input workflow arguments in MCP mode.
+`)
 }

@@ -109,3 +109,113 @@ R13: 00007efe6bbf4eb0 R14: 0000000000000000 R15: 0000000000000000
  </TASK>
 ---[ end trace ]---
 ```
+
+A manual unit test for the MCP server:
+
+```bash
+MCP_SESSION_ID=$(curl -i -X POST http://localhost:59999/mcp \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--data '{
+		"jsonrpc": "2.0",
+		"method": "initialize",
+		"id": "init-request-1",
+		"params": {
+			"protocolVersion": "2025-11-25",
+			"clientInfo": {
+				"name": "curl-client",
+				"version": "1.0"
+			}, "capabilities": {}
+		}
+	}' \
+	| grep "Mcp-Session-Id:" | sed 's/Mcp-Session-Id\: //' | sed 's/[[:space:]]//g')
+echo "Mcp-Session-Id: ${MCP_SESSION_ID}"
+
+curl --location "http://localhost:59999/mcp" \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--header "mcp-session-id: ${MCP_SESSION_ID}" \
+	--data '{
+		"jsonrpc": "2.0",
+		"method": "tools/call",
+		"id": "call-session-initializer-req-1",
+		"params": {
+			"name": "session-initializer",
+			"arguments": {
+				"ReproSyz": "getpid()",
+				"ReproOpts":  "{\"threaded\":true, \"repeat\":true}",
+				"ReproC": ""
+			}
+		}
+	}'
+echo
+
+for tool in "base-commit-picker" "kernel-checkouter" "kernel-builder" "crash-reproducer" "codesearch-prepare" "kernel-scratch-checkouter"; do
+curl --location "http://localhost:59999/mcp" \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--header "mcp-session-id: ${MCP_SESSION_ID}" \
+	--data "{
+		\"jsonrpc\": \"2.0\",
+		\"method\": \"tools/call\",
+		\"id\": \"call-${tool}-req-1\",
+		\"params\": {
+			\"name\": \"${tool}\",
+			\"arguments\": {}
+		}
+	}";
+echo
+done
+
+curl --location "http://localhost:59999/mcp" \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--header "mcp-session-id: ${MCP_SESSION_ID}" \
+	--data '{
+		"jsonrpc": "2.0",
+		"method": "tools/call",
+		"id": "call-codesearch-struct-layout-req-1",
+		"params": {
+			"name": "codesearch-struct-layout",
+			"arguments": {
+				"ContextFile": "kernel/kcov.c",
+				"Name": "kcov"
+			}
+		}
+	}'
+echo
+
+curl --location "http://localhost:59999/mcp" \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--header "mcp-session-id: ${MCP_SESSION_ID}" \
+	--data '{
+		"jsonrpc": "2.0",
+		"method": "tools/call",
+		"id": "call-codeeditor-req-1",
+		"params": {
+			"name": "codeeditor",
+			"arguments": {
+				"SourceFile": "kernel/kcov.c",
+				"CurrentCode": "struct kcov {",
+				"NewCode": "struct kcov { /*some comment/*"
+			}
+		}
+	}'
+echo
+
+curl --location "http://localhost:59999/mcp" \
+	--header "Content-Type: application/json" \
+	--header "Accept: application/json, text/event-stream" \
+	--header "mcp-session-id: ${MCP_SESSION_ID}" \
+	--data '{
+		"jsonrpc": "2.0",
+		"method": "tools/call",
+		"id": "call-test-patch-req-1",
+		"params": {
+			"name": "test-patch",
+			"arguments": {}
+		}
+	}'
+echo
+```

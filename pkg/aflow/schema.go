@@ -22,15 +22,19 @@ func schemaFor[T any]() (*jsonschema.Schema, error) {
 	if err := checkSchemaType(typ); err != nil {
 		return nil, err
 	}
+	return uncheckedSchemaFor[T](), nil
+}
+
+func uncheckedSchemaFor[T any]() *jsonschema.Schema {
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	resolved, err := schema.Resolve(nil)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return resolved.Schema(), nil
+	return resolved.Schema()
 }
 
 func checkSchemaType(typ reflect.Type) error {
