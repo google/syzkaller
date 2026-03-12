@@ -36,6 +36,21 @@ typically through the `syz-env` wrapper.
 
 ## Development Conventions
 
+### State Variable Naming Conventions
+
+To allow actions and workflows to be composed without complex renaming logic, we attach **semantic meaning** to state variable names rather than just using raw types.
+
+We globally agree on the semantics of names so that actions can work securely across any context:
+
+- **`BugTitle`**: The original bug title straight from the dashboard.
+- **`ReproducedBugTitle`**: The bug title that resulted from successfully running a reproducer.
+- **`CrashReport`**: The verbatim bug report body to reproduce.
+- **`CandidateReproSyz`**: A raw, unformatted syzkaller program typically generated directly by the LLM.
+- **`ReproSyz`**: A definitively formatted, verified, and ready-to-execute syzkaller program (e.g. the output of the `Format` action).
+- **`ReproOpts`**: Reproducer configuration options.
+- **`KernelRepo` / `KernelBranch` / `KernelCommit`**: Information uniquely identifying the target kernel tree and revision.
+- **`KernelConfig`**: The kernel build setup configuration.
+
 ### Defining Workflows
 
 Workflows are typically registered using `aflow.Register`.
