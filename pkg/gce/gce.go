@@ -54,13 +54,15 @@ type CreateArgs struct {
 }
 
 type InstanceConfig struct {
-	Name          string
-	MachineType   string
-	Image         string
-	SSHKey        string
-	Tags          []string
-	Preemptible   bool
-	DisplayDevice bool
+	Name                 string
+	MachineType          string
+	Image                string
+	SSHKey               string
+	Tags                 []string
+	Preemptible          bool
+	DisplayDevice        bool
+	NestedVirtualization bool
+	NicType              string
 }
 
 func NewContext(customZoneID string) (*Context, error) {
@@ -164,6 +166,7 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 			{
 				Network:    ctx.Network,
 				Subnetwork: ctx.Subnetwork,
+				NicType:    cfg.NicType,
 			},
 		},
 		Scheduling: &compute.Scheduling{
@@ -174,7 +177,9 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 		DisplayDevice: &compute.DisplayDevice{
 			EnableDisplay: cfg.DisplayDevice,
 		},
-		Tags: &compute.Tags{Items: cfg.Tags},
+		AdvancedMachineFeatures: &compute.AdvancedMachineFeatures{
+			EnableNestedVirtualization: cfg.NestedVirtualization,
+		},
 	}
 retry:
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
