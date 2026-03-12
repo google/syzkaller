@@ -100,7 +100,7 @@ RUN update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-21 100
 RUN apt autoremove -y -q
 
 # Install the Spanner emulator.
-ARG SPANNER_EMULATOR_VERSION=1.5.28
+ARG SPANNER_EMULATOR_VERSION=1.5.51
 RUN mkdir /spanner
 RUN curl https://storage.googleapis.com/cloud-spanner-emulator/releases/${SPANNER_EMULATOR_VERSION}/cloud-spanner-emulator_linux_amd64-${SPANNER_EMULATOR_VERSION}.tar.gz | tar -C /spanner -xz
 RUN chmod u+x /spanner/gateway_main /spanner/emulator_main
