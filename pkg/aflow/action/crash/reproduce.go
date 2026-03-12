@@ -42,8 +42,8 @@ type ReproduceArgs struct {
 }
 
 type reproduceResult struct {
-	BugTitle    string
-	CrashReport string
+	ReproducedBugTitle    string
+	ReproducedCrashReport string
 }
 
 type RunTestResult struct {
@@ -173,8 +173,8 @@ func reproduce(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) 
 		return reproduceResult{}, aflow.FlowError(errors.New("reproducer did not crash"))
 	}
 	return reproduceResult{
-		BugTitle:    cached.BugTitle,
-		CrashReport: cached.Report,
+		ReproducedBugTitle:    cached.BugTitle,
+		ReproducedCrashReport: cached.Report,
 	}, nil
 }
 

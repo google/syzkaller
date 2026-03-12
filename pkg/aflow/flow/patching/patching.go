@@ -108,7 +108,7 @@ able to write a fix for the bug based on your explanation. Include all relevant 
 into the response: function/struct/field/etc names, code snippets, line numbers,
 macro/enum values, etc.
 
-{{if titleIsKASANNullDeref .BugTitle}}
+{{if titleIsKASANNullDeref .ReproducedBugTitle}}
 Note: under KASAN NULL-derefs on the source level don't happen around the actual 0 address,
 they happen on the KASAN shadow memory around address dfff800000000000 or dffffc0000000000.
 Don't be confused by that. Look for the like at the top of the report that tells
@@ -119,7 +119,7 @@ the access address and size.
 const debuggingPrompt = `
 The crash is:
 
-{{.CrashReport}}
+{{.ReproducedCrashReport}}
 `
 
 const patchInstruction = `
@@ -149,7 +149,7 @@ and if they need to be updated to handle new post-conditions. For example, if yo
 a function that previously never returned a NULL, return NULL, consider if callers
 need to be updated to handle NULL return value.
 
-{{if titleIsWarning .BugTitle}}
+{{if titleIsWarning .ReproducedBugTitle}}
 If you will end up removing the WARN_ON macro because the condition can legitimately happen,
 add a pr_err call that logs that the unlikely condition has happened. The pr_err message
 must not include "WARNING" string.
@@ -159,7 +159,7 @@ must not include "WARNING" string.
 const patchPrompt = `
 The crash that corresponds to the bug is:
 
-{{.CrashReport}}
+{{.ReproducedCrashReport}}
 
 The explanation of the root cause of the bug is:
 
@@ -207,7 +207,7 @@ The rest of the description must be word-wrapped at 72 characters.
 const descriptionPrompt = `
 The crash that corresponds to the bug is:
 
-{{.CrashReport}}
+{{.ReproducedCrashReport}}
 
 The explanation of the root cause of the bug is:
 
@@ -227,7 +227,7 @@ are specified, letter capitalization, style, etc.
 
 {{.RecentCommits}}
 
-{{if titleIsWarning .BugTitle}}
+{{if titleIsWarning .ReproducedBugTitle}}
 If the patch removes the WARN_ON macro, refer to the fact that WARN_ON
 must not be used for conditions that can legitimately happen, and that pr_err
 should be used instead if necessary.
