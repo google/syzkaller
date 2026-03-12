@@ -68,6 +68,12 @@ See {{.Config.DocsLink}} for more information about {{.Config.Name}}.
 {{- end}}
 {{.Config.Name}} engineers can be reached at {{.Config.SupportEmail}}.
 
+To test a patch for this bug, please reply with `#syz test`
+(should be on a separate line).
+
+The patch should be attached to the email.
+Note: arguments like custom git repos and branches are not supported.
+
 {{- if .Report.Moderation}}
 
 The email will later be sent to:
