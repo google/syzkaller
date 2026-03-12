@@ -1,0 +1,94 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <fcntl.h>
+include <ioccom.h>
+include <sys/types.h>
+include <sys/param.h>
+include <sys/stdint.h>
+include <dev/acpica/acpiio.h>
+
+resource fd_acpi[fd]
+
+openat$acpi(fd const[AT_FDCWD], file ptr[in, string["/dev/acpi"]], flags flags[open_flags], mode const[0]) fd_acpi
+
+ioctl$ACPIIO_BATT_GET_UNITS(fd fd_acpi, cmd const[ACPIIO_BATT_GET_UNITS], arg ptr[out, int32])
+ioctl$ACPIIO_BATT_GET_BATTINFO(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BATTINFO], arg ptr[out, acpi_battinfo])
+ioctl$ACPIIO_BATT_GET_BATTINFO_V1(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BATTINFO_V1], arg ptr[out, acpi_battinfo])
+ioctl$ACPIIO_BATT_GET_BIF(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BIF], arg ptr[inout, acpi_battery_ioctl_arg])
+ioctl$ACPIIO_BATT_GET_BIX(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BIX], arg ptr[inout, acpi_battery_ioctl_arg])
+ioctl$ACPIIO_BATT_GET_BST(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BST], arg ptr[inout, acpi_battery_ioctl_arg])
+ioctl$ACPIIO_BATT_GET_BST_V1(fd fd_acpi, cmd const[ACPIIO_BATT_GET_BST_V1], arg ptr[inout, acpi_battery_ioctl_arg])
+ioctl$ACPIIO_REQSLPSTATE(fd fd_acpi, cmd const[ACPIIO_REQSLPSTATE], arg ptr[in, int32[0:5]])
+ioctl$ACPIIO_ACKSLPSTATE(fd fd_acpi, cmd const[ACPIIO_ACKSLPSTATE], arg ptr[in, int32])
+ioctl$ACPIIO_SETSLPSTATE(fd fd_acpi, cmd const[ACPIIO_SETSLPSTATE], state ptr[in, int32[0:5]])
+ioctl$ACPIIO_ACAD_GET_STATUS(fd fd_acpi, cmd const[ACPIIO_ACAD_GET_STATUS], arg ptr[out, int32])
+
+acpi_bix_units = ACPI_BIX_UNITS_MW, ACPI_BIX_UNITS_MA
+acpi_bix_rev = ACPI_BIX_REV_0, ACPI_BIX_REV_1, ACPI_BIX_REV_BIF
+acpi_bix_scap = ACPI_BIX_SCAP_NO, ACPI_BIX_SCAP_COLD, ACPI_BIX_SCAP_HOT
+acpi_batt_state = ACPI_BATT_STAT_DISCHARG, ACPI_BATT_STAT_CHARGING, ACPI_BATT_STAT_CRITICAL
+acpi_bif_units = ACPI_BIF_UNITS_MW, ACPI_BIF_UNITS_MA
+
+acpi_battinfo {
+	cap	int32
+	min	int32
+	state	flags[acpi_batt_state, int32]
+	rate	int32
+}
+
+acpi_bif {
+	units	flags[acpi_bif_units, int32]
+	dcap	int32
+	lfcap	int32
+	btech	int32
+	dvol	int32
+	wcap	int32
+	lcap	int32
+	gra1	int32
+	gra2	int32
+	model	array[int8, ACPI_CMBAT_MAXSTRLEN]
+	serial	array[int8, ACPI_CMBAT_MAXSTRLEN]
+	type	array[int8, ACPI_CMBAT_MAXSTRLEN]
+	oeminfo	array[int8, ACPI_CMBAT_MAXSTRLEN]
+}
+
+acpi_bst {
+	state	flags[acpi_batt_state, int32]
+	rate	int32
+	cap	int32
+	volt	int32
+}
+
+acpi_battery_ioctl_arg [
+	unit		int32
+	battinfo	acpi_battinfo
+	bix		acpi_bix
+	bif		acpi_bif
+	bst		acpi_bst
+]
+
+acpi_bix {
+	units		flags[acpi_bix_units, int32]
+	dcap		int32
+	lfcap		int32
+	btech		int32
+	dvol		int32
+	wcap		int32
+	lcap		int32
+	gra1		int32
+	gra2		int32
+	model		array[int8, ACPI_CMBAT_MAXSTRLEN]
+	serial		array[int8, ACPI_CMBAT_MAXSTRLEN]
+	type		array[int8, ACPI_CMBAT_MAXSTRLEN]
+	oeminfo		array[int8, ACPI_CMBAT_MAXSTRLEN]
+	rev		flags[acpi_bix_rev, int16]
+	cycles		int32
+	accuracy	int32
+	stmax		int32
+	stmin		int32
+	aimax		int32
+	aimin		int32
+	scap		flags[acpi_bix_scap, int32]
+	bix_reserved	array[const[0, int32], 58]
+}
