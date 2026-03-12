@@ -65,7 +65,7 @@ type InstanceConfig struct {
 	NicType              string
 }
 
-func NewContext(customZoneID string) (*Context, error) {
+func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate: time.NewTicker(time.Second).C,
 	}
@@ -80,21 +80,24 @@ func NewContext(customZoneID string) (*Context, error) {
 		return nil, fmt.Errorf("failed to create compute service: %w", err)
 	}
 	// Obtain project name, zone and current instance IP address.
-	ctx.ProjectID, err = ctx.getMeta("project/project-id")
-	if err != nil {
-		return nil, fmt.Errorf("failed to query gce project-id: %w", err)
-	}
-	myZoneID, err := ctx.getMeta("instance/zone")
-	if err != nil {
-		return nil, fmt.Errorf("failed to query gce zone: %w", err)
-	}
-	if i := strings.LastIndexByte(myZoneID, '/'); i != -1 {
-		myZoneID = myZoneID[i+1:] // the query returns some nonsense prefix
+	if customProjectID != "" {
+		ctx.ProjectID = customProjectID
+	} else {
+		ctx.ProjectID, err = ctx.getMeta("project/project-id")
+		if err != nil {
+			return nil, fmt.Errorf("failed to query gce project-id: %w", err)
+		}
 	}
 	if customZoneID != "" {
 		ctx.ZoneID = customZoneID
 	} else {
-		ctx.ZoneID = myZoneID
+		ctx.ZoneID, err = ctx.getMeta("instance/zone")
+		if err != nil {
+			return nil, fmt.Errorf("failed to query gce zone: %w", err)
+		}
+		if i := strings.LastIndexByte(ctx.ZoneID, '/'); i != -1 {
+			ctx.ZoneID = ctx.ZoneID[i+1:] // the query returns some nonsense prefix
+		}
 	}
 	if !validateZone(ctx.ZoneID) {
 		return nil, fmt.Errorf("%q is not a valid zone name", ctx.ZoneID)
@@ -107,7 +110,7 @@ func NewContext(customZoneID string) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query gce instance name: %w", err)
 	}
-	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, myZoneID, ctx.Instance).Do()
+	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, ctx.Instance).Do()
 	if err != nil {
 		return nil, fmt.Errorf("error getting instance info: %w", err)
 	}

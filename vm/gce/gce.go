@@ -46,6 +46,7 @@ func init() {
 type Config struct {
 	Count                int    `json:"count"`                 // number of VMs to use
 	ZoneID               string `json:"zone_id"`               // GCE zone (if it's different from that of syz-manager)
+	ProjectID            string `json:"project_id"`            // GCE project (if it's different from that of syz-manager)
 	MachineType          string `json:"machine_type"`          // GCE machine type (e.g. "n1-highcpu-2")
 	GCSPath              string `json:"gcs_path"`              // GCS path to upload image
 	GCEImage             string `json:"gce_image"`             // pre-created GCE image to use
@@ -119,7 +120,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
-	GCE, err := initGCE(cfg.ZoneID)
+	GCE, err := initGCE(cfg.ZoneID, cfg.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 	return pool, nil
 }
 
-func initGCE(zoneID string) (*gce.Context, error) {
+func initGCE(zoneID, projectID string) (*gce.Context, error) {
 	// There happen some transient GCE init errors on and off.
 	// Let's try it several times before aborting.
 	const (
@@ -166,7 +167,7 @@ func initGCE(zoneID string) (*gce.Context, error) {
 		if i > 1 {
 			time.Sleep(gceInitBackoff)
 		}
-		GCE, err = gce.NewContext(zoneID)
+		GCE, err = gce.NewContext(zoneID, projectID)
 		if err == nil {
 			return GCE, nil
 		}
