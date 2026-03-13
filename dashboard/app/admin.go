@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -419,3 +420,70 @@ var (
 	_ = updateHeadReproLevel
 	_ = updateCrashPriorities
 )
+
+func handleMissingAuthors(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("mandatory parameter ns is missing")
+	}
+	limit := 0
+	if limitStr := r.FormValue("limit"); limitStr != "" {
+		parsed, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return fmt.Errorf("invalid limit parameter %q: %w", limitStr, err)
+		}
+		if parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	var uniqueTitles []string
+	seen := make(map[string]bool)
+	err := foreachBug(ctx, nil, func(bug *Bug, _ *db.Key) error {
+		if limit > 0 && len(uniqueTitles) >= limit {
+			return nil
+		}
+		if bug.Namespace != ns {
+			return nil
+		}
+		for i, com := range bug.Commits {
+			if len(bug.CommitInfo) > i {
+				info := bug.CommitInfo[i]
+				if info.Author != "" && info.AuthorName == "" {
+					if !seen[com] {
+						seen[com] = true
+						uniqueTitles = append(uniqueTitles, com)
+						if limit > 0 && len(uniqueTitles) >= limit {
+							break
+						}
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(uniqueTitles)
+}
+
+func handleBackfillAuthors(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("mandatory parameter ns is missing")
+	}
+	var commits []dashapi.Commit
+	if err := json.NewDecoder(r.Body).Decode(&commits); err != nil {
+		return fmt.Errorf("failed to decode json: %w", err)
+	}
+	for i := range commits {
+		if err := addCommitInfo(ctx, ns, commits[i]); err != nil {
+			return fmt.Errorf("failed to add commit %q: %w", commits[i].Title, err)
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	return nil
+}

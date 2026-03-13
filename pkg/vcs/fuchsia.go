@@ -94,6 +94,10 @@ func (ctx *fuchsia) GetCommitsByTitles(titles []string) ([]*Commit, []string, er
 	return ctx.repo.GetCommitsByTitles(titles)
 }
 
+func (ctx *fuchsia) GetCommitsByTitlesSince(titles []string, since time.Time) ([]*Commit, []string, error) {
+	return ctx.repo.GetCommitsByTitlesSince(titles, since)
+}
+
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.repo.ExtractFixTagsFromCommits(baseCommit, email)
 }
