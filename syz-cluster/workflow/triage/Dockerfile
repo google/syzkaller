@@ -2,7 +2,7 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM golang:1.24-alpine AS triage-action-builder
+FROM golang:1.26-alpine AS triage-action-builder
 
 WORKDIR /build
 
