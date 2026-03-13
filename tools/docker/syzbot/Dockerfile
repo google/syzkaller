@@ -93,7 +93,7 @@ ENV PATH=/usr/local/cargo/bin:$PATH
 ENV RUST_VERSION=1.91.1
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $RUST_VERSION
 RUN rustup component add rust-src
-RUN cargo install --locked bindgen-cli
+RUN apt-get install -y bindgen
 
 RUN apt-get install -y --no-install-recommends libdw-dev libelf-dev
 
