@@ -11,7 +11,7 @@ RUN go mod download
 COPY --exclude=syz-cluster . .
 RUN make TARGETARCH=amd64
 
-FROM golang:1.24-alpine AS boot-action-builder
+FROM golang:1.26-alpine AS boot-action-builder
 WORKDIR /build
 
 # Copy the code and the dependencies.
