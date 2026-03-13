@@ -523,3 +523,32 @@ No patch, just text`,
 		})
 	}
 }
+func TestLink(t *testing.T) {
+	tests := []struct {
+		id     string
+		thread bool
+		want   string
+	}{
+		{
+			id:     "<id@domain>",
+			thread: true,
+			want:   "https://lore.kernel.org/all/id@domain/T/",
+		},
+		{
+			id:     "<id@domain>",
+			thread: false,
+			want:   "https://lore.kernel.org/all/id@domain",
+		},
+		{
+			id:     "id@domain",
+			thread: true,
+			want:   "https://lore.kernel.org/all/id@domain/T/",
+		},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%v", test.id, test.thread), func(t *testing.T) {
+			got := Link(test.id, test.thread)
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
