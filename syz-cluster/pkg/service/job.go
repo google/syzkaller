@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/uuid"
+	"github.com/google/syzkaller/pkg/email/lore"
 )
 
 var ErrPatchTooLarge = errors.New("patch is too large")
@@ -60,6 +61,9 @@ func (s *JobService) GetJob(ctx context.Context, jobID string) (*api.Job, error)
 		ID:       jobID,
 		Patch:    patch,
 		ReportID: job.ReportID,
+	}
+	if job.Reporter == api.LKMLReporter {
+		apiJob.Link = lore.Link(job.ExtID)
 	}
 
 	report, err := s.reportRepo.GetByID(ctx, job.ReportID)
@@ -129,6 +133,8 @@ func (s *JobService) SubmitJob(ctx context.Context, req *api.SubmitJobRequest) (
 	report, err := s.reportRepo.GetByID(ctx, req.ReportID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session report %s: %w", req.ReportID, err)
+	} else if report == nil {
+		return nil, fmt.Errorf("session report %s not found", req.ReportID)
 	}
 	origSession, err := s.sessionRepo.GetByID(ctx, report.SessionID)
 	if err != nil {

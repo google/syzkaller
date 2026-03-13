@@ -43,4 +43,3 @@ second body`,
 		"bob@example.com", "d@d.com",
 	}, sp.Emails())
 }
-
