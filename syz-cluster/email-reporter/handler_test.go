@@ -237,6 +237,7 @@ func TestSyzTestFlow(t *testing.T) {
 	assert.Equal(t, []string{"user@email.com", "test-cc@email.com", "other@email.com"}, reportReply.To)
 	assert.Equal(t, append([]string{testEmailConfig.ArchiveList}, testEmailConfig.ReportCC...), reportReply.Cc)
 	assert.Contains(t, string(reportReply.Body), "passed")
+	assert.Contains(t, string(reportReply.Body), "/session/"+list[0].ID)
 
 	// Some error cases.
 	t.Run("missing patch", func(t *testing.T) {

@@ -30,6 +30,10 @@ func (g *URLGenerator) Series(seriesID string) string {
 	return fmt.Sprintf("%s/series/%s", g.baseURL, seriesID)
 }
 
+func (g *URLGenerator) Session(sessionID string) string {
+	return fmt.Sprintf("%s/session/%s", g.baseURL, sessionID)
+}
+
 func (g *URLGenerator) BuildConfig(buildID string) string {
 	return fmt.Sprintf("%s/builds/%s/config", g.baseURL, buildID)
 }

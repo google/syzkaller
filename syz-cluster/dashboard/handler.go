@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/google/syzkaller/syz-cluster/pkg/service"
 )
 
 type dashboardHandler struct {
@@ -74,6 +77,7 @@ func (h *dashboardHandler) Mux() *http.ServeMux {
 	mux.HandleFunc("/sessions/{id}/test_artifacts", errToStatus(h.sessionTestArtifacts))
 	mux.HandleFunc("/series/{id}/all_patches", errToStatus(h.allPatches))
 	mux.HandleFunc("/series/{id}", errToStatus(h.seriesInfo))
+	mux.HandleFunc("/session/{id}", errToStatus(h.sessionInfo))
 	mux.HandleFunc("/patches/{id}", errToStatus(h.patchContent))
 	mux.HandleFunc("/jobs/{id}/patch", errToStatus(h.jobPatchContent))
 	mux.HandleFunc("/findings/{id}/{key}", errToStatus(h.findingInfo))
@@ -167,24 +171,82 @@ func (h *dashboardHandler) getOffset(r *http.Request) (int, error) {
 	return i, nil
 }
 
+type uiSessionTest struct {
+	*db.FullSessionTest
+	Findings []*db.Finding
+	Steps    []*db.TestStepGroup
+}
+
+type uiSessionData struct {
+	*db.Session
+	Tests       []uiSessionTest
+	Uncollapsed bool
+	Job         *db.Job
+	JobLink     string
+}
+
+type uiSeriesData struct {
+	*db.Series
+	Patches      []*db.Patch
+	Sessions     []uiSessionData
+	Versions     []*db.Series
+	TotalPatches int
+}
+
+func (h *dashboardHandler) fetchSessionData(ctx context.Context, session *db.Session) (uiSessionData, error) {
+	rawTests, err := h.sessionTestRepo.BySession(ctx, session.ID)
+	if err != nil {
+		return uiSessionData{}, fmt.Errorf("failed to query session tests: %w", err)
+	}
+	findings, err := h.findingRepo.ListForSession(ctx, session.ID, db.NoLimit)
+	if err != nil {
+		return uiSessionData{}, fmt.Errorf("failed to query session findings: %w", err)
+	}
+	perName := groupFindings(findings)
+	sessionData := uiSessionData{
+		Session: session,
+	}
+	if !session.JobID.IsNull() {
+		dbJob, err := h.jobRepo.GetByID(ctx, session.JobID.StringVal)
+		if err != nil {
+			return uiSessionData{}, fmt.Errorf("failed to query job: %w", err)
+		}
+		if dbJob != nil {
+			sessionData.JobLink = service.JobLink(dbJob)
+		}
+		sessionData.Job = dbJob
+	}
+	for _, test := range rawTests {
+		steps, err := h.sessionTestStepRepo.ListForSession(ctx, session.ID, test.TestName)
+		if err != nil {
+			return uiSessionData{}, fmt.Errorf("failed to query session test steps: %w", err)
+		}
+		groupedSteps := db.GroupTestSteps(steps)
+		sessionData.Tests = append(sessionData.Tests, uiSessionTest{
+			FullSessionTest: test,
+			Findings:        perName[test.TestName],
+			Steps:           groupedSteps,
+		})
+	}
+	return sessionData, nil
+}
+
+func (h *dashboardHandler) populateSeriesMetadata(ctx context.Context, data *uiSeriesData) error {
+	var err error
+	data.Patches, err = h.seriesRepo.ListPatches(ctx, data.Series)
+	if err != nil {
+		return fmt.Errorf("failed to query patches: %w", err)
+	}
+	data.TotalPatches = len(data.Patches)
+	data.Versions, err = h.seriesRepo.ListAllVersions(ctx, data.Series.Title)
+	if err != nil {
+		return fmt.Errorf("failed to query all series versions: %w", err)
+	}
+	return nil
+}
+
 func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) error {
-	type SessionTest struct {
-		*db.FullSessionTest
-		Findings []*db.Finding
-		Steps    []*db.TestStepGroup
-	}
-	type SessionData struct {
-		*db.Session
-		Tests []SessionTest
-	}
-	type SeriesData struct {
-		*db.Series
-		Patches      []*db.Patch
-		Sessions     []SessionData
-		Versions     []*db.Series
-		TotalPatches int
-	}
-	var data SeriesData
+	var data uiSeriesData
 	var err error
 	ctx := r.Context()
 	data.Series, err = h.seriesRepo.GetByID(ctx, r.PathValue("id"))
@@ -193,47 +255,62 @@ func (h *dashboardHandler) seriesInfo(w http.ResponseWriter, r *http.Request) er
 	} else if data.Series == nil {
 		return fmt.Errorf("%w: series", errNotFound)
 	}
-	data.Patches, err = h.seriesRepo.ListPatches(ctx, data.Series)
-	if err != nil {
-		return fmt.Errorf("failed to query patches: %w", err)
-	}
-	data.TotalPatches = len(data.Patches)
-	// Note: There may be some false positives, but there's no straightforward way to filter them out.
-	data.Versions, err = h.seriesRepo.ListAllVersions(ctx, data.Series.Title)
-	if err != nil {
-		return fmt.Errorf("failed to query all series versions: %w", err)
+	if err := h.populateSeriesMetadata(ctx, &data); err != nil {
+		return err
 	}
 	sessions, err := h.sessionRepo.ListForSeries(ctx, data.Series)
 	if err != nil {
 		return fmt.Errorf("failed to query sessions: %w", err)
 	}
 	for _, session := range sessions {
-		rawTests, err := h.sessionTestRepo.BySession(ctx, session.ID)
+		sessionData, err := h.fetchSessionData(ctx, session)
 		if err != nil {
-			return fmt.Errorf("failed to query session tests: %w", err)
+			return err
 		}
-		findings, err := h.findingRepo.ListForSession(ctx, session.ID, db.NoLimit)
-		if err != nil {
-			return fmt.Errorf("failed to query session findings: %w", err)
-		}
-		perName := groupFindings(findings)
-		sessionData := SessionData{
-			Session: session,
-		}
-		for _, test := range rawTests {
-			steps, err := h.sessionTestStepRepo.ListForSession(ctx, session.ID, test.TestName)
-			if err != nil {
-				return fmt.Errorf("failed to query session test steps: %w", err)
-			}
-			groupedSteps := db.GroupTestSteps(steps)
-			sessionData.Tests = append(sessionData.Tests, SessionTest{
-				FullSessionTest: test,
-				Findings:        perName[test.TestName],
-				Steps:           groupedSteps,
-			})
-		}
+		sessionData.Uncollapsed = session.JobID.IsNull()
 		data.Sessions = append(data.Sessions, sessionData)
 	}
+	sort.Slice(data.Sessions, func(i, j int) bool {
+		if data.Sessions[i].JobID.IsNull() && !data.Sessions[j].JobID.IsNull() {
+			return true
+		}
+		if !data.Sessions[i].JobID.IsNull() && data.Sessions[j].JobID.IsNull() {
+			return false
+		}
+		return data.Sessions[i].CreatedAt.After(data.Sessions[j].CreatedAt)
+	})
+	return h.renderTemplate(w, "series.html", data)
+}
+
+func (h *dashboardHandler) sessionInfo(w http.ResponseWriter, r *http.Request) error {
+	var data uiSeriesData
+	var err error
+	ctx := r.Context()
+
+	session, err := h.sessionRepo.GetByID(ctx, r.PathValue("id"))
+	if err != nil {
+		return fmt.Errorf("failed to query session: %w", err)
+	} else if session == nil {
+		return fmt.Errorf("%w: session", errNotFound)
+	}
+
+	data.Series, err = h.seriesRepo.GetByID(ctx, session.SeriesID)
+	if err != nil {
+		return fmt.Errorf("failed to query series: %w", err)
+	} else if data.Series == nil {
+		return fmt.Errorf("%w: series", errNotFound)
+	}
+	if err := h.populateSeriesMetadata(ctx, &data); err != nil {
+		return err
+	}
+
+	sessionData, err := h.fetchSessionData(ctx, session)
+	if err != nil {
+		return err
+	}
+	sessionData.Uncollapsed = true
+	data.Sessions = []uiSessionData{sessionData}
+
 	return h.renderTemplate(w, "series.html", data)
 }
 

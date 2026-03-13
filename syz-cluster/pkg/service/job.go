@@ -11,12 +11,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/blob"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/google/uuid"
-	"github.com/google/syzkaller/pkg/email/lore"
 )
 
 var ErrPatchTooLarge = errors.New("patch is too large")
@@ -61,9 +61,6 @@ func (s *JobService) GetJob(ctx context.Context, jobID string) (*api.Job, error)
 		ID:       jobID,
 		Patch:    patch,
 		ReportID: job.ReportID,
-	}
-	if job.Reporter == api.LKMLReporter {
-		apiJob.Link = lore.Link(job.ExtID)
 	}
 
 	report, err := s.reportRepo.GetByID(ctx, job.ReportID)
@@ -191,4 +188,14 @@ func (s *JobService) SubmitJob(ctx context.Context, req *api.SubmitJobRequest) (
 	}
 
 	return &api.SubmitJobResponse{JobID: job.ID, SessionID: session.ID}, nil
+}
+
+func JobLink(job *db.Job) string {
+	if job == nil {
+		return ""
+	}
+	if job.Reporter == api.LKMLReporter {
+		return lore.Link(job.ExtID, false)
+	}
+	return ""
 }

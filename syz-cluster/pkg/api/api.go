@@ -270,7 +270,6 @@ type Job struct {
 	ID            string         `json:"id"`
 	Patch         []byte         `json:"patch"`
 	ReportID      string         `json:"report_id"`
-	Link          string         `json:"link,omitempty"`
 	FindingGroups []FindingGroup `json:"finding_groups,omitempty"`
 }
 

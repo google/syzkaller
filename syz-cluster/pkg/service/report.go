@@ -121,6 +121,7 @@ func (rs *ReportService) Next(ctx context.Context, reporter string) (*api.NextRe
 		if err := rs.populatePatchTestReport(ctx, reportObj, session); err != nil {
 			return nil, err
 		}
+		reportObj.Link = rs.urls.Session(session.ID)
 	} else {
 		reportObj.Type = api.ReportTypeBug
 		reportObj.InReplyTo = series.ExtID
