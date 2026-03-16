@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,6 +25,9 @@ type AppConfig struct {
 	LoreArchives []string `yaml:"loreArchives"`
 	// Parameters used for sending/generating emails.
 	EmailReporting *EmailConfig `yaml:"emailReporting"`
+	// Trees and Fuzzer configuration.
+	Trees       []*api.Tree             `yaml:"trees"`
+	FuzzTargets []*api.FuzzTriageTarget `yaml:"fuzz_targets"`
 }
 
 const (

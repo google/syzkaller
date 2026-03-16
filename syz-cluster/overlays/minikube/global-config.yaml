@@ -15,3 +15,23 @@ emailReporting:
   moderationList: moderation@list.com
   smtpConfig:
     from: sender@email.com
+
+trees:
+  - name: torvalds
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
+    branch: master
+
+fuzz_targets:
+  - email_lists:
+      - netdev@vger.kernel.org
+      - netfilter-devel@vger.kernel.org
+      - linux-wireless@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: net
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
+  - campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db

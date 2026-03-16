@@ -6,3 +6,22 @@ parallelWorkflows: 5
 loreArchives:
   - netdev
   - linux-ext4
+
+trees:
+  - name: net
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git
+    branch: main
+    email_lists:
+      - netdev@vger.kernel.org
+  - name: torvalds
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
+    branch: master
+  - name: linux-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next
+    branch: master
+
+fuzz_targets:
+  - campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
