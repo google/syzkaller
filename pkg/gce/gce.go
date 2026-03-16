@@ -41,6 +41,7 @@ type Context struct {
 	Subnetwork string
 
 	computeService *compute.Service
+	metadataServer string
 
 	// apiCallTicker ticks regularly, preventing us from accidentally making
 	// GCE API calls too quickly. Our quota is 20 QPS, but we limit ourselves
@@ -65,9 +66,12 @@ type InstanceConfig struct {
 	NicType              string
 }
 
+var metadataURL = "http://metadata.google.internal/computeMetadata/v1/"
+
 func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	ctx := &Context{
-		apiRateGate: time.NewTicker(time.Second).C,
+		apiRateGate:    time.NewTicker(time.Second).C,
+		metadataServer: metadataURL,
 	}
 	background := context.Background()
 	tokenSource, err := google.DefaultTokenSource(background, compute.CloudPlatformScope)
@@ -88,16 +92,14 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 			return nil, fmt.Errorf("failed to query gce project-id: %w", err)
 		}
 	}
+	instanceZone, err := ctx.localZone()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get local zone: %w", err)
+	}
 	if customZoneID != "" {
 		ctx.ZoneID = customZoneID
 	} else {
-		ctx.ZoneID, err = ctx.getMeta("instance/zone")
-		if err != nil {
-			return nil, fmt.Errorf("failed to query gce zone: %w", err)
-		}
-		if i := strings.LastIndexByte(ctx.ZoneID, '/'); i != -1 {
-			ctx.ZoneID = ctx.ZoneID[i+1:] // the query returns some nonsense prefix
-		}
+		ctx.ZoneID = instanceZone
 	}
 	if !validateZone(ctx.ZoneID) {
 		return nil, fmt.Errorf("%q is not a valid zone name", ctx.ZoneID)
@@ -110,7 +112,7 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query gce instance name: %w", err)
 	}
-	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, ctx.Instance).Do()
+	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, instanceZone, ctx.Instance).Do()
 	if err != nil {
 		return nil, fmt.Errorf("error getting instance info: %w", err)
 	}
@@ -384,7 +386,7 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 }
 
 func (ctx *Context) getMeta(path string) (string, error) {
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/"+path, nil)
+	req, err := http.NewRequest("GET", ctx.metadataServer+path, nil)
 	if err != nil {
 		return "", err
 	}
@@ -399,6 +401,20 @@ func (ctx *Context) getMeta(path string) (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// localZone returns the local zone of the machine. The GCE metadata API
+// returns a fully qualified resource name, like "projects/1234/zones/us-central1-c",
+// so we drop the prefix to return just the zone ID.
+func (ctx *Context) localZone() (string, error) {
+	zone, err := ctx.getMeta("instance/zone")
+	if err != nil {
+		return "", err
+	}
+	if i := strings.LastIndexByte(zone, '/'); i != -1 {
+		zone = zone[i+1:]
+	}
+	return zone, nil
 }
 
 func (ctx *Context) apiCall(fn func() error) error {
