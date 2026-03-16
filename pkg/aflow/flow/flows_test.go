@@ -4,6 +4,7 @@
 package flow
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -13,6 +14,9 @@ import (
 
 func TestMCPTools(t *testing.T) {
 	for tool := range aflow.MCPTools {
+		if strings.Contains(tool.Name, "-") {
+			t.Errorf("MCP tool %q contains '-'", tool.Name)
+		}
 		t.Log(tool.Name)
 	}
 }
