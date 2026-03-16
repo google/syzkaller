@@ -24,6 +24,7 @@ type APIServer struct {
 	findingService         *service.FindingService
 	baseFindingService     *service.BaseFindingService
 	sessionTestStepService *service.SessionTestStepService
+	config                 *app.AppConfig
 }
 
 func NewAPIServer(env *app.AppEnvironment) *APIServer {
@@ -35,6 +36,7 @@ func NewAPIServer(env *app.AppEnvironment) *APIServer {
 		findingService:         service.NewFindingService(env),
 		baseFindingService:     service.NewBaseFindingService(env),
 		sessionTestStepService: service.NewSessionTestStepService(env),
+		config:                 env.Config,
 	}
 }
 
@@ -237,8 +239,8 @@ func (c APIServer) uploadSession(w http.ResponseWriter, r *http.Request) {
 
 func (c APIServer) getTrees(w http.ResponseWriter, r *http.Request) {
 	api.ReplyJSON(w, &api.TreesResp{
-		Trees:       api.DefaultTrees,
-		FuzzTargets: api.FuzzTargets,
+		Trees:       c.config.Trees,
+		FuzzTargets: c.config.FuzzTargets,
 	})
 }
 

@@ -406,3 +406,13 @@ func TestAPIUploadTestStep(t *testing.T) {
 	require.Len(t, steps, 1)
 	assert.Equal(t, api.StepResultFailed, steps[0].Result)
 }
+func TestAPIGetTrees(t *testing.T) {
+	env, ctx := app.TestEnvironment(t)
+	client := TestServer(t, env)
+
+	resp, err := client.GetTrees(ctx)
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, env.Config.Trees, resp.Trees)
+	assert.Equal(t, env.Config.FuzzTargets, resp.FuzzTargets)
+}

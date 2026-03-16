@@ -30,3 +30,114 @@ emailReporting:
     client: gke-email-reporter
     from: syzbot@syzkaller.appspotmail.com
     contextPrefix: ci
+
+trees:
+  - name: bpf-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf-next.git
+    branch: master
+    email_lists:
+      - bpf@vger.kernel.org
+  - name: bpf
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/bpf/bpf.git
+    branch: master
+    email_lists:
+      - bpf@vger.kernel.org
+  - name: nf-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf-next.git
+    branch: main
+    email_lists:
+      - netfilter-devel@vger.kernel.org
+  - name: nf
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netfilter/nf.git
+    branch: main
+    email_lists:
+      - netfilter-devel@vger.kernel.org
+  - name: net-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net-next.git
+    branch: main
+    email_lists:
+      - netdev@vger.kernel.org
+  - name: net
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/net.git
+    branch: main
+    email_lists:
+      - netdev@vger.kernel.org
+  - name: kvm-next
+    URL: https://kernel.googlesource.com/pub/scm/virt/kvm/kvm/
+    branch: next
+    email_lists:
+      - kvm@vger.kernel.org
+  - name: drm-next
+    URL: https://gitlab.freedesktop.org/drm/kernel.git
+    branch: drm-next
+    email_lists:
+      - dri-devel@lists.freedesktop.org
+  - name: mm-new
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/akpm/mm.git
+    branch: mm-new
+    email_lists:
+      - linux-mm@kvack.org
+  - name: media
+    URL: https://git.linuxtv.org/media.git
+    branch: next
+    email_lists:
+      - linux-media@vger.kernel.org
+  - name: torvalds
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux
+    branch: master
+  - name: linux-next
+    URL: https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next
+    branch: master
+
+fuzz_targets:
+  - email_lists:
+      - kvm@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: kvm
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
+  - email_lists:
+      - io-uring@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: io_uring
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
+  - email_lists:
+      - bpf@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: bpf
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-bpf-kasan-gce-corpus.db
+  - email_lists:
+      - netdev@vger.kernel.org
+      - netfilter-devel@vger.kernel.org
+      - linux-wireless@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: net
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-net-kasan-gce-corpus.db
+  - email_lists:
+      - linux-fsdevel@vger.kernel.org
+      - linux-block@vger.kernel.org
+      - linux-unionfs@vger.kernel.org
+      - linux-ext4@vger.kernel.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        focus: fs
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci2-upstream-fs-corpus.db
+  - email_lists:
+      - linux-mm@kvack.org
+    campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
+        skip_cover_check: true
+  - campaigns:
+      - track: KASAN
+        kernel_config: upstream-apparmor-kasan.config
+        corpus_url: https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-root-corpus.db
