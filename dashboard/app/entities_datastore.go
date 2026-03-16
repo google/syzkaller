@@ -214,7 +214,9 @@ func updateSingleBug(ctx context.Context, bugKey *db.Key, transform func(*Bug) e
 		}
 		return nil
 	}
-	return runInTransaction(ctx, tx, nil)
+	return runInTransaction(ctx, tx, &db.TransactionOptions{
+		XG: true, // We need the same XG as in the consequent transactions.
+	})
 }
 
 func (bug *Bug) hasUserSubsystems() bool {
