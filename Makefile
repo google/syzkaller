@@ -50,6 +50,7 @@ ifneq ("$(GOTAGS)", "")
 	GOFLAGS += " -tags=$(GOTAGS)"
 endif
 
+
 GOHOSTFLAGS ?= $(GOFLAGS)
 GOTARGETFLAGS ?= $(GOFLAGS)
 

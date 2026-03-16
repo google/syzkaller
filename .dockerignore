@@ -1,5 +1,6 @@
+.git
 .gitignore
 bin/
 dashboard/
 !dashboard/dashapi/
-workdir/
+syz-cluster/bin/

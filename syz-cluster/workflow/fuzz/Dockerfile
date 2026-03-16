@@ -2,15 +2,9 @@
 # Copyright 2025 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM gcr.io/syzkaller/env AS fuzz-action-builder
-WORKDIR /build
-
-# Copy the code and the dependencies.
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN make TARGETARCH=amd64
-RUN GO_FLAGS=$(make go-flags 2>/dev/null) && go build "$GO_FLAGS" -o /bin/fuzz-action /build/syz-cluster/workflow/fuzz
+ARG IMAGE_PREFIX=local/
+ARG IMAGE_TAG=latest
+FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 
 FROM debian:bookworm
 
@@ -30,7 +24,7 @@ RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/cl
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
 
-COPY --from=fuzz-action-builder /build/bin/ /syzkaller/bin/
-COPY --from=fuzz-action-builder /bin/fuzz-action /bin/fuzz-action
+COPY --from=builder /build/bin/ /syzkaller/bin/
+COPY --from=builder /build/syz-cluster/bin/fuzz-action /bin/fuzz-action
 
 ENTRYPOINT ["/bin/fuzz-action"]

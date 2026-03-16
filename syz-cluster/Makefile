@@ -4,20 +4,39 @@
 IMAGE_TAG ?= latest
 IMAGE_PREFIX ?= local/
 SHELL := /bin/bash
+GO_FLAGS ?= $(shell make -s -C .. go-flags 2>/dev/null)
+
+include ../tools/version.mk
+
+
+IMAGES := controller web-dashboard reporter-server series-tracker email-reporter triage-action build-action boot-action fuzz-action retest-action db-mgmt send-test-email
+
+.PHONY: all
+all: $(addprefix bin/, $(IMAGES))
+
 
 define build_image_rules =
   image_name_$(2) := $(IMAGE_PREFIX)$(2):$(IMAGE_TAG)
   dockerfile_$(2) := $(1)/Dockerfile
 
-  build-$(2):
-	  @echo "Building $$(image_name_$(2)) (Dockerfile: $$(dockerfile_$(2)))"
-	  DOCKER_BUILDKIT=1 docker build -t $$(image_name_$(2)) -f $$(dockerfile_$(2)) ../
+  bin/$(2):
+		go build "$$(GO_FLAGS)" -o ./bin/$(2) $(1)
 
-  push-$(2): build-$(2)
+  build-$(2)-image: build-common-builder
+	  @echo "Building $$(image_name_$(2)) (Dockerfile: $$(dockerfile_$(2)))"
+	  DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX) --build-arg IMAGE_TAG=$(IMAGE_TAG) -t $$(image_name_$(2)) -f $$(dockerfile_$(2)) ../
+
+  push-$(2)-image: build-$(2)-image
 	  @echo "Pushing $$(image_name_$(2))"
 	  docker push $$(image_name_$(2))
 
 endef
+
+.PHONY: build-common-builder
+build-common-builder:
+	@echo "Building common builder"
+	DOCKER_BUILDKIT=1 docker build --build-arg REV="$(REV)" --build-arg GITREVDATE="$(GITREVDATE)" -t $(IMAGE_PREFIX)syz-cluster-build:$(IMAGE_TAG) -f ./Dockerfile.builder ../
+
 
 $(eval $(call build_image_rules,./controller,controller))
 $(eval $(call build_image_rules,./dashboard,web-dashboard))
@@ -32,24 +51,14 @@ $(eval $(call build_image_rules,./workflow/boot,boot-action))
 $(eval $(call build_image_rules,./tools/db-mgmt,db-mgmt))
 $(eval $(call build_image_rules,./tools/send-test-email,send-test-email))
 
-IMAGES := controller web-dashboard reporter-server series-tracker db-mgmt triage-action build-action boot-action fuzz-action retest-action send-test-email email-reporter
-BUILD_TARGETS := $(addprefix build-, $(IMAGES))
-PUSH_TARGETS := $(addprefix push-, $(IMAGES))
+BUILD_TARGETS := $(addsuffix -image, $(addprefix build-, $(IMAGES)))
+PUSH_TARGETS := $(addsuffix -image, $(addprefix push-, $(IMAGES)))
 
-.PHONY: build-all push-all deploy-series-tracker run-series-tracker install-dev-config build-go-tests-dev run-go-tests-dev restart-spanner kustomize-dev
+.PHONY: all-containers push-all install-dev-config build-go-tests-dev run-go-tests-dev restart-spanner kustomize-dev
 
-build-all: $(BUILD_TARGETS)
+all-containers: $(BUILD_TARGETS)
 
 push-all: $(PUSH_TARGETS)
-
-deploy-series-tracker: build-series-tracker
-	@kubectl rollout restart deployment series-tracker
-
-run-series-tracker: build-series-tracker
-	./run-local.sh series-tracker
-
-deploy-web-dashboard: build-web-dashboard
-	@kubectl rollout restart deployment web-dashboard
 
 install-dev-config:
 	minikube kubectl -- apply -f ./overlays/dev/global-config.yaml
@@ -61,7 +70,7 @@ build-go-tests-dev:
 run-go-tests-dev: build-go-tests-dev
 	./run-local.sh go-tests
 
-restart-spanner: build-db-mgmt
+restart-spanner: build-db-mgmt-image
 	minikube addons disable cloud-spanner;
 	minikube addons enable cloud-spanner;
 	./run-local.sh db-mgmt migrate
