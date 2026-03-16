@@ -55,6 +55,10 @@ type Config struct {
 	TargetReboot  bool   `json:"target_reboot"`
 	RepairScript  string `json:"repair_script"`  // script to execute before each startup
 	StartupScript string `json:"startup_script"` // script to execute after each startup
+	// BootService specifies the service name to wait for during boot completion.
+	// The default value is "systemui", which waits for the com.android.systemui process.
+	// For AOSP builds without SystemUI, you can use "servicemanager" or other services.
+	BootService string `json:"boot_service"`
 }
 
 type Pool struct {
@@ -98,6 +102,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Adb:          "adb",
 		BatteryCheck: true,
 		TargetReboot: true,
+		BootService:  "systemui",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse adb vm config: %w", err)
@@ -346,10 +351,11 @@ func (inst *instance) waitForBootCompletion() {
 	// This enables syzkaller to create a race condition which in certain cases doesn't
 	// allow the phone to finalize initialization.
 	// To determine whether a system has booted and started all system processes and
-	// services we wait for a process named 'com.android.systemui' to start. It's possible
-	// that in the future a new devices which doesn't have 'systemui' process will be fuzzed
-	// with adb, in this case this code should be modified with a new process name to search for.
+	// services we wait for a process specified in the BootService config to start.
+	// By default, this is 'systemui' (com.android.systemui). For AOSP builds without
+	// SystemUI, users can configure alternative services like 'servicemanager'.
 	log.Logf(2, "waiting for boot completion")
+	bootService := inst.cfg.BootService
 
 	sleepTime := 5
 	sleepDuration := time.Duration(sleepTime) * time.Second
@@ -359,19 +365,19 @@ func (inst *instance) waitForBootCompletion() {
 	for ; i < maxRetries; i++ {
 		time.Sleep(sleepDuration)
 
-		if out, err := inst.adb("shell", "pgrep systemui | wc -l"); err == nil {
+		if out, err := inst.adb("shell", fmt.Sprintf("pgrep %s | wc -l", bootService)); err == nil {
 			count := parseAdbOutToInt(out)
 			if count != 0 {
 				log.Logf(0, "boot completed")
 				break
 			}
 		} else {
-			log.Logf(0, "failed to execute command 'pgrep systemui | wc -l', %v", err)
+			log.Logf(0, "failed to execute command 'pgrep %s | wc -l', %v", bootService, err)
 			break
 		}
 	}
 	if i == maxRetries {
-		log.Logf(0, "failed to determine boot completion, can't find 'com.android.systemui' process")
+		log.Logf(0, "failed to determine boot completion, can't find '%s' process", bootService)
 	}
 }
 
