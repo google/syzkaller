@@ -78,7 +78,9 @@ type DashapiConfig struct {
 // The project configuration is expected to be mounted at /config/config.yaml.
 
 func Config() (*AppConfig, error) {
-	configLoadedOnce.Do(loadConfig)
+	configLoadedOnce.Do(func() {
+		config, configErr = loadConfig(configPath)
+	})
 	return config, configErr
 }
 
@@ -88,11 +90,10 @@ var configLoadedOnce sync.Once
 var configErr error
 var config *AppConfig
 
-func loadConfig() {
-	data, err := os.ReadFile(configPath)
+func loadConfig(path string) (*AppConfig, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		configErr = fmt.Errorf("failed to read %q: %w", configPath, err)
-		return
+		return nil, fmt.Errorf("failed to read %q: %w", path, err)
 	}
 	obj := AppConfig{
 		Name:              "Syzbot CI",
@@ -100,15 +101,13 @@ func loadConfig() {
 	}
 	err = yaml.Unmarshal(data, &obj)
 	if err != nil {
-		configErr = fmt.Errorf("failed to parse: %w", err)
-		return
+		return nil, fmt.Errorf("failed to parse: %w", err)
 	}
 	err = obj.Validate()
 	if err != nil {
-		configErr = err
-		return
+		return nil, err
 	}
-	config = &obj
+	return &obj, nil
 }
 
 func (c AppConfig) Validate() error {
