@@ -84,13 +84,14 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 		return nil, fmt.Errorf("failed to create compute service: %w", err)
 	}
 	// Obtain project name, zone and current instance IP address.
+	instanceProject, err := ctx.getMeta("project/project-id")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query gce project-id: %w", err)
+	}
 	if customProjectID != "" {
 		ctx.ProjectID = customProjectID
 	} else {
-		ctx.ProjectID, err = ctx.getMeta("project/project-id")
-		if err != nil {
-			return nil, fmt.Errorf("failed to query gce project-id: %w", err)
-		}
+		ctx.ProjectID = instanceProject
 	}
 	instanceZone, err := ctx.localZone()
 	if err != nil {
@@ -112,7 +113,7 @@ func NewContext(customZoneID, customProjectID string) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query gce instance name: %w", err)
 	}
-	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, instanceZone, ctx.Instance).Do()
+	inst, err := ctx.computeService.Instances.Get(instanceProject, instanceZone, ctx.Instance).Do()
 	if err != nil {
 		return nil, fmt.Errorf("error getting instance info: %w", err)
 	}
