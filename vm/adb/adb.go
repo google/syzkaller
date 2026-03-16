@@ -381,6 +381,17 @@ func (inst *instance) waitForBootCompletion() {
 	}
 }
 
+func (inst *instance) markBootSuccessful() {
+	// Mark the current boot as successful in the bootloader.
+	// This is important for Android A/B devices where the bootloader tracks
+	// successful boots and may switch to a different slot after multiple
+	// failed boot attempts.
+	// On non-A/B devices, the command does not return an error.
+	if _, err := inst.adb("shell", "bootctl mark-boot-successful"); err != nil {
+		log.Logf(0, "failed to mark boot as successful: %v", err)
+	}
+}
+
 func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
 	// Ignore errors, maybe we will manage to reboot it anyway.
@@ -419,6 +430,9 @@ func (inst *instance) repair() error {
 	inst.adb("root")
 	inst.waitForSSH()
 	inst.waitForBootCompletion()
+
+	// Mark boot as successful to prevent slot switching on A/B devices.
+	inst.markBootSuccessful()
 
 	// Mount debugfs.
 	if _, err := inst.adb("shell", "ls /sys/kernel/debug"); err != nil {
