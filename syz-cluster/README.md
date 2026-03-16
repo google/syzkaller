@@ -52,7 +52,7 @@ $ minikube addons enable cloud-spanner
 3. Build all docker containers (might take a while):
 ```
 $ eval $(minikube docker-env)
-$ make build-all
+$ make all-containers
 ```
 4. Deploy the cluster:
 ```

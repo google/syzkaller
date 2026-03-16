@@ -6,6 +6,7 @@
 workdir*
 
 bin/
+syz-cluster/bin/
 dashboard/app/config_prod.go
 
 # stub file used by Makefile

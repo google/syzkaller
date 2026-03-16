@@ -2,17 +2,9 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM golang:1.26-alpine AS triage-action-builder
-
-WORKDIR /build
-
-# Prepare the dependencies.
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Build the tool.
-COPY --exclude=.git . .
-RUN go build -o /build/triage-action-bin /build/syz-cluster/workflow/triage
+ARG IMAGE_PREFIX=local/
+ARG IMAGE_TAG=latest
+FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 
 FROM ubuntu:latest
 
@@ -25,6 +17,6 @@ RUN useradd -u 10000 --create-home syzkaller
 RUN git config --system --add safe.directory /workdir
 RUN git config --system --add safe.directory /kernel-repo
 
-COPY --from=triage-action-builder /build/triage-action-bin /bin/triage-action
+COPY --from=builder /build/syz-cluster/bin/triage-action /bin/triage-action
 
 ENTRYPOINT ["/bin/triage-action"]

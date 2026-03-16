@@ -2,13 +2,9 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM gcr.io/syzkaller/env AS build-action-builder
-
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN go build -o /build/build-action-bin /build/syz-cluster/workflow/build
+ARG IMAGE_PREFIX=local/
+ARG IMAGE_TAG=latest
+FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 
 # Build on the latest syzbot image.
 FROM gcr.io/syzkaller/syzbot:latest
@@ -29,6 +25,6 @@ RUN chmod 644 /kernel-configs/*
 RUN git config --system --add safe.directory /workdir
 RUN git config --system --add safe.directory /kernel-repo
 
-COPY --from=build-action-builder /build/build-action-bin /bin/build-action
+COPY --from=builder /build/syz-cluster/bin/build-action /bin/build-action
 
-ENTRYPOINT ["/bin/series-tracker"]
+ENTRYPOINT ["/bin/build-action"]

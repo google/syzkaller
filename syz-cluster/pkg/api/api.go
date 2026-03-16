@@ -213,4 +213,3 @@ type BuildInfo struct {
 	Compiler   string `json:"compiler"`
 	ConfigLink string `json:"config_link"`
 }
-

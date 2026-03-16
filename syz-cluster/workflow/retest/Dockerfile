@@ -2,15 +2,9 @@
 # Copyright 2026 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-FROM gcr.io/syzkaller/env AS retest-action-builder
-WORKDIR /build
-
-# Copy the code and the dependencies.
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN make TARGETARCH=amd64
-RUN GO_FLAGS=$(make go-flags 2>/dev/null) && go build "$GO_FLAGS" -o /bin/retest-action /build/syz-cluster/workflow/retest
+ARG IMAGE_PREFIX=local/
+ARG IMAGE_TAG=latest
+FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 
 FROM debian:bookworm
 
@@ -30,7 +24,7 @@ RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/cl
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd --create-home syzkaller
 
-COPY --from=retest-action-builder /build/bin/ /syzkaller/bin/
-COPY --from=retest-action-builder /bin/retest-action /bin/retest-action
+COPY --from=builder /build/bin/ /syzkaller/bin/
+COPY --from=builder /build/syz-cluster/bin/retest-action /bin/retest-action
 
 ENTRYPOINT ["/bin/retest-action"]
