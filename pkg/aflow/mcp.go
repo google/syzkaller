@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -87,6 +88,7 @@ func registerMCP(tool *mcp.Tool, handler MCPToolFunc) {
 	if !registerMCPTools || tool.Name == llmSetResultsTool {
 		return
 	}
+	tool.Name = strings.ReplaceAll(tool.Name, "-", "_")
 	if mcpToolNames[tool.Name] {
 		panic(fmt.Sprintf("MCP tool %q is already registered", tool.Name))
 	}
