@@ -146,10 +146,13 @@ variables `$GOPATH` and `$GKI` with their actual values.
 	"type": "adb",
 	"vm": {
 		"devices": ["0.0.0.0:6520"],
-		"battery_check": true
+		"battery_check": true,
+		"boot_service": "systemui"
 	}
 }
 ```
+
+The boot_service parameter specifies which service to wait for during boot completion. The default value is "systemui", which waits for the com.android.systemui process. For AOSP builds without SystemUI, you can use "servicemanager" or other services instead. This is particularly useful when testing minimal Android configurations in QEMU.
 
 ### Launch the virtual device
 
