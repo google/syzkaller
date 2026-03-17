@@ -2,12 +2,14 @@
 # Copyright 2024 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+ARG SMOKE_TEST=0
 ARG IMAGE_PREFIX=local/
 ARG IMAGE_TAG=latest
 FROM ${IMAGE_PREFIX}syz-cluster-build:${IMAGE_TAG} AS builder
 
+# Regular setup (SMOKE_TEST=0)
 # Build on the latest syzbot image.
-FROM gcr.io/syzkaller/syzbot:latest
+FROM gcr.io/syzkaller/syzbot:latest AS setup-0
 
 # Download the base buildroot image.
 RUN mkdir -p /disk-images
@@ -24,6 +26,13 @@ RUN chmod 644 /kernel-configs/*
 # Prevent "fatal: detected dubious ownership in repository" errors.
 RUN git config --system --add safe.directory /workdir
 RUN git config --system --add safe.directory /kernel-repo
+
+# Smoke test setup (SMOKE_TEST=1)
+FROM debian:bookworm-slim AS setup-1
+# Skip heavy syzbot image and downloads for smoke test
+RUN echo "Smoke test mode: skipping syzbot base and disk images"
+
+FROM setup-${SMOKE_TEST} AS final
 
 COPY --from=builder /build/syz-cluster/bin/build-action /bin/build-action
 
