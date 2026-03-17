@@ -1,0 +1,7 @@
+resources:
+  - ../common
+
+configMapGenerator:
+  - name: global-config
+    files:
+      - config.yaml=global-config.yaml

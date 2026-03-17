@@ -27,7 +27,7 @@ hosted on a shared network disk and is regularly updated by the scripts in
 The system can be deployed in multiple environments, which is achieved with the
 help of Kustomize. Depending on the actual deployment target, different pieces of
 configuration are applied:
-* `overlays/minikube`: the local dev environment.
+* `overlays/local/minikube`: the local dev environment.
 * `overlays/gke/staging`: the staging prod environment.
 * `overlays/gke/prod`: https://ci.syzbot.org.
 
