@@ -4,3 +4,6 @@ bin/
 dashboard/
 !dashboard/dashapi/
 syz-cluster/bin/
+# These are very big, but unnecessary for our Docker containers.
+pkg/ifuzz/riscv64/gen/inst/
+pkg/report/testdata.git
