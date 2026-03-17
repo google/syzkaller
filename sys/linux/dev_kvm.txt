@@ -177,6 +177,7 @@ kvm_reg_list {
 
 kvm_device_attr [
 	attr_arm64	kvm_device_attr_arm64
+	attr_riscv64	kvm_device_attr_riscv64
 	attr_other	kvm_device_attr_generic
 ]
 
@@ -191,6 +192,71 @@ kvm_device_attr_arm64 {
 	flags	const[0, int32]
 	group	flags[kvm_device_attr_arm64_groups, int32]
 	attr	flags[kvm_device_attr_arm64_attrs, int64]
+	addr	ptr64[inout, int64]
+}
+
+# Device attributes from arch/riscv/kvm/aia_device.c .
+kvm_device_attr_riscv64 [
+	attr_config	kvm_attr_config_riscv64
+	attr_addr	kvm_attr_addr_riscv64
+	attr_ctrl	kvm_attr_ctrl_riscv64
+	attr_aplic	kvm_attr_aplic_riscv64
+	attr_imsic	kvm_attr_imsic_riscv64
+]
+
+kvm_attr_config_riscv64 {
+	flags	const[0, int32]
+	group	const[KVM_DEV_RISCV_AIA_GRP_CONFIG, int32]
+	attr	flags[kvm_config_attributes_riscv64, int64]
+	addr	ptr64[inout, int64]
+}
+
+# Config attributes from arch/riscv/kvm/aia_device.c aia_has_attr() .
+kvm_config_attributes_riscv64 = KVM_DEV_RISCV_AIA_CONFIG_MODE, KVM_DEV_RISCV_AIA_CONFIG_IDS, KVM_DEV_RISCV_AIA_CONFIG_SRCS, KVM_DEV_RISCV_AIA_CONFIG_GROUP_BITS, KVM_DEV_RISCV_AIA_CONFIG_GROUP_SHIFT, KVM_DEV_RISCV_AIA_CONFIG_HART_BITS, KVM_DEV_RISCV_AIA_CONFIG_GUEST_BITS
+
+kvm_attr_addr_riscv64 {
+	flags	const[0, int32]
+	group	const[KVM_DEV_RISCV_AIA_GRP_ADDR, int32]
+	attr	kvm_addr_attributes_riscv64
+	addr	ptr64[inout, int64]
+}
+
+kvm_addr_attributes_riscv64 [
+	aplic	const[KVM_DEV_RISCV_AIA_ADDR_APLIC, int64]
+# KVM_DEV_RISCV_AIA_ADDR_IMSIC(nr_vcpus) = 1 + nr_vcpus.
+# Assume nr_vcpus <= 4 (SYZOS limit), so enumerate 1..5.
+# Include 0 as a corner case.
+	imsic	int64[0:5]
+]
+
+kvm_attr_ctrl_riscv64 {
+	flags	const[0, int32]
+	group	const[KVM_DEV_RISCV_AIA_GRP_CTRL, int32]
+	attr	const[KVM_DEV_RISCV_AIA_CTRL_INIT, int64]
+	addr	ptr64[inout, int64]
+}
+
+kvm_attr_aplic_riscv64 {
+	flags	const[0, int32]
+	group	const[KVM_DEV_RISCV_AIA_GRP_APLIC, int32]
+	attr	kvm_aplic_attributes_riscv64
+	addr	ptr64[inout, int64]
+}
+
+kvm_aplic_attributes_riscv64 [
+	valid	flags[kvm_aplic_valid_attributes_riscv64, int64]
+	any	int64
+]
+
+# Find APLIC_DOMAINCFG, APLIC_SETIPNUM, APLIC_CLRIPNUM, APLIC_SETIENUM,
+# APLIC_CLRIENUM, APLIC_SETIPNUM_LE, APLIC_SETIPNUM_BE, APLIC_GENMSI
+# in include/linux/irqchip/riscv-aplic.h .
+kvm_aplic_valid_attributes_riscv64 = 0x0, 0x1cdc, 0x1ddc, 0x1edc, 0x1fdc, 0x2000, 0x2004, 0x3000
+
+kvm_attr_imsic_riscv64 {
+	flags	const[0, int32]
+	group	const[KVM_DEV_RISCV_AIA_GRP_IMSIC, int32]
+	attr	int64
 	addr	ptr64[inout, int64]
 }
 
