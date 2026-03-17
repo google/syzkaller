@@ -103,7 +103,7 @@ SED_EXPRESSIONS := \
     -e "s~\$${BLOB_STORAGE_GCS_BUCKET}~$(call escape_sed_replacement,${BLOB_STORAGE_GCS_BUCKET})~g" \
 
 k8s-config-dev:
-	@kubectl kustomize ./overlays/minikube/ | sed $(SED_EXPRESSIONS)
+	@kubectl kustomize ./overlays/local/minikube/ | sed $(SED_EXPRESSIONS)
 
 k8s-config-gke-prod: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
 	@kubectl kustomize ./overlays/gke/prod/ | sed $(SED_EXPRESSIONS)

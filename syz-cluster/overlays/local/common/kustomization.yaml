@@ -4,8 +4,8 @@
 resources:
   - service-accounts.yaml
   - kernel-disk-pvc.yaml
-  - ../common/argo
-  - ../common
+  - ../../common/argo
+  - ../../common
   - global-config-env.yaml
   - fake-gcs.yaml
   - network-policy-spanner.yaml
@@ -14,7 +14,4 @@ resources:
 patchesStrategicMerge:
   - patch-workflow-controller-configmap.yaml
 
-configMapGenerator:
-  - name: global-config
-    files:
-      - config.yaml=global-config.yaml
+
