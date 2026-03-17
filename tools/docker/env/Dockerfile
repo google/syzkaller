@@ -137,16 +137,13 @@ RUN apt-get install -y --no-install-recommends libdw-dev libelf-dev
 RUN apt-get install -y -q nodejs
 
 # Install gcloud sdk for dashboard/app tests.
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-519.0.0-linux-x86_64.tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-560.0.0-linux-x86_64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/google-cloud-sdk/bin:$PATH
 RUN gcloud components install --quiet app-engine-python app-engine-go app-engine-python-extras cloud-datastore-emulator
-RUN chmod 0777 /usr/local/google-cloud-sdk
-
-# Patch gcloud app-engine-python to fix projected queries problem, see issue #4785.
-RUN sed -i "s/entity\.key\.MergeFrom(original_entity\.key())/entity\.key\.MergeFrom(original_entity\.key)/g" \
-    /usr/local/google-cloud-sdk/platform/google_appengine/google/appengine/datastore/datastore_sqlite_stub.py
-RUN sed -i "s/array\.array('B', str(value_data))))/entity_pb2\.PropertyValue, array\.array('B', value_data)))/g" \
-    /usr/local/google-cloud-sdk/platform/google_appengine/google/appengine/datastore/datastore_sqlite_stub.py
+# chmod 0777 is used because syz-env runs as the host user (dynamic UID/GID) at runtime.
+# We recursive-chmod only platform/google_appengine to avoid traversing the entire SDK,
+# which has millions of files and would otherwise stall the build.
+RUN chmod 0777 /usr/local/google-cloud-sdk && chmod -R 0777 /usr/local/google-cloud-sdk/platform/google_appengine
 
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
