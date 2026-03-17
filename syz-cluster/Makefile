@@ -3,6 +3,7 @@
 
 IMAGE_TAG ?= latest
 IMAGE_PREFIX ?= local/
+SMOKE_TEST ?= 0
 SHELL := /bin/bash
 GO_FLAGS ?= $(shell make -s -C .. go-flags 2>/dev/null)
 
@@ -24,7 +25,7 @@ define build_image_rules =
 
   build-$(2)-image: build-common-builder
 	  @echo "Building $$(image_name_$(2)) (Dockerfile: $$(dockerfile_$(2)))"
-	  DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX) --build-arg IMAGE_TAG=$(IMAGE_TAG) -t $$(image_name_$(2)) -f $$(dockerfile_$(2)) ../
+	  DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX) --build-arg IMAGE_TAG=$(IMAGE_TAG) --build-arg SMOKE_TEST=$(SMOKE_TEST) -t $$(image_name_$(2)) -f $$(dockerfile_$(2)) ../
 
   push-$(2)-image: build-$(2)-image
 	  @echo "Pushing $$(image_name_$(2))"
@@ -106,6 +107,9 @@ SED_EXPRESSIONS := \
 
 k8s-config-dev:
 	@kubectl kustomize ./overlays/local/minikube/ | sed $(SED_EXPRESSIONS)
+
+k8s-config-test:
+	@kubectl kustomize ./overlays/local/test/ | sed $(SED_EXPRESSIONS)
 
 k8s-config-gke-prod: ensure-spanner-database-uri-env ensure-blob-storage-env ensure-workflow-artifacts-bucket
 	@kubectl kustomize ./overlays/gke/prod/ | sed $(SED_EXPRESSIONS)
