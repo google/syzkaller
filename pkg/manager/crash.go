@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -26,6 +27,7 @@ type CrashStore struct {
 	BaseDir      string
 	MaxCrashLogs int
 	MaxReproLogs int
+	Extractor    *subsystem.Extractor
 }
 
 const reproFileName = "repro.prog"
@@ -91,6 +93,7 @@ func (cs *CrashStore) SaveCrash(crash *Crash) (bool, error) {
 	writeOrRemove("tag", []byte(cs.Tag))
 	writeOrRemove("report", report.MergeReportBytes(reps))
 	writeOrRemove("machineInfo", crash.MachineInfo)
+	cs.saveSubsystems(dir, crash.Report.GuiltyFile, nil)
 	if err := report.AddTitleStat(filepath.Join(dir, "title-stat"), reps); err != nil {
 		return false, fmt.Errorf("report.AddTitleStat: %w", err)
 	}
@@ -144,6 +147,7 @@ func (cs *CrashStore) SaveRepro(res *ReproResult, progText, cProgText []byte) er
 	if err != nil {
 		return fmt.Errorf("failed to write crash: %w", err)
 	}
+	cs.saveSubsystems(dir, rep.GuiltyFile, progText)
 	// TODO: detect and handle errors below as well.
 	osutil.WriteFile(filepath.Join(dir, reproFileName), progText)
 	if cs.Tag != "" {
@@ -182,6 +186,24 @@ func (cs *CrashStore) SaveRepro(res *ReproResult, progText, cProgText []byte) er
 		osutil.WriteFile(filepath.Join(dir, "repro.stats"), reproLog)
 	}
 	return nil
+}
+
+func (cs *CrashStore) saveSubsystems(dir, guiltyPath string, syzRepro []byte) {
+	if cs.Extractor == nil {
+		return
+	}
+	subsystems := cs.Extractor.Extract([]*subsystem.Crash{{
+		GuiltyPath: guiltyPath,
+		SyzRepro:   syzRepro,
+	}})
+	if len(subsystems) == 0 {
+		return
+	}
+	var names []string
+	for _, s := range subsystems {
+		names = append(names, s.Name)
+	}
+	osutil.WriteFile(filepath.Join(dir, "subsystems"), []byte(strings.Join(names, "\n")))
 }
 
 type BugReport struct {
@@ -232,6 +254,7 @@ type BugInfo struct {
 	ReproAttempts  int
 	Crashes        []*CrashInfo
 	Rank           int
+	Subsystems     []string
 }
 
 func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
@@ -247,6 +270,14 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		return nil, err
 	}
 	ret.Title = strings.TrimSpace(string(desc))
+
+	if subs, err := os.ReadFile(filepath.Join(dir, "subsystems")); err == nil {
+		for _, s := range strings.Split(string(subs), "\n") {
+			if s != "" {
+				ret.Subsystems = append(ret.Subsystems, s)
+			}
+		}
+	}
 
 	// Bug rank may go up over time if we observe higher ranked bugs as a consequence of the first failure.
 	ret.Rank = report.TitlesToImpact(ret.Title)
