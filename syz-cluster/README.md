@@ -45,25 +45,20 @@ $ minikube start --cni=cilium
 `--cni=cilium` enables the use of a more advanced Network plugin that supports
 the emulation of network policies.
 
-2. Add a Spanner Add-on: https://minikube.sigs.k8s.io/docs/handbook/addons/cloud-spanner/
-```
-$ minikube addons enable cloud-spanner
-```
-3. Build all docker containers (might take a while):
+2. Build all docker containers (might take a while):
 ```
 $ eval $(minikube docker-env)
 $ make all-containers
 ```
-4. Deploy the cluster:
+3. Deploy the cluster:
 ```
-$ make restart-spanner
 $ kubectl create namespace argo
 $ make k8s-config-argo | kubectl apply -f -
 $ make k8s-config-argo-wait
 $ make k8s-config-dev | kubectl apply -f -
 $ make migrate-job.yaml | kubectl create -f -
 ```
-5. Pre-fetch the kernel git repository:
+4. Pre-fetch the kernel git repository:
 ```
 $ make fetch-kernels-once.yaml | kubectl create -f -
 ```

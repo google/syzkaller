@@ -8,6 +8,7 @@ resources:
   - ../../common
   - global-config-env.yaml
   - fake-gcs.yaml
+  - cloud-spanner-emulator.yaml
   - network-policy-spanner.yaml
   - workflow-artifacts.yaml
 

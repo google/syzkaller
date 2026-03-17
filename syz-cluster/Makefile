@@ -71,8 +71,7 @@ run-go-tests-dev: build-go-tests-dev
 	./run-local.sh go-tests
 
 restart-spanner: build-db-mgmt-image
-	minikube addons disable cloud-spanner;
-	minikube addons enable cloud-spanner;
+	kubectl delete pod -l app=cloud-spanner-emulator 2>/dev/null || true
 	./run-local.sh db-mgmt migrate
 
 # It takes some time for K8S to set up Argo CRDs, so if we `kubectl apply` everything at once, it will not
