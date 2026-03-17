@@ -1,0 +1,363 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <dev/pci/drm/include/uapi/drm/drm.h>
+include <dev/pci/drm/include/uapi/drm/drm_mode.h>
+include <dev/pci/drm/include/uapi/drm/drm_fourcc.h>
+
+resource fd_dri[fd]
+resource drm_handle[int32]
+resource drm_gem_name[int32]
+resource drm_fb_id[int32]
+resource drm_crtc_id[int32]
+resource drm_encoder_id[int32]
+resource drm_connector_id[int32]
+resource drm_plane_id[int32]
+resource drm_syncobj_handle[int32]
+
+openat$dri(fd const[AT_FDCWD], file ptr[in, string[dri_devices]], flags flags[open_flags], mode const[0]) fd_dri
+
+dri_devices = "/dev/dri/card0", "/dev/dri/renderD128"
+
+ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[out, drm_version])
+ioctl$DRM_IOCTL_GET_CAP(fd fd_dri, cmd const[DRM_IOCTL_GET_CAP], arg ptr[inout, drm_get_cap])
+ioctl$DRM_IOCTL_SET_CLIENT_CAP(fd fd_dri, cmd const[DRM_IOCTL_SET_CLIENT_CAP], arg ptr[in, drm_set_client_cap])
+ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
+ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
+ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout, drm_gem_open])
+ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle])
+ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[inout, drm_mode_card_res])
+ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[inout, drm_mode_get_plane_res])
+ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[inout, drm_mode_crtc])
+ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
+ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[inout, drm_mode_get_plane])
+ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[in, drm_mode_set_plane])
+ioctl$DRM_IOCTL_MODE_CURSOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_CURSOR], arg ptr[in, drm_mode_cursor])
+ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[inout, drm_mode_get_encoder])
+ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[inout, drm_mode_get_connector])
+ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[inout, drm_mode_fb_cmd])
+ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[inout, drm_mode_fb_cmd])
+ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[inout, drm_mode_fb_cmd2])
+ioctl$DRM_IOCTL_MODE_RMFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_RMFB], arg ptr[in, drm_fb_id])
+ioctl$DRM_IOCTL_MODE_PAGE_FLIP(fd fd_dri, cmd const[DRM_IOCTL_MODE_PAGE_FLIP], arg ptr[in, drm_mode_crtc_page_flip_target])
+ioctl$DRM_IOCTL_MODE_DIRTYFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DIRTYFB], arg ptr[in, drm_mode_fb_dirty_cmd])
+ioctl$DRM_IOCTL_MODE_CREATE_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_DUMB], arg ptr[inout, drm_mode_create_dumb])
+ioctl$DRM_IOCTL_MODE_DESTROY_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY_DUMB], arg ptr[in, drm_mode_destroy_dumb])
+ioctl$DRM_IOCTL_MODE_OBJ_GETPROPERTIES(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_GETPROPERTIES], arg ptr[inout, drm_mode_obj_get_properties])
+ioctl$DRM_IOCTL_MODE_OBJ_SETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_SETPROPERTY], arg ptr[in, drm_mode_obj_set_property])
+ioctl$DRM_IOCTL_MODE_CURSOR2(fd fd_dri, cmd const[DRM_IOCTL_MODE_CURSOR2], arg ptr[inout, drm_mode_cursor2])
+ioctl$DRM_IOCTL_MODE_ATOMIC(fd fd_dri, cmd const[DRM_IOCTL_MODE_ATOMIC], arg ptr[in, drm_mode_atomic])
+ioctl$DRM_IOCTL_SYNCOBJ_CREATE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_CREATE], arg ptr[inout, drm_syncobj_create])
+ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[in, drm_syncobj_destroy])
+ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle_arg])
+ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle_arg])
+ioctl$DRM_IOCTL_SYNCOBJ_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_WAIT], arg ptr[in, drm_syncobj_wait])
+ioctl$DRM_IOCTL_SYNCOBJ_RESET(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_RESET], arg ptr[in, drm_syncobj_array])
+
+ioctl$DRM_IOCTL_SYNCOBJ_SIGNAL(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_SIGNAL], arg ptr[in, drm_syncobj_array])
+
+drm_capability = DRM_CAP_DUMB_BUFFER, DRM_CAP_VBLANK_HIGH_CRTC, DRM_CAP_DUMB_PREFERRED_DEPTH, DRM_CAP_DUMB_PREFER_SHADOW, DRM_CAP_PRIME, DRM_CAP_TIMESTAMP_MONOTONIC, DRM_CAP_ASYNC_PAGE_FLIP, DRM_CAP_CURSOR_WIDTH, DRM_CAP_CURSOR_HEIGHT, DRM_CAP_ADDFB2_MODIFIERS, DRM_CAP_PAGE_FLIP_TARGET, DRM_CAP_CRTC_IN_VBLANK_EVENT, DRM_CAP_SYNCOBJ, DRM_CAP_SYNCOBJ_TIMELINE, DRM_CAP_ATOMIC_ASYNC_PAGE_FLIP
+drm_client_cap = DRM_CLIENT_CAP_STEREO_3D, DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC, DRM_CLIENT_CAP_ASPECT_RATIO, DRM_CLIENT_CAP_WRITEBACK_CONNECTORS, DRM_CLIENT_CAP_CURSOR_PLANE_HOTSPOT
+drm_mode_flags = DRM_MODE_FLAG_PHSYNC, DRM_MODE_FLAG_NHSYNC, DRM_MODE_FLAG_PVSYNC, DRM_MODE_FLAG_NVSYNC, DRM_MODE_FLAG_INTERLACE, DRM_MODE_FLAG_DBLSCAN, DRM_MODE_FLAG_CSYNC, DRM_MODE_FLAG_PCSYNC, DRM_MODE_FLAG_NCSYNC, DRM_MODE_FLAG_HSKEW, DRM_MODE_FLAG_BCAST, DRM_MODE_FLAG_PIXMUX, DRM_MODE_FLAG_DBLCLK, DRM_MODE_FLAG_CLKDIV2, DRM_MODE_FLAG_3D_MASK, DRM_MODE_FLAG_3D_NONE, DRM_MODE_FLAG_3D_FRAME_PACKING, DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE, DRM_MODE_FLAG_3D_LINE_ALTERNATIVE, DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL, DRM_MODE_FLAG_3D_L_DEPTH, DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH, DRM_MODE_FLAG_3D_TOP_AND_BOTTOM, DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF, DRM_MODE_FLAG_PIC_AR_MASK, DRM_MODE_FLAG_PIC_AR_NONE, DRM_MODE_FLAG_PIC_AR_4_3, DRM_MODE_FLAG_PIC_AR_16_9, DRM_MODE_FLAG_PIC_AR_64_27, DRM_MODE_FLAG_PIC_AR_256_135
+drm_mode_type = DRM_MODE_TYPE_BUILTIN, DRM_MODE_TYPE_CLOCK_C, DRM_MODE_TYPE_CRTC_C, DRM_MODE_TYPE_PREFERRED, DRM_MODE_TYPE_DEFAULT, DRM_MODE_TYPE_USERDEF, DRM_MODE_TYPE_DRIVER, DRM_MODE_TYPE_ALL
+drm_mode_cursor_flags = DRM_MODE_CURSOR_BO, DRM_MODE_CURSOR_MOVE, DRM_MODE_CURSOR_FLAGS
+drm_mode_connector_types = DRM_MODE_CONNECTOR_Unknown, DRM_MODE_CONNECTOR_VGA, DRM_MODE_CONNECTOR_DVII, DRM_MODE_CONNECTOR_DVID, DRM_MODE_CONNECTOR_DVIA, DRM_MODE_CONNECTOR_Composite, DRM_MODE_CONNECTOR_SVIDEO, DRM_MODE_CONNECTOR_LVDS, DRM_MODE_CONNECTOR_Component, DRM_MODE_CONNECTOR_9PinDIN, DRM_MODE_CONNECTOR_DisplayPort, DRM_MODE_CONNECTOR_HDMIA, DRM_MODE_CONNECTOR_HDMIB, DRM_MODE_CONNECTOR_TV, DRM_MODE_CONNECTOR_eDP, DRM_MODE_CONNECTOR_VIRTUAL, DRM_MODE_CONNECTOR_DSI, DRM_MODE_CONNECTOR_DPI, DRM_MODE_CONNECTOR_WRITEBACK, DRM_MODE_CONNECTOR_SPI, DRM_MODE_CONNECTOR_USB
+drm_formats = DRM_FORMAT_C1, DRM_FORMAT_C2, DRM_FORMAT_C4, DRM_FORMAT_C8, DRM_FORMAT_D1, DRM_FORMAT_D2, DRM_FORMAT_D4, DRM_FORMAT_D8, DRM_FORMAT_R1, DRM_FORMAT_R2, DRM_FORMAT_R4, DRM_FORMAT_R8, DRM_FORMAT_R10, DRM_FORMAT_R12, DRM_FORMAT_R16, DRM_FORMAT_RG88, DRM_FORMAT_GR88, DRM_FORMAT_RG1616, DRM_FORMAT_GR1616, DRM_FORMAT_RGB332, DRM_FORMAT_BGR233, DRM_FORMAT_XRGB4444, DRM_FORMAT_XBGR4444, DRM_FORMAT_RGBX4444, DRM_FORMAT_BGRX4444, DRM_FORMAT_ARGB4444, DRM_FORMAT_ABGR4444, DRM_FORMAT_RGBA4444, DRM_FORMAT_BGRA4444, DRM_FORMAT_XRGB1555, DRM_FORMAT_XBGR1555, DRM_FORMAT_RGBX5551, DRM_FORMAT_BGRX5551, DRM_FORMAT_ARGB1555, DRM_FORMAT_ABGR1555, DRM_FORMAT_RGBA5551, DRM_FORMAT_BGRA5551, DRM_FORMAT_RGB565, DRM_FORMAT_BGR565, DRM_FORMAT_RGB888, DRM_FORMAT_BGR888, DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888, DRM_FORMAT_RGBX8888, DRM_FORMAT_BGRX8888, DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_RGBA8888, DRM_FORMAT_BGRA8888, DRM_FORMAT_XRGB2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_RGBX1010102, DRM_FORMAT_BGRX1010102, DRM_FORMAT_ARGB2101010, DRM_FORMAT_ABGR2101010, DRM_FORMAT_RGBA1010102, DRM_FORMAT_BGRA1010102, DRM_FORMAT_XRGB16161616, DRM_FORMAT_XBGR16161616, DRM_FORMAT_ARGB16161616, DRM_FORMAT_ABGR16161616, DRM_FORMAT_XRGB16161616F, DRM_FORMAT_XBGR16161616F, DRM_FORMAT_ARGB16161616F, DRM_FORMAT_ABGR16161616F, DRM_FORMAT_AXBXGXRX106106106106, DRM_FORMAT_YUYV, DRM_FORMAT_YVYU, DRM_FORMAT_UYVY, DRM_FORMAT_VYUY, DRM_FORMAT_AYUV, DRM_FORMAT_AVUY8888, DRM_FORMAT_XYUV8888, DRM_FORMAT_XVUY8888, DRM_FORMAT_VUY888, DRM_FORMAT_VUY101010, DRM_FORMAT_Y210, DRM_FORMAT_Y212, DRM_FORMAT_Y216, DRM_FORMAT_Y410, DRM_FORMAT_Y412, DRM_FORMAT_Y416, DRM_FORMAT_XVYU2101010, DRM_FORMAT_XVYU12_16161616, DRM_FORMAT_XVYU16161616, DRM_FORMAT_Y0L0, DRM_FORMAT_X0L0, DRM_FORMAT_Y0L2, DRM_FORMAT_X0L2, DRM_FORMAT_YUV420_8BIT, DRM_FORMAT_YUV420_10BIT, DRM_FORMAT_XRGB8888_A8, DRM_FORMAT_XBGR8888_A8, DRM_FORMAT_RGBX8888_A8, DRM_FORMAT_BGRX8888_A8, DRM_FORMAT_RGB888_A8, DRM_FORMAT_BGR888_A8, DRM_FORMAT_RGB565_A8, DRM_FORMAT_BGR565_A8, DRM_FORMAT_NV12, DRM_FORMAT_NV21, DRM_FORMAT_NV16, DRM_FORMAT_NV61, DRM_FORMAT_NV24, DRM_FORMAT_NV42, DRM_FORMAT_NV15, DRM_FORMAT_NV20, DRM_FORMAT_NV30, DRM_FORMAT_P210, DRM_FORMAT_P010, DRM_FORMAT_P012, DRM_FORMAT_P016, DRM_FORMAT_P030, DRM_FORMAT_Q410, DRM_FORMAT_Q401, DRM_FORMAT_YUV410, DRM_FORMAT_YVU410, DRM_FORMAT_YUV411, DRM_FORMAT_YVU411, DRM_FORMAT_YUV420, DRM_FORMAT_YVU420, DRM_FORMAT_YUV422, DRM_FORMAT_YVU422, DRM_FORMAT_YUV444, DRM_FORMAT_YVU444
+drm_mode_fb_flags = DRM_MODE_FB_INTERLACED, DRM_MODE_FB_MODIFIERS
+drm_mode_crtc_page_flip_target_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_PAGE_FLIP_ASYNC, DRM_MODE_PAGE_FLIP_TARGET_ABSOLUTE, DRM_MODE_PAGE_FLIP_TARGET_RELATIVE
+drm_mode_fb_dirty_cmd_flags = DRM_MODE_FB_DIRTY_ANNOTATE_COPY, DRM_MODE_FB_DIRTY_ANNOTATE_FILL
+drm_mode_object_type = DRM_MODE_OBJECT_CRTC, DRM_MODE_OBJECT_CONNECTOR, DRM_MODE_OBJECT_ENCODER, DRM_MODE_OBJECT_MODE, DRM_MODE_OBJECT_PROPERTY, DRM_MODE_OBJECT_FB, DRM_MODE_OBJECT_BLOB, DRM_MODE_OBJECT_PLANE, DRM_MODE_OBJECT_ANY
+drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_PAGE_FLIP_ASYNC, DRM_MODE_ATOMIC_TEST_ONLY, DRM_MODE_ATOMIC_NONBLOCK, DRM_MODE_ATOMIC_ALLOW_MODESET
+drm_syncobj_create_flags = DRM_SYNCOBJ_CREATE_SIGNALED
+drm_syncobj_flags = DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE
+drm_syncobj_wait_flags = DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE
+
+drm_version {
+	version_major		int32
+	version_minor		int32
+	version_patchlevel	int32
+	name_len		len[name, intptr]
+	name			ptr[out, array[int8]]
+	date_len		len[date, intptr]
+	date			ptr[out, array[int8]]
+	desc_len		len[desc, intptr]
+	desc			ptr[out, array[int8]]
+}
+
+drm_get_cap {
+	capability	flags[drm_capability, int64]
+	value		int64	(out)
+}
+
+drm_set_client_cap {
+	capability	flags[drm_client_cap, int64]
+	value		int64
+}
+
+drm_gem_close {
+	handle	drm_handle
+	pad	int32
+}
+
+drm_gem_flink {
+	handle	drm_handle	(in)
+	name	drm_gem_name	(out)
+}
+
+drm_gem_open {
+	name	drm_gem_name	(in)
+	handle	drm_handle	(out)
+	size	int64	(out)
+}
+
+drm_prime_handle {
+	handle	int32
+	flags	int32
+	fd	fd
+}
+
+drm_mode_card_res {
+	fb_id_ptr		ptr[out, array[drm_fb_id]]
+	crtc_id_ptr		ptr[out, array[drm_crtc_id]]
+	connector_id_ptr	ptr[out, array[drm_connector_id]]
+	encoder_id_ptr		ptr[out, array[drm_encoder_id]]
+	count_fbs		len[fb_id_ptr, int32]
+	count_crtcs		len[crtc_id_ptr, int32]
+	count_connectors	len[connector_id_ptr, int32]
+	count_encoders		len[encoder_id_ptr, int32]
+	min_width		int32
+	max_width		int32
+	min_height		int32
+	max_height		int32
+}
+
+drm_mode_get_plane_res {
+	plane_id_ptr	ptr[out, array[drm_plane_id]]
+	count_planes	len[plane_id_ptr, int32]
+}
+
+drm_mode_crtc {
+	set_connectors_ptr	ptr[in, array[drm_connector_id]]
+	count_connectors	len[set_connectors_ptr, int32]
+	crtc_id			drm_crtc_id
+	fb_id			drm_fb_id
+	x			int32
+	y			int32
+	gamma_size		int32
+	mode_valid		int32
+	mode			drm_mode_modeinfo
+}
+
+drm_mode_modeinfo {
+	clock		int32
+	hdisplay	int16
+	hsync_start	int16
+	hsync_end	int16
+	htotal		int16
+	hskew		int16
+	vdisplay	int16
+	vsync_start	int16
+	vsync_end	int16
+	vtotal		int16
+	vscan		int16
+	vrefresh	int32
+	flags		flags[drm_mode_flags, int32]
+	type		flags[drm_mode_type, int32]
+	name		array[int8, DRM_DISPLAY_MODE_LEN]
+}
+
+drm_mode_get_plane {
+	plane_id		drm_plane_id
+	crtc_id			int32	(out)
+	fb_id			int32	(out)
+	possible_crtcs		int32	(out)
+	gamma_size		int32	(out)
+	count_format_types	len[format_type_ptr, int32]
+	format_type_ptr		ptr[out, array[int32]]
+}
+
+drm_mode_set_plane {
+	plane_id	drm_plane_id
+	crtc_id		drm_crtc_id
+	fb_id		drm_fb_id
+	flags		int32
+	crtc_x		int32
+	crtc_y		int32
+	crtc_w		int32
+	crtc_h		int32
+	src_x		int32
+	src_y		int32
+	src_h		int32
+	src_w		int32
+}
+
+drm_mode_cursor {
+	flags	flags[drm_mode_cursor_flags, int32]
+	crtc_id	drm_mode_object_id
+	x	int32
+	y	int32
+	width	int32
+	height	int32
+	handle	drm_handle
+}
+
+drm_mode_get_encoder {
+	encoder_id	drm_encoder_id
+	encoder_type	int32
+	crtc_id		drm_crtc_id	(out)
+	possible_crtcs	int32
+	possible_clones	int32
+}
+
+drm_mode_get_connector {
+	encoders_ptr		ptr[out, array[drm_encoder_id]]
+	modes_ptr		ptr[out, array[drm_mode_modeinfo]]
+	props_ptr		ptr[out, array[drm_mode_property_id]]
+	prop_values_ptr		ptr[out, array[int64]]
+	count_modes		len[modes_ptr, int32]
+	count_props		len[props_ptr, int32]
+	count_encoders		len[encoders_ptr, int32]
+	encoder_id		drm_encoder_id
+	connector_id		drm_connector_id
+	connector_type		flags[drm_mode_connector_types, int32]
+	connector_type_id	int32
+	connection		int32
+	mm_width		int32
+	mm_height		int32
+	subpixel		int32
+	pad			const[0, int32]
+}
+
+drm_mode_fb_cmd {
+	fb_id	drm_fb_id	(inout)
+	width	int32
+	height	int32
+	pitch	int32
+	bpp	int32
+	depth	int32
+	handle	drm_handle
+}
+
+drm_mode_fb_cmd2 {
+	fb_id		drm_fb_id	(out)
+	width		int32
+	height		int32
+	pixel_format	flags[drm_formats, int32]
+	flags		flags[drm_mode_fb_flags, int32]
+	handles		array[drm_handle, 4]
+	pitches		array[int32, 4]
+	offsets		array[int32, 4]
+	modifier	array[int64, 4]
+}
+
+drm_mode_crtc_page_flip_target {
+	crtc_id		drm_crtc_id
+	fb_id		drm_fb_id
+	flags		flags[drm_mode_crtc_page_flip_target_flags, int32]
+	reserved	const[0, int32]
+	user_data	int64
+}
+
+drm_mode_fb_dirty_cmd {
+	fb_id		drm_fb_id
+	flags		flags[drm_mode_fb_dirty_cmd_flags, int32]
+	color		int32
+	num_clips	len[clips, int32]
+	clips		ptr[in, array[drm_clip_rect]]
+}
+
+drm_clip_rect {
+	x1	int16
+	y1	int16
+	x2	int16
+	y2	int16
+}
+
+drm_mode_create_dumb {
+	height	int32
+	width	int32
+	bpp	int32
+	flags	int32
+	handle	drm_handle	(out)
+	pitch	int32	(out)
+	size	int64	(out)
+}
+
+drm_mode_destroy_dumb {
+	handle	drm_handle
+}
+
+drm_mode_obj_get_properties {
+	props_ptr	ptr[out, array[drm_mode_property_id]]
+	prop_values_ptr	ptr[out, array[int64]]
+	count_props	len[props_ptr, int32]
+	obj_id		drm_mode_object_id
+	obj_type	flags[drm_mode_object_type, int32]
+}
+
+drm_mode_obj_set_property {
+	value		int64
+	prop_id		drm_mode_property_id
+	obj_id		drm_mode_object_id
+	obj_type	flags[drm_mode_object_type, int32]
+}
+
+drm_mode_cursor2 {
+	flags	flags[drm_mode_cursor_flags, int32]
+	crtc_id	drm_mode_object_id
+	x	int32
+	y	int32
+	width	int32
+	height	int32
+	handle	drm_handle
+	hot_x	int32
+	hot_y	int32
+}
+
+drm_mode_atomic {
+	flags		flags[drm_mode_atomic_flags, int32]
+	count_objs	len[objs_ptr, int32]
+	objs_ptr	ptr[in, array[drm_mode_object_id]]
+	count_props_ptr	ptr[in, array[int32]]
+	props_ptr	ptr[in, array[drm_mode_property_id]]
+	prop_values_ptr	ptr[in, array[int64]]
+	reserved	const[0, int64]
+	user_data	int64
+}
+
+drm_syncobj_create {
+	handle	drm_syncobj_handle	(out)
+	flags	flags[drm_syncobj_create_flags, int32]
+}
+
+drm_syncobj_destroy {
+	handle	drm_syncobj_handle
+	pad	const[0, int32]
+}
+
+drm_syncobj_handle_arg {
+	handle	drm_syncobj_handle	(inout)
+	flags	flags[drm_syncobj_flags, int32]
+	fd	fd	(inout)
+	pad	const[0, int32]
+}
+
+drm_syncobj_wait {
+	handles		ptr[in, array[drm_syncobj_handle]]
+	timeout_nsec	int64
+	count_handles	len[handles, int32]
+	flags		flags[drm_syncobj_wait_flags, int32]
+	first_signaled	int32	(out)
+	pad		const[0, int32]
+}
+
+drm_syncobj_array {
+	handles		ptr[in, array[drm_syncobj_handle]]
+	count_handles	len[handles, int32]
+	pad		const[0, int32]
+}
+
+type drm_mode_object_id int32
+type drm_mode_property_id int32
