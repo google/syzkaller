@@ -96,13 +96,13 @@ vcpu_inject_event {
 
 vm_run_params {
 # NEED: vmid
-	vrp_vm_id	int32
-	vrp_vcpu_id	int32
-	vrp_inject	vcpu_inject_event
+	vrp_vm_id		int32
+	vrp_vcpu_id		int32
+	vrp_inject		vcpu_inject_event
 	vrp_intr_pending	int8
-	vrp_exit	ptr[inout, vm_exit]
-	vrp_exit_reason	int16
-	vrp_irqready	int8
+	vrp_exit		ptr[inout, vm_exit]
+	vrp_exit_reason		int16
+	vrp_irqready		int8
 }
 
 vm_rwregs_params {
