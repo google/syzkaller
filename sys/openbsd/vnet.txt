@@ -261,7 +261,7 @@ ipv4_option_timestamp {
 ipv4_option_ra {
 	type	const[IPOPT_RA, int8]
 	length	len[parent, int8]
-	value	int32be
+	value	int16be
 } [packed]
 
 ipv4_options {
@@ -454,6 +454,8 @@ icmp_mask_request_packet {
 	type	const[ICMP_MASKREQ, int8]
 	code	const[0, int8]
 	csum	csum[parent, inet, int16be]
+	id	int16be
+	seq_num	int16be
 	mask	int32be
 } [packed]
 
@@ -461,6 +463,8 @@ icmp_mask_reply_packet {
 	type	const[ICMP_MASKREPLY, int8]
 	code	const[0, int8]
 	csum	csum[parent, inet, int16be]
+	id	int16be
+	seq_num	int16be
 	mask	int32be
 } [packed]
 
@@ -612,8 +616,6 @@ ipv6_tlv_generic {
 
 ipv6_tlv_pad1 {
 	type	const[IP6OPT_PAD1, int8]
-	len	const[1, int8]
-	pad	const[0, int8]
 } [packed]
 
 ipv6_tlv_padn {
@@ -795,9 +797,9 @@ icmpv6_ndisc_router_advert_packet {
 	cur_hop_limit	int8
 # TODO: Implement bitflags for the router advert flags
 	router_flags	int8
-	router_lifetime	int16
-	reachable_time	int32
-	retrans_time	int32
+	router_lifetime	int16be
+	reachable_time	int32be
+	retrans_time	int32be
 	options		array[icmpv6_ndisc_option]
 } [packed]
 
@@ -806,6 +808,7 @@ icmpv6_ndisc_neigh_solicit_packet {
 	type		const[ND_NEIGHBOR_SOLICIT, int8]
 	code		const[0, int8]
 	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	reserved	const[0, int32]
 	target_addr	ipv6_addr
 	options		array[icmpv6_ndisc_option]
 } [packed]
@@ -891,7 +894,7 @@ tcp_nop_option {
 tcp_mss_option {
 	type		const[TCPOPT_MAXSEG, int8]
 	length		len[parent, int8]
-	seg_size	int16
+	seg_size	int16be
 } [packed]
 
 # https://tools.ietf.org/html/rfc7323#section-2
