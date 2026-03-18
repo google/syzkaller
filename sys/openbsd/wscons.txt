@@ -86,7 +86,7 @@ resource fd_wsmouse[fd]
 openat$wsmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse0"]], flags flags[open_flags], mode const[0]) fd_wsmouse
 
 ioctl$WSMOUSEIO_GCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_GCALIBCOORDS], arg ptr[out, wsmouse_calibcoords])
-ioctl$WSMOUSEIO_GETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_GETPARAMS], arg ptr[out, wsmouse_parameters])
+ioctl$WSMOUSEIO_GETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_GETPARAMS], arg ptr[inout, wsmouse_parameters])
 ioctl$WSMOUSEIO_GTYPE(fd fd_wsmouse, cmd const[WSMOUSEIO_GTYPE], arg ptr[out, int32])
 ioctl$WSMOUSEIO_SCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_SCALIBCOORDS], arg ptr[in, wsmouse_calibcoords])
 ioctl$WSMOUSEIO_SETMODE(fd fd_wsmouse, cmd const[WSMOUSEIO_SETMODE], arg ptr[in, wsmouse_mode])
@@ -192,7 +192,7 @@ wsmouse_param {
 }
 
 wsmouse_parameters {
-	params	ptr[in, array[wsmouse_param]]
+	params	ptr[inout, array[wsmouse_param]]
 	nparams	len[params, int32]
 }
 

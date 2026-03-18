@@ -24,7 +24,7 @@ openat$dri(fd const[AT_FDCWD], file ptr[in, string[dri_devices]], flags flags[op
 
 dri_devices = "/dev/dri/card0", "/dev/dri/renderD128"
 
-ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[out, drm_version])
+ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[inout, drm_version])
 ioctl$DRM_IOCTL_GET_CAP(fd fd_dri, cmd const[DRM_IOCTL_GET_CAP], arg ptr[inout, drm_get_cap])
 ioctl$DRM_IOCTL_SET_CLIENT_CAP(fd fd_dri, cmd const[DRM_IOCTL_SET_CLIENT_CAP], arg ptr[in, drm_set_client_cap])
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])

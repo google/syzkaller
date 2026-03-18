@@ -9,9 +9,9 @@ resource fd_pci[fd]
 
 openat$pci(fd const[AT_FDCWD], file ptr[in, string["/dev/pci"]], flags flags[open_flags], mode const[0]) fd_pci
 
-ioctl$PCIOCREAD(fd fd_pci, cmd const[PCIOCREAD], arg ptr[out, pci_io])
+ioctl$PCIOCREAD(fd fd_pci, cmd const[PCIOCREAD], arg ptr[inout, pci_io])
 ioctl$PCIOCWRITE(fd fd_pci, cmd const[PCIOCWRITE], arg ptr[in, pci_io])
-ioctl$PCIOCGETROM(fd fd_pci, cmd const[PCIOCGETROM], arg ptr[out, pci_rom])
+ioctl$PCIOCGETROM(fd fd_pci, cmd const[PCIOCGETROM], arg ptr[inout, pci_rom])
 
 pci_io {
 	pi_sel		pcisel
