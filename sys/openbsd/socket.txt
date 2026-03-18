@@ -58,9 +58,9 @@ send_msghdr {
 	msg_name	ptr[in, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_in]]
-	msg_iovlen	len[msg_iov, intptr]
+	msg_iovlen	len[msg_iov, int32]
 	msg_control	ptr[in, array[cmsghdr]]
-	msg_controllen	bytesize[msg_control, intptr]
+	msg_controllen	bytesize[msg_control, int32]
 	msg_flags	const[0, int32]
 }
 
@@ -73,9 +73,9 @@ recv_msghdr {
 	msg_name	ptr[out, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_out]]
-	msg_iovlen	len[msg_iov, intptr]
+	msg_iovlen	len[msg_iov, int32]
 	msg_control	buffer[out]
-	msg_controllen	len[msg_control, intptr]
+	msg_controllen	len[msg_control, int32]
 	msg_flags	const[0, int32]
 }
 
@@ -85,11 +85,11 @@ recv_mmsghdr {
 }
 
 cmsghdr {
-	cmsg_len	len[parent, intptr]
+	cmsg_len	len[parent, int32]
 	cmsg_level	flags[cmsg_levels, int32]
 	cmsg_type	int32
 	data		array[int8]
-} [align[PTR_SIZE]]
+} [align[4]]
 
 # Socket options
 
