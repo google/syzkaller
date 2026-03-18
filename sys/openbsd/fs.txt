@@ -47,22 +47,22 @@ iovec_out {
 }
 
 stat {
-	dev	int64
-	ino	int64
 	mode	int32
+	dev	int32
+	ino	int64
 	nlink	int32
-	rdev	int64
+	uid	uid
+	gid	gid
+	rdev	int32
+	atim	timespec
+	mtim	timespec
+	ctim	timespec
 	size	int64
-	blksize	int32
 	blocks	int64
-	atime	int64
-	ansec	int64
-	mtime	int64
-	mnsec	int64
-	ctime	int64
-	cnsec	int64
-	pad1	const[0, int32]
-	pad2	const[0, int32]
+	blksize	int32
+	flags	int32
+	gen	int32
+	birthtim	timespec
 }
 
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_DSYNC, O_SYNC, O_RSYNC, O_NOCTTY, O_DIRECTORY, O_ASYNC
