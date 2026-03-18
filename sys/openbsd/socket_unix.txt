@@ -51,9 +51,9 @@ msghdr_un {
 	addr	ptr[in, sockaddr_un]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
-	vlen	len[vec, intptr]
+	vlen	len[vec, int32]
 	ctrl	ptr[in, array[cmsghdr_un], opt]
-	ctrllen	bytesize[ctrl, intptr]
+	ctrllen	bytesize[ctrl, int32]
 	f	flags[send_flags, int32]
 }
 
@@ -63,18 +63,18 @@ cmsghdr_un [
 ] [varlen]
 
 cmsghdr_un_rights {
-	len	len[parent, intptr]
+	len	len[parent, int32]
 	level	const[SOL_SOCKET, int32]
 	type	const[SCM_RIGHTS, int32]
 	fds	array[fd]
-} [align[PTR_SIZE]]
+} [align[4]]
 
 cmsghdr_un_cred {
-	len	len[parent, intptr]
+	len	len[parent, int32]
 	level	const[SOL_SOCKET, int32]
-# XXX type	const[LINUX_SCM_CREDENTIALS, int32]
+# OpenBSD does not have SCM_CREDENTIALS; use SO_PEERCRED getsockopt instead
 	type	const[0, int32]
 	pid	pid
 	uid	uid
 	gid	gid
-} [align[PTR_SIZE]]
+} [align[4]]
