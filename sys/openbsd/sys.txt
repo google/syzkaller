@@ -128,12 +128,12 @@ getresgid(rgid ptr[out, gid], egid ptr[out, gid], sgid ptr[out, gid])
 setresgid(rgid gid, egid gid, sgid gid)
 getentropy(buf buffer[out], nbyte len[buf])
 umask(newmask flags[open_mode])
-gettimeofday(tp ptr[out, timeval], tzp ptr[out, timeval, opt])
+gettimeofday(tp ptr[out, timeval], tzp ptr[out, timezone, opt])
 access(path ptr[in, filename], amode flags[access_mode])
 fstat(fd fd, statbuf ptr[out, stat])
 fstatat(fd fd_dir, path ptr[in, filename], statbuf ptr[out, stat], flag flags[at_flags])
-futimes(fd fd, tptr ptr[in, itimerval])
-futimens(fd fd, times ptr[in, itimerval])
+futimes(fd fd, tptr ptr[in, array[timeval, 2], opt])
+futimens(fd fd, times ptr[in, array[timespec, 2], opt])
 mkfifo(path ptr[in, filename], mode flags[open_mode])
 mkfifoat(fd fd_dir, path ptr[in, filename], mode flags[open_mode])
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], ts ptr[in, timespec, opt], mask ptr[in, sigset, opt])
@@ -167,6 +167,11 @@ timeval {
 itimerval {
 	interv	timeval
 	value	timeval
+}
+
+timezone {
+	tz_minuteswest	int32
+	tz_dsttime	int32
 }
 
 sigset {
