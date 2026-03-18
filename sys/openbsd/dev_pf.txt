@@ -5,11 +5,462 @@ include <sys/types.h>
 include <sys/time.h>
 include <sys/fcntl.h>
 include <sys/ioctl.h>
+include <sys/socket.h>
 include <net/if.h>
-
+include <netinet/in.h>
 include <net/pfvar.h>
 
 # The following ioctl commands are restricted in neutralize(), see init.go.
 _ = DIOCCLRSTATES, DIOCKILLSTATES
 
-openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd
+resource fd_pf[fd]
+
+openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd_pf
+
+# Simple ioctls (no argument)
+ioctl$DIOCSTART(fd fd_pf, cmd const[DIOCSTART])
+ioctl$DIOCSTOP(fd fd_pf, cmd const[DIOCSTOP])
+ioctl$DIOCCLRSRCNODES(fd fd_pf, cmd const[DIOCCLRSRCNODES])
+ioctl$DIOCOSFPFLUSH(fd fd_pf, cmd const[DIOCOSFPFLUSH])
+
+# Simple value ioctls
+ioctl$DIOCSETDEBUG(fd fd_pf, cmd const[DIOCSETDEBUG], arg ptr[in, int32])
+ioctl$DIOCSETHOSTID(fd fd_pf, cmd const[DIOCSETHOSTID], arg ptr[in, int32])
+ioctl$DIOCSETREASS(fd fd_pf, cmd const[DIOCSETREASS], arg ptr[in, flags[pf_reass_flags, int32]])
+ioctl$DIOCSETSYNCOOKIES(fd fd_pf, cmd const[DIOCSETSYNCOOKIES], arg ptr[in, flags[pf_syncookies_mode, int8]])
+
+# Status ioctls
+ioctl$DIOCGETSTATUS(fd fd_pf, cmd const[DIOCGETSTATUS], arg ptr[out, pf_status])
+ioctl$DIOCSETSTATUSIF(fd fd_pf, cmd const[DIOCSETSTATUSIF], arg ptr[in, pfioc_iface])
+ioctl$DIOCCLRSTATUS(fd fd_pf, cmd const[DIOCCLRSTATUS], arg ptr[in, pfioc_iface])
+
+# Timeout ioctls
+ioctl$DIOCSETTIMEOUT(fd fd_pf, cmd const[DIOCSETTIMEOUT], arg ptr[inout, pfioc_tm])
+ioctl$DIOCGETTIMEOUT(fd fd_pf, cmd const[DIOCGETTIMEOUT], arg ptr[inout, pfioc_tm])
+
+# Limit ioctls
+ioctl$DIOCSETLIMIT(fd fd_pf, cmd const[DIOCSETLIMIT], arg ptr[inout, pfioc_limit])
+ioctl$DIOCGETLIMIT(fd fd_pf, cmd const[DIOCGETLIMIT], arg ptr[inout, pfioc_limit])
+
+# State management ioctls
+ioctl$DIOCGETSTATES(fd fd_pf, cmd const[DIOCGETSTATES], arg ptr[inout, pfioc_states])
+ioctl$DIOCGETSTATE(fd fd_pf, cmd const[DIOCGETSTATE], arg ptr[inout, pfioc_state])
+ioctl$DIOCCLRSTATES(fd fd_pf, cmd const[DIOCCLRSTATES], arg ptr[inout, pfioc_state_kill])
+ioctl$DIOCKILLSTATES(fd fd_pf, cmd const[DIOCKILLSTATES], arg ptr[inout, pfioc_state_kill])
+
+# Interface ioctls
+ioctl$DIOCIGETIFACES(fd fd_pf, cmd const[DIOCIGETIFACES], arg ptr[inout, pfioc_iface])
+ioctl$DIOCSETIFFLAG(fd fd_pf, cmd const[DIOCSETIFFLAG], arg ptr[inout, pfioc_iface])
+ioctl$DIOCCLRIFFLAG(fd fd_pf, cmd const[DIOCCLRIFFLAG], arg ptr[inout, pfioc_iface])
+
+# Table ioctls
+ioctl$DIOCRCLRTABLES(fd fd_pf, cmd const[DIOCRCLRTABLES], arg ptr[inout, pfioc_table])
+ioctl$DIOCRADDTABLES(fd fd_pf, cmd const[DIOCRADDTABLES], arg ptr[inout, pfioc_table_tables])
+ioctl$DIOCRDELTABLES(fd fd_pf, cmd const[DIOCRDELTABLES], arg ptr[inout, pfioc_table_tables])
+ioctl$DIOCRGETTABLES(fd fd_pf, cmd const[DIOCRGETTABLES], arg ptr[inout, pfioc_table_tables])
+ioctl$DIOCRGETTSTATS(fd fd_pf, cmd const[DIOCRGETTSTATS], arg ptr[inout, pfioc_table_tables])
+ioctl$DIOCRCLRTSTATS(fd fd_pf, cmd const[DIOCRCLRTSTATS], arg ptr[inout, pfioc_table_tables])
+ioctl$DIOCRCLRADDRS(fd fd_pf, cmd const[DIOCRCLRADDRS], arg ptr[inout, pfioc_table])
+ioctl$DIOCRADDADDRS(fd fd_pf, cmd const[DIOCRADDADDRS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRDELADDRS(fd fd_pf, cmd const[DIOCRDELADDRS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRSETADDRS(fd fd_pf, cmd const[DIOCRSETADDRS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRGETADDRS(fd fd_pf, cmd const[DIOCRGETADDRS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRGETASTATS(fd fd_pf, cmd const[DIOCRGETASTATS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRCLRASTATS(fd fd_pf, cmd const[DIOCRCLRASTATS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRTSTADDRS(fd fd_pf, cmd const[DIOCRTSTADDRS], arg ptr[inout, pfioc_table_addrs])
+ioctl$DIOCRSETTFLAGS(fd fd_pf, cmd const[DIOCRSETTFLAGS], arg ptr[inout, pfioc_table])
+
+# Transaction ioctls
+ioctl$DIOCXBEGIN(fd fd_pf, cmd const[DIOCXBEGIN], arg ptr[inout, pfioc_trans])
+ioctl$DIOCXCOMMIT(fd fd_pf, cmd const[DIOCXCOMMIT], arg ptr[inout, pfioc_trans])
+ioctl$DIOCXROLLBACK(fd fd_pf, cmd const[DIOCXROLLBACK], arg ptr[inout, pfioc_trans])
+ioctl$DIOCXEND(fd fd_pf, cmd const[DIOCXEND], arg ptr[in, int32])
+
+# Ruleset ioctls
+ioctl$DIOCGETRULESETS(fd fd_pf, cmd const[DIOCGETRULESETS], arg ptr[inout, pfioc_ruleset])
+ioctl$DIOCGETRULESET(fd fd_pf, cmd const[DIOCGETRULESET], arg ptr[inout, pfioc_ruleset])
+
+# Natlook ioctl
+ioctl$DIOCNATLOOK(fd fd_pf, cmd const[DIOCNATLOOK], arg ptr[inout, pfioc_natlook])
+
+# Synflood watermarks
+ioctl$DIOCSETSYNFLWATS(fd fd_pf, cmd const[DIOCSETSYNFLWATS], arg ptr[inout, pfioc_synflwats])
+ioctl$DIOCGETSYNFLWATS(fd fd_pf, cmd const[DIOCGETSYNFLWATS], arg ptr[out, pfioc_synflwats])
+
+# Queue ioctls
+ioctl$DIOCADDQUEUE(fd fd_pf, cmd const[DIOCADDQUEUE], arg ptr[inout, pfioc_queue])
+ioctl$DIOCGETQUEUES(fd fd_pf, cmd const[DIOCGETQUEUES], arg ptr[inout, pfioc_queue])
+ioctl$DIOCGETQUEUE(fd fd_pf, cmd const[DIOCGETQUEUE], arg ptr[inout, pfioc_queue])
+
+# Rule ioctls
+ioctl$DIOCGETRULES(fd fd_pf, cmd const[DIOCGETRULES], arg ptr[inout, pfioc_rule])
+ioctl$DIOCGETRULE(fd fd_pf, cmd const[DIOCGETRULE], arg ptr[inout, pfioc_rule])
+ioctl$DIOCADDRULE(fd fd_pf, cmd const[DIOCADDRULE], arg ptr[inout, pfioc_rule])
+ioctl$DIOCCHANGERULE(fd fd_pf, cmd const[DIOCCHANGERULE], arg ptr[inout, pfioc_rule])
+
+###############################################################################
+# Flag/enum definitions
+###############################################################################
+
+pf_reass_flags = PF_REASS_ENABLED, PF_REASS_NODF
+pf_syncookies_mode = PF_SYNCOOKIES_NEVER, PF_SYNCOOKIES_ALWAYS, PF_SYNCOOKIES_ADAPTIVE
+
+pf_timeout_ids = PFTM_TCP_FIRST_PACKET, PFTM_TCP_OPENING, PFTM_TCP_ESTABLISHED, PFTM_TCP_CLOSING, PFTM_TCP_FIN_WAIT, PFTM_TCP_CLOSED, PFTM_UDP_FIRST_PACKET, PFTM_UDP_SINGLE, PFTM_UDP_MULTIPLE, PFTM_ICMP_FIRST_PACKET, PFTM_ICMP_ERROR_REPLY, PFTM_OTHER_FIRST_PACKET, PFTM_OTHER_SINGLE, PFTM_OTHER_MULTIPLE, PFTM_FRAG, PFTM_INTERVAL, PFTM_ADAPTIVE_START, PFTM_ADAPTIVE_END, PFTM_SRC_NODE, PFTM_TS_DIFF
+
+pf_limit_ids = PF_LIMIT_STATES, PF_LIMIT_SRC_NODES, PF_LIMIT_FRAGS, PF_LIMIT_TABLES, PF_LIMIT_TABLE_ENTRIES, PF_LIMIT_PKTDELAY_PKTS, PF_LIMIT_ANCHORS
+
+pf_af = AF_INET, AF_INET6
+pf_direction = PF_INOUT, PF_IN, PF_OUT, PF_FWD
+pf_addr_type = PF_ADDR_ADDRMASK, PF_ADDR_NOROUTE, PF_ADDR_DYNIFTL, PF_ADDR_TABLE, PF_ADDR_RTLABEL, PF_ADDR_URPFFAILED, PF_ADDR_RANGE, PF_ADDR_NONE
+pf_port_op = PF_OP_NONE, PF_OP_IRG, PF_OP_EQ, PF_OP_NE, PF_OP_LT, PF_OP_LE, PF_OP_GT, PF_OP_GE, PF_OP_XRG, PF_OP_RRG
+
+pfr_table_flags = PFR_TFLAG_PERSIST, PFR_TFLAG_CONST, PFR_TFLAG_ACTIVE, PFR_TFLAG_INACTIVE, PFR_TFLAG_REFERENCED, PFR_TFLAG_REFDANCHOR, PFR_TFLAG_COUNTERS
+pfr_ioctl_flags = PFR_FLAG_DUMMY, PFR_FLAG_FEEDBACK, PFR_FLAG_CLSTATS, PFR_FLAG_ADDRSTOO, PFR_FLAG_REPLACE, PFR_FLAG_ALLRSETS
+
+pf_trans_type = PF_TRANS_RULESET, PF_TRANS_TABLE
+
+###############################################################################
+# Struct definitions
+###############################################################################
+
+pf_addr [
+	v4	ipv4_addr
+	v6	ipv6_addr
+] [size[16]]
+
+# pf_addr_wrap: 48 bytes on amd64
+# v union (32 bytes) + p union (8 bytes) + type (1) + iflags (1) + padding (6)
+pf_addr_wrap_addrmask {
+	addr	pf_addr
+	mask	pf_addr
+	p	const[0, int64]
+	type	const[PF_ADDR_ADDRMASK, int8]
+	iflags	int8
+	pad	array[const[0, int8], 6]
+}
+
+pf_addr_wrap_table {
+	tblname	string[filename, PF_TABLE_NAME_SIZE]
+	p	const[0, int64]
+	type	const[PF_ADDR_TABLE, int8]
+	iflags	int8
+	pad	array[const[0, int8], 6]
+}
+
+pf_addr_wrap_any {
+	v	array[const[0, int8], 32]
+	p	const[0, int64]
+	type	flags[pf_addr_type, int8]
+	iflags	int8
+	pad	array[const[0, int8], 6]
+}
+
+pf_addr_wrap [
+	addrmask	pf_addr_wrap_addrmask
+	table		pf_addr_wrap_table
+	any		pf_addr_wrap_any
+] [size[48]]
+
+# pf_rule_addr: 56 bytes
+pf_rule_addr {
+	addr	pf_addr_wrap
+	port	array[int16, 2]
+	neg	int8
+	port_op	flags[pf_port_op, int8]
+	weight	int16
+}
+
+pf_state_cmp {
+	id		int64
+	creatorid	int32
+	direction	flags[pf_direction, int8]
+	pad		array[const[0, int8], 3]
+}
+
+pfsync_state_scrub {
+	pfss_flags	int16
+	pfss_ttl	int8
+	scrub_flag	int8
+	pfss_ts_mod	int32
+} [packed]
+
+pfsync_state_peer {
+	scrub	pfsync_state_scrub
+	seqlo	int32
+	seqhi	int32
+	seqdiff	int32
+	max_win	int16
+	mss	int16
+	state	int8
+	wscale	int8
+	pad	array[const[0, int8], 6]
+} [packed]
+
+pfsync_state_key {
+	addr	array[pf_addr, 2]
+	port	array[int16, 2]
+	rdomain	int16
+	af	flags[pf_af, int8]
+	pad	const[0, int8]
+}
+
+pfsync_state {
+	id		int64
+	ifname		string[filename, IFNAMSIZ]
+	key		array[pfsync_state_key, 2]
+	src		pfsync_state_peer
+	dst		pfsync_state_peer
+	rt_addr		pf_addr
+	rule		int32
+	anchor		int32
+	nat_rule	int32
+	creation	int32
+	expire		int32
+	packets		array[array[int32, 2], 2]
+	bytes		array[array[int32, 2], 2]
+	creatorid	int32
+	rtableid	array[int32, 2]
+	max_mss		int16
+	af		flags[pf_af, int8]
+	proto		int8
+	direction	flags[pf_direction, int8]
+	log		int8
+	rt		int8
+	timeout		int8
+	sync_flags	int8
+	updates		int8
+	min_ttl		int8
+	set_tos		int8
+	state_flags	int16
+	set_prio	array[int8, 2]
+} [packed]
+
+pfioc_state {
+	state	pfsync_state
+}
+
+pfioc_states {
+	ps_len	len[ps_buf, intptr]
+	ps_buf	ptr[out, array[pfsync_state]]
+}
+
+pfioc_state_kill {
+	psk_pfcmp	pf_state_cmp
+	psk_af		flags[pf_af, int8]
+	psk_pad1	array[const[0, int8], 3]
+	psk_proto	int32
+	psk_src		pf_rule_addr
+	psk_dst		pf_rule_addr
+	psk_ifname	string[filename, IFNAMSIZ]
+	psk_label	string[filename, PF_RULE_LABEL_SIZE]
+	psk_killed	int32
+	psk_rdomain	int16
+	psk_pad2	array[const[0, int8], 2]
+}
+
+pf_status {
+	counters		array[int64, PFRES_MAX]
+	lcounters		array[int64, LCNT_MAX]
+	fcounters		array[int64, FCNT_MAX]
+	scounters		array[int64, SCNT_MAX]
+	ncounters		array[int64, NCNT_MAX]
+	pcounters		array[array[array[int64, 3], 2], 2]
+	bcounters		array[array[int64, 2], 2]
+	stateid			int64
+	syncookies_inflight	array[int64, 2]
+	since			int64
+	running			int32
+	states			int32
+	states_halfopen		int32
+	src_nodes		int32
+	fragments		int32
+	debug			int32
+	hostid			int32
+	reass			int32
+	syncookies_active	int8
+	syncookies_mode		int8
+	pad			array[const[0, int8], 2]
+	ifname			string[filename, IFNAMSIZ]
+	pf_chksum		array[int8, PF_MD5_DIGEST_LENGTH]
+}
+
+pfioc_iface {
+	pfiio_name	string[filename, IFNAMSIZ]
+	pfiio_buffer	ptr[out, array[int8]]
+	pfiio_esize	int32
+	pfiio_size	int32
+	pfiio_nzero	int32
+	pfiio_flags	int32
+}
+
+pfioc_tm {
+	timeout	flags[pf_timeout_ids, int32]
+	seconds	int32
+}
+
+pfioc_limit {
+	index	flags[pf_limit_ids, int32]
+	limit	int32
+}
+
+# pfr_table: 1064 bytes
+pfr_table {
+	pfrt_anchor	string[filename, PATH_MAX]
+	pfrt_name	string[filename, PF_TABLE_NAME_SIZE]
+	pfrt_flags	flags[pfr_table_flags, int32]
+	pfrt_fback	int8
+	pad		array[const[0, int8], 3]
+}
+
+# pfr_addr: 52 bytes
+pfr_addr {
+	pfra_ip		ipv4_addr
+	pfra_pad	array[const[0, int8], 12]
+	pfra_ifname	string[filename, IFNAMSIZ]
+	pfra_states	int32
+	pfra_weight	int16
+	pfra_af		flags[pf_af, int8]
+	pfra_net	int8
+	pfra_not	int8
+	pfra_fback	int8
+	pfra_type	int8
+	pfra_pad2	array[const[0, int8], 7]
+}
+
+# pfioc_table: used for table ioctls
+# variant without buffer (for clear/flags operations)
+pfioc_table {
+	pfrio_table	pfr_table
+	pfrio_buffer	const[0, intptr]
+	pfrio_esize	const[0, int32]
+	pfrio_size	const[0, int32]
+	pfrio_size2	int32
+	pfrio_nadd	int32
+	pfrio_ndel	int32
+	pfrio_nchange	int32
+	pfrio_flags	flags[pfr_ioctl_flags, int32]
+	pfrio_ticket	int32
+}
+
+# variant with table buffer (for add/del/get tables)
+pfioc_table_tables {
+	pfrio_table	pfr_table
+	pfrio_buffer	ptr[inout, array[pfr_table]]
+	pfrio_esize	int32
+	pfrio_size	len[pfrio_buffer, int32]
+	pfrio_size2	int32
+	pfrio_nadd	int32
+	pfrio_ndel	int32
+	pfrio_nchange	int32
+	pfrio_flags	flags[pfr_ioctl_flags, int32]
+	pfrio_ticket	int32
+}
+
+# variant with addr buffer (for add/del/get addrs)
+pfioc_table_addrs {
+	pfrio_table	pfr_table
+	pfrio_buffer	ptr[inout, array[pfr_addr]]
+	pfrio_esize	int32
+	pfrio_size	len[pfrio_buffer, int32]
+	pfrio_size2	int32
+	pfrio_nadd	int32
+	pfrio_ndel	int32
+	pfrio_nchange	int32
+	pfrio_flags	flags[pfr_ioctl_flags, int32]
+	pfrio_ticket	int32
+}
+
+pfioc_trans_e {
+	type	flags[pf_trans_type, int32]
+	anchor	string[filename, PATH_MAX]
+	ticket	int32
+}
+
+pfioc_trans {
+	size	len[array, int32]
+	esize	int32
+	array	ptr[inout, array[pfioc_trans_e]]
+}
+
+pfioc_ruleset {
+	nr	int32
+	path	string[filename, PATH_MAX]
+	name	string[filename, PF_ANCHOR_NAME_SIZE]
+}
+
+pfioc_natlook {
+	saddr		pf_addr
+	daddr		pf_addr
+	rsaddr		pf_addr
+	rdaddr		pf_addr
+	rdomain		int16
+	rrdomain	int16
+	sport		int16
+	dport		int16
+	rsport		int16
+	rdport		int16
+	af		flags[pf_af, int8]
+	proto		int8
+	direction	flags[pf_direction, int8]
+	pad		const[0, int8]
+}
+
+pfioc_synflwats {
+	hiwat	int32
+	lowat	int32
+}
+
+pfioc_queue {
+	ticket	int32
+	nr	int32
+	queue	pf_queuespec
+}
+
+pf_queuespec {
+	entries		array[const[0, intptr], 2]
+	qname		string[filename, PF_QNAME_SIZE]
+	parent_name	string[filename, PF_QNAME_SIZE]
+	ifname		string[filename, IFNAMSIZ]
+	realtime	pf_queue_scspec
+	linkshare	pf_queue_scspec
+	upperlimit	pf_queue_scspec
+	flowqueue	pf_queue_fqspec
+	kif		const[0, intptr]
+	flags		int32
+	qlimit		int32
+	qid		int32
+	parent_qid	int32
+}
+
+pf_queue_scspec {
+	m1	pf_queue_bwspec
+	m2	pf_queue_bwspec
+	d	int32
+	pad	const[0, int32]
+}
+
+pf_queue_bwspec {
+	absolute	int64
+	percent		int32
+	pad		const[0, int32]
+}
+
+pf_queue_fqspec {
+	flows		int32
+	quantum		int32
+	target		int32
+	interval	int32
+}
+
+# pfioc_rule is very large (3424 bytes) — contains the full pf_rule
+# struct (1360 bytes) which has many kernel-internal pointer fields.
+# We describe the header fields and use an opaque blob for the rule.
+pfioc_rule {
+	action		int32
+	ticket		int32
+	nr		int32
+	anchor		string[filename, PATH_MAX]
+	anchor_call	string[filename, PATH_MAX]
+	pad		const[0, int32]
+	rule		array[int8, 1360]
+}
