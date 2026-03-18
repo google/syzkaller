@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
+	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -1199,5 +1200,21 @@ func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOption
 	if opts.Attempts == 0 {
 		opts.Attempts = 10
 	}
-	return db.RunInTransaction(ctx, tx, opts)
+	const maxDevAppServerRetries = 100
+	var err error
+	for i := 0; i < maxDevAppServerRetries; i++ {
+		err = db.RunInTransaction(ctx, tx, opts)
+		if err != nil && appengine.IsDevAppServer() {
+			errStr := err.Error()
+			// This is a hack to work around the fact that the dev app server
+			// returns the emulator specific error under pressure:
+			// "API error 1 (datastore_v3: BAD_REQUEST): Transaction(<handle: XXX, app: "dev~testapp-12", >) not found"
+			if strings.Contains(errStr, "Transaction") && strings.Contains(errStr, "not found") {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+		}
+		return err
+	}
+	return fmt.Errorf("failed after %v dev server retries: %w", maxDevAppServerRetries, err)
 }
