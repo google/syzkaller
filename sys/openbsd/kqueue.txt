@@ -8,6 +8,7 @@ include <sys/time.h>
 resource fd_kqueue[fd]
 
 kqueue() fd_kqueue
+kqueue1(flags flags[kqueue1_flags]) fd_kqueue
 kevent(kd fd_kqueue, changelist ptr[in, array[kevent]], nchanges int32, eventlist ptr[in, array[kevent]], nevents int32, timeout ptr[in, timespec])
 
 kevent_ident {
@@ -25,4 +26,6 @@ kevent {
 
 kevent_filter = EVFILT_READ, EVFILT_WRITE, EVFILT_AIO, EVFILT_VNODE, EVFILT_PROC, EVFILT_SIGNAL, EVFILT_TIMER, EVFILT_DEVICE, EVFILT_EXCEPT, EVFILT_USER
 kevent_flags = EV_ADD, EV_DELETE, EV_ENABLE, EV_DISABLE, EV_ONESHOT, EV_CLEAR, EV_RECEIPT, EV_DISPATCH
+kqueue1_flags = O_CLOEXEC, O_NONBLOCK
+
 kevent_fflags = NOTE_LOWAT, NOTE_EOF, NOTE_OOB, NOTE_DELETE, NOTE_WRITE, NOTE_EXTEND, NOTE_ATTRIB, NOTE_LINK, NOTE_RENAME, NOTE_REVOKE, NOTE_TRUNCATE, NOTE_EXIT, NOTE_FORK, NOTE_EXEC, NOTE_PCTRLMASK, NOTE_PDATAMASK, NOTE_TRACK, NOTE_TRACKERR, NOTE_CHILD, NOTE_CHANGE
