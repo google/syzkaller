@@ -103,5 +103,5 @@ getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_
 setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
 getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
 
-sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_TYPE, SO_ERROR
+sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_BINDANY, SO_ZEROIZE, SO_TYPE, SO_ERROR, SO_RTABLE, SO_DOMAIN, SO_PROTOCOL
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
