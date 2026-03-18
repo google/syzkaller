@@ -1,4 +1,4 @@
-# Copyright 2025 syzkaller project authors. All rights reserved.
+# Copyright 2026 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # Audio and mixer device descriptions for OpenBSD.
@@ -55,7 +55,7 @@ ioctl$AUDIO_GETSTATUS_ctl(fd fd_audioctl, cmd const[AUDIO_GETSTATUS], arg ptr[ou
 # ── Mixer ioctls (available on /dev/audioctl only) ────────────────────────────
 
 ioctl$AUDIO_MIXER_READ(fd fd_audioctl, cmd const[AUDIO_MIXER_READ], arg ptr[inout, mixer_ctrl])
-ioctl$AUDIO_MIXER_WRITE(fd fd_audioctl, cmd const[AUDIO_MIXER_WRITE], arg ptr[in, mixer_ctrl])
+ioctl$AUDIO_MIXER_WRITE(fd fd_audioctl, cmd const[AUDIO_MIXER_WRITE], arg ptr[inout, mixer_ctrl])
 ioctl$AUDIO_MIXER_DEVINFO(fd fd_audioctl, cmd const[AUDIO_MIXER_DEVINFO], arg ptr[inout, mixer_devinfo])
 
 # ── Structs ────────────────────────────────────────────────────────────────────
