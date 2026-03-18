@@ -23,6 +23,35 @@
         <p class="text-muted small">How many reports with findings have been published.</p>
         <div id="reports_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
+
+        {{if .MonthlyStats.Months}}
+        <h3 class="h5 mt-4">Monthly Summaries</h3>
+        <table class="table table-striped table-sm" style="max-width: 600px;">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Reports</th>
+              <th>Findings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .MonthlyStats.Months}}
+            <tr>
+              <td>{{.Date.Format "2006-01"}}</td>
+              <td>{{.Reports}}</td>
+              <td>{{.Findings}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+          <tfoot class="fw-bold">
+            <tr>
+              <td>Total</td>
+              <td>{{.MonthlyStats.Totals.Reports}}</td>
+              <td>{{.MonthlyStats.Totals.Findings}}</td>
+            </tr>
+          </tfoot>
+        </table>
+        {{end}}
       </div>
 
       <hr class="my-4">

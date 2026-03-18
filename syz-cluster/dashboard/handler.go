@@ -242,6 +242,7 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 		Delay         []*db.DelayPerWeek
 		Distribution  []*db.StatusPerWeek
 		PreventedBugs []*db.PreventedBugsStats
+		MonthlyStats  MonthlyStats
 	}
 	var data StatsPageData
 	var err error
@@ -269,7 +270,32 @@ func (h *dashboardHandler) statsPage(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return fmt.Errorf("failed to query prevented bugs data: %w", err)
 	}
+
+	reportsPerMonth, err := h.statsRepo.ReportsPerMonth(r.Context())
+	if err != nil {
+		return fmt.Errorf("failed to query reports per month: %w", err)
+	}
+	data.MonthlyStats = makeMonthlyStats(reportsPerMonth)
+
 	return h.renderTemplate(w, "graphs.html", data)
+}
+
+type MonthlyStats struct {
+	Totals *db.ReportsPerMonth
+	Months []*db.ReportsPerMonth
+}
+
+func makeMonthlyStats(reports []*db.ReportsPerMonth) MonthlyStats {
+	totals := &db.ReportsPerMonth{}
+	for _, r := range reports {
+		totals.Reports += r.Reports
+		totals.Findings += r.Findings
+	}
+
+	return MonthlyStats{
+		Totals: totals,
+		Months: reports,
+	}
 }
 
 func groupFindings(findings []*db.Finding) map[string][]*db.Finding {

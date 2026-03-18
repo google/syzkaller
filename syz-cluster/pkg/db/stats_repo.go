@@ -54,6 +54,27 @@ ORDER BY Date`,
 	})
 }
 
+type ReportsPerMonth struct {
+	Date     time.Time `spanner:"Date"`
+	Reports  int64     `spanner:"Reports"`
+	Findings int64     `spanner:"Findings"`
+}
+
+func (repo *StatsRepository) ReportsPerMonth(ctx context.Context) (
+	[]*ReportsPerMonth, error) {
+	return readEntities[ReportsPerMonth](ctx, repo.client.Single(), spanner.Statement{
+		SQL: `SELECT
+  TIMESTAMP_TRUNC(SessionReports.ReportedAt, MONTH, 'UTC') as Date,
+  COUNT(DISTINCT SessionReports.ID) as Reports,
+  COUNT(Findings.ID) as Findings
+FROM SessionReports
+JOIN Findings ON Findings.SessionID = SessionReports.SessionID
+WHERE SessionReports.Moderation = FALSE AND SessionReports.ReportedAt IS NOT NULL
+GROUP BY Date
+ORDER BY Date DESC`,
+	})
+}
+
 func (repo *StatsRepository) FindingsPerWeek(ctx context.Context) (
 	[]*CountPerWeek, error) {
 	return readEntities[CountPerWeek](ctx, repo.client.Single(), spanner.Statement{

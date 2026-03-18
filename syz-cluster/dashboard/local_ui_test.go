@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
+	"github.com/google/syzkaller/syz-cluster/pkg/reporter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -181,5 +182,29 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 		Target:   api.StepTargetBase,
 		Log:      []byte("base error log"),
 	})
+	require.NoError(t, err)
+
+	// Finish the session.
+	err = sessionRepo.Update(ctx, ids.SessionID, func(s *db.Session) error {
+		s.SetFinishedAt(time.Now())
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Generate a report.
+	err = reporter.NewGenerator(env).Process(ctx, 10)
+	require.NoError(t, err)
+
+	reportClient := reporter.TestServer(t, env)
+
+	// Send it upstream (moves it from Moderation to reported list but it still needs confirmation).
+	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
+	require.NoError(t, err)
+	err = reportClient.UpstreamReport(ctx, nextResp.Report.ID, &api.UpstreamReportReq{User: "local-ui"})
+	require.NoError(t, err)
+
+	nextResp, err = reportClient.GetNextReport(ctx, api.LKMLReporter)
+	require.NoError(t, err)
+	err = reportClient.ConfirmReport(ctx, nextResp.Report.ID)
 	require.NoError(t, err)
 }
