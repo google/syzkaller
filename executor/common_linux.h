@@ -3068,6 +3068,22 @@ static void reset_loop_device(const char* loopname)
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_read_part_table || __NR_syz_mount_image
+static int loopnr;
+
+static int loop_get_free(void)
+{
+	int ctlfd;
+
+	ctlfd = open("/dev/loop-control", O_RDWR);
+	if (ctlfd == -1)
+		return -1;
+	loopnr = ioctl(ctlfd, LOOP_CTL_GET_FREE);
+	close(ctlfd);
+	return loopnr;
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
 // syz_read_part_table(size len[img], img ptr[in, compressed_image])
 static long syz_read_part_table(volatile unsigned long size, volatile long image)
@@ -3076,7 +3092,10 @@ static long syz_read_part_table(volatile unsigned long size, volatile long image
 	int err = 0, res = -1, loopfd = -1;
 	char loopname[64];
 
-	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+	loopnr = loop_get_free();
+	if (loopnr == -1)
+		return -1;
+	snprintf(loopname, sizeof(loopname), "/dev/loop%d", loopnr);
 	if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 		return -1;
 
@@ -3096,7 +3115,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile long image
 	res = 0;
 	// If we managed to parse some partitions, symlink them into our work dir.
 	for (unsigned long i = 1, j = 0; i < 8; i++) {
-		snprintf(loopname, sizeof(loopname), "/dev/loop%llup%d", procid, (int)i);
+		snprintf(loopname, sizeof(loopname), "/dev/loop%dp%d", loopnr, (int)i);
 		struct stat statbuf;
 		if (stat(loopname, &statbuf) == 0) {
 			char linkname[64];
@@ -3148,10 +3167,14 @@ static long syz_mount_image(
 
 	if (need_loop_device) {
 		int loopfd;
+
 		// Some filesystems (e.g. FUSE) do not need a backing device or
 		// filesystem image.
+		loopnr = loop_get_free();
+		if (loopnr == -1)
+			return -1;
 		memset(loopname, 0, sizeof(loopname));
-		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+		snprintf(loopname, sizeof(loopname), "/dev/loop%d", loopnr);
 		if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 			return -1;
 		// If BLK_DEV_WRITE_MOUNTED is set, we won't be able to mount()
@@ -4887,7 +4910,7 @@ static void reset_loop()
 {
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
 	char buf[64];
-	snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
+	snprintf(buf, sizeof(buf), "/dev/loop%d", loopnr);
 	int loopfd = open(buf, O_RDWR);
 	if (loopfd != -1) {
 		ioctl(loopfd, LOOP_CLR_FD, 0);
