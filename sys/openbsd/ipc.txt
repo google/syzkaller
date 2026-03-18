@@ -75,39 +75,49 @@ ipc_perm {
 
 msqid_ds {
 	perm	ipc_perm
+	first	const[0, intptr]
+	last	const[0, intptr]
+	cbytes	intptr
 	qnum	intptr
 	qbytes	intptr
 	lspid	pid
 	lrpid	pid
 	stime	intptr
-	rtime	intptr
-	ctime	intptr
-	cbytes	intptr
-	pad0	const[0, intptr]
 	pad1	const[0, intptr]
+	rtime	intptr
+	pad2	const[0, intptr]
+	ctime	intptr
+	pad3	const[0, intptr]
+	pad4	array[const[0, intptr], 4]
 }
 
 shmid_ds {
 	perm	ipc_perm
 	segsz	int32
-	nattch	int16
-	cpid	pid
 	lpid	pid
+	cpid	pid
+	nattch	int16
+	pad0	const[0, int16]
 	atime	intptr
+	atimensec	intptr
 	dtime	intptr
+	dtimensec	intptr
 	ctime	intptr
-	unused0	const[0, int16]
-	unused1	const[0, intptr]
-	unused2	const[0, intptr]
+	ctimensec	intptr
+	internal	const[0, intptr]
 }
 
 semid_ds {
 	perm	ipc_perm
+	base	const[0, intptr]
+	nsems	int16
+	pad0	const[0, int16]
+	pad0a	const[0, int32]
 	otime	intptr
-	ctime	intptr
-	nsems	intptr
-	pad0	const[0, intptr]
 	pad1	const[0, intptr]
+	ctime	intptr
+	pad2	const[0, intptr]
+	pad3	array[const[0, intptr], 4]
 }
 
 sembuf {
