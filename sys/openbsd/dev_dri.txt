@@ -16,6 +16,9 @@ resource drm_encoder_id[int32]
 resource drm_connector_id[int32]
 resource drm_plane_id[int32]
 resource drm_syncobj_handle[int32]
+resource drm_magic[int32]
+resource drm_blob_id[int32]
+resource drm_lessee_id[int32]
 
 openat$dri(fd const[AT_FDCWD], file ptr[in, string[dri_devices]], flags flags[open_flags], mode const[0]) fd_dri
 
@@ -27,36 +30,53 @@ ioctl$DRM_IOCTL_SET_CLIENT_CAP(fd fd_dri, cmd const[DRM_IOCTL_SET_CLIENT_CAP], a
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
 ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
 ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout, drm_gem_open])
+ioctl$DRM_IOCTL_GET_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[out, drm_auth])
+ioctl$DRM_IOCTL_AUTH_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_AUTH_MAGIC], arg ptr[in, drm_auth])
+ioctl$DRM_IOCTL_SET_MASTER(fd fd_dri, cmd const[DRM_IOCTL_SET_MASTER])
+ioctl$DRM_IOCTL_DROP_MASTER(fd fd_dri, cmd const[DRM_IOCTL_DROP_MASTER])
 ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle])
+ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle])
 ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[inout, drm_mode_card_res])
 ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[inout, drm_mode_get_plane_res])
 ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[inout, drm_mode_crtc])
-ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
+ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[inout, drm_mode_crtc])
 ioctl$DRM_IOCTL_MODE_GETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANE], arg ptr[inout, drm_mode_get_plane])
-ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[in, drm_mode_set_plane])
-ioctl$DRM_IOCTL_MODE_CURSOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_CURSOR], arg ptr[in, drm_mode_cursor])
+ioctl$DRM_IOCTL_MODE_SETPLANE(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETPLANE], arg ptr[inout, drm_mode_set_plane])
+ioctl$DRM_IOCTL_MODE_CURSOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_CURSOR], arg ptr[inout, drm_mode_cursor])
 ioctl$DRM_IOCTL_MODE_GETENCODER(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETENCODER], arg ptr[inout, drm_mode_get_encoder])
 ioctl$DRM_IOCTL_MODE_GETCONNECTOR(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCONNECTOR], arg ptr[inout, drm_mode_get_connector])
 ioctl$DRM_IOCTL_MODE_GETFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB], arg ptr[inout, drm_mode_fb_cmd])
 ioctl$DRM_IOCTL_MODE_ADDFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB], arg ptr[inout, drm_mode_fb_cmd])
 ioctl$DRM_IOCTL_MODE_ADDFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_ADDFB2], arg ptr[inout, drm_mode_fb_cmd2])
 ioctl$DRM_IOCTL_MODE_RMFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_RMFB], arg ptr[in, drm_fb_id])
-ioctl$DRM_IOCTL_MODE_PAGE_FLIP(fd fd_dri, cmd const[DRM_IOCTL_MODE_PAGE_FLIP], arg ptr[in, drm_mode_crtc_page_flip_target])
-ioctl$DRM_IOCTL_MODE_DIRTYFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DIRTYFB], arg ptr[in, drm_mode_fb_dirty_cmd])
+ioctl$DRM_IOCTL_MODE_GETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPERTY], arg ptr[inout, drm_mode_get_property])
+ioctl$DRM_IOCTL_MODE_GETPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPROPBLOB], arg ptr[inout, drm_mode_get_blob])
+ioctl$DRM_IOCTL_MODE_GETGAMMA(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETGAMMA], arg ptr[inout, drm_mode_crtc_lut])
+ioctl$DRM_IOCTL_MODE_SETGAMMA(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETGAMMA], arg ptr[inout, drm_mode_crtc_lut])
+ioctl$DRM_IOCTL_MODE_PAGE_FLIP(fd fd_dri, cmd const[DRM_IOCTL_MODE_PAGE_FLIP], arg ptr[inout, drm_mode_crtc_page_flip_target])
+ioctl$DRM_IOCTL_MODE_DIRTYFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DIRTYFB], arg ptr[inout, drm_mode_fb_dirty_cmd])
 ioctl$DRM_IOCTL_MODE_CREATE_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_DUMB], arg ptr[inout, drm_mode_create_dumb])
-ioctl$DRM_IOCTL_MODE_DESTROY_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY_DUMB], arg ptr[in, drm_mode_destroy_dumb])
+ioctl$DRM_IOCTL_MODE_MAP_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_MAP_DUMB], arg ptr[inout, drm_mode_map_dumb])
+ioctl$DRM_IOCTL_MODE_DESTROY_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY_DUMB], arg ptr[inout, drm_mode_destroy_dumb])
 ioctl$DRM_IOCTL_MODE_OBJ_GETPROPERTIES(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_GETPROPERTIES], arg ptr[inout, drm_mode_obj_get_properties])
 ioctl$DRM_IOCTL_MODE_OBJ_SETPROPERTY(fd fd_dri, cmd const[DRM_IOCTL_MODE_OBJ_SETPROPERTY], arg ptr[in, drm_mode_obj_set_property])
+ioctl$DRM_IOCTL_MODE_GETFB2(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETFB2], arg ptr[inout, drm_mode_fb_cmd2])
+ioctl$DRM_IOCTL_MODE_CLOSEFB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CLOSEFB], arg ptr[inout, drm_mode_closefb])
+ioctl$DRM_IOCTL_MODE_CREATEPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATEPROPBLOB], arg ptr[inout, drm_mode_create_blob])
+ioctl$DRM_IOCTL_MODE_DESTROYPROPBLOB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROYPROPBLOB], arg ptr[inout, drm_mode_destroy_blob])
+ioctl$DRM_IOCTL_MODE_CREATE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_LEASE], arg ptr[inout, drm_mode_create_lease])
+ioctl$DRM_IOCTL_MODE_LIST_LESSEES(fd fd_dri, cmd const[DRM_IOCTL_MODE_LIST_LESSEES], arg ptr[inout, drm_mode_list_lessees])
+ioctl$DRM_IOCTL_MODE_GET_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GET_LEASE], arg ptr[inout, drm_mode_get_lease])
+ioctl$DRM_IOCTL_MODE_REVOKE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_REVOKE_LEASE], arg ptr[inout, drm_mode_revoke_lease])
 ioctl$DRM_IOCTL_MODE_CURSOR2(fd fd_dri, cmd const[DRM_IOCTL_MODE_CURSOR2], arg ptr[inout, drm_mode_cursor2])
 ioctl$DRM_IOCTL_MODE_ATOMIC(fd fd_dri, cmd const[DRM_IOCTL_MODE_ATOMIC], arg ptr[in, drm_mode_atomic])
 ioctl$DRM_IOCTL_SYNCOBJ_CREATE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_CREATE], arg ptr[inout, drm_syncobj_create])
-ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[in, drm_syncobj_destroy])
-ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle_arg])
-ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle_arg])
-ioctl$DRM_IOCTL_SYNCOBJ_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_WAIT], arg ptr[in, drm_syncobj_wait])
-ioctl$DRM_IOCTL_SYNCOBJ_RESET(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_RESET], arg ptr[in, drm_syncobj_array])
-
-ioctl$DRM_IOCTL_SYNCOBJ_SIGNAL(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_SIGNAL], arg ptr[in, drm_syncobj_array])
+ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[inout, drm_syncobj_destroy])
+ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle_to_fd_arg])
+ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_fd_to_handle_arg])
+ioctl$DRM_IOCTL_SYNCOBJ_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_WAIT], arg ptr[inout, drm_syncobj_wait])
+ioctl$DRM_IOCTL_SYNCOBJ_RESET(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_RESET], arg ptr[inout, drm_syncobj_array])
+ioctl$DRM_IOCTL_SYNCOBJ_SIGNAL(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_SIGNAL], arg ptr[inout, drm_syncobj_array])
 
 drm_capability = DRM_CAP_DUMB_BUFFER, DRM_CAP_VBLANK_HIGH_CRTC, DRM_CAP_DUMB_PREFERRED_DEPTH, DRM_CAP_DUMB_PREFER_SHADOW, DRM_CAP_PRIME, DRM_CAP_TIMESTAMP_MONOTONIC, DRM_CAP_ASYNC_PAGE_FLIP, DRM_CAP_CURSOR_WIDTH, DRM_CAP_CURSOR_HEIGHT, DRM_CAP_ADDFB2_MODIFIERS, DRM_CAP_PAGE_FLIP_TARGET, DRM_CAP_CRTC_IN_VBLANK_EVENT, DRM_CAP_SYNCOBJ, DRM_CAP_SYNCOBJ_TIMELINE, DRM_CAP_ATOMIC_ASYNC_PAGE_FLIP
 drm_client_cap = DRM_CLIENT_CAP_STEREO_3D, DRM_CLIENT_CAP_UNIVERSAL_PLANES, DRM_CLIENT_CAP_ATOMIC, DRM_CLIENT_CAP_ASPECT_RATIO, DRM_CLIENT_CAP_WRITEBACK_CONNECTORS, DRM_CLIENT_CAP_CURSOR_PLANE_HOTSPOT
@@ -71,7 +91,8 @@ drm_mode_fb_dirty_cmd_flags = DRM_MODE_FB_DIRTY_ANNOTATE_COPY, DRM_MODE_FB_DIRTY
 drm_mode_object_type = DRM_MODE_OBJECT_CRTC, DRM_MODE_OBJECT_CONNECTOR, DRM_MODE_OBJECT_ENCODER, DRM_MODE_OBJECT_MODE, DRM_MODE_OBJECT_PROPERTY, DRM_MODE_OBJECT_FB, DRM_MODE_OBJECT_BLOB, DRM_MODE_OBJECT_PLANE, DRM_MODE_OBJECT_ANY
 drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_PAGE_FLIP_ASYNC, DRM_MODE_ATOMIC_TEST_ONLY, DRM_MODE_ATOMIC_NONBLOCK, DRM_MODE_ATOMIC_ALLOW_MODESET
 drm_syncobj_create_flags = DRM_SYNCOBJ_CREATE_SIGNALED
-drm_syncobj_flags = DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE
+drm_syncobj_fd_to_handle_flags = DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE, DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_TIMELINE
+drm_syncobj_handle_to_fd_flags = DRM_SYNCOBJ_HANDLE_TO_FD_FLAGS_EXPORT_SYNC_FILE, DRM_SYNCOBJ_HANDLE_TO_FD_FLAGS_TIMELINE
 drm_syncobj_wait_flags = DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE
 
 drm_version {
@@ -337,11 +358,20 @@ drm_syncobj_destroy {
 	pad	const[0, int32]
 }
 
-drm_syncobj_handle_arg {
-	handle	drm_syncobj_handle	(inout)
-	flags	flags[drm_syncobj_flags, int32]
-	fd	fd	(inout)
+drm_syncobj_handle_to_fd_arg {
+	handle	drm_syncobj_handle	(in)
+	flags	flags[drm_syncobj_handle_to_fd_flags, int32]
+	fd	fd	(out)
 	pad	const[0, int32]
+	point	int64
+}
+
+drm_syncobj_fd_to_handle_arg {
+	handle	drm_syncobj_handle	(out)
+	flags	flags[drm_syncobj_fd_to_handle_flags, int32]
+	fd	fd	(in)
+	pad	const[0, int32]
+	point	int64
 }
 
 drm_syncobj_wait {
@@ -351,6 +381,7 @@ drm_syncobj_wait {
 	flags		flags[drm_syncobj_wait_flags, int32]
 	first_signaled	int32	(out)
 	pad		const[0, int32]
+	deadline_nsec	int64
 }
 
 drm_syncobj_array {
@@ -361,3 +392,83 @@ drm_syncobj_array {
 
 type drm_mode_object_id int32
 type drm_mode_property_id int32
+
+drm_auth {
+	magic	drm_magic
+}
+
+drm_mode_map_dumb {
+	handle	drm_handle
+	pad	const[0, int32]
+	offset	int64	(out)
+}
+
+drm_mode_get_property {
+	values_ptr		ptr[out, array[int64]]
+	enum_blob_ptr		ptr[out, array[drm_mode_property_enum]]
+	prop_id			drm_mode_property_id
+	flags			int32	(out)
+	name			array[int8, DRM_PROP_NAME_LEN]	(out)
+	count_values		len[values_ptr, int32]
+	count_enum_blobs	len[enum_blob_ptr, int32]
+}
+
+drm_mode_property_enum {
+	value	int64
+	name	array[int8, DRM_PROP_NAME_LEN]
+}
+
+drm_mode_get_blob {
+	blob_id	drm_blob_id
+	length	len[data, int32]
+	data	ptr[out, array[int8]]
+}
+
+drm_mode_crtc_lut {
+	crtc_id		drm_crtc_id
+	gamma_size	len[red, int32]
+	red		ptr[inout, array[int16]]
+	green		ptr[inout, array[int16]]
+	blue		ptr[inout, array[int16]]
+}
+
+drm_mode_create_blob {
+	data	ptr[in, array[int8]]
+	length	len[data, int32]
+	blob_id	drm_blob_id	(out)
+}
+
+drm_mode_destroy_blob {
+	blob_id	drm_blob_id
+}
+
+drm_mode_closefb {
+	fb_id	drm_fb_id
+	pad	const[0, int32]
+}
+
+drm_mode_create_lease {
+	object_ids	ptr[in, array[drm_mode_object_id]]
+	object_count	len[object_ids, int32]
+	flags		flags[drm_lease_flags, int32]
+	lessee_id	drm_lessee_id	(out)
+	fd		fd_dri	(out)
+}
+
+drm_mode_list_lessees {
+	count_lessees	len[lessees_ptr, int32]
+	pad		const[0, int32]
+	lessees_ptr	ptr[out, array[drm_lessee_id]]
+}
+
+drm_mode_get_lease {
+	count_objects	len[objects_ptr, int32]
+	pad		const[0, int32]
+	objects_ptr	ptr[out, array[drm_mode_object_id]]
+}
+
+drm_mode_revoke_lease {
+	lessee_id	drm_lessee_id
+}
+
+drm_lease_flags = O_CLOEXEC, O_NONBLOCK
