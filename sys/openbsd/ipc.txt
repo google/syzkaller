@@ -92,17 +92,17 @@ msqid_ds {
 }
 
 shmid_ds {
-	perm	ipc_perm
-	segsz	int32
-	lpid	pid
-	cpid	pid
-	nattch	int16
-	pad0	const[0, int16]
-	atime	intptr
+	perm		ipc_perm
+	segsz		int32
+	lpid		pid
+	cpid		pid
+	nattch		int16
+	pad0		const[0, int16]
+	atime		intptr
 	atimensec	intptr
-	dtime	intptr
+	dtime		intptr
 	dtimensec	intptr
-	ctime	intptr
+	ctime		intptr
 	ctimensec	intptr
 	internal	const[0, intptr]
 }
