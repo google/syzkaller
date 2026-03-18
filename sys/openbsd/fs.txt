@@ -29,7 +29,9 @@ pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
 lseek(fd fd, offset fileoff, whence flags[seek_whence])
 dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
+dup3(oldfd fd, newfd fd, flags flags[pipe_flags]) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+closefrom(lowfd fd)
 
 pipefd {
 	rfd	fd
