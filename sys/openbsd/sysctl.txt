@@ -13,7 +13,6 @@ include <ddb/db_var.h>
 include <amd64/cpu.h>
 
 sysctl$ddb(name ptr[in, ctl_ddb], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
-sysctl$fs(name ptr[in, ctl_fs], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
 sysctl$hw(name ptr[in, ctl_hw], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
 sysctl$kern(name ptr[in, ctl_kern], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
 sysctl$machdep(name ptr[in, ctl_machdep], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
@@ -48,13 +47,6 @@ ctl_ddb {
 }
 
 ctl_ddb_flags = DBCTL_CONSOLE, DBCTL_LOG, DBCTL_MAXLINE, DBCTL_MAXWIDTH, DBCTL_PANIC, DBCTL_RADIX, DBCTL_TABSTOP, DBCTL_TRIGGER, DBCTL_PROFILE, DBCTL_SUSPEND
-
-ctl_fs {
-	n1	const[CTL_FS, int32]
-	n2	flags[ctl_fs_flags, int32]
-}
-
-ctl_fs_flags = FS_POSIX_SETUID
 
 ctl_hw {
 	n1	const[CTL_HW, int32]
