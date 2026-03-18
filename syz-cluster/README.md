@@ -50,15 +50,18 @@ the emulation of network policies.
 $ eval $(minikube docker-env)
 $ make all-containers
 ```
-3. Deploy the cluster:
+3. Deploy local infrastructure (Argo, Spanner, Service Accounts):
 ```
 $ kubectl create namespace argo
-$ make k8s-config-argo | kubectl apply -f -
-$ make k8s-config-argo-wait
-$ make k8s-config-dev | kubectl apply -f -
-$ make migrate-job.yaml | kubectl create -f -
+$ make k8s-config-local-infra
+$ make migrate-local
 ```
-4. Pre-fetch the kernel git repository:
+
+4. Deploy the rest of the cluster:
+```
+$ make k8s-config-dev | kubectl apply -f -
+```
+5. Pre-fetch the kernel git repository:
 ```
 $ make fetch-kernels-once.yaml | kubectl create -f -
 ```
