@@ -14,11 +14,11 @@ resource fd_vmm[fd]
 
 openat$vmm(fd const[AT_FDCWD], file ptr[in, string["/dev/vmm"]], flags flags[open_flags], mode const[0]) fd_vmm
 
-ioctl$VMM_IOC_CREATE(fd fd_vmm, cmd const[VMM_IOC_CREATE], arg ptr[in, vm_create_params])
-ioctl$VMM_IOC_INFO(fd fd_vmm, cmd const[VMM_IOC_INFO], arg ptr[out, vm_info_params])
-ioctl$VMM_IOC_READREGS(fd fd_vmm, cmd const[VMM_IOC_READREGS], arg ptr[out, vm_rwregs_params])
+ioctl$VMM_IOC_CREATE(fd fd_vmm, cmd const[VMM_IOC_CREATE], arg ptr[inout, vm_create_params])
+ioctl$VMM_IOC_INFO(fd fd_vmm, cmd const[VMM_IOC_INFO], arg ptr[inout, vm_info_params])
+ioctl$VMM_IOC_READREGS(fd fd_vmm, cmd const[VMM_IOC_READREGS], arg ptr[inout, vm_rwregs_params])
 ioctl$VMM_IOC_RESETCPU(fd fd_vmm, cmd const[VMM_IOC_RESETCPU], arg ptr[in, vm_resetcpu_params])
-ioctl$VMM_IOC_RUN(fd fd_vmm, cmd const[VMM_IOC_RUN], arg ptr[in, vm_run_params])
+ioctl$VMM_IOC_RUN(fd fd_vmm, cmd const[VMM_IOC_RUN], arg ptr[inout, vm_run_params])
 ioctl$VMM_IOC_TERM(fd fd_vmm, cmd const[VMM_IOC_TERM], arg ptr[in, vm_terminate_params])
 ioctl$VMM_IOC_WRITEREGS(fd fd_vmm, cmd const[VMM_IOC_WRITEREGS], arg ptr[in, vm_rwregs_params])
 
