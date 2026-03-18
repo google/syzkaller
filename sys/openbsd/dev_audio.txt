@@ -1,0 +1,149 @@
+# Copyright 2025 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Audio and mixer device descriptions for OpenBSD.
+# Covers /dev/audio (PCM I/O + audio ioctls) and /dev/audioctl (mixer ioctls + audio param ioctls).
+# Source: sys/dev/audio.c, sys/sys/audioio.h
+#
+# Device minor layout:
+#   AUDIO_DEV_AUDIO   = 0x00  (/dev/audio)
+#   AUDIO_DEV_AUDIOCTL = 0xc0 (/dev/audioctl)
+#
+# /dev/audio supports: read, write, all AUDIO_* ioctls, kqfilter
+# /dev/audioctl supports: read (mixer events), AUDIO_* ioctls (except START/STOP),
+#                         MIXER_* ioctls, kqfilter
+
+include <sys/types.h>
+include <sys/time.h>
+include <sys/fcntl.h>
+include <sys/ioctl.h>
+include <sys/audioio.h>
+
+# ── Resources ──────────────────────────────────────────────────────────────────
+
+resource fd_audio[fd]
+resource fd_audioctl[fd]
+
+# ── Device open ────────────────────────────────────────────────────────────────
+
+openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd_audio
+openat$audioctl(fd const[AT_FDCWD], file ptr[in, string["/dev/audioctl"]], flags flags[open_flags], mode const[0]) fd_audioctl
+
+# ── Read / Write ───────────────────────────────────────────────────────────────
+
+write$audio(fd fd_audio, data ptr[in, array[int8]], len bytesize[data])
+read$audio(fd fd_audio, data ptr[out, array[int8]], len bytesize[data])
+read$audioctl(fd fd_audioctl, data ptr[out, array[int8]], len bytesize[data])
+
+# ── Audio ioctls (available on both /dev/audio and /dev/audioctl) ──────────────
+
+ioctl$AUDIO_GETDEV(fd fd_audio, cmd const[AUDIO_GETDEV], arg ptr[out, audio_device])
+ioctl$AUDIO_GETPOS(fd fd_audio, cmd const[AUDIO_GETPOS], arg ptr[out, audio_pos])
+ioctl$AUDIO_GETPAR(fd fd_audio, cmd const[AUDIO_GETPAR], arg ptr[out, audio_swpar])
+ioctl$AUDIO_SETPAR(fd fd_audio, cmd const[AUDIO_SETPAR], arg ptr[inout, audio_swpar])
+ioctl$AUDIO_GETSTATUS(fd fd_audio, cmd const[AUDIO_GETSTATUS], arg ptr[out, audio_status])
+ioctl$AUDIO_START(fd fd_audio, cmd const[AUDIO_START])
+ioctl$AUDIO_STOP(fd fd_audio, cmd const[AUDIO_STOP])
+
+# Same ioctls on audioctl (except START/STOP are rejected with ENXIO).
+ioctl$AUDIO_GETDEV_ctl(fd fd_audioctl, cmd const[AUDIO_GETDEV], arg ptr[out, audio_device])
+ioctl$AUDIO_GETPOS_ctl(fd fd_audioctl, cmd const[AUDIO_GETPOS], arg ptr[out, audio_pos])
+ioctl$AUDIO_GETPAR_ctl(fd fd_audioctl, cmd const[AUDIO_GETPAR], arg ptr[out, audio_swpar])
+ioctl$AUDIO_SETPAR_ctl(fd fd_audioctl, cmd const[AUDIO_SETPAR], arg ptr[inout, audio_swpar])
+ioctl$AUDIO_GETSTATUS_ctl(fd fd_audioctl, cmd const[AUDIO_GETSTATUS], arg ptr[out, audio_status])
+
+# ── Mixer ioctls (available on /dev/audioctl only) ────────────────────────────
+
+ioctl$AUDIO_MIXER_READ(fd fd_audioctl, cmd const[AUDIO_MIXER_READ], arg ptr[inout, mixer_ctrl])
+ioctl$AUDIO_MIXER_WRITE(fd fd_audioctl, cmd const[AUDIO_MIXER_WRITE], arg ptr[in, mixer_ctrl])
+ioctl$AUDIO_MIXER_DEVINFO(fd fd_audioctl, cmd const[AUDIO_MIXER_DEVINFO], arg ptr[inout, mixer_devinfo])
+
+# ── Structs ────────────────────────────────────────────────────────────────────
+
+audio_device {
+	name	array[int8, MAX_AUDIO_DEV_LEN]
+	version	array[int8, MAX_AUDIO_DEV_LEN]
+	config	array[int8, MAX_AUDIO_DEV_LEN]
+}
+
+audio_pos {
+	play_pos	int32
+	play_xrun	int32
+	rec_pos		int32
+	rec_xrun	int32
+}
+
+audio_swpar {
+	sig	flags[audio_swpar_bool, int32]
+	le	flags[audio_swpar_bool, int32]
+	bits	flags[audio_swpar_bits, int32]
+	bps	flags[audio_swpar_bps, int32]
+	msb	flags[audio_swpar_bool, int32]
+	rate	flags[audio_swpar_rate, int32]
+	pchan	flags[audio_swpar_chan, int32]
+	rchan	flags[audio_swpar_chan, int32]
+	nblks	int32[1:64]
+	round	int32[1:65536]
+	spare	array[const[0, int32], 6]
+}
+
+audio_status {
+	mode	int32
+	pause	int32
+	active	int32
+	spare	array[const[0, int32], 5]
+}
+
+# mixer_ctrl_t: the type field selects which union member is valid.
+# We model each variant separately.
+mixer_ctrl [
+	enum_ctrl	mixer_ctrl_enum
+	set_ctrl	mixer_ctrl_set
+	value_ctrl	mixer_ctrl_value
+]
+
+mixer_ctrl_enum {
+	dev	int32
+	mtype	const[AUDIO_MIXER_ENUM, int32]
+	ord	int32
+	pad	array[const[0, int8], 8]
+}
+
+mixer_ctrl_set {
+	dev	int32
+	mtype	const[AUDIO_MIXER_SET, int32]
+	mask	int32
+	pad	array[const[0, int8], 8]
+}
+
+mixer_ctrl_value {
+	dev		int32
+	mtype		const[AUDIO_MIXER_VALUE, int32]
+	num_channels	int32[1:8]
+	level		array[int8, 8]
+}
+
+# mixer_devinfo_t: index is in/out. The union depends on the returned type,
+# so for the input side we only care about the index field.
+mixer_devinfo {
+	index		int32[0:255]
+	label		audio_mixer_name
+	mtype		int32
+	mixer_class	int32
+	next		int32
+	prev		int32
+	un		array[int8, 772]
+}
+
+audio_mixer_name {
+	name	array[int8, MAX_AUDIO_DEV_LEN]
+	msg_id	int32
+}
+
+# ── Flags / Constants ──────────────────────────────────────────────────────────
+
+audio_swpar_bool = 0, 1
+audio_swpar_bits = 8, 16, 24, 32
+audio_swpar_bps = 1, 2, 3, 4
+audio_swpar_rate = 8000, 11025, 16000, 22050, 44100, 48000, 88200, 96000, 176400, 192000
+audio_swpar_chan = 1, 2, 4, 6, 8, 10, 12
