@@ -65,8 +65,8 @@ send_msghdr {
 }
 
 send_mmsghdr {
-	hdr	ptr[inout, send_msghdr]
-	len	int32
+	hdr	send_msghdr
+	len	const[0, int32]
 }
 
 recv_msghdr {
@@ -80,7 +80,7 @@ recv_msghdr {
 }
 
 recv_mmsghdr {
-	hdr	ptr[inout, recv_msghdr]
+	hdr	recv_msghdr
 	len	int32
 }
 
