@@ -223,4 +223,4 @@ fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC, FD_CLOFORK
 fcntl_status = O_APPEND, O_ASYNC, O_NONBLOCK, O_DSYNC, O_RSYNC
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
-unveil_permissions = "r", "W", "x", "c"
+unveil_permissions = "r", "w", "x", "c"
