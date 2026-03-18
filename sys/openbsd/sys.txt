@@ -116,6 +116,28 @@ getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
 setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
+kill(pid pid, signum flags[signal])
+setsid() pid
+getsid(pid pid) pid
+issetugid()
+sched_yield()
+getthrid() pid
+getresuid(ruid ptr[out, uid], euid ptr[out, uid], suid ptr[out, uid])
+setresuid(ruid uid, euid uid, suid uid)
+getresgid(rgid ptr[out, gid], egid ptr[out, gid], sgid ptr[out, gid])
+setresgid(rgid gid, egid gid, sgid gid)
+getentropy(buf buffer[out], nbyte len[buf])
+umask(newmask flags[open_mode])
+gettimeofday(tp ptr[out, timeval], tzp ptr[out, timeval, opt])
+access(path ptr[in, filename], amode flags[access_mode])
+fstat(fd fd, statbuf ptr[out, stat])
+fstatat(fd fd_dir, path ptr[in, filename], statbuf ptr[out, stat], flag flags[at_flags])
+futimes(fd fd, tptr ptr[in, itimerval])
+futimens(fd fd, times ptr[in, itimerval])
+mkfifo(path ptr[in, filename], mode flags[open_mode])
+mkfifoat(fd fd_dir, path ptr[in, filename], mode flags[open_mode])
+ppoll(fds ptr[in, array[pollfd]], nfds len[fds], ts ptr[in, timespec, opt], mask ptr[in, sigset, opt])
+pselect(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], ts ptr[in, timespec, opt], mask ptr[in, sigset, opt])
 pledge(promises ptr[in, string], execpromises ptr[in, string])
 unveil(path ptr[in, filename], permissions ptr[in, string[unveil_permissions]])
 
@@ -145,6 +167,10 @@ timeval {
 itimerval {
 	interv	timeval
 	value	timeval
+}
+
+sigset {
+	val	int32
 }
 
 # TODO: fd_set needs to be a separate type
@@ -223,4 +249,6 @@ fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC, FD_CLOFORK
 fcntl_status = O_APPEND, O_ASYNC, O_NONBLOCK, O_DSYNC, O_RSYNC
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
+signal = SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGABRT, SIGFPE, SIGBUS, SIGSEGV, SIGSYS, SIGPIPE, SIGALRM, SIGTERM, SIGURG, SIGTSTP, SIGCONT, SIGCHLD, SIGTTIN, SIGTTOU, SIGIO, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF, SIGWINCH, SIGINFO, SIGUSR1, SIGUSR2
+access_mode = R_OK, W_OK, X_OK, F_OK
 unveil_permissions = "r", "w", "x", "c"
