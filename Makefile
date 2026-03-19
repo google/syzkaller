@@ -32,13 +32,7 @@ $(warning $(RED)run command via tools/syz-env for best compatibility, see:$(RESE
 $(warning $(RED)https://github.com/google/syzkaller/blob/master/docs/contributing.md#using-syz-env$(RESET))
 endif
 
-GITREV=$(shell git rev-parse HEAD)
-ifeq ("$(shell git diff --shortstat)", "")
-	REV=$(GITREV)
-else
-	REV=$(GITREV)+
-endif
-GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
+include tools/version.mk
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
