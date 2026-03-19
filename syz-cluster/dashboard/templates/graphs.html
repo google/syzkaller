@@ -1,7 +1,7 @@
 {{define "content"}}
     <main class="container-fluid my-4">
-      <div class="chart-wrapper mb-5">
-        <h2 class="h4">Processed Patch Series (weekly)</h2>
+      <div class="chart-wrapper mb-5" id="processed">
+        <h2 class="h4"><a href="#processed" class="text-decoration-none text-reset">Processed Patch Series (weekly)</a></h2>
         <p class="text-muted small">How many patch series have been extracted/triaged/built/fuzzed each week.</p>
         <div id="processed_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
@@ -9,8 +9,8 @@
 
       <hr class="my-4">
 
-      <div class="chart-wrapper mb-4">
-        <h2 class="h4">Findings (weekly)</h2>
+      <div class="chart-wrapper mb-4" id="findings">
+        <h2 class="h4"><a href="#findings" class="text-decoration-none text-reset">Findings (weekly)</a></h2>
         <p class="text-muted small">How many kernel crashes or kernel build/boot errors have been detected each week.</p>
         <div id="findings_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
@@ -18,14 +18,19 @@
 
       <hr class="my-4">
 
-      <div class="chart-wrapper mb-4">
-        <h2 class="h4">Reports (weekly)</h2>
+      <div class="chart-wrapper mb-4" id="reports">
+        <h2 class="h4"><a href="#reports" class="text-decoration-none text-reset">Reports (weekly)</a></h2>
         <p class="text-muted small">How many reports with findings have been published.</p>
         <div id="reports_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
 
+      </div>
+
+      <hr class="my-4">
+
+      <div class="chart-wrapper mb-4" id="monthly-stats">
+        <h2 class="h4"><a href="#monthly-stats" class="text-decoration-none text-reset">Monthly Summaries</a></h2>
         {{if .MonthlyStats.Months}}
-        <h3 class="h5 mt-4">Monthly Summaries</h3>
         <table class="table table-striped table-sm" style="max-width: 600px;">
           <thead>
             <tr>
@@ -51,13 +56,15 @@
             </tr>
           </tfoot>
         </table>
+        {{else}}
+        <p>No data available yet.</p>
         {{end}}
       </div>
 
       <hr class="my-4">
 
-      <div class="chart-wrapper mb-4">
-        <h2 class="h4">Wait Time before Fuzzing (avg hours, weekly)</h2>
+      <div class="chart-wrapper mb-4" id="wait-time">
+        <h2 class="h4"><a href="#wait-time" class="text-decoration-none text-reset">Wait Time before Fuzzing (avg hours, weekly)</a></h2>
         <p class="text-muted small">How many hours have passed since the moment the series was published and the moment we started fuzzing it.</p>
         <div id="avg_wait_chart_div" style="width: 100%; height: 400px;"></div>
         <p class="text-muted small">Click and drag to zoom into a time range. Right-click to reset.</p>
@@ -65,8 +72,8 @@
 
       <hr class="my-4">
 
-      <div class="chart-wrapper mb-4">
-        <h2 class="h4">Status Distribution (weekly)</h2>
+      <div class="chart-wrapper mb-4" id="distribution">
+        <h2 class="h4"><a href="#distribution" class="text-decoration-none text-reset">Status Distribution (weekly)</a></h2>
         <p class="text-muted small">
           <b>Processed:</b> Among the processed series, how many have been actually fuzzed.<br />
           <b>Skipped:</b> Among the processed series, how many were skipped during triage (e.g. because no proper base commit was found).<br />
@@ -77,8 +84,8 @@
       </div>
       <hr class="my-4">
 
-      <div class="chart-wrapper mb-4">
-        <h2 class="h4">Prevented Bugs Statistics (monthly)</h2>
+      <div class="chart-wrapper mb-4" id="prevented-bugs">
+        <h2 class="h4"><a href="#prevented-bugs" class="text-decoration-none text-reset">Prevented Bugs Statistics (monthly)</a></h2>
         <p class="text-muted small">
           How many bugs were found in the early series versions, but not in the final one. Data is aggregated by the month the patch series was published.
         </p>
