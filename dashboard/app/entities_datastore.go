@@ -9,12 +9,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -1204,7 +1204,7 @@ func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOption
 	var err error
 	for i := 0; i < maxDevAppServerRetries; i++ {
 		err = db.RunInTransaction(ctx, tx, opts)
-		if err != nil && appengine.IsDevAppServer() {
+		if err != nil && testing.Testing() {
 			errStr := err.Error()
 			// This is a hack to work around the fact that the dev app server
 			// returns the emulator specific error under pressure:
