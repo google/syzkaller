@@ -25,7 +25,7 @@
 # The image then needs to be compressed with:
 #   tar -Sczf disk.tar.gz disk.raw
 # and uploaded to GCS with:
-#   gsutil cp disk.tar.gz gs://my-images/image.tar.gz
+#   gcloud storage cp disk.tar.gz gs://my-images/image.tar.gz
 # finally, my-images/image.tar.gz can be used to create a new GCE image.
 #
 # The image can be tested locally with e.g.:

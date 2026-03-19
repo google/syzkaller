@@ -62,7 +62,7 @@ SERVICE_ACCOUNT=`gcloud iam service-accounts list --filter 'displayName:Compute 
 gcloud projects add-iam-policy-binding "$PROJECT" --role="roles/editor" --member="serviceAccount:$SERVICE_ACCOUNT" --quiet
 
 gcloud services enable storage-api.googleapis.com --project="$PROJECT"
-gsutil mb -p "$PROJECT" "gs://$PROJECT-bucket"
+gcloud storage buckets create --project="$PROJECT" "gs://$PROJECT-bucket"
 
 gcloud services enable cloudbuild.googleapis.com --project="$PROJECT"
 
