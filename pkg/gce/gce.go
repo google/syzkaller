@@ -64,7 +64,6 @@ type InstanceConfig struct {
 	DisplayDevice        bool
 	NestedVirtualization bool
 	NicType              string
-	VMRunningTime        time.Duration
 }
 
 var metadataURL = "http://metadata.google.internal/computeMetadata/v1/"
@@ -188,14 +187,6 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 			EnableNestedVirtualization: cfg.NestedVirtualization,
 		},
 	}
-	if cfg.VMRunningTime != 0 {
-		instance.Scheduling.MaxRunDuration = &compute.Duration{
-			// Give the manager an extra hour to ensure it has time to do its own cleanup.
-			Seconds: int64((cfg.VMRunningTime + time.Hour) / time.Second),
-		}
-		instance.Scheduling.InstanceTerminationAction = "DELETE"
-		instance.Scheduling.ProvisioningModel = "SPOT"
-	}
 retry:
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(cfg.MachineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
@@ -214,7 +205,6 @@ retry:
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
-			instance.Scheduling.ProvisioningModel = ""
 			goto retry
 		}
 		return "", err
