@@ -200,9 +200,13 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 	// Send it upstream (moves it from Moderation to reported list but it still needs confirmation).
 	nextResp, err := reportClient.GetNextReport(ctx, api.LKMLReporter)
 	require.NoError(t, err)
+	err = reportClient.ConfirmReport(ctx, nextResp.Report.ID)
+	require.NoError(t, err)
+
 	err = reportClient.UpstreamReport(ctx, nextResp.Report.ID, &api.UpstreamReportReq{User: "local-ui"})
 	require.NoError(t, err)
 
+	// The upstreaming creates a new report. We need to confirm it to make it visible in stats.
 	nextResp, err = reportClient.GetNextReport(ctx, api.LKMLReporter)
 	require.NoError(t, err)
 	err = reportClient.ConfirmReport(ctx, nextResp.Report.ID)
