@@ -530,7 +530,7 @@ func RunSmokeTest(cfg *mgrconfig.Config) (*report.Report, error) {
 	}
 	timeout := 30 * time.Minute * cfg.Timeouts.Scale
 	bin := filepath.Join(cfg.Syzkaller, "bin", "syz-manager")
-	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test")
+	output, retErr := osutil.RunCmd(timeout, "", bin, "-config", configFile, "-mode=smoke-test", "-vv=2")
 	if retErr == nil {
 		return nil, nil
 	}
