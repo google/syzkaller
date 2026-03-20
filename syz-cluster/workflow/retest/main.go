@@ -66,32 +66,37 @@ func run(ctx context.Context, client *api.Client) error {
 		return fmt.Errorf("failed to parse retest task: %w", err)
 	}
 
-	baseCfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
-	if err != nil {
-		return fmt.Errorf("failed to generate base config: %w", err)
+	var baseEnv instance.Env
+	if *flagBaseBuild != "" {
+		baseCfg, err := fuzzconfig.GenerateBase(&api.FuzzConfig{})
+		if err != nil {
+			return fmt.Errorf("failed to generate base config: %w", err)
+		}
+		if *flagWorkdir != "" {
+			baseCfg.Workdir = *flagWorkdir + "/base"
+		}
+		if err := mgrconfig.Complete(baseCfg); err != nil {
+			return fmt.Errorf("failed to complete base config: %w", err)
+		}
+		baseEnv, err = instance.NewEnv(baseCfg, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create base env: %w", err)
+		}
 	}
+
 	patchedCfg, err := fuzzconfig.GeneratePatched(&api.FuzzConfig{})
 	if err != nil {
 		return fmt.Errorf("failed to generate patched config: %w", err)
 	}
 
 	if *flagWorkdir != "" {
-		baseCfg.Workdir = *flagWorkdir + "/base"
 		patchedCfg.Workdir = *flagWorkdir + "/patched"
 	}
 
-	if err := mgrconfig.Complete(baseCfg); err != nil {
-		return fmt.Errorf("failed to complete base config: %w", err)
-	}
 	if err := mgrconfig.Complete(patchedCfg); err != nil {
 		return fmt.Errorf("failed to complete patched config: %w", err)
 	}
 
-	// Retest runs sequentially, so we don't need semaphores for concurrent builds within this process.
-	baseEnv, err := instance.NewEnv(baseCfg, nil, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create base env: %w", err)
-	}
 	patchedEnv, err := instance.NewEnv(patchedCfg, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create patched env: %w", err)

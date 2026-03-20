@@ -211,4 +211,20 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 	require.NoError(t, err)
 	err = reportClient.ConfirmReport(ctx, nextResp.Report.ID)
 	require.NoError(t, err)
+
+	// Submit a patch test job.
+	report := controller.UploadTestSessionReport(t, env, ids.SessionID)
+	req := &api.SubmitJobRequest{
+		Type:      api.JobPatchTest,
+		ReportID:  report.ID,
+		Reporter:  api.LKMLReporter,
+		User:      "user@example.com",
+		ExtID:     "msg-id-123",
+		Cc:        []string{"cc@example.com"},
+		PatchData: []byte("patch content"),
+	}
+	resp, err := client.SubmitJob(ctx, req)
+	require.NoError(t, err)
+
+	controller.FakeJobSession(t, env, client, resp.SessionID)
 }

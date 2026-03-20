@@ -48,16 +48,28 @@ func TestRender(t *testing.T) {
 			assert.NoError(t, err)
 
 			for _, value := range []bool{false, true} {
+				if value && report.Type == api.ReportTypePatchTest {
+					continue
+				}
 				report.Moderation = value
 				suffix := "upstream"
 				if value {
 					suffix = "moderation"
 				}
-				t.Run(suffix, func(t *testing.T) {
+				testName := suffix
+				if report.Type == api.ReportTypePatchTest {
+					suffix = ""
+					testName = "default"
+				}
+				t.Run(testName, func(t *testing.T) {
 					output, err := Render(&report, config)
 					assert.NoError(t, err)
 
-					outPath := filepath.Join(basePath, name+"."+suffix+".txt")
+					outPath := name + ".txt"
+					if suffix != "" {
+						outPath = name + "." + suffix + ".txt"
+					}
+					outPath = filepath.Join(basePath, outPath)
 					if *flagWrite {
 						err := os.WriteFile(outPath, output, 0644)
 						assert.NoError(t, err)

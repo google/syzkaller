@@ -15,15 +15,17 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
+	"github.com/google/syzkaller/syz-cluster/pkg/reporter"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEmailStream(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
-	handler, reporterClient, _ := setupHandlerTest(t, ctx, env, testSeries)
+	handler, reporterClient, emailServer, _ := setupHandlerTest(t, ctx, env, testSeries)
 	report, err := handler.PollAndReport(ctx)
 	assert.NoError(t, err)
+	_ = emailServer.email() // Consume the moderation email for the original bug report.
 
 	// Simulate our reply.
 	err = reporterClient.ConfirmReport(ctx, report.ID)
@@ -71,6 +73,49 @@ Subject: Reply to the Reply
 Message-ID: <indirect-reply>
 In-Reply-To: <direct-reply>
 From: Someone Else <b@syzbot.org>
+Content-Type: text/plain
+
+`)
+	msg = <-writeTo
+	assert.Equal(t, []string{report.ID}, msg.BugIDs)
+
+	t.Logf("simulating a reply under a test job result")
+	submitResp, err := handler.apiClient.SubmitJob(ctx, &api.SubmitJobRequest{
+		Type:      api.JobPatchTest,
+		ReportID:  report.ID,
+		Reporter:  api.LKMLReporter,
+		User:      "testuser@domain.com",
+		ExtID:     "doesnt-matter",
+		Cc:        []string{"testuser@domain.com", "stream-test-cc@domain.com"},
+		PatchData: []byte("--- a\n+++ b\n"),
+	})
+	assert.NoError(t, err)
+
+	_ = controller.FakeJobSession(t, env, handler.apiClient, submitResp.SessionID)
+	generator := reporter.NewGenerator(env)
+	err = generator.Process(ctx, 1)
+	assert.NoError(t, err)
+	patchTestReport, err := handler.PollAndReport(ctx)
+	assert.NoError(t, err)
+
+	reportReply := emailServer.email()
+	assert.NotNil(t, reportReply, "an email must be sent")
+	assert.Equal(t, []string{"testuser@domain.com", "stream-test-cc@domain.com"}, reportReply.To)
+
+	const patchTestMessageID = "<patch-test-reply>"
+	_, err = reporterClient.RecordReply(ctx, &api.RecordReplyReq{
+		MessageID: patchTestMessageID,
+		ReportID:  patchTestReport.ID,
+		Reporter:  api.LKMLReporter,
+	})
+	assert.NoError(t, err)
+
+	// In replies under patch test reports we must recognize the original report ID.
+	loreArchive.saveMessage(t, `Date: Sun, 7 May 2017 19:55:00 -0700
+Subject: Reply to the Patch Test Reply
+Message-ID: <patch-test-child-reply>
+In-Reply-To: `+patchTestMessageID+`
+From: Someone Else <c@syzbot.org>
 Content-Type: text/plain
 
 `)

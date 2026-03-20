@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type EntityIDs struct {
@@ -123,6 +124,7 @@ func FakeSeriesWithFindings(t *testing.T, ctx context.Context, env *app.AppEnvir
 		err = client.UploadFinding(ctx, finding)
 		assert.NoError(t, err)
 	}
+	StartSession(t, env, ids.SessionID)
 	MarkSessionFinished(t, env, ids.SessionID)
 	return SeriesWithFindingIDs{
 		EntityIDs:      ids,
@@ -140,8 +142,56 @@ func StartSession(t *testing.T, env *app.AppEnvironment, sessionID string) {
 func MarkSessionFinished(t *testing.T, env *app.AppEnvironment, sessionID string) {
 	repo := db.NewSessionRepository(env.Spanner)
 	err := repo.Update(context.Background(), sessionID, func(session *db.Session) error {
+		if session.StartedAt.IsNull() {
+			session.SetStartedAt(time.Now())
+		}
 		session.SetFinishedAt(time.Now())
 		return nil
 	})
 	assert.NoError(t, err)
+}
+
+// TODO: this is temporary.
+// We need to move pkg/controller/api_test.go and pkg/reporter/api_test.go to some other
+// place, so that we can always use both API servers in the tests.
+func UploadTestSessionReport(t *testing.T, env *app.AppEnvironment,
+	sessionID string) *db.SessionReport {
+	reportRepo := db.NewReportRepository(env.Spanner)
+	report := &db.SessionReport{
+		ID:        "report-123",
+		SessionID: sessionID,
+		Reporter:  "test-reporter",
+	}
+	require.NoError(t, reportRepo.Insert(context.Background(), report))
+	return report
+}
+
+// FakeJobSession uploads a fake test and step via the provided client,
+// and marks the given session as finished in the DB.
+func FakeJobSession(t *testing.T, env *app.AppEnvironment, client *api.Client, sessionID string) string {
+	ctx := context.Background()
+	err := client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID: sessionID,
+		TestName:  "build",
+		Result:    api.TestPassed,
+	})
+	require.NoError(t, err)
+
+	err = client.UploadSessionTest(ctx, &api.SessionTest{
+		SessionID: sessionID,
+		TestName:  "run repros",
+		Result:    api.TestPassed,
+	})
+	require.NoError(t, err)
+
+	err = client.UploadTestStep(ctx, sessionID, &api.SessionTestStep{
+		TestName: "run repros",
+		Title:    "repro A",
+		Target:   api.StepTargetPatched,
+		Result:   api.StepResultPassed,
+	})
+	require.NoError(t, err)
+
+	MarkSessionFinished(t, env, sessionID)
+	return sessionID
 }

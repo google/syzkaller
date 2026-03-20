@@ -63,6 +63,7 @@ spec:
             templateRef:
               name: build-action-template
               template: build-action
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != ''}}"
             arguments:
               parameters:
                 - name: test-name
@@ -74,7 +75,7 @@ spec:
                   from: "{{steps.save-base-req.outputs.artifacts.artifact}}"
         - - name: abort-if-base-build-failed
             template: exit-workflow
-            when: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != '' && jsonpath(steps['base-build'].outputs.parameters.result, '$.success') == false}}"
         - - name: save-patched-req
             template: convert-artifact
             arguments:
@@ -85,6 +86,7 @@ spec:
             templateRef:
               name: boot-action-template
               template: boot-action
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != ''}}"
             arguments:
               artifacts:
                 - name: kernel
@@ -96,7 +98,7 @@ spec:
                   value: "[{{=jsonpath(inputs.parameters.element, '$.track')}}] Boot test: Base"
         - - name: abort-if-base-boot-failed
             template: exit-workflow
-            when: "{{=jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
+            when: "{{=jsonpath(inputs.parameters.element, '$.base.commit_hash') != '' && jsonpath(steps['boot-test-base'].outputs.parameters.result, '$.success') == false}}"
         - - name: patched-build
             templateRef:
               name: build-action-template
@@ -161,12 +163,13 @@ spec:
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
-                  value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
+                  value: "{{=steps['base-build'].outputs.parameters.result ? jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id') : ''}}"
                 - name: track
                   value: "{{=jsonpath(inputs.parameters.element, '$.track')}}"
               artifacts:
                 - name: base-kernel
                   from: "{{steps.base-build.outputs.artifacts.kernel}}"
+                  optional: true
                 - name: patched-kernel
                   from: "{{steps.patched-build.outputs.artifacts.kernel}}"
 
@@ -216,6 +219,7 @@ spec:
           - name: track
         artifacts:
           - name: base-kernel
+            optional: true
           - name: patched-kernel
       steps:
         - - name: save-retest-task
@@ -239,6 +243,7 @@ spec:
               artifacts:
                 - name: base-kernel
                   from: "{{inputs.artifacts.base-kernel}}"
+                  optional: true
                 - name: patched-kernel
                   from: "{{inputs.artifacts.patched-kernel}}"
                 - name: retest-task

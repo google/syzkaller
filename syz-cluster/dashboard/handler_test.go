@@ -30,6 +30,7 @@ func TestURLs(t *testing.T) {
 		baseURL,
 		baseURL + "/stats",
 		urlGen.Series(ids.SeriesID),
+		baseURL + "/session/" + ids.SessionID,
 	}
 	for _, buildID := range []string{ids.BaseBuildID, ids.PatchedBuildID} {
 		urls = append(urls, urlGen.BuildConfig(buildID))

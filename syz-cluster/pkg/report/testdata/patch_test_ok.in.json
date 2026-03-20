@@ -1,0 +1,32 @@
+{
+  "id": "patch-test-report-id",
+  "type": "patch-test",
+  "moderation": false,
+  "series": {
+    "title": "Add some cool feature",
+    "version": 2,
+    "link": "https://lore.kernel.org/all/msg-id"
+  },
+  "link": "https://dashboard/report/patch-test-report-id",
+  "patch_link": "https://dashboard/jobs/patch-test-job-id/patch",
+  "tests": [
+    {
+      "name": "build",
+      "status": "passed"
+    },
+    {
+      "name": "run reproducers",
+      "status": "passed",
+      "steps": [
+        {
+          "name": "WARNING in abcd",
+          "status": "passed"
+        },
+        {
+          "name": "KASAN: slab-out-of-bounds in efgh",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

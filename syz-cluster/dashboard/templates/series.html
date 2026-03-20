@@ -1,4 +1,12 @@
 {{define "content"}}
+<style>
+  .btn-collapse::after {
+      content: " \25BC"; /* DOWN-POINTING TRIANGLE */
+  }
+  .btn-collapse[aria-expanded="true"]::after {
+      content: " \25B2"; /* UP-POINTING TRIANGLE */
+  }
+</style>
     <!-- Modal -->
     <div class="modal fade" tabindex="-1" id="contentModal" role="dialog" aria-labelledby="contentModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg" role="document">
@@ -94,9 +102,26 @@
            </tbody>
         </table>
         {{range .Sessions}}
-        <h3>Session {{.CreatedAt.Format "2006-01-02"}}</h3>
-        <table class="table table-bordered table-sm">
-            <tbody>
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">
+                        Session {{.CreatedAt.Format "2006-01-02"}}
+                        {{if .Job}}
+                            <span class="badge bg-info text-dark">Job</span>
+                        {{end}}
+                    </h5>
+                    {{if .Job}}
+                        <small class="text-muted">Job requested at: <a href="{{.JobLink}}" target="_blank">{{.JobLink}}</a></small>
+                    {{end}}
+                </div>
+                <button class="btn btn-sm btn-outline-secondary btn-collapse" data-bs-toggle="collapse" data-bs-target="#session-{{.ID}}" aria-expanded="{{if .Uncollapsed}}true{{else}}false{{end}}" aria-controls="session-{{.ID}}">
+                </button>
+            </div>
+            <div id="session-{{.ID}}" class="collapse {{if .Uncollapsed}}show{{end}}">
+                <div class="card-body">
+                    <table class="table table-bordered table-sm">
+                        <tbody>
                 <tr>
                     <th><i>ID (for dev)</i></th>
                     <td>{{.ID}}</td>
@@ -210,7 +235,10 @@
                 {{end}}
             {{end}}
             </tbody>
-        </table>
+                    </table>
+                </div>
+            </div>
+        </div>
         {{end}}
     </div>
 {{end}}

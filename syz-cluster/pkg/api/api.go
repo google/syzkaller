@@ -79,6 +79,7 @@ type BuildRequest struct {
 	CommitHash string `json:"commit_hash"`
 	ConfigName string `json:"config_name"` // These are known to both the triage and build steps.
 	SeriesID   string `json:"series_id"`
+	JobID      string `json:"job_id,omitempty"`
 }
 
 // BuildResult is returned from the build workflow step.
@@ -95,6 +96,7 @@ type Build struct {
 	CommitDate   time.Time `json:"commit_date"`
 	ConfigName   string    `json:"config_name"`
 	SeriesID     string    `json:"series_id"`
+	JobID        string    `json:"job_id,omitempty"`
 	Compiler     string    `json:"compiler"`
 	BuildSuccess bool      `json:"build_success"`
 }
@@ -187,12 +189,36 @@ type NewSession struct {
 	Tags  []string `json:"tags"`
 }
 
+type ReportType string
+
+const (
+	ReportTypeBug       ReportType = "bug"
+	ReportTypePatchTest ReportType = "patch-test"
+)
+
+type ReportTestStep struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type ReportTest struct {
+	Name   string           `json:"name"`
+	Status string           `json:"status"`
+	Steps  []ReportTestStep `json:"steps"`
+}
+
 type SessionReport struct {
-	ID         string     `json:"id"`
-	Moderation bool       `json:"moderation"`
-	Series     *Series    `json:"series"`
-	Findings   []*Finding `json:"findings"`
-	Link       string     `json:"link"` // URL to the web dashboard.
+	ID         string       `json:"id"`
+	Type       ReportType   `json:"type"`
+	Moderation bool         `json:"moderation"`
+	Series     *Series      `json:"series"`
+	Findings   []*Finding   `json:"findings"`
+	Link       string       `json:"link"` // URL to the web dashboard.
+	Cc         []string     `json:"cc,omitempty"`
+	Tests      []ReportTest `json:"tests,omitempty"`
+	PatchLink  string       `json:"patch_link,omitempty"`
+	InReplyTo  string       `json:"in_reply_to,omitempty"`
+	Error      string       `json:"error,omitempty"`
 }
 
 type Finding struct {
@@ -212,4 +238,42 @@ type BuildInfo struct {
 	Arch       string `json:"arch"`
 	Compiler   string `json:"compiler"`
 	ConfigLink string `json:"config_link"`
+}
+
+type JobType string
+
+const (
+	JobPatchTest JobType = "patch_test"
+)
+
+type SubmitJobRequest struct {
+	Type      JobType  `json:"type"`
+	ReportID  string   `json:"report_id"`
+	Reporter  string   `json:"reporter"`
+	User      string   `json:"user"`
+	ExtID     string   `json:"ext_id"`
+	Cc        []string `json:"cc"`
+	PatchData []byte   `json:"patch_data"`
+}
+
+type SubmitJobResponse struct {
+	JobID     string `json:"job_id"`
+	SessionID string `json:"session_id"`
+}
+
+type FindingGroup struct {
+	Build      Build    `json:"build"`
+	FindingIDs []string `json:"finding_ids"`
+}
+
+type Job struct {
+	ID            string         `json:"id"`
+	Patch         []byte         `json:"patch"`
+	ReportID      string         `json:"report_id"`
+	FindingGroups []FindingGroup `json:"finding_groups,omitempty"`
+}
+
+type SessionInfo struct {
+	Series *Series `json:"series"`
+	Job    *Job    `json:"job,omitempty"`
 }

@@ -43,10 +43,11 @@ func main() {
 	}
 	reporterClient := app.DefaultReporterClient()
 	handler := &Handler{
-		reporter:    api.LKMLReporter,
-		apiClient:   reporterClient,
-		emailConfig: cfg.EmailReporting,
-		sender:      sender,
+		reporter:       api.LKMLReporter,
+		reporterClient: reporterClient,
+		apiClient:      app.DefaultClient(),
+		emailConfig:    cfg.EmailReporting,
+		sender:         sender,
 	}
 	msgCh := make(chan *lore.Email, 16)
 	eg, loopCtx := errgroup.WithContext(ctx)

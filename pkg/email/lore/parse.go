@@ -286,3 +286,11 @@ func (o *Optional[T]) Set(val T) {
 	o.val = val
 	o.set = true
 }
+
+// Link returns a lore.kernel.org link for the given message ID.
+func Link(msgID string, thread bool) string {
+	if thread {
+		return fmt.Sprintf("https://lore.kernel.org/all/%s/T/", strings.Trim(msgID, "<>"))
+	}
+	return fmt.Sprintf("https://lore.kernel.org/all/%s", strings.Trim(msgID, "<>"))
+}
