@@ -59,7 +59,7 @@ func WaitForSSH(timeout time.Duration, opts SSHOptions, OS string, stop <-chan e
 		if time.Since(startTime) > timeout {
 			return &osutil.VerboseError{
 				Err:    ErrCantSSH,
-				Output: []byte(err.Error()),
+				Output: []byte(osutil.VerboseMessage(err)),
 			}
 		}
 	}
