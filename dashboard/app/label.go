@@ -21,6 +21,7 @@ const (
 	MissingBackportLabel BugLabelType = "missing-backport"
 	RaceLabel            BugLabelType = "race"
 	ActionableLabel      BugLabelType = "actionable"
+	NoUpstreamLabel      BugLabelType = "no-upstream"
 )
 
 type BugPrio string
