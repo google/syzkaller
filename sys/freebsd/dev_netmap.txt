@@ -1,0 +1,229 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/fcntl.h>
+include <sys/types.h>
+include <sys/param.h>
+include <sys/ioccom.h>
+include <sys/socket.h>
+include <net/if.h>
+include <net/netmap.h>
+include <net/netmap_user.h>
+
+resource fd_netmap[fd]
+
+openat$netmap(fd const[AT_FDCWD], file ptr[in, string["/dev/netmap"]], flags flags[open_flags], mode const[0]) fd_netmap
+
+ioctl$NIOCCTRL(fd fd_netmap, cmd const[NIOCCTRL], arg ptr[inout, nmreq_header])
+ioctl$NIOCTXSYNC(fd fd_netmap, cmd const[NIOCTXSYNC])
+ioctl$NIOCRXSYNC(fd fd_netmap, cmd const[NIOCRXSYNC])
+ioctl$NIOCREGIF(fd fd_netmap, cmd const[NIOCREGIF], arg ptr[inout, nmreq])
+ioctl$NIOCGINFO(fd fd_netmap, cmd const[NIOCGINFO], arg ptr[inout, nmreq])
+ioctl$NIOCCONFIG(fd fd_netmap, cmd const[NIOCCONFIG], arg ptr[in, nm_ifreq])
+
+netmap_req_types = NETMAP_REQ_REGISTER, NETMAP_REQ_PORT_INFO_GET, NETMAP_REQ_VALE_ATTACH, NETMAP_REQ_VALE_DETACH, NETMAP_REQ_VALE_LIST, NETMAP_REQ_PORT_HDR_SET, NETMAP_REQ_PORT_HDR_GET, NETMAP_REQ_VALE_NEWIF, NETMAP_REQ_VALE_DELIF, NETMAP_REQ_VALE_POLLING_ENABLE, NETMAP_REQ_VALE_POLLING_DISABLE, NETMAP_REQ_POOLS_INFO_GET, NETMAP_REQ_SYNC_KLOOP_START, NETMAP_REQ_SYNC_KLOOP_STOP
+nmreq_register_flags = NR_MONITOR_TX, NR_MONITOR_RX, NR_ZCOPY_MON, NR_EXCLUSIVE, NR_RX_RINGS_ONLY, NR_TX_RINGS_ONLY, NR_ACCEPT_VNET_HDR, NR_DO_RX_POLL, NR_NO_TX_POLL
+nmreq_vale_polling_modes = NETMAP_POLLING_MODE_SINGLE_CPU, NETMAP_POLLING_MODE_MULTI_CPU
+nmreq_opt_sync_kloop_mode_modes = NM_OPT_SYNC_KLOOP_DIRECT_TX, NM_OPT_SYNC_KLOOP_DIRECT_RX
+nmreq_register_modes = NR_REG_DEFAULT, NR_REG_ALL_NIC, NR_REG_SW, NR_REG_NIC_SW, NR_REG_ONE_NIC, NR_REG_PIPE_MASTER, NR_REG_PIPE_SLAVE, NR_REG_NULL, NR_REG_ONE_SW
+nmreq_register_ringid = NETMAP_HW_RING, NETMAP_SW_RING, NETMAP_RING_MASK, NETMAP_NO_TX_POLL, NETMAP_DO_RX_POLL
+nmreq_nr_cmds = NETMAP_BDG_ATTACH, NETMAP_BDG_DETACH, NETMAP_BDG_REGOPS, NETMAP_BDG_LIST, NETMAP_BDG_VNET_HDR, NETMAP_BDG_NEWIF, NETMAP_BDG_DELIF, NETMAP_PT_HOST_CREATE, NETMAP_PT_HOST_DELETE, NETMAP_BDG_POLLING_ON, NETMAP_BDG_POLLING_OFF, NETMAP_VNET_HDR_GET
+
+nmreq_header {
+	nr_version	const[NETMAP_API, int16]
+	nr_reqtype	flags[netmap_req_types, int16]
+	nr_reserved	const[0, int32]
+	nr_name		array[int8, NETMAP_REQ_IFNAMSIZ]
+	nr_options	ptr64[inout, array[nmreq_option_u]]
+	nr_body		ptr64[inout, nmreq_body]
+}
+
+nmreq_register {
+	nr_offset		int64
+	nr_memsize		int64
+	nr_tx_slots		int32
+	nr_rx_slots		int32
+	nr_tx_rings		int16
+	nr_rx_rings		int16
+	nr_host_tx_rings	int16
+	nr_host_rx_rings	int16
+	nr_mem_id		int16
+	nr_ringid		flags[nmreq_register_ringid, int32]
+	nr_mode			flags[nmreq_register_modes, int32]
+	int_extra_bufs		int32
+	nr_flags		flags[nmreq_register_flags, int32]
+}
+
+nmreq_port_info_get {
+	nr_memsize		int64	(out)
+	nr_tx_slots		int32	(out)
+	nr_rx_slots		int32	(out)
+	nr_tx_rings		int16	(out)
+	nr_rx_rings		int16	(out)
+	nr_host_tx_rings	int16	(out)
+	nr_host_rx_rings	int16	(out)
+	nr_mem_id		int16	(inout)
+	pad			array[const[0, int16], 3]
+}
+
+nmreq_vale_attach {
+	reg		nmreq_register
+	port_index	int32
+	pad1		const[0, int32]
+}
+
+nmreq_vale_detach {
+	port_idx	int32
+	pad1		const[0, int32]
+}
+
+nmreq_port_hdr {
+	nr_hdr_len	len[parent, int32]
+	pad1		const[0, int32]
+}
+
+nmreq_vale_list {
+	nr_bridge_idx	int16
+	pad1		const[0, int16]
+	nr_port_idx	int32
+}
+
+nmreq_vale_newif {
+	nr_tx_slots	int32
+	nr_rx_slots	int32
+	nr_tx_rings	int16
+	nr_rx_rings	int16
+	nr_mem_id	int16
+	pad1		const[0, int16]
+}
+
+nmreq_vale_polling {
+	nr_mode			flags[nmreq_vale_polling_modes, int32]
+	nr_first_cpu_id		int32
+	nr_num_polling_cpus	int32
+	pad1			const[0, int32]
+}
+
+nmreq_pools_info {
+	nr_memsize		int64
+	nr_mem_id		int16	(inout)
+	pad1			array[const[0, int16], 3]
+	nr_if_pool_offset	int64
+	nr_if_pool_objtotal	int32
+	nr_if_pool_objsize	int32
+	nr_ring_pool_offset	int64
+	nr_ring_pool_objtotal	int32
+	nr_ring_pool_objsize	int32
+	nr_buf_pool_offset	int64
+	nr_buf_pool_objtotal	int32
+	nr_buf_pool_objsize	int32
+}
+
+nmreq_sync_kloop_start {
+	sleep_us	int32
+	pad1		const[0, int32]
+}
+
+nmreq_opt_extmem {
+	nro_opt		nmreq_option_typed[NETMAP_REQ_OPT_EXTMEM]
+	nro_usrptr	ptr64[in, array[int8]]
+	nro_info	nmreq_pools_info	(inout)
+}
+
+nmreq_opt_sync_kloop_eventfds {
+	nro_opt		nmreq_option_typed[NETMAP_REQ_OPT_SYNC_KLOOP_EVENTFDS]
+	eventfds	array[nmreq_opt_sync_kloop_eventfd_pair]
+}
+
+nmreq_opt_sync_kloop_eventfd_pair {
+	ioeventfd	fd
+	irqfd		fd
+}
+
+nmreq_opt_sync_kloop_mode {
+	nro_opt	nmreq_option_typed[NETMAP_REQ_OPT_SYNC_KLOOP_MODE]
+	mode	flags[nmreq_opt_sync_kloop_mode_modes, int32]
+}
+
+nmreq_opt_csb {
+	nro_opt		nmreq_option_typed[NETMAP_REQ_OPT_CSB]
+	csb_ktoa	ptr64[in, array[nm_csb_atok]]
+	csb_atoa	ptr64[in, array[nm_csb_ktoa]]
+}
+
+nm_csb_atok {
+	head		int32
+	cur		int32
+	appl_need_kick	int32
+	sync_flags	int32
+	pad		array[const[0, int32], 12]
+}
+
+nm_csb_ktoa {
+	hwcur		int32
+	hwtail		int32
+	kern_need_kick	int32
+	pad		array[const[0, int32], 13]
+}
+
+nmreq_opt_offsets {
+	nro_opt			nmreq_option_typed[NETMAP_REQ_OPT_OFFSETS]
+	nro_max_offset		int64
+	nro_initial_offset	int64
+	nro_offset_bits		int32
+	nro_tx_align		int32
+	nro_min_gap		int32
+}
+
+nm_ifreq {
+	nifr_name	array[int8, IFNAMSIZ]
+	data		array[int8, NM_IFRDATA_LEN]
+}
+
+nmreq {
+	nr_name		array[int8, IFNAMSIZ]
+	nr_version	int32
+	nr_offset	int32
+	nr_memsize	int32
+	nr_tx_slots	int32
+	nr_rx_slots	int32
+	nr_tx_rings	int16
+	nr_rx_rings	int16
+	nr_ringid	flags[nmreq_register_ringid, int16]
+	nr_cmd		flags[nmreq_nr_cmds, int16]
+	nr_arg1		int16
+	nr_arg2		int16
+	nr_arg3		int32
+	nr_flags	flags[nmreq_register_modes, int32]
+	spare2		array[int32, 1]
+}
+
+nmreq_body [
+	reg		nmreq_register	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_REGISTER])
+	port_info	nmreq_port_info_get	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_PORT_INFO_GET])
+	vale_attach	nmreq_vale_attach	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_ATTACH])
+	vale_detach	nmreq_vale_detach	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_DETACH])
+	port_hdr_set	nmreq_port_hdr	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_PORT_HDR_SET])
+	port_hdr_get	nmreq_port_hdr	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_PORT_HDR_GET])
+	vale_list	nmreq_vale_list	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_LIST])
+	vale_newif	nmreq_vale_newif	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_NEWIF])
+	vale_polling	nmreq_vale_polling	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_POLLING_ENABLE || value[nmreq_header:nr_reqtype] == NETMAP_REQ_VALE_POLLING_DISABLE])
+	pools_info	nmreq_pools_info	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_POOLS_INFO_GET])
+	sync_kloop	nmreq_sync_kloop_start	(if[value[nmreq_header:nr_reqtype] == NETMAP_REQ_SYNC_KLOOP_START])
+	default		int8
+] [varlen]
+
+nmreq_option_u [
+	extmem		nmreq_opt_extmem
+	kloop_fds	nmreq_opt_sync_kloop_eventfds
+	kloop_mode	nmreq_opt_sync_kloop_mode
+	csb		nmreq_opt_csb
+	offsets		nmreq_opt_offsets
+] [varlen]
+
+type nmreq_option_typed[OPT_TYPE] {
+	nro_next	ptr[in, nmreq_option_u, opt]
+	nro_reqtype	const[OPT_TYPE, int32]
+	nro_status	int32	(out)
+	nro_size	len[parent, int64]
+}

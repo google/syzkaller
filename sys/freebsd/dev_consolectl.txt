@@ -1,0 +1,44 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/fcntl.h>
+include <sys/types.h>
+include <sys/consio.h>
+
+resource fd_consolectl[fd]
+
+openat$consolectl(fd const[AT_FDCWD], file ptr[in, string["/dev/consolectl"]], flags flags[open_flags], mode const[0]) fd_consolectl
+
+ioctl$CONS_MOUSECTL(fd fd_consolectl, cmd const[CONS_MOUSECTL], arg ptr[in, mouse_info])
+ioctl$CONS_GETVERS(fd fd_consolectl, cmd const[CONS_GETVERS], arg ptr[out, int32])
+
+mouse_ops = MOUSE_SHOW, MOUSE_HIDE, MOUSE_MOVEABS, MOUSE_MOVEREL, MOUSE_GETINFO, MOUSE_MODE, MOUSE_ACTION, MOUSE_MOTION_EVENT, MOUSE_BUTTON_EVENT, MOUSE_MOUSECHAR
+
+mouse_info {
+	operation	flags[mouse_ops, int32]
+	u		mouse_info_u
+}
+
+mouse_info_u [
+	data		mouse_data
+	mode		mouse_mode
+	event		mouse_event
+	mouse_char	int32
+]
+
+mouse_data {
+	x	int32
+	y	int32
+	z	int32
+	buttons	int32
+}
+
+mouse_mode {
+	mode	int32
+	signal	int32
+}
+
+mouse_event {
+	id	int32
+	value	int32
+}

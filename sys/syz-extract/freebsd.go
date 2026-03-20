@@ -8,8 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type freebsd struct{}
@@ -40,6 +42,28 @@ func (*freebsd) prepareArch(arch *Arch) error {
 		filepath.Join(arch.buildDir, "x86")); err != nil {
 		return fmt.Errorf("failed to create link: %w", err)
 	}
+
+	// Generate necessary headers under sys/syzkaller for const extraction.
+	syzDir := filepath.Join(arch.sourceDir, "sys", "syzkaller")
+	awkArgs := []string{
+		"-f",
+		filepath.Join(arch.sourceDir, "sys", "tools", "makeobjops.awk"),
+		filepath.Join(arch.sourceDir, "sys", "kern", "device_if.m"),
+		filepath.Join(arch.sourceDir, "sys", "kern", "bus_if.m"),
+		"-h",
+	}
+	if err := osutil.MkdirAll(syzDir); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+	if _, err := osutil.RunCmd(10*time.Second, syzDir, "awk", awkArgs...); err != nil {
+		return fmt.Errorf("failed to run awk: %w", err)
+	}
+
+	// opt_cam.h is required for some headers although it is empty.
+	if err := osutil.WriteFile(filepath.Join(syzDir, "opt_cam.h"), []byte("")); err != nil {
+		return fmt.Errorf("failed to create opt_cam.h: %w", err)
+	}
+
 	return nil
 }
 
@@ -56,6 +80,7 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"-I", filepath.Join(arch.sourceDir, "sys", "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "contrib", "ck", "include"),
 		"-I", filepath.Join(arch.sourceDir, "include"),
+		"-I", filepath.Join(arch.sourceDir, "sys", "syzkaller"),
 		"-I", arch.buildDir,
 	}
 	for _, incdir := range info.Incdirs {
