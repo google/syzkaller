@@ -1,0 +1,827 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <sys/ata.h>
+include <sys/bus.h>
+include <sys/syslimits.h>
+include <sys/param.h>
+include <sys/queue.h>
+include <cam/ata/ata_all.h>
+include <cam/cam.h>
+include <cam/cam_ccb.h>
+include <cam/cam_periph.h>
+include <cam/cam_queue.h>
+include <cam/cam_xpt.h>
+include <cam/cam_xpt_internal.h>
+include <cam/scsi/scsi_pass.h>
+include <cam/scsi/scsi_all.h>
+include <dev/nvme/nvme.h>
+
+resource fd_pass[fd]
+
+define DEV_NAME_LEN	1024
+define SSD_FULL_SIZE_MINUS_ONE	(SSD_FULL_SIZE - 1)
+define SID_VENDOR_SIZE_PLUS_ONE	(SID_VENDOR_SIZE+1)
+define SID_PRODUCT_SIZE_PLUS_ONE	(SID_PRODUCT_SIZE+1)
+define SID_REVISION_SIZE_PLUS_ONE	(SID_REVISION_SIZE+1)
+
+# TODO: Descriptions for following structs are quite complex, I will complete them when I was free
+define CAM_EB_SIZE	sizeof(struct cam_eb)
+define CAM_ED_SIZE	sizeof(struct cam_ed)
+define CAM_ET_SIZE	sizeof(struct cam_et)
+define MTX_SIZE	sizeof(struct mtx)
+
+openat$pass(fd const[AT_FDCWD], file ptr[in, string["/dev/pass0"]], flags flags[open_flags], mode const[0]) fd_pass
+
+ioctl$CAMIOQUEUE(fd fd_pass, cmd const[CAMIOQUEUE], arg ptr[in, ptr[in, ccb]])
+ioctl$CAMIOGET(fd fd_pass, cmd const[CAMIOGET], arg ptr[out, ptr[out, ccb]])
+ioctl$CAMIOCOMMAND(fd fd_pass, cmd const[CAMIOCOMMAND], arg ptr[inout, ccb])
+
+ccb_hdr_func_codes = XPT_FC_QUEUED, XPT_FC_USER_CCB, XPT_FC_XPT_ONLY, XPT_FC_DEV_QUEUED, XPT_NOOP, XPT_SCSI_IO, XPT_GDEV_TYPE, XPT_GDEVLIST, XPT_PATH_INQ, XPT_REL_SIMQ, XPT_SASYNC_CB, XPT_SDEV_TYPE, XPT_SCAN_BUS, XPT_DEV_MATCH, XPT_DEBUG, XPT_PATH_STATS, XPT_GDEV_STATS, XPT_DEV_ADVINFO, XPT_ASYNC, XPT_ABORT, XPT_RESET_BUS, XPT_RESET_DEV, XPT_TERM_IO, XPT_SCAN_LUN, XPT_GET_TRAN_SETTINGS, XPT_SET_TRAN_SETTINGS, XPT_CALC_GEOMETRY, XPT_ATA_IO, XPT_GET_SIM_KNOB_OLD, XPT_SET_SIM_KNOB, XPT_GET_SIM_KNOB, XPT_SMP_IO, XPT_NVME_IO, XPT_MMC_IO, XPT_SCAN_TGT, XPT_NVME_ADMIN, XPT_ENG_INQ, XPT_ENG_EXEC, XPT_EN_LUN, XPT_TARGET_IO, XPT_ACCEPT_TARGET_IO, XPT_CONT_TARGET_IO, XPT_IMMED_NOTIFY, XPT_NOTIFY_ACK, XPT_IMMEDIATE_NOTIFY, XPT_NOTIFY_ACKNOWLEDGE, XPT_REPROBE_LUN, XPT_MMC_SET_TRAN_SETTINGS, XPT_MMC_GET_TRAN_SETTINGS, XPT_VUNIQUE
+cam_periph_flags = CAM_PERIPH_RUNNING, CAM_PERIPH_LOCKED, CAM_PERIPH_LOCK_WANTED, CAM_PERIPH_INVALID, CAM_PERIPH_NEW_DEV_FOUND, CAM_PERIPH_RECOVERY_INPROG, CAM_PERIPH_RUN_TASK, CAM_PERIPH_FREE, CAM_PERIPH_ANNOUNCED, CAM_PERIPH_RECOVERY_WAIT, CAM_PERIPH_RECOVERY_WAIT_FAILED
+cam_periph_ac_codes = AC_UNIT_ATTENTION, AC_ADVINFO_CHANGED, AC_CONTRACT, AC_GETDEV_CHANGED, AC_INQ_CHANGED, AC_TRANSFER_NEG, AC_LOST_DEVICE, AC_FOUND_DEVICE, AC_PATH_DEREGISTERED, AC_PATH_REGISTERED, AC_SENT_BDR, AC_SCSI_AEN, AC_UNSOL_RESEL, AC_BUS_RESET
+ata_support2_flags = ATA_SUPPORT_WRITEREADVERIFY, ATA_SUPPORT_WRITEUNCORREXT, ATA_SUPPORT_RWLOGDMAEXT, ATA_SUPPORT_MICROCODE3, ATA_SUPPORT_FREEFALL, ATA_SUPPORT_SENSE_REPORT, ATA_SUPPORT_EPC, ATA_SUPPORT_AMAX_ADDR, ATA_SUPPORT_DSN
+ata_enabled2_flags = ATA_ENABLED_WRITEREADVERIFY, ATA_ENABLED_WRITEUNCORREXT, ATA_ENABLED_FREEFALL, ATA_ENABLED_SENSE_REPORT, ATA_ENABLED_EPC, ATA_ENABLED_DSN
+ata_security_status_flags = ATA_SECURITY_LEVEL, ATA_SECURITY_ENH_SUPP, ATA_SECURITY_COUNT_EXP, ATA_SECURITY_FROZEN, ATA_SECURITY_LOCKED, ATA_SECURITY_ENABLED, ATA_SECURITY_SUPPORTED
+ata_form_factor_flags = ATA_FORM_FACTOR_MASK, ATA_FORM_FACTOR_NOT_REPORTED, ATA_FORM_FACTOR_5_25, ATA_FORM_FACTOR_3_5, ATA_FORM_FACTOR_2_5, ATA_FORM_FACTOR_1_8, ATA_FORM_FACTOR_SUB_1_8, ATA_FORM_FACTOR_MSATA, ATA_FORM_FACTOR_M_2, ATA_FORM_FACTOR_MICRO_SSD, ATA_FORM_FACTOR_C_FAST
+ata_support_dsm_flags = ATA_SUPPORT_DSM_TRIM
+ata_rotation_rate_flags = ATA_RATE_NOT_REPORTED, ATA_RATE_NON_ROTATING
+ata_command1_flags = ATA_SUPPORT_SMART, ATA_SUPPORT_SECURITY, ATA_SUPPORT_REMOVABLE, ATA_SUPPORT_POWERMGT, ATA_SUPPORT_PACKET, ATA_SUPPORT_WRITECACHE, ATA_SUPPORT_LOOKAHEAD, ATA_SUPPORT_RELEASEIRQ, ATA_SUPPORT_SERVICEIRQ, ATA_SUPPORT_RESET, ATA_SUPPORT_PROTECTED, ATA_SUPPORT_WRITEBUFFER, ATA_SUPPORT_READBUFFER, ATA_SUPPORT_NOP
+ata_command2_flags = ATA_SUPPORT_MICROCODE, ATA_SUPPORT_QUEUED, ATA_SUPPORT_CFA, ATA_SUPPORT_APM, ATA_SUPPORT_NOTIFY, ATA_SUPPORT_STANDBY, ATA_SUPPORT_SPINUP, ATA_SUPPORT_MAXSECURITY, ATA_SUPPORT_AUTOACOUSTIC, ATA_SUPPORT_ADDRESS48, ATA_SUPPORT_OVERLAY, ATA_SUPPORT_FLUSHCACHE, ATA_SUPPORT_FLUSHCACHE48
+ata_extension_flags = ATA_SUPPORT_SMARTLOG, ATA_SUPPORT_SMARTTEST, ATA_SUPPORT_MEDIASN, ATA_SUPPORT_MEDIAPASS, ATA_SUPPORT_STREAMING, ATA_SUPPORT_GENLOG, ATA_SUPPORT_WRITEDMAFUAEXT, ATA_SUPPORT_WRITEDMAQFUAEXT, ATA_SUPPORT_64BITWWN, ATA_SUPPORT_UNLOAD
+cam_debug_flags = CAM_DEBUG_NONE, CAM_DEBUG_INFO, CAM_DEBUG_TRACE, CAM_DEBUG_SUBTRACE, CAM_DEBUG_CDB, CAM_DEBUG_XPT, CAM_DEBUG_PERIPH, CAM_DEBUG_PROBE
+cam_flags = CAM_FLAG_NONE, CAM_EXPECT_INQ_CHANGE, CAM_RETRY_SELTO
+ccb_dev_match_status = CAM_DEV_MATCH_LAST, CAM_DEV_MATCH_MORE, CAM_DEV_MATCH_LIST_CHANGED, CAM_DEV_MATCH_SIZE_ERROR, CAM_DEV_MATCH_ERROR
+periph_match_pattern_flags = PERIPH_MATCH_ANY, PERIPH_MATCH_PATH, PERIPH_MATCH_TARGET, PERIPH_MATCH_LUN, PERIPH_MATCH_NAME, PERIPH_MATCH_UNIT
+dev_pattern_flags = DEV_MATCH_ANY, DEV_MATCH_PATH, DEV_MATCH_TARGET, DEV_MATCH_LUN, DEV_MATCH_INQUIRY, DEV_MATCH_DEVID
+dev_result_flags = DEV_RESULT_NOFLAG, DEV_RESULT_UNCONFIGURED
+dev_pos_type = CAM_DEV_POS_NONE, CAM_DEV_POS_BUS, CAM_DEV_POS_TARGET, CAM_DEV_POS_DEVICE, CAM_DEV_POS_PERIPH, CAM_DEV_POS_PDPTR, CAM_DEV_POS_TYPEMASK, CAM_DEV_POS_EDT, CAM_DEV_POS_PDRV
+dev_match_type = DEV_MATCH_PERIPH, DEV_MATCH_DEVICE, DEV_MATCH_BUS
+bus_pattern_flags = BUS_MATCH_ANY, BUS_MATCH_PATH, BUS_MATCH_NAME, BUS_MATCH_UNIT, BUS_MATCH_BUS_ID
+ccb_relsim_release_flags = RELSIM_ADJUST_OPENINGS, RELSIM_RELEASE_AFTER_TIMEOUT, RELSIM_RELEASE_AFTER_CMDCMPLT, RELSIM_RELEASE_AFTER_QEMPTY
+cam_xport = XPORT_UNKNOWN, XPORT_UNSPECIFIED, XPORT_SPI, XPORT_FC, XPORT_SSA, XPORT_USB, XPORT_PPB, XPORT_ATA, XPORT_SAS, XPORT_SATA, XPORT_ISCSI, XPORT_SRP, XPORT_NVME, XPORT_MMCSD, XPORT_NVMF, XPORT_UFSHCI
+ccb_getdevlist_status_e = CAM_GDEVLIST_LAST_DEVICE, CAM_GDEVLIST_LIST_CHANGED, CAM_GDEVLIST_MORE_DEVS, CAM_GDEVLIST_ERROR
+cam_proto = PROTO_UNKNOWN, PROTO_UNSPECIFIED, PROTO_SCSI, PROTO_ATA, PROTO_ATAPI, PROTO_SATAPM, PROTO_SEMB, PROTO_NVME, PROTO_MMCSD
+ata_config_flags = ATA_PROTO_MASK, ATA_PROTO_ATAPI, ATA_PROTO_ATAPI_12, ATA_PROTO_ATAPI_16, ATA_PROTO_CFA, ATA_ATAPI_TYPE_MASK, ATA_ATAPI_TYPE_DIRECT, ATA_ATAPI_TYPE_TAPE, ATA_ATAPI_TYPE_CDROM, ATA_ATAPI_TYPE_OPTICAL, ATA_ATAPI_REMOVABLE, ATA_DRQ_MASK, ATA_DRQ_SLOW, ATA_DRQ_INTR, ATA_DRQ_FAST, ATA_RESP_INCOMPLETE
+ata_tcg_flags = ATA_SUPPORT_TCG
+ata_capabilities1_flags = ATA_SUPPORT_DMA, ATA_SUPPORT_LBA, ATA_SUPPORT_IORDYDIS, ATA_SUPPORT_IORDY, ATA_SUPPORT_OVERLAP
+ata_valid_flags = ATA_FLAG_54_58, ATA_FLAG_64_70, ATA_FLAG_88
+ata_multi_flags = ATA_SUPPORT_BLOCK_ERASE_EXT, ATA_SUPPORT_OVERWRITE_EXT, ATA_SUPPORT_CRYPTO_SCRAMBLE_EXT, ATA_SUPPORT_SANITIZE, ATA_SUPPORT_SANITIZE_ALLOWED, ATA_SUPPORT_ANTIFREEZE_LOCK_EXT, ATA_MULTI_VALID
+ata_support3_flags = ATA_SUPPORT_RZAT, ATA_SUPPORT_DRAT, ATA_ENCRYPTS_ALL_USER_DATA, ATA_SUPPORT_ZONE_MASK, ATA_SUPPORT_ZONE_NR, ATA_SUPPORT_ZONE_HOST_AWARE, ATA_SUPPORT_ZONE_DEV_MANAGED
+ata_sata_caps_flags = ATA_SATA_GEN1, ATA_SATA_GEN2, ATA_SATA_GEN3, ATA_SUPPORT_NCQ, ATA_SUPPORT_IFPWRMNGTRCV, ATA_SUPPORT_PHYEVENTCNT, ATA_SUPPORT_NCQ_UNLOAD, ATA_SUPPORT_NCQ_PRIO, ATA_SUPPORT_HAPST, ATA_SUPPORT_DAPST, ATA_SUPPORT_READLOGDMAEXT
+ata_sata_caps2_flags = ATA_SATA_CURR_GEN_MASK, ATA_SUPPORT_NCQ_STREAM, ATA_SUPPORT_NCQ_NON_DATA, ATA_SUPPORT_NCQ_QMANAGEMENT, ATA_SUPPORT_RCVSND_FPDMA_QUEUED
+ata_sata_support_flags = ATA_SUPPORT_NONZERO, ATA_SUPPORT_AUTOACTIVATE, ATA_SUPPORT_IFPWRMNGT, ATA_SUPPORT_INORDERDATA, ATA_SUPPORT_ASYNCNOTIF, ATA_SUPPORT_SOFTSETPRESERVE, ATA_SUPPORT_NCQ_AUTOSENSE
+ata_sata_enabled_flags = ATA_ENABLED_DAPST
+ata_pss_flags = ATA_PSS_LSPPS, ATA_PSS_LSSABOVE512, ATA_PSS_MULTLS, ATA_PSS_VALID_MASK, ATA_PSS_VALID_VALUE
+
+ccb_hdr {
+	pinfo		cam_pinfo
+	xpt_links	camq_entry
+	sim_links	camq_entry
+	periph_links	camq_entry
+	retry_count	int16
+	alloc_flags	int16
+	cbfcnp		intptr
+	func_code	flags[ccb_hdr_func_codes, int32]
+	status		int32
+	path		ptr[in, cam_path]
+	path_id		int32
+	target_id	int32
+	target_lun	int64
+	flags		int32
+	xflags		int32
+	periph_priv	ccb_ppriv_area
+	sim_priv	ccb_spriv_area
+	qos		ccb_qos_area
+	timeout		int32
+	softtimeout	timeval
+}
+
+ccb_ppriv_area [
+	entries	array[ccb_priv_entry, CCB_PERIPH_PRIV_SIZE]
+]
+
+ccb_spriv_area [
+	entries	array[ccb_priv_entry, CCB_SIM_PRIV_SIZE]
+]
+
+ccb_priv_entry [
+	ptr	intptr
+	field	intptr
+]
+
+ccb_qos_area [
+	sim_data	intptr
+	periph_data	intptr
+	etime		ptr[in, timeval]
+]
+
+cam_pinfo {
+	priority	int32
+	generation	int32
+	index		int32
+}
+
+camq_entry [
+	le	LIST_ENTRY[in, ccb_hdr]
+	sle	SLIST_ENTRY[in, ccb_hdr]
+	tqe	TAILQ_ENTRY[in, ccb_hdr]
+	stqe	STAILQ_ENTRY[in, ccb_hdr]
+]
+
+cam_path {
+	periph	ptr[in, cam_periph, opt]
+	bus	ptr[in, array[int8, CAM_EB_SIZE]]
+	target	ptr[in, array[int8, CAM_ED_SIZE]]
+	device	ptr[in, array[int8, CAM_ET_SIZE]]
+}
+
+cam_periph {
+	periph_start		ptr[in, void]
+	periph_alloc		ptr[in, void]
+	periph_dtor		ptr[in, void]
+	periph_name		ptr[in, array[int8]]
+	path			ptr[in, cam_path]
+	softc			ptr[in, void]
+	sim			ptr[in, cam_sim]
+	unit_number		int32
+	type			int32
+	flags			flags[cam_periph_flags, int32]
+	scheduled_priority	int32
+	immediate_priority	int32
+	periph_allocating	int32
+	periph_allocated	int32
+	refcount		int32
+	ccb_list		SLIST_HEAD[in, ccb_hdr]
+	periph_links		SLIST_ENTRY[in, cam_periph]
+	unit_links		TAILQ_ENTRY[in, cam_periph]
+	deferred_callback	ptr[in, void]
+	deferred_ac		flags[cam_periph_ac_codes, int32]
+	periph_run_task		task
+	ccb_zone		ptr[in, array[int8]]
+	periph_rootmount	root_hold_token
+}
+
+cam_sim {
+	sim_action		intptr
+	sim_poll		intptr
+	sim_name		ptr[in, array[int8]]
+	softc			ptr[in, array[int8]]
+	mtx			ptr[in, array[int8, MTX_SIZE]]
+	links			TAILQ_ENTRY[in, cam_sim]
+	path_id			int32
+	unit_number		int32
+	bus_id			int32
+	max_tagged_dev_openings	int32
+	max_dev_openings	int32
+	flags			int32
+	devq			cam_devq
+	refcount		int32
+}
+
+cam_devq {
+	send_mtx	array[int8, MTX_SIZE]
+	send_queue	camq
+	send_openings	int32
+	send_active	int32
+}
+
+camq {
+	queue_array	ptr[in, array[ptr[in, cam_pinfo]]]
+	array_size	len[queue_array, int32]
+	entries		int32
+	generation	int32
+	qfrozen_cnt	int32
+}
+
+root_hold_token {
+	flags	int32
+	who	ptr[in, array[int8]]
+	list	TAILQ_ENTRY[in, root_hold_token]
+}
+
+task {
+	ta_link		STAILQ_ENTRY[in, task]
+	ta_pending	int16
+	ta_priority	int8
+	ta_flags	int8
+	ta_func		ptr[in, void]
+	ta_context	ptr[in, void]
+}
+
+ccb_scsiio {
+	ccb_h		ccb_hdr
+	next_ccb	ptr[in, ccb, opt]
+	req_map		ptr[in, array[int8]]
+	data_ptr	ptr[in, array[int8]]
+	dxfer_len	int32
+	sense_data	scsi_sense_data
+	sense_len	int8
+	cdb_len		int8
+	sglist_cnt	int16
+	scsi_status	int8
+	sense_resid	int8
+	resid		int32
+	cdb_io		cdb_t
+	msg_ptr		ptr[in, array[int8]]
+	msg_len		int16
+	tag_action	int8
+	priority	int8
+	tag_id		int32
+	init_id		int32
+}
+
+cdb_t {
+	cdb_ptr		ptr[in, array[int8]]
+	cdb_bytes	array[int8, IOCDBLEN]
+}
+
+ccb [
+	ccb_h	ccb_hdr
+	csio	ccb_scsiio
+	cgd	ccb_getdev
+	cgdl	ccb_getdevlist
+	cpi	ccb_pathinq
+	crs	ccb_relsim
+	csa	ccb_setasync
+	csd	ccb_setdev
+	cdm	ccb_dev_match
+	ccg	ccb_calc_geometry
+	cab	ccb_abort
+	ctermio	ccb_termio
+	ctio	ccb_scsiio
+	cel	ccb_en_lun
+	cin	ccb_immed_notify
+	cna	ccb_notify_ack
+	crcn	ccb_rescan
+	cdbg	ccb_debug
+	ataio	ccb_ataio
+	cdai	ccb_dev_advinfo
+	casync	ccb_async
+	nvmeio	ccb_nvmeio
+] [varlen]
+
+ccb_nvmeio {
+	ccb_h		ccb_hdr
+	next_ccb	ptr[in, ccb, opt]
+	cmd		nvme_command
+	cpl		nvme_completion
+	data_ptr	ptr[in, array[int8]]
+	dxfer_len	int32
+	sglist_cnt	int16
+	unused		const[0, int16]
+}
+
+nvme_completion {
+	cdw0	int32
+	rsvd1	const[0, int32]
+	sqhd	int16
+	sqid	int16
+	cid	int16
+	status	int16
+} [align[8]]
+
+nvme_command {
+	opc	int8
+	fuse	int8
+	cid	int16
+	nsid	int32
+	rsvd2	const[0, int32]
+	rsvd3	const[0, int32]
+	mptr	ptr64[in, array[int8]]
+	u	nvme_command_u
+	cdw10	int32
+	cdw11	int32
+	cdw12	int32
+	cdw13	int32
+	cdw14	int32
+	cdw15	int32
+} [align[8]]
+
+nvme_command_u [
+	s	nvme_commands_u_s
+	sgl	nvme_sgl_descriptor
+]
+
+nvme_commands_u_s {
+	prp1	int64
+	prp2	int64
+}
+
+nvme_sgl_descriptor {
+	address		int64
+	length		int32
+	reserved	array[const[0, int8], 3]
+	type		int8
+}
+
+ccb_async {
+	ccb_h		ccb_hdr
+	async_code	int32
+	async_arg_size	intptr
+	async_arg_ptr	intptr
+}
+
+ccb_dev_advinfo {
+	ccb_h	ccb_hdr
+	flags	int32
+	buftype	int32	(in)
+	bufsiz	intptr	(in)
+	provsiz	intptr	(out)
+	buf	ptr[inout, array[int8]]
+}
+
+ccb_ataio {
+	ccb_h		ccb_hdr
+	next_ccb	ptr[in, ccb, opt]
+	cmd		ata_cmd
+	res		ata_res
+	data_ptr	ptr[in, array[int8]]
+	dxfer_len	int32
+	resid		int32
+	ata_flags	int8
+}
+
+ata_cmd {
+	flags			int8
+	command			int8
+	features		int8
+	lba_low			int8
+	lba_mid			int8
+	lba_high		int8
+	device			int8
+	lba_low_exp		int8
+	lba_mid_exp		int8
+	lba_high_exp		int8
+	features_exp		int8
+	sector_count		int8
+	sector_count_exp	int8
+	control			int8
+}
+
+ata_res {
+	flags			int8
+	status			int8
+	error			int8
+	lba_low			int8
+	lba_mid			int8
+	lba_high		int8
+	device			int8
+	lba_low_exp		int8
+	lba_mid_exp		int8
+	lba_high_exp		int8
+	sector_count		int8
+	sector_count_exp	int8
+}
+
+ccb_debug {
+	ccb_h	ccb_hdr
+	flags	flags[cam_debug_flags, int32]
+}
+
+ccb_rescan {
+	ccb_h	ccb_hdr
+	flags	flags[cam_flags, int32]
+}
+
+ccb_notify_ack {
+	ccb_h	ccb_hdr
+	seq_id	int16
+	event	int8
+}
+
+ccb_immed_notify {
+	ccb_h		ccb_hdr
+	sense_data	scsi_sense_data
+	sense_len	int8
+	initiator_id	int8
+	message_args	array[int8, 7]
+}
+
+scsi_sense_data {
+	error_code	int8
+	sense_buf	array[int8, SSD_FULL_SIZE_MINUS_ONE]
+}
+
+ccb_en_lun {
+	ccb_h		ccb_hdr
+	grp6_len	int16
+	grp7_len	int16
+	enable		int8
+}
+
+ccb_termio {
+	ccb_h		ccb_hdr
+	termio_ccb	ptr[in, ccb, opt]
+}
+
+ccb_abort {
+	ccb_h		ccb_hdr
+	abort_ccb	ptr[in, ccb, opt]
+}
+
+ccb_calc_geometry {
+	ccb_h		ccb_hdr
+	block_size	int32
+	volume_size	int64
+	cylinders	int32
+	heads		int8
+	secs_per_track	int8
+}
+
+ccb_dev_match {
+	ccb_h		ccb_hdr
+	status		flags[ccb_dev_match_status, int32]
+	num_patterns	int32
+	pattern_buf_len	int32
+	patterns	ptr[in, dev_match_pattern]
+	num_matches	int32
+	match_buf_len	int32
+	matches		ptr[in, dev_match_result]
+	pos		ccb_dev_position
+}
+
+ccb_dev_position {
+	generations	array[int32, 4]
+	position_type	flags[dev_pos_type, int32]
+	cookie		ccb_dm_cookie
+}
+
+ccb_dm_cookie {
+	bus	intptr
+	target	intptr
+	device	intptr
+	periph	intptr
+	pdrv	intptr
+}
+
+dev_match_pattern {
+	type	flags[dev_match_type, int32]
+	pattern	match_pattern
+}
+
+match_pattern [
+	periph_pattern	periph_match_pattern
+	device_pattern	device_match_pattern
+	bus_pattern	bus_match_pattern
+]
+
+bus_match_pattern {
+	path_id		int32
+	dev_name	array[int8, DEV_IDLEN]
+	unit_number	int32
+	bus_id		int32
+	flags		flags[bus_pattern_flags, int32]
+}
+
+device_match_pattern {
+	path_id		int32
+	target_id	int32
+	target_lun	int64
+	flags		flags[dev_pattern_flags, int32]
+	data		device_match_pattern_data
+}
+
+device_match_pattern_data [
+	inq_pat		scsi_static_inquiry_pattern
+	devod_pat	device_id_match_pattern
+]
+
+scsi_static_inquiry_pattern {
+	type		int8
+	media_type	int8
+	vendor		array[int8, SID_VENDOR_SIZE_PLUS_ONE]
+	product		array[int8, SID_PRODUCT_SIZE_PLUS_ONE]
+	revision	array[int8, SID_REVISION_SIZE_PLUS_ONE]
+}
+
+device_id_match_pattern {
+	id_len	int8
+	id	array[int8, 256]
+}
+
+periph_match_pattern {
+	periph_name	array[int8, DEV_IDLEN]
+	unit_number	int32
+	path_id		int32
+	target_id	int32
+	target_lun	int64
+	flags		flags[periph_match_pattern_flags, int32]
+}
+
+dev_match_result {
+	type	flags[dev_match_type, int32]
+	result	match_result
+}
+
+match_result [
+	periph_result	periph_match_result
+	device_result	device_match_result
+	bus_result	bus_match_result
+]
+
+periph_match_result {
+	periph_name	array[int8, DEV_IDLEN]
+	unit_number	int32
+	path_id		int32
+	target_id	int32
+	target_lun	int64
+}
+
+device_match_result {
+	path_id		int32
+	target_id	int32
+	target_lun	int64
+	protocol	flags[cam_proto, int32]
+	inq_data	scsi_inquiry_data
+	ident_data	ata_params
+	flags		flags[dev_result_flags, int32]
+}
+
+bus_match_result {
+	path_id		int32
+	dev_name	array[int8, DEV_IDLEN]
+	unit_number	int32
+	bus_id		int32
+}
+
+ccb_setdev {
+	ccb_h		ccb_hdr
+	dev_type	int8
+}
+
+ccb_setasync {
+	ccb_h		ccb_hdr
+	event_enable	int32
+	callback	intptr
+	callback_arg	intptr
+}
+
+ccb_relsim {
+	ccb_h		ccb_hdr
+	release_flags	flags[ccb_relsim_release_flags, int32]
+	openings	int32
+	release_timeout	int32
+	qfrozen_cnt	int32
+}
+
+ccb_pathinq {
+	ccb_h			ccb_hdr
+	version_num		int8
+	hba_inquiry		int8
+	target_sprt		int16
+	hba_misc		int32
+	hba_eng_cnt		int16
+	vuhba_flags		array[int8, VUHBALEN]
+	max_target		int32
+	max_lun			int32
+	async_flags		int32
+	hpath_id		int32
+	initiator_id		int32
+	sim_vid			array[int8, SIM_IDLEN]
+	hba_vid			array[int8, HBA_IDLEN]
+	dev_name		array[int8, DEV_IDLEN]
+	unit_number		int32
+	bus_id			int32
+	base_transfer_speed	int32
+	protocol		flags[cam_proto, int32]
+	protocol_version	int32
+	transport		flags[cam_xport, int32]
+	transport_version	int32
+	xport_specific		ccb_pathinq_xport_specific
+	maxio			int32
+	hba_vendor		int16
+	hba_device		int16
+	hba_subvendor		int16
+	hba_subdevice		int16
+}
+
+ccb_pathinq_xport_specific [
+	spi				ccb_pathinq_settings_spi
+	fc				ccb_pathinq_settings_fc
+	sas				ccb_pathinq_settings_sas
+	nvme				ccb_pathinq_settings_nvme
+	nvmf				ccb_pathinq_settings_nvmf
+	ccb_pathinq_settings_opaque	array[int8, PATHINQ_SETTINGS_SIZE]
+]
+
+ccb_pathinq_settings_spi {
+	ppr_options	int8
+}
+
+ccb_pathinq_settings_fc {
+	wwnn	int64
+	wwpn	int64
+	portid	int32
+	bitrate	int32
+}
+
+ccb_pathinq_settings_sas {
+	bitrate	int32
+}
+
+ccb_pathinq_settings_nvme {
+	nsid		int32
+	domain		int32
+	bus		int8
+	slot		int8
+	function	int8
+	extra		int8
+	dev_name	array[int8, NVME_DEV_NAME_LEN]
+}
+
+ccb_pathinq_settings_nvmf {
+	nsid		int32
+	trtype		int8
+	dev_name	array[int8, NVME_DEV_NAME_LEN]
+}
+
+ccb_getdevlist {
+	ccb_h		ccb_hdr
+	periph_name	array[int8, DEV_IDLEN]
+	unit_number	int32
+	generation	int32
+	index		int32
+	status		flags[ccb_getdevlist_status_e, int32]
+}
+
+ccb_getdev {
+	ccb_h		ccb_hdr
+	protocol	flags[cam_proto, int32]
+	inq_data	scsi_inquiry_data
+	ident_data	ata_params
+	serial_num	array[int8, 252]
+	inq_flags	int8
+	serial_num_len	int8
+	padding		array[intptr, 2]
+}
+
+scsi_inquiry_data {
+	device			int8
+	dev_qual2		int8
+	version			int8
+	response_format		int8
+	additional_length	int8
+	spc3_flags		int8
+	spc2_flags		int8
+	flags			int8
+	vendor			array[int8, SID_VENDOR_SIZE]
+	product			array[int8, SID_PRODUCT_SIZE]
+	revision		array[int8, SID_REVISION_SIZE]
+	vendor_specific0	array[int8, SID_VENDOR_SPECIFIC_0_SIZE]
+	spi3data		int8
+	reserved2		int8
+	version1		array[int8, 2]
+	version2		array[int8, 2]
+	version3		array[int8, 2]
+	version4		array[int8, 2]
+	version5		array[int8, 2]
+	version6		array[int8, 2]
+	version7		array[int8, 2]
+	version8		array[int8, 2]
+	reserved3		array[int8, 22]
+	vecdor_specific1	array[int8, SID_VENDOR_SPECIFIC_1_SIZE]
+}
+
+ata_params {
+	config			flags[ata_config_flags, int16]
+	cylinders		int16
+	specconf		int16
+	heads			int16
+	obsolete4		int16
+	obsolete5		int16
+	sectors			int16
+	vendor7			array[int16, 3]
+	serial			array[int8, 20]
+	retired20		int16
+	retired21		int16
+	obsolete22		int16
+	revision		array[int8, 8]
+	model			array[int8, 40]
+	sectors_intr		int16
+	tcg			flags[ata_tcg_flags, int16]
+	capabilities1		flags[ata_capabilities1_flags, int16]
+	capabilities2		int16
+	retired_piomode		int16
+	retired_dmamode		int16
+	atavalid		flags[ata_valid_flags, int16]
+	current_cylinders	int16
+	current_heads		int16
+	current_sectors		int16
+	current_size_1		int16
+	current_size_2		int16
+	multi			flags[ata_multi_flags, int16]
+	lba_size_1		int16
+	lba_size_2		int16
+	obsolete62		int16
+	mwdmamodes		int16
+	apiomodes		int16
+	mwdmamin		int16
+	mwdmarec		int16
+	pioblind		int16
+	pioiordy		int16
+	support3		flags[ata_support3_flags, int16]
+	reserved70		int16
+	rlsovlap		int16
+	rlsservice		int16
+	reserved73		int16
+	reserved74		int16
+	queue			int16
+	satacapabilities	flags[ata_sata_caps_flags, int16]
+	satacapabilities2	flags[ata_sata_caps2_flags, int16]
+	satasupport		flags[ata_sata_support_flags, int16]
+	sataenabled		flags[ata_sata_enabled_flags, int16]
+	version_major		int16
+	version_minor		int16
+	support			ata_cmd_set
+	enabled			ata_cmd_set
+	udmamodes		int16
+	erase_time		int16
+	enhanced_erase_time	int16
+	apm_value		int16
+	master_passwd_rev	int16
+	hwres			int16
+	acoustic		int16
+	stream_min_req		int16
+	stream_trans_time	int16
+	stream_access_latency	int16
+	stream_gran		int32
+	lba_size48_1		int16
+	lba_size48_2		int16
+	lba_size48_3		int16
+	lba_size48_4		int16
+	reserved104		int16
+	max_dsm_blocks		int16
+	pss			flags[ata_pss_flags, int16]
+	isd			int16
+	wwn			array[int16, 4]
+	reserved112		array[int16, 5]
+	lss_1			int16
+	lss_2			int16
+	support2		flags[ata_support2_flags, int16]
+	enabled2		flags[ata_enabled2_flags, int16]
+	reserved121		array[int16, 6]
+	removable_status	int16
+	security_status		flags[ata_security_status_flags, int16]
+	reserved129		array[int16, 31]
+	cfa_powermode1		int16
+	reserved161		int16
+	cfa_kms_support		int16
+	cfa_trueide_modes	int16
+	cfa_memory_modes	int16
+	reserved165		array[int16, 3]
+	form_factor		flags[ata_form_factor_flags, int16]
+	support_dsm		flags[ata_support_dsm_flags, int16]
+	product_id		array[int8, 8]
+	reserved174		array[int16, 2]
+	media_serial		array[int8, 60]
+	sct			int16
+	reserved207		array[int16, 2]
+	lsalign			int16
+	wrv_sectors_m3_1	int16
+	wrv_sectors_m3_2	int16
+	wrv_sectors_m2_1	int16
+	wrv_sectors_m2_2	int16
+	nv_cache_caps		int16
+	nv_cache_size_1		int16
+	nv_cache_size_2		int16
+	rotation_rate		flags[ata_rotation_rate_flags, int16]
+	reserved218		int16
+	nv_cache_opt		int16
+	wrv_mode		int16
+	reserved221		int16
+	transport_major		int16
+	transport_minor		int16
+	reserved224		array[int16, 31]
+	integrity		int16
+} [packed, align[2]]
+
+ata_cmd_set {
+	command1	flags[ata_command1_flags, int16]
+	command2	flags[ata_command2_flags, int16]
+	extension	flags[ata_extension_flags, int16]
+} [packed]
+
+type LIST_ENTRY[DIR, T] {
+	le_next	ptr[DIR, T, opt]
+	le_prev	ptr[DIR, ptr[DIR, T], opt]
+}
+
+type SLIST_HEAD[DIR, T] {
+	slh_first	ptr[DIR, T, opt]
+}
+
+type SLIST_ENTRY[DIR, T] {
+	sle_next	ptr[DIR, T, opt]
+}
+
+type TAILQ_ENTRY[DIR, T] {
+	tqe_next	ptr[DIR, T, opt]
+	tqe_prev	ptr[DIR, ptr[DIR, T], opt]
+}
+
+type STAILQ_ENTRY[DIR, T] {
+	stqe_next	ptr[DIR, T, opt]
+}
