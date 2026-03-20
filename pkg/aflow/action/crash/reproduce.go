@@ -97,7 +97,7 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 		return res, err
 	}
 	// TODO: run multiple instances, handle TestError.Infra, and aggregate results.
-	results, err := env.Test(1, nil, nil, []byte(args.ReproC), collectCoverage)
+	results, err := env.Test(1, []byte(args.ReproSyz), []byte(args.ReproOpts), []byte(args.ReproC), collectCoverage)
 	if err != nil {
 		return res, err
 	}
