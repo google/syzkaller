@@ -25,3 +25,6 @@ executor/syscalls.h
 
 # vscode
 .vscode
+
+.gemini/
+gha-creds-*.json
