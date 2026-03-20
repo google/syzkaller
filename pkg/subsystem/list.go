@@ -23,8 +23,13 @@ type registeredSubsystem struct {
 	revision int
 }
 
+func HasList(name string) bool {
+	_, ok := lists[name]
+	return ok
+}
+
 func RegisterList(name string, list []*Subsystem, revision int) {
-	if _, ok := lists[name]; ok {
+	if HasList(name) {
 		panic(name + " subsystem list already exists!")
 	}
 	lists[name] = registeredSubsystem{
