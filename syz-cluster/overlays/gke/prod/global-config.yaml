@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 URL: https://ci.syzbot.org
-parallelWorkflows: 11
+parallelWorkflows: 15
 loreArchives:
   - netdev
   - bpf
