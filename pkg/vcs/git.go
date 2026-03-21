@@ -334,6 +334,11 @@ const (
 )
 
 func (git *gitRepo) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
+	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears)
+	return git.GetCommitsByTitlesSince(titles, since)
+}
+
+func (git *gitRepo) GetCommitsByTitlesSince(titles []string, since time.Time) ([]*Commit, []string, error) {
 	var greps []string
 	m := make(map[string]string)
 	for _, title := range titles {
@@ -341,8 +346,11 @@ func (git *gitRepo) GetCommitsByTitles(titles []string) ([]*Commit, []string, er
 		greps = append(greps, canonical)
 		m[canonical] = title
 	}
-	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
-	commits, err := git.fetchCommits(since, HEAD, "", "", greps, true)
+	var sinceStr string
+	if !since.IsZero() {
+		sinceStr = since.Format("01-02-2006")
+	}
+	commits, err := git.fetchCommits(sinceStr, HEAD, "", "", greps, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -703,7 +711,10 @@ func (git Git) Commit(hash string) (*Commit, error) {
 
 func (git Git) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
 	const commitSeparator = "---===syzkaller-commit-separator===---"
-	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b%n" + commitSeparator}
+	args := []string{"log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b%n" + commitSeparator}
+	if since != "" {
+		args = append(args, "--since", since)
+	}
 	if fixedStrings {
 		args = append(args, "--fixed-strings")
 	}

@@ -49,6 +49,10 @@ type Repo interface {
 	// Returns list of commits and titles of commits that are not found.
 	GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 
+	// GetCommitsByTitlesSince is like GetCommitsByTitles but fetches commits back to the specified date.
+	// If since is zero, it fetches all commits.
+	GetCommitsByTitlesSince(titles []string, since time.Time) ([]*Commit, []string, error)
+
 	// ExtractFixTagsFromCommits extracts fixing tags for bugs from git log.
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
 	// and returns commits with these tags.
