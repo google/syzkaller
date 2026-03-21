@@ -22,7 +22,7 @@ ioctl$TIOCGETA(fd fd_tty, cmd const[TIOCGETA], arg ptr[out, termios])
 ioctl$TIOCSETA(fd fd_tty, cmd const[TIOCSETA], arg ptr[in, termios])
 ioctl$TIOCSETAW(fd fd_tty, cmd const[TIOCSETAW], arg ptr[in, termios])
 ioctl$TIOCSETAF(fd fd_tty, cmd const[TIOCSETAF], arg ptr[in, termios])
-ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[in, int32])
+ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$TIOCNOTTY(fd fd_tty, cmd const[TIOCNOTTY])
 ioctl$TIOCSETVERAUTH(fd fd_tty, cmd const[TIOCSETVERAUTH], arg ptr[in, int32])
 ioctl$TIOCCLRVERAUTH(fd fd_tty, cmd const[TIOCCLRVERAUTH])
@@ -45,7 +45,7 @@ ioctl$TIOCGTSTAMP(fd fd_tty, cmd const[TIOCGTSTAMP], arg ptr[out, timeval])
 ioctl$TIOCSTSTAMP(fd fd_tty, cmd const[TIOCSTSTAMP], arg ptr[in, tstamps])
 ioctl$TIOCSFLAGS(fd fd_tty, cmd const[TIOCSFLAGS], arg ptr[in, int32])
 ioctl$TIOCGFLAGS(fd fd_tty, cmd const[TIOCGFLAGS], arg ptr[out, int32])
-ioctl$TIOCSTAT(fd fd_tty, cmd const[TIOCSTAT], arg ptr[out, int32])
+ioctl$TIOCSTAT(fd fd_tty, cmd const[TIOCSTAT])
 
 termios {
 	iflag	int32

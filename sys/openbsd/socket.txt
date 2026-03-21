@@ -17,7 +17,7 @@ socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
-# paccept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+accept4(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
 sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
 recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
 getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
@@ -35,11 +35,11 @@ getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[i
 setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
 
 socket_domain = AF_LOCAL, AF_INET, AF_INET6, AF_NS, AF_BLUETOOTH, AF_APPLETALK
-socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
-# accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_DNS
+accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_NONBLOCK_INHERIT
 shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
 send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
-recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL, MSG_WAITFORONE
+recv_flags = MSG_CMSG_CLOEXEC, MSG_CMSG_CLOFORK, MSG_OOB, MSG_PEEK, MSG_WAITALL, MSG_WAITFORONE
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP
 
 sock_pair {
@@ -58,38 +58,38 @@ send_msghdr {
 	msg_name	ptr[in, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_in]]
-	msg_iovlen	len[msg_iov, intptr]
+	msg_iovlen	len[msg_iov, int32]
 	msg_control	ptr[in, array[cmsghdr]]
-	msg_controllen	bytesize[msg_control, intptr]
+	msg_controllen	bytesize[msg_control, int32]
 	msg_flags	const[0, int32]
 }
 
 send_mmsghdr {
-	hdr	ptr[inout, send_msghdr]
-	len	int32
+	hdr	send_msghdr
+	len	const[0, int32]
 }
 
 recv_msghdr {
 	msg_name	ptr[out, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_out]]
-	msg_iovlen	len[msg_iov, intptr]
+	msg_iovlen	len[msg_iov, int32]
 	msg_control	buffer[out]
-	msg_controllen	len[msg_control, intptr]
+	msg_controllen	len[msg_control, int32]
 	msg_flags	const[0, int32]
 }
 
 recv_mmsghdr {
-	hdr	ptr[inout, recv_msghdr]
+	hdr	recv_msghdr
 	len	int32
 }
 
 cmsghdr {
-	cmsg_len	len[parent, intptr]
+	cmsg_len	len[parent, int32]
 	cmsg_level	flags[cmsg_levels, int32]
 	cmsg_type	int32
 	data		array[int8]
-} [align[PTR_SIZE]]
+} [align[4]]
 
 # Socket options
 
@@ -103,5 +103,5 @@ getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_
 setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
 getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
 
-sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_TYPE, SO_ERROR
+sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_BINDANY, SO_ZEROIZE, SO_TYPE, SO_ERROR, SO_RTABLE, SO_DOMAIN, SO_PROTOCOL
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO

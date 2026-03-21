@@ -37,6 +37,7 @@ func (*openbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	args := []string{
 		"-fmessage-length=0",
 		"-nostdinc",
+		"-U__linux__",
 		"-D_KERNEL",
 		"-D__BSD_VISIBLE=1",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
