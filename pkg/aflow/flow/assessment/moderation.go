@@ -32,7 +32,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:  "expert",
 					Model: aflow.GoodBalancedModel,
-					Reply: "Explanation",
+					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
 						Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
 						Actionable bool `jsonschema:"If the report is actionable or not."`
@@ -42,6 +42,7 @@ func init() {
 					Prompt:      moderationPrompt,
 					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
 				},
+				formatExplanation,
 			),
 		},
 	)

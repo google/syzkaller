@@ -31,7 +31,7 @@ func init() {
 				&aflow.LLMAgent{
 					Name:  "expert",
 					Model: aflow.GoodBalancedModel,
-					Reply: "Explanation",
+					Reply: "ExplanationRaw",
 					Outputs: aflow.LLMOutputs[struct {
 						Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
 						Benign    bool `jsonschema:"If the data race is benign or not."`
@@ -41,6 +41,7 @@ func init() {
 					Prompt:      kcsanPrompt,
 					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
 				},
+				formatExplanation,
 			),
 		},
 	)
