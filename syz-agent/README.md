@@ -11,8 +11,9 @@ approach for testing and development.
 
 1. Build the Docker image from the root of the syzkaller repository:
    ```bash
-   docker build -t syz-agent:local -f syz-agent/Dockerfile .
+   make -C syz-agent container
    ```
+   *Note: The default image name is `local/syz-agent:latest`. You can override it by passing `IMAGE_NAME=your-image-name IMAGE_TAG=your-tag`.*
 
 2. Prepare a configuration file (e.g. `config.json`):
    ```json
@@ -41,7 +42,7 @@ approach for testing and development.
        --privileged \
        -e GOOGLE_API_KEY=$GOOGLE_API_KEY \
        -v $(pwd)/config.json:/etc/syz-agent/config.json:ro \
-       syz-agent:local \
+       local/syz-agent:latest \
        -name=$MY_UNIQUE_AGENT_NAME \
        -config=/etc/syz-agent/config.json
    ```

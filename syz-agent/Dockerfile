@@ -11,6 +11,11 @@ RUN go mod download
 
 COPY . .
 
+ARG REV
+ARG GITREVDATE
+ENV REV=${REV}
+ENV GITREVDATE=${GITREVDATE}
+
 RUN make target OS=linux
 RUN make agent
 
