@@ -77,13 +77,14 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 			&aflow.LLMAgent{
 				Name:          "description-generator",
 				Model:         aflow.BestExpensiveModel,
-				Reply:         "PatchDescription",
+				Reply:         "PatchDescriptionRaw",
 				TaskType:      aflow.FormalReasoningTask,
 				Instruction:   descriptionInstruction,
 				Prompt:        descriptionPrompt,
 				Tools:         commonTools,
 				SummaryWindow: summaryWindow,
 			},
+			formatPatchDescription,
 		),
 	}
 }
@@ -201,7 +202,6 @@ and then include description of the bug being fixed, and how it's fixed by the p
 
 Your final reply should contain only the text of the commit description.
 Phrase the one-line summary so that it is not longer than 72 characters.
-The rest of the description must be word-wrapped at 72 characters.
 `
 
 const descriptionPrompt = `
