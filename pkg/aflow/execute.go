@@ -192,7 +192,7 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
 			// However, thoughts output also consumes total output token budget.
 			// We may consider adjusting ThinkingLevel parameter.
-			ThinkingBudget: genai.Ptr[int32](-1),
+			ThinkingLevel: genai.ThinkingLevelHigh,
 		}
 	}
 	// Sometimes LLM requests just hang dead for tens of minutes,
