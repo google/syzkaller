@@ -1,0 +1,68 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: syz-agent
+  namespace: syz-agent
+spec:
+  serviceName: "syz-agent"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: syz-agent
+  template:
+    metadata:
+      labels:
+        app: syz-agent
+    spec:
+      serviceAccountName: syz-agent-ksa
+      containers:
+      - name: syz-agent
+        image: gcr.io/syzkaller/syz-agent:latest # Replace with your image.
+        command: ["/app/syz-agent"]
+        args:
+          - "-name=$(POD_NAME)"
+          - "-config=/etc/syz-agent/config.json"
+          - "-syzkaller=/syzkaller"
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: HOME # Otherwise it's failing with "warning: unable to access '/root/.config/git/attributes': Permission denied.".
+            value: "/home/syzkaller"
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: "16"
+            memory: "64Gi"
+          limits:
+            cpu: "32"
+            memory: "96Gi"
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/syz-agent
+            readOnly: true
+          - name: workdir
+            mountPath: /app/workdir
+          - name: dev-kvm
+            mountPath: /dev/kvm
+      volumes:
+        - name: config-volume
+          configMap:
+            name: syz-agent-config
+        - name: dev-kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 512Gi

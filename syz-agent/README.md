@@ -23,7 +23,7 @@ approach for testing and development.
        "dashboard_addr": "https://syzkaller.appspot.com",
        "dashboard_key": "YOUR_KEY",
        "target": "linux/amd64",
-       "image": "/disk-images/buildroot_amd64.gz",
+       "image": "/disk-images/buildroot_amd64",
        "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
        "type": "qemu",
        "vm": {
@@ -49,3 +49,20 @@ approach for testing and development.
   *Note: `pkg/updater` is bypassed inside Docker because the
   `-syzkaller=/syzkaller` flag is passed via the Dockerfile's
   ENTRYPOINT. `syz-agent` will use the pre-built binaries inside the container.*
+
+## Running on Kubernetes
+
+`syz-agent` can be deployed as a `StatefulSet` on Kubernetes (Minikube or GKE) for persistent identity.
+
+### Local Development (Minikube)
+
+To deploy to a standard minikube cluster:
+
+```bash
+# 1. Build and load image into Minikube
+make container
+minikube image load local/syz-agent:latest
+
+# 2. Deploy (automatically binds host's GOOGLE_API_KEY and DASHBOARD_KEY)
+GOOGLE_API_KEY=xxx DASHBOARD_KEY=yyy make k8s-minikube | kubectl apply -f -
+```

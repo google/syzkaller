@@ -1,0 +1,38 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: syz-agent
+namePrefix: prod-
+
+resources:
+  - ../../common
+
+images:
+  - name: gcr.io/syzkaller/syz-agent
+    newName: ${IMAGE_NAME}
+    newTag: ${IMAGE_TAG}
+
+configMapGenerator:
+  - name: syz-agent-config
+    files:
+      - config.json=agent-config.json
+
+patches:
+  - target:
+      kind: StatefulSet
+      name: syz-agent
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/nodeSelector
+        value:
+          amd64-nested-virtualization: "true"
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: "workload"
+            operator: "Equal"
+            value: "nested-vm"
+            effect: "NoSchedule"

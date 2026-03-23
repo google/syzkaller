@@ -1,0 +1,18 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: syz-agent-policy
+  namespace: syz-agent
+spec:
+  podSelector:
+    matchLabels:
+      app: syz-agent
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress: [] # Denies all incoming traffic.
+  egress:
+  - {} # Allows all outgoing traffic.

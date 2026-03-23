@@ -1,0 +1,17 @@
+{
+  "dashboard_addr": "https://syzbot.org",
+  "dashboard_client": "agent",
+  "dashboard_key": "gcp-secret:syz-agent-dashboard-key",
+  "gemini_api_key": "gcp-secret:syz-agent-gemini-key",
+  "target": "linux/amd64",
+  "image": "/disk-images/buildroot_amd64",
+  "kernel_config": "/kernel-configs/upstream-apparmor-kasan.config",
+  "type": "qemu",
+  "vm": {
+    "cpu": 2,
+    "mem": 2048,
+    "cmdline": "root=/dev/sda1",
+    "qemu_args": "-machine q35 -enable-kvm -smp 2,sockets=2,cores=1"
+  },
+  "cache_size": 500000000000
+}
