@@ -294,6 +294,11 @@ func (s *Server) poll(ctx context.Context) (bool, error) {
 				model, aflow.QuotaResetTime(now))
 			return true, nil
 		}
+		if errors.Is(jobErr, context.Canceled) && s.name != "" {
+			// Not reporting job as failed allows the agent to pick it again immediately after restart.
+			log.Logf(0, "job %v %v cancelled due to shutdown, skipping reporting to dashboard", resp.Workflow, resp.ID)
+			return true, nil
+		}
 	}
 	log.Logf(0, "done executing job %v %v", resp.Workflow, resp.ID)
 	if err := s.dash.AIJobDone(doneReq); err != nil {
