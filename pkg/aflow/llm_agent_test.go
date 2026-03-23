@@ -52,6 +52,10 @@ func TestParseLLMError(t *testing.T) {
 		Code:    504,
 		Message: `Deadline expired before operation could complete.`,
 	}
+	cancelledError := genai.APIError{
+		Code:    499,
+		Message: `The operation was cancelled.`,
+	}
 	normalResp := &genai.GenerateContentResponse{
 		Candidates: []*genai.Candidate{{
 			Content: genai.NewContentFromText("repy", genai.RoleModel),
@@ -101,6 +105,11 @@ func TestParseLLMError(t *testing.T) {
 			resp:      nil,
 			inputErr:  gatewayError2,
 			outputErr: &retryError{time.Second, gatewayError2},
+		},
+		{
+			resp:      nil,
+			inputErr:  cancelledError,
+			outputErr: &retryError{time.Second, cancelledError},
 		},
 		{
 			resp: &genai.GenerateContentResponse{
