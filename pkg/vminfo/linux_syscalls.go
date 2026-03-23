@@ -91,6 +91,7 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_genetlink_get_family_id":   linuxSyzGenetlinkGetFamilyIDSupported,
 	"syz_mount_image":               linuxSyzMountImageSupported,
 	"syz_read_part_table":           linuxSyzReadPartTableSupported,
+	"syz_io_uring_params":           alwaysSupported,
 	"syz_io_uring_setup":            alwaysSupported,
 	"syz_io_uring_submit":           alwaysSupported,
 	"syz_io_uring_complete":         alwaysSupported,

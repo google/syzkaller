@@ -1854,77 +1854,6 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
 
-// Once a io_uring is set up by calling io_uring_setup, the offsets to the member fields
-// to be used on the mmap'ed area are set in structs io_sqring_offsets and io_cqring_offsets.
-// Except io_sqring_offsets.array, the offsets are static while all depend on how struct io_rings
-// is organized in code. The offsets can be marked as resources in syzkaller descriptions but
-// this makes it difficult to generate correct programs by the fuzzer. Thus, the offsets are
-// hard-coded here (and in the descriptions), and array offset is later computed once the number
-// of entries is available. Another way to obtain the offsets is to setup another io_uring here
-// and use what it returns. It is slower but might be more maintainable.
-#define SQ_HEAD_OFFSET 0
-#define SQ_TAIL_OFFSET 64
-#define SQ_RING_MASK_OFFSET 256
-#define SQ_RING_ENTRIES_OFFSET 264
-#define SQ_FLAGS_OFFSET 276
-#define SQ_DROPPED_OFFSET 272
-#define CQ_HEAD_OFFSET 128
-#define CQ_TAIL_OFFSET 192
-#define CQ_RING_MASK_OFFSET 260
-#define CQ_RING_ENTRIES_OFFSET 268
-#define CQ_RING_OVERFLOW_OFFSET 284
-#define CQ_FLAGS_OFFSET 280
-#define CQ_CQES_OFFSET 320
-
-#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
-
-// From linux/io_uring.h
-struct io_uring_cqe {
-	uint64 user_data;
-	uint32 res;
-	uint32 flags;
-};
-
-static long syz_io_uring_complete(volatile long a0)
-{
-	// syzlang: syz_io_uring_complete(ring_ptr ring_ptr)
-	// C:       syz_io_uring_complete(char* ring_ptr)
-
-	// It is not checked if the ring is empty
-
-	// Cast to original
-	char* ring_ptr = (char*)a0;
-
-	// Compute the head index and the next head value
-	uint32 cq_ring_mask = *(uint32*)(ring_ptr + CQ_RING_MASK_OFFSET);
-	uint32* cq_head_ptr = (uint32*)(ring_ptr + CQ_HEAD_OFFSET);
-	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
-	uint32 cq_head_next = *cq_head_ptr + 1;
-
-	// Compute the ptr to the src cq entry on the ring
-	char* cqe_src = ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
-
-	// Get the cq entry from the ring
-	struct io_uring_cqe cqe;
-	memcpy(&cqe, cqe_src, sizeof(cqe));
-
-	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
-	// Ensure that the kernel will never see a head update without the preceeding CQE
-	// stores being done.
-	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
-
-	// In the descriptions (sys/linux/io_uring.txt), openat and openat2 are passed
-	// with a unique range of sqe.user_data (0x12345 and 0x23456) to identify the operations
-	// which produces an fd instance. Check cqe.user_data, which should be the same
-	// as sqe.user_data for that operation. If it falls in that unique range, return
-	// cqe.res as fd. Otherwise, just return an invalid fd.
-	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
-}
-
-#endif
-
-#if SYZ_EXECUTOR || __NR_syz_io_uring_setup
-
 struct io_sqring_offsets {
 	uint32 head;
 	uint32 tail;
@@ -1959,6 +1888,56 @@ struct io_uring_params {
 	struct io_cqring_offsets cq_off;
 };
 
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+
+// From linux/io_uring.h
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
+
+static long syz_io_uring_complete(volatile long a0, volatile long a1)
+{
+	// syzlang: syz_io_uring_complete(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr)
+	// C:       syz_io_uring_complete(struct io_uring_params* params, char* ring_ptr)
+
+	// It is not checked if the ring is empty
+
+	// Cast to original
+	struct io_uring_params* params = (struct io_uring_params*)a0;
+	char* ring_ptr = (char*)a1;
+
+	// Compute the head index and the next head value
+	uint32 cq_ring_mask = *(uint32*)(ring_ptr + params->cq_off.ring_mask);
+	uint32* cq_head_ptr = (uint32*)(ring_ptr + params->cq_off.head);
+	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
+	uint32 cq_head_next = *cq_head_ptr + 1;
+
+	// Compute the ptr to the src cq entry on the ring
+	char* cqe_src = ring_ptr + params->cq_off.cqes + cq_head * SIZEOF_IO_URING_CQE;
+
+	// Get the cq entry from the ring
+	struct io_uring_cqe cqe;
+	memcpy(&cqe, cqe_src, sizeof(cqe));
+
+	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
+	// Ensure that the kernel will never see a head update without the preceeding CQE
+	// stores being done.
+	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
+
+	// In the descriptions (sys/linux/io_uring.txt), openat and openat2 are passed
+	// with a unique range of sqe.user_data (0x12345 and 0x23456) to identify the operations
+	// which produces an fd instance. Check cqe.user_data, which should be the same
+	// as sqe.user_data for that operation. If it falls in that unique range, return
+	// cqe.res as fd. Otherwise, just return an invalid fd.
+	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup
+
 #define IORING_OFF_SQ_RING 0
 #define IORING_OFF_SQES 0x10000000ULL
 #define IORING_SETUP_SQE128 (1U << 10)
@@ -1968,20 +1947,22 @@ struct io_uring_params {
 #include <unistd.h>
 
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
-static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
-	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
-	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* params, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
+	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* setup_params, void** ring_params_ptr_out, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
 
 	// Cast to original
 	uint32 entries = (uint32)a0;
 	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
+	void** ring_params_ptr_out = (void**)a2;
 	void** ring_ptr_out = (void**)a2;
 	void** sqes_ptr_out = (void**)a3;
 	// Temporarily disable IORING_SETUP_CQE32 and IORING_SETUP_SQE128 that may change SIZEOF_IO_URING_CQE and SIZEOF_IO_URING_SQE.
 	// Tracking bug: https://github.com/google/syzkaller/issues/4531.
 	setup_params->flags &= ~(IORING_SETUP_CQE32 | IORING_SETUP_SQE128);
 	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
+	*ring_params_ptr_out = (void*)setup_params;
 
 	// Compute the ring sizes
 	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
@@ -2007,21 +1988,22 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit
 
-static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2)
+static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	// syzlang: syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe])
-	// C:       syz_io_uring_submit(char* ring_ptr,       io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe)
+	// syzlang: syz_io_uring_submit(ring_params_ptr ring_params_ptr, 		ring_ptr ring_ptr, 	sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe])
+	// C:       syz_io_uring_submit(struct io_uring_params* params, char* ring_ptr,		io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe)
 
 	// It is not checked if the ring is full
 
 	// Cast to original
-	char* ring_ptr = (char*)a0; // This will be exposed to offsets in bytes
-	char* sqes_ptr = (char*)a1;
+	struct io_uring_params* params = (struct io_uring_params*)a0;
+	char* ring_ptr = (char*)a1; // This will be exposed to offsets in bytes
+	char* sqes_ptr = (char*)a2;
 
-	char* sqe = (char*)a2;
+	char* sqe = (char*)a3;
 
-	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
-	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_ring_mask = *(uint32*)(ring_ptr + params->sq_off.ring_mask);
+	uint32* sq_tail_ptr = (uint32*)(ring_ptr + params->sq_off.tail);
 	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
 
 	// Get the ptr to the destination for the sqe
