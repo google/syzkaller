@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -22,7 +21,6 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
-	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -31,35 +29,6 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 )
-
-type Config struct {
-	// Currently serves only net/http/pprof handlers.
-	HTTP            string          `json:"http"`
-	MCP             bool            `json:"mcp"` // Start MCP server on the HTTP address, and don't connect to dashboard.
-	DashboardAddr   string          `json:"dashboard_addr"`
-	DashboardClient string          `json:"dashboard_client"` // Global non-namespace client.
-	DashboardKey    string          `json:"dashboard_key"`
-	SyzkallerRepo   string          `json:"syzkaller_repo"`
-	SyzkallerBranch string          `json:"syzkaller_branch"`
-	KernelConfig    string          `json:"kernel_config"`
-	Target          string          `json:"target"`
-	Image           string          `json:"image"`
-	Type            string          `json:"type"`
-	VM              json.RawMessage `json:"vm"`
-	// Max workdir cache size (defaults to 1TB).
-	// The whole workdir may be slightly larger, since e.g. kernel checkout is not accounted here.
-	CacheSize uint64 `json:"cache_size"`
-	// Use fixed base commit for patching jobs (for testing).
-	FixedBaseCommit string `json:"fixed_base_commit"`
-	// Use a different repo than torvalds's mainline.
-	FixedRepository string `json:"repo"`
-	// Use this LLM model (for testing, if empty use workflow-default model).
-	Model string `json:"model"`
-	// Names of workflows to serve (all if not set, mainly for testing/local experimentation).
-	Workflows []string `json:"workflows"`
-
-	kernelConfigData string
-}
 
 func main() {
 	var (
@@ -81,13 +50,9 @@ func main() {
 const workdir = "workdir"
 
 func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name string) error {
-	cfg := &Config{
-		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
-		SyzkallerBranch: "master",
-		CacheSize:       1 << 40, // 1TB should be enough for everyone!
-	}
-	if err := config.LoadFile(configFile, cfg); err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+	cfg, err := loadConfig(configFile)
+	if err != nil {
+		return err
 	}
 	if name == "" {
 		return fmt.Errorf("agent name must be specified")
@@ -98,7 +63,9 @@ func run(configFile string, exitOnUpgrade, autoUpdate bool, syzkallerDir, name s
 	}
 	cfg.kernelConfigData = string(kernelConfig)
 
-	tool.ServeHTTP(cfg.HTTP)
+	if cfg.HTTP != "" {
+		tool.ServeHTTP(cfg.HTTP)
+	}
 
 	var updatePending, shutdownPending chan struct{}
 	var upd *updater.Updater
