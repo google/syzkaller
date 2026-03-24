@@ -174,7 +174,6 @@ jobs:
     needs:
       - 'dispatch'
       - 'review'
-      - 'triage'
       - 'invoke'
       - 'plan-execute'
     if: |-
