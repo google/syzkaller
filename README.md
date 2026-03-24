@@ -30,9 +30,9 @@ For other OS kernels check:
 [gVisor](docs/gvisor/README.md),
 [Akaros](docs/akaros/README.md).
 
-- [How to install syzkaller](docs/setup.md)
-- [How to use syzkaller](docs/usage.md)
-- [How syzkaller works](docs/internals.md)
+- [How to install syzkaller](docs/setup.md) - installation and setup instructions
+- [How to use syzkaller](docs/usage.md) - usage guide and configuration
+- [How syzkaller works](docs/internals.md) - architecture and implementation details
 - [How to install syzbot](docs/setup_syzbot.md)
 - [How to contribute to syzkaller](docs/contributing.md)
 - [How to report Linux kernel bugs](docs/linux/reporting_kernel_bugs.md)

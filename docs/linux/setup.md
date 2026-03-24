@@ -24,7 +24,7 @@ The following components are needed to use syzkaller:
  - Linux kernel with coverage additions
  - Virtual machine or a physical device
 
-If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting.md) page.
+If you encounter any troubles, please check the [troubleshooting](/docs/troubleshooting.md) page for common issues and solutions.
 
 ### Go and syzkaller
 
@@ -67,7 +67,7 @@ Make sure that your GCC meets this requirement, or get a GCC that [syzbot](/docs
 ### Linux Kernel
 
 Besides coverage support in GCC, you also need support for it on the kernel side.
-KCOV was added into mainline Linux kernel in version 4.6 and is be enabled by `CONFIG_KCOV=y` kernel configuration option.
+KCOV was added into mainline Linux kernel in version 4.6 and is enabled by the `CONFIG_KCOV=y` kernel configuration option.
 For older kernels you need to at least backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
 Besides that, it's recommended to backport all kernel patches that touch `kernel/kcov.c`.
 

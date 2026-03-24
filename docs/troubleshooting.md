@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Here are some things to check if there are problems running syzkaller.
+Here are some common issues and solutions to check if there are problems running syzkaller.
 
  - Use the `-debug` command line option to make syzkaller print all possible debug output,
    from both the `syz-manager` top-level program and the `syz-executor` instances.
