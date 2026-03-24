@@ -517,6 +517,7 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 		return err
 	}
 	if try < maxLLMRetryIters && (apiErr.Code == http.StatusServiceUnavailable ||
+		apiErr.Code == http.StatusBadGateway ||
 		apiErr.Code == http.StatusGatewayTimeout ||
 		// 499 has server-dependent meaning, but for genapi we observed these
 		// when a request was cancelled on some internal error.
