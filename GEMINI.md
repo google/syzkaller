@@ -51,8 +51,9 @@ tests that eventually use `prog.Target` or `targets.Target`.
 -   **Commit Messages:** Strict formatting required.
     -   Format: `dir/path: description` (e.g., `pkg/fuzzer: fix crash in minimization`).
     -   No trailing dot in the summary.
--   **Testing:** New features must have tests.
+-   **Testing:** New features must have tests. When writing test assertions, prefer using `require.Equal(t, tt.want, got)` from the `github.com/stretchr/testify/require` package instead of manual `if` comparisons.
 -   **Formatting:** Always run `make format` before committing.
+-   **Linting:** Always run the linter (`make lint` or `golangci-lint run ./...`) to fix all problems when a big patch is ready or structural changes are finalized.
 -   **Syscall Descriptions:** When modifying `sys/*/*.txt`, `make generate` must be run to update generated code.
 -   **Copyright:** When you add new .go files, make sure to add the copyright header to them (use other .go files for reference and update the year to the current one).
 
