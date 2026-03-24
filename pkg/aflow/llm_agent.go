@@ -278,7 +278,14 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 		if err := ctx.finishSpan(span, respErr); err != nil {
 			return "", nil, err
 		}
+		// If the LLM did not provide any reply and does not want to call any
+		// tools, we got an empty response. Populate the `Part`s with `Text`
+		// before appending to the history to avoid `INVALID_ARGUMENT` errors.
+		if reply == "" && len(calls) == 0 {
+			resp.Candidates[0].Content.Parts = []*genai.Part{{Text: "empty"}}
+		}
 		req = append(req, resp.Candidates[0].Content)
+
 		// We told LLM to add a new summary. Let's re-direct the pointer to it.
 		if addNewSummary {
 			summaryMessage = req[len(req)-1]

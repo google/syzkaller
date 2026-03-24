@@ -765,7 +765,9 @@
 			},
 			{
 				"parts": [
-					{}
+					{
+						"text": "empty"
+					}
 				],
 				"role": "user"
 			},
