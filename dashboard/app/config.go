@@ -144,6 +144,8 @@ type Config struct {
 }
 
 type AIConfig struct {
+	// Whether to upload generated patches to gerrit.
+	UploadPatchesToGerrit bool
 }
 
 type APIClient struct {

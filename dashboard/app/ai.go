@@ -495,8 +495,11 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, err
 	}
 	if job.Type == ai.WorkflowPatching && job.BugID.Valid && job.Finished.Valid && job.Error == "" {
-		if err := createGerritChange(ctx, job); err != nil {
-			log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+		nsCfg := getNsConfig(ctx, job.Namespace)
+		if nsCfg.AI != nil && nsCfg.AI.UploadPatchesToGerrit {
+			if err := createGerritChange(ctx, job); err != nil {
+				log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
+			}
 		}
 	}
 	return nil, nil
