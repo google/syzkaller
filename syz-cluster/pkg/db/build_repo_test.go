@@ -50,6 +50,7 @@ func TestLastSuccessfulBuild(t *testing.T) {
 	// Insert the correct one.
 	err = repo.Insert(ctx, &Build{
 		Arch:       "amd64",
+		VMType:     "qemu",
 		TreeName:   "mainline",
 		CommitHash: "good",
 		CommitDate: time.Now(),
@@ -62,6 +63,7 @@ func TestLastSuccessfulBuild(t *testing.T) {
 	build, err = repo.LastBuiltTree(ctx, params)
 	assert.NoError(t, err)
 	assert.Equal(t, "good", build.CommitHash)
+	assert.Equal(t, "qemu", build.VMType)
 
 	// But not for different arguments.
 	build, err = repo.LastBuiltTree(ctx, &LastBuildParams{

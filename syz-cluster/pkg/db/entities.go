@@ -48,6 +48,7 @@ type Build struct {
 	SeriesID   spanner.NullString `spanner:"SeriesID"`
 	JobID      spanner.NullString `spanner:"JobID"`
 	Arch       string             `spanner:"Arch"`
+	VMType     string             `spanner:"VMType"`
 	ConfigName string             `spanner:"ConfigName"`
 	ConfigURI  string             `spanner:"ConfigURI"`
 	LogURI     string             `spanner:"LogURI"`
