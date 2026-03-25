@@ -21,6 +21,8 @@ spec:
             path: /patched
           - name: retest-task
             path: /data/retest.json
+          - name: config
+            path: /tmp/config.json
       timeout: 4h
       container:
         image: ${IMAGE_PREFIX}retest-action:${IMAGE_TAG}
@@ -32,7 +34,8 @@ spec:
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
           "--session", "{{workflow.parameters.session-id}}",
           "--test_name", "{{inputs.parameters.test-name}}",
-          "--workdir", "/workdir"
+          "--workdir", "/workdir",
+          "--config", "/tmp/config.json"
           ]
         resources:
           requests:

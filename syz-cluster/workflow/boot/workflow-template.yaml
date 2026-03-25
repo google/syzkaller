@@ -21,6 +21,8 @@ spec:
         artifacts:
           - name: kernel
             path: /base
+          - name: config
+            path: /tmp/config.json
       container:
         image: ${IMAGE_PREFIX}boot-action:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
@@ -31,7 +33,8 @@ spec:
           "--test_name", "{{inputs.parameters.test-name}}",
           "--base_build", "{{inputs.parameters.base-build-id}}",
           "--patched_build", "{{inputs.parameters.patched-build-id}}",
-          "-findings={{inputs.parameters.report-findings}}"
+          "-findings={{inputs.parameters.report-findings}}",
+          "--config", "/tmp/config.json"
           ]
         resources:
           requests:
