@@ -266,6 +266,7 @@ func (triager *seriesTriager) prepareJobTask(
 			Arch:       task.Build.Arch,
 			SeriesID:   series.ID,
 			JobID:      job.ID,
+			VMType:     task.Build.VMType,
 		}
 		if len(task.FindingIDs) > 0 {
 			testTarget.Retest = &api.RetestTask{

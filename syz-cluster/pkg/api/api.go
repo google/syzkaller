@@ -109,6 +109,7 @@ type BuildResult struct {
 
 type Build struct {
 	Arch         string    `json:"arch"`
+	VMType       string    `json:"vm_type"`
 	TreeName     string    `json:"tree_name"`
 	TreeURL      string    `json:"tree_url"`
 	CommitHash   string    `json:"commit_hash"`

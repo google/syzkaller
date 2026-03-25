@@ -71,6 +71,7 @@ func main() {
 	uploadReq := &api.UploadBuildReq{
 		Build: api.Build{
 			Arch:       req.Arch,
+			VMType:     req.VMType,
 			ConfigName: req.ConfigName,
 			TreeName:   req.TreeName,
 			TreeURL:    req.TreeURL,

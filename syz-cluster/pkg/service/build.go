@@ -31,6 +31,7 @@ func (s *BuildService) Upload(ctx context.Context, req *api.UploadBuildReq) (*ap
 	build := &db.Build{
 		ID:         uuid.NewString(),
 		Arch:       req.Arch,
+		VMType:     req.VMType,
 		ConfigName: req.ConfigName,
 		TreeName:   req.TreeName,
 		TreeURL:    req.TreeURL,
@@ -85,6 +86,7 @@ func (s *BuildService) LastBuild(ctx context.Context, req *api.LastBuildReq) (*a
 	}
 	resp := &api.Build{
 		Arch:         build.Arch,
+		VMType:       build.VMType,
 		TreeName:     build.TreeName,
 		TreeURL:      build.TreeURL,
 		ConfigName:   build.ConfigName,
