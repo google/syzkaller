@@ -52,6 +52,17 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	return ctx.generateSource()
 }
 
+// WriteLLM generates a minimal, single-threaded C reproducer for LLMs.
+func WriteLLM(p *prog.Prog) ([]byte, error) {
+	opts := Options{
+		Sandbox:      "",
+		CallComments: true,
+		Procs:        1,
+		Slowdown:     1,
+	}
+	return Write(p, opts)
+}
+
 type context struct {
 	p         *prog.Prog
 	opts      Options

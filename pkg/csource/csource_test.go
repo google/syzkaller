@@ -19,6 +19,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -145,10 +146,9 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	// Executor headers are embedded into the C source. Make sure there are no leftover include guards.
-	if matches := regexp.MustCompile(`(?m)^#define\s+\S+_H\s*\n`).FindAllString(string(src), -1); len(matches) > 0 {
-		t.Fatalf("source contains leftover include guards: %v\nopts: %+v\nprogram:\n%s",
-			matches, opts, p.Serialize())
-	}
+	matches := regexp.MustCompile(`(?m)^#define\s+\S+_H\s*\n`).FindAllString(string(src), -1)
+	require.Empty(t, matches, "source contains leftover include guards: %v\nopts: %+v\nprogram:\n%s",
+		matches, opts, p.Serialize())
 	bin, err := Build(p.Target, src)
 	if err != nil {
 		if atomic.AddUint32(&failedTests, 1) > maxFailures {
@@ -175,9 +175,7 @@ func TestExecutorMacros(t *testing.T) {
 		if strings.HasPrefix(macro, "SYZ_HAVE_") {
 			continue
 		}
-		if _, ok := expected[macro]; !ok {
-			t.Errorf("unexpected macro: %v", macro)
-		}
+		assert.Contains(t, expected, macro)
 	}
 }
 
@@ -285,9 +283,7 @@ syscall(SYS_csource8, /*num=*/(intptr_t)-1);
 				test.target = target64
 			}
 			p, err := test.target.Deserialize([]byte(test.input), prog.Strict)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			ctx := &context{
 				p:         p,
 				target:    test.target,
@@ -297,13 +293,9 @@ syscall(SYS_csource8, /*num=*/(intptr_t)-1);
 			// This simplifies the expected output. For tests covering comments, see
 			// /pkg/csource/syscall_generation_test.go.
 			calls, _, err := ctx.generateProgCalls(p, false, false)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			got := regexp.MustCompile(`(\n|^)\t`).ReplaceAllString(strings.Join(calls, ""), "\n")
-			if test.output != got {
-				t.Fatalf("input:\n%v\nwant:\n%v\ngot:\n%v", test.input, test.output, got)
-			}
+			require.True(t, test.output == got, "input:\n%v\nwant:\n%v\ngot:\n%v", test.input, test.output, got)
 		})
 	}
 }
@@ -340,4 +332,34 @@ func TestGenerateSandboxFunctionSignature(t *testing.T) {
 		-1234,                        // sandbox arg
 		"do_sandbox_android(-1234);", // expected
 		"Android sandbox function requires an argument")
+}
+
+func TestWriteLLM(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	require.NoError(t, err)
+
+	p, err := target.Deserialize([]byte(`
+r0 = csource0(0x1)
+csource1(r0)
+`), prog.Strict)
+	require.NoError(t, err)
+
+	src, err := WriteLLM(p)
+	require.NoError(t, err)
+	require.NotEmpty(t, src)
+
+	require.Contains(t, string(src), "csource0 arguments:")
+	require.NotContains(t, string(src), "loop()")
+	require.NotContains(t, string(src), "do_sandbox_")
+
+	mainIndex := strings.Index(string(src), "int main(")
+	syscallIndex := strings.LastIndex(string(src), "csource0")
+	require.NotEqual(t, -1, syscallIndex, "csource0 call not found in output")
+
+	require.Greater(t, syscallIndex, mainIndex, "syscall appears before main()!")
+
+	bin, err := Build(p.Target, src)
+	require.NoError(t, err)
+	defer os.Remove(bin)
 }
