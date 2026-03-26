@@ -1863,7 +1863,7 @@ struct io_sqring_offsets {
 	uint32 dropped;
 	uint32 array;
 	uint32 resv1;
-	uint64 resv2;
+	uint64 user_addr;
 };
 
 struct io_cqring_offsets {
@@ -1873,7 +1873,9 @@ struct io_cqring_offsets {
 	uint32 ring_entries;
 	uint32 overflow;
 	uint32 cqes;
-	uint64 resv[2];
+	uint32 flags;
+	uint32 resv1;
+	uint64 user_addr;
 };
 
 struct io_uring_params {
@@ -2026,6 +2028,20 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_modify_offsets
+static long syz_io_uring_modify_offsets(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	char* params = (char*)a0;
+	char* ring_ptr = (char*)a1;
+	uint32 params_off = (uint32)a2;
+	uint32 value = (uint32)a3;
+
+	uint32 ring_off = *(uint32*)(params + params_off);
+	*(uint32*)(ring_ptr + ring_off) = value;
+	return 0;
+}
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_usbip_server_init
@@ -2277,6 +2293,7 @@ static long syz_btf_id_by_name(volatile long a0)
 
 // Same as memcpy except that it accepts offset to dest and src.
 #if SYZ_EXECUTOR || __NR_syz_memcpy_off
+#if GOARCH_386 || GOARCH_amd64 || GOARCH_arm64 || GOARCH_mips64le || GOARCH_ppc64le || GOARCH_s390x || GOARCH_riscv64
 static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
 	// C:       syz_memcpy_off(void* dest, uint32 dest_off, void* src, uint32 src_off, size_t n)
@@ -2290,6 +2307,7 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 
 	return (long)memcpy(dest + dest_off, src + src_off, n);
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_create_resource
