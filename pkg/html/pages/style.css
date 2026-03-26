@@ -132,8 +132,8 @@ table td, table th {
 }
 
 .list_table .title {
-	width: 350pt;
-	max-width: 350pt;
+	min-width: 350pt;
+	width: max-content;
 }
 
 .list_table .commit_list {
