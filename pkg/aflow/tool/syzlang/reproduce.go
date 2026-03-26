@@ -16,6 +16,7 @@ import (
 var Reproduce = aflow.NewFuncTool("reproduce-crash", reproduce, `
 Tool evaluates whether the given syz repro program crashes the kernel.
 It will compile the program and execute it in a VM.
+You MUST use this tool to verify your generated syz repro program.
 `)
 
 type ReproduceArgs struct {
