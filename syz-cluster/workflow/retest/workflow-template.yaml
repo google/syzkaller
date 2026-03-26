@@ -13,6 +13,8 @@ spec:
           - name: base-build-id
           - name: patched-build-id
           - name: test-name
+          - name: profile
+            value: "qemu"
         artifacts:
           - name: base-kernel
             optional: true
@@ -39,11 +41,11 @@ spec:
           ]
         resources:
           requests:
-            cpu: 6
-            memory: 24G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '6'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '24G'}}"
           limits:
-            cpu: 8
-            memory: 32G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '8'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '32G'}}"
         volumeMounts:
         - name: workdir
           mountPath: /workdir

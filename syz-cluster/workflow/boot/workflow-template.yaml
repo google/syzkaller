@@ -18,6 +18,8 @@ spec:
             value: "Boot"
           - name: report-findings
             value: "false"
+          - name: profile
+            value: "qemu"
         artifacts:
           - name: kernel
             path: /base
@@ -38,11 +40,11 @@ spec:
           ]
         resources:
           requests:
-            cpu: 6
-            memory: 24G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '6'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '24G'}}"
           limits:
-            cpu: 8
-            memory: 32G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '8'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '32G'}}"
         volumeMounts:
         - name: workdir
           mountPath: /workdir

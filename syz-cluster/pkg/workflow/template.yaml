@@ -100,6 +100,8 @@ spec:
                 - name: config
                   from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: base-build-id
                   value: "{{=jsonpath(steps['base-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: test-name
@@ -136,6 +138,8 @@ spec:
                 - name: config
                   from: "{{steps.save-fuzz-config.outputs.artifacts.artifact}}"
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.element, '$.patched.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: report-findings
@@ -170,6 +174,8 @@ spec:
               parameters:
                 - name: retest-data
                   value: "{{=jsonpath(inputs.parameters.element, '$.retest')}}"
+                - name: vm-type
+                  value: "{{=jsonpath(inputs.parameters.element, '$.base.vm_type')}}"
                 - name: patched-build-id
                   value: "{{=jsonpath(steps['patched-build'].outputs.parameters.result, '$.build_id')}}"
                 - name: base-build-id
@@ -208,6 +214,8 @@ spec:
               template: fuzz-action
             arguments:
               parameters:
+                - name: profile
+                  value: "{{=jsonpath(inputs.parameters.config, '$.vm_type') == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{inputs.parameters.patched-build-id}}"
                 - name: base-build-id
@@ -226,6 +234,7 @@ spec:
       inputs:
         parameters:
           - name: retest-data
+          - name: vm-type
           - name: base-build-id
           - name: patched-build-id
           - name: track
@@ -247,6 +256,8 @@ spec:
               template: retest-action
             arguments:
               parameters:
+                - name: profile
+                  value: "{{=inputs.parameters.vm-type == 'gce' ? 'gce' : 'qemu'}}"
                 - name: patched-build-id
                   value: "{{inputs.parameters.patched-build-id}}"
                 - name: base-build-id
