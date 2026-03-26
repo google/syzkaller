@@ -1410,6 +1410,7 @@ var linuxStackParams = &stackParams{
 		"__mod_timer",
 		"fast_dput",
 		"dput",
+		"mark_buffer_dirty",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
