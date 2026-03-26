@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -93,6 +94,9 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
 		return res, err
+	}
+	if args.ReproOpts == "" {
+		args.ReproOpts = string(csource.DefaultOpts(cfg).Serialize())
 	}
 	env, err := instance.NewEnv(cfg, nil, nil)
 	if err != nil {
