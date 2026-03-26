@@ -5,6 +5,7 @@ package patching
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -13,9 +14,11 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/prog"
 )
 
 var baseCommitPicker = aflow.NewFuncAction("base-commit-picker", pickBaseCommit)
@@ -77,6 +80,35 @@ func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, 
 		return err
 	})
 	return res, err
+}
+
+var syzlangToC = aflow.NewFuncAction("syzlang-to-c", syzlangToCFunc)
+
+type syzlangToCArgs struct {
+	ReproSyz string
+}
+
+type syzlangToCResult struct {
+	SimplifiedCRepro string
+}
+
+func syzlangToCFunc(ctx *aflow.Context, args syzlangToCArgs) (syzlangToCResult, error) {
+	if args.ReproSyz == "" {
+		return syzlangToCResult{}, errors.New("syz repro is missing")
+	}
+	pt, err := prog.GetTarget("linux", "amd64")
+	if err != nil {
+		return syzlangToCResult{}, fmt.Errorf("failed to get target linux/amd64: %w", err)
+	}
+	p, err := pt.Deserialize([]byte(args.ReproSyz), prog.NonStrict)
+	if err != nil {
+		return syzlangToCResult{}, fmt.Errorf("failed to parse syz repro: %w", err)
+	}
+	cData, err := csource.WriteLLM(p)
+	if err != nil {
+		return syzlangToCResult{}, fmt.Errorf("failed to generate simplified C repro: %w", err)
+	}
+	return syzlangToCResult{SimplifiedCRepro: string(cData)}, nil
 }
 
 var getMaintainers = aflow.NewFuncAction("get-maintainers", maintainers)

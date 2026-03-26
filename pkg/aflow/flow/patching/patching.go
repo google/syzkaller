@@ -39,6 +39,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 		Name: name,
 		Root: aflow.Pipeline(
 			baseCommitPicker,
+			syzlangToC,
 			kernel.Checkout,
 			kernel.Build,
 			// Ensure we can reproduce the crash (and the build boots).
@@ -121,6 +122,11 @@ const debuggingPrompt = `
 The crash is:
 
 {{.ReproducedCrashReport}}
+
+The following C code is a draft of the vulnerable syscall sequence. Keep in mind that 
+it may lack the precise threading, sandboxing, and some arguments of a working reproducer:
+
+{{.SimplifiedCRepro}}
 `
 
 const patchInstruction = `
