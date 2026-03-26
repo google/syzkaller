@@ -69,6 +69,10 @@ func testPseudoSyscalls(t *testing.T, target *prog.Target, ct *prog.ChoiceTable)
 	}
 	rs := testutil.RandSource(t)
 	for _, meta := range target.PseudoSyscalls() {
+		if meta.Attrs.KFuzzTest {
+			// KFuzzTest syscalls are generated and serialized in a very special way.
+			continue
+		}
 		p := target.GenSampleProg(meta, rs, ct)
 		t.Run(fmt.Sprintf("single_%s", meta.CallName), func(t *testing.T) {
 			t.Parallel()
