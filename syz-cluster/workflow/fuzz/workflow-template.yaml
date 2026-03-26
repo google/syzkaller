@@ -16,6 +16,8 @@ spec:
             value: ""
           - name: test-name
             value: "Fuzz"
+          - name: profile
+            value: "qemu"
         artifacts:
           - name: base-kernel
             path: /base
@@ -40,11 +42,11 @@ spec:
           ]
         resources:
           requests:
-            cpu: 24
-            memory: 90G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '24'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '90G'}}"
           limits:
-            cpu: 30
-            memory: 96G
+            cpu: "{{=inputs.parameters.profile == 'gce' ? '8' : '30'}}"
+            memory: "{{=inputs.parameters.profile == 'gce' ? '16G' : '96G'}}"
         volumeMounts:
         - name: workdir
           mountPath: /workdir
