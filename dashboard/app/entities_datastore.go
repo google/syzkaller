@@ -741,6 +741,7 @@ type ReproTask struct {
 	Log          int64 // Reference to CrashLog text entity.
 	AttemptsLeft int64
 	LastAttempt  time.Time
+	Created      time.Time
 }
 
 func mgrKey(ctx context.Context, ns, name string) *db.Key {

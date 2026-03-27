@@ -1887,10 +1887,25 @@ func saveReproTask(ctx context.Context, ns, manager string, repro []byte) error 
 		Manager:      manager,
 		Log:          log,
 		AttemptsLeft: attempts,
+		Created:      timeNow(ctx),
 	}
 	key := db.NewIncompleteKey(ctx, "ReproTask", nil)
 	_, err = db.Put(ctx, key, obj)
 	return err
+}
+
+func loadReproTasks(ctx context.Context, ns, manager string, limit int) ([]*ReproTask, error) {
+	var tasks []*ReproTask
+	_, err := db.NewQuery("ReproTask").
+		Filter("Namespace=", ns).
+		Filter("Manager=", manager).
+		Order("-Created").
+		Limit(limit).
+		GetAll(ctx, &tasks)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
 
 func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {

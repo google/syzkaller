@@ -237,6 +237,13 @@ type uiManagerPage struct {
 	Message       string
 	ShowReproForm bool
 	Builds        []*uiBuild
+	ReproTasks    []*uiReproTask
+}
+
+type uiReproTask struct {
+	Time   time.Time
+	Status string
+	Text   string
 }
 
 type uiManager struct {
@@ -643,12 +650,41 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 			}
 			managerPage.Message = "Repro request was saved!"
 		}
+		tasks, err := loadReproTasks(ctx, hdr.Namespace, manager.Name, 5)
+		if err != nil {
+			return fmt.Errorf("failed to load repro tasks: %w", err)
+		}
+		for _, task := range tasks {
+			uiTask, err := makeUIReproTask(ctx, task)
+			if err != nil {
+				return fmt.Errorf("failed to make UI repro task: %w", err)
+			}
+			managerPage.ReproTasks = append(managerPage.ReproTasks, uiTask)
+		}
 	}
 
 	for _, build := range builds {
 		managerPage.Builds = append(managerPage.Builds, makeUIBuild(ctx, build, false))
 	}
 	return serveTemplate(w, "manager.html", managerPage)
+}
+
+func makeUIReproTask(ctx context.Context, task *ReproTask) (*uiReproTask, error) {
+	text, _, err := getText(ctx, textCrashLog, task.Log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read text: %w", err)
+	}
+	status := "Pending"
+	if task.AttemptsLeft > 0 && !task.LastAttempt.IsZero() {
+		status = fmt.Sprintf("In Progress (%d attempts left)", task.AttemptsLeft)
+	} else if task.AttemptsLeft == 0 {
+		status = "Completed"
+	}
+	return &uiReproTask{
+		Time:   task.Created,
+		Status: status,
+		Text:   string(text),
+	}, nil
 }
 
 func findManager(managers []*uiManager, name string) *uiManager {
