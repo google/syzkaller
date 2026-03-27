@@ -56,24 +56,15 @@ that
 breaks`,
 		},
 		{
-			name: "reflow_paragraph",
+			name: "preserve_paragraph",
 			text: `hello
 world
 and more words`,
 			width: 10,
 			want: `hello
-world and
-more words`,
-		},
-		{
-			name: "reflow_larger_width",
-			text: `word
-word
-word
-word`,
-			width: 9,
-			want: `word word
-word word`,
+world
+and more
+words`,
 		},
 		{
 			name: "preserve_blocks",
@@ -135,7 +126,7 @@ world`,
 			name:  "preserve_actual_spaces",
 			text:  "word    spaced\nmultiple \t tabs",
 			width: 25,
-			want:  "word    spaced multiple\ntabs",
+			want:  "word    spaced\nmultiple \t tabs",
 		},
 		{
 			name:  "input_ends_with_newline",
@@ -154,6 +145,28 @@ world`,
 			text:  "123\tword",
 			width: 12,
 			want:  "123\tword", // '123' (3) + '\t' (align to 8) + 'word' (4) = 12 total visual columns.
+		},
+		{
+			name: "stack_trace",
+			text: `Call Trace:
+ <TASK>
+  dump_stack_lvl+0x53/0x6b lib/dump_stack.c:107
+  kcsan_report_set_n_check+0x51c/0x620 kernel/kcsan/report.c:1021
+ </TASK>`,
+			width: 100,
+			want: `Call Trace:
+ <TASK>
+  dump_stack_lvl+0x53/0x6b lib/dump_stack.c:107
+  kcsan_report_set_n_check+0x51c/0x620 kernel/kcsan/report.c:1021
+ </TASK>`,
+		},
+		{
+			name: "quotes",
+			text: `> line 1
+> line 2`,
+			width: 10,
+			want: `> line 1
+> line 2`,
 		},
 		{
 			name:  "non_ascii_characters",

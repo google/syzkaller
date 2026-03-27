@@ -8,12 +8,11 @@ import (
 	"unicode"
 )
 
-// WordWrap reflows the given text so that no line exceeds the specified width.
+// WordWrap wraps the given text so that no line exceeds the specified width.
 // It returns the newly formatted string.
 //
 // It adheres to the following formatting rules:
-//   - Preserves all existing newlines that designate new paragraphs or different block elements.
-//   - Reflows and seamlessly merges lines of the same paragraph spanning multiple lines.
+//   - Preserves all existing newlines.
 //   - Preserves the leading indentation of each line.
 //   - When a line wraps, applies the same leading indentation to the newly wrapped lines.
 //   - Prevents single words that exceed the maximum width from being split.
@@ -23,36 +22,18 @@ func WordWrap(text string, width int) string {
 	width = max(1, width)
 
 	var result strings.Builder
-
-	var lastIndent string
-	lastEmpty := true
 	lineLen := 0
 
 	for i, line := range strings.Split(text, "\n") {
 		trimmedLine := strings.TrimLeftFunc(line, unicode.IsSpace)
 		indentStr := line[:len(line)-len(trimmedLine)]
 		isEmpty := trimmedLine == ""
-		isList := isListMarker(trimmedLine)
 
-		// We merge this line with the previous one (effectively treating the newline as a space) if:
-		// 1. We are not on the very first line.
-		// 2. Neither the current nor previous line are completely blank (blank lines mean paragraph breaks).
-		// 3. The indentation of this line exactly aligns with the previous line.
-		// 4. This line doesn't definitively start a new block element (like a bulleted list).
-		merge := i > 0 && !isEmpty && !lastEmpty && indentStr == lastIndent && !isList
-
-		lastIndent = indentStr
-		lastEmpty = isEmpty
-
-		if merge {
-			trimmedLine = " " + trimmedLine
-		} else {
-			if i > 0 {
-				result.WriteByte('\n')
-			}
-			result.WriteString(indentStr)
-			lineLen = visualLength(0, indentStr)
+		if i > 0 {
+			result.WriteByte('\n')
 		}
+		result.WriteString(indentStr)
+		lineLen = visualLength(0, indentStr)
 
 		if isEmpty {
 			continue
@@ -119,21 +100,4 @@ func visualLength(p int, s string) int {
 		}
 	}
 	return p
-}
-
-func isListMarker(s string) bool {
-	if strings.HasPrefix(s, "- ") || strings.HasPrefix(s, "* ") ||
-		strings.HasPrefix(s, "+ ") || strings.HasPrefix(s, "> ") {
-		return true
-	}
-	for i, r := range s {
-		if r >= '0' && r <= '9' {
-			continue
-		}
-		if r == '.' && i > 0 && len(s) > i+1 && s[i+1] == ' ' {
-			return true
-		}
-		break
-	}
-	return false
 }
