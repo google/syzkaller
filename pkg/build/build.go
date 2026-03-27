@@ -310,6 +310,10 @@ func extractCauseRaw(s []byte) [][]byte {
 			if !pattern.pattern.Match(line) {
 				continue
 			}
+			if !weak && pattern.weak {
+				// Skip weak patterns if we already have a strong one.
+				continue
+			}
 			if weak && !pattern.weak {
 				cause = nil
 				dedup = make(map[string]bool)
