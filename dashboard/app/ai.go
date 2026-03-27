@@ -515,38 +515,38 @@ func aiJobUpdate(ctx context.Context, job *aidb.Job) error {
 	if err != nil {
 		return err
 	}
-	labelType, labelValue, labelAdd, err := aiBugLabel(job)
-	if err != nil || labelType == EmptyLabel {
+	labels, unset, err := aiBugLabel(job)
+	if err != nil || (len(labels) == 0 && len(unset) == 0) {
 		return err
-	}
-	label := BugLabel{
-		Label: labelType,
-		Value: labelValue,
-		Link:  job.ID,
 	}
 	labelSet := makeLabelSet(ctx, bug)
 	return updateSingleBug(ctx, bug.key(ctx), func(bug *Bug) error {
-		if bug.HasUserLabel(labelType) {
-			return nil
+		for _, typ := range unset {
+			if !bug.HasUserLabel(typ) {
+				bug.UnsetLabels(typ)
+			}
 		}
-		if labelAdd {
-			return bug.SetLabels(labelSet, []BugLabel{label})
+		for _, label := range labels {
+			if bug.HasUserLabel(label.Label) {
+				continue
+			}
+			if err := bug.SetLabels(labelSet, []BugLabel{label}); err != nil {
+				return err
+			}
 		}
-		bug.UnsetLabels(labelType)
 		return nil
 	})
 }
 
-func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {
+func aiBugLabel(job *aidb.Job) (labels []BugLabel, unset []BugLabelType, err0 error) {
+	if !job.Correct.Valid {
+		return
+	}
 	switch job.Type {
 	case ai.WorkflowAssessmentKCSAN:
-		// For now we require a manual correctness check,
-		// later we may apply some labels w/o the manual check.
-		if !job.Correct.Valid {
-			return
-		}
 		if !job.Correct.Bool {
-			return RaceLabel, "", false, nil
+			unset = append(unset, RaceLabel)
+			return
 		}
 		res, err := castJobResults[ai.AssessmentKCSANOutputs](job)
 		if err != nil {
@@ -556,17 +556,15 @@ func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 e
 		if !res.Confident {
 			return
 		}
+		val := HarmfulRace
 		if res.Benign {
-			return RaceLabel, BenignRace, true, nil
+			val = BenignRace
 		}
-		return RaceLabel, HarmfulRace, true, nil
+		labels = append(labels, BugLabel{Label: RaceLabel, Value: val, Link: job.ID})
 	case ai.WorkflowModeration:
-		// For now we require a manual correctness check.
-		if !job.Correct.Valid {
-			return
-		}
 		if !job.Correct.Bool {
-			return ActionableLabel, "", false, nil
+			unset = append(unset, ActionableLabel)
+			return
 		}
 		res, err := castJobResults[ai.ModerationOutputs](job)
 		if err != nil {
@@ -576,7 +574,11 @@ func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 e
 		if !res.Confident {
 			return
 		}
-		return ActionableLabel, "", res.Actionable, nil
+		if res.Actionable {
+			labels = append(labels, BugLabel{Label: ActionableLabel, Link: job.ID})
+		} else {
+			unset = append(unset, ActionableLabel)
+		}
 	}
 	return
 }
