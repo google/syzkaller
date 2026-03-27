@@ -598,6 +598,10 @@ func (ctx *reproContext) simplifyProg(res *Result) (*Result, error) {
 
 // Try triggering crash with a C reproducer.
 func (ctx *reproContext) extractC(res *Result) (*Result, error) {
+	if ctx.target.BrokenCompiler != "" {
+		ctx.reproLogf(2, "skipping C reproducer extraction due to broken compiler: %v", ctx.target.BrokenCompiler)
+		return res, nil
+	}
 	ctx.reproLogf(2, "extracting C reproducer")
 	start := time.Now()
 	defer func() {

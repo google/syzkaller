@@ -130,6 +130,7 @@ func runTestRepro(t *testing.T, log string, exec execInterface) (*Result, *Stats
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,
 			TargetVMArch: targets.AMD64,
+			SysTarget:    targets.Get(targets.Linux, targets.AMD64),
 		},
 		Sandbox: "namespace",
 	}
@@ -347,4 +348,37 @@ func BenchmarkCalculateReliability(b *testing.B) {
 			b.ReportMetric(reliability[len(reliability)*9/10], "p90")
 		})
 	}
+}
+
+func TestBrokenCompilerRepro(t *testing.T) {
+	sysTarget := *targets.Get(targets.Linux, targets.AMD64)
+	sysTarget.BrokenCompiler = "some compiler error"
+
+	mgrConfig := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetVMArch: targets.AMD64,
+			SysTarget:    &sysTarget,
+		},
+		Sandbox: "namespace",
+	}
+	var err error
+	mgrConfig.Target, err = prog.GetTarget(targets.Linux, targets.AMD64)
+	require.NoError(t, err)
+	reporter, err := report.NewReporter(mgrConfig)
+	require.NoError(t, err)
+	env := Environment{
+		Config:   mgrConfig,
+		Features: flatrpc.AllFeatures,
+		Fast:     false,
+		Reporter: reporter,
+		logf:     t.Logf,
+	}
+
+	result, _, err := runInner(context.Background(), []byte(testReproLog), env, &testExecInterface{
+		run: testExecRunner,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, false, result.CRepro, "C repro should have been skipped")
 }
