@@ -59,6 +59,10 @@ tests that eventually use `prog.Target` or `targets.Target`.
 -   **Syscall Descriptions:** When modifying `sys/*/*.txt`, `make generate` must be run to update generated code.
 -   **Copyright:** When you add new .go files, make sure to add the copyright header to them (use other .go files for reference and update the year to the current one).
 
+## Guidelines
+
+-   `docs/review_guidelines.md`: Automated code review guidelines for Go, testing, architecture, and Syzkaller specifics.
+
 ## Other GEMINI.md files
 
 There exist other GEMINI.md files:
