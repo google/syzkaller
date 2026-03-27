@@ -1169,6 +1169,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		if err != nil {
 			return err
 		}
+		jobs = compactAIJobs(jobs)
 		for _, job := range jobs {
 			aiJobs = append(aiJobs, makeUIAIJob(job))
 		}

@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -956,4 +957,30 @@ func nullInt64(v spanner.NullInt64) int {
 		return 0
 	}
 	return int(v.Int64)
+}
+
+func compactAIJobs(jobs []*aidb.Job) []*aidb.Job {
+	// Only keep non-aborted jobs, and show aborted jobs if they are newest per workflow.
+	newestJob := make(map[string]*aidb.Job)
+	for _, job := range jobs {
+		g := newestJob[job.Workflow]
+		if g == nil || job.Created.After(g.Created) {
+			newestJob[job.Workflow] = job
+		}
+	}
+
+	var filtered []*aidb.Job
+	for _, job := range jobs {
+		if !job.Aborted {
+			filtered = append(filtered, job)
+		} else if job == newestJob[job.Workflow] {
+			filtered = append(filtered, job)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Created.After(filtered[j].Created)
+	})
+
+	return filtered
 }

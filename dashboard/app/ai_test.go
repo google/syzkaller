@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/prog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -805,4 +806,22 @@ func TestAIAgentJobOvertake(t *testing.T) {
 	require.True(t, job2.Started.Valid)
 	require.False(t, job2.Finished.Valid)
 	require.Equal(t, job2.Error, "")
+}
+
+func TestCompactAIJobs(t *testing.T) {
+	now := time.Now()
+	jobs := []*aidb.Job{
+		{ID: "1", Workflow: "W1", Created: now.Add(-1 * time.Hour), Aborted: true},
+		{ID: "2", Workflow: "W1", Created: now.Add(-2 * time.Hour), Aborted: false},
+		{ID: "3", Workflow: "W2", Created: now.Add(-3 * time.Hour), Aborted: true},
+		{ID: "4", Workflow: "W2", Created: now.Add(-4 * time.Hour), Aborted: true},
+		{ID: "5", Workflow: "W3", Created: now.Add(-5 * time.Hour), Aborted: true},
+	}
+
+	got := compactAIJobs(jobs)
+	require.Len(t, got, 4)
+	assert.Equal(t, "1", got[0].ID)
+	assert.Equal(t, "2", got[1].ID)
+	assert.Equal(t, "3", got[2].ID)
+	assert.Equal(t, "5", got[3].ID)
 }
