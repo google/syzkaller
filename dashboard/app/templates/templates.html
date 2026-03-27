@@ -53,6 +53,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
 					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
 					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
+					{{if eq $.Namespace "upstream"}}
+						| <a href='/upstream/syz-dungeon' title="Syzkaller Dungeon">🏰</a>
+					{{end}}
 				</td>
 			</tr>
 		</table>
