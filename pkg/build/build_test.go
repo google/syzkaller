@@ -610,4 +610,13 @@ make: *** [Makefile:248: __sub-make] Error 2
 		"",
 		"",
 	},
+	{`
+  CC      kernel/trace/bpf_trace.o
+error: unknown warning option '-Wno-suggest-attribute=format'; did you mean '-Wno-property-attribute-mismatch'? [-Werror,-Wunknown-warning-option]
+make[4]: *** [scripts/Makefile.build:287: kernel/trace/bpf_trace.o] Error 1
+`,
+		`error: unknown warning option '-Wno-suggest-attribute=format'; did you mean '-Wno-property-attribute-mismatch'? [-Werror,-Wunknown-warning-option]`,
+		"",
+		"",
+	},
 }

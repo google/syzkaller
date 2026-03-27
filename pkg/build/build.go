@@ -354,6 +354,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
 	{weak: true, pattern: regexp.MustCompile(`(ERROR|FAILED): Build did NOT complete`)},
+	{weak: true, pattern: regexp.MustCompile(`^error: `)},
 }
 
 var fileRes = []*regexp.Regexp{
