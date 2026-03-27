@@ -220,6 +220,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	if cfg.SysTarget.BrokenCompiler != "" {
+		log.Errorf("target compiler is broken: %v", cfg.SysTarget.BrokenCompiler)
+	}
 	if cfg.DashboardAddr != "" {
 		// This lets better distinguish logs of individual syz-manager instances.
 		log.SetName(cfg.Name)
