@@ -17,6 +17,11 @@ func TestReproduce(t *testing.T) {
 		wantError string
 	}{
 		{
+			name:      "empty program",
+			syzProg:   "",
+			wantError: "syz program cannot be empty",
+		},
+		{
 			name:      "valid program",
 			syzProg:   `getrlimit(0x0, 0x0)`,
 			wantError: "",
