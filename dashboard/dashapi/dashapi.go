@@ -388,6 +388,7 @@ const (
 )
 
 type LogToReproResp struct {
+	ReqID    int64
 	Title    string
 	CrashLog []byte
 	Type     LogToReproType
@@ -399,6 +400,16 @@ func (dash *Dashboard) LogToRepro(req *LogToReproReq) (*LogToReproResp, error) {
 	resp := new(LogToReproResp)
 	err := dash.Query("log_to_repro", req, resp)
 	return resp, err
+}
+
+type ReproTaskDoneReq struct {
+	ReqID   int64
+	Success bool
+	Log     []byte
+}
+
+func (dash *Dashboard) ReproTaskDone(req *ReproTaskDoneReq) error {
+	return dash.Query("repro_task_done", req, nil)
 }
 
 type LogEntry struct {

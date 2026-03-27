@@ -78,6 +78,7 @@ var apiHandlers = map[string]APIHandler{
 	"update_report":         nsHandler(apiUpdateReport),
 	"add_build_assets":      nsHandler(apiAddBuildAssets),
 	"log_to_repro":          nsHandler(apiLogToReproduce),
+	"repro_task_done":       nsHandler(apiReproTaskDone),
 }
 
 type JSONHandler func(ctx context.Context, r *http.Request) (any, error)
@@ -1797,18 +1798,48 @@ func recordEmergencyStop(ctx context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
+
+func apiReproTaskDone(ctx context.Context, ns string, req *dashapi.ReproTaskDoneReq) (any, error) {
+	taskKey := db.NewKey(ctx, "ReproTask", "", req.ReqID, nil)
+	task := new(ReproTask)
+	if err := db.Get(ctx, taskKey, task); err != nil {
+		return nil, fmt.Errorf("failed to get repro task: %w", err)
+	}
+	if task.Namespace != ns {
+		return nil, fmt.Errorf("task namespace mismatch")
+	}
+
+	if len(req.Log) > 0 {
+		var err error
+		task.ResultLog, err = putText(ctx, ns, textReproLog, req.Log)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save result log: %w", err)
+		}
+	}
+	if req.Success {
+		task.AttemptsLeft = 0 // Mark as completed.
+	} else {
+		task.AttemptsLeft--
+	}
+	if _, err := db.Put(ctx, taskKey, task); err != nil {
+		return nil, fmt.Errorf("failed to save task: %w", err)
+	}
+	return nil, nil
+}
+
 func apiLogToReproduce(ctx context.Context, ns string, req *dashapi.LogToReproReq) (any, error) {
 	build, err := loadBuild(ctx, ns, req.BuildID)
 	if err != nil {
 		return nil, err
 	}
 	// First check if there have been any manual requests.
-	log, err := takeReproTask(ctx, ns, build.Manager)
+	taskID, log, err := takeReproTask(ctx, ns, build.Manager)
 	if err != nil {
 		return nil, err
 	}
-	if log != nil {
+	if taskID != 0 {
 		return &dashapi.LogToReproResp{
+			ReqID:    taskID,
 			CrashLog: log,
 			Type:     dashapi.ManualLog,
 		}, nil
@@ -1881,7 +1912,7 @@ func saveReproTask(ctx context.Context, ns, manager string, repro []byte) error 
 		return err
 	}
 	// We don't control the status of each attempt, so let's just try twice.
-	const attempts = 2
+	const attempts = 3
 	obj := &ReproTask{
 		Namespace:    ns,
 		Manager:      manager,
@@ -1908,7 +1939,7 @@ func loadReproTasks(ctx context.Context, ns, manager string, limit int) ([]*Repr
 	return tasks, nil
 }
 
-func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {
+func takeReproTask(ctx context.Context, ns, manager string) (int64, []byte, error) {
 	var tasks []*ReproTask
 	keys, err := db.NewQuery("ReproTask").
 		Filter("Namespace=", ns).
@@ -1916,20 +1947,26 @@ func takeReproTask(ctx context.Context, ns, manager string) ([]byte, error) {
 		Filter("AttemptsLeft>", 0).
 		GetAll(ctx, &tasks)
 	if err != nil || len(keys) == 0 {
-		return nil, err
+		return 0, nil, err
 	}
 
 	// Yes, it's possible that the entity will be modified simultaneously, and we
-	// ideall need a transaction, but let's just ignore this possibility  -- in the
+	// ideally need a transaction, but let's just ignore this possibility  -- in the
 	// worst case we'd just try to reproduce it once more.
-	key, task := keys[0], tasks[0]
-	task.AttemptsLeft--
-	task.LastAttempt = timeNow(ctx)
-	if _, err := db.Put(ctx, key, task); err != nil {
-		return nil, err
+	for i, task := range tasks {
+		// Add a 24 hour cooldown between attempts.
+		if timeSince(ctx, task.LastAttempt) < 24*time.Hour {
+			continue
+		}
+		key := keys[i]
+		task.LastAttempt = timeNow(ctx)
+		if _, err := db.Put(ctx, key, task); err != nil {
+			return 0, nil, err
+		}
+		log, _, err := getText(ctx, textCrashLog, task.Log)
+		return key.IntID(), log, err
 	}
-	log, _, err := getText(ctx, textCrashLog, task.Log)
-	return log, err
+	return 0, nil, nil
 }
 
 func apiCreateUploadURL(ctx context.Context, req *any) (any, error) {

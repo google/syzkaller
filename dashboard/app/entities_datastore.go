@@ -739,6 +739,7 @@ type ReproTask struct {
 	Namespace    string
 	Manager      string
 	Log          int64 // Reference to CrashLog text entity.
+	ResultLog    int64 // Reference to ResultLog text entity.
 	AttemptsLeft int64
 	LastAttempt  time.Time
 	Created      time.Time

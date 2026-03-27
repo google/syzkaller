@@ -29,7 +29,8 @@ type Crash struct {
 	FromHub       bool // this crash was created based on a repro from syz-hub
 	FromDashboard bool // .. or from dashboard
 	Manual        bool
-	FullRepro     bool // used by the diff fuzzer to do a full scale reproduction
+	ExtReqID      int64 // set if FromDashboard is true
+	FullRepro     bool  // used by the diff fuzzer to do a full scale reproduction
 	*report.Report
 	TailReports []*report.Report
 	MemoryDump  string

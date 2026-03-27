@@ -10,6 +10,7 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -282,6 +283,21 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			}
 		}
 	}
+
+	// Add some manual reproduction requests for manager0
+	form := url.Values{}
+	form.Add("send-repro", "Sample manual repro log setup for TestLocalUI")
+	c.POSTForm("/upstream/manager/manager0", form)
+
+	reqResp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: "build0"})
+	if err == nil && reqResp.ReqID != 0 {
+		client.ReproTaskDone(&dashapi.ReproTaskDoneReq{
+			ReqID:   reqResp.ReqID,
+			Log:     []byte("repro request log"),
+			Success: true,
+		})
+	}
+
 	t.Logf("done populating DB")
 	resp, _ := globalClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "agent-local-ui",

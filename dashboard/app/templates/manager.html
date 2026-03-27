@@ -38,6 +38,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th>Time</th>
 			<th>Status</th>
 			<th>Reproducer</th>
+			<th>Result Log</th>
 		</tr>
 		{{range $task := .ReproTasks}}
 		<tr>
@@ -48,6 +49,13 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<summary>Show text</summary>
 					<pre>{{$task.Text}}</pre>
 				</details>
+			</td>
+			<td>
+				{{if $task.LogLink}}
+				<a href="{{$task.LogLink}}">Log</a>
+				{{else}}
+				---
+				{{end}}
 			</td>
 		</tr>
 		{{end}}

@@ -489,30 +489,90 @@ func TestReproForDifferentCrash(t *testing.T) {
 }
 
 func TestReproTask(t *testing.T) {
-	c := NewCtx(t)
-	defer c.Close()
-	client := c.client
+	sendReproReq := func(c *Ctx, manager string) *dashapi.Build {
+		build := testBuild(1)
+		build.Manager = manager
+		c.client.UploadBuild(build)
 
-	build := testBuild(1)
-	build.Manager = "test-manager"
-	client.UploadBuild(build)
+		form := url.Values{}
+		form.Add("send-repro", "Some repro text")
+		c.POSTForm("/test1/manager/"+manager, form)
+		return build
+	}
 
-	form := url.Values{}
-	const reproValue = "Some repro text"
-	form.Add("send-repro", reproValue)
+	t.Run("success", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
 
-	c.POSTForm("/test1/manager/test-manager", form)
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
 
-	// We run the reproducer request 2 times.
-	for i := 0; i < 2; i++ {
 		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
 		c.expectOK(err)
 		c.expectEQ(string(resp.CrashLog), reproValue)
-		c.expectEQ(resp.Type, dashapi.ManualLog)
-	}
 
-	// But no more.
-	resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
-	c.expectOK(err)
-	c.expectEQ(resp.CrashLog, []byte(nil))
+		err = client.ReproTaskDone(&dashapi.ReproTaskDoneReq{
+			ReqID:   resp.ReqID,
+			Log:     []byte("log"),
+			Success: true,
+		})
+		c.expectOK(err)
+
+		// Once succeeded, should not be returned again.
+		c.advanceTime(25 * time.Hour)
+		resp, err = client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(resp.CrashLog, []byte(nil))
+	})
+
+	t.Run("retry", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
+
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
+
+		// Fail all 3 attempts.
+		for i := 0; i < 3; i++ {
+			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+			c.expectOK(err)
+			c.expectEQ(string(resp.CrashLog), reproValue)
+
+			err = client.ReproTaskDone(&dashapi.ReproTaskDoneReq{
+				ReqID:   resp.ReqID,
+				Success: false,
+			})
+			c.expectOK(err)
+
+			c.advanceTime(25 * time.Hour)
+		}
+
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(resp.CrashLog, []byte(nil))
+	})
+
+	t.Run("ignored", func(t *testing.T) {
+		c := NewCtx(t)
+		defer c.Close()
+		client := c.client
+
+		const reproValue = "Some repro text"
+		build := sendReproReq(c, "test-manager")
+
+		for i := 0; i < 5; i++ {
+			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+			c.expectOK(err)
+			c.expectEQ(string(resp.CrashLog), reproValue)
+
+			c.advanceTime(25 * time.Hour)
+		}
+
+		// Since there were no repro task done requests, it should still be available.
+		resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
+		c.expectOK(err)
+		c.expectEQ(string(resp.CrashLog), reproValue)
+	})
 }

@@ -241,9 +241,10 @@ type uiManagerPage struct {
 }
 
 type uiReproTask struct {
-	Time   time.Time
-	Status string
-	Text   string
+	Time    time.Time
+	Status  string
+	Text    string
+	LogLink string
 }
 
 type uiManager struct {
@@ -680,10 +681,15 @@ func makeUIReproTask(ctx context.Context, task *ReproTask) (*uiReproTask, error)
 	} else if task.AttemptsLeft == 0 {
 		status = "Completed"
 	}
+	var logLink string
+	if task.ResultLog != 0 {
+		logLink = fmt.Sprintf("/text?tag=%s&id=%d", textReproLog, task.ResultLog)
+	}
 	return &uiReproTask{
-		Time:   task.Created,
-		Status: status,
-		Text:   string(text),
+		Time:    task.Created,
+		Status:  status,
+		Text:    string(text),
+		LogLink: logLink,
 	}, nil
 }
 

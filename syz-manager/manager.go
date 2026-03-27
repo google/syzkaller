@@ -564,6 +564,21 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 	} else {
 		mgr.saveRepro(res)
 	}
+
+	if res.Crash.ExtReqID != 0 {
+		var reproLog []byte
+		if res.Stats != nil {
+			reproLog = truncateReproLog(res.Stats.FullLog())
+		}
+		req := &dashapi.ReproTaskDoneReq{
+			ReqID:   res.Crash.ExtReqID,
+			Success: res.Repro != nil,
+			Log:     reproLog,
+		}
+		if err := mgr.dash.ReproTaskDone(req); err != nil {
+			log.Logf(0, "failed to report repro task done: %v", err)
+		}
+	}
 }
 
 func (mgr *Manager) preloadCorpus() {
@@ -1504,6 +1519,7 @@ func (mgr *Manager) dashboardReproTasks() {
 			mgr.externalReproQueue <- &manager.Crash{
 				FromDashboard: true,
 				Manual:        resp.Type == dashapi.ManualLog,
+				ExtReqID:      resp.ReqID,
 				Report: &report.Report{
 					Title:  resp.Title,
 					Output: resp.CrashLog,
