@@ -13,14 +13,19 @@ import (
 )
 
 const (
-	EmptyLabel           BugLabelType = ""
-	SubsystemLabel       BugLabelType = "subsystems"
-	PriorityLabel        BugLabelType = "prio"
-	NoRemindersLabel     BugLabelType = "no-reminders"
-	OriginLabel          BugLabelType = "origin"
-	MissingBackportLabel BugLabelType = "missing-backport"
-	RaceLabel            BugLabelType = "race"
-	ActionableLabel      BugLabelType = "actionable"
+	EmptyLabel             BugLabelType = ""
+	SubsystemLabel         BugLabelType = "subsystems"
+	PriorityLabel          BugLabelType = "prio"
+	NoRemindersLabel       BugLabelType = "no-reminders"
+	OriginLabel            BugLabelType = "origin"
+	MissingBackportLabel   BugLabelType = "missing-backport"
+	RaceLabel              BugLabelType = "race"
+	ExploitableLabel       BugLabelType = "exploitable"
+	UnprivilegedLabel      BugLabelType = "unprivileged"
+	VMTriggerLabel         BugLabelType = "vm-trigger"
+	NetworkTriggerLabel    BugLabelType = "network-trigger"
+	PeripheralTriggerLabel BugLabelType = "peripheral-trigger"
+	ActionableLabel        BugLabelType = "actionable"
 )
 
 type BugPrio string
@@ -47,9 +52,14 @@ func makeLabelSet(ctx context.Context, bug *Bug) *labelSet {
 			string(NormalPrioBug),
 			string(HighPrioBug),
 		}),
-		NoRemindersLabel:     trueFalse{},
-		MissingBackportLabel: trueFalse{},
-		ActionableLabel:      trueFalse{},
+		NoRemindersLabel:       trueFalse{},
+		MissingBackportLabel:   trueFalse{},
+		ActionableLabel:        trueFalse{},
+		ExploitableLabel:       trueFalse{},
+		UnprivilegedLabel:      trueFalse{},
+		VMTriggerLabel:         trueFalse{},
+		NetworkTriggerLabel:    trueFalse{},
+		PeripheralTriggerLabel: trueFalse{},
 	}
 	typ := crash.TitleToType(bug.Title)
 	if typ == crash.KCSANDataRace {

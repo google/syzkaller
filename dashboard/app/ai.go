@@ -561,6 +561,32 @@ func aiBugLabel(job *aidb.Job) (labels []BugLabel, unset []BugLabelType, err0 er
 			val = BenignRace
 		}
 		labels = append(labels, BugLabel{Label: RaceLabel, Value: val, Link: job.ID})
+	case ai.WorkflowAssessmentSecurity:
+		if !job.Correct.Bool {
+			unset = append(unset, ExploitableLabel, UnprivilegedLabel,
+				VMTriggerLabel, NetworkTriggerLabel, PeripheralTriggerLabel)
+			return
+		}
+		res, err := castJobResults[ai.AssessmentSecurityOutputs](job)
+		if err != nil {
+			err0 = err
+			return
+		}
+		if res.Exploitable {
+			labels = append(labels, BugLabel{Label: ExploitableLabel, Link: job.ID})
+		}
+		if res.Unprivileged {
+			labels = append(labels, BugLabel{Label: UnprivilegedLabel, Link: job.ID})
+		}
+		if res.VMTrigger {
+			labels = append(labels, BugLabel{Label: VMTriggerLabel, Link: job.ID})
+		}
+		if res.NetworkTrigger {
+			labels = append(labels, BugLabel{Label: NetworkTriggerLabel, Link: job.ID})
+		}
+		if res.PeripheralTrigger {
+			labels = append(labels, BugLabel{Label: PeripheralTriggerLabel, Link: job.ID})
+		}
 	case ai.WorkflowModeration:
 		if !job.Correct.Bool {
 			unset = append(unset, ActionableLabel)
@@ -888,6 +914,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 	if typ == crash.KCSANDataRace {
 		workflows[ai.WorkflowAssessmentKCSAN] = true
 	}
+	workflows[ai.WorkflowAssessmentSecurity] = true
 	if manual {
 		// Types we don't create automatically yet, but can be created manually.
 		if typ.IsUAF() {

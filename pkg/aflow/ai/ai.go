@@ -9,10 +9,11 @@ type WorkflowType string
 // Note: don't change string values of these types w/o a good reason.
 // They are stored in the dashboard database as strings.
 const (
-	WorkflowPatching        = WorkflowType("patching")
-	WorkflowModeration      = WorkflowType("moderation")
-	WorkflowAssessmentKCSAN = WorkflowType("assessment-kcsan")
-	WorkflowRepro           = WorkflowType("repro")
+	WorkflowPatching           = WorkflowType("patching")
+	WorkflowModeration         = WorkflowType("moderation")
+	WorkflowAssessmentKCSAN    = WorkflowType("assessment-kcsan")
+	WorkflowAssessmentSecurity = WorkflowType("assessment-security")
+	WorkflowRepro              = WorkflowType("repro")
 )
 
 // Outputs of various workflow types.
@@ -38,6 +39,15 @@ type AssessmentKCSANOutputs struct {
 	Confident   bool
 	Benign      bool
 	Explanation string
+}
+
+type AssessmentSecurityOutputs struct {
+	Exploitable       bool
+	Unprivileged      bool
+	VMTrigger         bool
+	NetworkTrigger    bool
+	PeripheralTrigger bool
+	Explanation       string
 }
 
 type ModerationOutputs struct {
