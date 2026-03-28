@@ -115,10 +115,16 @@ The crash is:
 
 {{.ReproducedCrashReport}}
 
-The following C code is a draft of the vulnerable syscall sequence. Keep in mind that 
+The following C code is a draft of the vulnerable syscall sequence. Keep in mind that
 it may lack the precise threading, sandboxing, and some arguments of a working reproducer:
 
 {{.SimplifiedCRepro}}
+{{if .ReproducedFaultInjection}}
+The reproducer uses fault injection to force allocation failure at a specific point.
+The following fault injection report(s) show what was injected:
+
+{{.ReproducedFaultInjection}}
+{{end}}
 `
 
 const patchInstruction = `

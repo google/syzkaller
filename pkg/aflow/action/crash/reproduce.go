@@ -46,8 +46,9 @@ type ReproduceArgs struct {
 }
 
 type reproduceResult struct {
-	ReproducedBugTitle    string
-	ReproducedCrashReport string
+	ReproducedBugTitle       string
+	ReproducedCrashReport    string
+	ReproducedFaultInjection string
 }
 
 type RunTestResult struct {
@@ -56,6 +57,8 @@ type RunTestResult struct {
 	// Returned if the kernel failed to boot or function properly
 	// (Report is not returned in this case).
 	BootError string
+	// Extracted fault injection report for the test run, if any.
+	FaultInjection string
 	// Per-call coverage, if requested with collectCoverage
 	// and the kernel has not crashed.
 	Coverage [][]symbolizer.Frame
@@ -114,6 +117,14 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 		return res, fmt.Errorf("env.Test returned no results")
 	}
 	res.ConsoleOutput = string(results[0].RawOutput)
+	crashReporter, err := report.NewReporter(cfg)
+	if err != nil {
+		return res, fmt.Errorf("failed to create crash reporter: %w", err)
+	}
+	res.FaultInjection, err = crashReporter.ExtractFaultInjectionInfo(results[0].RawOutput)
+	if err != nil {
+		return res, fmt.Errorf("failed to extract fault injection info: %w", err)
+	}
 	if err := results[0].Error; err != nil {
 		if crashErr := new(instance.CrashError); errors.As(err, &crashErr) {
 			res.Report = crashErr.Report
@@ -156,15 +167,16 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		return reproduceResult{}, "", err
 	}
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 5",
+		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 6",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC),
 		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
 	type Cached struct {
-		BugTitle   string
-		Report     string
-		Error      string
-		CoverageID string
+		BugTitle       string
+		Report         string
+		FaultInjection string
+		Error          string
+		CoverageID     string
 	}
 	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
 		var res Cached
@@ -177,6 +189,7 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 			res.BugTitle = testRes.Report.Title
 			res.Report = string(testRes.Report.Report)
 		}
+		res.FaultInjection = testRes.FaultInjection
 		res.Error = testRes.BootError
 		// If the reproducer crashes the kernel, the VM halts abruptly and coverage
 		// often fails to flush, leaving testRes.Coverage empty. This is expected: we
@@ -201,8 +214,9 @@ func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
 		return reproduceResult{}, cached.CoverageID, aflow.FlowError(ErrDidNotCrash)
 	}
 	return reproduceResult{
-		ReproducedBugTitle:    cached.BugTitle,
-		ReproducedCrashReport: cached.Report,
+		ReproducedBugTitle:       cached.BugTitle,
+		ReproducedCrashReport:    cached.Report,
+		ReproducedFaultInjection: cached.FaultInjection,
 	}, cached.CoverageID, nil
 }
 
