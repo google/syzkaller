@@ -47,7 +47,7 @@ approach for testing and development.
        -config=/etc/syz-agent/config.json
    ```
   *Note: `pkg/updater` is bypassed inside Docker because the
-  `-syzkaller=/syzkaller` flag is passed via the Dockerfile's
+  `-syzkaller=/syzkaller` flag is passed via `run.sh` which serves as the Dockerfile's
   ENTRYPOINT. `syz-agent` will use the pre-built binaries inside the container.*
 
 ## Running on Kubernetes

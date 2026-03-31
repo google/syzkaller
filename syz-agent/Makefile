@@ -5,6 +5,7 @@ include ../tools/version.mk
 
 IMAGE_NAME ?= local/syz-agent
 IMAGE_TAG ?= latest
+GIT_COOKIE_DAEMON ?= 0
 
 .PHONY: container k8s-minikube k8s-prod
 
@@ -23,4 +24,5 @@ k8s-minikube:
 k8s-prod:
 	@kubectl kustomize ./k8s/overlays/prod/ | sed \
 		-e "s~\$${IMAGE_NAME}~$(IMAGE_NAME)~g" \
-		-e "s~\$${IMAGE_TAG}~$(IMAGE_TAG)~g"
+		-e "s~\$${IMAGE_TAG}~$(IMAGE_TAG)~g" \
+		-e "s~\$${GIT_COOKIE_DAEMON}~$(GIT_COOKIE_DAEMON)~g"

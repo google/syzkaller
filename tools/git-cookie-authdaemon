@@ -1,0 +1,206 @@
+#!/usr/bin/python
+# Copyright (C) 2012 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Background daemon to refresh OAuth access tokens.
+Tokens are written to ~/.git-credential-cache/cookie
+Git config variable http.cookiefile is updated.
+
+Runs only on Google Compute Engine (GCE). On GCE Windows '--nofork' option
+is needed. '--debug' option is available.
+"""
+
+from __future__ import print_function
+
+import atexit
+import contextlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+
+if sys.version_info[0] > 2:
+  # Python 3 imports
+  from urllib.request import urlopen, Request
+  from urllib.error import URLError
+  from urllib.error import HTTPError
+  import http.cookiejar as cookielib
+else:
+  # Python 2 imports
+  from urllib2 import urlopen, Request, HTTPError, URLError
+  import cookielib
+
+REFRESH = 25  # seconds remaining when starting refresh
+RETRY_INTERVAL = 5 # seconds between retrying a failed refresh
+
+META_URL = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/'
+SUPPORTED_SCOPES = [
+  'https://www.googleapis.com/auth/cloud-platform',
+  'https://www.googleapis.com/auth/gerritcodereview',
+  'https://www.googleapis.com/auth/source.full_control',
+  'https://www.googleapis.com/auth/source.read_write',
+  'https://www.googleapis.com/auth/source.read_only',
+]
+COOKIE_JAR = None
+IS_WINDOWS = platform.system() == 'Windows'
+
+def read_meta(part):
+  r = Request(META_URL + part)
+  r.add_header('Metadata-Flavor', 'Google')
+  return contextlib.closing(urlopen(r))
+
+def select_scope():
+  with read_meta('scopes') as d:
+    avail = set(map(lambda s: s.decode('utf-8'), d.read().split()))
+  scopes = [s for s in SUPPORTED_SCOPES if s in avail]
+  if scopes:
+    return next(iter(scopes))
+  sys.stderr.write('error: VM must have one of these scopes:\n\n')
+  for s in SUPPORTED_SCOPES:
+    sys.stderr.write('  %s\n' % (s))
+  sys.exit(1)
+
+def configure_git():
+  global COOKIE_JAR
+
+  if IS_WINDOWS:
+    # Git for Windows reads %HOMEPATH%/.gitconfig in Command Prompt,
+    # but $HOME/.gitconfig in Cygwin. The two paths can be different.
+    # Cygwin sets env var $HOMEPATH accordingly to %HOMEPATH%.
+    # Set cookie file as %HOMEPATH%/.git-credential-cache/cookie,
+    # so it can be used in both cases.
+    if 'HOMEPATH' in os.environ:
+      homepath = os.path.join(os.environ.get('HOMEDRIVE'), os.environ['HOMEPATH'])
+    else:
+      # When launched as a scheduled task at machine startup
+      # HOMEPATH may not be set.
+      sys.stderr.write('HOMEPATH is not set.\n')
+      sys.exit(1)
+  else:
+    homepath = os.environ['HOME']
+  dir = os.path.join(homepath, '.git-credential-cache')
+
+  COOKIE_JAR = os.path.join(dir, 'cookie')
+  if '--debug' in sys.argv:
+    print('Cookie file: %s' % COOKIE_JAR)
+
+  if os.path.exists(dir):
+    os.chmod(dir, 0o700)
+  else:
+    os.mkdir(dir, 0o700)
+  subprocess.call([
+    'git', 'config', '--global',
+    'http.cookiefile', COOKIE_JAR
+  ])
+
+def acquire_token(scope, retry):
+  while True:
+    try:
+      with read_meta('token?scopes=' + scope) as d:
+        return json.load(d)
+    except URLError:
+      if not retry:
+        raise
+    time.sleep(RETRY_INTERVAL)
+
+def update_cookie(scope, retry):
+  now = int(time.time())
+  token = acquire_token(scope, retry)
+  access_token = token['access_token']
+  expires = now + int(token['expires_in'])  # Epoch in sec
+
+  tmp_jar = COOKIE_JAR + '.lock'
+  cj = cookielib.MozillaCookieJar(tmp_jar)
+
+  for d in ['source.developers.google.com', '.googlesource.com']:
+    cj.set_cookie(cookielib.Cookie(
+      version = 0,
+      name = 'o',
+      value = access_token,
+      port = None,
+      port_specified = False,
+      domain = d,
+      domain_specified = True,
+      domain_initial_dot = d.startswith('.'),
+      path = '/',
+      path_specified = True,
+      secure = True,
+      expires = expires,
+      discard = False,
+      comment = None,
+      comment_url = None,
+      rest = {}))
+
+  cj.save()
+  if '--debug' in sys.argv:
+    print('Updating %s.' % COOKIE_JAR)
+    print('Expires: %d, %s, in %d seconds'% (
+      expires, time.ctime(expires), expires - now))
+    sys.stdout.flush()
+  if IS_WINDOWS:
+    # os.rename() below on Windows will raise OSError when dst exists.
+    # See https://docs.python.org/2/library/os.html#os.rename
+    if os.path.isfile(COOKIE_JAR):
+      os.remove(COOKIE_JAR)
+  os.rename(tmp_jar, COOKIE_JAR)
+  return expires
+
+def cleanup():
+  if COOKIE_JAR:
+    for p in [COOKIE_JAR, COOKIE_JAR + '.lock']:
+      if os.path.exists(p):
+        os.remove(p)
+
+def refresh_loop(scope, expires):
+  atexit.register(cleanup)
+  expires = expires - REFRESH
+  while True:
+    now = time.time()
+    expires = max(expires, now + RETRY_INTERVAL)
+    while now < expires:
+      time.sleep(expires - now)
+      now = time.time()
+    expires = update_cookie(scope, retry=True) - REFRESH
+
+def main():
+  scope = select_scope()
+  configure_git()
+
+  expires = update_cookie(scope, retry=False)
+
+  if '--nofork' not in sys.argv:
+    if IS_WINDOWS:
+      # os.fork() is not supported on Windows.
+      sys.stderr.write('Add \'--nofork\' on Windows\n')
+      sys.exit(1)
+
+    if os.fork() > 0:
+      sys.exit(0)
+
+    os.chdir('/')
+    os.setsid()
+    os.umask(0)
+
+    pid = os.fork()
+    if pid > 0:
+      print('git-cookie-authdaemon PID %d' % (pid))
+      sys.exit(0)
+
+  refresh_loop(scope, expires)
+
+if __name__ == '__main__':
+  main()

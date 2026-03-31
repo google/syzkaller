@@ -21,11 +21,9 @@ spec:
       containers:
       - name: syz-agent
         image: gcr.io/syzkaller/syz-agent:latest # Replace with your image.
-        command: ["/app/syz-agent"]
         args:
           - "-name=$(POD_NAME)"
           - "-config=/etc/syz-agent/config.json"
-          - "-syzkaller=/syzkaller"
         env:
           - name: POD_NAME
             valueFrom:

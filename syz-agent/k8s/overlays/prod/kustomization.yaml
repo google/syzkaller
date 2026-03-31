@@ -36,3 +36,8 @@ patches:
             operator: "Equal"
             value: "nested-vm"
             effect: "NoSchedule"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GIT_COOKIE_DAEMON
+          value: "${GIT_COOKIE_DAEMON}"
