@@ -240,6 +240,14 @@ func (reporter *Reporter) Symbolize(rep *Report) error {
 	return nil
 }
 
+func (reporter *Reporter) ExtractFaultInjectionInfo(output []byte) (string, error) {
+	linux, ok := reporter.impl.(*linux)
+	if !ok {
+		return "", nil
+	}
+	return linux.extractFaultInjectionInfo(reporter, output)
+}
+
 func (reporter *Reporter) isInteresting(rep *Report) bool {
 	if len(reporter.interests) == 0 {
 		return true
