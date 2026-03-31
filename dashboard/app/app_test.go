@@ -74,6 +74,10 @@ var testConfig = &GlobalConfig{
 			Methods:          AIMethods,
 			AIWorkflowSuffix: "-foobar",
 		},
+		"unrestricted-ai": {
+			Key:     "unrestrictedkey1234",
+			Methods: AIMethods,
+		},
 	},
 	EmailBlocklist: []string{
 		"\"Bar\" <Blocked@Domain.com>",

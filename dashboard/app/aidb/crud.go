@@ -146,11 +146,19 @@ func cloneJob(ctx context.Context, orig *Job) *Job {
 	}
 }
 
-func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
+func StartJob(ctx context.Context, req *dashapi.AIJobPollReq, namespaces []string) (*Job, error) {
 	var workflows []string
 	for _, flow := range req.Workflows {
 		workflows = append(workflows, flow.Name)
 	}
+	params := map[string]any{
+		"workflows":  workflows,
+		"namespaces": namespaces,
+	}
+	sql := selectJobs() + `WHERE Workflow IN UNNEST(@workflows) AND Started IS NULL
+			AND Namespace IN UNNEST(@namespaces)
+		ORDER BY Created ASC LIMIT 1`
+
 	client, err := dbClient(ctx)
 	if err != nil {
 		return nil, err
@@ -161,12 +169,8 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 		// result if the job has been taken by a concurent thread (the len(jobs) == 0 case).
 		job = nil
 		iter := txn.Query(ctx, spanner.Statement{
-			SQL: selectJobs() + `WHERE Workflow IN UNNEST(@workflows)
-					AND Started IS NULL
-				ORDER BY Created ASC LIMIT 1`,
-			Params: map[string]any{
-				"workflows": workflows,
-			},
+			SQL:    sql,
+			Params: params,
 		})
 		defer iter.Stop()
 		var jobs []*Job
@@ -183,7 +187,7 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	return job, err
 }
 
-func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
+func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq, namespaces []string) (*Job, error) {
 	var workflows []string
 	for _, flow := range req.Workflows {
 		workflows = append(workflows, flow.Name)
@@ -201,14 +205,7 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 
 		// First, check if the requesting agent has any unfinished jobs (implying a restart).
 		if req.AgentName != "" {
-			iter := txn.Query(ctx, spanner.Statement{
-				SQL: selectJobs() + ` WHERE Started IS NOT NULL AND Finished IS NULL
-					AND AgentName = @agentName AND Workflow IN UNNEST(@workflows) LIMIT 1`,
-				Params: map[string]any{
-					"agentName": req.AgentName,
-					"workflows": workflows,
-				},
-			})
+			iter := txn.Query(ctx, unfinishedAgentJobs(req, workflows, namespaces))
 			defer iter.Stop()
 			if err := spanner.SelectAll(iter, &jobs); err != nil {
 				return err
@@ -217,15 +214,7 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 
 		// Check if any other agent has stale/abandoned jobs.
 		if len(jobs) == 0 {
-			iter := txn.Query(ctx, spanner.Statement{
-				SQL: selectJobs() + ` JOIN Agents USING(AgentName)
-					WHERE Started IS NOT NULL AND Finished IS NULL
-					AND LastActive <= @cutoff AND Workflow IN UNNEST(@workflows) LIMIT 1`,
-				Params: map[string]any{
-					"cutoff":    cutoff,
-					"workflows": workflows,
-				},
-			})
+			iter := txn.Query(ctx, staleUnfinishedJobs(cutoff, workflows, namespaces))
 			defer iter.Stop()
 			if err := spanner.SelectAll(iter, &jobs); err != nil {
 				return err
@@ -263,6 +252,31 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 		return txn.BufferWrite([]*spanner.Mutation{mut})
 	})
 	return job, err
+}
+
+func unfinishedAgentJobs(req *dashapi.AIJobPollReq, workflows, namespaces []string) spanner.Statement {
+	sql := selectJobs() + ` WHERE Started IS NOT NULL AND Finished IS NULL
+			AND AgentName = @agentName AND Workflow IN UNNEST(@workflows)
+			AND Namespace IN UNNEST(@namespaces) LIMIT 1`
+	params := map[string]any{
+		"agentName":  req.AgentName,
+		"workflows":  workflows,
+		"namespaces": namespaces,
+	}
+	return spanner.Statement{SQL: sql, Params: params}
+}
+
+func staleUnfinishedJobs(cutoff time.Time, workflows, namespaces []string) spanner.Statement {
+	sql := selectJobs() + ` JOIN Agents USING(AgentName)
+			WHERE Started IS NOT NULL AND Finished IS NULL
+			AND LastActive <= @cutoff AND Workflow IN UNNEST(@workflows)
+			AND Namespace IN UNNEST(@namespaces) LIMIT 1`
+	params := map[string]any{
+		"cutoff":     cutoff,
+		"workflows":  workflows,
+		"namespaces": namespaces,
+	}
+	return spanner.Statement{SQL: sql, Params: params}
 }
 
 type JobFilter struct {

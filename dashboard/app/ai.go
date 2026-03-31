@@ -361,6 +361,7 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if len(req.Workflows) == 0 || req.CodeRevision == "" || req.AgentName == "" {
 		return nil, fmt.Errorf("invalid request")
 	}
+	client := apiContext(ctx).client
 	if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
 		log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
 	}
@@ -375,7 +376,7 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if err := aidb.UpdateWorkflows(ctx, req.AgentName, req.Workflows); err != nil {
 		return nil, fmt.Errorf("failed UpdateWorkflows: %w", err)
 	}
-	job, err := pollAIJob(ctx, req)
+	job, err := pollAIJob(ctx, req, client)
 	if err != nil {
 		return nil, err
 	}
@@ -425,33 +426,45 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	}, nil
 }
 
-func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq) (*aidb.Job, error) {
-	job, err := aidb.StartJob(ctx, req)
+func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient) (*aidb.Job, error) {
+	job, err := aidb.StartJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed StartJob: %w", err)
 	}
 	if job != nil {
 		return job, nil
 	}
-	job, err = aidb.NextStaleJob(ctx, req)
+	job, err = aidb.NextStaleJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
 		log.Errorf(ctx, "NextStaleJob failed: %v", err)
 	}
 	if job != nil {
 		return job, nil
 	}
-	if created, err := autoCreateAIJobs(ctx, req.Workflows); err != nil || !created {
+	if created, err := autoCreateAIJobs(ctx, req.Workflows, client); err != nil || !created {
 		return nil, err
 	}
-	job, err = aidb.StartJob(ctx, req)
+	job, err = aidb.StartJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed StartJob after autoCreate: %w", err)
 	}
 	return job, nil
 }
 
+func checkAiJobAccess(ctx context.Context, jobID string) (*aidb.Job, error) {
+	job, err := aidb.LoadJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	client := apiContext(ctx).client
+	if !client.AllowedNamespace(job.Namespace) {
+		return nil, fmt.Errorf("client not authorized for namespace %q", job.Namespace)
+	}
+	return job, nil
+}
+
 func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
-	job, err := aidb.LoadJob(ctx, req.ID)
+	job, err := checkAiJobAccess(ctx, req.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -587,12 +600,16 @@ func parseJSON[T any](val spanner.NullJSON) (T, error) {
 }
 
 func apiAITrajectoryLog(ctx context.Context, req *dashapi.AITrajectoryReq) (any, error) {
+	_, err := checkAiJobAccess(ctx, req.JobID)
+	if err != nil {
+		return nil, err
+	}
 	if req.AgentName != "" {
 		if err := aidb.AgentIsAlive(ctx, req.AgentName); err != nil {
 			log.Errorf(ctx, "failed to update agent %q: %v", req.AgentName, err)
 		}
 	}
-	err := aidb.StoreTrajectorySpan(ctx, req.JobID, req.Span)
+	err = aidb.StoreTrajectorySpan(ctx, req.JobID, req.Span)
 	return nil, err
 }
 
@@ -696,10 +713,10 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 //  2. processStaleBugs: evaluates stale bugs (AIJobCheck < currentDate).
 //
 // Both phases (re-)compute applicable workflows and update AIJobCheck and AIPendingWorkflows.
-func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow) (bool, error) {
+func autoCreateAIJobs(ctx context.Context, reqWorkflows []dashapi.AIWorkflow, client APIClient) (bool, error) {
 	date := int64(timeDate(timeNow(ctx)))
 	for ns, cfg := range getConfig(ctx).Namespaces {
-		if cfg.AI == nil {
+		if cfg.AI == nil || !client.AllowedNamespace(ns) {
 			continue
 		}
 		if created, err := findPendingJobs(ctx, ns, date, reqWorkflows); err != nil {

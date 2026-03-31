@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -157,6 +158,13 @@ type APIClient struct {
 	Methods map[string]bool
 	// Suffix of AI jobs this client is allowed to execute.
 	AIWorkflowSuffix string
+	// AIJobNamespaces restricts which namespaces this global client can operate on.
+	// If empty, the client can access all namespaces (useful for development).
+	AIJobNamespaces []string
+}
+
+func (client APIClient) AllowedNamespace(ns string) bool {
+	return slices.Contains(client.AIJobNamespaces, ns)
 }
 
 var (
@@ -529,12 +537,32 @@ func checkConfig(cfg *GlobalConfig) {
 	if cfg.Namespaces[cfg.DungeonNamespace] == nil {
 		panic(fmt.Sprintf("dungeon namespace %q is not found", cfg.DungeonNamespace))
 	}
-	for ns, cfg := range cfg.Namespaces {
-		checkNamespace(ns, cfg, namespaces, clientNames)
+	var allNamespaces []string
+	for ns, nsCfg := range cfg.Namespaces {
+		checkNamespace(ns, nsCfg, namespaces, clientNames)
+		allNamespaces = append(allNamespaces, ns)
+	}
+	slices.Sort(allNamespaces)
+	for name, client := range cfg.Clients {
+		if len(client.AIJobNamespaces) == 0 {
+			client.AIJobNamespaces = allNamespaces
+			cfg.Clients[name] = client
+		}
+	}
+	for name, client := range cfg.Clients {
+		checkClientAIJobNamespaces(name, client, namespaces)
 	}
 	checkDiscussionEmails(cfg.DiscussionEmails)
 	checkMonitoredInboxes(cfg.MonitoredInboxes)
 	checkACL(cfg.ACL)
+}
+
+func checkClientAIJobNamespaces(name string, client APIClient, namespaces map[string]bool) {
+	for _, ns := range client.AIJobNamespaces {
+		if !namespaces[ns] {
+			panic(fmt.Sprintf("client %q references unknown namespace %q", name, ns))
+		}
+	}
 }
 
 func checkACL(acls []*ACLItem) {

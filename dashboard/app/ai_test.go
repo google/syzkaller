@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -823,4 +824,94 @@ func TestCompactAIJobs(t *testing.T) {
 	assert.Equal(t, "2", got[1].ID)
 	assert.Equal(t, "3", got[2].ID)
 	assert.Equal(t, "5", got[3].ID)
+}
+
+func TestAIJobNamespaces(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	// Add a restricted client to config via transformContext.
+	c.transformContext = func(ctx context.Context) context.Context {
+		cfg := *getConfig(ctx)
+		newClients := map[string]APIClient{}
+		for k, v := range cfg.Clients {
+			newClients[k] = v
+		}
+		newClients["restricted-ai"] = APIClient{
+			Key:             "restrictedkey123456",
+			Methods:         AIMethods,
+			AIJobNamespaces: []string{"ains"}, // Only allow "ains"
+		}
+		cfg.Clients = newClients
+		return contextWithConfig(ctx, &cfg)
+	}
+
+	restrictedClient := c.makeClient("restricted-ai", "restrictedkey123456", false)
+	unrestrictedClient := c.makeClient("unrestricted-ai", "unrestrictedkey1234", false)
+
+	// Create a job in access-public namespace (which restricted client should NOT see).
+	jobIDPublic, err := aidb.CreateJob(c.ctx, &aidb.Job{
+		Type:      ai.WorkflowRepro,
+		Workflow:  string(ai.WorkflowRepro),
+		Namespace: "access-public",
+	})
+	require.NoError(t, err)
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "restricted-agent",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowRepro, Name: string(ai.WorkflowRepro)},
+		},
+	}
+
+	// Poll should NOT return the job for access-public because the client is restricted to ains.
+	pollResp1, err := restrictedClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEqual(t, jobIDPublic, pollResp1.ID)
+
+	// Unrestricted client should get the job.
+	pollRespGlobal, err := unrestrictedClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, jobIDPublic, pollRespGlobal.ID)
+
+	// Create a job for ains (which restricted client CAN see).
+	jobIDAins, err := aidb.CreateJob(c.ctx, &aidb.Job{
+		Type:      ai.WorkflowRepro,
+		Workflow:  string(ai.WorkflowRepro),
+		Namespace: "ains",
+	})
+	require.NoError(t, err)
+
+	pollResp2, err := restrictedClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, jobIDAins, pollResp2.ID)
+
+	// Unrestricted client should also be able to see jobs in ains.
+	jobIDAins2, err := aidb.CreateJob(c.ctx, &aidb.Job{
+		Type:      ai.WorkflowRepro,
+		Workflow:  string(ai.WorkflowRepro),
+		Namespace: "ains",
+	})
+	require.NoError(t, err)
+
+	pollResp3, err := unrestrictedClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, jobIDAins2, pollResp3.ID)
+
+	// Verify trajectory log upload.
+	err = restrictedClient.AITrajectoryLog(&dashapi.AITrajectoryReq{JobID: jobIDPublic, Span: &trajectory.Span{}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not authorized")
+
+	err = restrictedClient.AITrajectoryLog(&dashapi.AITrajectoryReq{JobID: jobIDAins, Span: &trajectory.Span{}})
+	require.NoError(t, err)
+
+	// .. and job completion.
+	err = restrictedClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobIDPublic})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not authorized")
+
+	err = restrictedClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobIDAins})
+	require.NoError(t, err)
 }
