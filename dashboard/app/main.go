@@ -90,6 +90,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/ai", handlerWrapper(handleAIJobsPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
+	http.HandleFunc("/cron/dungeon_preheat", handleDungeonPreheat)
 	http.HandleFunc("/cron/minute_cache_update", handleMinuteCacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
 	http.HandleFunc("/cron/refresh_subsystems", handleRefreshSubsystems)
