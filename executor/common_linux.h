@@ -1965,8 +1965,8 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	uint32 entries = (uint32)a0;
 	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
 	void** ring_params_ptr_out = (void**)a2;
-	void** ring_ptr_out = (void**)a2;
-	void** sqes_ptr_out = (void**)a3;
+	void** ring_ptr_out = (void**)a3;
+	void** sqes_ptr_out = (void**)a4;
 
 	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
 	*ring_params_ptr_out = (void*)setup_params;
