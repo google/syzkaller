@@ -97,7 +97,13 @@ func (target *Target) calcStaticPriorities(enabled map[*Syscall]bool) [][]int32 
 	for i := range prios {
 		prios[i] = make([]int32, len(target.Syscalls))
 	}
-	for _, weights := range uses {
+	var weights []weights
+	for _, weightMap := range uses {
+		// Iteration over map is slow, especially here when we do it O(N^2) times.
+		weights = weights[:0]
+		for _, w := range weightMap {
+			weights = append(weights, w)
+		}
 		for _, w0 := range weights {
 			for _, w1 := range weights {
 				if w0.call == w1.call {
@@ -275,19 +281,23 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	sort.Slice(generatableCalls, func(i, j int) bool {
 		return generatableCalls[i].ID < generatableCalls[j].ID
 	})
-
+	// Looking up in a map is slow, so we create a slice for quick lookup.
+	enabledSlice := make([]bool, len(target.Syscalls))
+	for c := range enabledCalls {
+		enabledSlice[c.ID] = true
+	}
 	run := make([][]int32, len(target.Syscalls))
 	// ChoiceTable.runs[][] contains cumulated sum of weighted priority numbers.
 	// This helps in quick binary search with biases when generating programs.
 	// This only applies for system calls that are enabled for the target.
 	for i := range run {
-		if !enabledCalls[target.Syscalls[i]] {
+		if !enabledSlice[i] {
 			continue
 		}
 		run[i] = make([]int32, len(target.Syscalls))
 		var sum int32
 		for j := range run[i] {
-			if enabledCalls[target.Syscalls[j]] {
+			if enabledSlice[j] {
 				sum += prios[i][j]
 			}
 			run[i][j] = sum

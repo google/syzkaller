@@ -94,3 +94,11 @@ func TestPrioDeterminism(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkBuildChoiceTable(b *testing.B) {
+	target, cleanup := initBench(b)
+	defer cleanup()
+	for i := 0; i < b.N; i++ {
+		target.BuildChoiceTable(nil, nil)
+	}
+}
