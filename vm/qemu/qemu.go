@@ -360,17 +360,17 @@ func (pool *Pool) Create(ctx context.Context, workdir string, index int) (vmimpl
 			// It is most likely a boot crash, just return the error as is.
 			return nil, err
 		}
-		// Older qemu prints "could", newer -- "Could".
-		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
-			continue
+		if i < 1000 {
+			// Older qemu prints "could", newer -- "Could".
+			if strings.Contains(err.Error(), "ould not set up host forwarding rule") ||
+				strings.Contains(err.Error(), "Device or resource busy") ||
+				strings.Contains(err.Error(), "Address already in use") {
+				if i > 0 && i%100 == 0 {
+					log.Logf(2, "VM-%d: got a transient error, retrying (%v)", index, err)
+				}
+				continue
+			}
 		}
-		if i < 1000 && strings.Contains(err.Error(), "Device or resource busy") {
-			continue
-		}
-		if i < 1000 && strings.Contains(err.Error(), "Address already in use") {
-			continue
-		}
-
 		return nil, err
 	}
 }

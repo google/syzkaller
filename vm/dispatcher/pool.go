@@ -130,6 +130,7 @@ func (p *Pool[T]) runInstance(ctx context.Context, inst *poolInstance[T]) {
 		p.reportBootError(ctx, err)
 		return
 	}
+	log.Logf(2, "pool: instance %d created", inst.idx)
 	defer obj.Close()
 
 	p.BootTime.Save(time.Since(start))
