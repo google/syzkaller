@@ -44,6 +44,8 @@ type GlobalConfig struct {
 	Obsoleting ObsoletingConfig
 	// Namespace that is shown by default (no namespace selected yet).
 	DefaultNamespace string
+	// Namespace for the Dungeon feature.
+	DungeonNamespace string
 	// Per-namespace config.
 	// Namespaces are a mechanism to separate groups of different kernels.
 	// E.g. Debian 4.4 kernels and Ubuntu 4.9 kernels.
@@ -521,6 +523,12 @@ func checkConfig(cfg *GlobalConfig) {
 	checkObsoleting(&cfg.Obsoleting)
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
+	}
+	if cfg.DungeonNamespace == "" {
+		panic("dungeon namespace is not set")
+	}
+	if cfg.Namespaces[cfg.DungeonNamespace] == nil {
+		panic(fmt.Sprintf("dungeon namespace %q is not found", cfg.DungeonNamespace))
 	}
 	for ns, cfg := range cfg.Namespaces {
 		checkNamespace(ns, cfg, namespaces, clientNames)

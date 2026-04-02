@@ -89,6 +89,7 @@ func TestLocalUI(t *testing.T) {
 var localUIConfig = &GlobalConfig{
 	AccessLevel:      AccessPublic,
 	DefaultNamespace: "upstream",
+	DungeonNamespace: "upstream",
 	Clients: map[string]APIClient{
 		localUIGlobalClient: {Key: localUIGlobalPassword},
 	},

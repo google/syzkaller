@@ -22,8 +22,6 @@ import (
 	"google.golang.org/appengine/v2/memcache"
 )
 
-const upstreamNamespace = "upstream"
-
 type uiDungeonBadge struct {
 	Emoji string `json:"emoji"`
 	Name  string `json:"name"`
@@ -130,7 +128,7 @@ func handleDungeon(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 	accessLevel := accessLevel(ctx, r)
-	if hdr.Namespace != upstreamNamespace {
+	if hdr.Namespace != getConfig(ctx).DungeonNamespace {
 		return ErrClientNotFound
 	}
 	data, err := getDungeonData(ctx, accessLevel, hdr.Namespace)
@@ -156,7 +154,7 @@ func handleHeroProfile(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	accessLevel := accessLevel(ctx, r)
-	if hdr.Namespace != upstreamNamespace {
+	if hdr.Namespace != getConfig(ctx).DungeonNamespace {
 		return ErrClientNotFound
 	}
 
@@ -229,7 +227,7 @@ func handleKingdomProfile(ctx context.Context, w http.ResponseWriter, r *http.Re
 		return err
 	}
 	accessLevel := accessLevel(ctx, r)
-	if hdr.Namespace != upstreamNamespace {
+	if hdr.Namespace != getConfig(ctx).DungeonNamespace {
 		return ErrClientNotFound
 	}
 
@@ -382,7 +380,7 @@ func getDungeonData(ctx context.Context, access AccessLevel, ns string) (*uiDung
 func handleDungeonPreheat(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	for _, accessLevel := range []AccessLevel{AccessPublic, AccessUser, AccessAdmin} {
-		page, err := fetchDungeonData(ctx, accessLevel, upstreamNamespace)
+		page, err := fetchDungeonData(ctx, accessLevel, getConfig(ctx).DungeonNamespace)
 		if err != nil {
 			log.Errorf(ctx, "failed to preheat dungeon for access %v: %v", accessLevel, err)
 			continue

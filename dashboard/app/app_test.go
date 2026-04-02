@@ -89,6 +89,7 @@ var testConfig = &GlobalConfig{
 		{"lore@email.com", dashapi.DiscussionLore},
 	},
 	DefaultNamespace: "test1",
+	DungeonNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
 			AccessLevel:           AccessAdmin,
