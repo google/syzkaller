@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -147,14 +148,14 @@ func executeSpannerDDL(ctx context.Context, statements []string) error {
 }
 
 func loadUpDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.up.sql", 1)
+	return loadDDLStatements("*.up.sql", true)
 }
 
 func loadDownDDLStatements() ([]string, error) {
-	return loadDDLStatements("*.down.sql", -1)
+	return loadDDLStatements("*.down.sql", false)
 }
 
-func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
+func loadDDLStatements(wildcard string, forward bool) ([]string, error) {
 	files, err := filepath.Glob(filepath.Join("aidb", "migrations", wildcard))
 	if err != nil {
 		return nil, err
@@ -162,12 +163,12 @@ func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("loadDDLStatements: wildcard did not match any files: %q", wildcard)
 	}
-	// We prefix DDL file names with sequence numbers.
-	slices.SortFunc(files, func(a, b string) int {
-		return strings.Compare(a, b) * sortOrder
-	})
+	sortedFiles, err := sortMigrationFiles(files, forward)
+	if err != nil {
+		return nil, err
+	}
 	var all []string
-	for _, file := range files {
+	for _, file := range sortedFiles {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			return nil, err
@@ -178,6 +179,46 @@ func loadDDLStatements(wildcard string, sortOrder int) ([]string, error) {
 		all = append(all, statements...)
 	}
 	return all, nil
+}
+
+// sortMigrationFiles parses the leading number from migration filenames and sorts them.
+// If forward is true, it sorts in ascending order (e.g., for 'up' migrations).
+// If forward is false, it sorts in descending order (e.g., for 'down' migrations).
+func sortMigrationFiles(files []string, forward bool) ([]string, error) {
+	type migrationFile struct {
+		num  int
+		file string
+	}
+	var mFiles []migrationFile
+	seen := map[int]string{}
+	for _, file := range files {
+		basename := filepath.Base(file)
+		parts := strings.Split(basename, "_")
+		if len(parts) == 0 {
+			return nil, fmt.Errorf("invalid migration filename: %v", basename)
+		}
+		num, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return nil, fmt.Errorf("migration file %v must start with a number: %w", file, err)
+		}
+		if old, ok := seen[num]; ok {
+			return nil, fmt.Errorf("duplicate migration number %v: %v and %v", num, old, file)
+		}
+		seen[num] = file
+		mFiles = append(mFiles, migrationFile{num: num, file: file})
+	}
+	slices.SortFunc(mFiles, func(a, b migrationFile) int {
+		res := a.num - b.num
+		if !forward {
+			res = -res
+		}
+		return res
+	})
+	var result []string
+	for _, f := range mFiles {
+		result = append(result, f.file)
+	}
+	return result, nil
 }
 
 func (ctx *Ctx) config() *GlobalConfig {
