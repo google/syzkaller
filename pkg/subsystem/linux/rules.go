@@ -40,6 +40,7 @@ var (
 			// - syz_mount_image$zonefs
 
 			"bfs":       {"syz_mount_image$bfs"},
+			"block":     {"syz_ublk_setup_io_uring"},
 			"bluetooth": {"syz_emit_vhci"},
 			"btrfs":     {"syz_mount_image$btrfs"},
 			"erofs":     {"syz_mount_image$erofs"},
