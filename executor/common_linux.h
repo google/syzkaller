@@ -2048,6 +2048,20 @@ static long syz_io_uring_modify_offsets(volatile long a0, volatile long a1, vola
 	*(uint32*)(ring_ptr + ring_off) = value;
 	return 0;
 }
+
+static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	// syzlang: syz_ublk_setup_io_uring(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd
+	// C:       syz_ublk_setup_io_uring(uint32 entries, struct io_uring_params* setup_params, void** ring_params_ptr_out, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd
+
+	// Modify io uring params with necessary flags for communicating with UBLK driver.
+	struct io_uring_params* params = (struct io_uring_params*)a1;
+	params->flags |= IORING_SETUP_SQE128 | IORING_SETUP_CQE32;
+	return syz_io_uring_setup(a0, (long)params, a2, a3, a4);
+}
+
+#endif
+
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_usbip_server_init
