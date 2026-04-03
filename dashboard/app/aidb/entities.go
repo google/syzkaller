@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	ActionJobReview = "JobReview"
+	ActionJobReview = "JobReview" // Outdated. Use ActionApprove/ActionReject.
+	ActionApprove   = "Approve"
+	ActionReject    = "Reject"
 )
 
 const (
@@ -86,12 +88,15 @@ type TrajectorySpan struct {
 }
 
 type Journal struct {
-	ID      string
-	JobID   spanner.NullString
-	Date    time.Time
-	User    string
-	Action  string
-	Details spanner.NullJSON
+	ID          string
+	JobID       spanner.NullString
+	Date        time.Time
+	User        string
+	Action      string
+	Details     spanner.NullJSON
+	SourceExtID spanner.NullString
+	Source      spanner.NullString
+	ReportingID spanner.NullString
 }
 
 type JobReporting struct {

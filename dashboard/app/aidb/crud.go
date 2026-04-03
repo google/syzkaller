@@ -456,6 +456,35 @@ func AddJobReporting(ctx context.Context, entry *JobReporting) error {
 	return saveEntity(ctx, "JobReporting", entry)
 }
 
+func checkNoParallelConflict(ctx context.Context, txn *spanner.ReadWriteTransaction, job *Job, stage string) error {
+	iterConflict := txn.Query(ctx, spanner.Statement{
+		SQL: `SELECT Jobs.ID
+				FROM Jobs
+				JOIN JobReporting ON Jobs.ID = JobReporting.JobID
+				WHERE Jobs.BugID = @bugID
+				  AND JobReporting.Stage = @stage
+				  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
+				  AND Jobs.ID != @currentJobID
+				LIMIT 1`,
+		Params: map[string]any{
+			"bugID":        job.BugID.StringVal,
+			"stage":        stage,
+			"currentJobID": job.ID,
+		},
+	})
+	defer iterConflict.Stop()
+	var conflicts []string
+	if err := spanner.SelectAll(iterConflict, &conflicts); err != nil {
+		return err
+	}
+	if len(conflicts) > 0 {
+		return &ErrCannotUpstream{
+			Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", stage),
+		}
+	}
+	return nil
+}
+
 func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobReporting, noParallel bool) error {
 	client, err := dbClient(ctx)
 	if err != nil {
@@ -467,30 +496,8 @@ func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobRepor
 
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		if noParallel && job.BugID.Valid {
-			iterConflict := txn.Query(ctx, spanner.Statement{
-				SQL: `SELECT Jobs.ID
-						FROM Jobs
-						JOIN JobReporting ON Jobs.ID = JobReporting.JobID
-						WHERE Jobs.BugID = @bugID
-						  AND JobReporting.Stage = @stage
-						  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
-						  AND Jobs.ID != @currentJobID
-						LIMIT 1`,
-				Params: map[string]any{
-					"bugID":        job.BugID.StringVal,
-					"stage":        entry.Stage,
-					"currentJobID": job.ID,
-				},
-			})
-			defer iterConflict.Stop()
-			var conflicts []string
-			if err := spanner.SelectAll(iterConflict, &conflicts); err != nil {
+			if err := checkNoParallelConflict(ctx, txn, job, entry.Stage); err != nil {
 				return err
-			}
-			if len(conflicts) > 0 {
-				return &ErrCannotUpstream{
-					Reason: "cannot upstream: another report for this bug has already been sent",
-				}
 			}
 		}
 
@@ -505,6 +512,123 @@ func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobRepor
 			return &ErrCannotUpstream{
 				Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", entry.Stage),
 			}
+		}
+		return err
+	}
+	return nil
+}
+
+func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	if args.Reporting != nil {
+		args.Reporting.ID = uuid.NewString()
+		args.Reporting.JobID = args.Job.ID
+		args.Reporting.CreatedAt = TimeNow(ctx)
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		var job Job
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": args.Job.ID},
+		}
+		iter := txn.Query(ctx, stmt)
+		row, err := iter.Next()
+		if err != nil {
+			iter.Stop()
+			return err
+		}
+		if err := row.ToStruct(&job); err != nil {
+			iter.Stop()
+			return err
+		}
+		iter.Stop()
+
+		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
+			if err := checkNoParallelConflict(ctx, txn, &job, args.Reporting.Stage); err != nil {
+				return err
+			}
+		}
+
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionApprove,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+		}
+		if args.Reporting != nil {
+			journal.ReportingID = toNullString(args.Reporting.ID)
+		}
+		if args.Reason != "" {
+			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+		jobMut := spanner.Update("Jobs",
+			[]string{"ID", "Correct"},
+			[]any{args.Job.ID, spanner.NullBool{Bool: true, Valid: true}})
+		var mutations []*spanner.Mutation
+		mutations = append(mutations, jobMut, journalMut)
+
+		if args.Reporting != nil {
+			reportingMut, err := spanner.InsertStruct("JobReporting", args.Reporting)
+			if err != nil {
+				return err
+			}
+			mutations = append(mutations, reportingMut)
+		}
+
+		return txn.BufferWrite(mutations)
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
+		}
+		return err
+	}
+	return nil
+}
+
+func RejectReportCommand(ctx context.Context, args RejectReportArgs) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		journal := &Journal{
+			ID:          uuid.NewString(),
+			JobID:       toNullString(args.Job.ID),
+			Date:        TimeNow(ctx),
+			User:        args.User,
+			Action:      ActionReject,
+			Source:      toNullString(args.CommandSource),
+			SourceExtID: toNullString(args.CommandExtID),
+		}
+		if args.Reason != "" {
+			journal.Details = spanner.NullJSON{Value: map[string]string{"reason": args.Reason}, Valid: true}
+		}
+		journalMut, err := spanner.InsertStruct("Journal", journal)
+		if err != nil {
+			return err
+		}
+
+		jobMut := spanner.Update("Jobs",
+			[]string{"ID", "Correct"},
+			[]any{args.Job.ID, spanner.NullBool{Bool: false, Valid: true}})
+		return txn.BufferWrite([]*spanner.Mutation{jobMut, journalMut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return nil // Idempotent no-op.
 		}
 		return err
 	}
@@ -556,6 +680,24 @@ func JobReportingPublished(ctx context.Context, id, extID string) error {
 	return err
 }
 
+type UpstreamReportArgs struct {
+	Job           *Job
+	Reporting     *JobReporting
+	NoParallel    bool
+	CommandSource string
+	CommandExtID  string
+	Reason        string
+	User          string
+}
+
+type RejectReportArgs struct {
+	Job           *Job
+	CommandSource string
+	CommandExtID  string
+	User          string
+	Reason        string
+}
+
 func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, error) {
 	res, err := selectOne[JobReporting](ctx, spanner.Statement{
 		SQL:    selectJobReporting() + `WHERE ExtID = @extID LIMIT 1`,
@@ -581,12 +723,11 @@ func AddJournalEntry(ctx context.Context, entry *Journal) error {
 	return err
 }
 
-func LoadJobJournal(ctx context.Context, jobID, action string) ([]*Journal, error) {
+func LoadJobJournal(ctx context.Context, jobID string) ([]*Journal, error) {
 	return selectAll[Journal](ctx, spanner.Statement{
-		SQL: selectJournal() + `WHERE JobID = @jobID AND Action = @action ORDER BY Date DESC`,
+		SQL: selectJournal() + `WHERE JobID = @jobID ORDER BY Date DESC`,
 		Params: map[string]any{
-			"jobID":  jobID,
-			"action": action,
+			"jobID": jobID,
 		},
 	})
 }
@@ -669,6 +810,15 @@ func toNullInt64(v int) spanner.NullInt64 {
 		return spanner.NullInt64{}
 	}
 	return spanner.NullInt64{Int64: int64(v), Valid: true}
+}
+
+func RunInTransaction(ctx context.Context, f func(ctx context.Context, txn *spanner.ReadWriteTransaction) error) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = client.ReadWriteTransaction(ctx, f)
+	return err
 }
 
 func saveEntity[T any](ctx context.Context, table string, obj *T) error {

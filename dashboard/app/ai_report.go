@@ -16,6 +16,8 @@ import (
 	"google.golang.org/appengine/v2/log"
 )
 
+const SourceWebUI = "web ui"
+
 func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq) (any, error) {
 	var resp *dashapi.SendExternalCommandResp
 	var err error
@@ -47,32 +49,50 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 		return nil, err
 	}
 
-	job.Correct = spanner.NullBool{Bool: true, Valid: true}
-	if err := aidb.UpdateJob(ctx, job); err != nil {
-		return nil, fmt.Errorf("failed to update job: %w", err)
-	}
-
-	nsCfg := getNsConfig(ctx, job.Namespace)
-	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
-		return nil, fmt.Errorf("AI stages not configured for namespace %s", job.Namespace)
-	}
-
-	nextStageCfg, err := determineNextStage(ctx, nsCfg.AI, job, reporting.Stage)
+	err = processUpstreamSubcommand(ctx, job, reporting, req)
 	if err != nil {
 		return nil, err
 	}
-	nextStage := nextStageCfg.Name
-
-	err = aidb.AddJobReportingTransactional(ctx, job, &aidb.JobReporting{
-		Stage:        nextStage,
-		Source:       nextStageCfg.ServingIntegration,
-		UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
-	}, nextStageCfg.NoParallelReports)
-	if err != nil {
-		return nil, err // Let the caller deal with conflict or DB errors.
-	}
 
 	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
+	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
+		return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
+			Job:           job,
+			CommandSource: req.Source,
+			CommandExtID:  req.MessageExtID,
+			User:          req.Author,
+		})
+	}
+
+	currentStage := ""
+	if currentReporting != nil {
+		currentStage = currentReporting.Stage
+	}
+
+	nextStageCfg, err := determineNextStage(ctx, nsCfg.AI, job, currentStage)
+	if err != nil {
+		return err
+	}
+	nextStage := nextStageCfg.Name
+
+	return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
+		Job: job,
+		Reporting: &aidb.JobReporting{
+			Stage:        nextStage,
+			Source:       nextStageCfg.ServingIntegration,
+			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+		},
+		NoParallel:    nextStageCfg.NoParallelReports,
+		CommandSource: req.Source,
+		CommandExtID:  req.MessageExtID,
+		User:          req.Author,
+		Reason:        "",
+	})
 }
 
 func determineNextStage(ctx context.Context, cfg *AIConfig, job *aidb.Job,
@@ -116,10 +136,22 @@ func handleRejectCommand(ctx context.Context, req *dashapi.SendExternalCommandRe
 		return nil, err
 	}
 
-	job.Correct = spanner.NullBool{Bool: false, Valid: true}
-	if err := aidb.UpdateJob(ctx, job); err != nil {
-		return nil, fmt.Errorf("failed to update job: %w", err)
+	reason := ""
+	if req.Reject != nil {
+		reason = req.Reject.Reason
 	}
+
+	err = aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
+		Job:           job,
+		CommandSource: req.Source,
+		CommandExtID:  req.MessageExtID,
+		User:          req.Author,
+		Reason:        reason,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &dashapi.SendExternalCommandResp{}, nil
 }
 

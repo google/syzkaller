@@ -347,7 +347,7 @@ func TestAIJobActions(t *testing.T) {
 		Results: map[string]any{"PatchDiff": "diff", "PatchDescription": "description"},
 	}))
 
-	jobAssessURL := fmt.Sprintf("/ai_job?id=%v&correct=correct", resp.ID)
+	jobAssessURL := fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect)
 	_, err = c.AuthGET(AccessPublic, jobAssessURL)
 	require.Error(t, err)
 	// Redirect to login page.
@@ -398,9 +398,8 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify history via UI helper to also test parsing logic.
-	history, err := aidb.LoadJobJournal(c.ctx, resp.ID, aidb.ActionJobReview)
+	uiHistory, err := LoadUIJobReviewHistory(c.ctx, resp.ID)
 	require.NoError(t, err)
-	uiHistory := makeUIJobReviewHistory(history)
 	require.Len(t, uiHistory, 1)
 	require.Equal(t, uiHistory[0].Correct, aiCorrectnessCorrect)
 	require.NotEmpty(t, uiHistory[0].User)
@@ -416,9 +415,8 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessIncorrect))
 	require.NoError(t, err)
 
-	history, err = aidb.LoadJobJournal(c.ctx, resp.ID, aidb.ActionJobReview)
+	uiHistory, err = LoadUIJobReviewHistory(c.ctx, resp.ID)
 	require.NoError(t, err)
-	uiHistory = makeUIJobReviewHistory(history)
 	require.Len(t, uiHistory, 2)
 	require.Equal(t, uiHistory[0].Correct, aiCorrectnessIncorrect)
 	require.Equal(t, uiHistory[1].Correct, aiCorrectnessCorrect)

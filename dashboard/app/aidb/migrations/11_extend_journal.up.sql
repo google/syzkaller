@@ -1,0 +1,7 @@
+ALTER TABLE Journal ADD COLUMN SourceExtID STRING(1000);
+ALTER TABLE Journal ADD COLUMN Source STRING(100);
+ALTER TABLE Journal ADD COLUMN ReportingID STRING(36);
+
+CREATE UNIQUE INDEX idx_journal_msg_ext_id ON Journal(Source, SourceExtID) WHERE SourceExtID IS NOT NULL;
+
+ALTER TABLE Journal ADD CONSTRAINT FK_Journal_Reporting FOREIGN KEY (ReportingID) REFERENCES JobReporting (ID);

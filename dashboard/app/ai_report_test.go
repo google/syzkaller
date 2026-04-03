@@ -5,7 +5,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -70,15 +73,31 @@ func TestAIExternalReporting(t *testing.T) {
 	resp, err := c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		RootExtID: "moderation-msg-id",
 		Upstream:  &dashapi.UpstreamCommand{},
+		Author:    "test-user",
+		Source:    "lore",
 	})
 	require.NoError(t, err)
 	require.Empty(t, resp.Error)
+	uiHistory, err := LoadUIJobReviewHistory(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Equal(t, []*uiJobReviewHistory{
+		{
+			Date:    c.mockedTime,
+			User:    "test-user",
+			Correct: aiCorrectnessCorrect,
+			Source:  "lore",
+			Stage:   "public",
+		},
+	}, uiHistory)
 
 	// Verify Job.Correct = true.
 	job, err := aidb.LoadJob(c.ctx, jobID)
 	require.NoError(t, err)
 	require.True(t, job.Correct.Valid)
 	require.True(t, job.Correct.Bool)
+
+	t0 := c.mockedTime
+	c.advanceTime(time.Second)
 
 	// "Report" to the public lists.
 	pollResp, err = c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
@@ -114,9 +133,29 @@ func TestAIExternalReporting(t *testing.T) {
 	resp, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
 		RootExtID: "moderation-msg-id",
 		Reject:    &dashapi.RejectCommand{Reason: "Bad patch"},
+		Author:    "test-user",
+		Source:    "lore",
 	})
 	require.NoError(t, err)
 	require.Empty(t, resp.Error)
+	uiHistory, err = LoadUIJobReviewHistory(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Equal(t, []*uiJobReviewHistory{
+		{
+			Date:    c.mockedTime,
+			User:    "test-user",
+			Correct: aiCorrectnessIncorrect,
+			Source:  "lore",
+			Stage:   "", // Rejections are not per-stage.
+		},
+		{
+			Date:    t0,
+			User:    "test-user",
+			Correct: aiCorrectnessCorrect,
+			Source:  "lore",
+			Stage:   "public",
+		},
+	}, uiHistory)
 
 	// Verify Job.Correct = false.
 	job, err = aidb.LoadJob(c.ctx, jobID)
@@ -386,4 +425,61 @@ func TestAIUpstreamTwice(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Error)
 	require.Contains(t, resp.Error, "a later stage public was already reported")
+}
+
+func TestAINoStages(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{})
+
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: "patching", Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, "patching", "")
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Description",
+			"PatchDiff":        "diff",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+		},
+	})
+	require.NoError(t, err)
+
+	job, err := aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	require.False(t, job.Correct.Valid)
+
+	values := url.Values{}
+	values.Set("correct", aiCorrectnessCorrect)
+	_, err = c.POSTForm(fmt.Sprintf("/ai_job?id=%v", jobID), values)
+	require.NoError(t, err)
+
+	job, err = aidb.LoadJob(c.ctx, jobID)
+	require.NoError(t, err)
+	require.True(t, job.Correct.Valid)
+	require.True(t, job.Correct.Bool)
+
+	journal, err := aidb.LoadJobJournal(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, journal, 1)
+	require.Equal(t, aidb.ActionApprove, journal[0].Action)
+
+	pollResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: "lore",
+	})
+	require.NoError(t, err)
+	require.Nil(t, pollResp.Result)
 }

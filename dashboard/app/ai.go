@@ -45,12 +45,16 @@ type uiAIJobPage struct {
 	CrashReport    template.HTML
 	TrajectoryHTML template.HTML
 	History        []*uiJobReviewHistory
+	CurrentStage   string
+	NextStage      string
 }
 
 type uiJobReviewHistory struct {
 	Date    time.Time
 	User    string
 	Correct string
+	Source  string
+	Stage   string
 }
 
 type uiAIJob struct {
@@ -123,6 +127,91 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	return serveTemplate(w, "ai_jobs.html", page)
 }
 
+func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *AIPatchStageConfig, error) {
+	reportings, err := aidb.LoadJobReportings(ctx, job.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	var latest *aidb.JobReporting
+	currentStage := ""
+	nsCfg := getNsConfig(ctx, job.Namespace)
+
+	if len(reportings) > 0 && nsCfg.AI != nil && len(nsCfg.AI.Stages) > 0 {
+		stageMap := make(map[string]*aidb.JobReporting)
+		for _, r := range reportings {
+			stageMap[r.Stage] = r
+		}
+		for i := len(nsCfg.AI.Stages) - 1; i >= 0; i-- {
+			stageName := nsCfg.AI.Stages[i].Name
+			if r, ok := stageMap[stageName]; ok {
+				latest = r
+				currentStage = stageName
+				break
+			}
+		}
+	}
+
+	var nextStageCfg *AIPatchStageConfig
+	if nsCfg.AI != nil && len(nsCfg.AI.Stages) > 0 {
+		nextStageCfg, _ = determineNextStage(ctx, nsCfg.AI, job, currentStage)
+	}
+	return latest, nextStageCfg, nil
+}
+
+func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hdr *uiHeader) error {
+	correct := r.FormValue("correct")
+	if correct == "" {
+		return nil
+	}
+	if !hdr.AIActions {
+		return ErrAccess
+	}
+	if !job.Finished.Valid || job.Error != "" {
+		return fmt.Errorf("job is in wrong state to set correct status")
+	}
+	user := currentUser(ctx)
+	if user == nil {
+		return ErrAccess
+	}
+	userEmail := user.Email
+
+	switch correct {
+	case aiCorrectnessCorrect:
+		currentReporting, _, err := getJobStageInfo(ctx, job)
+		if err != nil {
+			return err
+		}
+		err = processUpstreamSubcommand(ctx, job, currentReporting, &dashapi.SendExternalCommandReq{
+			Source: SourceWebUI,
+			Author: userEmail,
+		})
+		if err != nil {
+			return err
+		}
+	case aiCorrectnessIncorrect:
+		err := aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
+			Job:           job,
+			CommandSource: SourceWebUI,
+			CommandExtID:  "",
+			User:          userEmail,
+			Reason:        "",
+		})
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("%w: unknown correct value %q", ErrClientBadRequest, correct)
+	}
+	job, err := aidb.LoadJob(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	if err := aiJobApplyLabels(ctx, job); err != nil {
+		return err
+	}
+	return nil
+}
+
 func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	job, err := aidb.LoadJob(ctx, r.FormValue("id"))
 	if err != nil {
@@ -140,46 +229,34 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-	if correct := r.FormValue("correct"); correct != "" {
-		if !hdr.AIActions {
-			return ErrAccess
-		}
-		if !job.Finished.Valid || job.Error != "" {
-			return fmt.Errorf("job is in wrong state to set correct status")
-		}
-		switch correct {
-		case aiCorrectnessCorrect:
-			job.Correct = spanner.NullBool{Bool: true, Valid: true}
-		case aiCorrectnessIncorrect:
-			job.Correct = spanner.NullBool{Bool: false, Valid: true}
-		default:
-			job.Correct = spanner.NullBool{}
-		}
-		userEmail := ""
-		if user := currentUser(ctx); user != nil {
-			userEmail = user.Email
-		}
-		if err := aidb.AddJournalEntry(ctx, &aidb.Journal{
-			JobID:   spanner.NullString{StringVal: job.ID, Valid: true},
-			Date:    timeNow(ctx),
-			User:    userEmail,
-			Action:  aidb.ActionJobReview,
-			Details: spanner.NullJSON{Value: aidb.JobReviewDetails{Correct: job.Correct.Bool}, Valid: true},
-		}); err != nil {
-			return err
-		}
-		if err := aiJobUpdate(ctx, job); err != nil {
-			return err
-		}
+
+	if err := handleAIJobPagePost(ctx, job, r, hdr); err != nil {
+		return err
 	}
+
 	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
 	if err != nil {
 		return err
 	}
-	history, err := aidb.LoadJobJournal(ctx, job.ID, aidb.ActionJobReview)
+	uiHistory, err := LoadUIJobReviewHistory(ctx, job.ID)
 	if err != nil {
 		return err
 	}
+
+	currentReporting, nextStageCfg, err := getJobStageInfo(ctx, job)
+	if err != nil {
+		return err
+	}
+
+	currentStageStr := ""
+	if currentReporting != nil {
+		currentStageStr = currentReporting.Stage
+	}
+	nextStageStr := ""
+	if nextStageCfg != nil {
+		nextStageStr = nextStageCfg.Name
+	}
+
 	var args map[string]any
 	if job.Args.Valid {
 		args = job.Args.Value.(map[string]any)
@@ -203,8 +280,10 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		Job:            uiJob,
 		Jobs:           []*uiAIJob{uiJob},
 		CrashReport:    crashReport,
-		History:        makeUIJobReviewHistory(history),
+		History:        uiHistory,
 		TrajectoryHTML: trajectoryHTML,
+		CurrentStage:   currentStageStr,
+		NextStage:      nextStageStr,
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }
@@ -335,26 +414,54 @@ func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*aflowhtml.UIAITraje
 	return res
 }
 
-func makeUIJobReviewHistory(history []*aidb.Journal) []*uiJobReviewHistory {
+func makeUIJobReviewHistory(history []*aidb.Journal, reportings []*aidb.JobReporting) []*uiJobReviewHistory {
+	stageMap := make(map[string]string)
+	for _, r := range reportings {
+		stageMap[r.ID] = r.Stage
+	}
 	var res []*uiJobReviewHistory
 	for _, h := range history {
 		val := aiCorrectnessUnset
-		if h.Details.Valid {
-			if details, err := parseJSON[aidb.JobReviewDetails](h.Details); err == nil {
-				if details.Correct {
-					val = aiCorrectnessCorrect
-				} else {
-					val = aiCorrectnessIncorrect
+		switch h.Action {
+		case aidb.ActionApprove:
+			val = aiCorrectnessCorrect
+		case aidb.ActionReject:
+			val = aiCorrectnessIncorrect
+		case aidb.ActionJobReview:
+			// ActionJobReview is obsolete, we only keep it because there are entities in the DB.
+			if h.Details.Valid {
+				if details, err := parseJSON[aidb.JobReviewDetails](h.Details); err == nil {
+					if details.Correct {
+						val = aiCorrectnessCorrect
+					} else {
+						val = aiCorrectnessIncorrect
+					}
 				}
 			}
+		default:
+			val = "?"
 		}
 		res = append(res, &uiJobReviewHistory{
 			Date:    h.Date,
 			User:    h.User,
 			Correct: val,
+			Source:  h.Source.StringVal,
+			Stage:   stageMap[h.ReportingID.StringVal],
 		})
 	}
 	return res
+}
+
+func LoadUIJobReviewHistory(ctx context.Context, jobID string) ([]*uiJobReviewHistory, error) {
+	history, err := aidb.LoadJobJournal(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	reportings, err := aidb.LoadJobReportings(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	return makeUIJobReviewHistory(history, reportings), nil
 }
 
 func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {

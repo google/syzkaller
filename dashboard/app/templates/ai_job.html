@@ -20,6 +20,11 @@ Detailed info on a single AI job execution.
 	<b>Agent:</b> {{.Job.AgentName}}<br><br>
 	{{end}}
 
+	{{if .CurrentStage}}
+	<b>Current Stage:</b> {{.CurrentStage}}<br>
+	<b>Next Stage:</b> {{.NextStage}}<br><br>
+	{{end}}
+
 	{{if .Header.AIActions}}
 		{{if and (ne .Job.Correct "⏳") (ne .Job.Correct "💥")}}
 			<form method="POST">
@@ -46,6 +51,7 @@ Detailed info on a single AI job execution.
 				<th>Time</th>
 				<th>User</th>
 				<th>Decision</th>
+				<th>Source</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -54,6 +60,7 @@ Detailed info on a single AI job execution.
 				<td>{{formatTime .Date}}</td>
 				<td>{{.User}}</td>
 				<td>{{.Correct}}</td>
+				<td>{{.Source}}</td>
 			</tr>
 			{{end}}
 		</tbody>
