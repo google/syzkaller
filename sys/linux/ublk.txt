@@ -1,0 +1,189 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/ublk_cmd.h>
+include <uapi/linux/io_uring.h>
+
+resource fd_ublk_ctrl[fd]
+resource fd_ublk_ch[fd]
+
+resource ublk_dev_id[int32]
+resource dev_info_ptr[intptr]
+
+define UBLK_MAX_QUEUE_DEPTH	4096
+define UBLK_MAX_HW_QUEUES	4
+define UBLK_MAX_IO_BYTES	4096
+
+ioctl$UBLK_U_CMD_GET_QUEUE_AFFINITY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_QUEUE_AFFINITY], arg ptr[out, ublk_ctrl_cmd$get_queue_affinity])
+ioctl$UBLK_U_CMD_GET_DEV_INFO(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_DEV_INFO], arg ptr[out, ublk_ctrl_cmd$get_device_info])
+ioctl$UBLK_U_CMD_GET_PARAMS(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_PARAMS], arg ptr[out, ublk_ctrl_cmd$get_params])
+ioctl$UBLK_U_CMD_GET_FEATURES(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_GET_FEATURES], arg ptr[out, ublk_ctrl_cmd$get_features])
+
+ioctl$UBLK_U_CMD_ADD_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_ADD_DEV], arg ptr[inout, ublk_ctrl_cmd$add_dev])
+ioctl$UBLK_U_CMD_SET_PARAMS(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_SET_PARAMS], arg ptr[inout, ublk_ctrl_cmd$set_params])
+ioctl$UBLK_U_CMD_START_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_START_DEV], arg ptr[inout, ublk_ctrl_cmd$start_dev])
+ioctl$UBLK_U_CMD_STOP_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_STOP_DEV], arg ptr[inout, ublk_ctrl_cmd$stop_dev])
+ioctl$UBLK_U_CMD_START_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_START_USER_RECOVERY], arg ptr[inout, ublk_ctrl_cmd$start_user_recovery])
+ioctl$UBLK_U_CMD_END_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_END_USER_RECOVERY], arg ptr[inout, ublk_ctrl_cmd$end_user_recovery])
+ioctl$UBLK_U_CMD_DEL_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_DEL_DEV], arg ptr[inout, ublk_ctrl_cmd$del_dev])
+
+openat$ublk_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ublk-control"]], flags const[O_RDWR], mode const[0]) fd_ublk_ctrl
+
+syz_ublk_setup_io_uring(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+syz_ublk_add_dev(fd_io_uring fd_io_uring, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[inout, io_uring_sqe_uring$ublk_add_dev], dev_info_ptr ptr[out, dev_info_ptr]) ublk_dev_id
+
+syz_io_uring_submit$UBLK(ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[inout, ublk_cmd_sqe_u])
+
+# --------------------------------------- Data types for ublk ctrl commands ---------------------------------------
+type ublk_ctrl_cmd[DEV_ID, LEN, ADDR, DATA] {
+	dev_id		DEV_ID
+	queue_id	const[-1, int16]
+
+	len		LEN
+	addr		ADDR
+
+	data		DATA
+
+	dev_path_len	const[0, int16]
+	pad		const[0, int16]
+	reserved	const[0, int32]
+
+	pad2_unused	array[const[0, int32], 12]
+}
+
+type ublk_ctrl_cmd$add_dev ublk_ctrl_cmd[const[-1, int32], len[addr, int16], ptr64[in, ublk_ctrl_dev_info_new], const[0, int64]]
+type ublk_ctrl_cmd$set_params ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[in, ublk_params], const[0, int64]]
+type ublk_ctrl_cmd$start_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], pid]
+type ublk_ctrl_cmd$stop_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+type ublk_ctrl_cmd$start_user_recovery ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+type ublk_ctrl_cmd$end_user_recovery ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], pid]
+type ublk_ctrl_cmd$del_dev ublk_ctrl_cmd[ublk_dev_id, const[0, int16], const[0, int64], const[0, int64]]
+
+type ublk_ctrl_cmd$get_queue_affinity ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, int64], int64[0:UBLK_MAX_HW_QUEUES]]
+type ublk_ctrl_cmd$get_device_info ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, ublk_ctrl_dev_info_all], const[0, int64]]
+type ublk_ctrl_cmd$get_params ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, ublk_params], const[0, int64]]
+type ublk_ctrl_cmd$get_features ublk_ctrl_cmd[ublk_dev_id, len[addr, int16], ptr64[out, int64], const[0, int64]]
+
+type ublk_ctrl_cmd$any ublk_ctrl_cmd[int32, int16, int64, int64]
+
+ublk_ctrl_cmd_u [
+	add_dev_cmd		ublk_ctrl_cmd$add_dev
+	set_params_cmd		ublk_ctrl_cmd$set_params
+	start_dev_cmd		ublk_ctrl_cmd$start_dev
+	stop_dev_cmd		ublk_ctrl_cmd$stop_dev
+	del_dev_cmd		ublk_ctrl_cmd$del_dev
+	start_user_recovery_cmd	ublk_ctrl_cmd$start_user_recovery
+	end_user_recovery_cmd	ublk_ctrl_cmd$end_user_recovery
+
+	get_queue_affinity_cmd	ublk_ctrl_cmd$get_queue_affinity
+	get_dev_info_cmd	ublk_ctrl_cmd$get_device_info
+	get_params_cmd		ublk_ctrl_cmd$get_params
+	get_features_cmd	ublk_ctrl_cmd$get_features
+
+	any_cmd			ublk_ctrl_cmd$any
+]
+
+type ublk_ctrl_dev_info[DEV_ID] {
+	nr_hw_queues		int16[1:UBLK_MAX_HW_QUEUES]
+	queue_depth		int16[1:UBLK_MAX_QUEUE_DEPTH]
+	state			const[0, int16]
+	pad0			const[0, int16]
+	max_io_buf_bytes	const[UBLK_MAX_IO_BYTES, int32]
+	dev_id			DEV_ID
+	ublk_pid		pid
+	pad1			const[0, int32]
+	flags			flags[ublk_f_flags, int64]
+	ublk_flags		const[0, int64]
+	owner_uid		const[0, int32]
+	owner_gid		const[0, int32]
+	reserved1		const[0, int64]
+	reserved2		const[0, int64]
+}
+
+ublk_f_flags = UBLK_F_SUPPORT_ZERO_COPY, UBLK_F_URING_CMD_COMP_IN_TASK, UBLK_F_NEED_GET_DATA, UBLK_F_USER_RECOVERY, UBLK_F_USER_RECOVERY_REISSUE, UBLK_F_UNPRIVILEGED_DEV, UBLK_F_CMD_IOCTL_ENCODE, UBLK_F_USER_COPY, UBLK_F_ZONED
+
+ublk_ctrl_dev_info_new [
+	new_dev	ublk_ctrl_dev_info[const[-1, int32]]
+	any_dev	ublk_ctrl_dev_info[int32]
+]
+
+ublk_ctrl_dev_info_all [
+	ublk_ctrl_dev_info_new		ublk_ctrl_dev_info_new
+	ublk_ctrl_dev_info_existing	ublk_ctrl_dev_info[ublk_dev_id]
+]
+
+define UBLK_PARAM_TYPE_BASIC	(1 << 0)
+define UBLK_PARAM_TYPE_DISCARD	(1 << 1)
+define UBLK_PARAM_TYPE_DEVT	(1 << 2)
+define UBLK_PARAM_TYPE_ZONED	(1 << 3)
+ublk_param_types = UBLK_PARAM_TYPE_BASIC, UBLK_PARAM_TYPE_DISCARD, UBLK_PARAM_TYPE_DEVT, UBLK_PARAM_TYPE_ZONED
+
+ublk_params {
+	len	len[parent, int32]
+	types	flags[ublk_param_types, int32]
+	basic	ublk_param_basic
+	discard	ublk_param_discard
+	devt	ublk_param_devt
+	zoned	ublk_param_zoned
+}
+
+define UBLK_ATTR_READ_ONLY	(1 << 0)
+define UBLK_ATTR_ROTATIONAL	(1 << 1)
+define UBLK_ATTR_VOLATILE_CACHE	(1 << 2)
+define UBLK_ATTR_FUA	(1 << 3)
+ublk_attr_flags = UBLK_ATTR_READ_ONLY, UBLK_ATTR_ROTATIONAL, UBLK_ATTR_VOLATILE_CACHE, UBLK_ATTR_FUA
+
+ublk_param_basic {
+	attrs			flags[ublk_attr_flags, int32]
+	logical_bs_shift	int8[9:12]
+	physical_bs_shift	int8[9:12]
+	io_opt_shift		int8
+	io_min_shift		int8
+	max_sectors		int32
+	chunk_sectors		int32
+	dev_sectors		int64
+	virt_boundary_mask	int64
+}
+
+ublk_param_discard {
+	discard_alignment		int32
+	discard_granularity		int32
+	max_discard_sectors		int32
+	max_write_zeroes_sectors	int32
+	max_discard_segments		int16
+	reserved0			const[0, int16]
+}
+
+ublk_param_devt {
+	char_major	int32
+	char_minor	int32
+	disk_major	int32
+	disk_minor	int32
+}
+
+ublk_param_zoned {
+	max_open_zones		int32
+	max_active_zones	int32
+	max_zone_append_sectors	int32
+	reserved		array[const[0, int8], 20]
+}
+
+ublk_cmd_sqe_u [
+# Allow cmd flag to be fuzzed instead of fixing it based on the command type.
+	ublk_ctrl_cmd_sqes		io_uring_sqe_uring[fd_ublk_ctrl, flags[ublk_ctrl_cmd_flags, int32], ublk_ctrl_cmd_u, int64]
+
+# Specific SQEs for each ctrl command.
+	ublk_add_dev_sqe		io_uring_sqe_uring$ublk_add_dev
+	ublk_set_params_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_SET_PARAMS, int32], ublk_ctrl_cmd$set_params, int64]
+	ublk_start_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_START_DEV, int32], ublk_ctrl_cmd$start_dev, int64]
+	ublk_start_user_recovery_sqe	io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_START_USER_RECOVERY, int32], ublk_ctrl_cmd$start_user_recovery, int64]
+	ublk_end_user_recovery_sqe	io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_END_USER_RECOVERY, int32], ublk_ctrl_cmd$end_user_recovery, int64]
+	ublk_stop_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_STOP_DEV, int32], ublk_ctrl_cmd$stop_dev, int64]
+	ublk_del_dev_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_DEL_DEV, int32], ublk_ctrl_cmd$del_dev, int64]
+
+	ublk_get_queue_affinity_sqe	io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_QUEUE_AFFINITY, int32], ublk_ctrl_cmd$get_queue_affinity, int64]
+	ublk_get_dev_info_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_DEV_INFO, int32], ublk_ctrl_cmd$get_device_info, int64]
+	ublk_get_params_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_PARAMS, int32], ublk_ctrl_cmd$get_params, int64]
+	ublk_get_features_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_FEATURES, int32], ublk_ctrl_cmd$get_features, int64]
+
+]

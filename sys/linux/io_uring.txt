@@ -359,6 +359,10 @@ type io_uring_sqe_uring[FD, CMD_OP, CMD, USER_DATA] {
 
 define SIZEOF_IO_URING_SQE_LARGE	128
 
+io_uring_sqe_uring_u [
+	ublk_cmd_sqes	ublk_cmd_sqe_u
+]
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #
