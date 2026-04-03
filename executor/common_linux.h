@@ -2049,6 +2049,115 @@ static long syz_io_uring_modify_offsets(volatile long a0, volatile long a1, vola
 	return 0;
 }
 
+
+#include <linux/types.h>
+#include <sys/mman.h>
+
+struct io_uring_sqe {
+	__u8 opcode; // type of operation for this sqe
+	__u8 flags; // IOSQE_ flags */
+	__u16 ioprio; // ioprio for the request */
+	__s32 fd; // file descriptor to do IO on */
+	union {
+		__u64 off; // offset into file
+		__u64 addr2;
+		struct {
+			__u32 cmd_op;
+			__u32 __pad1;
+		};
+	};
+	union {
+		__u64 addr; // pointer to buffer or iovecs
+		__u64 splice_off_in;
+		struct {
+			__u32 level;
+			__u32 optname;
+		};
+	};
+	__u32 len; // buffer size or number of iovecs
+	union {
+		__u32 fsync_flags;
+		__u16 poll_events; // compatibility
+		__u32 poll32_events; // word-reversed for BE
+		__u32 sync_range_flags;
+		__u32 msg_flags;
+		__u32 timeout_flags;
+		__u32 accept_flags;
+		__u32 cancel_flags;
+		__u32 open_flags;
+		__u32 statx_flags;
+		__u32 fadvise_advice;
+		__u32 splice_flags;
+		__u32 rename_flags;
+		__u32 unlink_flags;
+		__u32 hardlink_flags;
+		__u32 xattr_flags;
+		__u32 msg_ring_flags;
+		__u32 uring_cmd_flags;
+		__u32 waitid_flags;
+		__u32 futex_flags;
+		__u32 install_fd_flags;
+		__u32 nop_flags;
+		__u32 pipe_flags;
+	};
+	__u64 user_data; // data to be passed back at completion time
+	// pack this to avoid bogus arm OABI complaints
+	union {
+		// index into fixed buffers, if used
+		__u16 buf_index;
+		// for grouped buffer selection
+		__u16 buf_group;
+	} __attribute__((packed));
+	// personality to use, if used
+	__u16 personality;
+	union {
+		__s32 splice_fd_in;
+		__u32 file_index;
+		__u32 zcrx_ifq_idx;
+		__u32 optlen;
+		struct {
+			__u16 addr_len;
+			__u16 __pad3[1];
+		};
+	};
+	union {
+		struct {
+			__u64 addr3;
+			__u64 __pad2[1];
+		};
+		struct {
+			__u64 attr_ptr; // pointer to attribute information
+			__u64 attr_type_mask; // bit mask of attributes
+		};
+		__u64 optval;
+		// If the ring is initialized with IORING_SETUP_SQE128, then
+		// this field is used for 80 bytes of arbitrary command data
+		__u8 cmd[0];
+	};
+};
+
+struct ublksrv_ctrl_dev_info {
+	__u16 nr_hw_queues;
+	__u16 queue_depth;
+	__u16 state;
+	__u16 pad0;
+
+	__u32 max_io_buf_bytes;
+	__u32 dev_id;
+
+	__s32 ublksrv_pid;
+	__u32 pad1;
+
+	__u64 flags;
+
+	__u64 ublksrv_flags;
+
+	__u32 owner_uid; // store by kernel
+	__u32 owner_gid; // store by kernel
+	__u64 reserved1;
+	__u64 reserved2;
+};
+
 static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
 	// syzlang: syz_ublk_setup_io_uring(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd
@@ -2058,6 +2167,49 @@ static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile
 	struct io_uring_params* params = (struct io_uring_params*)a1;
 	params->flags |= IORING_SETUP_SQE128 | IORING_SETUP_CQE32;
 	return syz_io_uring_setup(a0, (long)params, a2, a3, a4);
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_ublk_add_dev
+
+#include <signal.h>
+
+struct ublksrv_ctrl_cmd {
+	__u32 dev_id;
+	__u16 queue_id;
+
+	__u16 len;
+	__u64 addr;
+
+	__u64 data[1];
+
+	__u16 dev_path_len;
+	__u16 pad;
+	__u32 reserved;
+};
+
+static long syz_ublk_add_dev(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
+{
+	// syzlang: syz_ublk_add_dev(fd_io_uring fd_io_uring, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[inout, io_uring_sqe_large$ublk_add_dev], dev_info_ptr ptr[out, dev_info_ptr]) ublk_dev_id
+	// C:       syz_ublk_add_dev(__u32 ring_fd,           struct io_uring_params* params,  char* ring_ptr,    char* sqes_ptr,    struct io_uring_sqe* sqe,						  void** dev_info_ptr_out) // returns ublk_dev_id
+
+	__u32 ring_fd = (__u32)a0;
+	struct io_uring_params* params = (struct io_uring_params*)a1;
+	char* ring_ptr = (char*)a2;
+	char* sqes_ptr = (char*)a3;
+	struct io_uring_sqe* sqe = (struct io_uring_sqe*)a4;
+	void** dev_info_ptr_out = (void**)a5;
+
+	struct ublksrv_ctrl_cmd* cmd = (struct ublksrv_ctrl_cmd*)(sqe->cmd);
+	struct ublksrv_ctrl_dev_info* dev_info = (struct ublksrv_ctrl_dev_info*)(unsigned long)(cmd->addr);
+	int ret = syz_io_uring_submit((long)params, (long)ring_ptr, (long)sqes_ptr, (long)sqe);
+	if (ret < 0)
+		return (long)ret;
+
+	syscall(__NR_io_uring_enter, ring_fd, 1, 1, 1, NULL, _NSIG / 8);
+	*dev_info_ptr_out = (void*)dev_info;
+	return dev_info->dev_id;
 }
 
 #endif
