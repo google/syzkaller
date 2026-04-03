@@ -6,9 +6,12 @@ include <uapi/linux/io_uring.h>
 
 resource fd_ublk_ctrl[fd]
 resource fd_ublk_ch[fd]
+resource fd_ublk_bdev[fd]
 
 resource ublk_dev_id[int32]
 resource dev_info_ptr[intptr]
+
+resource ublk_queues_ptr[intptr]
 
 define UBLK_MAX_QUEUE_DEPTH	4096
 define UBLK_MAX_HW_QUEUES	4
@@ -27,10 +30,16 @@ ioctl$UBLK_U_CMD_START_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_START
 ioctl$UBLK_U_CMD_END_USER_RECOVERY(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_END_USER_RECOVERY], arg ptr[inout, ublk_ctrl_cmd$end_user_recovery])
 ioctl$UBLK_U_CMD_DEL_DEV(fd fd_ublk_ctrl, cmd const[UBLK_U_CMD_DEL_DEV], arg ptr[inout, ublk_ctrl_cmd$del_dev])
 
+ioctl$UBLK_U_IO_FETCH_REQ(fd fd_ublk_ch, cmd const[UBLK_U_IO_FETCH_REQ], arg ptr[inout, ublk_io_cmd$fetch_req])
+ioctl$UBLK_U_IO_COMMIT_AND_FETCH_REQ(fd fd_ublk_ch, cmd const[UBLK_U_IO_COMMIT_AND_FETCH_REQ], arg ptr[inout, ublk_io_cmd$commit_and_fetch_req])
+ioctl$UBLK_U_IO_NEED_GET_DATA(fd fd_ublk_ch, cmd const[UBLK_U_IO_NEED_GET_DATA], arg ptr[inout, ublk_io_cmd$need_get_data])
+
 openat$ublk_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ublk-control"]], flags const[O_RDWR], mode const[0]) fd_ublk_ctrl
 
 syz_ublk_setup_io_uring(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], ring_params_ptr ptr[out, ring_params_ptr], ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
 syz_ublk_add_dev(fd_io_uring fd_io_uring, ring_params_ptr ring_params_ptr, ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[inout, io_uring_sqe_uring$ublk_add_dev], dev_info_ptr ptr[out, dev_info_ptr]) ublk_dev_id
+syz_ublk_setup_queues(fd_ublk_ch fd_ublk_ch, dev_info_ptr dev_info_ptr, params ptr[in, io_uring_params], queues ptr[out, array[ublk_queue, UBLK_MAX_HW_QUEUES]], nr_queues const[UBLK_MAX_HW_QUEUES], sqe ptr[inout, io_uring_sqe_uring$ublk_io_fetch], ublk_queues_ptr ptr[out, ublk_queues_ptr])
+syz_ublk_process_io(ublk_queues_ptr ublk_queues_ptr, q_id int16[0:UBLK_MAX_HW_QUEUES], wait_secs int32[0:10], sqe ptr[inout, ublk_io_cmd_sqe_u], use_generated_sqe int32[0:1])
 
 syz_open_dev$ublk_chdev(dev ptr[in, string["/dev/ublkc#"]], id ublk_dev_id, flags flags[open_flags]) fd_ublk_ch
 syz_open_dev$ublk_bdev(dev ptr[in, string["/dev/ublkb#"]], id ublk_dev_id, flags flags[open_flags]) fd_ublk_bdev
@@ -181,9 +190,72 @@ ublk_param_zoned {
 	reserved		array[const[0, int8], 20]
 }
 
+# --------------------------------------- Data types for ublk IO commands ---------------------------------------
+
+ublk_io_cmd_u [
+	fetch_req_cmd		ublk_io_cmd$fetch_req
+	commit_and_fetch_cmd	ublk_io_cmd$commit_and_fetch_req
+	need_get_data_cmd	ublk_io_cmd$need_get_data
+]
+
+type ublk_io_cmd[Q_ID, TAG, RESULT, ADDR] {
+	q_id	Q_ID
+	tag	TAG
+	result	RESULT
+	addr	ADDR
+	pad	array[const[0, int32], 16]
+}
+
+type ublk_io_cmd$fetch_req ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], const[0, int32], ptr64[inout, ublk_io_buf_u]]
+type ublk_io_cmd$commit_and_fetch_req ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, ptr64[inout, ublk_io_buf_u]]
+type ublk_io_cmd$need_get_data ublk_io_cmd[int16[0:UBLK_MAX_HW_QUEUES], int16[0:UBLK_MAX_QUEUE_DEPTH], int32, ptr64[inout, ublk_io_buf_u]]
+
+ublk_io_buf_u [
+	buf_512		array[int8, 512]
+	buf_1k		array[int8, 1024]
+	buf_4k		array[int8, 4096]
+	buf_max_buf	array[int8, UBLK_MAX_IO_BYTES]
+]
+
+ublk_queue {
+	queue_id	int16[0:UBLK_MAX_HW_QUEUES]
+	pad1		const[0, int16]
+	fd_ublk_ch	fd_ublk_ch
+
+	params		io_uring_params
+	ring_fd		fd_io_uring
+	pad2		const[0, int32]
+
+	ring_ptr	ring_ptr
+	sqes_ptr	sqes_ptr
+	io_cmd_buf	intptr
+}
+
+# Command SQEs for both control and I/O commands
+ublk_ctrl_cmd_flags = UBLK_U_CMD_ADD_DEV, UBLK_U_CMD_SET_PARAMS, UBLK_U_CMD_START_DEV, UBLK_U_CMD_STOP_DEV, UBLK_U_CMD_START_USER_RECOVERY, UBLK_U_CMD_END_USER_RECOVERY, UBLK_U_CMD_DEL_DEV, UBLK_U_CMD_GET_QUEUE_AFFINITY, UBLK_U_CMD_GET_DEV_INFO, UBLK_U_CMD_GET_PARAMS, UBLK_U_CMD_GET_FEATURES
+ublk_io_cmd_flags = UBLK_U_IO_FETCH_REQ, UBLK_U_IO_COMMIT_AND_FETCH_REQ, UBLK_U_IO_NEED_GET_DATA
+
+type io_uring_sqe_uring$ublk_add_dev io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_ADD_DEV, int32], ublk_ctrl_cmd$add_dev, int64]
+
+type user_data[CMD] {
+	tag	int64:16
+	cmd	const[CMD, int64:32]
+	pad	const[0, int64:16]
+}
+type io_uring_sqe_uring$ublk_io_fetch io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_FETCH_REQ, int32], ublk_io_cmd$fetch_req, user_data[UBLK_U_IO_FETCH_REQ]]
+type io_uring_sqe_uring$ublk_io_commit_and_fetch io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_COMMIT_AND_FETCH_REQ, int32], ublk_io_cmd$commit_and_fetch_req, user_data[UBLK_U_IO_COMMIT_AND_FETCH_REQ]]
+type io_uring_sqe_uring$ublk_io_need_get_data io_uring_sqe_uring[fd_ublk_ch, const[UBLK_U_IO_NEED_GET_DATA, int32], ublk_io_cmd$need_get_data, user_data[UBLK_U_IO_NEED_GET_DATA]]
+
+ublk_io_cmd_sqe_u [
+	ublk_io_fetch_sqe		io_uring_sqe_uring$ublk_io_fetch
+	ublk_io_commit_and_fetch_sqe	io_uring_sqe_uring$ublk_io_commit_and_fetch
+	ublk_io_need_get_data_sqe	io_uring_sqe_uring$ublk_io_need_get_data
+]
+
 ublk_cmd_sqe_u [
 # Allow cmd flag to be fuzzed instead of fixing it based on the command type.
 	ublk_ctrl_cmd_sqes		io_uring_sqe_uring[fd_ublk_ctrl, flags[ublk_ctrl_cmd_flags, int32], ublk_ctrl_cmd_u, int64]
+	ublk_io_cmd_sqes		io_uring_sqe_uring[fd_ublk_ch, flags[ublk_io_cmd_flags, int32], ublk_io_cmd_u, int64]
 
 # Specific SQEs for each ctrl command.
 	ublk_add_dev_sqe		io_uring_sqe_uring$ublk_add_dev
@@ -199,4 +271,8 @@ ublk_cmd_sqe_u [
 	ublk_get_params_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_PARAMS, int32], ublk_ctrl_cmd$get_params, int64]
 	ublk_get_features_sqe		io_uring_sqe_uring[fd_ublk_ctrl, const[UBLK_U_CMD_GET_FEATURES, int32], ublk_ctrl_cmd$get_features, int64]
 
+# Specific SQEs for each I/O command.
+	ublk_io_fetch_sqe		io_uring_sqe_uring$ublk_io_fetch
+	ublk_io_commit_and_fetch_sqe	io_uring_sqe_uring$ublk_io_commit_and_fetch
+	ublk_io_need_get_data_sqe	io_uring_sqe_uring$ublk_io_need_get_data
 ]
