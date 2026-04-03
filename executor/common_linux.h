@@ -2214,7 +2214,6 @@ static long syz_ublk_add_dev(volatile long a0, volatile long a1, volatile long a
 
 #endif
 
-#endif
 
 #if SYZ_EXECUTOR || __NR_syz_usbip_server_init
 
