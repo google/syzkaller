@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <uapi/linux/ublk_cmd.h>
-include <uapi/linux/io_uring.h>
+include <io_uring/io_uring.h>
 
 resource fd_ublk_ctrl[fd]
 resource fd_ublk_ch[fd]

@@ -3,7 +3,7 @@
 
 # See http://kernel.dk/io_uring.pdf
 
-include <uapi/linux/io_uring.h>
+include <io_uring/io_uring.h>
 include <uapi/linux/ublk_cmd.h>
 # For EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
 include <uapi/linux/eventpoll.h>
@@ -13,10 +13,6 @@ resource ring_ptr[int64]
 resource sqes_ptr[int64]
 resource ring_params_ptr[intptr]
 resource ioring_personality_id[int16]
-
-# fs/io_uring.c
-define IORING_MAX_ENTRIES	32768
-define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
 
 # First does the setup calling io_uring_setup, than calls mmap to map the ring and
 # the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
