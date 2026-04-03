@@ -941,3 +941,18 @@ func replaceReporting(ctx context.Context, ns, name string, f func(Reporting) Re
 		return &ret
 	})
 }
+
+// SetAIConfig patches the config for all namespaces to use the given AIConfig.
+func (ctx *Ctx) SetAIConfig(aiCfg *AIConfig) {
+	ctx.transformContext = func(ctx context.Context) context.Context {
+		cfg := getConfig(ctx)
+		newCfg := *cfg
+		newCfg.Namespaces = make(map[string]*Config)
+		for k, v := range cfg.Namespaces {
+			nc := *v
+			nc.AI = aiCfg
+			newCfg.Namespaces[k] = &nc
+		}
+		return contextWithConfig(ctx, &newCfg)
+	}
+}

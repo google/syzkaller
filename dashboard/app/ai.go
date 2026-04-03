@@ -482,15 +482,41 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	if err = aiJobUpdate(ctx, job); err != nil {
 		return nil, err
 	}
-	if job.Type == ai.WorkflowPatching && job.BugID.Valid && job.Finished.Valid && job.Error == "" {
-		nsCfg := getNsConfig(ctx, job.Namespace)
-		if nsCfg.AI != nil && nsCfg.AI.UploadPatchesToGerrit {
-			if err := createGerritChange(ctx, job); err != nil {
-				log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
-			}
+	if !shouldReportJob(job) {
+		return nil, nil
+	}
+	nsCfg := getNsConfig(ctx, job.Namespace)
+	if nsCfg.AI == nil {
+		return nil, nil
+	}
+	if nsCfg.AI.UploadPatchesToGerrit {
+		if err := createGerritChange(ctx, job); err != nil {
+			log.Errorf(ctx, "failed to create gerrit change for job %v: %v", job.ID, err)
 		}
 	}
+	stageCfg, err := determineNextStage(ctx, nsCfg.AI, job, "")
+	if err != nil {
+		log.Errorf(ctx, "failed to determine next stage for job %v: %v", job.ID, err)
+		return nil, nil
+	}
+	if stageCfg == nil {
+		return nil, nil
+	}
+	reporting := &aidb.JobReporting{
+		Stage:  stageCfg.Name,
+		Source: stageCfg.ServingIntegration,
+	}
+	if err := aidb.AddJobReportingTransactional(ctx, job, reporting, stageCfg.NoParallelReports); err != nil {
+		log.Errorf(ctx, "failed to add initial job reporting for job %v: %v", job.ID, err)
+	}
 	return nil, nil
+}
+
+func shouldReportJob(job *aidb.Job) bool {
+	return job.Type == ai.WorkflowPatching &&
+		job.BugID.Valid &&
+		job.Finished.Valid &&
+		job.Error == ""
 }
 
 func aiCheckClientWorkflow(ctx context.Context, workflow string) error {

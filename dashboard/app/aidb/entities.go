@@ -59,6 +59,8 @@ type Job struct {
 	Results      spanner.NullJSON
 	Correct      spanner.NullBool
 	Aborted      bool
+	ParentJobID  spanner.NullString
+	Version      spanner.NullInt64
 }
 
 type TrajectorySpan struct {
@@ -90,4 +92,15 @@ type Journal struct {
 	User    string
 	Action  string
 	Details spanner.NullJSON
+}
+
+type JobReporting struct {
+	ID           string
+	JobID        string
+	Stage        string
+	Source       string
+	ReportedAt   spanner.NullTime
+	UpstreamedAt spanner.NullTime
+	ExtID        spanner.NullString
+	CreatedAt    time.Time
 }

@@ -148,6 +148,28 @@ type Config struct {
 type AIConfig struct {
 	// Whether to upload generated patches to gerrit.
 	UploadPatchesToGerrit bool
+	Stages                []AIPatchStageConfig
+}
+
+// AIPatchStageConfig describes a single stage in the AI patch reporting pipeline.
+type AIPatchStageConfig struct {
+	Name               string // "moderation", "public"
+	ServingIntegration string // e.g. "lore"
+	MailingList        string
+	NoParallelReports  bool
+	MergePatchCc       bool // If true, CC people mentioned in the patch report (authors, reviewers).
+}
+
+func (cfg *AIConfig) StageIndexByName(name string) int {
+	if cfg == nil {
+		return -1
+	}
+	for i := range cfg.Stages {
+		if cfg.Stages[i].Name == name {
+			return i
+		}
+	}
+	return -1
 }
 
 type APIClient struct {
@@ -670,6 +692,9 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	if cfg.Kcidb != nil {
 		checkKcidb(ns, cfg.Kcidb)
 	}
+	if cfg.AI != nil {
+		checkAIConfig(ns, cfg.AI)
+	}
 	checkKernelRepos(ns, cfg, cfg.Repos)
 	checkNamespaceReporting(ns, cfg)
 	checkSubsystems(ns, cfg)
@@ -682,6 +707,19 @@ func checkCoverageConfig(ns string, cfg *Config) {
 	}
 	if _, err := mail.ParseAddress(cfg.Coverage.EmailRegressionsTo); err != nil {
 		panic(fmt.Sprintf("bad cfg.Coverage.EmailRegressionsTo in '%s': %s", ns, err.Error()))
+	}
+}
+
+func checkAIConfig(ns string, cfg *AIConfig) {
+	stageNames := make(map[string]bool)
+	for _, stage := range cfg.Stages {
+		if stage.Name == "" {
+			panic(fmt.Sprintf("%v: AI stage name cannot be empty", ns))
+		}
+		if stageNames[stage.Name] {
+			panic(fmt.Sprintf("%v: duplicate AI stage name %q", ns, stage.Name))
+		}
+		stageNames[stage.Name] = true
 	}
 }
 

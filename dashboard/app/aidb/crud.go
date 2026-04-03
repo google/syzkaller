@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/uuid"
 	"google.golang.org/appengine/v2"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -26,6 +27,14 @@ const (
 )
 
 var ErrNotFound = errors.New("entity not found")
+
+type ErrCannotUpstream struct {
+	Reason string
+}
+
+func (e *ErrCannotUpstream) Error() string {
+	return e.Reason
+}
 
 func init() {
 	// This forces unmarshalling of JSON integers into json.Number rather than float64.
@@ -113,16 +122,7 @@ func CreateJob(ctx context.Context, job *Job) (string, error) {
 }
 
 func UpdateJob(ctx context.Context, job *Job) error {
-	client, err := dbClient(ctx)
-	if err != nil {
-		return err
-	}
-	mut, err := spanner.UpdateStruct("Jobs", job)
-	if err != nil {
-		return err
-	}
-	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
-	return err
+	return saveEntity(ctx, "Jobs", job)
 }
 
 func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanner.Mutation, error) {
@@ -448,6 +448,125 @@ func selectJournal() string {
 	return selectAllFrom[Journal]("Journal")
 }
 
+func selectJobReporting() string {
+	return selectAllFrom[JobReporting]("JobReporting")
+}
+
+func AddJobReporting(ctx context.Context, entry *JobReporting) error {
+	return saveEntity(ctx, "JobReporting", entry)
+}
+
+func AddJobReportingTransactional(ctx context.Context, job *Job, entry *JobReporting, noParallel bool) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	entry.ID = uuid.NewString()
+	entry.JobID = job.ID
+	entry.CreatedAt = TimeNow(ctx)
+
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		if noParallel && job.BugID.Valid {
+			iterConflict := txn.Query(ctx, spanner.Statement{
+				SQL: `SELECT Jobs.ID
+						FROM Jobs
+						JOIN JobReporting ON Jobs.ID = JobReporting.JobID
+						WHERE Jobs.BugID = @bugID
+						  AND JobReporting.Stage = @stage
+						  AND (Jobs.Correct IS NULL OR Jobs.Correct = true)
+						  AND Jobs.ID != @currentJobID
+						LIMIT 1`,
+				Params: map[string]any{
+					"bugID":        job.BugID.StringVal,
+					"stage":        entry.Stage,
+					"currentJobID": job.ID,
+				},
+			})
+			defer iterConflict.Stop()
+			var conflicts []string
+			if err := spanner.SelectAll(iterConflict, &conflicts); err != nil {
+				return err
+			}
+			if len(conflicts) > 0 {
+				return &ErrCannotUpstream{
+					Reason: "cannot upstream: another report for this bug has already been sent",
+				}
+			}
+		}
+
+		mut, err := spanner.InsertStruct("JobReporting", entry)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			return &ErrCannotUpstream{
+				Reason: fmt.Sprintf("cannot upstream: another report for this bug has already been sent to %s", entry.Stage),
+			}
+		}
+		return err
+	}
+	return nil
+}
+
+func LoadPendingJobReportingBySource(ctx context.Context, source string) ([]*JobReporting, error) {
+	return selectAll[JobReporting](ctx, spanner.Statement{
+		SQL:    selectJobReporting() + `WHERE Source = @source AND ReportedAt IS NULL`,
+		Params: map[string]any{"source": source},
+	})
+}
+
+func LoadJobReportings(ctx context.Context, jobID string) ([]*JobReporting, error) {
+	return selectAll[JobReporting](ctx, spanner.Statement{
+		SQL:    selectJobReporting() + `WHERE JobID = @jobID`,
+		Params: map[string]any{"jobID": jobID},
+	})
+}
+
+func JobReportingPublished(ctx context.Context, id, extID string) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
+		iter := tx.Query(ctx, spanner.Statement{
+			SQL:    selectJobReporting() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": id},
+		})
+		defer iter.Stop()
+		var reportings []*JobReporting
+		if err := spanner.SelectAll(iter, &reportings); err != nil {
+			return err
+		}
+		if len(reportings) == 0 {
+			return ErrNotFound
+		}
+		r := reportings[0]
+		r.ReportedAt = spanner.NullTime{Time: TimeNow(ctx), Valid: true}
+		r.ExtID = spanner.NullString{StringVal: extID, Valid: extID != ""}
+
+		mut, err := spanner.InsertOrUpdateStruct("JobReporting", r)
+		if err != nil {
+			return err
+		}
+		return tx.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return err
+}
+
+func LoadJobReportingByExtID(ctx context.Context, extID string) (*JobReporting, error) {
+	res, err := selectOne[JobReporting](ctx, spanner.Statement{
+		SQL:    selectJobReporting() + `WHERE ExtID = @extID LIMIT 1`,
+		Params: map[string]any{"extID": extID},
+	})
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
+	return res, err
+}
+
 func AddJournalEntry(ctx context.Context, entry *Journal) error {
 	entry.ID = uuid.NewString()
 	client, err := dbClient(ctx)
@@ -506,4 +625,17 @@ func toNullInt64(v int) spanner.NullInt64 {
 		return spanner.NullInt64{}
 	}
 	return spanner.NullInt64{Int64: int64(v), Valid: true}
+}
+
+func saveEntity[T any](ctx context.Context, table string, obj *T) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	mut, err := spanner.InsertOrUpdateStruct(table, obj)
+	if err != nil {
+		return err
+	}
+	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
+	return err
 }
