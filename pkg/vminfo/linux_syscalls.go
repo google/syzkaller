@@ -94,6 +94,10 @@ var linuxSyscallChecks = map[string]func(*checkContext, *prog.Syscall) string{
 	"syz_io_uring_setup":            alwaysSupported,
 	"syz_io_uring_submit":           alwaysSupported,
 	"syz_io_uring_complete":         alwaysSupported,
+	"syz_ublk_setup_io_uring":       alwaysSupported,
+	"syz_ublk_add_dev":              alwaysSupported,
+	"syz_ublk_setup_queues":         alwaysSupported,
+	"syz_ublk_process_io":           alwaysSupported,
 	"syz_io_uring_modify_offsets":   alwaysSupported,
 	"syz_memcpy_off":                alwaysSupported,
 	"syz_btf_id_by_name":            linuxBtfVmlinuxSupported,
@@ -159,6 +163,11 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 				}
 			}
 		}
+		if strings.HasPrefix(fname, "/dev/ublk") {
+			if linuxCheckUblkSupported(ctx, call) == "" {
+				reason = ""
+			}
+		}
 	}
 	return reason
 }
@@ -173,6 +182,10 @@ func linuxSyzOpenProcfsSupported(ctx *checkContext, call *prog.Syscall) string {
 
 func linuxCheckUSBEmulation(ctx *checkContext, call *prog.Syscall) string {
 	return ctx.rootCanOpen("/dev/raw-gadget")
+}
+
+func linuxCheckUblkSupported(ctx *checkContext, call *prog.Syscall) string {
+	return ctx.rootCanOpen("/dev/ublk-control")
 }
 
 const unsupportedArch = "unsupported arch"
