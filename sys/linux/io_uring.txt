@@ -4,6 +4,7 @@
 # See http://kernel.dk/io_uring.pdf
 
 include <uapi/linux/io_uring.h>
+include <uapi/linux/ublk_cmd.h>
 # For EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
 include <uapi/linux/eventpoll.h>
 
@@ -300,13 +301,13 @@ io_uring_sqe_u [
 	IORING_OP_SYMLINKAT		io_uring_sqe$symlinkat
 	IORING_OP_LINKAT		io_uring_sqe$linkat
 	IORING_OP_MSG_RING		io_uring_sqe$msg_ring
+	IORING_OP_URING_CMD		io_uring_sqe_uring_u
 # 	TODO undocumented 6.0
 #	IORING_OP_FSETXATTR		io_uring_sqe$fsetxatt
 #	IORING_OP_SETXATTR		io_uring_sqe$setxatt
 #	IORING_OP_FGETXATTR		io_uring_sqe$fgetxatt
 #	IORING_OP_GETXATTR		io_uring_sqe$etxatt
 #	IORING_OP_SOCKET		io_uring_sqe$socket
-#	IORING_OP_URING_CMD		io_uring_sqe$uring_cmd
 #	IORING_OP_SEND_ZC		io_uring_sqe$send_zc
 ]
 
@@ -335,6 +336,28 @@ type io_uring_sqe[OP, IOPRIO, FD, OFF, ADDR, LEN, MISC_FLAGS, USER_DATA, MISC] {
 } [size[SIZEOF_IO_URING_SQE]]
 
 define SIZEOF_IO_URING_SQE	64
+
+uring_cmd_flags = 0, IORING_URING_CMD_FIXED
+
+type io_uring_sqe_uring[FD, CMD_OP, CMD, USER_DATA] {
+	opcode			const[IORING_OP_URING_CMD, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio			const[0, int16]
+	fd			FD
+	cmd_op			CMD_OP
+	pad1			const[0, int32]
+	addr			const[0, int64]
+	len			const[0, int32]
+	uring_flags		flags[uring_cmd_flags, int32]
+	user_data		USER_DATA
+	buf_index_unused	const[0, int16]
+	ioring_personality_id	ioring_personality_id[opt]
+	pad_unused		array[const[0, int8], 4]
+
+	cmd			CMD
+} [size[SIZEOF_IO_URING_SQE_LARGE]]
+
+define SIZEOF_IO_URING_SQE_LARGE	128
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
