@@ -132,6 +132,8 @@ func processArchives(paths, emails, domains []string) []*lore.Thread {
 					skipped.Add(1)
 					continue
 				}
+				msg.Body = ""
+				msg.Patch = ""
 				mu.Lock()
 				repoEmails = append(repoEmails, msg)
 				mu.Unlock()

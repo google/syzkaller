@@ -235,6 +235,8 @@ Bug report`,
 			t.Fatal(err)
 		}
 		msg.RawCc = nil
+		msg.Body = ""
+		msg.Patch = ""
 		emails = append(emails, msg)
 	}
 
