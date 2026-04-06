@@ -185,7 +185,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	email := &Email{
 		BugIDs:         unique(bugIDs),
 		MessageID:      msg.Header.Get("Message-ID"),
-		InReplyTo:      extractInReplyTo(msg.Header),
+		InReplyTo:      ExtractInReplyTo(msg.Header),
 		Date:           date,
 		Link:           link,
 		Author:         author,
@@ -470,7 +470,7 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 
 var extractMessageIDs = regexp.MustCompile(`<.+?>`)
 
-func extractInReplyTo(header mail.Header) string {
+func ExtractInReplyTo(header mail.Header) string {
 	value := header.Get("In-Reply-To")
 	// Normally there should be just one message, to which we reply.
 	// However, there have been some cases when multiple addresses were mentioned.

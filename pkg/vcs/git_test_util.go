@@ -81,6 +81,19 @@ func (repo *TestRepo) CommitChange(description string) *Commit {
 	return repo.CommitChangeset(description)
 }
 
+func (repo *TestRepo) CommitChangeAt(description string, date time.Time) {
+	dateStr := date.Format(time.RFC3339)
+	cmd := osutil.Command("git", "commit", "--allow-empty", "-m", description)
+	cmd.Dir = repo.Dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_DATE="+dateStr,
+		"GIT_COMMITTER_DATE="+dateStr,
+	)
+	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+		repo.t.Fatal(err)
+	}
+}
+
 type FileContent struct {
 	File    string
 	Content string
