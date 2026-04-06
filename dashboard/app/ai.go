@@ -474,12 +474,13 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	if job.Finished.Valid {
 		return nil, fmt.Errorf("the job %v is already finished", req.ID)
 	}
-	job.Finished = spanner.NullTime{Time: timeNow(ctx), Valid: true}
-	job.Error = req.Error[:min(len(req.Error), 4<<10)]
-	if len(req.Results) != 0 {
-		job.Results = spanner.NullJSON{Value: req.Results, Valid: true}
+	finished := timeNow(ctx)
+	errStr := req.Error[:min(len(req.Error), 4<<10)]
+	job, err = aidb.SetJobDone(ctx, req.ID, finished, errStr, req.Results)
+	if err != nil {
+		return nil, err
 	}
-	if err = aiJobUpdate(ctx, job); err != nil {
+	if err = aiJobApplyLabels(ctx, job); err != nil {
 		return nil, err
 	}
 	if !shouldReportJob(job) {
@@ -527,10 +528,7 @@ func aiCheckClientWorkflow(ctx context.Context, workflow string) error {
 	return nil
 }
 
-func aiJobUpdate(ctx context.Context, job *aidb.Job) error {
-	if err := aidb.UpdateJob(ctx, job); err != nil {
-		return err
-	}
+func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	if !job.BugID.Valid || !job.Finished.Valid || job.Error != "" {
 		return nil
 	}

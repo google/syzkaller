@@ -591,6 +591,50 @@ func LoadJobJournal(ctx context.Context, jobID, action string) ([]*Journal, erro
 	})
 }
 
+func SetJobDone(ctx context.Context, jobID string, finished time.Time,
+	errStr string, results map[string]any) (*Job, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var job Job
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": jobID},
+		}
+		iter := txn.Query(ctx, stmt)
+		row, err := iter.Next()
+		if err != nil {
+			iter.Stop()
+			return err
+		}
+		if err := row.ToStruct(&job); err != nil {
+			iter.Stop()
+			return err
+		}
+		iter.Stop()
+
+		if job.Finished.Valid {
+			return fmt.Errorf("job %s is already finished", jobID)
+		}
+
+		job.Finished = spanner.NullTime{Time: finished, Valid: true}
+		job.Error = errStr
+		job.Results = toNullJSON(results)
+
+		mut, err := spanner.UpdateStruct("Jobs", &job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &job, nil
+}
+
 func selectAllFrom[T any](table string) string {
 	var fields []string
 	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
