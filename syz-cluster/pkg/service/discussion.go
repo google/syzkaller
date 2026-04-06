@@ -78,48 +78,14 @@ func (d *DiscussionService) identifyReport(ctx context.Context, req *api.RecordR
 		if err != nil {
 			return "", fmt.Errorf("failed to query the report: %w", err)
 		} else if report != nil {
-			return d.findRootReportID(ctx, report.ID)
+			return report.ID, nil
 		}
 		return "", nil
 	}
-	// Now try to find a matching reply.
-	reportID, err := d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.InReplyTo)
+	// Now try to find a matching reply using RootMessageID.
+	reportID, err := d.reportReplyRepo.FindParentReportID(ctx, req.Reporter, req.RootMessageID)
 	if err != nil {
 		return "", fmt.Errorf("search among the replies failed: %w", err)
-	}
-	if reportID != "" {
-		return d.findRootReportID(ctx, reportID)
-	}
-	return "", nil
-}
-
-// Job results are reported with a separate reportID, and normally we are not
-// accepting commands for them. findRootReportID follows the chain of reports
-// until it finds the original bug report.
-func (d *DiscussionService) findRootReportID(ctx context.Context, reportID string) (string, error) {
-	for {
-		report, err := d.reportRepo.GetByID(ctx, reportID)
-		if err != nil {
-			return "", fmt.Errorf("failed to get report %s: %w", reportID, err)
-		}
-		if report == nil {
-			return "", nil
-		}
-		session, err := d.sessionRepo.GetByID(ctx, report.SessionID)
-		if err != nil {
-			return "", fmt.Errorf("failed to get session %s: %w", report.SessionID, err)
-		}
-		if session == nil || !session.JobID.Valid {
-			break
-		}
-		job, err := d.jobRepo.GetByID(ctx, session.JobID.StringVal)
-		if err != nil {
-			return "", fmt.Errorf("failed to get job %s: %w", session.JobID.StringVal, err)
-		}
-		if job == nil {
-			break
-		}
-		reportID = job.ReportID
 	}
 	return reportID, nil
 }

@@ -18,8 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testEmailConfig = emailclient.TestEmailConfig()
-
 func TestModerationReportFlow(t *testing.T) {
 	env, ctx := app.TestEnvironment(t)
 	testSeries := controller.DummySeries()
@@ -31,6 +29,7 @@ func TestModerationReportFlow(t *testing.T) {
 	receivedEmail := emailServer.email()
 	assert.NotNil(t, receivedEmail, "a moderation email must be sent")
 	receivedEmail.Body = nil // for now don't validate the body
+	testEmailConfig := emailclient.TestEmailConfig()
 	assert.Equal(t, &emailclient.Email{
 		To:      []string{testEmailConfig.ModerationList},
 		Cc:      []string{testEmailConfig.ArchiveList},
@@ -59,7 +58,7 @@ func TestModerationReportFlow(t *testing.T) {
 	receivedEmail.Body = nil
 	assert.Equal(t, &emailclient.Email{
 		To:        testSeries.Cc,
-		Cc:        append([]string{testEmailConfig.ArchiveList}, testEmailConfig.ReportCC...),
+		Cc:        append([]string{emailclient.TestEmailConfig().ArchiveList}, emailclient.TestEmailConfig().ReportCC...),
 		Subject:   "[name] Re: " + testSeries.Title,
 		InReplyTo: testSeries.ExtID,
 		BugID:     report.ID,
@@ -118,7 +117,7 @@ func TestInvalidReply(t *testing.T) {
 				},
 			},
 		})
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, ErrUnknownReport)
 		_, err = handler.PollAndReport(ctx)
 		assert.NoError(t, err)
 		// No email must be sent in reply.
@@ -166,7 +165,7 @@ syzbot-ci does not support` + " `fix:` " + `command
 				},
 			},
 		})
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, ErrOwnEmail)
 		_, err = handler.PollAndReport(ctx)
 		assert.NoError(t, err)
 		// No email must be sent in reply.
@@ -232,6 +231,7 @@ func TestSyzTestFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	reportReply := emailServer.email()
+	testEmailConfig := emailclient.TestEmailConfig()
 	require.NotNil(t, reportReply, "an email must be sent with the test results")
 	assert.Equal(t, "user-reply-msg-id", reportReply.InReplyTo)
 	assert.Equal(t, []string{"user@email.com", "test-cc@email.com", "other@email.com"}, reportReply.To)
@@ -301,7 +301,7 @@ func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment
 		reporter:       api.LKMLReporter,
 		reporterClient: reporterClient,
 		apiClient:      client,
-		emailConfig:    testEmailConfig,
+		emailConfig:    emailclient.TestEmailConfig(),
 		sender:         emailServer.send,
 	}
 

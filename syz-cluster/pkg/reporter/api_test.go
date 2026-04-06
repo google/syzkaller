@@ -150,45 +150,22 @@ func TestReplyReporting(t *testing.T) {
 
 	// Direct reply to the report.
 	resp, err := reportClient.RecordReply(ctx, &api.RecordReplyReq{
-		MessageID: "direct-reply-id",
-		InReplyTo: reportMessageID,
-		Reporter:  api.LKMLReporter,
-		Time:      time.Now(),
+		MessageID:     "direct-reply-id",
+		RootMessageID: reportMessageID,
+		Reporter:      api.LKMLReporter,
+		Time:          time.Now(),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, &api.RecordReplyResp{
 		New:      true,
 		ReportID: reportID,
 	}, resp)
-
-	// Reply to the reply.
-	replyToReply := &api.RecordReplyReq{
-		MessageID: "reply-to-reply-id",
-		InReplyTo: "direct-reply-id",
-		Reporter:  api.LKMLReporter,
-		Time:      time.Now(),
-	}
-	resp, err = reportClient.RecordReply(ctx, replyToReply)
-	assert.NoError(t, err)
-	assert.Equal(t, &api.RecordReplyResp{
-		New:      true,
-		ReportID: reportID,
-	}, resp)
-
-	t.Run("dup-report", func(t *testing.T) {
-		resp, err := reportClient.RecordReply(ctx, replyToReply)
-		assert.NoError(t, err)
-		assert.Equal(t, &api.RecordReplyResp{
-			New:      false,
-			ReportID: reportID,
-		}, resp)
-	})
 
 	t.Run("unknown-message", func(t *testing.T) {
 		resp, err := reportClient.RecordReply(ctx, &api.RecordReplyReq{
-			MessageID: "whatever",
-			InReplyTo: "unknown-id",
-			Reporter:  api.LKMLReporter,
+			MessageID:     "whatever",
+			RootMessageID: "unknown-id",
+			Reporter:      api.LKMLReporter,
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, &api.RecordReplyResp{

@@ -66,5 +66,9 @@ func TestEmailConfig() *app.EmailConfig {
 		SMTP: &app.SMTPConfig{
 			From: "a@b.com",
 		},
+		Dashapi: &app.DashapiConfig{
+			From:          "bot@syzbot.com",
+			ContextPrefix: "ci_",
+		},
 	}
 }
