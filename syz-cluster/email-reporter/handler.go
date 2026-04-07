@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
+	"github.com/google/syzkaller/pkg/email/sender"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
@@ -80,7 +81,7 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 		// This should never be happening..
 		return fmt.Errorf("failed to render the template: %w", err)
 	}
-	toSend := &emailclient.Email{
+	toSend := &sender.Email{
 		Subject: "Re: " + rep.Series.Title, // TODO: use the original rather than the stripped title.
 		To:      rep.Series.Cc,
 		Body:    body,
@@ -178,7 +179,7 @@ func (h *Handler) IncomingEmail(ctx context.Context, msg *email.Email) error {
 	if reply == "" {
 		return nil
 	}
-	_, err := h.sender(ctx, &emailclient.Email{
+	_, err := h.sender(ctx, &sender.Email{
 		To:        []string{msg.Author},
 		Cc:        msg.Cc,
 		Subject:   "Re: " + msg.Subject,

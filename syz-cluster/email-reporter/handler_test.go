@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/sender"
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 	"github.com/google/syzkaller/syz-cluster/pkg/controller"
@@ -30,7 +31,7 @@ func TestModerationReportFlow(t *testing.T) {
 	assert.NotNil(t, receivedEmail, "a moderation email must be sent")
 	receivedEmail.Body = nil // for now don't validate the body
 	testEmailConfig := emailclient.TestEmailConfig()
-	assert.Equal(t, &emailclient.Email{
+	assert.Equal(t, &sender.Email{
 		To:      []string{testEmailConfig.ModerationList},
 		Cc:      []string{testEmailConfig.ArchiveList},
 		Subject: "[moderation/CI] Re: " + testSeries.Title,
@@ -56,7 +57,7 @@ func TestModerationReportFlow(t *testing.T) {
 	receivedEmail = emailServer.email()
 	assert.NotNil(t, receivedEmail, "an email must be sent upstream")
 	receivedEmail.Body = nil
-	assert.Equal(t, &emailclient.Email{
+	assert.Equal(t, &sender.Email{
 		To:        testSeries.Cc,
 		Cc:        append([]string{emailclient.TestEmailConfig().ArchiveList}, emailclient.TestEmailConfig().ReportCC...),
 		Subject:   "[name] Re: " + testSeries.Title,
@@ -142,7 +143,7 @@ func TestInvalidReply(t *testing.T) {
 		assert.NoError(t, err)
 		reply := emailServer.email()
 		assert.NotNil(t, reply)
-		assert.Equal(t, &emailclient.Email{
+		assert.Equal(t, &sender.Email{
 			To:        []string{"user@email.com"},
 			Cc:        []string{"a@a.com", "b@b.com"},
 			Subject:   "Re: Command",
@@ -309,21 +310,21 @@ func setupHandlerTest(t *testing.T, ctx context.Context, env *app.AppEnvironment
 }
 
 type fakeSender struct {
-	ch chan *emailclient.Email
+	ch chan *sender.Email
 }
 
 func makeFakeSender() *fakeSender {
 	return &fakeSender{
-		ch: make(chan *emailclient.Email, 16),
+		ch: make(chan *sender.Email, 16),
 	}
 }
 
-func (f *fakeSender) send(ctx context.Context, e *emailclient.Email) (string, error) {
+func (f *fakeSender) send(ctx context.Context, e *sender.Email) (string, error) {
 	f.ch <- e
 	return "email-id", nil
 }
 
-func (f *fakeSender) email() *emailclient.Email {
+func (f *fakeSender) email() *sender.Email {
 	select {
 	case e := <-f.ch:
 		return e

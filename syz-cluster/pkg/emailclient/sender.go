@@ -6,55 +6,121 @@ package emailclient
 import (
 	"context"
 	"fmt"
+	"net/mail"
+	"strconv"
 
+	"github.com/google/syzkaller/pkg/email/sender"
+	"github.com/google/syzkaller/pkg/gcpsecret"
 	"github.com/google/syzkaller/syz-cluster/pkg/app"
 )
 
-type Email struct {
-	To        []string
-	Cc        []string
-	Subject   string
-	InReplyTo string
-	Body      []byte
-	BugID     string // In case it's to be included into Sender.
-}
+// Sender is the function type used by syz-cluster to send emails.
+type Sender func(context.Context, *sender.Email) (string, error)
 
-func (item *Email) recipients() []string {
-	var ret []string
-	ret = append(ret, item.To...)
-	ret = append(ret, item.Cc...)
-	return unique(ret)
-}
-
-type Sender func(context.Context, *Email) (string, error)
-
+// MakeSender creates a Sender based on the configuration.
 func MakeSender(ctx context.Context, cfg *app.EmailConfig) (Sender, error) {
 	switch cfg.Sender {
 	case app.SenderSMTP:
-		sender, err := newSMTPSender(ctx, cfg)
+		s, err := newSMTPSender(ctx, cfg)
 		if err != nil {
 			return nil, err
 		}
-		return sender.Send, nil
+		return s.Send, nil
 	case app.SenderDashapi:
-		return makeDashapiSender(cfg)
+		s, err := sender.NewDashapiSender(sender.DashapiConfig{
+			Client: cfg.Dashapi.Client,
+			Addr:   cfg.Dashapi.Addr,
+			From: mail.Address{
+				Name:    cfg.Name,
+				Address: cfg.Dashapi.From,
+			},
+			ContextPrefix: cfg.Dashapi.ContextPrefix,
+			SubjectPrefix: cfg.SubjectPrefix,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return s.Send, nil
 	}
 	return nil, fmt.Errorf("unsupported sender type: %q", cfg.Sender)
 }
 
-func unique(list []string) []string {
-	var ret []string
-	seen := map[string]struct{}{}
-	for _, str := range list {
-		if _, ok := seen[str]; ok {
-			continue
-		}
-		seen[str] = struct{}{}
-		ret = append(ret, str)
+func newSMTPSender(ctx context.Context, cfg *app.EmailConfig) (sender.Sender, error) {
+	project, err := gcpsecret.ProjectName(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query project name: %w", err)
 	}
-	return ret
+
+	creds, err := queryCredentials(ctx, project)
+	if err != nil {
+		return nil, err
+	}
+
+	smtpCfg := sender.SMTPConfig{
+		Host:     creds.host,
+		Port:     creds.port,
+		User:     creds.user,
+		Password: creds.password,
+		From: mail.Address{
+			Name:    cfg.Name,
+			Address: cfg.SMTP.From,
+		},
+	}
+
+	return sender.NewSMTPSender(smtpCfg), nil
 }
 
+const (
+	SecretSMTPHost     string = "smtp_host"
+	SecretSMTPPort     string = "smtp_port"
+	SecretSMTPUser     string = "smtp_user"
+	SecretSMTPPassword string = "smtp_password"
+)
+
+type smtpCredentials struct {
+	host     string
+	port     int
+	user     string
+	password string
+}
+
+func queryCredentials(ctx context.Context, projectName string) (smtpCredentials, error) {
+	values := map[string]string{}
+	for _, key := range []string{
+		SecretSMTPHost, SecretSMTPPort, SecretSMTPUser, SecretSMTPPassword,
+	} {
+		var err error
+		values[key], err = querySecret(ctx, projectName, key)
+		if err != nil {
+			return smtpCredentials{}, err
+		}
+	}
+	port, err := strconv.Atoi(values[SecretSMTPPort])
+	if err != nil {
+		return smtpCredentials{}, fmt.Errorf("failed to parse SMTP port: not a valid integer")
+	}
+	return smtpCredentials{
+		host:     values[SecretSMTPHost],
+		port:     port,
+		user:     values[SecretSMTPUser],
+		password: values[SecretSMTPPassword],
+	}, nil
+}
+
+func querySecret(ctx context.Context, projectName, key string) (string, error) {
+	const retries = 3
+	var err error
+	for range retries {
+		var val []byte
+		val, err = gcpsecret.LatestGcpSecret(ctx, projectName, key)
+		if err == nil {
+			return string(val), nil
+		}
+	}
+	return "", fmt.Errorf("failed to query %v: %w", key, err)
+}
+
+// TestEmailConfig returns a standard configuration for testing.
 func TestEmailConfig() *app.EmailConfig {
 	return &app.EmailConfig{
 		Name:           "name",
