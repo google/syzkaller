@@ -1,0 +1,23 @@
+Subject: [PATCH RFC] Fix a bug in subsystem
+
+This patch fixes a bug by doing X and Y.
+
+---
+diff --git a/file b/file
+index 123..456 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+
+base-commit: abcdef123456
+-- 
+This is an AI-generated patch subject to moderation.
+Reply with '#syz upstream' to send it to the mailing list.
+Reply with '#syz reject' to reject it.
+
+Final To: maintainer@email.com, maintainer2@email.com
+Final Cc: reviewer@email.com, reviewer2@email.com
+
+See http://docs.link for more information.

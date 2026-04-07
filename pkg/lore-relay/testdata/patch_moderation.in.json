@@ -1,0 +1,12 @@
+{
+  "CanUpstream": true,
+  "Patch": {
+    "Subject": "Fix a bug in subsystem",
+    "Body": "This patch fixes a bug by doing X and Y.",
+    "Version": 1,
+    "GitDiff": "diff --git a/file b/file\nindex 123..456 100644\n--- a/file\n+++ b/file\n@@ -1 +1 @@\n-old\n+new",
+    "BaseCommit": "abcdef123456",
+    "To": ["maintainer@email.com", "maintainer2@email.com"],
+    "Cc": ["reviewer@email.com", "reviewer2@email.com"]
+  }
+}

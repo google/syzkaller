@@ -1,0 +1,15 @@
+{{.Patch.Body}}
+
+---
+{{.Patch.GitDiff}}
+
+base-commit: {{.Patch.BaseCommit}}
+-- 
+{{ if .CanUpstream }}This is an AI-generated patch subject to moderation.
+Reply with '#syz upstream' to send it to the mailing list.
+Reply with '#syz reject' to reject it.
+
+{{if .Patch.To}}Final To: {{range $i, $e := .Patch.To}}{{if $i}}, {{end}}{{$e}}{{end}}
+{{end}}{{if .Patch.Cc}}Final Cc: {{range $i, $e := .Patch.Cc}}{{if $i}}, {{end}}{{$e}}{{end}}
+{{end}}
+{{ end }}See {{.DocsLink}} for more information.

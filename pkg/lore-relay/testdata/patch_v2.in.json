@@ -1,0 +1,9 @@
+{
+  "Patch": {
+    "Subject": "Fix another bug",
+    "Body": "This is v2 of the patch with fixed z.",
+    "Version": 2,
+    "GitDiff": "diff --git a/file2 b/file2\n--- a/file2\n+++ b/file2\n@@ -1 +1 @@\n-old2\n+new2",
+    "BaseCommit": "123456abcdef"
+  }
+}

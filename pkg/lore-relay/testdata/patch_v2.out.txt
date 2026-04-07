@@ -1,0 +1,15 @@
+Subject: [PATCH v2] Fix another bug
+
+This is v2 of the patch with fixed z.
+
+---
+diff --git a/file2 b/file2
+--- a/file2
++++ b/file2
+@@ -1 +1 @@
+-old2
++new2
+
+base-commit: 123456abcdef
+-- 
+See http://docs.link for more information.
