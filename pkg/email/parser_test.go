@@ -401,6 +401,14 @@ baz
 			Args:    "abcd",
 		},
 	},
+	{
+		body: `#syz reject`,
+		cmd: &SingleCommand{
+			Command: CmdReject,
+			Str:     "reject",
+			Args:    "",
+		},
+	},
 }
 
 type ParseTest struct {
