@@ -1851,46 +1851,10 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
+#include <linux/io_uring.h>
+
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
-#define IORING_SETUP_SQE128 (1U << 10)
-#define IORING_SETUP_CQE32 (1U << 11)
-
-struct io_sqring_offsets {
-	uint32 head;
-	uint32 tail;
-	uint32 ring_mask;
-	uint32 ring_entries;
-	uint32 flags;
-	uint32 dropped;
-	uint32 array;
-	uint32 resv1;
-	uint64 user_addr;
-};
-
-struct io_cqring_offsets {
-	uint32 head;
-	uint32 tail;
-	uint32 ring_mask;
-	uint32 ring_entries;
-	uint32 overflow;
-	uint32 cqes;
-	uint32 flags;
-	uint32 resv1;
-	uint64 user_addr;
-};
-
-struct io_uring_params {
-	uint32 sq_entries;
-	uint32 cq_entries;
-	uint32 flags;
-	uint32 sq_thread_cpu;
-	uint32 sq_thread_idle;
-	uint32 features;
-	uint32 resv[4];
-	struct io_sqring_offsets sq_off;
-	struct io_cqring_offsets cq_off;
-};
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_submit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 static long io_uring_sqe_size(struct io_uring_params* params)
@@ -1907,13 +1871,6 @@ static long io_uring_cqe_size(struct io_uring_params* params)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete || __NR_syz_ublk_process_io
-
-// From linux/io_uring.h
-struct io_uring_cqe {
-	uint64 user_data;
-	uint32 res;
-	uint32 flags;
-};
 
 static int __io_uring_complete(struct io_uring_params* params, char* ring_ptr, struct io_uring_cqe* cqe_out)
 {
@@ -1961,9 +1918,6 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues
-
-#define IORING_OFF_SQ_RING 0
-#define IORING_OFF_SQES 0x10000000ULL
 
 #include <sys/mman.h>
 #include <unistd.h>
@@ -2065,122 +2019,6 @@ static long syz_io_uring_modify_offsets(volatile long a0, volatile long a1, vola
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
-
-#include <linux/types.h>
-#include <sys/mman.h>
-
-struct io_uring_sqe {
-	__u8 opcode; // type of operation for this sqe
-	__u8 flags; // IOSQE_ flags */
-	__u16 ioprio; // ioprio for the request */
-	__s32 fd; // file descriptor to do IO on */
-	union {
-		__u64 off; // offset into file
-		__u64 addr2;
-		struct {
-			__u32 cmd_op;
-			__u32 __pad1;
-		};
-	};
-	union {
-		__u64 addr; // pointer to buffer or iovecs
-		__u64 splice_off_in;
-		struct {
-			__u32 level;
-			__u32 optname;
-		};
-	};
-	__u32 len; // buffer size or number of iovecs
-	union {
-		__u32 fsync_flags;
-		__u16 poll_events; // compatibility
-		__u32 poll32_events; // word-reversed for BE
-		__u32 sync_range_flags;
-		__u32 msg_flags;
-		__u32 timeout_flags;
-		__u32 accept_flags;
-		__u32 cancel_flags;
-		__u32 open_flags;
-		__u32 statx_flags;
-		__u32 fadvise_advice;
-		__u32 splice_flags;
-		__u32 rename_flags;
-		__u32 unlink_flags;
-		__u32 hardlink_flags;
-		__u32 xattr_flags;
-		__u32 msg_ring_flags;
-		__u32 uring_cmd_flags;
-		__u32 waitid_flags;
-		__u32 futex_flags;
-		__u32 install_fd_flags;
-		__u32 nop_flags;
-		__u32 pipe_flags;
-	};
-	__u64 user_data; // data to be passed back at completion time
-	// pack this to avoid bogus arm OABI complaints
-	union {
-		// index into fixed buffers, if used
-		__u16 buf_index;
-		// for grouped buffer selection
-		__u16 buf_group;
-	} __attribute__((packed));
-	// personality to use, if used
-	__u16 personality;
-	union {
-		__s32 splice_fd_in;
-		__u32 file_index;
-		__u32 zcrx_ifq_idx;
-		__u32 optlen;
-		struct {
-			__u16 addr_len;
-			__u16 __pad3[1];
-		};
-	};
-	union {
-		struct {
-			__u64 addr3;
-			__u64 __pad2[1];
-		};
-		struct {
-			__u64 attr_ptr; // pointer to attribute information
-			__u64 attr_type_mask; // bit mask of attributes
-		};
-		__u64 optval;
-		// If the ring is initialized with IORING_SETUP_SQE128, then
-		// this field is used for 80 bytes of arbitrary command data
-		__u8 cmd[0];
-	};
-};
-
-#endif
-
-#if SYZ_EXECUTOR || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues
-
-struct ublksrv_ctrl_dev_info {
-	__u16 nr_hw_queues;
-	__u16 queue_depth;
-	__u16 state;
-	__u16 pad0;
-
-	__u32 max_io_buf_bytes;
-	__u32 dev_id;
-
-	__s32 ublksrv_pid;
-	__u32 pad1;
-
-	__u64 flags;
-
-	__u64 ublksrv_flags;
-
-	__u32 owner_uid; // store by kernel
-	__u32 owner_gid; // store by kernel
-	__u64 reserved1;
-	__u64 reserved2;
-};
-
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_setup_queues
 
 static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
@@ -2198,21 +2036,9 @@ static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile
 
 #if SYZ_EXECUTOR || __NR_syz_ublk_add_dev
 
+#include <linux/types.h>
+#include <linux/ublk_cmd.h>
 #include <signal.h>
-
-struct ublksrv_ctrl_cmd {
-	__u32 dev_id;
-	__u16 queue_id;
-
-	__u16 len;
-	__u64 addr;
-
-	__u64 data[1];
-
-	__u16 dev_path_len;
-	__u16 pad;
-	__u32 reserved;
-};
 
 static long syz_ublk_add_dev(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
 {
@@ -2246,6 +2072,10 @@ static long syz_ublk_add_dev(volatile long a0, volatile long a1, volatile long a
 
 #if SYZ_EXECUTOR || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
+#include <linux/types.h>
+#include <linux/ublk_cmd.h>
+#include <signal.h>
+
 struct ublk_queue {
 	__u16 q_id;
 	__u32 char_dev_fd;
@@ -2256,35 +2086,9 @@ struct ublk_queue {
 	char* io_cmd_buf;
 };
 
-struct ublksrv_io_desc {
-	__u32 op_flags;
-
-	union {
-		__u32 nr_sectors;
-		__u32 nr_zones;
-	};
-	__u64 start_sector;
-
-	__u64 addr;
-};
-
-struct ublksrv_io_cmd {
-	__u16 q_id;
-
-	__u16 tag;
-	__s32 result;
-
-	union {
-		__u64 addr;
-		__u64 zone_append_lba;
-	};
-};
-
-#endif
-
 #if SYZ_EXECUTOR || __NR_syz_ublk_setup_queues
 
-#include <signal.h>
+#include <sys/mman.h>
 
 #define UBLK_MAX_QUEUE_DEPTH 4096
 #define UBLK_QUEUES_OFFSET 0
@@ -2354,34 +2158,8 @@ static long syz_ublk_setup_queues(volatile long a0, volatile long a1, volatile l
 #if SYZ_EXECUTOR || __NR_syz_ublk_process_io
 
 #include <linux/time_types.h>
-#include <linux/types.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
-
-struct io_uring_getevents_arg {
-	__u64 sigmask;
-	__u32 sigmask_sz;
-	__u32 min_wait_usec;
-	__u64 ts;
-};
-
-#define UBLK_IO_RES_OK 0
-#define UBLK_IO_RES_NEED_GET_DATA 1
-
-#define UBLK_IO_FETCH_REQ 0x20
-#define UBLK_IO_COMMIT_AND_FETCH_REQ 0x21
-#define UBLK_IO_NEED_GET_DATA 0x22
-
-#define UBLK_U_IO_FETCH_REQ \
-	_IOWR('u', UBLK_IO_FETCH_REQ, struct ublksrv_io_cmd)
-#define UBLK_U_IO_COMMIT_AND_FETCH_REQ \
-	_IOWR('u', UBLK_IO_COMMIT_AND_FETCH_REQ, struct ublksrv_io_cmd)
-#define UBLK_U_IO_NEED_GET_DATA \
-	_IOWR('u', UBLK_IO_NEED_GET_DATA, struct ublksrv_io_cmd)
-
-#define IORING_ENTER_GETEVENTS (1U << 0)
-#define IORING_ENTER_EXT_ARG (1U << 3)
 
 static long syz_ublk_process_io(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
