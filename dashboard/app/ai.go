@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/gerrit"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report/crash"
@@ -47,6 +49,13 @@ type uiAIJobPage struct {
 	History        []*uiJobReviewHistory
 	CurrentStage   string
 	NextStage      string
+	Reportings     []*uiJobReporting
+}
+
+type uiJobReporting struct {
+	Reporting *aidb.JobReporting
+	Comments  []*aidb.JobComment
+	Link      string
 }
 
 type uiJobReviewHistory struct {
@@ -270,8 +279,13 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
+
 	uiTrajectory := makeUIAITrajectory(trajectory)
 	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
+	if err != nil {
+		return err
+	}
+	uiReportings, err := loadJobReportingsWithComments(ctx, job.ID)
 	if err != nil {
 		return err
 	}
@@ -284,8 +298,75 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		TrajectoryHTML: trajectoryHTML,
 		CurrentStage:   currentStageStr,
 		NextStage:      nextStageStr,
+		Reportings:     uiReportings,
 	}
 	return serveTemplate(w, "ai_job.html", page)
+}
+
+func loadJobReportingsWithComments(ctx context.Context, jobID string) ([]*uiJobReporting, error) {
+	allReportings, err := aidb.LoadJobReportings(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	allComments, err := aidb.LoadJobComments(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	var uris []string
+	for _, c := range allComments {
+		uris = append(uris, c.BodyURI)
+	}
+	resolved, err := loadContent(ctx, uris)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range allComments {
+		if text, ok := resolved[c.BodyURI]; ok {
+			c.BodyURI = text
+		}
+	}
+
+	var uiReportings []*uiJobReporting
+	for _, r := range allReportings {
+		var comments []*aidb.JobComment
+		for _, c := range allComments {
+			if c.ReportingID == r.ID {
+				comments = append(comments, c)
+			}
+		}
+		link := ""
+		if r.Source == string(dashapi.AIJobSourceLore) && r.ExtID.Valid {
+			link = lore.LinkToMessage(r.ExtID.StringVal)
+		}
+		uiReportings = append(uiReportings, &uiJobReporting{
+			Reporting: r,
+			Comments:  comments,
+			Link:      link,
+		})
+	}
+	return uiReportings, nil
+}
+
+func loadContent(ctx context.Context, uris []string) (map[string]string, error) {
+	res := make(map[string]string)
+	for _, uri := range uris {
+		if !strings.HasPrefix(uri, "text://") {
+			return nil, fmt.Errorf("unrecognized content prefix: %q", uri)
+		}
+		idStr := strings.TrimPrefix(uri, "text://")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid content id %q: %w", idStr, err)
+		}
+		if id != 0 {
+			body, _, err := getText(ctx, textJobComment, id)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch content for %v: %w", id, err)
+			}
+			res[uri] = string(body)
+		}
+	}
+	return res, nil
 }
 
 func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([]*aidb.Job, error) {

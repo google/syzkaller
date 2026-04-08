@@ -109,3 +109,12 @@ type JobReporting struct {
 	ExtID        spanner.NullString
 	CreatedAt    time.Time
 }
+
+type JobComment struct {
+	ID          string
+	ReportingID string
+	ExtID       string
+	Author      string
+	BodyURI     string
+	Date        time.Time
+}

@@ -43,6 +43,49 @@ Detailed info on a single AI job execution.
 		{{end}}
 	{{end}}
 
+	{{if .Reportings}}
+	<table class="list_table">
+		<caption>Reporting Stages and Comments:</caption>
+		<thead>
+			<tr>
+				<th>Stage</th>
+				<th>Source</th>
+				<th>Reported At</th>
+				<th>Ext ID</th>
+				<th>Comments</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .Reportings}}
+			<tr>
+				<td>{{.Reporting.Stage}}</td>
+				<td>{{.Reporting.Source}}</td>
+				<td>{{if .Reporting.ReportedAt.Valid}}{{formatTime .Reporting.ReportedAt.Time}}{{else}}-{{end}}</td>
+				<td>{{if .Link}}<a href="{{.Link}}">{{.Reporting.ExtID.StringVal}}</a>{{else if .Reporting.ExtID.Valid}}{{.Reporting.ExtID.StringVal}}{{else}}-{{end}}</td>
+				<td>
+					{{if .Comments}}
+						<details>
+							<summary>{{len .Comments}} Comments</summary>
+							<ul>
+								{{range .Comments}}
+									<li>
+										<b>{{.Author}}</b> ({{formatTime .Date}}):
+										<pre>{{.BodyURI}}</pre>
+									</li>
+								{{end}}
+							</ul>
+						</details>
+					{{else}}
+						No comments
+					{{end}}
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
+	{{end}}
+
 	{{if .History}}
 	<table class="list_table">
 		<caption>Decision History:</caption>

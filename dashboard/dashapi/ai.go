@@ -68,6 +68,7 @@ type SendExternalCommandReq struct {
 	// Only one must be set.
 	Upstream *UpstreamCommand `json:",omitempty"`
 	Reject   *RejectCommand   `json:",omitempty"`
+	Comment  *CommentCommand  `json:",omitempty"`
 }
 
 type UpstreamCommand struct {
@@ -75,6 +76,10 @@ type UpstreamCommand struct {
 
 type RejectCommand struct {
 	Reason string
+}
+
+type CommentCommand struct {
+	Body string
 }
 
 type SendExternalCommandResp struct {

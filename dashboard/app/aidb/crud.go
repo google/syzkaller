@@ -645,6 +645,21 @@ func LoadJobReportings(ctx context.Context, jobID string) ([]*JobReporting, erro
 	})
 }
 
+func SaveJobComment(ctx context.Context, entry *JobComment) error {
+	entry.ID = uuid.NewString()
+	return saveEntity(ctx, "JobComments", entry)
+}
+
+func LoadJobComments(ctx context.Context, jobID string) ([]*JobComment, error) {
+	return selectAll[JobComment](ctx, spanner.Statement{
+		SQL: `SELECT JobComments.* FROM JobComments JOIN JobReporting ` +
+			`ON JobComments.ReportingID = JobReporting.ID ` +
+			`WHERE JobReporting.JobID = @jobID ` +
+			`ORDER BY JobComments.Date ASC`,
+		Params: map[string]any{"jobID": jobID},
+	})
+}
+
 func JobReportingPublished(ctx context.Context, id, extID string) error {
 	client, err := dbClient(ctx)
 	if err != nil {

@@ -25,6 +25,8 @@ func apiAIReportCommand(ctx context.Context, req *dashapi.SendExternalCommandReq
 		resp, err = handleUpstreamCommand(ctx, req)
 	} else if req.Reject != nil {
 		resp, err = handleRejectCommand(ctx, req)
+	} else if req.Comment != nil {
+		resp, err = handleCommentCommand(ctx, req)
 	} else {
 		return nil, fmt.Errorf("unknown command")
 	}
@@ -268,4 +270,30 @@ func lookupJobByExtReq(ctx context.Context, req *dashapi.SendExternalCommandReq)
 		return nil, nil, fmt.Errorf("job %v not found", reporting.ID)
 	}
 	return reporting, job, nil
+}
+
+func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandReq,
+) (*dashapi.SendExternalCommandResp, error) {
+	reporting, job, err := lookupJobByExtReq(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	textID, err := putText(ctx, job.Namespace, textJobComment, []byte(req.Comment.Body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to store comment body: %w", err)
+	}
+
+	err = aidb.SaveJobComment(ctx, &aidb.JobComment{
+		ReportingID: reporting.ID,
+		ExtID:       req.MessageExtID,
+		Author:      req.Author,
+		BodyURI:     fmt.Sprintf("text://%v", textID),
+		Date:        aidb.TimeNow(ctx),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &dashapi.SendExternalCommandResp{}, nil
 }

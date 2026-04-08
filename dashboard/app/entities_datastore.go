@@ -678,6 +678,7 @@ const (
 	textError        = "Error"
 	textReproLog     = "ReproLog"
 	textFsckLog      = "FsckLog"
+	textJobComment   = "JobComment"
 )
 
 const (
