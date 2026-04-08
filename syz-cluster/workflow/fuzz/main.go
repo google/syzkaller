@@ -288,6 +288,8 @@ func generateConfigs(config *api.FuzzConfig) (*mgrconfig.Config, *mgrconfig.Conf
 	}
 	base.SessionID = *flagSession
 	patched.SessionID = *flagSession
+	base.Name = fmt.Sprintf("%s-%s", base.Name, *flagSession)
+	patched.Name = fmt.Sprintf("%s-%s", patched.Name, *flagSession)
 	base.Workdir = filepath.Join(*flagWorkdir, "base")
 	osutil.MkdirAll(base.Workdir)
 	patched.Workdir = filepath.Join(*flagWorkdir, "patched")
