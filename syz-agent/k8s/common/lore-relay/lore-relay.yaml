@@ -1,0 +1,46 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lore-relay
+  labels:
+    app: lore-relay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lore-relay
+  template:
+    metadata:
+      labels:
+        app: lore-relay
+    spec:
+      serviceAccountName: lore-relay-ksa
+      containers:
+      - name: lore-relay
+        image: gcr.io/syzkaller/lore-relay:latest
+        args: ["-config=/config/lore-relay-config.yaml"]
+        env:
+        - name: GIT_DISCOVERY_ACROSS_FILESYSTEM
+          value: "1"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+        - name: lore-repo-volume
+          mountPath: /lore-repo
+        resources:
+          requests:
+            cpu: 2
+            memory: 8Gi
+          limits:
+            cpu: 4
+            memory: 16Gi
+      volumes:
+      - name: config-volume
+        configMap:
+          name: lore-relay-config
+      - name: lore-repo-volume
+        persistentVolumeClaim:
+          claimName: lore-relay-pvc

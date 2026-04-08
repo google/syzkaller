@@ -1,0 +1,17 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+dashboard_addr: "https://syzkaller.appspot.com"
+dashboard_client: "lore-relay"
+dashboard_key: "gcp-secret:lore-relay-dashboard-key"
+lore_url: "https://lore.kernel.org/all/"
+own_emails:
+  - "syzbot@syzkaller.appspotmail.com"
+  - "syzbot@kernel.org"
+lore_archive: "syzbot@lists.linux.dev"
+smtp:
+  host: "gcp-secret:lore-relay-smtp-host"
+  port: "gcp-secret:lore-relay-smtp-port"
+  user: "gcp-secret:lore-relay-smtp-user"
+  password: "gcp-secret:lore-relay-smtp-password"
+  from: "syzbot <syzbot@kernel.org>"
