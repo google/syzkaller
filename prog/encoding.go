@@ -1190,13 +1190,17 @@ func (p *parser) Scan() bool {
 		return false
 	}
 	nextLine := bytes.IndexByte(p.data, '\n')
+	var line []byte
 	if nextLine != -1 {
-		p.s = string(p.data[:nextLine])
+		line = p.data[:nextLine]
 		p.data = p.data[nextLine+1:]
 	} else {
-		p.s = string(p.data)
+		line = p.data
 		p.data = nil
 	}
+	line = bytes.TrimLeft(line, " \t")
+	line = bytes.TrimRight(line, " \t\r")
+	p.s = string(line)
 	p.i = 0
 	p.l++
 	return true
