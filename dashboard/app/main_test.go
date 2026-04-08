@@ -194,6 +194,41 @@ func TestMainBugFilters(t *testing.T) {
 	assert.Contains(t, string(reply), crash1.Title) // the bug has no subsystems
 }
 
+func TestDateRangeFilter(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "date-filter-crash"
+	client.ReportCrash(crash)
+	c.globalClient.pollBugs(1)
+
+	// Bug's FirstTime is around 2000-01-01 (mocked time).
+	reply, err := c.AuthGET(AccessAdmin, "/test1?date_from=2000-01-01&date_to=2000-12-31")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), crash.Title)
+	assert.Contains(t, string(reply), "Applied filters")
+	assert.Contains(t, string(reply), "date_from=2000-01-01")
+
+	// Exclude the bug by specifying a range in the future.
+	reply, err = c.AuthGET(AccessAdmin, "/test1?date_from=2001-01-01")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash.Title)
+
+	// Exclude the bug by specifying a range in the past.
+	reply, err = c.AuthGET(AccessAdmin, "/test1?date_to=1999-12-31")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), crash.Title)
+
+	// Invalid date format returns an error.
+	_, err = c.AuthGET(AccessAdmin, "/test1?date_from=not-a-date")
+	assert.Error(t, err)
+}
+
 func TestSubsystemsList(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
