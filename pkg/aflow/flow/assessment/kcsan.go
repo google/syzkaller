@@ -18,7 +18,6 @@ type kcsanInputs struct {
 	KernelConfig string
 }
 
-// nolint:dupl
 func init() {
 	aflow.Register[kcsanInputs, ai.AssessmentKCSANOutputs](
 		ai.WorkflowAssessmentKCSAN,
@@ -33,13 +32,22 @@ func init() {
 					Model: aflow.GoodBalancedModel,
 					Reply: "Explanation",
 					Outputs: aflow.LLMOutputs[struct {
-						Confident bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
-						Benign    bool `jsonschema:"If the data race is benign or not."`
+						Benign bool `jsonschema:"If the data race is benign or not."`
 					}](),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: kcsanInstruction,
 					Prompt:      kcsanPrompt,
 					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+				},
+				&aflow.LLMAgent{
+					Name:  "skeptic",
+					Model: aflow.GoodBalancedModel,
+					Outputs: aflow.LLMOutputs[struct {
+						Confident bool `jsonschema:"If the expert's analysis is correct and well-supported or not."`
+					}](),
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: kcsanSkepticInstruction,
+					Prompt:      kcsanSkepticPrompt,
 				},
 			),
 		},
@@ -89,4 +97,25 @@ const kcsanPrompt = `
 The data race report is:
 
 {{.CrashReport}}
+`
+
+const kcsanSkepticInstruction = `
+You are reviewing a kernel developer's analysis of a KCSAN data race report.
+You did NOT write this analysis. Evaluate it critically and independently.
+
+Set Confident to true only if the reasoning is sound, the conclusion is clearly
+supported by evidence, and there are no significant gaps or unverified assumptions.
+Set Confident to false if there is meaningful doubt about the correctness of the verdict.
+`
+
+const kcsanSkepticPrompt = `
+The original data race report:
+{{.CrashReport}}
+
+The expert concluded the race is {{if .Benign}}benign{{else}}not benign{{end}}.
+
+Their explanation:
+{{.Explanation}}
+
+Is the conclusion well-supported? Are you confident in it?
 `

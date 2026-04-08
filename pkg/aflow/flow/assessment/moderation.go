@@ -19,7 +19,6 @@ type moderationInputs struct {
 	KernelConfig string
 }
 
-// nolint:dupl
 func init() {
 	aflow.Register[moderationInputs, ai.ModerationOutputs](
 		ai.WorkflowModeration,
@@ -34,13 +33,22 @@ func init() {
 					Model: aflow.GoodBalancedModel,
 					Reply: "Explanation",
 					Outputs: aflow.LLMOutputs[struct {
-						Confident  bool `jsonschema:"If you are confident in the verdict of the analysis or not."`
 						Actionable bool `jsonschema:"If the report is actionable or not."`
 					}](),
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: moderationInstruction,
 					Prompt:      moderationPrompt,
 					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+				},
+				&aflow.LLMAgent{
+					Name:  "skeptic",
+					Model: aflow.GoodBalancedModel,
+					Outputs: aflow.LLMOutputs[struct {
+						Confident bool `jsonschema:"If the expert's analysis is correct and well-supported or not."`
+					}](),
+					TaskType:    aflow.FormalReasoningTask,
+					Instruction: moderationSkepticInstruction,
+					Prompt:      moderationSkepticPrompt,
 				},
 			),
 		},
@@ -81,4 +89,25 @@ const moderationPrompt = `
 The bug report is:
 
 {{.CrashReport}}
+`
+
+const moderationSkepticInstruction = `
+You are reviewing a kernel developer's assessment of a bug report.
+You did NOT write this assessment. Evaluate it critically and independently.
+
+Set Confident to true only if the reasoning is sound, the conclusion is clearly
+supported by evidence, and there are no significant gaps or unverified assumptions.
+Set Confident to false if there is meaningful doubt about the correctness of the verdict.
+`
+
+const moderationSkepticPrompt = `
+The original bug report:
+{{.CrashReport}}
+
+The expert concluded the report is {{if .Actionable}}actionable{{else}}not actionable{{end}}.
+
+Their explanation:
+{{.Explanation}}
+
+Is the conclusion well-supported? Are you confident in it?
 `
