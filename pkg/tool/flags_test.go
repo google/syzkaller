@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseFlags(t *testing.T) {
@@ -53,9 +53,7 @@ func TestParseFlags(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing failed: %v", err)
 			}
-			if diff := cmp.Diff(test.vals, vals); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.vals, vals)
 			if flags.NArg() != 2 || flags.Arg(0) != "arg0" || flags.Arg(1) != "arg1" {
 				t.Fatalf("bad args: %q", flags.Args())
 			}
@@ -75,9 +73,7 @@ func TestCfgsFlagSet(t *testing.T) {
 	if err := cfgs.Set("a, b, c"); err != nil {
 		t.Fatalf("cfgs.Set got: %v, want: nil", err)
 	}
-	if diff := cmp.Diff(*cfgs, CfgsFlag{"a", "b", "c"}); diff != "" {
-		t.Errorf("*cfgs mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, CfgsFlag{"a", "b", "c"}, *cfgs, "*cfgs mismatch")
 }
 
 func TestCfgsFlagAlreadySet(t *testing.T) {
