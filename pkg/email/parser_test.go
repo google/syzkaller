@@ -9,20 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			cmd, _ := extractCommand(test.body)
-			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.cmd, cmd)
 			cmd, _ = extractCommand(strings.ReplaceAll(test.body, "\n", "\r\n"))
-			if diff := cmp.Diff(test.cmd, cmd); diff != "" {
-				t.Fatal(diff)
-			}
+			require.Equal(t, test.cmd, cmd)
 		})
 	}
 }
@@ -124,9 +121,7 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if diff := cmp.Diff(&test.res, email); diff != "" {
-				t.Error(diff)
-			}
+			assert.Equal(t, &test.res, email)
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
 

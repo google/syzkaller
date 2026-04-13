@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/stretchr/testify/assert"
@@ -251,9 +250,7 @@ Bug report`,
 	}
 
 	for key, val := range expected {
-		if diff := cmp.Diff(val, got[key]); diff != "" {
-			t.Fatalf("%s: %s", key, diff)
-		}
+		require.Equal(t, val, got[key], key)
 	}
 
 	if len(threads) > len(expected) {
