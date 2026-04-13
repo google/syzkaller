@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/osutil"
 	. "github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -78,7 +78,5 @@ func TestForEachAsset(t *testing.T) {
 	}
 	sort.Strings(testedOutFiles)
 	sort.Strings(allOutFiles)
-	if diff := cmp.Diff(allOutFiles, testedOutFiles); diff != "" {
-		t.Fatalf("not all output files used: %v", diff)
-	}
+	require.Equal(t, allOutFiles, testedOutFiles, "not all output files used")
 }

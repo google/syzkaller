@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/image"
 	"github.com/stretchr/testify/assert"
 )
@@ -405,14 +404,10 @@ func TestHintsCompressedImage(t *testing.T) {
 			}
 			sort.Strings(res)
 			sort.Strings(test.output)
-			if diff := cmp.Diff(test.output, res); diff != "" {
-				t.Fatalf("got wrong mutants: %v", diff)
-			}
+			assert.Equal(t, test.output, res, "got wrong mutants")
 			data, dtor := image.MustDecompress(arg.Data())
 			defer dtor()
-			if diff := cmp.Diff(test.input, string(data)); diff != "" {
-				t.Fatalf("argument got changed afterwards: %v", diff)
-			}
+			assert.Equal(t, test.input, string(data), "argument got changed afterwards")
 		})
 	}
 }

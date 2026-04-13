@@ -10,7 +10,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRotationResourceless(t *testing.T) {
@@ -19,9 +19,7 @@ func TestRotationResourceless(t *testing.T) {
 		target.SyscallMap["test$int"]: true,
 	}
 	got := MakeRotator(target, calls, rand.New(rs)).Select()
-	if diff := cmp.Diff(calls, got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, calls, got)
 }
 
 func TestRotationRandom(t *testing.T) {
@@ -154,7 +152,5 @@ func TestRotationDeterminism(t *testing.T) {
 	calls0 := MakeRotator(target, calls, rnd0).Select()
 	rnd1 := rand.New(rand.NewSource(seed))
 	calls1 := MakeRotator(target, calls, rnd1).Select()
-	if diff := cmp.Diff(calls0, calls1); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, calls0, calls1)
 }
