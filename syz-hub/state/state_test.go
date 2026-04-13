@@ -7,8 +7,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/stretchr/testify/require"
 )
 
 type TestState struct {
@@ -147,42 +147,34 @@ func TestDomain(t *testing.T) {
 		if domain != "domain1" || pending != 0 {
 			t.Fatalf("bad sync result: %v, %v, %v", domain, inputs, pending)
 		}
-		if diff := cmp.Diff(inputs, []rpctype.HubInput{
+		require.Equal(t, []rpctype.HubInput{
 			{Domain: "", Prog: []byte("open(0x0)")},
-		}); diff != "" {
-			t.Fatal(diff)
-		}
+		}, inputs)
 	}
 	{
 		_, inputs, _ := st.Sync("client2", [][]byte{[]byte("open(0x3)")}, nil)
-		if diff := cmp.Diff(inputs, []rpctype.HubInput{
+		require.Equal(t, []rpctype.HubInput{
 			{Domain: "", Prog: []byte("open(0x0)")},
 			{Domain: "domain1", Prog: []byte("open(0x1)")},
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
-		}); diff != "" {
-			t.Fatal(diff)
-		}
+		}, inputs)
 	}
 	{
 		_, inputs, _ := st.Sync("client0", nil, nil)
-		if diff := cmp.Diff(inputs, []rpctype.HubInput{
+		require.Equal(t, []rpctype.HubInput{
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
-		}); diff != "" {
-			t.Fatal(diff)
-		}
+		}, inputs)
 	}
 	st.Reload()
 	st.Connect("client3", "domain3", false, []string{"open"}, nil)
 	{
 		_, inputs, _ := st.Sync("client3", nil, nil)
-		if diff := cmp.Diff(inputs, []rpctype.HubInput{
+		require.Equal(t, []rpctype.HubInput{
 			{Domain: "", Prog: []byte("open(0x0)")},
 			{Domain: "domain1", Prog: []byte("open(0x1)")},
 			{Domain: "domain1", Prog: []byte("open(0x2)")},
 			{Domain: "domain2", Prog: []byte("open(0x3)")},
-		}); diff != "" {
-			t.Fatal(diff)
-		}
+		}, inputs)
 	}
 }
