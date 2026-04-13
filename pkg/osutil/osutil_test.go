@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsExist(t *testing.T) {
@@ -150,9 +150,7 @@ func TestReadWriteJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(test, test2); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, test, test2)
 }
 
 func TestDiskUsage(t *testing.T) {
