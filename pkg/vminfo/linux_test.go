@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLinuxSyscalls(t *testing.T) {
@@ -146,9 +146,7 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 				t.Fatal(err)
 			}
 			if test.want != "" {
-				if diff := cmp.Diff(buf.String(), test.want); diff != "" {
-					t.Fatal(diff)
-				}
+				require.Equal(t, test.want, buf.String())
 				return
 			}
 			checkCPUInfo(t, buf.Bytes(), test.arch)
