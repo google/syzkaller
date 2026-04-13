@@ -342,6 +342,10 @@ func TestWriteLLM(t *testing.T) {
 	t.Parallel()
 	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
 	require.NoError(t, err)
+	sysTarget := targets.Get(target.OS, target.Arch)
+	if sysTarget.BrokenCompiler != "" {
+		t.Skipf("compiler is broken: %v", sysTarget.BrokenCompiler)
+	}
 
 	p, err := target.Deserialize([]byte(`
 r0 = csource0(0x1)
