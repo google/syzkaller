@@ -7,7 +7,7 @@ import (
 	"net/mail"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCanonicalizeCommit(t *testing.T) {
@@ -264,13 +264,7 @@ func TestParse(t *testing.T) {
 		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
 		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}}
 
-	if diff := cmp.Diff(ParseMaintainersLinux(test1), maintainers1); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(ParseMaintainersLinux(test2), maintainers2); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(ParseMaintainersLinux([]byte("")), Recipients(nil)); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, maintainers1, ParseMaintainersLinux(test1))
+	require.Equal(t, maintainers2, ParseMaintainersLinux(test2))
+	require.Equal(t, Recipients(nil), ParseMaintainersLinux([]byte("")))
 }

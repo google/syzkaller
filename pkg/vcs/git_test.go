@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,9 +78,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		if com.Author != res.Author {
 			t.Fatalf("want author %q, got %q", com.Author, res.Author)
 		}
-		if diff := cmp.Diff(com.Recipients, res.Recipients); diff != "" {
-			t.Fatalf("bad CC: %v", diff)
-		}
+		require.Equal(t, com.Recipients, res.Recipients, "bad CC")
 		if !com.Date.Equal(res.Date) {
 			t.Fatalf("want date %v, got %v", com.Date, res.Date)
 		}
@@ -292,17 +289,13 @@ func TestObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(data, firstRev); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, firstRev, data)
 	// And at the second one.
 	data, err = repo.repo.Object("object.txt", commits[0].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(data, secondRev); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, secondRev, data)
 	com, err := repo.repo.Commit(commits[0].Hash)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -317,9 +310,7 @@ index 103167d..fbf7a68 100644
 +Second revision
 \ No newline at end of file
 `)
-	if diff := cmp.Diff(com.Patch, patch); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, patch, com.Patch)
 }
 
 func TestMergeBase(t *testing.T) {

@@ -10,8 +10,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -30,18 +31,14 @@ func TestGitRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo1.Commits["master"]["1"]); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, repo1.Commits["master"]["1"], com)
 	}
 	{
 		com, err := repo.CheckoutBranch(repo1.Dir, "branch1")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo1.Commits["branch1"]["1"]); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, repo1.Commits["branch1"]["1"], com)
 	}
 	{
 		want := repo1.Commits["branch1"]["0"]
@@ -49,9 +46,7 @@ func TestGitRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, want); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, want, com)
 	}
 	{
 		want := repo2.Commits["branch1"]["0"]
@@ -59,9 +54,7 @@ func TestGitRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, want); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, want, com)
 	}
 	{
 		want := repo2.Commits["branch1"]["1"]
@@ -69,18 +62,14 @@ func TestGitRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, want); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, want, com)
 	}
 	{
 		com, err := repo.CheckoutBranch(repo2.Dir, "branch2")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo2.Commits["branch2"]["1"]); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, repo2.Commits["branch2"]["1"], com)
 	}
 	{
 		want := repo2.Commits["branch2"]["0"]
@@ -88,9 +77,7 @@ func TestGitRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, want); diff != "" {
-			t.Fatal(diff)
-		}
+		require.Equal(t, want, com)
 	}
 	{
 		type Test struct {
@@ -178,12 +165,11 @@ func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags 
 	if userName != com.AuthorName {
 		t.Errorf("#%v: want author name %q, got %q", idx, userName, com.Author)
 	}
-	if diff := cmp.Diff(test.cc, com.Recipients.GetEmails(To)); diff != "" {
+	if !assert.Equal(t, test.cc, com.Recipients.GetEmails(To)) {
 		t.Logf("%#v", com.Recipients)
-		t.Error(diff)
 	}
-	if diff := cmp.Diff(test.tags, com.Tags); checkTags && diff != "" {
-		t.Error(diff)
+	if checkTags {
+		assert.Equal(t, test.tags, com.Tags)
 	}
 }
 
@@ -395,9 +381,9 @@ func TestBisect(t *testing.T) {
 		}
 		sort.Strings(got) // git result order is non-deterministic (wat)
 		sort.Strings(test.result)
-		if diff := cmp.Diff(test.result, got); diff != "" {
+		if !assert.Equal(t, test.result, got) {
 			t.Logf("result: %+v", got)
-			t.Fatal(diff)
+			t.FailNow()
 		}
 	}
 }
