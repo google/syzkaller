@@ -16,7 +16,6 @@ require (
 	github.com/argoproj/argo-workflows/v3 v3.7.10
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/flatbuffers v25.12.19+incompatible
-	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
@@ -171,6 +170,7 @@ require (
 	github.com/golangci/swaggoswag v0.0.0-20250504205917-77f2aca3143e // indirect
 	github.com/golangci/unconvert v0.0.0-20250410112200-a129a6e6413e // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/keep-sorted v0.6.1 // indirect
 	github.com/google/pprof v0.0.0-20260302011040-a15ffb7f9dcc // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
