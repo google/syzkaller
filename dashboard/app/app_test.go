@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/subsystem"
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/appengine/v2/user"
 )
 
@@ -1244,7 +1244,5 @@ kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/i
 [&lt;81751700&gt;] (show_stack) from [&lt;8176d3e0&gt;] (dump_stack_lvl+0x48/0x54 <a href='https://github.com/google/syzkaller/blob/111222/lib/dump_stack.c#L106'>lib/dump_stack.c:106</a>)
 `
 	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
-	if diff := cmp.Diff(output, string(got)); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, output, string(got))
 }

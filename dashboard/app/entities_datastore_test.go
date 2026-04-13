@@ -6,7 +6,7 @@ package main
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -42,7 +42,7 @@ func TestOldBugTagsConversion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(&Bug{
+	require.Equal(t, &Bug{
 		Namespace: "some-ns",
 		Title:     "some title",
 		Labels: []BugLabel{
@@ -56,7 +56,5 @@ func TestOldBugTagsConversion(t *testing.T) {
 				Label: SubsystemLabel,
 			},
 		},
-	}, newBug); diff != "" {
-		t.Fatal(diff)
-	}
+	}, newBug)
 }

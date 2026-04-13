@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/coveragedb"
 	"github.com/google/syzkaller/pkg/coveragedb/mocks"
@@ -20,6 +19,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReportBug(t *testing.T) {
@@ -1129,9 +1129,7 @@ func TestUpdateReportApi(t *testing.T) {
 	if ret.ReportElements == nil {
 		t.Fatalf("ReportElements is nil")
 	}
-	if diff := cmp.Diff(ret.ReportElements.GuiltyFiles, setGuiltyFiles); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, setGuiltyFiles, ret.ReportElements.GuiltyFiles)
 }
 
 func TestReportDecommissionedBugs(t *testing.T) {

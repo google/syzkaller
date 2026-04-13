@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -490,8 +489,8 @@ func getConfig(ctx context.Context) *GlobalConfig {
 func validateGlobalConfig() {
 	if ensureConfigImmutability {
 		currentConfig := configDontUse.marshalJSON()
-		if diff := cmp.Diff(currentConfig, marshaledConfig); diff != "" {
-			panic("global config changed during execution: " + diff)
+		if currentConfig != marshaledConfig {
+			panic(fmt.Sprintf("global config changed during execution. Want:\n%s\nGot:\n%s", marshaledConfig, currentConfig))
 		}
 	}
 }

@@ -30,7 +30,6 @@ import (
 
 	"cloud.google.com/go/spanner/admin/database/apiv1"
 	"cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/api"
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -258,10 +257,8 @@ func (ctx *Ctx) expectBadReqest(err error) {
 }
 
 func (ctx *Ctx) expectEQ(got, want any) {
-	if diff := cmp.Diff(got, want); diff != "" {
-		ctx.t.Helper()
-		ctx.t.Fatal(diff)
-	}
+	ctx.t.Helper()
+	require.Equal(ctx.t, want, got)
 }
 
 func (ctx *Ctx) expectNE(got, want any) {

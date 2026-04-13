@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmailNotifUpstreamEmbargo(t *testing.T) {
@@ -137,10 +137,7 @@ The full list of 5 trees can be found at
 https://testapp.appspot.com/access-public-email/repos
 `, extBugID)
 
-	if diff := cmp.Diff(expectReply, notif.Body); diff != "" {
-		t.Errorf("wrong notification text: %s", diff)
-		fmt.Printf("received notification:\n%s\n", notif.Body)
-	}
+	assert.Equal(t, expectReply, notif.Body, "wrong notification text")
 	// No notifications for another 14 days, then another one.
 	c.advanceTime(13 * 24 * time.Hour)
 	c.expectNoEmail()

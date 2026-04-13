@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	db "google.golang.org/appengine/v2/datastore"
 	aemail "google.golang.org/appengine/v2/mail"
 )
@@ -1254,39 +1254,24 @@ func TestRepoGraph(t *testing.T) {
 	lts := g.nodeByAlias(`lts`)
 	upstream := g.nodeByAlias(`upstream`)
 
-	// Test the downstream node.
-	if diff := cmp.Diff(map[*repoNode]bool{
+	require.Equal(t, map[*repoNode]bool{
 		lts:      true,
 		upstream: false,
-	}, downstream.reachable(true)); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(map[*repoNode]bool{}, downstream.reachable(false)); diff != "" {
-		t.Fatal(diff)
-	}
+	}, downstream.reachable(true))
+	require.Equal(t, map[*repoNode]bool{}, downstream.reachable(false))
 
-	// Test the lts node.
-	if diff := cmp.Diff(map[*repoNode]bool{
+	require.Equal(t, map[*repoNode]bool{
 		upstream: false,
-	}, lts.reachable(true)); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(map[*repoNode]bool{
+	}, lts.reachable(true))
+	require.Equal(t, map[*repoNode]bool{
 		downstream: true,
-	}, lts.reachable(false)); diff != "" {
-		t.Fatal(diff)
-	}
+	}, lts.reachable(false))
 
-	// Test the upstream node.
-	if diff := cmp.Diff(map[*repoNode]bool{}, upstream.reachable(true)); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(map[*repoNode]bool{
+	require.Equal(t, map[*repoNode]bool{}, upstream.reachable(true))
+	require.Equal(t, map[*repoNode]bool{
 		downstream: false,
 		lts:        false,
-	}, upstream.reachable(false)); diff != "" {
-		t.Fatal(diff)
-	}
+	}, upstream.reachable(false))
 }
 
 func TestRepoGraphMergeFirst(t *testing.T) {
@@ -1332,14 +1317,9 @@ func TestRepoGraphMergeFirst(t *testing.T) {
 	lts := g.nodeByAlias(`lts`)
 	upstream := g.nodeByAlias(`upstream`)
 
-	// Test the downstream node.
-	if diff := cmp.Diff(map[*repoNode]bool{
+	require.Equal(t, map[*repoNode]bool{
 		lts:      true,
 		upstream: true,
-	}, downstream.reachable(true)); diff != "" {
-		t.Fatal(diff)
-	}
-	if diff := cmp.Diff(map[*repoNode]bool{}, downstream.reachable(false)); diff != "" {
-		t.Fatal(diff)
-	}
+	}, downstream.reachable(true))
+	require.Equal(t, map[*repoNode]bool{}, downstream.reachable(false))
 }

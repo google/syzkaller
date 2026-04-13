@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDiscussionAccess(t *testing.T) {
@@ -81,7 +81,7 @@ func TestDiscussionAccess(t *testing.T) {
 	// Verify discussion that spans only one bug.
 	got, err := getBugDiscussionsUI(c.ctx, firstBug)
 	c.expectOK(err)
-	if diff := cmp.Diff([]*uiBugDiscussion{
+	require.Equal(t, []*uiBugDiscussion{
 		{
 			Subject:  "Patch for both bugs",
 			Link:     "https://lore.kernel.org/all/123/T/",
@@ -89,9 +89,7 @@ func TestDiscussionAccess(t *testing.T) {
 			External: 1,
 			Last:     firstTime,
 		},
-	}, got); diff != "" {
-		t.Fatal(diff)
-	}
+	}, got)
 
 	secondBug, _, err := findBugByReportingID(c.ctx, rep2.ID)
 	c.expectOK(err)
@@ -99,7 +97,7 @@ func TestDiscussionAccess(t *testing.T) {
 	// Verify that we also show discussions for several bugs.
 	got, err = getBugDiscussionsUI(c.ctx, secondBug)
 	c.expectOK(err)
-	if diff := cmp.Diff([]*uiBugDiscussion{
+	require.Equal(t, []*uiBugDiscussion{
 		{
 			Subject:  "Second bug reported",
 			Link:     "https://lore.kernel.org/all/456/T/",
@@ -114,20 +112,16 @@ func TestDiscussionAccess(t *testing.T) {
 			External: 1,
 			Last:     firstTime,
 		},
-	}, got); diff != "" {
-		t.Fatal(diff)
-	}
+	}, got)
 
 	// Verify the summary.
 	summary := secondBug.discussionSummary()
-	if diff := cmp.Diff(DiscussionSummary{
+	require.Equal(t, DiscussionSummary{
 		AllMessages:      2,
 		ExternalMessages: 1,
 		LastMessage:      secondTime,
 		LastPatchMessage: firstTime,
-	}, summary); diff != "" {
-		t.Fatal(diff)
-	}
+	}, summary)
 }
 
 func TestEmailOwnDiscussions(t *testing.T) {
@@ -164,17 +158,15 @@ Hello`, msg.Sender)
 	zone := time.FixedZone("", -7*60*60)
 	got, err := getBugDiscussionsUI(c.ctx, bug)
 	c.expectOK(err)
-	if diff := cmp.Diff([]*uiBugDiscussion{
+	require.Equal(t, []*uiBugDiscussion{
 		{
 			Subject:  "Bug reported",
 			Link:     "https://lore.kernel.org/all/1234/T/",
 			Total:    1,
 			External: 0,
-			Last:     time.Date(2017, time.August, 15, 14, 59, 0, 0, zone),
+			Last:     time.Date(2017, time.August, 15, 14, 59, 0, 0, zone).UTC(),
 		},
-	}, got); diff != "" {
-		t.Fatal(diff)
-	}
+	}, got)
 
 	// Emulate some user-reply to the discussion.
 	incoming2 := fmt.Sprintf(`Sender: user@user.com
@@ -192,20 +184,18 @@ Hello`, msg.Sender)
 
 	bug, _, err = findBugByReportingID(c.ctx, extBugID)
 	c.expectOK(err)
-
 	got, err = getBugDiscussionsUI(c.ctx, bug)
 	c.expectOK(err)
-	if diff := cmp.Diff([]*uiBugDiscussion{
+
+	require.Equal(t, []*uiBugDiscussion{
 		{
 			Subject:  "Bug reported",
 			Link:     "https://lore.kernel.org/all/1234/T/",
 			Total:    2,
 			External: 1,
-			Last:     time.Date(2017, time.August, 16, 14, 59, 0, 0, zone),
+			Last:     time.Date(2017, time.August, 16, 14, 59, 0, 0, zone).UTC(),
 		},
-	}, got); diff != "" {
-		t.Fatal(diff)
-	}
+	}, got)
 }
 
 func TestEmailUnrelatedDiscussion(t *testing.T) {
@@ -242,9 +232,7 @@ Hello`, msg.Sender)
 	// The discussion should go ignored.
 	got, err := getBugDiscussionsUI(c.ctx, bug)
 	c.expectOK(err)
-	if diff := cmp.Diff([]*uiBugDiscussion(nil), got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, []*uiBugDiscussion(nil), got)
 }
 
 func TestEmailSubdiscussion(t *testing.T) {
