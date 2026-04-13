@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/flatrpc"
 	"github.com/google/syzkaller/pkg/instance"
@@ -203,9 +202,7 @@ func TestPlainRepro(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(expectedReproducer, string(result.Prog.Serialize())); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, expectedReproducer, string(result.Prog.Serialize()))
 }
 
 // There happen to be transient errors like ssh/scp connection failures.
@@ -224,11 +221,9 @@ func TestVMErrorResilience(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(`pause()
+	require.Equal(t, `pause()
 alarm(0xa)
-`, string(result.Prog.Serialize())); diff != "" {
-		t.Fatal(diff)
-	}
+`, string(result.Prog.Serialize()))
 }
 
 func TestTooManyErrors(t *testing.T) {
@@ -272,11 +267,9 @@ func TestProgConcatenation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(`pause()
+	require.Equal(t, `pause()
 alarm(0xa)
-`, string(result.Prog.Serialize())); diff != "" {
-		t.Fatal(diff)
-	}
+`, string(result.Prog.Serialize()))
 }
 
 func TestFlakyCrashes(t *testing.T) {
