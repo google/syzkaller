@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
@@ -58,9 +58,7 @@ func TestFinalizeCallSet(t *testing.T) {
 	wantCalls, gotCalls := map[*prog.Syscall]bool{
 		target.SyscallMap["disabled1"]: true,
 	}, vrf.calls
-	if diff := cmp.Diff(wantCalls, gotCalls); diff != "" {
-		t.Errorf("srv.calls mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, wantCalls, gotCalls, "srv.calls mismatch")
 }
 
 func TestUpdateUnsupported(t *testing.T) {
@@ -130,22 +128,13 @@ func TestUpdateUnsupported(t *testing.T) {
 			if err := vrf.srv.UpdateUnsupported(a, nil); err != nil {
 				t.Fatalf("srv.UpdateUnsupported failed: %v", err)
 			}
-
-			if diff := cmp.Diff(test.wantPools, vrf.pools, cmp.AllowUnexported(poolInfo{})); diff != "" {
-				t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
-			}
-
+			assert.Equal(t, test.wantPools, vrf.pools, "srv.pools mismatch")
 			wantReasons := map[*prog.Syscall]string{
 				target.SyscallMap["test$res0"]:   "foo",
 				target.SyscallMap["test$union0"]: "tar",
 			}
-			if diff := cmp.Diff(wantReasons, vrf.reasons); diff != "" {
-				t.Errorf("srv.reasons mismatch (-want +got):\n%s", diff)
-			}
-
-			if diff := cmp.Diff(test.wantCalls, vrf.calls); diff != "" {
-				t.Errorf("srv.calls mismatch (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, wantReasons, vrf.reasons, "srv.reasons mismatch")
+			assert.Equal(t, test.wantCalls, vrf.calls, "srv.calls mismatch")
 
 			if want, got := test.wantNotChecked, vrf.srv.notChecked; want != got {
 				t.Errorf("srv.notChecked: got %d want %d", got, want)
@@ -189,9 +178,7 @@ func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 		0: {checked: true},
 		1: {checked: false},
 	}
-	if diff := cmp.Diff(wantPools, vrf.pools, cmp.AllowUnexported(poolInfo{})); diff != "" {
-		t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, wantPools, vrf.pools, "srv.pools mismatch")
 }
 
 func TestSaveDiffResults(t *testing.T) {
@@ -233,17 +220,7 @@ func TestSaveDiffResults(t *testing.T) {
 			vrf.AddCallsExecutionStat(test.res, prog)
 			vrf.SaveDiffResults(test.res, prog)
 
-			if diff := cmp.Diff(test.wantStats,
-				vrf.stats,
-				cmp.AllowUnexported(
-					Stats{},
-					StatUint64{},
-					StatTime{},
-					sync.Mutex{},
-					StatMapStringToCallStats{},
-				)); diff != "" {
-				t.Errorf("vrf.stats mismatch (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, test.wantStats, vrf.stats, "vrf.stats mismatch")
 
 			if got, want := osutil.IsExist(resultFile), test.wantExist; got != want {
 				t.Errorf("osutil.IsExist report file: got %v want %v", got, want)
@@ -288,7 +265,5 @@ func TestCreateReport(t *testing.T) {
 		"\t↳ Pool: 0, Flags: 7, Errno: 2 (no such file or directory)\n" +
 		"\t↳ Pool: 1, Flags: 3, Errno: 5 (input/output error)\n" +
 		"\t↳ Pool: 2, Flags: 1, Errno: 22 (invalid argument)\n\n"
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("createReport: (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, want, got, "createReport")
 }

@@ -10,7 +10,7 @@ package main
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -62,9 +62,7 @@ func TestIsEqual(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := test.res[0].IsEqual(test.res[1])
-			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("ExecResult.IsEqual failure (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, test.want, got, "ExecResult.IsEqual failure")
 		})
 	}
 }
@@ -173,9 +171,7 @@ func TestCompareResults(t *testing.T) {
 				t.Fatalf("failed to deserialise test program: %v", err)
 			}
 			got := CompareResults(test.res, prog)
-			if diff := cmp.Diff(test.wantReport, got); diff != "" {
-				t.Errorf("verify report mismatch (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, test.wantReport, got, "verify report mismatch")
 		})
 	}
 }

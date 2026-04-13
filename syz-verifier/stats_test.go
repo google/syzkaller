@@ -10,7 +10,7 @@ package main
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func dummyStats() *Stats {
@@ -62,9 +62,7 @@ func TestGetCallStatsTextDescription(t *testing.T) {
 		s := dummyStats()
 		t.Run(test.name, func(t *testing.T) {
 			got, want := s.getCallStatsTextDescription(test.call), test.report
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("s.getCallStatsTextDescription mismatch (-want +got):\n%s", diff)
-			}
+			assert.Equal(t, want, got, "s.getCallStatsTextDescription mismatch")
 		})
 	}
 }
@@ -97,7 +95,5 @@ func TestGetTextDescription(t *testing.T) {
 			"\t↳ 2 distinct states identified: "+
 			"[\"Flags: 7, Errno: 1 (operation not permitted)\" \"Flags: 7, Errno: 3 (no such process)\"]\n\n"
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("s.GetTextDescription mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, want, got, "s.GetTextDescription mismatch")
 }

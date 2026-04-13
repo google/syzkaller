@@ -10,7 +10,7 @@ package main
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/google/syzkaller/pkg/rpctype"
 )
 
@@ -30,7 +30,5 @@ func TestConnect(t *testing.T) {
 		t.Fatalf("srv.Connect failed: %v", err)
 	}
 
-	if diff := cmp.Diff(&rpctype.RunnerConnectRes{CheckUnsupportedCalls: true}, r); diff != "" {
-		t.Errorf("connect result mismatch (-want +got):\n%s", diff)
-	}
+	assert.Equal(t, &rpctype.RunnerConnectRes{CheckUnsupportedCalls: true}, r, "connect result mismatch")
 }
