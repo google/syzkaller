@@ -107,6 +107,10 @@ func (c *Conn) Close() error {
 	return c.conn.Close()
 }
 
+func (c *Conn) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
 type sendMsg interface {
 	Pack(*flatbuffers.Builder) flatbuffers.UOffsetT
 }

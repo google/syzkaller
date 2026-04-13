@@ -172,7 +172,7 @@ func TestCheckRevisions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := checkRevisions(tt.req, tt.target)
+			err := checkRevisions(tt.req, tt.target, &net.TCPAddr{})
 			if tt.noError {
 				assert.NoError(t, err)
 			} else {

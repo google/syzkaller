@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/url"
 	"slices"
 	"sort"
@@ -313,7 +314,7 @@ func (serv *server) handleConn(ctx context.Context, conn *flatrpc.Conn) error {
 			serv.StopFuzzing(id)
 			serv.ShutdownInstance(id, true)
 		}()
-	} else if err := checkRevisions(connectReq, serv.cfg.Target); err != nil {
+	} else if err := checkRevisions(connectReq, serv.cfg.Target, conn.RemoteAddr()); err != nil {
 		return err
 	}
 	serv.StatVMRestarts.Add(1)
@@ -443,18 +444,18 @@ func (serv *server) connectionLoop(ctx context.Context, runner *Runner) error {
 	return runner.ConnectionLoop()
 }
 
-func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target) error {
+func checkRevisions(a *flatrpc.ConnectRequest, target *prog.Target, addr net.Addr) error {
 	if target.Arch != a.Arch {
-		return fmt.Errorf("%w: mismatching manager/executor arches: %v vs %v (full request: `%#v`)",
-			errFatal, target.Arch, a.Arch, a)
+		return fmt.Errorf("%w: mismatching manager/executor arches for VM %v (%v): %v vs %v",
+			errFatal, a.Id, addr, target.Arch, a.Arch)
 	}
 	if prog.GitRevision != a.GitRevision {
-		return fmt.Errorf("%w: mismatching manager/executor git revisions: %v vs %v",
-			errFatal, prog.GitRevision, a.GitRevision)
+		return fmt.Errorf("%w: mismatching manager/executor git revisions for VM %v (%v): %v vs %v",
+			errFatal, a.Id, addr, prog.GitRevision, a.GitRevision)
 	}
 	if target.Revision != a.SyzRevision {
-		return fmt.Errorf("%w: mismatching manager/executor system call descriptions: %v vs %v",
-			errFatal, target.Revision, a.SyzRevision)
+		return fmt.Errorf("%w: mismatching manager/executor system call descriptions for VM %v (%v): %v vs %v",
+			errFatal, a.Id, addr, target.Revision, a.SyzRevision)
 	}
 	return nil
 }
