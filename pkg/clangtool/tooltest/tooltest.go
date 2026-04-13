@@ -13,11 +13,11 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/require"
 )
 
 var FlagUpdate = flag.Bool("update", false, "update golden files")
@@ -120,7 +120,5 @@ func CompareGoldenData(t *testing.T, goldenFile string, got []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatal(diff)
-	}
+	require.Equal(t, want, got)
 }
