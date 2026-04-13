@@ -157,6 +157,9 @@ func StartJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) {
 	}
 	var job *Job
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Reset job from previous transaction runs, otherwise we might return stale
+		// result if the job has been taken by a concurent thread (the len(jobs) == 0 case).
+		job = nil
 		iter := txn.Query(ctx, spanner.Statement{
 			SQL: selectJobs() + `WHERE Workflow IN UNNEST(@workflows)
 					AND Started IS NULL
@@ -192,6 +195,8 @@ func NextStaleJob(ctx context.Context, req *dashapi.AIJobPollReq) (*Job, error) 
 	cutoff := TimeNow(ctx).Add(-8 * time.Hour)
 	var job *Job
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Avoid reusing the entities from previous transaction commit attempts.
+		job = nil
 		var jobs []*Job
 
 		// First, check if the requesting agent has any unfinished jobs (implying a restart).
