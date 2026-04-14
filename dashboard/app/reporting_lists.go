@@ -4,16 +4,18 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
@@ -44,8 +46,8 @@ func reportingPollBugLists(ctx context.Context, typ string) []*dashapi.BugListRe
 		// currently relevant.
 		rawSubsystems := nsConfig.Subsystems.Service.List()
 		// Sort to keep output stable.
-		sort.Slice(rawSubsystems, func(i, j int) bool {
-			return rawSubsystems[i].Name < rawSubsystems[j].Name
+		slices.SortFunc(rawSubsystems, func(a, b *subsystem.Subsystem) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
 		for _, entry := range rawSubsystems {
 			if entry.NoReminders {
@@ -95,8 +97,8 @@ func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
 			subsystems = append(subsystems, registry.get(ns, entry.Name))
 		}
 		// Poll subsystems in a round-robin manner.
-		sort.Slice(subsystems, func(i, j int) bool {
-			return subsystems[i].ListsQueried.Before(subsystems[j].ListsQueried)
+		slices.SortFunc(subsystems, func(a, b *Subsystem) int {
+			return a.ListsQueried.Compare(b.ListsQueried)
 		})
 		updateLimit := maxNewListsPerNs
 		for _, subsystem := range subsystems {
@@ -290,19 +292,22 @@ func querySubsystemReport(ctx context.Context, subsystem *Subsystem, reporting *
 		takeNoRepro = config.BugsInReport - len(withRepro)
 	}
 	takeNoRepro = min(takeNoRepro, len(noRepro))
-	sort.Slice(noRepro, func(i, j int) bool {
-		return noRepro[i].NumCrashes > noRepro[j].NumCrashes
+	slices.SortFunc(noRepro, func(a, b *Bug) int {
+		return cmp.Compare(b.NumCrashes, a.NumCrashes)
 	})
 	takeBugs := append(withRepro, noRepro[:takeNoRepro]...)
-	sort.Slice(takeBugs, func(i, j int) bool {
-		firstPrio, secondPrio := takeBugs[i].prio(), takeBugs[j].prio()
-		if firstPrio != secondPrio {
-			return !firstPrio.LessThan(secondPrio)
+	slices.SortFunc(takeBugs, func(a, b *Bug) int {
+		prioA, prioB := a.prio(), b.prio()
+		if prioA != prioB {
+			if prioB.LessThan(prioA) {
+				return -1
+			}
+			return 1
 		}
-		if takeBugs[i].NumCrashes != takeBugs[j].NumCrashes {
-			return takeBugs[i].NumCrashes > takeBugs[j].NumCrashes
+		if a.NumCrashes != b.NumCrashes {
+			return cmp.Compare(b.NumCrashes, a.NumCrashes)
 		}
-		return takeBugs[i].Title < takeBugs[j].Title
+		return cmp.Compare(a.Title, b.Title)
 	})
 	keys := []*db.Key{}
 	for _, bug := range takeBugs {
