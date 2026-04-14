@@ -22,10 +22,6 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-const (
-	maxResultReports = 100
-)
-
 // poolInfo contains kernel-specific information for spawning virtual machines
 // and reporting crashes. It also keeps track of the Runners executing on
 // spawned VMs, what programs have been sent to each Runner and what programs
@@ -46,7 +42,8 @@ func Setup(name string, cfg *mgrconfig.Config, debug bool) (*Kernel, error) {
 		return nil, fmt.Errorf("failed to create reporter for %q: %w", name, err)
 	}
 
-	cfg.Experimental.ResetAccState = true // executor process restarts between program executions to clear accumulated kernel/VM stat.
+	// Executor process restarts between program executions to clear accumulated kernel/VM stat.
+	cfg.Experimental.ResetAccState = true
 
 	kernel.serv, err = rpcserver.New(&rpcserver.RemoteConfig{
 		Config:  cfg,
@@ -71,7 +68,6 @@ func main() {
 	var cfgs tool.CfgsFlag
 	flag.Var(&cfgs, "configs", "[MANDATORY] list of at least two kernel-specific comma-sepatated configuration files")
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
-	flagCorpus := flag.String("corpus", "", "path to corpus.db file (default: <workdir>/corpus.db)")
 	flag.Parse()
 
 	kernels := make([]*Kernel, len(cfgs))
@@ -110,14 +106,12 @@ func main() {
 	log.Logf(0, "initialized %d sources", len(sources))
 
 	vrf := &Verifier{
-		kernels:    kernels,
-		cfg:        kernels[0].cfg, // for now take the first kernel's config
-		target:     kernels[0].cfg.Target,
-		sources:    sources,
-		corpusPath: *flagCorpus,
+		kernels: kernels,
+		cfg:     kernels[0].cfg,
+		target:  kernels[0].cfg.Target,
+		sources: sources,
 	}
 
 	ctx := vm.ShutdownCtx()
 	vrf.RunVerifierFuzzer(ctx)
-
 }

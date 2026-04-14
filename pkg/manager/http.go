@@ -176,7 +176,10 @@ func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		repros := serv.ReproLoop.Reproducing()
+		var repros map[string]bool
+		if serv.ReproLoop != nil {
+			repros = serv.ReproLoop.Reproducing()
+		}
 		for _, info := range list {
 			if filterSubsystem != "" && !slices.Contains(info.Subsystems, filterSubsystem) {
 				continue
@@ -962,7 +965,10 @@ func (serv *HTTPServer) collectDiffCrashes() (patchedOnly, both, inProgress *UID
 }
 
 func (serv *HTTPServer) allDiffCrashes() []UIDiffBug {
-	repros := serv.ReproLoop.Reproducing()
+	var repros map[string]bool
+	if serv.ReproLoop != nil {
+		repros = serv.ReproLoop.Reproducing()
+	}
 	var list []UIDiffBug
 	for _, bug := range serv.DiffStore.List() {
 		list = append(list, UIDiffBug{
