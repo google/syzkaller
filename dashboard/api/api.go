@@ -41,6 +41,7 @@ type Crash struct {
 	Title               string `json:"title"`
 	SyzReproducerLink   string `json:"syz-reproducer,omitempty"`
 	CReproducerLink     string `json:"c-reproducer,omitempty"`
+	ReproOpts           string `json:"repro-opts,omitempty"`
 	KernelConfigLink    string `json:"kernel-config,omitempty"`
 	KernelSourceGit     string `json:"kernel-source-git,omitempty"`
 	KernelSourceCommit  string `json:"kernel-source-commit,omitempty"`

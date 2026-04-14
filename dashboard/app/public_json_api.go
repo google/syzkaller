@@ -67,6 +67,7 @@ func getExtAPIDescrForBug(bug *uiBugDetails) *api.Bug {
 					Title:              crash.Title,
 					SyzReproducerLink:  crash.ReproSyzLink,
 					CReproducerLink:    crash.ReproCLink,
+					ReproOpts:          crash.ReproOpts,
 					KernelConfigLink:   crash.KernelConfigLink,
 					KernelSourceGit:    crash.KernelRepo,
 					KernelSourceCommit: crash.KernelCommit,

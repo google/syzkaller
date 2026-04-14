@@ -173,6 +173,7 @@ func downloadBug(id, inputFile, token string) error {
 	if err != nil {
 		return err
 	}
+	inputs["ReproOpts"] = crash["repro-opts"]
 	inputs["ReproC"], err = fetchText("c-reproducer")
 	if err != nil {
 		return err
