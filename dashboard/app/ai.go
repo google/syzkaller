@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/gerrit"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -42,9 +43,8 @@ type uiAIJobPage struct {
 	// The slice contains the same single Job, just for HTML templates convenience.
 	Jobs           []*uiAIJob
 	CrashReport    template.HTML
-	Trajectory     []*uiAITrajectorySpan
+	TrajectoryHTML template.HTML
 	History        []*uiJobReviewHistory
-	TrajectoryJSON template.JS
 }
 
 type uiJobReviewHistory struct {
@@ -75,26 +75,6 @@ type uiAIResult struct {
 	Name   string
 	IsBool bool
 	Value  any
-}
-
-type uiAITrajectorySpan struct {
-	Started              time.Time
-	Seq                  int64
-	Nesting              int64
-	Type                 string
-	Name                 string
-	Model                string
-	Duration             time.Duration
-	Error                string
-	Args                 string
-	Results              string
-	Instruction          string
-	Prompt               string
-	Reply                string
-	Thoughts             string
-	InputTokens          int
-	OutputTokens         int
-	OutputThoughtsTokens int
 }
 
 func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -213,15 +193,18 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
 	}
 	uiJob := makeUIAIJob(job)
-	trajectoryJSON, _ := json.Marshal(makeUIAITrajectory(trajectory))
+	uiTrajectory := makeUIAITrajectory(trajectory)
+	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
+	if err != nil {
+		return err
+	}
 	page := &uiAIJobPage{
 		Header:         hdr,
 		Job:            uiJob,
 		Jobs:           []*uiAIJob{uiJob},
 		CrashReport:    crashReport,
-		Trajectory:     makeUIAITrajectory(trajectory),
 		History:        makeUIJobReviewHistory(history),
-		TrajectoryJSON: template.JS(trajectoryJSON),
+		TrajectoryHTML: trajectoryHTML,
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }
@@ -322,14 +305,14 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 	}
 }
 
-func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*uiAITrajectorySpan {
-	var res []*uiAITrajectorySpan
+func makeUIAITrajectory(trajetory []*aidb.TrajectorySpan) []*aflowhtml.UIAITrajectorySpan {
+	var res []*aflowhtml.UIAITrajectorySpan
 	for _, span := range trajetory {
 		var duration time.Duration
 		if span.Finished.Valid {
 			duration = span.Finished.Time.Sub(span.Started)
 		}
-		res = append(res, &uiAITrajectorySpan{
+		res = append(res, &aflowhtml.UIAITrajectorySpan{
 			Started:              span.Started,
 			Seq:                  span.Seq,
 			Nesting:              span.Nesting,
