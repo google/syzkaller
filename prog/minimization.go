@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/stat"
@@ -507,7 +508,7 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 		if !typ.Varlen() {
 			return false
 		}
-		data0 := append([]byte{}, a.Data()...)
+		data0 := slices.Clone(a.Data())
 		a.data = bytes.TrimRight(a.Data(), specialFileLenPad+"\x00")
 		if !typ.NoZ {
 			a.data = append(a.data, 0)

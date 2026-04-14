@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/image"
@@ -409,7 +410,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	}
 	switch t.Kind {
 	case BufferBlobRand, BufferBlobRange:
-		data := append([]byte{}, a.Data()...)
+		data := slices.Clone(a.Data())
 		a.data = mutateData(r, data, minLen, maxLen)
 	case BufferString:
 		if len(t.Values) != 0 {
@@ -418,7 +419,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 			if t.TypeSize != 0 {
 				minLen, maxLen = t.TypeSize, t.TypeSize
 			}
-			data := append([]byte{}, a.Data()...)
+			data := slices.Clone(a.Data())
 			a.data = mutateData(r, data, minLen, maxLen)
 		}
 	case BufferFilename:
@@ -430,7 +431,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 			a.data = []byte(r.filename(s, t))
 		}
 	case BufferText:
-		data := append([]byte{}, a.Data()...)
+		data := slices.Clone(a.Data())
 		a.data = r.mutateText(t.Text, data)
 	case BufferCompressed:
 		a.data, retry = r.mutateImage(a.Data())

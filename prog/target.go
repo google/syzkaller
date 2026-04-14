@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"maps"
 	"math/rand"
 	"slices"
 	"sort"
@@ -405,7 +406,7 @@ func (target *Target) RequiredGlobs() []string {
 			}
 		}
 	})
-	return stringMapToSlice(globs)
+	return slices.Sorted(maps.Keys(globs))
 }
 
 func (target *Target) UpdateGlobs(globFiles map[string][]string) {
@@ -448,16 +449,7 @@ func populateGlob(pattern string, globFiles map[string][]string) []string {
 			delete(files, tok[1:])
 		}
 	}
-	return stringMapToSlice(files)
-}
-
-func stringMapToSlice(m map[string]bool) []string {
-	var res []string
-	for k := range m {
-		res = append(res, k)
-	}
-	sort.Strings(res)
-	return res
+	return slices.Sorted(maps.Keys(files))
 }
 
 type Gen struct {
