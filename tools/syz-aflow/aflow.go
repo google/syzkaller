@@ -2,10 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // syz-aflow tool can be used to invoke any agentic workflow registered with pkg/aflow.
-// For example, to run the patching workflow use:
-//
-//	go run ./tools/syz-aflow -input=input.json -download-bug=d8fd35fa6177afa8c92b
-//	go run ./tools/syz-aflow -input=input.json -workflow=patching -workdir=workdir
+// See tools/syz-aflow/README.md for instructions.
 package main
 
 import (
