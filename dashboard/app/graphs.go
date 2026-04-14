@@ -4,12 +4,13 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
@@ -382,8 +383,8 @@ func createFoundBugs(ctx context.Context, bugs []*Bug) *uiGraph {
 			break
 		}
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Before(sorted[j])
+	slices.SortFunc(sorted, func(a, b time.Time) int {
+		return a.Compare(b)
 	})
 	now := timeNow(ctx)
 	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -740,8 +741,11 @@ func createCrashesTable(ctx context.Context, ns string, days int, bugs []*Bug) *
 		table.Rows[id].Share = float32(table.Rows[id].Count) / float32(totalCount) * 100.0
 	}
 	// Order by descending crash count.
-	sort.SliceStable(table.Rows, func(i, j int) bool {
-		return table.Rows[i].Count > table.Rows[j].Count
+	slices.SortFunc(table.Rows, func(a, b *uiCrashSummary) int {
+		if a.Count != b.Count {
+			return cmp.Compare(b.Count, a.Count)
+		}
+		return cmp.Compare(a.Title, b.Title)
 	})
 	return table
 }
