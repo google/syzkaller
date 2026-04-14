@@ -56,6 +56,7 @@ func init() {
 					Tools: aflow.Tools(
 						syzlang.ReadDescription,
 						syzlang.Reproduce,
+						syzlang.Coverage,
 						codesearcher.Tools,
 						grepper.Tool,
 					),

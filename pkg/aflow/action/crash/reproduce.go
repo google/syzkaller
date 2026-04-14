@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
@@ -142,20 +143,22 @@ func parseTestError(err *instance.TestError) string {
 	return fmt.Sprintf("%v: %v\n%s", what, err.Title, extraInfo)
 }
 
-func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
+func ReproduceFuncWithCoverage(ctx *aflow.Context, args ReproduceArgs,
+	collectCoverage bool) (reproduceResult, string, error) {
 	imageData, err := os.ReadFile(args.Image)
 	if err != nil {
-		return reproduceResult{}, err
+		return reproduceResult{}, "", err
 	}
 	desc := fmt.Sprintf("kernel commit %v, kernel config hash %v, image hash %v,"+
-		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, version 4",
+		" vm %v, vm config hash %v, C repro hash %v, syz repro hash %v, opts hash %v, cov %v, version 5",
 		args.KernelCommit, hash.String(args.KernelConfig), hash.String(imageData),
 		args.Type, hash.String(args.VM), hash.String(args.ReproC),
-		hash.String(args.ReproSyz), hash.String(args.ReproOpts))
+		hash.String(args.ReproSyz), hash.String(args.ReproOpts), collectCoverage)
 	type Cached struct {
-		BugTitle string
-		Report   string
-		Error    string
+		BugTitle   string
+		Report     string
+		Error      string
+		CoverageID string
 	}
 	cached, err := aflow.CacheObject(ctx, "repro", desc, func() (Cached, error) {
 		var res Cached
@@ -163,26 +166,43 @@ func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, err
 		if err != nil {
 			return res, err
 		}
-		testRes, err := RunTest(args, workdir, false)
+		testRes, err := RunTest(args, workdir, collectCoverage)
 		if testRes.Report != nil {
 			res.BugTitle = testRes.Report.Title
 			res.Report = string(testRes.Report.Report)
 		}
 		res.Error = testRes.BootError
+		// If the reproducer crashes the kernel, the VM halts abruptly and coverage
+		// often fails to flush, leaving testRes.Coverage empty. This is expected: we
+		// generally only want diagnostics on reproducers that failed to crash.
+		if err == nil && len(testRes.Coverage) > 0 {
+			dir, err := ctx.Cache("coverage", desc, func(dir string) error {
+				return osutil.WriteJSON(filepath.Join(dir, "coverage.json"), testRes.Coverage)
+			})
+			if err != nil {
+				return res, err
+			}
+			res.CoverageID = filepath.Base(dir)
+		}
 		return res, err
 	})
 	if err != nil {
-		return reproduceResult{}, err
+		return reproduceResult{}, "", err
 	}
 	if cached.Error != "" {
-		return reproduceResult{}, errors.New(cached.Error)
+		return reproduceResult{}, "", errors.New(cached.Error)
 	} else if cached.Report == "" {
-		return reproduceResult{}, aflow.FlowError(ErrDidNotCrash)
+		return reproduceResult{}, cached.CoverageID, aflow.FlowError(ErrDidNotCrash)
 	}
 	return reproduceResult{
 		ReproducedBugTitle:    cached.BugTitle,
 		ReproducedCrashReport: cached.Report,
-	}, nil
+	}, cached.CoverageID, nil
+}
+
+func ReproduceFunc(ctx *aflow.Context, args ReproduceArgs) (reproduceResult, error) {
+	res, _, err := ReproduceFuncWithCoverage(ctx, args, false)
+	return res, err
 }
 
 func symbolize(kernelObj string, coverage [][]uint64) ([][]symbolizer.Frame, error) {

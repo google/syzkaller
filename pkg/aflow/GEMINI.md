@@ -59,6 +59,7 @@ We globally agree on the semantics of names so that actions can work securely ac
 - **`SyzkallerCommit`**: The exact syzkaller revision hash used during testing phases.
 - **`Reproduced`**: A boolean indicating if a crash reproduced successfully.
 - **`ReproducedCrashReport`**: The captured crash report logs from a successful reproducer run.
+- **`CoverageID`**: A unique hash ID pointing to a persistently cached code coverage artifact collected during a test run.
 
 ### Defining Workflows
 
