@@ -315,12 +315,15 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-	_, err := osutil.RunCmd(10*time.Minute, "", "scp", args...)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:        inst.debug,
+		Key:          inst.Key,
+		Port:         inst.Port,
+		SystemSSHCfg: false,
+		User:         inst.User,
+		Addr:         inst.Addr,
+		Timeout:      10 * time.Minute,
+	})
 	if err != nil {
 		return "", err
 	}

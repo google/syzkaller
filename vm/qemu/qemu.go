@@ -674,12 +674,16 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		inst.files[vmDst] = hostSrc
 	}
 
-	args := append(vmimpl.SCPArgs(true, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@localhost:"+vmDst)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-	_, err := osutil.RunCmd(10*time.Minute*inst.timeouts.Scale, "", "scp", args...)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:         inst.debug,
+		Key:           inst.Key,
+		Port:          inst.Port,
+		SystemSSHCfg:  false,
+		User:          inst.User,
+		Addr:          "localhost",
+		Timeout:       10 * time.Minute * inst.timeouts.Scale,
+		VerboseOutput: true,
+	})
 	if err != nil {
 		return "", err
 	}

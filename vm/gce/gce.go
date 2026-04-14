@@ -278,9 +278,17 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(vmimpl.SCPArgs(true, inst.Key, inst.Port, false),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	if err := runCmd(inst.debug, "scp", args...); err != nil {
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:         inst.debug,
+		Key:           inst.Key,
+		Port:          inst.Port,
+		SystemSSHCfg:  false,
+		User:          inst.User,
+		Addr:          inst.Addr,
+		Timeout:       time.Minute,
+		VerboseOutput: true,
+	})
+	if err != nil {
 		return "", err
 	}
 	return vmDst, nil
@@ -567,15 +575,4 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		return fmt.Errorf("failed to write image file: %w", err)
 	}
 	return nil
-}
-
-func runCmd(debug bool, bin string, args ...string) error {
-	if debug {
-		log.Logf(0, "running command: %v %#v", bin, args)
-	}
-	output, err := osutil.RunCmd(time.Minute, "", bin, args...)
-	if debug {
-		log.Logf(0, "result: %v\n%s", err, output)
-	}
-	return err
 }

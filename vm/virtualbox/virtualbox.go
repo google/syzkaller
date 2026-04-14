@@ -257,15 +257,15 @@ func (inst *instance) Close() error {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDest := "/" + base
-
-	args := vmimpl.SCPArgs(inst.debug, inst.SSHOptions.Key, inst.SSHOptions.Port, false)
-	args = append(args, hostSrc, fmt.Sprintf("%v@127.0.0.1:%v", inst.SSHOptions.User, vmDest))
-
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-	}
-
-	if _, err := osutil.RunCmd(3*time.Minute, "", "scp", args...); err != nil {
+	err := vmimpl.SCP(hostSrc, vmDest, vmimpl.SCPOptions{
+		Debug:   inst.debug,
+		Key:     inst.SSHOptions.Key,
+		Port:    inst.SSHOptions.Port,
+		User:    inst.SSHOptions.User,
+		Addr:    "127.0.0.1",
+		Timeout: 3 * time.Minute,
+	})
+	if err != nil {
 		return "", err
 	}
 	return vmDest, nil

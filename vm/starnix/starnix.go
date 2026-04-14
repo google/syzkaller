@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -423,18 +422,6 @@ func (inst *instance) copyFfxConfigValuesToIsolate(keys ...string) error {
 	return nil
 }
 
-// Runs a command inside the fuchsia directory.
-func (inst *instance) runCommand(cmd string, args ...string) error {
-	if inst.debug {
-		log.Logf(1, "instance %s: running command: %s %q", inst.name, cmd, args)
-	}
-	output, err := osutil.RunCmd(5*time.Minute, inst.fuchsiaDir, cmd, args...)
-	if inst.debug {
-		log.Logf(1, "instance %s: %s", inst.name, output)
-	}
-	return err
-}
-
 func (inst *instance) Forward(port int) (string, error) {
 	if port == 0 {
 		return "", fmt.Errorf("vm/starnix: forward port is zero")
@@ -452,15 +439,15 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.debug {
 		log.Logf(1, "instance %s: attempting to push binary %s to instance over scp", inst.name, base)
 	}
-	err := inst.runCommand(
-		"scp",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-i", inst.sshPrivKey,
-		"-P", strconv.Itoa(inst.port),
-		hostSrc,
-		fmt.Sprintf("root@localhost:%s", vmDst),
-	)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:   inst.debug,
+		Key:     inst.sshPrivKey,
+		Port:    inst.port,
+		User:    "root",
+		Addr:    "localhost",
+		Dir:     inst.fuchsiaDir,
+		Timeout: 5 * time.Minute,
+	})
 	if err == nil {
 		return vmDst, err
 	}

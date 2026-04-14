@@ -285,27 +285,15 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	baseName := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.cfg.TargetDir, baseName)
 	inst.ssh("pkill -9 '" + baseName + "'; rm -f '" + vmDst + "'")
-	args := append(vmimpl.SCPArgs(inst.debug, inst.Key, inst.Port, inst.cfg.SystemSSHCfg),
-		hostSrc, inst.User+"@"+inst.Addr+":"+vmDst)
-	cmd := osutil.Command("scp", args...)
-	if inst.debug {
-		log.Logf(0, "running command: scp %#v", args)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
-	}
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(3 * time.Minute):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	err := cmd.Wait()
-	close(done)
+	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
+		Debug:        inst.debug,
+		Key:          inst.Key,
+		Port:         inst.Port,
+		SystemSSHCfg: inst.cfg.SystemSSHCfg,
+		User:         inst.User,
+		Addr:         inst.Addr,
+		Timeout:      3 * time.Minute,
+	})
 	if err != nil {
 		return "", err
 	}
