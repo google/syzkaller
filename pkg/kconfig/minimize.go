@@ -5,10 +5,11 @@ package kconfig
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/bisect/minimize"
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"golang.org/x/exp/maps"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.
@@ -72,7 +73,7 @@ func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string,
 			other = append(other, cfg)
 		}
 	}
-	sort.Strings(tristate)
+	slices.Sort(tristate)
 	return
 }
 
@@ -108,11 +109,8 @@ func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) 
 			}
 		}
 	}
-	var sorted []string
-	for cfg := range closure {
-		sorted = append(sorted, cfg)
-	}
-	sort.Strings(sorted)
+	sorted := maps.Keys(closure)
+	slices.Sort(sorted)
 	return sorted
 }
 
