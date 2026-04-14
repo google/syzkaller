@@ -159,12 +159,14 @@ func (inst *instance) snapshotHandshake() error {
 	return nil
 }
 
+const minErrOutputWait = time.Second
+
 func (inst *instance) SetupSnapshot(input []byte) error {
 	copy(inst.input, input)
 	// Tell executor that we are ready to snapshot and wait for an ack.
 	inst.header.UpdateState(flatrpc.SnapshotStateHandshake)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateHandshake, 10*time.Minute) {
-		return fmt.Errorf("executor does not start snapshot handshake\n%s", inst.readOutput())
+		return fmt.Errorf("executor does not start snapshot handshake\n%s", inst.readOutput(minErrOutputWait))
 	}
 	if _, err := inst.hmp("migrate_set_capability x-ignore-shared on", 0); err != nil {
 		return err
@@ -177,7 +179,7 @@ func (inst *instance) SetupSnapshot(input []byte) error {
 	}
 	inst.header.UpdateState(flatrpc.SnapshotStateSnapshotted)
 	if !inst.waitSnapshotStateChange(flatrpc.SnapshotStateSnapshotted, time.Minute) {
-		return fmt.Errorf("executor has not confirmed snapshot handshake\n%s", inst.readOutput())
+		return fmt.Errorf("executor has not confirmed snapshot handshake\n%s", inst.readOutput(minErrOutputWait))
 	}
 	return nil
 }
@@ -188,7 +190,7 @@ func (inst *instance) RunSnapshot(timeout time.Duration, input []byte) (result, 
 	inst.header.OutputSize = 0
 	inst.header.UpdateState(flatrpc.SnapshotStateExecute)
 	if _, err := inst.hmp("loadvm syz", 0); err != nil {
-		return nil, nil, fmt.Errorf("%w\n%s", err, inst.readOutput())
+		return nil, nil, fmt.Errorf("%w\n%s", err, inst.readOutput(minErrOutputWait))
 	}
 	inst.waitSnapshotStateChange(flatrpc.SnapshotStateExecute, timeout)
 	resStart := int(flatrpc.ConstMaxInputSize) + int(atomic.LoadUint32(&inst.header.OutputOffset))
@@ -197,7 +199,7 @@ func (inst *instance) RunSnapshot(timeout time.Duration, input []byte) (result, 
 	if resEnd <= len(inst.shmem) {
 		res = inst.shmem[resStart:resEnd:resEnd]
 	}
-	output = inst.readOutput()
+	output = inst.readOutput(0)
 	return res, output, nil
 }
 
@@ -224,10 +226,11 @@ func (inst *instance) waitSnapshotStateChange(state flatrpc.SnapshotState, timeo
 	}
 }
 
-func (inst *instance) readOutput() []byte {
+func (inst *instance) readOutput(minTotalWait time.Duration) []byte {
 	var output []byte
 	// If output channel has overflown, then wait for more output from the merger goroutine.
 	wait := cap(inst.merger.Output)
+	start := time.Now()
 	for {
 		select {
 		case out := <-inst.merger.Output:
@@ -235,6 +238,10 @@ func (inst *instance) readOutput() []byte {
 			wait--
 		default:
 			if wait > 0 {
+				if time.Since(start) < minTotalWait {
+					time.Sleep(5 * time.Millisecond)
+					continue
+				}
 				return output
 			}
 			// After the first overflow we wait after every read because the goroutine
