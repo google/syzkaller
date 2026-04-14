@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -1020,7 +1021,7 @@ func incomingCommandUpdate(ctx context.Context, now time.Time, cmd *dashapi.BugU
 			bug.updateCommits(cmd.FixCommits, now)
 		}
 	}
-	toReport := append([]int64{}, cmd.ReportCrashIDs...)
+	toReport := slices.Clone(cmd.ReportCrashIDs)
 	if cmd.CrashID != 0 {
 		bugReporting.CrashID = cmd.CrashID
 		toReport = append(toReport, cmd.CrashID)
