@@ -76,7 +76,7 @@ func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHC
 	return sshArgs(debug, sshKey, "-p", port, forwardPort, systemSSHCfg)
 }
 
-func SCPArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
+func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
 	return sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg)
 }
 
@@ -119,7 +119,7 @@ type SCPOptions struct {
 }
 
 func SCP(hostSrc, vmDst string, opts SCPOptions) error {
-	args := append(SCPArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg),
+	args := append(scpArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg),
 		hostSrc, opts.User+"@"+opts.Addr+":"+vmDst)
 	if opts.Debug {
 		log.Logf(0, "running command: scp %#v", args)
