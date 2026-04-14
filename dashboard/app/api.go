@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"crypto/subtle"
@@ -12,13 +13,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net/http"
 	"net/mail"
 	"net/url"
 	"reflect"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -294,11 +296,7 @@ loop:
 			m[com] = true
 		}
 	}
-	commits := make([]string, 0, len(m))
-	for com := range m {
-		commits = append(commits, com)
-	}
-	sort.Strings(commits)
+	commits := slices.Sorted(maps.Keys(m))
 	resp := &dashapi.BuilderPollResp{
 		PendingCommits: commits,
 		ReportEmail:    reportEmail(ctx, ns),
@@ -670,7 +668,7 @@ func addCommitsToBugsInStatus(ctx context.Context, status int, ns, manager strin
 		for i := range bug.Reporting {
 			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
 		}
-		sort.Strings(fixCommits)
+		slices.Sort(fixCommits)
 		if err := addCommitsToBug(ctx, bug, manager, managers, fixCommits, presentCommits); err != nil {
 			return err
 		}
@@ -1049,8 +1047,8 @@ func purgeOldCrashes(ctx context.Context, bug *Bug, bugKey *db.Key) {
 		keyMap[crash] = keys[i]
 	}
 	// Newest first.
-	sort.Slice(crashes, func(i, j int) bool {
-		return crashes[i].Time.After(crashes[j].Time)
+	slices.SortFunc(crashes, func(a, b *Crash) int {
+		return b.Time.Compare(a.Time)
 	})
 	var toDelete []*db.Key
 	latestOnManager := make(map[string]bool)
@@ -1381,8 +1379,8 @@ func findExistingBugForCrash(ctx context.Context, ns string, titles []string) (*
 	// We can find bugs with different bug.Title and uncomparable bug.Seq's.
 	// But there should be only one active bug for each crash title,
 	// so if we sort by Seq, the first active bug is our target bug.
-	sort.Slice(bugs, func(i, j int) bool {
-		return bugs[i].Seq > bugs[j].Seq
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		return cmp.Compare(b.Seq, a.Seq)
 	})
 	for _, bug := range bugs {
 		if active, err := isActiveBug(ctx, bug); err != nil {
@@ -1447,11 +1445,11 @@ func findBugForCrash(ctx context.Context, ns string, titles []string) (*Bug, err
 		bugs = append(bugs, bugs1...)
 	}
 	// Sort to get determinism and skip inactive bugs.
-	sort.Slice(bugs, func(i, j int) bool {
-		if bugs[i].Title != bugs[j].Title {
-			return bugs[i].Title < bugs[j].Title
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		if a.Title != b.Title {
+			return cmp.Compare(a.Title, b.Title)
 		}
-		return bugs[i].Seq > bugs[j].Seq
+		return cmp.Compare(b.Seq, a.Seq)
 	})
 	var best *Bug
 	bestPrio := 0
@@ -1702,7 +1700,7 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 			emails = append(emails, user.Address.Address)
 		}
 	}
-	sort.Strings(emails)
+	slices.Sort(emails)
 	return emails
 }
 
