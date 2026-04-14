@@ -6,9 +6,11 @@ package prog
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math"
 	"math/rand"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -338,11 +340,7 @@ func (r *randGen) randFilenameLength() int {
 }
 
 func (r *randGen) randFromMap(m map[string]bool) string {
-	files := make([]string, 0, len(m))
-	for f := range m {
-		files = append(files, f)
-	}
-	sort.Strings(files)
+	files := slices.Sorted(maps.Keys(m))
 	return files[r.Intn(len(files))]
 }
 
