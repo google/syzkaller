@@ -1454,6 +1454,19 @@ Author: someone@mail.com
 				EmailOptCC(append(append([]string{}, msg.Cc...), msg.To...)))
 			c.expectNoEmail()
 		})
+
+		t.Run("duplicate-from-mailing-list", func(t *testing.T) {
+			mailingList := c.config().Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+			// Ensure we don't forward the same email when we receive it again via a mailing list.
+			c.incomingEmail(from,
+				"#syz invalid",
+				EmailOptSubject("test subject"),
+				EmailOptMessageID(1),
+				EmailOptFrom("someone@mail.com"),
+				EmailOptCC([]string{"some@list.com"}), // same as original
+				EmailOptSender(mailingList))           // this makes msg.MailingList set
+			c.expectNoEmail()
+		})
 	})
 
 	t.Run("no command", func(t *testing.T) {

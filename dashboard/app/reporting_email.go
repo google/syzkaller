@@ -659,6 +659,10 @@ func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxCon
 		// Also, we don't care about the emails that don't include any BugIDs.
 		return nil
 	}
+	if msg.MailingList != "" {
+		log.Infof(ctx, "duplicate email from mailing list, ignoring")
+		return nil
+	}
 	needForwardTo := map[string]bool{}
 	for _, cc := range inbox.ForwardTo {
 		needForwardTo[cc] = true
