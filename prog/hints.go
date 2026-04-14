@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"sort"
+	"slices"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/image"
@@ -378,9 +378,7 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64, image bool) []uint6
 	for v := range replacers {
 		res = append(res, v)
 	}
-	sort.Slice(res, func(i, j int) bool {
-		return res[i] < res[j]
-	})
+	slices.Sort(res)
 	return res
 }
 
