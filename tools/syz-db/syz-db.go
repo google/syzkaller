@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -217,7 +217,7 @@ func bench(target *prog.Target, file string) {
 		sum += len(p.Calls)
 		lens[i] = len(p.Calls)
 	}
-	sort.Ints(lens)
+	slices.Sort(lens)
 	fmt.Printf("program size: min=%v avg=%v max=%v 10%%=%v 50%%=%v 90%%=%v\n",
 		lens[0], sum/n, lens[n-1], lens[n/10], lens[n/2], lens[n*9/10])
 }
@@ -228,7 +228,7 @@ func print(file string) {
 		tool.Failf("failed to open database: %v", err)
 	}
 	keys := maps.Keys(db.Records)
-	sort.Strings(keys)
+	slices.Sort(keys)
 	for _, key := range keys {
 		rec := db.Records[key]
 		fmt.Printf("%v\n%v\n", key, string(rec.Val))
