@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -53,15 +54,12 @@ func filterEnv() []string {
 	// repository (e.g the syzkaller tree itself) rather than the
 	// intended repo.
 	env := os.Environ()
-	for i := 0; i < len(env); i++ {
-		if strings.HasPrefix(env[i], "GIT_DIR") ||
-			strings.HasPrefix(env[i], "GIT_WORK_TREE") ||
-			strings.HasPrefix(env[i], "GIT_INDEX_FILE") ||
-			strings.HasPrefix(env[i], "GIT_OBJECT_DIRECTORY") {
-			env = append(env[:i], env[i+1:]...)
-			i--
-		}
-	}
+	env = slices.DeleteFunc(env, func(e string) bool {
+		return strings.HasPrefix(e, "GIT_DIR") ||
+			strings.HasPrefix(e, "GIT_WORK_TREE") ||
+			strings.HasPrefix(e, "GIT_INDEX_FILE") ||
+			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY")
+	})
 
 	return env
 }
