@@ -22,9 +22,9 @@ import (
 	"github.com/google/syzkaller/pkg/aflow"
 	_ "github.com/google/syzkaller/pkg/aflow/flow"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
+	aflowhtml "github.com/google/syzkaller/pkg/aflow/trajectory/html"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
-
 	"golang.org/x/oauth2/google"
 )
 
@@ -39,6 +39,7 @@ func main() {
 			" and save into -input file")
 		flagAuth = flag.Bool("auth", false, "use gcloud auth token for downloading bugs (set it up with"+
 			" gcloud auth application-default login)")
+		flagHTML = flag.String("html", "", "write execution trajectory into this local HTML file in real-time")
 	)
 	defer tool.Init()()
 	if *flagDownloadBug != "" {
@@ -68,17 +69,33 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	if err := run(context.Background(), *flagModel, *flagFlow, *flagInput, *flagWorkdir, cacheSize); err != nil {
+	if err := run(context.Background(), RunArgs{
+		Model:     *flagModel,
+		FlowName:  *flagFlow,
+		InputFile: *flagInput,
+		Workdir:   *flagWorkdir,
+		HTMLFile:  *flagHTML,
+		CacheSize: cacheSize,
+	}); err != nil {
 		tool.Failf("%v", osutil.VerboseMessage(err))
 	}
 }
 
-func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheSize uint64) error {
-	flow := aflow.Flows[flowName]
+type RunArgs struct {
+	Model     string
+	FlowName  string
+	InputFile string
+	Workdir   string
+	HTMLFile  string
+	CacheSize uint64
+}
+
+func run(ctx context.Context, args RunArgs) error {
+	flow := aflow.Flows[args.FlowName]
 	if flow == nil {
-		return fmt.Errorf("workflow %q is not found", flowName)
+		return fmt.Errorf("workflow %q is not found", args.FlowName)
 	}
-	inputData, err := os.ReadFile(inputFile)
+	inputData, err := os.ReadFile(args.InputFile)
 	if err != nil {
 		return fmt.Errorf("failed to open -input file: %w", err)
 	}
@@ -86,22 +103,38 @@ func run(ctx context.Context, model, flowName, inputFile, workdir string, cacheS
 	if err := json.Unmarshal(inputData, &inputs); err != nil {
 		return err
 	}
-	cache, err := aflow.NewCache(filepath.Join(workdir, "cache"), cacheSize)
+	cache, err := aflow.NewCache(filepath.Join(args.Workdir, "cache"), args.CacheSize)
 	if err != nil {
 		return err
 	}
-	_, err = flow.Execute(ctx, model, workdir, inputs, cache, onEvent)
-	return err
-}
 
-func onEvent(span *trajectory.Span) error {
-	if span.Error != "" {
-		// We do not want to print error twice (once here and once in main).
-		// So we ignore those events.
+	var spans []*trajectory.Span
+	spansMap := make(map[int]*trajectory.Span)
+	onEventFunc := func(span *trajectory.Span) error {
+		if _, ok := spansMap[span.Seq]; !ok {
+			spans = append(spans, span)
+		}
+		spansMap[span.Seq] = span
+		if args.HTMLFile != "" {
+			f, err := os.Create(args.HTMLFile)
+			if err != nil {
+				log.Printf("failed to create HTML file: %v", err)
+			} else {
+				if err := aflowhtml.RenderReport(f, spans); err != nil {
+					log.Printf("failed to render trajectory: %v", err)
+				}
+				f.Close()
+			}
+		}
+		if span.Error != "" {
+			return nil
+		}
+		log.Printf("%v", span)
 		return nil
 	}
-	log.Printf("%v", span)
-	return nil
+
+	_, err = flow.Execute(ctx, args.Model, args.Workdir, inputs, cache, onEventFunc)
+	return err
 }
 
 func downloadBug(id, inputFile, token string) error {
