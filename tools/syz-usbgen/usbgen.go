@@ -7,9 +7,10 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -63,18 +64,14 @@ func extractIds(syslog []byte, prefix string, size int) map[string][]string {
 	}
 	// Keep IDs sorted for consistent output between runs.
 	for driver := range driverIDs {
-		sort.Strings(driverIDs[driver])
+		slices.Sort(driverIDs[driver])
 	}
 	return driverIDs
 }
 
 func generateIdsVar(driverIDs map[string][]string, name string) []byte {
 	// Sort driver names for consistent output between runs.
-	drivers := make([]string, 0, len(driverIDs))
-	for driver := range driverIDs {
-		drivers = append(drivers, driver)
-	}
-	sort.Strings(drivers)
+	drivers := slices.Sorted(maps.Keys(driverIDs))
 
 	// Generate a map variable that stores USB IDs for each driver.
 	totalIDs := 0
