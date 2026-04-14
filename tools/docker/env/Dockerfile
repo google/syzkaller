@@ -47,6 +47,17 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
 
+# Build the latest git.
+FROM debian:trixie AS git-builder
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+    make gcc libc6-dev libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev curl ca-certificates autoconf
+RUN curl -L https://github.com/git/git/archive/refs/tags/v2.53.0.tar.gz | tar -xz
+RUN cd git-2.53.0 && \
+    make configure && \
+    ./configure --prefix=/opt/git && \
+    make -j$(nproc) && \
+    make install
+
 # Now build the actual syz-env container.
 FROM debian:trixie
 
@@ -55,8 +66,13 @@ LABEL homepage="https://github.com/google/syzkaller"
 # Install Python and core build tools.
 RUN apt-get update --allow-releaseinfo-change && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-    python3 python-is-python3 python3-legacy-cgi git \
-    make nano unzip curl ca-certificates binutils flex bison bc libelf-dev libssl-dev
+    python3 python-is-python3 python3-legacy-cgi \
+    make nano unzip curl ca-certificates binutils flex bison bc libelf-dev libssl-dev \
+    # Explicitly install git runtime dependencies since we build it from source.
+    libcurl3t64-gnutls libexpat1 libpcre2-8-0 zlib1g perl liberror-perl
+
+# Copy the custom git build and prioritize it in PATH.
+COPY --from=git-builder /opt/git /opt/git
 
 # Install heavy cross-compilers.
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
@@ -83,7 +99,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends
 # Since go 1.21 the toolchain required by go.mod is automatically downloaded.
 # There is no need to version up golang here after go.mod changes.
 RUN curl https://dl.google.com/go/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xz
-ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
+ENV PATH /opt/git/bin:/usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
 ENV GOMODCACHE /syzkaller/.cache/gomod
 
