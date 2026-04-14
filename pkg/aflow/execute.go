@@ -287,6 +287,10 @@ func CacheObject[T any](ctx *Context, typ, desc string, populate func() (T, erro
 	return obj, nil
 }
 
+func CacheReadObject[T any](ctx *Context, typ, id, filename string) (T, error) {
+	return cacheReadObject[T](ctx.cache, typ, id, filename)
+}
+
 // TempDir creates a new temp dir that will be automatically removed
 // when the flow finished, or on the next restart.
 func (ctx *Context) TempDir() (string, error) {
