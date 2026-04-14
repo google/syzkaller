@@ -21,6 +21,7 @@ var (
 	flagDashboard = flag.String("dashboard", "https://syzkaller.appspot.com", "dashboard address")
 	flagOutputDir = flag.String("output", "export", "output dir")
 	flagNamespace = flag.String("namespace", "upstream", "target namespace")
+	flagAccess    = flag.String("access", "public", "access level (public, user, admin)")
 	flagToken     = flag.String("token", "", "gcp bearer token to disable throttling (contact syzbot first)\n"+
 		"usage example: ./tools/syz-db-export -namespace upstream -token $(gcloud auth print-access-token)")
 	flagParallel = flag.Int("j", 2, "number of parallel threads")
@@ -42,6 +43,7 @@ func main() {
 
 func exportNamespace() error {
 	cli := api.NewClient(*flagDashboard, *flagToken)
+	cli.SetAccess(*flagAccess)
 	bugs, err := cli.BugGroups(*flagNamespace, api.BugGroupOpen|api.BugGroupFixed)
 	if err != nil {
 		return err
