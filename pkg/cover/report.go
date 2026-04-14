@@ -5,6 +5,7 @@ package cover
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -99,7 +100,8 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (file
 				pcToProgs[pc] = make(map[int]bool)
 			}
 			pcToProgs[pc][i] = true
-			if rg.PreciseCoverage && !contains(rg.CallbackPoints, pc) {
+			_, found := slices.BinarySearch(rg.CallbackPoints, pc)
+			if rg.PreciseCoverage && !found {
 				unmatchedPCs[pc] = true
 			}
 		}
@@ -176,11 +178,6 @@ func (rg *ReportGenerator) frame2line(files fileMap, pcToProgs map[uint64]map[in
 		return fmt.Errorf("coverage doesn't match any coverage callbacks")
 	}
 	return nil
-}
-
-func contains(pcs []uint64, pc uint64) bool {
-	idx := sort.Search(len(pcs), func(i int) bool { return pcs[i] >= pc })
-	return idx < len(pcs) && pcs[idx] == pc
 }
 
 func coverageCallbackMismatch(debug bool, numPCs int, unmatchedPCs map[uint64]bool) error {
