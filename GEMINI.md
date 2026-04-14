@@ -52,6 +52,8 @@ tests that eventually use `prog.Target` or `targets.Target`.
     -   Format: `dir/path: description` (e.g., `pkg/fuzzer: fix crash in minimization`).
     -   No trailing dot in the summary.
 -   **Testing:** New features must have tests. When writing test assertions, prefer using `require.Equal(t, tt.want, got)` from the `github.com/stretchr/testify/require` package instead of manual `if` comparisons.
+-   **Go Standard Library Utilities:** Prefer using functions from the standard `slices` and `maps` packages introduced in Go 1.21+ (e.g., `slices.Contains`, `slices.Clone`, `slices.DeleteFunc`, `maps.Keys`) instead of handwriting loops or custom utility functions for these operations.
+    -   *Exception:* Be mindful of performance. For example, do not replace a binary search with `slices.Contains` (which is linear $O(N)$) in performance-critical code.
 -   **Formatting:** Always run `make format` before committing.
 -   **Linting:** Always run the linter (`make lint` or `golangci-lint run ./...`) to fix all problems when a big patch is ready or structural changes are finalized.
 -   **Syscall Descriptions:** When modifying `sys/*/*.txt`, `make generate` must be run to update generated code.
