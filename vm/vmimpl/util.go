@@ -4,6 +4,7 @@
 package vmimpl
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -103,4 +104,40 @@ func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSS
 		args = append(args, "-v")
 	}
 	return args
+}
+
+type SCPOptions struct {
+	Debug         bool
+	Key           string
+	Port          int
+	SystemSSHCfg  bool
+	User          string
+	Addr          string
+	Timeout       time.Duration
+	Dir           string
+	VerboseOutput bool
+}
+
+func SCP(hostSrc, vmDst string, opts SCPOptions) error {
+	args := append(SCPArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg),
+		hostSrc, opts.User+"@"+opts.Addr+":"+vmDst)
+	if opts.Debug {
+		log.Logf(0, "running command: scp %#v", args)
+	}
+	timeout := opts.Timeout
+	if timeout == 0 {
+		timeout = 10 * time.Minute
+	}
+	output, err := osutil.RunCmd(timeout, opts.Dir, "scp", args...)
+	if err != nil {
+		var verr *osutil.VerboseError
+		if errors.As(err, &verr) {
+			return fmt.Errorf("scp failed: %w\n%s", err, string(verr.Output))
+		}
+		return fmt.Errorf("scp failed: %w", err)
+	}
+	if opts.Debug {
+		log.Logf(0, "result: %s", output)
+	}
+	return nil
 }
