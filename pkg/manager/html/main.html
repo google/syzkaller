@@ -20,12 +20,17 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tbody>
 </table>
 
+{{if .FilterSubsystem}}
+<b>Filter by subsystem: {{.FilterSubsystem}}</b> [<a href="/">clear</a>]
+{{end}}
+
 {{if .Crashes}}
 <table class="list_table">
 	<caption>Crashes:</caption>
 	<thead>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Subsystems', textSort)" href="#">Subsystems</a></th>
 		<th><a onclick="return sortTable(this, 'Rank', numSort)" href="#">Rank</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'First Time', textSort, true)" href="#">First Time</a></th>
@@ -41,6 +46,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{range $c := $.Crashes}}
 	<tr>
 		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Title}}</a></td>
+		<td>
+			{{range $i, $s := $c.Subsystems}}{{if $i}}, {{end}}<a href="{{$.FilterAddURL $s}}">{{$s}}</a>{{end}}
+		</td>
 		<td class="rank {{if not $c.Active}}inactive{{end}}">
 			{{if $c.RankTooltip}}
 				<b>{{$c.Rank}}</b>

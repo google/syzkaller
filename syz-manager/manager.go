@@ -45,6 +45,7 @@ import (
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vminfo"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -294,6 +295,10 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 		crashes:            make(chan *manager.Crash, 10),
 		saturatedCalls:     make(map[string]bool),
 		reportGenerator:    manager.ReportGeneratorCache(cfg),
+	}
+	mgr.crashStore.Reporter = reporter
+	if subsystem.HasList(cfg.TargetOS) {
+		mgr.crashStore.Extractor = subsystem.MakeExtractor(subsystem.GetList(cfg.TargetOS))
 	}
 	if *flagDebug {
 		mgr.cfg.Procs = 1

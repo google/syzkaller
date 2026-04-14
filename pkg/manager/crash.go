@@ -8,9 +8,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/hash"
@@ -18,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -26,6 +29,10 @@ type CrashStore struct {
 	BaseDir      string
 	MaxCrashLogs int
 	MaxReproLogs int
+	Extractor    *subsystem.Extractor
+	Reporter     *report.Reporter
+	subsystemMu  sync.RWMutex
+	subsystems   map[string][]string
 }
 
 const reproFileName = "repro.prog"
@@ -40,12 +47,14 @@ func NewCrashStore(cfg *mgrconfig.Config) *CrashStore {
 		BaseDir:      cfg.Workdir,
 		MaxCrashLogs: cfg.MaxCrashLogs,
 		MaxReproLogs: MaxReproAttempts,
+		subsystems:   make(map[string][]string),
 	}
 }
 
 func ReadCrashStore(workdir string) *CrashStore {
 	return &CrashStore{
-		BaseDir: workdir,
+		BaseDir:    workdir,
+		subsystems: make(map[string][]string),
 	}
 }
 
@@ -232,6 +241,7 @@ type BugInfo struct {
 	ReproAttempts  int
 	Crashes        []*CrashInfo
 	Rank           int
+	Subsystems     []string
 }
 
 func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
@@ -247,6 +257,11 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		return nil, err
 	}
 	ret.Title = strings.TrimSpace(string(desc))
+
+	ret.Subsystems, err = cs.getSubsystems(id, dir, ret.Title)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subsystems: %w", err)
+	}
 
 	// Bug rank may go up over time if we observe higher ranked bugs as a consequence of the first failure.
 	ret.Rank = report.TitlesToImpact(ret.Title)
@@ -300,6 +315,69 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 		return ret.Crashes[i].Time.After(ret.Crashes[j].Time)
 	})
 	return ret, nil
+}
+
+func (cs *CrashStore) getSubsystems(id, dir, title string) ([]string, error) {
+	cs.subsystemMu.Lock()
+	defer cs.subsystemMu.Unlock()
+	if cs.subsystems == nil {
+		cs.subsystems = make(map[string][]string)
+	}
+	if subs, ok := cs.subsystems[id]; ok {
+		return subs, nil
+	}
+
+	if subs, err := cs.querySubsystems(dir, title); err != nil {
+		return nil, err
+	} else {
+		slices.Sort(subs)
+		cs.subsystems[id] = subs
+		return subs, nil
+	}
+}
+
+func (cs *CrashStore) querySubsystems(dir, title string) ([]string, error) {
+	if cs.Extractor == nil || cs.Reporter == nil {
+		return nil, nil
+	}
+
+	var reportBytes []byte
+	reportPath := filepath.Join(dir, "repro.report")
+	reportBytes, err := os.ReadFile(reportPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to read %s: %w", reportPath, err)
+		}
+		reportPath = filepath.Join(dir, "report0")
+		reportBytes, err = os.ReadFile(reportPath)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to read %s: %w", reportPath, err)
+		}
+	}
+
+	guiltyFile := ""
+	if len(reportBytes) > 0 {
+		guiltyFile = cs.Reporter.ReportToGuiltyFile(title, reportBytes)
+	}
+
+	var syzRepro []byte
+	reproPath := filepath.Join(dir, reproFileName)
+	syzRepro, err = os.ReadFile(reproPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to read %s: %w", reproPath, err)
+	}
+
+	extracted := cs.Extractor.Extract([]*subsystem.Crash{{
+		GuiltyPath: guiltyFile,
+		SyzRepro:   syzRepro,
+	}})
+
+	var subs []string
+	for _, s := range extracted {
+		subs = append(subs, s.Name)
+	}
+
+	return subs, nil
 }
 
 func (cs *CrashStore) BugList() ([]*BugInfo, error) {
