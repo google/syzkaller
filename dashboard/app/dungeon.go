@@ -4,11 +4,12 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -578,8 +579,8 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 		p.Int = dungeon.ScaleAttribute(float64(p.Int)+1, 3, 10)
 		p.Wis = dungeon.ScaleAttribute(float64(p.Wis)+1, 3, 5)
 
-		sort.Slice(badges, func(i, j int) bool {
-			return badges[i].Name < badges[j].Name
+		slices.SortFunc(badges, func(a, b uiDungeonBadge) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
 
 		p.Badges = badges
@@ -591,15 +592,14 @@ func processPlayers(playerMap map[string]*uiDungeonPlayer, bugDays map[*Bug]int)
 		hallOfFame = append(hallOfFame, p)
 	}
 
-	sort.Slice(hallOfFame, func(i, j int) bool {
-		// Secondary sort by Name ascending.
-		if hallOfFame[i].Score == hallOfFame[j].Score {
-			if hallOfFame[i].Name == hallOfFame[j].Name {
-				return hallOfFame[i].Email < hallOfFame[j].Email
-			}
-			return hallOfFame[i].Name < hallOfFame[j].Name
+	slices.SortFunc(hallOfFame, func(a, b *uiDungeonPlayer) int {
+		if a.Score != b.Score {
+			return cmp.Compare(b.Score, a.Score)
 		}
-		return hallOfFame[i].Score > hallOfFame[j].Score
+		if a.Name != b.Name {
+			return cmp.Compare(a.Name, b.Name)
+		}
+		return cmp.Compare(a.Email, b.Email)
 	})
 
 	for i, p := range hallOfFame {
@@ -650,11 +650,11 @@ func processKingdoms(kingdomMap map[string]*uiDungeonKingdom, heroes []*uiDungeo
 		hallOfFame = append(hallOfFame, k)
 	}
 
-	sort.Slice(hallOfFame, func(i, j int) bool {
-		if hallOfFame[i].Score == hallOfFame[j].Score {
-			return hallOfFame[i].Name < hallOfFame[j].Name
+	slices.SortFunc(hallOfFame, func(a, b *uiDungeonKingdom) int {
+		if a.Score != b.Score {
+			return cmp.Compare(b.Score, a.Score)
 		}
-		return hallOfFame[i].Score > hallOfFame[j].Score
+		return cmp.Compare(a.Name, b.Name)
 	})
 
 	for i, k := range hallOfFame {
