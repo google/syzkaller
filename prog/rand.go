@@ -435,7 +435,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 			panic(fmt.Sprintf("got no spoof resources for %v in %v/%v",
 				kind, r.target.OS, r.target.Arch))
 		}
-		sort.Strings(all)
+		slices.Sort(all)
 		kind1 := all[r.Intn(len(all))]
 		ctors1 := r.enabledCtors(s, kind1)
 		if len(ctors1) != 0 {

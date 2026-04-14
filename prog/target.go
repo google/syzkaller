@@ -4,11 +4,11 @@
 package prog
 
 import (
+	"cmp"
 	"fmt"
 	"maps"
 	"math/rand"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -108,7 +108,7 @@ func GetTarget(OS, arch string) (*Target, error) {
 		for _, t := range targets {
 			supported = append(supported, fmt.Sprintf("%v/%v", t.OS, t.Arch))
 		}
-		sort.Strings(supported)
+		slices.Sort(supported)
 		return nil, fmt.Errorf("unknown target: %v (supported: %v) did you run `make generate`?", key, supported)
 	}
 	target.init.Do(target.lazyInit)
@@ -121,11 +121,11 @@ func AllTargets() []*Target {
 		target.init.Do(target.lazyInit)
 		res = append(res, target)
 	}
-	sort.Slice(res, func(i, j int) bool {
-		if res[i].OS != res[j].OS {
-			return res[i].OS < res[j].OS
+	slices.SortFunc(res, func(a, b *Target) int {
+		if a.OS != b.OS {
+			return cmp.Compare(a.OS, b.OS)
 		}
-		return res[i].Arch < res[j].Arch
+		return cmp.Compare(a.Arch, b.Arch)
 	})
 	return res
 }
