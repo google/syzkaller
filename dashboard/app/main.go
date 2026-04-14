@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -758,7 +759,9 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 	for _, item := range subsystem.Parents {
 		parents = append(parents, createUISubsystem(hdr.Namespace, item, cached))
 	}
-	sort.Slice(children, func(i, j int) bool { return children[i].Name < children[j].Name })
+	slices.SortFunc(children, func(a, b *uiSubsystem) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	return serveTemplate(w, "subsystem_page.html", &uiSubsystemPage{
 		Header:   hdr,
 		Info:     createUISubsystem(hdr.Namespace, subsystem, cached),
@@ -838,12 +841,11 @@ func handleBackports(ctx context.Context, w http.ResponseWriter, r *http.Request
 			}
 		}
 		nsList = unique(nsList)
-		sort.Strings(nsList)
+		slices.Sort(nsList)
 		group.Namespaces = nsList
 	}
-	sort.Slice(groups, func(i, j int) bool {
-		return groups[i].From.String()+groups[i].To.String() <
-			groups[j].From.String()+groups[j].To.String()
+	slices.SortFunc(groups, func(a, b *uiBackportGroup) int {
+		return cmp.Compare(a.From.String()+a.To.String(), b.From.String()+b.To.String())
 	})
 	page := &uiBackportsPage{
 		Header: hdr,
@@ -1527,8 +1529,11 @@ func getBugDiscussionsUI(ctx context.Context, bug *Bug) ([]*uiBugDiscussion, err
 			Last:     d.Summary.LastMessage,
 		})
 	}
-	sort.SliceStable(list, func(i, j int) bool {
-		return list[i].Last.After(list[j].Last)
+	slices.SortFunc(list, func(a, b *uiBugDiscussion) int {
+		if !a.Last.Equal(b.Last) {
+			return b.Last.Compare(a.Last)
+		}
+		return cmp.Compare(a.Link, b.Link)
 	})
 	return list, nil
 }
@@ -1611,7 +1616,9 @@ func handleSubsystemsList(ctx context.Context, w http.ResponseWriter, r *http.Re
 			Link:  urlutil.SetParam("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
 		},
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	slices.SortFunc(list, func(a, b *uiSubsystem) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
 		Header:       hdr,
 		List:         list,
@@ -1815,14 +1822,14 @@ func prepareBugGroups(ctx context.Context, bugs []*Bug, managers []string,
 	cfg := getNsConfig(ctx, ns)
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
-		sort.Slice(bugs, func(i, j int) bool {
-			if bugs[i].Namespace != bugs[j].Namespace {
-				return bugs[i].Namespace < bugs[j].Namespace
+		slices.SortFunc(bugs, func(a, b *uiBug) int {
+			if a.Namespace != b.Namespace {
+				return cmp.Compare(a.Namespace, b.Namespace)
 			}
-			if bugs[i].ClosedTime != bugs[j].ClosedTime {
-				return bugs[i].ClosedTime.After(bugs[j].ClosedTime)
+			if !a.ClosedTime.Equal(b.ClosedTime) {
+				return b.ClosedTime.Compare(a.ClosedTime)
 			}
-			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
+			return b.ReportedTime.Compare(a.ReportedTime)
 		})
 		caption, fragment := "", ""
 		switch index {
@@ -1843,8 +1850,8 @@ func prepareBugGroups(ctx context.Context, bugs []*Bug, managers []string,
 			Bugs:      bugs,
 		})
 	}
-	sort.Slice(uiGroups, func(i, j int) bool {
-		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
+	slices.SortFunc(uiGroups, func(a, b *uiBugGroup) int {
+		return cmp.Compare(b.ShowIndex, a.ShowIndex)
 	})
 	return uiGroups, nil
 }
@@ -1911,14 +1918,16 @@ func fetchTerminalBugs(ctx context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, nil, err
 	}
-	sort.Slice(bugs, func(i, j int) bool {
-		iFixed := bugs[i].Status == BugStatusFixed
-		jFixed := bugs[j].Status == BugStatusFixed
-		if iFixed != jFixed {
-			// Not-yet-fully-patched bugs come first.
-			return jFixed
+	slices.SortFunc(bugs, func(a, b *Bug) int {
+		aFixed := a.Status == BugStatusFixed
+		bFixed := b.Status == BugStatusFixed
+		if aFixed != bFixed {
+			if bFixed {
+				return -1
+			}
+			return 1
 		}
-		return bugs[i].Closed.After(bugs[j].Closed)
+		return b.Closed.Compare(a.Closed)
 	})
 	stats := &uiBugStats{}
 	res := &uiBugGroup{
@@ -2135,8 +2144,8 @@ func createUIBug(ctx context.Context, bug *Bug, state *ReportingState, managers 
 				uiBug.MissingOn = append(uiBug.MissingOn, mgr)
 			}
 		}
-		sort.Strings(uiBug.PatchedOn)
-		sort.Strings(uiBug.MissingOn)
+		slices.Sort(uiBug.PatchedOn)
+		slices.Sort(uiBug.MissingOn)
 	}
 	return uiBug
 }
@@ -2293,11 +2302,11 @@ func loadRepos(ctx context.Context, ns string) ([]*uiRepo, error) {
 		dedupRepos[hash] = true
 		ret = append(ret, repo)
 	}
-	sort.Slice(ret, func(i, j int) bool {
-		if ret[i].URL != ret[j].URL {
-			return ret[i].URL < ret[j].URL
+	slices.SortFunc(ret, func(a, b *uiRepo) int {
+		if a.URL != b.URL {
+			return cmp.Compare(a.URL, b.URL)
 		}
-		return ret[i].Branch < ret[j].Branch
+		return cmp.Compare(a.Branch, b.Branch)
 	})
 	return ret, nil
 }
@@ -2395,11 +2404,11 @@ func loadManagers(ctx context.Context, accessLevel AccessLevel, ns string,
 		}
 		results = append(results, ui)
 	}
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].Namespace != results[j].Namespace {
-			return results[i].Namespace < results[j].Namespace
+	slices.SortFunc(results, func(a, b *uiManager) int {
+		if a.Namespace != b.Namespace {
+			return cmp.Compare(a.Namespace, b.Namespace)
 		}
-		return results[i].Name < results[j].Name
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return results, nil
 }
