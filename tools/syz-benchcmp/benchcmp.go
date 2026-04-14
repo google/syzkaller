@@ -9,6 +9,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/tool"
@@ -88,14 +90,16 @@ func main() {
 			Points:  points,
 		})
 	}
-	sort.Slice(graphs, func(i, j int) bool {
-		return graphs[i].Name < graphs[j].Name
+	slices.SortFunc(graphs, func(a, b *Graph) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	for _, g := range graphs {
 		if len(g.Points) == 0 {
 			tool.Failf("no data points")
 		}
-		sort.Sort(pointSlice(g.Points))
+		slices.SortFunc(g.Points, func(a, b Point) int {
+			return cmp.Compare(a.Time, b.Time)
+		})
 		skipStart(g)
 		restoreMissingPoints(g)
 	}
@@ -247,12 +251,6 @@ func display(graphs []*Graph) {
 		}
 	}
 }
-
-type pointSlice []Point
-
-func (a pointSlice) Len() int           { return len(a) }
-func (a pointSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a pointSlice) Less(i, j int) bool { return a[i].Time < a[j].Time }
 
 var htmlTemplate = template.Must(
 	template.New("").Parse(`
