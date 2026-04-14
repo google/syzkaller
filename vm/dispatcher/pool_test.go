@@ -353,8 +353,11 @@ func (ti *testInstance) waitRun() {
 }
 
 func (ti *testInstance) stopRun() {
-	close(ti.stop)
+	// The order is important: clear hasRun before unblocking the job.
+	// Otherwise, the pool might quickly restart the job and set hasRun to true
+	// before we execute Store(false) here, leading to a deadlock in waitRun.
 	ti.hasRun.Store(false) // make subsequent waitRun() actually wait for the next command.
+	close(ti.stop)
 }
 
 func (ti *testInstance) Index() int {
