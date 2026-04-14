@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -955,7 +956,7 @@ func (comp *compiler) checkRecursion() {
 func (comp *compiler) checkResourceRecursion(n *ast.Resource) {
 	var seen []string
 	for n != nil {
-		if arrayContains(seen, n.Name.Name) {
+		if slices.Contains(seen, n.Name.Name) {
 			chain := ""
 			for _, r := range seen {
 				chain += r + "->"
@@ -1349,7 +1350,7 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 				unexpected, argDesc.Name, t.Ident, desc.Names)
 			return
 		}
-		if !arrayContains(desc.Names, arg.Ident) {
+		if !slices.Contains(desc.Names, arg.Ident) {
 			comp.error(arg.Pos, "unexpected value %v for %v argument of %v type, expect %+v",
 				arg.Ident, argDesc.Name, t.Ident, desc.Names)
 			return
