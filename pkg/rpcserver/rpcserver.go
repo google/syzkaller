@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/url"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -498,7 +497,7 @@ func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 			for call, reason := range disabledCalls {
 				lines = append(lines, fmt.Sprintf("%-44v: %v\n", call.Name, reason))
 			}
-			sort.Strings(lines)
+			slices.Sort(lines)
 			fmt.Fprintf(buf, "disabled the following syscalls:\n%s\n", strings.Join(lines, ""))
 		}
 		if len(transitivelyDisabled) != 0 {
@@ -506,7 +505,7 @@ func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 			for call, reason := range transitivelyDisabled {
 				lines = append(lines, fmt.Sprintf("%-44v: %v\n", call.Name, reason))
 			}
-			sort.Strings(lines)
+			slices.Sort(lines)
 			fmt.Fprintf(buf, "transitively disabled the following syscalls"+
 				" (missing resource [creating syscalls]):\n%s\n",
 				strings.Join(lines, ""))
@@ -533,7 +532,7 @@ func (serv *server) printMachineCheck(checkFilesInfo []*flatrpc.FileInfo, enable
 		lines = append(lines, fmt.Sprintf("%-24v: %v\n",
 			flatrpc.EnumNamesFeature[feat], info.Reason))
 	}
-	sort.Strings(lines)
+	slices.Sort(lines)
 	buf.WriteString(strings.Join(lines, ""))
 	fmt.Fprintf(buf, "\n")
 	log.Logf(0, "machine check:\n%s", buf.Bytes())
