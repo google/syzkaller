@@ -6,7 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/report/crash"
@@ -129,9 +129,7 @@ func (s *labelSet) Help() string {
 	for key := range s.labels {
 		sortedKeys = append(sortedKeys, key)
 	}
-	sort.Slice(sortedKeys, func(i, j int) bool {
-		return string(sortedKeys[i]) < string(sortedKeys[j])
-	})
+	slices.Sort(sortedKeys)
 
 	var help strings.Builder
 	for _, key := range sortedKeys {
