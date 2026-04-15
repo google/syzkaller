@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sync"
 	"time"
 
@@ -75,7 +76,7 @@ var targetConstructors = map[string]func(cfg *TestbedConfig) TestbedTarget{
 				if skip {
 					continue
 				}
-				logs := append([]string{}, bug.Logs...)
+				logs := slices.Clone(bug.Logs)
 				for i := 0; i < reproConfig.CrashesPerBug && len(logs) > 0; i++ {
 					randID := r.Intn(len(logs))
 					logs[len(logs)-1], logs[randID] = logs[randID], logs[len(logs)-1]
