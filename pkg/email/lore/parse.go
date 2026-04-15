@@ -224,7 +224,11 @@ func (c *parseCtx) process() {
 			}
 		}
 		ids := maps.Keys(unique)
-		slices.Sort(ids)
+		if len(ids) == 0 {
+			ids = nil
+		} else {
+			slices.Sort(ids)
+		}
 		thread.BugIDs = ids
 	}
 }
