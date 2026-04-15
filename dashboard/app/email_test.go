@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1451,7 +1452,7 @@ Author: someone@mail.com
 			// Ensure that we don't react to replies.
 			c.incomingEmail("syzbot@testapp.appspotmail.com", msg.Body,
 				EmailOptFrom("syzbot@testapp.appspotmail.com"),
-				EmailOptCC(append(append([]string{}, msg.Cc...), msg.To...)))
+				EmailOptCC(append(slices.Clone(msg.Cc), msg.To...)))
 			c.expectNoEmail()
 		})
 	})

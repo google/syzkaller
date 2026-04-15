@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -759,7 +760,7 @@ func checkKernelRepos(ns string, config *Config, repos []KernelRepo) {
 }
 
 func checkCC(cc *CCConfig) {
-	emails := append(append(append([]string{}, cc.Always...), cc.Maintainers...), cc.BuildMaintainers...)
+	emails := append(append(slices.Clone(cc.Always), cc.Maintainers...), cc.BuildMaintainers...)
 	for _, email := range emails {
 		if _, err := mail.ParseAddress(email); err != nil {
 			panic(fmt.Sprintf("bad email address %q: %v", email, err))

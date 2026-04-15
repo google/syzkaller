@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -982,7 +983,7 @@ func handleRetestedRepro(ctx context.Context, now time.Time, job *Job, jobKey *d
 }
 
 func gatherCrashTitles(req *dashapi.JobDoneReq) []string {
-	ret := append([]string{}, req.CrashAltTitles...)
+	ret := slices.Clone(req.CrashAltTitles)
 	if req.CrashTitle != "" {
 		ret = append(ret, req.CrashTitle)
 	}

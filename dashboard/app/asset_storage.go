@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
 	"time"
 
@@ -229,7 +230,7 @@ func (ad *buildAssetDeprecator) queryBugs() error {
 		return fmt.Errorf("failed to query bugs: %w", err)
 	}
 	ad.relevantBugs = map[string]bool{}
-	for _, key := range append(append([]*db.Key{}, openBugKeys...), closedBugKeys...) {
+	for _, key := range append(slices.Clone(openBugKeys), closedBugKeys...) {
 		ad.relevantBugs[key.String()] = true
 	}
 	return nil
