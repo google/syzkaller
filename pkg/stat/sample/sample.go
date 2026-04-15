@@ -7,7 +7,6 @@ package sample
 import (
 	"math"
 	"slices"
-	"sort"
 )
 
 // Sample represents a single sample - set of data points collected during an experiment.
@@ -68,7 +67,7 @@ func (s *Sample) Copy() *Sample {
 
 func (s *Sample) Sort() {
 	if !s.Sorted {
-		sort.Slice(s.Xs, func(i, j int) bool { return s.Xs[i] < s.Xs[j] })
+		slices.Sort(s.Xs)
 		s.Sorted = true
 	}
 }
