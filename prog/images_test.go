@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -76,7 +76,7 @@ func TestForEachAsset(t *testing.T) {
 			}
 		})
 	}
-	sort.Strings(testedOutFiles)
-	sort.Strings(allOutFiles)
+	slices.Sort(testedOutFiles)
+	slices.Sort(allOutFiles)
 	require.Equal(t, allOutFiles, testedOutFiles, "not all output files used")
 }
