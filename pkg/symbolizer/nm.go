@@ -4,9 +4,10 @@
 package symbolizer
 
 import (
+	"cmp"
 	"debug/elf"
 	"fmt"
-	"sort"
+	"slices"
 )
 
 type Symbol struct {
@@ -29,8 +30,8 @@ func read(bin string, text bool) (map[string][]Symbol, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Slice(raw, func(i, j int) bool {
-		return raw[i].Value > raw[j].Value
+	slices.SortFunc(raw, func(a, b elf.Symbol) int {
+		return cmp.Compare(b.Value, a.Value)
 	})
 	symbols := make(map[string][]Symbol)
 	// Function sizes reported by the Linux kernel do not match symbol tables.
