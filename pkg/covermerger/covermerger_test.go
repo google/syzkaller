@@ -4,13 +4,14 @@
 package covermerger
 
 import (
+	"cmp"
 	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -164,8 +165,8 @@ func TestMergerdCoverageRecords(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gotRecords, gotFuncs := mergedCoverageRecords(test.input)
-			sort.Slice(gotRecords, func(i, j int) bool {
-				return gotRecords[i].Manager < gotRecords[j].Manager
+			slices.SortFunc(gotRecords, func(a, b *coveragedb.MergedCoverageRecord) int {
+				return cmp.Compare(a.Manager, b.Manager)
 			})
 			assert.Equal(t, test.wantRecords, gotRecords, "records are not equal")
 			assert.Equal(t, 0, len(gotFuncs), "no functions expected")
