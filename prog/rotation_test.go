@@ -5,8 +5,10 @@ package prog
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sort"
 	"testing"
 
@@ -40,8 +42,8 @@ func TestRotationRandom(t *testing.T) {
 			for call := range calls {
 				array = append(array, call)
 			}
-			sort.Slice(array, func(i, j int) bool {
-				return array[i].Name < array[j].Name
+			slices.SortFunc(array, func(a, b *Syscall) int {
+				return cmp.Compare(a.Name, b.Name)
 			})
 			for _, call := range array {
 				fmt.Fprintf(buf, "%v\n", call.Name)
@@ -124,8 +126,8 @@ retry:
 			for call := range calls {
 				array = append(array, call)
 			}
-			sort.Slice(array, func(i, j int) bool {
-				return array[i].ID < array[j].ID
+			slices.SortFunc(array, func(a, b *Syscall) int {
+				return cmp.Compare(a.ID, b.ID)
 			})
 			rnd.Shuffle(len(calls), func(i, j int) {
 				array[i], array[j] = array[j], array[i]
