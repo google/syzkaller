@@ -758,8 +758,8 @@ func (serv *HTTPServer) httpPrio(w http.ResponseWriter, r *http.Request) {
 		}
 		data.Prios = append(data.Prios, UIPrio{syscall.Name, p})
 	}
-	sort.Slice(data.Prios, func(i, j int) bool {
-		return data.Prios[i].Prio > data.Prios[j].Prio
+	slices.SortFunc(data.Prios, func(a, b UIPrio) int {
+		return cmp.Compare(b.Prio, a.Prio)
 	})
 	executeTemplate(w, prioTemplate, data)
 }
