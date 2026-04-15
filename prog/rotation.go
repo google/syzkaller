@@ -4,8 +4,9 @@
 package prog
 
 import (
+	"cmp"
 	"math/rand"
-	"sort"
+	"slices"
 )
 
 // Rotator selects a random subset of syscalls for corpus rotation.
@@ -40,8 +41,8 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 	for call := range calls {
 		sorted = append(sorted, call)
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Name < sorted[j].Name
+	slices.SortFunc(sorted, func(a, b *Syscall) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	for _, call := range sorted {
 		var inputs []*ResourceDesc
@@ -188,8 +189,8 @@ func (rs *rotatorState) Select() map[*Syscall]bool {
 			for res := range rs.resources {
 				rs.topQueue = append(rs.topQueue, res)
 			}
-			sort.Slice(rs.topQueue, func(i, j int) bool {
-				return rs.topQueue[i].Name < rs.topQueue[j].Name
+			slices.SortFunc(rs.topQueue, func(a, b *ResourceDesc) int {
+				return cmp.Compare(a.Name, b.Name)
 			})
 			rs.rnd.Shuffle(len(rs.topQueue), func(i, j int) {
 				rs.topQueue[i], rs.topQueue[j] = rs.topQueue[j], rs.topQueue[i]
