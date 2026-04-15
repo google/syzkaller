@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -150,7 +150,7 @@ func parseReport(t *testing.T, reporter *Reporter, fn string) *ParseTest {
 	if len(test.Log) == 0 {
 		t.Fatalf("can't find log in input file")
 	}
-	sort.Strings(test.AltTitles)
+	slices.Sort(test.AltTitles)
 	return test
 }
 
@@ -233,7 +233,7 @@ func testFromReport(rep *Report) *ParseTest {
 	if rep.Executor != nil {
 		ret.Executor = fmt.Sprintf("proc=%d, id=%d", rep.Executor.ProcID, rep.Executor.ExecID)
 	}
-	sort.Strings(ret.AltTitles)
+	slices.Sort(ret.AltTitles)
 	return ret
 }
 
