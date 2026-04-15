@@ -9,7 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -72,7 +72,7 @@ func ParseArchList(OS, archList string) ([]string, error) {
 			arches = append(arches, arch)
 		}
 	}
-	sort.Strings(arches)
+	slices.Sort(arches)
 	return arches, nil
 }
 
