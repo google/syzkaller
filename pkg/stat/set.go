@@ -4,8 +4,10 @@
 package stat
 
 import (
+	"cmp"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -412,8 +414,8 @@ func (s *set) RenderGraphs() []UIGraph {
 		for _, ln := range graph.lines {
 			lines = append(lines, ln)
 		}
-		sort.Slice(lines, func(i, j int) bool {
-			return lines[i].order < lines[j].order
+		slices.SortFunc(lines, func(a, b *line) int {
+			return cmp.Compare(a.order, b.order)
 		})
 		g := UIGraph{
 			ID:      len(graphs),
