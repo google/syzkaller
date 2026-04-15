@@ -4,6 +4,8 @@
 package linux
 
 import (
+	"slices"
+
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -251,7 +253,7 @@ func neutralizeSchedAttr(a prog.Arg) {
 				return
 			}
 			// Clear the first 16 bytes to prevent overcoming the limitation by squashing the struct.
-			data := append([]byte{}, dataArg.Data()...)
+			data := slices.Clone(dataArg.Data())
 			for i := 0; i < 16 && i < len(data); i++ {
 				data[i] = 0
 			}
