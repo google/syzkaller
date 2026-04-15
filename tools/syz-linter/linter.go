@@ -72,6 +72,7 @@ func run(p *analysis.Pass) (any, error) {
 			case *ast.CallExpr:
 				pass.checkFlagDefinition(n)
 				pass.checkLogErrorFormat(n)
+				pass.checkSliceClone(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
@@ -293,6 +294,20 @@ func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
 			pass.report(n, "Don't start flag description with a Capital letter")
 		}
 	}
+}
+
+// checkSliceClone warns about manual slice cloning using append([]T{}, slice...)
+// and suggests using slices.Clone instead.
+func (pass *Pass) checkSliceClone(n *ast.CallExpr) {
+	fn, ok := n.Fun.(*ast.Ident)
+	if !ok || fn.Name != "append" || len(n.Args) != 2 || n.Ellipsis == token.NoPos {
+		return
+	}
+	arg0, ok := n.Args[0].(*ast.CompositeLit)
+	if !ok || len(arg0.Elts) != 0 {
+		return
+	}
+	pass.report(n, "Use slices.Clone instead of append")
 }
 
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
