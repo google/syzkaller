@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -40,7 +40,7 @@ func TestExtractConsts(t *testing.T) {
 		"CONST21", "CONST22", "CONST23", "CONST24", "CONST25",
 		"CONST26", "CONST27",
 	}
-	sort.Strings(wantConsts)
+	slices.Sort(wantConsts)
 	var constNames []string
 	for _, def := range info.Consts {
 		constNames = append(constNames, def.Name)

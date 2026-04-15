@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -316,8 +316,8 @@ func TestCollectUnused(t *testing.T) {
 			_, _, names[i] = nodes[i].Info()
 		}
 
-		sort.Strings(names)
-		sort.Strings(input.names)
+		slices.Sort(names)
+		slices.Sort(input.names)
 
 		if !reflect.DeepEqual(names, input.names) {
 			t.Errorf("test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
