@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -231,7 +231,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 			}
 			archFiles = append(archFiles, file)
 		}
-		sort.Strings(archFiles)
+		slices.Sort(archFiles)
 		for _, f := range archFiles {
 			arch.files = append(arch.files, &File{
 				arch: arch,
