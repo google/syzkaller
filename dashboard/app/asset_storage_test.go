@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -120,7 +120,7 @@ If you want to undo deduplication, reply with:
 	// We query the needed assets. We need all 3.
 	needed, err := c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	allDownloadURLs := []string{
 		"http://google.com/bootable_disk",
 		"http://google.com/coverage.html",
@@ -136,7 +136,7 @@ If you want to undo deduplication, reply with:
 	// Query the needed assets once more, so far there should be no change.
 	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Skip one month and deprecate assets.
@@ -211,8 +211,8 @@ func TestCoverReportDeprecation(t *testing.T) {
 		c.expectOK(err)
 		neededResp, err := c.globalClient.NeededAssetsList()
 		c.expectOK(err)
-		sort.Strings(neededResp.DownloadURLs)
-		sort.Strings(needed)
+		slices.Sort(neededResp.DownloadURLs)
+		slices.Sort(needed)
 		c.expectEQ(neededResp.DownloadURLs, needed)
 	}
 
@@ -287,8 +287,8 @@ func TestFreshBuildAssets(t *testing.T) {
 		c.expectOK(err)
 		neededResp, err := c.globalClient.NeededAssetsList()
 		c.expectOK(err)
-		sort.Strings(neededResp.DownloadURLs)
-		sort.Strings(needed)
+		slices.Sort(neededResp.DownloadURLs)
+		slices.Sort(needed)
 		c.expectEQ(neededResp.DownloadURLs, needed)
 	}
 
@@ -429,7 +429,7 @@ If you want to undo deduplication, reply with:
 	// We query the needed assets. We need all 3.
 	needed, err := c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	allDownloadURLs := []string{
 		"http://google.com/disk_image",
 		"http://google.com/disk_image2",
@@ -445,7 +445,7 @@ If you want to undo deduplication, reply with:
 	// Query the needed assets once more, so far there should be no change.
 	needed, err = c.globalClient.NeededAssetsList()
 	c.expectOK(err)
-	sort.Strings(needed.DownloadURLs)
+	slices.Sort(needed.DownloadURLs)
 	c.expectEQ(needed.DownloadURLs, allDownloadURLs)
 
 	// Skip one month and deprecate assets.
