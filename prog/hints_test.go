@@ -650,14 +650,19 @@ func TestHintsRandom(t *testing.T) {
 	r := newRand(target, rs)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 5, ct)
+		// In the test mode, MutateWithHints is essentially quadratic over the number of arguments
+		// since we run full prog validation on each run.
+		// To avoid consuming too much time, let's just skip programs that are too big.
+		if p.countArgs() > maxArgCutoff {
+			t.Logf("iter %d: skipping program - too big", i)
+			continue
+		}
 		for j, c := range p.Calls {
 			vals := extractValues(c)
 			for k := 0; k < 5; k++ {
 				vals[r.randInt64()] = true
 			}
-			// In the test mode, MutateWithHints is essentially quadratic over the number of values
-			// since we run full prog validation on each run.
-			// To avoid consuming too much time, let's just skip all calls that are too big.
+			// MutateWithHints is also quadratic over the number of values. Skip large calls.
 			const valsCutOff = 10000
 			if len(vals) > valsCutOff {
 				t.Logf("iter %d: skipping call %d - too big", i, j)
