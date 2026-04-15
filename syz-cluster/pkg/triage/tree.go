@@ -4,6 +4,7 @@
 package triage
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -54,4 +55,14 @@ func FindTree(trees []*api.Tree, branch string) (int, string) {
 		}
 	}
 	return -1, ""
+}
+
+func FindTreeByName(trees []*api.Tree, name string) *api.Tree {
+	idx := slices.IndexFunc(trees, func(t *api.Tree) bool {
+		return t.Name == name
+	})
+	if idx != -1 {
+		return trees[idx]
+	}
+	return nil
 }

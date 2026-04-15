@@ -171,8 +171,8 @@ func (triager *seriesTriager) prepareJobTask(
 ) (*api.TriageResult, error) {
 	var targets []*api.TestTarget
 	for i, task := range job.FindingGroups {
-		treeIndex, _ := triage.FindTree(trees, task.Build.TreeName)
-		if treeIndex == -1 {
+		foundTree := triage.FindTreeByName(trees, task.Build.TreeName)
+		if foundTree == nil {
 			return &api.TriageResult{
 				SkipReason: fmt.Sprintf("tree %q is no longer known", task.Build.TreeName),
 			}, nil
