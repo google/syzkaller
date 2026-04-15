@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"math/bits"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -732,7 +733,7 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 	sort.Strings(sortedTop)
 	sort.Strings(sorted)
 	sort.Strings(sortedBottom)
-	newResult := append([]byte{}, result[:includesStart]...)
+	newResult := slices.Clone(result[:includesStart])
 	newResult = append(newResult, strings.Join(sortedTop, "")...)
 	newResult = append(newResult, '\n')
 	newResult = append(newResult, strings.Join(sorted, "")...)
