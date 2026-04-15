@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -245,6 +245,6 @@ func executorFiles(t *testing.T) []string {
 		t.Fatal("found no executor files")
 	}
 	res := append(cc, h...)
-	sort.Strings(res)
+	slices.Sort(res)
 	return res
 }
