@@ -15,7 +15,6 @@ import (
 	"net/mail"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -667,7 +666,7 @@ func processInboxEmail(ctx context.Context, msg *email.Email, inbox *PerInboxCon
 		delete(needForwardTo, email)
 	}
 	missing := slices.Collect(maps.Keys(needForwardTo))
-	sort.Strings(missing)
+	slices.Sort(missing)
 	if len(missing) == 0 {
 		// Everything's OK.
 		log.Infof(ctx, "email %q has all necessary lists in Cc", msg.MessageID)
@@ -1429,7 +1428,7 @@ func missingMailingLists(ctx context.Context, msg *email.Email, emailConfig *Ema
 			missing = append(missing, list)
 		}
 	}
-	sort.Strings(missing)
+	slices.Sort(missing)
 	msg.Cc = append(msg.Cc, missing...)
 	return missing
 }
