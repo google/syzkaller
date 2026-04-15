@@ -4,10 +4,11 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"html/template"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -43,8 +44,8 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 			RecvRepros: mgr.RecvRepros,
 		})
 	}
-	sort.Slice(data.Managers, func(i, j int) bool {
-		return data.Managers[i].Name < data.Managers[j].Name
+	slices.SortFunc(data.Managers, func(a, b UIManager) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	data.Managers = append([]UIManager{total}, data.Managers...)
 	if err := summaryTemplate.Execute(w, data); err != nil {
