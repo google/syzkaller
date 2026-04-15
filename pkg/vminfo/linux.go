@@ -6,11 +6,12 @@ package vminfo
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
 	"path"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -90,8 +91,8 @@ func (linux linux) parseModules(files filesystem) ([]*KernelModule, error) {
 		Addr: _stext,
 		Size: _etext - _stext,
 	})
-	sort.Slice(modules, func(i, j int) bool {
-		return modules[i].Addr < modules[j].Addr
+	slices.SortFunc(modules, func(a, b *KernelModule) int {
+		return cmp.Compare(a.Addr, b.Addr)
 	})
 	return modules, nil
 }
