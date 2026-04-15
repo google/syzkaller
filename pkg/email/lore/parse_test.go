@@ -5,7 +5,7 @@ package lore
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -243,8 +243,8 @@ Bug report`,
 	got := map[string]*Thread{}
 
 	for _, d := range threads {
-		sort.Slice(d.Messages, func(i, j int) bool {
-			return d.Messages[i].Date.Before(d.Messages[j].Date)
+		slices.SortFunc(d.Messages, func(a, b *Email) int {
+			return a.Date.Compare(b.Date)
 		})
 		got[d.MessageID] = d
 	}
