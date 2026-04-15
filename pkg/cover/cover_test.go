@@ -5,7 +5,7 @@ package cover
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -52,9 +52,7 @@ func TestMergeDiff(t *testing.T) {
 			diff := cov.MergeDiff(test.merge)
 			require.Equal(t, test.diff, diff, "result is wrong")
 			result := cov.Serialize()
-			sort.Slice(result, func(i, j int) bool {
-				return result[i] < result[j]
-			})
+			slices.Sort(result)
 			require.Equal(t, test.result, result, "resulting coverage is wrong")
 		})
 	}

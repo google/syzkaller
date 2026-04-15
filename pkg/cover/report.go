@@ -4,6 +4,7 @@
 package cover
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"sort"
@@ -137,8 +138,8 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog, force, debug bool) (file
 		f.functions = append(f.functions, fun)
 	}
 	for _, f := range files {
-		sort.Slice(f.functions, func(i, j int) bool {
-			return f.functions[i].name < f.functions[j].name
+		slices.SortFunc(f.functions, func(a, b *function) int {
+			return cmp.Compare(a.name, b.name)
 		})
 	}
 	return files, nil
