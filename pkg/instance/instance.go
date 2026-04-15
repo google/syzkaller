@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 		"GOPATH=" + cfg.Syzkaller[:srcIndex],
 		"GO111MODULE=auto",
 	}
-	cmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
+	cmd.Env = append(slices.Clone(os.Environ()), goEnvOptions...)
 	cmd.Env = append(cmd.Env,
 		"TARGETOS="+cfg.TargetOS,
 		"TARGETVMARCH="+cfg.TargetVMArch,
@@ -125,7 +126,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	// only figure out later whether we actually need it (e.g. if the patch testing fails).
 	goEnvCmd := osutil.Command("go", "env")
 	goEnvCmd.Dir = cfg.Syzkaller
-	goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
+	goEnvCmd.Env = append(slices.Clone(os.Environ()), goEnvOptions...)
 	goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
 	gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
 	// Compile syzkaller.
