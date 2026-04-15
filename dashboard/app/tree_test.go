@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1115,7 +1115,7 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 		resp.MergeBaseRepo,
 		resp.MergeBaseBranch,
 	}
-	sort.Strings(respValues)
+	slices.Sort(respValues)
 	var found *treeTestEntry
 	for i, entry := range ctx.entries {
 		entryValues := []string{
@@ -1129,7 +1129,7 @@ func (ctx *treeTestCtx) doJob(resp *dashapi.JobPollResp, day int) {
 		} else {
 			entryValues = append(entryValues, "", "")
 		}
-		sort.Strings(entryValues)
+		slices.Sort(entryValues)
 		if reflect.DeepEqual(respValues, entryValues) {
 			found = &ctx.entries[i]
 			break
