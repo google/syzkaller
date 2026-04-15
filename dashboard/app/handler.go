@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"encoding/base64"
@@ -13,7 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -285,8 +286,8 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 			Caption: cfg.DisplayTitle,
 		})
 	}
-	sort.Slice(h.Namespaces, func(i, j int) bool {
-		return h.Namespaces[i].Caption < h.Namespaces[j].Caption
+	slices.SortFunc(h.Namespaces, func(a, b uiNamespace) int {
+		return cmp.Compare(a.Caption, b.Caption)
 	})
 	cookie := decodeCookie(r)
 	if !found {
