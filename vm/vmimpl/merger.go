@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -134,7 +135,7 @@ func (merger *OutputMerger) runDecoder(typ OutputType, r io.ReadCloser,
 					merger.teeMu.Unlock()
 				}
 				select {
-				case merger.Output <- Chunk{append([]byte{}, out...), typ}:
+				case merger.Output <- Chunk{slices.Clone(out), typ}:
 					r := copy(pending, pending[pos+1:])
 					pending = pending[:r]
 				default:
