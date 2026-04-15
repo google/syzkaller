@@ -29,7 +29,6 @@ import (
 	"math/bits"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -234,7 +233,7 @@ func (ctx *context) generateSyscallDefines() string {
 		}
 		calls = append(calls, name)
 	}
-	sort.Strings(calls)
+	slices.Sort(calls)
 	buf := new(bytes.Buffer)
 	prefix := ctx.sysTarget.SyscallPrefix
 	for _, name := range calls {
@@ -730,9 +729,9 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 			sorted = append(sorted, include)
 		}
 	}
-	sort.Strings(sortedTop)
-	sort.Strings(sorted)
-	sort.Strings(sortedBottom)
+	slices.Sort(sortedTop)
+	slices.Sort(sorted)
+	slices.Sort(sortedBottom)
 	newResult := slices.Clone(result[:includesStart])
 	newResult = append(newResult, strings.Join(sortedTop, "")...)
 	newResult = append(newResult, '\n')

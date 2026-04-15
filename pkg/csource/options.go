@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/flatrpc"
@@ -354,7 +354,7 @@ func PrintAvailableFeaturesFlags() {
 	for name := range features {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	for _, name := range names {
 		fmt.Printf("  %s - %s\n", name, features[name].Description)
 	}
