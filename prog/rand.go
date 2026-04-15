@@ -5,6 +5,7 @@ package prog
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"maps"
 	"math"
@@ -94,9 +95,7 @@ var (
 )
 
 func init() {
-	sort.Slice(specialInts, func(i, j int) bool {
-		return specialInts[i] < specialInts[j]
-	})
+	slices.Sort(specialInts)
 	for i := range specialIntIndex {
 		bitSize := uint64(8 * i)
 		specialIntIndex[i] = sort.Search(len(specialInts), func(i int) bool {
@@ -994,8 +993,8 @@ func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 	for _, res1 := range s.resources {
 		alltypes = append(alltypes, res1)
 	}
-	sort.Slice(alltypes, func(i, j int) bool {
-		return alltypes[i][0].Type().Name() < alltypes[j][0].Type().Name()
+	slices.SortFunc(alltypes, func(a, b []*ResultArg) int {
+		return cmp.Compare(a[0].Type().Name(), b[0].Type().Name())
 	})
 	var allres []*ResultArg
 	for _, res1 := range alltypes {
