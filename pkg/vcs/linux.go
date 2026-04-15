@@ -5,11 +5,13 @@ package vcs
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"net/mail"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -99,8 +101,8 @@ func gitParseReleaseTags(output []byte, includeRC bool) []string {
 			tags = append(tags, string(tag))
 		}
 	}
-	sort.Slice(tags, func(i, j int) bool {
-		return gitReleaseTagToInt(tags[i], includeRC) > gitReleaseTagToInt(tags[j], includeRC)
+	slices.SortFunc(tags, func(a, b string) int {
+		return cmp.Compare(gitReleaseTagToInt(b, includeRC), gitReleaseTagToInt(a, includeRC))
 	})
 	return tags
 }
