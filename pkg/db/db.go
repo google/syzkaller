@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -336,7 +336,7 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	for key := range db.Records {
 		recordKeys = append(recordKeys, key)
 	}
-	sort.Strings(recordKeys)
+	slices.Sort(recordKeys)
 	for _, key := range recordKeys {
 		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
 		if err != nil {
