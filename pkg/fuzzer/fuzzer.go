@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 
@@ -174,7 +174,7 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 			for id := range triage {
 				job.info.Calls = append(job.info.Calls, job.p.CallName(id))
 			}
-			sort.Strings(job.info.Calls)
+			slices.Sort(job.info.Calls)
 			fuzzer.startJob(stat, job)
 		}
 	}
