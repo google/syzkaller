@@ -212,7 +212,7 @@ retry:
 	if err != nil {
 		return "", fmt.Errorf("failed to create instance: %w", err)
 	}
-	if err := ctx.waitForCompletion("zone", "create instance", op.Name, false); err != nil {
+	if err := ctx.waitForZonalCompletion("create instance", op.Name, false); err != nil {
 		var resourcePoolExhaustedError resourcePoolExhaustedError
 		if errors.As(err, &resourcePoolExhaustedError) && instance.Scheduling.Preemptible {
 			instance.Scheduling.Preemptible = false
@@ -269,7 +269,7 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 	if wait {
-		if err := ctx.waitForCompletion("zone", "delete instance", op.Name, true); err != nil {
+		if err := ctx.waitForZonalCompletion("delete instance", op.Name, true); err != nil {
 			return err
 		}
 	}
@@ -323,7 +323,7 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 	}
-	if err := ctx.waitForCompletion("global", "create image", op.Name, false); err != nil {
+	if err := ctx.waitForGlobalCompletion("create image", op.Name, false); err != nil {
 		return err
 	}
 	return nil
@@ -342,7 +342,7 @@ func (ctx *Context) DeleteImage(imageName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete image: %w", err)
 	}
-	if err := ctx.waitForCompletion("global", "delete image", op.Name, true); err != nil {
+	if err := ctx.waitForGlobalCompletion("delete image", op.Name, true); err != nil {
 		return err
 	}
 	return nil
@@ -354,17 +354,24 @@ func (err resourcePoolExhaustedError) Error() string {
 	return string(err)
 }
 
+func (ctx *Context) waitForZonalCompletion(desc, opName string, ignoreNotFound bool) error {
+	return ctx.waitForCompletion("zone", desc, opName, ignoreNotFound)
+}
+
+func (ctx *Context) waitForGlobalCompletion(desc, opName string, ignoreNotFound bool) error {
+	return ctx.waitForCompletion("global", desc, opName, ignoreNotFound)
+}
+
 func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
-	time.Sleep(3 * time.Second)
 	for {
 		time.Sleep(3 * time.Second)
 		var op *compute.Operation
 		err := ctx.apiCall(func() (err error) {
 			switch typ {
 			case "global":
-				op, err = ctx.computeService.GlobalOperations.Get(ctx.ProjectID, opName).Do()
+				op, err = ctx.computeService.GlobalOperations.Wait(ctx.ProjectID, opName).Do()
 			case "zone":
-				op, err = ctx.computeService.ZoneOperations.Get(ctx.ProjectID, ctx.ZoneID, opName).Do()
+				op, err = ctx.computeService.ZoneOperations.Wait(ctx.ProjectID, ctx.ZoneID, opName).Do()
 			default:
 				panic("unknown operation type: " + typ)
 			}
