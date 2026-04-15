@@ -161,6 +161,7 @@ Bug report`,
 						Date:      time.Date(2017, time.May, 7, 19, 57, 0, 0, zone),
 						Author:    "syzbot@bar.com",
 						OwnEmail:  true,
+						Cc:        []string{},
 					},
 				},
 				{
