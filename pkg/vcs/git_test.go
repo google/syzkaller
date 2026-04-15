@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"reflect"
 	"slices"
-	"sort"
 	"testing"
 	"time"
 
@@ -419,7 +418,7 @@ func TestGitRemoteTags(t *testing.T) {
 	assert.NoError(t, err)
 	tags, err := local.previousReleaseTags(commit.Hash, true, false, false)
 	assert.NoError(t, err)
-	sort.Strings(tags)
+	slices.Sort(tags)
 	assert.Equal(t, []string{"v1.0", "v2.0"}, tags)
 }
 

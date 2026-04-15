@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -152,7 +153,7 @@ func (r Recipients) GetEmails(filter RecipientType) []string {
 			emails = append(emails, user.Address.Address)
 		}
 	}
-	sort.Strings(emails)
+	slices.Sort(emails)
 	return emails
 }
 
