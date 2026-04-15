@@ -706,7 +706,7 @@ func managersToRepos(ctx context.Context, ns string, managers []string) []string
 		dedup[repo] = true
 		repos = append(repos, repo)
 	}
-	sort.Strings(repos)
+	slices.Sort(repos)
 	return repos
 }
 
@@ -1016,7 +1016,7 @@ func incomingCommandUpdate(ctx context.Context, now time.Time, cmd *dashapi.BugU
 	}
 	if (len(cmd.FixCommits) != 0 || cmd.ResetFixCommits) &&
 		(bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
-		sort.Strings(cmd.FixCommits)
+		slices.Sort(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
 			bug.updateCommits(cmd.FixCommits, now)
 		}
@@ -1513,8 +1513,8 @@ func representativeCrashes(ctx context.Context, bugKey *db.Key) ([]*crashWithKey
 		dedup[item.key.IntID()] = true
 	}
 	// Sort by Time in desc order.
-	sort.Slice(crashes, func(i, j int) bool {
-		return crashes[i].crash.Time.After(crashes[j].crash.Time)
+	slices.SortFunc(crashes, func(a, b *crashWithKey) int {
+		return b.crash.Time.Compare(a.crash.Time)
 	})
 	return crashes, nil
 }
