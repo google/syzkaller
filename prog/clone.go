@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"slices"
 )
 
 func (p *Prog) Clone() *Prog {
@@ -71,7 +72,7 @@ func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
 	case *DataArg:
 		a1 := new(DataArg)
 		*a1 = *a
-		a1.data = append([]byte{}, a.data...)
+		a1.data = slices.Clone(a.data)
 		arg1 = a1
 	case *GroupArg:
 		a1 := new(GroupArg)

@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -159,7 +160,7 @@ func (v *Value) ForEachValue(cb func(*Value)) {
 }
 
 func (v *Value) Clone() Expression {
-	return &Value{v.Value, append([]string{}, v.Path...)}
+	return &Value{v.Value, slices.Clone(v.Path)}
 }
 
 type BinaryFormat int

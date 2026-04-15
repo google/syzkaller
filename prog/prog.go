@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -223,7 +224,7 @@ func MakeDataArg(t Type, dir Dir, data []byte) *DataArg {
 	if dir == DirOut {
 		panic("non-empty output data arg")
 	}
-	return &DataArg{ArgCommon: ArgCommon{ref: t.ref(), dir: dir}, data: append([]byte{}, data...)}
+	return &DataArg{ArgCommon: ArgCommon{ref: t.ref(), dir: dir}, data: slices.Clone(data)}
 }
 
 func MakeOutDataArg(t Type, dir Dir, size uint64) *DataArg {
@@ -251,7 +252,7 @@ func (arg *DataArg) SetData(data []byte) {
 	if arg.Dir() == DirOut {
 		panic("setting data of output data arg")
 	}
-	arg.data = append([]byte{}, data...)
+	arg.data = slices.Clone(data)
 }
 
 // Used for StructType and ArrayType.
