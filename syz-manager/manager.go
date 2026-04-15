@@ -567,7 +567,7 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 				res.Crash.FullTitle())
 		} else {
 			log.Logf(1, "report repro failure of '%v'", res.Crash.Title)
-			mgr.saveFailedRepro(res.Crash.Report, res.Stats)
+			mgr.saveFailedRepro(res.Crash.Report, res.Stats, res.Err)
 		}
 	} else {
 		mgr.saveRepro(res)
@@ -577,6 +577,8 @@ func (mgr *Manager) processRepro(res *manager.ReproResult) {
 		var reproLog []byte
 		if res.Stats != nil {
 			reproLog = truncateReproLog(res.Stats.FullLog())
+		} else if res.Err != nil {
+			reproLog = []byte(fmt.Sprintf("reproduction failed: %v", res.Err))
 		}
 		req := &dashapi.ReproTaskDoneReq{
 			ReqID:   res.Crash.ExtReqID,
@@ -868,8 +870,11 @@ func truncateReproLog(log []byte) []byte {
 	return report.Truncate(log, 512000, 512000)
 }
 
-func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
+func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats, reproErr error) {
 	reproLog := stats.FullLog()
+	if reproLog == nil && reproErr != nil {
+		reproLog = []byte(fmt.Sprintf("reproduction failed: %v", reproErr))
+	}
 	if mgr.dash != nil {
 		if rep.Type == crash_pkg.MemoryLeak {
 			// Don't send failed leak repro attempts to dashboard
