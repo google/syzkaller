@@ -174,3 +174,10 @@ func TestContextArgsBad1(t *testing.T, c context.Context) { // want "Context var
 
 func TestContextArgsBad2(t *testing.T, a int, ctx context.Context) { // want "Context must be the second argument"
 }
+
+func sliceClones() {
+	var x []int
+	i := 0
+	_ = append([]int{}, i)
+	_ = append([]int{}, x...)  // want "Use slices.Clone instead of append"
+}
