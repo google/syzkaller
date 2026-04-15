@@ -477,7 +477,7 @@ func (comp *compiler) checkFieldPathsRec(t0, t *ast.Type, parents []parentDesc,
 			fields = nil
 		}
 		parentName := parentTargetName(s)
-		parents = append([]parentDesc{}, parents...)
+		parents = slices.Clone(parents)
 		parents = append(parents, parentDesc{name: parentName, fields: fields})
 		for _, fld := range s.Fields {
 			comp.checkFieldPathsRec(fld.Type, fld.Type, parents, checked, warned, false)
