@@ -329,7 +329,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 	// test object in parallel. Without copying we have a datarace here.
 	progs := []Prog{}
 	for _, p := range test.Progs {
-		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
+		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: slices.Clone(p.PCs)})
 	}
 
 	rg, err := MakeReportGenerator(cfg, modules)

@@ -16,6 +16,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -353,7 +354,7 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 	progs := fixUpPCs(params.Progs, params.Filter)
 	var pcs []uint64
 	if len(progs) == 1 && rg.rawCoverEnabled {
-		pcs = append([]uint64{}, progs[0].PCs...)
+		pcs = slices.Clone(progs[0].PCs)
 	} else {
 		uniquePCs := make(map[uint64]bool)
 		for _, prog := range progs {
