@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -599,7 +600,7 @@ type extractedFrame struct {
 }
 
 func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]extractedFrame, bool) {
-	skip := append([]string{}, params.skipPatterns...)
+	skip := slices.Clone(params.skipPatterns)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
 	if len(skip) != 0 {
@@ -718,7 +719,7 @@ func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []
 }
 
 func canonicalArgs(prefix []any, frames []extractedFrame) []any {
-	ret := append([]any{}, prefix...)
+	ret := slices.Clone(prefix)
 	for _, frame := range frames {
 		ret = append(ret, frame.canonical)
 	}
@@ -747,7 +748,7 @@ func partiallyStrippedArgs(prefix []any, frames []extractedFrame, params *stackP
 			list = append(list, trimmed)
 		}
 		if add {
-			list = append(append([]any{}, prefix...), list...)
+			list = append(slices.Clone(prefix), list...)
 			ret = append(ret, list)
 		}
 	}

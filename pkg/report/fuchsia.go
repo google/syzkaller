@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -150,7 +151,7 @@ func (ctx *fuchsia) symbolize(output []byte) ([]byte, map[int]int) {
 		if bytes.Contains(line, zirconAssertFailed) && len(line) == 127 {
 			// This is super hacky: but zircon splits the most important information in long assert lines
 			// (and they are always long) into several lines in irreversible way. Try to restore full line.
-			line = append([]byte{}, line...)
+			line = slices.Clone(line)
 			if i+1 < len(lines) {
 				line = append(bytes.Clone(line), lines[i+1]...)
 				i++
@@ -203,7 +204,7 @@ func (ctx *fuchsia) processPC(out *bytes.Buffer, symb symbolizer.Symbolizer,
 		if !frame.Inline {
 			id = fmt.Sprintf("0x%08x", shortPC)
 		}
-		start := replace(append([]byte{}, prefix...), pcStart, pcEnd, []byte(id))
+		start := replace(slices.Clone(prefix), pcStart, pcEnd, []byte(id))
 		fmt.Fprintf(out, "%s %v %v:%v\n", start, name, file, frame.Line)
 	}
 	return true

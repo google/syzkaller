@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -281,7 +282,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		stripped, questionable := ctx.stripLinePrefix(line, context1, useQuestionable)
 		if pos < startPos {
 			if context1 == context && len(stripped) != 0 && !questionable {
-				prefix = append(prefix, append([]byte{}, stripped...))
+				prefix = append(prefix, slices.Clone(stripped))
 				if len(prefix) > maxPrefix {
 					prefix = prefix[1:]
 				}
@@ -505,7 +506,7 @@ func parseLinuxBacktraceLine(line []byte) (info linuxBacktraceLine, ok bool) {
 // Note that Assemble() ignores changes to Offset and Size (no reason as these are not updated anywhere).
 func (line linuxBacktraceLine) Assemble() []byte {
 	match := line.indices
-	modified := append([]byte{}, line.raw...)
+	modified := slices.Clone(line.raw)
 	if line.BuildID != "" {
 		modified = replace(modified, match[8], match[9], []byte(" ["+line.ModName+"]"))
 	}
