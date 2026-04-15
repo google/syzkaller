@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +20,7 @@ func setToArray(s map[string]struct{}) []string {
 	for c := range s {
 		a = append(a, c)
 	}
-	sort.Strings(a)
+	slices.Sort(a)
 	return a
 }
 
@@ -104,7 +104,7 @@ func TestCallSet(t *testing.T) {
 				t.Fatalf("parsing did not fail")
 			}
 			callArray := setToArray(calls)
-			sort.Strings(test.calls)
+			slices.Sort(test.calls)
 			if !reflect.DeepEqual(callArray, test.calls) {
 				t.Fatalf("got call set %+v, expect %+v", callArray, test.calls)
 			}
