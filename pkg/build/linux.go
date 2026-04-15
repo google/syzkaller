@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
@@ -123,7 +124,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 	}
 	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelPath, params.TargetArch)
 	cmd.Dir = tempDir
-	cmd.Env = append([]string{}, os.Environ()...)
+	cmd.Env = slices.Clone(os.Environ())
 	cmd.Env = append(cmd.Env,
 		"SYZ_VM_TYPE="+params.VMType,
 		"SYZ_CMDLINE_FILE="+osutil.Abs(params.CmdlineFile),
@@ -164,7 +165,7 @@ func runMake(params Params, extraArgs ...string) error {
 		return err
 	}
 	cmd.Dir = params.KernelDir
-	cmd.Env = append([]string{}, os.Environ()...)
+	cmd.Env = slices.Clone(os.Environ())
 	// This makes the build [more] deterministic:
 	// 2 builds from the same sources should result in the same vmlinux binary.
 	// Build on a release commit and on the previous one should result in the same vmlinux too.
