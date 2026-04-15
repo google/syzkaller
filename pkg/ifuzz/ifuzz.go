@@ -5,6 +5,7 @@ package ifuzz
 
 import (
 	"math/rand"
+	"slices"
 
 	_ "github.com/google/syzkaller/pkg/ifuzz/arm64/generated" // pull in generated instruction descriptions
 	"github.com/google/syzkaller/pkg/ifuzz/iset"
@@ -118,7 +119,7 @@ func randInsn(cfg *Config, r *rand.Rand) iset.Insn {
 
 func split(cfg *Config, text []byte) [][]byte {
 	insnset := iset.Arches[cfg.Arch]
-	text = append([]byte{}, text...)
+	text = slices.Clone(text)
 	var insns [][]byte
 	var bad []byte
 	for len(text) != 0 {
