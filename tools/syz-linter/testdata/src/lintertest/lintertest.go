@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/tool"
@@ -180,4 +181,30 @@ func sliceClones() {
 	i := 0
 	_ = append([]int{}, i)
 	_ = append([]int{}, x...)  // want "Use slices.Clone instead of append"
+}
+
+func sortUsage() {
+	var strs []string
+	sort.Strings(strs) // want "Use slices.Sort instead of sort.Strings"
+
+	var ints []int
+	sort.Slice(ints, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return ints[i] < ints[j]
+	})
+
+	type Item struct {
+		Name string
+	}
+	var items []Item
+	sort.Slice(items, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return items[i].Name < items[j].Name
+	})
+
+	sort.Slice(items, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return items[j].Name < items[i].Name
+	})
+
+	sort.Slice(ints, func(i, j int) bool { // want "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate"
+		return ints[i] > ints[j]
+	})
 }

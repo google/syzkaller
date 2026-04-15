@@ -73,6 +73,7 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkFlagDefinition(n)
 				pass.checkLogErrorFormat(n)
 				pass.checkSliceClone(n)
+				pass.checkSortUsage(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
@@ -465,5 +466,51 @@ func (pass *Pass) checkAssignStmt(n *ast.AssignStmt) {
 func (pass *Pass) checkInterfaceType(n *ast.InterfaceType) {
 	if len(n.Methods.List) == 0 {
 		pass.report(n, "Use any instead of interface{}")
+	}
+}
+
+// checkSortUsage flags usages of sort.Strings and sort.Slice that can be replaced with slices package.
+func (pass *Pass) checkSortUsage(n *ast.CallExpr) {
+	// Check if the function call is a selector expression (e.g., package.Function).
+	sel, ok := n.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return
+	}
+	// Check if the package name is "sort".
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name != "sort" {
+		return
+	}
+	switch sel.Sel.Name {
+	case "Strings":
+		// Suggest slices.Sort for sort.Strings.
+		pass.report(n, "Use slices.Sort instead of sort.Strings")
+	case "Slice":
+		// For sort.Slice, we expect at least 2 arguments: the slice and the less function.
+		if len(n.Args) < 2 {
+			return
+		}
+		// Check if the second argument is a function literal (anonymous function).
+		fn, ok := n.Args[1].(*ast.FuncLit)
+		if !ok {
+			return
+		}
+		// We only look for simple one-line functions.
+		if len(fn.Body.List) != 1 {
+			return
+		}
+		// Check if the single statement is a return statement.
+		ret, ok := fn.Body.List[0].(*ast.ReturnStmt)
+		if !ok || len(ret.Results) != 1 {
+			return
+		}
+		// Check if the return value is a binary expression (e.g., a < b or a > b).
+		bin, ok := ret.Results[0].(*ast.BinaryExpr)
+		if !ok || (bin.Op != token.LSS && bin.Op != token.GTR) {
+			return // We only look for '<' or '>' operators for simplicity.
+		}
+
+		// Suggest alternatives for any simple one-line predicate using '<'.
+		pass.report(n, "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate")
 	}
 }
