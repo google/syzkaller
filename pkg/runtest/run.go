@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -185,7 +185,7 @@ func (rt *Context) generatePrograms() error {
 	for sandbox := range rt.EnabledCalls {
 		sandboxes = append(sandboxes, sandbox)
 	}
-	sort.Strings(sandboxes)
+	slices.Sort(sandboxes)
 	files, err := progFileList(rt.Dir, rt.Tests)
 	if err != nil {
 		return err
