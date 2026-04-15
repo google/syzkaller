@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"math/rand"
@@ -278,8 +279,8 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	for c := range enabledCalls {
 		generatableCalls = append(generatableCalls, c)
 	}
-	sort.Slice(generatableCalls, func(i, j int) bool {
-		return generatableCalls[i].ID < generatableCalls[j].ID
+	slices.SortFunc(generatableCalls, func(a, b *Syscall) int {
+		return cmp.Compare(a.ID, b.ID)
 	})
 	// Looking up in a map is slow, so we create a slice for quick lookup.
 	enabledSlice := make([]bool, len(target.Syscalls))
