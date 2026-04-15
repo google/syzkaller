@@ -4,11 +4,12 @@
 package bisect
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
 	"os"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -975,8 +976,8 @@ func mostFrequentReports(reports []*report.Report) (*report.Report, []crash.Type
 		}
 		perTypeMap[rep.Type].count++
 	}
-	sort.Slice(perType, func(i, j int) bool {
-		return perType[i].count > perType[j].count
+	slices.SortFunc(perType, func(a, b *info) int {
+		return cmp.Compare(b.count, a.count)
 	})
 	// Then pick those that are representative enough.
 	var bestTypes []crash.Type
