@@ -877,7 +877,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 		for branch := range branches {
 			branchList = append(branchList, branch)
 		}
-		sort.Strings(branchList)
+		slices.Sort(branchList)
 		info, err := git.Commit(commit)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract commit info: %w", err)
@@ -911,8 +911,8 @@ func (git Git) minimizeBaseCommits(list []*BaseCommit) ([]*BaseCommit, error) {
 	for _, item := range lastCommit {
 		filtered = append(filtered, item)
 	}
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CommitDate.After(filtered[j].CommitDate)
+	slices.SortFunc(filtered, func(a, b *BaseCommit) int {
+		return b.CommitDate.Compare(a.CommitDate)
 	})
 	return filtered, nil
 }
