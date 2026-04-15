@@ -6,7 +6,7 @@ package diff
 import (
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -41,7 +41,7 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 
 	direct, transitive := affectedFiles(cfg, gitPatches)
 	if len(direct) > 0 {
-		sort.Strings(direct)
+		slices.Sort(direct)
 		log.Logf(0, "adding directly modified files to focus areas: %q", direct)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
@@ -54,7 +54,7 @@ func PatchFocusAreas(cfg *mgrconfig.Config, gitPatches [][]byte, baseHashes, pat
 	}
 
 	if len(transitive) > 0 {
-		sort.Strings(transitive)
+		slices.Sort(transitive)
 		log.Logf(0, "adding transitively affected to focus areas: %q", transitive)
 		cfg.Experimental.FocusAreas = append(cfg.Experimental.FocusAreas,
 			mgrconfig.FocusArea{
@@ -135,6 +135,6 @@ func modifiedSymbols(baseHashes, patchedHashes map[string]string) []string {
 			}
 		}
 	}
-	sort.Strings(ret)
+	slices.Sort(ret)
 	return ret
 }

@@ -4,12 +4,12 @@
 package manager
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -311,8 +311,8 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 			crash.Report = reportFile
 		}
 	}
-	sort.Slice(ret.Crashes, func(i, j int) bool {
-		return ret.Crashes[i].Time.After(ret.Crashes[j].Time)
+	slices.SortFunc(ret.Crashes, func(a, b *CrashInfo) int {
+		return b.Time.Compare(a.Time)
 	})
 	return ret, nil
 }
@@ -401,8 +401,8 @@ func (cs *CrashStore) BugList() ([]*BugInfo, error) {
 		}
 		ret = append(ret, info)
 	}
-	sort.Slice(ret, func(i, j int) bool {
-		return strings.ToLower(ret[i].Title) < strings.ToLower(ret[j].Title)
+	slices.SortFunc(ret, func(a, b *BugInfo) int {
+		return cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
 	})
 	if lastErr != nil {
 		log.Logf(0, "some stored crashes are inconsistent: %d skipped, last error %v", errCount, lastErr)

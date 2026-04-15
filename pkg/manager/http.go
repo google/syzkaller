@@ -5,6 +5,7 @@ package manager
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"embed"
 	"encoding/json"
@@ -273,8 +274,8 @@ func (serv *HTTPServer) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 			CompsOverflows: compsOverflows,
 		})
 	}
-	sort.Slice(data.Calls, func(i, j int) bool {
-		return data.Calls[i].Name < data.Calls[j].Name
+	slices.SortFunc(data.Calls, func(a, b UICallType) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	executeTemplate(w, syscallsTemplate, data)
 }
@@ -707,8 +708,8 @@ func (serv *HTTPServer) httpCoverFallback(w http.ResponseWriter, r *http.Request
 			})
 		}
 	}
-	sort.Slice(data.Calls, func(i, j int) bool {
-		return data.Calls[i].Name < data.Calls[j].Name
+	slices.SortFunc(data.Calls, func(a, b UIFallbackCall) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	executeTemplate(w, fallbackCoverTemplate, data)
 }

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/corpus"
@@ -74,7 +74,7 @@ func covFilterAddFilter(pcs map[uint64]struct{}, filters []string, foreach func(
 		}
 	})
 	for _, re := range res {
-		sort.Strings(used[re])
+		slices.Sort(used[re])
 		log.Logf(0, "coverage filter: %v: %v", re, used[re])
 	}
 	if strict && len(res) != len(used) {
