@@ -6,7 +6,7 @@ package prog
 import (
 	"fmt"
 	"math/rand"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -25,7 +25,7 @@ func TestIsComplexPtr(t *testing.T) {
 		for id := range allComplex {
 			arr = append(arr, id)
 		}
-		sort.Strings(arr)
+		slices.Sort(arr)
 		// Log all complex types for manual inspection.
 		t.Log("complex types:\n" + strings.Join(arr, "\n"))
 		if testing.Short() || testutil.RaceEnabled {
