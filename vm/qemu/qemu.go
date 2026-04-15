@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -561,7 +562,7 @@ func (inst *instance) buildQemuArgs() ([]string, error) {
 		)
 	}
 	if inst.cfg.Kernel != "" {
-		cmdline := append([]string{}, inst.archConfig.CmdLine...)
+		cmdline := slices.Clone(inst.archConfig.CmdLine)
 		if inst.image == "9p" {
 			cmdline = append(cmdline,
 				"root=/dev/root",
