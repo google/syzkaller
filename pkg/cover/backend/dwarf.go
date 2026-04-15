@@ -6,6 +6,7 @@ package backend
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"debug/dwarf"
 	"debug/elf"
 	"encoding/binary"
@@ -14,7 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -221,16 +222,14 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 	for _, sym := range uniqSymbs {
 		allSymbols = append(allSymbols, sym)
 	}
-	sort.Slice(allSymbols, func(i, j int) bool {
-		return allSymbols[i].Start < allSymbols[j].Start
+	slices.SortFunc(allSymbols, func(a, b *Symbol) int {
+		return cmp.Compare(a.Start, b.Start)
 	})
-	sort.Slice(allRanges, func(i, j int) bool {
-		return allRanges[i].start < allRanges[j].start
+	slices.SortFunc(allRanges, func(a, b pcRange) int {
+		return cmp.Compare(a.start, b.start)
 	})
 	for k := range allCoverPoints {
-		sort.Slice(allCoverPoints[k], func(i, j int) bool {
-			return allCoverPoints[k][i] < allCoverPoints[k][j]
-		})
+		slices.Sort(allCoverPoints[k])
 	}
 
 	allSymbols = buildSymbols(allSymbols, allRanges, allCoverPoints)

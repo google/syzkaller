@@ -6,6 +6,7 @@ package cover
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	_ "embed"
 	"encoding/csv"
 	"encoding/json"
@@ -366,9 +367,7 @@ func (rg *ReportGenerator) DoRawCover(w io.Writer, params HandlerParams) error {
 				pcs = append(pcs, pc)
 			}
 		}
-		sort.Slice(pcs, func(i, j int) bool {
-			return pcs[i] < pcs[j]
-		})
+		slices.Sort(pcs)
 	}
 
 	buf := bufio.NewWriter(w)
@@ -394,9 +393,7 @@ func (rg *ReportGenerator) DoFilterPCs(w io.Writer, params HandlerParams) error 
 			}
 		}
 	}
-	sort.Slice(pcs, func(i, j int) bool {
-		return pcs[i] < pcs[j]
-	})
+	slices.Sort(pcs)
 
 	buf := bufio.NewWriter(w)
 	for _, pc := range pcs {
@@ -910,8 +907,8 @@ func processDir(dir *templateDir) {
 			dir.Dirs = child.Dirs
 		}
 	}
-	sort.Slice(dir.Files, func(i, j int) bool {
-		return dir.Files[i].Name < dir.Files[j].Name
+	slices.SortFunc(dir.Files, func(a, b *templateFile) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	for _, f := range dir.Files {
 		dir.Total += f.Total
