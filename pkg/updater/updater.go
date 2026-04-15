@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -287,7 +288,7 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 	for target := range upd.cfg.Targets {
 		cmd = osutil.Command(instance.MakeBin, "target")
 		cmd.Dir = upd.syzkallerDir
-		cmd.Env = append([]string{}, os.Environ()...)
+		cmd.Env = slices.Clone(os.Environ())
 		cmd.Env = append(cmd.Env,
 			"GOPATH="+upd.gopathDir,
 			"TARGETOS="+target.OS,
