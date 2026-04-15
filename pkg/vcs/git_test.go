@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -558,7 +559,7 @@ index f70f10e..0000000
 +++ /dev/null
 @@ -1 +0,0 @@
 -A`
-		twoDiffs := append(append([]byte{}, diff...), diff2...)
+		twoDiffs := append(slices.Clone(diff), diff2...)
 		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
 		require.Nil(t, base)
@@ -580,7 +581,7 @@ index fa49b07..01c887f 100644
 -new file
 +edit file
 `
-		twoDiffs := append(append([]byte{}, diff...), diff2...)
+		twoDiffs := append(slices.Clone(diff), diff2...)
 		base, err := repo.repo.BaseForDiff(twoDiffs, &debugtracer.TestTracer{T: t})
 		require.NoError(t, err)
 		require.Len(t, base, 2)
