@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email"
@@ -216,7 +215,7 @@ func (sp seriesProcessor) Process(raw []byte) ([]byte, error) {
 
 func (sp seriesProcessor) Emails() []string {
 	list := slices.Collect(maps.Keys(sp))
-	sort.Strings(list)
+	slices.Sort(list)
 	return list
 }
 

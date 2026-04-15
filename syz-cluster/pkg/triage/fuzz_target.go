@@ -4,7 +4,7 @@
 package triage
 
 import (
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/google/syzkaller/syz-cluster/pkg/api"
@@ -96,6 +96,6 @@ func unique(list []string) []string {
 	for s := range seen {
 		unique = append(unique, s)
 	}
-	sort.Strings(unique)
+	slices.Sort(unique)
 	return unique
 }

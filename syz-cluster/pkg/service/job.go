@@ -8,7 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/google/syzkaller/pkg/email/lore"
@@ -118,7 +118,7 @@ func (s *JobService) getFindingGroups(ctx context.Context,
 			keys = append(keys, key)
 		}
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	var ret []api.FindingGroup
 	for _, key := range keys {
 		ret = append(ret, *groups[key])
