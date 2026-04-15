@@ -4,8 +4,9 @@
 package prog
 
 import (
+	"cmp"
 	"math/rand"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/image"
@@ -100,8 +101,8 @@ func (hm *GenericHeatmap) debugPrint(t *testing.T, data []byte, regions []region
 	t.Log("\n")
 
 	// Print selected regions in data.
-	sort.Slice(regions, func(i, j int) bool {
-		return regions[i].start < regions[j].start
+	slices.SortFunc(regions, func(a, b region) int {
+		return cmp.Compare(a.start, b.start)
 	})
 	for j, region := range regions {
 		t.Logf("region  %4d: %8v - %8v", j, region.start, region.end)
