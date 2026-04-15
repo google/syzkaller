@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/subsystem"
@@ -46,7 +46,7 @@ func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,
 	close(chPaths)
 	<-ready
 	for _, list := range debug.files {
-		sort.Strings(list)
+		slices.Sort(list)
 	}
 	return cm, debug, err
 }
