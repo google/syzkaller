@@ -5,9 +5,10 @@ package prog
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"math/rand"
-	"sort"
+	"slices"
 	"testing"
 )
 
@@ -185,8 +186,8 @@ func TestFlags(t *testing.T) {
 		for v, c := range results {
 			sorted = append(sorted, [2]uint64{v, c})
 		}
-		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i][0] < sorted[j][0]
+		slices.SortFunc(sorted, func(a, b [2]uint64) int {
+			return cmp.Compare(a[0], b[0])
 		})
 		buf := new(bytes.Buffer)
 		for _, p := range sorted {
