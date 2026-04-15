@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -748,7 +749,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 
 func (mgr *Manager) backportCommits() []vcs.BackportCommit {
 	return append(
-		append([]vcs.BackportCommit{}, mgr.cfg.BisectBackports...),
+		slices.Clone(mgr.cfg.BisectBackports),
 		mgr.mgrcfg.BisectBackports...,
 	)
 }
