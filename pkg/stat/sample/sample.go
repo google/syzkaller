@@ -6,6 +6,7 @@ package sample
 
 import (
 	"math"
+	"slices"
 	"sort"
 )
 
@@ -60,7 +61,7 @@ func (s *Sample) RemoveOutliers() *Sample {
 
 func (s *Sample) Copy() *Sample {
 	return &Sample{
-		Xs:     append([]float64{}, s.Xs...),
+		Xs:     slices.Clone(s.Xs),
 		Sorted: s.Sorted,
 	}
 }
