@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
@@ -180,6 +181,15 @@ func TestConvertFromMap(t *testing.T) {
 	}{},
 		`item 0 in field "Arr": missing argument "B"`,
 		`item 0 in field "Arr": struct { A int; B string }: field "B" is not present when converting map`)
+
+	t1, _ := time.Parse(time.RFC3339, "2026-04-16T14:26:33Z")
+	testConvertFromMap(t, true, map[string]any{
+		"T": "2026-04-16T14:26:33Z",
+	}, struct {
+		T time.Time
+	}{
+		T: t1,
+	}, "", "")
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {

@@ -158,6 +158,21 @@ func setField(field reflect.Value, val, f any, name string, tool bool) error {
 		return nil
 	}
 
+	unmarshalerType := reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+	if targetType.Implements(unmarshalerType) || reflect.PointerTo(targetType).Implements(unmarshalerType) {
+		if raw, err := json.Marshal(f); err == nil {
+			ptr := reflect.New(targetType)
+			if err := json.Unmarshal(raw, ptr.Interface()); err == nil {
+				if field.Type().Kind() == reflect.Ptr {
+					field.Set(ptr)
+				} else {
+					field.Set(ptr.Elem())
+				}
+				return nil
+			}
+		}
+	}
+
 	if targetType.Kind() == reflect.Struct {
 		mm, ok := f.(map[string]any)
 		if !ok {
