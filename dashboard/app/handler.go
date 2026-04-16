@@ -260,9 +260,7 @@ func commonHeader(ctx context.Context, r *http.Request, w http.ResponseWriter, n
 		if ns != "" && ns[0] == '/' {
 			ns = ns[1:]
 		}
-		if pos := strings.IndexByte(ns, '/'); pos != -1 {
-			ns = ns[:pos]
-		}
+		ns, _, _ = strings.Cut(ns, "/")
 	}
 	h := commonHeaderRaw(ctx, r)
 	const adminPage = "admin"

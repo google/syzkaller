@@ -636,8 +636,8 @@ func handleManagerPage(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	var manager *uiManager
-	if pos := strings.Index(r.URL.Path, "/manager/"); pos != -1 {
-		manager = findManager(managers, r.URL.Path[pos+len("/manager/"):])
+	if _, managerName, ok := strings.Cut(r.URL.Path, "/manager/"); ok {
+		manager = findManager(managers, managerName)
 	}
 	if manager == nil {
 		return fmt.Errorf("%w: manager is unknown", ErrClientBadRequest)
@@ -718,10 +718,9 @@ func handleSubsystemPage(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return fmt.Errorf("%w: the namespace does not have subsystems", ErrClientBadRequest)
 	}
 	var subsystem *subsystem.Subsystem
-	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
-		name := r.URL.Path[pos+3:]
+	if prefix, name, ok := strings.Cut(r.URL.Path, "/s/"); ok {
 		if newName := getNsConfig(ctx, hdr.Namespace).Subsystems.Redirect[name]; newName != "" {
-			http.Redirect(w, r, r.URL.Path[:pos+3]+newName, http.StatusMovedPermanently)
+			http.Redirect(w, r, prefix+"/s/"+newName, http.StatusMovedPermanently)
 			return nil
 		}
 		subsystem = service.ByName(name)
