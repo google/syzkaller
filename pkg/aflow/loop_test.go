@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -118,4 +119,90 @@ func TestDoWhileMaxIters(t *testing.T) {
 		nil,
 		nil,
 	)
+}
+
+func TestForEach(t *testing.T) {
+	type inputs struct {
+		List []string
+	}
+	type outputs struct {
+		Result []string
+	}
+
+	t.Run("Basic", func(t *testing.T) {
+		type actionArgs struct {
+			Item   string
+			Result []string
+		}
+		type actionResults struct {
+			Result []string
+		}
+		testFlow[inputs, outputs](t,
+			map[string]any{"List": []string{"a", "b", "c"}},
+			map[string]any{"Result": []string{"A", "B", "C"}},
+			Pipeline(
+				&ForEach{
+					List: "List",
+					Item: "Item",
+					Do: NewFuncAction("process-item", func(ctx *Context, args actionArgs) (actionResults, error) {
+						res := args.Result
+						res = append(res, strings.ToUpper(args.Item))
+						return actionResults{res}, nil
+					}),
+				},
+			),
+			nil,
+			nil,
+		)
+	})
+}
+
+func TestForEachErrors(t *testing.T) {
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action ForEach: List must not be empty",
+		&Flow{Root: &ForEach{
+			Item: "Item",
+			Do: NewFuncAction("body", func(ctx *Context, args struct{ Item string }) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action ForEach: Item must not be empty",
+		&Flow{Root: &ForEach{
+			List: "List",
+			Do: NewFuncAction("body", func(ctx *Context, args struct{ Item string }) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action ForEach: no input List",
+		&Flow{Root: &ForEach{
+			List: "List",
+			Item: "Item",
+			Do: NewFuncAction("body", func(ctx *Context, args struct{ Item string }) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{ List string }, struct{}](t,
+		"flow test: action ForEach: input List has wrong type: want slice, has string",
+		&Flow{Root: &ForEach{
+			List: "List",
+			Item: "Item",
+			Do: NewFuncAction("body", func(ctx *Context, args struct{ Item string }) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+		}})
+
+	testRegistrationError[struct{ List []string }, struct{}](t,
+		"flow test: action ForEach: item Item is unused",
+		&Flow{Root: &ForEach{
+			List: "List",
+			Item: "Item",
+			Do: NewFuncAction("body", func(ctx *Context, args struct{}) (struct{}, error) {
+				return struct{}{}, nil
+			}),
+		}})
 }

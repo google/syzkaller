@@ -1,0 +1,138 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "ForEach",
+		"Started": "0001-01-01T00:00:02Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "process-item",
+		"Started": "0001-01-01T00:00:04Z"
+	},
+	{
+		"Seq": 3,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "process-item",
+		"Started": "0001-01-01T00:00:04Z",
+		"Finished": "0001-01-01T00:00:05Z",
+		"Results": {
+			"Hidden": "secret",
+			"Result": "A"
+		}
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "consume-hidden",
+		"Started": "0001-01-01T00:00:06Z"
+	},
+	{
+		"Seq": 4,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "consume-hidden",
+		"Started": "0001-01-01T00:00:06Z",
+		"Finished": "0001-01-01T00:00:07Z",
+		"Results": {}
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "0",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:08Z"
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:09Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "process-item",
+		"Started": "0001-01-01T00:00:10Z"
+	},
+	{
+		"Seq": 6,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "process-item",
+		"Started": "0001-01-01T00:00:10Z",
+		"Finished": "0001-01-01T00:00:11Z",
+		"Results": {
+			"Hidden": "secret",
+			"Result": "B"
+		}
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "consume-hidden",
+		"Started": "0001-01-01T00:00:12Z"
+	},
+	{
+		"Seq": 7,
+		"Nesting": 3,
+		"Type": "action",
+		"Name": "consume-hidden",
+		"Started": "0001-01-01T00:00:12Z",
+		"Finished": "0001-01-01T00:00:13Z",
+		"Results": {}
+	},
+	{
+		"Seq": 5,
+		"Nesting": 2,
+		"Type": "iteration",
+		"Name": "1",
+		"Started": "0001-01-01T00:00:09Z",
+		"Finished": "0001-01-01T00:00:14Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "loop",
+		"Name": "ForEach",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:15Z"
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:16Z",
+		"Results": {
+			"Result": [
+				"A",
+				"B"
+			]
+		}
+	}
+]
