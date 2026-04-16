@@ -44,9 +44,7 @@ func main() {
 			tool.Failf(msg, args...)
 		}
 		line := s.Text()
-		if comment := strings.IndexByte(line, '#'); comment != -1 {
-			line = line[:comment]
-		}
+		line, _, _ = strings.Cut(line, "#")
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
