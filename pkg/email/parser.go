@@ -246,18 +246,26 @@ func RemoveAddrContext(email string) (string, string, error) {
 }
 
 func CanonicalEmail(email string) string {
-	addr, err := mail.ParseAddress(email)
+	user, domain, err := Split(email)
 	if err != nil {
 		return email
 	}
-	at := strings.IndexByte(addr.Address, '@')
-	if at == -1 {
-		return email
+	return strings.ToLower(user + domain)
+}
+
+// Split splits email into user (without context) and domain (with @ prefix).
+func Split(email string) (string, string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", err
 	}
-	if plus := strings.IndexByte(addr.Address[:at], '+'); plus != -1 {
-		addr.Address = addr.Address[:plus] + addr.Address[at:]
+	user, domain, ok := strings.Cut(addr.Address, "@")
+	if !ok {
+		return "", "", fmt.Errorf("no @ in email address")
 	}
-	return strings.ToLower(addr.Address)
+	domain = "@" + domain
+	user, _, _ = strings.Cut(user, "+")
+	return user, domain, nil
 }
 
 func extractCommands(body string) []*SingleCommand {
