@@ -98,13 +98,11 @@ func (ctx *checkContext) finishFeatures(featureInfos []*flatrpc.FeatureInfo) (Fe
 			feat.Reason = "enabled"
 			feat.Enabled = true
 		}
-		if pos := strings.Index(feat.Reason, "loop exited with status"); pos != -1 {
-			feat.Reason = feat.Reason[:pos]
-		}
+		feat.Reason, _, _ = strings.Cut(feat.Reason, "loop exited with status")
 		// If executor exited the output is prefixed with "executor 4: EOF".
 		const executorPrefix = ": EOF\n"
-		if pos := strings.Index(feat.Reason, executorPrefix); pos != -1 {
-			feat.Reason = feat.Reason[pos+len(executorPrefix):]
+		if _, after, ok := strings.Cut(feat.Reason, executorPrefix); ok {
+			feat.Reason = after
 		}
 		feat.Reason = strings.TrimSpace(outputReplacer.Replace(feat.Reason))
 		features[res.id] = feat

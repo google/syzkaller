@@ -164,9 +164,7 @@ func (files filesystem) ReadDir(dir string) []string {
 			continue
 		}
 		name := file.Name[len(dir)+1:]
-		if slash := strings.Index(name, "/"); slash != -1 {
-			name = name[:slash]
-		}
+		name, _, _ = strings.Cut(name, "/")
 		if dedup[name] {
 			continue
 		}
