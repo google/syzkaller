@@ -57,23 +57,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 				SummaryWindow: summaryWindow,
 			},
 			kernel.CheckoutScratch,
-			&aflow.DoWhile{
-				Do: aflow.Pipeline(
-					&aflow.LLMAgent{
-						Name:          "patch-generator",
-						Model:         aflow.BestExpensiveModel,
-						Reply:         "PatchExplanation",
-						TaskType:      aflow.FormalReasoningTask,
-						Instruction:   patchInstruction,
-						Prompt:        patchPrompt,
-						Tools:         aflow.Tools(commonTools, codeeditor.Tool),
-						SummaryWindow: summaryWindow,
-					},
-					crash.TestPatch, // -> PatchDiff or TestError
-				),
-				While:         "TestError",
-				MaxIterations: 10,
-			},
+			PatchGenerationLoop(summaryWindow, nil, patchInstruction, patchPrompt),
 			getMaintainers,
 			getRecentCommits,
 			&aflow.LLMAgent{
@@ -240,3 +224,32 @@ must not be used for conditions that can legitimately happen, and that pr_err
 should be used instead if necessary.
 {{end}}
 `
+
+func PatchGenerationLoop(summaryWindow int, beforeEach aflow.Action, instruction, prompt string) aflow.Action {
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool)
+
+	doPipeline := []aflow.Action{}
+	if beforeEach != nil {
+		doPipeline = append(doPipeline, beforeEach)
+	}
+
+	doPipeline = append(doPipeline,
+		&aflow.LLMAgent{
+			Name:          "patch-generator",
+			Model:         aflow.BestExpensiveModel,
+			Reply:         "PatchExplanation",
+			TaskType:      aflow.FormalReasoningTask,
+			Instruction:   instruction,
+			Prompt:        prompt,
+			Tools:         aflow.Tools(commonTools, codeeditor.Tool),
+			SummaryWindow: summaryWindow,
+		},
+		crash.TestPatch, // -> PatchDiff or TestError
+	)
+
+	return &aflow.DoWhile{
+		Do:            aflow.Pipeline(doPipeline...),
+		While:         "TestError",
+		MaxIterations: 10,
+	}
+}

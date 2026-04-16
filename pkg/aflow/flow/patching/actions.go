@@ -5,6 +5,7 @@ package patching
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -159,4 +160,31 @@ func formatDescription(ctx *aflow.Context, args formatDescriptionArgs) (formatDe
 	return formatDescriptionResult{
 		PatchDescription: email.WordWrap(args.PatchDescriptionRaw, 72),
 	}, nil
+}
+
+var applyGitPatch = aflow.NewFuncAction("apply-git-patch", applyGitPatchFunc)
+
+type applyGitPatchArgs struct {
+	KernelScratchSrc string
+	PatchHistory     []ai.PatchHistoryEntry
+}
+
+func applyGitPatchFunc(ctx *aflow.Context, args applyGitPatchArgs) (struct{}, error) {
+	if len(args.PatchHistory) == 0 {
+		return struct{}{}, aflow.FlowError(fmt.Errorf("PatchHistory is empty"))
+	}
+	latest := args.PatchHistory[len(args.PatchHistory)-1]
+	if latest.Diff == "" {
+		return struct{}{}, nil
+	}
+
+	// Apply the diff.
+	cmd := exec.Command("git", "apply")
+	cmd.Dir = args.KernelScratchSrc
+	cmd.Stdin = strings.NewReader(latest.Diff)
+	if _, err := osutil.Run(time.Minute, cmd); err != nil {
+		return struct{}{}, aflow.FlowError(fmt.Errorf("failed to apply previous patch: %w", err))
+	}
+
+	return struct{}{}, nil
 }

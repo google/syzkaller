@@ -6,6 +6,7 @@ package aflow
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"io"
 	"reflect"
 	"slices"
@@ -109,6 +110,7 @@ var templateFuncs = template.FuncMap{
 	"titleIsUAF":            titleIs(crash.KASANUseAfterFreeRead, crash.KASANUseAfterFreeWrite),
 	"titleIsKASANNullDeref": titleIs(crash.KASANNullPtrDerefRead, crash.KASANNullPtrDerefWrite),
 	"titleIsWarning":        titleIs(crash.Warning),
+	"htmlEscape":            html.EscapeString,
 }
 
 func titleIs(types ...crash.Type) func(string) bool {
