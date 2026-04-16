@@ -4,6 +4,7 @@
 package triage
 
 import (
+	"maps"
 	"slices"
 	"strings"
 
@@ -92,10 +93,6 @@ func unique(list []string) []string {
 	for _, s := range list {
 		seen[s] = struct{}{}
 	}
-	var unique []string
-	for s := range seen {
-		unique = append(unique, s)
-	}
-	slices.Sort(unique)
+	unique := slices.Sorted(maps.Keys(seen))
 	return unique
 }
