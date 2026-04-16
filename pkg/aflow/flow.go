@@ -35,7 +35,7 @@ type Flow struct {
 type FlowType struct {
 	Type           ai.WorkflowType
 	Description    string
-	checkInputs    func(map[string]any) error
+	checkInputs    func(map[string]any) (map[string]any, error)
 	extractOutputs func(map[string]any) map[string]any
 }
 
@@ -60,9 +60,12 @@ func register[Inputs, Outputs any](typ ai.WorkflowType, description string,
 	t := &FlowType{
 		Type:        typ,
 		Description: description,
-		checkInputs: func(inputs map[string]any) error {
-			_, err := convertFromMap[Inputs](inputs, false, false)
-			return err
+		checkInputs: func(inputs map[string]any) (map[string]any, error) {
+			val, err := convertFromMap[Inputs](inputs, false, false)
+			if err != nil {
+				return nil, err
+			}
+			return convertToMap(val), nil
 		},
 		extractOutputs: extractOutputs[Outputs],
 	}

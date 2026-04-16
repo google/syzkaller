@@ -27,9 +27,11 @@ import (
 // preserved across process restarts for caching purposes.
 func (flow *Flow) Execute(ctx context.Context, model, workdir string, inputs map[string]any,
 	cache *Cache, onEvent onEvent) (map[string]any, error) {
-	if err := flow.checkInputs(inputs); err != nil {
+	convertedInputs, err := flow.checkInputs(inputs)
+	if err != nil {
 		return nil, fmt.Errorf("flow inputs are missing: %w", err)
 	}
+	inputs = convertedInputs
 	inputs = maps.Clone(inputs)
 	maps.Insert(inputs, maps.All(flow.Consts))
 	c := &Context{

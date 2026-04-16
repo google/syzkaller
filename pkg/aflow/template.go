@@ -9,7 +9,6 @@ import (
 	"io"
 	"reflect"
 	"slices"
-	"strings"
 	"text/template"
 	"text/template/parse"
 
@@ -91,11 +90,10 @@ func walkTemplate(n parse.Node, used map[string]bool, errp *error) {
 			walkTemplate(c, used, errp)
 		}
 	case *parse.FieldNode:
-		if len(n.Ident) != 1 {
-			noteError(errp, "compound values are not supported: .%v", strings.Join(n.Ident, "."))
-		}
 		used[n.Ident[0]] = true
 	case *parse.VariableNode:
+	case *parse.ChainNode:
+		walkTemplate(n.Node, used, errp)
 	case *parse.TextNode:
 	case *parse.IdentifierNode:
 	default:

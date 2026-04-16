@@ -73,6 +73,20 @@ func TestTemplate(t *testing.T) {
 			},
 			used: []string{"foo", "bar"},
 		},
+		{
+			template: `{{.foo.Bar}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeOf(struct{ Bar string }{}),
+			},
+			used: []string{"foo"},
+		},
+		{
+			template: `{{(.foo).Bar}}`,
+			vars: map[string]reflect.Type{
+				"foo": reflect.TypeOf(struct{ Bar string }{}),
+			},
+			used: []string{"foo"},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

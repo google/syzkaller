@@ -117,6 +117,40 @@ func TestConvertFromMap(t *testing.T) {
 		``,
 		``)
 
+	testConvertFromMap(t, false, map[string]any{
+		"Arr": []any{
+			map[string]any{"A": 1, "B": "foo"},
+			map[string]any{"A": 2, "B": "bar"},
+		},
+	}, struct {
+		Arr []struct {
+			A int
+			B string
+		}
+	}{
+		Arr: []struct {
+			A int
+			B string
+		}{
+			{A: 1, B: "foo"},
+			{A: 2, B: "bar"},
+		},
+	}, "", "")
+
+	testConvertFromMap(t, false, map[string]any{
+		"Nested": map[string]any{"A": 1, "B": "foo"},
+	}, struct {
+		Nested struct {
+			A int
+			B string
+		}
+	}{
+		Nested: struct {
+			A int
+			B string
+		}{A: 1, B: "foo"},
+	}, "", "")
+
 	val5 := uint(5)
 	testConvertFromMap(t, false, map[string]any{
 		"P": 5.0,
@@ -133,6 +167,19 @@ func TestConvertFromMap(t *testing.T) {
 	}{},
 		`argument P: float value truncated from 5.1 to 5`,
 		`struct { P *uint }: field P: float value truncated from 5.1 to 5`)
+
+	testConvertFromMap(t, false, map[string]any{
+		"Arr": []any{
+			map[string]any{"A": 1},
+		},
+	}, struct {
+		Arr []struct {
+			A int
+			B string
+		}
+	}{},
+		`item 0 in field "Arr": missing argument "B"`,
+		`item 0 in field "Arr": struct { A int; B string }: field "B" is not present when converting map`)
 }
 
 func testConvertFromMap[T any](t *testing.T, strict bool, input map[string]any, output T, toolErr, nonToolErr string) {
