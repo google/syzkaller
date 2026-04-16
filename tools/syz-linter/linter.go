@@ -78,6 +78,7 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkVarDecl(n)
 			case *ast.IfStmt:
 				pass.checkIfStmt(n)
+				pass.checkStringsCut(n)
 			case *ast.AssignStmt:
 				pass.checkAssignStmt(n)
 			case *ast.InterfaceType:
@@ -676,4 +677,74 @@ func (pass *Pass) isSortCall(n ast.Stmt, sliceIdent *ast.Ident) bool {
 		return true
 	}
 	return false
+}
+
+// checkStringsCut warns about strings.Index usage that can be replaced with strings.Cut.
+func (pass *Pass) checkStringsCut(n *ast.IfStmt) {
+	if n.Init == nil {
+		return
+	}
+	assign, ok := n.Init.(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return
+	}
+	if !isStringsIndexCall(assign.Rhs[0]) {
+		return
+	}
+
+	cond, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || cond.Op != token.NEQ {
+		return
+	}
+
+	vIdent, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	isVar := func(e ast.Expr) bool {
+		id, ok := e.(*ast.Ident)
+		return ok && id.Name == vIdent.Name
+	}
+
+	match := (isMinusOne(cond.X) && isVar(cond.Y)) || (isMinusOne(cond.Y) && isVar(cond.X))
+	if !match {
+		return
+	}
+
+	// Simple heuristic: just check if the body contains any slice expression.
+	usesSlicing := false
+	ast.Inspect(n.Body, func(node ast.Node) bool {
+		if _, ok := node.(*ast.SliceExpr); ok {
+			usesSlicing = true
+			return false
+		}
+		return true
+	})
+
+	if usesSlicing {
+		pass.report(n, "Use strings.Cut instead of strings.Index/IndexByte and manual slicing")
+	}
+}
+
+func isStringsIndexCall(n ast.Expr) bool {
+	call, ok := n.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	return ok && ident.Name == "strings" && (sel.Sel.Name == "Index" || sel.Sel.Name == "IndexByte")
+}
+
+func isMinusOne(e ast.Expr) bool {
+	unary, ok := e.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.SUB {
+		return false
+	}
+	lit, ok := unary.X.(*ast.BasicLit)
+	return ok && lit.Kind == token.INT && lit.Value == "1"
 }

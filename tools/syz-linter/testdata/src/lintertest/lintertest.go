@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/tool"
@@ -266,5 +267,19 @@ func mapKeysExtractionNoSort() {
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)
+	}
+}
+
+func stringsCut() {
+	s := "foo/bar"
+	if pos := strings.Index(s, "/"); pos != -1 { // want "Use strings.Cut instead of strings.Index/IndexByte and manual slicing"
+		_ = s[:pos]
+	}
+	if pos := strings.IndexByte(s, '/'); pos != -1 { // want "Use strings.Cut instead of strings.Index/IndexByte and manual slicing"
+		_ = s[:pos]
+	}
+	if pos := strings.Index(s, "/"); pos != -1 {
+		// Just use pos, not for slicing.
+		_ = pos
 	}
 }
