@@ -258,11 +258,8 @@ func (t *TypeCommon) Name() string {
 }
 
 func (t *TypeCommon) TemplateName() string {
-	name := t.TypeName
-	if pos := strings.IndexByte(name, '['); pos != -1 {
-		name = name[:pos]
-	}
-	return name
+	before, _, _ := strings.Cut(t.TypeName, "[")
+	return before
 }
 
 func (t *TypeCommon) Optional() bool {
