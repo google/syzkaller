@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -388,31 +389,14 @@ func (git *gitRepo) LatestCommits(afterCommit string, afterDate time.Time) ([]Co
 	return ret, nil
 }
 
-func (git *gitRepo) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
-	user, domain, err := splitEmail(email)
+func (git *gitRepo) ExtractFixTagsFromCommits(baseCommit, emailStr string) ([]*Commit, error) {
+	user, domain, err := email.Split(emailStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse email %q: %w", email, err)
+		return nil, fmt.Errorf("failed to parse email %q: %w", emailStr, err)
 	}
 	grep := user + "+.*" + domain
 	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
-}
-
-func splitEmail(email string) (user, domain string, err error) {
-	addr, err := mail.ParseAddress(email)
-	if err != nil {
-		return "", "", err
-	}
-	at := strings.IndexByte(addr.Address, '@')
-	if at == -1 {
-		return "", "", fmt.Errorf("no @ in email address")
-	}
-	user = addr.Address[:at]
-	domain = addr.Address[at:]
-	if plus := strings.IndexByte(user, '+'); plus != -1 {
-		user = user[:plus]
-	}
-	return
 }
 
 func (git *gitRepo) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
