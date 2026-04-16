@@ -1,0 +1,59 @@
+[
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z"
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "If",
+		"Started": "0001-01-01T00:00:02Z",
+		"Args": {
+			"RunIt": "yes"
+		}
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "action",
+		"Name": "if-body",
+		"Started": "0001-01-01T00:00:03Z"
+	},
+	{
+		"Seq": 2,
+		"Nesting": 2,
+		"Type": "action",
+		"Name": "if-body",
+		"Started": "0001-01-01T00:00:03Z",
+		"Finished": "0001-01-01T00:00:04Z",
+		"Results": {
+			"Done": "done"
+		}
+	},
+	{
+		"Seq": 1,
+		"Nesting": 1,
+		"Type": "action",
+		"Name": "If",
+		"Started": "0001-01-01T00:00:02Z",
+		"Finished": "0001-01-01T00:00:05Z",
+		"Args": {
+			"RunIt": "yes"
+		}
+	},
+	{
+		"Seq": 0,
+		"Nesting": 0,
+		"Type": "flow",
+		"Name": "test",
+		"Started": "0001-01-01T00:00:01Z",
+		"Finished": "0001-01-01T00:00:06Z",
+		"Results": {
+			"Done": "done"
+		}
+	}
+]

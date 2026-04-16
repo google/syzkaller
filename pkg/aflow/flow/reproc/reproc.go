@@ -197,7 +197,7 @@ func init() {
 					While:         "ContinueSignal",
 					Do: aflow.Pipeline(
 						&aflow.If{
-							Cond: "OracleFeedback",
+							Condition: "OracleFeedback",
 							Do: &aflow.LLMAgent{
 								Name:        "strategy-refiner",
 								Model:       aflow.BestExpensiveModel,

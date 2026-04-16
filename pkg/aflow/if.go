@@ -5,32 +5,74 @@ package aflow
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
+
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 )
 
-// If represents conditional execution: if (cond != "") { body }.
+// If conditionally executes an action.
 type If struct {
-	// Condition variable name. It should be a string state variable.
-	Cond string
-	// Action to execute if the condition is non-empty.
-	Do Action
+	Condition string
+	Do        Action
+
+	ifVars map[string]reflect.Type
 }
 
-func (a *If) execute(ctx *Context) error {
-	condVal, ok := ctx.state[a.Cond].(string)
+func (i *If) execute(ctx *Context) error {
+	val, ok := ctx.state[i.Condition]
 	if !ok {
-		return fmt.Errorf("if: condition %q is not a string", a.Cond)
+		return fmt.Errorf("if condition %q is missing", i.Condition)
 	}
-	if condVal == "" {
-		return nil // Skip.
+
+	run := val != nil && !reflect.ValueOf(val).IsZero()
+	if run {
+		span := &trajectory.Span{
+			Type: trajectory.SpanAction,
+			Name: "If",
+			Args: map[string]any{i.Condition: val},
+		}
+		if err := ctx.startSpan(span); err != nil {
+			return err
+		}
+		err := i.Do.execute(ctx)
+		if err := ctx.finishSpan(span, err); err != nil {
+			return err
+		}
+	} else {
+		// If the condition is false, populate outputs with zero values
+		// so that subsequent actions or the final output extraction don't panic.
+		for name, typ := range i.ifVars {
+			if _, ok := ctx.state[name]; !ok {
+				ctx.state[name] = reflect.Zero(typ).Interface()
+			}
+		}
 	}
-	return a.Do.execute(ctx)
+	return nil
 }
 
-func (a *If) verify(ctx *verifyContext) {
-	ctx.requireNotEmpty("If", "Cond", a.Cond)
-	ctx.requireInput("If", a.Cond, reflect.TypeFor[string]())
+func (i *If) verify(ctx *verifyContext) {
+	if ctx.inputs {
+		ctx.requireNotEmpty("If", "Condition", i.Condition)
 
-	// The body executes in the same context.
-	a.Do.verify(ctx)
+		state := ctx.state[i.Condition]
+		if state == nil {
+			ctx.errorf("If", "no input %v", i.Condition)
+		} else {
+			state.used = true
+		}
+	}
+
+	if ctx.outputs {
+		origState := maps.Clone(ctx.state)
+		i.Do.verify(ctx)
+		i.ifVars = make(map[string]reflect.Type)
+		for name, desc := range ctx.state {
+			if origState[name] == nil {
+				i.ifVars[name] = desc.typ
+			}
+		}
+	} else {
+		i.Do.verify(ctx)
+	}
 }
