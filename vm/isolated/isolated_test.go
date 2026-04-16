@@ -75,3 +75,64 @@ bash -c \"bash -c \\\"ls -al\\\"\"`,
 		}
 	}
 }
+
+func TestSplitTargetPort(t *testing.T) {
+	testCases := []struct {
+		name       string
+		addr       string
+		wantTarget string
+		wantPort   int
+		wantErr    bool
+	}{
+		{
+			name:       "valid with port",
+			addr:       "host:123",
+			wantTarget: "host",
+			wantPort:   123,
+			wantErr:    false,
+		},
+		{
+			name:       "valid without port",
+			addr:       "host",
+			wantTarget: "host",
+			wantPort:   22,
+			wantErr:    false,
+		},
+		{
+			name:       "empty addr",
+			addr:       "",
+			wantTarget: "",
+			wantPort:   0,
+			wantErr:    true,
+		},
+		{
+			name:       "empty target with port",
+			addr:       ":123",
+			wantTarget: "",
+			wantPort:   0,
+			wantErr:    true,
+		},
+		{
+			name:       "invalid port",
+			addr:       "host:abc",
+			wantTarget: "",
+			wantPort:   0,
+			wantErr:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotTarget, gotPort, err := splitTargetPort(tc.addr)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("splitTargetPort() error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if gotTarget != tc.wantTarget {
+				t.Errorf("splitTargetPort() gotTarget = %v, want %v", gotTarget, tc.wantTarget)
+			}
+			if gotPort != tc.wantPort {
+				t.Errorf("splitTargetPort() gotPort = %v, want %v", gotPort, tc.wantPort)
+			}
+		})
+	}
+}

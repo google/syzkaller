@@ -398,18 +398,19 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 }
 
 func splitTargetPort(addr string) (string, int, error) {
-	target := addr
-	port := 22
-	if colonPos := strings.Index(addr, ":"); colonPos != -1 {
-		p, err := strconv.ParseUint(addr[colonPos+1:], 10, 16)
-		if err != nil {
-			return "", 0, err
+	target, portStr, ok := strings.Cut(addr, ":")
+	if !ok {
+		if addr == "" {
+			return "", 0, fmt.Errorf("target is empty")
 		}
-		target = addr[:colonPos]
-		port = int(p)
+		return addr, 22, nil
+	}
+	p, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return "", 0, err
 	}
 	if target == "" {
 		return "", 0, fmt.Errorf("target is empty")
 	}
-	return target, port, nil
+	return target, int(p), nil
 }
