@@ -251,3 +251,20 @@ func whileStyleLoops() {
 		l++
 	}
 }
+
+func mapKeysExtraction() {
+	m := make(map[string]int)
+	var keys []string
+	for k := range m { // want "Use maps.Keys and slices.Sort instead of a manual loop"
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // want "Use slices.Sort instead of sort.Strings"
+}
+
+func mapKeysExtractionNoSort() {
+	m := make(map[string]int)
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+}

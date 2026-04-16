@@ -84,6 +84,7 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkInterfaceType(n)
 			case *ast.BlockStmt:
 				pass.checkWhileStyleForLoop(n)
+				pass.checkMapKeysExtractionAndSort(n)
 			case *ast.ForStmt:
 				pass.checkRangeOverIntegers(n)
 			}
@@ -587,4 +588,92 @@ func (pass *Pass) checkWhileStyleForLoop(n *ast.BlockStmt) {
 		}
 		pass.report(forStmt, "Consider using for %v := 0; %v < ...; { to scope the loop variable", ident.Name, ident.Name)
 	}
+}
+
+// checkMapKeysExtractionAndSort warns about manual loops extracting map keys followed by sort.
+func (pass *Pass) checkMapKeysExtractionAndSort(n *ast.BlockStmt) {
+	for i := range len(n.List) - 1 {
+		rangeStmt, ok := n.List[i].(*ast.RangeStmt)
+		if !ok {
+			continue
+		}
+		sliceIdent, ok := pass.isMapKeysExtraction(rangeStmt)
+		if !ok {
+			continue
+		}
+		nextStmt := n.List[i+1]
+		if pass.isSortCall(nextStmt, sliceIdent) {
+			pass.report(rangeStmt, "Use maps.Keys and slices.Sort instead of a manual loop")
+		}
+	}
+}
+
+func (pass *Pass) isMapKeysExtraction(n *ast.RangeStmt) (*ast.Ident, bool) {
+	if n.Value != nil || len(n.Body.List) != 1 {
+		return nil, false
+	}
+	assign, ok := n.Body.List[0].(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return nil, false
+	}
+	call, ok := assign.Rhs[0].(*ast.CallExpr)
+	if !ok || len(call.Args) != 2 {
+		return nil, false
+	}
+	fn, ok := call.Fun.(*ast.Ident)
+	if !ok || fn.Name != "append" {
+		return nil, false
+	}
+	keyIdent, ok := n.Key.(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	argIdent, ok := call.Args[1].(*ast.Ident)
+	if !ok || argIdent.Name != keyIdent.Name {
+		return nil, false
+	}
+	lhsIdent, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	appendArgIdent, ok := call.Args[0].(*ast.Ident)
+	if !ok || appendArgIdent.Name != lhsIdent.Name {
+		return nil, false
+	}
+	if typ := pass.TypesInfo.Types[n.X].Type; typ != nil {
+		if _, isMap := typ.Underlying().(*types.Map); !isMap {
+			return nil, false
+		}
+	}
+	return lhsIdent, true
+}
+
+func (pass *Pass) isSortCall(n ast.Stmt, sliceIdent *ast.Ident) bool {
+	exprStmt, ok := n.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	argIdent, ok := call.Args[0].(*ast.Ident)
+	if !ok || argIdent.Name != sliceIdent.Name {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	xIdent, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if xIdent.Name == "slices" && sel.Sel.Name == "Sort" {
+		return true
+	}
+	if xIdent.Name == "sort" && sel.Sel.Name == "Strings" {
+		return true
+	}
+	return false
 }
