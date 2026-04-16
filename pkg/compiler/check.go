@@ -445,10 +445,8 @@ func (pd *parentDesc) String() string {
 
 // templateBase return the part before '[' for full template names.
 func templateBase(name string) string {
-	if pos := strings.IndexByte(name, '['); pos != -1 {
-		return name[:pos]
-	}
-	return name
+	before, _, _ := strings.Cut(name, "[")
+	return before
 }
 
 func parentTargetName(s *ast.Struct) string {
