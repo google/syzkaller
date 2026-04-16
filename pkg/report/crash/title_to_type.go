@@ -270,6 +270,10 @@ var titleToType = []struct {
 		crashType: DoS,
 	},
 	{
+		includePrefixes: []string{"no output from test machine"},
+		crashType:       NoOutput,
+	},
+	{
 		includePrefixes: []string{"unexpected kernel reboot"},
 		crashType:       UnexpectedReboot,
 	},
