@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/report/crash"
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -180,6 +182,7 @@ func fakeCrashResult(title string) *instance.RunResult {
 	if title != "" {
 		ret.Report = &report.Report{
 			Title: title,
+			Type:  crash.TitleToType(title),
 		}
 	}
 	return ret
@@ -375,4 +378,36 @@ func TestBrokenCompilerRepro(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, false, result.CRepro, "C repro should have been skipped")
+}
+
+func TestAvoidLostConnection(t *testing.T) {
+	const log = `
+2015/12/21 12:18:05 executing program 1:
+pause()
+2015/12/21 12:18:10 executing program 2:
+alarm(0xa)
+`
+	panicLog := log + "\npanic: some error\n"
+
+	result, _, err := runTestRepro(t, panicLog, &testExecInterface{
+		run: func(p []byte) (*instance.RunResult, error) {
+			if strings.Contains(string(p), "alarm(0xa)") && !strings.Contains(string(p), "pause()") {
+				// alarm(0xa) alone causes a system failure.
+				return &instance.RunResult{
+					Report: &report.Report{
+						Title: "lost connection to test machine",
+						Type:  crash.LostConnection,
+					},
+				}, nil
+			}
+			if strings.Contains(string(p), "pause()") && strings.Contains(string(p), "alarm(0xa)") {
+				// The combination causes the target bug.
+				return fakeCrashResult("panic: some error"), nil
+			}
+			return fakeCrashResult(""), nil
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "pause()\nalarm(0xa)\n", string(result.Prog.Serialize()))
 }

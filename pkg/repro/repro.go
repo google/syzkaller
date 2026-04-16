@@ -63,7 +63,7 @@ type reproContext struct {
 	stats          *Stats
 	report         *report.Report
 	timeouts       targets.Timeouts
-	observedTitles map[string]bool
+	observedTitles map[string]crash.Type
 	fast           bool
 }
 
@@ -148,10 +148,11 @@ func runInner(ctx context.Context, crashLog []byte, env Environment, exec execIn
 		startOpts:      createStartOptions(cfg, env.Features, crashType),
 		stats:          new(Stats),
 		timeouts:       cfg.Timeouts,
-		observedTitles: map[string]bool{},
+		observedTitles: map[string]crash.Type{},
 		fast:           env.Fast,
 		logf:           env.logf,
 	}
+
 	return reproCtx.run()
 }
 
@@ -708,16 +709,40 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 		ctx.reproLogf(2, "not a leak crash: %v", rep.Title)
 		return verdict{false, result.Duration}, nil
 	}
-	if strict && len(ctx.observedTitles) > 0 {
-		if !ctx.observedTitles[rep.Title] {
-			ctx.reproLogf(2, "a never seen crash title: %v, ignore", rep.Title)
-			return verdict{false, result.Duration}, nil
-		}
+	if _, ok := ctx.observedTitles[rep.Title]; ok {
+		// Already established title, always permit.
+	} else if !isHighPrioReport(rep.Type) && ctx.observedHighPrioCrash() {
+		ctx.reproLogf(2, "ignore low priority crash: %v", rep.Title)
+		return verdict{false, result.Duration}, nil
+	} else if strict && len(ctx.observedTitles) > 0 {
+		ctx.reproLogf(2, "a never seen crash title: %v, ignore", rep.Title)
+		return verdict{false, result.Duration}, nil
 	} else {
-		ctx.observedTitles[rep.Title] = true
+		ctx.observedTitles[rep.Title] = rep.Type
 	}
 	ctx.report = rep
 	return verdict{true, result.Duration}, nil
+}
+
+func (ctx *reproContext) observedHighPrioCrash() bool {
+	if isHighPrioReport(ctx.crashType) {
+		return true
+	}
+	for _, typ := range ctx.observedTitles {
+		if isHighPrioReport(typ) {
+			return true
+		}
+	}
+	return false
+}
+
+func isHighPrioReport(typ crash.Type) bool {
+	switch typ {
+	case crash.LostConnection, crash.NoOutput, crash.SyzFailure, crash.UnexpectedReboot:
+		return false
+	default:
+		return true
+	}
 }
 
 var ErrNoVMs = errors.New("all VMs failed to boot")
