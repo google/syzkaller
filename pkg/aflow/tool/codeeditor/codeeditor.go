@@ -88,7 +88,7 @@ func codeeditor(ctx *aflow.Context, state state, args args) (struct{}, error) {
 }
 
 func replace(lines, src, dst [][]byte, fuzzy bool) (newLines [][]byte, matches int) {
-	for i := 0; i < len(lines); i++ {
+	for i := 0; i < len(lines); {
 		li, si := i, 0
 		for li < len(lines) && si < len(src) {
 			l, s := lines[li], src[si]
@@ -114,11 +114,12 @@ func replace(lines, src, dst [][]byte, fuzzy bool) (newLines [][]byte, matches i
 		}
 		if si != len(src) {
 			newLines = append(newLines, lines[i])
+			i++
 			continue
 		}
 		matches++
 		newLines = append(newLines, dst...)
-		i = li - 1
+		i = li
 	}
 	return
 }
