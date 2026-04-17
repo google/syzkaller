@@ -114,7 +114,7 @@ func deserializeFlags(value string) ([]Flag, error) {
 
 func flagEscape(s string) string {
 	buf := new(bytes.Buffer)
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		ch := s[i]
 		if ch <= 0x20 || ch >= 0x7f || ch == ':' || ch == '=' || ch == '\\' {
 			buf.Write([]byte{'\\', 'x'})
@@ -128,7 +128,7 @@ func flagEscape(s string) string {
 
 func flagUnescape(s string) (string, error) {
 	buf := new(bytes.Buffer)
-	for i := 0; i < len(s); i++ {
+	for i := 0; i < len(s); {
 		ch := s[i]
 		if ch <= 0x20 || ch >= 0x7f || ch == ':' || ch == '=' {
 			return "", fmt.Errorf("unescaped char %v", ch)
@@ -142,10 +142,11 @@ func flagUnescape(s string) (string, error) {
 				return "", err
 			}
 			buf.WriteByte(res[0])
-			i += 3
+			i += 4
 			continue
 		}
 		buf.WriteByte(ch)
+		i++
 	}
 	return buf.String(), nil
 }
