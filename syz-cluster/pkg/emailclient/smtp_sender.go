@@ -115,9 +115,9 @@ func (sender *smtpSender) queryCredentials(ctx context.Context) (smtpCredentials
 func (sender *smtpSender) querySecret(ctx context.Context, key string) (string, error) {
 	const retries = 3
 	var err error
-	for i := 0; i < retries; i++ {
+	for range retries {
 		var val []byte
-		val, err := gcpsecret.LatestGcpSecret(ctx, sender.projectName, key)
+		val, err = gcpsecret.LatestGcpSecret(ctx, sender.projectName, key)
 		if err == nil {
 			return string(val), nil
 		}
