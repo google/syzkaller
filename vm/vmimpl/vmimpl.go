@@ -296,6 +296,7 @@ func UnusedTCPPort() int {
 // Reference: https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
 func EscapeDoubleQuotes(inp string) string {
 	var ret strings.Builder
+	//nolint:syz-linter // pos is modified inside the loop
 	for pos := 0; pos < len(inp); pos++ {
 		// If inp[pos] is not a double quote or a backslash, just use
 		// as is.
