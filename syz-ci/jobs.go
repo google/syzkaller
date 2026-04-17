@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -689,8 +690,11 @@ func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
 	}
 	if osutil.IsExist(mgr.kernelBuildDir) {
 		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
-		output, err := osutil.RunCmd(time.Hour, "", "git", "clone",
-			"--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
+		cmd := exec.Command("git", "clone", "--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return fmt.Errorf("failed to sandbox clone: %w", err)
+		}
+		output, err := osutil.Run(time.Hour, cmd)
 		if err == nil {
 			return nil
 		}
