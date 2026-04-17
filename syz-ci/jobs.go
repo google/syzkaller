@@ -359,7 +359,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	mgrcfg := new(mgrconfig.Config)
 	*mgrcfg = *mgr.managercfg
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
-	mgrcfg.KernelSrc = filepath.Join(dir, "kernel", mgr.mgrcfg.KernelSrcSuffix)
+	repoDir := filepath.Join(dir, "kernel")
+	mgrcfg.KernelSrc = filepath.Join(repoDir, mgr.mgrcfg.KernelSrcSuffix)
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 	os.RemoveAll(mgrcfg.Workdir)
 	defer os.RemoveAll(mgrcfg.Workdir)
@@ -376,6 +377,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		},
 	}
 	job.resp = resp
+	if err := jp.initJobRepo(mgr, repoDir); err != nil {
+		jp.Errorf("failed to init job repo: %v", err)
+		job.resp.Error = []byte(err.Error())
+		return job.resp
+	}
 	resp.Build.KernelRepo = req.KernelRepo
 	resp.Build.KernelBranch = req.KernelBranch
 	resp.Build.KernelConfig = req.KernelConfig
@@ -674,6 +680,24 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		resp.CrashReport = rep.Report
 	}
 	resp.CrashLog = ret.rawOutput
+	return nil
+}
+
+func (jp *JobProcessor) initJobRepo(mgr *Manager, repoDir string) error {
+	if err := os.RemoveAll(repoDir); err != nil {
+		return fmt.Errorf("failed to remove job repo dir: %w", err)
+	}
+	if osutil.IsExist(mgr.kernelBuildDir) {
+		jp.Logf(0, "cloning job repo from %v using reference", mgr.kernelBuildDir)
+		output, err := osutil.RunCmd(time.Hour, "", "git", "clone",
+			"--reference", mgr.kernelBuildDir, mgr.kernelBuildDir, repoDir)
+		if err == nil {
+			return nil
+		}
+		jp.Logf(0, "failed to clone with reference from %v: %v\n%s", mgr.kernelBuildDir, err, output)
+		os.RemoveAll(repoDir)
+	}
+	jp.Logf(0, "job repo will be fetched from scratch")
 	return nil
 }
 
