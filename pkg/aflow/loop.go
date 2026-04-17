@@ -46,7 +46,7 @@ func (dw *DoWhile) loop(ctx *Context) error {
 		}
 		ctx.state[name] = reflect.Zero(typ).Interface()
 	}
-	for iter := 0; iter < dw.MaxIterations; iter++ {
+	for iter := range dw.MaxIterations {
 		span := &trajectory.Span{
 			Type: trajectory.SpanLoopIteration,
 			Name: fmt.Sprint(iter),

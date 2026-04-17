@@ -320,7 +320,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 
 func (inst *instance) Forward(port int) (string, error) {
 	var err error
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		devicePort := vmimpl.RandomPort()
 		_, err = inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port))
 		if err == nil {

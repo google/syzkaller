@@ -141,7 +141,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		"KCSAN: data-race in mISDN_ioctl / mISDN_read",
 		"WARNING in raw_ioctl",
 	}
-	for buildID := 0; buildID < 3; buildID++ {
+	for buildID := range 3 {
 		build := &dashapi.Build{
 			Manager:           fmt.Sprintf("manager%v", buildID),
 			ID:                fmt.Sprintf("build%v", buildID),
@@ -158,8 +158,8 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			KernelConfig:      []byte(fmt.Sprintf("config%v", buildID)),
 		}
 		client.UploadBuild(build)
-		for bugID := 0; bugID < len(bugTitles); bugID++ {
-			for crashID := 0; crashID < 3; crashID++ {
+		for bugID := range len(bugTitles) {
+			for crashID := range 3 {
 				client.ReportCrash(&dashapi.Crash{
 					BuildID:     build.ID,
 					Title:       bugTitles[bugID],
@@ -218,7 +218,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 		})
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		t.Logf("polling bugs iteration %v", i)
 		respBugs, err := globalClient.ReportingPollBugs("email")
 		if err != nil {
@@ -263,7 +263,7 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			continue
 		}
 		// Now upload a build that includes these fix commits for ALL managers.
-		for buildID := 0; buildID < 3; buildID++ {
+		for buildID := range 3 {
 			err := client.UploadBuild(&dashapi.Build{
 				Manager:           fmt.Sprintf("manager%v", buildID),
 				ID:                fmt.Sprintf("build_fixing_%v_%v", i, buildID),

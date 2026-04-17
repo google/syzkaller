@@ -884,7 +884,7 @@ func TestApp(t *testing.T) {
 
 	// Provoke purgeOldCrashes.
 	const purgeTestIters = 30
-	for i := 0; i < purgeTestIters; i++ {
+	for i := range purgeTestIters {
 		// Also test how daily counts work.
 		if i == purgeTestIters/2 {
 			c.advanceTime(48 * time.Hour)
@@ -1032,7 +1032,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 
 	// Now report lots of bugs with/without repros. Some of the older ones should be purged.
 	var totalReported = 3 * maxCrashes()
-	for i := 0; i < totalReported; i++ {
+	for i := range totalReported {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
 		crash.ReproC = nil
@@ -1109,7 +1109,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 
 	// Trigger more purge events.
 	var moreIterations = maxCrashes()
-	for i := 0; i < moreIterations; i++ {
+	for i := range moreIterations {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
 		crash.ReproC = nil

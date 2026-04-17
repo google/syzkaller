@@ -464,7 +464,7 @@ func (ctx *reproContext) concatenateProgs(entries []*prog.LogEntry, dur time.Dur
 	if len(entries) > 1 {
 		// There's a risk of exceeding prog.MaxCalls, so let's first minimize
 		// all entries separately.
-		for i := 0; i < len(entries); i++ {
+		for i := range len(entries) {
 			var testErr error
 			ctx.reproLogf(2, "minimizing program #%d before concatenation", i)
 			callsBefore := len(entries[i].P.Calls)
@@ -684,7 +684,7 @@ func (ctx *reproContext) getVerdict(callback func() (rep *instance.RunResult, er
 	var err error
 
 	const attempts = 3
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		// It's hard to classify all kinds of errors into the one worth repeating
 		// and not. So let's just retry runs for all errors.
 		// If the problem is transient, it will likely go away.

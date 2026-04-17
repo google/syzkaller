@@ -44,7 +44,7 @@ func TestCommitPoll(t *testing.T) {
 	c.expectEQ(reply.OK, true)
 
 	// The commit should appear in commit poll.
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		commitPollResp, err = c.client.CommitPoll()
 		c.expectOK(err)
 		c.expectEQ(len(commitPollResp.Commits), 2)

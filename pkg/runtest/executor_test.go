@@ -113,7 +113,7 @@ func TestZlib(t *testing.T) {
 	source := queue.Plain()
 	startRPCServer(t, target, executor, source, rpcParams{manyProcs: true})
 	r := rand.New(testutil.RandSource(t))
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		data := testutil.RandMountImage(r)
 		compressed := image.Compress(data)
 		text := fmt.Sprintf(`syz_compare_zlib(&(0x7f0000000000)="$%s", AUTO, &(0x7f0000800000)="$%s", AUTO)`,

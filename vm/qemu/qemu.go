@@ -763,7 +763,7 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	}
 
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
-	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+	for cpu := range inst.cfg.CPU {
 		regs, err := inst.hmp("info registers", cpu)
 		if err == nil {
 			ret = append(ret, []byte(fmt.Sprintf("info registers vcpu %v\n", cpu))...)

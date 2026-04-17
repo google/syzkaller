@@ -41,11 +41,11 @@ func TestBisect(t *testing.T) {
 	}
 
 	rd, iters := initTest(t)
-	for n := 0; n < iters; n++ {
+	for range iters {
 		var progs []*prog.LogEntry
 		numTotal := rd.Intn(300)
 		numGuilty := 0
-		for i := 0; i < numTotal; i++ {
+		for range numTotal {
 			var prog prog.LogEntry
 			if rd.Intn(30) == 0 {
 				prog.Proc = 42
@@ -249,7 +249,7 @@ func TestProgConcatenation(t *testing.T) {
 	// Since the crash condition is alarm() after pause(), the code
 	// would have to work around the prog.MaxCall limitation.
 	execLog := "2015/12/21 12:18:05 executing program 1:\n"
-	for i := 0; i < prog.MaxCalls; i++ {
+	for i := range prog.MaxCalls {
 		if i == 10 {
 			execLog += "pause()\n"
 		} else {
@@ -257,7 +257,7 @@ func TestProgConcatenation(t *testing.T) {
 		}
 	}
 	execLog += "2015/12/21 12:18:10 executing program 2:\n"
-	for i := 0; i < prog.MaxCalls; i++ {
+	for i := range prog.MaxCalls {
 		if i == 10 {
 			execLog += "alarm(0xa)\n"
 		} else {
@@ -284,7 +284,7 @@ func TestFlakyCrashes(t *testing.T) {
 	iters := 250
 
 	success := 0
-	for i := 0; i < iters; i++ {
+	for range iters {
 		counter, lastFake := 0, 0
 		result, _, err := runTestRepro(t, testReproLog, &testExecInterface{
 			run: func(log []byte) (*instance.RunResult, error) {
@@ -324,7 +324,7 @@ func BenchmarkCalculateReliability(b *testing.B) {
 			reliability := make([]float64, 0, b.N)
 
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				runs := 0
 				ret, err := calculateReliability(func() (bool, error) {
 					runs++

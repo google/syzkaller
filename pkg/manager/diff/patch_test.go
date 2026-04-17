@@ -81,7 +81,7 @@ index 103167d..fbf7a68 100644
 
 func dummySymbolHashes() map[string]string {
 	ret := map[string]string{}
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		ret[fmt.Sprint(i)] = fmt.Sprint(i)
 	}
 	return ret

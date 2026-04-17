@@ -76,7 +76,7 @@ func (insn *Insn) Info() (string, iset.Mode, bool, bool) {
 func generateArg(cfg *iset.Config, r *rand.Rand, size int) []byte {
 	v := iset.GenerateInt(cfg, r, size)
 	arg := make([]byte, size)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		arg[i] = byte(v)
 		v >>= 8
 	}

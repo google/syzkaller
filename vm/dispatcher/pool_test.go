@@ -38,12 +38,12 @@ func TestPoolDefault(t *testing.T) {
 	}()
 
 	// Eventually all instances are up and busy.
-	for i := 0; i < count; i++ {
+	for i := range count {
 		pool[i].waitRun()
 	}
 
 	// The pool restarts failed jobs.
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		pool[0].stopRun()
 		pool[2].stopRun()
 
@@ -92,7 +92,7 @@ func TestPoolSplit(t *testing.T) {
 	go mgr.Run(ctx, job)
 
 	// So far, there are no reserved instances.
-	for i := 0; i < count; i++ {
+	for i := range count {
 		pool[i].waitRun()
 	}
 
@@ -108,17 +108,17 @@ func TestPoolSplit(t *testing.T) {
 	// Take away the pool instance.
 	mgr.ReserveForRun(0)
 	// All instances must be busy with the default jobs.
-	for i := 0; i < count; i++ {
+	for i := range count {
 		pool[i].waitRun()
 	}
 	assert.EqualValues(t, 3, defaultCount.Load())
 
 	// Now let's create and finish more jobs.
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go mgr.Run(ctx, job)
 	}
 	mgr.ReserveForRun(2)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-startedRuns
 		stopRuns <- true
 	}
@@ -146,12 +146,12 @@ func TestPoolStress(t *testing.T) {
 		close(done)
 	}()
 	go func() {
-		for i := 0; i < 128; i++ {
+		for i := range 128 {
 			mgr.TogglePause(i%2 == 0)
 			runtime.Gosched()
 		}
 	}()
-	for i := 0; i < 128; i++ {
+	for i := range 128 {
 		go mgr.Run(ctx, func(ctx context.Context, _ *nilInstance, _ UpdateInfo) {})
 		mgr.ReserveForRun(5 + i%5)
 	}
@@ -261,7 +261,7 @@ func TestPoolCancelRun(t *testing.T) {
 
 	started := make(chan struct{})
 	// Schedule more jobs than could be processed simultaneously.
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -321,7 +321,7 @@ func TestPoolBootErrors(t *testing.T) {
 
 func makePool(count int) []testInstance {
 	var ret []testInstance
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ret = append(ret, testInstance{index: i})
 	}
 	return ret

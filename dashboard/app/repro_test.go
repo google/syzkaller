@@ -101,7 +101,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	defer c.Close()
 
 	crash1 := crashCtor(c)
-	for i := 0; i < maxReproPerBug; i++ {
+	for range maxReproPerBug {
 		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
 		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
@@ -109,7 +109,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 		c.client.ReportFailedRepro(testCrashID(crash1))
 	}
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		// No more repros today.
 		c.advanceTime(time.Hour)
 		resp, _ := c.client.ReportCrash(crash1)
@@ -119,7 +119,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 
 		// Then another repro after a day.
 		c.advanceTime(25 * time.Hour)
-		for j := 0; j < 2; j++ {
+		for range 2 {
 			resp, _ := c.client.ReportCrash(crash1)
 			c.expectEQ(resp.NeedRepro, true)
 			needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
@@ -372,7 +372,7 @@ func TestFailedReproLogs(t *testing.T) {
 		BuildID: crash1.BuildID,
 		Title:   crash1.Title,
 	}
-	for i := 0; i < maxReproLogs; i++ {
+	for i := range maxReproLogs {
 		c.advanceTime(time.Minute)
 		cid.ReproLog = []byte(fmt.Sprintf("report log %#v", i))
 		err := c.client.ReportFailedRepro(cid)
@@ -535,7 +535,7 @@ func TestReproTask(t *testing.T) {
 		build := sendReproReq(c, "test-manager")
 
 		// Fail all 3 attempts.
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
 			c.expectOK(err)
 			c.expectEQ(string(resp.CrashLog), reproValue)
@@ -562,7 +562,7 @@ func TestReproTask(t *testing.T) {
 		const reproValue = "Some repro text"
 		build := sendReproReq(c, "test-manager")
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			resp, err := client.LogToRepro(&dashapi.LogToReproReq{BuildID: build.ID})
 			c.expectOK(err)
 			c.expectEQ(string(resp.CrashLog), reproValue)

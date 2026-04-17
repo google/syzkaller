@@ -83,7 +83,7 @@ func GenNPeriodsTill(n int, d civil.Date, periodType string) ([]TimePeriod, erro
 		return nil, err
 	}
 	var res []TimePeriod
-	for i := 0; i < n; i++ {
+	for range n {
 		d = pOps.lastPeriodDate(d)
 		res = append(res, TimePeriod{DateTo: d, Days: pOps.pointedPeriodDays(d), Type: periodType})
 		d = d.AddDays(-pOps.pointedPeriodDays(d))
@@ -141,7 +141,7 @@ func (q *QuarterPeriodOps) pointedPeriodDays(d civil.Date) int {
 	d = q.lastPeriodDate(d)
 	d.Day = 1
 	res := 0
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		res += (&MonthPeriodOps{}).pointedPeriodDays(d)
 		d.Month--
 	}

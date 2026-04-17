@@ -25,7 +25,7 @@ func TestNotEscaping(t *testing.T) {
 	if testing.Short() {
 		bound = 1000
 	}
-	for i := 0; i < bound; i++ {
+	for range bound {
 		fn := r.filenameImpl(s)
 		if escapingFilename(fn) {
 			t.Errorf("sandbox escaping file name %q", fn)
@@ -38,7 +38,7 @@ func TestDeterminism(t *testing.T) {
 	iters /= 10 // takes too long
 	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
-	for i := 0; i < iters; i++ {
+	for range iters {
 		seed := rs.Int63()
 		rs1 := rand.NewSource(seed)
 		p1 := generateProg(t, target, rs1, ct, corpus)
@@ -102,7 +102,7 @@ func TestEnabledCalls(t *testing.T) {
 	enabledCalls := make(map[string]bool)
 	enabled := make(map[*Syscall]bool)
 	rnd := rand.New(rs)
-	for i := 0; i < len(target.Syscalls)/10; i++ {
+	for range len(target.Syscalls) / 10 {
 		c := target.Syscalls[rnd.Intn(len(target.Syscalls))]
 		enabled[c] = true
 		enabledCalls[c.Name] = true
@@ -113,9 +113,9 @@ func TestEnabledCalls(t *testing.T) {
 
 	ct := target.BuildChoiceTable(nil, enabled)
 	const tries = 10
-	for i := 0; i < tries; i++ {
+	for range tries {
 		p := target.Generate(rs, 50, ct)
-		for it := 0; it < iters/tries; it++ {
+		for range iters / tries {
 			p.Mutate(rs, 50, ct, nil, nil)
 		}
 		for _, c := range p.Calls {
@@ -135,7 +135,7 @@ func TestSizeGenerateConstArg(t *testing.T) {
 		}
 		bits := typ.TypeBitSize()
 		limit := uint64(1<<bits - 1)
-		for i := 0; i < iters; i++ {
+		for range iters {
 			newArg, _ := typ.generate(r, nil, ctx.Dir)
 			newVal := newArg.(*ConstArg).Val
 			if newVal > limit {
@@ -168,8 +168,8 @@ func TestFlags(t *testing.T) {
 	r := newRand(target, rs)
 	for _, test := range tests {
 		results := make(map[uint64]uint64)
-		const throws = 1e4
-		for i := 0; i < throws; i++ {
+		const throws = 10000
+		for range throws {
 			var v uint64
 			for {
 				v = r.flags(test.vv, test.bitmask, test.old)
@@ -226,7 +226,7 @@ func TestNoGenerate(t *testing.T) {
 	// Enable all "no_generate" syscalls and ~10% of all others.
 	enabled := make(map[*Syscall]bool)
 	rnd := newRand(target, rs)
-	for i := 0; i < len(target.Syscalls); i++ {
+	for range len(target.Syscalls) {
 		syscall := target.Syscalls[rnd.Intn(len(target.Syscalls))]
 		if syscall.Attrs.NoGenerate || rnd.oneOf(10) {
 			enabled[syscall] = true
@@ -237,9 +237,9 @@ func TestNoGenerate(t *testing.T) {
 	ct := target.BuildChoiceTable(nil, enabled)
 
 	const tries = 10
-	for i := 0; i < tries; i++ {
+	for range tries {
 		p := target.Generate(rs, 50, ct)
-		for it := 0; it < iters/tries; it++ {
+		for range iters / tries {
 			p.Mutate(rs, 50, ct, nil, nil)
 		}
 		for _, c := range p.Calls {

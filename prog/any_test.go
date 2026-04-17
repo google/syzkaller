@@ -42,7 +42,7 @@ func TestIsComplexPtr(t *testing.T) {
 			if meta.Attrs.Disabled || meta.Attrs.NoGenerate {
 				continue
 			}
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				s := newState(target, ct, nil)
 				calls := r.generateParticularCall(s, meta)
 				p := &Prog{Target: target, Calls: calls}

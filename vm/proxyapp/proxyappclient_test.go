@@ -103,7 +103,7 @@ func TestCtor_FailedPipes(t *testing.T) {
 		On("StderrPipe").
 		Return(io.NopCloser(strings.NewReader("")), nil)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		p, err := ctor(params, testEnv)
 		assert.NotNil(t, err)
 		assert.Nil(t, p)

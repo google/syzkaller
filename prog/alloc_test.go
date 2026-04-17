@@ -88,7 +88,7 @@ func TestVmaAlloc(t *testing.T) {
 	}
 	r := newRand(target, testutil.RandSource(t))
 	va := newVmaAlloc(1000)
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		size := r.rand(4) + 1
 		page := va.alloc(r, size)
 		t.Logf("alloc(%v) = %3v-%3v", size, page, page+size)

@@ -430,7 +430,7 @@ func (ctx *context) fmtCallBody(call prog.ExecCall) string {
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
 	}
-	for i := 0; i < call.Meta.MissingArgs; i++ {
+	for range call.Meta.MissingArgs {
 		argsStrs = append(argsStrs, "0")
 	}
 	return fmt.Sprintf("%v(%v)", funcName, strings.Join(argsStrs, ", "))

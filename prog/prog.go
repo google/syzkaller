@@ -621,7 +621,7 @@ func (p *Prog) sanitize(fix bool) error {
 func (props *CallProps) ForeachProp(f func(fieldName, key string, value reflect.Value)) {
 	valueObj := reflect.ValueOf(props).Elem()
 	typeObj := valueObj.Type()
-	for i := 0; i < valueObj.NumField(); i++ {
+	for i := range valueObj.NumField() {
 		fieldValue := valueObj.Field(i)
 		fieldType := typeObj.Field(i)
 		f(fieldType.Name, fieldType.Tag.Get("key"), fieldValue)

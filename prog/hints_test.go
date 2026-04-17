@@ -648,7 +648,7 @@ func TestHintsRandom(t *testing.T) {
 	ct := target.DefaultChoiceTable()
 	iters /= 10 // the test takes long
 	r := newRand(target, rs)
-	for i := 0; i < iters; i++ {
+	for i := range iters {
 		p := target.Generate(rs, 5, ct)
 		// In the test mode, MutateWithHints is essentially quadratic over the number of arguments
 		// since we run full prog validation on each run.
@@ -659,7 +659,7 @@ func TestHintsRandom(t *testing.T) {
 		}
 		for j, c := range p.Calls {
 			vals := extractValues(c)
-			for k := 0; k < 5; k++ {
+			for range 5 {
 				vals[r.randInt64()] = true
 			}
 			// MutateWithHints is also quadratic over the number of values. Skip large calls.
@@ -775,7 +775,7 @@ func BenchmarkHints(b *testing.B) {
 	comps := make([]CompMap, len(p.Calls))
 	for i, c := range p.Calls {
 		vals := extractValues(c)
-		for j := 0; j < 5; j++ {
+		for range 5 {
 			vals[r.randInt64()] = true
 		}
 		comps[i] = make(CompMap)

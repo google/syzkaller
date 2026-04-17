@@ -71,7 +71,7 @@ func TestConn(t *testing.T) {
 					return err
 				}
 
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					got, err := Recv[*ExecutorMessageRaw](c)
 					if err != nil {
 						return nil
@@ -102,7 +102,7 @@ func TestConn(t *testing.T) {
 	}
 	assert.Equal(t, connectReply, connectReplyGot)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if err := Send(c, executorMsg); err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +141,7 @@ func BenchmarkConn(b *testing.B) {
 	go func() {
 		done <- serv.Serve(context.Background(),
 			func(_ context.Context, c *Conn) error {
-				for i := 0; i < b.N; i++ {
+				for range b.N {
 					if err := Send(c, connectHello); err != nil {
 						return err
 					}
@@ -163,7 +163,7 @@ func BenchmarkConn(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, err := Recv[*ConnectHelloRaw](c)
 		if err != nil {
 			b.Fatal(err)

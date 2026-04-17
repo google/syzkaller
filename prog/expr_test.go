@@ -29,7 +29,7 @@ func TestGenerateConditionalFields(t *testing.T) {
 		}
 		return 0
 	}
-	for i := 0; i < 150; i++ {
+	for range 150 {
 		p := genConditionalFieldProg(target, ct, r)
 		f1, f2 := parseConditionalStructCall(t, p.Calls[len(p.Calls)-1])
 		combinations[b2i(f1)][b2i(f2)] = true
@@ -54,7 +54,7 @@ func TestConditionalResources(t *testing.T) {
 	if testing.Short() {
 		iters /= 10
 	}
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		p.Mutate(rs, 10, ct, nil, nil)
 	}
@@ -69,9 +69,9 @@ func TestMutateConditionalFields(t *testing.T) {
 		iters /= 10
 	}
 	nonAny := 0
-	for i := 0; i < iters; i++ {
+	for range iters {
 		prog := genConditionalFieldProg(target, ct, r)
-		for j := 0; j < 5; j++ {
+		for range 5 {
 			prog.Mutate(rs, 10, ct, nil, nil)
 			hasAny := bytes.Contains(prog.Serialize(), []byte("ANY="))
 			if hasAny {
@@ -263,7 +263,7 @@ func TestConditionalUnionFields(t *testing.T) {
 
 	var zeroU1, zeroU2 int
 	var nonzeroU2 int
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		s := newState(target, ct, nil)
 		p := &Prog{
 			Target: target,
@@ -295,7 +295,7 @@ func TestNestedConditionalCall(t *testing.T) {
 	ct := target.DefaultChoiceTable()
 	r := newRand(target, rs)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		for _, name := range []string{"test$conditional_struct_nested", "test$conditional_struct_nested2"} {
 			s := newState(target, ct, nil)
 			calls := r.generateParticularCall(s, target.SyscallMap[name])

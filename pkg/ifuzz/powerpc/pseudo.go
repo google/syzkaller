@@ -122,7 +122,7 @@ func (gen *generator) rtas() {
 	reg := uint(iset.GenerateInt(gen.cfg, gen.r, 4))
 
 	gen.byte(imap.ldgpr32(reg, reg+uint(1), addr, token))
-	for i := 0; i < gen.r.Intn(4)+1; i++ {
+	for i := range gen.r.Intn(4) + 1 {
 		gen.byte(imap.ldgpr32(reg, reg+uint(1), addr+uint64(i*4),
 			uint32(iset.GenerateInt(gen.cfg, gen.r, 4))))
 	}

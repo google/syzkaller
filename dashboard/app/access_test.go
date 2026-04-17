@@ -319,7 +319,7 @@ func TestAccess(t *testing.T) {
 		client.UploadBuild(build)
 		noteBuildAccessLevel(ns, build.ID)
 
-		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
+		for reportingIdx := range 2 {
 			accessLevel := c.config().Namespaces[ns].Reporting[reportingIdx].AccessLevel
 			accessPrefix := accessLevelPrefix(accessLevel)
 

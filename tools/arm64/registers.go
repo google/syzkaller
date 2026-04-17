@@ -78,7 +78,7 @@ func processLine(line string) (int64, error) {
 	}
 
 	var operands []int
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if fields[i] != "-" {
 			val, err := strconv.ParseInt(strings.TrimPrefix(fields[i], "0b"), 2, 64)
 			if err != nil {
@@ -127,7 +127,7 @@ func expandLine(line string) []string {
 	numPermutations := 1 << m
 
 	expandedLines := make([]string, 0, numPermutations)
-	for i := 0; i < numPermutations; i++ {
+	for i := range numPermutations {
 		bits := fmt.Sprintf("%s%0*b", prefix, m, i)
 		newLine := strings.Replace(line, match[0], bits, 1)
 		if strings.Contains(newLine, "n[") {
@@ -154,7 +154,7 @@ const (
 func arm64KVMRegID(operands []int) int64 {
 	shifts := [5]int64{14, 11, 7, 3, 0}
 	ret := kvmRegSizeU64 | kvmRegArm64 | kvmRegArm64Sysreg
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		ret |= (int64(operands[i]) << shifts[i])
 	}
 	return ret

@@ -299,7 +299,7 @@ func TestBisect(t *testing.T) {
 	repoDir := t.TempDir()
 	repo := MakeTestRepo(t, repoDir)
 	var commits []string
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		repo.CommitChange(fmt.Sprintf("commit %v", i))
 		com, err := repo.repo.Commit(HEAD)
 		if err != nil {

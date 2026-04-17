@@ -104,7 +104,7 @@ func TestLarge(t *testing.T) {
 	for i := range val {
 		val[i] = byte(rand.Intn(256))
 	}
-	for i := 0; i < nrec; i++ {
+	for i := range nrec {
 		db.Save(fmt.Sprintf("%v", i), val, 0)
 	}
 	if err := db.Flush(); err != nil {
@@ -157,7 +157,7 @@ func TestDiscardData(t *testing.T) {
 	assert.Nil(t, db.Records["3"].Val)
 	assert.Nil(t, db.Records["4"].Val)
 	// Force compaction.
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		db.Save("5", []byte("55"), 5)
 	}
 	if err := db.Flush(); err != nil {
@@ -223,7 +223,7 @@ func TestOpenCorrupted(t *testing.T) {
 	}
 	// Write 1000 records, then wipe half of the file and test that we
 	// (1) get an error, (2) still get 450-550 records.
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		db.Save(fmt.Sprintf("%v", i), []byte{byte(i)}, 0)
 	}
 	if err := db.Flush(); err != nil {

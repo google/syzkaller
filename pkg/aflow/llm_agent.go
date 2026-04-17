@@ -195,7 +195,7 @@ func (a *LLMAgent) execute(ctx *Context) error {
 func (a *LLMAgent) executeMany(ctx *Context) error {
 	var replies []string
 	allOutputs := map[string]any{}
-	for candidate := 0; candidate < a.Candidates; candidate++ {
+	for candidate := range a.Candidates {
 		reply, outputs, err := a.executeOne(ctx, candidate)
 		if err != nil {
 			return err

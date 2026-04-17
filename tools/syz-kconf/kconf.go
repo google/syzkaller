@@ -103,7 +103,7 @@ func main() {
 			}()
 		}
 		failed := false
-		for i := 0; i < batch; i++ {
+		for range batch {
 			if err := <-results; err != nil {
 				fmt.Printf("%v\n", err)
 				failed = true

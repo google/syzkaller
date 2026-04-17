@@ -209,7 +209,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func() bool) {
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := min(len(data), maxDataLength)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)

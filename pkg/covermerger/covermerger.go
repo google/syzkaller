@@ -250,7 +250,7 @@ func isSchema(fields, schema []string) bool {
 	if len(fields) != len(schema) {
 		return false
 	}
-	for i := 0; i < len(fields); i++ {
+	for i := range len(fields) {
 		if fields[i] != schema[i] {
 			return false
 		}
@@ -320,7 +320,7 @@ func mergeChanData(ctx context.Context, cfg *Config, recordChan <-chan *FileReco
 	g := errgroup.Group{}
 	frecordChan := groupFileRecords(ctx, recordChan)
 
-	for i := 0; i < cfg.Jobs; i++ {
+	for range cfg.Jobs {
 		g.Go(func() error {
 			for frecord := range frecordChan {
 				mr, err := batchFileData(cfg, frecord.fileName, frecord.records)

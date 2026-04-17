@@ -74,7 +74,7 @@ func init() {
 
 func initCallAttrs() {
 	attrs := reflect.TypeOf(prog.SyscallAttrs{})
-	for i := 0; i < attrs.NumField(); i++ {
+	for i := range attrs.NumField() {
 		attr := attrs.Field(i)
 		desc := &attrDesc{Name: attr.Name}
 		switch attr.Type.Kind() {

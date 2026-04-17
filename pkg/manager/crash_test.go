@@ -30,7 +30,7 @@ func TestCrashList(t *testing.T) {
 	}})
 	assert.NoError(t, err)
 	assert.True(t, first)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		first, err := crashStore.SaveCrash(&Crash{Report: &report.Report{
 			Title:  "Title B",
 			Output: []byte("ABCD"),
@@ -38,7 +38,7 @@ func TestCrashList(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, i == 0, first)
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		first, err := crashStore.SaveCrash(&Crash{Report: &report.Report{
 			Title:  "Title C",
 			Output: []byte("ABCD"),
@@ -74,7 +74,7 @@ func TestMaxCrashLogs(t *testing.T) {
 		MaxCrashLogs: 5,
 	}
 
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		_, err := crashStore.SaveCrash(&Crash{Report: &report.Report{
 			Title:  "Title A",
 			Output: []byte("ABCD"),

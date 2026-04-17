@@ -661,7 +661,7 @@ func treeTestJobs(ctx context.Context, bug *Bug) ([]*dashapi.JobInfo, error) {
 
 	// The underlying code makes a number of queries, so let's do it in parallel to speed up processing.
 	const threads = 3
-	for i := 0; i < threads; i++ {
+	for range threads {
 		g.Go(func() error {
 			for id := range jobIDs {
 				job, jobKey, err := fetchJob(ctx, id)

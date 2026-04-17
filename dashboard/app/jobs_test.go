@@ -435,7 +435,7 @@ func TestReproRetestJob(t *testing.T) {
 
 	// Let's say that the C repro testing has failed.
 	c.advanceTime(c.config().Obsoleting.ReproRetestStart + time.Hour)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		resp := c.globalClient.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
 		c.expectEQ(resp.Type, dashapi.JobTestPatch)
 		c.expectEQ(resp.KernelRepo, build.KernelRepo)
@@ -1137,7 +1137,7 @@ func TestParallelJobs(t *testing.T) {
 
 	// .. and re-query both jobs.
 	repos := []string{}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		pollResp = c.globalClient.pollJobs(build.Manager)
 		c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 		repos = append(repos, pollResp.KernelRepo)

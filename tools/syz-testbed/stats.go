@@ -200,7 +200,7 @@ func (group RunResultGroup) SyzReproResults() []*SyzReproResult {
 func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 	ret := []map[string]uint64{}
 	commonLen := group.minResultLength()
-	for i := 0; i < commonLen; i++ {
+	for i := range commonLen {
 		record := make(map[string]uint64)
 		for key, value := range group.groupNthRecord(i) {
 			record[key] = uint64(value.Median())

@@ -352,7 +352,7 @@ func (dc *diffContext) monitorPatchedCoverage(ctx context.Context) error {
 	focusPCs := 0
 	// The last one is "everything else", so it's not of interest.
 	coverFilters := dc.new.CoverFilters()
-	for i := 0; i < len(coverFilters.Areas)-1; i++ {
+	for i := range len(coverFilters.Areas) - 1 {
 		focusPCs += len(coverFilters.Areas[i].CoverPCs)
 	}
 	if focusPCs == 0 {

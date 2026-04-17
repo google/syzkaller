@@ -32,7 +32,7 @@ func ExtractMemoryDump(inst *vm.Instance, target *targets.Target, path string) e
 		return fmt.Errorf("memory dump collection is only supported on linux")
 	}
 	var lastErr error
-	for i := 0; i < maxRetries; i++ {
+	for range maxRetries {
 		err := extractKdumpInner(inst, path, cmd)
 		if err == nil {
 			return nil

@@ -143,7 +143,7 @@ func TestMutateArgument(t *testing.T) {
 				t.Fatalf("failed to deserialize the program: %v", err)
 			}
 			want := goal.Serialize()
-			for i := 0; i < 1e5; i++ {
+			for i := range 100000 {
 				p1 := p.Clone()
 				ctx := &mutator{
 					p:      p1,
@@ -182,7 +182,7 @@ func TestMutateNoSquash(t *testing.T) {
 	}
 
 	// squashAny should not mutate the program.
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		p1 := p.Clone()
 		ctx.p = p1
 		if ctx.squashAny() {
@@ -195,9 +195,9 @@ func TestSizeMutateArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
-		for it := 0; it < 10; it++ {
+		for range 10 {
 			p1 := p.Clone()
 			ctx := &mutator{
 				p:      p1,
@@ -226,7 +226,7 @@ func TestSizeMutateArg(t *testing.T) {
 func TestClone(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		p1 := p.Clone()
 		data := p.Serialize()
@@ -241,7 +241,7 @@ func TestMutateRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
 	next:
-		for i := 0; i < iters; i++ {
+		for range iters {
 			p := target.Generate(rs, 10, ct)
 			if p.countArgs() > maxArgCutoff {
 				continue
@@ -250,7 +250,7 @@ func TestMutateRandom(t *testing.T) {
 			p1 := p.Clone()
 			// There is a chance that mutation will produce the same program.
 			// So we check that at least 1 out of 20 mutations actually change the program.
-			for try := 0; try < 20; try++ {
+			for range 20 {
 				p1.Mutate(rs, 10, ct, nil, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
@@ -275,11 +275,11 @@ func TestMutateCorpus(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		p := target.Generate(rs, 10, ct)
 		corpus = append(corpus, p)
 	}
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p1 := target.Generate(rs, 10, ct)
 		p1.Mutate(rs, 10, ct, nil, corpus)
 	}
@@ -449,7 +449,7 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 			if valid {
 				iters = 1e6 // it will stop after reaching the goal
 			}
-			for i := 0; i < iters; i++ {
+			for i := range iters {
 				p1 := p.Clone()
 				p1.Mutate(rs, len(goal.Calls), ct, nil, nil)
 				data1 := p1.Serialize()
@@ -494,7 +494,7 @@ func BenchmarkStoreLoadInt(b *testing.B) {
 	data := make([]byte, 9)
 	sink = data
 	data = sink.([]byte)[1:]
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		for size := 1; size <= 8; size *= 2 {
 			storeInt(data, uint64(i), size)
 			v := loadInt(data, size)

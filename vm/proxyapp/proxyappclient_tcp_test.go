@@ -187,7 +187,7 @@ func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
 	p, _ := ctor(makeTestParams(), testTCPEnv(port))
 	<-onConnect
 	closeServerConnections()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-onConnect
 		p.(*pool).mu.Lock()
 		assert.Nil(t, p.(*pool).proxy) // still can't initialize

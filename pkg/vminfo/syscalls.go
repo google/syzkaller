@@ -128,7 +128,7 @@ func (ctx *checkContext) do(fileInfos []*flatrpc.FileInfo, featureInfos []*flatr
 
 	enabled := make(map[*prog.Syscall]bool)
 	disabled := make(map[*prog.Syscall]string)
-	for i := 0; i < ctx.pendingSyscalls; i++ {
+	for range ctx.pendingSyscalls {
 		res := <-ctx.syscalls
 		if res.reason == "" {
 			enabled[res.call] = true

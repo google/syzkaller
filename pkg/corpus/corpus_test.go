@@ -32,7 +32,7 @@ func TestCorpusOperation(t *testing.T) {
 	// Second program is saved for every its call.
 	inp2 := generateInput(target, rs, 5)
 	progData = inp2.Prog.Serialize()
-	for i := 0; i < len(inp2.Prog.Calls); i++ {
+	for i := range len(inp2.Prog.Calls) {
 		inp2.Call = i
 		go corpus.Save(inp2)
 		event := <-ch
@@ -85,11 +85,11 @@ func TestCorpusSaveConcurrency(t *testing.T) {
 		iters    = 100
 	)
 
-	for i := 0; i < routines; i++ {
+	for range routines {
 		go func() {
 			rs := rand.NewSource(0)
 			r := rand.New(rs)
-			for it := 0; it < iters; it++ {
+			for it := range iters {
 				inp := generateInput(target, rs, it)
 				corpus.Save(inp)
 				corpus.ChooseProgram(r).Clone()

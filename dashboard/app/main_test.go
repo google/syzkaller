@@ -361,7 +361,7 @@ func TestNoThrottle(t *testing.T) {
 	defer c.Close()
 
 	assert.True(t, c.config().Throttle.Empty())
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		c.advanceTime(time.Millisecond)
 		_, err := c.AuthGET(AccessPublic, "/access-public-email")
 		c.expectOK(err)
@@ -382,7 +382,7 @@ func TestThrottle(t *testing.T) {
 	}
 
 	// Adhere to the limit.
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		c.advanceTime(time.Second)
 		_, err := c.AuthGET(AccessPublic, "/access-public-email")
 		c.expectOK(err)

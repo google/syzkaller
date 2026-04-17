@@ -451,7 +451,7 @@ func (mon *monitor) appendOutput(out []byte) ([]*report.Report, bool) {
 	// the case when a particular pattern is ignored as crash, but a suffix
 	// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
 	mon.curPos = len(mon.output) - maxErrorLength
-	for i := 0; i < maxErrorLength; i++ {
+	for range maxErrorLength {
 		if mon.curPos <= 0 || mon.output[mon.curPos-1] == '\n' {
 			break
 		}

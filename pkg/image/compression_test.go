@@ -20,7 +20,7 @@ import (
 func TestCompress(t *testing.T) {
 	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
-	for i := 0; i < testutil.IterCount(); i++ {
+	for i := range testutil.IterCount() {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			randBytes := testutil.RandMountImage(r)
 			resultBytes := Compress(randBytes)
@@ -36,7 +36,7 @@ func TestCompress(t *testing.T) {
 func TestEncode(t *testing.T) {
 	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
-	for i := 0; i < testutil.IterCount(); i++ {
+	for range testutil.IterCount() {
 		randBytes := testutil.RandMountImage(r)
 		resultBytes := EncodeB64(randBytes)
 		resultBytes, err := DecodeB64(resultBytes)
@@ -69,7 +69,7 @@ func BenchmarkDecompress(b *testing.B) {
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		uncompressed, dtor := MustDecompress(compressed)
 		if len(uncompressed) < 10<<20 {
 			b.Fatalf("uncompressed data is too small: %v", len(uncompressed))

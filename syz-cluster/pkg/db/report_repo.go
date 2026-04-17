@@ -33,7 +33,7 @@ func (repo *ReportRepository) Insert(ctx context.Context, rep *SessionReport) er
 		return repo.genericEntityOps.Insert(ctx, rep)
 	}
 	const attempts = 3
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		var err error
 		rep.ID, err = randomReportID()
 		if err != nil {

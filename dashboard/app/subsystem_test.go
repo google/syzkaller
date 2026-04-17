@@ -302,7 +302,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	aFirst.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(aFirst)
 	bugToExtID[aFirst.Title] = client.pollEmailExtID()
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		client.ReportCrash(aFirst)
 		c.advanceTime(time.Hour)
 	}
@@ -329,7 +329,7 @@ func TestPeriodicSubsystemReminders(t *testing.T) {
 	bSecond.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(bSecond)
 	bugToExtID[bSecond.Title] = client.pollEmailExtID()
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		client.ReportCrash(bSecond)
 		c.advanceTime(time.Hour)
 	}

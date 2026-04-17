@@ -142,7 +142,7 @@ func populateData(t *testing.T, ctx context.Context, client *api.Client, env *ap
 
 	// Upload test steps for complex test.
 	limit := 5
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		title := "crash in loop " + string(rune('A'+i))
 		// Base passed.
 		err = client.UploadTestStep(ctx, ids.SessionID, &api.SessionTestStep{

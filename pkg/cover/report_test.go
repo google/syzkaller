@@ -367,7 +367,7 @@ func generateReport(t *testing.T, target *targets.Target, test *Test) (*reports,
 				t.Fatalf("got %v main symbols", nmain)
 			}
 			main := text["main"][0]
-			for off := 0; off < main.Size; off++ {
+			for off := range main.Size {
 				pcs = append(pcs, main.Addr+uint64(off))
 			}
 			t.Logf("using inexact coverage range 0x%x-0x%x", main.Addr, main.Addr+uint64(main.Size))

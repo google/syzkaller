@@ -474,7 +474,7 @@ func TestEmailDup(t *testing.T) {
 }
 
 func TestEmailDup2(t *testing.T) {
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			c := NewCtx(t)
 			defer c.Close()
@@ -577,7 +577,7 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		bugSender := c.pollEmailBug().Sender
 		cc := EmailOptCC([]string{"default@maintainers.com", "test@syzkaller.com",
 			"bugs@syzkaller.com", "default2@maintainers.com", "bugs2@syzkaller.com"})
-		for j := 0; j < test.bug; j++ {
+		for range test.bug {
 			c.incomingEmail(bugSender, "#syz upstream", cc)
 			bugSender = c.pollEmailBug().Sender
 		}
@@ -586,7 +586,7 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		crash2.Title = fmt.Sprintf("dup_%v", i)
 		c.client2.ReportCrash(crash2)
 		dupSender := c.pollEmailBug().Sender
-		for j := 0; j < test.dup; j++ {
+		for range test.dup {
 			c.incomingEmail(dupSender, "#syz upstream", cc)
 			dupSender = c.pollEmailBug().Sender
 		}

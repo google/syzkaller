@@ -1204,7 +1204,7 @@ func runInTransaction(ctx context.Context, tx txFunc, opts *db.TransactionOption
 	}
 	const maxDevAppServerRetries = 100
 	var err error
-	for i := 0; i < maxDevAppServerRetries; i++ {
+	for range maxDevAppServerRetries {
 		err = db.RunInTransaction(ctx, tx, opts)
 		if err != nil && testing.Testing() {
 			errStr := err.Error()

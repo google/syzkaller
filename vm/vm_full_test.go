@@ -104,7 +104,7 @@ func init() {
 
 func TestMultipleRun(t *testing.T) {
 	inst, reporter := makeLinuxAMD64Futex(t, "test-local")
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		output, _, err := inst.Run(context.Background(), reporter,
 			`echo Hello`, WithExitCondition(ExitNormal))
 		assert.NoError(t, err)

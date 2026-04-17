@@ -63,7 +63,7 @@ func TestProcessPlayers(t *testing.T) {
 
 	// Also add a Hydra Hunter.
 	bugs := make([]*Bug, 11)
-	for i := 0; i < 11; i++ {
+	for i := range 11 {
 		b := &Bug{NumCrashes: 1}
 		bugs[i] = b
 		bugDays[b] = 1
@@ -260,7 +260,7 @@ func TestTrophyLadderBadges(t *testing.T) {
 
 	for _, tc := range tests {
 		var bugs []*Bug
-		for i := 0; i < tc.numBugs; i++ {
+		for range tc.numBugs {
 			bugs = append(bugs, dummyBug)
 		}
 

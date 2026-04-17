@@ -20,7 +20,7 @@ func TestSerializeForExecRandom(t *testing.T) {
 	textSizes := gohistogram.NewHistogram(1000)
 	totalSize := 0
 	sizes := make(map[string]int)
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		buf, err := p.SerializeForExec()
 		if err != nil {
@@ -706,7 +706,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			name:     "few-resources",
 			overflow: false,
 			gen: func(w *bytes.Buffer) {
-				for i := 0; i < execMaxCommands-10; i++ {
+				for i := range execMaxCommands - 10 {
 					fmt.Fprintf(w, "r%v = test$res0()\ntest$res1(r%v)\n", i, i)
 				}
 			},
@@ -715,7 +715,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			name:     "overflow-resources",
 			overflow: true,
 			gen: func(w *bytes.Buffer) {
-				for i := 0; i < execMaxCommands+1; i++ {
+				for i := range execMaxCommands + 1 {
 					fmt.Fprintf(w, "r%v = test$res0()\ntest$res1(r%v)\n", i, i)
 				}
 			},
@@ -725,7 +725,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			overflow: false,
 			gen: func(w *bytes.Buffer) {
 				fmt.Fprintf(w, "r0 = test$res0()\n")
-				for i := 0; i < 58e3; i++ {
+				for range int(58e3) {
 					fmt.Fprintf(w, "test$res1(r0)\n")
 				}
 			},
@@ -735,7 +735,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			overflow: true,
 			gen: func(w *bytes.Buffer) {
 				fmt.Fprintf(w, "r0 = test$res0()\n")
-				for i := 0; i < 4e5; i++ {
+				for range int(4e5) {
 					fmt.Fprintf(w, "test$res1(r0)\n")
 				}
 			},

@@ -278,7 +278,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 	defer vmPool.Close()
 	numVMs = min(numVMs, vmPool.Count())
 	res := make(chan EnvTestResult, numVMs)
-	for i := 0; i < numVMs; i++ {
+	for i := range numVMs {
 		inst := &inst{
 			cfg:             env.cfg,
 			optionalFlags:   env.optionalFlags,
@@ -293,7 +293,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 		go func() { res <- inst.test() }()
 	}
 	var ret []EnvTestResult
-	for i := 0; i < numVMs; i++ {
+	for range numVMs {
 		ret = append(ret, <-res)
 	}
 	return ret, nil

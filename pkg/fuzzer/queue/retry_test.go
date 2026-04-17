@@ -20,7 +20,7 @@ func TestRetryerOnRestart(t *testing.T) {
 	// The requests must be retried forever.
 	req1 := retryerObj.Next()
 	req2 := retryerObj.Next()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		req1.Done(&Result{Status: Restarted})
 		req2.Done(&Result{Status: Restarted})
 		assert.Equal(t, req1, retryerObj.Next())

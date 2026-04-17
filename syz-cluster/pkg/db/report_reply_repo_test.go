@@ -23,7 +23,7 @@ func TestReportReplyRepository(t *testing.T) {
 
 	replyRepo := NewReportReplyRepository(client)
 	baseTime := time.Now()
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		err = replyRepo.Insert(ctx, &ReportReply{
 			MessageID: fmt.Sprintf("message-id-%d", i),
 			ReportID:  report.ID,

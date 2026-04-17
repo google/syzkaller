@@ -107,7 +107,7 @@ func symbolize(interner *Interner, input *bufio.Writer, scanner *bufio.Scanner, 
 			}
 			frames = append(frames, frames1...)
 		}
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			scanner.Scan()
 		}
 	}()

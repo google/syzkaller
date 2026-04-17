@@ -117,7 +117,7 @@ func (w *writer) doSlice(v reflect.Value) {
 	if sub == reflect.Ptr || sub == reflect.Interface || sub == reflect.Struct {
 		// Elem per-line.
 		w.string("{\n")
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			w.do(v.Index(i), true)
 			w.string(",\n")
 		}
@@ -126,7 +126,7 @@ func (w *writer) doSlice(v reflect.Value) {
 	}
 	// All on one line.
 	w.byte('{')
-	for i := 0; i < v.Len(); i++ {
+	for i := range v.Len() {
 		if i > 0 {
 			w.byte(',')
 		}
@@ -141,7 +141,7 @@ func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
 	}
 	w.byte('{')
 	fieldNames := false
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		f := v.Field(i)
 		if isDefaultValue(f) || !f.CanSet() {
 			fieldNames = true
@@ -149,7 +149,7 @@ func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
 		}
 	}
 	needComma := false
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		f := v.Field(i)
 		if fieldNames && (isDefaultValue(f) || !f.CanSet()) {
 			continue
@@ -201,7 +201,7 @@ func isDefaultValue(v reflect.Value) bool {
 	case reflect.Slice:
 		return v.IsNil() || v.Len() == 0
 	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
+		for i := range v.NumField() {
 			if !isDefaultValue(v.Field(i)) {
 				return false
 			}

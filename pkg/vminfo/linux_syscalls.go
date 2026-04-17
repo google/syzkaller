@@ -132,8 +132,8 @@ func linuxSyzOpenDevSupported(ctx *checkContext, call *prog.Syscall) string {
 	if _, ok := call.Args[1].Type.(*prog.ProcType); ok {
 		ids = []int{0}
 	} else {
-		for i := 0; i < 5; i++ {
-			for j := 0; j < 5; j++ {
+		for i := range 5 {
+			for j := range 5 {
 				if j == 0 || hashCount > 1 {
 					ids = append(ids, i+j*10)
 				}

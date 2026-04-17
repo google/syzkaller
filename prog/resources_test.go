@@ -221,7 +221,7 @@ func TestPreferPreciseResources(t *testing.T) {
 	target, rs, _ := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
 	counts := map[string]int{}
-	for i := 0; i < 2000; i++ {
+	for range 2000 {
 		s := newState(target, target.DefaultChoiceTable(), nil)
 		calls := r.generateParticularCall(s,
 			target.SyscallMap["test$consume_subtype_of_common"])

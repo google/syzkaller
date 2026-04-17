@@ -615,7 +615,7 @@ func TestAIJobParallelPoll(t *testing.T) {
 	var eg errgroup.Group
 	const numPollers = 15
 	var assignedJobs int32
-	for i := 0; i < numPollers; i++ {
+	for i := range numPollers {
 		eg.Go(func() error {
 			pollResp, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 				AgentName:    fmt.Sprintf("agent-%v", i),

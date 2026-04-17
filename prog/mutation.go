@@ -807,11 +807,11 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		n := min(r.Intn(16)+1, int(maxLen)-len(data))
 		pos := r.Intn(len(data))
-		for i := 0; i < n; i++ {
+		for range n {
 			data = append(data, 0)
 		}
 		copy(data[pos+n:], data[pos:])
-		for i := 0; i < n; i++ {
+		for i := range n {
 			data[pos+i] = byte(r.Int31())
 		}
 		if uint64(len(data)) > maxLen || r.bin() {
@@ -832,7 +832,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		copy(data[pos:], data[pos+n:])
 		data = data[:len(data)-n]
 		if uint64(len(data)) < minLen || r.bin() {
-			for i := 0; i < n; i++ {
+			for range n {
 				data = append(data, 0) // preserve original length
 			}
 		}
@@ -845,7 +845,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		const max = 256
 		n := min(max-r.biasedRand(max, 10), int(maxLen)-len(data))
-		for i := 0; i < n; i++ {
+		for range n {
 			data = append(data, byte(r.rand(256)))
 		}
 		return data, true

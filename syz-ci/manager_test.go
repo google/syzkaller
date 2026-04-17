@@ -80,7 +80,7 @@ Reported-by: foo+abcd000@bar.com`,
 		"commit4 title",
 	}
 	// Let's trigger sampling as well.
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		commits = append(commits, fmt.Sprintf("test%d", i))
 	}
 	mock.On("BuilderPoll", "test-manager").Return(&dashapi.BuilderPollResp{
@@ -95,7 +95,7 @@ Reported-by: foo+abcd000@bar.com`,
 
 	foundCommits := map[string]bool{}
 	// Call it several more times to catch all commits.
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		for _, name := range matches {
 			foundCommits[name] = true
 		}

@@ -270,7 +270,7 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 		pcs := coverPoints[pcType]
 		var curSymbol *Symbol
 		firstSymbolPC, symbolIdx := -1, 0
-		for i := 0; i < len(pcs); i++ {
+		for i := range len(pcs) {
 			pc := pcs[i]
 			for ; symbolIdx < len(symbols) && pc >= symbols[symbolIdx].End; symbolIdx++ {
 			}
@@ -510,7 +510,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	}
 	symbolizerC := make(chan symbolizerResult, procs)
 	pcchan := make(chan []uint64, procs)
-	for p := 0; p < procs; p++ {
+	for range procs {
 		go func() {
 			symb := symbolizer.Make(target)
 			defer symb.Close()
@@ -540,7 +540,7 @@ func symbolizeModule(target *targets.Target, interner *symbolizer.Interner, kern
 	close(pcchan)
 	var err0 error
 	var frames []*Frame
-	for p := 0; p < procs; p++ {
+	for range procs {
 		res := <-symbolizerC
 		if res.err != nil {
 			err0 = res.err

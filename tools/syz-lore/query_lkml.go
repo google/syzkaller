@@ -122,7 +122,7 @@ func processArchives(paths, emails, domains []string) []*lore.Thread {
 	var repoEmails []*lore.Email
 	var mu sync.Mutex
 	var skipped atomic.Int64
-	for i := 0; i < threads; i++ {
+	for range threads {
 		g.Go(func() error {
 			for rawMsg := range messages {
 				msg, err := rawMsg.Parse(emails, domains)

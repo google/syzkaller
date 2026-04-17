@@ -45,7 +45,7 @@ func TestBisectSliceFull(t *testing.T) {
 func TestBisectSliceWithFixed(t *testing.T) {
 	t.Parallel()
 	array := make([]int, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		array[i] = i
 	}
 	ret, err := SliceWithFixed(Config[int]{
@@ -73,7 +73,7 @@ func TestBisectSliceWithFixed(t *testing.T) {
 func TestBisectRandomSlice(t *testing.T) {
 	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
-	for i := 0; i < testutil.IterCount(); i++ {
+	for range testutil.IterCount() {
 		// Create an array of random size and set the elements that must remain to non-zero values.
 		size := r.Intn(50)
 		subset := r.Intn(size + 1)
@@ -114,7 +114,7 @@ func BenchmarkSplits(b *testing.B) {
 	for _, guilty := range []int{1, 2, 3, 4} {
 		b.Run(fmt.Sprintf("%d_guilty", guilty), func(b *testing.B) {
 			var sum int
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				sum += runMinimize(guilty)
 			}
 			b.ReportMetric(float64(sum)/float64(b.N), "remaining-elements")

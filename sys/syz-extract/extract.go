@@ -100,7 +100,7 @@ func main() {
 		jobC <- arch
 	}
 
-	for p := 0; p < runtime.GOMAXPROCS(0); p++ {
+	for range runtime.GOMAXPROCS(0) {
 		go worker(extractor, jobC)
 	}
 

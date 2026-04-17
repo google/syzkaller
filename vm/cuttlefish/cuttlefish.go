@@ -152,7 +152,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("unable to forward port on host: %w", err)
 	}
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		devicePort := vmimpl.RandomPort()
 		cmd := fmt.Sprintf("adb reverse tcp:%d tcp:%d", devicePort, port)
 		err = inst.runOnHost(10*time.Second, cmd)

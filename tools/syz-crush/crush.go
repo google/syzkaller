@@ -92,7 +92,7 @@ func main() {
 	runDone := make(chan *instance.RunResult)
 	var shutdown, stoppedWorkers uint32
 
-	for i := 0; i < vmPool.Count(); i++ {
+	for i := range vmPool.Count() {
 		go func(index int) {
 			for {
 				runDone <- runInstance(cfg, reporter, vmPool, index, *flagRestartTime, runType)

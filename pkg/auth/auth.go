@@ -75,7 +75,7 @@ type jwtClaims struct {
 func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 	var resp *http.Response
 	var err error
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		resp, err = http.PostForm(auth.url, url.Values{"id_token": {tokenValue}})
 		if err == nil {
 			break

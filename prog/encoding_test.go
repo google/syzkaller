@@ -28,7 +28,7 @@ func TestSerializeData(t *testing.T) {
 	t.Parallel()
 	r := rand.New(rand.NewSource(0))
 	for _, readable := range []bool{false, true} {
-		for i := 0; i < 1e3; i++ {
+		for range 1000 {
 			data := make([]byte, r.Intn(4))
 			for i := range data {
 				data[i] = byte(r.Intn(256))
@@ -118,7 +118,7 @@ func TestCallSet(t *testing.T) {
 func TestCallSetRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		const ncalls = 10
 		p := target.Generate(rs, ncalls, ct)
 		calls0 := make(map[string]struct{})
@@ -432,7 +432,7 @@ func TestDeserializeDataMmapProg(t *testing.T) {
 func TestSerializeDeserializeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
-		for i := 0; i < iters; i++ {
+		for range iters {
 			p0 := target.Generate(rs, 10, ct)
 			if p0.countArgs() > maxArgCutoff {
 				continue

@@ -75,7 +75,7 @@ func (ci *CallInfo) clone() *CallInfo {
 
 func EmptyProgInfo(calls int) *ProgInfo {
 	info := &ProgInfo{}
-	for i := 0; i < calls; i++ {
+	for range calls {
 		info.Calls = append(info.Calls, &CallInfo{
 			// Store some unsuccessful errno in the case we won't get any result.
 			// It also won't have CallExecuted flag, but it's handy to make it

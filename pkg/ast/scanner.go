@@ -329,7 +329,7 @@ func (s *scanner) tryConsume(str string) bool {
 	if !bytes.HasPrefix(s.data[s.off:], []byte(str)) {
 		return false
 	}
-	for i := 0; i < len(str); i++ {
+	for range len(str) {
 		s.next()
 	}
 	return true
@@ -351,7 +351,7 @@ func (s *scanner) pos() Pos {
 }
 
 func IsValidStringLit(lit string) int {
-	for i := 0; i < len(lit); i++ {
+	for i := range len(lit) {
 		if lit[i] < 0x20 || lit[i] >= 0x80 {
 			return i
 		}

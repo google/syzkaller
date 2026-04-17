@@ -19,8 +19,8 @@ func MakeCoincidenceMatrix() *CoincidenceMatrix {
 }
 
 func (cm *CoincidenceMatrix) Record(items ...*subsystem.Subsystem) {
-	for i := 0; i < len(items); i++ {
-		for j := 0; j < len(items); j++ {
+	for i := range len(items) {
+		for j := range len(items) {
 			cm.inc(items[i], items[j])
 		}
 	}

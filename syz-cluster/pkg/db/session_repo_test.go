@@ -62,7 +62,7 @@ func TestQueryWaitingSessions(t *testing.T) {
 		return time.Date(2009, time.January, 1, 1, i, 0, 0, time.UTC)
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		session := &Session{
 			SeriesID:  series.ID,
 			CreatedAt: nthTime(i),
@@ -72,7 +72,7 @@ func TestQueryWaitingSessions(t *testing.T) {
 	}
 
 	var next *NextSession
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		var list []*Session
 		list, next, err = sessionRepo.ListWaiting(ctx, next, 1)
 		assert.NoError(t, err)

@@ -56,7 +56,7 @@ func TestDropDuplicateSubsystems(t *testing.T) {
 
 	// Overlap, and the smaller one takes a big part.
 	toDrop, stays := &subsystem.Subsystem{Name: "to-drop"}, &subsystem.Subsystem{Name: "stays"}
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		matrix.Record(kernel, toDrop, stays)
 	}
 	matrix.Record(kernel, stays)

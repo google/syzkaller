@@ -35,7 +35,7 @@ func TestSessionTestRepository(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add several tests.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		test := &SessionTest{
 			SessionID:      session.ID,
 			TestName:       fmt.Sprintf("test %d", i),

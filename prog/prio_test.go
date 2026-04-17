@@ -36,7 +36,7 @@ func TestStaticPriorities(t *testing.T) {
 	rs := rand.NewSource(0)
 	// The test is probabilistic and needs some sensible number of iterations to succeed.
 	// If it fails try to increase the number a bit.
-	const iters = 2e5
+	const iters = 200000
 	// The first call is the one that creates a resource and the rest are calls that can use that resource.
 	tests := [][]string{
 		{"open", "read", "write", "mmap"},
@@ -50,7 +50,7 @@ func TestStaticPriorities(t *testing.T) {
 		referenceCall := syscalls[0]
 		for _, call := range syscalls {
 			count := 0
-			for it := 0; it < iters; it++ {
+			for range iters {
 				chosenCall := target.Syscalls[ct.choose(r, target.SyscallMap[call].ID)].Name
 				if call == referenceCall {
 					counter[chosenCall]++
@@ -77,7 +77,7 @@ func TestPrioDeterminism(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		corpus = append(corpus, target.Generate(rs, 10, ct))
 	}
 	ct0 := target.BuildChoiceTable(corpus, nil)
@@ -85,7 +85,7 @@ func TestPrioDeterminism(t *testing.T) {
 	if !reflect.DeepEqual(ct0.runs, ct1.runs) {
 		t.Fatal("non-deterministic ChoiceTable")
 	}
-	for i := 0; i < iters; i++ {
+	for i := range iters {
 		seed := rs.Int63()
 		call0 := ct0.choose(rand.New(rand.NewSource(seed)), -1)
 		call1 := ct1.choose(rand.New(rand.NewSource(seed)), -1)
@@ -98,7 +98,7 @@ func TestPrioDeterminism(t *testing.T) {
 func BenchmarkBuildChoiceTable(b *testing.B) {
 	target, cleanup := initBench(b)
 	defer cleanup()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		target.BuildChoiceTable(nil, nil)
 	}
 }

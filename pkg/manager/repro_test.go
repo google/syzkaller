@@ -89,7 +89,7 @@ func TestReproOrder(t *testing.T) {
 	defer cancel()
 	go obj.Loop(ctx)
 
-	for i := 0; i < len(crashes)*2; i++ {
+	for i := range len(crashes) * 2 {
 		called := <-mock.run
 		assert.Equal(t, crashes[i%len(crashes)], called.crash)
 		called.ret <- &ReproResult{}
@@ -190,7 +190,7 @@ type runCallback struct {
 
 // Wait until the number of reserved VMs goes to 0.
 func (m *reproMgrMock) onVMShutdown(t *testing.T, reproLoop *ReproLoop) {
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if m.reserved.Load() == 0 {
 			assert.True(t, reproLoop.CanReproMore())
 			assert.True(t, reproLoop.Empty())

@@ -15,7 +15,7 @@ func NewSemaphore(count int) *Semaphore {
 	s := &Semaphore{
 		ch: make(chan struct{}, count),
 	}
-	for i := 0; i < count; i++ {
+	for range count {
 		s.Signal()
 	}
 	return s

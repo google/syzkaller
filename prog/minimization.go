@@ -83,7 +83,7 @@ func Minimize(p0 *Prog, callIndex0 int, mode MinimizeMode, pred0 func(*Prog, int
 		p0 = resetCallProps(p0, callIndex0, pred)
 
 		// Try to minimize individual calls.
-		for i := 0; i < len(p0.Calls); i++ {
+		for i := range len(p0.Calls) {
 			if p0.Calls[i].Meta.Attrs.NoMinimize {
 				continue
 			}

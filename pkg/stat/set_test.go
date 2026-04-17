@@ -160,7 +160,7 @@ func TestSetHistoryDistribution(t *testing.T) {
 		var history [3][]float64
 		for p, percent := range []int{10, 50, 90} {
 			history[p] = make([]float64, set.historyPos)
-			for i := 0; i < set.historyPos; i++ {
+			for i := range set.historyPos {
 				hist := set.graphs["v0"].lines["v0"].hist[i]
 				if hist != nil {
 					history[p][i] = hist.Quantile(float64(percent) / 100)
@@ -188,11 +188,11 @@ func TestSetStress(t *testing.T) {
 			}
 		}()
 	}
-	for p := 0; p < 2; p++ {
+	for range 2 {
 		for _, opt := range []any{Link(""), NoGraph, Rate{}, Distribution{}} {
 			go func() {
 				v := set.New(fmt.Sprintf("v%v", seq.Add(1)), "desc", opt)
-				for p1 := 0; p1 < 2; p1++ {
+				for range 2 {
 					start(func() { v.Val() })
 					start(func() { v.Add(rand.Intn(10000)) })
 				}
@@ -202,7 +202,7 @@ func TestSetStress(t *testing.T) {
 			var vv atomic.Uint64
 			v := set.New(fmt.Sprintf("v%v", seq.Add(1)), "desc",
 				func() int { return int(vv.Load()) })
-			for p1 := 0; p1 < 2; p1++ {
+			for range 2 {
 				start(func() { v.Val() })
 				start(func() { vv.Store(uint64(rand.Intn(10000))) })
 			}

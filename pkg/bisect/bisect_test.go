@@ -61,7 +61,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
 		env.config == "baseline-skip" {
 		var ret []instance.EnvTestResult
-		for i := 0; i < numVMs; i++ {
+		for range numVMs {
 			ret = append(ret, instance.EnvTestResult{
 				Error: &instance.TestError{
 					Boot:  true,
@@ -73,7 +73,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 	}
 	if commit >= env.test.infraErrStart && commit <= env.test.infraErrEnd {
 		var ret []instance.EnvTestResult
-		for i := 0; i < numVMs; i++ {
+		for i := range numVMs {
 			var err error
 			// More than 50% failures.
 			if i*2 <= numVMs {
@@ -129,7 +129,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collect
 			},
 		}
 	} else if env.test.injectLostConnection {
-		for i := 0; i < numVMs/3; i++ {
+		for i := range numVMs / 3 {
 			ret[i] = instance.EnvTestResult{
 				Error: &instance.CrashError{
 					Report: &report.Report{
@@ -162,7 +162,7 @@ func createTestRepo(t *testing.T) string {
 		t.Skip("bisection is unsupported by git (probably too old version)")
 	}
 	for rv := 4; rv < 10; rv++ {
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			if rv == 7 && i == 0 {
 				// Create a slightly special commit graph here (for #1527):
 				// Commit 650 is part of 700 release, but it does not have
@@ -775,7 +775,7 @@ func checkTest(t *testing.T, test BisectionTest) {
 
 func crashErrors(crashing, nonCrashing int, title string, typ crash.Type) []instance.EnvTestResult {
 	var ret []instance.EnvTestResult
-	for i := 0; i < crashing; i++ {
+	for range crashing {
 		ret = append(ret, instance.EnvTestResult{
 			Error: &instance.CrashError{
 				Report: &report.Report{
@@ -785,7 +785,7 @@ func crashErrors(crashing, nonCrashing int, title string, typ crash.Type) []inst
 			},
 		})
 	}
-	for i := 0; i < nonCrashing; i++ {
+	for range nonCrashing {
 		ret = append(ret, instance.EnvTestResult{})
 	}
 	return ret

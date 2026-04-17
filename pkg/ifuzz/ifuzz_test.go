@@ -25,8 +25,8 @@ func TestMode(t *testing.T) {
 func testMode(t *testing.T, arch string) {
 	all := make(map[iset.Insn]bool)
 	for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
-		for priv := 0; priv < 2; priv++ {
-			for exec := 0; exec < 2; exec++ {
+		for priv := range 2 {
+			for exec := range 2 {
 				insns := allInsns(arch, mode, priv != 0, exec != 0)
 				t.Logf("mode=%v priv=%v exec=%v: %v instructions", mode, priv, exec, len(insns))
 				for _, insn := range insns {
@@ -54,7 +54,7 @@ func testDecode(t *testing.T, arch string) {
 	}
 	r := rand.New(testutil.RandSource(t))
 
-	for repeat := 0; repeat < 10; repeat++ {
+	for range 10 {
 		for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
 			cfg := &iset.Config{
 				Mode: mode,

@@ -1092,7 +1092,7 @@ func pickReleaseTags(all []string) []string {
 	if len(subReleases) > 5 {
 		ret = append(ret, subReleases[len(subReleases)/2])
 	}
-	for i := 0; i < len(releases); i++ {
+	for i := range len(releases) {
 		// Gradually increase step.
 		step := 1
 		if i >= 3 {

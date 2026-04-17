@@ -33,7 +33,7 @@ const (
 
 func Generate(cfg *Config, r *rand.Rand) []byte {
 	var text []byte
-	for i := 0; i < cfg.Len; i++ {
+	for range cfg.Len {
 		insn := randInsn(cfg, r)
 		text = append(text, insn.Encode(cfg, r)...)
 	}

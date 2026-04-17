@@ -356,7 +356,7 @@ func (job *triageJob) minimize(call int, info *triageCall) (*prog.Prog, int) {
 			return false
 		}
 		var mergedSignal signal.Signal
-		for i := 0; i < minimizeAttempts; i++ {
+		for range minimizeAttempts {
 			result := job.execute(&queue.Request{
 				Prog:            p1,
 				ExecOpts:        setFlags(flatrpc.ExecFlagCollectSignal),
@@ -450,7 +450,7 @@ func (job *smashJob) run(fuzzer *Fuzzer) {
 
 	const iters = 25
 	rnd := fuzzer.rand()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := job.p.Clone()
 		p.Mutate(rnd, prog.RecommendedCalls,
 			fuzzer.ChoiceTable(),
@@ -535,7 +535,7 @@ func (job *hintsJob) run(fuzzer *Fuzzer) {
 	job.info.Logf("\n%s", p.Serialize())
 
 	var comps prog.CompMap
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		result := fuzzer.execute(job.exec, &queue.Request{
 			Prog:     p,
 			ExecOpts: setFlags(flatrpc.ExecFlagCollectComps),

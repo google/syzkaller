@@ -20,7 +20,7 @@ const maxArgCutoff = 10000
 func TestGeneration(t *testing.T) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		target.Generate(rs, 20, ct)
 	}
 }
@@ -64,7 +64,7 @@ func TestDefaultCallArgs(t *testing.T) {
 func testSerialize(t *testing.T, verbose bool) {
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < iters; i++ {
+	for range iters {
 		p := target.Generate(rs, 10, ct)
 		var data []byte
 		mode := NonStrict
@@ -110,7 +110,7 @@ func TestVmaType(t *testing.T) {
 	meta := target.SyscallMap["test$vma0"]
 	r := newRand(target, rs)
 	pageSize := target.PageSize
-	for i := 0; i < iters; i++ {
+	for range iters {
 		s := newState(target, ct, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
@@ -264,9 +264,9 @@ func TestSpecialStructs(t *testing.T) {
 					t.Fatal("can't find struct description")
 				}
 				g := &Gen{newRand(target, rs), newState(target, ct, nil)}
-				for i := 0; i < iters/len(target.SpecialTypes); i++ {
+				for range iters / len(target.SpecialTypes) {
 					var arg Arg
-					for i := 0; i < 2; i++ {
+					for range 2 {
 						arg, _ = gen(g, typ, DirInOut, arg)
 						if arg.Dir() != DirInOut {
 							t.Fatalf("got wrong arg dir %v", arg.Dir())
@@ -489,7 +489,7 @@ fallback$0()
 func TestSanitizeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
 		ct := target.DefaultChoiceTable()
-		for i := 0; i < iters; i++ {
+		for range iters {
 			p := target.Generate(rs, 10, ct)
 			s0 := string(p.Serialize())
 			p.sanitizeFix()
@@ -509,7 +509,7 @@ func TestPtrRecursion(t *testing.T) {
 	}
 	enabled := map[*Syscall]bool{call: true}
 	ct := target.BuildChoiceTable(nil, enabled)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		target.Generate(rs, 1, ct)
 	}
 }

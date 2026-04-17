@@ -27,7 +27,7 @@ func TestChooseProgram(t *testing.T) {
 	)
 
 	priorities := make(map[*prog.Prog]int64)
-	for i := 0; i < sizeCorpus; i++ {
+	for i := range sizeCorpus {
 		sizeSig := i + 1
 		if sizeSig%250 == 0 {
 			sizeSig = 0
@@ -37,7 +37,7 @@ func TestChooseProgram(t *testing.T) {
 		priorities[inp.Prog] = int64(len(inp.Signal))
 	}
 	counters := make(map[*prog.Prog]int)
-	for it := 0; it < maxIters; it++ {
+	for range maxIters {
 		counters[corpus.chooseProgram(r)]++
 	}
 	for p, prio := range priorities {
@@ -80,7 +80,7 @@ func TestFocusAreas(t *testing.T) {
 
 	fillGroup := func(from, to, count int) map[*prog.Prog]bool {
 		ret := map[*prog.Prog]bool{}
-		for i := 0; i < count; i++ {
+		for i := range count {
 			a := from + i%(to-from+1)
 			b := a + i%(to-a+1)
 			inp := generateRangedInput(target, rs, a, b)
@@ -98,7 +98,7 @@ func TestFocusAreas(t *testing.T) {
 	different := map[*prog.Prog]bool{}
 	firstCount, secondCount, thirdCount := 0, 0, 0
 	const TOTAL = 10000
-	for i := 0; i < TOTAL; i++ {
+	for range TOTAL {
 		p := corpus.ChooseProgram(rnd)
 		different[p] = true
 

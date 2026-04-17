@@ -286,7 +286,7 @@ func TestReportingQuota(t *testing.T) {
 	c.client.UploadBuild(build)
 
 	const numReports = 5
-	for i := 0; i < numReports; i++ {
+	for i := range numReports {
 		c.client.ReportCrash(testCrash(build, i))
 	}
 
@@ -487,7 +487,7 @@ func TestReportingDupCycle(t *testing.T) {
 
 	const N = 4
 	reps := make([]*dashapi.BugReport, N)
-	for i := 0; i < N; i++ {
+	for i := range N {
 		t.Logf("*************** %v ***************", i)
 		c.client.ReportCrash(testCrash(build, i))
 		reps[i] = c.globalClient.pollBug()

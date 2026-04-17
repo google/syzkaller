@@ -101,7 +101,7 @@ func runTest(ctx context.Context, client *api.Client, tracer debugtracer.DebugTr
 	}
 
 	var rep *report.Report
-	for i := 0; i < retryCount; i++ {
+	for i := range retryCount {
 		tracer.Logf("starting attempt #%d", i)
 		var err error
 		rep, err = instance.RunSmokeTest(cfg)

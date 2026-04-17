@@ -141,7 +141,7 @@ func TestParseLLMError(t *testing.T) {
 
 func TestParseLLMErrorBackoff(t *testing.T) {
 	err0 := genai.APIError{Code: http.StatusServiceUnavailable}
-	for try := 0; try < maxLLMRetryIters; try++ {
+	for try := range maxLLMRetryIters {
 		wantDelay := min(maxLLMBackoff, time.Duration(try+1)*time.Second)
 		err := parseLLMError(nil, err0, "model", try)
 		require.Equal(t, err, &retryError{wantDelay, err0})

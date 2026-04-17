@@ -523,7 +523,7 @@ func (t *FlagsType) calcUselessHints() []uint64 {
 	// Combinations of up to 3 flag values + 0.
 	res := []uint64{0}
 	vals := t.Vals
-	for i0 := 0; i0 < len(vals); i0++ {
+	for i0 := range len(vals) {
 		v0 := vals[i0]
 		res = append(res, v0)
 		if len(vals) <= 10 {

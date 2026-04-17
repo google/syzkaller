@@ -58,10 +58,10 @@ func TestGenericHeatmap(t *testing.T) {
 		if err != nil {
 			t.Fatalf("bad decode: %v", err)
 		}
-		for i := 0; i < iters; i++ {
+		for range iters {
 			hm := MakeGenericHeatmap(data, r).(*GenericHeatmap)
 
-			for j := 0; j < tries; j++ {
+			for range tries {
 				index := hm.ChooseLocation()
 				if !checkIndex(index, len(data), test.regions) {
 					hm.debugPrint(t, data, test.regions)

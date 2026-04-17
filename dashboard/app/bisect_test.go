@@ -313,7 +313,7 @@ If you want to undo deduplication, reply with:
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 		subjects := []string{"title3", "title1", "title5", "title3", "title5", "title1"}
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			msg := c.pollEmailBug()
 			if i < 3 {
 				c.expectEQ(msg.Subject, subjects[i])
@@ -636,7 +636,7 @@ func TestBisectWrong(t *testing.T) {
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		var flags dashapi.JobDoneFlags
 		switch i {
 		case 0:

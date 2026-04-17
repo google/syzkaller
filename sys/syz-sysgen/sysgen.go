@@ -175,7 +175,7 @@ func main() {
 	}
 
 	attrs := reflect.TypeOf(prog.SyscallAttrs{})
-	for i := 0; i < attrs.NumField(); i++ {
+	for i := range attrs.NumField() {
 		data.CallAttrs = append(data.CallAttrs, prog.CppName(attrs.Field(i).Name))
 	}
 
@@ -282,7 +282,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 		var attrVals []uint64
 		attrs := reflect.ValueOf(c.Attrs)
 		last := -1
-		for i := 0; i < attrs.NumField(); i++ {
+		for i := range attrs.NumField() {
 			attr := attrs.Field(i)
 			val := uint64(0)
 			switch attr.Type().Kind() {

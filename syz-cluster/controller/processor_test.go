@@ -34,7 +34,7 @@ func TestProcessor(t *testing.T) {
 
 	// Add some series.
 	var allSeries []*api.Series
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		id := fmt.Sprintf("series-%d", i)
 		allSeries = append(allSeries, &api.Series{
 			ExtID: id,
@@ -46,7 +46,7 @@ func TestProcessor(t *testing.T) {
 	}
 
 	// Let some workflows finish.
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		workflows.finish <- struct{}{}
 	}
 
@@ -72,7 +72,7 @@ func TestProcessor(t *testing.T) {
 	}
 
 	// Finish all of them.
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		workflows.finish <- struct{}{}
 	}
 
@@ -128,7 +128,7 @@ func awaitFinishedSessions(t *testing.T, seriesRepo *db.SeriesRepository, wantFi
 	t.Logf("awaiting %d finished sessions", wantFinished)
 	deadline := time.Second * 2
 	interval := time.Second / 10
-	for i := 0; i < int(deadline/interval); i++ {
+	for range int(deadline / interval) {
 		time.Sleep(interval)
 
 		list, err := seriesRepo.ListLatest(context.Background(), db.SeriesFilter{}, time.Time{})

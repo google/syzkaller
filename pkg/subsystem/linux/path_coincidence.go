@@ -68,7 +68,7 @@ func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan ex
 	procs := runtime.NumCPU()
 	paths, output := make(chan string, procs), make(chan extracted, procs)
 	var wg sync.WaitGroup
-	for i := 0; i < procs; i++ {
+	for range procs {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

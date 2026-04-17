@@ -86,7 +86,7 @@ func DummyBuild() *api.Build {
 
 func DummyFindings() []*api.RawFinding {
 	var findings []*api.RawFinding
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		findings = append(findings, &api.RawFinding{
 			Title:    fmt.Sprintf("finding %d", i),
 			TestName: "test",

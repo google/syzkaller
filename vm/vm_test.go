@@ -268,7 +268,7 @@ var tests = []*Test{
 	{
 		Name: "no-output-2",
 		Body: func(outc chan vmimpl.Chunk, errc chan error) {
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				time.Sleep(time.Second)
 				outc <- vmimpl.Chunk{Data: []byte("something\n")}
 			}
@@ -281,7 +281,7 @@ var tests = []*Test{
 		Name: "no-no-output",
 		Exit: ExitNormal,
 		Body: func(outc chan vmimpl.Chunk, errc chan error) {
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				time.Sleep(time.Second)
 				outc <- vmimpl.Chunk{Data: []byte(executedProgramsStart + "\n")}
 			}
@@ -301,7 +301,7 @@ var tests = []*Test{
 		Name: "lots-of-output",
 		Exit: ExitTimeout,
 		Body: func(outc chan vmimpl.Chunk, errc chan error) {
-			for i := 0; i < 100; i++ {
+			for range 100 {
 				outc <- vmimpl.Chunk{Data: []byte("something\n")}
 			}
 			time.Sleep(time.Second)
@@ -316,7 +316,7 @@ var tests = []*Test{
 			// used to trim the lines so that we could see just "BUG:" later
 			// and detect it as crash.
 			buf := new(bytes.Buffer)
-			for i := 0; i < 50; i++ {
+			for i := range 50 {
 				buf.WriteString("[ 2886.597572] ODEBUG: Out of memory. ODEBUG disabled\n")
 				buf.Write(bytes.Repeat([]byte{'-'}, i))
 				buf.WriteByte('\n')
@@ -332,7 +332,7 @@ var tests = []*Test{
 		Name: "inject-executing",
 		Exit: ExitNormal,
 		BodyExecuting: func(outc chan vmimpl.Chunk, errc chan error, inject chan<- bool) {
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				time.Sleep(time.Second)
 				inject <- true
 			}

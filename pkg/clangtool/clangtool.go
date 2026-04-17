@@ -60,7 +60,7 @@ func Run[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config) (OutputPtr, e
 	}
 	results := make(chan *result, 10)
 	files := make(chan string, len(cmds))
-	for w := 0; w < runtime.NumCPU(); w++ {
+	for range runtime.NumCPU() {
 		go func() {
 			for file := range files {
 				out, err := runTool[Output, OutputPtr](cfg, dbFile, file)

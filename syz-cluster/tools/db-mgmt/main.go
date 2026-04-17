@@ -35,7 +35,7 @@ func runSQL(ctx context.Context, uri db.ParsedURI, command string) error {
 		}
 		cols := row.ColumnNames()
 		fmt.Println(cols)
-		for i := 0; i < len(cols); i++ {
+		for i := range len(cols) {
 			fmt.Printf("\t%s", row.ColumnValue(i))
 		}
 		fmt.Printf("\n")

@@ -1232,7 +1232,7 @@ func (p *parser) HasNext(str string) bool {
 	if len(p.s) < p.i+len(str) {
 		return false
 	}
-	for i := 0; i < len(str); i++ {
+	for i := range len(str) {
 		if p.s[p.i+i] != str[i] {
 			return false
 		}

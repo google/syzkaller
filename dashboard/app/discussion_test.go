@@ -362,7 +362,7 @@ func TestMessageOverflow(t *testing.T) {
 	const blockSize = 100
 	for i := 0; i < 2*maxMessagesInDiscussion; i += blockSize {
 		block := []dashapi.DiscussionMessage{}
-		for j := 0; j < blockSize; j++ {
+		for range blockSize {
 			date = date.Add(time.Minute)
 			last = dashapi.DiscussionMessage{
 				ID:   date.String(),

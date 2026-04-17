@@ -65,14 +65,14 @@ func randValue(t *testing.T, rnd *rand.Rand, typ reflect.Type) reflect.Value {
 		v.Set(reflect.MakeSlice(typ, size, size))
 		fallthrough
 	case reflect.Array:
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			v.Index(i).Set(randValue(t, rnd, typ.Elem()))
 		}
 	case reflect.Struct:
 		if typ.String() == "time.Time" {
 			v = reflect.ValueOf(time.UnixMilli(rnd.Int63()))
 		} else {
-			for i := 0; i < v.NumField(); i++ {
+			for i := range v.NumField() {
 				v.Field(i).Set(randValue(t, rnd, typ.Field(i).Type))
 			}
 		}
