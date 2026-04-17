@@ -82,6 +82,9 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkAssignStmt(n)
 			case *ast.InterfaceType:
 				pass.checkInterfaceType(n)
+
+			case *ast.ForStmt:
+				pass.checkRangeOverIntegers(n)
 			}
 			return true
 		})
@@ -513,4 +516,46 @@ func (pass *Pass) checkSortUsage(n *ast.CallExpr) {
 		// Suggest alternatives for any simple one-line predicate using '<'.
 		pass.report(n, "Use slices.Sort or slices.SortFunc instead of sort.Slice with a simple predicate")
 	}
+}
+
+// checkRangeOverIntegers warns about traditional for loops that can be replaced with range over integers.
+func (pass *Pass) checkRangeOverIntegers(n *ast.ForStmt) {
+	if n.Init == nil || n.Cond == nil || n.Post == nil {
+		return
+	}
+
+	// Check Init: i := 0 or i = 0
+	assign, ok := n.Init.(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return
+	}
+	ident, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return
+	}
+	if !pass.isIntZeroLiteral(assign.Rhs[0]) {
+		return
+	}
+
+	// Check Cond: i < N
+	bin, ok := n.Cond.(*ast.BinaryExpr)
+	if !ok || bin.Op != token.LSS {
+		return
+	}
+	condIdent, ok := bin.X.(*ast.Ident)
+	if !ok || condIdent.Name != ident.Name {
+		return
+	}
+
+	// Check Post: i++
+	inc, ok := n.Post.(*ast.IncDecStmt)
+	if !ok || inc.Tok != token.INC {
+		return
+	}
+	postIdent, ok := inc.X.(*ast.Ident)
+	if !ok || postIdent.Name != ident.Name {
+		return
+	}
+
+	pass.report(n, "Use range over integer instead of traditional for loop")
 }

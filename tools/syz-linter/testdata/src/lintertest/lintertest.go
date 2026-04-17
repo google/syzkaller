@@ -208,3 +208,22 @@ func sortUsage() {
 		return ints[i] > ints[j]
 	})
 }
+
+func rangeOverIntegers() {
+	for i := 0; i < 10; i++ { // want "Use range over integer instead of traditional for loop"
+	}
+
+	count := 10
+	for i := 0; i < count; i++ { // want "Use range over integer instead of traditional for loop"
+	}
+
+	// Negative cases.
+	for i := 1; i < 10; i++ {
+	}
+	for i := 0; i <= 10; i++ {
+	}
+	for i := 0; i < 10; i += 2 {
+	}
+	for i := 10; i > 0; i-- {
+	}
+}
