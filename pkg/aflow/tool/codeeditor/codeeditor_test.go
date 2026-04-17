@@ -237,6 +237,173 @@ line4
 	}
 }
 
+// nolint:dupl // These test cases have similar structure but different data.
+func TestReplace(t *testing.T) {
+	tests := []struct {
+		name      string
+		lines     [][]byte
+		src       [][]byte
+		dst       [][]byte
+		fuzzy     bool
+		wantLines [][]byte
+		wantMatch int
+	}{
+		{
+			name: "exact_match_single",
+			lines: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+				[]byte("line2"),
+			},
+			src: [][]byte{
+				[]byte("line1"),
+			},
+			dst: [][]byte{
+				[]byte("replaced"),
+			},
+			fuzzy: false,
+			wantLines: [][]byte{
+				[]byte("line0"),
+				[]byte("replaced"),
+				[]byte("line2"),
+			},
+			wantMatch: 1,
+		},
+		{
+			name: "exact_match_multi",
+			lines: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+				[]byte("line2"),
+				[]byte("line3"),
+			},
+			src: [][]byte{
+				[]byte("line1"),
+				[]byte("line2"),
+			},
+			dst: [][]byte{
+				[]byte("replaced1"),
+				[]byte("replaced2"),
+			},
+			fuzzy: false,
+			wantLines: [][]byte{
+				[]byte("line0"),
+				[]byte("replaced1"),
+				[]byte("replaced2"),
+				[]byte("line3"),
+			},
+			wantMatch: 1,
+		},
+		{
+			name: "no_match",
+			lines: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+			},
+			src: [][]byte{
+				[]byte("nomatch"),
+			},
+			dst: [][]byte{
+				[]byte("replaced"),
+			},
+			fuzzy: false,
+			wantLines: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+			},
+			wantMatch: 0,
+		},
+		{
+			name: "multiple_matches",
+			lines: [][]byte{
+				[]byte("foo"),
+				[]byte("bar"),
+				[]byte("foo"),
+			},
+			src: [][]byte{
+				[]byte("foo"),
+			},
+			dst: [][]byte{
+				[]byte("baz"),
+			},
+			fuzzy: false,
+			wantLines: [][]byte{
+				[]byte("baz"),
+				[]byte("bar"),
+				[]byte("baz"),
+			},
+			wantMatch: 2,
+		},
+		{
+			name: "fuzzy_match_whitespace",
+			lines: [][]byte{
+				[]byte("  line0  "),
+				[]byte("line1"),
+			},
+			src: [][]byte{
+				[]byte("line0"),
+			},
+			dst: [][]byte{
+				[]byte("replaced"),
+			},
+			fuzzy: true,
+			wantLines: [][]byte{
+				[]byte("replaced"),
+				[]byte("line1"),
+			},
+			wantMatch: 1,
+		},
+		{
+			name: "fuzzy_match_empty_src_line",
+			lines: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+			},
+			src: [][]byte{
+				[]byte("line0"),
+				[]byte(""),
+				[]byte("line1"),
+			},
+			dst: [][]byte{
+				[]byte("replaced"),
+			},
+			fuzzy: true,
+			wantLines: [][]byte{
+				[]byte("replaced"),
+			},
+			wantMatch: 1,
+		},
+		{
+			name: "fuzzy_match_empty_file_line",
+			lines: [][]byte{
+				[]byte("line0"),
+				[]byte(""),
+				[]byte("line1"),
+			},
+			src: [][]byte{
+				[]byte("line0"),
+				[]byte("line1"),
+			},
+			dst: [][]byte{
+				[]byte("replaced"),
+			},
+			fuzzy: true,
+			wantLines: [][]byte{
+				[]byte("replaced"),
+			},
+			wantMatch: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotLines, gotMatch := replace(tt.lines, tt.src, tt.dst, tt.fuzzy)
+			require.Equal(t, tt.wantMatch, gotMatch)
+			require.Equal(t, tt.wantLines, gotLines)
+		})
+	}
+}
+
 func writeTestFile(t *testing.T, filename, data string) string {
 	dir := t.TempDir()
 	require.NoError(t, osutil.WriteFile(filepath.Join(dir, filename), []byte(data)))
