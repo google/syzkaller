@@ -132,7 +132,7 @@ func SCP(hostSrc, vmDst string, opts SCPOptions) error {
 	if err != nil {
 		var verr *osutil.VerboseError
 		if errors.As(err, &verr) {
-			return fmt.Errorf("scp failed: %w\n%s", err, string(verr.Output))
+			log.Logf(0, "scp failed: %v\n%s", err, string(verr.Output))
 		}
 		return fmt.Errorf("scp failed: %w", err)
 	}
