@@ -144,6 +144,7 @@ func (ctx *fuchsia) symbolize(output []byte) ([]byte, map[int]int) {
 	out := new(bytes.Buffer)
 
 	lines := lines(output)
+	//nolint:syz-linter // i is modified inside the loop
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		l2l[out.Len()] = inPos
