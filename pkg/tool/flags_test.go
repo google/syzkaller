@@ -119,3 +119,71 @@ func TestParseArchList(t *testing.T) {
 		})
 	}
 }
+
+func TestFlagEscapeUnescape(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      string
+		escaped string
+		err     bool
+	}{
+		{
+			name:    "no_escape",
+			in:      "abcdefg12345",
+			escaped: "abcdefg12345",
+			err:     false,
+		},
+		{
+			name:    "escape_space",
+			in:      "abc def",
+			escaped: "abc\\x20def",
+			err:     false,
+		},
+		{
+			name:    "escape_special",
+			in:      "a:b=c\\d",
+			escaped: "a\\x3ab\\x3dc\\x5cd",
+			err:     false,
+		},
+		{
+			name:    "escape_control",
+			in:      "abc\ndef",
+			escaped: "abc\\x0adef",
+			err:     false,
+		},
+		{
+			name:    "empty",
+			in:      "",
+			escaped: "",
+			err:     false,
+		},
+		{
+			name:    "truncated_escape",
+			in:      "abc\\x",
+			escaped: "",
+			err:     true,
+		},
+		{
+			name:    "invalid_hex",
+			in:      "abc\\xGG",
+			escaped: "",
+			err:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !tt.err {
+				gotEscaped := flagEscape(tt.in)
+				require.Equal(t, tt.escaped, gotEscaped, "flagEscape failed")
+
+				gotUnescaped, err := flagUnescape(gotEscaped)
+				require.NoError(t, err, "flagUnescape failed")
+				require.Equal(t, tt.in, gotUnescaped, "roundtrip failed")
+			} else {
+				_, err := flagUnescape(tt.in)
+				require.Error(t, err, "expected flagUnescape to fail on %q", tt.in)
+			}
+		})
+	}
+}
