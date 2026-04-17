@@ -29,15 +29,16 @@ func ProcessTempDir(where string) (string, error) {
 	}
 	defer syscall.Flock(lkf, syscall.LOCK_UN)
 
-	for i := 0; i < 1e3; i++ {
+	for i := 0; i < 1000; {
 		path := filepath.Join(where, fmt.Sprintf("instance-%v", i))
 		pidfile := filepath.Join(path, ".pid")
 		err := os.Mkdir(path, DefaultDirPerm)
 		if os.IsExist(err) {
 			// Try to clean up.
 			if cleanupTempDir(path, pidfile) {
-				i--
+				continue // retry the same dir
 			}
+			i++
 			continue
 		}
 		if err != nil {
