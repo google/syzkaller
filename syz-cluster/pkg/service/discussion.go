@@ -60,17 +60,6 @@ func (d *DiscussionService) RecordReply(ctx context.Context, req *api.RecordRepl
 	}, nil
 }
 
-func (d *DiscussionService) LastReply(ctx context.Context, reporter string) (*api.LastReplyResp, error) {
-	reply, err := d.reportReplyRepo.LastForReporter(ctx, reporter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query the last report: %w", err)
-	}
-	if reply != nil {
-		return &api.LastReplyResp{Time: reply.Time}, nil
-	}
-	return &api.LastReplyResp{}, nil
-}
-
 func (d *DiscussionService) identifyReport(ctx context.Context, req *api.RecordReplyReq) (string, error) {
 	// If the report ID was passed explicitly, just verify it.
 	if req.ReportID != "" {

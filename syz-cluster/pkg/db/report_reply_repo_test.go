@@ -41,18 +41,6 @@ func TestReportReplyRepository(t *testing.T) {
 		assert.Error(t, ErrReportReplyExists, err)
 	})
 
-	t.Run("last-report", func(t *testing.T) {
-		reply, err := replyRepo.LastForReporter(ctx, dummyReporter)
-		assert.NoError(t, err)
-		assert.Equal(t, "message-id-1", reply.MessageID)
-	})
-
-	t.Run("last-report-unknown", func(t *testing.T) {
-		reply, err := replyRepo.LastForReporter(ctx, "unknown-reporter")
-		assert.NoError(t, err)
-		assert.Nil(t, reply)
-	})
-
 	t.Run("find-by-parent", func(t *testing.T) {
 		reportID, err := replyRepo.FindParentReportID(ctx, dummyReporter, "message-id-0")
 		assert.NoError(t, err)

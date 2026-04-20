@@ -68,15 +68,3 @@ func (repo *ReportReplyRepository) Insert(ctx context.Context, reply *ReportRepl
 		})
 	return err
 }
-
-func (repo *ReportReplyRepository) LastForReporter(ctx context.Context, reporter string) (*ReportReply, error) {
-	return readEntity[ReportReply](ctx, repo.client.Single(), spanner.Statement{
-		SQL: "SELECT `ReportReplies`.* FROM `ReportReplies` " +
-			"JOIN `SessionReports` ON `SessionReports`.ID=`ReportReplies`.ReportID " +
-			"WHERE `SessionReports`.Reporter=@reporter " +
-			"ORDER BY `Time` DESC LIMIT 1",
-		Params: map[string]any{
-			"reporter": reporter,
-		},
-	})
-}

@@ -67,14 +67,3 @@ type RecordReplyResp struct {
 func (client ReporterClient) RecordReply(ctx context.Context, req *RecordReplyReq) (*RecordReplyResp, error) {
 	return postJSON[RecordReplyReq, RecordReplyResp](ctx, client.baseURL+"/reports/record_reply", req)
 }
-
-type LastReplyResp struct {
-	Time time.Time `json:"time"`
-}
-
-// Returns nil if no reply has ever been recorded.
-func (client ReporterClient) LastReply(ctx context.Context, reporter string) (*LastReplyResp, error) {
-	v := url.Values{}
-	v.Add("reporter", reporter)
-	return postJSON[any, LastReplyResp](ctx, client.baseURL+"/reports/last_reply?"+v.Encode(), nil)
-}
