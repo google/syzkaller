@@ -121,6 +121,12 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// If the parsed date represents the same instant as the expected date,
+			// align the location to avoid failures due to environment-dependent
+			// location pointers in testify's Equal (e.g. time.Local vs fixed zone).
+			if test.res.Date.Equal(email.Date) {
+				email.Date = test.res.Date
+			}
 			assert.Equal(t, &test.res, email)
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
