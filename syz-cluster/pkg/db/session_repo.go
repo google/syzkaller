@@ -81,35 +81,17 @@ func (repo *SessionRepository) ListRunning(ctx context.Context) ([]*Session, err
 	})
 }
 
-type NextSession struct {
-	id        string
-	createdAt time.Time
-}
-
-func (repo *SessionRepository) ListWaiting(ctx context.Context, from *NextSession,
-	limit int) ([]*Session, *NextSession, error) {
+func (repo *SessionRepository) ListWaiting(ctx context.Context, limit int) ([]*Session, error) {
+	// We give priority to the job-related sessions to improve user experience.
+	// Otherwise, follow the FIFO order.
 	stmt := spanner.Statement{
-		SQL:    "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL",
+		SQL: "SELECT * FROM `Sessions` WHERE `StartedAt` IS NULL " +
+			"ORDER BY CASE WHEN `JobID` IS NOT NULL THEN 0 ELSE 1 END, `CreatedAt`",
+
 		Params: map[string]any{},
 	}
-	if from != nil {
-		stmt.SQL += " AND ((`CreatedAt` > @from) OR (`CreatedAt` = @from AND `ID` > @id))"
-		stmt.Params["from"] = from.createdAt
-		stmt.Params["id"] = from.id
-	}
-	stmt.SQL += " ORDER BY `CreatedAt`, `ID`"
 	addLimit(&stmt, limit)
-	list, err := repo.readEntities(ctx, stmt)
-
-	var next *NextSession
-	if err == nil && len(list) > 0 {
-		last := list[len(list)-1]
-		next = &NextSession{
-			id:        last.ID,
-			createdAt: last.CreatedAt,
-		}
-	}
-	return list, next, err
+	return repo.readEntities(ctx, stmt)
 }
 
 // golint sees too much similarity with SeriesRepository's ListPatches, but in reality there's not.

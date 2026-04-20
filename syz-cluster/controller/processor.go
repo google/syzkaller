@@ -79,7 +79,6 @@ func (sp *SeriesProcessor) Loop(ctx context.Context) error {
 }
 
 func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Session) {
-	var next *db.NextSession
 	for {
 		select {
 		case <-ctx.Done():
@@ -92,12 +91,18 @@ func (sp *SeriesProcessor) streamSeries(ctx context.Context, ch chan<- *db.Sessi
 		}
 		var err error
 		var list []*db.Session
-		list, next, err = sp.sessionRepo.ListWaiting(ctx, next, cap(ch))
+		list, err = sp.sessionRepo.ListWaiting(ctx, cap(ch))
 		if err != nil {
 			app.Errorf("failed to query series: %v", err)
 			continue
 		}
 		for _, session := range list {
+			// Mark as started in DB immediately to avoid re-querying it.
+			err := sp.sessionRepo.Start(ctx, session.ID)
+			if err != nil {
+				app.Errorf("failed to mark session started: %v", err)
+				continue
+			}
 			select {
 			case ch <- session:
 			case <-ctx.Done():

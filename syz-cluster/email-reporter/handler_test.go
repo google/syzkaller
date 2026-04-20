@@ -219,7 +219,7 @@ func TestSyzTestFlow(t *testing.T) {
 	assert.Nil(t, reply, "syz test should be silent on success")
 
 	repo := db.NewSessionRepository(env.Spanner)
-	list, _, err := repo.ListWaiting(context.Background(), nil, 2)
+	list, err := repo.ListWaiting(context.Background(), 2)
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 	controller.FakeJobSession(t, env, handler.apiClient, list[0].ID)
