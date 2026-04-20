@@ -62,8 +62,9 @@ type Config struct {
 	// Leave empty for non-OS Login GCP projects.
 	// Otherwise generate one and upload it:
 	// `gcloud compute os-login ssh-keys add --key-file some-key.pub`.
-	SerialPortKey string   `json:"serial_port_key"`
-	Tags          []string `json:"tags"` // GCE instance tags
+	SerialPortKey string            `json:"serial_port_key"`
+	Tags          []string          `json:"tags"`   // GCE instance tags
+	Labels        map[string]string `json:"labels"` // GCE instance labels
 }
 
 type Pool struct {
@@ -100,6 +101,9 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		Preemptible: true,
 		// Display device is not supported on other platforms.
 		DisplayDevice: env.Arch == targets.AMD64,
+		Labels: map[string]string{
+			"managed-by": "syzkaller",
+		},
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse gce vm config: %w", err)
@@ -139,7 +143,7 @@ func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %w", err)
 		}
-		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS); err != nil {
+		if err := GCE.CreateImage(cfg.GCEImage, gcsImage, env.OS, cfg.Labels); err != nil {
 			return nil, fmt.Errorf("failed to create GCE image: %w", err)
 		}
 	}
@@ -204,6 +208,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		Image:                pool.cfg.GCEImage,
 		SSHKey:               string(gceKeyPub),
 		Tags:                 pool.cfg.Tags,
+		Labels:               pool.cfg.Labels,
 		Preemptible:          pool.cfg.Preemptible,
 		DisplayDevice:        pool.cfg.DisplayDevice,
 		NestedVirtualization: pool.cfg.NestedVirtualization,

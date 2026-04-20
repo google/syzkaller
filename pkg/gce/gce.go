@@ -60,6 +60,7 @@ type InstanceConfig struct {
 	Image                string
 	SSHKey               string
 	Tags                 []string
+	Labels               map[string]string
 	Preemptible          bool
 	DisplayDevice        bool
 	NestedVirtualization bool
@@ -145,6 +146,7 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 		Name:        cfg.Name,
 		Description: "syzkaller worker",
 		MachineType: prefix + "/zones/" + ctx.ZoneID + "/machineTypes/" + cfg.MachineType,
+		Labels:      cfg.Labels,
 		Disks: []*compute.AttachedDisk{
 			{
 				AutoDelete: true,
@@ -154,6 +156,7 @@ func (ctx *Context) CreateInstance(cfg *InstanceConfig) (string, error) {
 				InitializeParams: &compute.AttachedDiskInitializeParams{
 					DiskName:    cfg.Name,
 					SourceImage: prefix + "/global/images/" + cfg.Image,
+					Labels:      cfg.Labels,
 				},
 			},
 		},
@@ -288,7 +291,7 @@ func (ctx *Context) IsInstanceRunning(name string) bool {
 	return inst.Status == "RUNNING"
 }
 
-func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
+func (ctx *Context) CreateImage(imageName, gcsFile, OS string, labels map[string]string) error {
 	var features []*compute.GuestOsFeature
 	if OS == targets.Linux {
 		features = []*compute.GuestOsFeature{
@@ -298,7 +301,8 @@ func (ctx *Context) CreateImage(imageName, gcsFile, OS string) error {
 		}
 	}
 	image := &compute.Image{
-		Name: imageName,
+		Name:   imageName,
+		Labels: labels,
 		RawDisk: &compute.ImageRawDisk{
 			Source: "https://storage.googleapis.com/" + gcsFile,
 		},
