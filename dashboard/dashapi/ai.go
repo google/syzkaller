@@ -10,6 +10,10 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 )
 
+type AIJobSource string
+
+const AIJobSourceLore AIJobSource = "lore"
+
 type AIJobPollReq struct {
 	AgentName    string
 	CodeRevision string // git commit of the syz-agent server
@@ -57,7 +61,7 @@ func (dash *Dashboard) AITrajectoryLog(req *AITrajectoryReq) error {
 
 // SendExternalCommandReq represents a request to report a patch action externally (upstream or reject).
 type SendExternalCommandReq struct {
-	Source       string
+	Source       AIJobSource
 	RootExtID    string
 	MessageExtID string
 	Author       string
@@ -79,7 +83,7 @@ type SendExternalCommandResp struct {
 
 // PollExternalReportReq represents a request to poll for pending reports to be sent externally.
 type PollExternalReportReq struct {
-	Source string // e.g., "lore"
+	Source AIJobSource
 }
 
 type PollExternalReportResp struct {

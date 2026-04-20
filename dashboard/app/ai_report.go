@@ -63,7 +63,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
 		return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
 			Job:           job,
-			CommandSource: req.Source,
+			CommandSource: string(req.Source),
 			CommandExtID:  req.MessageExtID,
 			User:          req.Author,
 		})
@@ -88,7 +88,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
-		CommandSource: req.Source,
+		CommandSource: string(req.Source),
 		CommandExtID:  req.MessageExtID,
 		User:          req.Author,
 		Reason:        "",
@@ -143,7 +143,7 @@ func handleRejectCommand(ctx context.Context, req *dashapi.SendExternalCommandRe
 
 	err = aidb.RejectReportCommand(ctx, aidb.RejectReportArgs{
 		Job:           job,
-		CommandSource: req.Source,
+		CommandSource: string(req.Source),
 		CommandExtID:  req.MessageExtID,
 		User:          req.Author,
 		Reason:        reason,
@@ -156,7 +156,7 @@ func handleRejectCommand(ctx context.Context, req *dashapi.SendExternalCommandRe
 }
 
 func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (any, error) {
-	reportings, err := aidb.LoadPendingJobReportingBySource(ctx, req.Source)
+	reportings, err := aidb.LoadPendingJobReportingBySource(ctx, string(req.Source))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load pending reportings: %w", err)
 	}
