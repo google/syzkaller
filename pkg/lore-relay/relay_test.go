@@ -309,7 +309,7 @@ This is just a normal comment.
 	require.Len(t, mockSnd.sent, 0)
 }
 
-func TestMultipleCommandsReply(t *testing.T) {
+func testCommandReplyError(t *testing.T, incomingBody, expectedReply string) {
 	loreArchive := lore.NewTestLoreArchive(t, t.TempDir())
 	cfg := &Config{LorePollInterval: time.Hour}
 	mockDash := &mockDashboard{}
@@ -322,22 +322,39 @@ func TestMultipleCommandsReply(t *testing.T) {
 	require.NoError(t, err)
 	relay := NewRelay(cfg, mockDash, lorePoller, mockSnd)
 
-	loreArchive.SaveMessageAt(t, `From: user@email
-Subject: [PATCH] Fix bug
-Message-ID: <msg1>
-
-#syz upstream
-#syz reject
-`, time.Now())
+	loreArchive.SaveMessageAt(t, incomingBody, time.Now())
 
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 1)
 	assert.Equal(t, []string{"user@email"}, mockSnd.sent[0].To)
-	expectedBody := "> #syz upstream\n> #syz reject\n\n" +
+	assert.Equal(t, expectedReply, string(mockSnd.sent[0].Body))
+}
+
+func TestMultipleCommandsReply(t *testing.T) {
+	incoming := `From: user@email
+Subject: [PATCH] Fix bug
+Message-ID: <msg1>
+
+#syz upstream
+#syz reject
+`
+	expected := "> #syz upstream\n> #syz reject\n\n" +
 		"Command failed:\n\nmultiple commands in a single message are not supported\n\n"
-	assert.Equal(t, expectedBody, string(mockSnd.sent[0].Body))
+	testCommandReplyError(t, incoming, expected)
+}
+
+func TestUnsupportedCommandReply(t *testing.T) {
+	incoming := `From: user@email
+Subject: [PATCH] Fix bug
+Message-ID: <msg1>
+
+#syz fix
+`
+	expected := "> #syz fix\n\n" +
+		"Command failed:\n\nunsupported command: fix\n\n"
+	testCommandReplyError(t, incoming, expected)
 }
 
 func TestBackoff(t *testing.T) {

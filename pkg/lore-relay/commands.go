@@ -4,13 +4,15 @@
 package lorerelay
 
 import (
+	"fmt"
+
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/email/lore"
 )
 
 // extractCommands converts parsed email commands into Dashboard API requests.
-func extractCommands(polled *lore.PolledEmail) []*dashapi.SendExternalCommandReq {
+func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandReq, error) {
 	var reqs []*dashapi.SendExternalCommandReq
 
 	for _, cmd := range polled.Email.Commands {
@@ -30,6 +32,8 @@ func extractCommands(polled *lore.PolledEmail) []*dashapi.SendExternalCommandReq
 				Reason: polled.Email.Body,
 			}
 			reqs = append(reqs, req)
+		default:
+			return nil, fmt.Errorf("unsupported command: %s", cmd.Str)
 		}
 	}
 
@@ -45,5 +49,5 @@ func extractCommands(polled *lore.PolledEmail) []*dashapi.SendExternalCommandReq
 		})
 	}
 
-	return reqs
+	return reqs, nil
 }

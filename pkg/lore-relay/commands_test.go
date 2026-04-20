@@ -14,9 +14,10 @@ import (
 
 func TestMapCommands(t *testing.T) {
 	tests := []struct {
-		name   string
-		polled *lore.PolledEmail
-		want   []*dashapi.SendExternalCommandReq
+		name    string
+		polled  *lore.PolledEmail
+		want    []*dashapi.SendExternalCommandReq
+		wantErr string
 	}{
 		{
 			name: "upstream",
@@ -67,12 +68,35 @@ func TestMapCommands(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "unsupported command",
+			polled: &lore.PolledEmail{
+				RootMessageID: "<root@id>",
+				Email: &lore.Email{
+					Email: &email.Email{
+						MessageID: "<msg@id>",
+						Author:    "user@example.com",
+						Commands: []*email.SingleCommand{
+							{Command: email.CmdFix, Str: "fix"},
+						},
+					},
+				},
+			},
+			wantErr: "unsupported command: fix",
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := extractCommands(tc.polled)
-			assert.Equal(t, tc.want, got)
+			got, err := extractCommands(tc.polled)
+			if tc.wantErr != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				assert.Nil(t, got)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
 		})
 	}
 }

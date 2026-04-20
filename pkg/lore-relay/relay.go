@@ -173,7 +173,11 @@ func (r *Relay) PollLoreOnce(ctx context.Context) error {
 
 func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmail) error {
 	r.cfg.Tracer.Logf("handling incoming email from %s", polled.Email.Author)
-	reqs := extractCommands(polled)
+	reqs, err := extractCommands(polled)
+	if err != nil {
+		// TODO: include instructions with the list of supported commands.
+		return r.replyError(ctx, polled, err.Error())
+	}
 	if len(reqs) == 0 {
 		return nil
 	}
@@ -181,7 +185,6 @@ func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmai
 		return r.replyError(ctx, polled, "multiple commands in a single message are not supported")
 	}
 	var resp *dashapi.SendExternalCommandResp
-	var err error
 	backoffs := r.backoffs
 	for i := 0; ; i++ {
 		resp, err = r.dash.AIReportCommand(reqs[0])
