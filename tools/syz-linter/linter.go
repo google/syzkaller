@@ -82,7 +82,8 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkAssignStmt(n)
 			case *ast.InterfaceType:
 				pass.checkInterfaceType(n)
-
+			case *ast.BlockStmt:
+				pass.checkWhileStyleForLoop(n)
 			case *ast.ForStmt:
 				pass.checkRangeOverIntegers(n)
 			}
@@ -558,4 +559,32 @@ func (pass *Pass) checkRangeOverIntegers(n *ast.ForStmt) {
 	}
 
 	pass.report(n, "Use range over integer instead of traditional for loop")
+}
+
+// checkWhileStyleForLoop warns about while-style loops with external counter initialization
+// that can be replaced with a traditional for loop header to limit scope.
+func (pass *Pass) checkWhileStyleForLoop(n *ast.BlockStmt) {
+	for i := range len(n.List) - 1 {
+		assign, ok := n.List[i].(*ast.AssignStmt)
+		if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+			continue
+		}
+		ident, ok := assign.Lhs[0].(*ast.Ident)
+		if !ok || !pass.isIntZeroLiteral(assign.Rhs[0]) {
+			continue
+		}
+		forStmt, ok := n.List[i+1].(*ast.ForStmt)
+		if !ok || forStmt.Init != nil || forStmt.Post != nil || forStmt.Cond == nil {
+			continue
+		}
+		bin, ok := forStmt.Cond.(*ast.BinaryExpr)
+		if !ok || bin.Op != token.LSS {
+			continue
+		}
+		condIdent, ok := bin.X.(*ast.Ident)
+		if !ok || condIdent.Name != ident.Name {
+			continue
+		}
+		pass.report(forStmt, "Consider using for %v := 0; %v < ...; { to scope the loop variable", ident.Name, ident.Name)
+	}
 }
