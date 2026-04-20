@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/uuid"
+	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
 	"google.golang.org/grpc/codes"
 )
@@ -530,25 +531,20 @@ func UpstreamReportCommand(ctx context.Context, args UpstreamReportArgs) error {
 	}
 
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		var job Job
 		stmt := spanner.Statement{
 			SQL:    selectJobs() + ` WHERE ID = @id`,
 			Params: map[string]any{"id": args.Job.ID},
 		}
-		iter := txn.Query(ctx, stmt)
-		row, err := iter.Next()
+		job, err := readRow[Job](ctx, txn, stmt)
 		if err != nil {
-			iter.Stop()
 			return err
 		}
-		if err := row.ToStruct(&job); err != nil {
-			iter.Stop()
-			return err
+		if job == nil {
+			return ErrNotFound
 		}
-		iter.Stop()
 
 		if args.NoParallel && job.BugID.Valid && args.Reporting != nil {
-			if err := checkNoParallelConflict(ctx, txn, &job, args.Reporting.Stage); err != nil {
+			if err := checkNoParallelConflict(ctx, txn, job, args.Reporting.Stage); err != nil {
 				return err
 			}
 		}
@@ -738,23 +734,20 @@ func SetJobDone(ctx context.Context, jobID string, finished time.Time,
 	if err != nil {
 		return nil, err
 	}
-	var job Job
+	var job *Job
 	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.Statement{
 			SQL:    selectJobs() + ` WHERE ID = @id`,
 			Params: map[string]any{"id": jobID},
 		}
-		iter := txn.Query(ctx, stmt)
-		row, err := iter.Next()
+		var err error
+		job, err = readRow[Job](ctx, txn, stmt)
 		if err != nil {
-			iter.Stop()
 			return err
 		}
-		if err := row.ToStruct(&job); err != nil {
-			iter.Stop()
-			return err
+		if job == nil {
+			return ErrNotFound
 		}
-		iter.Stop()
 
 		if job.Finished.Valid {
 			return fmt.Errorf("job %s is already finished", jobID)
@@ -764,7 +757,7 @@ func SetJobDone(ctx context.Context, jobID string, finished time.Time,
 		job.Error = errStr
 		job.Results = toNullJSON(results)
 
-		mut, err := spanner.UpdateStruct("Jobs", &job)
+		mut, err := spanner.UpdateStruct("Jobs", job)
 		if err != nil {
 			return err
 		}
@@ -773,7 +766,7 @@ func SetJobDone(ctx context.Context, jobID string, finished time.Time,
 	if err != nil {
 		return nil, err
 	}
-	return &job, nil
+	return job, nil
 }
 
 func selectAllFrom[T any](table string) string {
@@ -832,4 +825,27 @@ func saveEntity[T any](ctx context.Context, table string, obj *T) error {
 	}
 	_, err = client.Apply(ctx, []*spanner.Mutation{mut})
 	return err
+}
+
+type dbQuerier interface {
+	Query(context.Context, spanner.Statement) *spanner.RowIterator
+}
+
+func readRow[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) (*T, error) {
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err == iterator.Done {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var obj T
+	err = row.ToStruct(&obj)
+	if err != nil {
+		return nil, err
+	}
+	return &obj, nil
 }
