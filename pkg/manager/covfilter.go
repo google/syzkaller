@@ -151,10 +151,21 @@ func PrepareCoverageFilters(source *ReportGeneratorWrapper, cfg *mgrconfig.Confi
 			next := backend.NextInstructionPC(cfg.SysTarget, cfg.Type, pc)
 			covPCs[next] = struct{}{}
 		}
+		var selection func() corpus.SeedSelection
+		switch area.SeedSelection {
+		case mgrconfig.SeedSelectionRandomPC:
+			selection = corpus.NewRandomPCSelection
+		case mgrconfig.SeedSelectionWeighted:
+			selection = corpus.NewWeightedSelection
+		case "":
+		default:
+			panic("unknown seed selection algorithm: " + area.SeedSelection)
+		}
 		ret.Areas = append(ret.Areas, corpus.FocusArea{
-			Name:     area.Name,
-			CoverPCs: covPCs,
-			Weight:   area.Weight,
+			Name:              area.Name,
+			CoverPCs:          covPCs,
+			Weight:            area.Weight,
+			NewEmptySelection: selection,
 		})
 		if area.Filter.Empty() {
 			// An empty cover filter indicates that the user is interested in all the coverage.

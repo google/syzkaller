@@ -9,16 +9,18 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestChooseProgram(t *testing.T) {
+func TestWeightSelection(t *testing.T) {
 	rs := rand.NewSource(0)
 	r := rand.New(rs)
 	target := getTarget(t, targets.TestOS, targets.TestArch64)
-	corpus := NewCorpus(context.Background())
+	s := &WeightedSelection{}
 
 	const (
 		maxIters   = 1000
@@ -33,20 +35,33 @@ func TestChooseProgram(t *testing.T) {
 			sizeSig = 0
 		}
 		inp := generateInput(target, rs, sizeSig)
-		corpus.Save(inp)
+		s.SaveProgram(inp.Prog, inp.Signal, inp.Cover)
 		priorities[inp.Prog] = int64(len(inp.Signal))
 	}
 	counters := make(map[*prog.Prog]int)
 	for it := 0; it < maxIters; it++ {
-		counters[corpus.chooseProgram(r)]++
+		counters[s.ChooseProgram(r)]++
 	}
 	for p, prio := range priorities {
-		prob := float64(prio) / float64(corpus.sumPrios)
+		prob := float64(prio) / float64(s.sumPrios)
 		diff := math.Abs(prob*maxIters - float64(counters[p]))
 		if diff > eps*maxIters {
 			t.Fatalf("the difference (%f) is higher than %f%%", diff, eps*100)
 		}
 	}
+}
+
+func TestNoFocusAreas(t *testing.T) {
+	corpus := NewCorpus(context.Background())
+	r := rand.New(testutil.RandSource(t))
+
+	p := &prog.Prog{}
+	corpus.Save(NewInput{
+		Prog:   p,
+		Signal: signal.FromRaw([]uint64{1}, 1),
+	})
+
+	assert.Equal(t, p, corpus.ChooseProgram(r))
 }
 
 func TestFocusAreas(t *testing.T) {
