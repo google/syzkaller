@@ -20,8 +20,16 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tbody>
 </table>
 
-{{if .FilterSubsystem}}
-<b>Filter by subsystem: {{.FilterSubsystem}}</b> [<a href="/">clear</a>]
+{{if .FilterSubsystems}}
+<div>
+	<b>Active subsystems:</b>
+	{{range $i, $s := .FilterSubsystems}}{{if $i}}, {{end}}<a href="{{$.FilterRemoveURL $s}}" title="Click to remove">{{$s}}</a>{{end}}
+	[<a href="{{$.FilterClearURL}}">clear all</a>]
+</div>
+<div style="margin-top: 5px; margin-bottom: 10px;">
+	<b>Available subsystems:</b>
+	{{range $i, $s := .AvailableSubsystems}}{{if $i}}, {{end}}<a href="{{$.FilterAddURL $s}}" title="Click to add">{{$s}}</a>{{end}}
+</div>
 {{end}}
 
 {{if .Crashes}}

@@ -148,12 +148,12 @@ func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
-	filterSubsystem := r.FormValue("subsystem")
+	filterSubsystems := r.URL.Query()["subsystem"]
 	data := &UISummaryData{
-		UIPageHeader:    serv.pageHeader(r, "syzkaller"),
-		Log:             log.CachedLogOutput(),
-		ShowCore:        serv.Cfg.MemoryDump,
-		FilterSubsystem: filterSubsystem,
+		UIPageHeader:     serv.pageHeader(r, "syzkaller"),
+		Log:              log.CachedLogOutput(),
+		ShowCore:         serv.Cfg.MemoryDump,
+		FilterSubsystems: filterSubsystems,
 	}
 
 	level := stat.Simple
@@ -176,15 +176,18 @@ func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if len(filterSubsystems) > 0 {
+			// This is only relevant when there's an active filter.
+			data.AvailableSubsystems = availableSubsystems(allSubsystems(list), filterSubsystems)
+		}
 		var repros map[string]bool
 		if serv.ReproLoop != nil {
 			repros = serv.ReproLoop.Reproducing()
 		}
 		for _, info := range list {
-			if filterSubsystem != "" && !slices.Contains(info.Subsystems, filterSubsystem) {
-				continue
+			if shouldShowBug(info.Subsystems, filterSubsystems) {
+				data.Crashes = append(data.Crashes, makeUICrashType(info, serv.StartTime, repros))
 			}
-			data.Crashes = append(data.Crashes, makeUICrashType(info, serv.StartTime, repros))
 		}
 	}
 
@@ -192,6 +195,37 @@ func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 		data.PatchedOnly, data.AffectsBoth, data.InProgress = serv.collectDiffCrashes()
 	}
 	executeTemplate(w, mainTemplate, data)
+}
+
+func availableSubsystems(subsystems, filterSubsystems []string) []string {
+	var availableSubsystems []string
+	for _, sub := range subsystems {
+		if !slices.Contains(filterSubsystems, sub) {
+			availableSubsystems = append(availableSubsystems, sub)
+		}
+	}
+	return availableSubsystems
+}
+
+func allSubsystems(list []*BugInfo) []string {
+	var allSubsystems []string
+	for _, info := range list {
+		allSubsystems = append(allSubsystems, info.Subsystems...)
+	}
+	slices.Sort(allSubsystems)
+	return slices.Compact(allSubsystems)
+}
+
+func shouldShowBug(subsystems, filterSubsystems []string) bool {
+	if len(filterSubsystems) == 0 {
+		return true
+	}
+	for _, filter := range filterSubsystems {
+		if slices.Contains(subsystems, filter) {
+			return true
+		}
+	}
+	return false
 }
 
 func (serv *HTTPServer) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -1059,18 +1093,32 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, data any) 
 
 type UISummaryData struct {
 	UIPageHeader
-	Stats           []UIStat
-	Crashes         []UICrashType
-	PatchedOnly     *UIDiffTable
-	AffectsBoth     *UIDiffTable
-	InProgress      *UIDiffTable
-	Log             string
-	ShowCore        bool
-	FilterSubsystem string
+	Stats               []UIStat
+	Crashes             []UICrashType
+	PatchedOnly         *UIDiffTable
+	AffectsBoth         *UIDiffTable
+	InProgress          *UIDiffTable
+	Log                 string
+	ShowCore            bool
+	FilterSubsystems    []string
+	AvailableSubsystems []string
 }
 
 func (data UISummaryData) FilterAddURL(sub string) string {
-	return urlutil.SetParam(data.CurrentURL, "subsystem", sub)
+	return urlutil.TransformParam(data.CurrentURL, "subsystem", func(old []string) []string {
+		if slices.Contains(old, sub) {
+			return old
+		}
+		return append(old, sub)
+	})
+}
+
+func (data UISummaryData) FilterRemoveURL(sub string) string {
+	return urlutil.DropParam(data.CurrentURL, "subsystem", sub)
+}
+
+func (data UISummaryData) FilterClearURL() string {
+	return urlutil.DropParam(data.CurrentURL, "subsystem", "")
 }
 
 type UIDiffTable struct {
