@@ -268,6 +268,91 @@ In-Reply-To: <non-existent-msg-id>
 	require.Len(t, mockSnd.sent, 0)
 }
 
+func TestAILoreIntegrationComment(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+		},
+	})
+
+	repoDir := t.TempDir()
+	loreArchive := lore.NewTestLoreArchive(t, repoDir)
+
+	now := time.Now()
+
+	pollerCfg := lore.PollerConfig{
+		RepoDir: t.TempDir(),
+		URL:     loreArchive.Repo.Dir,
+		Tracer:  &debugtracer.TestTracer{T: t},
+	}
+
+	poller, err := lore.NewPoller(pollerCfg)
+	require.NoError(t, err)
+
+	mockSnd := &integrationMockSender{}
+
+	relay := lorerelay.NewRelay(&lorerelay.Config{
+		DocsLink:    "http://docs.link",
+		LoreArchive: "archive@lore.com",
+	}, c.globalClient, poller, mockSnd)
+
+	// 1. Create a bug and AI job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Test Description",
+			"PatchDiff":        "diff",
+			"KernelRepo":       "repo",
+			"KernelCommit":     "commit",
+		},
+	})
+	require.NoError(t, err)
+
+	// 2. Poll Dashboard - should report to moderation.
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+	require.Len(t, mockSnd.sent, 1)
+
+	// 3. Send a plain comment.
+	loreArchive.SaveMessageAt(t, `From: reviewer@email
+Subject: Re: [PATCH RFC] Test Description
+Message-ID: <comment1>
+In-Reply-To: <mock@msgid-1>
+
+This is just a normal review comment with some context.
+`, now.Add(time.Minute))
+
+	err = relay.PollLoreOnce(context.Background())
+	require.NoError(t, err)
+
+	// Verify that NO error reply was sent, meaning sent length is still exactly 1!
+	require.Len(t, mockSnd.sent, 1)
+
+	reportings, err := loadJobReportingsWithComments(c.ctx, jobID)
+	require.NoError(t, err)
+	require.Len(t, reportings, 1)
+	require.Len(t, reportings[0].Comments, 1)
+	assert.Equal(t, "reviewer@email", reportings[0].Comments[0].Author)
+	assert.Contains(t, reportings[0].Comments[0].BodyURI, "This is just a normal review comment with some context.")
+}
+
 type integrationMockSender struct {
 	sent []*sender.Email
 }

@@ -32,5 +32,18 @@ func extractCommands(polled *lore.PolledEmail) []*dashapi.SendExternalCommandReq
 			reqs = append(reqs, req)
 		}
 	}
+
+	if len(reqs) == 0 && polled.Email.Body != "" {
+		reqs = append(reqs, &dashapi.SendExternalCommandReq{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    polled.RootMessageID,
+			MessageExtID: polled.Email.MessageID,
+			Author:       polled.Email.Author,
+			Comment: &dashapi.CommentCommand{
+				Body: polled.Email.Body,
+			},
+		})
+	}
+
 	return reqs
 }

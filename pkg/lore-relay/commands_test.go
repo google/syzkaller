@@ -34,7 +34,7 @@ func TestMapCommands(t *testing.T) {
 			},
 			want: []*dashapi.SendExternalCommandReq{
 				{
-					Source:       "lore",
+					Source:       dashapi.AIJobSourceLore,
 					RootExtID:    "<root@id>",
 					MessageExtID: "<msg@id>",
 					Author:       "user@example.com",
@@ -59,7 +59,7 @@ func TestMapCommands(t *testing.T) {
 			},
 			want: []*dashapi.SendExternalCommandReq{
 				{
-					Source:       "lore",
+					Source:       dashapi.AIJobSourceLore,
 					RootExtID:    "<root@id>",
 					MessageExtID: "<msg@id>",
 					Author:       "user@example.com",

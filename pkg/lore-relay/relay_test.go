@@ -89,8 +89,6 @@ This looks interesting.
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, mockDash.commands, 0)
-
 	// 3. #syz upstream to (2).
 	loreArchive.SaveMessageAt(t, `From: user@email
 Subject: Re: [PATCH] Fix bug
@@ -104,15 +102,7 @@ In-Reply-To: <reply1>
 	require.NoError(t, err)
 
 	// 4. Verify dashboard receives command and root id is good.
-	assert.Equal(t, []*dashapi.SendExternalCommandReq{
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-	}, mockDash.commands)
+	assert.Equal(t, mockMainScenarioCommands()[:2], mockDash.commands)
 
 	// 5. #syz reject to (2).
 	loreArchive.SaveMessageAt(t, `From: user@email
@@ -127,24 +117,7 @@ In-Reply-To: <reply1>
 	require.NoError(t, err)
 
 	// 6. Verify dashboard receives command and root it is good.
-	assert.Equal(t, []*dashapi.SendExternalCommandReq{
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply3>",
-			Author:       "user@email",
-			Reject: &dashapi.RejectCommand{
-				Reason: "#syz reject\n",
-			},
-		},
-	}, mockDash.commands)
+	assert.Equal(t, mockMainScenarioCommands(), mockDash.commands)
 }
 
 func TestRestartScenario(t *testing.T) {
@@ -153,9 +126,10 @@ func TestRestartScenario(t *testing.T) {
 
 	now := time.Now()
 
+	pollerRepoDir := t.TempDir()
 	createRelay := func(mockDash *mockDashboard) (*Relay, *lore.Poller) {
 		pollerCfg := lore.PollerConfig{
-			RepoDir: t.TempDir(),
+			RepoDir: pollerRepoDir,
 			URL:     loreArchive.Repo.Dir,
 			Tracer:  &debugtracer.TestTracer{T: t},
 		}
@@ -196,13 +170,16 @@ This looks interesting.
 
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
+	mockDash.commands = nil
 
 	t.Logf("restarting relay")
 	relay, _ = createRelay(mockDash)
 
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
-	require.Len(t, mockDash.commands, 0)
+	require.Len(t, mockDash.commands, 1)
+	assert.Equal(t, "<reply1>", mockDash.commands[0].MessageExtID)
+	mockDash.commands = nil
 
 	// 3. #syz upstream to (2).
 	loreArchive.SaveMessageAt(t, `From: user@email
@@ -219,13 +196,14 @@ In-Reply-To: <reply1>
 	// 4. Verify that dashboard receives the command and root id is good.
 	assert.Equal(t, []*dashapi.SendExternalCommandReq{
 		{
-			Source:       "lore",
+			Source:       dashapi.AIJobSourceLore,
 			RootExtID:    "<mock@msgid-1>",
 			MessageExtID: "<reply2>",
 			Author:       "user@email",
 			Upstream:     &dashapi.UpstreamCommand{},
 		},
 	}, mockDash.commands)
+	mockDash.commands = nil
 
 	t.Logf("restarting relay")
 	relay, _ = createRelay(mockDash)
@@ -233,22 +211,7 @@ In-Reply-To: <reply1>
 	err = relay.PollLoreOnce(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, []*dashapi.SendExternalCommandReq{
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-	}, mockDash.commands)
+	assert.Equal(t, mockMainScenarioCommands()[:2], mockDash.commands)
 
 	// 5. #syz reject to (2).
 	loreArchive.SaveMessageAt(t, `From: user@email
@@ -263,31 +226,7 @@ In-Reply-To: <reply1>
 	require.NoError(t, err)
 
 	// 6. Verify that dashboard receives the command and root it is good.
-	assert.Equal(t, []*dashapi.SendExternalCommandReq{
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply2>",
-			Author:       "user@email",
-			Upstream:     &dashapi.UpstreamCommand{},
-		},
-		{
-			Source:       "lore",
-			RootExtID:    "<mock@msgid-1>",
-			MessageExtID: "<reply3>",
-			Author:       "user@email",
-			Reject: &dashapi.RejectCommand{
-				Reason: "#syz reject\n",
-			},
-		},
-	}, mockDash.commands)
+	assert.Equal(t, mockMainScenarioCommands(), mockDash.commands)
 }
 
 func TestErrorReply(t *testing.T) {
@@ -330,6 +269,44 @@ Message-ID: <msg1>
 	assert.Equal(t, "<msg1>", mockSnd.sent[0].InReplyTo)
 	expectedBody := "> #syz upstream\n\nCommand failed:\n\ninvalid command syntax\n\n"
 	assert.Equal(t, expectedBody, string(mockSnd.sent[0].Body))
+}
+
+func TestErrorReplyComment(t *testing.T) {
+	loreArchive := lore.NewTestLoreArchive(t, t.TempDir())
+
+	cfg := &Config{
+		DashboardPollInterval: time.Hour,
+		LorePollInterval:      time.Hour,
+	}
+
+	mockDash := &mockDashboard{
+		cmdResp: &dashapi.SendExternalCommandResp{Error: "some internal error"},
+	}
+	mockSnd := &mockSender{}
+
+	lorePoller, err := lore.NewPoller(lore.PollerConfig{
+		RepoDir:   t.TempDir(),
+		URL:       loreArchive.Repo.Dir,
+		Tracer:    &debugtracer.TestTracer{T: t},
+		OwnEmails: []string{"own@email.com"},
+	})
+	require.NoError(t, err)
+	relay := NewRelay(cfg, mockDash, lorePoller, mockSnd)
+
+	now := time.Now()
+	loreArchive.SaveMessageAt(t, `From: user@email
+Subject: [PATCH] Fix bug
+Message-ID: <msg1>
+
+This is just a normal comment.
+`, now)
+
+	err = relay.PollLoreOnce(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, mockDash.commands, 1)
+	// For comments, error reply must be completely suppressed!
+	require.Len(t, mockSnd.sent, 0)
 }
 
 func TestMultipleCommandsReply(t *testing.T) {
@@ -427,4 +404,34 @@ func (m *mockDashboard) AIReportCommand(req *dashapi.SendExternalCommandReq) (*d
 		return m.cmdResp, nil
 	}
 	return &dashapi.SendExternalCommandResp{}, nil
+}
+
+func mockMainScenarioCommands() []*dashapi.SendExternalCommandReq {
+	return []*dashapi.SendExternalCommandReq{
+		{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    "<mock@msgid-1>",
+			MessageExtID: "<reply1>",
+			Author:       "user@email",
+			Comment: &dashapi.CommentCommand{
+				Body: "This looks interesting.\n",
+			},
+		},
+		{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    "<mock@msgid-1>",
+			MessageExtID: "<reply2>",
+			Author:       "user@email",
+			Upstream:     &dashapi.UpstreamCommand{},
+		},
+		{
+			Source:       dashapi.AIJobSourceLore,
+			RootExtID:    "<mock@msgid-1>",
+			MessageExtID: "<reply3>",
+			Author:       "user@email",
+			Reject: &dashapi.RejectCommand{
+				Reason: "#syz reject\n",
+			},
+		},
+	}
 }

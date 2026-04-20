@@ -121,7 +121,7 @@ func (r *Relay) pollDashboard(ctx context.Context) error {
 // Exported for testing.
 func (r *Relay) PollDashboardOnce(ctx context.Context) error {
 	r.cfg.Tracer.Logf("polling dashboard for reports")
-	resp, err := r.dash.AIPollReport(&dashapi.PollExternalReportReq{Source: "lore"})
+	resp, err := r.dash.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
 	if err != nil {
 		return err
 	}
@@ -201,8 +201,7 @@ func (r *Relay) HandleIncomingEmail(ctx context.Context, polled *lore.PolledEmai
 			return ctx.Err()
 		}
 	}
-
-	if resp.Error != "" {
+	if resp.Error != "" && reqs[0].Comment == nil {
 		return r.replyError(ctx, polled, resp.Error)
 	}
 	return nil
