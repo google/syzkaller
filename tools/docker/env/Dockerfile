@@ -51,8 +51,8 @@ RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar 
 FROM debian:trixie AS git-builder
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
     make gcc libc6-dev libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev curl ca-certificates autoconf
-RUN curl -L https://github.com/git/git/archive/refs/tags/v2.53.0.tar.gz | tar -xz
-RUN cd git-2.53.0 && \
+RUN curl -L https://github.com/git/git/archive/refs/tags/v2.54.0-rc2.tar.gz | tar -xz
+RUN cd git-2.54.0-rc2 && \
     make configure && \
     ./configure --prefix=/opt/git && \
     make -j$(nproc) && \
