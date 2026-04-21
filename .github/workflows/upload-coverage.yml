@@ -8,21 +8,49 @@ on:
     types:
       - completed
 
+# Security Architecture & Context:
+# 1. workflow_run Pattern: This workflow runs in the privileged context of the base repository's
+#    default branch, triggered upon completion of the untrusted 'ci' workflow. This separation
+#    allows secure access to repository secrets (e.g., CODECOV_TOKEN) which are unavailable to
+#    fork PRs in the standard pull_request event.
+# 2. Action Pinning: All actions are pinned to full SHA-1 commit hashes to prevent supply chain
+#    attacks via mutable tags.
+# 3. Least Privilege: Permissions are explicitly defined to reduce attack surface.
+
 permissions:
   contents: read
+  actions: read
 
 jobs:
   upload:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+      # SECURITY CONCERN: Checking out untrusted code from a fork PR in a privileged workflow.
+      # 'persist-credentials: false' prevents the GITHUB_TOKEN from persisting in the local
+      # .git/config, where it could potentially be accessed by untrusted code.
       - name: checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          sparse-checkout: |
-            .github/codecov.yml
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      # Checkout the base repository to a separate directory to ensure we always use the trusted
+      # codecov.yml configuration, preventing forks from overriding upload settings.
+      - name: checkout base repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: base-repo
+          persist-credentials: false
+          sparse-checkout: .github/codecov.yml
+          # Cone mode is disabled to allow pattern-matching for a specific individual file,
+          # rather than fetching the entire directory contents.
           sparse-checkout-cone-mode: false
 
+      # Secure Artifact Handover: Explicitly downloads artifacts using the specific run-id of the
+      # triggering untrusted 'ci' workflow run to ensure we only process expected coverage data.
       - name: download artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
@@ -30,26 +58,29 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: coverage-reports
 
+      # Uploads coverage securely using pinned action versions and repository secrets.
+      # Overrides commit SHA and PR number manually to associate coverage with the correct fork PR,
+      # since the standard github context points to the base repository's default branch run.
       - name: upload unittests coverage
         uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
         with:
-          codecov_yml_path: .github/codecov.yml
+          codecov_yml_path: base-repo/.github/codecov.yml
           files: coverage-reports/coverage-unittests/.coverage.txt
           flags: unittests
           slug: ${{ github.event.workflow_run.repository.full_name }}
           token: ${{ secrets.CODECOV_TOKEN }}
-          commit: ${{ github.event.workflow_run.head_sha }}
-          pr: ${{ github.event.workflow_run.pull_requests[0].number }}
+          override_commit: ${{ github.event.workflow_run.head_sha }}
+          override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
           verbose: true
 
       - name: upload dashboard coverage
         uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
         with:
-          codecov_yml_path: .github/codecov.yml
+          codecov_yml_path: base-repo/.github/codecov.yml
           files: coverage-reports/coverage-dashboard/.coverage.txt
           flags: dashboard
           slug: ${{ github.event.workflow_run.repository.full_name }}
           token: ${{ secrets.CODECOV_TOKEN }}
-          commit: ${{ github.event.workflow_run.head_sha }}
-          pr: ${{ github.event.workflow_run.pull_requests[0].number }}
+          override_commit: ${{ github.event.workflow_run.head_sha }}
+          override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
           verbose: true
