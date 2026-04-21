@@ -181,6 +181,7 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 		mailingList = CanonicalEmail(sender)
 	}
 	date, _ := mail.ParseDate(msg.Header.Get("Date"))
+	date = date.UTC()
 	email := &Email{
 		BugIDs:         unique(bugIDs),
 		MessageID:      msg.Header.Get("Message-ID"),
