@@ -48,14 +48,13 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make presubmit_aux
 
-  build:
-    runs-on: ubuntu-22.04-16core
+  lint:
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
-      GITHUB_ACTIONS: true
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -69,7 +68,35 @@ jobs:
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_build
+          # Run build and lint without tests
+          .github/workflows/run.sh make presubmit_lint
+
+  test_sharded:
+    runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
+      TERM: dumb
+      GITHUB_ACTIONS: true
+    strategy:
+      matrix:
+        test_shard: ['1/5', '2/5', '3/5', '4/5', '5/5']
+    steps:
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_test
       - name: codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
@@ -79,14 +106,17 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
-  dashboard:
-    runs-on: ubuntu-22.04-16core
+  dashboard_sharded:
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
       GITHUB_ACTIONS: true
+    strategy:
+      matrix:
+        test_shard: ['1/5', '2/5', '3/5', '4/5', '5/5']
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -100,7 +130,8 @@ jobs:
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh timeout --signal=SIGINT 15m make presubmit_dashboard
       - name: codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
@@ -135,39 +166,17 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           .github/workflows/run.sh make ${{ matrix.target }}
 
-  race:
-    runs-on: ubuntu-22.04-16core
+  race_sharded:
+    runs-on: ubuntu-latest
     container: gcr.io/syzkaller/env:latest
-    timeout-minutes: 15 # Q1 2024 experiments may affect timeout, let's relax it
+    timeout-minutes: 15
     env:
       GOPATH: /__w/syzkaller/syzkaller/gopath
       CI: true
       TERM: dumb
-    steps:
-      - name: checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          path: gopath/src/github.com/google/syzkaller
-
-      # https://github.com/golang/go/issues/61608 to cache -race results.
-      - name: restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: /syzkaller/.cache
-          key: ${{ runner.os }}-syzenv-
-
-      - name: run
-        run: |
-          cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race
-
-  race_dashboard:
-    runs-on: ubuntu-22.04-16core
-    container: gcr.io/syzkaller/env:latest
-    env:
-      GOPATH: /__w/syzkaller/syzkaller/gopath
-      CI: true
-      TERM: dumb
+    strategy:
+      matrix:
+        test_shard: ['1/10', '2/10', '3/10', '4/10', '5/10', '6/10', '7/10', '8/10', '9/10', '10/10']
     steps:
       - name: checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -181,7 +190,34 @@ jobs:
       - name: run
         run: |
           cd gopath/src/github.com/google/syzkaller
-          .github/workflows/run.sh make presubmit_race_dashboard
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_race
+
+  race_dashboard_sharded:
+    runs-on: ubuntu-latest
+    container: gcr.io/syzkaller/env:latest
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
+      TERM: dumb
+    strategy:
+      matrix:
+        test_shard: ['1/5', '2/5', '3/5', '4/5', '5/5']
+    steps:
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: restore cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /syzkaller/.cache
+          key: ${{ runner.os }}-syzenv-
+      - name: run
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          TEST_SHARD=${{ matrix.test_shard }} \
+            .github/workflows/run.sh make presubmit_race_dashboard
 
   old:
     runs-on: ubuntu-latest
@@ -231,3 +267,27 @@ jobs:
           cd gopath/src/github.com/google/syzkaller
           make
           .github/workflows/run.sh bash -xe tools/gvisor-smoke-test.sh
+
+  build:
+    needs: [test_sharded, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
+  dashboard:
+    needs: dashboard_sharded
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
+  race:
+    needs: race_sharded
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
+  race_dashboard:
+    needs: race_dashboard_sharded
+    runs-on: ubuntu-latest
+    steps:
+      - run: true

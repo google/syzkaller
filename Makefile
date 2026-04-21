@@ -107,7 +107,7 @@ endif
 	format format_go format_cpp format_sys \
 	tidy test test_race \
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang check_html \
-	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd \
+	presubmit presubmit_aux presubmit_lint presubmit_test presubmit_arch_linux presubmit_arch_freebsd \
 	presubmit_arch_netbsd presubmit_arch_openbsd presubmit_arch_darwin presubmit_arch_windows \
 	presubmit_arch_executor presubmit_dashboard presubmit_race presubmit_race_dashboard presubmit_old
 
@@ -300,7 +300,8 @@ lint:
 
 presubmit:
 	$(MAKE) presubmit_aux
-	$(MAKE) presubmit_build
+	$(MAKE) presubmit_lint
+	$(MAKE) presubmit_test
 	$(MAKE) presubmit_arch_linux
 	$(MAKE) presubmit_arch_freebsd
 	$(MAKE) presubmit_arch_netbsd
@@ -316,11 +317,13 @@ presubmit_aux:
 	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_html check_shebang tidy
 	$(GO) mod tidy
 
-presubmit_build: descriptions
+presubmit_lint: descriptions
 	# Run go build before lint for better error messages if build is broken.
 	# This does not check build of test files, but running go test takes too long (even for building).
 	$(GO) build ./...
 	$(MAKE) lint
+
+presubmit_test: descriptions
 	SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(MAKE) test
 
 presubmit_arch_linux: descriptions
@@ -365,18 +368,18 @@ presubmit_arch_executor: descriptions
 	TARGETOS=test TARGETARCH=32_fork TARGETVMARCH=32_fork $(MAKE) executor
 
 presubmit_dashboard: descriptions
-	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app
+	SYZ_CLANG=yes ./tools/go_test_sharded.sh ./dashboard/app -short -vet=off -coverprofile=.coverage.txt
 
 presubmit_race: descriptions
 	# -race requires cgo
 	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	CGO_ENABLED=1 SYZ_SKIP_DEV_APPSERVER_TESTS=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
+	SYZ_SKIP_DEV_APPSERVER_TESTS=1 ./tools/go_test_sharded.sh ./... -race -short -vet=off -bench=.* -benchtime=.2s ;\
 	fi
 
 presubmit_race_dashboard: descriptions
 	# -race requires cgo
 	CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	CGO_ENABLED=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./dashboard/app/... ;\
+	./tools/go_test_sharded.sh ./dashboard/app/... -race -short -vet=off -bench=.* -benchtime=.2s ;\
 	fi
 
 presubmit_old: descriptions
@@ -393,7 +396,7 @@ presubmit_gvisor: host target
 
 test: descriptions
 	# Clang tools require cgo.
-	CGO_ENABLED=1 $(GO) test -short -coverprofile=.coverage.txt ./...
+	./tools/go_test_sharded.sh ./... -short -coverprofile=.coverage.txt
 
 clean:
 	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h sys/gen sys/register.go
