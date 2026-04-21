@@ -4,6 +4,7 @@
 // This file is shared between executor and csource package.
 
 #include <stdlib.h>
+#include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -1851,10 +1852,47 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
-#include <linux/io_uring.h>
-
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
+
+#define IORING_SETUP_SQE128 (1U << 10)
+#define IORING_SETUP_CQE32 (1U << 11)
+
+struct io_sqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 flags;
+	uint32 dropped;
+	uint32 array;
+	uint32 resv1;
+	uint64 user_addr;
+};
+
+struct io_cqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 overflow;
+	uint32 cqes;
+	uint32 flags;
+	uint32 resv1;
+	uint64 user_addr;
+};
+
+struct io_uring_params {
+	uint32 sq_entries;
+	uint32 cq_entries;
+	uint32 flags;
+	uint32 sq_thread_cpu;
+	uint32 sq_thread_idle;
+	uint32 features;
+	uint32 resv[4];
+	struct io_sqring_offsets sq_off;
+	struct io_cqring_offsets cq_off;
+};
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_setup || __NR_syz_io_uring_submit || __NR_syz_ublk_setup_io_uring || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 static long io_uring_sqe_size(struct io_uring_params* params)
@@ -1871,6 +1909,12 @@ static long io_uring_cqe_size(struct io_uring_params* params)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete || __NR_syz_ublk_process_io
+
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
 
 static int __io_uring_complete(struct io_uring_params* params, char* ring_ptr, struct io_uring_cqe* cqe_out)
 {
@@ -1921,6 +1965,9 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 
 #include <sys/mman.h>
 #include <unistd.h>
+
+#define IORING_OFF_SQ_RING 0ULL
+#define IORING_OFF_SQES 0x10000000ULL
 
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
 static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
@@ -2036,6 +2083,7 @@ static long syz_ublk_setup_io_uring(volatile long a0, volatile long a1, volatile
 
 #if SYZ_EXECUTOR || __NR_syz_ublk_add_dev || __NR_syz_ublk_setup_queues || __NR_syz_ublk_process_io
 
+#include <linux/fs.h>
 #include <linux/types.h>
 #include <signal.h>
 #include <sys/ioctl.h>
@@ -2129,7 +2177,7 @@ struct io_uring_sqe {
 	};
 	__u32 len;
 	union {
-		//	__kernel_rwf_t	rw_flags;
+		__kernel_rwf_t rw_flags;
 		__u32 fsync_flags;
 		__u16 poll_events;
 		__u32 poll32_events;
@@ -2279,7 +2327,7 @@ static long syz_ublk_setup_queues(volatile long a0, volatile long a1, volatile l
 		}
 
 		for (int j = 0; j < queue_depth; j++) {
-			struct ublksrv_io_cmd* cmd = (struct ublksrv_io_cmd*)(&sqe->addr3);
+			struct ublksrv_io_cmd* cmd = (struct ublksrv_io_cmd*)(&sqe->cmd);
 			cmd->q_id = q_id;
 			cmd->tag = j;
 			cmd->addr = 0;
@@ -2303,6 +2351,16 @@ static long syz_ublk_setup_queues(volatile long a0, volatile long a1, volatile l
 
 #include <linux/time_types.h>
 #include <stdbool.h>
+
+#define IORING_ENTER_GETEVENTS (1U << 0)
+#define IORING_ENTER_EXT_ARG (1U << 3)
+
+struct io_uring_getevents_arg {
+	__u64 sigmask;
+	__u32 sigmask_sz;
+	__u32 min_wait_usec;
+	__u64 ts;
+};
 
 static long syz_ublk_process_io(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
