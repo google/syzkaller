@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -350,11 +351,7 @@ func ParseFeaturesFlags(enable, disable string, defaultValue bool) (Features, er
 func PrintAvailableFeaturesFlags() {
 	fmt.Printf("available features for -enable and -disable:\n")
 	features := defaultFeatures(false)
-	var names []string
-	for name := range features {
-		names = append(names, name)
-	}
-	slices.Sort(names)
+	names := slices.Sorted(maps.Keys(features))
 	for _, name := range names {
 		fmt.Printf("  %s - %s\n", name, features[name].Description)
 	}
