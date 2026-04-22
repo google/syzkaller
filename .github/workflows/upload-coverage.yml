@@ -58,6 +58,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: coverage-reports
 
+      # GitHub Actions intentionally leaves github.event.workflow_run.pull_requests empty for fork PRs.
+      # We securely fetch the PR number via the GitHub CLI dynamically based on the commit SHA.
+      - name: fetch pr number
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUM=$(gh pr list --repo ${{ github.event.workflow_run.repository.full_name }} --commit ${{ github.event.workflow_run.head_sha }} --json number --jq '.[0].number')
+          if [ -n "$PR_NUM" ] && [ "$PR_NUM" != "null" ]; then
+            echo "number=$PR_NUM" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.workflow_run.pull_requests[0].number }}" >> $GITHUB_OUTPUT
+          fi
+
       # Uploads coverage securely using pinned action versions and repository secrets.
       # Overrides commit SHA and PR number manually to associate coverage with the correct fork PR,
       # since the standard github context points to the base repository's default branch run.
@@ -70,7 +84,7 @@ jobs:
           slug: ${{ github.event.workflow_run.repository.full_name }}
           token: ${{ secrets.CODECOV_TOKEN }}
           override_commit: ${{ github.event.workflow_run.head_sha }}
-          override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
+          override_pr: ${{ steps.pr.outputs.number }}
           verbose: true
 
       - name: upload dashboard coverage
@@ -82,5 +96,5 @@ jobs:
           slug: ${{ github.event.workflow_run.repository.full_name }}
           token: ${{ secrets.CODECOV_TOKEN }}
           override_commit: ${{ github.event.workflow_run.head_sha }}
-          override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
+          override_pr: ${{ steps.pr.outputs.number }}
           verbose: true
