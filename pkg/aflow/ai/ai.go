@@ -13,6 +13,7 @@ const (
 	WorkflowModeration      = WorkflowType("moderation")
 	WorkflowAssessmentKCSAN = WorkflowType("assessment-kcsan")
 	WorkflowRepro           = WorkflowType("repro")
+	WorkflowReproC          = WorkflowType("repro-c")
 )
 
 // Outputs of various workflow types.
@@ -52,4 +53,9 @@ type ReproOutputs struct {
 	SyzkallerCommit       string
 	Reproduced            bool
 	ReproducedCrashReport string
+}
+
+type ReproCOutputs struct {
+	ReproC          string
+	SyzkallerCommit string // Tracked for debugging and provenance.
 }

@@ -7,4 +7,5 @@ import (
 	_ "github.com/google/syzkaller/pkg/aflow/flow/assessment"
 	_ "github.com/google/syzkaller/pkg/aflow/flow/patching"
 	_ "github.com/google/syzkaller/pkg/aflow/flow/repro"
+	_ "github.com/google/syzkaller/pkg/aflow/flow/reproc"
 )
