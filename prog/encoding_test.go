@@ -6,6 +6,7 @@ package prog
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math/rand"
 	"reflect"
 	"slices"
@@ -14,15 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func setToArray(s map[string]struct{}) []string {
-	a := make([]string, 0, len(s))
-	for c := range s {
-		a = append(a, c)
-	}
-	slices.Sort(a)
-	return a
-}
 
 func TestSerializeData(t *testing.T) {
 	t.Parallel()
@@ -103,7 +95,10 @@ func TestCallSet(t *testing.T) {
 			if err == nil && !test.ok {
 				t.Fatalf("parsing did not fail")
 			}
-			callArray := setToArray(calls)
+			callArray := slices.Sorted(maps.Keys(calls))
+			if callArray == nil {
+				callArray = []string{}
+			}
 			slices.Sort(test.calls)
 			if !reflect.DeepEqual(callArray, test.calls) {
 				t.Fatalf("got call set %+v, expect %+v", callArray, test.calls)
@@ -129,8 +124,8 @@ func TestCallSetRandom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CallSet failed: %v", err)
 		}
-		callArray0 := setToArray(calls0)
-		callArray1 := setToArray(calls1)
+		callArray0 := slices.Sorted(maps.Keys(calls0))
+		callArray1 := slices.Sorted(maps.Keys(calls1))
 		if !reflect.DeepEqual(callArray0, callArray1) {
 			t.Fatalf("got call set:\n%+v\nexpect:\n%+v", callArray1, callArray0)
 		}
