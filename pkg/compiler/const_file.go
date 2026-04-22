@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -103,12 +104,7 @@ func (cf *ConstFile) Serialize() []byte {
 	if len(cf.arches) == 0 {
 		return nil
 	}
-	var arches []string
-	for arch := range cf.arches {
-		arches = append(arches, arch)
-	}
-
-	slices.Sort(arches)
+	arches := slices.Sorted(maps.Keys(cf.arches))
 	var consts []constVal
 	for _, cv := range cf.m {
 		consts = append(consts, cv)
