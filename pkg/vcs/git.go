@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"net/mail"
 	"os"
 	"os/exec"
@@ -873,11 +874,7 @@ func (git Git) BaseForDiff(diff []byte, tracer debugtracer.DebugTracer) ([]*Base
 			tracer.Logf("hashes don't match for %q", noMatch)
 			continue
 		}
-		var branchList []string
-		for branch := range branches {
-			branchList = append(branchList, branch)
-		}
-		slices.Sort(branchList)
+		branchList := slices.Sorted(maps.Keys(branches))
 		info, err := git.Commit(commit)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract commit info: %w", err)
