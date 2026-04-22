@@ -8,7 +8,7 @@ The `aflow` package provides a structured way to define and execute workflows co
 and AI agents. It is used in `syzkaller` for high-level automated tasks such as:
 - **Patching**: Automatically generating and refining kernel patches.
 - **Moderation**: Assessing the impact and actionability of bug reports.
-- **Reproduction**: Finding ways to reproduce reported crashes.
+- **Reproduction**: Finding ways to reproduce reported crashes. See [crash-to-repro.md](docs/crash-to-repro.md) for the workflow's design document.
 - **Assessment**: Analyzing KCSAN reports for confidence and benignity.
 
 ### Core Concepts
