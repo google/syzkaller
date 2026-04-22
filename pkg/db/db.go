@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"slices"
 
@@ -332,11 +333,7 @@ func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err e
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database file: %w", err)
 	}
-	recordKeys := make([]string, 0, len(db.Records))
-	for key := range db.Records {
-		recordKeys = append(recordKeys, key)
-	}
-	slices.Sort(recordKeys)
+	recordKeys := slices.Sorted(maps.Keys(db.Records))
 	for _, key := range recordKeys {
 		p, err := target.Deserialize(db.Records[key].Val, prog.NonStrict)
 		if err != nil {
