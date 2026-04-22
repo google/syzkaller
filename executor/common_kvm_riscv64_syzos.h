@@ -17,6 +17,7 @@ typedef enum {
 	SYZOS_API_CODE = 10,
 	SYZOS_API_CSRR = 100,
 	SYZOS_API_CSRW = 101,
+	SYZOS_API_MEMOP = 110,
 	SYZOS_API_STOP, // Must be the last one
 } syzos_api_id;
 
@@ -29,6 +30,7 @@ GUEST_CODE static void guest_uexit(uint64 exit_code);
 GUEST_CODE static void guest_execute_code(uint32* insns, uint64 size);
 GUEST_CODE static void guest_handle_csrr(uint32 csr);
 GUEST_CODE static void guest_handle_csrw(uint32 csr, uint64 val);
+GUEST_CODE static void guest_handle_memop(struct api_call_5* cmd);
 
 // Main guest function that performs necessary setup and passes the control to the user-provided
 // payload.
@@ -64,6 +66,10 @@ guest_main(uint64 size, uint64 cpu)
 			// Execute a csrw instruction.
 			struct api_call_2* ccmd = (struct api_call_2*)cmd;
 			guest_handle_csrw(ccmd->args[0], ccmd->args[1]);
+		} else if (call == SYZOS_API_MEMOP) {
+			// Execute a memory operation.
+			struct api_call_5* ccmd = (struct api_call_5*)cmd;
+			guest_handle_memop(ccmd);
 		}
 		addr += cmd->size;
 		size -= cmd->size;
@@ -143,6 +149,61 @@ guest_handle_csrw(uint32 csr, uint64 val)
 	    :
 	    : "r"(val), "r"(insn)
 	    : "a0", "ra", "memory");
+}
+
+// Execute a memory operation.
+GUEST_CODE static noinline void
+guest_handle_memop(struct api_call_5* cmd)
+{
+	uint64 base_addr = cmd->args[0];
+	uint64 offset = cmd->args[1];
+	uint64 value = cmd->args[2];
+	uint64 len = cmd->args[3];
+	uint64 op = cmd->args[4];
+	uint64 addr = base_addr + offset;
+	asm volatile("fence rw, rw" ::: "memory");
+
+	// Write operation.
+	if (op == 1) {
+		if (len == 1) {
+			volatile uint8* p = (uint8*)addr;
+			*p = (uint8)value;
+		} else if (len == 2) {
+			volatile uint16* p = (uint16*)addr;
+			*p = (uint16)value;
+		} else if (len == 4) {
+			volatile uint32* p = (uint32*)addr;
+			*p = (uint32)value;
+		} else {
+			volatile uint64* p = (uint64*)addr;
+			*p = (uint64)value;
+		}
+		// Ensure write completion.
+		asm volatile("fence rw, rw" ::: "memory");
+	} else { // Read operation (op == 0).
+		uint64 result = 0;
+		if (len == 1) {
+			volatile uint8* p = (uint8*)addr;
+			result = *p;
+		} else if (len == 2) {
+			volatile uint16* p = (uint16*)addr;
+			result = *p;
+		} else if (len == 4) {
+			volatile uint32* p = (uint32*)addr;
+			result = *p;
+		} else {
+			volatile uint64* p = (uint64*)addr;
+			result = *p;
+		}
+		// Ensure read completion.
+		asm volatile("fence rw, rw" ::: "memory");
+		// Return read value in register sscratch.
+		asm volatile(
+		    "csrw sscratch, %0"
+		    :
+		    : "r"(result)
+		    : "memory");
+	}
 }
 
 // The exception vector table setup and SBI invocation here follow the

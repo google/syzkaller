@@ -1,0 +1,28 @@
+#
+# requires: arch=riscv64 -threaded
+#
+# This test verifies that SYZOS can execute memory operations
+# inside a RISC-V KVM guest.
+#
+r0 = openat$kvm(0, &AUTO='/dev/kvm\x00', 0x0, 0x0)
+r1 = ioctl$KVM_CREATE_VM(r0, AUTO, 0x0)
+r2 = syz_kvm_setup_syzos_vm$riscv64(r1, &(0x7f0000c00000/0x400000)=nil)
+
+# Write 0x12345678 to stack memory (RISCV64_ADDR_STACK_BASE = 0x80020000).
+# Then read it back. The read value will be stored in register a0.
+# Finally, trigger uexit with code -1.
+#
+r3 = syz_kvm_add_vcpu$riscv64(r2, &AUTO={0x0, &AUTO=[@memop={AUTO, AUTO, {0x80020000, 0x0, 0x12345678, 0x4, 0x1}}, @memop={AUTO, AUTO, {0x80020000, 0x0, 0x0, 0x4, 0x0}}, @uexit={AUTO, AUTO, 0xffffffffffffffff}], AUTO}, 0x0, 0x0)
+
+r4 = ioctl$KVM_GET_VCPU_MMAP_SIZE(r0, AUTO)
+r5 = mmap$KVM_VCPU(&(0x7f0000009000/0x1000)=nil, r4, 0x3, 0x1, r3, 0x0)
+
+# Run till uexit.
+#
+ioctl$KVM_RUN(r3, AUTO, 0x0)
+syz_kvm_assert_syzos_uexit$riscv64(r3, r5, 0xffffffffffffffff)
+
+# Verify that register sscratch contains the value we wrote (0x12345678).
+# Register ID for sscratch is 0x8030000003000003.
+#
+syz_kvm_assert_reg$riscv64(r3, 0x8030000003000003, 0x12345678)

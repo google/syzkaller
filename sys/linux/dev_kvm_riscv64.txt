@@ -78,11 +78,24 @@ riscv64_csr_or_any [
 # https://elixir.bootlin.com/linux/v6.19-rc5/source/arch/riscv/include/uapi/asm/kvm.h#L75 .
 riscv64_csr = 0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x180, 0x106, 0x10a
 
+# Valid lengths for memory operations.
+syzos_memop_len = 1, 2, 4, 8
+
+# Memory operation API.
+syzos_api_memop {
+	base	int64
+	offset	int64[0:4096]
+	value	int64
+	len	flags[syzos_memop_len, int64]
+	op	int8[0:1]
+}
+
 syzos_api_call$riscv64 [
 	uexit	syzos_api$riscv64[0, intptr]
 	code	syzos_api$riscv64[10, syzos_api_code$riscv64]
 	csrr	syzos_api$riscv64[100, syzos_api_csrr]
 	csrw	syzos_api$riscv64[101, syzos_api_csrw]
+	memop	syzos_api$riscv64[110, syzos_api_memop]
 ] [varlen]
 
 # Test assertions, will not be used by the fuzzer.
