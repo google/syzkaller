@@ -72,6 +72,7 @@ jobs:
           override_commit: ${{ github.event.workflow_run.head_sha }}
           override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
           verbose: true
+          disable_search: true
 
       - name: upload dashboard coverage
         uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
@@ -84,3 +85,4 @@ jobs:
           override_commit: ${{ github.event.workflow_run.head_sha }}
           override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
           verbose: true
+          disable_search: true
