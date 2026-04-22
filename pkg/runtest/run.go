@@ -16,6 +16,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -181,11 +182,7 @@ func (rt *Context) generatePrograms() error {
 	if rt.Features&flatrpc.FeatureCoverage != 0 {
 		cover = append(cover, true)
 	}
-	var sandboxes []string
-	for sandbox := range rt.EnabledCalls {
-		sandboxes = append(sandboxes, sandbox)
-	}
-	slices.Sort(sandboxes)
+	sandboxes := slices.Sorted(maps.Keys(rt.EnabledCalls))
 	files, err := progFileList(rt.Dir, rt.Tests)
 	if err != nil {
 		return err
