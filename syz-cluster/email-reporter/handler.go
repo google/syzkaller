@@ -115,7 +115,8 @@ func (h *Handler) report(ctx context.Context, rep *api.SessionReport) error {
 			Reporter:  h.reporter,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to record the reply: %w", err)
+			return fmt.Errorf("failed to record the reply for %s: %w",
+				msgID, err)
 		}
 	}
 	return nil
@@ -201,7 +202,7 @@ func (h *Handler) ProcessPolledEmail(ctx context.Context, polled *lore.PolledEma
 		Time:          parsed.Date,
 	})
 	if err != nil {
-		app.Errorf("email %q: failed to record reply: %v", parsed.MessageID, err)
+		return fmt.Errorf("failed to record reply: %w", err)
 	}
 	if res.ReportID == "" {
 		if len(parsed.BugIDs) == 0 {
