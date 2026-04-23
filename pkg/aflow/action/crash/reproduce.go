@@ -59,6 +59,8 @@ type RunTestResult struct {
 	// Per-call coverage, if requested with collectCoverage
 	// and the kernel has not crashed.
 	Coverage [][]symbolizer.Frame
+	// Raw console output from the VM run.
+	ConsoleOutput string
 }
 
 // RunTest boots the kernel and runs a single test program.
@@ -108,6 +110,10 @@ func RunTest(args ReproduceArgs, workdir string, collectCoverage bool) (RunTestR
 	if err != nil {
 		return res, err
 	}
+	if len(results) == 0 {
+		return res, fmt.Errorf("env.Test returned no results")
+	}
+	res.ConsoleOutput = string(results[0].RawOutput)
 	if err := results[0].Error; err != nil {
 		if crashErr := new(instance.CrashError); errors.As(err, &crashErr) {
 			res.Report = crashErr.Report

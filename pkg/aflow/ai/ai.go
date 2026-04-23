@@ -56,5 +56,8 @@ type ReproOutputs struct {
 }
 
 type ReproCOutputs struct {
-	ReproC string
+	ReproC                string
+	Reproduced            bool
+	ReproducedBugTitle    string
+	ReproducedCrashReport string
 }
