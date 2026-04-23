@@ -6,7 +6,7 @@ AI trajectory rendering, invoked with context containing .Trajectory and .Trajec
 */}}
 {{define "ai_trajectory"}}
 	<table class="list_table">
-		<caption>Trajectory:</caption>
+		<caption>Trajectory: (<a href="#" onclick="toggleAllDetails(); return false;">Expand/Collapse All</a>)</caption>
 		<thead><tr>
 			<th>Seq</th>
 			<th>Timestamp</th>
@@ -227,6 +227,14 @@ AI trajectory rendering, invoked with context containing .Trajectory and .Trajec
 
 			const chart = new google.visualization.ColumnChart(document.getElementById('token_chart_div'));
 			chart.draw(data, options);
+		}
+		let allExpanded = false;
+		function toggleAllDetails() {
+			allExpanded = !allExpanded;
+			document.querySelectorAll('details').forEach(d => {
+				if (allExpanded) d.setAttribute('open', '');
+				else d.removeAttribute('open');
+			});
 		}
 	</script>
 {{end}}
