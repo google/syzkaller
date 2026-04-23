@@ -10,8 +10,7 @@ import (
 )
 
 type ReproCInputs struct {
-	BugDescription  string
-	SyzkallerCommit string // Forwarded to output for debugging and provenance.
+	BugDescription string
 
 	KernelRepo   string
 	KernelCommit string

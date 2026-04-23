@@ -56,6 +56,5 @@ type ReproOutputs struct {
 }
 
 type ReproCOutputs struct {
-	ReproC          string
-	SyzkallerCommit string // Tracked for debugging and provenance.
+	ReproC string
 }
