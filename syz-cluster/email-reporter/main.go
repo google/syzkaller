@@ -82,9 +82,22 @@ func runConsumerLoop(ctx context.Context, msgCh <-chan *lore.PolledEmail, handle
 	for {
 		select {
 		case polled := <-msgCh:
-			err := handler.ProcessPolledEmail(ctx, polled)
-			if err != nil && !errors.Is(err, ErrOwnEmail) && !errors.Is(err, ErrUnknownReport) {
-				app.Errorf("failed to process email: %v", err)
+			delays := []time.Duration{30 * time.Second, time.Minute, 5 * time.Minute}
+			for attempt, delay := range delays {
+				err := handler.ProcessPolledEmail(ctx, polled)
+				if err == nil || errors.Is(err, ErrOwnEmail) || errors.Is(err, ErrUnknownReport) {
+					break
+				}
+				if attempt < len(delays) {
+					app.Errorf("failed to process email (attempt %d), retrying in %v: %v", attempt+1, delay, err)
+					select {
+					case <-ctx.Done():
+						return nil
+					case <-time.After(delay):
+					}
+				} else {
+					app.Errorf("failed to process email, giving up after %d attempts: %v", attempt+1, err)
+				}
 			}
 		case <-ctx.Done():
 			return nil
