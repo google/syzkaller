@@ -24,7 +24,10 @@ type PollerConfig struct {
 	URL       string
 	Tracer    debugtracer.DebugTracer
 	OwnEmails []string
-	now       func() time.Time // for testing
+	// Time window to poll on initial startup if no history is available.
+	// Defaults to 24 hours if not set.
+	LookbackPeriod time.Duration
+	now            func() time.Time // for testing
 }
 
 type PolledEmail struct {
@@ -46,6 +49,9 @@ func NewPoller(cfg PollerConfig) (*Poller, error) {
 	}
 	if cfg.now == nil {
 		cfg.now = time.Now
+	}
+	if cfg.LookbackPeriod == 0 {
+		cfg.LookbackPeriod = 24 * time.Hour
 	}
 	if cfg.RepoDir == "" {
 		return nil, fmt.Errorf("RepoDir must be specified")
@@ -74,7 +80,7 @@ func (p *Poller) Poll(ctx context.Context, out chan<- *PolledEmail) error {
 	if p.lastCommit != "" {
 		messages, err = ReadArchive(p.repo, p.lastCommit, time.Time{})
 	} else {
-		since := p.cfg.now().Add(-24 * time.Hour)
+		since := p.cfg.now().Add(-p.cfg.LookbackPeriod)
 		messages, err = ReadArchive(p.repo, "", since)
 	}
 	if err != nil {

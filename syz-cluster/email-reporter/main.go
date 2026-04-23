@@ -114,9 +114,10 @@ func MakeLorePoller(repoDir string, emailCfg *app.EmailConfig, msgCh chan *lore.
 		ownEmails = append(ownEmails, emailCfg.SMTP.From)
 	}
 	return lore.NewPoller(lore.PollerConfig{
-		RepoDir:   repoDir,
-		URL:       emailCfg.LoreArchiveURL,
-		OwnEmails: ownEmails,
-		Tracer:    &debugtracer.GenericTracer{TraceWriter: os.Stdout, WithTime: true},
+		RepoDir:        repoDir,
+		URL:            emailCfg.LoreArchiveURL,
+		OwnEmails:      ownEmails,
+		LookbackPeriod: 48 * time.Hour,
+		Tracer:         &debugtracer.GenericTracer{TraceWriter: os.Stdout, WithTime: true},
 	})
 }
