@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
@@ -134,15 +136,16 @@ func startJob(ctx context.Context, req *dashapi.AIJobPollReq, job *Job) (*spanne
 
 func cloneJob(ctx context.Context, orig *Job) *Job {
 	return &Job{
-		ID:          uuid.NewString(),
-		Created:     TimeNow(ctx),
-		Type:        orig.Type,
-		Workflow:    orig.Workflow,
-		Namespace:   orig.Namespace,
-		BugID:       orig.BugID,
-		Description: orig.Description,
-		Link:        orig.Link,
-		Args:        orig.Args,
+		ID:                uuid.NewString(),
+		Created:           TimeNow(ctx),
+		Type:              orig.Type,
+		Workflow:          orig.Workflow,
+		Namespace:         orig.Namespace,
+		BugID:             orig.BugID,
+		Description:       orig.Description,
+		Link:              orig.Link,
+		Args:              orig.Args,
+		ParentReportingID: orig.ParentReportingID,
 	}
 }
 
@@ -657,6 +660,345 @@ func LoadJobComments(ctx context.Context, jobID string) ([]*JobComment, error) {
 			`ORDER BY JobComments.Date ASC`,
 		Params: map[string]any{"jobID": jobID},
 	})
+}
+
+func LoadJobCommentsByReporting(ctx context.Context, reportingID string) ([]*JobComment, error) {
+	return selectAll[JobComment](ctx, spanner.Statement{
+		SQL:    selectAllFrom[JobComment]("JobComments") + ` WHERE ReportingID = @reportingID ORDER BY Date ASC`,
+		Params: map[string]any{"reportingID": reportingID},
+	})
+}
+
+type PendingCommentGroup struct {
+	ReportingID   string
+	LatestComment time.Time
+}
+
+func LoadPendingCommentGroups(ctx context.Context) ([]*PendingCommentGroup, error) {
+	return selectAll[PendingCommentGroup](ctx, spanner.Statement{
+		SQL: `SELECT ReportingID, MAX(Date) as LatestComment
+              FROM JobComments 
+              WHERE Processed = false 
+              GROUP BY ReportingID`,
+	})
+}
+
+func LoadJobReporting(ctx context.Context, id string) (*JobReporting, error) {
+	return selectOne[JobReporting](ctx, spanner.Statement{
+		SQL:    selectJobReporting() + `WHERE ID = @id`,
+		Params: map[string]any{"id": id},
+	})
+}
+
+func CreatePatchIterationJob(ctx context.Context, reportingID string, debounce time.Duration) (*Job, error) {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var job *Job
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		stmt := spanner.Statement{
+			SQL:    selectJobReporting() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": reportingID},
+		}
+		reporting, err := readRow[JobReporting](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if reporting == nil {
+			return ErrNotFound
+		}
+
+		// Optimize: Load comments first!
+		commentIDs, err := getUnprocessedComments(ctx, txn, reportingID)
+		if err != nil {
+			return err
+		}
+		if len(commentIDs) == 0 {
+			return nil // No work to do!
+		}
+
+		stmt = spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": reporting.JobID},
+		}
+		parentJob, err := readRow[Job](ctx, txn, stmt)
+		if err != nil {
+			return err
+		}
+		if parentJob == nil {
+			return ErrNotFound
+		}
+
+		running, err := hasRunningIterationJob(ctx, txn, reporting.ID)
+		if err != nil {
+			return err
+		}
+		if running {
+			return nil
+		}
+
+		newest, err := isNewestReport(ctx, txn, parentJob.BugID.StringVal, reporting.CreatedAt)
+		if err != nil {
+			return err
+		}
+		if !newest {
+			// Stale thread, drain queue.
+			// TODO: In the future, we actually want to run the iteration workflow for these,
+			// but only reply to comments, no new patch generation.
+			if err := markCommentsProcessedTx(txn, commentIDs); err != nil {
+				return err
+			}
+			return nil // Abort job creation.
+		}
+
+		inBackoff, err := checkBackoff(ctx, txn, reporting.ID)
+		if err != nil {
+			return err
+		}
+		if inBackoff {
+			return nil
+		}
+
+		// Merge Args.
+		argsMap := make(map[string]any)
+		if parentJob.Args.Valid {
+			if m, ok := parentJob.Args.Value.(map[string]any); ok {
+				argsMap = maps.Clone(m)
+			}
+		}
+		argsMap["TargetCommentIDs"] = commentIDs
+
+		job = &Job{
+			ID:                uuid.NewString(),
+			Created:           TimeNow(ctx),
+			Type:              ai.WorkflowPatchIteration,
+			Workflow:          string(ai.WorkflowPatchIteration),
+			Namespace:         parentJob.Namespace,
+			BugID:             parentJob.BugID,
+			Description:       fmt.Sprintf("Iteration on %s", parentJob.ID),
+			Link:              parentJob.Link,
+			ParentReportingID: spanner.NullString{StringVal: reporting.ID, Valid: true},
+			Args:              toNullJSON(argsMap),
+		}
+
+		mut, err := spanner.InsertStruct("Jobs", job)
+		if err != nil {
+			return err
+		}
+		return txn.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return job, err
+}
+
+func hasRunningIterationJob(ctx context.Context, txn *spanner.ReadWriteTransaction,
+	parentReportingID string) (bool, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT ID FROM Jobs 
+              WHERE ParentReportingID = @parentReportingID 
+                AND Type = @type 
+                AND Finished IS NULL 
+              LIMIT 1`,
+		Params: map[string]any{
+			"parentReportingID": parentReportingID,
+			"type":              string(ai.WorkflowPatchIteration),
+		},
+	}
+	row, err := readRow[struct{ ID string }](ctx, txn, stmt)
+	if err != nil {
+		return false, err
+	}
+	return row != nil, nil
+}
+
+// isNewestReport verifies if the given reporting is the newest one for the bug.
+// Returns true if no newer reporting exists.
+func isNewestReport(ctx context.Context, txn *spanner.ReadWriteTransaction,
+	bugID string, createdAt time.Time) (bool, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT JobReporting.ID FROM JobReporting
+              JOIN Jobs ON JobReporting.JobID = Jobs.ID
+              WHERE Jobs.BugID = @bugID
+                AND JobReporting.CreatedAt > @createdAt
+                AND JSON_VALUE(Jobs.Results, '$.PatchDiff') > ''
+              LIMIT 1`,
+		Params: map[string]any{
+			"bugID":     bugID,
+			"createdAt": createdAt,
+		},
+	}
+	row, err := readRow[struct{ ID string }](ctx, txn, stmt)
+	if err != nil {
+		return false, err
+	}
+	return row == nil, nil
+}
+
+// checkBackoff calculates an exponential backoff period if the latest iteration job failed.
+// It counts the number of failed iteration jobs for this reporting to determine the backoff duration.
+// Returns true if the backoff period hasn't elapsed yet, indicating we should not create a new job.
+func checkBackoff(ctx context.Context, txn *spanner.ReadWriteTransaction, parentReportingID string) (bool, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT Finished, Error FROM Jobs 
+              WHERE ParentReportingID = @parentReportingID 
+                AND Type = @type 
+              ORDER BY Created DESC LIMIT 1`,
+		Params: map[string]any{
+			"parentReportingID": parentReportingID,
+			"type":              string(ai.WorkflowPatchIteration),
+		},
+	}
+	lastJob, err := readRow[struct {
+		Finished spanner.NullTime
+		Error    string
+	}](ctx, txn, stmt)
+	if err != nil {
+		return false, err
+	}
+	if lastJob != nil && lastJob.Finished.Valid && lastJob.Error != "" {
+		stmt = spanner.Statement{
+			SQL: `SELECT COUNT(1) FROM Jobs 
+                  WHERE ParentReportingID = @parentReportingID 
+                    AND Type = @type 
+                    AND Error != ''`,
+			Params: map[string]any{
+				"parentReportingID": parentReportingID,
+				"type":              string(ai.WorkflowPatchIteration),
+			},
+		}
+		countIter := txn.Query(ctx, stmt)
+		defer countIter.Stop()
+		var failCount int64
+		if countRow, err := countIter.Next(); err == nil {
+			if err := countRow.Column(0, &failCount); err != nil {
+				return false, err
+			}
+		}
+
+		// Exponential backoff based on failure count:
+		// 1 fail = 1 hour
+		// 2 fails = 6 hours
+		// 3+ fails = 12 hours
+		var backoff time.Duration
+		switch failCount {
+		case 0:
+			backoff = 0
+		case 1:
+			backoff = time.Hour
+		case 2:
+			backoff = 6 * time.Hour
+		default:
+			backoff = 12 * time.Hour
+		}
+
+		if TimeNow(ctx).Sub(lastJob.Finished.Time) < backoff {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func getUnprocessedComments(ctx context.Context, txn *spanner.ReadWriteTransaction,
+	reportingID string) ([]string, error) {
+	stmt := spanner.Statement{
+		SQL: `SELECT ID FROM JobComments
+              WHERE ReportingID = @reportingID AND Processed = false`,
+		Params: map[string]any{"reportingID": reportingID},
+	}
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+	var commentIDs []string
+	if err := spanner.SelectAll(iter, &commentIDs); err != nil {
+		return nil, err
+	}
+	return commentIDs, nil
+}
+
+func markCommentsProcessedTx(txn *spanner.ReadWriteTransaction, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	var mutations []*spanner.Mutation
+	for _, id := range ids {
+		mutations = append(mutations, spanner.Update("JobComments", []string{"ID", "Processed"}, []any{id, true}))
+	}
+	return txn.BufferWrite(mutations)
+}
+
+func IterationJobDone(ctx context.Context, jobID string, commentIDs []string,
+	parentReportingID string, hasPatch bool) error {
+	client, err := dbClient(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = client.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
+		// 1. Load parent reporting to get CreatedAt, JobID, Stage, and Source.
+		stmt := spanner.Statement{
+			SQL:    selectJobReporting() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": parentReportingID},
+		}
+		parentRep, err := readRow[JobReporting](ctx, tx, stmt)
+		if err != nil {
+			return err
+		}
+		if parentRep == nil {
+			return ErrNotFound
+		}
+
+		nextVersion := 1
+		if parentRep.Version.Valid {
+			nextVersion = int(parentRep.Version.Int64)
+		}
+		if hasPatch {
+			nextVersion++
+		}
+
+		// 2. Load parent job to get BugID.
+		stmt = spanner.Statement{
+			SQL:    selectJobs() + ` WHERE ID = @id`,
+			Params: map[string]any{"id": parentRep.JobID},
+		}
+		parentJob, err := readRow[Job](ctx, tx, stmt)
+		if err != nil {
+			return err
+		}
+		if parentJob == nil {
+			return ErrNotFound
+		}
+
+		// 3. Check if a newer reporting exists for the same bug.
+		newest, err := isNewestReport(ctx, tx, parentJob.BugID.StringVal, parentRep.CreatedAt)
+		if err != nil {
+			return err
+		}
+		if !newest {
+			// A newer reporting exists! Abort results but mark comments processed.
+			if err := markCommentsProcessedTx(tx, commentIDs); err != nil {
+				return err
+			}
+			return nil // Commit comment updates, skip reporting.
+		}
+
+		if err := markCommentsProcessedTx(tx, commentIDs); err != nil {
+			return err
+		}
+
+		reporting := &JobReporting{
+			ID:        uuid.NewString(),
+			JobID:     jobID,
+			Stage:     parentRep.Stage,
+			Source:    parentRep.Source,
+			Version:   spanner.NullInt64{Int64: int64(nextVersion), Valid: true},
+			CreatedAt: TimeNow(ctx),
+		}
+
+		mut, err := spanner.InsertStruct("JobReporting", reporting)
+		if err != nil {
+			return err
+		}
+		return tx.BufferWrite([]*spanner.Mutation{mut})
+	})
+	return err
 }
 
 func JobReportingPublished(ctx context.Context, id, extID string) error {

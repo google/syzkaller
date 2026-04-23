@@ -388,6 +388,45 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	assert.Equal(t, "syzbot@testapp.appspotmail.com", botComment.Author)
 	assert.Contains(t, botComment.BodyURI, "This is a generated bot reply.")
 	assert.True(t, botComment.OwnEmail)
+	// Should be automatically processed to avoid loops.
+	assert.True(t, botComment.Processed)
+
+	// 5. Complete the iteration job to verify CC behavior on replies.
+	// Advance time to pass the debounce logic so the iteration job gets created.
+	c.advanceTime(31 * time.Minute)
+
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: resp.ID,
+		Results: map[string]any{
+			"Replies": []map[string]any{
+				{"ReplyTo": "<comment1>", "Text": "I will fix it."},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// 6. Poll Dashboard again - lore-relay should send the aggregated reply.
+	err = relay.PollDashboardOnce(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, mockSnd.sent, 2)
+	// The original author should be merged directly into the To list.
+	assert.Equal(t, []string{"moderation@test.com", "reviewer@email.com"}, mockSnd.sent[1].To)
+	// And they should be completely subtracted from the CC list.
+	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[1].Cc)
+	assert.Equal(t, "Aggregated Comment Reply", mockSnd.sent[1].Subject)
+	assert.Equal(t, "<comment1>", mockSnd.sent[1].InReplyTo)
 }
 
 type integrationMockSender struct {
