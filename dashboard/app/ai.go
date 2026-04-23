@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"maps"
+	"math/rand"
 	"net/http"
 	"slices"
 	"sort"
@@ -832,6 +833,15 @@ func apiAIJobPoll(ctx context.Context, req *dashapi.AIJobPollReq) (any, error) {
 	if textErr != nil {
 		return nil, textErr
 	}
+
+	if job.Type == ai.WorkflowPatchIteration {
+		history, err := buildPatchHistory(ctx, job)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build patch history: %w", err)
+		}
+		args["PatchHistory"] = history
+	}
+
 	return &dashapi.AIJobPollResp{
 		ID:       job.ID,
 		Workflow: job.Workflow,
@@ -854,14 +864,44 @@ func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient)
 	if job != nil {
 		return job, nil
 	}
-	if created, err := autoCreateAIJobs(ctx, req.Workflows, client); err != nil || !created {
-		return nil, err
+	if _, err := autoCreatePatchIterationJobs(ctx); err != nil {
+		return nil, fmt.Errorf("autoCreatePatchIterationJobs failed: %w", err)
+	}
+	if _, err := autoCreateAIJobs(ctx, req.Workflows, client); err != nil {
+		return nil, fmt.Errorf("autoCreateAIJobs failed: %w", err)
 	}
 	job, err = aidb.StartJob(ctx, req, client.AIJobNamespaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed StartJob after autoCreate: %w", err)
 	}
 	return job, nil
+}
+
+func finishIterationJob(ctx context.Context, job *aidb.Job) error {
+	if !job.Finished.Valid || job.Error != "" {
+		return nil
+	}
+
+	var args PatchIterationArgs
+	if m, ok := job.Args.Value.(map[string]any); ok {
+		if ids, _ := m["TargetCommentIDs"].([]any); ids != nil {
+			for _, id := range ids {
+				if s, ok := id.(string); ok {
+					args.TargetCommentIDs = append(args.TargetCommentIDs, s)
+				}
+			}
+		}
+	}
+
+	res, _ := job.Results.Value.(map[string]any)
+	diff, _ := res["PatchDiff"].(string)
+	hasPatch := diff != ""
+
+	err := aidb.IterationJobDone(ctx, job.ID, args.TargetCommentIDs, job.ParentReportingID.StringVal, hasPatch)
+	if err != nil {
+		log.Errorf(ctx, "failed to finalize iteration job %v: %v", job.ID, err)
+	}
+	return err
 }
 
 func checkAiJobAccess(ctx context.Context, jobID string) (*aidb.Job, error) {
@@ -874,6 +914,10 @@ func checkAiJobAccess(ctx context.Context, jobID string) (*aidb.Job, error) {
 		return nil, fmt.Errorf("client not authorized for namespace %q", job.Namespace)
 	}
 	return job, nil
+}
+
+type PatchIterationArgs struct {
+	TargetCommentIDs []string
 }
 
 func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
@@ -895,6 +939,12 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 	}
 	if err = aiJobApplyLabels(ctx, job); err != nil {
 		return nil, err
+	}
+	if job.Type == ai.WorkflowPatchIteration {
+		if err := finishIterationJob(ctx, job); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
 	if !shouldReportJob(job) {
 		return nil, nil
@@ -1157,6 +1207,134 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		Link:        fmt.Sprintf("/bug?id=%v", bug.keyHash(ctx)),
 		Args:        spanner.NullJSON{Valid: true, Value: args},
 	})
+}
+
+const patchIterationDebounce = 30 * time.Minute
+const maxIterationGroupsPerPoll = 5
+
+// TODO: We could probably be more smart at avoiding looking into the specific
+// reportings each time, e.g. in case of retrials on errors.
+func autoCreatePatchIterationJobs(ctx context.Context) (bool, error) {
+	groups, err := aidb.LoadPendingCommentGroups(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to load pending comment groups: %w", err)
+	}
+	// If there are too many, pick a random subset.
+	if len(groups) > maxIterationGroupsPerPoll {
+		r := rand.New(rand.NewSource(timeNow(ctx).UnixNano()))
+		r.Shuffle(len(groups), func(i, j int) {
+			groups[i], groups[j] = groups[j], groups[i]
+		})
+		groups = groups[:maxIterationGroupsPerPoll]
+	}
+	for _, g := range groups {
+		if timeNow(ctx).Sub(g.LatestComment) < patchIterationDebounce {
+			continue
+		}
+		created, err := tryCreatePatchIterationJob(ctx, g)
+		if err != nil {
+			log.Errorf(ctx, "tryCreatePatchIterationJob failed: %v", err)
+		} else if created {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func tryCreatePatchIterationJob(ctx context.Context, g *aidb.PendingCommentGroup) (bool, error) {
+	job, err := aidb.CreatePatchIterationJob(ctx, g.ReportingID, patchIterationDebounce)
+	if err != nil {
+		return false, fmt.Errorf("failed to create patch iteration job for %s: %w", g.ReportingID, err)
+	}
+	return job != nil, nil
+}
+
+func buildPatchHistory(ctx context.Context, job *aidb.Job) ([]ai.PatchHistoryEntry, error) {
+	if !job.ParentReportingID.Valid {
+		return nil, nil
+	}
+	reportingID := job.ParentReportingID.StringVal
+	reporting, err := aidb.LoadJobReporting(ctx, reportingID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load reporting %s: %w", reportingID, err)
+	}
+	if reporting == nil {
+		return nil, nil
+	}
+
+	parentDiff, parentDesc := findLatestPatch(ctx, reporting.JobID)
+
+	comments, err := aidb.LoadJobCommentsByReporting(ctx, reportingID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load comments for %s: %w", reportingID, err)
+	}
+
+	var uris []string
+	for _, c := range comments {
+		if c.BodyURI != "" {
+			uris = append(uris, c.BodyURI)
+		}
+	}
+	bodies, err := loadContent(ctx, uris)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load comment bodies: %w", err)
+	}
+	targetIDs := make(map[string]bool)
+	if m, ok := job.Args.Value.(map[string]any); ok {
+		if ids, _ := m["TargetCommentIDs"].([]any); ids != nil {
+			for _, id := range ids {
+				if s, ok := id.(string); ok {
+					targetIDs[s] = true
+				}
+			}
+		}
+	}
+
+	var commentsInfo []ai.ExternalComment
+	for _, c := range comments {
+		isTarget := false
+		if len(targetIDs) > 0 {
+			isTarget = targetIDs[c.ID]
+		} else {
+			isTarget = !c.Processed
+		}
+
+		if !c.Processed && !isTarget {
+			// This comment arrived after the job was created, or is not meant to be processed by this job.
+			continue
+		}
+
+		commentsInfo = append(commentsInfo, ai.ExternalComment{
+			ExtID:     c.ExtID,
+			Author:    c.Author,
+			Body:      bodies[c.BodyURI],
+			Timestamp: c.Date,
+			BotReply:  c.OwnEmail,
+			New:       isTarget,
+		})
+	}
+	return []ai.PatchHistoryEntry{
+		{
+			Version:     int(reporting.Version.Int64),
+			Diff:        parentDiff,
+			Description: parentDesc,
+			Comments:    commentsInfo,
+		},
+	}, nil
+}
+
+func findLatestPatch(ctx context.Context, jobID string) (diff, desc string) {
+	j, err := aidb.LoadJob(ctx, jobID)
+	if err != nil || j == nil {
+		return "", ""
+	}
+	if j.Results.Valid {
+		if m, ok := j.Results.Value.(map[string]any); ok {
+			diff, _ = m["PatchDiff"].(string)
+			desc, _ = m["PatchDescription"].(string)
+		}
+	}
+	return diff, desc
 }
 
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.

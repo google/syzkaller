@@ -63,6 +63,16 @@ func handleUpstreamCommand(ctx context.Context, req *dashapi.SendExternalCommand
 
 func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 	currentReporting *aidb.JobReporting, req *dashapi.SendExternalCommandReq) error {
+	// Prevent upstreaming if the job didn't actually produce a patch (e.g. reply-only iteration).
+	if job.Results.Valid {
+		if res, ok := job.Results.Value.(map[string]any); ok {
+			diff, _ := res["PatchDiff"].(string)
+			if diff == "" && (job.Type == ai.WorkflowPatching || job.Type == ai.WorkflowPatchIteration) {
+				return &aidb.ErrCannotUpstream{Reason: "Cannot upstream a job that did not produce a patch."}
+			}
+		}
+	}
+
 	nsCfg := getNsConfig(ctx, job.Namespace)
 	if nsCfg.AI == nil || len(nsCfg.AI.Stages) == 0 {
 		return aidb.UpstreamReportCommand(ctx, aidb.UpstreamReportArgs{
@@ -90,6 +100,7 @@ func processUpstreamSubcommand(ctx context.Context, job *aidb.Job,
 			Stage:        nextStage,
 			Source:       nextStageCfg.ServingIntegration,
 			UpstreamedAt: spanner.NullTime{Time: aidb.TimeNow(ctx), Valid: true},
+			Version:      spanner.NullInt64{Int64: 1, Valid: true},
 		},
 		NoParallel:    nextStageCfg.NoParallelReports,
 		CommandSource: string(req.Source),
@@ -182,34 +193,59 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			continue
 		}
 		stageCfg := &nsCfg.AI.Stages[idx]
-		if job.Type != ai.WorkflowPatching {
+		if job.Type != ai.WorkflowPatching && job.Type != ai.WorkflowPatchIteration {
 			log.Errorf(ctx, "unsupported job type for external reporting: %s (job %v)", job.Type, job.ID)
 			return nil, fmt.Errorf("unsupported job type: %s", job.Type)
 		}
-		patchResult, err := makeNewReportResult(ctx, job)
-		if err != nil {
-			return nil, err
+
+		var patchResult *dashapi.NewReportResult
+		var replies []*dashapi.ReplyResult
+
+		version := 1
+		if r.Version.Valid {
+			version = int(r.Version.Int64)
 		}
+
+		switch job.Type {
+		case ai.WorkflowPatching:
+			patchResult, err = makeNewReportResult(ctx, job, version)
+			if err != nil {
+				return nil, err
+			}
+		case ai.WorkflowPatchIteration:
+			patchResult, replies, err = makeIterationReportResult(ctx, job, version)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		to := []string{stageCfg.MailingList}
 		var cc []string
-		if stageCfg.MergePatchCc {
+		if stageCfg.MergePatchCc && patchResult != nil {
 			to = append(to, patchResult.To...)
 			cc = append(cc, patchResult.Cc...)
 		}
+
+		canUpstream := idx < len(nsCfg.AI.Stages)-1
+		if patchResult == nil {
+			canUpstream = false
+		}
+
 		return &dashapi.PollExternalReportResp{
 			Result: &dashapi.ReportPollResult{
 				ID:          r.ID,
-				CanUpstream: idx < len(nsCfg.AI.Stages)-1,
+				CanUpstream: canUpstream,
 				To:          to,
 				Cc:          cc,
 				Patch:       patchResult,
+				Replies:     replies,
 			},
 		}, nil
 	}
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job) (*dashapi.NewReportResult, error) {
+func makeNewReportResult(ctx context.Context, job *aidb.Job, version int) (*dashapi.NewReportResult, error) {
 	res, err := castJobResults[ai.PatchingOutputs](job)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast job results: %w", err)
@@ -247,11 +283,50 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job) (*dashapi.NewReport
 		GitDiff:    res.PatchDiff,
 		BaseCommit: res.KernelCommit,
 		BaseTree:   res.KernelRepo,
-		Version:    1, // TODO: track and increase it.
+		Version:    version,
 		To:         to,
 		Cc:         cc,
 		Tools:      slices.Collect(maps.Keys(models)),
 	}, nil
+}
+
+func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
+) (*dashapi.NewReportResult, []*dashapi.ReplyResult, error) {
+	res, err := castJobResults[ai.PatchIterationOutputs](job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to cast job results: %w", err)
+	}
+	var patchResult *dashapi.NewReportResult
+	var replies []*dashapi.ReplyResult
+
+	if res.PatchDiff != "" {
+		var err error
+		patchResult, err = makeNewReportResult(ctx, job, version)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else if len(res.Replies) > 0 {
+		var comments []*aidb.JobComment
+		if job.ParentReportingID.Valid {
+			comments, _ = aidb.LoadJobCommentsByReporting(ctx, job.ParentReportingID.StringVal)
+		}
+
+		for _, r := range res.Replies {
+			author := ""
+			for _, c := range comments {
+				if c.ExtID == r.ReplyTo {
+					author = c.Author
+					break
+				}
+			}
+			replies = append(replies, &dashapi.ReplyResult{
+				Body:        r.Text,
+				ReplyExtID:  r.ReplyTo,
+				ReplyAuthor: author,
+			})
+		}
+	}
+	return patchResult, replies, nil
 }
 
 func apiAIConfirmReport(ctx context.Context, req *dashapi.ConfirmPublishedReq) (any, error) {
@@ -305,6 +380,7 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 		BodyURI:     fmt.Sprintf("text://%v", textID),
 		Date:        aidb.TimeNow(ctx),
 		OwnEmail:    req.OwnEmail,
+		Processed:   req.OwnEmail,
 	})
 	if err != nil {
 		return nil, err

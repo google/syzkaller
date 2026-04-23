@@ -49,20 +49,19 @@ type Job struct {
 	Namespace string
 	BugID     spanner.NullString // set if the job related to some bug
 	// Arbitrary description/link shown in the UI list of jobs.
-	Description  string
-	Link         string
-	Created      time.Time
-	Started      spanner.NullTime
-	Finished     spanner.NullTime
-	CodeRevision string // syzkaller revision, filled when the job is started
-	Error        string // for finished jobs
-	AgentName    spanner.NullString
-	Args         spanner.NullJSON
-	Results      spanner.NullJSON
-	Correct      spanner.NullBool
-	Aborted      bool
-	ParentJobID  spanner.NullString
-	Version      spanner.NullInt64
+	Description       string
+	Link              string
+	Created           time.Time
+	Started           spanner.NullTime
+	Finished          spanner.NullTime
+	CodeRevision      string // syzkaller revision, filled when the job is started
+	Error             string // for finished jobs
+	AgentName         spanner.NullString
+	Args              spanner.NullJSON
+	Results           spanner.NullJSON
+	Correct           spanner.NullBool
+	Aborted           bool
+	ParentReportingID spanner.NullString
 }
 
 type TrajectorySpan struct {
@@ -107,6 +106,7 @@ type JobReporting struct {
 	ReportedAt   spanner.NullTime
 	UpstreamedAt spanner.NullTime
 	ExtID        spanner.NullString
+	Version      spanner.NullInt64
 	CreatedAt    time.Time
 }
 
@@ -118,4 +118,5 @@ type JobComment struct {
 	BodyURI     string
 	Date        time.Time
 	OwnEmail    bool
+	Processed   bool
 }
