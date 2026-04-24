@@ -11,7 +11,7 @@ import (
 	"github.com/google/syzkaller/pkg/clangtool"
 	"github.com/google/syzkaller/pkg/codesearch"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/tools/clang/codesearch"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/codesearch"
 )
 
 var (
@@ -167,7 +167,7 @@ func prepare(ctx *aflow.Context, args prepareArgs) (prepareResult, error) {
 			KernelObj: args.KernelObj,
 			CacheFile: filepath.Join(dir, "index.json"),
 		}
-		_, err := clangtool.Run[codesearch.Database](cfg)
+		_, _, err := clangtool.Run[codesearch.Database](cfg)
 		return err
 	})
 	if err != nil {

@@ -29,7 +29,7 @@ import (
 	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/tools/clang/declextract"
+	clangtoolimpl "github.com/google/syzkaller/tools/clang/declextract"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -60,8 +60,10 @@ func main() {
 			KernelSrc:  mgrcfg.KernelSrc,
 			KernelObj:  mgrcfg.KernelObj,
 			CacheFile:  filepath.Join(mgrcfg.Workdir, "declextract.cache"),
+			Fallback:   true,
 			DebugTrace: os.Stderr,
 		},
+
 	}
 	if _, err := run(cfg); err != nil {
 		tool.Fail(err)
@@ -151,7 +153,7 @@ func prepare(cfg *config) (*declextract.Output, *ifaceprobe.Info, []*cover.FileC
 	var out *declextract.Output
 	eg.Go(func() error {
 		var err error
-		out, err = clangtool.Run[declextract.Output](cfg.Config)
+		out, _, err = clangtool.Run[declextract.Output](cfg.Config)
 		if err != nil {
 			return err
 		}

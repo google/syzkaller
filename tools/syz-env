@@ -50,7 +50,7 @@ for ARG in "$@"; do
 		fi
 	done <<< "$ARG"
 done
-if [ "$CI" == "" ]; then
+if [ "$CI" == "" ] && [ -t 0 ]; then
 	# This gives interactive shell and allows to abort commands with Ctrl+C.
 	DOCKERARGS+=" -it"
 fi
@@ -84,6 +84,11 @@ else
 fi
 
 # Run everything as the host user, this is important for created/modified files.
+echo "DEBUG: PRE DOCKER RUN"
+if [ -t 0 ]; then
+	DOCKERARGS="$DOCKERARGS -it"
+fi
+echo "DEBUG: CI: '$CI'"
 docker run \
 	--rm \
 	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
@@ -94,6 +99,7 @@ docker run \
 	--env GOPATH=/syzkaller/gopath:/gopath \
 	--env GOPROXY \
 	--env FUZZIT_API_KEY \
+	--env GOOGLE_API_KEY \
 	--env GITHUB_REF \
 	--env GITHUB_SHA \
 	--env GITHUB_PR_HEAD_SHA \

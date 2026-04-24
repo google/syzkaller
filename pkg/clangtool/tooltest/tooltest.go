@@ -27,7 +27,7 @@ func TestClangTool[Output any, OutputPtr clangtool.OutputDataPtr[Output]](t *tes
 		t.Skip("clang tools can only be tested on linux")
 	}
 	ForEachTestFile(t, tool, func(t *testing.T, cfg *clangtool.Config, file string) {
-		out, err := clangtool.Run[Output, OutputPtr](cfg)
+		out, _, err := clangtool.Run[Output, OutputPtr](cfg)
 		if err != nil {
 			t.Fatal(err)
 		}
