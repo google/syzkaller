@@ -213,9 +213,23 @@ func (git *gitRepo) clone(repo, branch string) error {
 
 func (git *gitRepo) repair() error {
 	if err := git.Reset(); err != nil {
+		if isDubiousOwnershipError(err) {
+			log.Logf(0, "git: dubious ownership error at %v, re-initializing repo: %v", git.Dir, err)
+		}
 		return git.initRepo(err)
 	}
 	return nil
+}
+
+// isDubiousOwnershipError returns true when git refuses to operate because the
+// repository directory is owned by a different user than the one running git.
+// This was introduced as a security measure in Git 2.35.2.
+func isDubiousOwnershipError(err error) bool {
+	var verbose *osutil.VerboseError
+	if errors.As(err, &verbose) {
+		return bytes.Contains(verbose.Output, []byte("dubious ownership"))
+	}
+	return false
 }
 
 func (git *gitRepo) initRepo(reason error) error {
@@ -618,7 +632,13 @@ func (git Git) Run(args ...string) ([]byte, error) {
 }
 
 func (git Git) command(args ...string) (*exec.Cmd, error) {
-	cmd := osutil.Command("git", args...)
+	// Prepend -c safe.directory=<dir> so that git does not refuse to operate
+	// on repositories whose on-disk owner differs from the calling user.
+	// This can happen when syzkaller runs as root, chowns the repo directory
+	// to a sandbox user, and then invokes git under that sandbox user's
+	// credentials (or vice-versa after a restart).
+	safeArgs := append([]string{"-c", "safe.directory=" + git.Dir}, args...)
+	cmd := osutil.Command("git", safeArgs...)
 	cmd.Dir = git.Dir
 	cmd.Env = git.Env
 	if git.Sandbox {
