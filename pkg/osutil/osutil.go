@@ -91,6 +91,10 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 func CommandContext(ctx context.Context, bin string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	setPdeathsig(cmd, true)
+	cmd.Cancel = func() error {
+		killPgroup(cmd)
+		return nil
+	}
 	return cmd
 }
 
