@@ -266,7 +266,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 
 func (inst *instance) Close() error {
 	close(inst.closed)
-	err := inst.GCE.DeleteInstance(inst.name, false)
+	err := inst.GCE.DeleteInstance(inst.name, true)
 	if inst.consolew != nil {
 		err2 := inst.consolew.Close()
 		if err == nil {
