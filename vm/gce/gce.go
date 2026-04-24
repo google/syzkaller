@@ -33,7 +33,6 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
-	"google.golang.org/api/googleapi"
 )
 
 func init() {
@@ -194,6 +193,10 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
+	log.Logf(0, "deleting instance: %v", name)
+	if err := pool.GCE.DeleteInstance(name, true); err != nil {
+		return nil, err
+	}
 	log.Logf(0, "creating instance: %v", name)
 	instCfg := &gce.InstanceConfig{
 		Name:                 name,
@@ -208,13 +211,6 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		VMRunningTime:        pool.env.Timeouts.VMRunningTime,
 	}
 	ip, err := pool.GCE.CreateInstance(instCfg)
-	var apiErr *googleapi.Error
-	if errors.As(err, &apiErr) && apiErr.Code == 409 {
-		log.Logf(0, "deleting existing instance due to conflict: %v", name)
-		if err = pool.GCE.DeleteInstance(name, true); err == nil {
-			ip, err = pool.GCE.CreateInstance(instCfg)
-		}
-	}
 	if err != nil {
 		return nil, err
 	}
