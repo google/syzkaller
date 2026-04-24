@@ -57,6 +57,11 @@ type Config struct {
 	SyzkallerDescriptions string
 	Targets               map[Target]bool
 	MakeTargets           []string // host make targets to build besides the targets-specific ones
+	// ValidateConfigs is an optional callback invoked after a successful build to verify
+	// that the deployment configuration is still compatible with the newly built binaries.
+	// syzkallerDir is the directory containing the freshly built syzkaller tree.
+	// If it returns an error the build is rejected and treated as a build failure.
+	ValidateConfigs func(syzkallerDir string) error
 }
 
 type Target struct {
@@ -307,6 +312,11 @@ func (upd *Updater) build(commit *vcs.Commit) error {
 	}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("testing failed: %w", err)
+	}
+	if upd.cfg.ValidateConfigs != nil {
+		if err := upd.cfg.ValidateConfigs(upd.syzkallerDir); err != nil {
+			return fmt.Errorf("config validation failed: %w", err)
+		}
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
