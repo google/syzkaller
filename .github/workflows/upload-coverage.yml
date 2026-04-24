@@ -65,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUM=$(gh pr list --repo ${{ github.event.workflow_run.repository.full_name }} --commit ${{ github.event.workflow_run.head_sha }} --json number --jq '.[0].number')
+          PR_NUM=$(gh pr list --repo ${{ github.event.workflow_run.repository.full_name }} --search "${{ github.event.workflow_run.head_sha }}" -s all --json number --jq '.[0].number')
           if [ -n "$PR_NUM" ] && [ "$PR_NUM" != "null" ]; then
             echo "number=$PR_NUM" >> $GITHUB_OUTPUT
           else
