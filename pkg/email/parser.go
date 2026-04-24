@@ -144,20 +144,17 @@ func Parse(r io.Reader, ownEmails, goodLists, domains []string) (*Email, error) 
 	subject := decodeSubject(msg.Header.Get("Subject"))
 	var cmds []*SingleCommand
 	var patch string
-	if !fromMe {
-		for _, a := range attachments {
-			patch = ParsePatch(a)
-			if patch != "" {
-				break
-			}
+	for _, a := range attachments {
+		patch = ParsePatch(a)
+		if patch != "" {
+			break
 		}
-		if patch == "" {
-			patch = ParsePatch(body)
-		}
-		cmds = extractCommands(subject + "\n" + bodyStr)
 	}
+	if patch == "" {
+		patch = ParsePatch(body)
+	}
+	cmds = extractCommands(subject + "\n" + bodyStr)
 	bugIDs = append(bugIDs, extractBodyBugIDs(bodyStr, ownAddrs, domains)...)
-
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
 		link = bodyStr[match[2]:match[3]]
