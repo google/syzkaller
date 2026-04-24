@@ -6,6 +6,7 @@ package vcs
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -694,7 +695,9 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 		args = append(args, "--grep", grep)
 	}
 	args = append(args, base)
-	cmd := exec.Command("git", args...)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cmd := osutil.CommandContext(ctx, "git", args...)
 	cmd.Dir = git.Dir
 	cmd.Env = filterEnv()
 	if git.Sandbox {
@@ -710,7 +713,6 @@ func (git Git) fetchCommits(since, base, user, domain string, greps []string, fi
 		return nil, err
 	}
 	defer cmd.Wait()
-	defer cmd.Process.Kill()
 	var (
 		s           = bufio.NewScanner(stdout)
 		buf         = new(bytes.Buffer)

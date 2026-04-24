@@ -5,13 +5,13 @@ package vcs
 
 import (
 	"fmt"
-	"os/exec"
 	"reflect"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -645,7 +645,7 @@ func TestBaseForDiffMerge(t *testing.T) {
 
 	// Merge master into branchA, resolve the conflict.
 	repo.Git("checkout", "branchA")
-	if err := exec.Command("git", "-C", repo.Dir, "merge", "master").Run(); err == nil {
+	if _, err := osutil.RunCmd(time.Minute, repo.Dir, "git", "merge", "master"); err == nil {
 		t.Fatalf("conflict expected during merge -> branchA")
 	}
 	repo.CommitChangeset("merge master->branchA",
@@ -655,7 +655,7 @@ func TestBaseForDiffMerge(t *testing.T) {
 
 	// Merge master into branchB, resolve the conflict.
 	repo.Git("checkout", "branchB")
-	if err := exec.Command("git", "-C", repo.Dir, "merge", "master").Run(); err == nil {
+	if _, err := osutil.RunCmd(time.Minute, repo.Dir, "git", "merge", "master"); err == nil {
 		t.Fatalf("conflict expected during merge -> branchB")
 	}
 	repo.CommitChangeset("merge master->branchB",
