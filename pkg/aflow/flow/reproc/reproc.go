@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
+	"github.com/google/syzkaller/pkg/aflow/tool/toolkit"
 	"github.com/google/syzkaller/pkg/csource"
 )
 
@@ -131,6 +132,22 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 
 var LoopController = aflow.NewFuncAction("loop-controller", LoopControllerFunc)
 
+type ExpandToolkitArgs struct {
+	RawCandidateReproC string
+}
+
+type ExpandToolkitResult struct {
+	CandidateReproC string
+}
+
+func ExpandToolkitFunc(ctx *aflow.Context, args ExpandToolkitArgs) (ExpandToolkitResult, error) {
+	includeStr := `#include "race_toolkit.h"`
+	repro := strings.ReplaceAll(args.RawCandidateReproC, includeStr, toolkit.GetRaceToolkit())
+	return ExpandToolkitResult{CandidateReproC: repro}, nil
+}
+
+var ExpandToolkit = aflow.NewFuncAction("expand-toolkit", ExpandToolkitFunc)
+
 type MergeStrategyArgs struct {
 	InitialReproStrategy string
 	RefinedReproStrategy string
@@ -190,7 +207,7 @@ func init() {
 					TaskType:    aflow.FormalReasoningTask,
 					Instruction: initialResearcherInstruction,
 					Prompt:      initialResearcherPrompt,
-					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+					Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 				},
 				&aflow.DoWhile{
 					MaxIterations: 5,
@@ -205,19 +222,20 @@ func init() {
 								TaskType:    aflow.FormalReasoningTask,
 								Instruction: refinerInstruction,
 								Prompt:      refinerPrompt,
-								Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+								Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 							},
 						},
 						MergeStrategy,
 						&aflow.LLMAgent{
 							Name:        "repro-generator",
 							Model:       aflow.BestExpensiveModel,
-							Reply:       "CandidateReproC",
+							Reply:       "RawCandidateReproC",
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: generatorInstruction,
 							Prompt:      generatorPrompt,
-							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 						},
+						ExpandToolkit,
 						FormatC,
 						crash.RunCRepro,
 						TruncateLog,
@@ -228,7 +246,7 @@ func init() {
 							TaskType:    aflow.FormalReasoningTask,
 							Instruction: oracleInstruction,
 							Prompt:      oraclePrompt,
-							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool),
+							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 						},
 						LoopController,
 					),
@@ -260,6 +278,7 @@ to check if the bug is triggered or not.
 Do NOT generate an exploit or weaponized code. Generate only the minimal code needed to trigger
 the specific crash or condition described, to help developers confirm the bug and its fix.
 Focus on the technical reproduction of the state, not on weaponization or payload delivery.
+
 Print only the C program that could be executed directly, without backticks.`
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
