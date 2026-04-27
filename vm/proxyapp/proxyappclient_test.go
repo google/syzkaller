@@ -507,10 +507,10 @@ func TestInstance_RunReadProgress_Failed(t *testing.T) {
 }
 
 // TODO: test for periodical proxyapp subprocess crashes handling.
-//  [option] check pool size was changed
-
+//
+//	[option] check pool size was changed
+//
 // TODO: test pool.Close() calls plugin API and return error.
-
 func contextWithTimeout(t *testing.T, timeout time.Duration) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)

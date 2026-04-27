@@ -853,8 +853,6 @@ func aiBugWorkflows(ctx context.Context, bug *Bug) ([]*uiWorkflow, error) {
 	return result, nil
 }
 
-// aiBugWorkflows returns active workflows that are applicable for the bug.
-
 func aiBugJobCreate(ctx context.Context, workflow string, bug *Bug, extraArgs map[string]any) (string, error) {
 	workflows, err := aidb.LoadActiveWorkflows(ctx)
 	if err != nil {

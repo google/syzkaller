@@ -571,6 +571,7 @@ func sendMailTemplate(ctx context.Context, params *mailSendParams) error {
 	log.Infof(ctx, "sending email %q to %q", params.title, to)
 	return sendMailText(ctx, params.cfg.getSubject(params.title), from, to, params.replyTo, body.String())
 }
+
 func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
 	title := ""
 	for i := len(rep.Subsystems) - 1; i >= 0; i-- {

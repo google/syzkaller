@@ -80,7 +80,6 @@ type DashapiConfig struct {
 }
 
 // The project configuration is expected to be mounted at /config/config.yaml.
-
 func Config() (*AppConfig, error) {
 	configLoadedOnce.Do(func() {
 		config, configErr = loadConfig(configPath)

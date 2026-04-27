@@ -70,7 +70,6 @@ type Kernel struct {
 // =============================================================================
 // Verifier
 // =============================================================================.
-
 func (vrf *Verifier) RunVerifierFuzzer(ctx context.Context) error {
 	log.Logf(0, "starting verifier fuzzer")
 	eg, ctx := errgroup.WithContext(ctx)
@@ -429,7 +428,6 @@ func (vrf *Verifier) createRequests(prog *prog.Prog) (map[int]*queue.Request, []
 // =============================================================================
 // Kernel
 // =============================================================================.
-
 func (kernel *Kernel) FuzzerInstance(ctx context.Context, inst *vm.Instance, updInfo dispatcher.UpdateInfo) {
 	index := inst.Index()
 	injectExec := make(chan bool, 10)

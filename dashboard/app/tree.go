@@ -384,6 +384,7 @@ type runReproOn any
 // runReproOn subtypes.
 type runOnAny struct{} // attempts to find any result, if unsuccessful, runs on HEAD
 type runOnHEAD struct{}
+
 type runOnMergeBase struct {
 	Repo   string
 	Branch string

@@ -131,7 +131,6 @@ func (dash *Dashboard) UploadBuild(build *Build) error {
 // builder will pass subset of the commit titles that are present in the build
 // in Build.Commits field and list of {bug ID, commit title} pairs extracted
 // from git log.
-
 type BuilderPollReq struct {
 	Manager string
 }
@@ -160,7 +159,6 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 //   - when syz-ci finishes the job, it sends JobDoneReq which contains
 //     job execution result (Build, Crash or Error details),
 //     ID must match JobPollResp.ID.
-
 type JobResetReq struct {
 	Managers []string
 }

@@ -181,6 +181,7 @@ func (storage *Storage) UploadBuildAsset(reader io.Reader, fileName string, asse
 		DownloadURL: url,
 	}, nil
 }
+
 func (storage *Storage) ReportBuildAssets(build *dashapi.Build, assets ...dashapi.NewAsset) error {
 	// If the server denies the reques, we'll delete the orphaned file during deprecated files
 	// deletion later.

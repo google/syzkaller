@@ -1799,7 +1799,6 @@ func recordEmergencyStop(ctx context.Context) error {
 // Share crash logs for non-reproduced bugs with syz-managers.
 // In future, this can also take care of repro exchange between instances
 // in the place of syz-hub.
-
 func apiReproTaskDone(ctx context.Context, ns string, req *dashapi.ReproTaskDoneReq) (any, error) {
 	taskKey := db.NewKey(ctx, "ReproTask", "", req.ReqID, nil)
 	task := new(ReproTask)

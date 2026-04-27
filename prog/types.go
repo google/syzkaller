@@ -223,15 +223,19 @@ func (ti Ref) DefaultArg(dir Dir) Arg                                { panic("pr
 func (ti Ref) Clone() Type                                           { panic("prog.Ref method called") }
 func (ti Ref) isDefaultArg(arg Arg) bool                             { panic("prog.Ref method called") }
 func (ti Ref) generate(r *randGen, s *state, dir Dir) (Arg, []*Call) { panic("prog.Ref method called") }
+
 func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial, ignoreLengths bool) (float64, bool) {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	panic("prog.Ref method called")
 }
+
 func (ti Ref) ref() Ref       { panic("prog.Ref method called") }
 func (ti Ref) setRef(ref Ref) { panic("prog.Ref method called") }
 

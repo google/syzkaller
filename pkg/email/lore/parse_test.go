@@ -523,6 +523,7 @@ No patch, just text`,
 		})
 	}
 }
+
 func TestLink(t *testing.T) {
 	tests := []struct {
 		id     string

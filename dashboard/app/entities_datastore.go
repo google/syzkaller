@@ -228,7 +228,6 @@ func (bug *Bug) hasUserSubsystems() bool {
 // it turned out that we'd better store all labels together.
 // Let's keep this conversion code until "Tags" are removed from all bugs.
 // Then it can be removed.
-
 type Bug202304 struct {
 	Tags BugTags202304
 }

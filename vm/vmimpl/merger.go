@@ -105,6 +105,7 @@ func (merger *OutputMerger) AddDecoder(name string, typ OutputType, r io.ReadClo
 		state.err = MergerError{name, r, err}
 	}()
 }
+
 func (merger *OutputMerger) runDecoder(typ OutputType, r io.ReadCloser,
 	decoder func(data []byte) (start, size int, decoded []byte)) error {
 	var pending []byte

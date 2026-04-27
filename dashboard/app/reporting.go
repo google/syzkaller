@@ -1525,6 +1525,7 @@ type bugReportSorter []*Bug
 
 func (a bugReportSorter) Len() int      { return len(a) }
 func (a bugReportSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a bugReportSorter) Less(i, j int) bool {
 	if a[i].ReproLevel != a[j].ReproLevel {
 		return a[i].ReproLevel > a[j].ReproLevel

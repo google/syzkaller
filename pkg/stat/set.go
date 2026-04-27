@@ -134,7 +134,6 @@ func (s *set) Collect(level Level) []UI {
 }
 
 // Additional options for Val metrics.
-
 // Level controls if the metric should be printed to console in periodic heartbeat logs,
 // or showed on the simple web interface, or showed in the expert interface only.
 type Level int
@@ -184,7 +183,6 @@ func FormatMB(v int, period time.Duration) string {
 
 // Addittionally a custom 'func() int' can be passed to read the metric value from the function.
 // and 'func(int, time.Duration) string' can be passed for custom formatting of the metric value.
-
 func (s *set) New(name, desc string, opts ...any) *Val {
 	v := &Val{
 		name:  name,

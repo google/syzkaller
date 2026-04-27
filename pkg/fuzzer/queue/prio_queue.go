@@ -29,7 +29,6 @@ func (pq *priorityQueueOps[T]) Pop() T {
 
 // The implementation below is based on the example provided
 // by https://pkg.go.dev/container/heap.
-
 type priorityQueueItem[T any] struct {
 	value T
 	prio  int

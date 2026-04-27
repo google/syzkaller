@@ -24,10 +24,13 @@ type mockEnv struct {
 }
 
 func (m *mockEnv) BuildSyzkaller(repo, commit string) (string, error) { return "", nil }
+
 func (m *mockEnv) BuildKernel(cfg *instance.BuildKernelConfig) (string, build.ImageDetails, error) {
 	return "", build.ImageDetails{}, nil
 }
+
 func (m *mockEnv) CleanKernel(cfg *instance.BuildKernelConfig) error { return nil }
+
 func (m *mockEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCoverage bool) (
 	[]instance.EnvTestResult, error) {
 	return m.results, m.err
