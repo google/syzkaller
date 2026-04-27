@@ -913,3 +913,91 @@ func TestAIJobNamespaces(t *testing.T) {
 	err = restrictedClient.AIJobDone(&dashapi.AIJobDoneReq{ID: jobIDAins})
 	require.NoError(t, err)
 }
+
+func TestAIManualJobCreate(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{})
+
+	build := testBuild(1)
+	build.Manager = "manager1"
+	_, err := apiUploadBuild(c.ctx, "ains", build)
+	require.NoError(t, err)
+
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{AgentName: "agent-name",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "repro-c", Name: "repro-c"},
+		},
+	})
+	require.NoError(t, err)
+
+	body, err := c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create":  []string{"repro-c"},
+		"KernelRepo":     []string{""},
+		"KernelCommit":   []string{"123456"},
+		"BugDescription": []string{"test bug"},
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(body), "Kernel Repo is required")
+
+	body, err = c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create":  []string{"repro-c"},
+		"KernelRepo":     []string{"https://repo.test"},
+		"KernelCommit":   []string{""},
+		"BugDescription": []string{"test bug"},
+	})
+	require.NoError(t, err)
+
+	require.Contains(t, string(body), "Kernel Commit is required")
+	body, err = c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create":  []string{"repro-c"},
+		"KernelRepo":     []string{"https://repo.test"},
+		"KernelCommit":   []string{"123456"},
+		"BugDescription": []string{"test bug"},
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(body), "either a custom kernel config or a manager is required")
+
+	_, err = c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create":  []string{"repro-c"},
+		"KernelRepo":     []string{"https://repo.test"},
+		"KernelCommit":   []string{"123456"},
+		"KernelConfig":   []string{"test config"},
+		"BugDescription": []string{"test bug"},
+	})
+	require.NoError(t, err)
+
+	job, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "repro-c", Name: "repro-c"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, "", job.ID)
+	require.Equal(t, "repro-c", job.Workflow)
+
+	args := job.Args
+	require.Equal(t, "test bug", args["BugDescription"])
+	require.Equal(t, "https://repo.test", args["KernelRepo"])
+	require.Equal(t, "123456", args["KernelCommit"])
+
+	_, err = c.AuthGET(AccessUser, "/ains/ai")
+	require.NoError(t, err)
+
+	_, err = c.AuthGET(AccessUser, fmt.Sprintf("/ai_job?id=%v", job.ID))
+	require.NoError(t, err)
+
+	// Verify that a public user cannot access the job page.
+	_, err = c.AuthGET(AccessPublic, fmt.Sprintf("/ai_job?id=%v", job.ID))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "307")
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      job.ID,
+		Results: map[string]any{"status": "success"},
+	})
+	require.NoError(t, err)
+}

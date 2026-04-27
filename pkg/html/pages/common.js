@@ -134,4 +134,38 @@ function displayAICreateJobArgs(select) {
 
 window.addEventListener('load', function () {
 	displayAICreateJobArgs();
+	showManualWorkflowFields();
 });
+
+function showManualWorkflowFields(select) {
+	var workflowName = "";
+	if (select && select.value) {
+		workflowName = select.value;
+	} else {
+		var el = document.getElementById("ai-job-create");
+		if (el) workflowName = el.value;
+	}
+	if (!workflowName) return;
+
+	// Hide all, disable inputs.
+	var groups = document.getElementsByClassName("manual-workflow-fields");
+	if (groups.length === 0) return;
+
+	for (var i = 0; i < groups.length; i++) {
+		groups[i].style.display = "none";
+		var inputs = groups[i].querySelectorAll("input, textarea");
+		for (var j = 0; j < inputs.length; j++) {
+			inputs[j].disabled = true;
+		}
+	}
+
+	// Show selected, enable inputs.
+	var selected = document.getElementById("workflow-fields-" + workflowName);
+	if (selected) {
+		selected.style.display = "block";
+		var selectedInputs = selected.querySelectorAll("input, textarea");
+		for (var k = 0; k < selectedInputs.length; k++) {
+			selectedInputs[k].disabled = false;
+		}
+	}
+}

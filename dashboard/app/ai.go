@@ -37,6 +37,45 @@ type uiAIJobsPage struct {
 	Workflows       []string
 	CurrentWorkflow string
 	ShowAborted     bool
+	ManualWorkflows []ManualWorkflowSpec
+	Managers        []string
+	DefaultRepo     string
+	DefaultBranch   string
+}
+
+type ManualWorkflowField struct {
+	ID          string
+	Title       string
+	Placeholder string
+	Required    bool
+}
+
+type ManualWorkflowSpec struct {
+	Name        string
+	Type        ai.WorkflowType
+	Description string
+	Fields      []ManualWorkflowField
+}
+
+var manualAIWorkflows = []ManualWorkflowSpec{
+	{
+		Name: string(ai.WorkflowReproC),
+		Type: ai.WorkflowReproC,
+		Fields: []ManualWorkflowField{
+			{
+				ID:          "BugDescription",
+				Title:       "Bug Description",
+				Placeholder: "Describe the bug here...",
+				Required:    true,
+			},
+		},
+	},
+}
+
+type uiAIJobArg struct {
+	Key   string
+	Value string
+	Large bool
 }
 
 type uiAIJobPage struct {
@@ -96,6 +135,13 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
+	if r.Method == http.MethodPost {
+		if err := handleAIJobCreate(ctx, r, hdr); err != nil {
+			hdr.Message = err.Error()
+		} else {
+			hdr.Message = fmt.Sprintf("AI workflow %v is created", r.FormValue("ai-job-create"))
+		}
+	}
 	currentWorkflow := r.FormValue("workflow")
 	showAborted := r.FormValue("show_aborted") != ""
 
@@ -127,14 +173,89 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if currentWorkflow == "" {
 		currentWorkflow = aidb.WorkflowAll
 	}
+	managers, err := managerList(ctx, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	slices.Sort(managers)
+
+	cfg := getNsConfig(ctx, hdr.Namespace)
+	defaultRepo, defaultBranch := cfg.mainRepoBranch()
 	page := &uiAIJobsPage{
 		Header:          hdr,
 		Jobs:            uiJobs,
 		Workflows:       workflowNames,
 		CurrentWorkflow: currentWorkflow,
 		ShowAborted:     showAborted,
+		ManualWorkflows: manualAIWorkflows,
+		Managers:        managers,
+		DefaultRepo:     defaultRepo,
+		DefaultBranch:   defaultBranch,
 	}
 	return serveTemplate(w, "ai_jobs.html", page)
+}
+
+func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) error {
+	if !hdr.AIActions {
+		return ErrAccess
+	}
+	workflow := r.FormValue("ai-job-create")
+
+	if workflow == "" {
+		return fmt.Errorf("%w: workflow is required", ErrClientBadRequest)
+	}
+
+	var spec *ManualWorkflowSpec
+	for _, s := range manualAIWorkflows {
+		if s.Name == workflow {
+			spec = &s
+			break
+		}
+	}
+	if spec == nil {
+		return fmt.Errorf("%w: manual workflow schema for %v not found", ErrClientBadRequest, workflow)
+	}
+
+	args := map[string]any{}
+
+	for _, field := range []ManualWorkflowField{
+		{ID: "KernelRepo", Title: "Kernel Repo"},
+		{ID: "KernelCommit", Title: "Kernel Commit"},
+	} {
+		val := r.FormValue(field.ID)
+		if val == "" {
+			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
+		}
+		args[field.ID] = val
+	}
+	if config := r.FormValue("KernelConfig"); config != "" {
+		args["KernelConfig"] = config
+	} else if manager := r.FormValue("KernelConfigManager"); manager != "" {
+		build, err := lastManagerBuild(ctx, hdr.Namespace, manager)
+		if err != nil {
+			return fmt.Errorf("%w: failed to get manager build config: %w", ErrClientBadRequest, err)
+		}
+		args["KernelConfigID"] = build.KernelConfig
+	} else {
+		return fmt.Errorf("%w: either a custom kernel config or a manager is required", ErrClientBadRequest)
+	}
+
+	for _, field := range spec.Fields {
+		val := r.FormValue(field.ID)
+		if field.Required && val == "" {
+			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
+		}
+		if val != "" {
+			args[field.ID] = val
+		}
+	}
+	_, err := aidb.CreateJob(ctx, &aidb.Job{
+		Type:      spec.Type,
+		Workflow:  workflow,
+		Namespace: hdr.Namespace,
+		Args:      spanner.NullJSON{Valid: true, Value: args},
+	})
+	return err
 }
 
 func getJobStageInfo(ctx context.Context, job *aidb.Job) (*aidb.JobReporting, *AIPatchStageConfig, error) {
@@ -422,7 +543,8 @@ func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([
 	const maxBugs = 1000
 	for _, job := range jobs {
 		if !job.BugID.Valid {
-			// Jobs not associated with bugs are considered public.
+			// Jobs not associated with bugs are internal manual jobs. Only authorized users can see them.
+			bugAccess[job.BugID.StringVal] = AccessUser
 		} else if len(bugKeyIDs) < maxBugs {
 			bugKeyIDs[job.BugID.StringVal] = true
 		} else {
@@ -442,7 +564,7 @@ func filterJobsAccess(ctx context.Context, r *http.Request, jobs []*aidb.Job) ([
 		bugAccess[bug.keyHash(ctx)] = bug.sanitizeAccess(ctx, accessLevel)
 	}
 	jobs = slices.DeleteFunc(jobs, func(job *aidb.Job) bool {
-		return job.BugID.Valid && accessLevel < bugAccess[job.BugID.StringVal]
+		return accessLevel < bugAccess[job.BugID.StringVal]
 	})
 	return jobs, nil
 }
@@ -488,13 +610,16 @@ func makeUIAIJob(job *aidb.Job) *uiAIJob {
 		correct = aiCorrectnessCorrect
 		title = "Correct"
 	}
+	desc := job.Description
+	if desc == "" {
+		desc = "---"
+	}
 	return &uiAIJob{
-		ID:               job.ID,
-		Link:             fmt.Sprintf("/ai_job?id=%v", job.ID),
-		Workflow:         job.Workflow,
-		Description:      job.Description,
-		DescriptionLink:  job.Link,
-		AgentName:        nullString(job.AgentName),
+		ID:              job.ID,
+		Link:            fmt.Sprintf("/ai_job?id=%v", job.ID),
+		Workflow:        job.Workflow,
+		Description:     desc,
+		DescriptionLink: job.Link, AgentName: nullString(job.AgentName),
 		Created:          job.Created,
 		Started:          nullTime(job.Started),
 		Finished:         nullTime(job.Finished),

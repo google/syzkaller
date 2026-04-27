@@ -302,6 +302,7 @@ table td, table th {
 
 textarea {
 	width:100%;
+	box-sizing: border-box;
 	font-family: monospace;
 }
 
@@ -478,6 +479,17 @@ aside {
 
 .collapsible-show .show-icon {
 	display: none;
+}
+
+.ai-jobs-form {
+	padding: 15px;
+	box-sizing: border-box;
+	max-width: 800px;
+}
+
+.ai-jobs-form input[type="text"] {
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 .emergency-stop {
