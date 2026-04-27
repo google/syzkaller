@@ -133,11 +133,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</header>
 	<br>
 	{{if .Message}}
-		<script>
-			document.addEventListener("DOMContentLoaded", function() {
-				alert("{{.Message}}");
-			});
-		</script>
+		<div class="flash-message">{{.Message}}</div>
 	{{end}}
 {{end}}
 

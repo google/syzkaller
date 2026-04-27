@@ -567,3 +567,12 @@ aside {
 .rank:hover .tooltiptext {
 	visibility: visible;
 }
+
+.flash-message {
+	background-color: #e2f0fd;
+	color: #0c5460;
+	padding: 10px;
+	border: 1px solid #bee5eb;
+	border-radius: 4px;
+	margin: 10px 5px;
+}
