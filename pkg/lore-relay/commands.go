@@ -21,6 +21,7 @@ func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandRe
 			RootExtID:    polled.RootMessageID,
 			MessageExtID: polled.Email.MessageID,
 			Author:       polled.Email.Author,
+			OwnEmail:     polled.Email.OwnEmail,
 		}
 
 		switch cmd.Command {
@@ -43,6 +44,7 @@ func extractCommands(polled *lore.PolledEmail) ([]*dashapi.SendExternalCommandRe
 			RootExtID:    polled.RootMessageID,
 			MessageExtID: polled.Email.MessageID,
 			Author:       polled.Email.Author,
+			OwnEmail:     polled.Email.OwnEmail,
 			Comment: &dashapi.CommentCommand{
 				Body: polled.Email.Body,
 			},

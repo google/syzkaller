@@ -65,6 +65,7 @@ type SendExternalCommandReq struct {
 	RootExtID    string
 	MessageExtID string
 	Author       string
+	OwnEmail     bool
 	// Only one must be set.
 	Upstream *UpstreamCommand `json:",omitempty"`
 	Reject   *RejectCommand   `json:",omitempty"`
