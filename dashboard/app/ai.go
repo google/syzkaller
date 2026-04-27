@@ -44,6 +44,7 @@ type uiAIJobPage struct {
 	Job    *uiAIJob
 	// The slice contains the same single Job, just for HTML templates convenience.
 	Jobs           []*uiAIJob
+	Args           []*uiAIJobArg
 	CrashReport    template.HTML
 	TrajectoryHTML template.HTML
 	History        []*uiJobReviewHistory
@@ -270,16 +271,12 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 	if job.Args.Valid {
 		args = job.Args.Value.(map[string]any)
 	}
-	var crashReport template.HTML
-	if reportID, _ := args["CrashReportID"].(json.Number).Int64(); reportID != 0 {
-		report, _, err := getText(ctx, textCrashReport, reportID)
-		if err != nil {
-			return err
-		}
-		crashReport = linkifyReport(report, args["KernelRepo"].(string), args["KernelCommit"].(string))
+	uiArgs, crashReport, err := formatUIJobArgs(ctx, args)
+	if err != nil {
+		return err
 	}
-	uiJob := makeUIAIJob(job)
 
+	uiJob := makeUIAIJob(job)
 	uiTrajectory := makeUIAITrajectory(trajectory)
 	trajectoryHTML, err := aflowhtml.RenderTrajectory(uiTrajectory)
 	if err != nil {
@@ -293,6 +290,7 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		Header:         hdr,
 		Job:            uiJob,
 		Jobs:           []*uiAIJob{uiJob},
+		Args:           uiArgs,
 		CrashReport:    crashReport,
 		History:        uiHistory,
 		TrajectoryHTML: trajectoryHTML,
@@ -301,6 +299,50 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		Reportings:     uiReportings,
 	}
 	return serveTemplate(w, "ai_job.html", page)
+}
+
+func formatUIJobArgs(ctx context.Context, args map[string]any) ([]*uiAIJobArg, template.HTML, error) {
+	var crashReport template.HTML
+	if val, ok := args["CrashReportID"]; ok {
+		if num, ok := val.(json.Number); ok {
+			if reportID, _ := num.Int64(); reportID != 0 {
+				report, _, err := getText(ctx, textCrashReport, reportID)
+				if err != nil {
+					return nil, "", err
+				}
+				repo, _ := args["KernelRepo"].(string)
+				commit, _ := args["KernelCommit"].(string)
+				crashReport = linkifyReport(report, repo, commit)
+			}
+		}
+	}
+
+	if val, ok := args["KernelConfigID"]; ok {
+		if num, ok := val.(json.Number); ok {
+			if configID, _ := num.Int64(); configID != 0 {
+				config, _, err := getText(ctx, textKernelConfig, configID)
+				if err == nil {
+					args["KernelConfig"] = string(config)
+					delete(args, "KernelConfigID")
+				}
+			}
+		}
+	}
+
+	const maxArgLength = 100
+	var uiArgs []*uiAIJobArg
+	for k, v := range args {
+		valStr := fmt.Sprintf("%v", v)
+		uiArgs = append(uiArgs, &uiAIJobArg{
+			Key:   k,
+			Value: valStr,
+			Large: len(valStr) > maxArgLength || strings.Contains(valStr, "\n"),
+		})
+	}
+	slices.SortFunc(uiArgs, func(a, b *uiAIJobArg) int {
+		return strings.Compare(a.Key, b.Key)
+	})
+	return uiArgs, crashReport, nil
 }
 
 func loadJobReportingsWithComments(ctx context.Context, jobID string) ([]*uiJobReporting, error) {

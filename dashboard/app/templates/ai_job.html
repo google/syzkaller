@@ -20,8 +20,30 @@ Detailed info on a single AI job execution.
 	<b>Agent:</b> {{.Job.AgentName}}<br><br>
 	{{end}}
 
-	{{if .CurrentStage}}
-	<b>Current Stage:</b> {{.CurrentStage}}<br>
+	{{if .Args}}
+	<b>Inputs:</b><br>
+	<table class="list_table">
+		<tbody>
+			{{range .Args}}
+			<tr>
+				<td class="title" style="vertical-align: top;">{{.Key}}</td>
+				<td class="title">
+					{{if .Large}}
+						<details>
+							<summary>Show ({{len .Value}} bytes)</summary>
+							<pre style="white-space: pre-wrap; word-wrap: break-word;">{{.Value}}</pre>
+						</details>
+					{{else}}
+						{{.Value}}
+					{{end}}
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	<br>
+	{{end}}
+	{{if .CurrentStage}}	<b>Current Stage:</b> {{.CurrentStage}}<br>
 	<b>Next Stage:</b> {{.NextStage}}<br><br>
 	{{end}}
 
