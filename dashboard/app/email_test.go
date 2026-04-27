@@ -742,6 +742,36 @@ func TestEmailUnfix(t *testing.T) {
 	c.expectNoEmail()
 }
 
+// Test for unfix command on a bug that is already marked as fixed.
+func TestEmailUnfixFixedBug(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+
+	msg := c.pollEmailBug()
+
+	c.incomingEmail(msg.Sender, "#syz fix: some commit")
+	c.expectNoEmail()
+
+	build2 := testBuild(2)
+	build2.Manager = build.Manager
+	build2.Commits = []string{"some commit"}
+	c.client2.UploadBuild(build2)
+
+	// Now the bug should be fixed.
+	// Try to unfix it. It should reply with an error.
+	c.incomingEmail(msg.Sender, "#syz unfix")
+	reply := c.pollEmailBug()
+	if !strings.Contains(reply.Body, "This bug is already marked as fixed.") {
+		t.Fatalf("expected reply about bug being already fixed, got %q", reply.Body)
+	}
+}
+
 func TestEmailManagerCC(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

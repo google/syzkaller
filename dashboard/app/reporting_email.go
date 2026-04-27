@@ -830,6 +830,10 @@ func handleBugCommand(ctx context.Context, bugInfo *bugInfoResult, msg *email.Em
 			}
 			cmd.FixCommits = []string{command.Args}
 		case email.CmdUnFix:
+			if bugInfo.bug.Status == BugStatusFixed {
+				return "This bug is already marked as fixed. Syzbot does not support unfixing bugs " +
+					"that are already closed (i.e. the fixing commit has reached all tested trees)."
+			}
 			cmd.ResetFixCommits = true
 		case email.CmdDup:
 			if command.Args == "" {
