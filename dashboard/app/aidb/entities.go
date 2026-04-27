@@ -117,4 +117,5 @@ type JobComment struct {
 	Author      string
 	BodyURI     string
 	Date        time.Time
+	OwnEmail    bool
 }

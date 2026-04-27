@@ -304,6 +304,7 @@ func handleCommentCommand(ctx context.Context, req *dashapi.SendExternalCommandR
 		Author:      req.Author,
 		BodyURI:     fmt.Sprintf("text://%v", textID),
 		Date:        aidb.TimeNow(ctx),
+		OwnEmail:    req.OwnEmail,
 	})
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
@@ -37,11 +38,11 @@ func TestAILoreIntegration(t *testing.T) {
 	now := time.Now()
 
 	pollerCfg := lore.PollerConfig{
-		RepoDir: t.TempDir(),
-		URL:     loreArchive.Repo.Dir,
-		Tracer:  &debugtracer.TestTracer{T: t},
+		RepoDir:   t.TempDir(),
+		URL:       loreArchive.Repo.Dir,
+		Tracer:    &debugtracer.TestTracer{T: t},
+		OwnEmails: []string{"syzbot@testapp.appspotmail.com"},
 	}
-
 	poller, err := lore.NewPoller(pollerCfg)
 	require.NoError(t, err)
 
@@ -169,11 +170,11 @@ func TestAILoreIntegrationReject(t *testing.T) {
 	now := time.Now()
 
 	pollerCfg := lore.PollerConfig{
-		RepoDir: t.TempDir(),
-		URL:     loreArchive.Repo.Dir,
-		Tracer:  &debugtracer.TestTracer{T: t},
+		RepoDir:   t.TempDir(),
+		URL:       loreArchive.Repo.Dir,
+		Tracer:    &debugtracer.TestTracer{T: t},
+		OwnEmails: []string{"syzbot@testapp.appspotmail.com"},
 	}
-
 	poller, err := lore.NewPoller(pollerCfg)
 	require.NoError(t, err)
 
@@ -290,11 +291,11 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	now := time.Now()
 
 	pollerCfg := lore.PollerConfig{
-		RepoDir: t.TempDir(),
-		URL:     loreArchive.Repo.Dir,
-		Tracer:  &debugtracer.TestTracer{T: t},
+		RepoDir:   t.TempDir(),
+		URL:       loreArchive.Repo.Dir,
+		Tracer:    &debugtracer.TestTracer{T: t},
+		OwnEmails: []string{"syzbot@testapp.appspotmail.com"},
 	}
-
 	poller, err := lore.NewPoller(pollerCfg)
 	require.NoError(t, err)
 
@@ -337,13 +338,11 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	require.Len(t, mockSnd.sent, 1)
 
 	// 3. Send a plain comment.
-	loreArchive.SaveMessageAt(t, `From: reviewer@email
-Subject: Re: [PATCH RFC] Test Description
-Message-ID: <comment1>
-In-Reply-To: <mock@msgid-1>
-
-This is just a normal review comment with some context.
-`, now.Add(time.Minute))
+	loreArchive.SaveMessageAt(t, "From: reviewer@email.com\n"+
+		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Message-ID: <comment1>\n"+
+		"In-Reply-To: <mock@msgid-1>\n\n"+
+		"This is just a normal review comment with some context.\n", now.Add(time.Minute))
 
 	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
@@ -351,12 +350,44 @@ This is just a normal review comment with some context.
 	// Verify that NO error reply was sent, meaning sent length is still exactly 1!
 	require.Len(t, mockSnd.sent, 1)
 
+	// 4. Send a reply from the bot itself.
+	loreArchive.SaveMessageAt(t, "From: syzbot@testapp.appspotmail.com\n"+
+		"Subject: Re: [PATCH RFC] Test Description\n"+
+		"Message-ID: <bot-reply>\n"+
+		"In-Reply-To: <comment1>\n\n"+
+		"This is a generated bot reply.\n", now.Add(time.Minute*2))
+	err = relay.PollLoreOnce(context.Background())
+	require.NoError(t, err)
+
+	// Check if both comments were picked up properly and marked OwnEmail correctly.
 	reportings, err := loadJobReportingsWithComments(c.ctx, jobID)
 	require.NoError(t, err)
 	require.Len(t, reportings, 1)
-	require.Len(t, reportings[0].Comments, 1)
-	assert.Equal(t, "reviewer@email", reportings[0].Comments[0].Author)
-	assert.Contains(t, reportings[0].Comments[0].BodyURI, "This is just a normal review comment with some context.")
+	require.Len(t, reportings[0].Comments, 2)
+
+	// In tests, both the comment and the reply might be processed in the same lore-relay poll
+	// cycle. Since the dashboard uses TimeNow() for the comment's CreatedAt timestamp rather
+	// than the email's Date header, both comments may end up with the exact same timestamp.
+	// This makes their order returned by Spanner non-deterministic, so we extract them by type.
+	var userComment, botComment *aidb.JobComment
+	for _, c := range reportings[0].Comments {
+		if c.OwnEmail {
+			botComment = c
+		} else {
+			userComment = c
+		}
+	}
+	require.NotNil(t, userComment)
+	require.NotNil(t, botComment)
+
+	assert.Equal(t, "reviewer@email.com", userComment.Author)
+	assert.Contains(t, userComment.BodyURI,
+		"This is just a normal review comment with some context.")
+	assert.False(t, userComment.OwnEmail)
+
+	assert.Equal(t, "syzbot@testapp.appspotmail.com", botComment.Author)
+	assert.Contains(t, botComment.BodyURI, "This is a generated bot reply.")
+	assert.True(t, botComment.OwnEmail)
 }
 
 type integrationMockSender struct {
