@@ -1,6 +1,6 @@
 {
   "dashboard_addr": "https://syzbot.org",
-  "dashboard_client": "agent",
+  "dashboard_client": "gcp-secret:syz-agent-dashboard-client",
   "dashboard_key": "gcp-secret:syz-agent-dashboard-key",
   "gemini_api_key": "gcp-secret:syz-agent-gemini-key",
   "target": "linux/amd64",
