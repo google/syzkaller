@@ -96,8 +96,50 @@ func run(p *analysis.Pass) (any, error) {
 				pass.checkComment(comment, stmts, len(group.List) == 1)
 			}
 		}
+		pass.checkTopLevelDecls(file)
 	}
 	return nil, nil
+}
+
+func (pass *Pass) checkTopLevelDecls(file *ast.File) {
+	for i := range len(file.Decls) - 1 {
+		d1, d2 := file.Decls[i], file.Decls[i+1]
+
+		isFuncOrType := func(d ast.Decl) bool {
+			switch x := d.(type) {
+			case *ast.FuncDecl:
+				return true
+			case *ast.GenDecl:
+				return x.Tok == token.TYPE
+			}
+			return false
+		}
+
+		if isFuncOrType(d1) && isFuncOrType(d2) {
+			d1Start := pass.Fset.Position(d1.Pos()).Line
+			d1End := pass.Fset.Position(d1.End()).Line
+
+			startPos := d2.Pos()
+			switch v := d2.(type) {
+			case *ast.FuncDecl:
+				if v.Doc != nil {
+					startPos = v.Doc.Pos()
+				}
+			case *ast.GenDecl:
+				if v.Doc != nil {
+					startPos = v.Doc.Pos()
+				}
+			}
+			d2Start := pass.Fset.Position(startPos).Line
+			d2End := pass.Fset.Position(d2.End()).Line
+
+			exactlyOne := d2Start-d1End == 2
+			canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1
+			if !exactlyOne && !canBeGrouped {
+				pass.report(d2, "Keep one empty line between top-level declarations")
+			}
+		}
+	}
 }
 
 type Pass analysis.Pass

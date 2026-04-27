@@ -48,7 +48,6 @@ func checkCommentSpace() {
 }
 
 //No space.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
-
 func funcArgsGood(a, b int) (int, int) {
 	return 0, 0
 }
@@ -283,3 +282,33 @@ func stringsCut() {
 		_ = pos
 	}
 }
+
+// Missing empty lines between declarations.
+func missingEmptyLine1() {
+}
+func missingEmptyLine2() { // want "Keep one empty line between top-level declarations"
+}
+type MissingEmptyLineStruct struct { // want "Keep one empty line between top-level declarations"
+}
+
+// Comment for func 3
+func missingEmptyLine3() {
+}
+
+// Single-line functions can be grouped.
+func grouped1() {}
+func grouped2() {}
+func grouped3() {}
+
+func multiLineGrouped() {
+}
+func grouped4() {} // want "Keep one empty line between top-level declarations"
+
+func grouped5() {}
+func multiLineGrouped2() { // want "Keep one empty line between top-level declarations"
+}
+
+func twoEmptyLines1() {}
+
+
+func twoEmptyLines2() {} // want "Keep one empty line between top-level declarations"
