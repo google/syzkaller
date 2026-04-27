@@ -1,0 +1,1 @@
+ALTER TABLE JobComments DROP COLUMN OwnEmail;

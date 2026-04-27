@@ -1,0 +1,1 @@
+ALTER TABLE JobComments ADD COLUMN OwnEmail BOOL DEFAULT (false);
