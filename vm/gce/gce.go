@@ -281,7 +281,11 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	vmDst := "./" + filepath.Base(hostSrc)
+	vmDstDir := filepath.Join("./", inst.env.Name)
+	if _, err := inst.ssh("mkdir", "-p", vmDstDir); err != nil {
+		return "", err
+	}
+	vmDst := filepath.Join(vmDstDir, filepath.Base(hostSrc))
 	err := vmimpl.SCP(hostSrc, vmDst, vmimpl.SCPOptions{
 		Debug:         inst.debug,
 		Key:           inst.Key,
