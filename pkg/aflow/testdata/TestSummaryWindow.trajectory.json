@@ -153,9 +153,7 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:17Z",
 		"Finished": "0001-01-01T00:00:18Z",
-		"Results": {
-			"ResFoo": 123
-		}
+		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 	},
 	{
 		"Seq": 10,
@@ -189,9 +187,7 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:21Z",
 		"Finished": "0001-01-01T00:00:22Z",
-		"Results": {
-			"ResFoo": 123
-		}
+		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 	},
 	{
 		"Seq": 12,
@@ -224,9 +220,7 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:25Z",
 		"Finished": "0001-01-01T00:00:26Z",
-		"Results": {
-			"ResFoo": 123
-		}
+		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 	},
 	{
 		"Seq": 14,
@@ -260,9 +254,7 @@
 		"Name": "tick",
 		"Started": "0001-01-01T00:00:29Z",
 		"Finished": "0001-01-01T00:00:30Z",
-		"Results": {
-			"ResFoo": 123
-		}
+		"Error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 	},
 	{
 		"Seq": 16,

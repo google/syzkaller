@@ -216,7 +216,7 @@
 							"id": "id4",
 							"name": "tick",
 							"response": {
-								"ResFoo": 123
+								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 							}
 						}
 					},
@@ -260,7 +260,7 @@
 							"id": "id5",
 							"name": "tick",
 							"response": {
-								"ResFoo": 123
+								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 							}
 						}
 					}
@@ -312,7 +312,7 @@
 							"id": "id6",
 							"name": "tick",
 							"response": {
-								"ResFoo": 123
+								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 							}
 						}
 					},
@@ -356,7 +356,7 @@
 							"id": "id7",
 							"name": "tick",
 							"response": {
-								"ResFoo": 123
+								"error": "You are repeating the same tool call with the exact same arguments. Please synthesize the information you already have instead of repeating queries."
 							}
 						}
 					}

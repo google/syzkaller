@@ -5,6 +5,7 @@ package aflow
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"google.golang.org/genai"
@@ -57,4 +58,41 @@ func TestToolErrors(t *testing.T) {
 		},
 		nil,
 	)
+}
+
+func TestToolLoopDetection(t *testing.T) {
+	agent := &LLMAgent{Name: "test-agent"}
+	args := map[string]any{"Query": "test"}
+
+	// Record defaultLoopDetectionLimit identical calls.
+	for range defaultLoopDetectionLimit {
+		agent.recordToolCall("test-tool", args)
+	}
+
+	// The 4th call should be detected as a duplicate.
+	call := &genai.FunctionCall{
+		Name: "test-tool",
+		Args: args,
+	}
+	err := agent.checkDuplicateCall(call)
+	if err == nil {
+		t.Fatalf("expected loop error, got nil")
+	}
+	var badCallErr *badCallError
+	if !errors.As(err, &badCallErr) {
+		t.Fatalf("expected BadCallError, got %T: %v", err, err)
+	}
+	if !strings.Contains(err.Error(), "repeating the same tool call") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+
+	// A different call should not be detected as a duplicate.
+	diffCall := &genai.FunctionCall{
+		Name: "diff-tool",
+		Args: args,
+	}
+	err = agent.checkDuplicateCall(diffCall)
+	if err != nil {
+		t.Fatalf("unexpected error on different call: %v", err)
+	}
 }

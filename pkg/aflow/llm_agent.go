@@ -49,13 +49,25 @@ type LLMAgent struct {
 	// Number of historical message (sliding window) to keep. If zero, we don't enable the sliding
 	// window summary feature (don't toss old messages).
 	SummaryWindow int
+
+	// Track recent tool calls for loop detection.
+	toolHistory []toolCallRecord
 }
 
-// Consts to use for LLMAgent.Model.
-// See https://ai.google.dev/gemini-api/docs/models
+type toolCallRecord struct {
+	Name string
+	Args map[string]any
+}
+
 const (
+	// Consts to use for LLMAgent.Model.
+	// See https://ai.google.dev/gemini-api/docs/models
 	BestExpensiveModel = "gemini-3.1-pro-preview"
 	GoodBalancedModel  = "gemini-3-flash-preview"
+
+	// Default limit for consecutive identical tool calls.
+	defaultLoopDetectionLimit = 3
+	maxHistorySize            = 20 // Large enough to catch alternating loops.
 )
 
 type TaskType int
@@ -212,6 +224,7 @@ func (a *LLMAgent) executeMany(ctx *Context) error {
 
 func (a *LLMAgent) executeOne(ctx *Context, candidate int) (string, map[string]any, error) {
 	cfg, instruction, tools := a.config(ctx)
+
 	span := &trajectory.Span{
 		Type:        trajectory.SpanAgent,
 		Name:        a.Name,
@@ -408,7 +421,12 @@ func (a *LLMAgent) callTools(ctx *Context, tools map[string]Tool, calls []*genai
 		toolErr := BadCallError("tool %q does not exist, please correct the name", call.Name)
 		tool := tools[call.Name]
 		if tool != nil {
-			span.Results, toolErr = tool.execute(ctx, call.Args)
+			if err := a.checkDuplicateCall(call); err != nil {
+				toolErr = err
+			} else {
+				a.recordToolCall(call.Name, call.Args)
+				span.Results, toolErr = tool.execute(ctx, call.Args)
+			}
 		}
 		if toolErr != nil {
 			span.Error = toolErr.Error()
@@ -659,4 +677,32 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	for name := range used {
 		ctx.state[name].used = true
 	}
+}
+
+func (a *LLMAgent) recordToolCall(name string, args map[string]any) {
+	a.toolHistory = append(a.toolHistory, toolCallRecord{Name: name, Args: args})
+	if len(a.toolHistory) > maxHistorySize {
+		a.toolHistory = a.toolHistory[1:] // Keep it a rolling window.
+	}
+}
+
+func (a *LLMAgent) checkDuplicateCall(call *genai.FunctionCall) error {
+	limit := defaultLoopDetectionLimit
+	if len(a.toolHistory) < limit {
+		return nil
+	}
+
+	repeats := 0
+	for _, record := range a.toolHistory {
+		if record.Name == call.Name && reflect.DeepEqual(record.Args, call.Args) {
+			repeats++
+		}
+	}
+
+	if repeats >= limit {
+		return BadCallError("You are repeating the same tool call with the exact same arguments. " +
+			"Please synthesize the information you already have instead of repeating queries.")
+	}
+
+	return nil
 }
