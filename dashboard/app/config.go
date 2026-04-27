@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/validator"
@@ -149,6 +150,7 @@ type AIConfig struct {
 	// Whether to upload generated patches to gerrit.
 	UploadPatchesToGerrit bool
 	Stages                []AIPatchStageConfig
+	SecurityPrio          func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
 }
 
 // AIPatchStageConfig describes a single stage in the AI patch reporting pipeline.
@@ -720,6 +722,11 @@ func checkAIConfig(ns string, cfg *AIConfig) {
 			panic(fmt.Sprintf("%v: duplicate AI stage name %q", ns, stage.Name))
 		}
 		stageNames[stage.Name] = true
+	}
+	if cfg.SecurityPrio == nil {
+		cfg.SecurityPrio = func(*Bug, ai.AssessmentSecurityOutputs) BugPrio {
+			return "" // don't apply any security labels
+		}
 	}
 }
 

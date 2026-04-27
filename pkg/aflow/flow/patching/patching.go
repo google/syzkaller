@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
 	"github.com/google/syzkaller/pkg/aflow/action/crash"
 	"github.com/google/syzkaller/pkg/aflow/action/kernel"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -39,7 +40,7 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 		Name: name,
 		Root: aflow.Pipeline(
 			baseCommitPicker,
-			syzlangToC,
+			actionsyzlang.CreateSimplifiedCRepro,
 			kernel.Checkout,
 			kernel.Build,
 			// Ensure we can reproduce the crash (and the build boots).

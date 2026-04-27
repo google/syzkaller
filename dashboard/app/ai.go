@@ -215,10 +215,7 @@ func handleAIJobPagePost(ctx context.Context, job *aidb.Job, r *http.Request, hd
 	if err != nil {
 		return err
 	}
-	if err := aiJobApplyLabels(ctx, job); err != nil {
-		return err
-	}
-	return nil
+	return aiJobApplyLabels(ctx, job)
 }
 
 func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -724,7 +721,7 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	if err != nil {
 		return err
 	}
-	labelType, labelValue, labelAdd, err := aiBugLabel(job)
+	labelType, labelValue, labelAdd, err := aiBugLabel(ctx, bug, job)
 	if err != nil || labelType == EmptyLabel {
 		return err
 	}
@@ -746,7 +743,7 @@ func aiJobApplyLabels(ctx context.Context, job *aidb.Job) error {
 	})
 }
 
-func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {
+func aiBugLabel(ctx context.Context, bug *Bug, job *aidb.Job) (typ BugLabelType, value string, set bool, err0 error) {
 	switch job.Type {
 	case ai.WorkflowAssessmentKCSAN:
 		// For now we require a manual correctness check,
@@ -769,6 +766,20 @@ func aiBugLabel(job *aidb.Job) (typ BugLabelType, value string, set bool, err0 e
 			return RaceLabel, BenignRace, true, nil
 		}
 		return RaceLabel, HarmfulRace, true, nil
+	case ai.WorkflowAssessmentSecurity:
+		if !job.Correct.Valid {
+			return
+		}
+		res, err := castJobResults[ai.AssessmentSecurityOutputs](job)
+		if err != nil {
+			err0 = err
+			return
+		}
+		prio := getNsConfig(ctx, job.Namespace).AI.SecurityPrio(bug, res)
+		if prio == "" {
+			return
+		}
+		return PriorityLabel, string(prio), true, nil
 	case ai.WorkflowModeration:
 		// For now we require a manual correctness check.
 		if !job.Correct.Valid {
@@ -1108,6 +1119,7 @@ func workflowsForBug(ctx context.Context, bug *Bug, manual bool) map[ai.Workflow
 			workflows[ai.WorkflowPatching] = true
 		}
 		workflows[ai.WorkflowRepro] = true
+		workflows[ai.WorkflowAssessmentSecurity] = true
 	}
 	return workflows
 }
