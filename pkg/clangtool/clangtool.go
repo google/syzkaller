@@ -160,7 +160,13 @@ func runTool[Output any, OutputPtr OutputDataPtr[Output]](cfg *Config, dbFile, f
 	// version that produces more warnings.
 	// Comments are needed for codesearch tool, but may be useful for declextract
 	// in the future if we try to parse them with LLMs.
-	cmd := exec.Command(osutil.Abs(os.Args[0]), "-p", dbFile,
+	bin := os.Args[0]
+	if strings.ContainsRune(bin, os.PathSeparator) {
+		bin = osutil.Abs(bin)
+	} else {
+		bin, _ = exec.LookPath(bin)
+	}
+	cmd := exec.Command(bin, "-p", dbFile,
 		"--extra-arg=-w", "--extra-arg=-fparse-all-comments", file)
 	cmd.Dir = cfg.KernelObj
 	// This tells the C++ clang tool to execute in a constructor.
