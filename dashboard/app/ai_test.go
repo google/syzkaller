@@ -229,6 +229,8 @@ func TestAIJob(t *testing.T) {
 		"KernelCommit":    "1111111111111111111111111111111111111111",
 		"KernelConfig":    "config1",
 		"SyzkallerCommit": "syzkaller_commit1",
+		"ReproSyz":        "",
+		"ReproC":          "",
 		"ReproOpts":       "",
 	})
 
@@ -342,6 +344,20 @@ func TestAIJobActions(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+	require.NotEqual(t, resp.ID, "")
+	require.Equal(t, resp.Workflow, "patching")
+	require.Equal(t, resp.Args, map[string]any{
+		"BugTitle":        "title1",
+		"CrashReport":     "report1",
+		"CrashLog":        "log1",
+		"KernelRepo":      "repo1",
+		"KernelCommit":    "1111111111111111111111111111111111111111",
+		"KernelConfig":    "config1",
+		"SyzkallerCommit": "syzkaller_commit1",
+		"ReproSyz":        "syncfs(1)",
+		"ReproC":          "int main() { return 1; }",
+		"ReproOpts":       "repro opts 1",
+	})
 	require.NoError(t, c.globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      resp.ID,
 		Results: map[string]any{"PatchDiff": "diff", "PatchDescription": "description"},
@@ -354,6 +370,40 @@ func TestAIJobActions(t *testing.T) {
 	require.Contains(t, err.Error(), fmt.Sprint(http.StatusTemporaryRedirect))
 	_, err = c.AuthGET(AccessUser, jobAssessURL)
 	require.NoError(t, err)
+
+	// Test crash w/o C repro.
+	crash2 := testCrashWithRepro(build, 2)
+	crash2.ReproC = nil
+	c.aiClient.ReportCrash(crash2)
+	extID2 := c.aiClient.pollEmailExtID()
+	bug2, _, _ := c.loadBug(extID2)
+
+	jobCreateURL2 := fmt.Sprintf("/bug?id=%v&ai-job-create=patching", bug2.keyHash(c.ctx))
+	_, err = c.AuthGET(AccessUser, jobCreateURL2)
+	require.NoError(t, err)
+
+	resp2, err := c.globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name2",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "patching", Name: "patching"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, resp2.ID, "")
+	require.Equal(t, resp2.Workflow, "patching")
+	require.Equal(t, resp2.Args, map[string]any{
+		"BugTitle":        "title2",
+		"CrashReport":     "report2",
+		"CrashLog":        "log2",
+		"KernelRepo":      "repo1",
+		"KernelCommit":    "1111111111111111111111111111111111111111",
+		"KernelConfig":    "config1",
+		"SyzkallerCommit": "syzkaller_commit1",
+		"ReproSyz":        "syncfs(2)",
+		"ReproC":          "",
+		"ReproOpts":       "repro opts 2",
+	})
 }
 
 func TestAIAssessmentKCSAN(t *testing.T) {
