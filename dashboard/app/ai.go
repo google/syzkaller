@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"maps"
 	"net/http"
 	"slices"
 	"sort"
@@ -1294,14 +1295,26 @@ func createGerritChange(ctx context.Context, job *aidb.Job) error {
 	if err != nil {
 		return err
 	}
+	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	models := make(map[string]bool)
+	for _, span := range trajectory {
+		if span.Model != "" {
+			models[span.Model] = true
+		}
+	}
 	// TODO: add Reported-by tag for the syzbot bug, or a link to lore report.
 	// Add Fixes tag if we have cause bisection, but we need to verify it with LLMs
 	// somehow since lots of them are wrong.
 	// Probably shouldn't cc stable for all patches (e.g. removing a WARNING)?
+	// If we run assessment-security workflow for the bug, we can check the results,
+	// or priority label (don't cc stable on low prio bugs).
 	res.Recipients = append(res.Recipients, ai.Recipient{Email: "stable@vger.kernel.org"})
-	// TODO: move these constants to config.
-	const author = "syzbot@kernel.org"
-	description := email.FormatPatchDescription(res.PatchDescription, []string{author}, res.Recipients)
+	// TODO: add a human who reviewed the patch to authors.
+	description := email.FormatPatchDescription(res.PatchDescription, slices.Collect(maps.Keys(models)),
+		nil, res.Recipients)
 	changeID, link, err := gerrit.CreateChange(ctx, res.KernelRepo, res.KernelBranch,
 		res.KernelCommit, description, res.PatchDiff)
 	if err != nil {
