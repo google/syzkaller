@@ -92,6 +92,12 @@ type uiAIJobPage struct {
 	Reportings     []*uiJobReporting
 }
 
+type uiAIJobDetails struct {
+	Job        *uiAIJob
+	Trajectory []*aflowhtml.UIAITrajectorySpan
+	Args       []*uiAIJobArg
+}
+
 type uiJobReporting struct {
 	Reporting *aidb.JobReporting
 	Comments  []*aidb.JobComment
@@ -192,6 +198,12 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		DefaultRepo:     defaultRepo,
 		DefaultBranch:   defaultBranch,
 	}
+
+	if r.FormValue("json") == "1" {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, page)
+	}
+
 	return serveTemplate(w, "ai_jobs.html", page)
 }
 
@@ -415,6 +427,14 @@ func handleAIJobPage(ctx context.Context, w http.ResponseWriter, r *http.Request
 		CurrentStage:   currentStageStr,
 		NextStage:      nextStageStr,
 		Reportings:     uiReportings,
+	}
+	if r.FormValue("json") == "1" {
+		w.Header().Set("Content-Type", "application/json")
+		return writeJSONVersionOf(w, &uiAIJobDetails{
+			Job:        uiJob,
+			Trajectory: uiTrajectory,
+			Args:       uiArgs,
+		})
 	}
 	return serveTemplate(w, "ai_job.html", page)
 }

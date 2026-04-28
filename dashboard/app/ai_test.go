@@ -380,6 +380,11 @@ func TestAIAssessmentKCSAN(t *testing.T) {
 	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v", resp.ID))
 	require.NoError(t, err)
 
+	// Verify JSON output.
+	respJSON, err := c.GET(fmt.Sprintf("/ai_job?id=%v&json=1", resp.ID))
+	require.NoError(t, err)
+	require.Contains(t, string(respJSON), `"Trajectory"`)
+
 	// Since the job is not completed, setting correctness must fail.
 	_, err = c.GET(fmt.Sprintf("/ai_job?id=%v&correct=%v", resp.ID, aiCorrectnessCorrect))
 	require.Error(t, err)
@@ -462,6 +467,11 @@ func TestAIJobsFiltering(t *testing.T) {
 	resp, err = c.GET("/ains/ai?workflow=patching")
 	require.NoError(t, err)
 	require.NotContains(t, string(resp), "KCSAN: data-race")
+
+	// Verify JSON output.
+	resp, err = c.GET("/ains/ai?json=1")
+	require.NoError(t, err)
+	require.Contains(t, string(resp), `"Workflow": "assessment-kcsan"`)
 }
 
 func TestAIJobCustomCommit(t *testing.T) {

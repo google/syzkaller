@@ -199,7 +199,7 @@ func GetJSONDescrFor(page any) ([]byte, error) {
 		res = getExtAPIDescrForBugGroups(i.Groups)
 	case *uiBackportsPage:
 		res = getExtAPIDescrForBackports(i.Groups)
-	case *uiDungeonPage, *uiDungeonPlayer, *uiDungeonKingdom:
+	case *uiDungeonPage, *uiDungeonPlayer, *uiDungeonKingdom, *uiAIJobsPage, *uiAIJobDetails:
 		res = i
 	default:
 		return nil, ErrClientNotFound
