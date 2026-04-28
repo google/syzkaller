@@ -82,7 +82,7 @@ func TestAILoreIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 1)
@@ -103,11 +103,11 @@ In-Reply-To: <mock@msgid-1>
 #syz upstream
 `, now.Add(time.Minute))
 
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// 4. Poll Dashboard Again - should report to public.
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
@@ -127,7 +127,7 @@ In-Reply-To: <mock@msgid-2>
 #syz upstream
 `, now.Add(time.Minute*2))
 
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 3)
@@ -136,11 +136,11 @@ In-Reply-To: <mock@msgid-2>
 	assert.Equal(t, expectedBody, string(mockSnd.sent[2].Body))
 
 	// Poll Lore again - nothing new should be found.
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// Poll Dashboard again - still nothing.
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 3)
@@ -205,7 +205,7 @@ func TestAILoreIntegrationReject(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 1)
@@ -222,11 +222,11 @@ In-Reply-To: <mock@msgid-1>
 #syz reject
 `, now.Add(time.Minute))
 
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// 4. Poll Dashboard Again - should NOT report anywhere!
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 
 	require.Len(t, mockSnd.sent, 1)
@@ -263,7 +263,7 @@ In-Reply-To: <non-existent-msg-id>
 `, now)
 
 	// We should stay silent.
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 	require.Len(t, mockSnd.sent, 0)
 }
@@ -326,7 +326,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Poll Dashboard - should report to moderation.
-	err = relay.PollDashboardOnce(context.Background())
+	err = relay.PollDashboardOnce(t.Context())
 	require.NoError(t, err)
 	require.Len(t, mockSnd.sent, 1)
 
@@ -339,7 +339,7 @@ In-Reply-To: <mock@msgid-1>
 This is just a normal review comment with some context.
 `, now.Add(time.Minute))
 
-	err = relay.PollLoreOnce(context.Background())
+	err = relay.PollLoreOnce(t.Context())
 	require.NoError(t, err)
 
 	// Verify that NO error reply was sent, meaning sent length is still exactly 1!
