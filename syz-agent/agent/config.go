@@ -53,6 +53,12 @@ func loadConfig(configFile string) (*Config, error) {
 	}
 	cfg.DashboardKey = resolvedDashKey
 
+	resolvedDashClient, err := gcpsecret.Resolve(context.Background(), cfg.DashboardClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve DashboardClient: %w", err)
+	}
+	cfg.DashboardClient = resolvedDashClient
+
 	resolvedGeminiKey, err := gcpsecret.Resolve(context.Background(), cfg.GeminiAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve GeminiAPIKey: %w", err)

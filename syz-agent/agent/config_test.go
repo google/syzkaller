@@ -18,6 +18,7 @@ func TestConfigPlainValues(t *testing.T) {
 
 	confFile := filepath.Join(tmpDir, "config.json")
 	content := `{
+		"dashboard_client": "test-dashboard-client",
 		"dashboard_key": "test-dashboard-key",
 		"gemini_api_key": "test-gemini-key"
 	}`
@@ -27,6 +28,7 @@ func TestConfigPlainValues(t *testing.T) {
 	cfg, err := loadConfig(confFile)
 	assert.NoError(t, err)
 
+	assert.Equal(t, "test-dashboard-client", cfg.DashboardClient)
 	assert.Equal(t, "test-dashboard-key", cfg.DashboardKey)
 	assert.Equal(t, "test-gemini-key", cfg.GeminiAPIKey)
 }
@@ -38,18 +40,21 @@ func TestConfigEnvResolution(t *testing.T) {
 
 	confFile := filepath.Join(tmpDir, "config.json")
 	content := `{
+		"dashboard_client": "env:CLIENT_ENV",
 		"dashboard_key": "env:DASHBOARD_ENV",
 		"gemini_api_key": "env:GEMINI_ENV"
 	}`
 	err = os.WriteFile(confFile, []byte(content), 0644)
 	assert.NoError(t, err)
 
+	os.Setenv("CLIENT_ENV", "resolved-client")
 	os.Setenv("DASHBOARD_ENV", "resolved-dashboard")
 	os.Setenv("GEMINI_ENV", "resolved-gemini")
 
 	cfg, err := loadConfig(confFile)
 	assert.NoError(t, err)
 
+	assert.Equal(t, "resolved-client", cfg.DashboardClient)
 	assert.Equal(t, "resolved-dashboard", cfg.DashboardKey)
 	assert.Equal(t, "resolved-gemini", cfg.GeminiAPIKey)
 }
