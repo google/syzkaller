@@ -285,6 +285,10 @@ type BugListReportingConfig struct {
 	// If ModerationConfig is set, bug lists will be first sent there for human confirmation.
 	// For now, only EmailConfig is supported.
 	ModerationConfig ReportingType
+	// SkipModeration determines whether a monthly report should skip the moderation stage.
+	// If it returns true, the report skips the moderation stage (if any) and goes straight to public.
+	// If it returns false, the report goes through moderation first.
+	SkipModeration func(bugs []*Bug) bool `json:"-"`
 	// Config specifies how exactly such notifications should be delivered.
 	// For now, only EmailConfig is supported.
 	Config ReportingType

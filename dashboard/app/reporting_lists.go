@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/subsystem"
-	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 )
@@ -76,7 +75,7 @@ const maxNewListsPerNs = 5
 
 // handleSubsystemReports is periodically invoked to construct fresh SubsystemReport objects.
 func handleSubsystemReports(w http.ResponseWriter, r *http.Request) {
-	ctx := appengine.NewContext(r)
+	ctx := r.Context()
 	registry, err := makeSubsystemRegistry(ctx)
 	if err != nil {
 		log.Errorf(ctx, "failed to load subsystems: %v", err)
@@ -309,14 +308,15 @@ func querySubsystemReport(ctx context.Context, subsystem *Subsystem, reporting *
 		}
 		return cmp.Compare(a.Title, b.Title)
 	})
+	if len(takeBugs) > config.BugsInReport {
+		takeBugs = takeBugs[:config.BugsInReport]
+	}
+	skipModeration := config.SkipModeration != nil && config.SkipModeration(takeBugs)
 	keys := []*db.Key{}
 	for _, bug := range takeBugs {
 		keys = append(keys, bug.key(ctx))
 	}
-	if len(keys) > config.BugsInReport {
-		keys = keys[:config.BugsInReport]
-	}
-	report := makeSubsystemReport(ctx, config, keys)
+	report := makeSubsystemReport(ctx, config, keys, skipModeration)
 	report.TotalStats = makeSubsystemReportStats(ctx, rawOpenBugs, fixedBugs, 0)
 	report.PeriodStats = makeSubsystemReportStats(ctx, rawOpenBugs, fixedBugs, config.PeriodDays)
 	return report, nil
@@ -391,7 +391,7 @@ func queryMatchingBugs(ctx context.Context, ns, name string, reporting *Reportin
 
 // makeSubsystemReport creates a new SubsystemReminder object.
 func makeSubsystemReport(ctx context.Context, config *BugListReportingConfig,
-	keys []*db.Key) *SubsystemReport {
+	keys []*db.Key, skipModeration bool) *SubsystemReport {
 	ret := &SubsystemReport{
 		Created: timeNow(ctx),
 	}
@@ -399,7 +399,7 @@ func makeSubsystemReport(ctx context.Context, config *BugListReportingConfig,
 		ret.BugKeys = append(ret.BugKeys, key.Encode())
 	}
 	baseID := hash.String([]byte(fmt.Sprintf("%v-%v", timeNow(ctx), ret.BugKeys)))
-	if config.ModerationConfig != nil {
+	if config.ModerationConfig != nil && !skipModeration {
 		ret.Stages = append(ret.Stages, SubsystemReportStage{
 			ID:         bugListReportingHash(baseID, "moderation"),
 			Moderation: true,

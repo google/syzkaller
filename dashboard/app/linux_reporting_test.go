@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFsSubsystemFlow(t *testing.T) {
@@ -150,4 +151,48 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	// .. and poll the email.
 	reply := c.pollEmailBug()
 	c.expectEQ(reply.Subject, "[syzbot] [fs?] WARNING in do_mkdirat2")
+}
+
+func TestIsWorthMonthlyReport(t *testing.T) {
+	tests := []struct {
+		name string
+		bugs []*Bug
+		want bool
+	}{
+		{
+			name: "all INFO",
+			bugs: []*Bug{
+				{Title: "INFO: task hung"},
+				{Title: "INFO: rcu detected stall"},
+			},
+			want: false,
+		},
+		{
+			name: "some not INFO",
+			bugs: []*Bug{
+				{Title: "INFO: task hung"},
+				{Title: "WARNING: abcd"},
+			},
+			want: true,
+		},
+		{
+			name: "none INFO",
+			bugs: []*Bug{
+				{Title: "WARNING: abcd"},
+				{Title: "KASAN: use-after-free"},
+			},
+			want: true,
+		},
+		{
+			name: "empty",
+			bugs: []*Bug{},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isWorthMonthlyReport(tt.bugs)
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
