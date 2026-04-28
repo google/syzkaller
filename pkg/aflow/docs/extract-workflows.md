@@ -33,7 +33,7 @@ The extraction process is automated by a bash script located at `tools/extract_w
 
 1.  **Commit Date**: The script gets the timestamp of the specified commit using `git log`.
 2.  **Fetch List**: It calls the dashboard list endpoint with `?json=1` to get all jobs.
-3.  **Filter**: It iterates over the jobs and filters out those older than the specified commit date, unless the job's `CodeRevision` matches the target commit exactly.
+3.  **Filter**: It iterates over the jobs and filters out those older than the specified commit date, unless the job's `CodeRevision` matches the target commit exactly. It also filters to include only workflows that have finished.
 4.  **Fetch Details**: For each matching job, it calls the job details endpoint with `?json=1` to get the full trajectory.
 5.  **Store**: It creates a directory named after the workflow type (e.g., `repro`, `repro-c`) inside the output directory and saves the job details as a JSON file named `<job_id>.json`.
 

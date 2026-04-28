@@ -39,7 +39,8 @@ BASE_URL=$(echo "$URL" | grep -oE '^https?://[^/]+')
 echo "Processing jobs..."
 
 # Extract jobs info in TSV format: ID, Workflow, Created, CodeRevision
-printf "%s\n" "$DATA" | jq -r '.Jobs[] | "\(.ID)\t\(.Workflow)\t\(.Created)\t\(.CodeRevision)"' | while IFS=$'\t' read -r ID WORKFLOW CREATED REVISION; do
+# Filter to only include finished workflows (Finished time is not the zero value)
+printf "%s\n" "$DATA" | jq -r '.Jobs[] | select(.Finished != "0001-01-01T00:00:00Z") | "\(.ID)\t\(.Workflow)\t\(.Created)\t\(.CodeRevision)"' | while IFS=$'\t' read -r ID WORKFLOW CREATED REVISION; do
   if [ -z "$ID" ] || [ "$ID" == "null" ]; then
     continue
   fi
