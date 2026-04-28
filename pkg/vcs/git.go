@@ -158,6 +158,14 @@ func (git *gitRepo) CheckoutCommit(repo, commit string) (*Commit, error) {
 }
 
 func (git *gitRepo) fetchRemote(repo, commit string) error {
+	if commit != "" && gitFullHashRe.MatchString(commit) {
+		// If the commit is already present locally, we don't need to fetch it.
+		// This also makes us resilient to cases where the remote has force-pushed
+		// and the commit is no longer reachable there (but we still have it).
+		if ok, _ := git.CommitExists(commit); ok {
+			return nil
+		}
+	}
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	git.Run("remote", "add", repoHash, repo)

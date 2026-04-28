@@ -110,6 +110,32 @@ func TestGitRepo(t *testing.T) {
 	}
 }
 
+func TestCheckoutCommitLocal(t *testing.T) {
+	t.Parallel()
+	baseDir := t.TempDir()
+
+	// Create a remote repo and a local checkout.
+	remote := CreateTestRepo(t, baseDir, "remote")
+	local := newGitRepo(filepath.Join(baseDir, "local"), nil, nil)
+
+	// Initial poll to populate local repo.
+	com0, err := local.Poll(remote.Dir, "master")
+	require.NoError(t, err)
+	require.Equal(t, remote.Commits["master"]["1"], com0)
+
+	// Get a commit that exists in both.
+	want := remote.Commits["master"]["0"]
+
+	// Now try to fetch the same commit but from a DIFFERENT remote that doesn't have it.
+	otherRemote := CreateTestRepo(t, baseDir, "otherRemote")
+
+	// This should fail if it tries to fetch from otherRemote,
+	// but succeed because it finds the commit locally.
+	com, err := local.CheckoutCommit(otherRemote.Dir, want.Hash)
+	require.NoError(t, err)
+	require.Equal(t, want.Hash, com.Hash)
+}
+
 func TestMetadata(t *testing.T) {
 	t.Parallel()
 	repoDir := t.TempDir()
