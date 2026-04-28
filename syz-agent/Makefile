@@ -25,14 +25,14 @@ k8s-minikube:
 	@kubectl kustomize ./k8s/overlays/minikube/ | sed \
 		-e "s~\$${IMAGE_NAME}~$(IMAGE_NAME)~g" \
 		-e "s~\$${IMAGE_TAG}~$(IMAGE_TAG)~g" \
-		-e "s~\$${GOOGLE_API_KEY}~$(GOOGLE_API_KEY)~g" \
-		-e "s~\$${DASHBOARD_KEY}~$(DASHBOARD_KEY)~g"
+		-e "s~\$${GOOGLE_API_KEY}~'$(GOOGLE_API_KEY)'~g" \
+		-e "s~\$${DASHBOARD_KEY}~'$(DASHBOARD_KEY)'~g"
 
 k8s-prod-agent:
 	@kubectl kustomize ./k8s/overlays/prod-agent/ | sed \
 		-e "s~\$${IMAGE_NAME}~$(IMAGE_NAME)~g" \
 		-e "s~\$${IMAGE_TAG}~$(IMAGE_TAG)~g" \
-		-e "s~\$${GIT_COOKIE_DAEMON}~$(GIT_COOKIE_DAEMON)~g"
+		-e "s~\$${GIT_COOKIE_DAEMON}~'$(GIT_COOKIE_DAEMON)'~g"
 
 k8s-prod-lore:
 	@kubectl kustomize ./k8s/overlays/prod-lore/ | sed \
