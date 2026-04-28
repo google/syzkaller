@@ -5,11 +5,12 @@ package aflow
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"reflect"
 	"slices"
+	"strings"
 	"text/template"
 	"text/template/parse"
 
@@ -110,7 +111,16 @@ var templateFuncs = template.FuncMap{
 	"titleIsUAF":            titleIs(crash.KASANUseAfterFreeRead, crash.KASANUseAfterFreeWrite),
 	"titleIsKASANNullDeref": titleIs(crash.KASANNullPtrDerefRead, crash.KASANNullPtrDerefWrite),
 	"titleIsWarning":        titleIs(crash.Warning),
-	"htmlEscape":            html.EscapeString,
+	"jsonMarshal": func(v any) string {
+		var buf bytes.Buffer
+		enc := json.NewEncoder(&buf)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(v); err != nil {
+			return fmt.Sprintf("error marshaling: %v", err)
+		}
+		return strings.TrimSuffix(buf.String(), "\n")
+	},
 }
 
 func titleIs(types ...crash.Type) func(string) bool {
