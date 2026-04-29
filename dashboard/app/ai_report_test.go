@@ -641,8 +641,9 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		Results: map[string]any{
 			"PatchDescription": "Test Description",
 			"PatchDiff":        "diff",
-			"KernelRepo":       "repo",
-			"KernelCommit":     "commit",
+			"KernelRepo":       "exact-repo",
+			"KernelBranch":     "exact-branch",
+			"KernelCommit":     "exact-commit",
 		},
 	})
 	require.NoError(t, err)
@@ -696,6 +697,9 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.ID)
 	require.Equal(t, "patch-iteration", resp.Workflow)
+	require.Equal(t, "exact-commit", resp.Args["BaseCommit"])
+	require.Equal(t, "exact-branch", resp.Args["BaseBranch"])
+	require.Equal(t, "exact-repo", resp.Args["BaseRepository"])
 
 	// Verify Args contains PatchHistory!
 	var gotPatchHistory []ai.PatchHistoryEntry
@@ -924,8 +928,14 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 
 	// Complete the initial patching job successfully.
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
-		ID:      jobID,
-		Results: map[string]any{"PatchDescription": "Desc", "PatchDiff": "diff"},
+		ID: jobID,
+		Results: map[string]any{
+			"PatchDescription": "Desc",
+			"PatchDiff":        "diff",
+			"KernelCommit":     "exact-commit-hash",
+			"KernelRepo":       "exact-repo",
+			"KernelBranch":     "exact-branch",
+		},
 	})
 	require.NoError(t, err)
 
@@ -964,6 +974,11 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	resp, err := c.agentClient.AIJobPoll(pollReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.ID)
+
+	// Verify that the iteration job accurately copied the BaseCommit overrides from the parent!
+	require.Equal(t, "exact-commit-hash", resp.Args["BaseCommit"])
+	require.Equal(t, "exact-repo", resp.Args["BaseRepository"])
+	require.Equal(t, "exact-branch", resp.Args["BaseBranch"])
 
 	// 4. Simulate the iteration job failing (e.g., LLM error).
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{

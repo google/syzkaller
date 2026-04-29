@@ -767,6 +767,8 @@ func CreatePatchIterationJob(ctx context.Context, reportingID string, debounce t
 				argsMap = maps.Clone(m)
 			}
 		}
+
+		extractBaseCommitArgs(parentJob, argsMap)
 		argsMap["TargetCommentIDs"] = commentIDs
 
 		job = &Job{
@@ -1204,4 +1206,21 @@ func readRow[T any](ctx context.Context, txn dbQuerier, stmt spanner.Statement) 
 		return nil, err
 	}
 	return &obj, nil
+}
+
+func extractBaseCommitArgs(job *Job, argsMap map[string]any) {
+	if !job.Results.Valid {
+		return
+	}
+	if m, ok := job.Results.Value.(map[string]any); ok {
+		if repo, ok := m["KernelRepo"].(string); ok && repo != "" {
+			argsMap["BaseRepository"] = repo
+		}
+		if branch, ok := m["KernelBranch"].(string); ok && branch != "" {
+			argsMap["BaseBranch"] = branch
+		}
+		if commit, ok := m["KernelCommit"].(string); ok && commit != "" {
+			argsMap["BaseCommit"] = commit
+		}
+	}
 }
