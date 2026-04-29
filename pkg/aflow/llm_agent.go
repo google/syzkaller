@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"maps"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/hash"
@@ -378,13 +380,8 @@ func (a *LLMAgent) slide(req []*genai.Content, summary *genai.Content) ([]*genai
 }
 
 func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, map[string]Tool) {
-	instruction := formatTemplate(a.Instruction, ctx.state)
 	toolList := a.Tools
-	if len(toolList) != 0 {
-		instruction += llmMultipleToolsInstruction
-	}
 	if a.Outputs != nil {
-		instruction += llmOutputsInstruction
 		toolList = append(toolList, a.Outputs.tool)
 	}
 	toolMap := make(map[string]Tool)
@@ -394,6 +391,17 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 		toolMap[decl.Name] = tool
 		tools = append(tools, &genai.Tool{
 			FunctionDeclarations: []*genai.FunctionDeclaration{decl}})
+	}
+	state := maps.Clone(ctx.state)
+	for name := range toolMap {
+		state[toolTemplateName(name)] = name
+	}
+	instruction := formatTemplate(a.Instruction, state)
+	if len(a.Tools) != 0 {
+		instruction += llmMultipleToolsInstruction
+	}
+	if a.Outputs != nil {
+		instruction += llmOutputsInstruction
 	}
 	return &genai.GenerateContentConfig{
 		ResponseModalities: []string{"TEXT"},
@@ -645,6 +653,10 @@ func (a *LLMAgent) verify(ctx *verifyContext) {
 	a.verifyTemplate(ctx, "Instruction", a.Instruction)
 	a.verifyTemplate(ctx, "Prompt", a.Prompt)
 	for _, tool := range a.Tools {
+		name := tool.declaration().Name
+		if !toolNameRe.MatchString(name) {
+			ctx.errorf(a.Name, "bad tool name %q, expect %s", name, toolNameRe)
+		}
 		tool.verify(ctx)
 	}
 	if a.Reply != llmToolReply {
@@ -670,12 +682,23 @@ func (a *LLMAgent) verifyTemplate(ctx *verifyContext, what, text string) {
 	for name, state := range ctx.state {
 		vars[name] = state.typ
 	}
+	for _, tool := range a.Tools {
+		name := tool.declaration().Name
+		templName := toolTemplateName(name)
+		if _, ok := vars[templName]; ok {
+			ctx.errorf(a.Name, "tool %q is duplicated", name)
+			return
+		}
+		vars[templName] = reflect.TypeFor[string]()
+	}
 	used, err := verifyTemplate(text, vars)
 	if err != nil {
 		ctx.errorf(a.Name, "%v: %v", what, err)
 	}
 	for name := range used {
-		ctx.state[name].used = true
+		if ctx.state[name] != nil {
+			ctx.state[name].used = true
+		}
 	}
 }
 
@@ -705,4 +728,25 @@ func (a *LLMAgent) checkDuplicateCall(call *genai.FunctionCall) error {
 	}
 
 	return nil
+}
+
+var toolNameRe = regexp.MustCompile(`^[a-z][a-z0-9-]+[a-z0-9]$`)
+
+func toolTemplateName(name string) string {
+	buf := new(bytes.Buffer)
+	buf.WriteString("tool")
+	cap := true
+	for _, c := range name {
+		if c == '-' {
+			cap = true
+			continue
+		}
+		if cap {
+			buf.WriteRune(unicode.ToUpper(c))
+		} else {
+			buf.WriteRune(c)
+		}
+		cap = false
+	}
+	return buf.String()
 }
