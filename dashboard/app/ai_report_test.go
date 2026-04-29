@@ -26,7 +26,7 @@ func TestAIExternalReporting(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
 		},
 	})
@@ -354,7 +354,7 @@ func TestAIUpstreamTwice(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
 		},
 	})
@@ -494,7 +494,7 @@ func TestAIUpstreamConcurrent(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
 	})
@@ -607,7 +607,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
 	})
@@ -898,7 +898,7 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
 	})
 
@@ -1014,6 +1014,86 @@ func TestAIPatchIterationBackoff(t *testing.T) {
 	require.NotEmpty(t, resp3.ID)
 }
 
+// TestAIPatchIterationAutoTriggerDisabled verifies that the system does not
+// autonomously iterate on comments if the stage configuration has AddressComments
+// set to false.
+func TestAIPatchIterationAutoTriggerDisabled(t *testing.T) {
+	c := NewSpannerCtx(t)
+	defer c.Close()
+
+	c.SetAIConfig(&AIConfig{
+		Stages: []AIPatchStageConfig{
+			// Explicitly disable auto-triggering.
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: false},
+		},
+	})
+
+	// 1. Setup bug and patching job.
+	build := testBuild(1)
+	c.aiClient.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.aiClient.ReportCrash(crash)
+	extID := c.aiClient.pollEmailExtID()
+
+	_, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	jobID := c.createAIJob(extID, "patching", "")
+
+	// Poll to mark job as started.
+	_, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows:    []dashapi.AIWorkflow{{Type: ai.WorkflowPatching, Name: "patching"}},
+	})
+	require.NoError(t, err)
+
+	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID:      jobID,
+		Results: map[string]any{"PatchDescription": "Desc1", "PatchDiff": "diff1"},
+	})
+	require.NoError(t, err)
+
+	reportings, err := aidb.LoadJobReportings(c.ctx, jobID)
+	require.NoError(t, err)
+	reporting := reportings[0]
+
+	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+		ReportID:       reporting.ID,
+		PublishedExtID: "<msg-1>",
+	})
+	require.NoError(t, err)
+
+	// 2. Simulate comment arrival.
+	_, err = c.globalClient.AIReportCommand(&dashapi.SendExternalCommandReq{
+		Source:       dashapi.AIJobSourceLore,
+		RootExtID:    "<msg-1>",
+		MessageExtID: "<comment-1>",
+		Author:       "rev@email.com",
+		Comment:      &dashapi.CommentCommand{Body: "This is a comment"},
+	})
+	require.NoError(t, err)
+
+	// 3. Advance time to pass the debounce period (30 mins).
+	c.advanceTime(31 * time.Minute)
+
+	// 4. Poll for iteration jobs. It should NOT return a job because AddressComments is false.
+	pollReq := &dashapi.AIJobPollReq{
+		AgentName:    "test-agent",
+		CodeRevision: "test-rev",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: "patch-iteration"},
+		},
+	}
+	resp, err := c.agentClient.AIJobPoll(pollReq)
+	require.NoError(t, err)
+	require.Equal(t, "", resp.ID)
+}
+
 // TestAIPatchIterationStaleThread verifies that the system stops iterating on
 // threads for obsolete patch versions when a newer patch version has been created.
 // It ensures that comments on old threads are marked as processed to avoid continuous polling.
@@ -1023,7 +1103,7 @@ func TestAIPatchIterationStaleThread(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
 	})
 
@@ -1122,7 +1202,7 @@ func TestAIPatchIterationReplySuccess(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com"},
 		},
 	})

@@ -864,7 +864,7 @@ func pollAIJob(ctx context.Context, req *dashapi.AIJobPollReq, client APIClient)
 	if job != nil {
 		return job, nil
 	}
-	if _, err := autoCreatePatchIterationJobs(ctx); err != nil {
+	if _, err := autoCreatePatchIterationJobs(ctx, client); err != nil {
 		return nil, fmt.Errorf("autoCreatePatchIterationJobs failed: %w", err)
 	}
 	if _, err := autoCreateAIJobs(ctx, req.Workflows, client); err != nil {
@@ -1214,11 +1214,24 @@ const maxIterationGroupsPerPoll = 5
 
 // TODO: We could probably be more smart at avoiding looking into the specific
 // reportings each time, e.g. in case of retrials on errors.
-func autoCreatePatchIterationJobs(ctx context.Context) (bool, error) {
-	groups, err := aidb.LoadPendingCommentGroups(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to load pending comment groups: %w", err)
+func autoCreatePatchIterationJobs(ctx context.Context, client APIClient) (bool, error) {
+	var groups []*aidb.PendingCommentGroup
+
+	for ns, cfg := range getConfig(ctx).Namespaces {
+		if cfg.AI == nil || !client.AllowedNamespace(ns) {
+			continue
+		}
+		for _, stage := range cfg.AI.Stages {
+			if stage.AddressComments {
+				grp, err := aidb.LoadPendingCommentGroups(ctx, ns, stage.Name)
+				if err != nil {
+					return false, fmt.Errorf("failed to load pending comment groups for %v/%v: %w", ns, stage.Name, err)
+				}
+				groups = append(groups, grp...)
+			}
+		}
 	}
+
 	// If there are too many, pick a random subset.
 	if len(groups) > maxIterationGroupsPerPoll {
 		r := rand.New(rand.NewSource(timeNow(ctx).UnixNano()))
