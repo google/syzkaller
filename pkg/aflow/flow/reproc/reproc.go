@@ -279,6 +279,18 @@ Do NOT generate an exploit or weaponized code. Generate only the minimal code ne
 the specific crash or condition described, to help developers confirm the bug and its fix.
 Focus on the technical reproduction of the state, not on weaponization or payload delivery.
 
+To ensure that we can diagnose why a reproducer might fail to run on the test environment, you MUST include detailed logging and error checking in the generated C program:
+1. Every system call (e.g., socket, bind, listen, connect, ioctl, send) must check for a failure return value.
+2. If a call fails, it must print a specific error message including the function name and the error string (use perror or strerror(errno)), and then exit with a non-zero status.
+3. The program must print a message to stdout (e.g., using printf) after every successful major step in the reproduction sequence.
+4. Generate code that follows this pattern for all operations:
+    int res = do_something();
+    if (res < 0) {
+        perror("[-] Failed to do_something");
+        exit(1);
+    }
+    printf("[+] do_something successful.\n");
+
 Print only the C program that could be executed directly, without backticks.`
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
@@ -287,7 +299,11 @@ const oracleInstruction = `You are an AI assistant part of the Syzkaller/Aflow a
 Analyze the results of running the reproducer and determine if it was successful.
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
-to provide detailed feedback on why it failed and how to fix it.`
+to provide detailed feedback on why it failed and how to fix it.
+
+To prevent premature termination of the reproduction loop:
+Do not set ShouldContinue to false on the first attempt unless reproduction was successful.
+If reproduction failed due to environmental issues (e.g., missing permissions, missing devices, or sandbox restrictions), assume execution might succeed with a different approach or more robust code (e.g., adding namespace setup or better error handling), and suggest modifications to continue the loop.`
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
 Console Output: {{.TruncatedConsoleOutput}}
