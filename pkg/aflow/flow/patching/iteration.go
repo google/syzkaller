@@ -247,7 +247,7 @@ Reviewers' feedback suggested that a new version is needed for the following rea
 Note: Double-check this reasoning before proceeding.
 
 IMPORTANT: The previous version of the patch (shown above) is CURRENTLY APPLIED
-to the source tree. Do not start from scratch! Use the codeeditor tool to modify
+to the source tree. Do not start from scratch! Use the {{.toolCodeeditor}} tool to modify
 the currently applied patch so that it addresses the reviewers' feedback.
 
 {{if .TestError}}
@@ -270,7 +270,7 @@ If the error is fixable, create a new fixed patch based on your approach.
 If the error points to a fundamental issue with the approach, try a different strategy.
 Note: The source tree has been reverted back to the previous version of the patch (V1). 
 Your broken changes (V2) are NOT in the source tree, so you need to recreate them
-from scratch using the codeeditor tool.
+from scratch using the {{.toolCodeeditor}} tool.
 {{else}}
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
