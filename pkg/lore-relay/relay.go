@@ -134,14 +134,34 @@ func (r *Relay) PollDashboardOnce(ctx context.Context) error {
 	}
 	subject := GenerateSubject(resp.Result)
 	cc := slices.Clone(resp.Result.Cc)
-	if r.cfg.LoreArchive != "" {
-		cc = append(cc, r.cfg.LoreArchive)
+	to := slices.Clone(resp.Result.To)
+
+	inReplyTo := ""
+	if len(resp.Result.Replies) > 0 {
+		inReplyTo = resp.Result.Replies[0].ReplyExtID
+		// If it's a reply and no patch is attached, GenerateSubject gives an empty subject.
+		// We must provide a subject for the email sender.
+		if subject == "" {
+			subject = "Aggregated Comment Reply"
+		}
+		var replyAuthors []string
+		for _, reply := range resp.Result.Replies {
+			if reply.ReplyAuthor != "" {
+				replyAuthors = append(replyAuthors, reply.ReplyAuthor)
+			}
+		}
+		to = email.MergeEmailLists(to, replyAuthors)
 	}
+	if r.cfg.LoreArchive != "" {
+		cc = email.MergeEmailLists(cc, []string{r.cfg.LoreArchive})
+	}
+	cc = email.SubtractEmailLists(cc, to)
 	email := &sender.Email{
-		To:      resp.Result.To,
-		Cc:      cc,
-		Subject: subject,
-		Body:    []byte(body),
+		To:        to,
+		Cc:        cc,
+		Subject:   subject,
+		InReplyTo: inReplyTo,
+		Body:      []byte(body),
 	}
 	r.cfg.Tracer.Logf("sending email: %s", subject)
 	msgID, err := r.emailSender.Send(ctx, email)

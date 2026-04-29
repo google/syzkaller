@@ -113,7 +113,7 @@ In-Reply-To: <mock@msgid-1>
 	require.Len(t, mockSnd.sent, 2) // Moderation email + Public email.
 	assert.Equal(t, []string{"public@test.com", "maintainer@email.com"}, mockSnd.sent[1].To)
 	assert.Equal(t, "[PATCH] Test Description", mockSnd.sent[1].Subject)
-	assert.Equal(t, []string{"reviewer@email.com", "archive@lore.com"}, mockSnd.sent[1].Cc)
+	assert.Equal(t, []string{"archive@lore.com", "reviewer@email.com"}, mockSnd.sent[1].Cc)
 
 	bodyPublic := string(mockSnd.sent[1].Body)
 	assert.NotContains(t, bodyPublic, "Final To:")

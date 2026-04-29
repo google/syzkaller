@@ -579,6 +579,21 @@ func RemoveFromEmailList(list []string, toRemove string) []string {
 	return result
 }
 
+// SubtractEmailLists subtracts all emails in 'toRemove' from 'list'.
+func SubtractEmailLists(list, toRemove []string) []string {
+	removeMap := make(map[string]bool)
+	for _, email := range toRemove {
+		removeMap[CanonicalEmail(email)] = true
+	}
+	var result []string
+	for _, email := range list {
+		if !removeMap[CanonicalEmail(email)] {
+			result = append(result, email)
+		}
+	}
+	return result
+}
+
 // Decode RFC 2047-encoded subjects.
 func decodeSubject(rawSubject string) string {
 	decoder := new(mime.WordDecoder)

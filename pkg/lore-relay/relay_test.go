@@ -70,7 +70,7 @@ func TestMainScenario(t *testing.T) {
 
 	require.Len(t, mockSnd.sent, 1)
 	assert.Equal(t, []string{"maintainer@email"}, mockSnd.sent[0].To)
-	assert.Equal(t, []string{"cc@email", "archive@lore.com"}, mockSnd.sent[0].Cc)
+	assert.Equal(t, []string{"archive@lore.com", "cc@email"}, mockSnd.sent[0].Cc)
 	assert.Equal(t, "[PATCH RFC] Fix bug", mockSnd.sent[0].Subject)
 
 	require.Len(t, mockDash.confirmed, 1)

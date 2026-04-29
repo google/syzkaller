@@ -116,9 +116,10 @@ type NewReportResult struct {
 }
 
 type ReplyResult struct {
-	Quote      string
-	Body       string
-	ReplyExtID string
+	Quote       string
+	Body        string
+	ReplyExtID  string
+	ReplyAuthor string
 }
 
 // ConfirmPublishedReq represents a request to confirm that a report has been published externally.
