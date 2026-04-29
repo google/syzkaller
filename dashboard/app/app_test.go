@@ -633,7 +633,11 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"ains": {
-			AI:          &AIConfig{},
+			AI: &AIConfig{
+				BaseRepository: "git://ai/base.git",
+				BaseBranch:     "ai-base",
+				BaseCommit:     "RC",
+			},
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
 			Clients: map[string]APIClient{

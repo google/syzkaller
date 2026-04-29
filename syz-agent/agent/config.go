@@ -27,8 +27,6 @@ type Config struct {
 	Type            string          `json:"type"`
 	VM              json.RawMessage `json:"vm"`
 	CacheSize       uint64          `json:"cache_size"`
-	FixedBaseCommit string          `json:"fixed_base_commit"`
-	FixedRepository string          `json:"repo"`
 	Model           string          `json:"model"`
 	Workflows       []string        `json:"workflows"`
 	GeminiAPIKey    string          `json:"gemini_api_key"`

@@ -1089,6 +1089,7 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 	}); err != nil {
 		return "", fmt.Errorf("addCrashReference failed: %w", err)
 	}
+	cfg := getNsConfig(ctx, bug.Namespace)
 	args := map[string]any{
 		"BugTitle":        bug.Title,
 		"ReproOpts":       string(crash.ReproOpts),
@@ -1100,6 +1101,9 @@ func bugJobCreate(ctx context.Context, workflow string, typ ai.WorkflowType, bug
 		"KernelCommit":    build.KernelCommit,
 		"KernelConfigID":  build.KernelConfig,
 		"SyzkallerCommit": build.SyzkallerCommit,
+		"BaseRepository":  cfg.AI.BaseRepository,
+		"BaseBranch":      cfg.AI.BaseBranch,
+		"BaseCommit":      cfg.AI.BaseCommit,
 	}
 	for k, v := range extraArgs {
 		args[k] = v

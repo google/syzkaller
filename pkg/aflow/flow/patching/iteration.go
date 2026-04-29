@@ -34,9 +34,10 @@ type PatchIterationInputs struct {
 	// Discussion history grouped by patch version.
 	PatchHistory []ai.PatchHistoryEntry
 
-	// Use this fixed base kernel commit (for testing/local running).
-	FixedBaseCommit string
-	FixedRepository string
+	// See patching workflow.
+	BaseRepository string
+	BaseBranch     string
+	BaseCommit     string
 }
 
 func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {

@@ -29,9 +29,16 @@ type Inputs struct {
 	Type      string
 	VM        json.RawMessage
 
-	// Use this fixed based kernel commit (for testing/local running).
-	FixedBaseCommit string
-	FixedRepository string
+	// Parameters used to pick the base commit for the patch.
+	// The workflow first fetches BaseRepository/BaseBranch,
+	// and then uses BaseCommit to pick the exact commit.
+	// BaseCommit can be either:
+	//  - exact commit hash (for testing/local running)
+	//  - "HEAD": use the current branch HEAD
+	//  - "RC": use the latest release/release candidate tag in the branch
+	BaseRepository string
+	BaseBranch     string
+	BaseCommit     string
 }
 
 func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {

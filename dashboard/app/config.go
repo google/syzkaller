@@ -151,6 +151,11 @@ type AIConfig struct {
 	UploadPatchesToGerrit bool
 	Stages                []AIPatchStageConfig
 	SecurityPrio          func(*Bug, ai.AssessmentSecurityOutputs) BugPrio `json:"-"`
+
+	// These are passed to the patching workflow, see the workflow inputs for details.
+	BaseRepository string
+	BaseBranch     string
+	BaseCommit     string
 }
 
 // AIPatchStageConfig describes a single stage in the AI patch reporting pipeline.

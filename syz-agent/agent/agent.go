@@ -323,12 +323,10 @@ func (s *Server) resetModelQuota() {
 
 func initState(cfg *Config, syzkallerDir string) map[string]any {
 	return map[string]any{
-		"Syzkaller":       osutil.Abs(syzkallerDir),
-		"Image":           cfg.Image,
-		"Type":            cfg.Type,
-		"VM":              cfg.VM,
-		"KernelConfig":    cfg.kernelConfigData,
-		"FixedBaseCommit": cfg.FixedBaseCommit,
-		"FixedRepository": cfg.FixedRepository,
+		"Syzkaller":    osutil.Abs(syzkallerDir),
+		"Image":        cfg.Image,
+		"Type":         cfg.Type,
+		"VM":           cfg.VM,
+		"KernelConfig": cfg.kernelConfigData,
 	}
 }

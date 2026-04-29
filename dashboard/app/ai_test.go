@@ -232,6 +232,9 @@ func TestAIJob(t *testing.T) {
 		"ReproSyz":        "",
 		"ReproC":          "",
 		"ReproOpts":       "",
+		"BaseRepository":  "git://ai/base.git",
+		"BaseBranch":      "ai-base",
+		"BaseCommit":      "RC",
 	})
 
 	resp2, err2 := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
@@ -357,6 +360,9 @@ func TestAIJobActions(t *testing.T) {
 		"ReproSyz":        "syncfs(1)",
 		"ReproC":          "int main() { return 1; }",
 		"ReproOpts":       "repro opts 1",
+		"BaseRepository":  "git://ai/base.git",
+		"BaseBranch":      "ai-base",
+		"BaseCommit":      "RC",
 	})
 	require.NoError(t, c.globalClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID:      resp.ID,
@@ -403,6 +409,9 @@ func TestAIJobActions(t *testing.T) {
 		"ReproSyz":        "syncfs(2)",
 		"ReproC":          "",
 		"ReproOpts":       "repro opts 2",
+		"BaseRepository":  "git://ai/base.git",
+		"BaseBranch":      "ai-base",
+		"BaseCommit":      "RC",
 	})
 }
 
@@ -554,7 +563,7 @@ func TestAIJobCustomCommit(t *testing.T) {
 
 	require.True(t, job.Args.Valid)
 	args := job.Args.Value.(map[string]any)
-	require.Equal(t, "custom123", args["FixedBaseCommit"])
+	require.Equal(t, "custom123", args["BaseCommit"])
 }
 
 func TestAIJobAutoCreate(t *testing.T) {

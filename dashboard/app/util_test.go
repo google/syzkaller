@@ -815,7 +815,7 @@ func (ctx *Ctx) createAIJob(bugExitID, workflow, baseCommit string) string {
 	bug, _, _ := ctx.loadBug(bugExitID)
 	args := map[string]any{}
 	if baseCommit != "" {
-		args["FixedBaseCommit"] = baseCommit
+		args["BaseCommit"] = baseCommit
 	}
 	id, err := aiBugJobCreate(ctx.ctx, workflow, bug, args)
 	require.NoError(ctx.t, err)

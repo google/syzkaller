@@ -22,9 +22,9 @@ import (
 var baseCommitPicker = aflow.NewFuncAction("base-commit-picker", pickBaseCommit)
 
 type baseCommitArgs struct {
-	// Can be used to override the selected base commit (for manual testing).
-	FixedBaseCommit string
-	FixedRepository string
+	BaseRepository string
+	BaseBranch     string
+	BaseCommit     string
 }
 
 type baseCommitResult struct {
@@ -34,50 +34,39 @@ type baseCommitResult struct {
 }
 
 func pickBaseCommit(ctx *aflow.Context, args baseCommitArgs) (baseCommitResult, error) {
-	// Currently we use the latest RC of the mainline tree as the base.
-	// This is a reasonable choice overall in lots of cases, and it enables good caching
-	// of all artifacts (we need to rebuild them only approx every week).
-	// Potentially we can use subsystem trees for few important, well-maintained subsystems
-	// (mm, net, etc). However, it will work poorly for all subsystems. First, there is no
-	// machine-usable mapping of subsystems to repo/branch; second, lots of them are poorly
-	// maintained (can be much older than latest RC); third, it will make artifact caching
-	// much worse.
-	// In the future we ought to support automated rebasing of patches to requested trees/commits.
-	// We need it anyway, but it will also alleviate imperfect base commit picking.
-	const (
-		baseRepo   = "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
-		baseBranch = "master"
-	)
-
-	res := baseCommitResult{
-		KernelRepo:   baseRepo,
-		KernelBranch: baseBranch,
-		KernelCommit: args.FixedBaseCommit,
-	}
-	if args.FixedRepository != "" {
-		res.KernelRepo = args.FixedRepository
-	}
-	if args.FixedBaseCommit != "" {
-		return res, nil
-	}
-
+	commit := ""
 	err := kernel.UseLinuxRepo(ctx, func(_ string, repo vcs.Repo) error {
-		head, err := repo.Poll(baseRepo, baseBranch)
+		head, err := repo.Poll(args.BaseRepository, args.BaseBranch)
 		if err != nil {
 			return err
 		}
-		tag, err := repo.ReleaseTag(head.Hash)
-		if err != nil {
-			return err
+		switch args.BaseCommit {
+		case "HEAD":
+			commit = head.Hash
+		case "RC":
+			tag, err := repo.ReleaseTag(head.Hash)
+			if err != nil {
+				return err
+			}
+			com, err := repo.SwitchCommit(tag)
+			if err != nil {
+				return err
+			}
+			commit = com.Hash
+		default:
+			com, err := repo.SwitchCommit(args.BaseCommit)
+			if err != nil {
+				return err
+			}
+			commit = com.Hash
 		}
-		com, err := repo.SwitchCommit(tag)
-		if err != nil {
-			return err
-		}
-		res.KernelCommit = com.Hash
 		return err
 	})
-	return res, err
+	return baseCommitResult{
+		KernelRepo:   args.BaseRepository,
+		KernelBranch: args.BaseBranch,
+		KernelCommit: commit,
+	}, err
 }
 
 var getMaintainers = aflow.NewFuncAction("get-maintainers", maintainers)

@@ -1228,7 +1228,7 @@ func parseAIJobArgs(r *http.Request, workflow string, aiWorkflows []*uiWorkflow)
 		if r.FormValue("base_commit") == "" {
 			return nil, fmt.Errorf("custom base commit is empty")
 		}
-		args["FixedBaseCommit"] = r.FormValue("base_commit")
+		args["BaseCommit"] = r.FormValue("base_commit")
 	}
 	return args, nil
 }
