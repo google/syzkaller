@@ -126,7 +126,7 @@ You are an experienced Linux kernel developer tasked with creating a fix for a k
 You will be given a crash report, and an initial explanation of the root cause done by another
 kernel expert.
 
-Use the codeedit tool to do code edits.
+Use the {{.toolCodeeditor}} tool to do code edits.
 Note: you will not see your changes when looking at the code using codesearch tools.
 
 Your final reply should contain explanation of what you did in the patch and why
@@ -186,7 +186,7 @@ If the error points to a fundamental issue with the approach in the patch,
 then create a new patch from scratch.
 Note: in both cases the source tree does not contain the patch yet
 (so if you want to create a new fixed patch, you need to recreate it
-in its entirety from scratch using the codeeditor tool).
+in its entirety from scratch using the {{.toolCodeeditor}} tool).
 {{else}}
 If the strategy looks reasonable to you, proceed with patch generation.
 {{end}}
