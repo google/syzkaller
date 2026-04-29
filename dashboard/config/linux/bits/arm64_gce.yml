@@ -1,0 +1,80 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SOUND: n
+ - SND: n
+ - DRM_MSM: n
+ - DRM_NOUVEAU: n
+
+ # Disable platforms to reduce drivers/clk, pinctrl, and other hardware-specific noise.
+ - ARCH_ACTIONS: n
+ - ARCH_AIROHA: n
+ - ARCH_SUNXI: n
+ - ARCH_ALPINE: n
+ - ARCH_APPLE: n
+ - ARCH_ARTPEC: n
+ - ARCH_AXIADO: n
+ - ARCH_BCM: n
+ - ARCH_BCM2835: n
+ - ARCH_BCM_IPROC: n
+ - ARCH_BCMBCA: n
+ - ARCH_BRCMSTB: n
+ - ARCH_BERLIN: n
+ - ARCH_BLAIZE: n
+ - ARCH_BST: n
+ - ARCH_CIX: n
+ - ARCH_EXYNOS: n
+ - ARCH_K3: n
+ - ARCH_LG1K: n
+ - ARCH_HISI: n
+ - ARCH_KEEMBAY: n
+ - ARCH_MA35: n
+ - ARCH_MEDIATEK: n
+ - ARCH_MESON: n
+ - ARCH_MICROCHIP: n
+ - ARCH_SPARX5: n
+ - ARCH_MVEBU: n
+ - ARCH_NXP: n
+ - ARCH_LAYERSCAPE: n
+ - ARCH_MXC: n
+ - ARCH_S32: n
+ - ARCH_NPCM: n
+ - ARCH_QCOM: n
+ - ARCH_REALTEK: n
+ - ARCH_RENESAS: n
+ - ARCH_ROCKCHIP: n
+ - ARCH_SEATTLE: n
+ - ARCH_INTEL_SOCFPGA: n
+ - ARCH_SOPHGO: n
+ - ARCH_STM32: n
+ - ARCH_SYNQUACER: n
+ - ARCH_TEGRA: n
+ - ARCH_TESLA_FSD: n
+ - ARCH_SPRD: n
+ - ARCH_THUNDER: n
+ - ARCH_THUNDER2: n
+ - ARCH_UNIPHIER: n
+ - ARCH_VISCONTI: n
+ - ARCH_XGENE: n
+ - ARCH_ZYNQMP: n
+
+ # Disable remaining clock drivers not caught by ARCH disables
+ - COMMON_CLK_RK808: n
+ - COMMON_CLK_RP1: n
+ - COMMON_CLK_SCPI: n
+ - COMMON_CLK_CS2000_CP: n
+ - COMMON_CLK_S2MPS11: n
+ - COMMON_CLK_XGENE: n
+ - COMMON_CLK_PWM: n
+ - COMMON_CLK_RS9_PCIE: n
+ - COMMON_CLK_VC3: n
+ - COMMON_CLK_VC5: n
+ - COMMON_CLK_BD718XX: n
+ - CLK_VEXPRESS_OSC: n
+ - VIDEO_CADENCE_CSI2RX: n
+ - NET_VENDOR_MELLANOX: n
+ - NET_VENDOR_INTEL: n
+ - WLAN_VENDOR_ATH: n
+ - CC_OPTIMIZE_FOR_SIZE
+ - CC_OPTIMIZE_FOR_PERFORMANCE: n

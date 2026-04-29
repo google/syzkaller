@@ -15,26 +15,26 @@ config:
  - MAC80211_LEDS
  - MAC80211_DEBUGFS
  - MAC80211_RC_MINSTREL
- - CARL9170
- - CARL9170_HWRNG
- - CARL9170_LEDS
- - ATH9K
- - ATH9K_HW
- - ATH9K_COMMON
- - ATH9K_COMMON_DEBUG
- - ATH9K_BTCOEX_SUPPORT
- - ATH9K_PCI
- - ATH9K_AHB
- - ATH9K_DYNACK
- - ATH9K_RFKILL
- - ATH9K_CHANNEL_CONTEXT
- - ATH9K_PCOEM
- - ATH9K_HTC
- - ATH9K_HTC_DEBUGFS
- - ATH10K
- - ATH10K_PCI
- - ATH10K_USB
- - ATH11K: [v5.10]
+ - CARL9170: [-arm64_gce]
+ - CARL9170_HWRNG: [-arm64_gce]
+ - CARL9170_LEDS: [-arm64_gce]
+ - ATH9K: [-arm64_gce]
+ - ATH9K_HW: [-arm64_gce]
+ - ATH9K_COMMON: [-arm64_gce]
+ - ATH9K_COMMON_DEBUG: [-arm64_gce]
+ - ATH9K_BTCOEX_SUPPORT: [-arm64_gce]
+ - ATH9K_PCI: [-arm64_gce]
+ - ATH9K_AHB: [-arm64_gce]
+ - ATH9K_DYNACK: [-arm64_gce]
+ - ATH9K_RFKILL: [-arm64_gce]
+ - ATH9K_CHANNEL_CONTEXT: [-arm64_gce]
+ - ATH9K_PCOEM: [-arm64_gce]
+ - ATH9K_HTC: [-arm64_gce]
+ - ATH9K_HTC_DEBUGFS: [-arm64_gce]
+ - ATH10K: [-arm64_gce]
+ - ATH10K_PCI: [-arm64_gce]
+ - ATH10K_USB: [-arm64_gce]
+ - ATH11K: [v5.10, -arm64_gce]
  # WIMAX was removed in 18507b8f6310 ("staging: wimax: delete from the tree.").
  - WIMAX: n
  - WLAN

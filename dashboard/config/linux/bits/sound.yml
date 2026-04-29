@@ -1,0 +1,48 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SND
+ - SOUND
+ - SOUND_OSS_CORE_PRECLAIM
+ - SND_DRIVERS
+ - SND_PCI
+ - SND_OSSEMUL
+ - SND_MIXER_OSS
+ - SND_PCM
+ - SND_PCM_OSS
+ - SND_PCM_OSS_PLUGINS
+ - SND_HRTIMER
+ - SND_SEQUENCER
+ - SND_SEQ_DUMMY
+ - SND_SEQUENCER_OSS
+ - SND_DUMMY
+ - SND_ALOOP
+ - SND_VIRMIDI
+ - SND_VIRTIO: [v5.13]
+ - SND_HDA_INTEL
+ - SND_HDA_HWDEP
+ - SND_HDA_INPUT_BEEP
+ - SND_HDA_PATCH_LOADER
+ - SND_HDA_CODEC_REALTEK
+ - SND_HDA_CODEC_ANALOG
+ - SND_HDA_CODEC_SIGMATEL
+ - SND_HDA_CODEC_VIA
+ - SND_HDA_CODEC_HDMI
+ - SND_HDA_CODEC_CIRRUS
+ - SND_HDA_CODEC_CONEXANT
+ - SND_HDA_CODEC_CA0110
+ - SND_HDA_CODEC_CA0132
+ - SND_HDA_CODEC_CMEDIA
+ - SND_HDA_CODEC_SI3054
+ # SND_HDA_INTEL is disabled by kmsan.yml because of some compatibility problems.
+ - SND_HDA_PREALLOC_SIZE: [0, -kmsan]
+ - SND_USB_AUDIO
+ - SND_FIREWORKS: n
+ - SND_FIREWIRE_TASCAM: n
+ - USB_CONFIGFS_F_MIDI
+
+ # Debug configs.
+ - SND_DEBUG: [-riscv, -s390, optional, -nonoise]
+ - SND_PCM_XRUN_DEBUG: [-riscv, -s390, optional, -nonoise]
+ - SND_CTL_VALIDATION: [v5.6, -riscv, -s390, optional, -nonoise]
