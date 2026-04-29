@@ -36,7 +36,6 @@ func TestLoopControllerFunc(t *testing.T) {
 	// Case 1: Success.
 	args := LoopControllerArgs{
 		Feedback:             "good",
-		ShouldContinue:       false,
 		TitleMatches:         true,
 		CandidateReproduced:  true,
 		CandidateReproC:      "code",
@@ -52,7 +51,6 @@ func TestLoopControllerFunc(t *testing.T) {
 	// Case 2: Collision.
 	args = LoopControllerArgs{
 		Feedback:            "collision",
-		ShouldContinue:      false,
 		TitleMatches:        false,
 		CandidateReproduced: true,
 		CandidateBugTitle:   "wrong title",

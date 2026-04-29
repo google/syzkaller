@@ -75,14 +75,12 @@ func TruncateLogFunc(ctx *aflow.Context, args TruncateLogArgs) (TruncateLogResul
 var TruncateLog = aflow.NewFuncAction("truncate-log", TruncateLogFunc)
 
 type OracleResult struct {
-	Feedback       string `jsonschema:"Detailed feedback on the reproduction attempt"`
-	ShouldContinue bool   `jsonschema:"Whether to continue the reproduction loop"`
-	TitleMatches   bool   `jsonschema:"Whether the candidate crash title matches the expected bug"`
+	Feedback     string `jsonschema:"Detailed feedback on the reproduction attempt"`
+	TitleMatches bool   `jsonschema:"Whether the candidate crash title matches the expected bug"`
 }
 
 type LoopControllerArgs struct {
 	Feedback             string
-	ShouldContinue       bool
 	TitleMatches         bool
 	CandidateReproduced  bool
 	CandidateReproC      string
@@ -104,27 +102,21 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 		OracleFeedback: args.Feedback,
 	}
 
-	shouldContinue := args.ShouldContinue
-
 	if args.CandidateReproduced && args.TitleMatches {
 		res.ReproC = args.CandidateReproC
 		res.Reproduced = true
 		res.ReproducedBugTitle = args.CandidateBugTitle
 		res.ReproducedCrashReport = args.CandidateCrashReport
-		shouldContinue = false
-	} else if args.CandidateReproduced && !args.TitleMatches {
-		shouldContinue = true
-		res.OracleFeedback = fmt.Sprintf(
-			"Collision detected: candidate reproducer triggered a crash with title %q, "+
-				"which does not match the expected bug.",
-			args.CandidateBugTitle,
-		)
-	}
-
-	if shouldContinue {
-		res.ContinueSignal = "continue"
-	} else {
 		res.ContinueSignal = ""
+	} else {
+		if args.CandidateReproduced && !args.TitleMatches {
+			res.OracleFeedback = fmt.Sprintf(
+				"Collision detected: candidate reproducer triggered a crash with title %q, "+
+					"which does not match the expected bug.",
+				args.CandidateBugTitle,
+			)
+		}
+		res.ContinueSignal = "continue"
 	}
 
 	return res, nil
