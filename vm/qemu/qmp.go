@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"syscall"
 
 	"github.com/google/syzkaller/pkg/log"
 )
@@ -139,7 +140,8 @@ func (inst *instance) hmp(cmd string, cpu int) (string, error) {
 		log.Logf(0, "qemu: reply: %v\n%v", err, resp)
 	}
 	if err != nil {
-		return "", fmt.Errorf("qemu hmp command '%s': %w", cmd, err)
+		killErr := syscall.Kill(inst.qemu.Process.Pid, 0)
+		return "", fmt.Errorf("qemu hmp command '%s' (qemu kill: %s): %w", cmd, fmt.Sprint(killErr), err)
 	}
 	return resp.(string), nil
 }
