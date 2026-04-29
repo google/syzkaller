@@ -91,54 +91,69 @@ func run(p *analysis.Pass) (any, error) {
 			}
 			return true
 		})
+		commentLines := make(map[int]bool)
 		for _, group := range file.Comments {
 			for _, comment := range group.List {
+				commentLines[pass.Fset.Position(comment.Pos()).Line] = true
 				pass.checkComment(comment, stmts, len(group.List) == 1)
 			}
 		}
-		pass.checkTopLevelDecls(file)
+		pass.checkTopLevelDecls(file, commentLines)
 	}
 	return nil, nil
 }
 
-func (pass *Pass) checkTopLevelDecls(file *ast.File) {
+func (pass *Pass) checkTopLevelDecls(file *ast.File, commentLines map[int]bool) {
+topLoop:
 	for i := range len(file.Decls) - 1 {
 		d1, d2 := file.Decls[i], file.Decls[i+1]
 
-		isFuncOrType := func(d ast.Decl) bool {
+		isRelevantDecl := func(d ast.Decl) bool {
 			switch x := d.(type) {
 			case *ast.FuncDecl:
 				return true
 			case *ast.GenDecl:
-				return x.Tok == token.TYPE
+				switch x.Tok {
+				case token.TYPE, token.CONST, token.VAR:
+					return true
+				}
 			}
 			return false
 		}
 
-		if isFuncOrType(d1) && isFuncOrType(d2) {
-			d1Start := pass.Fset.Position(d1.Pos()).Line
-			d1End := pass.Fset.Position(d1.End()).Line
+		if !isRelevantDecl(d1) || !isRelevantDecl(d2) {
+			continue
+		}
 
-			startPos := d2.Pos()
-			switch v := d2.(type) {
-			case *ast.FuncDecl:
-				if v.Doc != nil {
-					startPos = v.Doc.Pos()
-				}
-			case *ast.GenDecl:
-				if v.Doc != nil {
-					startPos = v.Doc.Pos()
-				}
+		d1Start := pass.Fset.Position(d1.Pos()).Line
+		d1End := pass.Fset.Position(d1.End()).Line
+
+		startPos := d2.Pos()
+		switch v := d2.(type) {
+		case *ast.FuncDecl:
+			if v.Doc != nil {
+				startPos = v.Doc.Pos()
 			}
-			d2Start := pass.Fset.Position(startPos).Line
-			d2End := pass.Fset.Position(d2.End()).Line
-
-			exactlyOne := d2Start-d1End == 2
-			canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1
-			if !exactlyOne && !canBeGrouped {
-				pass.report(d2, "Keep one empty line between top-level declarations")
+		case *ast.GenDecl:
+			if v.Doc != nil {
+				startPos = v.Doc.Pos()
 			}
 		}
+		d2Start := pass.Fset.Position(startPos).Line
+		d2End := pass.Fset.Position(d2.End()).Line
+
+		exactlyOne := d2Start-d1End == 2
+		canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1
+		if exactlyOne || canBeGrouped {
+			continue
+		}
+		// Ensure the lines in between are not stand-alone comments.
+		for line := d1End + 1; line < d2Start; line++ {
+			if commentLines[line] {
+				continue topLoop
+			}
+		}
+		pass.report(d2, "Keep one empty line between top-level declarations")
 	}
 }
 

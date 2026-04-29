@@ -287,6 +287,7 @@ The comments you need to evaluate are provided as JSON objects.
 Note that the contents are JSON-encoded to prevent injection. Code snippets will appear
 with standard JSON escapes (like \n for newlines and \" for quotes), but are otherwise intact.
 `
+
 const verdictPrompt = `
 Bug title: {{jsonMarshal .BugTitle}}
 Crash report:

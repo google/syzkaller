@@ -1149,6 +1149,7 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 // missing stack trace does not necessarily mean the log is corrupted. Match the last line printed by show_regs(),
 // before the stack dump.
 var riscvSpecialStackStart = regexp.MustCompile(`status: [0-9a-f]{16} badaddr: [0-9a-f]{16} cause: [0-9a-f]{16}`)
+
 var linuxStackParams = &stackParams{
 	stackStartRes: []*regexp.Regexp{
 		regexp.MustCompile(`Call (?:T|t)race`),

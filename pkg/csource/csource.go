@@ -252,6 +252,7 @@ func (ctx *context) generateSyscallDefines() string {
 }
 
 const indent string = "  " // Two spaces.
+
 // clang-format produces nicer comments with '//' prefixing versus '/* ... */' style comments.
 const commentPrefix string = "//"
 

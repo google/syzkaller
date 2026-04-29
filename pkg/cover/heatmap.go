@@ -324,9 +324,11 @@ func abs(a int64) int64 {
 	return a
 }
 
-//go:embed templates/heatmap.html
-var templatesHeatmap string
-var templateHeatmapFuncs = template.FuncMap{
-	"approxInstr": approximateInstrumented,
-}
-var heatmapTemplate = template.Must(template.New("").Funcs(templateHeatmapFuncs).Parse(templatesHeatmap))
+var (
+	//go:embed templates/heatmap.html
+	templatesHeatmap     string
+	templateHeatmapFuncs = template.FuncMap{
+		"approxInstr": approximateInstrumented,
+	}
+	heatmapTemplate = template.Must(template.New("").Funcs(templateHeatmapFuncs).Parse(templatesHeatmap))
+)

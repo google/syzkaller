@@ -63,6 +63,7 @@ const (
 	MenuChoice
 	MenuComment
 )
+
 const (
 	_ ConfigType = iota
 	TypeBool

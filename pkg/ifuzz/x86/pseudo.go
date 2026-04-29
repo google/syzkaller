@@ -551,6 +551,7 @@ func pciAddrPort(r *rand.Rand) (addr uint32, port uint16, size int) {
 }
 
 var controlRegisters = []uint8{0, 3, 4, 8}
+
 var controlRegistersBits = map[uint8][]uint8{
 	0: {0, 1, 2, 3, 4, 5, 16, 18, 29, 30, 31},
 	3: {3, 5},

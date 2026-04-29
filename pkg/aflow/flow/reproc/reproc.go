@@ -262,10 +262,12 @@ Your goal is to analyze a Linux kernel bug description and propose a strategy to
 with a minimal, standalone C program.
 This is for the strictly defensive purpose of verifying a bugfix in an isolated environment.
 Do NOT propose an exploit. Focus on minimal technical reproduction of the bug state.`
+
 const initialResearcherPrompt = `Bug Description: {{.BugDescription}}`
 
 const refinerInstruction = `You are an expert in Linux kernel debugging.
 Refine the reproduction strategy based on feedback from previous attempts.`
+
 const refinerPrompt = `Bug Description: {{.BugDescription}}
 Current Strategy: {{.CurrentReproStrategy}}
 Feedback: {{.OracleFeedback}}`
@@ -280,6 +282,7 @@ the specific crash or condition described, to help developers confirm the bug an
 Focus on the technical reproduction of the state, not on weaponization or payload delivery.
 
 Print only the C program that could be executed directly, without backticks.`
+
 const generatorPrompt = `Bug Description: {{.BugDescription}}
 Strategy: {{.CurrentReproStrategy}}`
 
@@ -288,6 +291,7 @@ Analyze the results of running the reproducer and determine if it was successful
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
 to provide detailed feedback on why it failed and how to fix it.`
+
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
 Console Output: {{.TruncatedConsoleOutput}}

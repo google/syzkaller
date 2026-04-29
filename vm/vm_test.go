@@ -473,6 +473,7 @@ func TestExtractMultipleErrors(t *testing.T) {
 }
 
 const someLine = "[   96.999999] some message \n"
+
 const validKASANReport = `
 [   96.262735] BUG: KASAN: double-free or invalid-free in selinux_tun_dev_free_security+0x15/0x20
 [   96.271481] 

@@ -312,3 +312,11 @@ func twoEmptyLines1() {}
 
 
 func twoEmptyLines2() {} // want "Keep one empty line between top-level declarations"
+
+type groupedType1 struct {
+}
+
+// Stand-alone comment that is not groupedType2 Doc.
+
+type groupedType2 struct {
+}
