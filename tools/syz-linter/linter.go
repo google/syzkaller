@@ -104,24 +104,21 @@ func run(p *analysis.Pass) (any, error) {
 }
 
 func (pass *Pass) checkTopLevelDecls(file *ast.File, commentLines map[int]bool) {
+	isRelevantDecl := func(d ast.Decl) token.Token {
+		switch x := d.(type) {
+		case *ast.FuncDecl:
+			return token.FUNC
+		case *ast.GenDecl:
+			return x.Tok
+		}
+		return token.ILLEGAL
+	}
+
 topLoop:
 	for i := range len(file.Decls) - 1 {
 		d1, d2 := file.Decls[i], file.Decls[i+1]
-
-		isRelevantDecl := func(d ast.Decl) bool {
-			switch x := d.(type) {
-			case *ast.FuncDecl:
-				return true
-			case *ast.GenDecl:
-				switch x.Tok {
-				case token.TYPE, token.CONST, token.VAR:
-					return true
-				}
-			}
-			return false
-		}
-
-		if !isRelevantDecl(d1) || !isRelevantDecl(d2) {
+		t1, t2 := isRelevantDecl(d1), isRelevantDecl(d2)
+		if t1 == token.ILLEGAL || t2 == token.ILLEGAL {
 			continue
 		}
 
@@ -143,7 +140,7 @@ topLoop:
 		d2End := pass.Fset.Position(d2.End()).Line
 
 		exactlyOne := d2Start-d1End == 2
-		canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1
+		canBeGrouped := d1Start == d1End && d2Start == d2End && d2Start-d1End == 1 && t1 == t2
 		if exactlyOne || canBeGrouped {
 			continue
 		}

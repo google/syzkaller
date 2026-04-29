@@ -320,3 +320,8 @@ type groupedType1 struct {
 
 type groupedType2 struct {
 }
+
+// Declarations of different types shouldn't be grouped.
+func groupedFunc() {}
+type groupedType struct{} // want "Keep one empty line between top-level declarations"
+const groupedConst = 1 // want "Keep one empty line between top-level declarations"
