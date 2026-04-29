@@ -27,7 +27,7 @@ func TestAILoreIntegration(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
 		},
 	})
@@ -159,7 +159,7 @@ func TestAILoreIntegrationReject(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 			{Name: "public", ServingIntegration: "lore", MailingList: "public@test.com", MergePatchCc: true},
 		},
 	})
@@ -281,7 +281,7 @@ func TestAILoreIntegrationComment(t *testing.T) {
 
 	c.SetAIConfig(&AIConfig{
 		Stages: []AIPatchStageConfig{
-			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+			{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 		},
 	})
 

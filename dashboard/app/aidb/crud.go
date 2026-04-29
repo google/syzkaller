@@ -674,12 +674,15 @@ type PendingCommentGroup struct {
 	LatestComment time.Time
 }
 
-func LoadPendingCommentGroups(ctx context.Context) ([]*PendingCommentGroup, error) {
+func LoadPendingCommentGroups(ctx context.Context, namespace, stage string) ([]*PendingCommentGroup, error) {
 	return selectAll[PendingCommentGroup](ctx, spanner.Statement{
-		SQL: `SELECT ReportingID, MAX(Date) as LatestComment
-              FROM JobComments 
-              WHERE Processed = false 
-              GROUP BY ReportingID`,
+		SQL: `SELECT JobComments.ReportingID, MAX(JobComments.Date) as LatestComment
+              FROM JobComments
+              JOIN JobReporting ON JobComments.ReportingID = JobReporting.ID
+              JOIN Jobs ON JobReporting.JobID = Jobs.ID
+              WHERE JobComments.Processed = false AND Jobs.Namespace = @namespace AND JobReporting.Stage = @stage
+              GROUP BY JobComments.ReportingID`,
+		Params: map[string]any{"namespace": namespace, "stage": stage},
 	})
 }
 
