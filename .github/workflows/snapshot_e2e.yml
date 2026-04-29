@@ -1,0 +1,56 @@
+# Copyright 2026 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+name: snapshot-e2e
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: gcr.io/syzkaller/syzbot:latest
+      options: --privileged
+    env:
+      GOPATH: /__w/syzkaller/syzkaller/gopath
+      CI: true
+      TERM: dumb
+      GITHUB_ACTIONS: true
+    steps:
+      - name: checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          path: gopath/src/github.com/google/syzkaller
+
+      - name: download assets
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          mkdir -p assets
+          # Assets downloaded from: https://syzbot.org/bug?extid=b4c5ad098c821bf8d8bc
+          curl -L -o assets/bzImage.xz https://storage.googleapis.com/syzbot-assets/7d84dbd51e35/bzImage-a75cb869.xz
+          curl -L -o assets/disk.raw.xz https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-a75cb869.raw.xz
+          xz -d assets/bzImage.xz assets/disk.raw.xz
+
+      - name: run test
+        run: |
+          cd gopath/src/github.com/google/syzkaller
+          # Generate key pair in assets/ as expected by the test
+          ssh-keygen -f assets/id_rsa -t rsa -N ''
+          # Run test with relative paths to assets
+          SYZ_KERNEL=../../assets/bzImage \
+          SYZ_IMAGE=../../assets/disk.raw \
+          make execprog
+          make test_qemu_e2e
+
+      - name: upload coverage to Codecov
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
+        with:
+          files: gopath/src/github.com/google/syzkaller/.coverage.txt
+          flags: snapshot-e2e
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
