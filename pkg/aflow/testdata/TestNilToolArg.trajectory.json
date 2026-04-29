@@ -13,7 +13,7 @@
 		"Name": "smarty",
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Instruction": "Instructions: use the provided tool swiss-knife for something.\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Initial Prompt"
 	},
 	{
@@ -37,7 +37,7 @@
 		"Seq": 3,
 		"Nesting": 2,
 		"Type": "tool",
-		"Name": "tool",
+		"Name": "swiss-knife",
 		"Started": "0001-01-01T00:00:05Z",
 		"Args": {
 			"Optional": null
@@ -47,7 +47,7 @@
 		"Seq": 3,
 		"Nesting": 2,
 		"Type": "tool",
-		"Name": "tool",
+		"Name": "swiss-knife",
 		"Started": "0001-01-01T00:00:05Z",
 		"Finished": "0001-01-01T00:00:06Z",
 		"Error": "missing argument \"Optional\"",
@@ -80,7 +80,7 @@
 		"Model": "model",
 		"Started": "0001-01-01T00:00:02Z",
 		"Finished": "0001-01-01T00:00:09Z",
-		"Instruction": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n",
+		"Instruction": "Instructions: use the provided tool swiss-knife for something.\nPrefer calling several tools at the same time to save round-trips.\n",
 		"Prompt": "Initial Prompt",
 		"Reply": "Result"
 	},

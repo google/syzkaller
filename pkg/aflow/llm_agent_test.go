@@ -273,19 +273,71 @@ func TestNilToolArg(t *testing.T) {
 			Model:       "model",
 			Reply:       "Result",
 			TaskType:    FormalReasoningTask,
-			Instruction: "Instructions",
+			Instruction: "Instructions: use the provided tool {{.toolSwissKnife}} for something.",
 			Prompt:      "Initial Prompt",
 			Tools: []Tool{
-				NewFuncTool("tool", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
+				NewFuncTool("swiss-knife", func(ctx *Context, state struct{}, args toolArgs) (struct{}, error) {
 					require.Equal(t, args.Optional, nil)
 					return struct{}{}, nil
-				}, "tool"),
+				}, "tool description"),
 			},
 		},
 		[]any{
-			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "tool", Args: map[string]any{"Optional": nil}}},
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "swiss-knife", Args: map[string]any{"Optional": nil}}},
 			genai.NewPartFromText("Result"),
 		},
 		nil,
 	)
+}
+
+func TestAgentRegistrationErrors(t *testing.T) {
+	testRegistrationError[struct{}, struct{}](t,
+		`flow test: action smarty: Instruction: template: :1: function "NonExistentFoo" not defined`,
+		&Flow{
+			Root: &LLMAgent{
+				Name:        "smarty",
+				Model:       "model",
+				Reply:       "Result",
+				TaskType:    FormalReasoningTask,
+				Instruction: "{{NonExistentFoo}}",
+				Prompt:      "Prompt",
+			},
+		})
+	testRegistrationError[struct{}, struct{}](t,
+		`flow test: action smarty: bad tool name "BadTool_name", expect ^[a-z][a-z0-9-]+[a-z0-9]$`,
+		&Flow{
+			Root: &LLMAgent{
+				Name:        "smarty",
+				Model:       "model",
+				Reply:       "Result",
+				TaskType:    FormalReasoningTask,
+				Instruction: "Instruction",
+				Prompt:      "Prompt",
+				Tools: []Tool{
+					NewFuncTool("BadTool_name", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+						return struct{}{}, nil
+					}, "tool description"),
+				},
+			},
+		})
+	testRegistrationError[struct{}, struct{ Result string }](t,
+		`flow test: action smarty: tool "swiss-knife" is duplicated`,
+		&Flow{
+			Root: &LLMAgent{
+				Name:        "smarty",
+				Model:       "model",
+				Reply:       "Result",
+				TaskType:    FormalReasoningTask,
+				Instruction: "Instruction",
+				Prompt:      "Prompt",
+				Tools: []Tool{
+					NewFuncTool("swiss-knife", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+						return struct{}{}, nil
+					}, "tool description"),
+					NewFuncTool("swiss-knife", func(ctx *Context, state struct{}, args struct{}) (struct{}, error) {
+						return struct{}{}, nil
+					}, "tool description"),
+				},
+			},
+		})
 }

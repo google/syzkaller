@@ -5,7 +5,7 @@
 			"systemInstruction": {
 				"parts": [
 					{
-						"text": "Instructions\nPrefer calling several tools at the same time to save round-trips.\n"
+						"text": "Instructions: use the provided tool swiss-knife for something.\nPrefer calling several tools at the same time to save round-trips.\n"
 					}
 				],
 				"role": "user"
@@ -15,8 +15,8 @@
 				{
 					"functionDeclarations": [
 						{
-							"description": "tool",
-							"name": "tool",
+							"description": "tool description",
+							"name": "swiss-knife",
 							"parametersJsonSchema": {
 								"additionalProperties": false,
 								"properties": {
@@ -74,7 +74,7 @@
 							"args": {
 								"Optional": null
 							},
-							"name": "tool"
+							"name": "swiss-knife"
 						}
 					}
 				],
@@ -84,7 +84,7 @@
 				"parts": [
 					{
 						"functionResponse": {
-							"name": "tool",
+							"name": "swiss-knife",
 							"response": {
 								"error": "missing argument \"Optional\""
 							}
