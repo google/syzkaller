@@ -18,8 +18,10 @@ type TestLoreArchive struct {
 }
 
 func NewTestLoreArchive(t *testing.T, dir string) *TestLoreArchive {
+	repo := vcs.MakeTestRepo(t, dir)
+	repo.Git("checkout", "-B", "master")
 	return &TestLoreArchive{
-		Repo: vcs.MakeTestRepo(t, dir),
+		Repo: repo,
 	}
 }
 
