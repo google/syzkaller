@@ -60,6 +60,18 @@ Page with details about a single bug.
 			<input type="submit" value="✨ Create"/>
 		</form>
 	{{end}}
+	{{if .PatchVersions}}
+		<div class="collapsible collapsible-{{if .Header.AIActions}}show{{else}}hide{{end}}">
+			<div class="head">
+				<span class="show-icon">&#9654;</span>
+				<span class="hide-icon">&#9660;</span>
+				<span>✨ AI Patch Versions ({{len .PatchVersions}})</span>
+			</div>
+			<div class="content">
+				{{template "patch_version_list" .PatchVersions}}
+			</div>
+		</div>
+	{{end}}
 	{{if .AIJobs}}
 		<div class="collapsible collapsible-{{if .Header.AIActions}}show{{else}}hide{{end}}">
 			<div class="head">

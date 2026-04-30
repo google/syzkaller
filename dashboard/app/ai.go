@@ -163,6 +163,15 @@ type uiJobReviewHistory struct {
 	Stage   string
 }
 
+type uiPatchVersion struct {
+	Version  int
+	Stage    string
+	Reported time.Time
+	Link     string
+	JobID    string
+	JobLink  string
+}
+
 type uiAIJob struct {
 	ID               string
 	Link             string
@@ -967,8 +976,9 @@ func apiAIJobDone(ctx context.Context, req *dashapi.AIJobDoneReq) (any, error) {
 		return nil, nil
 	}
 	reporting := &aidb.JobReporting{
-		Stage:  stageCfg.Name,
-		Source: stageCfg.ServingIntegration,
+		Stage:   stageCfg.Name,
+		Source:  stageCfg.ServingIntegration,
+		Version: spanner.NullInt64{Int64: 1, Valid: true},
 	}
 	if err := aidb.AddJobReportingTransactional(ctx, job, reporting, stageCfg.NoParallelReports); err != nil {
 		log.Errorf(ctx, "failed to add initial job reporting for job %v: %v", job.ID, err)
