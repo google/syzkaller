@@ -287,4 +287,5 @@ to provide detailed feedback on why it failed and how to fix it.`
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
 Console Output: {{.TruncatedConsoleOutput}}
-Crash Report: {{.TruncatedCrashReport}}`
+Crash Report: {{.TruncatedCrashReport}}
+{{if .TestError}}Boot/Compilation Error: {{.TestError}}{{end}}`
