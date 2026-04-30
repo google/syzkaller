@@ -27,6 +27,7 @@ type RunCReproResult struct {
 	ConsoleOutput        string
 	CandidateBugTitle    string
 	CandidateCrashReport string
+	TestError            string
 }
 
 var RunCRepro = aflow.NewFuncAction("run-c-repro", RunCReproFunc)
@@ -62,6 +63,7 @@ func RunCReproFunc(ctx *aflow.Context, args RunCReproArgs) (RunCReproResult, err
 
 	result := RunCReproResult{
 		ConsoleOutput: res.ConsoleOutput,
+		TestError:     res.BootError,
 	}
 
 	if res.Report != nil {
