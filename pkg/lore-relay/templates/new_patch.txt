@@ -1,7 +1,12 @@
 {{.Patch.Body}}
 
 ---
-{{.Patch.GitDiff}}
+{{if .Patch.Changelog}}{{range $i, $c := .Patch.Changelog}}{{if $i}}
+{{end}}v{{$c.Version}}:
+{{if $c.Text}}{{$c.Text}}
+{{end}}{{if $c.Link}}{{$c.Link}}
+{{end}}{{end}}---
+{{end}}{{.Patch.GitDiff}}
 
 base-commit: {{.Patch.BaseCommit}}
 -- 

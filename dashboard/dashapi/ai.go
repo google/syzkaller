@@ -109,10 +109,17 @@ type NewReportResult struct {
 	Body       string
 	Version    int
 	GitDiff    string
+	Changelog  []ChangelogEntry
 	To         []string
 	Cc         []string
 	BaseCommit string
 	BaseTree   string
+}
+
+type ChangelogEntry struct {
+	Version int
+	Link    string
+	Text    string
 }
 
 type ReplyResult struct {

@@ -1,9 +1,25 @@
 {
   "Patch": {
     "Subject": "Fix another bug",
-    "Body": "This is v2 of the patch with fixed z.",
-    "Version": 2,
+    "Body": "This is v3 of the patch with fixed z.",
+    "Version": 3,
     "GitDiff": "diff --git a/file2 b/file2\n--- a/file2\n+++ b/file2\n@@ -1 +1 @@\n-old2\n+new2",
-    "BaseCommit": "123456abcdef"
+    "BaseCommit": "123456abcdef",
+    "Changelog": [
+      {
+        "Version": 3,
+        "Text": "- Fixed ABCD.\n- Improved documentation."
+      },
+      {
+        "Version": 2,
+        "Link": "https://lore.kernel.org/all/message-id-2/T/",
+        "Text": "- Fixed EFG.\n- Adjusted formatting."
+      },
+      {
+        "Version": 1,
+        "Link": "https://lore.kernel.org/all/message-id-1/T/",
+        "Text": ""
+      }
+    ]
   }
 }
