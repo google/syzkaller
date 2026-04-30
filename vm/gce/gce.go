@@ -299,6 +299,10 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// This indicates the machine was likely preempted.
+	if !inst.GCE.IsInstanceRunning(inst.name) {
+		return "", fmt.Errorf("scp succeeded but instance is not running")
+	}
 	return vmDst, nil
 }
 
