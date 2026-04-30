@@ -323,6 +323,15 @@ func LoadBugJobs(ctx context.Context, bugID string) ([]*Job, error) {
 	})
 }
 
+func LoadBugJobReportings(ctx context.Context, bugID string) ([]*JobReporting, error) {
+	return selectAll[JobReporting](ctx, spanner.Statement{
+		SQL: selectJobReporting() + ` WHERE JobID IN (SELECT ID FROM Jobs WHERE BugID = @bugID) ORDER BY CreatedAt DESC`,
+		Params: map[string]any{
+			"bugID": bugID,
+		},
+	})
+}
+
 func LoadJob(ctx context.Context, id string) (*Job, error) {
 	return selectOne[Job](ctx, spanner.Statement{
 		SQL: selectJobs() + `WHERE ID = @id`,

@@ -310,6 +310,7 @@ type uiBugPage struct {
 	LabelGroups     []*uiBugLabelGroup
 	DebugSubsystems string
 	Bug             *uiBugDetails
+	PatchVersions   []*uiPatchVersion
 	AIWorkflows     []*uiWorkflow
 	AIJobs          []*uiAIJob
 }
@@ -1164,6 +1165,7 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	}
 	var aiWorkflows []*uiWorkflow
 	var aiJobs []*uiAIJob
+	var patchVersions []*uiPatchVersion
 	if hdr.AI {
 		if hdr.AIActions {
 			aiWorkflows, err = aiBugWorkflows(ctx, bug)
@@ -1179,16 +1181,22 @@ func handleBug(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 		for _, job := range jobs {
 			aiJobs = append(aiJobs, makeUIAIJob(job))
 		}
+
+		patchVersions, err = getPatchVersions(ctx, bug)
+		if err != nil {
+			return err
+		}
 	}
 	data := &uiBugPage{
-		Header:      hdr,
-		Now:         timeNow(ctx),
-		Sections:    sections,
-		LabelGroups: getLabelGroups(ctx, bug),
-		Crashes:     crashesTable,
-		Bug:         bugDetails,
-		AIWorkflows: aiWorkflows,
-		AIJobs:      aiJobs,
+		Header:        hdr,
+		Now:           timeNow(ctx),
+		Sections:      sections,
+		LabelGroups:   getLabelGroups(ctx, bug),
+		Crashes:       crashesTable,
+		Bug:           bugDetails,
+		PatchVersions: patchVersions,
+		AIWorkflows:   aiWorkflows,
+		AIJobs:        aiJobs,
 	}
 	if accessLevel == AccessAdmin && !bug.hasUserSubsystems() {
 		data.DebugSubsystems = urlutil.SetParam(data.Bug.Link, "debug_subsystems", "1")
@@ -2703,4 +2711,26 @@ func bugLink(id string) string {
 		return ""
 	}
 	return "/bug?id=" + id
+}
+
+func getPatchVersions(ctx context.Context, bug *Bug) ([]*uiPatchVersion, error) {
+	reportings, err := aidb.LoadBugJobReportings(ctx, bug.keyHash(ctx))
+	if err != nil {
+		return nil, err
+	}
+	var patchVersions []*uiPatchVersion
+	for _, r := range reportings {
+		if !r.Version.Valid {
+			continue
+		}
+		patchVersions = append(patchVersions, &uiPatchVersion{
+			Version:  int(r.Version.Int64),
+			Stage:    r.Stage,
+			Reported: r.CreatedAt,
+			Link:     r.ExternalLink(),
+			JobID:    r.JobID,
+			JobLink:  fmt.Sprintf("/%s/ai?job_id=%s", bug.Namespace, r.JobID),
+		})
+	}
+	return patchVersions, nil
 }

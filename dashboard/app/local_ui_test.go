@@ -100,7 +100,7 @@ var localUIConfig = &GlobalConfig{
 			AccessLevel:  AccessPublic,
 			AI: &AIConfig{
 				Stages: []AIPatchStageConfig{
-					{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com"},
+					{Name: "moderation", ServingIntegration: "lore", MailingList: "moderation@test.com", AddressComments: true},
 					{Name: "public", ServingIntegration: "lore", MailingList: "test@syzkaller.com"},
 				},
 			},
@@ -179,6 +179,7 @@ func populateBuildsAndCrashes(t *testing.T, client *apiClient) {
 	}
 }
 
+// nolint: funlen
 func populateLocalUIDB(t *testing.T, c *Ctx) {
 	client := c.makeClient(localUIClient, localUIPassword, true)
 	globalClient := c.makeClient(localUIGlobalClient, localUIGlobalPassword, true)
@@ -455,6 +456,39 @@ func populateLocalUIDB(t *testing.T, c *Ctx) {
 			Body: "This is a mock comment added via client API.",
 		},
 	})
+
+	// Fast forward time to trigger iteration.
+	c.advanceTime(31 * time.Minute)
+
+	iterResp, err := globalClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-local-ui",
+		CodeRevision: "xxx",
+		Workflows: []dashapi.AIWorkflow{
+			{Type: ai.WorkflowPatchIteration, Name: string(ai.WorkflowPatchIteration)},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, iterResp.ID)
+
+	globalClient.AIJobDone(&dashapi.AIJobDoneReq{
+		ID: iterResp.ID,
+		Results: map[string]any{
+			"PatchDescription": "Test Patch V2",
+			"PatchDiff":        "diff --git a/test b/test\n+v2 changes",
+			"NewChangeLog":     "Fixed reviewer comment",
+		},
+	})
+
+	pollExt2, err := globalClient.AIPollReport(&dashapi.PollExternalReportReq{
+		Source: dashapi.AIJobSourceLore,
+	})
+	require.NoError(t, err)
+	if pollExt2 != nil && pollExt2.Result != nil {
+		_ = globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
+			ReportID:       pollExt2.Result.ID,
+			PublishedExtID: "<mock-msg-2>",
+		})
+	}
 }
 
 // Advance the timer with random duration. Return the (copied) old time.

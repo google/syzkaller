@@ -676,6 +676,32 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{end}}
 {{end}}
 
+{{/* List of AI patch versions, invoked with []*uiPatchVersion */}}
+{{define "patch_version_list"}}
+<table class="list_table">
+	<thead><tr>
+			<th><a onclick="return sortTable(this, 'Version', numSort)" href="#">Version</a></th>
+			<th><a onclick="return sortTable(this, 'Stage', textSort)" href="#">Stage</a></th>
+			<th><a onclick="return sortTable(this, 'Reported', textSort)" href="#">Reported</a></th>
+			<th><a onclick="return sortTable(this, 'Report Link', textSort)" href="#">Report Link</a></th>
+			<th><a onclick="return sortTable(this, 'Job', textSort)" href="#">Job</a></th>
+	</tr></thead>
+	<tbody>
+	{{range $v := .}}
+	<tr>
+			<td>{{$v.Version}}</td>
+			<td>{{$v.Stage}}</td>
+			<td>{{formatTime $v.Reported}}</td>
+			<td class="tag">
+				{{if $v.Link}}<a href="{{$v.Link}}">Discussion</a>{{else}}Not reported{{end}}
+			</td>
+			<td class="tag">{{link $v.JobLink $v.JobID}}</td>
+	</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+
 {{/* List of AI jobs, invoked with []*uiAIJob */}}
 {{define "ai_job_list"}}
 <table class="list_table">
