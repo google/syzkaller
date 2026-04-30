@@ -273,6 +273,27 @@ Do NOT generate an exploit or weaponized code. Generate only the minimal code ne
 the specific crash or condition described, to help developers confirm the bug and its fix.
 Focus on the technical reproduction of the state, not on weaponization or payload delivery.
 
+To ensure that we can diagnose why a reproducer might fail to run on the test environment,
+you MUST include detailed logging and error checking in the generated C program:
+1. Use 'printf(...)' for all progress messages and error logs.
+2. Every system call (e.g., socket, bind, listen, connect, ioctl, send) must check for a failure return value.
+3. If a call fails, it must print a specific error message including the function name
+and the error string (use strerror(errno)), and then exit with a non-zero status.
+4. The program must print a message after every successful
+major step in the reproduction sequence.
+5. Generate code that follows this pattern for all operations:
+    int res = do_something();
+    if (res < 0) {
+        printf("[-] Failed to do_something: %s\n", strerror(errno));
+        exit(1);
+    }
+    printf("[+] do_something successful.\n");
+6. For the very first attempt at generating a reproducer (when no previous feedback is provided),
+prioritize generating a simple 'probe' program. This program should only check if the necessary
+devices, syscalls, or files needed for the reproduction are available and accessible in the
+environment. Print clear messages indicating success or failure of these probes, and exit with
+0 if all probes succeed. Do not attempt complex race conditions or heavy logic in this first version.
+
 Print only the C program that could be executed directly, without backticks.`
 
 const generatorPrompt = `Bug Description: {{.BugDescription}}
@@ -282,7 +303,16 @@ const oracleInstruction = `You are an AI assistant part of the Syzkaller/Aflow a
 Analyze the results of running the reproducer and determine if it was successful.
 When Reproduced is false, analyze TruncatedConsoleOutput for execution patterns
 (hangs, immediate exits, syscall failures)
-to provide detailed feedback on why it failed and how to fix it.`
+to provide detailed feedback on why it failed and how to fix it.
+
+If the output indicates that this was a successful probe execution (all probes passed),
+set Reproduced to false but provide feedback indicating that the environment is ready
+and the agent should now proceed to generate the full reproducer in the next iteration.
+
+If reproduction failed due to environmental issues (e.g., missing permissions, missing devices,
+or sandbox restrictions), assume execution might succeed with a different approach or more
+robust code (e.g., adding namespace setup or better error handling), and suggest modifications
+to the C code.`
 
 const oraclePrompt = `Bug Description: {{.BugDescription}}
 Reproduced: {{.Reproduced}}
