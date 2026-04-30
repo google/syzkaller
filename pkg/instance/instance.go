@@ -267,6 +267,20 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte, collectCove
 	if err := mgrconfig.Complete(env.cfg); err != nil {
 		return nil, err
 	}
+	if len(reproC) > 0 {
+		// Compile locally to verify it works before wasting VM time.
+		bin, err := csource.BuildNoWarn(env.cfg.Target, reproC)
+		if err != nil {
+			// Return a result indicating compilation failure for all VMs.
+			results := make([]EnvTestResult, numVMs)
+			testErr := &TestError{Title: fmt.Sprintf("compilation failed: %v", err)}
+			for i := range results {
+				results[i] = EnvTestResult{Error: testErr}
+			}
+			return results, nil
+		}
+		os.Remove(bin)
+	}
 	reporter, err := report.NewReporter(env.cfg)
 	if err != nil {
 		return nil, err
