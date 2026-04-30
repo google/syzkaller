@@ -70,6 +70,9 @@ func init() {
 					args struct {
 						BugTitle           string
 						ReproducedBugTitle string
+						// This is an unused output of crash.Reproduce.
+						// TODO: figure out how to handle such outputs better.
+						ReproducedFaultInjection string
 					}) (struct{ Reproduced bool }, error) {
 					return struct{ Reproduced bool }{args.BugTitle == args.ReproducedBugTitle}, nil
 				}),

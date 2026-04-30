@@ -121,7 +121,8 @@ it may lack the precise threading, sandboxing, and some arguments of a working r
 {{.SimplifiedCRepro}}
 {{if .ReproducedFaultInjection}}
 The reproducer uses fault injection to force allocation failure at a specific point.
-These injected failures often exercise rarely used error-handling paths, so the bug is frequently in that error handling.
+These injected failures often exercise rarely used error-handling paths,
+so the bug is frequently in that error handling.
 The following fault injection report(s) show what was injected:
 
 {{.ReproducedFaultInjection}}

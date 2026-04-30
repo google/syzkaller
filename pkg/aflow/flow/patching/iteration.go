@@ -223,6 +223,15 @@ The crash that corresponds to the bug is:
 
 {{.ReproducedCrashReport}}
 
+{{if .ReproducedFaultInjection}}
+The reproducer uses fault injection to force allocation failure at a specific point.
+These injected failures often exercise rarely used error-handling paths,
+so the bug is frequently in that error handling.
+The following fault injection report(s) show what was injected:
+
+{{.ReproducedFaultInjection}}
+{{end}}
+
 A previous version of a patch was generated to fix this bug:
 
 {{.OldPatchDiff}}
@@ -341,6 +350,11 @@ const changelogPrompt = `
 Bug title: {{jsonMarshal .ReproducedBugTitle}}
 Crash report:
 {{.ReproducedCrashReport}}
+
+{{if .ReproducedFaultInjection}}
+Fault injection report(s):
+{{.ReproducedFaultInjection}}
+{{end}}
 
 Previous version description:
 {{.OldPatchDescription}}
