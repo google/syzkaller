@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email/lore"
 )
 
 const (
@@ -108,6 +110,16 @@ type JobReporting struct {
 	ExtID        spanner.NullString
 	Version      spanner.NullInt64
 	CreatedAt    time.Time
+}
+
+func (r *JobReporting) ExternalLink() string {
+	if !r.ExtID.Valid || r.ExtID.StringVal == "" {
+		return ""
+	}
+	if r.Source == string(dashapi.AIJobSourceLore) {
+		return lore.LinkToThread(r.ExtID.StringVal)
+	}
+	return ""
 }
 
 type JobComment struct {

@@ -208,12 +208,16 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 
 		switch job.Type {
 		case ai.WorkflowPatching:
-			patchResult, err = makeNewReportResult(ctx, job, version)
+			res, err := castJobResults[ai.PatchingOutputs](job)
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast job results: %w", err)
+			}
+			patchResult, err = makeNewReportResult(ctx, job, &res, version)
 			if err != nil {
 				return nil, err
 			}
 		case ai.WorkflowPatchIteration:
-			patchResult, replies, err = makeIterationReportResult(ctx, job, version)
+			patchResult, replies, err = makeIterationReportResult(ctx, job, version, r.Stage)
 			if err != nil {
 				return nil, err
 			}
@@ -245,11 +249,8 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(ctx context.Context, job *aidb.Job, version int) (*dashapi.NewReportResult, error) {
-	res, err := castJobResults[ai.PatchingOutputs](job)
-	if err != nil {
-		return nil, fmt.Errorf("failed to cast job results: %w", err)
-	}
+func makeNewReportResult(ctx context.Context, job *aidb.Job, res *ai.PatchingOutputs,
+	version int) (*dashapi.NewReportResult, error) {
 	if res.PatchDescription == "" {
 		return nil, fmt.Errorf("patch generation result can't be empty")
 	}
@@ -291,7 +292,7 @@ func makeNewReportResult(ctx context.Context, job *aidb.Job, version int) (*dash
 }
 
 func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
-) (*dashapi.NewReportResult, []*dashapi.ReplyResult, error) {
+	currentStage string) (*dashapi.NewReportResult, []*dashapi.ReplyResult, error) {
 	res, err := castJobResults[ai.PatchIterationOutputs](job)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to cast job results: %w", err)
@@ -300,11 +301,18 @@ func makeIterationReportResult(ctx context.Context, job *aidb.Job, version int,
 	var replies []*dashapi.ReplyResult
 
 	if res.PatchDiff != "" {
-		var err error
-		patchResult, err = makeNewReportResult(ctx, job, version)
+		patchResult, err = makeNewReportResult(ctx, job, &ai.PatchingOutputs{
+			KernelRepo:       res.KernelRepo,
+			KernelBranch:     res.KernelBranch,
+			KernelCommit:     res.KernelCommit,
+			PatchDescription: res.PatchDescription,
+			PatchDiff:        res.PatchDiff,
+			Recipients:       res.Recipients,
+		}, version)
 		if err != nil {
 			return nil, nil, err
 		}
+		patchResult.Changelog = collectChangelog(ctx, job.ID, currentStage)
 	} else if len(res.Replies) > 0 {
 		var comments []*aidb.JobComment
 		if job.ParentReportingID.Valid {
