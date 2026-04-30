@@ -1350,6 +1350,81 @@ func findLatestPatch(ctx context.Context, jobID string) (diff, desc string) {
 	return diff, desc
 }
 
+type patchIterationNode struct {
+	Job       *aidb.Job
+	Reporting *aidb.JobReporting // The reporting of this job that led to the next iteration. (nil for the target job)
+}
+
+// loadPatchLineage returns the linear history of iterations up to the given job.
+// The oldest job (root) is at index 0. The target job is at the last index.
+func loadPatchLineage(ctx context.Context, jobID string) ([]patchIterationNode, error) {
+	var nodes []patchIterationNode
+	var childReporting *aidb.JobReporting
+	for jobID != "" {
+		j, err := aidb.LoadJob(ctx, jobID)
+		if err != nil || j == nil {
+			break
+		}
+
+		nodes = append(nodes, patchIterationNode{
+			Job:       j,
+			Reporting: childReporting,
+		})
+
+		if !j.ParentReportingID.Valid {
+			break
+		}
+
+		rep, err := aidb.LoadJobReporting(ctx, j.ParentReportingID.StringVal)
+		if err != nil || rep == nil {
+			break
+		}
+
+		childReporting = rep
+		jobID = rep.JobID
+	}
+
+	slices.Reverse(nodes)
+	return nodes, nil
+}
+
+func collectChangelog(ctx context.Context, jobID, currentStage string) []dashapi.ChangelogEntry {
+	lineage, _ := loadPatchLineage(ctx, jobID)
+	var stageNodes []patchIterationNode
+	for _, node := range lineage {
+		if node.Reporting != nil && node.Reporting.Stage != currentStage {
+			stageNodes = nil
+		} else {
+			stageNodes = append(stageNodes, node)
+		}
+	}
+
+	var changes []dashapi.ChangelogEntry
+	for i, node := range stageNodes {
+		link := ""
+		if node.Reporting != nil {
+			link = node.Reporting.ExternalLink()
+		}
+
+		text := ""
+		if i > 0 && node.Job.Results.Valid {
+			if m, ok := node.Job.Results.Value.(map[string]any); ok {
+				text, _ = m["NewChangeLog"].(string)
+			}
+		}
+		if text == "" && link == "" {
+			continue
+		}
+		changes = append(changes, dashapi.ChangelogEntry{
+			Version: i + 1,
+			Link:    link,
+			Text:    text,
+		})
+	}
+	slices.Reverse(changes)
+	return changes
+}
+
 // autoCreateAIJobs attempts to auto-assign AI jobs for the given requested workflows.
 // To avoid race conditions between concurrent agents, it operates in two phases,
 // both leveraging Datastore transactions:

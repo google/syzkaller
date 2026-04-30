@@ -160,12 +160,12 @@ type AIConfig struct {
 
 // AIPatchStageConfig describes a single stage in the AI patch reporting pipeline.
 type AIPatchStageConfig struct {
-	Name                 string // "moderation", "public"
-	ServingIntegration   string // e.g. "lore"
-	MailingList          string
-	NoParallelReports    bool
-	MergePatchCc         bool // If true, CC people mentioned in the patch report (authors, reviewers).
-	AddressComments bool // If true, automatically trigger a patch iteration on new comments.
+	Name               string // "moderation", "public"
+	ServingIntegration string // e.g. "lore"
+	MailingList        string
+	NoParallelReports  bool
+	MergePatchCc       bool // If true, CC people mentioned in the patch report (authors, reviewers).
+	AddressComments    bool // If true, automatically trigger a patch iteration on new comments.
 }
 
 func (cfg *AIConfig) StageIndexByName(name string) int {

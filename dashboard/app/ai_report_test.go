@@ -733,19 +733,20 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 	}
 	require.Equal(t, wantPatchHistory, gotPatchHistory)
 
-	// 6. Complete the job.
+	// 6. Complete the job with a changelog!
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: resp.ID,
 		Results: map[string]any{
 			"PatchDescription": "New Description",
 			"PatchDiff":        "new diff",
+			"NewChangeLog":     "- Fixed ABCD.",
 			"KernelRepo":       "repo_url",
 			"KernelCommit":     "repo_commit",
 		},
 	})
 	require.NoError(t, err)
 
-	// 6.5 Verify AIPollReport returns the new patch.
+	// 6.5 Verify AIPollReport returns the new patch including the changelog.
 	pollRepResp, err := c.globalClient.AIPollReport(&dashapi.PollExternalReportReq{Source: dashapi.AIJobSourceLore})
 	require.NoError(t, err)
 	require.NotNil(t, pollRepResp.Result)
@@ -756,10 +757,20 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		CanUpstream: true,
 		To:          []string{"moderation@test.com"},
 		Patch: &dashapi.NewReportResult{
-			Subject:    "New Description",
-			Body:       "New Description",
-			Version:    2,
-			GitDiff:    "new diff",
+			Subject: "New Description",
+			Body:    "New Description",
+			Version: 2,
+			GitDiff: "new diff",
+			Changelog: []dashapi.ChangelogEntry{
+				{
+					Version: 2,
+					Text:    "- Fixed ABCD.",
+				},
+				{
+					Version: 1,
+					Link:    "https://lore.kernel.org/all/message-id-1/T/",
+				},
+			},
 			BaseCommit: "repo_commit",
 			BaseTree:   "repo_url",
 			To:         nil,
@@ -767,6 +778,7 @@ func TestAIPatchIterationSuccess(t *testing.T) {
 		},
 	}
 	require.Equal(t, wantResult, gotResult)
+
 	// 7. Verify comments marked processed.
 	loadedComments, err := aidb.LoadJobComments(c.ctx, jobID)
 	require.NoError(t, err)
@@ -848,6 +860,7 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 		Results: map[string]any{
 			"PatchDescription": "Description V3",
 			"PatchDiff":        "diff V3",
+			"NewChangeLog":     "- Reverted to standard formatting.",
 		},
 	})
 	require.NoError(t, err)
@@ -863,6 +876,21 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	require.Len(t, reportings, 1)
 
 	require.Equal(t, 3, gotResult.Patch.Version)
+	require.Equal(t, []dashapi.ChangelogEntry{
+		{
+			Version: 3,
+			Text:    "- Reverted to standard formatting.",
+		},
+		{
+			Version: 2,
+			Link:    "https://lore.kernel.org/all/message-id-2/T/",
+			Text:    "- Fixed ABCD.",
+		},
+		{
+			Version: 1,
+			Link:    "https://lore.kernel.org/all/message-id-1/T/",
+		},
+	}, gotResult.Patch.Changelog)
 
 	// 13. Confirm the V3 patch report.
 	err = c.globalClient.AIConfirmReport(&dashapi.ConfirmPublishedReq{
@@ -886,7 +914,8 @@ func testExtendedPatchIteration(t *testing.T, c *Ctx, resp *dashapi.AIJobPollRes
 	require.NoError(t, err)
 	require.NotNil(t, pollResp4.Result)
 	require.Equal(t, "public@test.com", pollResp4.Result.To[0])
-	require.Equal(t, 1, pollResp4.Result.Patch.Version) // VERIFY VERSION DROP!
+	require.Equal(t, 1, pollResp4.Result.Patch.Version)
+	require.Empty(t, pollResp4.Result.Patch.Changelog)
 }
 
 // TestAIPatchIterationBackoff verifies that the system respects the backoff period
