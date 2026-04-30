@@ -781,7 +781,7 @@ func CreatePatchIterationJob(ctx context.Context, reportingID string, debounce t
 			Workflow:          string(ai.WorkflowPatchIteration),
 			Namespace:         parentJob.Namespace,
 			BugID:             parentJob.BugID,
-			Description:       fmt.Sprintf("Iteration on %s", parentJob.ID),
+			Description:       parentJob.Description,
 			Link:              parentJob.Link,
 			ParentReportingID: spanner.NullString{StringVal: reporting.ID, Valid: true},
 			Args:              toNullJSON(argsMap),
