@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/aflow"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 	"github.com/google/syzkaller/pkg/aflow/tool/toolkit"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/prog"
 )
 
 type ReproCInputs struct {
@@ -51,6 +53,85 @@ func FormatCFunc(ctx *aflow.Context, args FormatCArgs) (FormatCResult, error) {
 
 var FormatC = aflow.NewFuncAction("format-c", FormatCFunc)
 
+type CompileCProgArgs struct {
+	CurrentCandidateReproC string
+}
+
+type CompileCProgResult struct {
+	CompilerError   string
+	FormattedReproC string
+}
+
+func extractCCode(text string) string {
+	re := regexp.MustCompile("(?s)```c\n(.*?)```")
+	match := re.FindStringSubmatch(text)
+	if len(match) > 1 {
+		return match[1]
+	}
+	re = regexp.MustCompile("(?s)```\n(.*?)```")
+	match = re.FindStringSubmatch(text)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return text
+}
+
+func CompileCProgFunc(ctx *aflow.Context, args CompileCProgArgs) (CompileCProgResult, error) {
+	target, err := prog.GetTarget("linux", "amd64")
+	if err != nil {
+		return CompileCProgResult{}, err
+	}
+	currentC := extractCCode(args.CurrentCandidateReproC)
+	expanded := strings.ReplaceAll(currentC, raceToolkitInclude, toolkit.GetRaceToolkit())
+	formatted := []byte(expanded)
+
+	bin, err := csource.BuildNoWarn(target, formatted)
+	if err == nil {
+		os.Remove(bin)
+		return CompileCProgResult{
+			CompilerError:   "",
+			FormattedReproC: string(formatted),
+		}, nil
+	}
+	return CompileCProgResult{
+		CompilerError:   err.Error(),
+		FormattedReproC: "",
+	}, nil
+}
+
+var CompileCProg = aflow.NewFuncAction("compile-c-prog", CompileCProgFunc)
+
+const raceToolkitInclude = `#include "race_toolkit.h"`
+
+const repairerInstruction = `You are an experienced C developer.
+Your goal is to repair a C program that failed to compile.
+Analyze the compiler error and provide a corrected version of the C program.
+Print only the C program that could be executed directly, without backticks.`
+
+const repairerPrompt = `C Program:
+{{.CurrentCandidateReproC}}
+
+Compiler Error:
+{{.CompilerError}}`
+
+type MergeReproCArgs struct {
+	RawCandidateReproC      string
+	RepairedCandidateReproC string
+}
+
+type MergeReproCResult struct {
+	CurrentCandidateReproC string
+}
+
+func MergeReproCFunc(ctx *aflow.Context, args MergeReproCArgs) (MergeReproCResult, error) {
+	if args.RepairedCandidateReproC != "" {
+		return MergeReproCResult{CurrentCandidateReproC: args.RepairedCandidateReproC}, nil
+	}
+	return MergeReproCResult{CurrentCandidateReproC: args.RawCandidateReproC}, nil
+}
+
+var MergeReproC = aflow.NewFuncAction("merge-repro-c", MergeReproCFunc)
+
 type TruncateLogArgs struct {
 	ConsoleOutput        string
 	CandidateCrashReport string
@@ -83,7 +164,7 @@ type LoopControllerArgs struct {
 	Feedback             string
 	TitleMatches         bool
 	CandidateReproduced  bool
-	CandidateReproC      string
+	FormattedReproC      string
 	CandidateBugTitle    string
 	CandidateCrashReport string
 }
@@ -103,7 +184,7 @@ func LoopControllerFunc(ctx *aflow.Context, args LoopControllerArgs) (LoopContro
 	}
 
 	if args.CandidateReproduced && args.TitleMatches {
-		res.ReproC = args.CandidateReproC
+		res.ReproC = args.FormattedReproC
 		res.Reproduced = true
 		res.ReproducedBugTitle = args.CandidateBugTitle
 		res.ReproducedCrashReport = args.CandidateCrashReport
@@ -133,8 +214,7 @@ type ExpandToolkitResult struct {
 }
 
 func ExpandToolkitFunc(ctx *aflow.Context, args ExpandToolkitArgs) (ExpandToolkitResult, error) {
-	includeStr := `#include "race_toolkit.h"`
-	repro := strings.ReplaceAll(args.RawCandidateReproC, includeStr, toolkit.GetRaceToolkit())
+	repro := strings.ReplaceAll(args.RawCandidateReproC, raceToolkitInclude, toolkit.GetRaceToolkit())
 	return ExpandToolkitResult{CandidateReproC: repro}, nil
 }
 
@@ -227,8 +307,26 @@ func init() {
 							Prompt:      generatorPrompt,
 							Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
 						},
-						ExpandToolkit,
-						FormatC,
+						&aflow.DoWhile{
+							MaxIterations: 3,
+							While:         "CompilerError",
+							Do: aflow.Pipeline(
+								MergeReproC,
+								CompileCProg,
+								&aflow.If{
+									Condition: "CompilerError",
+									Do: &aflow.LLMAgent{
+										Name:        "repro-repairer",
+										Model:       aflow.BestExpensiveModel,
+										Reply:       "RepairedCandidateReproC",
+										TaskType:    aflow.FormalReasoningTask,
+										Instruction: repairerInstruction,
+										Prompt:      repairerPrompt,
+										Tools:       aflow.Tools(codesearcher.Tools, grepper.Tool, toolkit.ToolGetToolkit),
+									},
+								},
+							),
+						},
 						crash.RunCRepro,
 						TruncateLog,
 						&aflow.LLMAgent{

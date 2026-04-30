@@ -38,7 +38,7 @@ func TestLoopControllerFunc(t *testing.T) {
 		Feedback:             "good",
 		TitleMatches:         true,
 		CandidateReproduced:  true,
-		CandidateReproC:      "code",
+		FormattedReproC:      "code",
 		CandidateBugTitle:    "title",
 		CandidateCrashReport: "report",
 	}
@@ -59,4 +59,40 @@ func TestLoopControllerFunc(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "continue", res.ContinueSignal)
 	assert.Contains(t, res.OracleFeedback, "Collision detected")
+}
+
+func TestExtractCCode(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "with c block",
+			input:    "Here is the code:\n```c\nint main() { return 0; }\n```\nHope it works.",
+			expected: "int main() { return 0; }\n",
+		},
+		{
+			name:     "with plain block",
+			input:    "Here is the code:\n```\nint main() { return 0; }\n```\nHope it works.",
+			expected: "int main() { return 0; }\n",
+		},
+		{
+			name:     "no block",
+			input:    "int main() { return 0; }",
+			expected: "int main() { return 0; }",
+		},
+		{
+			name:     "multiple blocks",
+			input:    "```c\nblock 1\n```\n```c\nblock 2\n```",
+			expected: "block 1\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := extractCCode(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }
