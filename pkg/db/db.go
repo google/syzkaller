@@ -170,6 +170,9 @@ const (
 	recMagic   = uint32(0xfee1bad)
 	curVersion = uint32(2)
 	seqDeleted = ^uint64(0)
+	// maxKeyLen guards against OOM when parsing a crafted corpus DB file.
+	// Real keys are SHA-256 hex strings (64 bytes); 64 KiB is a generous cap.
+	maxKeyLen = 64 << 10 // 65536
 )
 
 func serializeHeader(w *bytes.Buffer, version uint64) {
@@ -279,6 +282,10 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	}
 	var keyLen uint32
 	if err = binary.Read(r, binary.LittleEndian, &keyLen); err != nil {
+		return
+	}
+	if keyLen > maxKeyLen {
+		err = fmt.Errorf("record key length %d exceeds maximum %d", keyLen, maxKeyLen)
 		return
 	}
 	keyBuf := make([]byte, keyLen)
