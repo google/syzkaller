@@ -173,6 +173,9 @@ const (
 	// maxKeyLen guards against OOM when parsing a crafted corpus DB file.
 	// Real keys are SHA-256 hex strings (64 bytes); 64 KiB is a generous cap.
 	maxKeyLen = 64 << 10 // 65536
+	// maxValLen guards against decompression-bomb OOM in deserializeRecord.
+	// Corpus values are syscall-sequence programs; 16 MiB is a generous cap.
+	maxValLen = 16 << 20 // 16 MiB
 )
 
 func serializeHeader(w *bytes.Buffer, version uint64) {
@@ -305,10 +308,17 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	}
 	if valLen != 0 {
 		fr := flate.NewReader(&io.LimitedReader{R: r, N: int64(valLen)})
-		if val, err = io.ReadAll(fr); err != nil {
+		// +1 so len(val) > maxValLen detects output that exactly equals the limit.
+		lr := &io.LimitedReader{R: fr, N: int64(maxValLen) + 1}
+		val, err = io.ReadAll(lr)
+		fr.Close()
+		if err != nil {
 			return
 		}
-		fr.Close()
+		if len(val) > maxValLen {
+			err = fmt.Errorf("decompressed record value exceeds maximum %d bytes", maxValLen)
+			return
+		}
 	}
 	return
 }

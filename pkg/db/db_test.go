@@ -4,6 +4,7 @@
 package db
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/rand"
@@ -256,6 +257,33 @@ func tempFile(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return fn
+}
+
+func TestDecompressionBombValLen(t *testing.T) {
+	// Regression test for decompression bomb: io.ReadAll(flate.NewReader(...))
+	// had no output size limit. A record whose decompressed value exceeds
+	// maxValLen must be rejected with an error.
+	fn := tempFile(t)
+	defer os.Remove(fn)
+
+	// Build a corpus DB with a single record whose value decompresses to
+	// maxValLen+1 bytes (a long run of zeros compresses very well).
+	bigVal := make([]byte, maxValLen+1)
+	var buf bytes.Buffer
+	serializeHeader(&buf, 0)
+	serializeRecord(&buf, "testkey", bigVal, 1)
+	if err := os.WriteFile(fn, buf.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := Open(fn, true)
+	if err == nil {
+		t.Fatal("Open should have returned an error for decompression bomb value")
+	}
+	if db == nil {
+		t.Fatal("db must be non-nil in repair mode even on error")
+	}
+	t.Logf("correctly rejected decompression bomb: %v", err)
 }
 
 func TestOversizeKeyLen(t *testing.T) {
