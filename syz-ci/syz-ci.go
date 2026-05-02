@@ -293,6 +293,9 @@ func main() {
 		SyzkallerDescriptions: cfg.SyzkallerDescriptions,
 		Targets:               updateTargets,
 		MakeTargets:           []string{"manager", "ci"},
+		CheckConfigs: func() error {
+			return checkManagerConfigs(cfg.Managers)
+		},
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -540,6 +543,24 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 		managercfg.VM, err = config.MergeJSONs(managercfg.VM, cfg.PatchVMConfigs[managercfg.Type])
 		if err != nil {
 			return fmt.Errorf("failed to patch manager %v's VM: %w", mgr.Name, err)
+		}
+	}
+	return nil
+}
+
+// checkManagerConfigs validates that all manager configs are compatible with the current syzkaller
+// revision, in particular that enable_syscalls and disable_syscalls only reference syscalls that
+// exist in the current build. This is run as part of the syzkaller build process so that syscall
+// renames are caught as build errors rather than runtime failures during patch testing.
+func checkManagerConfigs(managers []*ManagerConfig) error {
+	for _, mgr := range managers {
+		cfg := mgr.managercfg
+		if cfg == nil {
+			continue
+		}
+		if _, err := mgrconfig.ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls,
+			cfg.DisabledSyscalls, mgrconfig.AnyDescriptions); err != nil {
+			return fmt.Errorf("manager %v: %w", cfg.Name, err)
 		}
 	}
 	return nil
