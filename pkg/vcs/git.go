@@ -9,10 +9,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"net/mail"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -222,9 +224,36 @@ func (git *gitRepo) clone(repo, branch string) error {
 
 func (git *gitRepo) repair() error {
 	if err := git.Reset(); err != nil {
+		var verbose *osutil.VerboseError
+		if errors.As(err, &verbose) &&
+			bytes.Contains(verbose.Output, []byte("detected dubious ownership")) {
+			// Git (>= 2.35.2) refuses to operate on a repository owned by a different
+			// user. Fix ownership of the directory tree so it matches the current
+			// process uid/gid, then retry before giving up and re-initialising.
+			log.Logf(1, "git: detected dubious ownership in %v, fixing ownership", git.Dir)
+			if fixErr := fixOwnership(git.Dir); fixErr != nil {
+				log.Logf(0, "git: failed to fix ownership of %v: %v", git.Dir, fixErr)
+			} else if retryErr := git.Reset(); retryErr == nil {
+				return nil
+			}
+		}
+		log.Logf(0, "git: repair failed at %v: %v", git.Dir, osutil.VerboseMessage(err))
 		return git.initRepo(err)
 	}
 	return nil
+}
+
+// fixOwnership recursively changes the owner of dir and all its contents to
+// the uid/gid of the current process.
+func fixOwnership(dir string) error {
+	uid := os.Getuid()
+	gid := os.Getgid()
+	return filepath.WalkDir(dir, func(path string, _ fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Lchown(path, uid, gid)
+	})
 }
 
 func (git *gitRepo) initRepo(reason error) error {
