@@ -1190,6 +1190,7 @@ var linuxStackParams = &stackParams{
 		"invalid_op",
 		"report_bug",
 		"fixup_bug",
+		"handle_bug",
 		"print_report",
 		"print_usage_bug",
 		"do_error",
