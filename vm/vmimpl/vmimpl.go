@@ -81,6 +81,7 @@ type Env struct {
 	Image     string
 	SSHKey    string
 	SSHUser   string
+	SFTP      bool
 	Timeouts  targets.Timeouts
 	Snapshot  bool
 	Debug     bool

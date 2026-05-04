@@ -50,6 +50,7 @@ type instance struct {
 	forwardPort int
 	image       string
 	debug       bool
+	sftp        bool
 	os          string
 	merger      *vmimpl.OutputMerger
 	vmName      string
@@ -92,6 +93,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 			Key:  pool.env.SSHKey,
 			User: pool.env.SSHUser,
 		},
+		sftp:   pool.env.SFTP,
 		vmName: fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index),
 	}
 
@@ -323,6 +325,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		User:         inst.User,
 		Addr:         inst.Addr,
 		Timeout:      10 * time.Minute,
+		SFTP:         inst.sftp,
 	})
 	if err != nil {
 		return "", err

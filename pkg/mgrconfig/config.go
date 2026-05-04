@@ -66,6 +66,8 @@ type Config struct {
 	SSHKey string `json:"sshkey,omitempty"`
 	// SSH user ("root" by default).
 	SSHUser string `json:"ssh_user,omitempty"`
+	// Use SFTP protocol instead of legacy SCP.
+	SFTP bool `json:"sftp,omitempty"`
 
 	HubClient string `json:"hub_client,omitempty"`
 	HubAddr   string `json:"hub_addr,omitempty"`

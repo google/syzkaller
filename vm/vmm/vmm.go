@@ -48,6 +48,7 @@ type instance struct {
 	cfg   *Config
 	image string
 	debug bool
+	sftp  bool
 	os    string
 	vmimpl.SSHOptions
 	merger   *vmimpl.OutputMerger
@@ -102,6 +103,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		cfg:   pool.cfg,
 		image: filepath.Join(workdir, "disk.qcow2"),
 		debug: pool.env.Debug,
+		sftp:  pool.env.SFTP,
 		os:    pool.env.OS,
 		SSHOptions: vmimpl.SSHOptions{
 			Key:  pool.env.SSHKey,
@@ -246,6 +248,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		SystemSSHCfg: false,
 		User:         inst.User,
 		Addr:         inst.Addr,
+		SFTP:         inst.sftp,
 	})
 	if err != nil {
 		return "", err

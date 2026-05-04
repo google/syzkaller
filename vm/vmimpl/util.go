@@ -76,8 +76,12 @@ func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHC
 	return sshArgs(debug, sshKey, "-p", port, forwardPort, systemSSHCfg)
 }
 
-func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
-	return append(sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg), "-O") // Default to legacy scp protocol.
+func scpArgs(debug bool, sshKey string, port int, systemSSHCfg, sftp bool) []string {
+	args := sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg)
+	if !sftp {
+		args = append(args, "-O")
+	}
+	return args
 }
 
 func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
@@ -116,10 +120,11 @@ type SCPOptions struct {
 	Timeout       time.Duration
 	Dir           string
 	VerboseOutput bool
+	SFTP          bool
 }
 
 func SCP(hostSrc, vmDst string, opts SCPOptions) error {
-	args := append(scpArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg),
+	args := append(scpArgs(opts.VerboseOutput, opts.Key, opts.Port, opts.SystemSSHCfg, opts.SFTP),
 		hostSrc, opts.User+"@"+opts.Addr+":"+vmDst)
 	if opts.Debug {
 		log.Logf(0, "running command: scp %#v", args)

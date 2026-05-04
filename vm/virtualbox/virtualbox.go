@@ -38,6 +38,7 @@ type Pool struct {
 type instance struct {
 	cfg        *Config
 	debug      bool
+	sftp       bool
 	baseVM     string
 	vmName     string
 	rpcPort    int
@@ -77,6 +78,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	inst := &instance{
 		cfg:        pool.cfg,
 		debug:      pool.env.Debug,
+		sftp:       pool.env.SFTP,
 		baseVM:     pool.cfg.BaseVM,
 		vmName:     vmName,
 		os:         pool.env.OS,
@@ -264,6 +266,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		User:    inst.SSHOptions.User,
 		Addr:    "127.0.0.1",
 		Timeout: 3 * time.Minute,
+		SFTP:    inst.sftp,
 	})
 	if err != nil {
 		return "", err

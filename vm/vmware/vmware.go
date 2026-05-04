@@ -46,6 +46,7 @@ type instance struct {
 	ipAddr      string
 	closed      chan bool
 	debug       bool
+	sftp        bool
 	sshuser     string
 	sshkey      string
 	forwardPort int
@@ -85,6 +86,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 	inst := &instance{
 		cfg:      pool.cfg,
 		debug:    pool.env.Debug,
+		sftp:     pool.env.SFTP,
 		baseVMX:  pool.cfg.BaseVMX,
 		vmx:      vmx,
 		sshkey:   sshkey,
@@ -167,6 +169,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		User:         inst.sshuser,
 		Addr:         inst.ipAddr,
 		Timeout:      3 * time.Minute,
+		SFTP:         inst.sftp,
 	})
 	if err != nil {
 		return "", err

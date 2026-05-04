@@ -125,6 +125,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		Image:     cfg.Image,
 		SSHKey:    cfg.SSHKey,
 		SSHUser:   cfg.SSHUser,
+		SFTP:      cfg.SFTP,
 		Timeouts:  cfg.Timeouts,
 		Snapshot:  cfg.Snapshot,
 		Debug:     debug,

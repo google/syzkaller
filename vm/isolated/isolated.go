@@ -53,6 +53,7 @@ type instance struct {
 	index       int
 	closed      chan bool
 	debug       bool
+	sftp        bool
 	forwardPort int
 	timeouts    targets.Timeouts
 }
@@ -107,6 +108,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		closed:   make(chan bool),
 		debug:    pool.env.Debug,
 		timeouts: pool.env.Timeouts,
+		sftp:     pool.env.SFTP,
 	}
 	closeInst := inst
 	defer func() {
@@ -293,6 +295,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		User:         inst.User,
 		Addr:         inst.Addr,
 		Timeout:      3 * time.Minute,
+		SFTP:         inst.sftp,
 	})
 	if err != nil {
 		return "", err

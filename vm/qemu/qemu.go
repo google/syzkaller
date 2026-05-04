@@ -99,6 +99,7 @@ type instance struct {
 	args       []string
 	image      string
 	debug      bool
+	sftp       bool
 	os         string
 	workdir    string
 	vmimpl.SSHOptions
@@ -385,6 +386,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (*instance, e
 		version:    pool.version,
 		image:      pool.env.Image,
 		debug:      pool.env.Debug,
+		sftp:       pool.env.SFTP,
 		os:         pool.env.OS,
 		timeouts:   pool.env.Timeouts,
 		workdir:    workdir,
@@ -684,6 +686,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		Addr:          "localhost",
 		Timeout:       10 * time.Minute * inst.timeouts.Scale,
 		VerboseOutput: true,
+		SFTP:          inst.sftp,
 	})
 	if err != nil {
 		return "", err

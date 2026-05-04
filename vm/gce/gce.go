@@ -295,6 +295,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		Addr:          inst.Addr,
 		Timeout:       time.Minute,
 		VerboseOutput: true,
+		SFTP:          inst.env.SFTP,
 	})
 	if err != nil {
 		return "", err

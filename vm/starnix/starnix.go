@@ -54,6 +54,7 @@ type instance struct {
 	cfg          *Config
 	version      string
 	debug        bool
+	sftp         bool
 	workdir      string
 	port         int
 	forwardPort  int
@@ -107,6 +108,7 @@ func (pool *Pool) Create(_ context.Context, workdir string, index int) (vmimpl.I
 		index:      index,
 		cfg:        pool.cfg,
 		debug:      pool.env.Debug,
+		sftp:       pool.env.SFTP,
 		workdir:    workdir,
 		timeouts:   pool.env.Timeouts,
 	}
@@ -447,6 +449,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		Addr:    "localhost",
 		Dir:     inst.fuchsiaDir,
 		Timeout: 5 * time.Minute,
+		SFTP:    inst.sftp,
 	})
 	if err == nil {
 		return vmDst, err
