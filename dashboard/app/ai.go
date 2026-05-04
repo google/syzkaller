@@ -40,15 +40,6 @@ type uiAIJobsPage struct {
 	ShowAborted     bool
 	ManualWorkflows []ManualWorkflowSpec
 	Managers        []string
-	DefaultRepo     string
-	DefaultBranch   string
-}
-
-type ManualWorkflowField struct {
-	ID          string
-	Title       string
-	Placeholder string
-	Required    bool
 }
 
 type ManualWorkflowSpec struct {
@@ -58,19 +49,77 @@ type ManualWorkflowSpec struct {
 	Fields      []ManualWorkflowField
 }
 
-var manualAIWorkflows = []ManualWorkflowSpec{
-	{
-		Name: string(ai.WorkflowReproC),
-		Type: ai.WorkflowReproC,
-		Fields: []ManualWorkflowField{
-			{
-				ID:          "BugDescription",
-				Title:       "Bug Description",
-				Placeholder: "Describe the bug here...",
-				Required:    true,
+type ManualWorkflowField struct {
+	ID           string
+	Title        string
+	Placeholder  string
+	DefaultValue string
+	Required     bool
+	Hidden       bool
+}
+
+func manualAIWorkflows(cfg *Config) []ManualWorkflowSpec {
+	defaultRepo, defaultBranch := cfg.mainRepoBranch()
+	return []ManualWorkflowSpec{
+		{
+			Name: string(ai.WorkflowPatching),
+			Type: ai.WorkflowPatching,
+			Fields: []ManualWorkflowField{
+				{
+					ID:       "ReproC",
+					Title:    "C reproducer",
+					Required: true,
+				},
+				{
+					ID:     "ReproSyz",
+					Hidden: true,
+				},
+				{
+					ID:     "ReproOpts",
+					Hidden: true,
+				},
+				{
+					ID:           "BaseRepository",
+					DefaultValue: cfg.AI.BaseRepository,
+					Hidden:       true,
+				},
+				{
+					ID:           "BaseBranch",
+					DefaultValue: cfg.AI.BaseBranch,
+					Hidden:       true,
+				},
+				{
+					ID:           "BaseCommit",
+					DefaultValue: cfg.AI.BaseCommit,
+					Hidden:       true,
+				},
 			},
 		},
-	},
+		{
+			Name: string(ai.WorkflowReproC),
+			Type: ai.WorkflowReproC,
+			Fields: []ManualWorkflowField{
+				{
+					ID:          "BugDescription",
+					Title:       "Bug Description",
+					Placeholder: "Describe the bug here...",
+					Required:    true,
+				},
+				{
+					ID:           "KernelRepo",
+					Title:        "Kernel repo git address",
+					DefaultValue: defaultRepo,
+					Required:     true,
+				},
+				{
+					ID:           "KernelCommit",
+					Title:        "Kernel Commit Hash or branch name",
+					DefaultValue: defaultBranch,
+					Required:     true,
+				},
+			},
+		},
+	}
 }
 
 type uiAIJobArg struct {
@@ -187,17 +236,14 @@ func handleAIJobsPage(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	slices.Sort(managers)
 
 	cfg := getNsConfig(ctx, hdr.Namespace)
-	defaultRepo, defaultBranch := cfg.mainRepoBranch()
 	page := &uiAIJobsPage{
 		Header:          hdr,
 		Jobs:            uiJobs,
 		Workflows:       workflowNames,
 		CurrentWorkflow: currentWorkflow,
 		ShowAborted:     showAborted,
-		ManualWorkflows: manualAIWorkflows,
+		ManualWorkflows: manualAIWorkflows(cfg),
 		Managers:        managers,
-		DefaultRepo:     defaultRepo,
-		DefaultBranch:   defaultBranch,
 	}
 
 	if r.FormValue("json") == "1" {
@@ -218,8 +264,9 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 		return fmt.Errorf("%w: workflow is required", ErrClientBadRequest)
 	}
 
+	cfg := getNsConfig(ctx, hdr.Namespace)
 	var spec *ManualWorkflowSpec
-	for _, s := range manualAIWorkflows {
+	for _, s := range manualAIWorkflows(cfg) {
 		if s.Name == workflow {
 			spec = &s
 			break
@@ -231,16 +278,6 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 
 	args := map[string]any{}
 
-	for _, field := range []ManualWorkflowField{
-		{ID: "KernelRepo", Title: "Kernel Repo"},
-		{ID: "KernelCommit", Title: "Kernel Commit"},
-	} {
-		val := r.FormValue(field.ID)
-		if val == "" {
-			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
-		}
-		args[field.ID] = val
-	}
 	if config := r.FormValue("KernelConfig"); config != "" {
 		args["KernelConfig"] = config
 	} else if manager := r.FormValue("KernelConfigManager"); manager != "" {
@@ -254,13 +291,15 @@ func handleAIJobCreate(ctx context.Context, r *http.Request, hdr *uiHeader) erro
 	}
 
 	for _, field := range spec.Fields {
+		if field.Hidden {
+			args[field.ID] = field.DefaultValue
+			continue
+		}
 		val := r.FormValue(field.ID)
 		if field.Required && val == "" {
 			return fmt.Errorf("%w: %v is required", ErrClientBadRequest, field.Title)
 		}
-		if val != "" {
-			args[field.ID] = val
-		}
+		args[field.ID] = val
 	}
 	_, err := aidb.CreateJob(ctx, &aidb.Job{
 		Type:      spec.Type,

@@ -5,13 +5,12 @@ package aidb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
-
-	"errors"
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/syzkaller/dashboard/dashapi"

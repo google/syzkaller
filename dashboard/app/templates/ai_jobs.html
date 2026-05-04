@@ -31,7 +31,21 @@ List of AI jobs page.
 				</select>
 				<br><br>
 
-				<b>Base Kernel Configuration</b><br><br>
+				{{range $spec := .ManualWorkflows}}
+				<div id="workflow-fields-{{$spec.Name}}" class="manual-workflow-fields" style="display: none;">
+					{{range $field := $spec.Fields}}
+						{{if not $field.Hidden}}
+							<label for="{{$spec.Name}}-{{$field.ID}}">{{$field.Title}}{{if $field.Required}}*{{end}}:</label><br>
+							<textarea name="{{$field.ID}}" id="{{$spec.Name}}-{{$field.ID}}" rows="4" cols="60"
+								placeholder="{{$field.Placeholder}}" {{if $field.Required}}required{{end}} disabled
+								>{{$field.DefaultValue}}</textarea>
+							<br><br>
+						{{end}}
+					{{end}}
+				</div>
+				{{end}}
+
+				<b>Kernel Configuration</b><br><br>
 				<label for="KernelConfigManager">Use config from manager*:</label>
 				<select name="KernelConfigManager" id="KernelConfigManager">
 						<option value="">None</option>
@@ -43,22 +57,6 @@ List of AI jobs page.
 				<label for="KernelConfig">Or provide custom Kernel Config*:</label><br>
 				<textarea name="KernelConfig" id="KernelConfig" rows="6" cols="60" placeholder="Raw config string. Takes precedence over manager config above."></textarea><br><br>
 
-				<label for="KernelRepo">Kernel Repo*:</label><br>
-				<input type="text" name="KernelRepo" id="KernelRepo" size="60" value="{{.DefaultRepo}}" placeholder="{{.DefaultRepo}}" required><br><br>
-
-				<label for="KernelCommit">Kernel Commit Hash or branch name*:</label><br>
-				<input type="text" name="KernelCommit" id="KernelCommit" size="60" value="{{.DefaultBranch}}" placeholder="{{.DefaultBranch}}" required>
-				<br><br>
-
-				{{range $spec := .ManualWorkflows}}
-				<div id="workflow-fields-{{$spec.Name}}" class="manual-workflow-fields" style="display: none;">
-					{{range $field := $spec.Fields}}
-						<label for="{{$spec.Name}}-{{$field.ID}}">{{$field.Title}}{{if $field.Required}}*{{end}}:</label><br>
-						<textarea name="{{$field.ID}}" id="{{$spec.Name}}-{{$field.ID}}" rows="4" cols="60" placeholder="{{$field.Placeholder}}" {{if $field.Required}}required{{end}} disabled></textarea>
-						<br><br>
-					{{end}}
-				</div>
-				{{end}}
 				<input type="submit" value="Create Job">
 			</form>
 		</div>

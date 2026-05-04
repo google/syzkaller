@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/google/syzkaller/dashboard/app/aidb"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
@@ -22,6 +20,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestAIMigrations(t *testing.T) {
@@ -987,8 +986,6 @@ func TestAIManualJobCreate(t *testing.T) {
 	c := NewSpannerCtx(t)
 	defer c.Close()
 
-	c.SetAIConfig(&AIConfig{})
-
 	build := testBuild(1)
 	build.Manager = "manager1"
 	_, err := apiUploadBuild(c.ctx, "ains", build)
@@ -1006,20 +1003,22 @@ func TestAIManualJobCreate(t *testing.T) {
 		"ai-job-create":  []string{"repro-c"},
 		"KernelRepo":     []string{""},
 		"KernelCommit":   []string{"123456"},
+		"KernelConfig":   []string{".config"},
 		"BugDescription": []string{"test bug"},
 	})
 	require.NoError(t, err)
-	require.Contains(t, string(body), "Kernel Repo is required")
+	require.Contains(t, string(body), "Kernel repo git address is required")
 
 	body, err = c.POSTForm("/ains/ai", url.Values{
 		"ai-job-create":  []string{"repro-c"},
 		"KernelRepo":     []string{"https://repo.test"},
 		"KernelCommit":   []string{""},
+		"KernelConfig":   []string{".config"},
 		"BugDescription": []string{"test bug"},
 	})
 	require.NoError(t, err)
+	require.Contains(t, string(body), "Kernel Commit Hash or branch name is required")
 
-	require.Contains(t, string(body), "Kernel Commit is required")
 	body, err = c.POSTForm("/ains/ai", url.Values{
 		"ai-job-create":  []string{"repro-c"},
 		"KernelRepo":     []string{"https://repo.test"},
@@ -1029,7 +1028,7 @@ func TestAIManualJobCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(body), "either a custom kernel config or a manager is required")
 
-	_, err = c.POSTForm("/ains/ai", url.Values{
+	body, err = c.POSTForm("/ains/ai", url.Values{
 		"ai-job-create":  []string{"repro-c"},
 		"KernelRepo":     []string{"https://repo.test"},
 		"KernelCommit":   []string{"123456"},
@@ -1037,6 +1036,7 @@ func TestAIManualJobCreate(t *testing.T) {
 		"BugDescription": []string{"test bug"},
 	})
 	require.NoError(t, err)
+	require.Contains(t, string(body), "AI workflow repro-c is created")
 
 	job, err := c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
 		AgentName:    "agent-name",
@@ -1053,6 +1053,33 @@ func TestAIManualJobCreate(t *testing.T) {
 	require.Equal(t, "test bug", args["BugDescription"])
 	require.Equal(t, "https://repo.test", args["KernelRepo"])
 	require.Equal(t, "123456", args["KernelCommit"])
+
+	body, err = c.POSTForm("/ains/ai", url.Values{
+		"ai-job-create": []string{"patching"},
+		"ReproC":        []string{"int main() {}"},
+		"KernelConfig":  []string{".config"},
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(body), "AI workflow patching is created")
+
+	job, err = c.agentClient.AIJobPoll(&dashapi.AIJobPollReq{
+		AgentName:    "agent-name2",
+		CodeRevision: prog.GitRevision,
+		Workflows: []dashapi.AIWorkflow{
+			{Type: "patching", Name: "patching"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, "", job.ID, job)
+	require.Equal(t, "patching", job.Workflow)
+	require.Equal(t, "int main() {}", job.Args["ReproC"])
+	require.Contains(t, job.Args, "ReproSyz")
+	require.Equal(t, "", job.Args["ReproSyz"])
+	require.Contains(t, job.Args, "ReproOpts")
+	require.Equal(t, "", job.Args["ReproOpts"])
+	require.Equal(t, "git://ai/base.git", job.Args["BaseRepository"])
+	require.Equal(t, "ai-base", job.Args["BaseBranch"])
+	require.Equal(t, "RC", job.Args["BaseCommit"])
 
 	_, err = c.AuthGET(AccessUser, "/ains/ai")
 	require.NoError(t, err)
