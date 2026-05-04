@@ -35,7 +35,7 @@ func (repo *TestRepo) Git(args ...string) {
 	cmd.Env = filterEnv()
 
 	if _, err := osutil.Run(time.Minute, cmd); err != nil {
-		repo.t.Fatal(err)
+		repo.t.Fatal(osutil.VerboseMessage(err))
 	}
 }
 
