@@ -155,8 +155,7 @@ func (env *testEnv) headCommit() int {
 	return int(commit)
 }
 
-func createTestRepo(t *testing.T) string {
-	baseDir := t.TempDir()
+func createTestRepo(t *testing.T, baseDir string) string {
 	repo := vcs.CreateTestRepo(t, baseDir, "")
 	if !repo.SupportsBisection() {
 		t.Skip("bisection is unsupported by git (probably too old version)")
@@ -741,7 +740,7 @@ func TestBisectionResults(t *testing.T) {
 				select {
 				case repoDir = <-repoCache:
 				default:
-					repoDir = createTestRepo(tt)
+					repoDir = createTestRepo(t, tt.TempDir())
 				}
 				defer func() {
 					repoCache <- repoDir
