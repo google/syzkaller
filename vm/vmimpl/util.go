@@ -77,7 +77,7 @@ func SSHArgsForward(debug bool, sshKey string, port, forwardPort int, systemSSHC
 }
 
 func scpArgs(debug bool, sshKey string, port int, systemSSHCfg bool) []string {
-	return sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg)
+	return append(sshArgs(debug, sshKey, "-P", port, 0, systemSSHCfg), "-O") // Default to legacy scp protocol.
 }
 
 func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int, systemSSHCfg bool) []string {
