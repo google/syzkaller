@@ -244,6 +244,15 @@ table td, table th {
 	font-size: 75%;
 }
 
+.list_table .ai_result {
+	max-width: 400pt;
+	white-space: normal;
+}
+
+.list_table .ai_result span {
+	white-space: nowrap;
+}
+
 .list_table .ai_correct {
 	text-align: center;
 }

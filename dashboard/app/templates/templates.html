@@ -696,10 +696,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<tr>
 		<td class="tag">{{link $job.Link $job.ID}}</td>
 		<td>{{$job.Workflow}}</td>
-		<td>
+		<td class="ai_result">
 			{{range $res := $job.Results}}
 				{{if $res.IsBool}}
-					{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}&nbsp;
+					<span>{{$res.Name}}: {{if $res.Value}}✅{{else}}❌{{end}}</span>
 				{{end}}
 			{{end}}
 		</td>
