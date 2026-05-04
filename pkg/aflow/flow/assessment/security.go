@@ -15,6 +15,7 @@ import (
 type assessmentSecurityInputs struct {
 	CrashReport  string
 	ReproSyz     string
+	ReproC       string
 	KernelRepo   string
 	KernelCommit string
 	KernelConfig string

@@ -16,6 +16,7 @@ var CreateSimplifiedCRepro = aflow.NewFuncAction("syz-repro-to-c-repro", createC
 
 type createCReproArgs struct {
 	ReproSyz string
+	ReproC   string
 }
 
 type createCReproResult struct {
@@ -24,7 +25,9 @@ type createCReproResult struct {
 
 func createCRepro(ctx *aflow.Context, args createCReproArgs) (createCReproResult, error) {
 	if args.ReproSyz == "" {
-		return createCReproResult{}, nil
+		// Patching workflow may run only with C repro, if created manually (not from a syzbot bug).
+		// For these cases return the provided C repro.
+		return createCReproResult{args.ReproC}, nil
 	}
 	pt, err := prog.GetTarget("linux", "amd64")
 	if err != nil {
