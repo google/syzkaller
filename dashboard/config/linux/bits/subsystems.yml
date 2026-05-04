@@ -566,7 +566,7 @@ config:
  - DAMON_DBGFS: [v5.15, -v6.9]
  - DAMON_RECLAIM: [v5.17]
  - ZSWAP_DEFAULT_ON: [v5.7]
- - SMB_SERVER: [v5.15]
+ - SMB_SERVER: [v5.15, -arm64_gce]
  - SYSFS_SYSCALL
  - PREEMPT_RT: [v6.16, preempt_rt]
 

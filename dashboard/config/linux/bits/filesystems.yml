@@ -66,14 +66,14 @@ config:
  - GFS2_FS
  - GFS2_FS_LOCKING_DLM
 
- - OCFS2_FS
- - OCFS2_FS_O2CB
- - OCFS2_FS_USERSPACE_CLUSTER
- - OCFS2_FS_STATS
+ - OCFS2_FS: [-arm64_gce]
+ - OCFS2_FS_O2CB: [-arm64_gce]
+ - OCFS2_FS_USERSPACE_CLUSTER: [-arm64_gce]
+ - OCFS2_FS_STATS: [-arm64_gce]
  - OCFS2_DEBUG_MASKLOG: n
- - OCFS2_DEBUG_FS
+ - OCFS2_DEBUG_FS: [-arm64_gce]
 
- - BTRFS_FS
+ - BTRFS_FS: [-arm64_gce]
  - BTRFS_FS_POSIX_ACL
  - BTRFS_ASSERT
  # Moved by "btrfs: move ref-verify under CONFIG_BTRFS_DEBUG"
@@ -146,17 +146,17 @@ config:
  - CEPH_FSCACHE
  - CEPH_FS_POSIX_ACL
 
- - CIFS
- - CIFS_ALLOW_INSECURE_LEGACY
+ - CIFS: [-arm64_gce]
+ - CIFS_ALLOW_INSECURE_LEGACY: [-arm64_gce]
  - CIFS_WEAK_PW_HASH: [-v5.15]
- - CIFS_UPCALL
- - CIFS_XATTR
- - CIFS_POSIX
- - CIFS_DFS_UPCALL
- - CIFS_SMB_DIRECT
- - CIFS_FSCACHE
- - CIFS_DEBUG
- - CIFS_SWN_UPCALL: [v5.11]
+ - CIFS_UPCALL: [-arm64_gce]
+ - CIFS_XATTR: [-arm64_gce]
+ - CIFS_POSIX: [-arm64_gce]
+ - CIFS_DFS_UPCALL: [-arm64_gce]
+ - CIFS_SMB_DIRECT: [-arm64_gce]
+ - CIFS_FSCACHE: [-arm64_gce]
+ - CIFS_DEBUG: [-arm64_gce]
+ - CIFS_SWN_UPCALL: [v5.11, -arm64_gce]
 
  - AFS_FS
  - AFS_FSCACHE

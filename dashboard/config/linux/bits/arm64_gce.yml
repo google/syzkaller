@@ -6,6 +6,14 @@ config:
  - SND: n
  - DRM_MSM: n
  - DRM_NOUVEAU: n
+ - DRM_POWERVR: n
+ - DRM_PANTHOR: n
+ - DRM_ETNAVIV: n
+ - DRM_LIMA: n
+ - NET_VENDOR_HISILICON: n
+ - DRM_PANFROST: n
+ - SCSI_MPT3SAS: n
+ - MEGARAID_SAS: n
 
  # Disable platforms to reduce drivers/clk, pinctrl, and other hardware-specific noise.
  - ARCH_ACTIONS: n
