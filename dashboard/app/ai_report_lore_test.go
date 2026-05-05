@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/email/lore"
 	"github.com/google/syzkaller/pkg/email/sender"
@@ -66,6 +67,11 @@ func TestAILoreIntegration(t *testing.T) {
 	require.NoError(t, err)
 	jobID := c.createAIJob(extID, string(ai.WorkflowPatching), "")
 
+	err = c.agentClient.AITrajectoryLog(&dashapi.AITrajectoryReq{
+		JobID: jobID,
+		Span:  &trajectory.Span{Seq: 1, Type: trajectory.SpanAgent, Name: "patch-generator", Model: "gemini-3.1-pro-preview"},
+	})
+	require.NoError(t, err)
 	err = c.agentClient.AIJobDone(&dashapi.AIJobDoneReq{
 		ID: jobID,
 		Results: map[string]any{
@@ -91,9 +97,9 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[0].Cc)
 
 	body := string(mockSnd.sent[0].Body)
+	assert.Contains(t, body, "Assisted-by: Gemini:gemini-3.1-pro-preview")
 	assert.Contains(t, body, "To: <maintainer@email.com>")
 	assert.Contains(t, body, "Cc: <reviewer@email.com>")
-
 	// 3. Approval (#syz upstream).
 	loreArchive.SaveMessageAt(t, `From: user@email
 Subject: Re: [PATCH RFC] Test Description
