@@ -19,7 +19,7 @@ require (
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
-	github.com/ianlancetaylor/demangle v0.0.0-20251118225945-96ee0021ea0f
+	github.com/ianlancetaylor/demangle v0.0.0-20260505044615-1ff4bf46051f
 	github.com/modelcontextprotocol/go-sdk v1.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sergi/go-diff v1.4.0
