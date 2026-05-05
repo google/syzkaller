@@ -206,5 +206,3 @@ config:
 
  - FSCACHE
  - CACHEFILES
-
- - DEBUG_VFS: [v6.15]
