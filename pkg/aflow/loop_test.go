@@ -4,6 +4,7 @@
 package aflow
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -205,4 +206,116 @@ func TestForEachErrors(t *testing.T) {
 				return struct{}{}, nil
 			}),
 		}})
+}
+
+// TestNestedDoWhileVarLeak verifies that variables produced in a nested loop
+// do not cause a panic on re-entry in subsequent outer loop iterations.
+func TestNestedDoWhileVarLeak(t *testing.T) {
+	type actionResults struct {
+		Continue      string
+		InnerContinue string
+	}
+	outerIter := 0
+	testFlow[struct{}, struct{}](t, nil, map[string]any{},
+		&DoWhile{
+			MaxIterations: 2,
+			While:         "Continue",
+			Do: Pipeline(
+				NewFuncAction("outer-action", func(ctx *Context, args struct{}) (actionResults, error) {
+					outerIter++
+					if outerIter < 2 {
+						return actionResults{Continue: "yes", InnerContinue: ""}, nil
+					}
+					return actionResults{Continue: "", InnerContinue: ""}, nil
+				}),
+				&DoWhile{
+					MaxIterations: 1,
+					While:         "InnerContinue",
+					Do: Pipeline(
+						NewFuncAction("inner-action", func(ctx *Context, args struct{}) (struct{ Leaked string }, error) {
+							return struct{ Leaked string }{Leaked: "val"}, nil
+						}),
+						NewFuncAction("consumer-action", func(ctx *Context, args struct{ Leaked string }) (struct{}, error) {
+							return struct{}{}, nil
+						}),
+					),
+				},
+			),
+		},
+		nil,
+		nil,
+	)
+}
+
+// TestNestedDoWhileOutput verifies that variables produced inside a nested loop
+// are visible to actions in the outer loop after the inner loop finishes.
+func TestNestedDoWhileOutput(t *testing.T) {
+	type actionResults struct {
+		Continue string
+	}
+	type outerActionArgs struct {
+		Leaked string
+	}
+	testFlow[struct{}, struct{}](t, nil, map[string]any{},
+		&DoWhile{
+			MaxIterations: 1,
+			While:         "Continue",
+			Do: Pipeline(
+				&DoWhile{
+					MaxIterations: 1,
+					While:         "InnerContinue",
+					Do: Pipeline(
+						NewFuncAction("inner-action", func(ctx *Context, args struct{}) (struct {
+							InnerContinue string
+							Leaked        string
+						}, error) {
+							return struct {
+								InnerContinue string
+								Leaked        string
+							}{InnerContinue: "", Leaked: "val"}, nil
+						}),
+					),
+				},
+				NewFuncAction("outer-consumer", func(ctx *Context, args outerActionArgs) (actionResults, error) {
+					if args.Leaked != "val" {
+						return actionResults{Continue: ""}, fmt.Errorf("expected Leaked to be 'val', got %q", args.Leaked)
+					}
+					return actionResults{Continue: ""}, nil
+				}),
+			),
+		},
+		nil,
+		nil,
+	)
+}
+
+// TestLoopVarDefinedOutside verifies that the framework detects and errors out
+// if a loop tries to produce a variable that was already defined outside the loop.
+func TestLoopVarDefinedOutside(t *testing.T) {
+	type actionResults struct {
+		Leaked string
+	}
+	testRegistrationError[struct{}, struct{}](t,
+		"flow test: action loop-action: output Leaked is already set by init-action",
+		&Flow{Root: Pipeline(
+			NewFuncAction("init-action", func(ctx *Context, args struct{}) (actionResults, error) {
+				return actionResults{Leaked: "val1"}, nil
+			}),
+			&DoWhile{
+				MaxIterations: 1,
+				While:         "Continue",
+				Do: Pipeline(
+					NewFuncAction("loop-action", func(ctx *Context, args struct{}) (struct {
+						Continue string
+						Leaked   string
+					}, error) {
+						return struct {
+							Continue string
+							Leaked   string
+						}{Continue: "", Leaked: "val2"}, nil
+					}),
+				),
+			},
+		)},
+	)
 }

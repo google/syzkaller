@@ -41,9 +41,8 @@ func (dw *DoWhile) execute(ctx *Context) error {
 
 func (dw *DoWhile) loop(ctx *Context) error {
 	for name, typ := range dw.loopVars {
-		if _, ok := ctx.state[name]; ok {
-			return fmt.Errorf("loop var %q is already defined", name)
-		}
+		// We allow redefinition of loop variables to support nested loops.
+		// They are reset to zero values at the start of the loop.
 		ctx.state[name] = reflect.Zero(typ).Interface()
 	}
 	for iter := range dw.MaxIterations {
