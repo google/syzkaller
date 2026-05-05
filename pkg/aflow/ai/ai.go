@@ -66,6 +66,12 @@ type PatchingOutputs struct {
 	PatchDescription string
 	PatchDiff        string
 	Recipients       []Recipient
+	Fixes            FixesTag
+}
+
+type FixesTag struct {
+	Hash  string
+	Title string
 }
 
 type Recipient struct {
