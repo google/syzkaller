@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codeeditor"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
@@ -42,7 +43,7 @@ type Inputs struct {
 }
 
 func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool)
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
 	return &aflow.Flow{
 		Name: name,
 		Root: aflow.Pipeline(
