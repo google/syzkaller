@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"cloud.google.com/go/spanner"
@@ -184,7 +186,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 			log.Errorf(ctx, "unsupported job type for external reporting: %s (job %v)", job.Type, job.ID)
 			return nil, fmt.Errorf("unsupported job type: %s", job.Type)
 		}
-		patchResult, err := makeNewReportResult(job)
+		patchResult, err := makeNewReportResult(ctx, job)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +209,7 @@ func apiAIPollReport(ctx context.Context, req *dashapi.PollExternalReportReq) (a
 	return &dashapi.PollExternalReportResp{}, nil
 }
 
-func makeNewReportResult(job *aidb.Job) (*dashapi.NewReportResult, error) {
+func makeNewReportResult(ctx context.Context, job *aidb.Job) (*dashapi.NewReportResult, error) {
 	res, err := castJobResults[ai.PatchingOutputs](job)
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast job results: %w", err)
@@ -218,6 +220,17 @@ func makeNewReportResult(job *aidb.Job) (*dashapi.NewReportResult, error) {
 	lines := strings.Split(res.PatchDescription, "\n")
 	if lines[0] == "" {
 		return nil, fmt.Errorf("title line can't be empty")
+	}
+
+	trajectory, err := aidb.LoadTrajectory(ctx, job.ID)
+	if err != nil {
+		return nil, err
+	}
+	models := make(map[string]bool)
+	for _, span := range trajectory {
+		if span.Model != "" {
+			models[span.Model] = true
+		}
 	}
 	subject := lines[0]
 	var to, cc []string
@@ -237,6 +250,7 @@ func makeNewReportResult(job *aidb.Job) (*dashapi.NewReportResult, error) {
 		Version:    1, // TODO: track and increase it.
 		To:         to,
 		Cc:         cc,
+		Tools:      slices.Collect(maps.Keys(models)),
 	}, nil
 }
 
