@@ -1,0 +1,192 @@
+// Copyright 2026 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package gitlog
+
+import (
+	"fmt"
+	"path/filepath"
+	"testing"
+
+	"github.com/google/syzkaller/pkg/aflow"
+	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGitShow(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := vcs.MakeTestRepo(t, filepath.Join(tmpDir, "repo", "linux"))
+	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
+		File: "foo.c",
+		Content: `
+void foo() {
+	// BUG HERE
+}
+`,
+	})
+
+	// Test git-show.
+	aflow.TestTool(t, ToolShow,
+		state{KernelSrc: repo.Dir},
+		showArgs{Commit: c1.Hash},
+		func(res showResult) {
+			expected := fmt.Sprintf(`(?s)^commit %s
+Author: Test Syzkaller <test@syzkaller\.com>
+Date:   .*
+
+    initial commit
+
+diff --git a/foo\.c b/foo\.c
+.*
+\+void foo\(\) {
+\+	// BUG HERE
+\+}`, c1.Hash)
+			assert.Regexp(t, expected, res.Output)
+		},
+		"")
+
+	// Test git-show with non-existing commit.
+	aflow.TestTool(t, ToolShow,
+		state{KernelSrc: repo.Dir},
+		showArgs{Commit: "0123456789abcdef0123456789abcdef01234567"},
+		showResult{},
+		"git show failed: fatal: bad object 0123456789abcdef0123456789abcdef01234567")
+}
+
+func TestGitBlame(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoDir := filepath.Join(tmpDir, "repo", "linux")
+	repo := vcs.MakeTestRepo(t, repoDir)
+	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
+		File: "foo.c",
+		Content: `
+void foo() {
+	// BUG HERE
+}
+`,
+	})
+	c2 := repo.CommitChangeset("third commit", vcs.FileContent{
+		File: "foo.c",
+		Content: `
+void foo() {
+	// BUG HERE
+	// fixed!
+}
+`,
+	})
+
+	// Test git-blame.
+	aflow.TestTool(t, ToolBlame,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		blameArgs{File: "foo.c", Start: 3, End: 4},
+		func(res blameResult) {
+			expected := fmt.Sprintf(`(?m)^\^%s.* 3\) 	// BUG HERE
+%s.* 4\) 	// fixed!
+$`, c1.Hash[:12], c2.Hash[:12])
+			assert.Regexp(t, expected, res.Output)
+		},
+		"")
+}
+
+func TestGitLog(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoDir := filepath.Join(tmpDir, "repo", "linux")
+	repo := vcs.MakeTestRepo(t, repoDir)
+	c1 := repo.CommitChangeset("initial commit", vcs.FileContent{
+		File: "foo.c",
+		Content: `
+void foo() {
+	// BUG HERE
+}
+`,
+	})
+	c2 := repo.CommitChangeset("second commit", vcs.FileContent{
+		File: "bar.c",
+		Content: `
+void bar() {
+	foo();
+}
+`,
+	})
+	c3 := repo.CommitChangeset("third commit", vcs.FileContent{
+		File: "foo.c",
+		Content: `
+void foo() {
+	// BUG HERE
+	// fixed!
+}
+`,
+	})
+
+	// Test git-log message search.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"commit"}},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
+			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
+		"")
+
+	// Test git-log multiple message regexps.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"third", "commit"}},
+		logResult{Output: fmt.Sprintf("%s third commit\n", c3.Hash[:12])},
+		"")
+
+	// Test git-log message search case-insensitive.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"COMMIT"}},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s second commit\n%s initial commit\n",
+			c3.Hash[:12], c2.Hash[:12], c1.Hash[:12])},
+		"")
+
+	// Test git-log code search (-G).
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{CodeRegexp: "fixed"},
+		logResult{Output: fmt.Sprintf("%s third commit\n", c3.Hash[:12])},
+		"")
+
+	// Test git-log symbol search (-L).
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{SymbolName: "foo", SourcePath: "foo.c"},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s initial commit\n", c3.Hash[:12], c1.Hash[:12])},
+		"")
+
+	// Test git-log path prefix.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{PathPrefix: "foo.c"},
+		logResult{Output: fmt.Sprintf("%s third commit\n%s initial commit\n", c3.Hash[:12], c1.Hash[:12])},
+		"")
+
+	// Test git-log no matches.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{MessageRegexps: []string{"non-existing"}},
+		logResult{},
+		"")
+
+	// Test git-log code search (-G) no matches.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{CodeRegexp: "non-existing"},
+		logResult{},
+		"")
+
+	// Test git-log error: missing SourcePath for symbol search.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{SymbolName: "foo"},
+		logResult{},
+		"SourcePath is required when SymbolName is set")
+
+	// Test git-log error: no filters provided.
+	aflow.TestTool(t, ToolLog,
+		state{KernelSrc: repo.Dir, KernelCommit: "HEAD"},
+		logArgs{},
+		logResult{},
+		"at least one of CodeRegexp, SymbolName, MessageRegexps, or PathPrefix must be set")
+}
