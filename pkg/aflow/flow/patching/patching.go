@@ -5,6 +5,7 @@ package patching
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/syzkaller/pkg/aflow"
 	"github.com/google/syzkaller/pkg/aflow/action/actionsyzlang"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
 	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 type Inputs struct {
@@ -66,6 +68,17 @@ func createPatchingFlow(name string, summaryWindow int) *aflow.Flow {
 			},
 			kernel.CheckoutScratch,
 			PatchGenerationLoop(summaryWindow, nil, patchInstruction, patchPrompt),
+			&aflow.LLMAgent{
+				Name:          "fixes-finder",
+				Model:         aflow.BestExpensiveModel,
+				Outputs:       aflow.ValidatedLLMOutputs[fixesFinderState, fixesFinderArgs](validateFixesHashes),
+				TaskType:      aflow.FormalReasoningTask,
+				Instruction:   fixesInstruction,
+				Prompt:        fixesPrompt,
+				Tools:         commonTools,
+				SummaryWindow: summaryWindow,
+			},
+			formatFixes,
 			getMaintainers,
 			getRecentCommits,
 			&aflow.LLMAgent{
@@ -242,7 +255,7 @@ should be used instead if necessary.
 `
 
 func PatchGenerationLoop(summaryWindow int, beforeEach aflow.Action, instruction, prompt string) aflow.Action {
-	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool)
+	commonTools := aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools)
 
 	doPipeline := []aflow.Action{}
 	if beforeEach != nil {
@@ -269,3 +282,100 @@ func PatchGenerationLoop(summaryWindow int, beforeEach aflow.Action, instruction
 		MaxIterations: 10,
 	}
 }
+
+const fixesInstruction = `
+You are an experienced Linux kernel developer tasked with identifying the commit
+that introduced the bug being fixed. Identifying the correct buggy commit is crucial
+for proper kernel maintenance (backporting to stable trees, etc.).
+
+Your investigation strategy:
+1. Examine the patch that fixes the bug. Use git tools (like git-log or git-blame)
+   to trace the history of the lines or functions modified by the patch.
+2. Analyze the stack trace in the crash report. Identify the key files and functions
+   involved in the crash and investigate their history to see when the problematic
+   logic was introduced.
+3. Compare the bug explanation with the commit history to find the point where
+   the described logic error first appeared.
+
+A bug is typically introduced when a piece of code is first written, or when
+a refactoring changed its logic in a way that introduced the bug.
+Trace the history of relevant symbols or find when specific code patterns were introduced/removed.
+
+You must provide exactly one bug-introducing commit hash.
+If you are unable to confidently determine the bug-introducing commit after investigation,
+return an empty string rather than guessing.
+`
+
+const fixesPrompt = `
+The crash is:
+
+{{.ReproducedCrashReport}}
+
+The explanation of the root cause is:
+
+{{.BugExplanation}}
+
+The patch that fixes the bug is:
+
+{{.PatchDiff}}
+
+Search for the commit(s) that introduced this bug.
+`
+
+type fixesFinderState struct {
+	KernelSrc    string
+	KernelCommit string
+}
+
+type fixesFinderArgs struct {
+	FixesHash string `jsonschema:"The commit hash that introduced the bug."`
+}
+
+func validateFixesHashes(ctx *aflow.Context, state fixesFinderState, args fixesFinderArgs) (fixesFinderArgs, error) {
+	if args.FixesHash == "" {
+		return args, nil
+	}
+	err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
+		commit, err := repo.Commit(args.FixesHash)
+		if err != nil {
+			return aflow.BadCallError("commit hash %q not found in the repository", args.FixesHash)
+		}
+		// LLM can provide a commit from a different branch.
+		// We want to ensure it is actually reachable from the current commit.
+		if _, err := repo.SwitchCommit(state.KernelCommit); err != nil {
+			return err
+		}
+		reachable, err := repo.Contains(commit.Hash)
+		if err != nil || !reachable {
+			return aflow.BadCallError("commit %q is not reachable from the current commit",
+				args.FixesHash)
+		}
+		args.FixesHash = commit.Hash
+		return nil
+	})
+	return args, err
+}
+
+type formatFixesResult struct {
+	Fixes ai.FixesTag
+}
+
+var formatFixes = aflow.NewFuncAction("format-fixes",
+	func(ctx *aflow.Context, args fixesFinderArgs) (formatFixesResult, error) {
+		var fix ai.FixesTag
+		if args.FixesHash == "" {
+			return formatFixesResult{}, nil
+		}
+		err := kernel.UseLinuxRepo(ctx, func(kernelRepoDir string, repo vcs.Repo) error {
+			commit, err := repo.Commit(args.FixesHash)
+			if err != nil {
+				return fmt.Errorf("failed to get commit %q: %w", args.FixesHash, err)
+			}
+			fix = ai.FixesTag{
+				Hash:  commit.Hash,
+				Title: commit.Title,
+			}
+			return nil
+		})
+		return formatFixesResult{Fixes: fix}, err
+	})
