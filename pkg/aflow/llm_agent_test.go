@@ -381,3 +381,82 @@ func TestOutputOverflow(t *testing.T) {
 		nil,
 	)
 }
+
+func TestValidatedLLMOutputs(t *testing.T) {
+	type flowOutputs struct {
+		Result    int
+		Unrelated int
+	}
+	type flowInputs struct {
+		StateValue int
+		Unrelated  int
+	}
+	type subState struct {
+		StateValue int
+	}
+	type flowResults struct {
+		Result int `jsonschema:"Result"`
+	}
+	testFlow[flowInputs, flowOutputs](t, map[string]any{"StateValue": 42, "Unrelated": 123},
+		map[string]any{"Result": 43, "Unrelated": 123},
+		&LLMAgent{
+			Name:  "smarty",
+			Model: "model",
+			Outputs: ValidatedLLMOutputs[subState, flowResults](
+				func(ctx *Context, state subState, args flowResults) (flowResults, error) {
+					if state.StateValue != 42 {
+						return args, fmt.Errorf("bad state value: %v", state.StateValue)
+					}
+					if args.Result == 42 {
+						return args, BadCallError("result cannot be 42")
+					}
+					if args.Result == 100 {
+						args.Result = 43
+					}
+					return args, nil
+				}),
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instructions",
+			Prompt:      "Initial Prompt with {{.StateValue}} and {{.Unrelated}}",
+		},
+		[]any{
+			// First try returns an invalid result.
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 42}}},
+			// Second try returns a result that is modified by the validation function.
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Result": 100}}},
+		},
+		nil,
+	)
+}
+
+func TestValidatedLLMOutputsVerify(t *testing.T) {
+	type flowInputs struct {
+		StateValue int
+	}
+	type flowOutputs struct {
+		Result int
+	}
+	type missingState struct {
+		MissingValue int
+	}
+	type flowResults struct {
+		Result int `jsonschema:"Result"`
+	}
+
+	testRegistrationError[flowInputs, flowOutputs](t,
+		"flow test-test: action set-results: no input MissingValue, available inputs: [StateValue]",
+		&Flow{
+			Name: "test",
+			Root: &LLMAgent{
+				Name:  "smarty",
+				Model: "model",
+				Outputs: ValidatedLLMOutputs[missingState, flowResults](
+					func(ctx *Context, state missingState, args flowResults) (flowResults, error) {
+						return args, nil
+					}),
+				TaskType:    FormalReasoningTask,
+				Instruction: "Instructions",
+				Prompt:      "Initial Prompt",
+			},
+		})
+}
