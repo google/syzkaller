@@ -113,12 +113,21 @@ func (err *modelQuotaError) Error() string {
 	return fmt.Sprintf("model %q is over daily quota", err.model)
 }
 
-func isTokenOverflowError(err error) bool {
-	var overflowErr *tokenOverflowError
+func isInputTokenOverflowError(err error) bool {
+	var overflowErr *inputTokenOverflowError
 	return errors.As(err, &overflowErr)
 }
 
-type tokenOverflowError struct {
+type inputTokenOverflowError struct {
+	error
+}
+
+func isOutputTokenOverflowError(err error) bool {
+	var overflowErr *outputTokenOverflowError
+	return errors.As(err, &overflowErr)
+}
+
+type outputTokenOverflowError struct {
 	error
 }
 
@@ -186,20 +195,12 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 		slices.Sort(models)
 		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
 	}
+	// Don't alter the original object (that may affect request caching).
+	cfgCopy := *cfg
+	cfg = &cfgCopy
 	*cfg.Temperature = min(*cfg.Temperature, info.MaxTemperature)
-	if info.Thinking {
-		// Don't alter the original object (that may affect request caching).
-		cfgCopy := *cfg
-		cfg = &cfgCopy
-		cfg.ThinkingConfig = &genai.ThinkingConfig{
-			// We capture them in the trajectory for analysis.
-			IncludeThoughts: true,
-			// Enable "dynamic thinking" ("the model will adjust the budget based on the complexity of the request").
-			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
-			// However, thoughts output also consumes total output token budget.
-			// We may consider adjusting ThinkingLevel parameter.
-			ThinkingLevel: genai.ThinkingLevelHigh,
-		}
+	if !info.Thinking {
+		cfg.ThinkingConfig = nil
 	}
 	// Sometimes LLM requests just hang dead for tens of minutes,
 	// abort them after 10 minutes and retry. We don't stream reply tokens,

@@ -93,7 +93,7 @@ func TestParseLLMError(t *testing.T) {
 		{
 			resp:      nil,
 			inputErr:  tokenError,
-			outputErr: &tokenOverflowError{tokenError},
+			outputErr: &inputTokenOverflowError{tokenError},
 		},
 		{
 			resp:      nil,
