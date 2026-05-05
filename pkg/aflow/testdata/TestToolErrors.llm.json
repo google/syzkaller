@@ -40,7 +40,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{

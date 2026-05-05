@@ -274,7 +274,7 @@ func (a *LLMAgent) chat(ctx *Context, cfg *genai.GenerateContentConfig, tools ma
 			// Input overflows maximum number of tokens.
 			// If this is an LLMTool, we remove the last tool reply,
 			// and replace it with an order to answer right now.
-			if isTokenOverflowError(respErr) &&
+			if isInputTokenOverflowError(respErr) &&
 				a.Reply == llmToolReply &&
 				len(req) >= 3 &&
 				!answerNow {
@@ -408,6 +408,15 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 		Temperature:        genai.Ptr(taskParameters[a.TaskType]),
 		SystemInstruction:  genai.NewContentFromText(instruction, genai.RoleUser),
 		Tools:              tools,
+		ThinkingConfig: &genai.ThinkingConfig{
+			// We capture them in the trajectory for analysis.
+			IncludeThoughts: true,
+			// Enable "dynamic thinking" ("the model will adjust the budget based on the complexity of the request").
+			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
+			// However, thoughts output also consumes total output token budget.
+			// We may consider adjusting ThinkingLevel parameter.
+			ThinkingLevel: genai.ThinkingLevelHigh,
+		},
 	}, instruction, toolMap
 }
 
@@ -505,6 +514,9 @@ func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfi
 			time.Sleep(retryErr.delay)
 			continue
 		}
+		if isOutputTokenOverflowError(err) {
+			// TODO: handle.
+		}
 		return resp, err
 	}
 }
@@ -575,7 +587,7 @@ func parseLLMErrorImpl(resp *genai.GenerateContentResponse, err error, model str
 	}
 	if apiErr.Code == http.StatusBadRequest &&
 		strings.Contains(apiErr.Message, "The input token count exceeds the maximum") {
-		return &tokenOverflowError{err}
+		return &inputTokenOverflowError{err}
 	}
 	if apiErr.Code == http.StatusInternalServerError {
 		// Let's assume ISE is just something temporal on the server side.
@@ -596,7 +608,10 @@ func parseLLMResp(resp *genai.GenerateContentResponse) error {
 		if candidate.FinishReason == genai.FinishReasonMalformedFunctionCall {
 			// Let's consider this as a temp error, and that the next time it won't
 			// generate the same buggy output. In either case we have maxLLMRetryIters.
-			return &retryError{0, errors.New(string(genai.FinishReasonMalformedFunctionCall))}
+			return &retryError{0, errors.New(string(candidate.FinishReason))}
+		}
+		if candidate.FinishReason == genai.FinishReasonMaxTokens {
+			return &outputTokenOverflowError{errors.New(string(candidate.FinishReason))}
 		}
 		return fmt.Errorf("%v (%v)", candidate.FinishMessage, candidate.FinishReason)
 	}

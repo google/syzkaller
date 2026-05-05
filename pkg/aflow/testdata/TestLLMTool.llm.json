@@ -49,7 +49,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -103,7 +107,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -204,7 +212,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -286,7 +298,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -446,7 +462,11 @@
 			},
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -556,7 +576,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{

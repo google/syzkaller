@@ -137,7 +137,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -384,7 +388,11 @@
 			],
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
@@ -510,7 +518,11 @@
 			"temperature": 0.3,
 			"responseModalities": [
 				"TEXT"
-			]
+			],
+			"thinkingConfig": {
+				"includeThoughts": true,
+				"thinkingLevel": "HIGH"
+			}
 		},
 		"Request": [
 			{
