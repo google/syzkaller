@@ -8,4 +8,5 @@ function func_accepting_a_struct
 function function_with_comment_in_header
 function function_with_quotes_in_type
 function open
+function reference_to_header_static
 struct struct_in_c_file
