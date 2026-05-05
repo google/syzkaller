@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/aflow/ai"
 	"github.com/google/syzkaller/pkg/aflow/tool/codeexpert"
 	"github.com/google/syzkaller/pkg/aflow/tool/codesearcher"
+	"github.com/google/syzkaller/pkg/aflow/tool/gitlog"
 	"github.com/google/syzkaller/pkg/aflow/tool/grepper"
 )
 
@@ -64,7 +65,7 @@ func createPatchIterationFlow(name string, summaryWindow int) *aflow.Flow {
 				TaskType:      aflow.FormalReasoningTask,
 				Instruction:   verdictInstruction,
 				Prompt:        verdictPrompt,
-				Tools:         aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool),
+				Tools:         aflow.Tools(codesearcher.Tools, grepper.Tool, codeexpert.Tool, gitlog.Tools),
 				SummaryWindow: summaryWindow,
 			},
 
