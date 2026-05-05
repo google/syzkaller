@@ -67,7 +67,7 @@ includes:
  - crypto.yml: [-baseline, -onlynet, -onlyusb]
  - bpf.yml: [-baseline, -onlynet, -onlyusb]
  - partitions.yml: [-baseline, -onlynet, -onlyusb, -reduced]
- - filesystems.yml: [-baseline, -onlynet, -onlyusb, -reduced]
+ - filesystems.yml: [-baseline, -onlynet, -onlyusb, -reduced, -arm64_gce]
  - media.yml: [-baseline, -onlynet, -onlyusb, -reduced]
  - bluetooth.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
  - wireless.yml: [-baseline, -onlynet, -onlyusb, -reduced, -s390]
