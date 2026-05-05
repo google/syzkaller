@@ -233,17 +233,17 @@ func NewLKMLRepo(dir string) Repo {
 }
 
 func Patch(dir string, patch []byte) error {
-	// Do --dry-run first to not mess with partially consistent state.
-	cmd := osutil.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
+	// Do --check first to not mess with partially consistent state.
+	args := []string{"apply", "-p1", "--ignore-whitespace", "--check", "-"}
+	cmd := osutil.Command("git", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
 	cmd.Stdin = bytes.NewReader(patch)
 	cmd.Dir = dir
 	if output, err := cmd.CombinedOutput(); err != nil {
-		// If it reverses clean, then it's already applied
-		// (seems to be the easiest way to detect it).
-		cmd = osutil.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
+		// If it reverses clean, then it's already applied.
+		cmd = osutil.Command("git", "apply", "-p1", "--ignore-whitespace", "--reverse", "--check", "-")
 		if err := osutil.Sandbox(cmd, true, true); err != nil {
 			return err
 		}
@@ -255,7 +255,8 @@ func Patch(dir string, patch []byte) error {
 		return fmt.Errorf("failed to apply patch:\n%s", output)
 	}
 	// Now apply for real.
-	cmd = osutil.Command("patch", "-p1", "--force", "--ignore-whitespace")
+	args = []string{"apply", "-p1", "--ignore-whitespace", "-"}
+	cmd = osutil.Command("git", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
