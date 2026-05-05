@@ -91,8 +91,8 @@ func TestAILoreIntegration(t *testing.T) {
 	assert.Equal(t, []string{"archive@lore.com"}, mockSnd.sent[0].Cc)
 
 	body := string(mockSnd.sent[0].Body)
-	assert.Contains(t, body, "Final To: maintainer@email.com")
-	assert.Contains(t, body, "Final Cc: reviewer@email.com")
+	assert.Contains(t, body, "To: <maintainer@email.com>")
+	assert.Contains(t, body, "Cc: <reviewer@email.com>")
 
 	// 3. Approval (#syz upstream).
 	loreArchive.SaveMessageAt(t, `From: user@email
