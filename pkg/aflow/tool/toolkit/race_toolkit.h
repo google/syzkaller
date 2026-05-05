@@ -42,11 +42,10 @@
 
 // Spin-wait Barrier: Wait until a memory location has a specific value.
 // Best for tight race windows (low latency, no context switches).
-#define WAIT_ON(addr, val)                                                 \
-	do {                                                               \
-		while (__atomic_load_n(addr, __ATOMIC_ACQUIRE) != (val)) { \
-			__builtin_ia32_pause();                            \
-		}                                                          \
+#define WAIT_ON(addr, val)                                               \
+	do {                                                             \
+		while (__atomic_load_n(addr, __ATOMIC_ACQUIRE) != (val)) \
+			;                                                \
 	} while (0)
 
 // Signal: Set a memory location to a specific value to release a WAIT_ON.
