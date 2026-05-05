@@ -61,9 +61,15 @@ func filterEnv() []string {
 		return strings.HasPrefix(e, "GIT_DIR") ||
 			strings.HasPrefix(e, "GIT_WORK_TREE") ||
 			strings.HasPrefix(e, "GIT_INDEX_FILE") ||
-			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY")
+			strings.HasPrefix(e, "GIT_OBJECT_DIRECTORY") ||
+			strings.HasPrefix(e, "GIT_CONFIG_")
 	})
-
+	// Prevent submodules from overriding core.hooksPath.
+	env = append(env,
+		"GIT_CONFIG_COUNT=1",
+		"GIT_CONFIG_KEY_0=core.hooksPath",
+		"GIT_CONFIG_VALUE_0=/dev/null",
+	)
 	return env
 }
 
@@ -627,6 +633,7 @@ func (git Git) Run(args ...string) ([]byte, error) {
 }
 
 func (git Git) command(args ...string) (*exec.Cmd, error) {
+	args = slices.Concat([]string{"-c", "core.hooksPath=/dev/null"}, args)
 	cmd := osutil.Command("git", args...)
 	cmd.Dir = git.Dir
 	cmd.Env = git.Env
