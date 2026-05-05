@@ -45,6 +45,11 @@ int field_refs(struct some_struct* p, union some_union* u)
 	return p->x;
 }
 
+void reference_to_header_static()
+{
+	func_in_header();
+}
+
 // compile_commands.json we create for tests defines KBUILD_BASENAME.
 // If it's not defined, compile_commands.json is not properly loaded.
 // This is supposed to fail builds, if that happens.

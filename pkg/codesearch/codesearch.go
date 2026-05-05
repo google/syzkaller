@@ -317,7 +317,8 @@ func (index *Index) FindReferences(contextFile, name, srcPrefix string, contextL
 			// the reference is in another file and refers to a static 'foo'
 			// defined in that file (which is not the target 'foo').
 			if ref.Name != name || !isField && (ref.EntityKind != target.Kind ||
-				target.IsStatic && target.Body.File != def.Body.File) {
+				target.IsStatic && !strings.HasSuffix(target.Body.File, ".h") &&
+					target.Body.File != def.Body.File) {
 				continue
 			}
 			totalCount++

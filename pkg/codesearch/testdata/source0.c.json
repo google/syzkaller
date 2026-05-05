@@ -185,6 +185,25 @@
 			}
 		},
 		{
+			"name": "reference_to_header_static",
+			"type": "void ()",
+			"kind": "function",
+			"body": {
+				"file": "source0.c",
+				"start_line": 48,
+				"end_line": 51
+			},
+			"comment": {},
+			"refs": [
+				{
+					"name": "func_in_header",
+					"kind": "calls",
+					"entity_kind": "function",
+					"line": 50
+				}
+			]
+		},
+		{
 			"name": "another_struct",
 			"kind": "struct",
 			"body": {
