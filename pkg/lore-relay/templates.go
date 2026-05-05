@@ -11,6 +11,8 @@ import (
 	"text/template"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/aflow/ai"
+	"github.com/google/syzkaller/pkg/email"
 )
 
 //go:embed templates/*.txt
@@ -45,6 +47,18 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 		CanUpstream: res.CanUpstream,
 	}
 	if res.Patch != nil {
+		var recipients []ai.Recipient
+		if res.CanUpstream {
+			for _, to := range res.Patch.To {
+				recipients = append(recipients, ai.Recipient{Email: to, To: true})
+			}
+			for _, cc := range res.Patch.Cc {
+				recipients = append(recipients, ai.Recipient{Email: cc, To: false})
+			}
+		}
+		// TODO: Figure out what Authors we want to use here.
+		res.Patch.Body = strings.TrimSpace(email.FormatPatchDescription(
+			res.Patch.Body, res.Patch.Tools, nil, recipients))
 		data.Patch = res.Patch
 		tmpl, err := templatesFS.ReadFile("templates/new_patch.txt")
 		if err != nil {
@@ -52,7 +66,6 @@ func RenderBody(cfg *Config, res *dashapi.ReportPollResult) (string, error) {
 		}
 		return renderTemplate("new_patch", string(tmpl), data)
 	}
-
 	if len(res.Replies) > 0 {
 		data.Replies = res.Replies
 		tmpl, err := templatesFS.ReadFile("templates/replies.txt")

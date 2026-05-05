@@ -113,6 +113,7 @@ type NewReportResult struct {
 	Changelog  []ChangelogEntry
 	To         []string
 	Cc         []string
+	Tools      []string
 	BaseCommit string
 	BaseTree   string
 }
