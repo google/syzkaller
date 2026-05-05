@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/aflow/trajectory"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/osutil"
 	"google.golang.org/genai"
 )
 
@@ -415,6 +416,12 @@ func (a *LLMAgent) config(ctx *Context) (*genai.GenerateContentConfig, string, m
 			// See https://ai.google.dev/gemini-api/docs/thinking#set-budget
 			// However, thoughts output also consumes total output token budget.
 			// We may consider adjusting ThinkingLevel parameter.
+			//
+			// Gemini says ThinkingLevel and ThinkingBudget specify the same,
+			// but in different ways. ThinkingBudget is precise token count.
+			// ThinkingLevel is an abstract level that maps to some unspecified
+			// number of tokens. Settings are mutually exclusive,
+			// we use ThinkingLevel.
 			ThinkingLevel: genai.ThinkingLevelHigh,
 		},
 	}, instruction, toolMap
@@ -508,14 +515,31 @@ func (a *LLMAgent) parseResponse(resp *genai.GenerateContentResponse, span *traj
 
 func (a *LLMAgent) generateContent(ctx *Context, cfg *genai.GenerateContentConfig,
 	req []*genai.Content, candidate int) (*genai.GenerateContentResponse, error) {
+	// Copy the config in case we modify it below.
+	cfg = osutil.JSONDeepCopy(cfg)
 	for try := 0; ; try++ {
 		resp, err := a.generateContentCached(ctx, cfg, req, candidate, try)
 		if retryErr := new(retryError); errors.As(err, &retryErr) {
 			time.Sleep(retryErr.delay)
 			continue
 		}
-		if isOutputTokenOverflowError(err) {
-			// TODO: handle.
+		if isOutputTokenOverflowError(err) &&
+			cfg.ThinkingConfig.ThinkingLevel != genai.ThinkingLevelMinimal {
+			// Reduce amount of thinking and try again (thinking tokens are counted against output).
+			// For non-thinking models this is effectively just a retry,
+			// but that's fine, there is some chance that retry will succeed due to randomness,
+			// or it will just fail after few retries.
+			switch cfg.ThinkingConfig.ThinkingLevel {
+			case genai.ThinkingLevelHigh:
+				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMedium
+			case genai.ThinkingLevelMedium:
+				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelLow
+			case genai.ThinkingLevelLow:
+				cfg.ThinkingConfig.ThinkingLevel = genai.ThinkingLevelMinimal
+			default:
+				return nil, fmt.Errorf("unexpected thinking level %v", cfg.ThinkingConfig.ThinkingLevel)
+			}
+			continue
 		}
 		return resp, err
 	}

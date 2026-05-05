@@ -196,8 +196,7 @@ func (ctx *Context) generateContentGemini(model string, cfg *genai.GenerateConte
 		return nil, fmt.Errorf("model %q does not exist (models: %v)", model, models)
 	}
 	// Don't alter the original object (that may affect request caching).
-	cfgCopy := *cfg
-	cfg = &cfgCopy
+	cfg = osutil.JSONDeepCopy(cfg)
 	*cfg.Temperature = min(*cfg.Temperature, info.MaxTemperature)
 	if !info.Thinking {
 		cfg.ThinkingConfig = nil

@@ -341,3 +341,43 @@ func TestAgentRegistrationErrors(t *testing.T) {
 			},
 		})
 }
+
+func TestOutputOverflow(t *testing.T) {
+	type flowResults struct {
+		Result string
+		Output int
+	}
+	overflowResp := &genai.GenerateContentResponse{
+		Candidates: []*genai.Candidate{{
+			FinishReason: genai.FinishReasonMaxTokens,
+		}},
+	}
+	testFlow[struct{}, flowResults](t, nil, string(genai.FinishReasonMaxTokens),
+		&LLMAgent{
+			Name:  "smarty",
+			Model: "model",
+			Reply: "Result",
+			Outputs: LLMOutputs[struct {
+				Output int `jsonschema:"Some output."`
+			}](),
+			TaskType:    FormalReasoningTask,
+			Instruction: "Instruction",
+			Prompt:      "Prompt",
+		},
+		[]any{
+			// First return few overflow errors. The framework should reduce amount of thinking.
+			overflowResp,
+			overflowResp,
+			overflowResp,
+			// But in the end the invocation succeeds.
+			&genai.Part{FunctionCall: &genai.FunctionCall{Name: "set-results", Args: map[string]any{"Output": 42}}},
+			// The framework should reset the thinking level back to HIGH for the new request.
+			// The request fails even with minimal level of thinking.
+			overflowResp,
+			overflowResp,
+			overflowResp,
+			overflowResp,
+		},
+		nil,
+	)
+}

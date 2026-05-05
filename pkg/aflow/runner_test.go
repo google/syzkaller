@@ -44,7 +44,7 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 	}
 	var requests []llmRequest
 	var stubTime time.Time
-	var lastConfig genai.GenerateContentConfig
+	var lastConfig *genai.GenerateContentConfig
 	generateContentStub := false
 	stub := &stubContext{
 		timeNow: func() time.Time {
@@ -56,12 +56,11 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 			// Copy config and req slices, so that future changes to these objects
 			// don't affect our stored requests.
 			var storeCfg *genai.GenerateContentConfig
-			if !reflect.DeepEqual(*cfg, lastConfig) {
+			if !reflect.DeepEqual(cfg, lastConfig) {
 				// Memorize config only if it has changed from the previous request.
 				// Most of the time it's repeated for the same agent.
-				lastConfig = *cfg
-				cfgCopy := *cfg
-				storeCfg = &cfgCopy
+				lastConfig = osutil.JSONDeepCopy(cfg)
+				storeCfg = osutil.JSONDeepCopy(cfg)
 			}
 			requests = append(requests, llmRequest{model, storeCfg, slices.Clone(req)})
 			require.NotEmpty(t, llmReplies, "unexpected LLM call")
@@ -75,6 +74,8 @@ func testFlow[Inputs, Outputs any](t *testing.T, inputs map[string]any, result a
 			switch reply := reply.(type) {
 			case error:
 				return nil, reply
+			case *genai.GenerateContentResponse:
+				return reply, nil
 			case *genai.Part:
 				return &genai.GenerateContentResponse{
 					Candidates: []*genai.Candidate{{Content: &genai.Content{
